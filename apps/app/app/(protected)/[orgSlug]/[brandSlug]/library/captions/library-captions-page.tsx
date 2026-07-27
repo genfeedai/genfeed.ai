@@ -16,6 +16,7 @@ export default function LibraryCaptionsPage({
       description="Captions, subtitles, and transcripts."
       icon={HiOutlineChatBubbleBottomCenterText}
       right={<LibraryAssetTypeFilter />}
+      titleVisibility="sr-only"
     >
       {children}
     </Container>

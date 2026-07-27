@@ -54,6 +54,7 @@ vi.mock('@genfeedai/agent', () => ({
     isComposerVisible,
     placement,
     portalTarget,
+    scopeControls,
   }: {
     artifactReferences?: ReadonlyArray<{
       reference: { recordId: string };
@@ -74,6 +75,7 @@ vi.mock('@genfeedai/agent', () => ({
     isComposerVisible?: boolean;
     placement?: string;
     portalTarget?: HTMLElement | null;
+    scopeControls?: ReactNode;
   }) => (
     <div
       data-composer-brand={brandId}
@@ -83,10 +85,13 @@ vi.mock('@genfeedai/agent', () => ({
       data-composer-visible={String(isComposerVisible)}
       data-composer-placement={placement}
       data-composer-target={
-        portalTarget?.dataset.testid ?? (portalTarget ? 'unknown' : 'inline')
+        portalTarget?.dataset.testid ??
+        portalTarget?.parentElement?.dataset.testid ??
+        (portalTarget ? 'unknown' : 'inline')
       }
       data-draft-scope={draftScopeKey}
     >
+      {scopeControls}
       {children}
       <button
         aria-label="Dispatch publish action"
@@ -429,7 +434,12 @@ describe('UniversalWorkspaceShell', () => {
     });
     inspectorConversationMount.mockClear();
     agentActions.resetActiveConversationState.mockClear();
-    agentActions.setActiveThread.mockClear();
+    agentActions.setActiveThread.mockReset();
+    agentActions.setActiveThread.mockImplementation(
+      (threadId: string | null) => {
+        agentState.activeThreadId = threadId;
+      },
+    );
     agentState.seedComposer.mockClear();
     router.back.mockClear();
     router.push.mockClear();
@@ -731,7 +741,7 @@ describe('UniversalWorkspaceShell', () => {
     expect(inspectorConversationMount).toHaveBeenCalledTimes(1);
   });
 
-  it('renders product-owned adapter context in the shared shell slots', () => {
+  it('renders product-owned adapter context in the shared shell slots', async () => {
     navigation.pathname = '/acme/moonrise/analytics/posts';
     navigation.searchParams = new URLSearchParams();
 
@@ -745,7 +755,9 @@ describe('UniversalWorkspaceShell', () => {
     expect(
       screen.getAllByText('Authoritative Analytics context').length,
     ).toBeGreaterThan(0);
-    expect(screen.getByText('Visible analytics query')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Visible analytics query'),
+    ).toBeInTheDocument();
     // The inspector renders the adapter's real context, never developer copy:
     // no raw `route:/…` breadcrumb and no `Registered … adapter slot` fallback.
     expect(screen.queryByText(/adapter slot/i)).not.toBeInTheDocument();

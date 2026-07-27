@@ -1,10 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
-import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import TopbarPublic from '@ui/topbars/public/TopbarPublic';
+// biome-ignore assist/source/organizeImports: External packages precede project aliases.
 import {
   HiChartBar,
   HiCommandLine,
@@ -12,6 +8,13 @@ import {
   HiShieldCheck,
   HiSparkles,
 } from 'react-icons/hi2';
+
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+
+import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
+import TopbarPublic from '@ui/topbars/public/TopbarPublic';
 
 const PRODUCT_LINKS = [
   {

@@ -3,6 +3,7 @@ import {
   ImportCsvDto,
 } from '@api/collections/content-performance/dto/import-csv.dto';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
+import type { IValidationErrorResponse } from '@genfeedai/interfaces';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
@@ -112,9 +113,7 @@ describe('ImportCsvDto', () => {
           (thrown: unknown) => thrown as BadRequestException,
         );
 
-      const response = error?.getResponse() as {
-        errors: { constraints?: Record<string, string>; property: string }[];
-      };
+      const response = error?.getResponse() as IValidationErrorResponse;
 
       expect(
         response.errors.find((entry) => entry.property === 'entries')

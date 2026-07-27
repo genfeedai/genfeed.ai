@@ -116,13 +116,12 @@ describe('OrchestrationSkillsPage', () => {
     expect(
       await screen.findByRole('heading', {
         level: 1,
-        name: /brand content behavior/i,
+        name: /brand content behavior for acme brand/i,
       }),
     ).toHaveClass('sr-only');
     await waitFor(() => {
       expect(listSkillsMock).toHaveBeenCalledTimes(1);
     });
-    expect(screen.getByText('Acme Brand')).toBeInTheDocument();
     const skillButtons = await screen.findAllByRole(
       'button',
       {

@@ -2,7 +2,11 @@ import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ing
 import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
+import {
+  AssetScope,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -322,6 +326,42 @@ describe('IngredientsService', () => {
       expect(ingredientDelegate.findMany).toHaveBeenCalled();
       expect(result).toBeDefined();
       expect(result.docs).toHaveLength(1);
+    });
+
+    it('generates deterministic Prisma orderBy for public ingredients', async () => {
+      ingredientDelegate.findMany.mockResolvedValue([]);
+      ingredientDelegate.count.mockResolvedValue(0);
+
+      await service.findAll(
+        {
+          orderBy: [{ createdAt: -1 }, { id: -1 }],
+          where: {
+            isDeleted: false,
+            scope: AssetScope.PUBLIC,
+            status: IngredientStatus.GENERATED,
+          },
+        },
+        { limit: 15, page: 1 },
+        false,
+      );
+
+      expect(ingredientDelegate.findMany).toHaveBeenCalledWith({
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: 0,
+        take: 15,
+        where: {
+          isDeleted: false,
+          scope: 'PUBLIC',
+          status: 'GENERATED',
+        },
+      });
+      expect(ingredientDelegate.count).toHaveBeenCalledWith({
+        where: {
+          isDeleted: false,
+          scope: 'PUBLIC',
+          status: 'GENERATED',
+        },
+      });
     });
   });
 

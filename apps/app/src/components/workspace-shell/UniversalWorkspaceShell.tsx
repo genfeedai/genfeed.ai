@@ -465,6 +465,10 @@ function UniversalWorkspaceShellContent({
     const hasScopeChanged = previousRouteScopeRef.current !== routeScope;
     if (hasScopeChanged) {
       retainedThreadIdRef.current = null;
+      const { resetActiveConversationState, setActiveThread } =
+        useAgentChatStore.getState();
+      setActiveThread(null);
+      resetActiveConversationState();
     }
     previousRouteScopeRef.current = routeScope;
 

@@ -1,6 +1,7 @@
 import { ManualInputDto } from '@api/collections/content-performance/dto/manual-input.dto';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { ContentType, CredentialPlatform } from '@genfeedai/enums';
+import type { IValidationErrorResponse } from '@genfeedai/interfaces';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
 
 const MAX_MANUAL_ENTRIES = 50;
@@ -49,9 +50,7 @@ describe('ManualInputDto', () => {
         (thrown: unknown) => thrown as BadRequestException,
       );
 
-    const response = error?.getResponse() as {
-      errors: { constraints?: Record<string, string>; property: string }[];
-    };
+    const response = error?.getResponse() as IValidationErrorResponse;
 
     expect(
       response.errors.find((entry) => entry.property === 'entries')

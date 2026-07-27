@@ -1,10 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { UpdateSettingDto } from '@api/collections/settings/dto/update-setting.dto';
-import { SettingEntity } from '@api/collections/settings/entities/setting.entity';
-import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UpdateAssetGateDto } from '@api/collections/users/dto/update-asset-gate.dto';
 import { UpdateUserDto } from '@api/collections/users/dto/update-user.dto';
 import { UpdateUserOnboardingDto } from '@api/collections/users/dto/update-user-onboarding.dto';
@@ -12,7 +8,6 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
-import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -37,13 +32,7 @@ import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/interfaces/billing';
-import {
-  BrandSerializer,
-  OrganizationSerializer,
-  SettingSerializer,
-  UserSerializer,
-} from '@genfeedai/serializers';
-import { LoggerService } from '@libs/logger/logger.service';
+import { UserSerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,
   Body,
@@ -74,67 +63,12 @@ export class UsersController {
     private readonly usersService: UsersService,
     @Inject(SUBSCRIPTIONS_SERVICE)
     private readonly subscriptionsService: ISubscriptionsService,
-    private readonly organizationsService: OrganizationsService,
-    private readonly settingsService: SettingsService,
     private readonly filesClientService: FilesClientService,
-    private readonly loggerService: LoggerService,
     private readonly membersService: MembersService,
     private readonly requestContextCacheService: RequestContextCacheService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
     private readonly betterAuthIdentityCacheService: BetterAuthIdentityCacheService,
   ) {}
-
-  private readObjectRecord(value: unknown): Record<string, unknown> {
-    return typeof value === 'object' && value !== null
-      ? (value as Record<string, unknown>)
-      : {};
-  }
-
-  private getSettingsId(settings: unknown): string | undefined {
-    const record = this.readObjectRecord(settings);
-    for (const key of ['id', '_id', 'mongoId'] as const) {
-      const value = record[key];
-
-      if (typeof value === 'string' && value.length > 0) {
-        return value;
-      }
-    }
-
-    return undefined;
-  }
-
-  private getUserIdCandidates(userData: unknown): string[] {
-    const record = this.readObjectRecord(userData);
-    const candidates = ['id', '_id', 'mongoId']
-      .map((key) => record[key])
-      .filter(
-        (value): value is string =>
-          typeof value === 'string' && value.length > 0,
-      );
-
-    return [...new Set(candidates)];
-  }
-
-  private async findUserSettings(userData: unknown): Promise<unknown | null> {
-    const record = this.readObjectRecord(userData);
-
-    if (this.getSettingsId(record.settings)) {
-      return record.settings;
-    }
-
-    for (const userId of this.getUserIdCandidates(userData)) {
-      const settings = await this.settingsService.findOne({
-        isDeleted: false,
-        user: userId,
-      });
-
-      if (settings) {
-        return settings;
-      }
-    }
-
-    return null;
-  }
 
   private isActiveSubscriptionStatus(value: unknown): boolean {
     return (
@@ -285,226 +219,6 @@ export class UsersController {
     }
 
     return serializeSingle(request, UserSerializer, data);
-  }
-
-  @Get('me/brands')
-  @Cache({
-    tags: ['accounts', 'users'],
-    ttl: 1_800, // 30 minutes
-    // keyGenerator: (user: User, query: unknown) =>
-    //   `user:${user.id}:accounts:page:${query.page || 1}:limit:${query.limit || 20}`,
-  })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findMeBrands(
-    @CurrentUser() user: User,
-    @Req() request: Request,
-    @Query() query: BaseQueryDto,
-  ) {
-    const publicMetadata = getPublicMetadata(user);
-
-    const options = {
-      customLabels,
-      ...QueryDefaultsUtil.getPaginationDefaults(query),
-    };
-
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-
-    // Check if user is a member with restricted accounts
-    let member: { brands?: string[] } | null = null;
-    try {
-      member = (await this.membersService.findOne({
-        isDeleted: false,
-        organization: publicMetadata.organization,
-        user: publicMetadata.user,
-      })) as { brands?: string[] } | null;
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `${this.constructorName} findAll: Failed to fetch member`,
-        error,
-      );
-      // Continue without member restrictions if fetch fails
-      member = null;
-    }
-
-    const brandFilter: Record<string, unknown> = {
-      isDeleted,
-      organization: publicMetadata.organization,
-    };
-
-    if (
-      member?.brands &&
-      member.brands.length > 0 &&
-      !getIsSuperAdmin(user, request)
-    ) {
-      brandFilter._id = { in: member.brands };
-    }
-
-    const data = await this.brandsService.findAll(
-      {
-        include: { credentials: true },
-        orderBy: handleQuerySort(query.sort),
-        where: brandFilter,
-      },
-      options,
-    );
-    return serializeCollection(request, BrandSerializer, data);
-  }
-
-  @Get('me/settings')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findMeSettings(@Req() request: Request, @CurrentUser() user: User) {
-    const publicMetadata = getPublicMetadata(user);
-
-    const userData = await this.usersService.findOne({
-      _id: publicMetadata.user,
-      isDeleted: false,
-    });
-
-    const settings = await this.findUserSettings(userData);
-
-    if (!userData || !settings) {
-      return returnNotFound('Settings', publicMetadata.user);
-    }
-
-    return serializeSingle(request, SettingSerializer, settings);
-  }
-
-  @Patch('me/settings')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async updateMeSettings(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Body() updateSettingDto: UpdateSettingDto,
-  ) {
-    const publicMetadata = getPublicMetadata(user);
-
-    const userData = await this.usersService.findOne({
-      _id: publicMetadata.user,
-      isDeleted: false,
-    });
-
-    const settings = await this.findUserSettings(userData);
-
-    if (!userData || !settings) {
-      return returnNotFound('Settings', publicMetadata.user);
-    }
-
-    const settingsId = this.getSettingsId(settings);
-    if (!settingsId) {
-      return returnNotFound('Settings', publicMetadata.user);
-    }
-
-    const data = await this.settingsService.patch(
-      settingsId,
-      new SettingEntity({ ...updateSettingDto }),
-    );
-
-    return data
-      ? serializeSingle(request, SettingSerializer, data)
-      : returnNotFound(this.constructorName, publicMetadata.user);
-  }
-
-  @Get('me/organizations')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findMeOrganizations(
-    @CurrentUser() user: User,
-    @Req() request: Request,
-    @Query() query: BaseQueryDto,
-  ) {
-    const publicMetadata = getPublicMetadata(user);
-
-    const options = {
-      customLabels,
-      ...QueryDefaultsUtil.getPaginationDefaults(query),
-    };
-
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const data = await this.organizationsService.findAll(
-      {
-        orderBy: handleQuerySort(query.sort),
-        where: {
-          isDeleted,
-          user: publicMetadata.user,
-        },
-      },
-      options,
-    );
-    return serializeCollection(request, OrganizationSerializer, data);
-  }
-
-  // Only used to update the isSelected field of the brand
-  @Patch('me/organizations/:organizationId')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async updateOrganizationSelection(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('organizationId') organizationId: string,
-  ) {
-    const publicMetadata = getPublicMetadata(user);
-    const organization = await this.organizationsService.findOne({
-      _id: organizationId,
-      isDeleted: false,
-      user: publicMetadata.user,
-    });
-
-    if (!organization) {
-      return returnNotFound('Organization', organizationId);
-    }
-
-    const data = await this.organizationsService.patch(organizationId, {
-      isSelected: true,
-    });
-
-    // Persist the active org to the DB so both identity resolvers route to it on
-    // the next request (epic #735, Phase C — no legacy auth provider write-back).
-    if (publicMetadata.user) {
-      await this.usersService.patch(publicMetadata.user, {
-        lastUsedOrganizationId: String(data.id),
-      });
-      await this.invalidateUserAccessCaches(publicMetadata.user);
-    }
-
-    return serializeSingle(request, OrganizationSerializer, data);
-  }
-
-  // Only used to update the isSelected field of the brand
-  @Patch('me/brands/:brandId')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async updateBrandSelection(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('brandId') brandId: string,
-  ) {
-    const publicMetadata = getPublicMetadata(user);
-
-    // Use atomic operation to prevent race condition
-    const data = await this.brandsService.selectBrandForUser(
-      brandId,
-      publicMetadata.user,
-      publicMetadata.organization,
-    );
-
-    // Active brand is persisted to the member's lastUsedBrandId below, which the
-    // identity resolvers read (epic #735, Phase C — no legacy auth provider write-back).
-    if (publicMetadata.user) {
-      await this.invalidateUserAccessCaches(publicMetadata.user);
-    }
-
-    // Persist last-used brand on the member for org-switch recall.
-    // Use the canonical cuid `data.id` — member.lastUsedBrandId is an FK to
-    // Brand.id, and writing a legacy mongoId there fails with P2003
-    // "Invalid Relationship" and blocks brand switch.
-    await this.membersService.setLastUsedBrand(
-      {
-        isActive: true,
-        isDeleted: false,
-        organization: publicMetadata.organization,
-        user: publicMetadata.user,
-      },
-      data.id,
-    );
-
-    return serializeSingle(request, BrandSerializer, data);
   }
 
   @Post('me/avatar')
@@ -731,39 +445,6 @@ export class UsersController {
     });
     return data
       ? serializeSingle(request, UserSerializer, data)
-      : returnNotFound(this.constructorName, userId);
-  }
-
-  @Patch(':userId/settings')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async updateSettings(
-    @Req() request: Request,
-    @Param('userId') userId: string,
-    @Body() updateSettingDto: UpdateSettingDto,
-  ) {
-    const user = await this.usersService.findOne({
-      _id: userId,
-      isDeleted: false,
-    });
-
-    const settings = await this.findUserSettings(user);
-
-    if (!user || !settings) {
-      return returnNotFound(this.constructorName, userId);
-    }
-
-    const settingsId = this.getSettingsId(settings);
-    if (!settingsId) {
-      return returnNotFound(this.constructorName, userId);
-    }
-
-    const data = await this.settingsService.patch(
-      settingsId,
-      new SettingEntity({ ...updateSettingDto }),
-    );
-
-    return data
-      ? serializeSingle(request, SettingSerializer, data)
       : returnNotFound(this.constructorName, userId);
   }
 }

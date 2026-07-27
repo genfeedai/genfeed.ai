@@ -1,5 +1,6 @@
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/create-manual-review-batch.dto';
+import type { IValidationErrorResponse } from '@genfeedai/interfaces';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
 
 const MAX_REVIEW_ITEMS = 100;
@@ -42,9 +43,7 @@ describe('CreateManualReviewBatchDto', () => {
 
     expect(error).toBeInstanceOf(BadRequestException);
 
-    const response = error?.getResponse() as {
-      errors: { constraints?: Record<string, string>; property: string }[];
-    };
+    const response = error?.getResponse() as IValidationErrorResponse;
 
     expect(
       response.errors.find((entry) => entry.property === 'items')?.constraints,

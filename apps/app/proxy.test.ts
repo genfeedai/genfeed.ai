@@ -547,7 +547,7 @@ describe('proxy', () => {
 
     const { default: proxy } = await import('./proxy');
     const orgScopedResponse = await proxy(
-      makeSignedInRequest('/settings'),
+      makeSignedInRequest('/settings/members'),
       {} as never,
     );
     const cookieValue = (orgScopedResponse.headers.get('set-cookie') ?? '')

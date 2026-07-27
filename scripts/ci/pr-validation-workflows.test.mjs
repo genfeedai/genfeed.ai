@@ -4,6 +4,12 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import {
+  NIGHTLY_E2E_FAILURE_LABEL,
+  reportNightlyE2eFailure,
+  selectNewestEligibleClosedTracker,
+} from './nightly-e2e-failure-reporter.mjs';
+
 const REPOSITORY_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const WORKFLOWS_DIRECTORY = path.join(REPOSITORY_ROOT, '.github', 'workflows');
 const CANCELLABLE_PULL_REQUEST_WORKFLOWS = [
@@ -30,6 +36,80 @@ function topLevelConcurrencyBlock(workflow, fileName) {
   const match = workflow.match(/^concurrency:\n((?: {2}.*(?:\n|$))+)/m);
   assert.ok(match, `${fileName} must define top-level concurrency`);
   return match[1];
+}
+
+function createNightlyReporterFixture(initialIssues = []) {
+  const issues = initialIssues.map((issue) => ({ ...issue }));
+  const calls = {
+    comments: [],
+    creates: [],
+    pagination: [],
+    updates: [],
+  };
+  const listForRepo = async () => {
+    throw new Error('listForRepo must be called through github.paginate');
+  };
+
+  const github = {
+    paginate: async (endpoint, options) => {
+      assert.equal(endpoint, listForRepo);
+      calls.pagination.push({ ...options });
+
+      const matching = issues.filter(
+        (issue) =>
+          issue.state === options.state &&
+          issue.labels.includes(NIGHTLY_E2E_FAILURE_LABEL),
+      );
+      const pages = [];
+      for (let index = 0; index < matching.length; index += options.per_page) {
+        pages.push(matching.slice(index, index + options.per_page));
+      }
+      return pages.flat();
+    },
+    rest: {
+      issues: {
+        create: async (input) => {
+          calls.creates.push({ ...input });
+          const issue = {
+            closed_at: null,
+            labels: input.labels,
+            number: 1000 + calls.creates.length,
+            state: 'open',
+          };
+          issues.push(issue);
+          return { data: issue };
+        },
+        createComment: async (input) => {
+          calls.comments.push({ ...input });
+          return { data: { id: calls.comments.length } };
+        },
+        createLabel: async () => ({ data: {} }),
+        getLabel: async () => ({ data: {} }),
+        listForRepo,
+        update: async (input) => {
+          calls.updates.push({ ...input });
+          const issue = issues.find(
+            (candidate) => candidate.number === input.issue_number,
+          );
+          assert.ok(issue, `missing fixture issue #${input.issue_number}`);
+          issue.state = input.state;
+          return { data: issue };
+        },
+      },
+    },
+  };
+
+  return { calls, github, issues };
+}
+
+function createNonCancelingReporterQueue() {
+  let tail = Promise.resolve();
+
+  return (report) => {
+    const result = tail.then(report);
+    tail = result.catch(() => {});
+    return result;
+  };
 }
 
 test('direct PR workflows cancel only within one PR or complete ref', () => {
@@ -100,4 +180,153 @@ test('server image PR validation bounds cache export without changing reachabili
   );
   assert.doesNotMatch(workflow, /cache-to: type=gha,mode=max/);
   assert.match(workflow, /^permissions:\n {2}contents: read$/m);
+});
+
+test('selects the newest eligible tracker strictly by closed_at', () => {
+  const cutoff = Date.parse('2026-06-01T00:00:00Z');
+  const selected = selectNewestEligibleClosedTracker(
+    [
+      {
+        closed_at: '2026-06-10T00:00:00Z',
+        number: 10,
+        updated_at: '2026-07-20T00:00:00Z',
+      },
+      {
+        closed_at: null,
+        number: 11,
+        updated_at: '2026-07-25T00:00:00Z',
+      },
+      {
+        closed_at: '2026-05-31T23:59:59Z',
+        number: 12,
+        updated_at: '2026-07-26T00:00:00Z',
+      },
+      {
+        closed_at: '2026-06-20T00:00:00Z',
+        number: 20,
+        updated_at: '2026-06-20T00:00:00Z',
+      },
+      {
+        closed_at: '2026-06-30T00:00:00Z',
+        number: 30,
+        pull_request: {},
+        updated_at: '2026-06-30T00:00:00Z',
+      },
+    ],
+    cutoff,
+  );
+
+  assert.equal(selected?.number, 20);
+});
+
+test('paginates closed trackers before reopening the newest closed_at candidate', async () => {
+  const closedIssues = Array.from({ length: 101 }, (_, index) => ({
+    closed_at: `2026-06-${String((index % 20) + 1).padStart(2, '0')}T00:00:00Z`,
+    labels: [NIGHTLY_E2E_FAILURE_LABEL],
+    number: index + 1,
+    state: 'closed',
+    updated_at: `2026-07-${String((index % 20) + 1).padStart(2, '0')}T00:00:00Z`,
+  }));
+  closedIssues[100] = {
+    closed_at: '2026-07-25T00:00:00Z',
+    labels: [NIGHTLY_E2E_FAILURE_LABEL],
+    number: 101,
+    state: 'closed',
+    updated_at: '2026-06-01T00:00:00Z',
+  };
+  const fixture = createNightlyReporterFixture(closedIssues);
+
+  const result = await reportNightlyE2eFailure({
+    github: fixture.github,
+    owner: 'genfeedai',
+    repo: 'genfeed.ai',
+    body: 'nightly failed',
+    now: Date.parse('2026-07-27T00:00:00Z'),
+  });
+
+  assert.deepEqual(result, { action: 'reopened', issueNumber: 101 });
+  assert.deepEqual(
+    fixture.calls.pagination.map(({ per_page, state }) => ({
+      per_page,
+      state,
+    })),
+    [
+      { per_page: 100, state: 'open' },
+      { per_page: 100, state: 'closed' },
+    ],
+  );
+  assert.deepEqual(
+    fixture.calls.updates.map(({ issue_number, state }) => ({
+      issue_number,
+      state,
+    })),
+    [{ issue_number: 101, state: 'open' }],
+  );
+  assert.equal(fixture.calls.comments.length, 1);
+  assert.equal(fixture.calls.creates.length, 0);
+});
+
+test('serializes overlapping reporter attempts into one mutation path at a time', async () => {
+  const fixture = createNightlyReporterFixture([
+    {
+      closed_at: '2026-07-25T00:00:00Z',
+      labels: [NIGHTLY_E2E_FAILURE_LABEL],
+      number: 42,
+      state: 'closed',
+      updated_at: '2026-07-25T00:00:00Z',
+    },
+  ]);
+  const enqueue = createNonCancelingReporterQueue();
+
+  const results = await Promise.all([
+    enqueue(() =>
+      reportNightlyE2eFailure({
+        github: fixture.github,
+        owner: 'genfeedai',
+        repo: 'genfeed.ai',
+        body: 'first failed run',
+        now: Date.parse('2026-07-27T00:00:00Z'),
+      }),
+    ),
+    enqueue(() =>
+      reportNightlyE2eFailure({
+        github: fixture.github,
+        owner: 'genfeedai',
+        repo: 'genfeed.ai',
+        body: 'second failed run',
+        now: Date.parse('2026-07-27T00:00:00Z'),
+      }),
+    ),
+  ]);
+
+  assert.deepEqual(results, [
+    { action: 'reopened', issueNumber: 42 },
+    { action: 'commented', issueNumber: 42 },
+  ]);
+  assert.equal(fixture.calls.updates.length, 1);
+  assert.equal(fixture.calls.creates.length, 0);
+  assert.deepEqual(
+    fixture.calls.comments.map(({ body }) => body),
+    [
+      'first failed run\n\nReopened automatically: this is the newest tracker closed within the last 30 days, and the nightly is red again.',
+      'second failed run',
+    ],
+  );
+});
+
+test('keeps E2E workflow concurrency while queueing the full reporter job', () => {
+  const workflow = readWorkflow('e2e.yml');
+
+  assert.match(
+    topLevelConcurrencyBlock(workflow, 'e2e.yml'),
+    /^ {2}group: e2e-\$\{\{ github\.workflow \}\}-\$\{\{ github\.ref \}\}\n {2}cancel-in-progress: true$/m,
+  );
+  assert.match(
+    workflow,
+    /^ {2}nightly-failure-report:[\s\S]*?^ {4}concurrency:\n {6}group: nightly-e2e-failure-reporter\n {6}cancel-in-progress: false\n {6}queue: max$/m,
+  );
+  assert.match(
+    workflow,
+    /name: Checkout workflow helpers[\s\S]*?persist-credentials: false[\s\S]*?nightly-e2e-failure-reporter\.mjs[\s\S]*?reportNightlyE2eFailure/,
+  );
 });

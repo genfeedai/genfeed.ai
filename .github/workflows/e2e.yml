@@ -493,11 +493,12 @@ jobs:
   # Nightly-only failure reporter. The scheduled E2E run is the flake alarm; when
   # it goes red, open (or update) ONE tracking issue so a broken nightly can't rot
   # unseen — the whole reason the authed job could sit red for 5+ June nightlies.
-  # Dedup order: comment on the open labelled issue; else REOPEN the most recently
-  # updated labelled issue closed within REOPEN_WINDOW_DAYS and comment on that;
-  # else create. Reopening matters because closing the tracker while the suite is
-  # still red used to spawn a fresh duplicate on the next red nightly (#1448,
-  # #1626, #1891). Only a genuinely absent/stale tracker creates a new issue.
+  # Dedup order: comment on the open labelled issue; else paginate every closed
+  # labelled issue and REOPEN the one with the newest eligible closed_at within
+  # the 30-day reopen window; else create. Reopening matters because closing the
+  # tracker while the suite is still red used to spawn a fresh duplicate on the
+  # next red nightly (#1448, #1626, #1891). Only a genuinely absent/stale tracker
+  # creates a new issue.
   # Runs ONLY on the standalone cron: a workflow_call from the deploy path inherits
   # the caller's event, so github.event_name is 'schedule' solely for the nightly.
   # Deploy gating is untouched. Keys off the aggregated gate AND the authed job
@@ -510,11 +511,23 @@ jobs:
       && github.event_name == 'schedule'
       && (needs.e2e-gate.result == 'failure'
         || needs.e2e-frontend-authed.result == 'failure')
+    # Serialize the complete label lookup + issue lookup/mutation path across
+    # scheduled runs and rerun attempts. Keep all pending reporters queued.
+    concurrency:
+      group: nightly-e2e-failure-reporter
+      cancel-in-progress: false
+      queue: max
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
+      contents: read
       issues: write
     steps:
+      - name: Checkout workflow helpers
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
       - name: Open, reopen, or update the nightly-failure issue
         uses: actions/github-script@v8
         env:
@@ -523,8 +536,16 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
           script: |
-            const label = 'nightly-e2e-failure';
-            const title = 'Nightly E2E suite is failing';
+            const path = require('node:path');
+            const { pathToFileURL } = require('node:url');
+            const { reportNightlyE2eFailure } = await import(
+              pathToFileURL(
+                path.join(
+                  process.env.GITHUB_WORKSPACE,
+                  'scripts/ci/nightly-e2e-failure-reporter.mjs',
+                ),
+              ).href,
+            );
             const failed = [];
             if (process.env.GATE_RESULT === 'failure') {
               failed.push('core gate (route coverage / frontend shards / API E2E)');
@@ -541,69 +562,4 @@ jobs:
               'This issue auto-updates on each red nightly. Close it once the nightly is green again.',
             ].join('\n');
             const { owner, repo } = context.repo;
-            // Ensure the dedup label exists so create attaches it and the
-            // list-by-label lookup below is reliable (issue-create label
-            // auto-provisioning is not guaranteed).
-            try {
-              await github.rest.issues.getLabel({ owner, repo, name: label });
-            } catch {
-              await github.rest.issues.createLabel({
-                owner,
-                repo,
-                name: label,
-                color: 'd73a4a',
-                description: 'Scheduled (nightly) E2E suite is failing',
-              });
-            }
-            const existing = await github.rest.issues.listForRepo({
-              owner,
-              repo,
-              state: 'open',
-              labels: label,
-            });
-            if (existing.data.length > 0) {
-              await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: existing.data[0].number,
-                body,
-              });
-              return;
-            }
-            // No open tracker. Closing the issue while the suite is still red must
-            // not spawn a duplicate — reopen the most recent recently-closed one
-            // instead, and only create when there is genuinely nothing to revive.
-            const reopenWindowDays = 30;
-            const cutoff = Date.now() - reopenWindowDays * 24 * 60 * 60 * 1000;
-            const closed = await github.rest.issues.listForRepo({
-              owner,
-              repo,
-              state: 'closed',
-              labels: label,
-              sort: 'updated',
-              direction: 'desc',
-              per_page: 20,
-            });
-            const revivable = closed.data.find((issue) => {
-              if (issue.pull_request) {
-                return false;
-              }
-              const closedAt = issue.closed_at || issue.updated_at;
-              return Boolean(closedAt) && Date.parse(closedAt) >= cutoff;
-            });
-            if (revivable) {
-              await github.rest.issues.update({
-                owner,
-                repo,
-                issue_number: revivable.number,
-                state: 'open',
-              });
-              await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: revivable.number,
-                body: `${body}\n\nReopened automatically: this issue was closed, but the nightly is red again.`,
-              });
-              return;
-            }
-            await github.rest.issues.create({ owner, repo, title, body, labels: [label] });
+            await reportNightlyE2eFailure({ github, owner, repo, body });

@@ -34,6 +34,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import type { TagDocument } from '@api/collections/tags/schemas/tag.schema';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
+import type { VideoDocument } from '@api/collections/videos/schemas/video.schema';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -431,18 +432,17 @@ export class OrganizationsRelationshipsController {
 
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const data: AggregatePaginateResult<IngredientDocument> =
-      await this.videosService.findAll(
-        {
-          orderBy: handleQuerySort(query.sort),
-          where: {
-            isDeleted,
-            organization: organizationId,
-            user: publicMetadata.user,
-          },
+    const data = (await this.videosService.findAll(
+      {
+        orderBy: handleQuerySort(query.sort),
+        where: {
+          isDeleted,
+          organization: organizationId,
+          user: publicMetadata.user,
         },
-        options,
-      );
+      },
+      options,
+    )) as unknown as AggregatePaginateResult<VideoDocument>;
     return serializeCollection(request, VideoSerializer, data);
   }
 
