@@ -34,9 +34,14 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   ),
 }));
 
-vi.mock('@genfeedai/serializers', () => ({
-  WarmupAccountSerializer: {},
-}));
+vi.mock('@genfeedai/serializers', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@genfeedai/serializers')>();
+  return {
+    ...actual,
+    WarmupAccountSerializer: {},
+  };
+});
 
 const makeRequest = () => ({
   url: 'https://api.genfeed.ai/admin/warmup-accounts',

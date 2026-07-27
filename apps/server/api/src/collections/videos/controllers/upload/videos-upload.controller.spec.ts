@@ -14,12 +14,17 @@ import { FilesClientService } from '@server/services/files-microservice/client/f
 import type { Request } from 'express';
 
 // Mock serializers to avoid real serialization in unit tests
-vi.mock('@genfeedai/serializers', () => ({
-  IngredientUploadSerializer: {
-    opts: {},
-    serialize: vi.fn((data) => data),
-  },
-}));
+vi.mock('@genfeedai/serializers', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@genfeedai/serializers')>();
+  return {
+    ...actual,
+    IngredientUploadSerializer: {
+      opts: {},
+      serialize: vi.fn((data) => data),
+    },
+  };
+});
 
 // Mock response util to return data directly
 vi.mock('@api/helpers/utils/response/response.util', () => ({
