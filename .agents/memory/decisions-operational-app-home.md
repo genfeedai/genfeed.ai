@@ -6,11 +6,13 @@ type: project
 
 # Operational App Home Decisions
 
-## Optimization Target
+## Current Decision
 
-Minimize frontend surface area while making `/` a reliable supervision entry
-point with strict configured-state evidence, canonical scoped links, and
-independent degradation.
+Completed users do not remain on `/`. The proxy resolves canonical organization
+and brand scope and redirects to
+`/:orgSlug/:brandSlug/workspace/overview`. If the current scope is
+organization-only, root/default entry routing selects an available brand and
+refreshes the signed workspace-scope cookie.
 
 ## Considered Approaches
 
@@ -25,15 +27,11 @@ independent degradation.
    changes an existing brand-selection landing and creates avoidable regression
    risk.
 
-Approach 1 is selected.
-
-The proxy still resolves canonical organization/brand scope at `/` so it can
-prime the signed `gf_ws` cookie, but it returns `NextResponse.next()` instead of
-redirecting completed users to Workspace. Better Auth onboarding redirects,
+The original approach 1 was superseded during live QA on 2026-07-27. The proxy
+now returns the resolved Workspace redirect. Better Auth onboarding redirects,
 stale Desktop-token handling, and canonicalization of other bare protected
 paths remain unchanged. Authenticated Desktop and keyless self-hosted roots
-also fall through to the same page so the state machine has deployment-mode
-parity.
+follow the same Workspace landing contract.
 
 ## Configured-State Evidence
 
@@ -61,9 +59,10 @@ The structured implementation plan was produced by the configured planner
 (`fable`, high effort) on 2026-07-26 with verdict `PLAN_READY`. Opus remains the
 required exact-head verifier after PR CI.
 
-The first exact-head Opus review correctly found that the pre-existing proxy
-redirect made the page unreachable. Repair cycle 1 moved the root contract into
-the proxy and added proxy-level plus real-session E2E coverage.
+The original implementation intentionally made the operational home reachable
+at `/`. Live QA superseded that route ownership: the canonical Workspace
+overview is again the completed-user landing, while the operational content is
+only a resolution-failure fallback.
 
 **Why:** Issue #1866 must remain frontend-owned and cannot infer connection from
 an unverified key or expose unscoped operational data.

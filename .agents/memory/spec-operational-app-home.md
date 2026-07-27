@@ -6,12 +6,12 @@ type: project
 
 # Operational App Home Spec
 
-## Purpose
+## Current Route Contract
 
-Make the authenticated root useful in two states: an unconfigured organization
-gets a direct Connect Genfeed path, while a configured organization gets the
-human control plane for approvals, publishing, credential health, and recent
-activity without depending on Studio.
+The completed-user root redirects to the canonical default
+`/:orgSlug/:brandSlug/workspace/overview`. The resolver selects an available
+brand when the existing workspace scope is organization-only. The operational
+home remains a bounded fallback only when canonical scope resolution fails.
 
 ## Non-Goals
 
@@ -43,9 +43,8 @@ activity without depending on Studio.
 
 ## Key Decisions
 
-- The existing authenticated `/` route owns the state machine. It preserves
-  onboarding redirects, then renders the home in place instead of redirecting a
-  configured user to Workspace.
+- The existing authenticated `/` route preserves onboarding redirects, then
+  redirects completed users to their canonical brand Workspace overview.
 - Configuration detection fails closed. Missing, malformed, future-dated, or
   incorrectly transported verification metadata is unconfigured.
 - Summary reads degrade independently. A failed API-key status read provides a
@@ -72,10 +71,12 @@ activity without depending on Studio.
 
 - WHILE onboarding is incomplete THE SYSTEM SHALL preserve the existing
   deployment-mode-specific onboarding redirects.
-- WHILE no verified MCP key exists THE SYSTEM SHALL render the authenticated root
-  as an unconfigured connection state linking to `/:orgSlug/~/connect`.
-- WHILE a verified MCP key exists THE SYSTEM SHALL render approvals, publishing
-  state, credential health, and recent activity without Studio.
+- WHEN canonical organization and brand scope resolve THE SYSTEM SHALL redirect
+  `/` to `/:orgSlug/:brandSlug/workspace/overview`.
+- WHEN no brand is selected but at least one accessible brand exists THE SYSTEM
+  SHALL use an available brand for the root redirect.
+- WHEN canonical scope resolution fails THE SYSTEM MAY render the operational
+  fallback with actionable recovery.
 - IF a summary read fails THE SYSTEM SHALL keep the page and unaffected summaries
   available and SHALL expose an actionable retry.
 - WHERE a brand-scoped action is unavailable because no brand is selected THE
@@ -87,8 +88,8 @@ activity without depending on Studio.
 
 ## Test Plan
 
-- Resolver tests cover completed and incomplete onboarding, organization
-  readiness, and rendering the home instead of redirecting to Workspace.
+- Proxy tests cover completed and incomplete onboarding, organization
+  readiness, available-brand selection, and canonical Workspace redirects.
 - Pure configured-state tests cover verified, unverified, revoked, inactive,
   expired, wrong-scope, malformed, and future-dated API keys.
 - Component tests cover loading, unconfigured, configured, no-brand, empty,

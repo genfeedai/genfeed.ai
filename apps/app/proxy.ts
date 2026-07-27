@@ -350,13 +350,19 @@ type SlugResolution = {
   slugs: WorkspaceSlugs;
 };
 
+type WorkspaceSlugResolutionOptions = {
+  preferAvailableBrand?: boolean;
+};
+
 async function resolveActiveWorkspaceSlugs(
   token: string,
   cacheKey?: string | null,
   req?: NextRequest,
+  options?: WorkspaceSlugResolutionOptions,
 ): Promise<SlugResolution | null> {
+  const preferAvailableBrand = options?.preferAvailableBrand === true;
   const cached = readWorkspaceSlugCache(cacheKey);
-  if (cached) {
+  if (cached && (!preferAvailableBrand || cached.brandSlug)) {
     return { cookieValue: null, slugs: cached };
   }
 
@@ -364,7 +370,7 @@ async function resolveActiveWorkspaceSlugs(
     const cookieRaw = req.cookies.get(WORKSPACE_SLUG_COOKIE_NAME)?.value;
     if (cookieRaw) {
       const fromCookie = await decodeSlugCookie(cookieRaw);
-      if (fromCookie) {
+      if (fromCookie && (!preferAvailableBrand || fromCookie.brandSlug)) {
         writeWorkspaceSlugCache(cacheKey, fromCookie);
         return { cookieValue: null, slugs: fromCookie };
       }
@@ -403,7 +409,7 @@ async function resolveActiveWorkspaceSlugs(
   const resolvedBrand =
     activeBrandId && matchedBrand?.slug
       ? matchedBrand
-      : activeBrandId
+      : activeBrandId || preferAvailableBrand
         ? (brands.find((brand) => Boolean(brand.slug)) ?? matchedBrand)
         : undefined;
   const brandSlug = resolvedBrand?.slug;
@@ -577,9 +583,15 @@ async function resolveCanonicalProtectedPath(
   token: string,
   cacheKey?: string | null,
   req?: NextRequest,
+  options?: WorkspaceSlugResolutionOptions,
 ): Promise<CanonicalResolution | null> {
   const canonicalPath = canonicalizeFlatProtectedPath(pathname);
-  const resolution = await resolveActiveWorkspaceSlugs(token, cacheKey, req);
+  const resolution = await resolveActiveWorkspaceSlugs(
+    token,
+    cacheKey,
+    req,
+    options,
+  );
 
   if (!resolution) {
     return null;
@@ -700,6 +712,7 @@ async function redirectSignedInUserToDefaultRoute(
     token,
     cacheKey,
     req,
+    { preferAvailableBrand: true },
   );
 
   if (!resolved) {
@@ -766,6 +779,7 @@ export async function proxy(req: NextRequest) {
           desktopToken,
           undefined,
           req,
+          { preferAvailableBrand: true },
         );
       };
 
@@ -782,7 +796,7 @@ export async function proxy(req: NextRequest) {
         return redirectPreservingSearch(req, '/login');
       }
 
-      const response = NextResponse.next();
+      const response = redirectDroppingSearch(req, resolved.path);
       if (resolved.cookieValue) {
         setSlugCookie(response, resolved.cookieValue);
       }
@@ -835,7 +849,7 @@ export async function proxy(req: NextRequest) {
     const { pathname } = req.nextUrl;
 
     if (pathname === '/') {
-      return NextResponse.next();
+      return redirectDroppingSearch(req, SEEDED_WORKSPACE_PATH);
     }
 
     if (isSeededWorkspaceEntrypoint(pathname)) {
@@ -917,10 +931,15 @@ export async function proxy(req: NextRequest) {
         token,
         sessionCookie,
         req,
+        { preferAvailableBrand: true },
       );
 
-      const response = NextResponse.next();
-      if (resolved?.cookieValue) {
+      if (!resolved) {
+        return NextResponse.next();
+      }
+
+      const response = redirectDroppingSearch(req, resolved.path);
+      if (resolved.cookieValue) {
         setSlugCookie(response, resolved.cookieValue);
       }
       return response;

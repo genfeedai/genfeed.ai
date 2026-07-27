@@ -251,13 +251,15 @@ describe('proxy', () => {
     );
   });
 
-  it('lets the signed-in operational root render when a brand is available', async () => {
+  it('redirects signed-in root to the active workspace overview', async () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(makeSignedInRequest('/'), {} as never);
 
-    expect(response.status).toBe(200);
-    expect(response.headers.get('location')).toBeNull();
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+    );
   });
 
   it('redirects signed-in root to onboarding when a seeded brand exists but onboarding is incomplete', async () => {
@@ -427,7 +429,7 @@ describe('proxy', () => {
     });
   });
 
-  it('lets completed users open operational home when their only brand is seeded', async () => {
+  it('redirects completed users with a seeded brand to its workspace overview', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
 
@@ -466,11 +468,13 @@ describe('proxy', () => {
 
     const response = await proxy(makeSignedInRequest('/'), {} as never);
 
-    expect(response.status).toBe(200);
-    expect(response.headers.get('location')).toBeNull();
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/default/workspace/overview',
+    );
   });
 
-  it('lets signed-in root resolve brand scope when no brand is selected', async () => {
+  it('redirects signed-in root using the available brand when none is selected', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
 
@@ -504,8 +508,65 @@ describe('proxy', () => {
 
     const response = await proxy(makeSignedInRequest('/'), {} as never);
 
-    expect(response.status).toBe(200);
-    expect(response.headers.get('location')).toBeNull();
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+    );
+  });
+
+  it('refreshes a brandless workspace cookie before redirecting root', async () => {
+    vi.stubEnv('COOKIE_SECRET', 'test-secret-at-least-32-chars-long!!');
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+
+      if (url.endsWith('/auth/token')) {
+        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
+          status: 200,
+        });
+      }
+
+      if (url.endsWith('/auth/bootstrap')) {
+        return new Response(
+          JSON.stringify({
+            access: {},
+            brands: [{ id: 'brand_1', slug: 'moonrise-studio' }],
+          }),
+          { status: 200 },
+        );
+      }
+
+      if (url.endsWith('/organizations/mine')) {
+        return new Response(
+          JSON.stringify([{ isActive: true, slug: 'acme' }]),
+          { status: 200 },
+        );
+      }
+
+      return new Response('not found', { status: 404 });
+    });
+
+    const { default: proxy } = await import('./proxy');
+    const orgScopedResponse = await proxy(
+      makeSignedInRequest('/settings'),
+      {} as never,
+    );
+    const cookieValue = (orgScopedResponse.headers.get('set-cookie') ?? '')
+      .match(/gf_ws=([^;]+)/)
+      ?.at(1);
+
+    expect(cookieValue).toBeTruthy();
+
+    const response = await proxy(
+      makeSignedInRequest('/', {
+        extraCookies: { gf_ws: cookieValue ?? '' },
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+    );
   });
 
   it('redirects signed-in root to onboarding when no workspace exists', async () => {
@@ -541,7 +602,7 @@ describe('proxy', () => {
     );
   });
 
-  it('lets signed-in root render with the active brand when multiple brands exist', async () => {
+  it('redirects signed-in root using the active brand when multiple brands exist', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
 
@@ -578,8 +639,10 @@ describe('proxy', () => {
 
     const response = await proxy(makeSignedInRequest('/'), {} as never);
 
-    expect(response.status).toBe(200);
-    expect(response.headers.get('location')).toBeNull();
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+    );
   });
 
   it('falls through on root when slug resolution fails', async () => {
@@ -1088,7 +1151,7 @@ describe('proxy', () => {
     expect(response.status).toBe(200);
   });
 
-  it('lets the keyless self-hosted root render operational home', async () => {
+  it('redirects the keyless self-hosted root to the seeded workspace overview', async () => {
     vi.stubEnv('NEXT_PUBLIC_BETTER_AUTH_ENABLED', 'false');
     vi.stubEnv('BETTER_AUTH_SECRET', undefined);
 
@@ -1096,8 +1159,10 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
     const response = await proxy(makeSignedOutRequest('/'), {} as never);
 
-    expect(response.status).toBe(200);
-    expect(response.headers.get('location')).toBeNull();
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/default/default/workspace/overview',
+    );
   });
 
   it('canonicalizes bare protected routes in desktop shell mode when a desktop token is present', async () => {
@@ -1132,7 +1197,7 @@ describe('proxy', () => {
     process.env.BETTER_AUTH_SECRET = 'sk_test';
   });
 
-  it('lets an authenticated desktop shell render operational home', async () => {
+  it('redirects an authenticated desktop shell to its workspace overview', async () => {
     delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
     delete process.env.BETTER_AUTH_SECRET;
     process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
@@ -1153,8 +1218,10 @@ describe('proxy', () => {
       {} as never,
     );
 
-    expect(response.status).toBe(200);
-    expect(response.headers.get('location')).toBeNull();
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+    );
 
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
     process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'pk_test';
