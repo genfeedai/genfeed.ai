@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { ComposePage } from '../../pages/compose.page';
@@ -46,7 +47,7 @@ test.describe('Compose — Navigation', () => {
   test('should not redirect authenticated user away from compose', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/compose/post');
+    await authenticatedPage.goto(APP_ROUTES.COMPOSE.POST);
     await authenticatedPage.waitForLoadState('domcontentloaded');
 
     // Should stay on compose, not redirect to login

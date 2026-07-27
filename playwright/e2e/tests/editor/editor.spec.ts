@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { StudioPage } from '../../pages/studio.page';
@@ -21,7 +22,7 @@ test.describe('Editor', () => {
 
   test.describe('Editor Projects Page', () => {
     test('should load editor projects page', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/editor');
+      await authenticatedPage.goto(APP_ROUTES.EDITOR.ROOT);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/\/editor$/);
@@ -30,7 +31,7 @@ test.describe('Editor', () => {
     test('should display editor shell with main content', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/editor');
+      await authenticatedPage.goto(APP_ROUTES.EDITOR.ROOT);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(
@@ -58,7 +59,7 @@ test.describe('Editor', () => {
         },
       );
 
-      await authenticatedPage.goto('/editor');
+      await authenticatedPage.goto(APP_ROUTES.EDITOR.ROOT);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(
@@ -72,7 +73,7 @@ test.describe('Editor', () => {
     test('should render on mobile viewport', async ({ authenticatedPage }) => {
       await authenticatedPage.setViewportSize({ height: 667, width: 375 });
 
-      await authenticatedPage.goto('/editor');
+      await authenticatedPage.goto(APP_ROUTES.EDITOR.ROOT);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/\/editor$/);
@@ -81,7 +82,7 @@ test.describe('Editor', () => {
     test('should render on tablet viewport', async ({ authenticatedPage }) => {
       await authenticatedPage.setViewportSize({ height: 1024, width: 768 });
 
-      await authenticatedPage.goto('/editor');
+      await authenticatedPage.goto(APP_ROUTES.EDITOR.ROOT);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/\/editor$/);
@@ -92,7 +93,7 @@ test.describe('Editor', () => {
     test('should load new editor project page', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/editor/new');
+      await authenticatedPage.goto(APP_ROUTES.EDITOR.NEW);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/\/editor\/new$/);
@@ -101,7 +102,7 @@ test.describe('Editor', () => {
     test('should display blank editor canvas', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/editor/new');
+      await authenticatedPage.goto(APP_ROUTES.EDITOR.NEW);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(
@@ -113,7 +114,7 @@ test.describe('Editor', () => {
     test('should display editor toolbar or controls', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/editor/new');
+      await authenticatedPage.goto(APP_ROUTES.EDITOR.NEW);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Look for toolbar, controls, or canvas elements
@@ -135,7 +136,7 @@ test.describe('Editor', () => {
     test('should display save or publish controls', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/editor/new');
+      await authenticatedPage.goto(APP_ROUTES.EDITOR.NEW);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Look for save/publish/export buttons
@@ -149,7 +150,7 @@ test.describe('Editor', () => {
     test('should render on mobile viewport', async ({ authenticatedPage }) => {
       await authenticatedPage.setViewportSize({ height: 667, width: 375 });
 
-      await authenticatedPage.goto('/editor/new');
+      await authenticatedPage.goto(APP_ROUTES.EDITOR.NEW);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/\/editor\/new$/);
@@ -166,7 +167,7 @@ test.describe('Editor', () => {
       await studioPage.waitForPageLoad();
 
       // Navigate to editor
-      await authenticatedPage.goto('/editor');
+      await authenticatedPage.goto(APP_ROUTES.EDITOR.ROOT);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/\/editor$/);
@@ -175,7 +176,7 @@ test.describe('Editor', () => {
     test('should navigate from editor list to new project', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/editor');
+      await authenticatedPage.goto(APP_ROUTES.EDITOR.ROOT);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Look for a "New" or "Create" button/link
@@ -194,7 +195,7 @@ test.describe('Editor', () => {
         await expect(authenticatedPage).toHaveURL(/\/editor(?:\/new)?/);
       } else {
         // Direct navigation fallback
-        await authenticatedPage.goto('/editor/new');
+        await authenticatedPage.goto(APP_ROUTES.EDITOR.NEW);
         await authenticatedPage.waitForLoadState('domcontentloaded');
         await expect(authenticatedPage).toHaveURL(/\/editor\/new$/);
       }
@@ -218,7 +219,7 @@ test.describe('Editor', () => {
         },
       );
 
-      await authenticatedPage.goto('/editor');
+      await authenticatedPage.goto(APP_ROUTES.EDITOR.ROOT);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Page should handle error gracefully without crashing
@@ -231,7 +232,7 @@ test.describe('Editor — Unauthenticated Access', () => {
   test('should redirect editor page to login', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto('/editor', {
+    await unauthenticatedPage.goto(APP_ROUTES.EDITOR.ROOT, {
       timeout: 30000,
       waitUntil: 'domcontentloaded',
     });
@@ -244,7 +245,7 @@ test.describe('Editor — Unauthenticated Access', () => {
   test('should redirect new editor page to login', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto('/editor/new', {
+    await unauthenticatedPage.goto(APP_ROUTES.EDITOR.NEW, {
       timeout: 30000,
       waitUntil: 'domcontentloaded',
     });
@@ -257,10 +258,13 @@ test.describe('Editor — Unauthenticated Access', () => {
   test('should redirect editor detail page to login', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto('/editor/test-project-id', {
-      timeout: 30000,
-      waitUntil: 'domcontentloaded',
-    });
+    await unauthenticatedPage.goto(
+      `${APP_ROUTES.EDITOR.ROOT}/test-project-id`,
+      {
+        timeout: 30000,
+        waitUntil: 'domcontentloaded',
+      },
+    );
 
     await expect(unauthenticatedPage).toHaveURL(/login|sign-in/, {
       timeout: 10000,

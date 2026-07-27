@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 
@@ -40,17 +41,17 @@ export class ComposePage {
   }
 
   async gotoPost(): Promise<void> {
-    await this.page.goto('/compose/post');
+    await this.page.goto(APP_ROUTES.COMPOSE.POST);
     await this.waitForPageLoad();
   }
 
   async gotoArticle(): Promise<void> {
-    await this.page.goto('/compose/article');
+    await this.page.goto(APP_ROUTES.COMPOSE.ARTICLE);
     await this.waitForPageLoad();
   }
 
   async gotoNewsletter(): Promise<void> {
-    await this.page.goto('/compose/newsletter');
+    await this.page.goto(APP_ROUTES.COMPOSE.NEWSLETTER);
     await this.waitForPageLoad();
   }
 

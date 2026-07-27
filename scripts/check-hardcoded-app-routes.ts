@@ -13,6 +13,8 @@
  *     double, or non-interpolated template) beginning with a known route root.
  *   - `push()` / `replace()` / `redirect()` / `assign()` calls whose SOLE argument
  *     is such a string literal.
+ *   - Playwright `.goto()` calls and shared route-render helpers whose route is
+ *     inside a known app-route family, including dynamic descendants.
  *
  * WHAT THIS DELIBERATELY IGNORES:
  *   - `href={APP_ROUTES.X}` / `push(createBrandAppRoute(...))` — already migrated.
@@ -20,12 +22,17 @@
  *   - `String.prototype.replace('/a', '/b')` — two args, so the literal is not the
  *     sole argument and is left untouched.
  *   - `.startsWith('/x')`, `path === '/x'` — path inspection, not navigation.
- *   - Test / story fixtures and `routes.constant.ts` itself.
+ *   - Unit tests, story fixtures, and `routes.constant.ts` itself. Playwright E2E
+ *     navigation is checked separately because it exercises the production routes.
  */
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
+import {
+  APP_ROUTES,
+  LEGACY_APP_ROUTES,
+} from '../packages/constants/src/routes.constant';
 
 const logger = {
   error: (message: string) =>
@@ -38,6 +45,8 @@ const INCLUDE_GLOBS = [
   'packages/ui/src/**/*.{ts,tsx}',
   'packages/pages/**/*.{ts,tsx}',
 ];
+
+const PLAYWRIGHT_INCLUDE_GLOBS = ['playwright/e2e/**/*.{ts,tsx}'];
 
 const EXCLUDE_GLOBS = [
   '**/*.test.*',
@@ -96,7 +105,7 @@ const ROOT_ALTERNATION = ROUTE_ROOTS.join('|');
  * with `/<root>` and (for template literals) contains no `${` interpolation
  * before the closing quote.
  */
-const ROUTE_LITERAL = `(['"\`])(\\/(?:${ROOT_ALTERNATION})(?:\\/[^'"\`$]*)?)\\1`;
+const ROUTE_LITERAL = `(['"\`])(\\/(?:${ROOT_ALTERNATION})(?:[/?#][^'"\`$]*)?)\\1`;
 
 /**
  * JSX `href` / `to` attribute bound to a route-root literal, either as a bare
@@ -113,6 +122,16 @@ const JSX_ATTR_PATTERN = new RegExp(
  */
 const NAV_CALL_PATTERN = new RegExp(
   `(?:push|replace|redirect|assign)\\(\\s*${ROUTE_LITERAL}\\s*\\)`,
+  'g',
+);
+
+const PLAYWRIGHT_GOTO_PATTERN = new RegExp(
+  `\\.goto\\(\\s*${ROUTE_LITERAL}`,
+  'g',
+);
+
+const PLAYWRIGHT_ROUTE_HELPER_PATTERN = new RegExp(
+  `\\b(?:assertHealthy|assertRouteRenders|goToSettings|navigateTo)\\(\\s*[^,]+,\\s*${ROUTE_LITERAL}`,
   'g',
 );
 
@@ -140,16 +159,36 @@ type Violation = {
   path: string;
 };
 
+function collectRouteValues(value: unknown): string[] {
+  if (typeof value === 'string') {
+    return [value];
+  }
+  if (!value || typeof value !== 'object') {
+    return [];
+  }
+  return Object.values(value).flatMap(collectRouteValues);
+}
+
+const CANONICAL_APP_ROUTE_VALUES = new Set(collectRouteValues(APP_ROUTES));
+const CANONICAL_NON_ROOT_ROUTE_VALUES = [...CANONICAL_APP_ROUTE_VALUES].filter(
+  (route) => route !== APP_ROUTES.ROOT,
+);
+
 function collect(
   content: string,
   pattern: RegExp,
   filePath: string,
   rootDir: string,
   violations: Violation[],
+  shouldFlag: (routePath: string) => boolean = () => true,
 ): void {
   for (const match of content.matchAll(pattern)) {
     const routePath = match[2];
-    if (!routePath || ALLOWLISTED_ROUTE_VALUES.has(routePath)) {
+    if (
+      !routePath ||
+      ALLOWLISTED_ROUTE_VALUES.has(routePath) ||
+      !shouldFlag(routePath)
+    ) {
       continue;
     }
     const index = match.index ?? 0;
@@ -162,12 +201,50 @@ function collect(
   }
 }
 
+function shouldFlagPlaywrightRoute(routePath: string): boolean {
+  const pathname = routePath.split(/[?#]/, 1)[0] ?? routePath;
+  return (
+    CANONICAL_NON_ROOT_ROUTE_VALUES.some(
+      (canonicalRoute) =>
+        pathname === canonicalRoute ||
+        pathname.startsWith(`${canonicalRoute}/`),
+    ) ||
+    pathname === LEGACY_APP_ROUTES.TASKS ||
+    pathname.startsWith(`${LEGACY_APP_ROUTES.TASKS}/`)
+  );
+}
+
 function findViolations(filePath: string, rootDir: string): Violation[] {
   const content = readFileSync(filePath, 'utf8');
   const violations: Violation[] = [];
   collect(content, JSX_ATTR_PATTERN, filePath, rootDir, violations);
   collect(content, NAV_CALL_PATTERN, filePath, rootDir, violations);
   collect(content, OBJECT_PROP_PATTERN, filePath, rootDir, violations);
+  return violations;
+}
+
+function findPlaywrightViolations(
+  filePath: string,
+  rootDir: string,
+): Violation[] {
+  const content = readFileSync(filePath, 'utf8');
+  const violations: Violation[] = [];
+  collect(
+    content,
+    PLAYWRIGHT_GOTO_PATTERN,
+    filePath,
+    rootDir,
+    violations,
+    shouldFlagPlaywrightRoute,
+  );
+  collect(
+    content,
+    PLAYWRIGHT_ROUTE_HELPER_PATTERN,
+    filePath,
+    rootDir,
+    violations,
+    shouldFlagPlaywrightRoute,
+  );
   return violations;
 }
 
@@ -178,10 +255,18 @@ export function runCheckHardcodedAppRoutes(): { violations: Violation[] } {
     ignore: EXCLUDE_GLOBS,
     nodir: true,
   });
+  const playwrightFiles = globSync(PLAYWRIGHT_INCLUDE_GLOBS, {
+    absolute: true,
+    ignore: ['**/node_modules/**', '**/dist/**'],
+    nodir: true,
+  });
 
   const allViolations: Violation[] = [];
   for (const filePath of files) {
     allViolations.push(...findViolations(filePath, rootDir));
+  }
+  for (const filePath of playwrightFiles) {
+    allViolations.push(...findPlaywrightViolations(filePath, rootDir));
   }
 
   return { violations: allViolations };
@@ -199,7 +284,8 @@ if (isMainModule()) {
     logger.error(
       'Hardcoded route-root literals found in navigation sinks. Use APP_ROUTES.*' +
         ' constants, or createBrandAppRoute / createOrganizationAppRoute for' +
-        ' org/brand-scoped links (both from @genfeedai/constants).',
+        ' org/brand-scoped links (both from @genfeedai/constants). Playwright' +
+        ' navigation calls must use the same route contract.',
     );
     for (const violation of violations) {
       logger.error(

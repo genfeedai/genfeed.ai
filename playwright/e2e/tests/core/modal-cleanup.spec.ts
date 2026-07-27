@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { Page } from '@playwright/test';
 import {
   mockActiveSubscription,
@@ -57,7 +58,7 @@ test.describe('Modal cleanup', () => {
   test('route transitions clear stale modal body and app-root locks', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/workspace/overview');
+    await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW);
     // Page h1 is "Dashboard" (level 1); "Workspace" now lives in the breadcrumb.
     await expect(
       authenticatedPage.getByRole('heading', { level: 1, name: 'Dashboard' }),

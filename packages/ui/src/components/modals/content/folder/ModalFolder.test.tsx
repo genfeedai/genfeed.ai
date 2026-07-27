@@ -1,9 +1,13 @@
+import { PageScope } from '@genfeedai/enums';
+import type { IFolder } from '@genfeedai/interfaces';
 import { render, screen } from '@testing-library/react';
 import ModalFolder from '@ui/modals/content/folder/ModalFolder';
 import type { PropsWithChildren } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
+const setValueMock = vi.hoisted(() => vi.fn());
+
 vi.mock('@ui/modals/modal/Modal', () => ({
   default: ({ children }: PropsWithChildren) => (
     <div data-testid="modal">{children}</div>
@@ -21,10 +25,10 @@ vi.mock('@genfeedai/hooks/ui/use-crud-modal/use-crud-modal', () => ({
       control: {},
       formState: { errors: {}, isValid: false },
       getValues: vi.fn(),
-      handleSubmit: vi.fn((fn: Function) => fn),
+      handleSubmit: vi.fn((fn: (...args: never[]) => unknown) => fn),
       register: vi.fn(),
       reset: vi.fn(),
-      setValue: vi.fn(),
+      setValue: setValueMock,
       watch: vi.fn(() => ''),
     },
     formRef: { current: null },
@@ -65,7 +69,7 @@ vi.mock('@ui/primitives/select', () => ({
 }));
 
 vi.mock('@ui/primitives/field', () => ({
-  default: ({ children }: any) => <div>{children}</div>,
+  default: ({ children }: PropsWithChildren) => <div>{children}</div>,
 }));
 
 vi.mock('@ui/primitives/button', () => ({
@@ -86,6 +90,10 @@ describe('ModalFolder', () => {
     onConfirm: vi.fn(),
   };
 
+  beforeEach(() => {
+    setValueMock.mockClear();
+  });
+
   it('renders folder form', () => {
     render(<ModalFolder {...defaultProps} />);
     expect(screen.getByTestId('modal')).toBeInTheDocument();
@@ -96,7 +104,41 @@ describe('ModalFolder', () => {
       id: 'folder-1',
       label: 'Test Folder',
     };
-    render(<ModalFolder {...defaultProps} item={folder as any} />);
+    render(
+      <ModalFolder {...defaultProps} item={folder as unknown as IFolder} />,
+    );
     expect(screen.getByTestId('modal')).toBeInTheDocument();
+  });
+
+  it('defaults new brand-scoped folders to the active brand', async () => {
+    render(
+      <ModalFolder
+        {...defaultProps}
+        brandId="brand-1"
+        scope={PageScope.BRAND}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(setValueMock).toHaveBeenCalledWith('brand', 'brand-1', {
+        shouldValidate: true,
+      });
+    });
+  });
+
+  it('keeps new organization-scoped folders shared', () => {
+    render(
+      <ModalFolder
+        {...defaultProps}
+        brandId="brand-1"
+        scope={PageScope.ORGANIZATION}
+      />,
+    );
+
+    expect(setValueMock).not.toHaveBeenCalledWith(
+      'brand',
+      expect.anything(),
+      expect.anything(),
+    );
   });
 });

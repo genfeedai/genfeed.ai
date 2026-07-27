@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 
@@ -103,7 +104,7 @@ export class CalendarPage {
     );
 
     // Filter controls
-    this.listViewLink = page.locator('a[href="/posts"]');
+    this.listViewLink = page.locator(`a[href="${APP_ROUTES.POSTS.ROOT}"]`);
 
     // Post modal
     this.postModal = page.locator('[role="dialog"]');
@@ -120,12 +121,7 @@ export class CalendarPage {
   // ── Navigation ──────────────────────────────────────────
 
   async gotoPosts(): Promise<void> {
-    await this.page.goto('/calendar/posts');
-    await this.waitForPageLoad();
-  }
-
-  async gotoArticles(): Promise<void> {
-    await this.page.goto('/calendar/articles');
+    await this.page.goto(APP_ROUTES.POSTS.CALENDAR);
     await this.waitForPageLoad();
   }
 

@@ -1,3 +1,8 @@
+import {
+  APP_ROUTE_PREFIXES,
+  APP_ROUTES,
+  createBrandAppRoute,
+} from '@genfeedai/constants';
 import { describe, expect, it, vi } from 'vitest';
 import config from './next.config';
 
@@ -20,26 +25,63 @@ describe('app next.config redirects', () => {
   it('redirects /workspace/inbox to /workspace/inbox/unread', async () => {
     const redirects = await config.redirects?.();
     const inboxRedirect = redirects?.find(
-      (redirect) => redirect.source === '/workspace/inbox',
+      (redirect) => redirect.source === APP_ROUTES.WORKSPACE.INBOX,
     );
 
     expect(inboxRedirect).toEqual({
-      destination: '/workspace/inbox/unread',
+      destination: APP_ROUTES.WORKSPACE.INBOX_UNREAD,
       permanent: false,
-      source: '/workspace/inbox',
+      source: APP_ROUTES.WORKSPACE.INBOX,
     });
   });
 
   it('redirects org/brand-scoped /:orgSlug/:brandSlug/workspace/inbox to its unread view', async () => {
     const redirects = await config.redirects?.();
     const scopedInboxRedirect = redirects?.find(
-      (redirect) => redirect.source === '/:orgSlug/:brandSlug/workspace/inbox',
+      (redirect) =>
+        redirect.source ===
+        createBrandAppRoute(
+          ':orgSlug',
+          ':brandSlug',
+          APP_ROUTES.WORKSPACE.INBOX,
+        ),
     );
 
     expect(scopedInboxRedirect).toEqual({
-      destination: '/:orgSlug/:brandSlug/workspace/inbox/unread',
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.WORKSPACE.INBOX_UNREAD,
+      ),
       permanent: false,
-      source: '/:orgSlug/:brandSlug/workspace/inbox',
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.WORKSPACE.INBOX,
+      ),
+    });
+  });
+
+  it('redirects legacy Library ingredients routes to the canonical overview', async () => {
+    const redirects = await config.redirects?.();
+
+    expect(redirects).toContainEqual({
+      destination: APP_ROUTES.LIBRARY.OVERVIEW,
+      permanent: false,
+      source: APP_ROUTES.LIBRARY.INGREDIENTS,
+    });
+    expect(redirects).toContainEqual({
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.LIBRARY.OVERVIEW,
+      ),
+      permanent: false,
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.LIBRARY.INGREDIENTS,
+      ),
     });
   });
 
@@ -74,40 +116,50 @@ describe('app next.config redirects', () => {
   it('redirects org-scoped /research to /research/discovery', async () => {
     const redirects = await config.redirects?.();
     const researchRedirect = redirects?.find(
-      (redirect) => redirect.source === '/:orgSlug/:brandSlug/research',
+      (redirect) =>
+        redirect.source ===
+        createBrandAppRoute(':orgSlug', ':brandSlug', APP_ROUTES.RESEARCH.ROOT),
     );
 
     expect(researchRedirect).toEqual({
-      destination: '/:orgSlug/:brandSlug/research/discovery',
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.RESEARCH.DISCOVERY,
+      ),
       permanent: false,
-      source: '/:orgSlug/:brandSlug/research',
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.RESEARCH.ROOT,
+      ),
     });
   });
 
   it('redirects /studio to /studio/image only', async () => {
     const redirects = await config.redirects?.();
     const studioRedirect = redirects?.find(
-      (redirect) => redirect.source === '/studio',
+      (redirect) => redirect.source === APP_ROUTES.STUDIO.ROOT,
     );
 
     expect(studioRedirect).toEqual({
-      destination: '/studio/image',
+      destination: APP_ROUTES.STUDIO.IMAGE,
       permanent: false,
-      source: '/studio',
+      source: APP_ROUTES.STUDIO.ROOT,
     });
   });
 
   it('does not define a broad studio wildcard redirect', async () => {
     const redirects = await config.redirects?.();
     const studioRedirects = redirects?.filter((redirect) =>
-      redirect.source.startsWith('/studio'),
+      redirect.source.startsWith(APP_ROUTE_PREFIXES.STUDIO),
     );
 
     expect(studioRedirects).toEqual([
       {
-        destination: '/studio/image',
+        destination: APP_ROUTES.STUDIO.IMAGE,
         permanent: false,
-        source: '/studio',
+        source: APP_ROUTES.STUDIO.ROOT,
       },
     ]);
   });

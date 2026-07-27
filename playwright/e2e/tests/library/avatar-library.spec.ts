@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { Page } from '@playwright/test';
 import {
   mockActiveSubscription,
@@ -25,7 +26,7 @@ test.describe('Avatar Library', () => {
   test('shows avatar source and video assets in the filtered avatar library', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/library/avatars', {
+    await authenticatedPage.goto(APP_ROUTES.LIBRARY.AVATARS, {
       timeout: 60000,
       waitUntil: 'domcontentloaded',
     });
@@ -43,7 +44,7 @@ test.describe('Avatar Library', () => {
   test('opens avatar source details with default-avatar actions', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/library/avatars', {
+    await authenticatedPage.goto(APP_ROUTES.LIBRARY.AVATARS, {
       timeout: 60000,
       waitUntil: 'domcontentloaded',
     });
@@ -62,7 +63,7 @@ test.describe('Avatar Library', () => {
   test('hides default-avatar actions for avatar video variants', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/library/avatars', {
+    await authenticatedPage.goto(APP_ROUTES.LIBRARY.AVATARS, {
       timeout: 60000,
       waitUntil: 'domcontentloaded',
     });

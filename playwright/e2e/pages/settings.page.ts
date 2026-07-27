@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 
@@ -286,7 +287,7 @@ export class SettingsPage {
   }
 
   async goToOrganization(): Promise<void> {
-    await this.page.goto('/settings/organization', {
+    await this.page.goto(APP_ROUTES.SETTINGS.ORGANIZATION, {
       timeout: 60000,
       waitUntil: 'domcontentloaded',
     });

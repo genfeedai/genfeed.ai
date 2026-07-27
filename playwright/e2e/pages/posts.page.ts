@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 
@@ -234,32 +235,32 @@ export class PostsPage {
   // ── Navigation ──────────────────────────────────────────
 
   async gotoDrafts(): Promise<void> {
-    await this.page.goto('/posts');
+    await this.page.goto(APP_ROUTES.POSTS.ROOT);
     await this.waitForPageLoad();
   }
 
   async gotoScheduled(): Promise<void> {
-    await this.page.goto('/posts/scheduled');
+    await this.page.goto(APP_ROUTES.POSTS.SCHEDULED);
     await this.waitForPageLoad();
   }
 
   async gotoPublished(): Promise<void> {
-    await this.page.goto('/posts/published');
+    await this.page.goto(APP_ROUTES.POSTS.PUBLISHED);
     await this.waitForPageLoad();
   }
 
   async gotoEngage(): Promise<void> {
-    await this.page.goto('/analytics/posts');
+    await this.page.goto(APP_ROUTES.ANALYTICS.POSTS);
     await this.waitForPageLoad();
   }
 
   async gotoReview(): Promise<void> {
-    await this.page.goto('/posts/review');
+    await this.page.goto(APP_ROUTES.POSTS.REVIEW);
     await this.waitForPageLoad();
   }
 
   async gotoCalendar(): Promise<void> {
-    await this.page.goto('/posts/calendar');
+    await this.page.goto(APP_ROUTES.POSTS.CALENDAR);
     await this.waitForPageLoad();
   }
 

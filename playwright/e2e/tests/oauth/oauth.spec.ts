@@ -21,13 +21,13 @@ test.describe('OAuth Routes', () => {
   }
 
   test('oauth cli stays interactive', async ({ authenticatedPage }) => {
-    await assertRouteRenders(authenticatedPage, '/oauth/cli');
+    await assertRouteRenders(authenticatedPage, `${APP_ROUTES.OAUTH}/cli`);
     await tryClick(authenticatedPage, 'button');
     await expect(authenticatedPage.locator('body')).toBeVisible();
   });
 
   test('oauth platform stays interactive', async ({ authenticatedPage }) => {
-    await assertRouteRenders(authenticatedPage, '/oauth/tiktok');
+    await assertRouteRenders(authenticatedPage, `${APP_ROUTES.OAUTH}/tiktok`);
     await tryClick(authenticatedPage, 'button');
     await expect(authenticatedPage.locator('body')).toBeVisible();
   });

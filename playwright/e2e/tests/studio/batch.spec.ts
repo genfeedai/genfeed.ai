@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { playwrightApiEndpoint } from '../../config/environment';
 import {
   mockActiveSubscription,
@@ -124,7 +125,7 @@ test.describe('Batch Workflow Runner', () => {
   test('remains hidden from the studio navigation while still supporting direct access', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/studio/batch');
+    await authenticatedPage.goto(APP_ROUTES.STUDIO.BATCH);
 
     await expect(authenticatedPage).toHaveURL(/\/studio\/batch$/);
     await expect(
@@ -135,7 +136,7 @@ test.describe('Batch Workflow Runner', () => {
   test('loads on the direct hidden route, shows recent jobs, and keeps Run Batch disabled before setup', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/studio/batch');
+    await authenticatedPage.goto(APP_ROUTES.STUDIO.BATCH);
 
     await expect(authenticatedPage).toHaveURL(/\/studio\/batch$/);
     await expect(
@@ -155,7 +156,7 @@ test.describe('Batch Workflow Runner', () => {
   test('shows terminal batch results and MVP actions when opened from a job URL', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/studio/batch?job=job-1');
+    await authenticatedPage.goto(`${APP_ROUTES.STUDIO.BATCH}?job=job-1`);
 
     await expect(
       authenticatedPage.getByRole('heading', { name: 'Batch Results' }),

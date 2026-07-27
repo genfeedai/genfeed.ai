@@ -1,3 +1,4 @@
+import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
 import { expect, type Page, type Response, test } from '@playwright/test';
 import { setupStrictNetworkGuard } from '../../utils/network-guard';
 
@@ -50,13 +51,13 @@ async function assertRouteLoads(page: Page, route: string): Promise<void> {
  */
 function buildProtectedRoutes(orgSlug: string, brandSlug: string): string[] {
   return [
-    '/settings',
+    APP_ROUTES.SETTINGS.ROOT,
     `/${orgSlug}`,
-    `/${orgSlug}/${brandSlug}/workflows`,
-    `/${orgSlug}/${brandSlug}/posts`,
-    `/${orgSlug}/${brandSlug}/tasks`,
-    `/${orgSlug}/${brandSlug}/editor`,
-    `/${orgSlug}/${brandSlug}/workspace`,
+    createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.WORKFLOWS.ROOT),
+    createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.POSTS.ROOT),
+    createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.WORKSPACE.TASKS),
+    createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.EDITOR.ROOT),
+    createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.WORKSPACE.ROOT),
   ];
 }
 

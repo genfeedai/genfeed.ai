@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { Page, Route } from '@playwright/test';
 import { playwrightApiOrigin } from '../../config/environment';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
@@ -219,7 +220,7 @@ test.describe('Tasks Edge States', () => {
       includeTask: false,
     });
 
-    await authenticatedPage.goto('/tasks', {
+    await authenticatedPage.goto(APP_ROUTES.WORKSPACE.TASKS, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -234,11 +235,13 @@ test.describe('Tasks Edge States', () => {
   }) => {
     await mockTaskEdgeStates(authenticatedPage);
 
-    await authenticatedPage.goto('/tasks/task-201', {
+    await authenticatedPage.goto(`${APP_ROUTES.WORKSPACE.TASKS}/task-201`, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/tasks\/task-201(?:$|[?#])/);
+    expect(new URL(authenticatedPage.url()).pathname).toBe(
+      `${APP_ROUTES.WORKSPACE.TASKS}/task-201`,
+    );
     await expect(
       authenticatedPage.getByRole('heading', {
         name: 'Expand task center coverage',
@@ -258,13 +261,13 @@ test.describe('Tasks Edge States', () => {
       taskExists: false,
     });
 
-    await authenticatedPage.goto('/tasks/task-201', {
+    await authenticatedPage.goto(`${APP_ROUTES.WORKSPACE.TASKS}/task-201`, {
       waitUntil: 'domcontentloaded',
     });
 
     await expect(authenticatedPage.getByText('Task not found')).toBeVisible();
     await expect(
       authenticatedPage.getByRole('link', { name: 'Back to tasks' }),
-    ).toHaveAttribute('href', '/tasks');
+    ).toHaveAttribute('href', APP_ROUTES.WORKSPACE.TASKS);
   });
 });

@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { SettingsPage } from '../../pages/settings.page';
@@ -20,7 +21,9 @@ test.describe('Settings Connections & Sub-Pages', () => {
 
   test.describe('Credentials Page', () => {
     test('should load credentials page', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/settings/organization/credentials');
+      await authenticatedPage.goto(
+        APP_ROUTES.SETTINGS.ORGANIZATION_CREDENTIALS,
+      );
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/settings.*credentials/);
@@ -29,7 +32,9 @@ test.describe('Settings Connections & Sub-Pages', () => {
     test('should display connected accounts section', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/settings/organization/credentials');
+      await authenticatedPage.goto(
+        APP_ROUTES.SETTINGS.ORGANIZATION_CREDENTIALS,
+      );
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(
@@ -43,7 +48,9 @@ test.describe('Settings Connections & Sub-Pages', () => {
     test('should display page heading or title', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/settings/organization/credentials');
+      await authenticatedPage.goto(
+        APP_ROUTES.SETTINGS.ORGANIZATION_CREDENTIALS,
+      );
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const heading = authenticatedPage
@@ -55,7 +62,9 @@ test.describe('Settings Connections & Sub-Pages', () => {
     test('should render on mobile viewport', async ({ authenticatedPage }) => {
       await authenticatedPage.setViewportSize({ height: 667, width: 375 });
 
-      await authenticatedPage.goto('/settings/organization/credentials');
+      await authenticatedPage.goto(
+        APP_ROUTES.SETTINGS.ORGANIZATION_CREDENTIALS,
+      );
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/settings.*credentials/);
@@ -64,7 +73,7 @@ test.describe('Settings Connections & Sub-Pages', () => {
 
   test.describe('API Keys Page', () => {
     test('should load API keys page', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/settings/organization/api-keys');
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ORGANIZATION_API_KEYS);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/settings.*api-keys/);
@@ -101,7 +110,7 @@ test.describe('Settings Connections & Sub-Pages', () => {
         },
       );
 
-      await authenticatedPage.goto('/settings/organization/api-keys');
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ORGANIZATION_API_KEYS);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(
@@ -117,7 +126,7 @@ test.describe('Settings Connections & Sub-Pages', () => {
     }) => {
       const settingsPage = new SettingsPage(authenticatedPage);
 
-      await authenticatedPage.goto('/settings/organization/api-keys');
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ORGANIZATION_API_KEYS);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(
@@ -150,7 +159,7 @@ test.describe('Settings Connections & Sub-Pages', () => {
         },
       );
 
-      await authenticatedPage.goto('/settings/organization/api-keys');
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ORGANIZATION_API_KEYS);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/settings.*api-keys/);
@@ -161,7 +170,7 @@ test.describe('Settings Connections & Sub-Pages', () => {
     test('should load models page for video type', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/settings/models/video');
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.MODEL_VIDEO);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/settings.*models/);
@@ -170,14 +179,14 @@ test.describe('Settings Connections & Sub-Pages', () => {
     test('should load models page for image type', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/settings/models/image');
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.MODEL_IMAGE);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/settings.*models/);
     });
 
     test('should display model selection UI', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/settings/models/video');
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.MODEL_VIDEO);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(
@@ -189,7 +198,7 @@ test.describe('Settings Connections & Sub-Pages', () => {
     test('should render on mobile viewport', async ({ authenticatedPage }) => {
       await authenticatedPage.setViewportSize({ height: 667, width: 375 });
 
-      await authenticatedPage.goto('/settings/models/video');
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.MODEL_VIDEO);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/settings.*models/);
@@ -198,7 +207,7 @@ test.describe('Settings Connections & Sub-Pages', () => {
 
   test.describe('Elements / Scenes Page', () => {
     test('should load scenes page', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/settings/elements/scenes');
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ELEMENTS_SCENES);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/settings.*elements.*scenes/);
@@ -207,7 +216,7 @@ test.describe('Settings Connections & Sub-Pages', () => {
     test('should display scene library content', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/settings/elements/scenes');
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ELEMENTS_SCENES);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(
@@ -234,7 +243,7 @@ test.describe('Settings Connections & Sub-Pages', () => {
         },
       );
 
-      await authenticatedPage.goto('/settings/elements/scenes');
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ELEMENTS_SCENES);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/settings.*scenes/);
@@ -243,7 +252,7 @@ test.describe('Settings Connections & Sub-Pages', () => {
     test('should render on mobile viewport', async ({ authenticatedPage }) => {
       await authenticatedPage.setViewportSize({ height: 667, width: 375 });
 
-      await authenticatedPage.goto('/settings/elements/scenes');
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ELEMENTS_SCENES);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/settings.*scenes/);
@@ -252,14 +261,14 @@ test.describe('Settings Connections & Sub-Pages', () => {
 
   test.describe('Brands Page', () => {
     test('should load brands page', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/settings/brands');
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.BRANDS);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/settings.*brands/);
     });
 
     test('should display brand list content', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/settings/brands');
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.BRANDS);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(
@@ -284,7 +293,7 @@ test.describe('Settings Connections & Sub-Pages', () => {
         },
       );
 
-      await authenticatedPage.goto('/settings/brands');
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.BRANDS);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/settings.*brands/);
@@ -293,7 +302,7 @@ test.describe('Settings Connections & Sub-Pages', () => {
     test('should render on mobile viewport', async ({ authenticatedPage }) => {
       await authenticatedPage.setViewportSize({ height: 667, width: 375 });
 
-      await authenticatedPage.goto('/settings/brands');
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.BRANDS);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/settings.*brands/);
@@ -304,7 +313,9 @@ test.describe('Settings Connections & Sub-Pages', () => {
     test('should load brand voice settings route', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/settings/brands/brand-1/voice');
+      await authenticatedPage.goto(
+        `${APP_ROUTES.SETTINGS.BRANDS}/brand-1/voice`,
+      );
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/settings\/brands\/.+\/voice/);
@@ -313,7 +324,9 @@ test.describe('Settings Connections & Sub-Pages', () => {
     test('should load brand publishing settings route', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/settings/brands/brand-1/publishing');
+      await authenticatedPage.goto(
+        `${APP_ROUTES.SETTINGS.BRANDS}/brand-1/publishing`,
+      );
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(
@@ -324,7 +337,9 @@ test.describe('Settings Connections & Sub-Pages', () => {
     test('should load brand agent defaults route', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/settings/brands/brand-1/agent-defaults');
+      await authenticatedPage.goto(
+        `${APP_ROUTES.SETTINGS.BRANDS}/brand-1/agent-defaults`,
+      );
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(
@@ -338,10 +353,13 @@ test.describe('Settings Connections — Unauthenticated Access', () => {
   test('should redirect credentials page to login', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto('/settings/organization/credentials', {
-      timeout: 30000,
-      waitUntil: 'domcontentloaded',
-    });
+    await unauthenticatedPage.goto(
+      APP_ROUTES.SETTINGS.ORGANIZATION_CREDENTIALS,
+      {
+        timeout: 30000,
+        waitUntil: 'domcontentloaded',
+      },
+    );
 
     await expect(unauthenticatedPage).toHaveURL(/login|sign-in/, {
       timeout: 10000,
@@ -351,7 +369,7 @@ test.describe('Settings Connections — Unauthenticated Access', () => {
   test('should redirect api-keys page to login', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto('/settings/organization/api-keys', {
+    await unauthenticatedPage.goto(APP_ROUTES.SETTINGS.ORGANIZATION_API_KEYS, {
       timeout: 30000,
       waitUntil: 'domcontentloaded',
     });
@@ -364,7 +382,7 @@ test.describe('Settings Connections — Unauthenticated Access', () => {
   test('should redirect brands page to login', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto('/settings/brands', {
+    await unauthenticatedPage.goto(APP_ROUTES.SETTINGS.BRANDS, {
       timeout: 30000,
       waitUntil: 'domcontentloaded',
     });
@@ -377,7 +395,7 @@ test.describe('Settings Connections — Unauthenticated Access', () => {
   test('should redirect models page to login', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto('/settings/models/video', {
+    await unauthenticatedPage.goto(APP_ROUTES.SETTINGS.MODEL_VIDEO, {
       timeout: 30000,
       waitUntil: 'domcontentloaded',
     });
@@ -391,7 +409,7 @@ test.describe('Organization Settings', () => {
   test('should load organization general settings', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/settings/organization');
+    await authenticatedPage.goto(APP_ROUTES.SETTINGS.ORGANIZATION);
     await authenticatedPage.waitForLoadState('domcontentloaded');
 
     await expect(authenticatedPage).toHaveURL(/settings\/organization$/);
@@ -400,7 +418,7 @@ test.describe('Organization Settings', () => {
   test('should load organization policy settings', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/settings/organization/policy');
+    await authenticatedPage.goto(APP_ROUTES.SETTINGS.ORGANIZATION_POLICY);
     await authenticatedPage.waitForLoadState('domcontentloaded');
 
     await expect(authenticatedPage).toHaveURL(/settings\/organization\/policy/);

@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
 
@@ -164,7 +165,7 @@ test.describe('Agent Onboarding', () => {
   }) => {
     await mockThreads(authenticatedPage, []);
 
-    await authenticatedPage.goto('/agent/onboarding');
+    await authenticatedPage.goto(APP_ROUTES.AGENT.ONBOARDING);
     await authenticatedPage.waitForLoadState('domcontentloaded');
 
     await expect(authenticatedPage).toHaveURL(/\/agent\/onboarding(?:\/)?$/);
@@ -355,7 +356,7 @@ test.describe('Agent Onboarding', () => {
       },
     );
 
-    await authenticatedPage.goto('/agent/onboarding');
+    await authenticatedPage.goto(APP_ROUTES.AGENT.ONBOARDING);
     await authenticatedPage.waitForLoadState('domcontentloaded');
     await authenticatedPage
       .getByLabel('What do you create?')

@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { type BrowserContext, test as base, type Page } from '@playwright/test';
 import {
   generateMockOrganization,
@@ -401,7 +402,7 @@ export const test = base.extend<OnboardingFixtures>({
     await setupApiMocks(page);
 
     // Bootstrap by navigating to onboarding start
-    await page.goto('/onboarding/brand', {
+    await page.goto(APP_ROUTES.ONBOARDING.BRAND, {
       timeout: 120000,
       waitUntil: 'domcontentloaded',
     });

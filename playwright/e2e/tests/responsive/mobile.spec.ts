@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockActiveSubscription,
   mockAnalyticsData,
@@ -30,7 +31,7 @@ test.describe('Mobile Responsive', () => {
         width: 390,
       });
 
-      await authenticatedPage.goto('/overview');
+      await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Mobile hamburger menu or mobile nav should appear
@@ -63,7 +64,7 @@ test.describe('Mobile Responsive', () => {
         width: 390,
       });
 
-      await authenticatedPage.goto('/overview');
+      await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const sidebar = authenticatedPage.locator(
@@ -101,7 +102,7 @@ test.describe('Mobile Responsive', () => {
         width: 390,
       });
 
-      await authenticatedPage.goto('/studio');
+      await authenticatedPage.goto(APP_ROUTES.STUDIO.ROOT);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(
@@ -123,7 +124,7 @@ test.describe('Mobile Responsive', () => {
         width: 390,
       });
 
-      await authenticatedPage.goto('/analytics/overview');
+      await authenticatedPage.goto(APP_ROUTES.ANALYTICS.OVERVIEW);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/analytics/);
@@ -138,7 +139,7 @@ test.describe('Mobile Responsive', () => {
         width: 390,
       });
 
-      await authenticatedPage.goto('/settings/brands');
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.BRANDS);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/brands/);
@@ -153,7 +154,7 @@ test.describe('Mobile Responsive', () => {
         width: 390,
       });
 
-      await authenticatedPage.goto('/settings');
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ROOT);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/settings/);
@@ -172,7 +173,7 @@ test.describe('Mobile Responsive', () => {
         width: 390,
       });
 
-      await authenticatedPage.goto('/overview');
+      await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Tap on navigation links to verify touch works

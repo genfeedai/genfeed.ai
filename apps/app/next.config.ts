@@ -1,6 +1,11 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { envFlag, getDeployment } from '@genfeedai/config/deployment';
+import {
+  APP_ROUTE_PREFIXES,
+  APP_ROUTES,
+  createBrandAppRoute,
+} from '@genfeedai/constants';
 import { createAppNextConfig } from '@genfeedai/next-config';
 import bundleAnalyzer from '@next/bundle-analyzer';
 import type { NextConfig } from 'next';
@@ -90,27 +95,32 @@ const resolvedApiBaseUrl = (
   process.env.API_URL || 'http://localhost:3010'
 ).replace(/\/v1\/?$/, '');
 
+const selfHostedBrandRoutePrefixes = [
+  APP_ROUTE_PREFIXES.WORKSPACE,
+  APP_ROUTE_PREFIXES.AGENT,
+  APP_ROUTE_PREFIXES.STUDIO,
+  APP_ROUTE_PREFIXES.POSTS,
+  APP_ROUTE_PREFIXES.COMPOSE,
+  APP_ROUTE_PREFIXES.ANALYTICS,
+  APP_ROUTE_PREFIXES.WORKFLOWS,
+  APP_ROUTE_PREFIXES.LIBRARY,
+  APP_ROUTE_PREFIXES.EDITOR,
+  APP_ROUTE_PREFIXES.RESEARCH,
+  APP_ROUTE_PREFIXES.ORCHESTRATION,
+] as const;
+
 const selfHostedRewrites = IS_LOCAL_APP_SHELL
-  ? [
-      'workspace',
-      'agent',
-      'studio',
-      'posts',
-      'compose',
-      'analytics',
-      'workflows',
-      'library',
-      'editor',
-      'research',
-      'orchestration',
-    ].map((segment) => ({
-      destination: `/${DEFAULT_ORG}/${DEFAULT_BRAND}/${segment}/:path*`,
-      source: `/${segment}/:path*`,
-    }))
+  ? selfHostedBrandRoutePrefixes.map((routePrefix) => {
+      const segment = routePrefix.slice(1);
+      return {
+        destination: `/${DEFAULT_ORG}/${DEFAULT_BRAND}/${segment}/:path*`,
+        source: `/${segment}/:path*`,
+      };
+    })
   : [];
 
 const selfHostedOrgRewrites = IS_LOCAL_APP_SHELL
-  ? ['settings'].map((segment) => ({
+  ? [APP_ROUTE_PREFIXES.SETTINGS.slice(1)].map((segment) => ({
       destination: `/${DEFAULT_ORG}/~/${segment}/:path*`,
       source: `/${segment}/:path*`,
     }))
@@ -130,56 +140,98 @@ const config = createAppNextConfig({
   ],
   redirects: async () => [
     {
-      destination: '/workspace/inbox/unread',
+      destination: APP_ROUTES.WORKSPACE.INBOX_UNREAD,
       permanent: false,
-      source: '/workspace/inbox',
+      source: APP_ROUTES.WORKSPACE.INBOX,
     },
     {
       // Cloud org/brand-scoped inbox index has no page (only [view]); redirect
       // to the unread view so `/:org/:brand/workspace/inbox` doesn't 404.
-      destination: '/:orgSlug/:brandSlug/workspace/inbox/unread',
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.WORKSPACE.INBOX_UNREAD,
+      ),
       permanent: false,
-      source: '/:orgSlug/:brandSlug/workspace/inbox',
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.WORKSPACE.INBOX,
+      ),
     },
     {
-      destination: '/research/discovery',
+      destination: APP_ROUTES.RESEARCH.DISCOVERY,
       permanent: false,
-      source: '/research',
+      source: APP_ROUTES.RESEARCH.ROOT,
     },
     {
-      destination: '/:orgSlug/:brandSlug/research/discovery',
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.RESEARCH.DISCOVERY,
+      ),
       permanent: false,
-      source: '/:orgSlug/:brandSlug/research',
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.RESEARCH.ROOT,
+      ),
     },
     {
-      destination: '/library/overview',
+      destination: APP_ROUTES.LIBRARY.OVERVIEW,
       permanent: false,
-      source: '/library',
+      source: APP_ROUTE_PREFIXES.LIBRARY,
     },
     {
-      destination: '/:orgSlug/:brandSlug/library/overview',
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.LIBRARY.OVERVIEW,
+      ),
       permanent: false,
-      source: '/:orgSlug/:brandSlug/library',
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTE_PREFIXES.LIBRARY,
+      ),
     },
     {
-      destination: '/settings',
+      destination: APP_ROUTES.LIBRARY.OVERVIEW,
       permanent: false,
-      source: '/settings/personal',
+      source: APP_ROUTES.LIBRARY.INGREDIENTS,
     },
     {
-      destination: '/analytics/overview',
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.LIBRARY.OVERVIEW,
+      ),
       permanent: false,
-      source: '/analytics',
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.LIBRARY.INGREDIENTS,
+      ),
     },
     {
-      destination: '/compose/article',
+      destination: APP_ROUTES.SETTINGS.ROOT,
       permanent: false,
-      source: '/compose',
+      source: APP_ROUTES.SETTINGS.PERSONAL,
     },
     {
-      destination: '/studio/image',
+      destination: APP_ROUTES.ANALYTICS.OVERVIEW,
       permanent: false,
-      source: '/studio',
+      source: APP_ROUTES.ANALYTICS.ROOT,
+    },
+    {
+      destination: APP_ROUTES.COMPOSE.ARTICLE,
+      permanent: false,
+      source: APP_ROUTES.COMPOSE.ROOT,
+    },
+    {
+      destination: APP_ROUTES.STUDIO.IMAGE,
+      permanent: false,
+      source: APP_ROUTES.STUDIO.ROOT,
     },
   ],
   sentryProject: 'app-genfeed-ai',

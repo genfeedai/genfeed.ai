@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
 
@@ -13,12 +14,12 @@ test.describe('Onboarding Steps', () => {
   test.setTimeout(60_000);
 
   const routes = [
-    '/onboarding/brand',
-    '/onboarding/post-signup',
-    '/onboarding/proactive',
-    '/onboarding/providers',
-    '/onboarding/success',
-    '/onboarding/summary',
+    APP_ROUTES.ONBOARDING.BRAND,
+    APP_ROUTES.ONBOARDING.POST_SIGNUP,
+    APP_ROUTES.ONBOARDING.PROACTIVE,
+    APP_ROUTES.ONBOARDING.PROVIDERS,
+    APP_ROUTES.ONBOARDING.SUCCESS,
+    APP_ROUTES.ONBOARDING.SUMMARY,
   ];
 
   for (const route of routes) {
@@ -30,7 +31,7 @@ test.describe('Onboarding Steps', () => {
   test('brand step stays interactive after clicking', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, '/onboarding/brand');
+    await assertRouteRenders(authenticatedPage, APP_ROUTES.ONBOARDING.BRAND);
     await tryClick(authenticatedPage, 'button');
     await expect(authenticatedPage.locator('body')).toBeVisible();
   });
@@ -38,7 +39,10 @@ test.describe('Onboarding Steps', () => {
   test('providers step stays interactive after clicking', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, '/onboarding/providers');
+    await assertRouteRenders(
+      authenticatedPage,
+      APP_ROUTES.ONBOARDING.PROVIDERS,
+    );
     await tryClick(authenticatedPage, 'button');
     await tryClick(authenticatedPage, '[role="button"]');
     await expect(authenticatedPage.locator('body')).toBeVisible();

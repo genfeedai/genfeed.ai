@@ -15,14 +15,14 @@ describe('button variants', () => {
   });
 
   it.each([
-    ['black', ButtonVariant.DEFAULT],
-    ['generate', ButtonVariant.DEFAULT],
-    ['white', ButtonVariant.DEFAULT],
-    ['outline', ButtonVariant.SECONDARY],
-    ['outline-white', ButtonVariant.SECONDARY],
-    ['soft', ButtonVariant.SECONDARY],
-  ])('normalizes the withdrawn %s variant', (legacyVariant, expected) => {
-    expect(resolveButtonVariant(legacyVariant as ButtonVariant)).toBe(expected);
+    [ButtonVariant.BLACK, ButtonVariant.DEFAULT],
+    [ButtonVariant.GENERATE, ButtonVariant.DEFAULT],
+    [ButtonVariant.WHITE, ButtonVariant.DEFAULT],
+    [ButtonVariant.OUTLINE, ButtonVariant.SECONDARY],
+    [ButtonVariant.OUTLINE_WHITE, ButtonVariant.SECONDARY],
+    [ButtonVariant.SOFT, ButtonVariant.SECONDARY],
+  ])('normalizes the deprecated %s variant', (legacyVariant, expected) => {
+    expect(resolveButtonVariant(legacyVariant)).toBe(expected);
   });
 
   it('falls back to default for an unknown runtime value', () => {
