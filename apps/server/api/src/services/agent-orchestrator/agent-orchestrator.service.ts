@@ -1309,24 +1309,37 @@ export class AgentOrchestratorService {
       };
     }
 
-    const handledDeterministically =
-      (await this.tryHandleBatchGenerationTurnStream({
-        context: streamContext,
-        model,
-        policy,
-        requestContent: request.content,
-        seedTitle,
-        startedAt,
-        threadId,
-      })) ||
-      (await this.tryHandleRecurringTaskDraftTurnStream({
-        context: streamContext,
-        model,
-        requestContent: request.content,
-        seedTitle,
-        startedAt,
-        threadId,
-      }));
+    let handledDeterministically: boolean;
+    try {
+      handledDeterministically =
+        (await this.tryHandleBatchGenerationTurnStream({
+          context: streamContext,
+          model,
+          policy,
+          requestContent: request.content,
+          seedTitle,
+          startedAt,
+          threadId,
+        })) ||
+        (await this.tryHandleRecurringTaskDraftTurnStream({
+          context: streamContext,
+          model,
+          requestContent: request.content,
+          seedTitle,
+          startedAt,
+          threadId,
+        }));
+    } catch (error: unknown) {
+      await runEffectPromise(
+        this.streamEffects.publishStreamFailureEffect({
+          context: streamContext,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          failRun: true,
+          threadId,
+        }),
+      );
+      throw error;
+    }
 
     if (handledDeterministically) {
       return {

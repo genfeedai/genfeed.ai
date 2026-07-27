@@ -66,8 +66,8 @@ describe('curated action catalog change reporter', () => {
       parseCatalogSource(
         catalog(
           `{
+            isPublishingApprovalRequired: true,
             name: 'publish_action',
-            requiresPublishingApproval: true,
             surfaces: ['mcp'],
           }`,
         ),

@@ -1,8 +1,8 @@
 export type CuratedActionSurface = 'agent' | 'mcp';
 
 export interface CuratedActionCatalogEntry {
+  isPublishingApprovalRequired?: true;
   name: string;
-  requiresPublishingApproval?: true;
   surfaces: readonly [CuratedActionSurface, ...CuratedActionSurface[]];
 }
 
@@ -19,8 +19,8 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'analyze_clip_project', surfaces: ['mcp'] },
   { name: 'analyze_performance', surfaces: ['agent'] },
   {
+    isPublishingApprovalRequired: true,
     name: 'approve_social_draft',
-    requiresPublishingApproval: true,
     surfaces: ['mcp'],
   },
   { name: 'assign_social_conversation', surfaces: ['mcp'] },
@@ -34,8 +34,8 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'complete_onboarding', surfaces: ['agent'] },
   { name: 'connect_social_account', surfaces: ['agent'] },
   {
+    isPublishingApprovalRequired: true,
     name: 'control_scheduled_release',
-    requiresPublishingApproval: true,
     surfaces: ['mcp'],
   },
   { name: 'create_ad_remix_workflow', surfaces: ['agent', 'mcp'] },
@@ -48,13 +48,13 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'create_instagram_remix_workflow', surfaces: ['agent', 'mcp'] },
   { name: 'create_livestream_bot', surfaces: ['agent'] },
   {
+    isPublishingApprovalRequired: true,
     name: 'create_post',
-    requiresPublishingApproval: true,
     surfaces: ['agent', 'mcp'],
   },
   {
+    isPublishingApprovalRequired: true,
     name: 'create_scheduled_release',
-    requiresPublishingApproval: true,
     surfaces: ['mcp'],
   },
   { name: 'create_social_reply_draft', surfaces: ['mcp'] },
@@ -142,8 +142,8 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'open_studio_handoff', surfaces: ['agent'] },
   { name: 'pause_campaign', surfaces: ['agent'] },
   {
+    isPublishingApprovalRequired: true,
     name: 'post_social_reply',
-    requiresPublishingApproval: true,
     surfaces: ['mcp'],
   },
   { name: 'prepare_clip_workflow_run', surfaces: ['agent'] },
@@ -168,8 +168,8 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'select_ingredient', surfaces: ['agent'] },
   { name: 'send_chat_message', surfaces: ['mcp'] },
   {
+    isPublishingApprovalRequired: true,
     name: 'send_social_dm',
-    requiresPublishingApproval: true,
     surfaces: ['mcp'],
   },
   { name: 'set_workflow_schedule', surfaces: ['agent', 'mcp'] },
@@ -182,8 +182,8 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'tag_social_conversation', surfaces: ['mcp'] },
   { name: 'update_goal', surfaces: ['agent'] },
   {
+    isPublishingApprovalRequired: true,
     name: 'update_scheduled_release',
-    requiresPublishingApproval: true,
     surfaces: ['mcp'],
   },
   { name: 'update_strategy_state', surfaces: ['agent'] },
@@ -199,8 +199,8 @@ export function isActionOnSurface(
   return entry.surfaces.some((candidate) => candidate === surface);
 }
 
-export function requiresPublishingApproval(
+export function isPublishingApprovalRequired(
   entry: CuratedActionCatalogEntry,
 ): boolean {
-  return entry.requiresPublishingApproval === true;
+  return entry.isPublishingApprovalRequired === true;
 }

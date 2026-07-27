@@ -4,9 +4,9 @@ import process from 'node:process';
 
 const CATALOG_PATH = 'packages/tools/src/registry/curated-action-catalog.ts';
 const ENTRY_PATTERN =
-  /^\s*\{ name: '([a-z][a-z0-9_]*)', (?:requiresPublishingApproval: true, )?surfaces: \[((?:'(?:agent|mcp)'(?:, )?)*)\] \},\s*$/u;
+  /^\s*\{ name: '([a-z][a-z0-9_]*)', (?:isPublishingApprovalRequired: true, )?surfaces: \[((?:'(?:agent|mcp)'(?:, )?)*)\] \},\s*$/u;
 const PUBLISHING_APPROVAL_ENTRY_PATTERN =
-  /^\{ name: '([a-z][a-z0-9_]*)', requiresPublishingApproval: true, surfaces: \[((?:'(?:agent|mcp)'(?:, )?)*)\], \},$/u;
+  /^\{ isPublishingApprovalRequired: true, name: '([a-z][a-z0-9_]*)', surfaces: \[((?:'(?:agent|mcp)'(?:, )?)*)\], \},$/u;
 
 export type CatalogSurface = 'agent' | 'mcp';
 
