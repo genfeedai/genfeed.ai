@@ -1,9 +1,9 @@
 import { cn } from '@genfeedai/helpers/formatting/cn';
-import type { SurfaceSummaryItem } from '@props/ui/dashboard/surface-summary-strip.props';
+import type { SurfaceSummaryItem } from '@genfeedai/props/ui/dashboard/surface-summary-strip.props';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { DashboardGrid } from './DashboardGrid';
 
-export type { SurfaceSummaryItem } from '@props/ui/dashboard/surface-summary-strip.props';
+export type { SurfaceSummaryItem } from '@genfeedai/props/ui/dashboard/surface-summary-strip.props';
 
 /**
  * Inline strips render *inside* the agent conversation thread, where a surface
