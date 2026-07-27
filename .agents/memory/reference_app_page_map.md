@@ -8,7 +8,7 @@ type: reference
 
 Last audited: 2026-07-27.
 
-The current executable protected denominator is 211 canonical patterns. Two
+The current executable protected denominator is 212 canonical patterns. Two
 intentional hard-cut families remain outside the denominator. The app switcher
 is only a discovery subset.
 
@@ -24,7 +24,7 @@ Source of truth:
 - Sidebar resolver in `apps/app/packages/components/AppProtectedLayoutSidebar.tsx`
 - App switcher in `packages/ui/src/components/shell/app-switcher/AppSwitcher.tsx`
 
-The application registry mirrors all 211 parity-eligible patterns below and
+The application registry mirrors all 212 parity-eligible patterns below and
 keeps Notifications plus trusted pickers as explicit non-route surfaces. The
 two hard-cut families remain outside it.
 
@@ -241,6 +241,7 @@ Create/compose/editor:
 
 Library:
 
+- `/:orgSlug/:brandSlug/library/overview`
 - `/:orgSlug/:brandSlug/library/ingredients`
 - `/:orgSlug/:brandSlug/library/videos`
 - `/:orgSlug/:brandSlug/library/images`
@@ -250,6 +251,10 @@ Library:
 - `/:orgSlug/:brandSlug/library/music`
 - `/:orgSlug/:brandSlug/library/captions`
 - `/:orgSlug/:brandSlug/library/moodboard`
+
+`/:orgSlug/:brandSlug/library/overview` is the canonical Library landing.
+`/:orgSlug/:brandSlug/library/ingredients` remains registered only to redirect
+old links to the overview.
 
 Publish/posts:
 

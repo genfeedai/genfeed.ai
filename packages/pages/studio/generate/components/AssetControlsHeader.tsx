@@ -47,10 +47,8 @@ export function AssetControlsHeader({
 
   return (
     <div className="w-full border-b border-white/[0.08] px-6 py-2">
-      <div className="flex w-full items-center justify-between gap-3">
-        <h1 className="text-sm font-semibold tracking-tight">
-          {categoryLabel}
-        </h1>
+      <div className="flex w-full items-center justify-end gap-3">
+        <h1 className="sr-only">{categoryLabel}</h1>
 
         <div
           data-testid="asset-controls-toolbar"

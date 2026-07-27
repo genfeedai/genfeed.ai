@@ -203,7 +203,7 @@ function TrendRemixPageContent() {
   ) : (
     <div className="flex min-h-[50vh] items-center justify-center px-6">
       <div className="max-w-md space-y-4 text-center">
-        <h1 className="text-xl font-semibold">Unable to create remix draft</h1>
+        <h2 className="text-xl font-semibold">Unable to create remix draft</h2>
         <p className="text-sm text-foreground/70">
           {error || 'Something went wrong while creating the remix draft.'}
         </p>

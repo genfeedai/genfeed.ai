@@ -12,11 +12,11 @@ Accepted
 
 ## Contract Version
 
-v3.1.0
+v3.2.0
 
 ## Last Updated
 
-2026-07-26
+2026-07-27
 
 ## Canonical Source
 
@@ -73,6 +73,13 @@ v3.1 makes composer placement explicit: it follows the active conversation. It
 is in the canvas on `/agent/**`, in the conversation inspector on every product
 route, and in the registered overlay while that overlay is active. Product
 canvases never host the agent composer.
+
+v3.2 makes protected-page identity explicit: the permanent topbar breadcrumb
+is the one visible page masthead. Product canvases keep a screen-reader-only h1,
+record and state headings, section headings, filters, tabs, and actions, but do
+not repeat the route title, description, icon, or a second breadcrumb inside
+content. It also makes `/library/overview` the Library landing route;
+`/library/ingredients` remains a compatibility redirect for old links.
 
 ## Verified Baseline
 
@@ -169,6 +176,9 @@ the product surface owns.
 13. The nav column belongs to the module that owns the current surface. No
     surface may take another surface's column, and the conversation holds no
     standing claim on it.
+14. The topbar breadcrumb owns visible protected-page identity. A canvas never
+    repeats the route title, description, icon, or breadcrumb as an in-content
+    masthead.
 
 ## Canonical URL Contract
 
@@ -313,6 +323,11 @@ palette. It is decided by the route and nothing else.
    the inspector, never without an application around it.
 4. A registered route whose shell body cannot mount renders its children
    directly. Failure to mount the shell degrades the inspector, not the page.
+5. The canonical topbar breadcrumb is the visible page identity. Canvas content
+   keeps one screen-reader-only h1 for document structure, while record titles,
+   state messages, section headings, filters, tabs, and actions remain visible.
+   Shared page-header primitives must derive this behavior from the breadcrumb
+   provider rather than relying on every route to opt in.
 
 ## Context Precedence And Mutation Rules
 
@@ -437,9 +452,10 @@ inspector, so the two inputs never overlap. Neither input suppresses the frame.
 
 The original v2 baseline was **206 parity-eligible canonical protected
 patterns** as of 2026-07-13. The current executable baseline in
-`reference_app_page_map.md` is **209 protected patterns plus two intentional
-hard-cut families** as of 2026-07-18. New protected routes enter the denominator
-immediately. Removing an entry requires a separate accepted product decision.
+`reference_app_page_map.md` is **212 protected patterns**, with two intentional
+hard-cut families outside the denominator, as of 2026-07-27. New protected
+routes enter the denominator immediately. Removing an entry requires a separate
+accepted product decision.
 
 v3 does not move the denominator. Demoting the conversation from a state to a
 surface removes no route: the `/agent/**` family stays registered and
@@ -459,7 +475,7 @@ The app switcher is discovery for nine primary modules, not the inventory.
 | `/:orgSlug/:brandSlug/research/**`                                     | Brand                   | Canvas                                             | Discovery, Socials, Ads, Google, Meta, Following, and platform routes.                                                                                                               |
 | `/:orgSlug/:brandSlug/studio/**`                                       | Brand                   | Canvas or focused editor                           | Type/detail plus Batch, Clips, and Fastlane.                                                                                                                                         |
 | `/:orgSlug/:brandSlug/{compose,editor}/**`                             | Brand                   | Canvas or focused editor                           | Article, Post, Newsletter, editor index/new/detail.                                                                                                                                  |
-| `/:orgSlug/:brandSlug/library/**`                                      | Brand                   | Canvas; entity detail may also register an overlay | Ingredients, Videos, Images, GIFs, Avatars, Voices, Music, Captions, and Moodboard.                                                                                                  |
+| `/:orgSlug/:brandSlug/library/**`                                      | Brand                   | Canvas; entity detail may also register an overlay | Overview, Videos, Images, GIFs, Avatars, Voices, Music, Captions, and Moodboard; Ingredients is a compatibility redirect.                                                            |
 | `/:orgSlug/:brandSlug/posts/**`                                        | Brand                   | Canvas; post detail may also register an overlay   | Detail, Composer, Analytics, Calendar, Newsletters, Published, Remix, Review, Scheduled.                                                                                             |
 | `/:orgSlug/:brandSlug/analytics/**`                                    | Brand                   | Canvas                                             | Posts, Brands/detail/platform, Insights, Hooks, Performance Lab, Trends/detail/platform, Trend Turnover, Streaks.                                                                    |
 | `/:orgSlug/:brandSlug/workflows/**`                                    | Brand                   | Canvas or focused editor                           | New/detail, Templates, Executions/detail. Workflows is not an app-switcher module.                                                                                                   |

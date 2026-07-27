@@ -28,7 +28,7 @@ describe('LIBRARY_MENU_ITEMS', () => {
     });
   });
 
-  it('points the library logo at the ingredients landing', () => {
-    expect(LIBRARY_LOGO_HREF).toBe('/library/ingredients');
+  it('points the library logo at the canonical overview', () => {
+    expect(LIBRARY_LOGO_HREF).toBe('/library/overview');
   });
 });

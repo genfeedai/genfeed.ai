@@ -154,7 +154,7 @@ describe('OperationalHomeContent', () => {
 
     expect(
       screen.getByRole('heading', { level: 1, name: 'Operational home' }),
-    ).toBeInTheDocument();
+    ).toHaveClass('sr-only');
     expect(
       screen.getByRole('heading', {
         level: 2,

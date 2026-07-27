@@ -124,7 +124,7 @@ describe('LibraryPickerOverlay', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /manage library/i }),
-    ).toHaveAttribute('href', '/acme/moonrise/library/ingredients');
+    ).toHaveAttribute('href', '/acme/moonrise/library/overview');
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Select Source image-1' }),

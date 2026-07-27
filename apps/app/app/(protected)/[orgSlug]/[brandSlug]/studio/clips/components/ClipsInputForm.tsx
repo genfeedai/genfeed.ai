@@ -31,9 +31,9 @@ export default function ClipsInputForm({
             <HiOutlineSparkles className="size-8 text-primary" />
           </div>
         </div>
-        <h1 className="text-3xl font-semibold text-zinc-100">
+        <h2 className="text-3xl font-semibold text-zinc-100">
           AI Clip Factory
-        </h1>
+        </h2>
         <p className="mt-2 text-sm text-zinc-500">
           Turn a YouTube video into captioned raw cuts or AI avatar clips
         </p>

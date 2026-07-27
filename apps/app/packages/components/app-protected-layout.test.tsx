@@ -876,6 +876,7 @@ describe('AppProtectedLayout', () => {
   it.each([
     ['/org-123/~/settings/api-keys', 'Settings', 'API Keys'],
     ['/org-123/brand-123/research/following', 'Research', 'Following'],
+    ['/org-123/brand-123/library/overview', 'Library', 'Overview'],
     ['/org-123/brand-123/library/ingredients', 'Library', 'Ingredients'],
     ['/org-123/brand-123/library/moodboard', 'Library', 'Moodboard'],
     ['/org-123/brand-123/studio/clips', 'Studio', 'Clips'],
@@ -1125,7 +1126,7 @@ describe('AppProtectedLayout', () => {
 
   it.each([
     ['/org-123/brand-123/studio/image', 'studio', 'Studio'],
-    ['/org-123/brand-123/library/ingredients', 'library', 'Library'],
+    ['/org-123/brand-123/library/overview', 'library', 'Library'],
     ['/org-123/brand-123/analytics/overview', 'analytics', 'Analytics'],
     ['/org-123/brand-123/workflows', 'workflows', 'Workflows'],
     ['/org-123/brand-123/posts/remix', 'posts', 'Workspace'],

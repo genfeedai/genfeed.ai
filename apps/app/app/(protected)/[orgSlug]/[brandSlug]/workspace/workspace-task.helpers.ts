@@ -114,9 +114,9 @@ export const ADVANCED_TOOLS = [
 
 export const LIBRARY_SNAPSHOT_LINKS = [
   {
-    description: 'Ingredients and reusable source material.',
-    href: APP_ROUTES.LIBRARY.INGREDIENTS,
-    label: 'Ingredients',
+    description: 'Browse every reusable source and generated asset.',
+    href: APP_ROUTES.LIBRARY.OVERVIEW,
+    label: 'Overview',
   },
   {
     description: 'Generated images, videos, and motion assets.',

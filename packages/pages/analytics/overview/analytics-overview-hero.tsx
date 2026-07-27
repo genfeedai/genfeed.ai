@@ -56,14 +56,7 @@ export default function AnalyticsOverviewHero({
           {heroContent.badge}
         </div>
 
-        <div className="space-y-3">
-          <h1 className="text-3xl font-serif leading-tight tracking-tight text-foreground lg:text-4xl">
-            {heroContent.title}
-          </h1>
-          <p className="max-w-3xl text-sm leading-7 text-foreground/72 lg:text-base">
-            {heroContent.description}
-          </p>
-        </div>
+        <h1 className="sr-only">{heroContent.title}</h1>
 
         <div className="flex flex-wrap gap-2">
           <Link

@@ -22,10 +22,8 @@ import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
 import { LazyModalTraining } from '@ui/lazy/modal/LazyModal';
 import Loading from '@ui/loading/default/Loading';
-import Breadcrumb from '@ui/navigation/breadcrumb/Breadcrumb';
 import { Button } from '@ui/primitives/button';
 import { getErrorMessage } from '@utils/error/error-handler.util';
-import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HiCircleStack, HiPencil, HiPhoto } from 'react-icons/hi2';
 
@@ -34,7 +32,6 @@ export default function TrainingDetail({
   trainingId,
 }: TrainingLayoutContentProps) {
   const { brands } = useBrand();
-  const pathname = usePathname();
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const notificationsService = NotificationsService.getInstance();
@@ -148,23 +145,13 @@ export default function TrainingDetail({
   return (
     <TrainingProvider training={training} refreshTraining={loadTraining}>
       <Container>
-        <Breadcrumb
-          segments={[
-            { href: '/trainings', label: 'Trainings' },
-            {
-              href: pathname,
-              label: training.label || training.id,
-            },
-          ]}
-        />
-
         <Card>
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-start justify-between mb-2">
-                <h1 className="text-2xl font-semibold text-foreground">
+                <h2 className="text-2xl font-semibold text-foreground">
                   {training.label}
-                </h1>
+                </h2>
                 <Button
                   icon={<HiPencil />}
                   onClick={() => openModal(ModalEnum.TRAINING_EDIT)}

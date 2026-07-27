@@ -35,7 +35,7 @@ export function DesktopGate({ children }: DesktopGateProps) {
     <div className="flex min-h-screen flex-col items-center justify-center p-6 text-center">
       <div className="max-w-md space-y-6">
         <div className="text-6xl">💻</div>
-        <h1 className="text-2xl font-semibold">Desktop Required</h1>
+        <h2 className="text-2xl font-semibold">Desktop Required</h2>
         <p className="text-muted-foreground">
           The Workflows editor requires a larger screen for the best experience.
           Please open this page on a desktop or laptop computer.

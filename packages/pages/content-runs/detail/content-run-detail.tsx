@@ -607,9 +607,9 @@ export default function ContentRunDetailPage({
           </div>
           <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h1 className="text-2xl font-semibold">
+              <h2 className="text-2xl font-semibold">
                 {getBriefTitle(run.brief)}
-              </h1>
+              </h2>
               <p className="mt-2 text-sm text-foreground/56">{getRunId(run)}</p>
             </div>
             <dl className="grid gap-3 text-sm sm:grid-cols-3">

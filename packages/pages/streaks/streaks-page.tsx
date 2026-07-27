@@ -87,31 +87,12 @@ export default function StreaksPage() {
         ? `${currentStreak}-day streak and climbing.`
         : 'Start your first daily creation streak.';
 
-  const heroDescription =
-    streak?.status === 'at_risk'
-      ? 'You are one piece away from keeping your streak alive today.'
-      : streak?.status === 'broken_recently'
-        ? 'Get one new piece out today and restart the chain immediately.'
-        : currentStreak > 0
-          ? 'Show up daily, defend your streak, and stack milestone rewards over time.'
-          : 'One generated image, video, article, or published post starts the loop.';
-
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-8">
       <section className="relative overflow-hidden rounded-3xl bg-secondary p-6 shadow-border">
         <StreakCelebrationBurst isVisible={isCelebrating} />
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-              Daily retention
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold text-foreground">
-              {heroTitle}
-            </h1>
-            <p className="mt-3 text-sm leading-6 text-foreground/70">
-              {heroDescription}
-            </p>
-          </div>
+          <h1 className="sr-only">{heroTitle}</h1>
 
           <Button asChild variant={ButtonVariant.DEFAULT}>
             <Link

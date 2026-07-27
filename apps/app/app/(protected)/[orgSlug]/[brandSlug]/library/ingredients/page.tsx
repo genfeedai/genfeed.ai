@@ -1,8 +1,16 @@
-import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import LibraryLandingPage from './library-landing-page';
+import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
+import { redirect } from 'next/navigation';
 
-export const generateMetadata = createPageMetadata('Library');
+interface LibraryIngredientsPageProps {
+  params: Promise<{ brandSlug: string; orgSlug: string }>;
+}
 
-export default function LibraryIngredientsPage() {
-  return <LibraryLandingPage />;
+export default async function LibraryIngredientsPage({
+  params,
+}: LibraryIngredientsPageProps) {
+  const { brandSlug, orgSlug } = await params;
+
+  redirect(
+    createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.LIBRARY.OVERVIEW),
+  );
 }

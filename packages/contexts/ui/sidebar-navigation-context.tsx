@@ -22,6 +22,8 @@ interface SidebarNavigationContextType {
   breadcrumbRootLabel: string;
   /** Canonical breadcrumb leaf, independent of sidebar discovery coverage. */
   breadcrumbPageLabel: string;
+  /** Whether the permanent shell supplied canonical page identity. */
+  hasCanonicalBreadcrumb: boolean;
   /** All grouped menu items for breadcrumb/navigation reference */
   groups: GroupedMenu[];
   /** Enter nested sidebar mode for a group */
@@ -233,6 +235,7 @@ export function SidebarNavigationProvider({
       enterNestedGroup,
       exitNestedGroup,
       groups,
+      hasCanonicalBreadcrumb: Boolean(breadcrumb),
       nestedGroupId,
     }),
     [
@@ -261,6 +264,7 @@ const DEFAULT_CONTEXT: SidebarNavigationContextType = {
   enterNestedGroup: () => {},
   exitNestedGroup: () => {},
   groups: [],
+  hasCanonicalBreadcrumb: false,
   nestedGroupId: null,
 };
 

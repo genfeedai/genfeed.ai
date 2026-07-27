@@ -16,7 +16,7 @@ describe('AssetControlsHeader', () => {
     type: '',
   };
 
-  it('renders the current category label', () => {
+  it('keeps the current category label for assistive technology only', () => {
     render(
       <AssetControlsHeader
         filters={baseFilters}
@@ -31,7 +31,9 @@ describe('AssetControlsHeader', () => {
       />,
     );
 
-    expect(screen.getByText('Image Generation')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Image Generation' }),
+    ).toHaveClass('sr-only');
   });
 
   it('renders a grouped utility toolbar with refresh accessibly labeled', () => {

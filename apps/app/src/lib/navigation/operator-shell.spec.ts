@@ -48,6 +48,7 @@ describe('operator-shell helpers', () => {
       '/overview',
       '/tasks',
       '/library',
+      '/library/overview',
       '/library/ingredients',
       '/analytics',
       '/analytics/overview',

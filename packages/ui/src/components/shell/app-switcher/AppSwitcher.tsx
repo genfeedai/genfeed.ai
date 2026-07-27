@@ -138,7 +138,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         itemKey: 'create-library',
         label: 'Library',
         route: createScopedAppRoute({
-          brandPath: '/library/ingredients',
+          brandPath: '/library/overview',
           organizationPath: '/library',
         }),
       },

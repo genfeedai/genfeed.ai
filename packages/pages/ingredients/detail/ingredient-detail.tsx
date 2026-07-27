@@ -3,7 +3,6 @@
 import type { IngredientDetailProps } from '@props/content/ingredient.props';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
-import Breadcrumb from '@ui/navigation/breadcrumb/Breadcrumb';
 import IngredientDetailBody from './ingredient-detail-body';
 import IngredientDetailCacheAlert from './ingredient-detail-cache-alert';
 import IngredientDetailNotFound from './ingredient-detail-not-found';
@@ -11,7 +10,6 @@ import { useIngredientDetail } from './use-ingredient-detail';
 
 export default function IngredientDetail({ type, id }: IngredientDetailProps) {
   const {
-    pathname,
     credentials,
     isLoading,
     ingredient,
@@ -47,16 +45,6 @@ export default function IngredientDetail({ type, id }: IngredientDetailProps) {
           onRetry={findIngredient}
         />
       )}
-
-      <Breadcrumb
-        segments={[
-          { href: `/ingredients/${type}`, label: type },
-          {
-            href: pathname,
-            label: ingredient.metadataLabel || ingredient.id,
-          },
-        ]}
-      />
 
       <IngredientDetailBody
         ingredient={ingredient}

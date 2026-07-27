@@ -19,6 +19,7 @@ function NavigationState() {
     breadcrumbPageLabel,
     breadcrumbRootLabel,
     groups,
+    hasCanonicalBreadcrumb,
   } = useSidebarNavigation();
   return (
     <span>
@@ -27,6 +28,7 @@ function NavigationState() {
         activePageLabel || 'none',
         breadcrumbRootLabel || 'none',
         breadcrumbPageLabel || 'none',
+        hasCanonicalBreadcrumb ? 'canonical' : 'derived',
         groups.length,
       ].join('|')}
     </span>
@@ -54,7 +56,7 @@ describe('SidebarNavigationProvider', () => {
     ]);
 
     expect(
-      screen.getByText('none|Dashboard|none|Dashboard|1'),
+      screen.getByText('none|Dashboard|none|Dashboard|derived|1'),
     ).toBeInTheDocument();
   });
 
@@ -85,7 +87,7 @@ describe('SidebarNavigationProvider', () => {
     ]);
 
     expect(
-      screen.getByText(`none|${childLabel}|none|${childLabel}|1`),
+      screen.getByText(`none|${childLabel}|none|${childLabel}|derived|1`),
     ).toBeInTheDocument();
   });
 
@@ -99,7 +101,9 @@ describe('SidebarNavigationProvider', () => {
       },
     ]);
 
-    expect(screen.getByText('none|Images|none|Images|1')).toBeInTheDocument();
+    expect(
+      screen.getByText('none|Images|none|Images|derived|1'),
+    ).toBeInTheDocument();
   });
 
   it('preserves exact matching for root items with sibling pages', () => {
@@ -110,7 +114,9 @@ describe('SidebarNavigationProvider', () => {
       { href: '/settings/members', label: 'Members' },
     ]);
 
-    expect(screen.getByText('none|Members|none|Members|1')).toBeInTheDocument();
+    expect(
+      screen.getByText('none|Members|none|Members|derived|1'),
+    ).toBeInTheDocument();
   });
 
   it('uses canonical route breadcrumbs without discarding sidebar groups', () => {
@@ -129,7 +135,7 @@ describe('SidebarNavigationProvider', () => {
     );
 
     expect(
-      screen.getByText('Assets|none|Library|Moodboard|1'),
+      screen.getByText('Assets|none|Library|Moodboard|canonical|1'),
     ).toBeInTheDocument();
   });
 });

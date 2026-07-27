@@ -56,10 +56,6 @@ export default function TrendsPageHeader({
         <Heading size="2xl" as="h1" className="sr-only">
           Social Media Trends
         </Heading>
-        <Text as="p" color="subtle-70" className="max-w-3xl">
-          Monitor competitor hooks, creators, and viral moments so you can
-          replicate the playbook for your next campaign.
-        </Text>
       </VStack>
     </header>
   );

@@ -114,7 +114,7 @@ export function useAppProtectedLayout(
   const isResearchRoute =
     pathname === APP_ROUTES.RESEARCH.ROOT ||
     pathname.startsWith(`${APP_ROUTES.RESEARCH.ROOT}/`);
-  const isLibraryLandingRoute = pathname === APP_ROUTES.LIBRARY.INGREDIENTS;
+  const isLibraryLandingRoute = pathname === APP_ROUTES.LIBRARY.OVERVIEW;
   const isLibraryRoute = pathname.startsWith(APP_ROUTE_PREFIXES.LIBRARY);
   const isMessagesRoute = pathname.startsWith(APP_ROUTE_PREFIXES.MESSAGES);
   const isStudioPromptBarRoute =

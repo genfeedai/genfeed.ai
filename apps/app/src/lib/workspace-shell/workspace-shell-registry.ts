@@ -686,7 +686,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ),
   ...registerRoutes(
     [
-      '/:orgSlug/:brandSlug/library/ingredients',
+      '/:orgSlug/:brandSlug/library/overview',
       '/:orgSlug/:brandSlug/library/videos',
       '/:orgSlug/:brandSlug/library/images',
       '/:orgSlug/:brandSlug/library/gifs',
@@ -697,7 +697,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/library/moodboard',
     ],
     {
-      fallback: '/:orgSlug/:brandSlug/library/ingredients',
+      fallback: '/:orgSlug/:brandSlug/library/overview',
       mode: 'canvas',
       productClass: 'control-plane',
       scope: 'brand',
@@ -706,6 +706,15 @@ const BRAND_ROUTE_REGISTRATIONS = [
       telemetryClass: 'product',
     },
   ),
+  ...registerRoutes(['/:orgSlug/:brandSlug/library/ingredients'], {
+    fallback: '/:orgSlug/:brandSlug/library/overview',
+    mode: 'canvas',
+    productClass: 'compatibility-only',
+    scope: 'brand',
+    surfaceKey: 'library',
+    switcherItems: ['library'],
+    telemetryClass: 'product',
+  }),
   ...registerRoutes(
     [
       '/:orgSlug/:brandSlug/posts',

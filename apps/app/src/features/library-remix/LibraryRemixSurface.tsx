@@ -74,9 +74,9 @@ export default function LibraryRemixSurface({
             className="mx-auto size-9 text-muted-foreground"
           />
           <div>
-            <h1 id="library-remix-heading" className="text-2xl font-semibold">
+            <h2 id="library-remix-heading" className="text-2xl font-semibold">
               Start a Remix from Library
-            </h1>
+            </h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               Choose a scoped media source for{' '}
               {selectedBrand?.label || 'the effective brand'}. Full Library
@@ -172,12 +172,12 @@ export default function LibraryRemixSurface({
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             Remix source ready
           </p>
-          <h1
+          <h2
             id="library-remix-heading"
             className="mt-2 text-2xl font-semibold"
           >
             {label}
-          </h1>
+          </h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
             The canonical {reference.kind} reference is scoped to{' '}
             {selectedBrand?.label || 'the effective brand'}. Source media stays

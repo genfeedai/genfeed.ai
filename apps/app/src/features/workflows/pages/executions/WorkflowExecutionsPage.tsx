@@ -138,12 +138,6 @@ export default function WorkflowExecutionsPage() {
   if (isLoading && executions.length === 0) {
     return (
       <div className="min-h-screen bg-background">
-        <header className="border-b border-white/[0.08] bg-card px-6 py-4">
-          <div className="mx-auto max-w-7xl">
-            <div className="h-7 w-48 animate-pulse rounded bg-muted" />
-            <div className="mt-2 h-4 w-72 animate-pulse rounded bg-muted" />
-          </div>
-        </header>
         <main className="mx-auto max-w-7xl px-6 py-8">
           <div className="overflow-hidden border border-white/[0.08]">
             <div className="bg-muted/50 px-4 py-3 flex gap-8">
@@ -192,19 +186,7 @@ export default function WorkflowExecutionsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-white/[0.08] bg-card px-6 py-4">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Execution History
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              View past workflow executions and their results
-            </p>
-          </div>
-        </div>
-      </header>
+      <h1 className="sr-only">Execution History</h1>
 
       {/* Content */}
       <main className="mx-auto max-w-7xl px-6 py-8">

@@ -18,7 +18,7 @@ import {
   HiOutlineSparkles,
   HiOutlineVideoCamera,
 } from 'react-icons/hi2';
-import LibraryLandingCreditNotice from './library-landing-credit-notice';
+import LibraryOverviewCreditNotice from './library-overview-credit-notice';
 
 interface LibraryCategoryCardConfig {
   description: string;
@@ -191,7 +191,7 @@ function LibrarySection({
   );
 }
 
-export default function LibraryLandingPage() {
+export default function LibraryOverviewPage() {
   return (
     <Container
       label="Library"
@@ -205,7 +205,7 @@ export default function LibraryLandingPage() {
       <div data-testid="library-landing" className="space-y-8">
         <div className="opacity-80">
           <Suspense fallback={null}>
-            <LibraryLandingCreditNotice />
+            <LibraryOverviewCreditNotice />
           </Suspense>
         </div>
 

@@ -29,7 +29,7 @@ export default function StudioEditDetailHeader({
             </Link>
           </Button>
 
-          <h1 className="text-xl font-semibold">Edit {categoryLabel}</h1>
+          <h1 className="sr-only">Edit {categoryLabel}</h1>
         </div>
         {selectedIngredient ? (
           <Button

@@ -43,9 +43,9 @@ export default function SettingsProgressOverviewCard({
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
             Progress
           </p>
-          <h1 className="mt-2 text-2xl font-semibold text-foreground">
+          <h2 className="mt-2 text-2xl font-semibold text-foreground">
             Review setup and streaks
-          </h1>
+          </h2>
           <p className="mt-3 text-sm leading-6 text-foreground/65">
             Check setup progress, streak status, milestone rewards, and the
             sidebar module preference in one place.

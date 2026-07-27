@@ -10,8 +10,9 @@ export default function ContainerTitle({
   icon,
   titleVisibility = 'visible',
 }: ContainerTitleProps) {
-  const { activeGroupId, activePageLabel } = useSidebarNavigation();
-  if (titleVisibility === 'sr-only') {
+  const { activeGroupId, activePageLabel, hasCanonicalBreadcrumb } =
+    useSidebarNavigation();
+  if (titleVisibility === 'sr-only' || hasCanonicalBreadcrumb) {
     return <h1 className="sr-only">{title}</h1>;
   }
 

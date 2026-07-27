@@ -4,7 +4,6 @@ import {
   type AgentDraftSuggestionPayload,
   useAgentDraftContext,
 } from '@genfeedai/agent';
-import { COMPOSE_ROUTES } from '@genfeedai/constants';
 import { ArticleCategory, ArticleStatus } from '@genfeedai/enums';
 import type { Article } from '@genfeedai/models/content/article.model';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -19,7 +18,6 @@ import { NotificationsService } from '@services/core/notifications.service';
 import XArticleAssetsBar from '@ui/articles/x-article/XArticleAssetsBar';
 import Card from '@ui/card/Card';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
-import Breadcrumb from '@ui/navigation/breadcrumb/Breadcrumb';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 import ArticleDetailHeader from './article-detail-header';
@@ -120,7 +118,6 @@ export default function ArticleDetail({
     handleDelete,
     handleEnhance,
     handleScoreSeo,
-    pathname,
   } = useArticleDetail({ articleId });
 
   const hasXArticleSections =
@@ -214,12 +211,6 @@ export default function ArticleDetail({
   if (isLoading) {
     return (
       <div className="container mx-auto p-6">
-        <Breadcrumb
-          segments={[
-            { href: COMPOSE_ROUTES.ARTICLE, label: 'Articles' },
-            { href: pathname, label: 'Loading...' },
-          ]}
-        />
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
             <SkeletonCard showImage={false} />
@@ -236,12 +227,6 @@ export default function ArticleDetail({
   if (error && !article) {
     return (
       <div className="container mx-auto p-6">
-        <Breadcrumb
-          segments={[
-            { href: COMPOSE_ROUTES.ARTICLE, label: 'Articles' },
-            { href: pathname, label: 'Error' },
-          ]}
-        />
         <Card className="p-4">
           <div className="text-error mb-4">{error}</div>
         </Card>
@@ -251,17 +236,6 @@ export default function ArticleDetail({
 
   return (
     <div id="article-compose-workspace" className="container mx-auto p-6">
-      {/* Header */}
-      <Breadcrumb
-        segments={[
-          { href: COMPOSE_ROUTES.ARTICLE, label: 'Articles' },
-          {
-            href: pathname,
-            label: isNew ? 'New Article' : form.label || 'Untitled',
-          },
-        ]}
-      />
-
       <ArticleDetailHeader
         state={{ isNew, hasXArticleSections, isDirty, isSaving }}
         permissions={{ canPublish, canArchive }}

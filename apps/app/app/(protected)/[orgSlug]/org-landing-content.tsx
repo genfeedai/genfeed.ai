@@ -147,7 +147,7 @@ export default function OrgLandingContent() {
     <div className="mx-auto max-w-5xl px-6 py-12">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Projects</h1>
+          <h2 className="text-2xl font-semibold text-foreground">Projects</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             {brands.length} brand{brands.length === 1 ? '' : 's'} in this
             workspace

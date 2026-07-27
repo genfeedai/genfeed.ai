@@ -77,4 +77,4 @@ export const LIBRARY_MENU_ITEMS: MenuItemConfig[] = [
   },
 ];
 
-export const LIBRARY_LOGO_HREF = APP_ROUTES.LIBRARY.INGREDIENTS;
+export const LIBRARY_LOGO_HREF = APP_ROUTES.LIBRARY.OVERVIEW;

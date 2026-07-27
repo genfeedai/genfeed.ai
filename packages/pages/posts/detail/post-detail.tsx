@@ -2,7 +2,6 @@
 
 import type { PageScope } from '@genfeedai/enums';
 import { AlertCategory, PostStatus } from '@genfeedai/enums';
-import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { usePostDetail } from '@hooks/pages/use-post-detail/use-post-detail';
 import PostDetailContent from '@pages/posts/detail/components/PostDetailContent';
@@ -12,7 +11,6 @@ import { usePostRemixModal } from '@providers/global-modals/global-modals.provid
 import Card from '@ui/card/Card';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Alert from '@ui/feedback/alert/Alert';
-import Breadcrumb from '@ui/navigation/breadcrumb/Breadcrumb';
 import EngagementPreview from '@ui/posts/engagement-preview/EngagementPreview';
 import PostDetailSidebar from '@ui/posts/post-detail-sidebar/PostDetailSidebar';
 import { useRouter } from 'next/navigation';
@@ -97,7 +95,6 @@ export default function PostDetail({
     getPostsService,
     notificationsService,
     refreshPost,
-    pathname,
   } = hookData;
   const [isScoringSeo, setIsScoringSeo] = useState(false);
   const reviewSummary: PostReviewSummary | undefined = post
@@ -209,14 +206,6 @@ export default function PostDetail({
   if (isLoading) {
     return (
       <div className={wrapperClassName}>
-        {isPagePresentation ? (
-          <Breadcrumb
-            segments={[
-              { href: getPublisherPostsHref(), label: 'Posts' },
-              { href: pathname, label: 'Loading...' },
-            ]}
-          />
-        ) : null}
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
             <SkeletonCard showImage={false} />
@@ -235,14 +224,6 @@ export default function PostDetail({
   if (error || !post) {
     return (
       <div className={wrapperClassName}>
-        {isPagePresentation ? (
-          <Breadcrumb
-            segments={[
-              { href: getPublisherPostsHref(), label: 'Posts' },
-              { href: pathname, label: 'Error' },
-            ]}
-          />
-        ) : null}
         <Card className="p-4">
           <div className="text-error mb-4">{error || 'Post not found'}</div>
         </Card>
@@ -264,9 +245,7 @@ export default function PostDetail({
 
       <PostDetailHeader
         post={post}
-        pathname={pathname}
         scope={scope}
-        showBreadcrumb={isPagePresentation}
         isPublished={isPublished}
         hasChildren={hasChildren}
         viewMode={viewMode}

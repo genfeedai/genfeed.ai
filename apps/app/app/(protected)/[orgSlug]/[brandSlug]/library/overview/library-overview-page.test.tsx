@@ -1,14 +1,14 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import LibraryLandingPage from './library-landing-page';
+import LibraryOverviewPage from './library-overview-page';
 
-vi.mock('./library-landing-credit-notice', () => ({
+vi.mock('./library-overview-credit-notice', () => ({
   default: () => <div data-testid="library-credit-notice" />,
 }));
 
-describe('LibraryLandingPage', () => {
+describe('LibraryOverviewPage', () => {
   it('renders plain library sections with full-tile category links', () => {
-    render(<LibraryLandingPage />);
+    render(<LibraryOverviewPage />);
 
     expect(screen.getByTestId('library-landing-title')).toHaveTextContent(
       'Library',
@@ -37,7 +37,7 @@ describe('LibraryLandingPage', () => {
   });
 
   it('does not render legacy open-cta link labels', () => {
-    render(<LibraryLandingPage />);
+    render(<LibraryOverviewPage />);
 
     expect(
       screen.queryByRole('link', { name: 'Open Videos' }),
@@ -51,7 +51,7 @@ describe('LibraryLandingPage', () => {
   });
 
   it('exposes one navigable link per category tile', () => {
-    render(<LibraryLandingPage />);
+    render(<LibraryOverviewPage />);
 
     const videosTile = screen.getByTestId('library-category-videos');
     const imagesTile = screen.getByTestId('library-category-images');

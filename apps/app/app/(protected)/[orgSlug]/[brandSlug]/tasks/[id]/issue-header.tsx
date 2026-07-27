@@ -48,7 +48,7 @@ export default function IssueHeader({
           {priorityLabels[priority]}
         </span>
       </div>
-      <h1 className="text-xl font-semibold text-white">{title}</h1>
+      <h2 className="text-xl font-semibold text-white">{title}</h2>
     </div>
   );
 }

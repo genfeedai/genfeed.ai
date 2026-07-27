@@ -123,31 +123,23 @@ export default function EditorProjectsPage() {
   return (
     <Container className="py-10">
       <div className="mb-8 flex items-start justify-between">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <Button
-              asChild
-              className="flex size-8 shrink-0 items-center justify-center rounded-lg text-foreground/40 transition-colors duration-150 hover:bg-white/[0.06] hover:text-foreground"
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
+        <div className="flex items-center gap-3">
+          <Button
+            asChild
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-foreground/40 transition-colors duration-150 hover:bg-white/[0.06] hover:text-foreground"
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
+          >
+            <Link
+              aria-label={
+                isStudioEnabled ? 'Back to Studio' : 'Back to Library'
+              }
+              href={href(isStudioEnabled ? '/studio/video' : '/library')}
             >
-              <Link
-                aria-label={
-                  isStudioEnabled ? 'Back to Studio' : 'Back to Library'
-                }
-                href={href(isStudioEnabled ? '/studio/video' : '/library')}
-              >
-                <HiOutlineArrowLeft className="size-4" />
-              </Link>
-            </Button>
-            <h1 className="text-3xl font-semibold tracking-tight">
-              Video Editor
-            </h1>
-          </div>
-          <p className="text-foreground/60">
-            Advanced video editing with timeline, transitions, and professional
-            tools.
-          </p>
+              <HiOutlineArrowLeft className="size-4" />
+            </Link>
+          </Button>
+          <h1 className="sr-only">Video Editor</h1>
         </div>
 
         <Button

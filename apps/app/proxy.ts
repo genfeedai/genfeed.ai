@@ -58,7 +58,7 @@ const ORG_SCOPED_PREFIXES = ['settings'] as const;
 const FLAT_PATH_REDIRECTS = new Map<string, string>([
   ['/analytics', '/analytics/overview'],
   ['/compose', '/compose/article'],
-  ['/library', '/library/ingredients'],
+  ['/library', '/library/overview'],
   ['/research', '/research/discovery'],
   ['/studio', '/studio/image'],
   ['/workspace', '/workspace/overview'],

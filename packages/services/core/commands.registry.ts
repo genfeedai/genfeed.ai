@@ -99,7 +99,7 @@ export function createNavigationCommands(
     },
     {
       action: () => {
-        navigate(`${brandPath}/library/ingredients`);
+        navigate(`${brandPath}/library/overview`);
       },
       category: 'navigation',
       condition: () => EnvironmentService.currentApp !== 'app',
@@ -263,7 +263,7 @@ export function createContentCommands(
   return [
     {
       action: () => {
-        navigate(`${brandPath}/library/ingredients`);
+        navigate(`${brandPath}/library/overview`);
       },
       category: 'content',
       description: 'Find content in your library',

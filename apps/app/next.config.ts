@@ -152,9 +152,14 @@ const config = createAppNextConfig({
       source: '/:orgSlug/:brandSlug/research',
     },
     {
-      destination: '/library/ingredients',
+      destination: '/library/overview',
       permanent: false,
       source: '/library',
+    },
+    {
+      destination: '/:orgSlug/:brandSlug/library/overview',
+      permanent: false,
+      source: '/:orgSlug/:brandSlug/library',
     },
     {
       destination: '/settings',

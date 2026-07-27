@@ -68,9 +68,9 @@ export default function ArticleDetailHeader({
         <p className="text-sm text-foreground/60">
           {isNew ? 'Compose new article' : 'Article editor'}
         </p>
-        <h1 className="text-2xl font-semibold">
+        <h2 className="text-2xl font-semibold">
           {isNew ? 'New Article' : formLabel || 'Untitled Article'}
-        </h1>
+        </h2>
       </div>
 
       <div className="flex gap-2">

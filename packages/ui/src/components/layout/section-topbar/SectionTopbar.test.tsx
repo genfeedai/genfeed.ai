@@ -1,9 +1,21 @@
 import { render, screen } from '@testing-library/react';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
+const navigationState = vi.hoisted(() => ({
+  hasCanonicalBreadcrumb: false,
+}));
+
+vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
+  useSidebarNavigation: () => navigationState,
+}));
+
 describe('SectionTopbar', () => {
+  beforeEach(() => {
+    navigationState.hasCanonicalBreadcrumb = false;
+  });
+
   it('renders a full-bleed bar whose bottom border meets the shell edges', () => {
     render(<SectionTopbar title="Trending Content" />);
 
@@ -64,5 +76,25 @@ describe('SectionTopbar', () => {
       screen.queryByTestId('section-topbar-actions'),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('section-topbar-tabs')).not.toBeInTheDocument();
+  });
+
+  it('defers its visible title and subtitle to a canonical breadcrumb', () => {
+    navigationState.hasCanonicalBreadcrumb = true;
+
+    render(
+      <SectionTopbar
+        title="Trending Content"
+        subtitle="Actual posts and videos trending across platforms."
+        actions={<button type="button">Refresh</button>}
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Trending Content' }),
+    ).toHaveClass('sr-only');
+    expect(
+      screen.queryByText('Actual posts and videos trending across platforms.'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
   });
 });
