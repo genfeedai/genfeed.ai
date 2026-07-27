@@ -1,5 +1,6 @@
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { PushDesktopAssetsDto } from '@api/services/sync/dto/push-desktop-assets.dto';
+import type { IValidationErrorResponse } from '@genfeedai/interfaces';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
 
 const MAX_ASSETS = 500;
@@ -51,9 +52,7 @@ describe('PushDesktopAssetsDto', () => {
 
     expect(error).toBeInstanceOf(BadRequestException);
 
-    const response = error?.getResponse() as {
-      errors: { constraints?: Record<string, string>; property: string }[];
-    };
+    const response = error?.getResponse() as IValidationErrorResponse;
 
     expect(
       response.errors.find((entry) => entry.property === 'assets')?.constraints,

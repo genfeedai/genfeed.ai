@@ -1,5 +1,6 @@
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { PushDesktopSyncOpsDto } from '@api/services/sync/dto/push-desktop-sync-ops.dto';
+import type { IValidationErrorResponse } from '@genfeedai/interfaces';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
 
 const MAX_SYNC_OPS = 500;
@@ -46,9 +47,7 @@ describe('PushDesktopSyncOpsDto', () => {
 
     expect(error).toBeInstanceOf(BadRequestException);
 
-    const response = error?.getResponse() as {
-      errors: { constraints?: Record<string, string>; property: string }[];
-    };
+    const response = error?.getResponse() as IValidationErrorResponse;
 
     expect(
       response.errors.find((entry) => entry.property === 'ops')?.constraints,

@@ -3,6 +3,7 @@ import {
   DesktopThreadDto,
   PushDesktopThreadsDto,
 } from '@api/services/sync/dto/push-desktop-threads.dto';
+import type { IValidationErrorResponse } from '@genfeedai/interfaces';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
 
 const MAX_THREADS = 500;
@@ -47,9 +48,7 @@ function buildBody(threadCount: number) {
 }
 
 function findConstraints(error: BadRequestException | null, property: string) {
-  const response = error?.getResponse() as {
-    errors: { constraints?: Record<string, string>; property: string }[];
-  };
+  const response = error?.getResponse() as IValidationErrorResponse;
 
   return response.errors.find((entry) => entry.property === property)
     ?.constraints;

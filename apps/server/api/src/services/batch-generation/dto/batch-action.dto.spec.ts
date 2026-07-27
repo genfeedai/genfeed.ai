@@ -3,6 +3,7 @@ import {
   BatchAction,
   BatchActionDto,
 } from '@api/services/batch-generation/dto/batch-action.dto';
+import type { IValidationErrorResponse } from '@genfeedai/interfaces';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
 
 const MAX_BATCH_ACTION_ITEMS = 100;
@@ -45,9 +46,7 @@ describe('BatchActionDto', () => {
 
     expect(error).toBeInstanceOf(BadRequestException);
 
-    const response = error?.getResponse() as {
-      errors: { constraints?: Record<string, string>; property: string }[];
-    };
+    const response = error?.getResponse() as IValidationErrorResponse;
 
     expect(
       response.errors.find((entry) => entry.property === 'itemIds')
