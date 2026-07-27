@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient } from '@genfeedai/prisma';
 
 export const SERVER_TOKENS = {
+  analyticsCollectionState: 'SERVER_ANALYTICS_COLLECTION_STATE',
   config: 'SERVER_CONFIG',
   credentials: 'SERVER_CREDENTIALS',
   instagram: 'SERVER_INSTAGRAM',

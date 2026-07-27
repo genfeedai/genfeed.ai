@@ -20,6 +20,7 @@ export * from './ai/tone-profile.interface';
 export * from './analytics/activity.interface';
 export * from './analytics/aggregation.interface';
 export * from './analytics/analytics.interface';
+export * from './analytics/analytics-collection-state.interface';
 export * from './analytics/analytics-context.interface';
 export * from './analytics/analytics-query-reference.interface';
 export * from './analytics/analytics-ui.interface';
@@ -192,6 +193,7 @@ export * from './publisher/credential-token-publishing-readiness-input.interface
 export * from './publisher/publish-approval.interface';
 export * from './publisher/publisher.interface';
 export * from './publisher/publishing-readiness.interface';
+export * from './scheduler/analytics-capability.interface';
 export * from './scheduler/channel-target.interface';
 export * from './scheduler/recurrence-rule.interface';
 export * from './scheduler/release-attachment.interface';

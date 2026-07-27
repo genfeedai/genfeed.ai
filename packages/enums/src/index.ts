@@ -90,6 +90,7 @@ export * from './scheduler.enum';
 export * from './scope.enum';
 export * from './severity.enum';
 export * from './social-media.enum';
+export * from './social-message-workflow-trigger-status.enum';
 export * from './sort.enum';
 export * from './sound-category.enum';
 export * from './source-collector.enum';
