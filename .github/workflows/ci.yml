@@ -447,6 +447,9 @@ jobs:
         run: cd apps/app && bunx vitest run --config ./vitest.config.mts --maxWorkers=2 --shard=${{ matrix.shard }}/4
         env:
           NODE_ENV: test
+          # Some shards exercise enough jsdom-heavy files for a long-lived
+          # Vitest fork to exceed V8's 4 GiB default after assertions pass.
+          NODE_OPTIONS: --max-old-space-size=6144
 
   # Focused, blocking app tests on master push and every ordinary PR: runs
   # only the @genfeedai/app tests whose module graph touches the diff
