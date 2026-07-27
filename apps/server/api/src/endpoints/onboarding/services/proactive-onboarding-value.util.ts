@@ -15,6 +15,7 @@ export function getProactivePrepStage(
       return 'brand_ready';
     case ProactiveOnboardingStatus.CONTENT_GENERATING:
       return 'generating_outputs';
+    case ProactiveOnboardingStatus.CONTENT_READY:
     case ProactiveOnboardingStatus.READY:
     case ProactiveOnboardingStatus.INVITED:
     case ProactiveOnboardingStatus.STARTED:
@@ -36,6 +37,7 @@ export function getProactivePrepPercent(
       return 55;
     case ProactiveOnboardingStatus.CONTENT_GENERATING:
       return 80;
+    case ProactiveOnboardingStatus.CONTENT_READY:
     case ProactiveOnboardingStatus.READY:
     case ProactiveOnboardingStatus.INVITED:
     case ProactiveOnboardingStatus.STARTED:
@@ -51,6 +53,7 @@ export function isProactiveInviteEligible(
   status?: ProactiveOnboardingStatus,
 ): boolean {
   return [
+    ProactiveOnboardingStatus.CONTENT_READY,
     ProactiveOnboardingStatus.READY,
     ProactiveOnboardingStatus.INVITED,
     ProactiveOnboardingStatus.STARTED,

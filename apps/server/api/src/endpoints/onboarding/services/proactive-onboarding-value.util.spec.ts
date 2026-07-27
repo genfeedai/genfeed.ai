@@ -14,6 +14,7 @@ describe('proactive onboarding value helpers', () => {
     [ProactiveOnboardingStatus.BRAND_PREPARING, 'researching_brand', 25],
     [ProactiveOnboardingStatus.BRAND_READY, 'brand_ready', 55],
     [ProactiveOnboardingStatus.CONTENT_GENERATING, 'generating_outputs', 80],
+    [ProactiveOnboardingStatus.CONTENT_READY, 'ready', 100],
     [ProactiveOnboardingStatus.READY, 'ready', 100],
     [ProactiveOnboardingStatus.INVITED, 'ready', 100],
     [ProactiveOnboardingStatus.STARTED, 'ready', 100],
@@ -26,6 +27,7 @@ describe('proactive onboarding value helpers', () => {
   });
 
   it.each([
+    ProactiveOnboardingStatus.CONTENT_READY,
     ProactiveOnboardingStatus.READY,
     ProactiveOnboardingStatus.INVITED,
     ProactiveOnboardingStatus.STARTED,
