@@ -115,6 +115,10 @@ export class ReleaseRecurrenceMaterializerService {
     }
 
     const recurrenceRecord = this.asRecord(group.recurrence);
+    if (recurrenceRecord.isPaused === true) {
+      return { status: 'not_applicable' };
+    }
+
     const parsedRecurrence = recurrenceInputSchema.safeParse(recurrenceRecord);
     if (!parsedRecurrence.success) {
       throw new Error(

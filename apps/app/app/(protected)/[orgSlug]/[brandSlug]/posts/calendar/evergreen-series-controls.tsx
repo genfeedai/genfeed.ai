@@ -6,6 +6,7 @@ import type {
 } from '@api-types/contracts';
 import { ReleaseStatus } from '@genfeedai/enums';
 import type { IRecurrenceRule, IReleaseGroup } from '@genfeedai/interfaces';
+import { createDateFromTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -17,13 +18,63 @@ type EvergreenSeriesControlsProps = {
   groupId: string;
 };
 
-function toLocalDateTimeInput(value: string | null | undefined): string {
+function toLocalDateTimeInput(
+  value: string | null | undefined,
+  timezone: string,
+): string {
   if (!value) {
     return '';
   }
+
   const date = new Date(value);
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 16);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  try {
+    const parts = new Map(
+      new Intl.DateTimeFormat('en-US-u-ca-gregory-nu-latn', {
+        day: '2-digit',
+        hour: '2-digit',
+        hourCycle: 'h23',
+        minute: '2-digit',
+        month: '2-digit',
+        timeZone: timezone,
+        year: 'numeric',
+      })
+        .formatToParts(date)
+        .filter((part) => part.type !== 'literal')
+        .map((part) => [part.type, part.value]),
+    );
+    const year = parts.get('year');
+    const month = parts.get('month');
+    const day = parts.get('day');
+    const hour = parts.get('hour');
+    const minute = parts.get('minute');
+    if (!year || !month || !day || !hour || !minute) {
+      return '';
+    }
+
+    return `${year}-${month}-${day}T${hour}:${minute}`;
+  } catch {
+    return '';
+  }
+}
+
+function scheduledDateToISOString(value: string, timezone: string): string {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+  if (!match) {
+    throw new Error('The next occurrence date is invalid.');
+  }
+
+  return createDateFromTimezone(
+    Number.parseInt(match[1], 10),
+    Number.parseInt(match[2], 10),
+    Number.parseInt(match[3], 10),
+    Number.parseInt(match[4], 10),
+    Number.parseInt(match[5], 10),
+    timezone,
+  ).toISOString();
 }
 
 function recurrenceInput(rule: IRecurrenceRule): RecurrenceInput {
@@ -40,7 +91,7 @@ function actionErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'The series action failed.';
 }
 
-export function EvergreenSeriesControls({
+export default function EvergreenSeriesControls({
   groupId,
 }: EvergreenSeriesControlsProps): React.JSX.Element {
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
@@ -55,48 +106,73 @@ export function EvergreenSeriesControls({
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [isConfirmingCancel, setIsConfirmingCancel] = useState(false);
 
-  const loadRelease = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const service = await getReleaseGroupsService();
-      const nextRelease = await service.getOne(groupId);
-      setRelease(nextRelease);
-      setScheduledDate(toLocalDateTimeInput(nextRelease.scheduledAt));
-    } catch (loadError) {
-      setError(actionErrorMessage(loadError));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [getReleaseGroupsService, groupId]);
+  const loadRelease = useCallback(
+    async (signal?: AbortSignal) => {
+      setIsLoading(true);
+      setError(null);
+      setRelease(null);
+      setPreview(null);
+      setScheduledDate('');
+      try {
+        const service = await getReleaseGroupsService();
+        const nextRelease = await service.getOne(groupId, signal);
+        if (signal?.aborted) {
+          return;
+        }
+        setRelease(nextRelease);
+        setScheduledDate(
+          toLocalDateTimeInput(nextRelease.scheduledAt, nextRelease.timezone),
+        );
+      } catch (loadError) {
+        if (!signal?.aborted) {
+          setError(actionErrorMessage(loadError));
+        }
+      } finally {
+        if (!signal?.aborted) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [getReleaseGroupsService, groupId],
+  );
 
   useEffect(() => {
-    void loadRelease();
+    const controller = new AbortController();
+    void loadRelease(controller.signal);
+    return () => controller.abort();
   }, [loadRelease]);
 
   useEffect(() => {
-    const rule = release?.recurrence;
-    if (!rule || !scheduledDate) {
+    const activeRelease = release;
+    const rule = activeRelease?.recurrence;
+    if (!activeRelease || !rule || !scheduledDate) {
       setPreview(null);
       return;
     }
 
-    let isActive = true;
+    const controller = new AbortController();
+    setPreview(null);
     const loadPreview = async () => {
       try {
         const service = await getReleaseGroupsService();
-        const result = await service.preview({
-          limit: 3,
-          recurrence: recurrenceInput(rule),
-          repeatCount: rule.repeatCount,
-          startAt: new Date(scheduledDate).toISOString(),
-          timezone: release.timezone,
-        });
-        if (isActive) {
+        const result = await service.preview(
+          {
+            limit: 3,
+            recurrence: recurrenceInput(rule),
+            repeatCount: rule.repeatCount,
+            startAt: scheduledDateToISOString(
+              scheduledDate,
+              activeRelease.timezone,
+            ),
+            timezone: activeRelease.timezone,
+          },
+          controller.signal,
+        );
+        if (!controller.signal.aborted) {
           setPreview(result);
         }
       } catch (previewError) {
-        if (isActive) {
+        if (!controller.signal.aborted) {
           setPreview({
             issues: [
               {
@@ -111,15 +187,8 @@ export function EvergreenSeriesControls({
     };
 
     void loadPreview();
-    return () => {
-      isActive = false;
-    };
-  }, [
-    getReleaseGroupsService,
-    release?.recurrence,
-    release?.timezone,
-    scheduledDate,
-  ]);
+    return () => controller.abort();
+  }, [getReleaseGroupsService, release, scheduledDate]);
 
   const runAction = useCallback(
     async (
@@ -133,7 +202,9 @@ export function EvergreenSeriesControls({
         const service = await getReleaseGroupsService();
         const nextRelease = await mutation(service);
         setRelease(nextRelease);
-        setScheduledDate(toLocalDateTimeInput(nextRelease.scheduledAt));
+        setScheduledDate(
+          toLocalDateTimeInput(nextRelease.scheduledAt, nextRelease.timezone),
+        );
         setIsConfirmingCancel(false);
         notifications.success(successMessage);
       } catch (actionError) {
@@ -242,7 +313,10 @@ export function EvergreenSeriesControls({
                   'edit',
                   (service) =>
                     service.editFuture(groupId, {
-                      scheduledDate: new Date(scheduledDate).toISOString(),
+                      scheduledDate: scheduledDateToISOString(
+                        scheduledDate,
+                        release.timezone,
+                      ),
                     }),
                   'Future occurrence updated',
                 )

@@ -27,19 +27,22 @@ export class ReleaseGroupsService extends HTTPBaseService {
     ) as ReleaseGroupsService;
   }
 
-  async getOne(groupId: string): Promise<IReleaseGroup> {
+  async getOne(groupId: string, signal?: AbortSignal): Promise<IReleaseGroup> {
     const response = await this.instance.get<JsonApiResponseDocument>(
       `/${groupId}`,
+      { signal },
     );
     return deserializeResource<IReleaseGroup>(response.data);
   }
 
   async preview(
     input: RecurrencePreviewInput,
+    signal?: AbortSignal,
   ): Promise<RecurrencePreviewResult> {
     const response = await this.instance.post<RecurrencePreviewResult>(
       '/recurrence/preview',
       input,
+      { signal },
     );
     return response.data;
   }

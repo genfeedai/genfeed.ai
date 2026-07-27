@@ -1,9 +1,16 @@
 import '@testing-library/jest-dom/vitest';
+import type { RecurrencePreviewResult } from '@api-types/contracts';
 import { ReleaseStatus } from '@genfeedai/enums';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import type { InputHTMLAttributes } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { EvergreenSeriesControls } from './evergreen-series-controls';
+import EvergreenSeriesControls from './evergreen-series-controls';
 
 const mocks = vi.hoisted(() => ({
   cancelFuture: vi.fn(),
@@ -33,6 +40,21 @@ const release = {
   status: ReleaseStatus.SCHEDULED,
   timezone: 'UTC',
 };
+
+function createDeferred<T>(): {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+} {
+  let resolvePromise: ((value: T) => void) | undefined;
+  const promise = new Promise<T>((resolve) => {
+    resolvePromise = resolve;
+  });
+
+  return {
+    promise,
+    resolve: (value) => resolvePromise?.(value),
+  };
+}
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
@@ -98,6 +120,7 @@ describe('EvergreenSeriesControls', () => {
     expect(await screen.findByText('Upcoming preview')).toBeInTheDocument();
     expect(mocks.preview).toHaveBeenCalledWith(
       expect.objectContaining({ limit: 3, timezone: 'UTC' }),
+      expect.any(AbortSignal),
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Pause series' }));
@@ -188,6 +211,121 @@ describe('EvergreenSeriesControls', () => {
       expect(mocks.editFuture).toHaveBeenCalledWith('release-1', {
         scheduledDate: '2026-08-12T09:00:00.000Z',
       });
+    });
+  });
+
+  it('preserves the release timezone for display, preview, and edits', async () => {
+    mocks.getOne.mockResolvedValue({
+      ...release,
+      scheduledAt: '2026-08-03T13:00:00.000Z',
+      timezone: 'America/New_York',
+    });
+
+    render(<EvergreenSeriesControls groupId="release-1" />);
+
+    const dateInput = await screen.findByLabelText('Next occurrence');
+    expect(dateInput).toHaveValue('2026-08-03T09:00');
+    await waitFor(() => {
+      expect(mocks.preview).toHaveBeenCalledWith(
+        expect.objectContaining({
+          startAt: '2026-08-03T13:00:00.000Z',
+          timezone: 'America/New_York',
+        }),
+        expect.any(AbortSignal),
+      );
+    });
+
+    fireEvent.change(dateInput, { target: { value: '2026-08-12T09:00' } });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Save future schedule' }),
+    );
+
+    await waitFor(() => {
+      expect(mocks.editFuture).toHaveBeenCalledWith('release-1', {
+        scheduledDate: '2026-08-12T13:00:00.000Z',
+      });
+    });
+  });
+
+  it('aborts and ignores a stale release response after the group changes', async () => {
+    const firstRelease = createDeferred<typeof release>();
+    const secondRelease = createDeferred<typeof release>();
+    mocks.getOne.mockImplementation((groupId: string) =>
+      groupId === 'release-1' ? firstRelease.promise : secondRelease.promise,
+    );
+
+    const { rerender } = render(
+      <EvergreenSeriesControls groupId="release-1" />,
+    );
+    await waitFor(() => expect(mocks.getOne).toHaveBeenCalledTimes(1));
+    const firstSignal = mocks.getOne.mock.calls[0]?.[1] as AbortSignal;
+
+    rerender(<EvergreenSeriesControls groupId="release-2" />);
+    await waitFor(() => expect(mocks.getOne).toHaveBeenCalledTimes(2));
+    expect(firstSignal.aborted).toBe(true);
+
+    await act(async () => {
+      secondRelease.resolve({
+        ...release,
+        id: 'release-2',
+        scheduledAt: '2026-08-04T10:00:00.000Z',
+      });
+    });
+    expect(await screen.findByLabelText('Next occurrence')).toHaveValue(
+      '2026-08-04T10:00',
+    );
+
+    await act(async () => {
+      firstRelease.resolve(release);
+    });
+    await waitFor(() => {
+      expect(screen.getByLabelText('Next occurrence')).toHaveValue(
+        '2026-08-04T10:00',
+      );
+    });
+  });
+
+  it('aborts and ignores a stale preview after the schedule changes', async () => {
+    const firstPreview = createDeferred<RecurrencePreviewResult>();
+    const secondPreview = createDeferred<RecurrencePreviewResult>();
+    mocks.preview
+      .mockReset()
+      .mockImplementationOnce(() => firstPreview.promise)
+      .mockImplementationOnce(() => secondPreview.promise);
+
+    render(<EvergreenSeriesControls groupId="release-1" />);
+    const dateInput = await screen.findByLabelText('Next occurrence');
+    await waitFor(() => expect(mocks.preview).toHaveBeenCalledTimes(1));
+    const firstSignal = mocks.preview.mock.calls[0]?.[1] as AbortSignal;
+
+    fireEvent.change(dateInput, { target: { value: '2026-08-03T10:00' } });
+    await waitFor(() => expect(mocks.preview).toHaveBeenCalledTimes(2));
+    expect(firstSignal.aborted).toBe(true);
+
+    const currentOccurrence = '2026-08-10T10:00:00.000Z';
+    await act(async () => {
+      secondPreview.resolve({
+        isExhausted: false,
+        occurrences: [currentOccurrence],
+        success: true,
+      });
+    });
+    expect(
+      await screen.findByText(new Date(currentOccurrence).toLocaleString()),
+    ).toBeInTheDocument();
+
+    const staleOccurrence = '2026-08-10T09:00:00.000Z';
+    await act(async () => {
+      firstPreview.resolve({
+        isExhausted: false,
+        occurrences: [staleOccurrence],
+        success: true,
+      });
+    });
+    await waitFor(() => {
+      expect(
+        screen.queryByText(new Date(staleOccurrence).toLocaleString()),
+      ).not.toBeInTheDocument();
     });
   });
 });

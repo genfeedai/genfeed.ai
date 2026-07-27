@@ -26,7 +26,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HiCalendarDays, HiDocumentText, HiListBullet } from 'react-icons/hi2';
-import { EvergreenSeriesControls } from './evergreen-series-controls';
+import EvergreenSeriesControls from './evergreen-series-controls';
 
 const DEFAULT_COLOR = '#8b5cf6';
 const ARTICLE_STATUS_COLORS: Record<string, string> = {

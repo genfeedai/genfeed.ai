@@ -46,14 +46,20 @@ describe('ReleaseGroupsService', () => {
 
   it('reads one canonical release group', async () => {
     instance.get.mockResolvedValue({ data: { data: { id: 'release-1' } } });
+    const controller = new AbortController();
 
-    await expect(service.getOne('release-1')).resolves.toEqual({
+    await expect(
+      service.getOne('release-1', controller.signal),
+    ).resolves.toEqual({
       id: 'release-1',
     });
-    expect(instance.get).toHaveBeenCalledWith('/release-1');
+    expect(instance.get).toHaveBeenCalledWith('/release-1', {
+      signal: controller.signal,
+    });
   });
 
   it('previews recurrence without a durable write', async () => {
+    const controller = new AbortController();
     instance.post.mockResolvedValue({
       data: {
         isExhausted: false,
@@ -62,20 +68,24 @@ describe('ReleaseGroupsService', () => {
       },
     });
 
-    await service.preview({
-      recurrence: {
-        frequency: PostFrequency.WEEKLY,
-        interval: 1,
-        maxRepeats: 4,
-        weekdays: [1],
+    await service.preview(
+      {
+        recurrence: {
+          frequency: PostFrequency.WEEKLY,
+          interval: 1,
+          maxRepeats: 4,
+          weekdays: [1],
+        },
+        startAt: '2026-08-03T09:00:00.000Z',
+        timezone: 'UTC',
       },
-      startAt: '2026-08-03T09:00:00.000Z',
-      timezone: 'UTC',
-    });
+      controller.signal,
+    );
 
     expect(instance.post).toHaveBeenCalledWith(
       '/recurrence/preview',
       expect.objectContaining({ timezone: 'UTC' }),
+      { signal: controller.signal },
     );
   });
 
