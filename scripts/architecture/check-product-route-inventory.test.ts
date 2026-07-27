@@ -5,6 +5,20 @@ import {
   runCheckProductRouteInventory,
 } from './check-product-route-inventory';
 
+const VALID_INVENTORY_INPUTS = {
+  catchAllExpansions: ['/org/expanded'],
+  catchAllPage: '/org/*segments?',
+  discoveredProtectedRoutes: ['/kept', '/org/*segments?'],
+  discoveredPublicRoutes: [],
+  hardCutPages: [],
+  hardCutPrefixes: ['/legacy'],
+  protectedRoutes: [
+    { canonicalUrl: '/kept', productClass: 'control-plane' },
+    { canonicalUrl: '/org/expanded', productClass: 'control-plane' },
+  ],
+  publicRoutes: [],
+} as const;
+
 describe('normalizeNextPageRoute', () => {
   it('normalizes route groups and dynamic segments', () => {
     expect(
@@ -103,6 +117,60 @@ describe('compareProductRouteInventories', () => {
       'Duplicate public page route: app:/login',
       'Invalid protected product class for /kept: unknown',
       'Invalid protected product class for /kept: unknown',
+    ]);
+  });
+
+  it('fails closed when the organization catch-all page is missing', () => {
+    const issues = compareProductRouteInventories({
+      ...VALID_INVENTORY_INPUTS,
+      discoveredProtectedRoutes: ['/kept'],
+    });
+
+    expect(issues).toEqual([
+      'Missing organization catch-all page: /org/*segments?',
+    ]);
+  });
+
+  it('fails closed when a declared hard-cut page is missing', () => {
+    const issues = compareProductRouteInventories({
+      ...VALID_INVENTORY_INPUTS,
+      hardCutPages: ['/legacy'],
+    });
+
+    expect(issues).toEqual(['Missing protected hard-cut page: /legacy']);
+  });
+
+  it('fails closed when a hard-cut page is not explicitly declared', () => {
+    const issues = compareProductRouteInventories({
+      ...VALID_INVENTORY_INPUTS,
+      discoveredProtectedRoutes: [
+        ...VALID_INVENTORY_INPUTS.discoveredProtectedRoutes,
+        '/legacy/details',
+      ],
+    });
+
+    expect(issues).toEqual([
+      'Unclassified protected hard-cut page: /legacy/details',
+    ]);
+  });
+
+  it('fails closed when a hard-cut route enters the trusted registry', () => {
+    const issues = compareProductRouteInventories({
+      ...VALID_INVENTORY_INPUTS,
+      discoveredProtectedRoutes: [
+        ...VALID_INVENTORY_INPUTS.discoveredProtectedRoutes,
+        '/legacy',
+      ],
+      hardCutPages: ['/legacy'],
+      protectedRoutes: [
+        ...VALID_INVENTORY_INPUTS.protectedRoutes,
+        { canonicalUrl: '/legacy', productClass: 'control-plane' },
+      ],
+    });
+
+    expect(issues).toEqual([
+      'Hard-cut route is registered: /legacy',
+      'Stale protected registration: /legacy',
     ]);
   });
 });

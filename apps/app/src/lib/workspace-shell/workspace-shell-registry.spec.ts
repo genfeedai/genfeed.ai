@@ -198,6 +198,9 @@ describe('workspace shell trusted registry', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/analytics/trends'),
     ).toMatchObject({ productClass: 'visual-data' });
+    expect(
+      resolveWorkspaceShellRoute('/admin/overview/analytics/business'),
+    ).toMatchObject({ productClass: 'visual-data' });
 
     for (const pathname of [
       '/acme/moonrise/library/images',

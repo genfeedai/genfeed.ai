@@ -896,20 +896,13 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ),
 ] as const;
 
-const ADMIN_ROUTE_PATTERNS = [
+const ADMIN_CONTROL_PLANE_ROUTE_PATTERNS = [
   '/admin',
   '/admin/agent',
   '/admin/agent/new',
   '/admin/agent/:threadId',
   '/admin/overview/dashboard',
   '/admin/overview/activities',
-  '/admin/overview/analytics/all',
-  '/admin/overview/analytics/brands',
-  '/admin/overview/analytics/brands/:id',
-  '/admin/overview/analytics/brands/:id/platforms/:platform',
-  '/admin/overview/analytics/business',
-  '/admin/overview/analytics/organizations',
-  '/admin/overview/analytics/organizations/:id',
   '/admin/content/posts',
   '/admin/content/posts/:id',
   '/admin/content/templates',
@@ -959,15 +952,36 @@ const ADMIN_ROUTE_PATTERNS = [
   '/admin/administration/platform-settings',
 ] as const;
 
-const ADMIN_ROUTE_REGISTRATIONS = registerRoutes(ADMIN_ROUTE_PATTERNS, {
-  fallback: '/admin',
-  mode: 'canvas',
-  productClass: 'control-plane',
-  scope: 'platform-admin',
-  surfaceKey: 'platform-admin',
-  switcherItems: ['admin'],
-  telemetryClass: 'management',
-});
+const ADMIN_ANALYTICS_ROUTE_PATTERNS = [
+  '/admin/overview/analytics/all',
+  '/admin/overview/analytics/brands',
+  '/admin/overview/analytics/brands/:id',
+  '/admin/overview/analytics/brands/:id/platforms/:platform',
+  '/admin/overview/analytics/business',
+  '/admin/overview/analytics/organizations',
+  '/admin/overview/analytics/organizations/:id',
+] as const;
+
+const ADMIN_ROUTE_REGISTRATIONS = [
+  ...registerRoutes(ADMIN_CONTROL_PLANE_ROUTE_PATTERNS, {
+    fallback: '/admin',
+    mode: 'canvas',
+    productClass: 'control-plane',
+    scope: 'platform-admin',
+    surfaceKey: 'platform-admin',
+    switcherItems: ['admin'],
+    telemetryClass: 'management',
+  }),
+  ...registerRoutes(ADMIN_ANALYTICS_ROUTE_PATTERNS, {
+    fallback: '/admin',
+    mode: 'canvas',
+    productClass: 'visual-data',
+    scope: 'platform-admin',
+    surfaceKey: 'platform-admin',
+    switcherItems: ['admin'],
+    telemetryClass: 'management',
+  }),
+] as const;
 
 /**
  * Canonical application-owned inventory for the protected route patterns
