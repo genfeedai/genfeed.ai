@@ -2,6 +2,7 @@
   "dependencies": {
     "@dagrejs/dagre": "3.0.0",
     "@genfeedai/enums": "workspace:*",
+    "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/pricing": "workspace:*",
     "@genfeedai/types": "workspace:*",
     "@genfeedai/ui": "workspace:*",
