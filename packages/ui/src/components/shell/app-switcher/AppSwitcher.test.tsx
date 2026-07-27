@@ -169,11 +169,15 @@ describe('AppSwitcher', () => {
     );
     expect(iconTrigger.className).not.toContain('focus-visible:!ring-0');
 
-    expect(screen.getByRole('link', { name: 'Workspace' })).toHaveClass(
-      'focus-visible:ring-2',
-      'focus-visible:ring-ring',
-      'focus-visible:ring-offset-popover',
+    const workspaceLink = screen.getByRole('link', { name: 'Workspace' });
+    const workspaceIconTile = workspaceLink.querySelector('span');
+    expect(workspaceLink).toHaveClass(
+      '!bg-transparent',
+      '!shadow-none',
+      '!ring-0',
+      '!ring-offset-0',
     );
+    expect(workspaceIconTile).toHaveClass('bg-foreground', 'text-background');
 
     rerender(
       <AppSwitcher orgSlug="acme" currentApp="workspace" variant="labeled" />,
@@ -347,6 +351,12 @@ describe('AppSwitcher', () => {
     expect(btn).not.toHaveAttribute('aria-current');
     expect(btn).not.toHaveClass('bg-foreground/[0.08]');
     expect(iconTile).not.toHaveClass('bg-foreground', 'text-background');
+    expect(iconTile).toHaveClass(
+      'group-hover:bg-foreground',
+      'group-hover:text-background',
+      'group-focus-visible:bg-foreground',
+      'group-focus-visible:text-background',
+    );
   });
 
   it('keeps the contextual remix route inside Publish', () => {

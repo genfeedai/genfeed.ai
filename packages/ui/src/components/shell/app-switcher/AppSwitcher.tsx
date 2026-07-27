@@ -368,7 +368,8 @@ function AppSwitcherGridItem({
         onClick={() => onNavigateStart(navigationAnnouncement)}
         className={cn(
           'group grid min-h-[4.5rem] min-w-0 grid-rows-[2.25rem_1.125rem] place-items-center gap-1 rounded-lg px-1 py-1.5 text-center outline-none',
-          'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-popover',
+          'border-transparent !bg-transparent !shadow-none !ring-0 !ring-offset-0',
+          'focus:text-inherit data-[highlighted]:text-inherit',
         )}
       >
         <span
@@ -376,7 +377,7 @@ function AppSwitcherGridItem({
             'relative inline-flex size-9 items-center justify-center rounded-lg bg-background-secondary text-foreground/58 transition-colors',
             isActive
               ? 'bg-foreground text-background'
-              : 'group-hover:bg-foreground/[0.08] group-hover:text-foreground/82',
+              : 'group-hover:bg-foreground group-hover:text-background group-focus-visible:bg-foreground group-focus-visible:text-background',
             isLocked && 'opacity-60',
           )}
         >
@@ -390,7 +391,10 @@ function AppSwitcherGridItem({
         <span
           className={cn(
             'block max-w-full truncate text-xs font-semibold leading-[1.125rem]',
-            isActive ? 'text-foreground' : 'text-foreground/58',
+            isActive
+              ? 'text-foreground'
+              : 'text-foreground/58 group-hover:text-foreground group-focus-visible:text-foreground',
+            'group-focus-visible:underline group-focus-visible:underline-offset-4',
             isLocked && 'text-foreground/45',
           )}
         >
