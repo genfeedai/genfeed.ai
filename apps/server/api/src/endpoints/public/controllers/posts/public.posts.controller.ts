@@ -134,9 +134,14 @@ export class PublicPostsController {
       matchQuery['metadata.tags'] = { mode: 'insensitive', contains: tag };
     }
 
+    // `totalPosts` was computed by the former Mongo aggregation and is not an
+    // Ingredient scalar. The Prisma schema now exposes two distinct post
+    // relations, neither of whose unfiltered relation count preserves that
+    // public-post metric. Keep the endpoint newest-first and use `id` as the
+    // stable tiebreaker until a canonical popularity projection exists.
     const aggregate = {
       where: matchQuery,
-      orderBy: { createdAt: -1, totalPosts: -1 },
+      orderBy: [{ createdAt: -1 }, { id: -1 }],
     };
 
     const data = await this.ingredientsService.findAll(aggregate, options);
