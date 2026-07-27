@@ -39261,6 +39261,21 @@
         ]
       }
     },
+    "/post-groups/recurrence/preview": {
+      "post": {
+        "operationId": "PostGroupsController.previewRecurrence",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "previewRecurrence",
+        "tags": [
+          "PostGroups"
+        ]
+      }
+    },
     "/post-groups/{id}": {
       "get": {
         "operationId": "PostGroupsController.getOne",
@@ -39398,6 +39413,102 @@
           }
         },
         "summary": "resume",
+        "tags": [
+          "PostGroups"
+        ]
+      }
+    },
+    "/post-groups/{id}/series/cancel-future": {
+      "post": {
+        "operationId": "PostGroupsController.cancelFutureSeries",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "cancelFutureSeries",
+        "tags": [
+          "PostGroups"
+        ]
+      }
+    },
+    "/post-groups/{id}/series/future": {
+      "patch": {
+        "operationId": "PostGroupsController.editFutureSeries",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "editFutureSeries",
+        "tags": [
+          "PostGroups"
+        ]
+      }
+    },
+    "/post-groups/{id}/series/pause": {
+      "post": {
+        "operationId": "PostGroupsController.pauseSeries",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "pauseSeries",
+        "tags": [
+          "PostGroups"
+        ]
+      }
+    },
+    "/post-groups/{id}/series/resume": {
+      "post": {
+        "operationId": "PostGroupsController.resumeSeries",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "resumeSeries",
         "tags": [
           "PostGroups"
         ]
