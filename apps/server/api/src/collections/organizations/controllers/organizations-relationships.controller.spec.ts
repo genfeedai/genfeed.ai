@@ -15,6 +15,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => ({ data })),
 }));
 
+import { readFileSync } from 'node:fs';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
@@ -238,6 +239,32 @@ describe('OrganizationsRelationshipsController', () => {
   });
 
   describe('findAllVideos', () => {
+    it('keeps ingredient and video pagination document types distinct', () => {
+      const source = readFileSync(
+        new URL('./organizations-relationships.controller.ts', import.meta.url),
+        'utf8',
+      );
+      const ingredientsMethod = source.slice(
+        source.indexOf('async findAllIngredients('),
+        source.indexOf("  @Get(':organizationId/videos')"),
+      );
+      const videosMethod = source.slice(
+        source.indexOf('async findAllVideos('),
+        source.indexOf("  @Get(':organizationId/tags')"),
+      );
+
+      expect(source).toContain(
+        "import type { VideoDocument } from '@api/collections/videos/schemas/video.schema';",
+      );
+      expect(ingredientsMethod).toContain(
+        'AggregatePaginateResult<IngredientDocument>',
+      );
+      expect(videosMethod).toContain('AggregatePaginateResult<VideoDocument>');
+      expect(videosMethod).not.toContain(
+        'AggregatePaginateResult<IngredientDocument>',
+      );
+    });
+
     it('scopes videos to the organization and requesting user', async () => {
       await controller.findAllVideos(
         {} as never,
