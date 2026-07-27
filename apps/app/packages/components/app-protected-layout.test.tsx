@@ -1,6 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { type ReactNode, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useWorkspaceNavPanel } from '@/components/workspace-shell/WorkspaceNavPanelContext';
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
 import AppProtectedLayout from './app-protected-layout';
 
@@ -55,6 +57,17 @@ const enabledCategoriesState = vi.hoisted(() => ({
   enabledCategories: ['image', 'video', 'avatar'],
   isLoading: false,
 }));
+
+function MessagesNavPanelProbe() {
+  const workspaceNavPanel = useWorkspaceNavPanel();
+
+  return workspaceNavPanel?.portalTarget
+    ? createPortal(
+        <div data-testid="social-conversation-list">Conversation list</div>,
+        workspaceNavPanel.portalTarget,
+      )
+    : null;
+}
 
 vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
@@ -1034,6 +1047,38 @@ describe('AppProtectedLayout', () => {
       }),
     );
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
+  });
+
+  it('hands the nav column to the Messages conversation list', () => {
+    mockPathname.value = '/org-123/brand-123/messages';
+
+    render(
+      <AppProtectedLayout>
+        <MessagesNavPanelProbe />
+        <div>Messages canvas</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(screen.getByTestId('messages-nav-panel')).toBeInTheDocument();
+    expect(screen.getByTestId('messages-nav-panel')).toHaveTextContent(
+      'Conversation list',
+    );
+    expect(screen.getByTestId('social-conversation-list')).toBeInTheDocument();
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentApp: 'messages',
+        items: [],
+        renderBody: expect.any(Function),
+        sectionLabel: 'Messages',
+        showPrimaryItems: false,
+      }),
+    );
+    expect(
+      screen.queryByRole('button', { name: 'New Task' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Search' }),
+    ).not.toBeInTheDocument();
   });
 
   it('gives workflow routes their own nav column', () => {

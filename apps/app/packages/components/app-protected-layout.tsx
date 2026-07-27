@@ -30,6 +30,10 @@ import {
 } from 'react';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { WorkspaceInspectorProvider } from '@/components/workspace-shell/WorkspaceInspectorContext';
+import {
+  useWorkspaceNavPanel,
+  WorkspaceNavPanelProvider,
+} from '@/components/workspace-shell/WorkspaceNavPanelContext';
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 import {
   captureWorkspaceShellError,
@@ -127,6 +131,7 @@ function AppLayoutWithDynamicMenu({
     isFocusedOnboardingRoute,
     isLibraryLandingRoute,
     isLibraryRoute,
+    isMessagesRoute,
     isOrgRoute,
     isPromptBarRoute,
     isResearchRoute,
@@ -219,6 +224,26 @@ function AppLayoutWithDynamicMenu({
         : null,
     [conversationActions, isConversationRoute, renderConversations],
   );
+  const workspaceNavPanel = useWorkspaceNavPanel();
+  const setWorkspaceNavPanelPortalTarget =
+    workspaceNavPanel?.setPortalTarget ?? null;
+  const messagesNavPanel = useMemo<SidebarNavPanel | null>(
+    () =>
+      isMessagesRoute && setWorkspaceNavPanelPortalTarget
+        ? {
+            render: () => (
+              <div
+                className="flex h-full min-h-0 flex-col"
+                data-testid="messages-nav-panel"
+                ref={setWorkspaceNavPanelPortalTarget}
+              />
+            ),
+            sectionLabel: 'Messages',
+          }
+        : null,
+    [isMessagesRoute, setWorkspaceNavPanelPortalTarget],
+  );
+  const activeNavPanel = conversationNavPanel ?? messagesNavPanel;
 
   const menuComponent = useMemo(() => {
     // Only the focused onboarding flow runs without navigation. Canvas surfaces
@@ -240,6 +265,7 @@ function AppLayoutWithDynamicMenu({
         isEditorRoute={isEditorRoute}
         isFocusedOnboardingRoute={isFocusedOnboardingRoute}
         isLibraryRoute={isLibraryRoute}
+        isMessagesRoute={isMessagesRoute}
         isOrgRoute={isOrgRoute}
         isResearchRoute={isResearchRoute}
         isSettingsRoute={isSettingsRoute}
@@ -256,7 +282,7 @@ function AppLayoutWithDynamicMenu({
         settingsMenuItems={settingsMenuItems}
         studioMenuItems={studioMenuItems}
         workflowsMenuItems={workflowsMenuItems}
-        navPanel={conversationNavPanel}
+        navPanel={activeNavPanel}
         onOpenCommandPalette={handleOpenCommandPalette}
       />
     );
@@ -265,7 +291,7 @@ function AppLayoutWithDynamicMenu({
     analyticsMenuItems,
     composeMenuItems,
     currentApp,
-    conversationNavPanel,
+    activeNavPanel,
     handleOpenCommandPalette,
     isAdminRoute,
     isAnalyticsRoute,
@@ -274,6 +300,7 @@ function AppLayoutWithDynamicMenu({
     isEditorRoute,
     isFocusedOnboardingRoute,
     isLibraryRoute,
+    isMessagesRoute,
     isOrgRoute,
     isResearchRoute,
     isSettingsRoute,
@@ -425,19 +452,21 @@ function AppProtectedLayoutContent({
   const isWorkspaceRoute = isProtectedWorkspaceRoute(pathname);
 
   return (
-    <ProtectedProviders
-      includeAssetSelectionProvider={!isEditorCanvasRoute}
-      includeApiStatusCheck={false}
-      includeElementsProvider={!isEditorCanvasRoute && !isWorkspaceRoute}
-      initialBootstrap={initialBootstrap}
-      includePromptBarProvider={!isEditorCanvasRoute && !isWorkspaceRoute}
-    >
-      <AppLayoutWithDynamicMenu initialBootstrap={initialBootstrap}>
-        <OnboardingGuard>
-          <AssetGateGuard>{children}</AssetGateGuard>
-        </OnboardingGuard>
-      </AppLayoutWithDynamicMenu>
-    </ProtectedProviders>
+    <WorkspaceNavPanelProvider>
+      <ProtectedProviders
+        includeAssetSelectionProvider={!isEditorCanvasRoute}
+        includeApiStatusCheck={false}
+        includeElementsProvider={!isEditorCanvasRoute && !isWorkspaceRoute}
+        initialBootstrap={initialBootstrap}
+        includePromptBarProvider={!isEditorCanvasRoute && !isWorkspaceRoute}
+      >
+        <AppLayoutWithDynamicMenu initialBootstrap={initialBootstrap}>
+          <OnboardingGuard>
+            <AssetGateGuard>{children}</AssetGateGuard>
+          </OnboardingGuard>
+        </AppLayoutWithDynamicMenu>
+      </ProtectedProviders>
+    </WorkspaceNavPanelProvider>
   );
 }
 

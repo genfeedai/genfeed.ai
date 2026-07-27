@@ -474,6 +474,7 @@ export function useAppProtectedLayout(
     isFocusedOnboardingRoute,
     isLibraryLandingRoute,
     isLibraryRoute,
+    isMessagesRoute,
     isMoodboardRoute,
     isOrgRoute,
     isPromptBarRoute,

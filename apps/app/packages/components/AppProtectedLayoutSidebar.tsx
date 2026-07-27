@@ -53,6 +53,7 @@ type Props = {
   isEditorRoute: boolean;
   isFocusedOnboardingRoute: boolean;
   isLibraryRoute: boolean;
+  isMessagesRoute?: boolean;
   isOrgRoute: boolean;
   isResearchRoute: boolean;
   isSettingsRoute: boolean;
@@ -91,6 +92,7 @@ export default function AppProtectedLayoutSidebar({
   isEditorRoute,
   isFocusedOnboardingRoute,
   isLibraryRoute,
+  isMessagesRoute = false,
   isOrgRoute,
   isResearchRoute,
   isSettingsRoute,
@@ -199,6 +201,14 @@ export default function AppProtectedLayoutSidebar({
         items: [],
         logoHref: buildHref(APP_ROUTES.WORKSPACE.OVERVIEW),
         sectionLabel: 'Editor',
+        showOrgSwitcher: true,
+      },
+      {
+        active: isMessagesRoute,
+        currentApp,
+        items: [],
+        logoHref: buildHref(APP_ROUTES.MESSAGES.ROOT),
+        sectionLabel: 'Messages',
         showOrgSwitcher: true,
       },
       {
