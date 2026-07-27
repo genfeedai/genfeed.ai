@@ -12,6 +12,7 @@ import { ModelsModule } from '@api/collections/models/models.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PostsAnalyticsController } from '@api/collections/posts/controllers/analytics/posts-analytics.controller';
 import { ContentMentionsController } from '@api/collections/posts/controllers/content-mentions.controller';
+import { PostsGenerationController } from '@api/collections/posts/controllers/operations/posts-generation.controller';
 import { PostsOperationsController } from '@api/collections/posts/controllers/operations/posts-operations.controller';
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
@@ -40,6 +41,7 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [
     ContentMentionsController,
     PostsAnalyticsController,
+    PostsGenerationController,
     PostsOperationsController,
     PostsController,
   ],
