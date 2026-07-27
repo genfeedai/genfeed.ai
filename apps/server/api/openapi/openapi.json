@@ -39603,7 +39603,7 @@
     },
     "/posts/account-generations": {
       "post": {
-        "operationId": "PostsOperationsController.generateAccountContent",
+        "operationId": "PostsGenerationController.generateAccountContent",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -39668,7 +39668,7 @@
     },
     "/posts/hook-generations": {
       "post": {
-        "operationId": "PostsOperationsController.generateHookVariations",
+        "operationId": "PostsGenerationController.generateHookVariations",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -39803,7 +39803,7 @@
     },
     "/posts/{postId}/enhancements": {
       "post": {
-        "operationId": "PostsOperationsController.enhancePost",
+        "operationId": "PostsGenerationController.enhancePost",
         "parameters": [
           {
             "in": "path",
@@ -39929,7 +39929,7 @@
     },
     "/posts/{postId}/seo-scores": {
       "post": {
-        "operationId": "PostsOperationsController.scoreSeo",
+        "operationId": "PostsGenerationController.scoreSeo",
         "parameters": [
           {
             "in": "path",
@@ -39963,7 +39963,7 @@
     },
     "/posts/{postId}/thread-expansions": {
       "post": {
-        "operationId": "PostsOperationsController.expandToThread",
+        "operationId": "PostsGenerationController.expandToThread",
         "parameters": [
           {
             "in": "path",

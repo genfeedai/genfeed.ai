@@ -25,6 +25,7 @@ import { AccountPublishingContextService } from '@api/collections/credentials/se
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
+import { PostsGenerationController } from '@api/collections/posts/controllers/operations/posts-generation.controller';
 import { PostsOperationsController } from '@api/collections/posts/controllers/operations/posts-operations.controller';
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
@@ -50,13 +51,20 @@ import {
 import type { AccountPublishingContext } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { HttpException, HttpStatus, RequestMethod } from '@nestjs/common';
+import {
+  GUARDS_METADATA,
+  INTERCEPTORS_METADATA,
+  METHOD_METADATA,
+  PATH_METADATA,
+} from '@nestjs/common/constants';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import type { Request } from 'express';
 
 describe('PostsOperationsController', () => {
   let controller: PostsOperationsController;
+  let generationController: PostsGenerationController;
 
   // Mock IDs
   const userId = '507f1f77bcf86cd799439011';
@@ -312,7 +320,7 @@ Tweet 3: Tech innovation is changing the world.`,
     mockWebsocketService.emit.mockResolvedValue(undefined);
 
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [PostsOperationsController],
+      controllers: [PostsGenerationController, PostsOperationsController],
       providers: [
         {
           provide: AccountPublishingContextService,
@@ -362,10 +370,66 @@ Tweet 3: Tech innovation is changing the world.`,
     controller = module.get<PostsOperationsController>(
       PostsOperationsController,
     );
+    generationController = module.get<PostsGenerationController>(
+      PostsGenerationController,
+    );
   });
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+    expect(generationController).toBeDefined();
+  });
+
+  it.each([
+    ['generateAccountContent', 'account-generations'],
+    ['expandToThread', ':postId/thread-expansions'],
+    ['enhancePost', ':postId/enhancements'],
+    ['scoreSeo', ':postId/seo-scores'],
+    ['generateHookVariations', 'hook-generations'],
+  ] as const)('keeps %s registered as POST /posts/%s on the generation controller', (methodName, path) => {
+    const handler = PostsGenerationController.prototype[methodName];
+
+    expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
+    expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(
+      RequestMethod.POST,
+    );
+    expect(
+      PostsOperationsController.prototype[
+        methodName as keyof PostsOperationsController
+      ],
+    ).toBeUndefined();
+  });
+
+  it('keeps the shared posts route prefix and role guard', () => {
+    expect(Reflect.getMetadata(PATH_METADATA, PostsGenerationController)).toBe(
+      'posts',
+    );
+    expect(Reflect.getMetadata(PATH_METADATA, PostsOperationsController)).toBe(
+      'posts',
+    );
+    expect(
+      Reflect.getMetadata(GUARDS_METADATA, PostsGenerationController),
+    ).toContain(RolesGuard);
+    expect(
+      Reflect.getMetadata(GUARDS_METADATA, PostsOperationsController),
+    ).toContain(RolesGuard);
+  });
+
+  it.each([
+    'expandToThread',
+    'enhancePost',
+    'scoreSeo',
+    'generateHookVariations',
+  ] as const)('preserves credits guards and interceptor on %s', (methodName) => {
+    const handler = PostsGenerationController.prototype[methodName];
+
+    expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toEqual([
+      SubscriptionGuard,
+      CreditsGuard,
+    ]);
+    expect(Reflect.getMetadata(INTERCEPTORS_METADATA, handler)).toEqual([
+      CreditsInterceptor,
+    ]);
   });
 
   // ==========================================================================
@@ -381,7 +445,7 @@ Tweet 3: Tech innovation is changing the world.`,
     };
 
     it('should create posts with PROCESSING status and return them', async () => {
-      const result = await controller.generateAccountContent(
+      const result = await generationController.generateAccountContent(
         mockRequest,
         generateTweetsDto,
         mockUser,
@@ -421,7 +485,7 @@ Tweet 3: Tech innovation is changing the world.`,
         .mockRejectedValueOnce(notFoundError);
 
       await expect(
-        controller.generateAccountContent(
+        generationController.generateAccountContent(
           mockRequest,
           generateTweetsDto,
           mockUser,
@@ -429,7 +493,7 @@ Tweet 3: Tech innovation is changing the world.`,
       ).rejects.toThrow(HttpException);
 
       try {
-        await controller.generateAccountContent(
+        await generationController.generateAccountContent(
           mockRequest,
           generateTweetsDto,
           mockUser,
@@ -443,7 +507,7 @@ Tweet 3: Tech innovation is changing the world.`,
       mockPostsService.create.mockRejectedValueOnce(new Error('DB error'));
 
       await expect(
-        controller.generateAccountContent(
+        generationController.generateAccountContent(
           mockRequest,
           generateTweetsDto,
           mockUser,
@@ -458,7 +522,7 @@ Tweet 3: Tech innovation is changing the world.`,
       );
 
       await expect(
-        controller.generateAccountContent(
+        generationController.generateAccountContent(
           mockRequest,
           generateTweetsDto,
           mockUser,
@@ -475,7 +539,7 @@ Tweet 3: Tech innovation is changing the world.`,
         },
       });
 
-      await controller.generateAccountContent(
+      await generationController.generateAccountContent(
         mockRequest,
         generateTweetsDto,
         mockUser,
@@ -512,7 +576,7 @@ Tweet 3: Tech innovation is changing the world.`,
         });
       });
 
-      const result = await controller.generateAccountContent(
+      const result = await generationController.generateAccountContent(
         mockRequest,
         generateThreadDto,
         mockUser,
@@ -543,7 +607,7 @@ Tweet 3: Tech innovation is changing the world.`,
       );
 
       await expect(
-        controller.generateAccountContent(
+        generationController.generateAccountContent(
           mockRequest,
           generateThreadDto,
           mockUser,
@@ -559,7 +623,7 @@ Tweet 3: Tech innovation is changing the world.`,
         topic: 'AI',
       };
 
-      await controller.generateAccountContent(
+      await generationController.generateAccountContent(
         mockRequest,
         dtoWithoutTone,
         mockUser,
@@ -587,7 +651,7 @@ Tweet 3: Tech innovation is changing the world.`,
     });
 
     it('should expand a post into a thread', async () => {
-      const result = await controller.expandToThread(
+      const result = await generationController.expandToThread(
         mockRequest,
         mockUser,
         postId,
@@ -611,7 +675,7 @@ Tweet 3: Tech innovation is changing the world.`,
       mockPostsService.findOne.mockResolvedValueOnce(null);
 
       await expect(
-        controller.expandToThread(
+        generationController.expandToThread(
           mockRequest,
           mockUser,
           postId,
@@ -627,7 +691,7 @@ Tweet 3: Tech innovation is changing the world.`,
       });
 
       await expect(
-        controller.expandToThread(
+        generationController.expandToThread(
           mockRequest,
           mockUser,
           postId,
@@ -640,7 +704,7 @@ Tweet 3: Tech innovation is changing the world.`,
           ...mockPost,
           organizationId: '507f191e810c19729de860ee',
         });
-        await controller.expandToThread(
+        await generationController.expandToThread(
           mockRequest,
           mockUser,
           postId,
@@ -655,7 +719,7 @@ Tweet 3: Tech innovation is changing the world.`,
       mockPostsService.count.mockResolvedValueOnce(2);
 
       await expect(
-        controller.expandToThread(
+        generationController.expandToThread(
           mockRequest,
           mockUser,
           postId,
@@ -671,7 +735,7 @@ Tweet 3: Tech innovation is changing the world.`,
       });
 
       await expect(
-        controller.expandToThread(
+        generationController.expandToThread(
           mockRequest,
           mockUser,
           postId,
@@ -1133,7 +1197,7 @@ Tweet 3: Tech innovation is changing the world.`,
     });
 
     it('should enhance post description using AI', async () => {
-      const result = await controller.enhancePost(
+      const result = await generationController.enhancePost(
         mockRequest,
         postId,
         enhancePostDto,
@@ -1159,7 +1223,12 @@ Tweet 3: Tech innovation is changing the world.`,
       mockPostsService.findOne.mockResolvedValueOnce(null);
 
       await expect(
-        controller.enhancePost(mockRequest, postId, enhancePostDto, mockUser),
+        generationController.enhancePost(
+          mockRequest,
+          postId,
+          enhancePostDto,
+          mockUser,
+        ),
       ).rejects.toThrow(HttpException);
     });
 
@@ -1170,7 +1239,12 @@ Tweet 3: Tech innovation is changing the world.`,
       });
 
       await expect(
-        controller.enhancePost(mockRequest, postId, enhancePostDto, mockUser),
+        generationController.enhancePost(
+          mockRequest,
+          postId,
+          enhancePostDto,
+          mockUser,
+        ),
       ).rejects.toThrow(HttpException);
     });
 
@@ -1180,7 +1254,12 @@ Tweet 3: Tech innovation is changing the world.`,
       );
 
       await expect(
-        controller.enhancePost(mockRequest, postId, enhancePostDto, mockUser),
+        generationController.enhancePost(
+          mockRequest,
+          postId,
+          enhancePostDto,
+          mockUser,
+        ),
       ).rejects.toThrow(HttpException);
 
       try {
@@ -1188,7 +1267,7 @@ Tweet 3: Tech innovation is changing the world.`,
           new Error('AI service unavailable'),
         );
         mockPostsService.findOne.mockResolvedValue(mockPost);
-        await controller.enhancePost(
+        await generationController.enhancePost(
           mockRequest,
           postId,
           enhancePostDto,
@@ -1207,7 +1286,7 @@ Tweet 3: Tech innovation is changing the world.`,
         platform: CredentialPlatform.YOUTUBE,
       });
 
-      await controller.enhancePost(
+      await generationController.enhancePost(
         mockRequest,
         postId,
         enhancePostDto,
@@ -1222,7 +1301,7 @@ Tweet 3: Tech innovation is changing the world.`,
         prompt: 'Make it better',
       };
 
-      await controller.enhancePost(
+      await generationController.enhancePost(
         mockRequest,
         postId,
         dtoWithoutTone,
@@ -1257,7 +1336,7 @@ Tweet 3: Tech innovation is changing the world.`,
         .mockResolvedValueOnce(mockPost)
         .mockResolvedValueOnce(scoredPost);
 
-      const result = await controller.scoreSeo(
+      const result = await generationController.scoreSeo(
         mockRequest,
         postId,
         { targetKeyword: 'workflow automation' },
@@ -1286,7 +1365,7 @@ Tweet 3: Tech innovation is changing the world.`,
       mockPostsService.findOne.mockResolvedValueOnce(null);
 
       await expect(
-        controller.scoreSeo(mockRequest, postId, {}, mockUser),
+        generationController.scoreSeo(mockRequest, postId, {}, mockUser),
       ).rejects.toThrow(HttpException);
 
       expect(mockSeoScorerService.scorePost).not.toHaveBeenCalled();
@@ -1299,7 +1378,7 @@ Tweet 3: Tech innovation is changing the world.`,
       });
 
       await expect(
-        controller.scoreSeo(mockRequest, postId, {}, mockUser),
+        generationController.scoreSeo(mockRequest, postId, {}, mockUser),
       ).rejects.toThrow(HttpException);
 
       expect(mockSeoScorerService.scorePost).not.toHaveBeenCalled();
@@ -1319,9 +1398,14 @@ Tweet 3: Tech innovation is changing the world.`,
         mockPostsService.findOne.mockResolvedValue(postWithHtml);
 
         // expandToThread uses stripHtmlTags internally
-        await controller.expandToThread(mockRequest, mockUser, postId, {
-          count: 3,
-        });
+        await generationController.expandToThread(
+          mockRequest,
+          mockUser,
+          postId,
+          {
+            count: 3,
+          },
+        );
 
         // The method is called, processing happens internally
         expect(mockPostsService.create).toHaveBeenCalled();
@@ -1338,7 +1422,7 @@ Tweet 3: Tech innovation is changing the world.`,
           topic: 'Test',
         };
 
-        await controller.generateAccountContent(
+        await generationController.generateAccountContent(
           mockRequest,
           generateTweetsDto,
           mockUser,
@@ -1357,7 +1441,7 @@ Tweet 3: Tech innovation is changing the world.`,
           topic: 'Test',
         };
 
-        await controller.generateAccountContent(
+        await generationController.generateAccountContent(
           mockRequest,
           generateTweetsDto,
           mockUser,
@@ -1400,7 +1484,7 @@ Tweet 3: Tech innovation is changing the world.`,
         topic: 'Test',
       };
 
-      await controller.generateAccountContent(
+      await generationController.generateAccountContent(
         mockRequest,
         minimalDto,
         mockUser,
@@ -1415,7 +1499,7 @@ Tweet 3: Tech innovation is changing the world.`,
         description: undefined,
       });
 
-      await controller.enhancePost(
+      await generationController.enhancePost(
         mockRequest,
         postId,
         { prompt: 'Improve' },
@@ -1431,7 +1515,7 @@ Tweet 3: Tech innovation is changing the world.`,
         platform: null,
       });
 
-      await controller.enhancePost(
+      await generationController.enhancePost(
         mockRequest,
         postId,
         { prompt: 'Improve' },
