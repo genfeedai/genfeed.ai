@@ -75,6 +75,13 @@ export interface IValidationError extends IError {
   constraints?: Record<string, string>;
 }
 
+export interface IValidationErrorResponse {
+  errors: Array<{
+    constraints?: Record<string, string>;
+    property: string;
+  }>;
+}
+
 export interface IFormErrors {
   [key: string]: string | string[] | IFormErrors;
 }
