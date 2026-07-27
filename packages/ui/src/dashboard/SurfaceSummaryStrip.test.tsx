@@ -1,3 +1,4 @@
+import type { SurfaceSummaryItem } from '@props/ui/dashboard/surface-summary-strip.props';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { SurfaceSummaryStrip } from './SurfaceSummaryStrip';
@@ -55,5 +56,26 @@ describe('SurfaceSummaryStrip', () => {
 
     expect(screen.getByText('Agents Active')).toBeInTheDocument();
     expect(screen.queryByText('4')).toBeNull();
+  });
+
+  it('renders text accents and rejects unsupported runtime accent values', () => {
+    const items = [
+      {
+        accent: '4 running',
+        label: 'Supported Accent',
+        value: '4',
+      },
+      {
+        accent: <div data-testid="unsupported-accent">Unsupported</div>,
+        label: 'Unsupported Accent',
+        value: '1',
+      },
+    ] as unknown as SurfaceSummaryItem[];
+
+    render(<SurfaceSummaryStrip items={items} testId="accent-strip" />);
+
+    expect(screen.getByText('4 running')).toBeInTheDocument();
+    expect(screen.queryByTestId('unsupported-accent')).toBeNull();
+    expect(screen.getByText('Unsupported Accent')).toBeInTheDocument();
   });
 });

@@ -11,13 +11,11 @@ import type { IAgentRun } from '@genfeedai/interfaces';
 import type { TrendItem } from '@genfeedai/props/trends/trends-page.props';
 import type { AgentRunStats } from '@genfeedai/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import type { SurfaceSummaryItem } from '@props/ui/dashboard/surface-summary-strip.props';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
-import {
-  type SurfaceSummaryItem,
-  SurfaceSummaryStrip,
-} from '@ui/dashboard/SurfaceSummaryStrip';
+import { SurfaceSummaryStrip } from '@ui/dashboard/SurfaceSummaryStrip';
 import { OverviewTrendsPanel } from '@ui/overview/OverviewTrendsPanel';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';

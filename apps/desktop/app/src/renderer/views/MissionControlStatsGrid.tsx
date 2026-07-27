@@ -1,7 +1,5 @@
-import {
-  type SurfaceSummaryItem,
-  SurfaceSummaryStrip,
-} from '@ui/dashboard/SurfaceSummaryStrip';
+import type { SurfaceSummaryItem } from '@props/ui/dashboard/surface-summary-strip.props';
+import { SurfaceSummaryStrip } from '@ui/dashboard/SurfaceSummaryStrip';
 import type { ReactElement } from 'react';
 
 type MissionControlStatsGridProps = {

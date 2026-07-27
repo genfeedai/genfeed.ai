@@ -7,12 +7,10 @@ import type {
   PlatformTimeSeriesDataPoint,
   SocialPlatform,
 } from '@props/analytics/charts.props';
+import type { SurfaceSummaryItem } from '@props/ui/dashboard/surface-summary-strip.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
-import {
-  type SurfaceSummaryItem,
-  SurfaceSummaryStrip,
-} from '@ui/dashboard/SurfaceSummaryStrip';
+import { SurfaceSummaryStrip } from '@ui/dashboard/SurfaceSummaryStrip';
 import AppTable from '@ui/display/table/Table';
 import { OverviewTrendsPanel } from '@ui/overview/OverviewTrendsPanel';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
