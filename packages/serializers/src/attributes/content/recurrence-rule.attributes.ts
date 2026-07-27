@@ -13,6 +13,7 @@ export const recurrenceRuleAttributes = createEntityAttributes([
   'endDate',
   'nextRunAt',
   'isExhausted',
+  'isPaused',
   'repeatCount',
   'parentReleaseId',
 ]);

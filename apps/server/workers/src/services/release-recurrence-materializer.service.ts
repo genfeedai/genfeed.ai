@@ -67,6 +67,7 @@ export class ReleaseRecurrenceMaterializerService {
     const recurrence = this.asRecord(group.recurrence);
     return (
       recurrence.isExhausted !== true &&
+      recurrence.isPaused !== true &&
       TERMINAL_RELEASE_STATES.has(group.status)
     );
   }

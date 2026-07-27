@@ -27,6 +27,8 @@ export interface IRecurrenceRule {
   nextRunAt?: string | null;
   /** Whether the finite recurrence has no remaining occurrences. */
   isExhausted?: boolean;
+  /** Whether future materialization is paused without changing published history. */
+  isPaused?: boolean;
   /** Number of occurrences already generated from this rule. */
   repeatCount: number;
   /** Release group that owns this rule, when the rule is stored separately. */

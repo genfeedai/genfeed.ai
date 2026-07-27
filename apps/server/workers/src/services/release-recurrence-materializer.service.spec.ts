@@ -361,6 +361,17 @@ describe('ReleaseRecurrenceMaterializerService', () => {
       }),
     ).resolves.toBe(false);
 
+    prisma.postGroup.findFirst.mockResolvedValue({
+      recurrence: { ...sourceGroup.recurrence, isPaused: true },
+      status: ReleaseStatus.PUBLISHED,
+    });
+    await expect(
+      service.shouldMaterialize({
+        groupId: 'release-1',
+        organizationId: 'org-1',
+      }),
+    ).resolves.toBe(false);
+
     prisma.postGroup.findFirst.mockResolvedValue(null);
     await expect(
       service.shouldMaterialize({

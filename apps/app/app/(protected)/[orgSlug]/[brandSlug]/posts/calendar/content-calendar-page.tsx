@@ -26,6 +26,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HiCalendarDays, HiDocumentText, HiListBullet } from 'react-icons/hi2';
+import { EvergreenSeriesControls } from './evergreen-series-controls';
 
 const DEFAULT_COLOR = '#8b5cf6';
 const ARTICLE_STATUS_COLORS: Record<string, string> = {
@@ -191,6 +192,10 @@ export default function ContentCalendarPage(): React.JSX.Element {
 
     return [...postItems, ...articleItems];
   }, [posts, articles]);
+  const selectedGroupId = useMemo(
+    () => posts.find((post) => post.id === selectedPostId)?.groupId,
+    [posts, selectedPostId],
+  );
 
   const handleEventClick = useCallback(
     (item: ContentCalendarItem) => {
@@ -237,11 +242,16 @@ export default function ContentCalendarPage(): React.JSX.Element {
   );
 
   const modal = (
-    <PostDetailOverlay
-      postId={selectedPostId}
-      scope={PageScope.PUBLISHER}
-      onClose={() => setSelectedPostId(null)}
-    />
+    <>
+      <PostDetailOverlay
+        postId={selectedPostId}
+        scope={PageScope.PUBLISHER}
+        onClose={() => setSelectedPostId(null)}
+      />
+      {selectedGroupId ? (
+        <EvergreenSeriesControls groupId={selectedGroupId} />
+      ) : null}
+    </>
   );
 
   const emptyState =

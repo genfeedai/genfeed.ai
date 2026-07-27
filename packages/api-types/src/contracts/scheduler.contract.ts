@@ -189,6 +189,24 @@ export const updateReleaseGroupSchema = z.object({
   title: z.string().min(1).optional(),
 });
 
+/** Edit only future occurrences in an existing evergreen series. */
+export const updateRecurrenceSeriesSchema = z
+  .object({
+    recurrence: recurrenceInputSchema.optional(),
+    scheduledDate: dateStringSchema.optional(),
+    timezone: timezoneSchema.optional(),
+  })
+  .refine(
+    (input) =>
+      input.recurrence !== undefined ||
+      input.scheduledDate !== undefined ||
+      input.timezone !== undefined,
+    {
+      message:
+        'A future-series edit requires recurrence, scheduledDate, or timezone.',
+    },
+  );
+
 /**
  * Update a single channel target. Shaped for both operator edits (reschedule,
  * settings) and worker execution-state writes (execution/validation state,
@@ -229,6 +247,9 @@ export type ChannelTargetErrorInput = z.infer<typeof channelTargetErrorSchema>;
 export type ChannelTargetInput = z.infer<typeof channelTargetInputSchema>;
 export type CreateReleaseGroupInput = z.infer<typeof createReleaseGroupSchema>;
 export type UpdateReleaseGroupInput = z.infer<typeof updateReleaseGroupSchema>;
+export type UpdateRecurrenceSeriesInput = z.infer<
+  typeof updateRecurrenceSeriesSchema
+>;
 export type UpdateChannelTargetInput = z.infer<
   typeof updateChannelTargetSchema
 >;
