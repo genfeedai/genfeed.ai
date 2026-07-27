@@ -30,7 +30,6 @@ function formatUsd(value: number): string {
 }
 
 type CreditTopUpPanelProps = {
-  description?: string;
   helperContent?: ReactNode;
   isSubmitDisabled?: boolean;
   isStartingCheckout: boolean;
@@ -42,7 +41,6 @@ type CreditTopUpPanelProps = {
 };
 
 export default function CreditTopUpPanel({
-  description = 'Choose a credit amount and continue to checkout.',
   helperContent,
   isSubmitDisabled = false,
   isStartingCheckout,
@@ -86,17 +84,7 @@ export default function CreditTopUpPanel({
 
   return (
     <div className="max-w-5xl space-y-8">
-      <section className="space-y-4" aria-labelledby="credit-amount-heading">
-        <h2
-          id="credit-amount-heading"
-          className="text-2xl font-semibold tracking-normal text-foreground"
-        >
-          Credit amount
-        </h2>
-        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-          {description}
-        </p>
-
+      <div className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {PAYG_CREDIT_PACKS.map((pack) => {
             const amountUsd = pack.credits / CREDITS_PER_USD;
@@ -173,7 +161,7 @@ export default function CreditTopUpPanel({
             </p>
           </div>
         ) : null}
-      </section>
+      </div>
 
       {helperContent}
 

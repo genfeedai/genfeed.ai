@@ -96,9 +96,12 @@ describe('ManagedCreditsCheckoutCard', () => {
   it('starts managed checkout using the editable email and selected pack', async () => {
     render(<ManagedCreditsCheckoutCard />);
 
+    expect(screen.queryByText('Credit amount')).not.toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: 'Credit amount' }),
-    ).toBeInTheDocument();
+      screen.queryByText(
+        'Buy hosted image-generation credits and provision one managed key for this self-hosted install.',
+      ),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('Billing / Add credit')).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
