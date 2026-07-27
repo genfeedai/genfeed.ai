@@ -9,6 +9,7 @@ import {
   createShardMatrix,
   parseTurboDryRun,
   parseVitestList,
+  readChangedFiles,
   selectShardCount,
 } from './pr-test-plan.mjs';
 
@@ -69,6 +70,29 @@ test('escalates validation machinery and root dependency changes', () => {
       `${file} must force complete app/API validation`,
     );
   }
+});
+
+test('includes deleted paths in change classification input', async () => {
+  const calls = [];
+  const files = await readChangedFiles('base-sha', async (command, args) => {
+    calls.push({ args, command });
+    return 'apps/app/deleted.test.ts\0packages/changed.ts\0';
+  });
+
+  assert.deepEqual(calls, [
+    {
+      command: 'git',
+      args: [
+        'diff',
+        '--name-only',
+        '--diff-filter=ACDMR',
+        '-z',
+        'base-sha',
+        'HEAD',
+      ],
+    },
+  ]);
+  assert.deepEqual(files, ['apps/app/deleted.test.ts', 'packages/changed.ts']);
 });
 
 test('selects bounded adaptive shard counts', () => {

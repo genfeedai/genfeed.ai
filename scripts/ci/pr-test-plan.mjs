@@ -250,11 +250,11 @@ function normalizeBase(base) {
   return base;
 }
 
-async function readChangedFiles(base) {
-  const output = await runCommand('git', [
+export async function readChangedFiles(base, commandRunner = runCommand) {
+  const output = await commandRunner('git', [
     'diff',
     '--name-only',
-    '--diff-filter=ACMR',
+    '--diff-filter=ACDMR',
     '-z',
     base,
     'HEAD',
