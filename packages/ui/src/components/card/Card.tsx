@@ -40,7 +40,8 @@ const Card = memo(function Card({
     'relative overflow-hidden rounded-card text-left transition-[border-color,background-color] duration-150 ease-out',
     VARIANT_CLASSES[variant],
     figure && 'flex flex-row',
-    onClick && ['cursor-pointer', INTERACTIVE_VARIANT_CLASSES[variant]],
+    onClick && 'cursor-pointer',
+    onClick && INTERACTIVE_VARIANT_CLASSES[variant],
     className,
   );
 

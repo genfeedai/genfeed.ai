@@ -52,13 +52,15 @@ export default function ViewToggle<TView extends ViewType>({
         {options.map((option) => (
           <Tooltip key={option.type}>
             <TooltipTrigger asChild>
-              <ToggleGroupItem
-                aria-label={option.ariaLabel || option.label}
-                className="gen-shell-segmented-button rounded-[5px] p-0"
-                value={option.type}
-              >
-                {option.icon}
-              </ToggleGroupItem>
+              <span className="inline-flex">
+                <ToggleGroupItem
+                  aria-label={option.ariaLabel || option.label}
+                  className="gen-shell-segmented-button rounded-[5px] p-0"
+                  value={option.type}
+                >
+                  {option.icon}
+                </ToggleGroupItem>
+              </span>
             </TooltipTrigger>
             <TooltipContent>{option.label}</TooltipContent>
           </Tooltip>

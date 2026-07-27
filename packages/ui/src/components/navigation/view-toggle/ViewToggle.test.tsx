@@ -47,11 +47,11 @@ describe('ViewToggle', () => {
       />,
     );
 
-    const calendarButton = screen
-      .getByTestId('calendar-icon')
-      .closest('button');
+    const calendarButton = screen.getByRole('radio', {
+      name: 'Calendar View',
+    });
     expect(calendarButton).toHaveAttribute('data-state', 'on');
-    expect(calendarButton).toHaveAttribute('aria-pressed', 'true');
+    expect(calendarButton).toHaveAttribute('aria-checked', 'true');
   });
 
   it('calls onChange when view is clicked', () => {
@@ -64,7 +64,7 @@ describe('ViewToggle', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Calendar View' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Calendar View' }));
 
     expect(updateViewToggle).toHaveBeenCalledWith(ViewType.CALENDAR);
   });
@@ -98,7 +98,7 @@ describe('ViewToggle', () => {
     expect(toggleContainer).toBeInTheDocument();
   });
 
-  it('renders buttons for each option', () => {
+  it('renders radio controls for each option', () => {
     const updateViewToggle = vi.fn();
     render(
       <ViewToggle
@@ -108,9 +108,8 @@ describe('ViewToggle', () => {
       />,
     );
 
-    // Verify all buttons are rendered
-    const buttons = screen.getAllByRole('button');
-    expect(buttons).toHaveLength(3);
+    const controls = screen.getAllByRole('radio');
+    expect(controls).toHaveLength(3);
 
     // Each button should have the icon
     expect(
@@ -134,7 +133,7 @@ describe('ViewToggle', () => {
       />,
     );
 
-    const listButton = screen.getByTestId('list-icon').closest('button');
+    const listButton = screen.getByRole('radio', { name: 'List View' });
     expect(listButton).toHaveAttribute('aria-label', 'List View');
   });
 
@@ -157,7 +156,9 @@ describe('ViewToggle', () => {
       />,
     );
 
-    const listButton = screen.getByTestId('list-icon').closest('button');
+    const listButton = screen.getByRole('radio', {
+      name: 'Switch to list view',
+    });
     expect(listButton).toHaveAttribute('aria-label', 'Switch to list view');
   });
 
@@ -171,18 +172,18 @@ describe('ViewToggle', () => {
       />,
     );
 
-    const listButton = screen.getByTestId('list-icon').closest('button');
-    const calendarButton = screen
-      .getByTestId('calendar-icon')
-      .closest('button');
-    const gridButton = screen.getByTestId('grid-icon').closest('button');
+    const listButton = screen.getByRole('radio', { name: 'List View' });
+    const calendarButton = screen.getByRole('radio', {
+      name: 'Calendar View',
+    });
+    const gridButton = screen.getByRole('radio', { name: 'Grid View' });
 
     expect(listButton).toHaveAttribute('data-state', 'on');
-    expect(listButton).toHaveAttribute('aria-pressed', 'true');
+    expect(listButton).toHaveAttribute('aria-checked', 'true');
     expect(calendarButton).toHaveAttribute('data-state', 'off');
-    expect(calendarButton).toHaveAttribute('aria-pressed', 'false');
+    expect(calendarButton).toHaveAttribute('aria-checked', 'false');
     expect(gridButton).toHaveAttribute('data-state', 'off');
-    expect(gridButton).toHaveAttribute('aria-pressed', 'false');
+    expect(gridButton).toHaveAttribute('aria-checked', 'false');
   });
 
   it('handles single option', () => {
@@ -198,7 +199,7 @@ describe('ViewToggle', () => {
     );
 
     expect(screen.getByTestId('list-icon')).toBeInTheDocument();
-    expect(screen.getAllByRole('button')).toHaveLength(1);
+    expect(screen.getAllByRole('radio')).toHaveLength(1);
   });
 
   it('handles many options', () => {
@@ -225,6 +226,6 @@ describe('ViewToggle', () => {
       />,
     );
 
-    expect(screen.getAllByRole('button')).toHaveLength(5);
+    expect(screen.getAllByRole('radio')).toHaveLength(5);
   });
 });
