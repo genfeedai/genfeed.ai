@@ -19,6 +19,10 @@ describe('buildSettingsMenuItems', () => {
       );
     });
 
+    it('separates account settings from support', () => {
+      expect(items.map((item) => item.group)).toEqual(['Account', 'Support']);
+    });
+
     it('marks the Personal root as exact-match so it does not highlight Help', () => {
       expect(items.find((i) => i.label === 'Personal')?.isExactMatch).toBe(
         true,
@@ -61,6 +65,24 @@ describe('buildSettingsMenuItems', () => {
         'Policy',
         'Brands',
         'Models',
+      ]);
+    });
+
+    it('groups organization settings by responsibility', () => {
+      expect(
+        buildSettingsMenuItems({ scope: 'organization' }).map((item) => [
+          item.label,
+          item.group,
+        ]),
+      ).toEqual([
+        ['General', 'Organization'],
+        ['Members', 'Organization'],
+        ['Credits', 'Billing'],
+        ['API Keys', 'Developer'],
+        ['Webhooks', 'Developer'],
+        ['Policy', 'Governance'],
+        ['Brands', 'Resources'],
+        ['Models', 'Resources'],
       ]);
     });
 
@@ -113,6 +135,17 @@ describe('buildSettingsMenuItems', () => {
       expect(items.find((i) => i.label === 'Voice')?.href).toBe(
         '/settings/voice',
       );
+    });
+
+    it('separates brand identity from operational defaults', () => {
+      expect(items.map((item) => [item.label, item.group])).toEqual([
+        ['Overview', 'Identity'],
+        ['Voice', 'Identity'],
+        ['Harness', 'Identity'],
+        ['Interview', 'Identity'],
+        ['Publishing', 'Operations'],
+        ['Agent Defaults', 'Operations'],
+      ]);
     });
   });
 
