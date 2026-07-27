@@ -1,3 +1,8 @@
+import type {
+  IReleaseAnalyticsComparison,
+  IReleaseTargetAnalyticsComparison,
+  IReleaseTargetAnalyticsMetrics,
+} from '@genfeedai/interfaces';
 import type { ExecutableNode } from '../../types';
 import {
   BaseExecutor,
@@ -18,6 +23,50 @@ export interface AnalyticsFeedbackOutput {
     hour: number;
     avgEngagement: number;
   }>;
+  releaseEvidence?: AnalyticsFeedbackReleaseEvidence | null;
+}
+
+export interface AnalyticsFeedbackReleaseTargetEvidence {
+  freshness: IReleaseTargetAnalyticsComparison['collection']['freshness'];
+  metrics: IReleaseTargetAnalyticsMetrics | null;
+  platform: IReleaseTargetAnalyticsComparison['platform'];
+  releaseId: string;
+  snapshotIdentity: {
+    snapshotDate: string;
+    updatedAt: string;
+  } | null;
+  targetId: string;
+}
+
+export interface AnalyticsFeedbackReleaseEvidence {
+  releaseId: string;
+  state: IReleaseAnalyticsComparison['state'];
+  targets: AnalyticsFeedbackReleaseTargetEvidence[];
+}
+
+/**
+ * Narrows the scheduler read model to immutable recommendation evidence.
+ * Provider errors and other operational fields are deliberately excluded.
+ */
+export function toAnalyticsFeedbackReleaseEvidence(
+  comparison: IReleaseAnalyticsComparison | null | undefined,
+): AnalyticsFeedbackReleaseEvidence | null {
+  if (!comparison) {
+    return null;
+  }
+
+  return {
+    releaseId: comparison.releaseId,
+    state: comparison.state,
+    targets: comparison.targets.map((target) => ({
+      freshness: target.collection.freshness,
+      metrics: target.metrics,
+      platform: target.platform,
+      releaseId: target.releaseId,
+      snapshotIdentity: target.snapshotIdentity,
+      targetId: target.targetId,
+    })),
+  };
 }
 
 export type AnalyticsFeedbackResolver = (params: {
@@ -73,6 +122,11 @@ export class AnalyticsFeedbackExecutor extends BaseExecutor {
 
   async execute(input: ExecutorInput): Promise<ExecutorOutput> {
     const { node, context } = input;
+    const releaseEvidence = toAnalyticsFeedbackReleaseEvidence(
+      input.inputs.get('releaseAnalytics') as
+        | IReleaseAnalyticsComparison
+        | undefined,
+    );
 
     if (!this.resolver) {
       throw new Error('Analytics feedback resolver not configured');
@@ -95,6 +149,7 @@ export class AnalyticsFeedbackExecutor extends BaseExecutor {
           bestPostingTimes: [],
           topHooks: [],
           topTopics: [],
+          releaseEvidence,
           weekOverWeekChange: 0,
           weekOverWeekDirection: 'stable' as const,
           worstTopics: [],
@@ -114,7 +169,10 @@ export class AnalyticsFeedbackExecutor extends BaseExecutor {
     });
 
     return {
-      data: feedback,
+      data: {
+        ...feedback,
+        releaseEvidence,
+      } satisfies AnalyticsFeedbackOutput,
       metadata: {
         resolvedAt: new Date().toISOString(),
       },

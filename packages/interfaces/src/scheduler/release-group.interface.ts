@@ -1,7 +1,11 @@
 import type { ReleaseStatus, TargetExecutionState } from '@genfeedai/enums';
 import type { IBaseEntity } from '../core/base.interface';
 import type { IBrand, IOrganization, IUser } from '../index';
-import type { IChannelTarget } from './channel-target.interface';
+import type {
+  IChannelTarget,
+  IChannelTargetAnalyticsCollection,
+  IChannelTargetAnalyticsSnapshot,
+} from './channel-target.interface';
 import type { IRecurrenceRule } from './recurrence-rule.interface';
 import type { IReleaseAttachment } from './release-attachment.interface';
 import type { IScheduleStatusTransition } from './status-transition.interface';
@@ -29,6 +33,55 @@ export type IReleaseTargetSummary = Partial<
   /** Total number of channel targets in the release. */
   total: number;
 };
+
+/** Metrics that are definitionally comparable across scheduler providers. */
+export type SchedulerAnalyticsComparisonMetric =
+  | 'views'
+  | 'likes'
+  | 'comments'
+  | 'shares'
+  | 'saves'
+  | 'engagementRate';
+
+export type IReleaseTargetAnalyticsMetrics = Pick<
+  IChannelTargetAnalyticsSnapshot,
+  SchedulerAnalyticsComparisonMetric
+>;
+
+/**
+ * Read-only evidence for one release target. Snapshot identity and collection
+ * metadata remain attached to the metrics so recommendations cannot silently
+ * combine observations from different collection windows.
+ */
+export interface IReleaseTargetAnalyticsComparison {
+  collection: IChannelTargetAnalyticsCollection;
+  metrics: IReleaseTargetAnalyticsMetrics | null;
+  platform: IChannelTarget['platform'];
+  releaseId: string;
+  snapshotIdentity: {
+    snapshotDate: string;
+    updatedAt: string;
+  } | null;
+  targetId: string;
+}
+
+export type ReleaseAnalyticsComparisonState =
+  | 'ready'
+  | 'mixed'
+  | 'empty'
+  | 'stale'
+  | 'error';
+
+/**
+ * Canonical release-level analytics read model shared by API, app, MCP, and
+ * workflow recommendation inputs. No raw provider response is exposed.
+ */
+export interface IReleaseAnalyticsComparison {
+  metricDefinitions: readonly SchedulerAnalyticsComparisonMetric[];
+  releaseId: string;
+  state: ReleaseAnalyticsComparisonState;
+  targets: IReleaseTargetAnalyticsComparison[];
+}
 
 /** Agent-side attribution persisted with every post target in a release. */
 export interface PostGroupCreateProvenance {
@@ -81,6 +134,8 @@ export interface IReleaseGroup extends IBaseEntity {
   targets?: IChannelTarget[];
   /** Denormalized execution-state roll-up for calendar/list views. */
   targetSummary?: IReleaseTargetSummary;
+  /** Per-target, snapshot-bound analytics comparison for read-only consumers. */
+  analyticsComparison: IReleaseAnalyticsComparison;
   /** Release-scoped attachments (global signature, shared first comment). */
   attachments?: IReleaseAttachment[];
   /** Audit trail of release-level status changes. */

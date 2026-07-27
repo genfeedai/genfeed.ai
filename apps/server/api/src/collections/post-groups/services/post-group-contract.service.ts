@@ -19,6 +19,7 @@ import {
   updateReleaseGroupSchema,
 } from '@api-types/contracts/scheduler.contract';
 import { getSchedulerAnalyticsCapability } from '@api-types/contracts/scheduler-analytics-collection.contract';
+import { buildReleaseAnalyticsComparison } from '@api-types/contracts/scheduler-analytics-comparison.contract';
 import {
   CredentialPlatform,
   PostStatus,
@@ -202,7 +203,15 @@ export class PostGroupContractService {
     targets: readonly SchedulerPostTarget[],
     analyticsByTarget: ReadonlyMap<string, SchedulerPostAnalytics> = new Map(),
   ): IReleaseGroup {
+    const releaseTargets = targets.map((target) =>
+      this.toChannelTarget(target, group, analyticsByTarget.get(target.id)),
+    );
+
     return {
+      analyticsComparison: buildReleaseAnalyticsComparison(
+        group.id,
+        releaseTargets,
+      ),
       attachments: this.asReleaseAttachments(group.attachments, group.id),
       baseContent: group.baseContent,
       brandId: group.brandId,
@@ -219,9 +228,7 @@ export class PostGroupContractService {
       status: group.status as ReleaseStatus,
       statusTransitions: this.asTransitions(group.statusTransitions),
       targetSummary: this.summarizeTargets(targets),
-      targets: targets.map((target) =>
-        this.toChannelTarget(target, group, analyticsByTarget.get(target.id)),
-      ),
+      targets: releaseTargets,
       timezone: group.timezone,
       title: group.title,
       updatedAt: group.updatedAt.toISOString(),
