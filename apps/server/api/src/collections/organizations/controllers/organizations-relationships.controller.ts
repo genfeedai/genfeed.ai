@@ -429,20 +429,20 @@ export class OrganizationsRelationshipsController {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
+
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const data: AggregatePaginateResult<VideoDocument> =
-      await this.videosService.findAll(
-        {
-          orderBy: handleQuerySort(query.sort),
-          where: {
-            isDeleted,
-            organization: organizationId,
-            user: publicMetadata.user,
-          },
+    const data = (await this.videosService.findAll(
+      {
+        orderBy: handleQuerySort(query.sort),
+        where: {
+          isDeleted,
+          organization: organizationId,
+          user: publicMetadata.user,
         },
-        options,
-      );
+      },
+      options,
+    )) as unknown as AggregatePaginateResult<VideoDocument>;
     return serializeCollection(request, VideoSerializer, data);
   }
 
