@@ -1,6 +1,6 @@
 import { PageScope } from '@genfeedai/enums';
 import type { IFolder } from '@genfeedai/interfaces';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import ModalFolder from '@ui/modals/content/folder/ModalFolder';
 import type { PropsWithChildren } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
