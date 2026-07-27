@@ -429,7 +429,6 @@ export class OrganizationsRelationshipsController {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
-
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
     const data: AggregatePaginateResult<VideoDocument> =
