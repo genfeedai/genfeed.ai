@@ -16,6 +16,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { CONNECT_GENFEED_VERIFICATION_METADATA_KEY } from '@genfeedai/constants';
 import {
   ActionOrigin,
   API_KEY_ACTION_ORIGIN_METADATA_KEY,
@@ -64,7 +65,7 @@ export class ApiKeysController {
     return match ?? ApiKeyCategory.GENFEEDAI;
   }
 
-  private withoutReservedOriginMetadata(
+  private withoutReservedMetadata(
     metadata: Record<string, unknown> | undefined,
   ): Record<string, unknown> | undefined {
     if (!metadata) {
@@ -73,9 +74,28 @@ export class ApiKeysController {
     const {
       [API_KEY_ACTION_ORIGIN_METADATA_KEY]: _actionOrigin,
       [API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY]: _actionOriginProof,
+      [CONNECT_GENFEED_VERIFICATION_METADATA_KEY]: _connectGenfeedVerification,
       ...safeMetadata
     } = metadata;
     return safeMetadata;
+  }
+
+  private existingConnectGenfeedMetadata(
+    apiKey: Parameters<ApiKeysService['resolveActionOrigin']>[0],
+  ): Record<string, unknown> {
+    const metadata =
+      apiKey.metadata &&
+      typeof apiKey.metadata === 'object' &&
+      !Array.isArray(apiKey.metadata)
+        ? (apiKey.metadata as Record<string, unknown>)
+        : {};
+    const verification = metadata[CONNECT_GENFEED_VERIFICATION_METADATA_KEY];
+
+    return verification &&
+      typeof verification === 'object' &&
+      !Array.isArray(verification)
+      ? { [CONNECT_GENFEED_VERIFICATION_METADATA_KEY]: verification }
+      : {};
   }
 
   private trustedExistingOriginMetadata(
@@ -140,7 +160,7 @@ export class ApiKeysController {
 
     const { apiKey, plainKey } = await this.apiKeysService.createWithKey({
       ...createApiKeyDto,
-      metadata: this.withoutReservedOriginMetadata(createApiKeyDto.metadata),
+      metadata: this.withoutReservedMetadata(createApiKeyDto.metadata),
       organizationId: publicMetadata.organization,
       userId: publicMetadata.user,
     });
@@ -260,7 +280,8 @@ export class ApiKeysController {
       ...(updateApiKeyDto.metadata !== undefined
         ? {
             metadata: {
-              ...this.withoutReservedOriginMetadata(updateApiKeyDto.metadata),
+              ...this.withoutReservedMetadata(updateApiKeyDto.metadata),
+              ...this.existingConnectGenfeedMetadata(existingKey),
               ...this.trustedExistingOriginMetadata(existingKey),
             },
           }
@@ -305,7 +326,7 @@ export class ApiKeysController {
       !Array.isArray(existingKey.metadata)
         ? (existingKey.metadata as Record<string, unknown>)
         : undefined;
-    const metadata = this.withoutReservedOriginMetadata(existingMetadata);
+    const metadata = this.withoutReservedMetadata(existingMetadata);
     const existingOrigin = this.apiKeysService.resolveActionOrigin(existingKey);
     const trustedOrigin =
       existingOrigin === ActionOrigin.CLI || existingOrigin === ActionOrigin.UI

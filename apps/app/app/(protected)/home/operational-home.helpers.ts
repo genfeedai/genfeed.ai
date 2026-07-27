@@ -2,8 +2,11 @@ import {
   getBrandOrganizationId,
   getBrandOrganizationSlug,
 } from '@contexts/user/brand-context/brand-context.helpers';
-import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants';
-import type { IBrand, ICredential } from '@genfeedai/interfaces';
+import {
+  API_KEY_SCOPE_PRESETS,
+  CONNECT_GENFEED_VERIFICATION_METADATA_KEY,
+} from '@genfeedai/constants';
+import type { IActivity, IBrand, ICredential } from '@genfeedai/interfaces';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
 
 interface ConnectGenfeedMetadata {
@@ -57,9 +60,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function getConnectGenfeedMetadata(
   metadata: Record<string, unknown> | undefined,
+  notBefore: number,
   now: number,
 ): ConnectGenfeedMetadata | null {
-  const connectGenfeed = metadata?.connectGenfeed;
+  const connectGenfeed = metadata?.[CONNECT_GENFEED_VERIFICATION_METADATA_KEY];
 
   if (
     !isRecord(connectGenfeed) ||
@@ -71,7 +75,11 @@ function getConnectGenfeedMetadata(
 
   const verifiedAt = Date.parse(connectGenfeed.lastVerifiedAt);
 
-  if (!Number.isFinite(verifiedAt) || verifiedAt > now) {
+  if (
+    !Number.isFinite(verifiedAt) ||
+    verifiedAt < notBefore ||
+    verifiedAt > now
+  ) {
     return null;
   }
 
@@ -92,12 +100,15 @@ export function getVerifiedMcpConnection(
         ? apiKey.organization
         : apiKey.organization?.id;
     const expiresAt = apiKey.expiresAt ? Date.parse(apiKey.expiresAt) : null;
+    const createdAt = Date.parse(apiKey.createdAt);
     const isExpired =
       expiresAt !== null && (!Number.isFinite(expiresAt) || expiresAt <= now);
     const hasRequiredScopes = API_KEY_SCOPE_PRESETS.mcp.every((scope) =>
       apiKey.scopes.includes(scope),
     );
-    const verification = getConnectGenfeedMetadata(apiKey.metadata, now);
+    const verification = Number.isFinite(createdAt)
+      ? getConnectGenfeedMetadata(apiKey.metadata, createdAt, now)
+      : null;
 
     if (
       apiKey.isActive &&
@@ -112,6 +123,56 @@ export function getVerifiedMcpConnection(
   }
 
   return null;
+}
+
+export function getCredentialBadge(credential: ICredential): {
+  label: string;
+  variant: 'destructive' | 'outline' | 'success' | 'warning';
+} {
+  if (!credential.isConnected) {
+    return { label: 'Disconnected', variant: 'destructive' };
+  }
+
+  if (
+    credential.accountHealth?.holdPublishing ||
+    credential.accountHealth?.riskLevel === 'high'
+  ) {
+    return { label: 'Needs attention', variant: 'warning' };
+  }
+
+  if (
+    credential.accountHealth?.state === 'healthy' ||
+    credential.accountHealth?.riskLevel === 'low'
+  ) {
+    return { label: 'Healthy', variant: 'success' };
+  }
+
+  return { label: 'Connected', variant: 'outline' };
+}
+
+export function getActivityBadge(activity: IActivity): {
+  label: string;
+  variant: 'destructive' | 'outline' | 'success' | 'warning';
+} {
+  const normalized = (activity.status ?? activity.value ?? '').toLowerCase();
+
+  if (normalized.includes('fail') || normalized.includes('error')) {
+    return { label: 'Failed', variant: 'destructive' };
+  }
+
+  if (normalized.includes('pending') || normalized.includes('processing')) {
+    return { label: 'In progress', variant: 'warning' };
+  }
+
+  if (
+    normalized.includes('complete') ||
+    normalized.includes('publish') ||
+    normalized.includes('success')
+  ) {
+    return { label: 'Completed', variant: 'success' };
+  }
+
+  return { label: 'Recorded', variant: 'outline' };
 }
 
 export function summarizeCredentialHealth(

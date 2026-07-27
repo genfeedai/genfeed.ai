@@ -18,6 +18,8 @@ export interface BrandContextType {
   setOrganizationId: (id: string) => void;
   selectedBrand: Brand | undefined;
   credentials: ICredential[];
+  credentialsError: Error | null;
+  credentialsLoading: boolean;
   refreshBrands: () => Promise<void>;
   /** True when auth is loaded and brandId/organizationId are available */
   isReady: boolean;
@@ -49,6 +51,8 @@ export function BrandProvider({
       brandId: state.brandId,
       brands: state.brands,
       credentials: state.credentials,
+      credentialsError: state.credentialsError,
+      credentialsLoading: state.credentialsLoading,
       darkroomCapabilities: state.darkroomCapabilities,
       darkroomCapabilitiesLoading: state.darkroomCapabilitiesLoading,
       isReady: state.isReady,
@@ -65,6 +69,8 @@ export function BrandProvider({
       state.brandId,
       state.brands,
       state.credentials,
+      state.credentialsError,
+      state.credentialsLoading,
       state.darkroomCapabilities,
       state.darkroomCapabilitiesLoading,
       state.isReady,
