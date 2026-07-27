@@ -58,6 +58,7 @@ describe('CronPostsService', () => {
     transitionPost: ReturnType<typeof vi.fn>;
   };
   let postRepeatSchedulerService: {
+    materializeRecurrence: ReturnType<typeof vi.fn>;
     scheduleNextRepeat: ReturnType<typeof vi.fn>;
   };
 
@@ -108,6 +109,7 @@ describe('CronPostsService', () => {
       transitionPost: vi.fn().mockResolvedValue(false),
     };
     postRepeatSchedulerService = {
+      materializeRecurrence: vi.fn().mockResolvedValue(undefined),
       scheduleNextRepeat: vi.fn().mockResolvedValue(undefined),
     };
 
@@ -746,6 +748,39 @@ describe('CronPostsService', () => {
       post,
       expect.stringContaining('CronPostsService'),
     );
+  });
+
+  it('rechecks grouped recurrence materialization after an already-published delivery', async () => {
+    publishApprovalsService.claimForExecution.mockResolvedValueOnce({
+      isAlreadyPublished: true,
+    });
+    const post = {
+      groupId: 'release-1',
+      id: 'post-1',
+      organizationId: 'org-1',
+      platform: CredentialPlatform.TWITTER,
+      userId: 'user-1',
+    };
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [post],
+      total: 1,
+    } as never);
+
+    const result = await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
+      enqueuedAt: '2026-07-07T09:55:00.000Z',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({ success: true, status: PostStatus.PUBLIC }),
+    );
+    expect(
+      postRepeatSchedulerService.materializeRecurrence,
+    ).toHaveBeenCalledWith(post);
+    expect(publisherFactory.getPublisher).not.toHaveBeenCalled();
   });
 
   it('persists a grouped provider success even when the provider omits its id', async () => {

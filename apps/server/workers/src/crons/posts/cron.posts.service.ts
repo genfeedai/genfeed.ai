@@ -193,6 +193,7 @@ export class CronPostsService {
         versionPinId,
       });
       if (claim.isAlreadyPublished) {
+        await this.postRepeatSchedulerService.materializeRecurrence(post);
         return {
           externalId: this.readPostString(post, ['externalId']) ?? null,
           platform: post.platform,
@@ -264,9 +265,7 @@ export class CronPostsService {
         }),
       );
 
-      if (post.isRepeat && post.repeatFrequency) {
-        await this.postRepeatSchedulerService.scheduleNextRepeat(post, url);
-      }
+      await this.postRepeatSchedulerService.scheduleNextRepeat(post, url);
     }
 
     return result;
