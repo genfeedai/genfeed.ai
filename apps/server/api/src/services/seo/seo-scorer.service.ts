@@ -8,10 +8,10 @@ import { OpenRouterService } from '@api/services/integrations/openrouter/service
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
-
 import {
   type ScoreContentOptions,
   type SeoCheck,
@@ -115,7 +115,7 @@ export class SeoScorerService {
   ): Promise<SeoScorecard> {
     const article = await findOrThrow(
       this.prisma.article,
-      { where: { id: articleId, isDeleted: false, organizationId } },
+      { where: scopedWhere(organizationId, { id: articleId }) },
       'Article',
     );
 
@@ -139,7 +139,7 @@ export class SeoScorerService {
   ): Promise<SeoScorecard> {
     const post = await findOrThrow(
       this.prisma.post,
-      { where: { id: postId, isDeleted: false, organizationId } },
+      { where: scopedWhere(organizationId, { id: postId }) },
       'Post',
     );
 
@@ -180,13 +180,13 @@ export class SeoScorerService {
     if (type === 'article') {
       await this.prisma.article.update({
         data,
-        where: { id, isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, { id }),
       });
       await this.bustCollectionCache('article');
     } else {
       await this.prisma.post.update({
         data,
-        where: { id, isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, { id }),
       });
       await this.bustCollectionCache('post');
     }

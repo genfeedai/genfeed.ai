@@ -13,6 +13,7 @@ import {
   type ServerLogger,
   type ServerPrisma,
 } from '@server/server.dependencies';
+import { scopedWhere } from '@server/tenancy/scoped-where';
 
 @Injectable()
 export class AdOptimizationConfigsService {
@@ -29,10 +30,7 @@ export class AdOptimizationConfigsService {
     organizationId: string,
   ): Promise<AdOptimizationConfigDocument | null> {
     const doc = await this.prisma.adOptimizationConfig.findFirst({
-      where: {
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId),
     });
 
     return doc ? this.toDocument(doc) : null;
@@ -46,7 +44,7 @@ export class AdOptimizationConfigsService {
 
     try {
       const existing = await this.prisma.adOptimizationConfig.findFirst({
-        where: { isDeleted: false, organizationId },
+        where: scopedWhere(organizationId),
       });
 
       const config = this.buildConfigPayload(data, existing?.config);

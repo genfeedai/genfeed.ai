@@ -1,5 +1,6 @@
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -38,12 +39,7 @@ export class BrandMemorySyncService {
   ): Promise<void> {
     const performance = await this.prisma.contentPerformance.findFirst({
       orderBy: { createdAt: 'desc' },
-      where: {
-        brandId,
-        isDeleted: false,
-        organizationId,
-        postId,
-      },
+      where: scopedWhere(organizationId, { brandId, postId }),
     });
 
     if (!performance) {
@@ -99,20 +95,16 @@ export class BrandMemorySyncService {
 
     const [recent, baseline] = await Promise.all([
       this.prisma.contentPerformance.findMany({
-        where: {
+        where: scopedWhere(organizationId, {
           brandId,
           createdAt: { gte: recentStart, lte: now },
-          isDeleted: false,
-          organizationId,
-        },
+        }),
       }),
       this.prisma.contentPerformance.findMany({
-        where: {
+        where: scopedWhere(organizationId, {
           brandId,
           createdAt: { gte: baselineStart, lt: baselineEnd },
-          isDeleted: false,
-          organizationId,
-        },
+        }),
       }),
     ]);
 

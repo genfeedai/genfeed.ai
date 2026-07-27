@@ -9,6 +9,7 @@ import {
   buildAdPerformanceBenchmarkFields,
 } from '@server/collections/ad-performance/utils/ad-performance-benchmark.util';
 import { SERVER_TOKENS, type ServerPrisma } from '@server/server.dependencies';
+import { scopedWhere } from '@server/tenancy/scoped-where';
 
 const DEFAULT_TOP_PERFORMER_LIMIT = 10;
 const JSON_METRIC_CANDIDATE_LIMIT = 500;
@@ -204,10 +205,7 @@ export class AdPerformanceService {
     // sql-risk-audit: documented unbounded-read -- Upsert key fields are still JSON-backed; organizationId/isDeleted bounds this sync-path lookup until scalar key columns exist.
     const existing = (
       await this.prisma.adPerformance.findMany({
-        where: {
-          isDeleted: false,
-          organizationId: payload.organizationId,
-        },
+        where: scopedWhere(payload.organizationId),
       })
     )
       .map((record) => this.normalizeRecord(record))
@@ -263,10 +261,7 @@ export class AdPerformanceService {
   ): Promise<AdPerformanceDocument[]> {
     // sql-risk-audit: documented unbounded-read -- This org-scoped optimization path still filters JSON-only date/granularity fields until those fields are scalarized.
     const records = await this.prisma.adPerformance.findMany({
-      where: {
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId),
     });
 
     return records

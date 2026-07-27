@@ -15,6 +15,7 @@ import { AgentThreadProjectorService } from '@api/services/agent-threading/servi
 import { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
 import { AgentThreadEventType } from '@api/services/agent-threading/types/agent-thread.types';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import { Effect } from 'effect';
@@ -192,13 +193,11 @@ export class AgentThreadEngineService {
 
       // Check idempotency — do not create duplicate events for the same commandId+type
       const existingRow = await this.prisma.agentThreadEvent.findFirst({
-        where: {
+        where: scopedWhere(params.organizationId, {
           commandId: params.commandId,
-          isDeleted: false,
-          organizationId: params.organizationId,
           threadId: params.threadId,
           type: params.type,
-        },
+        }),
       });
 
       if (existingRow) {
@@ -212,11 +211,9 @@ export class AgentThreadEngineService {
       const { snapshotRow, createdRow } = await this.prisma.$transaction(
         async (tx) => {
           let snap = await tx.agentThreadSnapshot.findFirst({
-            where: {
-              isDeleted: false,
-              organizationId: params.organizationId,
+            where: scopedWhere(params.organizationId, {
               threadId: params.threadId,
-            },
+            }),
           });
 
           if (snap) {
@@ -325,14 +322,12 @@ export class AgentThreadEngineService {
       await this.ensureThreadAccess(threadId, organizationId, userId);
 
       const rows = await this.prisma.agentThreadEvent.findMany({
-        where: {
-          isDeleted: false,
-          organizationId,
+        where: scopedWhere(organizationId, {
           threadId,
           ...(typeof afterSequence === 'number' && afterSequence > 0
             ? { sequence: { gt: afterSequence } }
             : {}),
-        },
+        }),
         orderBy: { sequence: 'asc' },
       });
 
@@ -365,11 +360,7 @@ export class AgentThreadEngineService {
         userId,
       );
       let snapshotRow = await this.prisma.agentThreadSnapshot.findFirst({
-        where: {
-          isDeleted: false,
-          organizationId,
-          threadId,
-        },
+        where: scopedWhere(organizationId, { threadId }),
       });
 
       if (!snapshotRow) {
@@ -431,11 +422,9 @@ export class AgentThreadEngineService {
       // Input requests are stored inside snapshot.data.inputRequests[]
       const snapshotRow = yield* fromPromiseEffect(() =>
         this.prisma.agentThreadSnapshot.findFirst({
-          where: {
-            isDeleted: false,
-            organizationId: params.organizationId,
+          where: scopedWhere(params.organizationId, {
             threadId: params.threadId,
-          },
+          }),
         }),
       );
 
@@ -520,7 +509,7 @@ export class AgentThreadEngineService {
       await this.ensureThreadAccess(threadId, organizationId, userId);
 
       const existing = await this.prisma.agentThreadSnapshot.findFirst({
-        where: { isDeleted: false, organizationId, threadId },
+        where: scopedWhere(organizationId, { threadId }),
       });
 
       const profileData = profileSnapshot as Record<string, unknown>;
@@ -738,7 +727,7 @@ export class AgentThreadEngineService {
       // Store the input request inside snapshot.data.inputRequests[]
       return fromPromiseEffect(async () => {
         const snapshotRow = await this.prisma.agentThreadSnapshot.findFirst({
-          where: { isDeleted: false, organizationId, threadId },
+          where: scopedWhere(organizationId, { threadId }),
         });
 
         if (!snapshotRow) return;

@@ -25,6 +25,7 @@ import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/interfaces/billing';
+import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
@@ -203,14 +204,12 @@ export class StripeWebhookSupportService {
   ): Promise<boolean> {
     const existing = await this.prisma.creditTransaction.findFirst({
       select: { id: true },
-      where: {
+      where: scopedWhere(organizationId, {
         category: CreditTransactionCategory.ADD,
-        isDeleted: false,
-        organizationId,
         referenceId: reference.referenceId,
         referenceType: reference.referenceType,
         source,
-      },
+      }),
     });
 
     return existing !== null;
@@ -256,11 +255,7 @@ export class StripeWebhookSupportService {
 
     const existing = await this.prisma.creditTransaction.findFirst({
       select: { id: true },
-      where: {
-        isDeleted: false,
-        organizationId,
-        OR: references,
-      },
+      where: scopedWhere(organizationId, { OR: references }),
     });
 
     return existing !== null;

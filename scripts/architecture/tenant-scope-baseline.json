@@ -3841,14 +3841,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "post",
-      "file": "apps/server/api/src/services/agent-context-assembly/agent-context-assembly.service.ts",
-      "fingerprint": "945caa9a9095e0014a0f",
-      "method": "findMany",
-      "model": "Post",
-      "reason": "unresolved-where"
-    },
-    {
       "delegate": "agentThreadSnapshot",
       "file": "apps/server/api/src/services/agent-threading/services/agent-runtime-session.service.ts",
       "fingerprint": "6a240ebc4d7cba06dac4",
@@ -3863,14 +3855,6 @@
       "method": "update",
       "model": "AgentThreadSnapshot",
       "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "agentThreadEvent",
-      "file": "apps/server/api/src/services/agent-threading/services/agent-thread-engine.service.ts",
-      "fingerprint": "15e0585eb608ce705b55",
-      "method": "findMany",
-      "model": "AgentThreadEvent",
-      "reason": "unresolved-where"
     },
     {
       "delegate": "agentThreadSnapshot",
@@ -4012,14 +3996,6 @@
       "delegate": "batch",
       "file": "apps/server/api/src/services/batch-generation/batch-generation-review.service.ts",
       "fingerprint": "53c1bfd78ff5985e887f",
-      "method": "findMany",
-      "model": "Batch",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "batch",
-      "file": "apps/server/api/src/services/batch-generation/batch-generation-review.service.ts",
-      "fingerprint": "9f14259587facd7c7fc9",
       "method": "findMany",
       "model": "Batch",
       "reason": "unresolved-where"

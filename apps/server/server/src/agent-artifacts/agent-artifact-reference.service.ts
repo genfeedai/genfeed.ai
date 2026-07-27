@@ -31,6 +31,7 @@ import {
   type ServerLogger,
   type ServerPrisma,
 } from '@server/server.dependencies';
+import { scopedWhere } from '@server/tenancy/scoped-where';
 
 const CONTENT_DIGEST_PREFIX = 'sha256:v1:';
 const IDEMPOTENCY_KEY_PREFIX = 'content-version-pin:v1:';
@@ -337,11 +338,9 @@ export class AgentArtifactReferenceService {
     params: ResolveMessageArtifactReferencesParams,
   ): Promise<ResolvedAgentArtifactReference[]> {
     const message = await this.prisma.agentMessage.findFirst({
-      where: {
+      where: scopedWhere(params.readContext.organizationId, {
         id: params.messageId,
-        isDeleted: false,
-        organizationId: params.readContext.organizationId,
-      },
+      }),
     });
     if (!message) {
       throw artifactNotFound('Agent message', params.messageId);
@@ -353,11 +352,9 @@ export class AgentArtifactReferenceService {
     if (typedReferences.length > 0) {
       await this.prisma.agentMessage.updateMany({
         data: { artifactReferenceEligibleReadCount: { increment: 1 } },
-        where: {
+        where: scopedWhere(params.readContext.organizationId, {
           id: message.id,
-          isDeleted: false,
-          organizationId: params.readContext.organizationId,
-        },
+        }),
       });
       this.recordReferenceTelemetry('canonical', params);
       return Promise.all(
@@ -370,11 +367,9 @@ export class AgentArtifactReferenceService {
     if (!message.isLegacyArtifactReferenceEligible) {
       await this.prisma.agentMessage.updateMany({
         data: { artifactReferenceEligibleReadCount: { increment: 1 } },
-        where: {
+        where: scopedWhere(params.readContext.organizationId, {
           id: message.id,
-          isDeleted: false,
-          organizationId: params.readContext.organizationId,
-        },
+        }),
       });
       this.recordReferenceTelemetry('none', params);
       return [];
@@ -398,13 +393,11 @@ export class AgentArtifactReferenceService {
         legacyArtifactReferenceLastUsedAt: new Date(),
         legacyArtifactReferenceReadCount: { increment: 1 },
       },
-      where: {
+      where: scopedWhere(params.readContext.organizationId, {
         id: message.id,
-        isDeleted: false,
         isLegacyArtifactReferenceEligible: true,
         legacyArtifactReferenceReadCount: { lt: MAX_LEGACY_REFERENCE_USES },
-        organizationId: params.readContext.organizationId,
-      },
+      }),
     });
     if (claimed.count !== 1) {
       throw new ConflictException({
@@ -568,7 +561,7 @@ export class AgentArtifactReferenceService {
         prompt: true,
         sources: { select: { id: true } },
       },
-      where: { id: recordId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: recordId }),
     });
     if (!result) {
       throw artifactNotFound('Ingredient', recordId);
@@ -650,7 +643,7 @@ export class AgentArtifactReferenceService {
           },
         },
       },
-      where: { id: recordId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: recordId }),
     });
     if (!result) {
       throw artifactNotFound('Post', recordId);
@@ -729,7 +722,7 @@ export class AgentArtifactReferenceService {
       }
       const brand = await prisma.brand.findFirst({
         select: { id: true, organizationId: true },
-        where: { id: actualBrandId, isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, { id: actualBrandId }),
       });
       actualOrganizationId = brand?.organizationId;
     } else if (parentType === 'INGREDIENT') {
@@ -739,11 +732,7 @@ export class AgentArtifactReferenceService {
       }
       const parent = await prisma.ingredient.findFirst({
         select: { brandId: true, organizationId: true },
-        where: {
-          id: parentIngredientId,
-          isDeleted: false,
-          organizationId,
-        },
+        where: scopedWhere(organizationId, { id: parentIngredientId }),
       });
       actualOrganizationId = parent?.organizationId ?? undefined;
       actualBrandId = parent?.brandId ?? undefined;
@@ -754,11 +743,7 @@ export class AgentArtifactReferenceService {
       }
       const parent = await prisma.article.findFirst({
         select: { brandId: true, organizationId: true },
-        where: {
-          id: parentArticleId,
-          isDeleted: false,
-          organizationId,
-        },
+        where: scopedWhere(organizationId, { id: parentArticleId }),
       });
       actualOrganizationId = parent?.organizationId;
       actualBrandId = parent?.brandId ?? undefined;
@@ -811,7 +796,7 @@ export class AgentArtifactReferenceService {
     materialFields: readonly string[],
   ): Promise<CanonicalRecordState> {
     const result = await delegate.findFirst({
-      where: { id: recordId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: recordId }),
     } as never);
     if (!result) {
       throw artifactNotFound(label, recordId);
@@ -872,12 +857,7 @@ export class AgentArtifactReferenceService {
     const [member, organization] = await Promise.all([
       prisma.member.findFirst({
         select: { id: true },
-        where: {
-          isActive: true,
-          isDeleted: false,
-          organizationId,
-          userId,
-        },
+        where: scopedWhere(organizationId, { isActive: true, userId }),
       }),
       prisma.organization.findUnique({
         select: { userId: true },
