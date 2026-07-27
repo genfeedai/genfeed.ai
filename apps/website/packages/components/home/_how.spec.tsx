@@ -1,6 +1,8 @@
+// biome-ignore assist/source/organizeImports: External packages precede project aliases.
 import { render, screen } from '@testing-library/react';
-import HomeHow from '@web-components/home/_how';
 import { describe, expect, it } from 'vitest';
+
+import HomeHow from '@web-components/home/_how';
 
 describe('HomeHow', () => {
   it('renders the section heading', () => {

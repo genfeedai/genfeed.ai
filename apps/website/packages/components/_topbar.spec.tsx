@@ -1,6 +1,8 @@
+// biome-ignore assist/source/organizeImports: External packages precede project aliases.
 import { fireEvent, render, screen } from '@testing-library/react';
-import WebsiteTopbar from '@ui/shell/topbars/WebsiteTopbar';
 import { describe, expect, it, vi } from 'vitest';
+
+import WebsiteTopbar from '@ui/shell/topbars/WebsiteTopbar';
 
 vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => ({ isSignedIn: false }),

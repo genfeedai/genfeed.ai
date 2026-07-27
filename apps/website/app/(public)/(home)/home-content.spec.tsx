@@ -1,6 +1,8 @@
-import HomeContent from '@public/(home)/home-content';
+// biome-ignore assist/source/organizeImports: External packages precede project aliases.
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+
+import HomeContent from '@public/(home)/home-content';
 
 vi.mock('@web-components/home/_hero', () => ({
   default: () => <section data-testid="home-hero">Hero</section>,
