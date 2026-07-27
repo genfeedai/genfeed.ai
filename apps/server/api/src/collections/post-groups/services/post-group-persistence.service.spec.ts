@@ -141,6 +141,14 @@ describe('PostGroupPersistenceService', () => {
       state: 'ready',
     });
     expect(release?.targets?.[1]?.analytics).toEqual({
+      collection: {
+        capability: 'supported',
+        error: null,
+        freshness: 'unavailable',
+        lastCollectedAt: null,
+        requestedAt: null,
+        state: 'unavailable',
+      },
       snapshot: null,
       state: 'unavailable',
     });
@@ -154,6 +162,14 @@ describe('PostGroupPersistenceService', () => {
     const release = await service.findByIdempotencyKey('org-1', 'request-1');
 
     expect(release?.targets?.[0]?.analytics).toEqual({
+      collection: {
+        capability: 'supported',
+        error: null,
+        freshness: 'unavailable',
+        lastCollectedAt: null,
+        requestedAt: null,
+        state: 'unavailable',
+      },
       snapshot: null,
       state: 'unavailable',
     });
@@ -421,6 +437,11 @@ function makeTarget(
     agentRunId: null,
     agentStrategyId: null,
     agentThreadId: null,
+    analyticsCollectedAt: null,
+    analyticsCollectionAttemptKey: null,
+    analyticsCollectionError: null,
+    analyticsCollectionRequestedAt: null,
+    analyticsCollectionState: 'unavailable',
     brandId: 'brand-1',
     createdAt: new Date('2026-07-19T10:00:00.000Z'),
     credentialId: 'credential-1',

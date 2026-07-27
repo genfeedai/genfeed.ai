@@ -11,6 +11,10 @@ describe('AnalyticsSyncWorkflowService', () => {
   const postsService = { findAll: vi.fn() };
   const queueService = { add: vi.fn() };
   const cacheService = { acquireLock: vi.fn() };
+  const analyticsCollectionState = {
+    markFailedBatch: vi.fn(),
+    markPending: vi.fn(),
+  };
 
   let service: AnalyticsSyncWorkflowService;
 
@@ -26,12 +30,15 @@ describe('AnalyticsSyncWorkflowService', () => {
     cacheService.acquireLock.mockResolvedValue(true);
     postsService.findAll.mockResolvedValue({ docs: [] });
     queueService.add.mockResolvedValue({ id: 'job-1' });
+    analyticsCollectionState.markFailedBatch.mockResolvedValue(undefined);
+    analyticsCollectionState.markPending.mockResolvedValue(undefined);
 
     service = new AnalyticsSyncWorkflowService(
       logger as never,
       postsService as never,
       queueService as never,
       cacheService as never,
+      analyticsCollectionState as never,
     );
   });
 
@@ -82,6 +89,7 @@ describe('AnalyticsSyncWorkflowService', () => {
       1,
       'analytics-facebook',
       expect.objectContaining({
+        attemptKey: 'analyticsFacebookSync:org-1:495081',
         posts: expect.arrayContaining([
           expect.objectContaining({
             id: 'post-0',
@@ -93,6 +101,18 @@ describe('AnalyticsSyncWorkflowService', () => {
       }),
       expect.objectContaining({ attempts: 3 }),
     );
+    expect(analyticsCollectionState.markPending).toHaveBeenCalledWith({
+      attemptKey: 'analyticsFacebookSync:org-1:495081',
+      requestedAt: new Date('2026-06-24T09:00:00.000Z'),
+      targets: expect.arrayContaining([
+        {
+          brandId: 'brand-1',
+          id: 'post-0',
+          organizationId: 'org-1',
+          platform: CredentialPlatform.FACEBOOK,
+        },
+      ]),
+    });
     expect(result).toMatchObject({
       action: 'analyticsFacebookSync',
       enqueued: 2,
@@ -143,7 +163,8 @@ describe('AnalyticsSyncWorkflowService', () => {
     );
     expect(queueService.add).toHaveBeenCalledWith(
       'analytics-twitter',
-      {
+      expect.objectContaining({
+        attemptKey: 'analyticsTwitterSync:org-1:990162',
         credentialId: 'credential-1',
         posts: [
           {
@@ -159,7 +180,7 @@ describe('AnalyticsSyncWorkflowService', () => {
             organization: 'org-1',
           },
         ],
-      },
+      }),
       expect.objectContaining({
         backoff: { delay: 5000, type: 'exponential' },
       }),
@@ -223,7 +244,8 @@ describe('AnalyticsSyncWorkflowService', () => {
 
     expect(queueService.add).toHaveBeenCalledWith(
       'analytics-youtube',
-      {
+      expect.objectContaining({
+        attemptKey: 'youtubeAnalyticsSync:org-1:495081',
         brandId: 'brand-1',
         organizationId: 'org-1',
         posts: [
@@ -240,7 +262,7 @@ describe('AnalyticsSyncWorkflowService', () => {
             organization: 'org-1',
           },
         ],
-      },
+      }),
       expect.objectContaining({ attempts: 3 }),
     );
     expect(result).toMatchObject({
@@ -250,5 +272,73 @@ describe('AnalyticsSyncWorkflowService', () => {
       skipped: 1,
       status: 'enqueued',
     });
+  });
+
+  it('records a retryable scoped failure when queue dispatch fails', async () => {
+    postsService.findAll.mockResolvedValue({
+      docs: [
+        {
+          id: 'post-1',
+          brand: 'brand-1',
+          credential: { id: 'credential-1' },
+          externalId: 'facebook-1',
+          organization: 'org-1',
+          platform: CredentialPlatform.FACEBOOK,
+        },
+      ],
+    });
+    queueService.add.mockRejectedValueOnce({ response: { status: 503 } });
+
+    await expect(service.runFacebookAnalytics('org-1')).rejects.toEqual({
+      response: { status: 503 },
+    });
+
+    expect(analyticsCollectionState.markFailedBatch).toHaveBeenCalledWith(
+      [
+        {
+          attemptKey: 'analyticsFacebookSync:org-1:495081',
+          brandId: 'brand-1',
+          id: 'post-1',
+          organizationId: 'org-1',
+          platform: CredentialPlatform.FACEBOOK,
+        },
+      ],
+      {
+        code: 'analytics.provider_unavailable',
+        isRetryable: true,
+        message: 'Facebook analytics is temporarily unavailable.',
+      },
+    );
+  });
+
+  it('preserves the queue error when recording collection failure also fails', async () => {
+    const queueError = { response: { status: 503 } };
+    const stateError = new Error('state write failed');
+    postsService.findAll.mockResolvedValue({
+      docs: [
+        {
+          id: 'post-1',
+          brand: 'brand-1',
+          credential: { id: 'credential-1' },
+          externalId: 'facebook-1',
+          organization: 'org-1',
+          platform: CredentialPlatform.FACEBOOK,
+        },
+      ],
+    });
+    queueService.add.mockRejectedValueOnce(queueError);
+    analyticsCollectionState.markFailedBatch.mockRejectedValueOnce(stateError);
+
+    await expect(service.runFacebookAnalytics('org-1')).rejects.toBe(
+      queueError,
+    );
+    expect(logger.error).toHaveBeenCalledWith(
+      'AnalyticsSyncWorkflowService failed to record analytics collection failure',
+      stateError,
+      {
+        attemptKey: 'analyticsFacebookSync:org-1:495081',
+        queueName: 'analytics-facebook',
+      },
+    );
   });
 });

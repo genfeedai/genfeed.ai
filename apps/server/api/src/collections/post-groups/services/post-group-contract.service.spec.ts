@@ -7,6 +7,9 @@ import { PostGroupContractService } from '@api/collections/post-groups/services/
 import {
   CredentialPlatform,
   ReleaseStatus,
+  TargetAnalyticsCapability,
+  TargetAnalyticsCollectionState,
+  TargetAnalyticsFreshness,
   TargetExecutionState,
   TargetValidationState,
 } from '@genfeedai/enums';
@@ -62,7 +65,18 @@ describe('PostGroupContractService', () => {
         },
         targets: [
           expect.objectContaining({
-            analytics: { snapshot: null, state: 'unavailable' },
+            analytics: {
+              collection: {
+                capability: TargetAnalyticsCapability.SUPPORTED,
+                error: null,
+                freshness: TargetAnalyticsFreshness.UNAVAILABLE,
+                lastCollectedAt: null,
+                requestedAt: null,
+                state: TargetAnalyticsCollectionState.UNAVAILABLE,
+              },
+              snapshot: null,
+              state: 'unavailable',
+            },
             credentialId: 'credential-1',
             executionState: TargetExecutionState.SCHEDULED,
             id: 'target-1',
@@ -86,6 +100,14 @@ describe('PostGroupContractService', () => {
     );
 
     expect(release.targets?.[0]?.analytics).toEqual({
+      collection: {
+        capability: TargetAnalyticsCapability.SUPPORTED,
+        error: null,
+        freshness: TargetAnalyticsFreshness.FRESH,
+        lastCollectedAt: '2026-07-21T12:30:00.000Z',
+        requestedAt: null,
+        state: TargetAnalyticsCollectionState.READY,
+      },
       snapshot: {
         comments: 8,
         engagementRate: 0.14,
@@ -117,8 +139,75 @@ describe('PostGroupContractService', () => {
     );
 
     expect(release.targets?.[0]?.analytics).toEqual({
+      collection: {
+        capability: TargetAnalyticsCapability.SUPPORTED,
+        error: null,
+        freshness: TargetAnalyticsFreshness.UNAVAILABLE,
+        lastCollectedAt: null,
+        requestedAt: null,
+        state: TargetAnalyticsCollectionState.UNAVAILABLE,
+      },
       snapshot: null,
       state: 'unavailable',
+    });
+  });
+
+  it('preserves the last-good snapshot while surfacing a retryable failure', () => {
+    vi.setSystemTime(new Date('2026-07-21T14:00:00.000Z'));
+    const group = makeGroup();
+    const target = makeTarget({
+      analyticsCollectedAt: new Date('2026-07-21T12:30:00.000Z'),
+      analyticsCollectionError: {
+        code: 'analytics.rate_limited',
+        failedAt: '2026-07-21T13:45:00.000Z',
+        isRetryable: true,
+        message: 'Twitter analytics is temporarily rate limited.',
+      },
+      analyticsCollectionRequestedAt: new Date('2026-07-21T13:40:00.000Z'),
+      analyticsCollectionState: TargetAnalyticsCollectionState.FAILED,
+    });
+
+    const release = service.toReleaseGroup(
+      group,
+      [target],
+      new Map([[target.id, makeAnalytics()]]),
+    );
+
+    expect(release.targets?.[0]?.analytics).toEqual(
+      expect.objectContaining({
+        collection: {
+          capability: TargetAnalyticsCapability.SUPPORTED,
+          error: {
+            code: 'analytics.rate_limited',
+            failedAt: '2026-07-21T13:45:00.000Z',
+            isRetryable: true,
+            message: 'Twitter analytics is temporarily rate limited.',
+          },
+          freshness: TargetAnalyticsFreshness.STALE,
+          lastCollectedAt: '2026-07-21T12:30:00.000Z',
+          requestedAt: '2026-07-21T13:40:00.000Z',
+          state: TargetAnalyticsCollectionState.FAILED,
+        },
+        state: 'ready',
+      }),
+    );
+  });
+
+  it('reports provider capability gaps without collection errors', () => {
+    const group = makeGroup();
+    const target = makeTarget({
+      platform: CredentialPlatform.DISCORD,
+    });
+
+    const release = service.toReleaseGroup(group, [target]);
+
+    expect(release.targets?.[0]?.analytics.collection).toEqual({
+      capability: TargetAnalyticsCapability.UNSUPPORTED,
+      error: null,
+      freshness: TargetAnalyticsFreshness.UNAVAILABLE,
+      lastCollectedAt: null,
+      requestedAt: null,
+      state: TargetAnalyticsCollectionState.UNAVAILABLE,
     });
   });
 
@@ -190,6 +279,11 @@ function makeTarget(
     agentRunId: null,
     agentStrategyId: null,
     agentThreadId: null,
+    analyticsCollectedAt: null,
+    analyticsCollectionAttemptKey: null,
+    analyticsCollectionError: null,
+    analyticsCollectionRequestedAt: null,
+    analyticsCollectionState: TargetAnalyticsCollectionState.UNAVAILABLE,
     brandId: 'brand-1',
     createdAt: new Date('2026-07-19T10:00:00.000Z'),
     credentialId: 'credential-1',

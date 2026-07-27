@@ -13,6 +13,8 @@ import type {
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { classifyAnalyticsCollectionError } from '@server/analytics/analytics-collection-state';
+import { PostAnalyticsCollectionStateService } from '@server/analytics/services/post-analytics-collection-state.service';
 
 type AnalyticsSyncWorkflowAction =
   | 'analyticsFacebookSync'
@@ -55,6 +57,18 @@ const ANALYTICS_THREADS_QUEUE = 'analytics-threads';
 const ANALYTICS_TWITTER_QUEUE = 'analytics-twitter';
 const ANALYTICS_YOUTUBE_QUEUE = 'analytics-youtube';
 
+const ANALYTICS_PLATFORM_LABELS: Partial<Record<CredentialPlatform, string>> = {
+  [CredentialPlatform.FACEBOOK]: 'Facebook',
+  [CredentialPlatform.INSTAGRAM]: 'Instagram',
+  [CredentialPlatform.LINKEDIN]: 'LinkedIn',
+  [CredentialPlatform.MASTODON]: 'Mastodon',
+  [CredentialPlatform.PINTEREST]: 'Pinterest',
+  [CredentialPlatform.THREADS]: 'Threads',
+  [CredentialPlatform.TIKTOK]: 'TikTok',
+  [CredentialPlatform.TWITTER]: 'Twitter',
+  [CredentialPlatform.YOUTUBE]: 'YouTube',
+};
+
 const HOUR_MS = 60 * 60 * 1000;
 const THIRTY_MINUTES_MS = 30 * 60 * 1000;
 const SIX_HOURS_MS = 6 * HOUR_MS;
@@ -71,6 +85,7 @@ export class AnalyticsSyncWorkflowService {
     private readonly postsService: PostsService,
     private readonly queueService: QueueService,
     private readonly cacheService: CacheService,
+    private readonly analyticsCollectionState: PostAnalyticsCollectionStateService,
   ) {}
 
   async runFacebookAnalytics(
@@ -95,10 +110,12 @@ export class AnalyticsSyncWorkflowService {
       analyticsEnabledOnly: true,
       platforms: [CredentialPlatform.FACEBOOK],
     });
+    const attemptKey = this.attemptKey(action, organizationId, HOUR_MS);
 
     let enqueued = 0;
     for (const chunk of this.chunk(posts, CHUNK_SIZE)) {
       const jobData: SocialAnalyticsJobData = {
+        attemptKey,
         posts: chunk.map((post) => ({
           id: this.requiredId(post),
           brand: this.requiredBrandId(post),
@@ -108,7 +125,14 @@ export class AnalyticsSyncWorkflowService {
           platform: post.platform,
         })),
       };
-      await this.enqueue(ANALYTICS_FACEBOOK_QUEUE, jobData, 2000);
+      await this.enqueueCollection(
+        ANALYTICS_FACEBOOK_QUEUE,
+        jobData,
+        chunk,
+        attemptKey,
+        organizationId,
+        2000,
+      );
       enqueued++;
     }
 
@@ -151,10 +175,12 @@ export class AnalyticsSyncWorkflowService {
         CredentialPlatform.TIKTOK,
       ],
     });
+    const attemptKey = this.attemptKey(action, organizationId, HOUR_MS);
 
     let enqueued = 0;
     for (const chunk of this.chunk(posts, CHUNK_SIZE)) {
       const jobData: SocialAnalyticsJobData = {
+        attemptKey,
         posts: chunk.map((post) => ({
           id: this.requiredId(post),
           brand: this.requiredBrandId(post),
@@ -163,7 +189,14 @@ export class AnalyticsSyncWorkflowService {
           platform: post.platform,
         })),
       };
-      await this.enqueue(ANALYTICS_SOCIAL_QUEUE, jobData, 2000);
+      await this.enqueueCollection(
+        ANALYTICS_SOCIAL_QUEUE,
+        jobData,
+        chunk,
+        attemptKey,
+        organizationId,
+        2000,
+      );
       enqueued++;
     }
 
@@ -200,10 +233,12 @@ export class AnalyticsSyncWorkflowService {
       analyticsEnabledOnly: true,
       platforms: [CredentialPlatform.THREADS],
     });
+    const attemptKey = this.attemptKey(action, organizationId, HOUR_MS);
 
     let enqueued = 0;
     for (const chunk of this.chunk(posts, CHUNK_SIZE)) {
       const jobData: SocialAnalyticsJobData = {
+        attemptKey,
         posts: chunk.map((post) => ({
           id: this.requiredId(post),
           brand: this.requiredBrandId(post),
@@ -213,7 +248,14 @@ export class AnalyticsSyncWorkflowService {
           platform: post.platform,
         })),
       };
-      await this.enqueue(ANALYTICS_THREADS_QUEUE, jobData, 2000);
+      await this.enqueueCollection(
+        ANALYTICS_THREADS_QUEUE,
+        jobData,
+        chunk,
+        attemptKey,
+        organizationId,
+        2000,
+      );
       enqueued++;
     }
 
@@ -251,6 +293,11 @@ export class AnalyticsSyncWorkflowService {
       orderBy: { publishedAt: 'desc' },
       platforms: [CredentialPlatform.TWITTER],
     });
+    const attemptKey = this.attemptKey(
+      action,
+      organizationId,
+      THIRTY_MINUTES_MS,
+    );
 
     const postsByCredential = new Map<string, AnalyticsPost[]>();
     let skipped = 0;
@@ -275,6 +322,7 @@ export class AnalyticsSyncWorkflowService {
     for (const [credentialId, credentialPosts] of postsByCredential.entries()) {
       for (const batch of this.chunk(credentialPosts, TWITTER_BATCH_SIZE)) {
         const jobData: TwitterAnalyticsJobData = {
+          attemptKey,
           credentialId,
           posts: batch.map((post) => ({
             id: this.requiredId(post),
@@ -283,7 +331,14 @@ export class AnalyticsSyncWorkflowService {
             organization: organizationId,
           })),
         };
-        await this.enqueue(ANALYTICS_TWITTER_QUEUE, jobData, 5000);
+        await this.enqueueCollection(
+          ANALYTICS_TWITTER_QUEUE,
+          jobData,
+          batch,
+          attemptKey,
+          organizationId,
+          5000,
+        );
         enqueued++;
       }
     }
@@ -361,6 +416,7 @@ export class AnalyticsSyncWorkflowService {
       analyticsEnabledOnly: false,
       platforms: [CredentialPlatform.YOUTUBE],
     });
+    const attemptKey = this.attemptKey(action, organizationId, HOUR_MS);
 
     const postsByBrand = new Map<string, AnalyticsPost[]>();
     let skipped = 0;
@@ -385,6 +441,7 @@ export class AnalyticsSyncWorkflowService {
     for (const [brandId, brandPosts] of postsByBrand.entries()) {
       for (const batch of this.chunk(brandPosts, YOUTUBE_BATCH_SIZE)) {
         const jobData: YouTubeAnalyticsJobData = {
+          attemptKey,
           brandId,
           organizationId,
           posts: batch.map((post) => ({
@@ -394,7 +451,14 @@ export class AnalyticsSyncWorkflowService {
             organization: organizationId,
           })),
         };
-        await this.enqueue(ANALYTICS_YOUTUBE_QUEUE, jobData, 2000);
+        await this.enqueueCollection(
+          ANALYTICS_YOUTUBE_QUEUE,
+          jobData,
+          batch,
+          attemptKey,
+          organizationId,
+          2000,
+        );
         enqueued++;
       }
     }
@@ -453,6 +517,52 @@ export class AnalyticsSyncWorkflowService {
     });
   }
 
+  private async enqueueCollection<T>(
+    queueName: string,
+    jobData: T,
+    posts: AnalyticsPost[],
+    attemptKey: string,
+    organizationId: string,
+    backoffDelay: number,
+  ): Promise<void> {
+    const targets = posts.map((post) => ({
+      brandId: this.requiredBrandId(post),
+      id: this.requiredId(post),
+      organizationId,
+      platform: post.platform,
+    }));
+
+    await this.analyticsCollectionState.markPending({
+      attemptKey,
+      requestedAt: new Date(),
+      targets,
+    });
+
+    try {
+      await this.enqueue(queueName, jobData, backoffDelay);
+    } catch (error: unknown) {
+      const [firstTarget] = targets;
+      const platformLabel = firstTarget
+        ? (ANALYTICS_PLATFORM_LABELS[firstTarget.platform] ??
+          firstTarget.platform)
+        : 'Provider';
+
+      try {
+        await this.analyticsCollectionState.markFailedBatch(
+          targets.map((target) => ({ ...target, attemptKey })),
+          classifyAnalyticsCollectionError(error, platformLabel),
+        );
+      } catch (stateError: unknown) {
+        this.logger.error(
+          `${this.logContext} failed to record analytics collection failure`,
+          stateError,
+          { attemptKey, queueName },
+        );
+      }
+      throw error;
+    }
+  }
+
   private async acquireWindowLock(
     action: AnalyticsSyncWorkflowAction,
     organizationId: string,
@@ -467,6 +577,14 @@ export class AnalyticsSyncWorkflowService {
 
   private windowKey(windowMs: number): number {
     return Math.floor(Date.now() / windowMs);
+  }
+
+  private attemptKey(
+    action: AnalyticsSyncWorkflowAction,
+    organizationId: string,
+    windowMs: number,
+  ): string {
+    return `${action}:${organizationId}:${this.windowKey(windowMs)}`;
   }
 
   private result(

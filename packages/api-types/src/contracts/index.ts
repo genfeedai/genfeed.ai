@@ -17,3 +17,4 @@ export * from './publish-webhook-events.contract';
 export * from './publishing-readiness.contract';
 export * from './recurrence-preview.contract';
 export * from './scheduler.contract';
+export * from './scheduler-analytics-collection.contract';

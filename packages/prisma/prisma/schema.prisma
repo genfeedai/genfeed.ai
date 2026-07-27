@@ -2024,6 +2024,11 @@ model Post {
   repeatDaysOfWeek      Int[]           @default([])
   isShareToFeedSelected Boolean         @default(true)
   isAnalyticsEnabled    Boolean         @default(true)
+  analyticsCollectionState String       @default("unavailable")
+  analyticsCollectionAttemptKey String?
+  analyticsCollectionRequestedAt DateTime?
+  analyticsCollectedAt  DateTime?
+  analyticsCollectionError Json?
   retryCount            Int             @default(0)
   lastAttemptAt         DateTime?
   targetSettings         Json            @default("{}")
