@@ -360,5 +360,13 @@ describe('ReleaseRecurrenceMaterializerService', () => {
         organizationId: 'org-1',
       }),
     ).resolves.toBe(false);
+
+    prisma.postGroup.findFirst.mockResolvedValue(null);
+    await expect(
+      service.shouldMaterialize({
+        groupId: 'release-missing',
+        organizationId: 'org-1',
+      }),
+    ).resolves.toBe(false);
   });
 });

@@ -60,14 +60,14 @@ export class ReleaseRecurrenceMaterializerService {
         organizationId: input.organizationId,
       },
     });
-    const recurrence = group?.recurrence
-      ? this.asRecord(group.recurrence)
-      : undefined;
-    return Boolean(
-      recurrence &&
-        group &&
-        recurrence.isExhausted !== true &&
-        TERMINAL_RELEASE_STATES.has(group.status),
+    if (!group?.recurrence) {
+      return false;
+    }
+
+    const recurrence = this.asRecord(group.recurrence);
+    return (
+      recurrence.isExhausted !== true &&
+      TERMINAL_RELEASE_STATES.has(group.status)
     );
   }
 
