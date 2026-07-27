@@ -46,7 +46,6 @@ describe('APP_MENU_ITEMS', () => {
     const hrefs = APP_MENU_ITEMS.map((item) => item.href);
 
     expect(groups).toEqual([]);
-    expect(hrefs).not.toContain('/library/ingredients');
     expect(hrefs).not.toContain('/posts');
   });
 

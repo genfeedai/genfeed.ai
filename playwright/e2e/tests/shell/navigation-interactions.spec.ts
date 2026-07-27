@@ -198,7 +198,7 @@ test.describe('Shell — navigation interactions', () => {
   }) => {
     for (const route of [
       `${BRAND_BASE}/workspace/overview`,
-      `${BRAND_BASE}/library/ingredients`,
+      `${BRAND_BASE}/library/overview`,
       `${BRAND_BASE}/research/discovery`,
     ]) {
       await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });

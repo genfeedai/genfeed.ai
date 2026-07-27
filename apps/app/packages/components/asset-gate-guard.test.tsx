@@ -9,7 +9,7 @@ const mockAccessState = vi.hoisted(() => ({
 }));
 
 const mockPathname = vi.hoisted(() => ({
-  value: '/acme/brand-x/library/ingredients',
+  value: '/acme/brand-x/library/videos',
 }));
 
 vi.mock(
@@ -36,7 +36,7 @@ describe('AssetGateGuard', () => {
   beforeEach(() => {
     mockAccessState.isAssetGateLocked = false;
     mockAccessState.dismissAssetGate = vi.fn().mockResolvedValue(undefined);
-    mockPathname.value = '/acme/brand-x/library/ingredients';
+    mockPathname.value = '/acme/brand-x/library/videos';
   });
 
   it('renders children when the asset gate is not locked', () => {
@@ -74,7 +74,7 @@ describe('AssetGateGuard', () => {
 
   it('shows the teaser and hides children on a gated section while locked', () => {
     mockAccessState.isAssetGateLocked = true;
-    mockPathname.value = '/acme/brand-x/library/ingredients';
+    mockPathname.value = '/acme/brand-x/library/videos';
 
     render(
       <AssetGateGuard>
@@ -92,7 +92,7 @@ describe('AssetGateGuard', () => {
 
   it('dismisses the gate when clicking "Explore anyway"', () => {
     mockAccessState.isAssetGateLocked = true;
-    mockPathname.value = '/acme/brand-x/library/ingredients';
+    mockPathname.value = '/acme/brand-x/library/videos';
 
     render(
       <AssetGateGuard>

@@ -242,7 +242,6 @@ Create/compose/editor:
 Library:
 
 - `/:orgSlug/:brandSlug/library/overview`
-- `/:orgSlug/:brandSlug/library/ingredients`
 - `/:orgSlug/:brandSlug/library/videos`
 - `/:orgSlug/:brandSlug/library/images`
 - `/:orgSlug/:brandSlug/library/gifs`
@@ -253,11 +252,10 @@ Library:
 - `/:orgSlug/:brandSlug/library/moodboard`
 
 `/:orgSlug/:brandSlug/library/overview` is the canonical Library landing.
-`/:orgSlug/:brandSlug/library/ingredients` remains registered only to redirect
-old links to the overview. Overview, Assets, Mood board, and shared Activity
-are navigation destinations. The remaining Library type routes encode the
-selected asset-type filter as shareable deep links; they are not separate
-sidebar modules. Folder selection is a URL-backed secondary sidebar filter.
+Overview, Assets, Mood board, and shared Activity are navigation destinations.
+The remaining Library type routes encode the selected asset-type filter as
+shareable deep links; they are not separate sidebar modules. Folder selection
+is a URL-backed secondary sidebar filter.
 
 Publish/posts:
 

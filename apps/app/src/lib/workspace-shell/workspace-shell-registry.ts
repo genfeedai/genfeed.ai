@@ -713,15 +713,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
       telemetryClass: 'product',
     },
   ),
-  ...registerRoutes(['/:orgSlug/:brandSlug/library/ingredients'], {
-    fallback: '/:orgSlug/:brandSlug/library/overview',
-    mode: 'canvas',
-    productClass: 'compatibility-only',
-    scope: 'brand',
-    surfaceKey: 'library',
-    switcherItems: ['library'],
-    telemetryClass: 'product',
-  }),
   ...registerRoutes(
     [
       '/:orgSlug/:brandSlug/posts',

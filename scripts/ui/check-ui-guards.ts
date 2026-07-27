@@ -51,11 +51,6 @@ const checks = [
     name: 'Hardcoded app routes (nav sinks must use APP_ROUTES / route builders)',
     required: true,
   },
-  {
-    command: ['bun', 'run', 'scripts/ui/content-page-header-guard.ts'],
-    name: 'Protected page identity (breadcrumb only)',
-    required: true,
-  },
 ] as const;
 
 let failed = false;

@@ -416,7 +416,7 @@ describe('MenuShared', () => {
         {
           drillDown: true,
           group: 'Library',
-          href: '/library/ingredients',
+          href: '/library/videos',
           label: 'Library',
         },
       ],

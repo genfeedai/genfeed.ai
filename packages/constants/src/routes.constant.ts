@@ -115,7 +115,6 @@ export const APP_ROUTES = {
     CAPTIONS: '/library/captions',
     GIFS: '/library/gifs',
     IMAGES: '/library/images',
-    INGREDIENTS: '/library/ingredients',
     MOODBOARD: '/library/moodboard',
     MUSIC: '/library/music',
     OVERVIEW: '/library/overview',

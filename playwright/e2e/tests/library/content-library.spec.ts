@@ -42,11 +42,11 @@ test.describe('Content Library', () => {
       ).toBeVisible();
     });
 
-    test('should show ingredients section', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/library/ingredients');
+    test('should show assets section', async ({ authenticatedPage }) => {
+      await authenticatedPage.goto('/library/videos');
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
-      await expect(authenticatedPage).toHaveURL(/ingredients/);
+      await expect(authenticatedPage).toHaveURL(/videos/);
       await expect(
         authenticatedPage.locator('main, [data-testid="main-content"]'),
       ).toBeVisible();
@@ -80,21 +80,21 @@ test.describe('Content Library', () => {
       await authenticatedPage.goto('/library/captions');
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
-      // Navigate to ingredients
-      const ingredientsLink = authenticatedPage.locator(
-        'a[href*="library/ingredients"],' +
-          ' button:has-text("Ingredients"),' +
-          ' [data-testid="ingredients-tab"]',
+      // Navigate to assets
+      const assetsLink = authenticatedPage.locator(
+        'a[href*="library/videos"],' +
+          ' button:has-text("Assets"),' +
+          ' [data-testid="assets-tab"]',
       );
-      const hasLink = await ingredientsLink
+      const hasLink = await assetsLink
         .first()
         .isVisible()
         .catch(() => false);
 
       if (hasLink) {
-        await ingredientsLink.first().click();
+        await assetsLink.first().click();
         await authenticatedPage.waitForLoadState('domcontentloaded');
-        await expect(authenticatedPage).toHaveURL(/ingredients/);
+        await expect(authenticatedPage).toHaveURL(/videos/);
       }
 
       // Navigate to scenes
@@ -165,10 +165,10 @@ test.describe('Content Library', () => {
       expect(hasItems || hasEmptyState || true).toBe(true);
     });
 
-    test('should display items in ingredients section', async ({
+    test('should display items in assets section', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/library/ingredients');
+      await authenticatedPage.goto('/library/videos');
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(

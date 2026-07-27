@@ -78,8 +78,7 @@ v3.2 makes protected-page identity explicit: the permanent topbar breadcrumb
 is the one visible page masthead. Product canvases keep a screen-reader-only h1,
 record and state headings, section headings, filters, tabs, and actions, but do
 not repeat the route title, description, icon, or a second breadcrumb inside
-content. It also makes `/library/overview` the Library landing route;
-`/library/ingredients` remains a compatibility redirect for old links.
+content. It also makes `/library/overview` the Library landing route.
 
 ## Verified Baseline
 
@@ -452,14 +451,15 @@ inspector, so the two inputs never overlap. Neither input suppresses the frame.
 
 The original v2 baseline was **206 parity-eligible canonical protected
 patterns** as of 2026-07-13. The current executable baseline in
-`reference_app_page_map.md` is **212 protected patterns**, with two intentional
+`reference_app_page_map.md` is **211 protected patterns**, with two intentional
 hard-cut families outside the denominator, as of 2026-07-27. New protected
 routes enter the denominator immediately. Removing an entry requires a separate
 accepted product decision.
 
-v3 does not move the denominator. Demoting the conversation from a state to a
-surface removes no route: the `/agent/**` family stays registered and
-parity-eligible, and every other family is framed exactly as before.
+Demoting the conversation from a state to a surface removes no route: the
+`/agent/**` family stays registered and parity-eligible. The separately
+accepted Library compatibility hard cut reduces the current executable
+baseline by one.
 
 The app switcher is discovery for nine primary modules, not the inventory.
 

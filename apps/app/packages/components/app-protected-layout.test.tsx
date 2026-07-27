@@ -877,7 +877,6 @@ describe('AppProtectedLayout', () => {
     ['/org-123/~/settings/api-keys', 'Settings', 'API Keys'],
     ['/org-123/brand-123/research/following', 'Research', 'Following'],
     ['/org-123/brand-123/library/overview', 'Library', 'Overview'],
-    ['/org-123/brand-123/library/ingredients', 'Library', 'Ingredients'],
     ['/org-123/brand-123/library/videos', 'Library', 'Assets'],
     ['/org-123/brand-123/library/moodboard', 'Library', 'Moodboard'],
     ['/org-123/brand-123/studio/clips', 'Studio', 'Clips'],
