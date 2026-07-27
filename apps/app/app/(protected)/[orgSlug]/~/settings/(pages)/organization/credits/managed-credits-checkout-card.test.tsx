@@ -96,6 +96,11 @@ describe('ManagedCreditsCheckoutCard', () => {
   it('starts managed checkout using the editable email and selected pack', async () => {
     render(<ManagedCreditsCheckoutCard />);
 
+    expect(
+      screen.getByRole('heading', { name: 'Credit amount' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Billing / Add credit')).not.toBeInTheDocument();
+
     fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
       target: { value: 'buyer@example.com' },
     });

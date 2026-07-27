@@ -83,6 +83,7 @@ export default function StudioClipsPage() {
 
     return (
       <div className="mx-auto max-w-4xl px-6 py-10">
+        <h1 className="sr-only">Clips</h1>
         <div className="mb-8">
           <div className="flex items-center gap-3">
             <HiOutlineMagnifyingGlass className="size-6 text-primary" />
