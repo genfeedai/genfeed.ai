@@ -73,7 +73,13 @@ export class PostAnalyticsCollectionStateService
         analyticsCollectionState: TargetAnalyticsCollectionState.READY,
       },
       where: {
-        ...this.targetWhere(target),
+        ...scopedWhere(target.organizationId, {
+          brandId: target.brandId,
+          groupId: { not: null },
+          id: target.id,
+          parentId: null,
+          platform: target.platform,
+        }),
         analyticsCollectionAttemptKey: target.attemptKey,
       },
     });
@@ -98,7 +104,13 @@ export class PostAnalyticsCollectionStateService
         analyticsCollectionState: TargetAnalyticsCollectionState.FAILED,
       },
       where: {
-        ...this.targetWhere(target),
+        ...scopedWhere(target.organizationId, {
+          brandId: target.brandId,
+          groupId: { not: null },
+          id: target.id,
+          parentId: null,
+          platform: target.platform,
+        }),
         analyticsCollectionAttemptKey: target.attemptKey,
       },
     });
@@ -111,15 +123,5 @@ export class PostAnalyticsCollectionStateService
     await Promise.all(
       targets.map((target) => this.markFailed(target, failure)),
     );
-  }
-
-  private targetWhere(target: AnalyticsCollectionTargetRef) {
-    return scopedWhere(target.organizationId, {
-      brandId: target.brandId,
-      groupId: { not: null },
-      id: target.id,
-      parentId: null,
-      platform: target.platform,
-    });
   }
 }
