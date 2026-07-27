@@ -18,15 +18,21 @@ import {
   updateChannelTargetSchema,
   updateReleaseGroupSchema,
 } from '@api-types/contracts/scheduler.contract';
+import { getSchedulerAnalyticsCapability } from '@api-types/contracts/scheduler-analytics-collection.contract';
 import {
   CredentialPlatform,
   PostStatus,
   ReleaseStatus,
+  TargetAnalyticsCapability,
+  TargetAnalyticsCollectionState,
+  TargetAnalyticsFreshness,
   TargetExecutionState,
   TargetValidationState,
 } from '@genfeedai/enums';
 import type {
   IChannelTarget,
+  IChannelTargetAnalyticsCollection,
+  IChannelTargetAnalyticsCollectionError,
   IReleaseAttachment,
   IReleaseGroup,
   IReleaseMediaReference,
@@ -441,23 +447,115 @@ export class PostGroupContractService {
       analytics.brandId === target.brandId &&
       analytics.platform.toLowerCase() === target.platform.toLowerCase();
 
-    if (!analytics || !matchesTarget) {
-      return { snapshot: null, state: 'unavailable' };
+    const exactAnalytics = matchesTarget ? analytics : undefined;
+    const collection = this.toTargetAnalyticsCollection(target, exactAnalytics);
+
+    if (!exactAnalytics) {
+      return { collection, snapshot: null, state: 'unavailable' };
     }
 
     return {
+      collection,
       snapshot: {
-        comments: analytics.totalComments,
-        engagementRate: analytics.engagementRate,
-        likes: analytics.totalLikes,
-        saves: analytics.totalSaves,
-        shares: analytics.totalShares,
-        snapshotDate: analytics.date.toISOString(),
-        updatedAt: analytics.updatedAt.toISOString(),
-        views: analytics.totalViews,
+        comments: exactAnalytics.totalComments,
+        engagementRate: exactAnalytics.engagementRate,
+        likes: exactAnalytics.totalLikes,
+        saves: exactAnalytics.totalSaves,
+        shares: exactAnalytics.totalShares,
+        snapshotDate: exactAnalytics.date.toISOString(),
+        updatedAt: exactAnalytics.updatedAt.toISOString(),
+        views: exactAnalytics.totalViews,
       },
       state: 'ready',
     };
+  }
+
+  private toTargetAnalyticsCollection(
+    target: SchedulerPostTarget,
+    analytics: SchedulerPostAnalytics | undefined,
+  ): IChannelTargetAnalyticsCollection {
+    const capability = getSchedulerAnalyticsCapability(target.platform);
+    const lastCollectedAt =
+      target.analyticsCollectedAt ?? analytics?.updatedAt ?? null;
+    const freshness = this.analyticsFreshness(
+      lastCollectedAt,
+      capability.freshnessWindowMs,
+    );
+
+    if (capability.status === TargetAnalyticsCapability.UNSUPPORTED) {
+      return {
+        capability: capability.status,
+        error: null,
+        freshness: TargetAnalyticsFreshness.UNAVAILABLE,
+        lastCollectedAt: null,
+        requestedAt: null,
+        state: TargetAnalyticsCollectionState.UNAVAILABLE,
+      };
+    }
+
+    const persistedState = this.analyticsCollectionState(
+      target.analyticsCollectionState,
+    );
+    const state =
+      persistedState === TargetAnalyticsCollectionState.PENDING ||
+      persistedState === TargetAnalyticsCollectionState.FAILED
+        ? persistedState
+        : freshness === TargetAnalyticsFreshness.FRESH
+          ? TargetAnalyticsCollectionState.READY
+          : freshness === TargetAnalyticsFreshness.STALE
+            ? TargetAnalyticsCollectionState.STALE
+            : TargetAnalyticsCollectionState.UNAVAILABLE;
+
+    return {
+      capability: capability.status,
+      error:
+        state === TargetAnalyticsCollectionState.FAILED
+          ? this.asAnalyticsCollectionError(target.analyticsCollectionError)
+          : null,
+      freshness,
+      lastCollectedAt: this.toIso(lastCollectedAt),
+      requestedAt: this.toIso(target.analyticsCollectionRequestedAt),
+      state,
+    };
+  }
+
+  private analyticsFreshness(
+    collectedAt: Date | null,
+    freshnessWindowMs: number | null,
+  ): TargetAnalyticsFreshness {
+    if (!collectedAt || freshnessWindowMs === null) {
+      return TargetAnalyticsFreshness.UNAVAILABLE;
+    }
+    return Date.now() - collectedAt.getTime() > freshnessWindowMs
+      ? TargetAnalyticsFreshness.STALE
+      : TargetAnalyticsFreshness.FRESH;
+  }
+
+  private analyticsCollectionState(
+    value: string,
+  ): TargetAnalyticsCollectionState {
+    return Object.values(TargetAnalyticsCollectionState).includes(
+      value as TargetAnalyticsCollectionState,
+    )
+      ? (value as TargetAnalyticsCollectionState)
+      : TargetAnalyticsCollectionState.UNAVAILABLE;
+  }
+
+  private asAnalyticsCollectionError(
+    value: Prisma.JsonValue | null,
+  ): IChannelTargetAnalyticsCollectionError | null {
+    const record = this.asRecord(value);
+    return typeof record.code === 'string' &&
+      typeof record.failedAt === 'string' &&
+      typeof record.isRetryable === 'boolean' &&
+      typeof record.message === 'string'
+      ? {
+          code: record.code,
+          failedAt: record.failedAt,
+          isRetryable: record.isRetryable,
+          message: record.message,
+        }
+      : null;
   }
 
   private summarizeTargets(

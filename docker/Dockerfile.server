@@ -100,9 +100,9 @@ COPY apps/server/tsconfig.json apps/server/tsconfig.json
 # compile against their package exports.
 RUN set -e; \
     bun --filter @genfeedai/enums build; \
-    bun --filter @genfeedai/api-types build; \
     bun --filter @genfeedai/constants build; \
     bun --filter @genfeedai/interfaces build; \
+    bun --filter @genfeedai/api-types build; \
     bun --filter @genfeedai/pricing build; \
     bun --filter @genfeedai/client build; \
     pids=""; \

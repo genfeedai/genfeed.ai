@@ -722,6 +722,7 @@
       "version": "1.0.1",
       "dependencies": {
         "@genfeedai/enums": "workspace:*",
+        "@genfeedai/interfaces": "workspace:*",
         "zod": "4.4.3",
       },
       "devDependencies": {
