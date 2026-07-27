@@ -6,6 +6,7 @@ import type {
   WorkspaceShellBreadcrumbMetadata,
   WorkspaceShellDeployment,
   WorkspaceShellOverlayRegistration,
+  WorkspaceShellProductClass,
   WorkspaceShellRestorationPolicy,
   WorkspaceShellRouteMode,
   WorkspaceShellRouteRegistration,
@@ -23,6 +24,7 @@ export type {
   WorkspaceShellDeployment,
   WorkspaceShellLaunchTarget,
   WorkspaceShellOverlayRegistration,
+  WorkspaceShellProductClass,
   WorkspaceShellReferenceKind,
   WorkspaceShellRestorationPolicy,
   WorkspaceShellRouteMode,
@@ -36,6 +38,7 @@ type RouteGroupConfig = {
   readonly adapter?: WorkspaceShellAdapterSeam;
   readonly fallback: string;
   readonly mode: WorkspaceShellRouteMode;
+  readonly productClass: WorkspaceShellProductClass;
   readonly scope: WorkspaceShellScopeRequirement;
   readonly surfaceKey: string;
   readonly switcherItems?: readonly string[];
@@ -293,6 +296,7 @@ function freezeRouteRegistration(
     kind: 'route',
     launchTarget: LAUNCH_TARGET_BY_MODE[config.mode],
     mode: config.mode,
+    productClass: config.productClass,
     restoration: URL_RESTORATION_POLICY,
     safeFallback: config.fallback,
     scope: config.scope,
@@ -315,6 +319,7 @@ const PERSONAL_ROUTE_REGISTRATIONS = [
   ...registerRoutes(['/'], {
     fallback: '/',
     mode: 'canvas',
+    productClass: 'control-plane',
     scope: 'personal',
     surfaceKey: 'protected-bootstrap',
     telemetryClass: 'management',
@@ -322,6 +327,7 @@ const PERSONAL_ROUTE_REGISTRATIONS = [
   ...registerRoutes(['/connect'], {
     fallback: '/connect',
     mode: 'canvas',
+    productClass: 'control-plane',
     scope: 'personal',
     surfaceKey: 'connect-genfeed-resolver',
     telemetryClass: 'management',
@@ -329,6 +335,7 @@ const PERSONAL_ROUTE_REGISTRATIONS = [
   ...registerRoutes(['/settings', '/settings/help'], {
     fallback: '/settings',
     mode: 'canvas',
+    productClass: 'control-plane',
     scope: 'personal',
     surfaceKey: 'personal-settings',
     telemetryClass: 'management',
@@ -339,6 +346,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
   ...registerRoutes(['/:orgSlug/~/connect'], {
     fallback: '/:orgSlug/~/connect',
     mode: 'canvas',
+    productClass: 'control-plane',
     scope: 'organization',
     surfaceKey: 'connect-genfeed',
     telemetryClass: 'management',
@@ -350,6 +358,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     },
     fallback: '/:orgSlug/~/overview',
     mode: 'canvas',
+    productClass: 'control-plane',
     scope: 'organization',
     surfaceKey: 'organization-overview',
     switcherItems: ['workspace', 'messages', 'research'],
@@ -358,6 +367,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
   ...registerRoutes(['/:orgSlug'], {
     fallback: '/:orgSlug/~/overview',
     mode: 'canvas',
+    productClass: 'control-plane',
     scope: 'organization',
     surfaceKey: 'organization-landing',
     telemetryClass: 'product',
@@ -365,6 +375,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
   ...registerRoutes(['/:orgSlug/~/analytics/overview'], {
     fallback: '/:orgSlug/~/overview',
     mode: 'canvas',
+    productClass: 'visual-data',
     scope: 'organization',
     surfaceKey: 'analytics',
     telemetryClass: 'product',
@@ -374,6 +385,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     {
       fallback: '/:orgSlug/~/agent',
       mode: 'conversation',
+      productClass: 'contextual-action',
       scope: 'organization',
       surfaceKey: 'agent-conversation',
       switcherItems: ['agent'],
@@ -389,6 +401,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     {
       fallback: '/:orgSlug/~/agent',
       mode: 'canvas',
+      productClass: 'control-plane',
       scope: 'organization',
       surfaceKey: 'agent-onboarding',
       telemetryClass: 'management',
@@ -413,6 +426,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     {
       fallback: '/:orgSlug/~/settings',
       mode: 'canvas',
+      productClass: 'control-plane',
       scope: 'organization',
       surfaceKey: 'organization-settings',
       telemetryClass: 'management',
@@ -421,6 +435,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
   ...registerRoutes(['/:orgSlug/~/library', '/:orgSlug/~/library/:type'], {
     fallback: '/:orgSlug/~/library',
     mode: 'canvas',
+    productClass: 'control-plane',
     scope: 'organization',
     surfaceKey: 'library',
     switcherItems: ['library'],
@@ -429,6 +444,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
   ...registerRoutes(['/:orgSlug/~/studio', '/:orgSlug/~/studio/:type'], {
     fallback: '/:orgSlug/~/studio',
     mode: 'canvas',
+    productClass: 'contextual-action',
     scope: 'organization',
     surfaceKey: 'studio',
     switcherItems: ['studio'],
@@ -443,27 +459,29 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     {
       fallback: '/:orgSlug/~/posts',
       mode: 'canvas',
+      productClass: 'control-plane',
       scope: 'organization',
       surfaceKey: 'publish',
       switcherItems: ['posts'],
       telemetryClass: 'product',
     },
   ),
-  ...registerRoutes(
-    [
-      '/:orgSlug/~/write',
-      '/:orgSlug/~/write/:segment',
-      '/:orgSlug/~/compose',
-      '/:orgSlug/~/compose/:segment',
-    ],
-    {
-      fallback: '/:orgSlug/~/compose',
-      mode: 'canvas',
-      scope: 'organization',
-      surfaceKey: 'compose',
-      telemetryClass: 'product',
-    },
-  ),
+  ...registerRoutes(['/:orgSlug/~/write', '/:orgSlug/~/write/:segment'], {
+    fallback: '/:orgSlug/~/compose',
+    mode: 'canvas',
+    productClass: 'compatibility-only',
+    scope: 'organization',
+    surfaceKey: 'compose',
+    telemetryClass: 'product',
+  }),
+  ...registerRoutes(['/:orgSlug/~/compose', '/:orgSlug/~/compose/:segment'], {
+    fallback: '/:orgSlug/~/compose',
+    mode: 'canvas',
+    productClass: 'contextual-action',
+    scope: 'organization',
+    surfaceKey: 'compose',
+    telemetryClass: 'product',
+  }),
   ...registerRoutes(
     [
       '/:orgSlug/~/workflows',
@@ -477,6 +495,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     {
       fallback: '/:orgSlug/~/workflows',
       mode: 'canvas',
+      productClass: 'control-plane',
       scope: 'organization',
       surfaceKey: 'workflows',
       telemetryClass: 'product',
@@ -492,6 +511,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     {
       fallback: '/:orgSlug/~/editor',
       mode: 'canvas',
+      productClass: 'contextual-action',
       scope: 'organization',
       surfaceKey: 'editor',
       telemetryClass: 'management',
@@ -512,6 +532,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       },
       fallback: '/:orgSlug/:brandSlug/workspace/overview',
       mode: 'canvas',
+      productClass: 'control-plane',
       scope: 'brand',
       surfaceKey: 'workspace-overview',
       switcherItems: ['workspace'],
@@ -529,6 +550,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     {
       fallback: '/:orgSlug/:brandSlug/workspace/overview',
       mode: 'canvas',
+      productClass: 'control-plane',
       scope: 'brand',
       surfaceKey: 'workspace',
       switcherItems: ['workspace'],
@@ -544,6 +566,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     {
       fallback: '/:orgSlug/:brandSlug/agent',
       mode: 'conversation',
+      productClass: 'contextual-action',
       scope: 'brand',
       surfaceKey: 'agent-conversation',
       switcherItems: ['agent'],
@@ -559,6 +582,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     {
       fallback: '/:orgSlug/:brandSlug/agent',
       mode: 'canvas',
+      productClass: 'control-plane',
       scope: 'brand',
       surfaceKey: 'agent-onboarding',
       telemetryClass: 'management',
@@ -571,6 +595,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     },
     fallback: '/:orgSlug/:brandSlug/messages',
     mode: 'canvas',
+    productClass: 'control-plane',
     scope: 'brand',
     surfaceKey: 'messages',
     switcherItems: ['messages'],
@@ -590,6 +615,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       adapter: { key: 'research', status: 'embedded' },
       fallback: '/:orgSlug/:brandSlug/research/discovery',
       mode: 'canvas',
+      productClass: 'visual-data',
       scope: 'brand',
       surfaceKey: 'research',
       switcherItems: ['research'],
@@ -605,6 +631,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       adapterStatus: 'ready',
       fallback: '/:orgSlug/:brandSlug/studio/image',
       mode: 'canvas',
+      productClass: 'contextual-action',
       scope: 'brand',
       surfaceKey: 'studio',
       switcherItems: ['studio'],
@@ -620,6 +647,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     {
       fallback: '/:orgSlug/:brandSlug/studio/image',
       mode: 'canvas',
+      productClass: 'contextual-action',
       scope: 'brand',
       surfaceKey: 'studio-specialized',
       switcherItems: ['studio'],
@@ -635,6 +663,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     {
       fallback: '/:orgSlug/:brandSlug/compose/post',
       mode: 'canvas',
+      productClass: 'contextual-action',
       scope: 'brand',
       surfaceKey: 'compose',
       telemetryClass: 'product',
@@ -649,6 +678,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     {
       fallback: '/:orgSlug/:brandSlug/editor',
       mode: 'canvas',
+      productClass: 'contextual-action',
       scope: 'brand',
       surfaceKey: 'editor',
       telemetryClass: 'management',
@@ -669,6 +699,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     {
       fallback: '/:orgSlug/:brandSlug/library/ingredients',
       mode: 'canvas',
+      productClass: 'control-plane',
       scope: 'brand',
       surfaceKey: 'library',
       switcherItems: ['library'],
@@ -679,26 +710,44 @@ const BRAND_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/:brandSlug/posts',
       '/:orgSlug/:brandSlug/posts/:id',
-      '/:orgSlug/:brandSlug/posts/analytics',
       '/:orgSlug/:brandSlug/posts/calendar',
       '/:orgSlug/:brandSlug/posts/newsletters',
       '/:orgSlug/:brandSlug/posts/published',
-      '/:orgSlug/:brandSlug/posts/remix',
       '/:orgSlug/:brandSlug/posts/review',
       '/:orgSlug/:brandSlug/posts/scheduled',
     ],
     {
       fallback: '/:orgSlug/:brandSlug/posts',
       mode: 'canvas',
+      productClass: 'control-plane',
       scope: 'brand',
       surfaceKey: 'publish',
       switcherItems: ['posts'],
       telemetryClass: 'product',
     },
   ),
+  ...registerRoutes(['/:orgSlug/:brandSlug/posts/analytics'], {
+    fallback: '/:orgSlug/:brandSlug/posts',
+    mode: 'canvas',
+    productClass: 'visual-data',
+    scope: 'brand',
+    surfaceKey: 'publish',
+    switcherItems: ['posts'],
+    telemetryClass: 'product',
+  }),
+  ...registerRoutes(['/:orgSlug/:brandSlug/posts/remix'], {
+    fallback: '/:orgSlug/:brandSlug/posts',
+    mode: 'canvas',
+    productClass: 'contextual-action',
+    scope: 'brand',
+    surfaceKey: 'publish',
+    switcherItems: ['posts'],
+    telemetryClass: 'product',
+  }),
   ...registerRoutes(['/:orgSlug/:brandSlug/posts/composer'], {
     fallback: '/:orgSlug/:brandSlug/posts',
     mode: 'canvas',
+    productClass: 'contextual-action',
     scope: 'brand',
     surfaceKey: 'post-composer',
     telemetryClass: 'management',
@@ -726,6 +775,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       },
       fallback: '/:orgSlug/:brandSlug/analytics/overview',
       mode: 'canvas',
+      productClass: 'visual-data',
       scope: 'brand',
       surfaceKey: 'analytics',
       switcherItems: ['analytics'],
@@ -744,6 +794,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     {
       fallback: '/:orgSlug/:brandSlug/workflows',
       mode: 'canvas',
+      productClass: 'control-plane',
       scope: 'brand',
       surfaceKey: 'workflows',
       telemetryClass: 'product',
@@ -756,7 +807,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/orchestration/overview',
       '/:orgSlug/:brandSlug/orchestration/analytics',
       '/:orgSlug/:brandSlug/orchestration/autopilot',
-      '/:orgSlug/:brandSlug/workflows/autopilot',
       '/:orgSlug/:brandSlug/orchestration/runs',
       '/:orgSlug/:brandSlug/orchestration/skills',
       '/:orgSlug/:brandSlug/orchestration/content-runs/:runId',
@@ -764,6 +814,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     {
       fallback: '/:orgSlug/:brandSlug/orchestration/overview',
       mode: 'canvas',
+      productClass: 'control-plane',
       scope: 'brand',
       surfaceKey: 'orchestration',
       telemetryClass: 'product',
@@ -773,7 +824,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/:brandSlug/orchestration/new',
       '/:orgSlug/:brandSlug/orchestration/configuration',
-      '/:orgSlug/:brandSlug/workflows/configuration',
       '/:orgSlug/:brandSlug/orchestration/hire',
       '/:orgSlug/:brandSlug/orchestration/orchestrator',
       '/:orgSlug/:brandSlug/orchestration/campaigns',
@@ -788,11 +838,28 @@ const BRAND_ROUTE_REGISTRATIONS = [
     {
       fallback: '/:orgSlug/:brandSlug/orchestration/overview',
       mode: 'canvas',
+      productClass: 'control-plane',
       scope: 'brand',
       surfaceKey: 'orchestration-management',
       telemetryClass: 'management',
     },
   ),
+  ...registerRoutes(['/:orgSlug/:brandSlug/workflows/autopilot'], {
+    fallback: '/:orgSlug/:brandSlug/orchestration/overview',
+    mode: 'canvas',
+    productClass: 'compatibility-only',
+    scope: 'brand',
+    surfaceKey: 'orchestration',
+    telemetryClass: 'product',
+  }),
+  ...registerRoutes(['/:orgSlug/:brandSlug/workflows/configuration'], {
+    fallback: '/:orgSlug/:brandSlug/orchestration/overview',
+    mode: 'canvas',
+    productClass: 'compatibility-only',
+    scope: 'brand',
+    surfaceKey: 'orchestration-management',
+    telemetryClass: 'management',
+  }),
   ...registerRoutes(
     [
       '/:orgSlug/:brandSlug/settings',
@@ -805,6 +872,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     {
       fallback: '/:orgSlug/:brandSlug/settings',
       mode: 'canvas',
+      productClass: 'control-plane',
       scope: 'brand',
       surfaceKey: 'brand-settings',
       telemetryClass: 'management',
@@ -820,6 +888,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     {
       fallback: '/:orgSlug/:brandSlug/workspace/overview',
       mode: 'canvas',
+      productClass: 'control-plane',
       scope: 'brand',
       surfaceKey: 'lab',
       telemetryClass: 'management',
@@ -827,20 +896,13 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ),
 ] as const;
 
-const ADMIN_ROUTE_PATTERNS = [
+const ADMIN_CONTROL_PLANE_ROUTE_PATTERNS = [
   '/admin',
   '/admin/agent',
   '/admin/agent/new',
   '/admin/agent/:threadId',
   '/admin/overview/dashboard',
   '/admin/overview/activities',
-  '/admin/overview/analytics/all',
-  '/admin/overview/analytics/brands',
-  '/admin/overview/analytics/brands/:id',
-  '/admin/overview/analytics/brands/:id/platforms/:platform',
-  '/admin/overview/analytics/business',
-  '/admin/overview/analytics/organizations',
-  '/admin/overview/analytics/organizations/:id',
   '/admin/content/posts',
   '/admin/content/posts/:id',
   '/admin/content/templates',
@@ -890,14 +952,36 @@ const ADMIN_ROUTE_PATTERNS = [
   '/admin/administration/platform-settings',
 ] as const;
 
-const ADMIN_ROUTE_REGISTRATIONS = registerRoutes(ADMIN_ROUTE_PATTERNS, {
-  fallback: '/admin',
-  mode: 'canvas',
-  scope: 'platform-admin',
-  surfaceKey: 'platform-admin',
-  switcherItems: ['admin'],
-  telemetryClass: 'management',
-});
+const ADMIN_ANALYTICS_ROUTE_PATTERNS = [
+  '/admin/overview/analytics/all',
+  '/admin/overview/analytics/brands',
+  '/admin/overview/analytics/brands/:id',
+  '/admin/overview/analytics/brands/:id/platforms/:platform',
+  '/admin/overview/analytics/business',
+  '/admin/overview/analytics/organizations',
+  '/admin/overview/analytics/organizations/:id',
+] as const;
+
+const ADMIN_ROUTE_REGISTRATIONS = [
+  ...registerRoutes(ADMIN_CONTROL_PLANE_ROUTE_PATTERNS, {
+    fallback: '/admin',
+    mode: 'canvas',
+    productClass: 'control-plane',
+    scope: 'platform-admin',
+    surfaceKey: 'platform-admin',
+    switcherItems: ['admin'],
+    telemetryClass: 'management',
+  }),
+  ...registerRoutes(ADMIN_ANALYTICS_ROUTE_PATTERNS, {
+    fallback: '/admin',
+    mode: 'canvas',
+    productClass: 'visual-data',
+    scope: 'platform-admin',
+    surfaceKey: 'platform-admin',
+    switcherItems: ['admin'],
+    telemetryClass: 'management',
+  }),
+] as const;
 
 /**
  * Canonical application-owned inventory for the protected route patterns

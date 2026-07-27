@@ -70,6 +70,7 @@
     "check:di-value-imports": "bun run scripts/check-di-value-imports.ts",
     "check:import-cycles": "bun run scripts/check-import-cycles.ts",
     "check:relation-alias-reads": "bun run scripts/architecture/check-relation-alias-reads.ts",
+    "check:route-inventory": "bun run scripts/architecture/check-product-route-inventory.ts",
     "check:route-shadowing": "bun run scripts/architecture/check-route-shadowing.ts",
     "check:tenant-scope": "bun run scripts/architecture/check-tenant-scope.ts",
     "check:ui-guards": "bun run scripts/ui/check-ui-guards.ts",
