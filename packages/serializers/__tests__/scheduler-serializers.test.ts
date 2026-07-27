@@ -254,6 +254,7 @@ describe('Recurrence + attachment serialization', () => {
     const result = RecurrenceRuleSerializer.serialize({
       id: 'rec_1',
       frequency: 'weekly',
+      isExhausted: true,
       interval: 1,
       nextRunAt: '2026-08-08T09:00:00Z',
       parentReleaseId: 'rel_1',
@@ -265,6 +266,7 @@ describe('Recurrence + attachment serialization', () => {
     expect(result.data.attributes).toHaveProperty('frequency', 'weekly');
     expect(result.data.attributes.weekdays).toEqual([1, 3, 5]);
     expect(result.data.attributes).toHaveProperty('parentReleaseId', 'rel_1');
+    expect(result.data.attributes).toHaveProperty('isExhausted', true);
   });
 
   test('serializes a per-platform signature attachment', () => {

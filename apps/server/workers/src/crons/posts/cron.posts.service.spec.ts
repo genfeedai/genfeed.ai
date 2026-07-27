@@ -21,6 +21,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
+import { ReleaseRecurrenceMaterializerService } from '@workers/services/release-recurrence-materializer.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 const APPROVAL_JOB_IDENTITY = {
@@ -59,6 +60,13 @@ describe('CronPostsService', () => {
   };
   let postRepeatSchedulerService: {
     scheduleNextRepeat: ReturnType<typeof vi.fn>;
+  };
+  let releaseRecurrenceMaterializerService: {
+    materializeNext: ReturnType<typeof vi.fn>;
+    shouldMaterialize: ReturnType<typeof vi.fn>;
+  };
+  let systemWorkflowProvenanceService: {
+    runAction: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -109,6 +117,32 @@ describe('CronPostsService', () => {
     };
     postRepeatSchedulerService = {
       scheduleNextRepeat: vi.fn().mockResolvedValue(undefined),
+    };
+    releaseRecurrenceMaterializerService = {
+      materializeNext: vi.fn().mockResolvedValue({
+        occurrenceId: 'release-2',
+        status: 'created',
+      }),
+      shouldMaterialize: vi.fn().mockResolvedValue(false),
+    };
+    systemWorkflowProvenanceService = {
+      runAction: vi.fn(
+        async (
+          _input: unknown,
+          action: (provenance: {
+            executionId: string;
+            workflowId: string;
+            workflowLabel: string;
+          }) => Promise<unknown>,
+        ) => {
+          const provenance = {
+            executionId: 'execution-1',
+            workflowId: 'workflow-1',
+            workflowLabel: 'Scheduled Post Publishing',
+          };
+          return { provenance, result: await action(provenance) };
+        },
+      ),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -162,25 +196,7 @@ describe('CronPostsService', () => {
         },
         {
           provide: SystemWorkflowProvenanceService,
-          useValue: {
-            runAction: vi.fn(
-              async (
-                _input: unknown,
-                action: (provenance: {
-                  executionId: string;
-                  workflowId: string;
-                  workflowLabel: string;
-                }) => Promise<unknown>,
-              ) => {
-                const provenance = {
-                  executionId: 'execution-1',
-                  workflowId: 'workflow-1',
-                  workflowLabel: 'Scheduled Post Publishing',
-                };
-                return { provenance, result: await action(provenance) };
-              },
-            ),
-          },
+          useValue: systemWorkflowProvenanceService,
         },
         {
           provide: PublishEventWebhookService,
@@ -201,6 +217,10 @@ describe('CronPostsService', () => {
         {
           provide: PostRepeatSchedulerService,
           useValue: postRepeatSchedulerService,
+        },
+        {
+          provide: ReleaseRecurrenceMaterializerService,
+          useValue: releaseRecurrenceMaterializerService,
         },
       ],
     }).compile();
@@ -746,6 +766,115 @@ describe('CronPostsService', () => {
       post,
       expect.stringContaining('CronPostsService'),
     );
+  });
+
+  it('materializes a terminal grouped recurrence through a system workflow', async () => {
+    schedulerPublishStateService.transitionPost.mockResolvedValue(true);
+    releaseRecurrenceMaterializerService.shouldMaterialize.mockResolvedValue(
+      true,
+    );
+    const post = {
+      brandId: 'brand-1',
+      children: [],
+      credentialId: 'cred-1',
+      groupId: 'release-1',
+      id: 'post-1',
+      ingredients: [],
+      organizationId: 'org-1',
+      platform: CredentialPlatform.TWITTER,
+      scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
+      status: PostStatus.SCHEDULED,
+      userId: 'user-1',
+    };
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [post],
+      total: 1,
+    } as never);
+    credentialsService.findOne.mockResolvedValue({
+      id: 'cred-1',
+      platform: CredentialPlatform.TWITTER,
+    });
+    quotaService.checkQuota.mockResolvedValue({
+      allowed: true,
+      currentCount: 0,
+      dailyLimit: 10,
+    });
+    publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn().mockResolvedValue({
+        externalId: 'tweet-1',
+        platform: CredentialPlatform.TWITTER,
+        status: PostStatus.PUBLIC,
+        success: true,
+        url: 'https://x.com/example/status/tweet-1',
+      }),
+      supportsThreads: false,
+    });
+
+    await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
+      enqueuedAt: '2026-07-07T09:55:00.000Z',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+    });
+
+    expect(
+      releaseRecurrenceMaterializerService.shouldMaterialize,
+    ).toHaveBeenCalledWith({
+      groupId: 'release-1',
+      organizationId: 'org-1',
+    });
+    expect(systemWorkflowProvenanceService.runAction).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        actionType: 'expand-evergreen-release',
+        canonicalId: 'evergreen-release-expansion',
+        organizationId: 'org-1',
+      }),
+      expect.any(Function),
+    );
+    expect(
+      releaseRecurrenceMaterializerService.materializeNext,
+    ).toHaveBeenCalledWith({
+      groupId: 'release-1',
+      organizationId: 'org-1',
+      workflowExecutionId: 'execution-1',
+    });
+  });
+
+  it('retries grouped recurrence materialization after an already-published delivery', async () => {
+    publishApprovalsService.claimForExecution.mockResolvedValueOnce({
+      isAlreadyPublished: true,
+    });
+    releaseRecurrenceMaterializerService.shouldMaterialize.mockResolvedValue(
+      true,
+    );
+    const post = {
+      groupId: 'release-1',
+      id: 'post-1',
+      organizationId: 'org-1',
+      platform: CredentialPlatform.TWITTER,
+      userId: 'user-1',
+    };
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [post],
+      total: 1,
+    } as never);
+
+    const result = await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
+      enqueuedAt: '2026-07-07T09:55:00.000Z',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({ success: true, status: PostStatus.PUBLIC }),
+    );
+    expect(
+      releaseRecurrenceMaterializerService.materializeNext,
+    ).toHaveBeenCalledTimes(1);
+    expect(publisherFactory.getPublisher).not.toHaveBeenCalled();
   });
 
   it('persists a grouped provider success even when the provider omits its id', async () => {

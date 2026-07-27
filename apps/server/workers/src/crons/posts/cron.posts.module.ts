@@ -19,6 +19,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
+import { ReleaseRecurrenceMaterializerService } from '@workers/services/release-recurrence-materializer.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 @Module({
@@ -46,6 +47,15 @@ import { SchedulerPublishStateService } from '@workers/services/scheduler-publis
       provide: SchedulerPublishStateService,
       useFactory: (prisma: PrismaService, logger: LoggerService) =>
         new SchedulerPublishStateService(prisma, logger),
+    },
+    {
+      inject: [PrismaService, LoggerService, PublishApprovalsService],
+      provide: ReleaseRecurrenceMaterializerService,
+      useFactory: (
+        prisma: PrismaService,
+        logger: LoggerService,
+        approvals: PublishApprovalsService,
+      ) => new ReleaseRecurrenceMaterializerService(prisma, logger, approvals),
     },
     {
       inject: [PrismaService, LoggerService],

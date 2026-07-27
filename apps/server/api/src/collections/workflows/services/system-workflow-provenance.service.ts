@@ -23,6 +23,7 @@ import { Injectable } from '@nestjs/common';
 export const SYSTEM_WORKFLOW_ACTION_IDS = {
   CAMPAIGN_DM_AUTOMATION: 'campaign-dm-automation',
   CAMPAIGN_REPLY_AUTOMATION: 'campaign-reply-automation',
+  EVERGREEN_RELEASE_EXPANSION: 'evergreen-release-expansion',
   REPLY_DM_AUTOMATION: 'reply-dm-automation',
   REVIEW_GATE_TIMEOUT: 'review-gate-timeout',
   SCHEDULED_POST_PUBLISHING: 'scheduled-post-publishing',
@@ -61,6 +62,14 @@ export const SYSTEM_WORKFLOW_ACTION_DEFINITIONS: readonly SystemWorkflowActionDe
       description:
         'Generates and sends reply bot replies and optional DMs through connected social credentials.',
       label: 'Reply and DM Automation',
+    },
+    {
+      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.EVERGREEN_RELEASE_EXPANSION,
+      changeSummary:
+        'Initial evergreen release expansion system workflow action wrapper.',
+      description:
+        'Materializes the next bounded occurrence of a terminal evergreen release.',
+      label: 'Evergreen Release Expansion',
     },
     {
       canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.TWITTER_PUBLISH_ACTION,

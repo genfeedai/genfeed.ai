@@ -41,6 +41,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
+import { ReleaseRecurrenceMaterializerService } from '@workers/services/release-recurrence-materializer.service';
 import {
   SchedulerPublishStateService,
   type SchedulerPublishTargetUpdate,
@@ -80,6 +81,7 @@ export class CronPostsService {
     private readonly publishApprovalsService: PublishApprovalsService,
     private readonly schedulerPublishStateService: SchedulerPublishStateService,
     private readonly postRepeatSchedulerService: PostRepeatSchedulerService,
+    private readonly releaseRecurrenceMaterializerService: ReleaseRecurrenceMaterializerService,
   ) {}
 
   /**
@@ -123,7 +125,53 @@ export class CronPostsService {
       return { reason: 'not_eligible', skipped: true };
     }
 
-    return this.publishPostWithSideEffects(post, data);
+    const result = await this.publishPostWithSideEffects(post, data);
+    await this.materializeEvergreenOccurrence(post);
+    return result;
+  }
+
+  private async materializeEvergreenOccurrence(
+    post: PostEntity,
+  ): Promise<void> {
+    const groupId = this.readPostString(post, ['groupId']);
+    const organizationId = this.readPostString(post, [
+      'organizationId',
+      'organization',
+    ]);
+    if (
+      !groupId ||
+      !organizationId ||
+      !(await this.releaseRecurrenceMaterializerService.shouldMaterialize({
+        groupId,
+        organizationId,
+      }))
+    ) {
+      return;
+    }
+
+    await this.systemWorkflowProvenanceService.runAction(
+      {
+        actionType: 'expand-evergreen-release',
+        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.EVERGREEN_RELEASE_EXPANSION,
+        description:
+          'Materializes the next bounded occurrence of a terminal evergreen release.',
+        inputValues: {
+          groupId,
+          sourcePostId: post.id.toString(),
+        },
+        label: 'Evergreen Release Expansion',
+        organizationId,
+        source: 'CronPostsService.materializeEvergreenOccurrence',
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+        userId: this.readPostString(post, ['userId', 'user']),
+      },
+      (provenance) =>
+        this.releaseRecurrenceMaterializerService.materializeNext({
+          groupId,
+          organizationId,
+          workflowExecutionId: provenance.executionId,
+        }),
+    );
   }
 
   private async enqueuePostPublishJobs(posts: PostEntity[]): Promise<void> {
