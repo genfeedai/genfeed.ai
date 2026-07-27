@@ -139,8 +139,8 @@ function NewslettersPageContent() {
                   label={filter.label}
                   variant={
                     statusFilter === filter.value
-                      ? ButtonVariant.SOFT
-                      : ButtonVariant.UNSTYLED
+                      ? ButtonVariant.SECONDARY
+                      : ButtonVariant.GHOST
                   }
                   className={
                     statusFilter === filter.value
@@ -162,7 +162,7 @@ function NewslettersPageContent() {
             action={{
               label: 'Open Workflows',
               onClick: () => push(href('/workflows')),
-              variant: ButtonVariant.SOFT,
+              variant: ButtonVariant.SECONDARY,
             }}
           />
         ) : (

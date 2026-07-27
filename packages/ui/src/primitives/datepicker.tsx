@@ -69,7 +69,7 @@ export default function Datepicker({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
             disabled={isDisabled}
             className={cn(
               'w-full justify-start text-left font-normal',

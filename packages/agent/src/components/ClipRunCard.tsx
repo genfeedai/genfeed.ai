@@ -233,7 +233,7 @@ export function ClipRunCard({
                 Confirm
               </Button>
               <Button
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
                 withWrapper={false}
                 onClick={onCancel}
                 className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium"

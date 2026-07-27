@@ -46,7 +46,7 @@ export default function HomeCTA(): React.ReactElement {
               size={ButtonSize.PUBLIC}
               trackingData={{ action: 'book_demo_bottom_cta' }}
               trackingName="cta_final_click"
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
             >
               <a
                 href={EnvironmentService.calendly}

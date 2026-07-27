@@ -39,7 +39,7 @@ export default function AnalyticsOverviewAlerts({
             </div>
             <Button
               label="Retry checks"
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               onClick={runHealthChecks}
             />
           </div>
@@ -59,7 +59,7 @@ export default function AnalyticsOverviewAlerts({
             </div>
             <Button
               label="Retry data"
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               onClick={retryAllData}
             />
           </div>
@@ -77,7 +77,7 @@ export default function AnalyticsOverviewAlerts({
             </div>
             <Button
               label="Retry analytics"
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               onClick={retryAllData}
             />
           </div>

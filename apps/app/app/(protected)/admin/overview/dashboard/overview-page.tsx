@@ -177,7 +177,7 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
       {/* View All Entities CTA button */}
       <Button
         type="button"
-        variant={ButtonVariant.UNSTYLED}
+        variant={ButtonVariant.SECONDARY}
         className="w-full mt-6 py-4 border border-white/10 text-xs font-black uppercase tracking-widest text-white/60 hover:bg-muted/70 transition-colors"
       >
         View All Entities

@@ -35,7 +35,7 @@ export default function SkillsBundleCta({
               ${bundlePrice}
             </div>
             <Button
-              variant={ButtonVariant.WHITE}
+              variant={ButtonVariant.DEFAULT}
               size={ButtonSize.PUBLIC}
               className="min-w-skill-col"
               disabled={checkoutLoading}

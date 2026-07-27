@@ -21,7 +21,7 @@ export default function BrandDetailExternalLinksCard({
             <div key={link.id} className="flex gap-2">
               <Button
                 asChild
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
                 className="flex-1 gap-2"
                 wrapperClassName="flex-1"
               >

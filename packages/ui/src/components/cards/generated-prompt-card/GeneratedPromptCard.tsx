@@ -140,7 +140,7 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
           </Button>
 
           <Button
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
             icon={<HiOutlineAdjustmentsHorizontal className="size-4" />}
             onClick={handleCustomize}

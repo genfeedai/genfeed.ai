@@ -26,7 +26,7 @@ export default function IngredientDetailCacheAlert({
         </div>
         <Button
           label="Retry"
-          variant={ButtonVariant.OUTLINE}
+          variant={ButtonVariant.SECONDARY}
           onClick={onRetry}
         />
       </div>

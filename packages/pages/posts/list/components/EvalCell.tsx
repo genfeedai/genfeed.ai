@@ -40,7 +40,7 @@ export default function EvalCell({ post, onEvaluated }: EvalCellProps) {
 
   return (
     <Button
-      variant={ButtonVariant.GENERATE}
+      variant={ButtonVariant.DEFAULT}
       icon={<HiArrowUp />}
       tooltip="Evaluate"
       isLoading={isEvaluating}

@@ -128,7 +128,7 @@ export function EngagementOpportunityCard({
           Approve
         </Button>
         <Button
-          variant={ButtonVariant.OUTLINE}
+          variant={ButtonVariant.SECONDARY}
           size={ButtonSize.SM}
           onClick={handleEdit}
           className="flex-1"

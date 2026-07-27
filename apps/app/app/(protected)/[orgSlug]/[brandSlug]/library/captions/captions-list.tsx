@@ -79,7 +79,7 @@ function CaptionsListContent() {
             <span>{loadError}</span>
             <Button
               label="Retry"
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               onClick={() => {
                 void findAllCaptions();
               }}

@@ -215,7 +215,7 @@ function TrendRemixPageContent() {
           />
           <Button
             label="Go to Credentials"
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
             onClick={() => push(orgHref('/settings/api-keys'))}
           />
         </div>

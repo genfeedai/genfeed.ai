@@ -267,7 +267,9 @@ export default function PricingContent() {
                     className="mt-12 w-full justify-center"
                     size={ButtonSize.PUBLIC}
                     variant={
-                      isFeatured ? ButtonVariant.WHITE : ButtonVariant.OUTLINE
+                      isFeatured
+                        ? ButtonVariant.DEFAULT
+                        : ButtonVariant.SECONDARY
                     }
                   >
                     <a href={ctaHref} target="_blank" rel="noopener noreferrer">
@@ -305,7 +307,7 @@ export default function PricingContent() {
                 asChild
                 className="shrink-0"
                 size={ButtonSize.PUBLIC}
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
               >
                 <a
                   href={enterprisePlan.ctaHref || EnvironmentService.calendly}

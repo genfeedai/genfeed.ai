@@ -246,7 +246,7 @@ export default function VoicesPage() {
                   <Button
                     className="font-medium hover:underline"
                     onClick={() => void refreshCharacters()}
-                    variant={ButtonVariant.UNSTYLED}
+                    variant={ButtonVariant.LINK}
                     withWrapper={false}
                   >
                     Retry
@@ -289,7 +289,7 @@ export default function VoicesPage() {
                   <Button
                     className="font-medium hover:underline"
                     onClick={() => void refreshVoices()}
-                    variant={ButtonVariant.UNSTYLED}
+                    variant={ButtonVariant.LINK}
                     withWrapper={false}
                   >
                     Retry

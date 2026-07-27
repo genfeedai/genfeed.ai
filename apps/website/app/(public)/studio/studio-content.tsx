@@ -175,7 +175,7 @@ export default function StudioContent() {
             </ButtonTracked>
             <ButtonTracked
               asChild
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               size={ButtonSize.PUBLIC}
               trackingName="studio_hero_click"
               trackingData={{ action: 'explore_demo' }}
@@ -335,7 +335,7 @@ export default function StudioContent() {
               </ButtonTracked>
               <ButtonTracked
                 asChild
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.PUBLIC}
                 trackingName="studio_cta_click"
                 trackingData={{ action: 'explore_studio' }}

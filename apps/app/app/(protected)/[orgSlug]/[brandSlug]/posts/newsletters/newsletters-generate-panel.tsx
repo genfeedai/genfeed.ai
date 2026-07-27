@@ -63,7 +63,7 @@ export default function NewsletterGeneratePanel({
         </div>
         <Button
           label="Generate Proposals"
-          variant={ButtonVariant.SOFT}
+          variant={ButtonVariant.SECONDARY}
           icon={<HiSparkles />}
           isLoading={isGeneratingTopics}
           onClick={onGenerateTopics}
@@ -188,7 +188,7 @@ export default function NewsletterGeneratePanel({
 
       <Button
         label="Generate Review Draft"
-        variant={ButtonVariant.SOFT}
+        variant={ButtonVariant.SECONDARY}
         isLoading={isGeneratingDraft}
         onClick={onGenerateDraft}
       />

@@ -44,7 +44,7 @@ describe('IssuesList view controls', () => {
     const listView = screen.getByRole('button', { name: 'List view' });
     const kanbanView = screen.getByRole('button', { name: 'Kanban view' });
 
-    expect(screen.getByRole('group', { name: 'Task view' })).toBeVisible();
+    expect(screen.getByRole('group', { name: 'View' })).toBeVisible();
     expect(listView).toHaveAttribute('aria-pressed', 'true');
     expect(kanbanView).toHaveAttribute('aria-pressed', 'false');
 

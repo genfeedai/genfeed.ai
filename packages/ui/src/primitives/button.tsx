@@ -15,7 +15,7 @@ import {
   type ButtonStyleProps,
   getMappedButtonSize,
   getSizeOverrideClassName,
-  getVariantOverrideClassName,
+  resolveButtonVariant,
   TEXT_TRANSFORM_CLASSES,
 } from './button.variants';
 
@@ -133,7 +133,7 @@ function Button({
 }: ButtonProps) {
   const Comp = asChild ? Slot : 'button';
   const isButtonDisabled = disabled || isDisabled || isLoading;
-  const resolvedVariant = variant ?? ButtonVariant.DEFAULT;
+  const resolvedVariant = resolveButtonVariant(variant);
   // PUBLIC (marketing) buttons declare uppercase in their size styles; honor
   // that as the default so website CTAs stay consistent with the topbar without
   // each caller re-specifying it. Explicit textTransform still wins.
@@ -141,7 +141,6 @@ function Button({
     textTransform ?? (size === ButtonSize.PUBLIC ? 'uppercase' : 'none');
   const transformClass =
     TEXT_TRANSFORM_CLASSES[effectiveTextTransform] ?? 'normal-case';
-  const variantClassName = getVariantOverrideClassName(resolvedVariant);
   const sizeClassName = getSizeOverrideClassName(size);
 
   const content = asChild ? (
@@ -175,13 +174,7 @@ function Button({
       <ShipButton
         aria-label={ariaLabel}
         asChild={asChild}
-        className={cn(
-          'ship-ui',
-          variantClassName,
-          sizeClassName,
-          transformClass,
-          className,
-        )}
+        className={cn('ship-ui', sizeClassName, transformClass, className)}
         disabled={isButtonDisabled}
         onClick={onClick}
         onMouseDown={onMouseDown}

@@ -307,7 +307,7 @@ export function ReplyPage({
 
         <Button
           type="button"
-          variant={ButtonVariant.OUTLINE}
+          variant={ButtonVariant.SECONDARY}
           onClick={() => dispatch({ type: 'RESET_TO_INPUT' })}
           className="mt-auto"
         >
@@ -378,7 +378,7 @@ export function ReplyPage({
               variant={
                 tone === t.value
                   ? ButtonVariant.SECONDARY
-                  : ButtonVariant.OUTLINE
+                  : ButtonVariant.SECONDARY
               }
               onClick={() => dispatch({ payload: t.value, type: 'SET_TONE' })}
               title={t.description}

@@ -71,7 +71,7 @@ export default function WebsiteTopbar() {
               <ButtonTracked
                 asChild
                 size={ButtonSize.PUBLIC}
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
                 className="hidden h-9 px-5 text-sm uppercase xl:inline-flex"
                 trackingData={{ action: 'book_demo_topbar' }}
                 trackingName="topbar_cta_click"

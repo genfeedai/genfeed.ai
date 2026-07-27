@@ -177,7 +177,7 @@ export default function TermsPage() {
               </p>
               <Button
                 asChild
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.PUBLIC}
               >
                 <Link href="mailto:legal@genfeed.ai">Contact Support</Link>

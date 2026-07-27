@@ -128,7 +128,7 @@ export default function VideoDetailFirstColumn({
                     key={child.id}
                     withWrapper={false}
                     onClick={() => onSeeDetails?.(child as IVideo)}
-                    variant={ButtonVariant.OUTLINE}
+                    variant={ButtonVariant.SECONDARY}
                     size={ButtonSize.SM}
                     ariaLabel={child.metadataLabel || 'Captioned Version'}
                   >
@@ -154,7 +154,7 @@ export default function VideoDetailFirstColumn({
                   key={child.id}
                   withWrapper={false}
                   onClick={() => onSeeDetails?.(child as IVideo)}
-                  variant={ButtonVariant.OUTLINE}
+                  variant={ButtonVariant.SECONDARY}
                   size={ButtonSize.SM}
                   ariaLabel={child.metadataLabel || `${child.category} Version`}
                 >

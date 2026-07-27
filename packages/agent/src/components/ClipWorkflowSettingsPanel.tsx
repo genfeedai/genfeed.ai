@@ -170,7 +170,7 @@ export function ClipWorkflowSettingsPanel({
         </Button>
 
         <Button
-          variant={ButtonVariant.OUTLINE}
+          variant={ButtonVariant.SECONDARY}
           size={ButtonSize.SM}
           onClick={onAddAnotherClip}
         >
@@ -180,7 +180,7 @@ export function ClipWorkflowSettingsPanel({
 
         {canMerge && (
           <Button
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
             onClick={onMergeNow}
           >
@@ -190,7 +190,7 @@ export function ClipWorkflowSettingsPanel({
         )}
 
         <Button
-          variant={ButtonVariant.OUTLINE}
+          variant={ButtonVariant.SECONDARY}
           size={ButtonSize.SM}
           onClick={onOpenSupervisedReview}
           isDisabled={

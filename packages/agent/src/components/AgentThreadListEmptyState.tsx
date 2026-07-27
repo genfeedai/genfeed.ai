@@ -43,7 +43,7 @@ export function AgentThreadListEmptyState({
         </div>
         <Button
           withWrapper={false}
-          variant={ButtonVariant.OUTLINE}
+          variant={ButtonVariant.SECONDARY}
           className="h-8 px-3 text-xs"
           onClick={onRetry}
         >

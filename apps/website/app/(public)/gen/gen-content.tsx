@@ -49,7 +49,7 @@ export default function GenContent() {
                 </p>
               </div>
 
-              <Button asChild variant={ButtonVariant.BLACK}>
+              <Button asChild variant={ButtonVariant.DEFAULT}>
                 <Link
                   href={TWITTER_INTENT_URL}
                   target="_blank"

@@ -303,7 +303,7 @@ export default function LoginBetterAuth({
           <>
             <Button
               type="button"
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               onClick={() => handleSocialSignIn('google')}
               icon={<FcGoogle className="size-4" aria-hidden="true" />}
               isLoading={isSocialSubmitting}
@@ -315,7 +315,7 @@ export default function LoginBetterAuth({
 
             <Button
               asChild
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
               withWrapper={false}
             >
@@ -327,7 +327,7 @@ export default function LoginBetterAuth({
 
             <Button
               asChild
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
               withWrapper={false}
             >

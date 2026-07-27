@@ -19,7 +19,7 @@ export default function BatchPageHeader({
       {activeBatchStatus ? (
         <div className="flex justify-end px-6 pt-4">
           <Button
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
             onClick={onBackToComposer}
             className="rounded-xl"
           >

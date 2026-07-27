@@ -177,7 +177,7 @@ export default function IngredientsList({
             </div>
             <Button
               label="Retry"
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               onClick={() => {
                 handleRefresh(true);
               }}
@@ -196,7 +196,7 @@ export default function IngredientsList({
             </div>
             <Button
               label="Retry"
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               onClick={() => {
                 void handleRefresh(true);
               }}

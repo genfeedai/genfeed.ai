@@ -154,7 +154,7 @@ export default function VoiceCatalogRow({
               onClick={onSaveBrandDefault}
               size={ButtonSize.SM}
               variant={
-                isBrandDefault ? ButtonVariant.DEFAULT : ButtonVariant.OUTLINE
+                isBrandDefault ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
               }
               withWrapper={false}
             >

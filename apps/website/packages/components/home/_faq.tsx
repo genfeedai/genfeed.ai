@@ -54,7 +54,7 @@ export default function HomeFAQ(): React.ReactElement {
             asChild
             size={ButtonSize.PUBLIC}
             trackingName="faq_view_all_click"
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
           >
             <Link href="/faq">
               See all FAQs

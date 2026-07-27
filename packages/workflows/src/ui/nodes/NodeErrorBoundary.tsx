@@ -56,7 +56,7 @@ export class NodeErrorBoundary extends Component<
             </p>
           </div>
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={this.handleRetry}
             className="gap-1.5"

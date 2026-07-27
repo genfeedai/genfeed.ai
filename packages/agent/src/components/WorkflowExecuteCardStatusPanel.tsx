@@ -87,7 +87,7 @@ export function WorkflowExecuteCardStatusPanel({
           </span>
         </div>
         <Button
-          variant={ButtonVariant.OUTLINE}
+          variant={ButtonVariant.SECONDARY}
           withWrapper={false}
           onClick={onRetry}
           className="flex w-full items-center justify-center px-4 py-2 text-sm font-black"

@@ -787,7 +787,7 @@ export function WorkflowCanvas({
     >
       {!showPalette && (
         <Button
-          variant="outline"
+          variant="secondary"
           size="icon-sm"
           onClick={togglePalette}
           className="absolute top-3 left-3 z-10"

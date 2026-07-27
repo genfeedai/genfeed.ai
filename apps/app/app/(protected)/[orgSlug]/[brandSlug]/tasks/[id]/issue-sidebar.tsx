@@ -72,7 +72,7 @@ export default function IssueSidebar({
                       <Button
                         key={s}
                         type="button"
-                        variant={ButtonVariant.OUTLINE}
+                        variant={ButtonVariant.SECONDARY}
                         size={ButtonSize.XS}
                         className="px-1.5 py-0.5 text-[9px] text-white/50 hover:text-white/70"
                         onClick={() => onStatusUpdate(s)}

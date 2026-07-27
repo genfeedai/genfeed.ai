@@ -51,7 +51,7 @@ export default function ModalPostBatchFormAlerts({
             </div>
             <Button
               label="Manage Connections"
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               onClick={onManageConnections}
             />
           </div>

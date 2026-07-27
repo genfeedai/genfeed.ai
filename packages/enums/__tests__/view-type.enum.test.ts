@@ -3,12 +3,13 @@ import { ViewType } from '../src/view-type.enum';
 
 describe('view-type.enum', () => {
   describe('ViewType', () => {
-    it('should have 5 members', () => {
-      expect(Object.values(ViewType)).toHaveLength(5);
+    it('should have 6 members', () => {
+      expect(Object.values(ViewType)).toHaveLength(6);
     });
 
     it('should have correct values', () => {
       expect(ViewType.LIST).toBe('list');
+      expect(ViewType.KANBAN).toBe('kanban');
       expect(ViewType.CALENDAR).toBe('calendar');
       expect(ViewType.GRID).toBe('grid');
       expect(ViewType.MASONRY).toBe('masonry');

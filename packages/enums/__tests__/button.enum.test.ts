@@ -3,23 +3,17 @@ import { ButtonSize, ButtonVariant } from '../src/button.enum';
 
 describe('button.enum', () => {
   describe('ButtonVariant', () => {
-    it('should have 12 members', () => {
-      expect(Object.values(ButtonVariant)).toHaveLength(12);
+    it('should have 6 semantic members', () => {
+      expect(Object.values(ButtonVariant)).toHaveLength(6);
     });
 
     it('should have correct values', () => {
       expect(ButtonVariant.DEFAULT).toBe('default');
       expect(ButtonVariant.SECONDARY).toBe('secondary');
-      expect(ButtonVariant.DESTRUCTIVE).toBe('destructive');
-      expect(ButtonVariant.OUTLINE).toBe('outline');
-      expect(ButtonVariant.OUTLINE_WHITE).toBe('outline-white');
       expect(ButtonVariant.GHOST).toBe('ghost');
+      expect(ButtonVariant.DESTRUCTIVE).toBe('destructive');
       expect(ButtonVariant.LINK).toBe('link');
-      expect(ButtonVariant.SOFT).toBe('soft');
-      expect(ButtonVariant.WHITE).toBe('white');
-      expect(ButtonVariant.BLACK).toBe('black');
       expect(ButtonVariant.UNSTYLED).toBe('unstyled');
-      expect(ButtonVariant.GENERATE).toBe('generate');
     });
   });
 

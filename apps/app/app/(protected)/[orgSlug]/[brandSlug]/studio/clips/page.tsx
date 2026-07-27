@@ -244,7 +244,7 @@ export default function StudioClipsPage() {
               />
 
               <Button
-                variant={ButtonVariant.UNSTYLED}
+                variant={ButtonVariant.DEFAULT}
                 onClick={handleGenerate}
                 isDisabled={
                   isSubmitting ||

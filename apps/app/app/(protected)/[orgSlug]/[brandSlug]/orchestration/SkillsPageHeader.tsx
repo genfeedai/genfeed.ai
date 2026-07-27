@@ -32,7 +32,7 @@ export default function SkillsPageHeader({
           <Button
             className="rounded-full"
             onClick={onRefresh}
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
           >
             <HiOutlineArrowPath className="size-4" />
             Refresh
@@ -40,7 +40,7 @@ export default function SkillsPageHeader({
           <Button
             asChild
             className="rounded-full"
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
           >
             <Link href={APP_ROUTES.AGENT.ROOT}>
               <HiOutlineSparkles className="size-4" />
@@ -59,7 +59,7 @@ export default function SkillsPageHeader({
             variant={
               sourceFilter === filter.value
                 ? ButtonVariant.DEFAULT
-                : ButtonVariant.OUTLINE
+                : ButtonVariant.SECONDARY
             }
           >
             {filter.label}

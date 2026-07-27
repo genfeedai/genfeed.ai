@@ -330,8 +330,17 @@ separators).
 
 ### Button
 
-Four primary variants: default (white accent), secondary (tertiary bg), ghost
-(transparent), destructive (danger red). All use `rounded-md` (6px).
+The canonical semantic hierarchy is:
+- `default` -- the single primary action on a surface; white accent in dark mode
+- `secondary` -- ordinary neutral actions
+- `ghost` -- toolbar and icon-only chrome
+- `destructive` -- dangerous actions only
+- `link` -- inline navigation
+- `unstyled` -- internal composite primitives only, never page-level styling
+
+All styled variants use `rounded-md` (6px). `white`, `black`, `generate`,
+`soft`, `outline-white`, and `outline` are not button variants; select the
+semantic role instead.
 
 Ghost buttons are the standard for toolbar/topbar icon actions -- transparent
 background, no border, `hover:bg-hover` on interaction.

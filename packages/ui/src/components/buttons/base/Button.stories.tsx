@@ -78,16 +78,6 @@ export const Secondary: Story = {
 };
 
 /**
- * Accent button variant
- */
-export const Accent: Story = {
-  args: {
-    label: 'Accent Button',
-    variant: ButtonVariant.DEFAULT,
-  },
-};
-
-/**
  * Button with an icon
  */
 export const WithIcon: Story = {
@@ -214,33 +204,9 @@ export const Ghost: Story = {
 };
 
 /**
- * Outline button variant
+ * Destructive button for dangerous actions
  */
-export const Outline: Story = {
-  args: {
-    label: 'Outline Button',
-    variant: ButtonVariant.OUTLINE,
-  },
-};
-
-/**
- * Success button for positive actions
- */
-export const Success: Story = {
-  render: () => (
-    <Button
-      label="Confirm"
-      icon={<FiSave />}
-      variant={ButtonVariant.DEFAULT}
-      className="bg-success text-success-foreground hover:bg-success/90"
-    />
-  ),
-};
-
-/**
- * Error/danger button for destructive actions
- */
-export const Error: Story = {
+export const Destructive: Story = {
   render: () => (
     <Button
       label="Delete"
@@ -248,28 +214,6 @@ export const Error: Story = {
       variant={ButtonVariant.DESTRUCTIVE}
     />
   ),
-};
-
-/**
- * Warning button
- */
-export const Warning: Story = {
-  args: {
-    className: 'bg-warning text-warning-foreground hover:bg-warning/90',
-    label: 'Warning',
-    variant: ButtonVariant.DEFAULT,
-  },
-};
-
-/**
- * Info button
- */
-export const Info: Story = {
-  args: {
-    className: 'bg-info text-info-foreground hover:bg-info/90',
-    label: 'More Info',
-    variant: ButtonVariant.DEFAULT,
-  },
 };
 
 /**

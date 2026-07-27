@@ -157,7 +157,7 @@ export default function AnalyticsContent() {
             </ButtonTracked>
             <ButtonTracked
               asChild
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               size={ButtonSize.PUBLIC}
               trackingName="analytics_hero_click"
               trackingData={{ action: 'book_demo' }}
@@ -322,7 +322,7 @@ export default function AnalyticsContent() {
               </ButtonTracked>
               <ButtonTracked
                 asChild
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.PUBLIC}
                 trackingName="analytics_cta_click"
                 trackingData={{ action: 'book_demo' }}

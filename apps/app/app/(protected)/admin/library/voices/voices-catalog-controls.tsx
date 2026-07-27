@@ -114,7 +114,7 @@ export default function VoicesCatalogControls({
             isDisabled={isSyncingAll || syncingProvider !== null}
             onClick={() => onSync([VoiceProvider.HEYGEN])}
             size={ButtonSize.SM}
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >
             Sync HeyGen

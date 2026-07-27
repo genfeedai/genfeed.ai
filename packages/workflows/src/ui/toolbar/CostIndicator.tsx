@@ -23,7 +23,7 @@ export function CostIndicator() {
 
   return (
     <Button
-      variant="outline"
+      variant="secondary"
       size="sm"
       onClick={() => openModal('cost')}
       title="View cost breakdown"

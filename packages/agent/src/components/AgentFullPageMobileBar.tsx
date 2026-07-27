@@ -31,7 +31,7 @@ export function AgentFullPageMobileBar({
     <div className="flex items-center gap-2 border-b border-white/[0.08] px-4 py-3 xl:hidden">
       {showThreadSidebar ? (
         <Button
-          variant={ButtonVariant.OUTLINE}
+          variant={ButtonVariant.SECONDARY}
           withWrapper={false}
           onClick={onOpenThreads}
           className={MOBILE_BAR_BUTTON_CLASS}
@@ -42,7 +42,7 @@ export function AgentFullPageMobileBar({
       ) : null}
       {hasThreadOutputs ? (
         <Button
-          variant={ButtonVariant.OUTLINE}
+          variant={ButtonVariant.SECONDARY}
           withWrapper={false}
           onClick={onOpenOutputs}
           className={MOBILE_BAR_BUTTON_CLASS}
@@ -53,7 +53,7 @@ export function AgentFullPageMobileBar({
       ) : null}
       {showSetupPanel ? (
         <Button
-          variant={ButtonVariant.OUTLINE}
+          variant={ButtonVariant.SECONDARY}
           withWrapper={false}
           onClick={onOpenSetup}
           className={MOBILE_BAR_BUTTON_CLASS}

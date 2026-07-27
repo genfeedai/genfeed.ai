@@ -221,7 +221,7 @@ export default function EvaluationCard({
         </div>
 
         <Button
-          variant={ButtonVariant.GENERATE}
+          variant={ButtonVariant.DEFAULT}
           icon={<HiArrowUp />}
           label="Run"
           onClick={onEvaluate}
@@ -304,7 +304,7 @@ function EvaluationCardContent({
 
         {!isPublished && (
           <Button
-            variant={ButtonVariant.GENERATE}
+            variant={ButtonVariant.DEFAULT}
             icon={<HiArrowUp />}
             label={isEvaluating ? 'Running…' : 'Run'}
             onClick={onEvaluate}
@@ -345,7 +345,7 @@ function EvaluationCardContent({
         </div>
         {!isPublished && (
           <Button
-            variant={ButtonVariant.GENERATE}
+            variant={ButtonVariant.DEFAULT}
             icon={<HiArrowUp />}
             label={isEvaluating ? 'Running…' : 'Run'}
             onClick={onEvaluate}

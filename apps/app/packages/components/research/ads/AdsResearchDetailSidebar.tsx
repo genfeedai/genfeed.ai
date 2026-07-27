@@ -407,7 +407,7 @@ export function DetailSidebar({
                   Create workflow
                 </Button>
                 <Button
-                  variant={ButtonVariant.OUTLINE}
+                  variant={ButtonVariant.SECONDARY}
                   size={ButtonSize.SM}
                   isLoading={busyAction === 'launch_prep'}
                   onClick={() => onRunAction('launch_prep')}

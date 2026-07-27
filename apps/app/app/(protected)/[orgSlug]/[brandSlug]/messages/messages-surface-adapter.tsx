@@ -66,7 +66,7 @@ function MessagesSurfaceInspector({
             size={ButtonSize.SM}
             variant={
               isConversationReferenced
-                ? ButtonVariant.OUTLINE
+                ? ButtonVariant.SECONDARY
                 : ButtonVariant.DEFAULT
             }
             withWrapper={false}

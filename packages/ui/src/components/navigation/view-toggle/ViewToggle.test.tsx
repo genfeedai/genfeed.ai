@@ -50,8 +50,8 @@ describe('ViewToggle', () => {
     const calendarButton = screen
       .getByTestId('calendar-icon')
       .closest('button');
-    expect(calendarButton).toHaveClass('bg-white/10');
-    expect(calendarButton).toHaveClass('text-foreground');
+    expect(calendarButton).toHaveAttribute('data-state', 'on');
+    expect(calendarButton).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('calls onChange when view is clicked', () => {
@@ -64,15 +64,12 @@ describe('ViewToggle', () => {
       />,
     );
 
-    const calendarButton = screen
-      .getByTestId('calendar-icon')
-      .closest('button');
-    fireEvent.click(calendarButton!);
+    fireEvent.click(screen.getByRole('button', { name: 'Calendar View' }));
 
     expect(updateViewToggle).toHaveBeenCalledWith(ViewType.CALENDAR);
   });
 
-  it('applies inline-flex class for button group', () => {
+  it('renders the shared segmented control', () => {
     const updateViewToggle = vi.fn();
     const { container } = render(
       <ViewToggle
@@ -82,8 +79,8 @@ describe('ViewToggle', () => {
       />,
     );
 
-    // Component uses inline-flex for button group styling
-    expect(container.querySelector('.inline-flex')).toBeInTheDocument();
+    expect(container.querySelector('.gen-shell-segmented')).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'View' })).toBeVisible();
   });
 
   it('applies custom className', () => {
@@ -164,7 +161,7 @@ describe('ViewToggle', () => {
     expect(listButton).toHaveAttribute('aria-label', 'Switch to list view');
   });
 
-  it('applies correct button classes - ghost for all, elevated state for active', () => {
+  it('exposes a single active item through the toggle-group state', () => {
     const updateViewToggle = vi.fn();
     render(
       <ViewToggle
@@ -174,26 +171,18 @@ describe('ViewToggle', () => {
       />,
     );
 
-    const buttons = screen.getAllByRole('button');
-    buttons.forEach((button) => {
-      // All buttons render with CVA buttonVariants
-      expect(button).toBeInTheDocument();
-    });
-
-    // Active button keeps ghost styling but adds an emphasized active background
     const listButton = screen.getByTestId('list-icon').closest('button');
-    expect(listButton).toHaveClass('bg-white/10');
-    expect(listButton).toHaveClass('text-foreground');
-
-    // Inactive buttons stay ghost with subdued text and no active fill
     const calendarButton = screen
       .getByTestId('calendar-icon')
       .closest('button');
     const gridButton = screen.getByTestId('grid-icon').closest('button');
-    expect(calendarButton).toHaveClass('text-foreground/70');
-    expect(gridButton).toHaveClass('text-foreground/70');
-    expect(calendarButton).not.toHaveClass('bg-white/10');
-    expect(gridButton).not.toHaveClass('bg-white/10');
+
+    expect(listButton).toHaveAttribute('data-state', 'on');
+    expect(listButton).toHaveAttribute('aria-pressed', 'true');
+    expect(calendarButton).toHaveAttribute('data-state', 'off');
+    expect(calendarButton).toHaveAttribute('aria-pressed', 'false');
+    expect(gridButton).toHaveAttribute('data-state', 'off');
+    expect(gridButton).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('handles single option', () => {

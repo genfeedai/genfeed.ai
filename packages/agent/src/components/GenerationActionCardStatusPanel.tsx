@@ -65,7 +65,7 @@ export function GenerationActionCardStatusPanel({
           {error}
         </div>
         <Button
-          variant={ButtonVariant.OUTLINE}
+          variant={ButtonVariant.SECONDARY}
           onClick={onRetry}
           className="w-full"
         >
@@ -107,7 +107,7 @@ export function GenerationActionCardStatusPanel({
             Open in Library
           </a>
           <Button
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
             onClick={onRetry}
             className="flex-1"

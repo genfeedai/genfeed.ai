@@ -173,7 +173,7 @@ export default function PublisherContent() {
             </ButtonTracked>
             <ButtonTracked
               asChild
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               size={ButtonSize.PUBLIC}
               trackingName="publisher_hero_click"
               trackingData={{ action: 'core_cta' }}
@@ -365,7 +365,7 @@ export default function PublisherContent() {
               </ButtonTracked>
               <ButtonTracked
                 asChild
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.PUBLIC}
                 trackingName="publisher_cta_click"
                 trackingData={{ action: 'book_demo' }}

@@ -232,7 +232,7 @@ export default function InfrastructurePage() {
         return (
           <div className="flex items-center gap-2">
             <Button
-              variant={ButtonVariant.UNSTYLED}
+              variant={ButtonVariant.DEFAULT}
               withWrapper={false}
               className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded bg-success/10 text-success hover:bg-success/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               isDisabled={!canStart || isActioning}
@@ -243,7 +243,7 @@ export default function InfrastructurePage() {
             </Button>
 
             <Button
-              variant={ButtonVariant.UNSTYLED}
+              variant={ButtonVariant.DESTRUCTIVE}
               withWrapper={false}
               className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded bg-error/10 text-error hover:bg-error/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               isDisabled={!canStop || isActioning}

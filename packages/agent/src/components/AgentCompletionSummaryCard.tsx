@@ -101,7 +101,7 @@ function CompletionActionButton({
 
   return (
     <Button
-      variant={isPrimary ? ButtonVariant.DEFAULT : ButtonVariant.OUTLINE}
+      variant={isPrimary ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY}
       withWrapper={false}
       onClick={() => {
         if (!cta.action) {

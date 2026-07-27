@@ -230,7 +230,7 @@ export function AgentChatInputToolbar({
             onClick={onSend}
             size={ButtonSize.ICON}
             tooltip="Send (Enter)"
-            variant={ButtonVariant.GENERATE}
+            variant={ButtonVariant.DEFAULT}
             withWrapper={false}
           />
         ) : null}

@@ -6,7 +6,7 @@ import { FaGithub } from 'react-icons/fa6';
 export function GitHubLink({
   href,
   children,
-  variant = ButtonVariant.OUTLINE,
+  variant = ButtonVariant.SECONDARY,
   className,
 }: {
   href: string;

@@ -156,7 +156,7 @@ export default function OrgLandingContent() {
         <Button
           asChild
           className="inline-flex items-center gap-2 rounded-lg bg-foreground/[0.03] px-3.5 py-2 text-sm font-medium text-foreground/70 shadow-border transition hover:shadow-border-strong hover:bg-foreground/[0.06] hover:text-foreground"
-          variant={ButtonVariant.UNSTYLED}
+          variant={ButtonVariant.DEFAULT}
           withWrapper={false}
         >
           <Link href={orgHref('/settings/brands')}>

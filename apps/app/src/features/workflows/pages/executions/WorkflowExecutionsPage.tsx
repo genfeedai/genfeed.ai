@@ -172,7 +172,7 @@ export default function WorkflowExecutionsPage() {
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
         <p className="text-destructive">{error}</p>
         <Button
-          variant={ButtonVariant.OUTLINE}
+          variant={ButtonVariant.SECONDARY}
           onClick={() => {
             const controller = new AbortController();
             loadExecutions(controller.signal, offset);
@@ -322,7 +322,7 @@ export default function WorkflowExecutionsPage() {
             {/* Pagination */}
             <div className="mt-4 flex items-center justify-between">
               <Button
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
                 disabled={offset === 0}
                 onClick={() =>
                   dispatch({
@@ -337,7 +337,7 @@ export default function WorkflowExecutionsPage() {
                 Showing {offset + 1}–{offset + executions.length}
               </span>
               <Button
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
                 disabled={!hasMore}
                 onClick={() =>
                   dispatch({

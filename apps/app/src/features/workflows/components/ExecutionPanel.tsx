@@ -167,7 +167,7 @@ export function ExecutionPanel({
           <div className="space-y-3">
             <p className="text-sm text-destructive">{error}</p>
             <Button
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               onClick={() => {
                 const controller = new AbortController();
                 setLoadState({ isLoading: true, runId: currentRunId });

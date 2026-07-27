@@ -103,7 +103,7 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
           />
 
           <Button
-            variant={ButtonVariant.GENERATE}
+            variant={ButtonVariant.DEFAULT}
             icon={<HiArrowUp />}
             label={isSubmitting ? 'Training…' : 'Start Training'}
             tooltipPosition="left"

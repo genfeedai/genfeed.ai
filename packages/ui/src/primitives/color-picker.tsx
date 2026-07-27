@@ -108,7 +108,7 @@ export default function ColorPicker({
         <div className="relative">
           <Button
             withWrapper={false}
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
             onClick={activateColorPicker}
             isDisabled={isDisabled}
             className="h-10 w-full flex items-center gap-2"

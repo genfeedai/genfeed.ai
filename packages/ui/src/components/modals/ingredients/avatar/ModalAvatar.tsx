@@ -145,7 +145,7 @@ export default function ModalAvatar({
           />
 
           <Button
-            variant={ButtonVariant.GENERATE}
+            variant={ButtonVariant.DEFAULT}
             icon={<HiArrowUp />}
             type="submit"
             label="Video"

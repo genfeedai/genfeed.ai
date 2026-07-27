@@ -137,7 +137,7 @@ export default function LibraryRemixSurface({
               <Button
                 label="Retry"
                 onClick={retry}
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
               />
             ) : null}
             {shellActions ? (

@@ -190,7 +190,7 @@ export default function FastlaneBlitz({
       {/* Controls */}
       <div className="flex gap-4 mt-4" style={{ paddingTop: 420 }}>
         <Button
-          variant={ButtonVariant.OUTLINE}
+          variant={ButtonVariant.SECONDARY}
           size={ButtonSize.LG}
           label="✕ Reject"
           onClick={() => triggerSwipe('left')}

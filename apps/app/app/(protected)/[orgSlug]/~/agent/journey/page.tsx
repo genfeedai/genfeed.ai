@@ -74,7 +74,7 @@ export default function ChatJourneyPage() {
           <Button
             asChild
             className="inline-flex rounded-full border border-primary/30 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10"
-            variant={ButtonVariant.UNSTYLED}
+            variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >
             <Link href={APP_ROUTES.ONBOARDING.PROVIDERS}>
@@ -171,7 +171,7 @@ export default function ChatJourneyPage() {
                 <Button
                   asChild
                   className="inline-flex rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-foreground hover:bg-white/5"
-                  variant={ButtonVariant.UNSTYLED}
+                  variant={ButtonVariant.SECONDARY}
                   withWrapper={false}
                 >
                   <Link href={mission.ctaHref}>

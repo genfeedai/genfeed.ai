@@ -52,7 +52,7 @@ export function VoiceCloneExistingVoiceSelector({
         </SelectContent>
       </Select>
       <Button
-        variant={ButtonVariant.OUTLINE}
+        variant={ButtonVariant.SECONDARY}
         onClick={onUseExisting}
         isDisabled={!selectedVoiceId || status === 'uploading'}
         className="w-full"

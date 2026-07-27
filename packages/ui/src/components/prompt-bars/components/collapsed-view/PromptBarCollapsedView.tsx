@@ -162,7 +162,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
             data-testid="prompt-input"
           />
           <Button
-            variant={ButtonVariant.GENERATE}
+            variant={ButtonVariant.DEFAULT}
             icon={<HiArrowUp />}
             isDisabled={
               isGenerateBlocked ||

@@ -1001,7 +1001,7 @@ function UniversalWorkspaceShellContent({
               <Button
                 icon={<HiOutlineBolt className="size-4" />}
                 onClick={handleOpenWorkflowPicker}
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
                 withWrapper={false}
               >
                 Choose workflow
@@ -1011,7 +1011,7 @@ function UniversalWorkspaceShellContent({
                 <Button
                   icon={<HiOutlineEye className="size-4" />}
                   onClick={handleOpenOverlay}
-                  variant={ButtonVariant.OUTLINE}
+                  variant={ButtonVariant.SECONDARY}
                   withWrapper={false}
                 >
                   Open overlay preview

@@ -351,7 +351,7 @@ function PromptBarPostCollapsedView({
 
       <div className="flex items-center gap-2">
         <Button
-          variant={ButtonVariant.GENERATE}
+          variant={ButtonVariant.DEFAULT}
           icon={<HiArrowUp />}
           label={buttonLabel}
           tooltip={buttonLabel}
@@ -504,7 +504,7 @@ function PromptBarPostExpandedView({
             </Button>
           )}
           <Button
-            variant={ButtonVariant.GENERATE}
+            variant={ButtonVariant.DEFAULT}
             icon={<HiArrowUp />}
             label={buttonLabel}
             tooltip={buttonLabel}

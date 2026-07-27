@@ -149,7 +149,7 @@ export default function LibraryContent() {
             </ButtonTracked>
             <ButtonTracked
               asChild
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               size={ButtonSize.PUBLIC}
               trackingName="library_hero_click"
               trackingData={{ action: 'book_demo' }}
@@ -313,7 +313,7 @@ export default function LibraryContent() {
               </ButtonTracked>
               <ButtonTracked
                 asChild
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.PUBLIC}
                 trackingName="library_cta_click"
                 trackingData={{ action: 'book_demo' }}

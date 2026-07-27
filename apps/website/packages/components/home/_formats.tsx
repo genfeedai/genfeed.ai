@@ -91,7 +91,7 @@ export default function HomeFormats(): React.ReactElement {
               size={ButtonSize.PUBLIC}
               trackingData={{ action: 'signup_formats' }}
               trackingName="formats_cta_click"
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
             >
               <a href={signUpHref} rel="noopener noreferrer" target="_blank">
                 Generate an asset

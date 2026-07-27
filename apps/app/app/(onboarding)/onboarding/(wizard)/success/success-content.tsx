@@ -238,7 +238,7 @@ export default function SuccessContent() {
       {/* CTA */}
       <div className="success-cta opacity-0">
         <Button
-          variant={ButtonVariant.WHITE}
+          variant={ButtonVariant.DEFAULT}
           onClick={handleEnterWorkspace}
           icon={<HiSparkles className="size-4" />}
           label="Enter Workspace"

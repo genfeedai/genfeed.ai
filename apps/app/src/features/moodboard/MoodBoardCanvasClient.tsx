@@ -70,7 +70,7 @@ export default function MoodBoardCanvasClient(): React.JSX.Element {
     return (
       <CanvasMessage title="No assets to arrange yet">
         <Button
-          variant={ButtonVariant.OUTLINE}
+          variant={ButtonVariant.SECONDARY}
           label="Back to library"
           onClick={handleClose}
         />

@@ -133,7 +133,7 @@ export default function CalendarContent() {
             </ButtonTracked>
             <ButtonTracked
               asChild
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               size={ButtonSize.PUBLIC}
               trackingName="calendar_hero_click"
               trackingData={{ action: 'book_demo' }}
@@ -303,7 +303,7 @@ export default function CalendarContent() {
               </ButtonTracked>
               <ButtonTracked
                 asChild
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.PUBLIC}
                 trackingName="calendar_cta_click"
                 trackingData={{ action: 'book_demo' }}

@@ -73,7 +73,7 @@ export function WorkflowPickerOverlay({
             <Button
               onClick={retry}
               size={ButtonSize.SM}
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               withWrapper={false}
             >
               Retry
@@ -120,7 +120,7 @@ export function WorkflowPickerOverlay({
                         }
                         onClick={() => onOpenWorkflow(workflow)}
                         size={ButtonSize.SM}
-                        variant={ButtonVariant.OUTLINE}
+                        variant={ButtonVariant.SECONDARY}
                         withWrapper={false}
                       >
                         Open editor

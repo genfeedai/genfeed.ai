@@ -269,7 +269,9 @@ export default function ExecutionDetailPage({
 
         {/* Download Logs */}
         <div className="mt-8 flex justify-end">
-          <Button variant={ButtonVariant.OUTLINE}>Download Logs (JSON)</Button>
+          <Button variant={ButtonVariant.SECONDARY}>
+            Download Logs (JSON)
+          </Button>
         </div>
       </main>
     </div>

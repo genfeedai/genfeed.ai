@@ -206,7 +206,7 @@ export function WorkflowTriggerCard({
               </span>
             </div>
             <Button
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               onClick={handleRetry}
               className="w-full"
             >

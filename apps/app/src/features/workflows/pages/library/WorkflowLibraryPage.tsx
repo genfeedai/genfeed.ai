@@ -82,7 +82,7 @@ export default function WorkflowLibraryPage() {
           <p className="text-destructive">{error}</p>
           <Button
             label="Retry"
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
             onClick={() => {
               const controller = new AbortController();
               loadWorkflows(controller.signal);

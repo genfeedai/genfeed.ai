@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -14,6 +14,7 @@ import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Container from '@ui/layout/container/Container';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import {
   Dialog,
   DialogContent,
@@ -40,7 +41,7 @@ import {
 import IssueOverlay from './issue-overlay';
 import { openIssueOverlay } from './issue-overlay-controls';
 
-type ViewMode = 'kanban' | 'list';
+type ViewMode = ViewType.KANBAN | ViewType.LIST;
 
 const STATUS_ORDER: TaskStatus[] = [
   'backlog',
@@ -234,7 +235,7 @@ const initialIssuesListState: IssuesListState = {
   selectedIssue: null,
   showCreateDialog: false,
   statusFilter: '',
-  viewMode: 'list',
+  viewMode: ViewType.LIST,
 };
 
 function issuesListReducer(
@@ -380,7 +381,7 @@ export default function IssuesList() {
         <h1 className="sr-only">Tasks</h1>
         <div className="flex items-center gap-3">
           <Button
-            variant={ButtonVariant.GHOST}
+            variant={ButtonVariant.DEFAULT}
             size={ButtonSize.SM}
             className="inline-flex items-center gap-1.5"
             onClick={() =>
@@ -411,43 +412,30 @@ export default function IssuesList() {
               ))}
             </SelectContent>
           </Select>
-          <fieldset className="flex rounded border border-white/10">
-            <legend className="sr-only">Task view</legend>
-            <Button
-              aria-pressed={viewMode === 'list'}
-              ariaLabel="List view"
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.ICON}
-              className={cn(
-                'p-1.5 transition-colors',
-                viewMode === 'list'
-                  ? 'bg-muted text-white'
-                  : 'text-white/40 hover:text-white/60',
-              )}
-              onClick={() =>
-                dispatch({ type: 'SET_VIEW_MODE', payload: 'list' })
-              }
-            >
-              <HiOutlineListBullet aria-hidden="true" className="size-4" />
-            </Button>
-            <Button
-              aria-pressed={viewMode === 'kanban'}
-              ariaLabel="Kanban view"
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.ICON}
-              className={cn(
-                'p-1.5 transition-colors',
-                viewMode === 'kanban'
-                  ? 'bg-muted text-white'
-                  : 'text-white/40 hover:text-white/60',
-              )}
-              onClick={() =>
-                dispatch({ type: 'SET_VIEW_MODE', payload: 'kanban' })
-              }
-            >
-              <HiOutlineViewColumns aria-hidden="true" className="size-4" />
-            </Button>
-          </fieldset>
+          <ViewToggle
+            activeView={viewMode}
+            onChange={(nextView) =>
+              dispatch({ type: 'SET_VIEW_MODE', payload: nextView })
+            }
+            options={[
+              {
+                ariaLabel: 'List view',
+                icon: (
+                  <HiOutlineListBullet aria-hidden="true" className="size-4" />
+                ),
+                label: 'List view',
+                type: ViewType.LIST,
+              },
+              {
+                ariaLabel: 'Kanban view',
+                icon: (
+                  <HiOutlineViewColumns aria-hidden="true" className="size-4" />
+                ),
+                label: 'Kanban view',
+                type: ViewType.KANBAN,
+              },
+            ]}
+          />
         </div>
       </div>
 
@@ -458,7 +446,7 @@ export default function IssuesList() {
           label="No tasks found"
           description="Tasks will appear here once created."
         />
-      ) : viewMode === 'list' ? (
+      ) : viewMode === ViewType.LIST ? (
         <Card>
           <div className="divide-y divide-white/[0.04]">
             {STATUS_ORDER.reduce<JSX.Element[]>((sections, status) => {

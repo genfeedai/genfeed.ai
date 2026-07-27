@@ -431,7 +431,7 @@ function PreviewSection({
       <div className="mt-2 grid grid-cols-2 gap-2">
         <Button
           type="button"
-          variant={ButtonVariant.OUTLINE}
+          variant={ButtonVariant.SECONDARY}
           disabled={!previewContent.trim() || !canCompose}
           onClick={() => onRelay('INSERT_CONTENT')}
           className="p-2 text-xs font-medium"
@@ -440,7 +440,7 @@ function PreviewSection({
         </Button>
         <Button
           type="button"
-          variant={ButtonVariant.OUTLINE}
+          variant={ButtonVariant.SECONDARY}
           disabled={!previewContent.trim() || !canSubmit}
           onClick={() => onRelay('INSERT_AND_PUBLISH_CONTENT')}
           className="p-2 text-xs font-medium"

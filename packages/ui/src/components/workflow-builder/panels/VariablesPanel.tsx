@@ -230,7 +230,7 @@ export default function VariablesPanel({
 
           <Button
             type="button"
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
             className="w-full"
             onClick={handleAddVariable}

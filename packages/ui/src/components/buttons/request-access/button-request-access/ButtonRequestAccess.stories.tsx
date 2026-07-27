@@ -60,40 +60,6 @@ export const Secondary: Story = {
 };
 
 /**
- * White variant
- */
-export const White: Story = {
-  args: {
-    label: 'Create free account',
-    variant: ButtonVariant.WHITE,
-  },
-  decorators: [
-    (Story) => (
-      <div className="bg-gradient-to-br from-primary to-secondary p-8">
-        <Story />
-      </div>
-    ),
-  ],
-};
-
-/**
- * Black variant
- */
-export const Black: Story = {
-  args: {
-    label: 'Create free account',
-    variant: ButtonVariant.BLACK,
-  },
-  decorators: [
-    (Story) => (
-      <div className="bg-zinc-100 p-8">
-        <Story />
-      </div>
-    ),
-  ],
-};
-
-/**
  * Custom label
  */
 export const CustomLabel: Story = {
@@ -124,22 +90,6 @@ export const AllVariants: Story = {
         <ButtonRequestAccess
           label="Create free account"
           variant={ButtonVariant.SECONDARY}
-        />
-      </div>
-      <div className="space-y-2 bg-gradient-to-br from-primary to-secondary p-4">
-        <h3 className="text-sm font-semibold text-white">
-          White (on gradient)
-        </h3>
-        <ButtonRequestAccess
-          label="Create free account"
-          variant={ButtonVariant.WHITE}
-        />
-      </div>
-      <div className="space-y-2 bg-zinc-100 p-4">
-        <h3 className="text-sm font-semibold">Black (on light)</h3>
-        <ButtonRequestAccess
-          label="Create free account"
-          variant={ButtonVariant.BLACK}
         />
       </div>
     </div>

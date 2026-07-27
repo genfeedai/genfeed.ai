@@ -568,7 +568,7 @@ export function useConversationScopeControls({
           isDisabled={isMutating}
           onClick={() => void synchronize()}
           size={ButtonSize.SM}
-          variant={ButtonVariant.OUTLINE}
+          variant={ButtonVariant.SECONDARY}
           withWrapper={false}
         >
           Synchronize scope

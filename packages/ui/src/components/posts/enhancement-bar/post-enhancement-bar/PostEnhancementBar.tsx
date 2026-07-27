@@ -211,7 +211,7 @@ export default function PostEnhancementBar({
         />
 
         <Button
-          variant={ButtonVariant.GENERATE}
+          variant={ButtonVariant.DEFAULT}
           icon={<HiArrowUp />}
           isLoading={isEnhancing && !enhancingAction}
           isDisabled={!prompt.trim() || isEnhancing}

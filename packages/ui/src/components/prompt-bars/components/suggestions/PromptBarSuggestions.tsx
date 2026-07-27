@@ -36,7 +36,7 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
       {visibleSuggestions.map((suggestion) => (
         <Button
           key={suggestion.id}
-          variant={ButtonVariant.SOFT}
+          variant={ButtonVariant.SECONDARY}
           tooltip={suggestion.description ?? suggestion.prompt}
           tooltipPosition="top"
           ariaLabel={suggestion.label}

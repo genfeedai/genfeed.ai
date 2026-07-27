@@ -186,7 +186,7 @@ export default function BotsPage() {
                     >
                       <ul className="menu p-0">
                         <li>
-                          <Button asChild variant={ButtonVariant.SOFT}>
+                          <Button asChild variant={ButtonVariant.SECONDARY}>
                             <Link href={`/bots/${bot.id}/edit`}>
                               <HiPencil className="size-4" />
                               Edit

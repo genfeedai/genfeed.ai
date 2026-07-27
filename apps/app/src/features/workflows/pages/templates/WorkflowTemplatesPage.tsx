@@ -235,7 +235,7 @@ function WorkflowTemplatesPageContent() {
           {TEMPLATE_CATEGORIES.map((category) => (
             <Button
               key={category.id}
-              variant={ButtonVariant.UNSTYLED}
+              variant={ButtonVariant.GHOST}
               withWrapper={false}
               onClick={() =>
                 dispatch({ type: 'SET_CATEGORY', category: category.id })
@@ -264,7 +264,7 @@ function WorkflowTemplatesPageContent() {
             </p>
             {selectedCategory !== 'all' && (
               <Button
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
                 onClick={() =>
                   dispatch({ type: 'SET_CATEGORY', category: 'all' })
                 }

@@ -87,7 +87,7 @@ export default function HomeCredits(): React.ReactElement {
             asChild
             size={ButtonSize.PUBLIC}
             trackingName="pricing_view_full_click"
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
           >
             <Link href="/pricing">
               Compare Plans
@@ -99,7 +99,7 @@ export default function HomeCredits(): React.ReactElement {
             size={ButtonSize.PUBLIC}
             trackingData={{ action: 'book_demo_pricing' }}
             trackingName="pricing_demo_click"
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
           >
             <a
               href={EnvironmentService.calendly}

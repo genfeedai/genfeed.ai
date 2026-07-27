@@ -1,28 +1,28 @@
 import type { ComponentSize, ViewType } from '@genfeedai/enums';
 import type { ReactNode } from 'react';
 
-export interface ViewOption {
-  type: ViewType;
+export interface ViewOption<TView extends ViewType = ViewType> {
+  type: TView;
   icon: ReactNode;
   label: string;
   ariaLabel?: string;
 }
 
-export interface ViewToggleProps {
+export interface ViewToggleProps<TView extends ViewType = ViewType> {
   /**
    * Available view options to toggle between
    */
-  options: ViewOption[];
+  options: ViewOption<TView>[];
 
   /**
    * Currently active view type
    */
-  activeView: ViewType;
+  activeView: TView;
 
   /**
    * Callback when view type changes
    */
-  onChange: (view: ViewType) => void;
+  onChange: (view: TView) => void;
 
   /**
    * Additional CSS classes for the wrapper
