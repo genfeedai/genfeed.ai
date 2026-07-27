@@ -13,6 +13,7 @@ import {
   serializeWorkspaceTaskProgress,
   type WorkspaceTaskProgressSnapshot,
 } from '@genfeedai/serializers';
+import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 
 export type TaskEventInput = {
@@ -229,11 +230,9 @@ export class TaskActionsService {
       organizationId,
       outputId,
     );
-    const ingredient = await this.ingredientsService.findOne({
-      id: outputId,
-      isDeleted: false,
-      organizationId,
-    });
+    const ingredient = await this.ingredientsService.findOne(
+      scopedWhere(organizationId, { id: outputId }),
+    );
     if (!ingredient) throw new NotFoundException('Ingredient', outputId);
     await this.ingredientsService.patch(outputId, { isDeleted: true });
     const updated = await this.mutateOutputIdArray(
@@ -330,7 +329,7 @@ export class TaskActionsService {
     outputId: string,
   ): Promise<TaskDocument> {
     const current = (await this.delegate.findFirst({
-      where: { id, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id }),
     })) as Record<string, unknown> | null;
     const existingIds = (current?.[field] as string[] | undefined) ?? [];
     const nextIds =
@@ -351,11 +350,7 @@ export class TaskActionsService {
     patch: Record<string, unknown>,
   ): Promise<TaskDocument | null> {
     if (Object.keys(patch).length === 0) {
-      return this.tasksService.findOne({
-        id,
-        isDeleted: false,
-        organizationId,
-      });
+      return this.tasksService.findOne(scopedWhere(organizationId, { id }));
     }
     return (await this.delegate.update({
       data: patch,

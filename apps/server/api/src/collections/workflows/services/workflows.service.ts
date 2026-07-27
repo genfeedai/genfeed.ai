@@ -28,6 +28,7 @@ import {
   WorkflowStepCategory,
   WorkflowStepStatus,
 } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -131,7 +132,7 @@ export class WorkflowsService extends BaseService<
 
     const brand = await this.prisma.brand.findFirst({
       select: { id: true },
-      where: { id: brandId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: brandId }),
     });
     if (!brand) {
       throw new BadRequestException(
@@ -585,11 +586,7 @@ export class WorkflowsService extends BaseService<
   ): Promise<Array<{ _id: string; count: number }>> {
     const workflows = await this.prisma.workflow.findMany({
       select: { status: true },
-      where: {
-        isDeleted: false,
-        organizationId,
-        userId,
-      },
+      where: scopedWhere(organizationId, { userId }),
     });
 
     const counts = workflows.reduce<Map<string, number>>((acc, workflow) => {

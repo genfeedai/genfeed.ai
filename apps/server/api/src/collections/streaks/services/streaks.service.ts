@@ -9,6 +9,7 @@ import { NotificationsService } from '@api/services/notifications/notifications.
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivityKey } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import {
   IStreakCalendarResponse,
   type IStreakMilestoneDefinition,
@@ -299,7 +300,7 @@ export class StreaksService {
     organizationId: string,
   ): Promise<StreakDocument | null> {
     const result = await this.prisma.streak.findFirst({
-      where: { isDeleted: false, organizationId, userId },
+      where: scopedWhere(organizationId, { userId }),
     });
     return result
       ? this.normalizeStreakRecord(result as Record<string, unknown>)
@@ -618,16 +619,14 @@ export class StreaksService {
 
     const docs = await this.prisma.activity.findMany({
       select: { createdAt: true, action: true },
-      where: {
+      where: scopedWhere(organizationId, {
         createdAt: {
           gte: rangeStart,
           lt: addUtcDays(rangeEnd, 1),
         },
-        isDeleted: false,
         action: { in: Array.from(QUALIFYING_ACTIVITY_KEYS) },
-        organizationId,
         userId,
-      },
+      }),
     });
 
     const days: IStreakCalendarResponse['days'] = {};

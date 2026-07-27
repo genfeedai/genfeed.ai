@@ -29,6 +29,7 @@ import { TREND_NOTIFICATION_WORKFLOW_TEMPLATES } from '@api/collections/workflow
 import { type WorkflowTemplate } from '@api/collections/workflows/templates/workflow-templates';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -158,14 +159,12 @@ export class WorkflowTemplateSeederService {
   ): Promise<void> {
     const duplicates = await this.prisma.workflow.findMany({
       select: { id: true, metadata: true },
-      where: {
-        isDeleted: false,
+      where: scopedWhere(organizationId, {
         metadata: {
           equals: currentSystemWorkflow.canonicalId,
           path: [SYSTEM_WORKFLOW_DUPLICATE_METADATA_KEY, 'canonicalId'],
         },
-        organizationId,
-      },
+      }),
     });
 
     for (const duplicate of duplicates) {
@@ -205,12 +204,10 @@ export class WorkflowTemplateSeederService {
             [SYSTEM_WORKFLOW_DUPLICATE_METADATA_KEY]: reconciledMetadata,
           },
         } as never,
-        where: {
+        where: scopedWhere(organizationId, {
           id: duplicate.id,
-          isDeleted: false,
           metadata: { equals: duplicate.metadata } as never,
-          organizationId,
-        },
+        }),
       });
 
       if (count === 0) {
@@ -253,14 +250,12 @@ export class WorkflowTemplateSeederService {
     organizationId: string;
     sourceTemplateId: string;
   }): Promise<void> {
-    const where = {
-      isDeleted: false,
+    const where = scopedWhere(input.organizationId, {
       metadata: {
         equals: input.sourceTemplateId,
         path: ['sourceTemplateId'],
       },
-      organizationId: input.organizationId,
-    };
+    });
 
     const preCheck = await this.prisma.workflow.findFirst({
       select: { id: true, metadata: true },
@@ -411,14 +406,12 @@ export class WorkflowTemplateSeederService {
     userId: string,
     organizationId: string,
   ): Promise<void> {
-    const where = {
-      isDeleted: false,
+    const where = scopedWhere(organizationId, {
       metadata: {
         equals: DAILY_TRENDS_DIGEST_TEMPLATE_ID,
         path: ['sourceTemplateId'],
       },
-      organizationId,
-    };
+    });
 
     const createData = this.buildDailyTrendsDigestCreateData(
       userId,
@@ -755,11 +748,7 @@ export class WorkflowTemplateSeederService {
         name: true,
         timezone: true,
       },
-      where: {
-        id: contentScheduleId,
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { id: contentScheduleId }),
     });
 
     if (!schedule) {
@@ -770,14 +759,12 @@ export class WorkflowTemplateSeederService {
       return;
     }
 
-    const where = {
-      isDeleted: false,
+    const where = scopedWhere(organizationId, {
       metadata: {
         equals: contentScheduleId,
         path: ['contentScheduleId'],
       },
-      organizationId,
-    };
+    });
 
     const existing = await this.prisma.workflow.findFirst({
       select: { id: true },
@@ -824,13 +811,11 @@ export class WorkflowTemplateSeederService {
 
     const workflows = await this.prisma.workflow.findMany({
       select: WORKFLOW_SCHEDULER_SYNC_SELECT,
-      where: {
-        isDeleted: false,
+      where: scopedWhere(organizationId, {
         isScheduleEnabled: true,
-        organizationId,
         schedule: { not: null },
         status: WorkflowStatus.ACTIVE,
-      },
+      }),
     });
 
     for (const workflow of workflows) {
@@ -908,14 +893,12 @@ export class WorkflowTemplateSeederService {
   ): Promise<void> {
     const affected = await this.prisma.workflow.findMany({
       select: { id: true },
-      where: {
-        isDeleted: false,
+      where: scopedWhere(organizationId, {
         metadata: {
           equals: contentScheduleId,
           path: ['contentScheduleId'],
         },
-        organizationId,
-      },
+      }),
     });
 
     await this.prisma.workflow.updateMany({
@@ -924,14 +907,12 @@ export class WorkflowTemplateSeederService {
         isScheduleEnabled: false,
         status: WorkflowStatus.PAUSED,
       },
-      where: {
-        isDeleted: false,
+      where: scopedWhere(organizationId, {
         metadata: {
           equals: contentScheduleId,
           path: ['contentScheduleId'],
         },
-        organizationId,
-      },
+      }),
     });
 
     // Drop the BullMQ job schedulers so the disabled schedules stop firing.

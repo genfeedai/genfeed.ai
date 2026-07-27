@@ -9,6 +9,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { ReplyBotType } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -120,11 +121,7 @@ export class ReplyBotConfigsService extends BaseService<
    * Find all active configs by organization (alias for findActiveByOrganization)
    */
   findActive(organizationId: string): Promise<ReplyBotConfigDocument[]> {
-    return this.find({
-      isActive: true,
-      isDeleted: false,
-      organizationId,
-    });
+    return this.find(scopedWhere(organizationId, { isActive: true }));
   }
 
   /**
@@ -161,12 +158,9 @@ export class ReplyBotConfigsService extends BaseService<
     organizationId: string,
     brandId?: string,
   ): Promise<ReplyBotConfigDocument | null> {
-    return this.findOne({
-      ...(brandId ? { brandId } : {}),
-      id,
-      isDeleted: false,
-      organizationId,
-    });
+    return this.findOne(
+      scopedWhere(organizationId, { ...(brandId ? { brandId } : {}), id }),
+    );
   }
 
   /**
@@ -184,11 +178,7 @@ export class ReplyBotConfigsService extends BaseService<
    * Check if rate limit allows another reply
    */
   async canReply(id: string, organizationId: string): Promise<boolean> {
-    const config = await this.findOne({
-      id,
-      isDeleted: false,
-      organizationId,
-    });
+    const config = await this.findOne(scopedWhere(organizationId, { id }));
 
     if (!config || !config.isActive) {
       return false;
@@ -363,11 +353,9 @@ export class ReplyBotConfigsService extends BaseService<
     accountId: string,
     organizationId: string,
   ): Promise<ReplyBotConfigDocument> {
-    const existing = await this.findOne({
-      id: configId,
-      isDeleted: false,
-      organizationId,
-    });
+    const existing = await this.findOne(
+      scopedWhere(organizationId, { id: configId }),
+    );
 
     if (!existing) {
       throw new NotFoundException(`Reply bot config ${configId} not found`);
@@ -402,11 +390,9 @@ export class ReplyBotConfigsService extends BaseService<
     accountId: string,
     organizationId: string,
   ): Promise<ReplyBotConfigDocument> {
-    const existing = await this.findOne({
-      id: configId,
-      isDeleted: false,
-      organizationId,
-    });
+    const existing = await this.findOne(
+      scopedWhere(organizationId, { id: configId }),
+    );
 
     if (!existing) {
       throw new NotFoundException(`Reply bot config ${configId} not found`);

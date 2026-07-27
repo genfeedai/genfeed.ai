@@ -20,6 +20,7 @@ import {
 } from '@genfeedai/enums';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import type { Workflow } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -209,11 +210,9 @@ export class ReplyPollingWorkflowService {
   private async findReplyBotTargets(
     organizationId: string,
   ): Promise<ReplyBotTarget[]> {
-    const configs = await this.replyBotConfigsService.find({
-      isActive: true,
-      isDeleted: false,
-      organizationId,
-    });
+    const configs = await this.replyBotConfigsService.find(
+      scopedWhere(organizationId, { isActive: true }),
+    );
 
     const targets = new Map<string, ReplyBotTarget>();
 
@@ -281,12 +280,10 @@ export class ReplyPollingWorkflowService {
   ): Promise<Workflow[]> {
     const workflows = await this.prisma.workflow.findMany({
       take: 200,
-      where: {
-        isDeleted: false,
+      where: scopedWhere(organizationId, {
         lifecycle: WorkflowLifecycle.PUBLISHED as never,
-        organizationId,
         status: WorkflowStatus.ACTIVE as never,
-      },
+      }),
     });
 
     return workflows.filter((workflow) => {

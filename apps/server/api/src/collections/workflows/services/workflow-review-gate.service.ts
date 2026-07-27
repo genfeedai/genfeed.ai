@@ -15,6 +15,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { WorkflowExecutionStatus, WorkflowStatus } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import type {
   ExecutableWorkflow,
   ExecutionRunResult,
@@ -68,7 +69,7 @@ export class WorkflowReviewGateService {
       this.prisma.workflow,
       {
         select: EXECUTABLE_WORKFLOW_SELECT,
-        where: { id: workflowId, isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, { id: workflowId }),
       },
       'Workflow',
       workflowId,

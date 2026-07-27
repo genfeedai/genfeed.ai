@@ -10,6 +10,7 @@ import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defau
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { IngredientCategory } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -29,15 +30,16 @@ export class VoiceLibraryService {
       const publicMetadata = getPublicMetadata(user);
       const normalizedSearch = query.search?.trim();
       const sort = query.sort || 'metadata.label: 1, createdAt: -1';
-      const where: Record<string, unknown> = {
-        OR: [{ isCloned: true }, { externalVoiceCatalogId: { not: null } }],
-        brandId: publicMetadata.brand,
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.VOICE,
-        ),
-        isDeleted: false,
-        organizationId: publicMetadata.organization,
-      };
+      const where: Record<string, unknown> = scopedWhere(
+        publicMetadata.organization,
+        {
+          OR: [{ isCloned: true }, { externalVoiceCatalogId: { not: null } }],
+          brandId: publicMetadata.brand,
+          category: CategoryPrismaUtil.toIngredientCategory(
+            IngredientCategory.VOICE,
+          ),
+        },
+      );
 
       if (query.isDefault !== undefined) {
         where.isDefault = Boolean(query.isDefault);
@@ -102,14 +104,12 @@ export class VoiceLibraryService {
       return await this.voicesService.findAll(
         {
           orderBy: { createdAt: -1 as const },
-          where: {
+          where: scopedWhere(publicMetadata.organization, {
             category: CategoryPrismaUtil.toIngredientCategory(
               IngredientCategory.VOICE,
             ),
             isCloned: true,
-            isDeleted: false,
-            organizationId: publicMetadata.organization,
-          },
+          }),
         },
         options,
       );

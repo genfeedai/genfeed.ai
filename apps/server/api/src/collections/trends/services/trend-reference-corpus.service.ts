@@ -25,6 +25,7 @@ import { normalizeTrendSourceClassification } from '@api/collections/trends/util
 import { normalizeTrendSourceUrl } from '@api/collections/trends/utils/trend-source-url.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -117,11 +118,7 @@ export class TrendReferenceCorpusService {
       const ownedTrends = await this.prisma.trend.findMany({
         select: { id: true },
         take: trendIds.length,
-        where: {
-          id: { in: trendIds },
-          isDeleted: false,
-          organizationId: payload.organizationId,
-        },
+        where: scopedWhere(payload.organizationId, { id: { in: trendIds } }),
       });
 
       if (ownedTrends.length !== trendIds.length) {
@@ -254,11 +251,7 @@ export class TrendReferenceCorpusService {
       if (organizationId) {
         const trend = await this.prisma.trend.findFirst({
           select: { id: true },
-          where: {
-            id: options.trendId,
-            isDeleted: false,
-            organizationId,
-          },
+          where: scopedWhere(organizationId, { id: options.trendId }),
         });
 
         if (!trend) {

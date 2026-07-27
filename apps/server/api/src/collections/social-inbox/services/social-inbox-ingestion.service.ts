@@ -25,6 +25,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { PostStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { Injectable, Optional } from '@nestjs/common';
 
 const WORKFLOW_TRIGGER_CLAIM_TIMEOUT_MS = 5 * 60 * 1000;
@@ -67,12 +68,10 @@ export class SocialInboxIngestionService {
     });
 
     const existing = await this.prisma.socialMessage.findFirst({
-      where: {
+      where: scopedWhere(input.organizationId, {
         externalMessageId: input.externalMessageId,
-        isDeleted: false,
-        organizationId: input.organizationId,
         platform,
-      },
+      }),
     });
 
     if (existing) {
@@ -118,12 +117,10 @@ export class SocialInboxIngestionService {
         throw error;
       }
       const winner = await this.prisma.socialMessage.findFirst({
-        where: {
+        where: scopedWhere(input.organizationId, {
           externalMessageId: input.externalMessageId,
-          isDeleted: false,
-          organizationId: input.organizationId,
           platform,
-        },
+        }),
       });
       if (!winner) {
         throw error;
@@ -170,15 +167,13 @@ export class SocialInboxIngestionService {
       const posts = await this.prisma.post.findMany({
         orderBy: { publishedAt: 'desc' },
         take: 20,
-        where: {
+        where: scopedWhere(scope.organizationId, {
           brandId: credential.brandId ?? undefined,
           credentialId: credential.id,
           externalId: { not: null },
-          isDeleted: false,
-          organizationId: scope.organizationId,
           platform: 'youtube',
           status: { in: [PostStatus.PUBLIC] },
-        },
+        }),
       });
 
       for (const post of posts) {
@@ -273,23 +268,19 @@ export class SocialInboxIngestionService {
       uniqueThreadIds.length
         ? this.prisma.socialConversation.findMany({
             select: { externalConversationId: true },
-            where: {
+            where: scopedWhere(organizationId, {
               externalConversationId: { in: uniqueThreadIds },
-              isDeleted: false,
-              organizationId,
               platform: 'youtube',
-            },
+            }),
           })
         : Promise.resolve([]),
       uniqueCommentIds.length
         ? this.prisma.socialMessage.findMany({
             select: { externalMessageId: true },
-            where: {
+            where: scopedWhere(organizationId, {
               externalMessageId: { in: uniqueCommentIds },
-              isDeleted: false,
-              organizationId,
               platform: 'youtube',
-            },
+            }),
           })
         : Promise.resolve([]),
     ]);
@@ -313,14 +304,12 @@ export class SocialInboxIngestionService {
     credentialId?: string,
   ) {
     return this.prisma.credential.findMany({
-      where: {
+      where: scopedWhere(scope.organizationId, {
         ...(credentialId ? { id: credentialId } : {}),
         ...(scope.brandId ? { brandId: scope.brandId } : {}),
         isConnected: true,
-        isDeleted: false,
-        organizationId: scope.organizationId,
         platform: PrismaCredentialPlatform.YOUTUBE,
-      },
+      }),
     });
   }
 
@@ -333,12 +322,10 @@ export class SocialInboxIngestionService {
     },
   ): Promise<SocialConversationDocument> {
     const existing = await this.prisma.socialConversation.findFirst({
-      where: {
+      where: scopedWhere(input.organizationId, {
         externalConversationId: input.externalConversationId,
-        isDeleted: false,
-        organizationId: input.organizationId,
         platform: input.platform,
-      },
+      }),
     });
 
     if (existing) {
@@ -390,12 +377,10 @@ export class SocialInboxIngestionService {
         throw error;
       }
       const winner = await this.prisma.socialConversation.findFirst({
-        where: {
+        where: scopedWhere(input.organizationId, {
           externalConversationId: input.externalConversationId,
-          isDeleted: false,
-          organizationId: input.organizationId,
           platform: input.platform,
-        },
+        }),
       });
       if (!winner) {
         throw error;
@@ -473,11 +458,9 @@ export class SocialInboxIngestionService {
         workflowTriggerJobId: jobId,
         workflowTriggerStatus: 'enqueueing',
       },
-      where: {
+      where: scopedWhere(input.organizationId, {
         conversationId: conversation.id,
         id: message.id,
-        isDeleted: false,
-        organizationId: input.organizationId,
         OR: [
           { workflowTriggerStatus: null },
           { workflowTriggerStatus: { in: ['pending', 'failed'] } },
@@ -486,7 +469,7 @@ export class SocialInboxIngestionService {
             workflowTriggerStatus: 'enqueueing',
           },
         ],
-      },
+      }),
     });
 
     return claim.count === 0 ? null : { attemptedAt, jobId };
@@ -546,25 +529,19 @@ export class SocialInboxIngestionService {
           workflowTriggerError: errorMessage,
           workflowTriggerStatus: 'failed',
         },
-        where: {
+        where: scopedWhere(input.organizationId, {
           conversationId: conversation.id,
           id: message.id,
-          isDeleted: false,
-          organizationId: input.organizationId,
           workflowTriggerAttemptedAt: attemptedAt,
           workflowTriggerStatus: 'enqueueing',
-        },
+        }),
       });
       if (finalized.count === 0) {
         return;
       }
 
       const freshConversation = await transaction.socialConversation.findFirst({
-        where: {
-          id: conversation.id,
-          isDeleted: false,
-          organizationId: input.organizationId,
-        },
+        where: scopedWhere(input.organizationId, { id: conversation.id }),
       });
       if (!freshConversation) {
         return;
@@ -579,11 +556,7 @@ export class SocialInboxIngestionService {
             workflowTriggerFailedAt: new Date().toISOString(),
           } as Prisma.InputJsonValue,
         },
-        where: {
-          id: conversation.id,
-          isDeleted: false,
-          organizationId: input.organizationId,
-        },
+        where: scopedWhere(input.organizationId, { id: conversation.id }),
       });
     });
   }
@@ -604,25 +577,19 @@ export class SocialInboxIngestionService {
           workflowTriggerQueuedAt: queuedAt,
           workflowTriggerStatus: 'queued',
         },
-        where: {
+        where: scopedWhere(input.organizationId, {
           conversationId: conversation.id,
           id: message.id,
-          isDeleted: false,
-          organizationId: input.organizationId,
           workflowTriggerAttemptedAt: attemptedAt,
           workflowTriggerStatus: 'enqueueing',
-        },
+        }),
       });
       if (finalized.count === 0) {
         return;
       }
 
       const freshConversation = await transaction.socialConversation.findFirst({
-        where: {
-          id: conversation.id,
-          isDeleted: false,
-          organizationId: input.organizationId,
-        },
+        where: scopedWhere(input.organizationId, { id: conversation.id }),
       });
       if (!freshConversation) {
         return;
@@ -644,11 +611,7 @@ export class SocialInboxIngestionService {
             workflowTriggerFailedAt: null,
           } as Prisma.InputJsonValue,
         },
-        where: {
-          id: conversation.id,
-          isDeleted: false,
-          organizationId: input.organizationId,
-        },
+        where: scopedWhere(input.organizationId, { id: conversation.id }),
       });
     });
   }

@@ -12,12 +12,17 @@ import { Test, TestingModule } from '@nestjs/testing';
 import type { Request, Response } from 'express';
 
 // Mock serializers to avoid real serialization in unit tests
-vi.mock('@genfeedai/serializers', () => ({
-  TrackedLinkSerializer: {
-    opts: {},
-    serialize: vi.fn((data) => data),
-  },
-}));
+vi.mock('@genfeedai/serializers', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@genfeedai/serializers')>();
+  return {
+    ...actual,
+    TrackedLinkSerializer: {
+      opts: {},
+      serialize: vi.fn((data) => data),
+    },
+  };
+});
 
 // Mock response util to return data directly
 vi.mock('@api/helpers/utils/response/response.util', () => ({
