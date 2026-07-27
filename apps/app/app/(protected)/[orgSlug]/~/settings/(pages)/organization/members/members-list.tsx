@@ -19,18 +19,13 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { MembersService } from '@services/organization/members.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import AppTable from '@ui/display/table/Table';
-import Container from '@ui/layout/container/Container';
 import { LazyModalMember } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useState } from 'react';
-import {
-  HiOutlineLockClosed,
-  HiOutlineUsers,
-  HiUserPlus,
-} from 'react-icons/hi2';
+import { HiOutlineLockClosed, HiUserPlus } from 'react-icons/hi2';
 
 function formatTierLabel(tier: string | null): string {
   if (!tier) {
@@ -122,19 +117,17 @@ function MembersListContent() {
   const upgradeTierLabel = formatTierLabel(upgradeTier);
 
   return (
-    <Container
-      label="Team Members"
-      icon={HiOutlineUsers}
-      right={
-        isTeamSubscriptionLocked ? undefined : (
+    <div className="space-y-4">
+      {!isTeamSubscriptionLocked ? (
+        <div className="flex justify-end">
           <Button
             onClick={() => openModal(ModalEnum.MEMBER)}
             icon={<HiUserPlus className="size-4" />}
             label="Invite Member"
           />
-        )
-      }
-    >
+        </div>
+      ) : null}
+
       {isTeamSubscriptionLocked ? (
         <CardEmpty
           actions={
@@ -169,7 +162,7 @@ function MembersListContent() {
           />
         </>
       )}
-    </Container>
+    </div>
   );
 }
 

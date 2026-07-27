@@ -7,12 +7,15 @@ import Image from 'next/image';
 import { memo } from 'react';
 
 const VARIANT_CLASSES: Record<CardVariant, string> = {
-  [CardVariant.DEFAULT]:
-    'shadow-border bg-card text-card-foreground hover:shadow-border-strong',
-  [CardVariant.WHITE]:
-    'border border-black/[0.08] bg-white text-black hover:border-black/[0.14]',
-  [CardVariant.BLACK]:
-    'border border-white/[0.08] bg-black text-white hover:border-white/[0.16]',
+  [CardVariant.DEFAULT]: 'shadow-border bg-card text-card-foreground',
+  [CardVariant.WHITE]: 'border border-black/[0.08] bg-white text-black',
+  [CardVariant.BLACK]: 'border border-white/[0.08] bg-black text-white',
+};
+
+const INTERACTIVE_VARIANT_CLASSES: Record<CardVariant, string> = {
+  [CardVariant.DEFAULT]: 'hover:shadow-border-strong',
+  [CardVariant.WHITE]: 'hover:border-black/[0.14]',
+  [CardVariant.BLACK]: 'hover:border-white/[0.16]',
 };
 
 const Card = memo(function Card({
@@ -37,7 +40,7 @@ const Card = memo(function Card({
     'relative overflow-hidden rounded-card text-left transition-[border-color,background-color] duration-150 ease-out',
     VARIANT_CLASSES[variant],
     figure && 'flex flex-row',
-    onClick && 'cursor-pointer',
+    onClick && ['cursor-pointer', INTERACTIVE_VARIANT_CLASSES[variant]],
     className,
   );
 
