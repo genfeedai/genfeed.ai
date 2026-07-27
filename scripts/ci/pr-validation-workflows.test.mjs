@@ -17,6 +17,7 @@ const CANCELLABLE_PULL_REQUEST_WORKFLOWS = [
   'deploy-scripts-ci.yml',
   'desktop-qa.yml',
   'link-check.yml',
+  'pr-full-suite.yml',
   'selfhosted-install-smoke.yml',
   'server-image-pr.yml',
 ];
@@ -180,6 +181,23 @@ test('server image PR validation bounds cache export without changing reachabili
   );
   assert.doesNotMatch(workflow, /cache-to: type=gha,mode=max/);
   assert.match(workflow, /^permissions:\n {2}contents: read$/m);
+});
+
+test('ordinary labels do not restart CI and full-suite has an isolated dispatcher', () => {
+  const ci = readWorkflow('ci.yml');
+  const dispatcher = readWorkflow('pr-full-suite.yml');
+
+  assert.match(ci, /^ {4}types: \[opened, synchronize, reopened\]$/m);
+  assert.doesNotMatch(ci, /\b(?:labeled|unlabeled)\b/);
+  assert.match(
+    ci,
+    /--run-heavy "\$\{\{ inputs\.run_heavy_tests \|\| contains\(github\.event\.pull_request\.labels\.\*\.name, 'full-suite'\) \}\}"/,
+  );
+
+  assert.match(dispatcher, /^ {4}types: \[labeled\]$/m);
+  assert.match(dispatcher, /if: github\.event\.label\.name == 'full-suite'/);
+  assert.match(dispatcher, /uses: \.\/\.github\/workflows\/ci\.yml/);
+  assert.match(dispatcher, /^ {6}run_heavy_tests: true$/m);
 });
 
 test('selects the newest eligible tracker strictly by closed_at', () => {

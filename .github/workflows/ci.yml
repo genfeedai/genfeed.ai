@@ -5,10 +5,7 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
-    # `labeled`/`unlabeled` on top of the defaults so adding/removing the
-    # `full-suite` label re-runs CI (flipping a PR between focused and full
-    # tests) without needing a new push.
-    types: [opened, synchronize, reopened, labeled, unlabeled]
+    types: [opened, synchronize, reopened]
   # Allow this gate to be run as a reusable workflow (e.g. by full-suite.yml,
   # which chains CI → E2E on demand). Secrets are inherited.
   workflow_call:
@@ -199,6 +196,8 @@ jobs:
         run: bun run check:public-packages
       - name: Package Release Scripts
         run: bunx vitest run --config scripts/package-release/vitest.config.ts
+      - name: CI Workflow Contracts
+        run: node --test scripts/ci/pr-test-plan.test.mjs scripts/ci/pr-validation-workflows.test.mjs scripts/ci/tests-gate.test.mjs
       # Fail the build if the committed Prisma model metadata (enum-field-map)
       # has drifted from schema.prisma — soft-delete filtering + enum
       # normalization under the Prisma 7 driver adapter depend on it, and it
@@ -279,56 +278,60 @@ jobs:
   # unreachable, including on the full-suite run). Fast PR/master-push checks
   # (format, lint, typecheck, design, build) stay ungated above.
   test-scope:
-    name: Test Scope
+    name: Test Plan
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     needs: trust
-    # Runs on every event: workflow_call (release/full-suite), pull_request, and
-    # push. The focused `*-changed` gates read `app`/`api`; full sharded matrices
-    # are opt-in through release QA or the `full-suite` PR label.
+    # Plan before allocating test runners. Vitest supplies the exact affected
+    # app/API files; Turbo supplies affected workspace tasks. Validation
+    # machinery and root dependency changes escalate to the full sharded path.
     if: needs.trust.outputs.is-trusted == 'true'
     outputs:
-      app: ${{ steps.scope.outputs.app }}
-      api: ${{ steps.scope.outputs.api }}
+      app: ${{ steps.plan.outputs.app }}
+      api: ${{ steps.plan.outputs.api }}
+      app_tests: ${{ steps.plan.outputs.app_tests }}
+      api_tests: ${{ steps.plan.outputs.api_tests }}
+      app_count: ${{ steps.plan.outputs.app_count }}
+      api_count: ${{ steps.plan.outputs.api_count }}
+      app_matrix: ${{ steps.plan.outputs.app_matrix }}
+      api_matrix: ${{ steps.plan.outputs.api_matrix }}
+      force_full: ${{ steps.plan.outputs.force_full }}
+      packages: ${{ steps.plan.outputs.packages }}
+      server_services: ${{ steps.plan.outputs.server_services }}
+      web_desktop_mobile: ${{ steps.plan.outputs.web_desktop_mobile }}
+      extensions: ${{ steps.plan.outputs.extensions }}
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - name: Detect app/API test scope
-        id: scope
-        run: |
-          if [ "${{ github.event_name }}" != "pull_request" ]; then
-            echo "app=true" >> "$GITHUB_OUTPUT"
-            echo "api=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          CHANGED_FILES=$(git diff --name-only --diff-filter=ACMR "${{ github.event.pull_request.base.sha }}" HEAD)
-
-          if echo "$CHANGED_FILES" | grep -E '^(apps/app|packages/|package\.json|bun\.lock|turbo\.json|vitest\.config\.ts|\.github/workflows/ci\.yml)' >/dev/null; then
-            echo "app=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "app=false" >> "$GITHUB_OUTPUT"
-          fi
-
-          # `ee/` is included because ee/packages/billing controllers are
-          # composed into the API at build (webpack @billing-providers alias),
-          # so an EE-only route change must trigger the API scope — otherwise
-          # the OpenAPI spec-drift gate (openapi-drift job) would miss it.
-          if echo "$CHANGED_FILES" | grep -E '^(apps/server/api|ee/|packages/|package\.json|bun\.lock|turbo\.json|vitest\.config\.ts|\.github/workflows/ci\.yml)' >/dev/null; then
-            echo "api=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "api=false" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Setup Bun environment
+        if: >-
+          inputs.run_heavy_tests != true
+          && !contains(github.event.pull_request.labels.*.name, 'full-suite')
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: '1.3.14'
+      - name: Compute affected test plan
+        id: plan
+        run: node scripts/ci/pr-test-plan.mjs --event "${{ github.event_name }}" --base "${{ github.event.pull_request.base.sha || github.event.before }}" --run-heavy "${{ inputs.run_heavy_tests || contains(github.event.pull_request.labels.*.name, 'full-suite') }}"
+      - name: Upload pull-request test plan
+        if: github.event_name == 'pull_request' && steps.plan.outcome == 'success'
+        uses: actions/upload-artifact@v7
+        with:
+          name: pr-test-plan-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
+          path: ${{ steps.plan.outputs.manifest }}
+          retention-days: 7
 
   test-packages:
     name: Test Packages
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: trust
-    # Affected-only on PRs (the run step scopes to `turbo --affected`), full on
-    # the release/deploy path (run_heavy_tests).
-    if: needs.trust.outputs.is-trusted == 'true' && (inputs.run_heavy_tests || github.event_name == 'pull_request')
+    needs: [trust, test-scope]
+    if: >-
+      needs.trust.outputs.is-trusted == 'true'
+      && (inputs.run_heavy_tests
+        || (github.event_name == 'pull_request'
+          && needs.test-scope.outputs.packages == 'true'))
     steps:
       - uses: actions/checkout@v5
         with:
@@ -339,20 +342,22 @@ jobs:
           bun-version: '1.3.14'
       - name: Run tests
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run test --affected --filter='./packages/*' --filter='./ee/packages/*'
-          else
+          if [ "${{ needs.test-scope.outputs.force_full }}" = "true" ]; then
             bunx turbo run test --filter='./packages/*' --filter='./ee/packages/*'
+          else
+            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run test --affected --filter='./packages/*' --filter='./ee/packages/*'
           fi
 
   test-server-services:
     name: Test Server Services
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: trust
-    # Affected-only on PRs (the run step scopes to `turbo --affected`), full on
-    # the release/deploy path (run_heavy_tests).
-    if: needs.trust.outputs.is-trusted == 'true' && (inputs.run_heavy_tests || github.event_name == 'pull_request')
+    needs: [trust, test-scope]
+    if: >-
+      needs.trust.outputs.is-trusted == 'true'
+      && (inputs.run_heavy_tests
+        || (github.event_name == 'pull_request'
+          && needs.test-scope.outputs.server_services == 'true'))
     steps:
       - uses: actions/checkout@v5
         with:
@@ -363,20 +368,22 @@ jobs:
           bun-version: '1.3.14'
       - name: Run server service tests
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run test --affected --filter='./apps/server/*' --filter='!@genfeedai/api'
-          else
+          if [ "${{ needs.test-scope.outputs.force_full }}" = "true" ]; then
             bunx turbo run test --filter='./apps/server/*' --filter='!@genfeedai/api'
+          else
+            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run test --affected --filter='./apps/server/*' --filter='!@genfeedai/api'
           fi
 
   test-web-desktop-mobile:
     name: Test Web, Desktop, Mobile
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: trust
-    # Affected-only on PRs (the run step scopes to `turbo --affected`), full on
-    # the release/deploy path (run_heavy_tests).
-    if: needs.trust.outputs.is-trusted == 'true' && (inputs.run_heavy_tests || github.event_name == 'pull_request')
+    needs: [trust, test-scope]
+    if: >-
+      needs.trust.outputs.is-trusted == 'true'
+      && (inputs.run_heavy_tests
+        || (github.event_name == 'pull_request'
+          && needs.test-scope.outputs.web_desktop_mobile == 'true'))
     steps:
       - uses: actions/checkout@v5
         with:
@@ -387,20 +394,22 @@ jobs:
           bun-version: '1.3.14'
       - name: Run web, desktop, and mobile tests
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run test --affected --filter=@genfeedai/website --filter=@genfeedai/docs --filter=@genfeedai/desktop --filter=@genfeedai/mobile
-          else
+          if [ "${{ needs.test-scope.outputs.force_full }}" = "true" ]; then
             bunx turbo run test --filter=@genfeedai/website --filter=@genfeedai/docs --filter=@genfeedai/desktop --filter=@genfeedai/mobile
+          else
+            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run test --affected --filter=@genfeedai/website --filter=@genfeedai/docs --filter=@genfeedai/desktop --filter=@genfeedai/mobile
           fi
 
   test-extensions:
     name: Test Extensions
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: trust
-    # Affected-only on PRs (the run step scopes to `turbo --affected`), full on
-    # the release/deploy path (run_heavy_tests).
-    if: needs.trust.outputs.is-trusted == 'true' && (inputs.run_heavy_tests || github.event_name == 'pull_request')
+    needs: [trust, test-scope]
+    if: >-
+      needs.trust.outputs.is-trusted == 'true'
+      && (inputs.run_heavy_tests
+        || (github.event_name == 'pull_request'
+          && needs.test-scope.outputs.extensions == 'true'))
     steps:
       - uses: actions/checkout@v5
         with:
@@ -411,10 +420,10 @@ jobs:
           bun-version: '1.3.14'
       - name: Run extension tests
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run test --affected --filter=@genfeedai/extension-browser --filter=extension-ide
-          else
+          if [ "${{ needs.test-scope.outputs.force_full }}" = "true" ]; then
             bunx turbo run test --filter=@genfeedai/extension-browser --filter=extension-ide
+          else
+            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run test --affected --filter=@genfeedai/extension-browser --filter=extension-ide
           fi
 
   test-app:
@@ -422,13 +431,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [trust, test-scope]
-    # Full sharded suite is explicit: release/deploy QA (`run_heavy_tests`) or a
-    # PR carrying the `full-suite` label. Ordinary PRs use changed tests only.
+    # Full sharded suite is explicit: release/deploy QA or a planner escalation
+    # for validation machinery and root dependency changes.
     if: >-
       needs.trust.outputs.is-trusted == 'true'
       && needs.test-scope.outputs.app == 'true'
-      && (inputs.run_heavy_tests
-        || contains(github.event.pull_request.labels.*.name, 'full-suite'))
+      && needs.test-scope.outputs.force_full == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -448,29 +456,26 @@ jobs:
         env:
           NODE_ENV: test
 
-  # Focused, blocking app tests on master push and every ordinary PR: runs
-  # only the @genfeedai/app tests whose module graph touches the diff
-  # (vitest --changed), so it stays fast while pinning any regression to the
-  # single PR/merge that introduced it. Labeled PRs and the release/deploy path
-  # run the full sharded `test-app` matrix above instead, which catches
-  # cross-cutting tests that --changed's static graph can miss (e.g.
-  # filesystem-scan contracts).
+  # Focused, blocking app tests on master push and every ordinary PR. The
+  # planner counts the exact Vitest changed graph and selects one, two, or four
+  # shards. Full-suite workflow calls and validation-machinery changes use the
+  # static full matrix above.
   test-app-changed:
-    name: Test App (changed)
+    name: Test App (changed shard ${{ matrix.shard }}/${{ matrix.total }})
     runs-on: ubuntu-latest
     # Setup/build currently consume ~3 minutes before the changed Vitest graph
     # starts. Keep parity with the API changed-test job so a healthy app suite
     # is not cancelled while its assertions are still running.
     timeout-minutes: 30
     needs: [trust, test-scope]
-    # Focused per-diff tests: master push (post-merge) and every PR without the
-    # `full-suite` label. Labeled PRs run the full matrix, avoiding double work.
     if: >-
       needs.trust.outputs.is-trusted == 'true'
-      && needs.test-scope.outputs.app == 'true'
-      && (github.event_name == 'push'
-        || (github.event_name == 'pull_request'
-          && !contains(github.event.pull_request.labels.*.name, 'full-suite')))
+      && needs.test-scope.outputs.app_tests == 'true'
+      && needs.test-scope.outputs.force_full != 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.test-scope.outputs.app_matrix) }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -491,30 +496,27 @@ jobs:
           fi
           echo "Running app tests changed since $BASE"
           cd apps/app && bunx vitest run --config ./vitest.config.mts \
-            --maxWorkers=2 --passWithNoTests --changed "$BASE"
+            --maxWorkers=2 --passWithNoTests --changed "$BASE" \
+            --shard=${{ matrix.shard }}/${{ matrix.total }}
         env:
           NODE_ENV: test
 
-  # Focused, blocking API tests on master push and every ordinary PR:
-  # mirrors test-app-changed for apps/server/api — runs only the API tests whose
-  # module graph touches the diff (vitest --changed), so it stays fast while
-  # pinning any regression to the single PR/merge that introduced it. Labeled
-  # PRs and the release/deploy path run the full sharded test-api matrix below
-  # instead, which catches cross-cutting tests the --changed static graph can
-  # miss.
+  # Focused, blocking API tests mirror the app planner. Large changed graphs are
+  # sharded rather than serialized on one two-worker runner; full-suite workflow
+  # calls and validation-machinery changes use the static full matrix below.
   test-api-changed:
-    name: Test API (changed)
+    name: Test API (changed shard ${{ matrix.shard }}/${{ matrix.total }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [trust, test-scope]
-    # Focused per-diff tests: master push (post-merge) and every PR without the
-    # `full-suite` label. Labeled PRs run the full matrix, avoiding double work.
     if: >-
       needs.trust.outputs.is-trusted == 'true'
-      && needs.test-scope.outputs.api == 'true'
-      && (github.event_name == 'push'
-        || (github.event_name == 'pull_request'
-          && !contains(github.event.pull_request.labels.*.name, 'full-suite')))
+      && needs.test-scope.outputs.api_tests == 'true'
+      && needs.test-scope.outputs.force_full != 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.test-scope.outputs.api_matrix) }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -535,7 +537,8 @@ jobs:
           fi
           echo "Running API tests changed since $BASE"
           cd apps/server/api && bunx vitest run --config vitest.config.ts \
-            --maxWorkers=2 --passWithNoTests --changed "$BASE"
+            --maxWorkers=2 --passWithNoTests --changed "$BASE" \
+            --shard=${{ matrix.shard }}/${{ matrix.total }}
         env:
           NODE_ENV: test
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
@@ -545,13 +548,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [trust, test-scope]
-    # Full sharded suite is explicit: release/deploy QA (`run_heavy_tests`) or a
-    # PR carrying the `full-suite` label. Ordinary PRs use changed tests only.
+    # Full sharded suite is explicit: release/deploy QA or a planner escalation
+    # for validation machinery and root dependency changes.
     if: >-
       needs.trust.outputs.is-trusted == 'true'
       && needs.test-scope.outputs.api == 'true'
-      && (inputs.run_heavy_tests
-        || contains(github.event.pull_request.labels.*.name, 'full-suite'))
+      && needs.test-scope.outputs.force_full == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -635,8 +637,8 @@ jobs:
   # Stable aggregate for the test/build portion of pull-request CI. Every
   # upstream job is declared explicitly so an expression error that leaves an
   # applicable job skipped cannot produce a false-green gate. Full-suite and
-  # changed-test jobs are mutually exclusive; scope-filtered skips are accepted
-  # only when the scope detector marked them non-applicable.
+  # changed-test jobs are mutually exclusive; plan-filtered skips are accepted
+  # only when the exact test plan marked them non-applicable.
   tests-gate:
     name: Tests Gate
     runs-on: ubuntu-latest
@@ -661,7 +663,13 @@ jobs:
         env:
           TEST_SCOPE_APP: ${{ needs.test-scope.outputs.app }}
           TEST_SCOPE_API: ${{ needs.test-scope.outputs.api }}
-          FULL_SUITE: ${{ contains(github.event.pull_request.labels.*.name, 'full-suite') }}
+          TEST_SCOPE_APP_TESTS: ${{ needs.test-scope.outputs.app_tests }}
+          TEST_SCOPE_API_TESTS: ${{ needs.test-scope.outputs.api_tests }}
+          TEST_SCOPE_PACKAGES: ${{ needs.test-scope.outputs.packages }}
+          TEST_SCOPE_SERVER_SERVICES: ${{ needs.test-scope.outputs.server_services }}
+          TEST_SCOPE_WEB_DESKTOP_MOBILE: ${{ needs.test-scope.outputs.web_desktop_mobile }}
+          TEST_SCOPE_EXTENSIONS: ${{ needs.test-scope.outputs.extensions }}
+          FULL_SUITE: ${{ needs.test-scope.outputs.force_full }}
           TEST_SCOPE_RESULT: ${{ needs.test-scope.result }}
           TEST_PACKAGES_RESULT: ${{ needs.test-packages.result }}
           TEST_SERVER_SERVICES_RESULT: ${{ needs.test-server-services.result }}

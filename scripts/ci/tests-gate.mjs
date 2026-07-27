@@ -4,12 +4,19 @@ import { pathToFileURL } from 'node:url';
 
 const VALID_RESULTS = new Set(['success', 'failure', 'cancelled', 'skipped']);
 
-const ALWAYS_APPLICABLE_JOBS = [
-  ['Package tests', 'TEST_PACKAGES_RESULT'],
-  ['Server-service tests', 'TEST_SERVER_SERVICES_RESULT'],
-  ['Web, desktop, and mobile tests', 'TEST_WEB_DESKTOP_MOBILE_RESULT'],
-  ['Extension tests', 'TEST_EXTENSIONS_RESULT'],
-  ['Build', 'BUILD_RESULT'],
+const SCOPED_WORKSPACE_JOBS = [
+  ['Package tests', 'TEST_PACKAGES_RESULT', 'TEST_SCOPE_PACKAGES'],
+  [
+    'Server-service tests',
+    'TEST_SERVER_SERVICES_RESULT',
+    'TEST_SCOPE_SERVER_SERVICES',
+  ],
+  [
+    'Web, desktop, and mobile tests',
+    'TEST_WEB_DESKTOP_MOBILE_RESULT',
+    'TEST_SCOPE_WEB_DESKTOP_MOBILE',
+  ],
+  ['Extension tests', 'TEST_EXTENSIONS_RESULT', 'TEST_SCOPE_EXTENSIONS'],
 ];
 
 function parseBoolean(value, name, allowEmpty = false) {
@@ -41,6 +48,16 @@ export function createTestsGateJobs(env) {
     'TEST_SCOPE_API',
     allowEmptyScope,
   );
+  const appTests = parseBoolean(
+    env.TEST_SCOPE_APP_TESTS,
+    'TEST_SCOPE_APP_TESTS',
+    allowEmptyScope,
+  );
+  const apiTests = parseBoolean(
+    env.TEST_SCOPE_API_TESTS,
+    'TEST_SCOPE_API_TESTS',
+    allowEmptyScope,
+  );
   const fullSuite = parseBoolean(env.FULL_SUITE, 'FULL_SUITE');
 
   return [
@@ -49,11 +66,16 @@ export function createTestsGateJobs(env) {
       result: testScopeResult,
       applicable: true,
     },
-    ...ALWAYS_APPLICABLE_JOBS.map(([name, key]) => ({
+    ...SCOPED_WORKSPACE_JOBS.map(([name, resultKey, scopeKey]) => ({
       name,
-      result: readResult(env, key),
-      applicable: true,
+      result: readResult(env, resultKey),
+      applicable: parseBoolean(env[scopeKey], scopeKey, allowEmptyScope),
     })),
+    {
+      name: 'Build',
+      result: readResult(env, 'BUILD_RESULT'),
+      applicable: true,
+    },
     {
       name: 'App tests (full matrix)',
       result: readResult(env, 'TEST_APP_RESULT'),
@@ -62,7 +84,7 @@ export function createTestsGateJobs(env) {
     {
       name: 'App tests (changed)',
       result: readResult(env, 'TEST_APP_CHANGED_RESULT'),
-      applicable: appScope && !fullSuite,
+      applicable: appTests && !fullSuite,
     },
     {
       name: 'API tests (full matrix)',
@@ -72,7 +94,7 @@ export function createTestsGateJobs(env) {
     {
       name: 'API tests (changed)',
       result: readResult(env, 'TEST_API_CHANGED_RESULT'),
-      applicable: apiScope && !fullSuite,
+      applicable: apiTests && !fullSuite,
     },
     {
       name: 'OpenAPI spec drift',
