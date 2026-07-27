@@ -24,6 +24,7 @@ import { OrganizationsModule } from '@api/collections/organizations/organization
 import { OutreachCampaignsModule } from '@api/collections/outreach-campaigns/outreach-campaigns.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
+import { PostAnalyticsCollectionStateService } from '@api/collections/posts/services/post-analytics-collection-state.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { ReplyBotConfigsModule } from '@api/collections/reply-bot-configs/reply-bot-configs.module';
 import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
@@ -176,6 +177,10 @@ import { AdsServicesModule } from '@workers/services/ads-services.module';
     {
       provide: SERVER_TOKENS.credentials,
       useExisting: CredentialsService,
+    },
+    {
+      provide: SERVER_TOKENS.analyticsCollectionState,
+      useExisting: PostAnalyticsCollectionStateService,
     },
     {
       provide: SERVER_TOKENS.instagram,

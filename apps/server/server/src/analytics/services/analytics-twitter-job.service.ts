@@ -1,14 +1,20 @@
+import { CredentialPlatform } from '@genfeedai/enums';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import type { TwitterAnalyticsJobData } from '@genfeedai/queue-contracts';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   SERVER_TOKENS,
+  type ServerAnalyticsCollectionState,
   type ServerCredentialStore,
   type ServerLogger,
   type ServerPostAnalytics,
   type ServerTwitterAnalytics,
 } from '@server/server.dependencies';
+import {
+  classifyAnalyticsCollectionError,
+  delayedAnalyticsCollectionFailure,
+} from '../analytics-collection-state';
 import type { AnalyticsQueueJob } from '../analytics-job.types';
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -24,6 +30,8 @@ export class AnalyticsTwitterJobService {
     private readonly postAnalyticsService: ServerPostAnalytics,
     @Inject(SERVER_TOKENS.credentials)
     private readonly credentialsService: ServerCredentialStore,
+    @Inject(SERVER_TOKENS.analyticsCollectionState)
+    private readonly analyticsCollectionState: ServerAnalyticsCollectionState,
     @Inject(SERVER_TOKENS.logger)
     private readonly logger: ServerLogger,
   ) {}
@@ -73,12 +81,29 @@ export class AnalyticsTwitterJobService {
             post.id,
             analytics,
           );
+          await this.analyticsCollectionState.markReady({
+            attemptKey: job.data.attemptKey,
+            brandId: post.brand,
+            id: post.id,
+            organizationId: post.organization,
+            platform: CredentialPlatform.TWITTER,
+          });
           processed++;
           continue;
         }
 
         this.logger.warn(
           `No analytics found for tweet ${post.externalId} (post ${post.id})`,
+        );
+        await this.analyticsCollectionState.markFailed(
+          {
+            attemptKey: job.data.attemptKey,
+            brandId: post.brand,
+            id: post.id,
+            organizationId: post.organization,
+            platform: CredentialPlatform.TWITTER,
+          },
+          delayedAnalyticsCollectionFailure('Twitter'),
         );
       }
 
@@ -88,6 +113,21 @@ export class AnalyticsTwitterJobService {
         `Twitter analytics batch completed - processed ${processed}/${posts.length} posts`,
       );
     } catch (error: unknown) {
+      const failure = classifyAnalyticsCollectionError(error, 'Twitter');
+      await Promise.all(
+        posts.map((post) =>
+          this.analyticsCollectionState.markFailed(
+            {
+              attemptKey: job.data.attemptKey,
+              brandId: post.brand,
+              id: post.id,
+              organizationId: post.organization,
+              platform: CredentialPlatform.TWITTER,
+            },
+            failure,
+          ),
+        ),
+      );
       if (!this.isRateLimitError(error)) {
         this.logger.error(
           `Failed to process Twitter analytics batch for ${posts.length} posts`,

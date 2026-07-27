@@ -1,5 +1,6 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
+import { PostAnalyticsCollectionStateService } from '@api/collections/posts/services/post-analytics-collection-state.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { CredentialPlatform } from '@genfeedai/enums';
@@ -15,6 +16,7 @@ import {
 } from '@libs/utils/circuit-breaker/circuit-breaker.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { classifyAnalyticsCollectionError } from '@server/analytics/analytics-collection-state';
 import { Job } from 'bullmq';
 
 @Processor(ANALYTICS_FACEBOOK_QUEUE)
@@ -26,6 +28,7 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
     private readonly credentialsService: CredentialsService,
     private readonly facebookService: FacebookService,
     private readonly postAnalyticsService: PostAnalyticsService,
+    private readonly analyticsCollectionState: PostAnalyticsCollectionStateService,
     private readonly postsService: PostsService,
     private readonly logger: LoggerService,
   ) {
@@ -84,10 +87,10 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
           );
 
           if (!credential?.accessToken) {
-            this.logger.warn(
-              `No Facebook credential found for post ${post.id}`,
+            throw Object.assign(
+              new Error(`No Facebook credential found for post ${post.id}`),
+              { status: 401 },
             );
-            continue;
           }
 
           const decryptedAccessToken = EncryptionUtil.decrypt(
@@ -108,6 +111,13 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
             shares: analytics.shares,
             views: analytics.views,
           });
+          await this.analyticsCollectionState.markReady({
+            attemptKey: job.data.attemptKey,
+            brandId: post.brand,
+            id: post.id,
+            organizationId: post.organization,
+            platform: post.platform,
+          });
           processed++;
 
           // Rate limiting delay
@@ -115,18 +125,33 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
             await this.delay(this.DEFAULT_DELAY_MS);
           }
         } catch (error: unknown) {
+          const failure = classifyAnalyticsCollectionError(error, 'Facebook');
           this.logger.error(
             `Failed to fetch Facebook analytics for post ${post.id}`,
             error,
           );
 
-          // Disable analytics for this post to prevent repeated failures
+          await this.analyticsCollectionState.markFailed(
+            {
+              attemptKey: job.data.attemptKey,
+              brandId: post.brand,
+              id: post.id,
+              organizationId: post.organization,
+              platform: post.platform,
+            },
+            failure,
+          );
+
+          if (failure.isRetryable) {
+            continue;
+          }
+
           try {
             await this.postsService.patch(post.id, {
               isAnalyticsEnabled: false,
             });
             this.logger.log(
-              `Disabled analytics tracking for post ${post.id} due to fetch failure`,
+              `Disabled analytics tracking for post ${post.id} after a non-retryable failure`,
             );
           } catch (patchError: unknown) {
             this.logger.error(

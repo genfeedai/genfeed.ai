@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient } from '@genfeedai/prisma';
 
 export const SERVER_TOKENS = {
+  analyticsCollectionState: 'SERVER_ANALYTICS_COLLECTION_STATE',
   config: 'SERVER_CONFIG',
   credentials: 'SERVER_CREDENTIALS',
   instagram: 'SERVER_INSTAGRAM',
@@ -17,6 +18,13 @@ export const SERVER_TOKENS = {
   youtube: 'SERVER_YOUTUBE',
   brandMemorySync: 'SERVER_BRAND_MEMORY_SYNC',
 } as const;
+
+export type {
+  AnalyticsCollectionAttemptRef,
+  AnalyticsCollectionFailure,
+  AnalyticsCollectionTargetRef,
+  ServerAnalyticsCollectionState,
+} from './analytics/analytics-collection-state';
 
 export interface ServerConfig {
   get(key: string): string | undefined;

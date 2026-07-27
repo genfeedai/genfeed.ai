@@ -1,5 +1,8 @@
 import type {
   CredentialPlatform,
+  TargetAnalyticsCapability,
+  TargetAnalyticsCollectionState,
+  TargetAnalyticsFreshness,
   TargetExecutionState,
   TargetValidationState,
 } from '@genfeedai/enums';
@@ -31,12 +34,30 @@ export interface IChannelTargetAnalyticsSnapshot {
   views: number;
 }
 
+export interface IChannelTargetAnalyticsCollectionError {
+  code: string;
+  failedAt: string;
+  isRetryable: boolean;
+  message: string;
+}
+
+export interface IChannelTargetAnalyticsCollection {
+  capability: TargetAnalyticsCapability;
+  error: IChannelTargetAnalyticsCollectionError | null;
+  freshness: TargetAnalyticsFreshness;
+  lastCollectedAt: string | null;
+  requestedAt: string | null;
+  state: TargetAnalyticsCollectionState;
+}
+
 export type IChannelTargetAnalyticsSummary =
   | {
+      collection: IChannelTargetAnalyticsCollection;
       snapshot: IChannelTargetAnalyticsSnapshot;
       state: 'ready';
     }
   | {
+      collection: IChannelTargetAnalyticsCollection;
       snapshot: null;
       state: 'unavailable';
     };

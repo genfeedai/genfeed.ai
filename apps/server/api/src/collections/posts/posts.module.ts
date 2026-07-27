@@ -16,6 +16,7 @@ import { PostsOperationsController } from '@api/collections/posts/controllers/op
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
+import { PostAnalyticsCollectionStateService } from '@api/collections/posts/services/post-analytics-collection-state.service';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -43,7 +44,12 @@ import { forwardRef, Module } from '@nestjs/common';
     PostsOperationsController,
     PostsController,
   ],
-  exports: [AnalyticsAggregationService, PostAnalyticsService, PostsService],
+  exports: [
+    AnalyticsAggregationService,
+    PostAnalyticsCollectionStateService,
+    PostAnalyticsService,
+    PostsService,
+  ],
   imports: [
     forwardRef(() => ActivitiesModule),
     forwardRef(() => ByokModule),
@@ -65,6 +71,7 @@ import { forwardRef, Module } from '@nestjs/common';
     AnalyticsAggregationService,
     CreditsGuard,
     CreditsInterceptor,
+    PostAnalyticsCollectionStateService,
     PostAnalyticsService,
     PostGenerationService,
     PostThreadGenerationService,

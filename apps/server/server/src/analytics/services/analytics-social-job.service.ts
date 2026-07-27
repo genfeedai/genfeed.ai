@@ -3,11 +3,13 @@ import type { SocialAnalyticsJobData } from '@genfeedai/queue-contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   SERVER_TOKENS,
+  type ServerAnalyticsCollectionState,
   type ServerLogger,
   type ServerPostAnalytics,
   type ServerPosts,
   type ServerSocialAnalytics,
 } from '@server/server.dependencies';
+import { classifyAnalyticsCollectionError } from '../analytics-collection-state';
 import type { AnalyticsQueueJob } from '../analytics-job.types';
 
 @Injectable()
@@ -29,6 +31,8 @@ export class AnalyticsSocialJobService {
     private readonly postAnalyticsService: ServerPostAnalytics,
     @Inject(SERVER_TOKENS.posts)
     private readonly postsService: ServerPosts,
+    @Inject(SERVER_TOKENS.analyticsCollectionState)
+    private readonly analyticsCollectionState: ServerAnalyticsCollectionState,
     @Inject(SERVER_TOKENS.logger)
     private readonly logger: ServerLogger,
   ) {}
@@ -61,27 +65,37 @@ export class AnalyticsSocialJobService {
 
       const instagramPosts = postsByPlatform.get(CredentialPlatform.INSTAGRAM);
       if (instagramPosts) {
-        platformProcessors.push(this.processInstagramPosts(instagramPosts));
+        platformProcessors.push(
+          this.processInstagramPosts(instagramPosts, job.data.attemptKey),
+        );
       }
 
       const tiktokPosts = postsByPlatform.get(CredentialPlatform.TIKTOK);
       if (tiktokPosts) {
-        platformProcessors.push(this.processTikTokPosts(tiktokPosts));
+        platformProcessors.push(
+          this.processTikTokPosts(tiktokPosts, job.data.attemptKey),
+        );
       }
 
       const pinterestPosts = postsByPlatform.get(CredentialPlatform.PINTEREST);
       if (pinterestPosts) {
-        platformProcessors.push(this.processPinterestPosts(pinterestPosts));
+        platformProcessors.push(
+          this.processPinterestPosts(pinterestPosts, job.data.attemptKey),
+        );
       }
 
       const linkedInPosts = postsByPlatform.get(CredentialPlatform.LINKEDIN);
       if (linkedInPosts) {
-        platformProcessors.push(this.processLinkedInPosts(linkedInPosts));
+        platformProcessors.push(
+          this.processLinkedInPosts(linkedInPosts, job.data.attemptKey),
+        );
       }
 
       const mastodonPosts = postsByPlatform.get(CredentialPlatform.MASTODON);
       if (mastodonPosts) {
-        platformProcessors.push(this.processMastodonPosts(mastodonPosts));
+        platformProcessors.push(
+          this.processMastodonPosts(mastodonPosts, job.data.attemptKey),
+        );
       }
 
       const results = await Promise.allSettled(platformProcessors);
@@ -118,6 +132,7 @@ export class AnalyticsSocialJobService {
 
   private async processInstagramPosts(
     posts: SocialAnalyticsJobData['posts'],
+    attemptKey?: string,
   ): Promise<void> {
     this.logger.log(`Processing ${posts.length} Instagram posts`);
     let processed = 0;
@@ -148,13 +163,14 @@ export class AnalyticsSocialJobService {
           ...analytics,
           mediaType: transformedMediaType,
         });
+        await this.markReady(post, attemptKey);
         processed++;
 
         if (processed < posts.length) {
           await this.delay(this.DEFAULT_DELAY_MS);
         }
       } catch (error: unknown) {
-        await this.disableAnalyticsAfterFailure(post.id, 'Instagram', error);
+        await this.recordAnalyticsFailure(post, 'Instagram', error, attemptKey);
       }
     }
 
@@ -165,6 +181,7 @@ export class AnalyticsSocialJobService {
 
   private async processTikTokPosts(
     posts: SocialAnalyticsJobData['posts'],
+    attemptKey?: string,
   ): Promise<void> {
     this.logger.log(`Processing ${posts.length} TikTok posts`);
     let processed = 0;
@@ -181,13 +198,14 @@ export class AnalyticsSocialJobService {
           ...analytics,
           shares: analytics.shares ?? 0,
         });
+        await this.markReady(post, attemptKey);
         processed++;
 
         if (processed < posts.length) {
           await this.delay(this.DEFAULT_DELAY_MS);
         }
       } catch (error: unknown) {
-        await this.disableAnalyticsAfterFailure(post.id, 'TikTok', error);
+        await this.recordAnalyticsFailure(post, 'TikTok', error, attemptKey);
       }
     }
 
@@ -198,6 +216,7 @@ export class AnalyticsSocialJobService {
 
   private async processPinterestPosts(
     posts: SocialAnalyticsJobData['posts'],
+    attemptKey?: string,
   ): Promise<void> {
     this.logger.log(`Processing ${posts.length} Pinterest posts`);
     let processed = 0;
@@ -214,13 +233,14 @@ export class AnalyticsSocialJobService {
           post.id,
           analytics,
         );
+        await this.markReady(post, attemptKey);
         processed++;
 
         if (processed < posts.length) {
           await this.delay(this.DEFAULT_DELAY_MS);
         }
       } catch (error: unknown) {
-        await this.disableAnalyticsAfterFailure(post.id, 'Pinterest', error);
+        await this.recordAnalyticsFailure(post, 'Pinterest', error, attemptKey);
       }
     }
 
@@ -231,6 +251,7 @@ export class AnalyticsSocialJobService {
 
   private async processLinkedInPosts(
     posts: SocialAnalyticsJobData['posts'],
+    attemptKey?: string,
   ): Promise<void> {
     this.logger.log(`Processing ${posts.length} LinkedIn posts`);
     let processed = 0;
@@ -254,13 +275,14 @@ export class AnalyticsSocialJobService {
           shares: analytics.shares,
           views: analytics.views,
         });
+        await this.markReady(post, attemptKey);
         processed++;
 
         if (processed < posts.length) {
           await this.delay(this.DEFAULT_DELAY_MS);
         }
       } catch (error: unknown) {
-        await this.disableAnalyticsAfterFailure(post.id, 'LinkedIn', error);
+        await this.recordAnalyticsFailure(post, 'LinkedIn', error, attemptKey);
       }
     }
 
@@ -271,6 +293,7 @@ export class AnalyticsSocialJobService {
 
   private async processMastodonPosts(
     posts: SocialAnalyticsJobData['posts'],
+    attemptKey?: string,
   ): Promise<void> {
     this.logger.log(`Processing ${posts.length} Mastodon posts`);
     let processed = 0;
@@ -287,13 +310,14 @@ export class AnalyticsSocialJobService {
           post.id,
           analytics,
         );
+        await this.markReady(post, attemptKey);
         processed++;
 
         if (processed < posts.length) {
           await this.delay(this.DEFAULT_DELAY_MS);
         }
       } catch (error: unknown) {
-        await this.disableAnalyticsAfterFailure(post.id, 'Mastodon', error);
+        await this.recordAnalyticsFailure(post, 'Mastodon', error, attemptKey);
       }
     }
 
@@ -302,30 +326,60 @@ export class AnalyticsSocialJobService {
     );
   }
 
-  private async disableAnalyticsAfterFailure(
-    postId: string,
+  private async recordAnalyticsFailure(
+    post: SocialAnalyticsJobData['posts'][number],
     platform: string,
     error: unknown,
+    attemptKey?: string,
   ): Promise<void> {
+    const failure = classifyAnalyticsCollectionError(error, platform);
     this.logger.error(
-      `Failed to fetch ${platform} analytics for post ${postId}`,
+      `Failed to fetch ${platform} analytics for post ${post.id}`,
       error,
     );
 
+    await this.analyticsCollectionState.markFailed(
+      {
+        attemptKey,
+        brandId: post.brand,
+        id: post.id,
+        organizationId: post.organization,
+        platform: post.platform,
+      },
+      failure,
+    );
+
+    if (failure.isRetryable) {
+      return;
+    }
+
     try {
-      await this.postsService.patch(postId, {
+      await this.postsService.patch(post.id, {
         isAnalyticsEnabled: false,
       });
 
       this.logger.log(
-        `Disabled analytics tracking for post ${postId} due to fetch failure`,
+        `Disabled analytics tracking for post ${post.id} after a non-retryable failure`,
       );
     } catch (patchError: unknown) {
       this.logger.error(
-        `Failed to disable analytics for post ${postId}`,
+        `Failed to disable analytics for post ${post.id}`,
         patchError,
       );
     }
+  }
+
+  private async markReady(
+    post: SocialAnalyticsJobData['posts'][number],
+    attemptKey?: string,
+  ): Promise<void> {
+    await this.analyticsCollectionState.markReady({
+      attemptKey,
+      brandId: post.brand,
+      id: post.id,
+      organizationId: post.organization,
+      platform: post.platform,
+    });
   }
 
   private delay(ms: number): Promise<void> {
