@@ -35,17 +35,19 @@ describe('Container', () => {
     expect(rootElement).not.toHaveClass('max-w-none');
   });
 
-  it('keeps full-pane header dividers while insetting header content', () => {
+  it('keeps full-pane header content inset without rendering a divider', () => {
     const { container } = render(
       <Container label="Dashboard">content</Container>,
     );
     const rootElement = container.firstChild as HTMLElement;
-    const header = rootElement.querySelector('.border-b') as HTMLElement;
+    const header = screen.getByRole('heading', { name: 'Dashboard' })
+      .parentElement?.parentElement;
 
     expect(rootElement).not.toHaveClass('px-5');
     expect(header).toHaveClass('px-5');
     expect(header).toHaveClass('sm:px-6');
     expect(header).toHaveClass('lg:px-6');
+    expect(header).not.toHaveClass('border-b');
   });
 
   it('insets full-width body content to match the header gutter', () => {
