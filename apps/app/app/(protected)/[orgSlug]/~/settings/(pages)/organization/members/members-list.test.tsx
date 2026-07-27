@@ -6,6 +6,7 @@ import MembersList from './members-list';
 const mocks = vi.hoisted(() => ({
   findAll: vi.fn(),
   getMembersService: vi.fn(),
+  getNotificationsService: vi.fn(),
   loggerError: vi.fn(),
   loggerInfo: vi.fn(),
   notificationsError: vi.fn(),
@@ -39,7 +40,7 @@ vi.mock('@services/core/logger.service', () => ({
 
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
-    getInstance: () => ({ error: mocks.notificationsError }),
+    getInstance: mocks.getNotificationsService,
   },
 }));
 
@@ -123,6 +124,9 @@ describe('MembersList seat limit', () => {
     mocks.findAll.mockResolvedValue([]);
     mocks.getMembersService.mockResolvedValue({
       findAll: mocks.findAll,
+    });
+    mocks.getNotificationsService.mockReturnValue({
+      error: mocks.notificationsError,
     });
   });
 
