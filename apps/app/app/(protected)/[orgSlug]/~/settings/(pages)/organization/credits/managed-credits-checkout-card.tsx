@@ -79,6 +79,7 @@ export default function ManagedCreditsCheckoutCard() {
           />
         </section>
       }
+      isSubmitDisabled={!email.trim()}
       isStartingCheckout={isStartingCheckout}
       submitLabel="Get credits"
       onSubmit={handleStartCheckout}

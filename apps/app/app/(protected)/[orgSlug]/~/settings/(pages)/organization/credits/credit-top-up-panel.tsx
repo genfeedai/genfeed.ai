@@ -15,10 +15,6 @@ import { HiOutlineCreditCard } from 'react-icons/hi2';
 
 export const CREDITS_PER_USD = 100;
 
-const PRESET_USD_AMOUNTS = PAYG_CREDIT_PACKS.map(
-  (pack) => pack.credits / CREDITS_PER_USD,
-);
-
 function parseUsd(value: string): number | null {
   const normalized = value.trim();
   if (!/^\d+$/.test(normalized)) {
@@ -36,6 +32,7 @@ function formatUsd(value: number): string {
 type CreditTopUpPanelProps = {
   description?: string;
   helperContent?: ReactNode;
+  isSubmitDisabled?: boolean;
   isStartingCheckout: boolean;
   submitLabel?: string;
   onSubmit: (selection: {
@@ -47,13 +44,12 @@ type CreditTopUpPanelProps = {
 export default function CreditTopUpPanel({
   description = 'Choose a credit amount and continue to checkout.',
   helperContent,
+  isSubmitDisabled = false,
   isStartingCheckout,
   submitLabel = 'Add credit',
   onSubmit,
 }: CreditTopUpPanelProps): ReactElement {
-  const [selectedUsd, setSelectedUsd] = useState<number>(
-    PRESET_USD_AMOUNTS[0] ?? PAYG_MIN_PURCHASE_USD,
-  );
+  const [selectedUsd, setSelectedUsd] = useState<number | null>(null);
   const [isCustom, setIsCustom] = useState(false);
   const [customValue, setCustomValue] = useState('');
 
@@ -218,7 +214,7 @@ export default function CreditTopUpPanel({
           <Button
             variant={ButtonVariant.DEFAULT}
             onClick={handleSubmit}
-            isDisabled={!isValid || isStartingCheckout}
+            isDisabled={!isValid || isSubmitDisabled || isStartingCheckout}
             isLoading={isStartingCheckout}
             icon={<HiOutlineCreditCard className="size-4" />}
           >
