@@ -1,4 +1,4 @@
-import type { AgentToolResult } from '@genfeedai/interfaces';
+import type { AgentToolResult, IReleaseGroup } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { AdsClient } from '@mcp/services/client/ads.client';
@@ -317,11 +317,11 @@ export class ClientService {
   createScheduledRelease(
     release: Record<string, unknown>,
     idempotencyKey?: string,
-  ): Promise<Record<string, unknown>> {
+  ): Promise<IReleaseGroup> {
     return this.scheduler.createScheduledRelease(release, idempotencyKey);
   }
 
-  getScheduledRelease(releaseId: string): Promise<Record<string, unknown>> {
+  getScheduledRelease(releaseId: string): Promise<IReleaseGroup> {
     return this.scheduler.getScheduledRelease(releaseId);
   }
 
@@ -329,14 +329,14 @@ export class ClientService {
     releaseId: string,
     changes: Record<string, unknown>,
     targetId?: string,
-  ): Promise<Record<string, unknown>> {
+  ): Promise<IReleaseGroup> {
     return this.scheduler.updateScheduledRelease(releaseId, changes, targetId);
   }
 
   controlScheduledRelease(
     releaseId: string,
     action: ScheduledReleaseControlAction,
-  ): Promise<Record<string, unknown>> {
+  ): Promise<IReleaseGroup> {
     return this.scheduler.controlScheduledRelease(releaseId, action);
   }
 
