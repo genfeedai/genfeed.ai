@@ -1,13 +1,12 @@
 'use client';
 
 import { AgentExecutionStatus, ButtonVariant } from '@genfeedai/enums';
-import type { IAgentRun } from '@genfeedai/interfaces';
+import type { IAgentRun, SurfaceSummaryItem } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type {
   PlatformTimeSeriesDataPoint,
   SocialPlatform,
 } from '@props/analytics/charts.props';
-import type { SurfaceSummaryItem } from '@props/ui/dashboard/surface-summary-strip.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
 import { SurfaceSummaryStrip } from '@ui/dashboard/SurfaceSummaryStrip';

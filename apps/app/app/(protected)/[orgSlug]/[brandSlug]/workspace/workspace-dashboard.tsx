@@ -7,11 +7,10 @@ import {
   ButtonVariant,
   CardVariant,
 } from '@genfeedai/enums';
-import type { IAgentRun } from '@genfeedai/interfaces';
+import type { IAgentRun, SurfaceSummaryItem } from '@genfeedai/interfaces';
 import type { TrendItem } from '@genfeedai/props/trends/trends-page.props';
 import type { AgentRunStats } from '@genfeedai/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import type { SurfaceSummaryItem } from '@props/ui/dashboard/surface-summary-strip.props';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';

@@ -1,4 +1,4 @@
-import type { SurfaceSummaryItem } from '@props/ui/dashboard/surface-summary-strip.props';
+import type { SurfaceSummaryItem } from '@genfeedai/interfaces';
 import { SurfaceSummaryStrip } from '@ui/dashboard/SurfaceSummaryStrip';
 import type { ReactElement } from 'react';
 
