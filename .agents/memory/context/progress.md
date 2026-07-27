@@ -28,7 +28,7 @@ author: Claude Code PM System
 - Product recurring automation has been migrated toward workflow-backed scheduling; legacy `cron-jobs` is compatibility-only for new product work.
 
 ### Codebase Health
-- Fallow health score: 72/100 (tracked via issue #83)
+- Executable CI contracts cover build, tests, boot, E2E, API drift, tenant/security, and delivery paths.
 - BullMQ processor placement refactor resolved for API: current source has no `@Processor(...)` decorators in `apps/server/api`; add new processors to workers or the owning runtime service.
 
 ### Active Development Areas

@@ -56,8 +56,6 @@ These are already in context every request — do not re-read them to "check".
 - [retire-redundant-product-routes](spec-retire-redundant-product-routes.md) · [decisions](decisions-retire-redundant-product-routes.md) — #1867
 - [filesystem-s3-path-containment](spec-filesystem-s3-path-containment.md) · [decisions](decisions-filesystem-s3-path-containment.md) — #2068
 - [scheduler-target-analytics](spec-scheduler-target-analytics.md) · [decisions](decisions-scheduler-target-analytics.md) — #1975
-- [pr-validation-telemetry](spec-pr-validation-telemetry.md) · [decisions](decisions-pr-validation-telemetry.md) — #1966
-- [pr-validation-superseded-waste](spec-pr-validation-superseded-waste.md) · [decisions](decisions-pr-validation-superseded-waste.md)
 - [brand-social-visual-enrichment](spec-brand-social-visual-enrichment.md) · [decisions](decisions-brand-social-visual-enrichment.md)
 - [mcp-instagram-meta-inspiration-remix](spec-mcp-instagram-meta-inspiration-remix.md) · [decisions](decisions-mcp-instagram-meta-inspiration-remix.md)
 - [local-development-host](spec-local-development-host.md) · [decisions](decisions-local-development-host.md)
@@ -73,7 +71,6 @@ These are already in context every request — do not re-read them to "check".
 - [project_desktop_byok_generation](project_desktop_byok_generation.md) — desktop generation is local-first
 - [project_desktop_first_run](project_desktop_first_run.md) — first run, workspaces, per-account sync consent
 - [project_ts6_prisma7_build_regression](project_ts6_prisma7_build_regression.md) — resolved 2026-06-03; stage 4 + migration-apply pending
-- [project_fallow](project_fallow.md) — codebase health (#83), weekly CI
 
 ## References
 

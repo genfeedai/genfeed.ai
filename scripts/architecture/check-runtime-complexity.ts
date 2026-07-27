@@ -1,10 +1,8 @@
 /**
  * Deterministic structural-complexity guard for production runtime TypeScript.
  *
- * Pull requests scan only files changed from an explicit base ref. The weekly
- * codebase-health workflow runs a report-only full census so the decomposition
- * epic can track existing debt without allowing touched runtime files to grow
- * into new god objects.
+ * The command can scan files changed from an explicit base ref or run a full
+ * local census when an architecture review needs it.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -277,19 +275,19 @@ function violationsForFile(
     });
   }
 
-  for (const constructor of file.constructors) {
-    if (constructor.dependencies <= thresholds.constructorDependencies) {
+  for (const constructorMetric of file.constructors) {
+    if (constructorMetric.dependencies <= thresholds.constructorDependencies) {
       continue;
     }
     violations.push({
-      actual: constructor.dependencies,
+      actual: constructorMetric.dependencies,
       file: file.file,
       kind: file.kind,
       limit: thresholds.constructorDependencies,
-      line: constructor.line,
-      message: `${constructor.symbol} has ${constructor.dependencies} dependencies (limit ${thresholds.constructorDependencies})`,
+      line: constructorMetric.line,
+      message: `${constructorMetric.symbol} has ${constructorMetric.dependencies} dependencies (limit ${thresholds.constructorDependencies})`,
       metric: 'constructor-dependencies',
-      symbol: constructor.symbol,
+      symbol: constructorMetric.symbol,
     });
   }
 
@@ -319,11 +317,11 @@ function metricCeilings(
       metric: 'method-lines' as const,
       symbol: method.symbol,
     })),
-    ...file.constructors.map((constructor) => ({
-      actual: constructor.dependencies,
+    ...file.constructors.map((constructorMetric) => ({
+      actual: constructorMetric.dependencies,
       file: file.file,
       metric: 'constructor-dependencies' as const,
-      symbol: constructor.symbol,
+      symbol: constructorMetric.symbol,
     })),
   ]);
 }

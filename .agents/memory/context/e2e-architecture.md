@@ -54,8 +54,7 @@ Top-level env: `TURBO_TOKEN` (secret) + `TURBO_TEAM` (var) enable Turborepo remo
 
 `e2e-gate` is the single job that represents the required suite's pass/fail (it `needs:` route-coverage +
 frontend + API). It exits 1 if route coverage failed, API E2E failed, or any shard failed/was cancelled. Re-running only the
-failed shard + gate carries the green shards forward. **Frontend code-coverage moved out of this
-workflow** — it now lives in `coverage.yml` (weekly), not here. The old single `e2e-frontend` /
+failed shard + gate carries the green shards forward. The old single `e2e-frontend` /
 `e2e-frontend-coverage` jobs in §2.3/§2.4 below are superseded by the sharded layout above.
 
 ### 2.1 `e2e-route-coverage` — static gate (fastest signal)
