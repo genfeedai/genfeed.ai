@@ -1,7 +1,9 @@
-import * as PageModule from '@public/(home)/page';
-import { runPageModuleTests } from '@shared/pages/pageTestUtils';
+// biome-ignore assist/source/organizeImports: External packages precede project aliases.
 import type { ResolvingMetadata } from 'next';
 import { describe, expect, it } from 'vitest';
+
+import * as PageModule from '@public/(home)/page';
+import { runPageModuleTests } from '@shared/pages/pageTestUtils';
 
 runPageModuleTests('apps/website/app/(public)/(home)/page', PageModule);
 
