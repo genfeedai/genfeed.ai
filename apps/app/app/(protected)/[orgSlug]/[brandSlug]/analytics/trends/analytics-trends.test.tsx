@@ -233,10 +233,12 @@ vi.mock('@ui/typography/heading', () => ({
   Heading: ({
     as: Component = 'h2',
     children,
+    className,
   }: {
     as?: 'h1' | 'h2';
     children: ReactNode;
-  }) => <Component>{children}</Component>,
+    className?: string;
+  }) => <Component className={className}>{children}</Component>,
 }));
 
 vi.mock('@ui/typography/text', () => ({
