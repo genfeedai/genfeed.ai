@@ -147,21 +147,22 @@ describe('DashboardLayoutsController', () => {
       expect(result).toEqual({ error: 'DashboardLayoutsController:brand-1' });
     });
 
-    it.each([undefined, '', '   '])(
-      'returns HTTP 400 when the brand query param is missing or blank (%j)',
-      async (brandId) => {
-        const request = controller.findForPage(
-          mockRequest as never,
-          mockUser,
-          brandId as string,
-        );
+    it.each([
+      undefined,
+      '',
+      '   ',
+    ])('returns HTTP 400 when the brand query param is missing or blank (%j)', async (brandId) => {
+      const request = controller.findForPage(
+        mockRequest as never,
+        mockUser,
+        brandId as string,
+      );
 
-        await expect(request).rejects.toBeInstanceOf(BadRequestException);
-        await expect(request).rejects.toMatchObject({ status: 400 });
+      await expect(request).rejects.toBeInstanceOf(BadRequestException);
+      await expect(request).rejects.toMatchObject({ status: 400 });
 
-        expect(service.findForPage).not.toHaveBeenCalled();
-      },
-    );
+      expect(service.findForPage).not.toHaveBeenCalled();
+    });
   });
 
   describe('upsert', () => {
