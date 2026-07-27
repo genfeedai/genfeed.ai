@@ -54,7 +54,6 @@ vi.mock('@genfeedai/agent', () => ({
     isComposerVisible,
     placement,
     portalTarget,
-    scopeControls,
   }: {
     artifactReferences?: ReadonlyArray<{
       reference: { recordId: string };
@@ -75,7 +74,6 @@ vi.mock('@genfeedai/agent', () => ({
     isComposerVisible?: boolean;
     placement?: string;
     portalTarget?: HTMLElement | null;
-    scopeControls?: ReactNode;
   }) => (
     <div
       data-composer-brand={brandId}
@@ -90,7 +88,6 @@ vi.mock('@genfeedai/agent', () => ({
       data-draft-scope={draftScopeKey}
     >
       {children}
-      {scopeControls}
       <button
         aria-label="Dispatch publish action"
         onClick={() =>
@@ -1015,7 +1012,9 @@ describe('UniversalWorkspaceShell', () => {
     );
   });
 
-  it('exposes the optional scope-control composition slot without owning it', () => {
+  it('keeps effective scope in the inspector without duplicating composer controls', () => {
+    navigation.pathname = '/acme/moonrise/workspace/overview';
+
     render(
       <UniversalWorkspaceShell
         agentApiService={agentApiService}
@@ -1025,9 +1024,33 @@ describe('UniversalWorkspaceShell', () => {
       </UniversalWorkspaceShell>,
     );
 
-    expect(screen.getByText('Scoped controls')).toBeInTheDocument();
-    expect(screen.getByText('Thread scope')).toBeInTheDocument();
+    expect(screen.queryByText('Scoped controls')).not.toBeInTheDocument();
+    expect(screen.queryByText('Thread scope')).not.toBeInTheDocument();
     expect(screen.getByTestId('workspace-effective-scope')).toBeInTheDocument();
+  });
+
+  it('keeps generic product context cards and actions off conversation routes', () => {
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Conversation</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    expect(
+      screen.getByText(
+        'Context from the active conversation appears here as the agent works.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('workspace-effective-scope')).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Choose workflow' }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Open overlay preview' }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Return to conversation' }),
+    ).toBeNull();
   });
 
   it('preserves an unauthorized brand action instead of widening org scope', () => {

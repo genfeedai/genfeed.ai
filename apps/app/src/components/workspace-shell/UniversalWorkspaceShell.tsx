@@ -957,7 +957,12 @@ function UniversalWorkspaceShellContent({
           value="context"
         >
           {agentPanelSlot}
-          {isAgentOwned ? null : (
+          {isAgentOwned ? null : isAgentRoute ? (
+            <p className="px-1 text-xs leading-5 text-muted-foreground">
+              Context from the active conversation appears here as the agent
+              works.
+            </p>
+          ) : (
             <>
               {conversationScope.inspectorScope}
               {productSurfaceAdapter ? (

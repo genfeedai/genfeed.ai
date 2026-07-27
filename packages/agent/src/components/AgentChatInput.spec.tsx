@@ -119,6 +119,27 @@ describe('AgentChatInput', () => {
     ).toHaveClass('[&_.ProseMirror]:min-h-14');
   });
 
+  it('keeps topbar-owned scope controls out of the prompt bar', () => {
+    render(
+      <ConversationComposerShellProvider
+        contextLabel="Default Workspace · Default Brand"
+        draftScopeKey="acme:thread-1:3"
+        portalTarget={null}
+        scopeControls={<button type="button">Change workspace scope</button>}
+        shellState="canvas"
+      >
+        <AgentChatInput onSend={vi.fn()} />
+      </ConversationComposerShellProvider>,
+    );
+
+    expect(
+      screen.getByText('Default Workspace · Default Brand'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Change workspace scope' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('adds pasted image files to the prompt attachments', () => {
     const addFiles = vi.fn();
     const file = new File(['image'], 'image.png', { type: 'image/png' });
