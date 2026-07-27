@@ -85,7 +85,7 @@ function NewslettersPageContent() {
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6 p-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold text-foreground">Newsletters</h1>
+        <h1 className="sr-only">Newsletters</h1>
         <p className="text-sm text-muted-foreground">
           Build history-aware newsletters for{' '}
           {selectedBrand?.label ?? 'your brand'} with topic proposals,

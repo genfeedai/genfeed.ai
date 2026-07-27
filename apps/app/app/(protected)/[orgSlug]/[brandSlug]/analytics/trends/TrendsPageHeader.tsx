@@ -53,7 +53,7 @@ export default function TrendsPageHeader({
             {totalTrackedTopics} active keywords monitored
           </Text>
         </div>
-        <Heading size="2xl" as="h1">
+        <Heading size="2xl" as="h1" className="sr-only">
           Social Media Trends
         </Heading>
         <Text as="p" color="subtle-70" className="max-w-3xl">

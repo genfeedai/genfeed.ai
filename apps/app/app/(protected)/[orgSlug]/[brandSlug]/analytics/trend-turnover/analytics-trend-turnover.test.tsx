@@ -162,10 +162,12 @@ vi.mock('@ui/typography/heading', () => ({
   Heading: ({
     as: Component = 'h2',
     children,
+    className,
   }: {
     as?: keyof JSX.IntrinsicElements;
     children?: ReactNode;
-  }) => <Component>{children}</Component>,
+    className?: string;
+  }) => <Component className={className}>{children}</Component>,
 }));
 
 vi.mock('@ui/typography/text', () => ({
@@ -221,7 +223,12 @@ describe('AnalyticsTrendTurnover', () => {
   it('loads trend turnover KPIs, chart, table, and volatility bars', async () => {
     render(<AnalyticsTrendTurnover />);
 
-    expect(screen.getByText('Trend Turnover Dashboard')).toBeVisible();
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Trend Turnover Dashboard',
+      }),
+    ).toHaveClass('sr-only');
     expect(screen.getByText('Loading table')).toBeVisible();
 
     await waitFor(() => {

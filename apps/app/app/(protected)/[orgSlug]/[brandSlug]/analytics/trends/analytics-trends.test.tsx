@@ -233,10 +233,12 @@ vi.mock('@ui/typography/heading', () => ({
   Heading: ({
     as: Component = 'h2',
     children,
+    className,
   }: {
     as?: 'h1' | 'h2';
     children: ReactNode;
-  }) => <Component>{children}</Component>,
+    className?: string;
+  }) => <Component className={className}>{children}</Component>,
 }));
 
 vi.mock('@ui/typography/text', () => ({
@@ -377,9 +379,12 @@ describe('AnalyticsTrends', () => {
   it('loads trend surfaces and routes interactive trend content', async () => {
     renderAnalyticsTrends();
 
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      'Social Media Trends',
-    );
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Social Media Trends',
+      }),
+    ).toHaveClass('sr-only');
     expect(await screen.findByText('AI video')).toBeInTheDocument();
     expect(screen.getByText('Creator ops')).toBeInTheDocument();
     expect(screen.getByText('#AIAgents')).toBeInTheDocument();
