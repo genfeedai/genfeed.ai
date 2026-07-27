@@ -15,12 +15,14 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { TrendsController } from '@api/collections/trends/controllers/trends.controller';
+import { TrendsDiscoveryController } from '@api/collections/trends/controllers/trends-discovery.controller';
 import { GenerateTrendIdeasDto } from '@api/collections/trends/dto/trend-ideas.dto';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import type { Request } from 'express';
 
 describe('TrendsController', () => {
   let controller: TrendsController;
+  let discoveryController: TrendsDiscoveryController;
   let trendsService: TrendsService;
   let creditsUtilsService: {
     checkOrganizationCreditsAvailable: ReturnType<typeof vi.fn>;
@@ -91,6 +93,9 @@ describe('TrendsController', () => {
       mockTrendPreferencesService as never,
       creditsUtilsService as never,
       modelsService as never,
+    );
+    discoveryController = new TrendsDiscoveryController(
+      mockTrendsService as never,
     );
     trendsService = mockTrendsService as never;
   });
@@ -169,7 +174,7 @@ describe('TrendsController', () => {
 
       mockTrendsService.getTrendsDiscovery.mockResolvedValue(mockResult);
 
-      const result = await controller.getTrendsDiscovery(
+      const result = await discoveryController.getTrendsDiscovery(
         mockUser,
         'twitter',
         undefined,
@@ -200,7 +205,7 @@ describe('TrendsController', () => {
       mockTrendsService.refreshTrends.mockResolvedValue([mockTrend]);
       mockTrendsService.getTrendsDiscovery.mockResolvedValue(mockResult);
 
-      await controller.getTrendsDiscovery(mockUser, undefined, 'true');
+      await discoveryController.getTrendsDiscovery(mockUser, undefined, 'true');
 
       expect(trendsService.refreshTrends).toHaveBeenCalledWith(
         mockUser.publicMetadata.organization,
@@ -235,7 +240,7 @@ describe('TrendsController', () => {
 
       mockTrendsService.getTrendContent.mockResolvedValue(mockResult);
 
-      const result = await controller.getTrendContent(
+      const result = await discoveryController.getTrendContent(
         mockUser,
         'twitter',
         '12',
@@ -269,7 +274,12 @@ describe('TrendsController', () => {
         lockedPlatforms: [],
       });
 
-      await controller.getTrendContent(mockUser, undefined, undefined, 'true');
+      await discoveryController.getTrendContent(
+        mockUser,
+        undefined,
+        undefined,
+        'true',
+      );
 
       expect(trendsService.getTrendContent).toHaveBeenCalledWith(
         mockUser.publicMetadata.organization,
@@ -313,7 +323,7 @@ describe('TrendsController', () => {
         totalReferences: 1,
       });
 
-      const result = await controller.getReferenceCorpus(
+      const result = await discoveryController.getReferenceCorpus(
         mockUser,
         'twitter',
         'trend-1',
@@ -358,7 +368,7 @@ describe('TrendsController', () => {
         totalReferences: 0,
       });
 
-      await controller.getReferenceCorpus(
+      await discoveryController.getReferenceCorpus(
         mockUser,
         undefined,
         undefined,
@@ -386,7 +396,7 @@ describe('TrendsController', () => {
 
     it('rejects unknown source classification filters', async () => {
       await expect(
-        controller.getReferenceCorpus(
+        discoveryController.getReferenceCorpus(
           mockUser,
           undefined,
           undefined,
@@ -449,7 +459,7 @@ describe('TrendsController', () => {
         },
       });
 
-      const result = await controller.getPromptReferencePacks(
+      const result = await discoveryController.getPromptReferencePacks(
         mockUser,
         'tiktok',
         'organic_trend_discovery',
@@ -499,7 +509,7 @@ describe('TrendsController', () => {
         totalAccounts: 1,
       });
 
-      const result = await controller.getTopReferenceAccounts(
+      const result = await discoveryController.getTopReferenceAccounts(
         mockUser,
         'twitter',
         '8',
@@ -558,7 +568,7 @@ describe('TrendsController', () => {
       };
       mockTrendsService.getCorpusFreshnessHealth.mockResolvedValue(health);
 
-      const result = await controller.getCorpusFreshnessHealth(
+      const result = await discoveryController.getCorpusFreshnessHealth(
         mockUser,
         'tiktok',
       );
@@ -587,7 +597,7 @@ describe('TrendsController', () => {
         },
       } as unknown as User;
 
-      await controller.getCorpusFreshnessHealth(adminUser, undefined);
+      await discoveryController.getCorpusFreshnessHealth(adminUser, undefined);
 
       expect(trendsService.getCorpusFreshnessHealth).toHaveBeenCalledWith({
         isPlatformAdmin: true,

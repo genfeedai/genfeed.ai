@@ -3,6 +3,8 @@ import { CredentialsCoreModule } from '@api/collections/credentials/credentials-
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { TrendsController } from '@api/collections/trends/controllers/trends.controller';
+import { TrendsAnalyticsController } from '@api/collections/trends/controllers/trends-analytics.controller';
+import { TrendsDiscoveryController } from '@api/collections/trends/controllers/trends-discovery.controller';
 import { TrendAnalysisService } from '@api/collections/trends/services/modules/trend-analysis.service';
 import { TrendContentIdeasService } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import { TrendCorpusFreshnessService } from '@api/collections/trends/services/modules/trend-corpus-freshness.service';
@@ -33,7 +35,11 @@ import { ConfigModule } from '@libs/config/config.module';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
-  controllers: [TrendsController],
+  controllers: [
+    TrendsAnalyticsController,
+    TrendsDiscoveryController,
+    TrendsController,
+  ],
   exports: [
     TrendsService,
     TrendPreferencesService,
