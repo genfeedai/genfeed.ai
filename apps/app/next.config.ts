@@ -5,7 +5,7 @@ import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
   createBrandAppRoute,
-} from '@genfeedai/constants';
+} from '@genfeedai/constants/routes.constant';
 import { createAppNextConfig } from '@genfeedai/next-config';
 import bundleAnalyzer from '@next/bundle-analyzer';
 import type { NextConfig } from 'next';
