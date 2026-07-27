@@ -6,6 +6,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -60,12 +61,10 @@ export class ContentSchedulesService extends BaseService<
     isEnabled?: boolean,
   ): Promise<ContentScheduleDocument[]> {
     return this.delegate.findMany({
-      where: {
+      where: scopedWhere(organizationId, {
         brandId,
         ...(isEnabled === undefined ? {} : { isEnabled }),
-        isDeleted: false,
-        organizationId,
-      },
+      }),
     }) as Promise<ContentScheduleDocument[]>;
   }
 
@@ -74,12 +73,9 @@ export class ContentSchedulesService extends BaseService<
     brandId: string,
     scheduleId: string,
   ): Promise<ContentScheduleDocument> {
-    const schedule = await this.findOne({
-      id: scheduleId,
-      brandId,
-      isDeleted: false,
-      organizationId,
-    });
+    const schedule = await this.findOne(
+      scopedWhere(organizationId, { id: scheduleId, brandId }),
+    );
 
     if (!schedule) {
       throw new NotFoundException('ContentSchedule', scheduleId);
@@ -115,7 +111,7 @@ export class ContentSchedulesService extends BaseService<
     await findOrThrow(
       this.delegate,
       {
-        where: { id: scheduleId, brandId, isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, { id: scheduleId, brandId }),
       },
       'ContentSchedule',
       scheduleId,
@@ -139,7 +135,7 @@ export class ContentSchedulesService extends BaseService<
     await findOrThrow(
       this.delegate,
       {
-        where: { id: scheduleId, brandId, isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, { id: scheduleId, brandId }),
       },
       'ContentSchedule',
       scheduleId,
@@ -162,7 +158,7 @@ export class ContentSchedulesService extends BaseService<
     lastRunAt: Date,
   ): Promise<void> {
     const existing = await this.delegate.findFirst({
-      where: { id: scheduleId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: scheduleId }),
     });
 
     if (!existing) return;

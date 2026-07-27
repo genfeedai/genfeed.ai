@@ -15,9 +15,9 @@ import type {
   IBrandInterviewStartResult,
 } from '@genfeedai/interfaces';
 import { type BrandInterview, Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
-
 import {
   BRAND_FIELD_META,
   BRAND_INTERVIEW_CREDIT_COST,
@@ -46,7 +46,7 @@ export class BrandInterviewService {
   ): Promise<IBrandInterviewStartResult> {
     // 1. Load brand — must belong to org and not be deleted
     const brand = await this.prisma.brand.findFirst({
-      where: { id: brandId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: brandId }),
     });
 
     if (!brand) {
@@ -55,12 +55,10 @@ export class BrandInterviewService {
 
     // 2. Idempotency: return existing active session without re-charging
     const existing = await this.prisma.brandInterview.findFirst({
-      where: {
+      where: scopedWhere(organizationId, {
         brandId,
-        isDeleted: false,
-        organizationId,
-        status: 'in_progress',
-      },
+        status: 'in_progress' as const,
+      }),
     });
 
     if (existing) {
@@ -122,12 +120,10 @@ export class BrandInterviewService {
       if (this.isPrismaUniqueViolation(error)) {
         // Concurrent request already created the session — return it without charging
         const race = await this.prisma.brandInterview.findFirst({
-          where: {
+          where: scopedWhere(organizationId, {
             brandId,
-            isDeleted: false,
-            organizationId,
-            status: 'in_progress',
-          },
+            status: 'in_progress' as const,
+          }),
         });
         if (race) {
           return this.buildStartResult(race, 0);
@@ -317,7 +313,7 @@ export class BrandInterviewService {
     organizationId: string,
   ): Promise<BrandInterview> {
     const session = await this.prisma.brandInterview.findFirst({
-      where: { id: interviewId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: interviewId }),
     });
 
     if (!session) {
@@ -341,7 +337,7 @@ export class BrandInterviewService {
     organizationId: string,
   ): Promise<BrandInterview> {
     const session = await this.prisma.brandInterview.findFirst({
-      where: { id: interviewId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: interviewId }),
     });
 
     if (!session) {
@@ -356,12 +352,10 @@ export class BrandInterviewService {
     organizationId: string,
   ): Promise<IActiveBrandInterview | null> {
     const session = await this.prisma.brandInterview.findFirst({
-      where: {
+      where: scopedWhere(organizationId, {
         brandId,
-        isDeleted: false,
-        organizationId,
-        status: 'in_progress',
-      },
+        status: 'in_progress' as const,
+      }),
     });
 
     if (!session) {
@@ -376,7 +370,7 @@ export class BrandInterviewService {
     organizationId: string,
   ): Promise<IBrandInterviewCompleteness> {
     const brand = await this.prisma.brand.findFirst({
-      where: { id: brandId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: brandId }),
     });
 
     if (!brand) {
@@ -404,7 +398,7 @@ export class BrandInterviewService {
     organizationId: string,
   ): Promise<BrandInterview> {
     const session = await this.prisma.brandInterview.findFirst({
-      where: { id: interviewId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: interviewId }),
     });
 
     if (!session) {
@@ -474,7 +468,7 @@ export class BrandInterviewService {
       // agentConfig branch) so a known brandId can't write across tenants.
       const updated = await this.prisma.brand.updateMany({
         data: { [fieldKey]: value },
-        where: { id: brandId, isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, { id: brandId }),
       });
       if (updated.count === 0) {
         throw new NotFoundException('Brand', brandId);
@@ -482,7 +476,7 @@ export class BrandInterviewService {
     } else {
       // Nested agentConfig update — must read first to preserve sibling fields
       const brand = await this.prisma.brand.findFirst({
-        where: { id: brandId, isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, { id: brandId }),
       });
 
       if (!brand) {

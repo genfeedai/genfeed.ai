@@ -386,14 +386,6 @@
     },
     {
       "delegate": "contentPerformance",
-      "file": "apps/server/api/src/collections/content-performance/services/attribution.service.ts",
-      "fingerprint": "b5b6354d5a68a8385cdd",
-      "method": "findMany",
-      "model": "ContentPerformance",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "contentPerformance",
       "file": "apps/server/api/src/collections/content-performance/services/optimization-cycle.service.ts",
       "fingerprint": "2f87a531e7e49de5a2cd",
       "method": "findMany",
@@ -439,14 +431,6 @@
       "method": "update",
       "model": "ContentRun",
       "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "contentRun",
-      "file": "apps/server/api/src/collections/content-runs/services/content-runs.service.ts",
-      "fingerprint": "112980562fd9bed72a23",
-      "method": "findMany",
-      "model": "ContentRun",
-      "reason": "unresolved-where"
     },
     {
       "delegate": "contentRun",

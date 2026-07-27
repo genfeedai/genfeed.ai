@@ -56,6 +56,7 @@ import type {
   ArticleGenerationResponse,
   GeneratedArticleData,
 } from '@genfeedai/interfaces/content/article.interface';
+import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
@@ -759,11 +760,7 @@ export class ArticlesContentService {
     }
 
     const brand = await this.brandsService.findOne(
-      {
-        id: params.brandId,
-        isDeleted: false,
-        organizationId: params.organizationId,
-      },
+      scopedWhere(params.organizationId, { id: params.brandId }),
       'none',
     );
 
@@ -771,11 +768,9 @@ export class ArticlesContentService {
       return { promptBuilder: {} };
     }
 
-    const persona = await this.personasService.findOne({
-      brandId: params.brandId,
-      isDeleted: false,
-      organizationId: params.organizationId,
-    });
+    const persona = await this.personasService.findOne(
+      scopedWhere(params.organizationId, { brandId: params.brandId }),
+    );
     const harnessPersona = this.normalizeHarnessPersona(persona);
     const profileContribution =
       await this.harnessProfilesService?.buildContributionForBrand(

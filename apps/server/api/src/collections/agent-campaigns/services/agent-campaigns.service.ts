@@ -4,6 +4,7 @@ import type { AgentCampaignDocument } from '@api/collections/agent-campaigns/sch
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { PopulateOption } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -84,11 +85,7 @@ export class AgentCampaignsService extends BaseService<
     id: string,
     organizationId: string,
   ): Promise<AgentCampaignDocument | null> {
-    return this.findOne({
-      id,
-      isDeleted: false,
-      organizationId,
-    });
+    return this.findOne(scopedWhere(organizationId, { id }));
   }
 
   private toPrismaWriteData(

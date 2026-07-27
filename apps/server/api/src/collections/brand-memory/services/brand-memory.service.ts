@@ -5,6 +5,7 @@ import type {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -220,11 +221,9 @@ export class BrandMemoryService extends BaseService<
     brandId: string,
     dateRange?: BrandMemoryDateRange,
   ): Promise<BrandMemoryDocument[]> {
-    const where: Record<string, unknown> = {
+    const where: Record<string, unknown> = scopedWhere(organizationId, {
       brandId,
-      isDeleted: false,
-      organizationId,
-    };
+    });
 
     if (dateRange?.from || dateRange?.to) {
       where.date = {
@@ -245,11 +244,7 @@ export class BrandMemoryService extends BaseService<
     limit: number = 20,
   ): Promise<BrandMemoryInsight[]> {
     const rows = await this.delegate.findMany({
-      where: {
-        brandId,
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { brandId }),
       orderBy: { date: 'desc' },
       take: Math.max(1, limit),
     });
@@ -282,12 +277,10 @@ export class BrandMemoryService extends BaseService<
 
     // Fetch last 30 days of memory rows
     const rows = await this.delegate.findMany({
-      where: {
+      where: scopedWhere(organizationId, {
         brandId,
         date: { gte: fromDate, lte: now },
-        isDeleted: false,
-        organizationId,
-      },
+      }),
     });
 
     // Compute top performing formats in-memory
@@ -352,15 +345,13 @@ export class BrandMemoryService extends BaseService<
     brandId: string,
     date: Date,
   ): Record<string, unknown> {
-    return {
+    return scopedWhere(organizationId, {
       brandId,
       date: {
         gte: this.startOfDay(date),
         lt: this.endOfDay(date),
       },
-      isDeleted: false,
-      organizationId,
-    };
+    });
   }
 
   private startOfDay(date: Date): Date {

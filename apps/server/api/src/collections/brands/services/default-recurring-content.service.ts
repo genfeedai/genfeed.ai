@@ -2,6 +2,7 @@ import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowStatus } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -69,12 +70,7 @@ export class DefaultRecurringContentService {
   ): Promise<DefaultRecurringContentStatus> {
     const workflows = await this.prisma.workflow.findMany({
       orderBy: { createdAt: 'desc' },
-      where: {
-        brandId,
-        isDeleted: false,
-        isScheduleEnabled: true,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { brandId, isScheduleEnabled: true }),
     });
 
     const filteredWorkflows = workflows.filter((w) => {
@@ -109,11 +105,9 @@ export class DefaultRecurringContentService {
       workflowIds.length > 0
         ? await this.prisma.workflowExecution.findMany({
             orderBy: [{ createdAt: 'desc' }, { startedAt: 'desc' }],
-            where: {
-              isDeleted: false,
-              organizationId,
+            where: scopedWhere(organizationId, {
               workflowId: { in: workflowIds },
-            },
+            }),
           })
         : [];
 
@@ -160,11 +154,7 @@ export class DefaultRecurringContentService {
     params: EnsureDefaultRecurringContentParams,
   ): Promise<DefaultRecurringContentStatus> {
     const brand = await this.prisma.brand.findFirst({
-      where: {
-        id: params.brandId,
-        isDeleted: false,
-        organizationId: params.organizationId,
-      },
+      where: scopedWhere(params.organizationId, { id: params.brandId }),
     });
 
     if (!brand) {
@@ -175,11 +165,7 @@ export class DefaultRecurringContentService {
       // Deterministic ordering so the "first per type" picked below is stable.
       orderBy: { createdAt: 'desc' },
       select: { id: true, isScheduleEnabled: true, metadata: true },
-      where: {
-        brandId: params.brandId,
-        isDeleted: false,
-        organizationId: params.organizationId,
-      },
+      where: scopedWhere(params.organizationId, { brandId: params.brandId }),
     })) as ExistingDefaultRecurringWorkflow[];
 
     const existingByType = new Map<
@@ -269,12 +255,10 @@ export class DefaultRecurringContentService {
         ? ((
             await this.prisma.credential.findFirst({
               select: { id: true },
-              where: {
+              where: scopedWhere(params.organizationId, {
                 brandId: params.brandId,
                 isConnected: true,
-                isDeleted: false,
-                organizationId: params.organizationId,
-              },
+              }),
             })
           )?.id ?? null)
         : null;
@@ -298,15 +282,13 @@ export class DefaultRecurringContentService {
             // workflows rows in other organizations no longer cause false P2034s.
             const existing = await tx.workflow.findFirst({
               select: { id: true, isScheduleEnabled: true },
-              where: {
+              where: scopedWhere(params.organizationId, {
                 brandId: params.brandId,
-                isDeleted: false,
                 metadata: {
                   equals: params.contentType,
                   path: ['defaultRecurringContent', 'contentType'],
                 },
-                organizationId: params.organizationId,
-              },
+              }),
             });
 
             if (existing) {

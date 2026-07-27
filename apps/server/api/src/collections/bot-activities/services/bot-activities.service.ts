@@ -8,6 +8,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { BotActivityStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -97,11 +98,9 @@ export class BotActivitiesService extends BaseService<
     brandId: string | undefined,
     query: BotActivitiesQueryDto,
   ): Promise<{ activities: BotActivityDocument[]; total: number }> {
-    const where: Record<string, unknown> = {
+    const where: Record<string, unknown> = scopedWhere(organizationId, {
       ...(brandId ? { brandId } : {}),
-      isDeleted: false,
-      organizationId,
-    };
+    });
 
     if (query.replyBotConfig) {
       where.replyBotConfigId = query.replyBotConfig;
@@ -157,11 +156,9 @@ export class BotActivitiesService extends BaseService<
     fromDate?: Date,
     toDate?: Date,
   ): Promise<BotActivityStats> {
-    const where: Record<string, unknown> = {
+    const where: Record<string, unknown> = scopedWhere(organizationId, {
       ...(brandId ? { brandId } : {}),
-      isDeleted: false,
-      organizationId,
-    };
+    });
 
     if (replyBotConfigId) {
       where.replyBotConfigId = replyBotConfigId;
@@ -361,10 +358,6 @@ export class BotActivitiesService extends BaseService<
       update.processedAt = updateData.completedAt;
     }
 
-    return this.patchActivity(
-      id,
-      { id, isDeleted: false, organizationId },
-      update,
-    );
+    return this.patchActivity(id, scopedWhere(organizationId, { id }), update);
   }
 }
