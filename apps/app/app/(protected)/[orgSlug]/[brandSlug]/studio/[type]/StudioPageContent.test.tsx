@@ -80,17 +80,11 @@ describe('StudioPageContent', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('renders direct navigation for enabled Studio modes', () => {
+  it('leaves Studio mode navigation to the module sidebar', () => {
     render(<StudioPageContent />);
 
-    expect(screen.getByRole('link', { name: 'Image' })).toHaveAttribute(
-      'href',
-      '/default/default/studio/image',
-    );
-    expect(screen.getByRole('link', { name: 'Video' })).toHaveAttribute(
-      'href',
-      '/default/default/studio/video',
-    );
+    expect(screen.queryByRole('link', { name: 'Image' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Video' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Music' })).toBeNull();
   });
 
