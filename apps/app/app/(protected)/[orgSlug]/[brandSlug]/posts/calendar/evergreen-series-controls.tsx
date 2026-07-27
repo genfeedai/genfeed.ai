@@ -113,6 +113,8 @@ export default function EvergreenSeriesControls({
       setRelease(null);
       setPreview(null);
       setScheduledDate('');
+      setIsConfirmingCancel(false);
+      setPendingAction(null);
       try {
         const service = await getReleaseGroupsService();
         const nextRelease = await service.getOne(groupId, signal);

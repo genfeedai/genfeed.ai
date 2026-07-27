@@ -171,6 +171,30 @@ describe('EvergreenSeriesControls', () => {
     });
   });
 
+  it('clears cancellation confirmation when the release group changes', async () => {
+    const { rerender } = render(
+      <EvergreenSeriesControls groupId="release-1" />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Cancel future occurrences',
+      }),
+    );
+    expect(
+      screen.getByRole('button', { name: 'Confirm cancellation' }),
+    ).toBeInTheDocument();
+
+    rerender(<EvergreenSeriesControls groupId="release-2" />);
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('button', { name: 'Confirm cancellation' }),
+      ).not.toBeInTheDocument();
+    });
+    expect(mocks.cancelFuture).not.toHaveBeenCalled();
+  });
+
   it('renders empty, exhausted, and error states explicitly', async () => {
     mocks.getOne.mockResolvedValueOnce({ ...release, recurrence: null });
     const { rerender, unmount } = render(
