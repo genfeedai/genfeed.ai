@@ -104,15 +104,6 @@ vi.mock('../../../primitives/dropdown-menu', () => ({
   ),
 }));
 
-vi.mock('../../../primitives/input', () => ({
-  Input: ({
-    ref: _ref,
-    ...props
-  }: React.InputHTMLAttributes<HTMLInputElement> & {
-    ref?: React.Ref<HTMLInputElement>;
-  }) => <input {...props} />,
-}));
-
 vi.mock('../../../primitives/tooltip', () => ({
   SimpleTooltip: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
@@ -150,19 +141,6 @@ vi.mock('@genfeedai/helpers/formatting/cn/cn.util', () => ({
 
 // Import after mocks are set up
 const { AppSwitcher } = await import('./AppSwitcher');
-
-function searchApps(query: string) {
-  fireEvent.change(
-    screen.getByRole('searchbox', {
-      name: 'Search apps',
-    }),
-    {
-      target: {
-        value: query,
-      },
-    },
-  );
-}
 
 describe('AppSwitcher', () => {
   beforeEach(() => {
@@ -213,9 +191,7 @@ describe('AppSwitcher', () => {
   it('renders the compact primary app grid', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
 
-    expect(
-      screen.getByRole('searchbox', { name: 'Search apps' }),
-    ).toBeInTheDocument();
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
 
     for (const label of [
       'Workspace',
@@ -254,21 +230,8 @@ describe('AppSwitcher', () => {
     expect(screen.getByRole('link', { name: 'Library' })).toBeInTheDocument();
   });
 
-  it('searches module destinations', () => {
-    render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
-
-    searchApps('analytics');
-
-    expect(screen.getByRole('link', { name: 'Analytics' })).toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: 'Post Analytics' }),
-    ).not.toBeInTheDocument();
-  });
-
-  it('renders the admin app only when enabled and searched', () => {
+  it('renders the admin app only when enabled', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="workspace" showAdmin />);
-
-    searchApps('admin');
 
     expect(screen.getByRole('link', { name: 'Admin' })).toHaveAttribute(
       'href',
@@ -358,28 +321,32 @@ describe('AppSwitcher', () => {
 
   it('does not set aria-current on inactive app buttons', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
-    searchApps('analytics');
 
     expect(screen.getByRole('link', { name: 'Analytics' })).not.toHaveAttribute(
       'aria-current',
     );
   });
 
-  it('active app button carries the shared shell active state', () => {
+  it('uses only the icon tile for the active visual state', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="compose" />);
     const btn = screen.getByRole('link', { name: 'Studio' });
+    const iconTile = btn.querySelector('span');
+
     expect(btn).toBeDefined();
     expect(btn).toHaveAttribute('aria-current', 'page');
-    expect(btn).toHaveClass('bg-foreground/[0.08]');
+    expect(btn).not.toHaveClass('bg-foreground/[0.08]');
+    expect(iconTile).toHaveClass('bg-foreground', 'text-background');
   });
 
   it('inactive app button does not have active-state classes', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="compose" />);
-    searchApps('publish');
 
     const btn = screen.getByRole('link', { name: 'Publish' });
+    const iconTile = btn.querySelector('span');
+
     expect(btn).not.toHaveAttribute('aria-current');
     expect(btn).not.toHaveClass('bg-foreground/[0.08]');
+    expect(iconTile).not.toHaveClass('bg-foreground', 'text-background');
   });
 
   it('keeps the contextual remix route inside Publish', () => {
@@ -598,7 +565,6 @@ describe('AppSwitcher', () => {
           preservedSearch="taskId=123&taskSource=workspace"
         />,
       );
-      searchApps('analytics');
 
       expect(screen.getByRole('link', { name: 'Analytics' })).toHaveAttribute(
         'href',
