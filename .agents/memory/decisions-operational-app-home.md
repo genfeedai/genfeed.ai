@@ -12,7 +12,9 @@ Completed users do not remain on `/`. The proxy resolves canonical organization
 and brand scope and redirects to
 `/:orgSlug/:brandSlug/workspace/overview`. If the current scope is
 organization-only, root/default entry routing selects an available brand and
-refreshes the signed workspace-scope cookie.
+refreshes the signed workspace-scope cookie. The canonical Workspace overview
+uses the operational home as its default composition while preserving a saved
+custom dashboard when one exists.
 
 ## Considered Approaches
 
@@ -61,8 +63,9 @@ required exact-head verifier after PR CI.
 
 The original implementation intentionally made the operational home reachable
 at `/`. Live QA superseded that route ownership: the canonical Workspace
-overview is again the completed-user landing, while the operational content is
-only a resolution-failure fallback.
+overview is the completed-user landing and owns the operational content as its
+default composition. The root keeps the same content only as a
+resolution-failure fallback.
 
 **Why:** Issue #1866 must remain frontend-owned and cannot infer connection from
 an unverified key or expose unscoped operational data.

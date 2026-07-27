@@ -10,8 +10,10 @@ type: project
 
 The completed-user root redirects to the canonical default
 `/:orgSlug/:brandSlug/workspace/overview`. The resolver selects an available
-brand when the existing workspace scope is organization-only. The operational
-home remains a bounded fallback only when canonical scope resolution fails.
+brand when the existing workspace scope is organization-only. The canonical
+Workspace overview renders the operational home when no saved custom dashboard
+exists. The root retains the same operational content only as a bounded fallback
+when canonical scope resolution fails.
 
 ## Non-Goals
 

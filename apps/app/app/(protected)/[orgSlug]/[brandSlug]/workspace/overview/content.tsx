@@ -1,5 +1,6 @@
 'use client';
 
+import OperationalHomeContent from '@app/(protected)/home/content';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { DashboardOpenUIRenderer } from '@genfeedai/agent/components';
 import { hydrateLayout } from '@genfeedai/agent/dashboard';
@@ -10,7 +11,6 @@ import { useDashboardLayout } from '@hooks/data/content/use-dashboard-layout/use
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Button } from '@ui/primitives/button';
 import { useMemo } from 'react';
-import WorkspacePageContent from '../workspace-page';
 
 export default function WorkspaceOverviewContent() {
   const { brandId, isReady } = useBrand();
@@ -43,7 +43,7 @@ export default function WorkspaceOverviewContent() {
   }
 
   if (!layout) {
-    return <WorkspacePageContent />;
+    return <OperationalHomeContent />;
   }
 
   return (
