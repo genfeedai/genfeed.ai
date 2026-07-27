@@ -12,6 +12,7 @@ import {
   type ServerLogger,
   type ServerPrisma,
 } from '@server/server.dependencies';
+import { scopedWhere } from '@server/tenancy/scoped-where';
 
 @Injectable()
 export class AdOptimizationRecommendationsService {
@@ -57,10 +58,7 @@ export class AdOptimizationRecommendationsService {
       orderBy: { createdAt: 'desc' },
       skip: params?.offset ?? 0,
       take: params?.limit ?? 50,
-      where: {
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId),
     });
 
     return docs
@@ -78,11 +76,7 @@ export class AdOptimizationRecommendationsService {
     organizationId: string,
   ): Promise<AdOptimizationRecommendationDocument | null> {
     const doc = await this.prisma.adOptimizationRecommendation.findFirst({
-      where: {
-        id,
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { id }),
     });
 
     return doc ? this.toDocument(doc) : null;
@@ -175,10 +169,7 @@ export class AdOptimizationRecommendationsService {
     recommendationType: RecommendationType,
   ): Promise<AdOptimizationRecommendationDocument | null> {
     const docs = await this.prisma.adOptimizationRecommendation.findMany({
-      where: {
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId),
     });
 
     return (
@@ -205,7 +196,7 @@ export class AdOptimizationRecommendationsService {
     try {
       const existing = await this.prisma.adOptimizationRecommendation.findFirst(
         {
-          where: { id, isDeleted: false, organizationId },
+          where: scopedWhere(organizationId, { id }),
         },
       );
 

@@ -17,6 +17,7 @@ import type { PopulateOption } from '@genfeedai/interfaces';
 import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfeedai/prisma';
 import {
   normalizeActionOrigin,
+  scopedWhere,
   withActionOriginMetadata,
 } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -754,7 +755,7 @@ export class WorkflowExecutionsService extends BaseService<
     // Fetch result JSON alongside status so we can read durationMs from it
     const executions = await this.prisma.workflowExecution.findMany({
       select: { result: true, status: true },
-      where: { isDeleted: false, organizationId, workflowId },
+      where: scopedWhere(organizationId, { workflowId }),
     });
 
     const typed = executions as unknown as Array<{

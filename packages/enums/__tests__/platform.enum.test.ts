@@ -3,8 +3,37 @@ import { Platform } from '../src/platform.enum';
 
 describe('platform.enum', () => {
   describe('Platform', () => {
-    it('should have 28 members', () => {
-      expect(Object.values(Platform)).toHaveLength(28);
+    it('should have the intended members', () => {
+      expect(Object.keys(Platform)).toEqual([
+        'YOUTUBE',
+        'INSTAGRAM',
+        'TIKTOK',
+        'FACEBOOK',
+        'GOOGLE_ADS',
+        'GOOGLE_SEARCH_CONSOLE',
+        'TWITTER',
+        'LINKEDIN',
+        'PINTEREST',
+        'REDDIT',
+        'DISCORD',
+        'TELEGRAM',
+        'TWITCH',
+        'MEDIUM',
+        'THREADS',
+        'FANVUE',
+        'SLACK',
+        'WORDPRESS',
+        'SNAPCHAT',
+        'WHATSAPP',
+        'MASTODON',
+        'GHOST',
+        'SHOPIFY',
+        'BEEHIIV',
+        'UNIPILE',
+        'DEV_TO',
+        'PRODUCT_HUNT',
+        'HACKER_NEWS',
+      ]);
     });
 
     it('should have correct values', () => {

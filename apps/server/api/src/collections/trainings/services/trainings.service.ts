@@ -18,6 +18,7 @@ import {
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -589,7 +590,7 @@ export class TrainingsService extends BaseService<
    */
   async countTrainingsByOrganization(organizationId: string): Promise<number> {
     return this.prisma.training.count({
-      where: { isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, {}),
     });
   }
 
@@ -602,7 +603,7 @@ export class TrainingsService extends BaseService<
     const groups = await this.prisma.training.groupBy({
       _count: { id: true },
       by: ['stage'],
-      where: { isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, {}),
     });
 
     return groups.map((group) => ({

@@ -29,12 +29,17 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   setTopLinks: vi.fn((_req, opts) => opts),
 }));
 
-vi.mock('@genfeedai/serializers', () => ({
-  MusicSerializer: {
-    opts: {},
-    serialize: vi.fn((data) => data),
-  },
-}));
+vi.mock('@genfeedai/serializers', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@genfeedai/serializers')>();
+  return {
+    ...actual,
+    MusicSerializer: {
+      opts: {},
+      serialize: vi.fn((data) => data),
+    },
+  };
+});
 
 describe('PublicMusicsController', () => {
   let controller: PublicMusicsController;

@@ -8,6 +8,7 @@ import { type TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import type { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { TASKS_SERVICE } from '@api/collections/tasks/tasks.tokens';
 import { serializeWorkspaceTaskDate } from '@genfeedai/serializers';
+import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 
 const PLANNING_THREAD_SOURCE_PREFIX = 'workspace-planning:';
@@ -178,11 +179,9 @@ export class TaskPlanningService {
     organizationId: string,
   ): Promise<string | null> {
     if (!planningThreadId) return null;
-    const thread = await this.agentThreadsService.findOne({
-      id: planningThreadId,
-      isDeleted: false,
-      organizationId,
-    });
+    const thread = await this.agentThreadsService.findOne(
+      scopedWhere(organizationId, { id: planningThreadId }),
+    );
     return thread ? ((thread as Record<string, unknown>).id as string) : null;
   }
 

@@ -7,6 +7,7 @@ import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.serv
 import { isOrchestratorAgentType } from '@api/services/agent-orchestrator/constants/agent-type.constants';
 import { AgentExecutionTrigger } from '@genfeedai/enums';
 import type { IAgentCampaignStatusResponse } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -279,11 +280,9 @@ export class AgentCampaignExecutionService {
     }
 
     // Count completed content via runs associated with this campaign
-    const runs = await this.agentRunsService.find({
-      campaignId,
-      isDeleted: false,
-      organizationId,
-    });
+    const runs = await this.agentRunsService.find(
+      scopedWhere(organizationId, { campaignId }),
+    );
 
     const contentProduced = Array.isArray(runs)
       ? runs.reduce(

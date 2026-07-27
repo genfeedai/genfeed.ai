@@ -17,6 +17,7 @@ import type {
   IBrandKitDiagnostic,
 } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { Injectable } from '@nestjs/common';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
@@ -68,11 +69,7 @@ export class BrandKitAssetsService {
     dto: IBrandKitAssetImportRequest,
     findBrand: BrandKitAssetBrandFinder,
   ): Promise<IBrandKitAssetImportResponse> {
-    const brand = await findBrand({
-      id: brandId,
-      isDeleted: false,
-      organizationId,
-    });
+    const brand = await findBrand(scopedWhere(organizationId, { id: brandId }));
 
     if (!brand) {
       throw new NotFoundException('Brand', brandId);

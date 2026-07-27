@@ -17,6 +17,7 @@ import {
   type BrandKitSourceBrand,
   computeBrandKitReadiness,
 } from '@genfeedai/helpers';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -777,13 +778,11 @@ export class AgentContextAssemblyService {
       orderBy: { createdAt: 'desc' },
       select: { createdAt: true, description: true, platform: true },
       take: limit,
-      where: {
+      where: scopedWhere(organizationId, {
         brandId,
         createdAt: { gte: cutoff },
-        isDeleted: false,
-        organizationId,
         ...(platform ? { platform: platform as never } : {}),
-      },
+      }),
     });
 
     return posts

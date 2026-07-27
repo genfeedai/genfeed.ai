@@ -12,6 +12,7 @@ import type {
   MetaAdSyncJobData,
   TikTokAdSyncJobData,
 } from '@genfeedai/queue-contracts';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
@@ -455,14 +456,12 @@ export class AdAutomationWorkflowService {
   ): Promise<CredentialDocument[]> {
     const result = await this.credentialsService.findAll(
       {
-        where: {
+        where: scopedWhere(organizationId, {
           accessToken: { not: null },
           brandId: { not: null },
           isConnected: true,
-          isDeleted: false,
-          organizationId,
           platform,
-        },
+        }),
       },
       { limit: 500, pagination: false },
     );

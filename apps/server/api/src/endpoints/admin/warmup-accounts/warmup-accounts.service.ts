@@ -22,6 +22,7 @@ import {
   type WarmupAccount,
   WarmupAccountStatus,
 } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -356,11 +357,9 @@ export class AdminWarmupAccountsService {
   ): Promise<void> {
     const existing = await tx.member.findFirst({
       select: { id: true },
-      where: {
-        isDeleted: false,
-        organizationId: input.organizationId,
+      where: scopedWhere(input.organizationId, {
         userId: input.operatorUserId,
-      },
+      }),
     });
 
     if (existing) {

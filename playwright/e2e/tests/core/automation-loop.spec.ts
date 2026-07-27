@@ -36,7 +36,7 @@ test.describe('Core Automation Loop', () => {
     await expect(automationPage).toHaveURL(/\/test-org\/brand-1\/workflows$/);
     await expect(
       automationPage.getByTestId('sidebar-shell').first(),
-    ).toHaveAttribute('data-shell-section-label', 'Workspace');
+    ).toHaveAttribute('data-shell-section-label', 'Workflows');
     await expect(
       automationPage.getByTestId('universal-workspace-shell'),
     ).toHaveAttribute('data-workspace-surface', 'workflows');

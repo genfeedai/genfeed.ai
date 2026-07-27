@@ -10,10 +10,15 @@ vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   })),
 }));
 
-vi.mock('@genfeedai/serializers', () => ({
-  ListeningEvidenceSerializer: { serialize: vi.fn() },
-  ListeningTopicSerializer: { serialize: vi.fn() },
-}));
+vi.mock('@genfeedai/serializers', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@genfeedai/serializers')>();
+  return {
+    ...actual,
+    ListeningEvidenceSerializer: { serialize: vi.fn() },
+    ListeningTopicSerializer: { serialize: vi.fn() },
+  };
+});
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeCollection: vi.fn(

@@ -19,6 +19,7 @@ import {
 } from '@genfeedai/enums';
 import type { SocialSourceValidationResult } from '@genfeedai/interfaces';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -143,12 +144,10 @@ export class SocialSourcesService {
     context: { organizationId: string; brandId: string },
   ): Promise<SocialSourceDocument> {
     const source = await this.prisma.socialSource.findFirst({
-      where: {
+      where: scopedWhere(context.organizationId, {
         brandId: context.brandId,
         id,
-        isDeleted: false,
-        organizationId: context.organizationId,
-      },
+      }),
     });
 
     if (!source) {
@@ -203,12 +202,10 @@ export class SocialSourcesService {
             : {}),
         ...(dto.sourceType !== undefined && { sourceType: dto.sourceType }),
       },
-      where: {
+      where: scopedWhere(context.organizationId, {
         brandId: context.brandId,
         id,
-        isDeleted: false,
-        organizationId: context.organizationId,
-      },
+      }),
     });
   }
 
@@ -219,12 +216,10 @@ export class SocialSourcesService {
     await this.findOneScoped(id, context);
     return this.prisma.socialSource.update({
       data: { isActive: false, isDeleted: true },
-      where: {
+      where: scopedWhere(context.organizationId, {
         brandId: context.brandId,
         id,
-        isDeleted: false,
-        organizationId: context.organizationId,
-      },
+      }),
     });
   }
 
@@ -271,12 +266,10 @@ export class SocialSourcesService {
     options: { limit?: number } = {},
   ): Promise<SocialSourceBrandSyncDocumentResult> {
     const sources = await this.prisma.socialSource.findMany({
-      where: {
+      where: scopedWhere(context.organizationId, {
         brandId: context.brandId,
         isActive: true,
-        isDeleted: false,
-        organizationId: context.organizationId,
-      },
+      }),
     });
 
     const results: SocialSourceSyncDocumentResult[] = [];
@@ -339,12 +332,10 @@ export class SocialSourcesService {
             latestPost?.authorUsername || source.handle,
           ),
         },
-        where: {
+        where: scopedWhere(source.organizationId, {
           brandId: source.brandId,
           id: source.id,
-          isDeleted: false,
-          organizationId: source.organizationId,
-        },
+        }),
       });
 
       return { count: posts.length, posts, source: updatedSource };
@@ -360,12 +351,10 @@ export class SocialSourcesService {
           lastSyncStatus: 'failed',
           lastSyncedAt: new Date(),
         },
-        where: {
+        where: scopedWhere(source.organizationId, {
           brandId: source.brandId,
           id: source.id,
-          isDeleted: false,
-          organizationId: source.organizationId,
-        },
+        }),
       });
       throw error;
     }
@@ -376,7 +365,7 @@ export class SocialSourcesService {
     brandId: string,
   ): Promise<void> {
     const brand = await this.prisma.brand.findFirst({
-      where: { id: brandId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: brandId }),
     });
     if (!brand) {
       throw new BadRequestException(
@@ -395,13 +384,11 @@ export class SocialSourcesService {
     }
 
     const credential = await this.prisma.credential.findFirst({
-      where: {
+      where: scopedWhere(context.organizationId, {
         brandId: context.brandId,
         id: credentialId,
-        isDeleted: false,
-        organizationId: context.organizationId,
         platform: toCredentialPlatform(platform),
-      },
+      }),
     });
     if (!credential) {
       throw new BadRequestException(
@@ -414,11 +401,9 @@ export class SocialSourcesService {
     context: { organizationId: string; brandId: string },
     query: Pick<SocialSourcesQueryDto, 'isActive' | 'platform' | 'search'>,
   ) {
-    const where: Record<string, unknown> = {
+    const where: Record<string, unknown> = scopedWhere(context.organizationId, {
       brandId: context.brandId,
-      isDeleted: false,
-      organizationId: context.organizationId,
-    };
+    });
 
     if (query.platform) {
       where.platform = normalizePlatform(query.platform);

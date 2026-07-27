@@ -15,6 +15,7 @@ import type {
   SourcePostDraftActionResult,
   SourcePostMetrics,
 } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -167,12 +168,10 @@ export class SourcePostsService {
   ): Promise<SourcePostDocument> {
     const post = await this.db.sourcePost.findFirst({
       include: { source: true },
-      where: {
+      where: scopedWhere(context.organizationId, {
         brandId: context.brandId,
         id,
-        isDeleted: false,
-        organizationId: context.organizationId,
-      },
+      }),
     });
 
     if (!post) {
@@ -251,15 +250,13 @@ export class SourcePostsService {
       include: { source: true },
       orderBy: [{ publishedAt: 'desc' }, { collectedAt: 'desc' }],
       take: Math.min(100, Math.max(1, limit)),
-      where: {
+      where: scopedWhere(organizationId, {
         brandId,
-        isDeleted: false,
-        organizationId,
         OR: [
           { publishedAt: { gte: since } },
           { publishedAt: null, collectedAt: { gte: since } },
         ],
-      },
+      }),
     });
 
     const corpus = posts
@@ -367,21 +364,17 @@ export class SourcePostsService {
     const [post, ingredient] = await Promise.all([
       this.db.post.findFirst({
         include: { ingredients: { select: { id: true } } },
-        where: {
+        where: scopedWhere(context.organizationId, {
           brandId: context.brandId,
           id: postId,
-          isDeleted: false,
-          organizationId: context.organizationId,
-        },
+        }),
       }),
       this.db.ingredient.findFirst({
         select: { id: true },
-        where: {
+        where: scopedWhere(context.organizationId, {
           brandId: context.brandId,
           id: ingredientId,
-          isDeleted: false,
-          organizationId: context.organizationId,
-        },
+        }),
       }),
     ]);
 
@@ -408,12 +401,10 @@ export class SourcePostsService {
           set: Array.from(ingredientIds).map((id) => ({ id })),
         },
       },
-      where: {
+      where: scopedWhere(context.organizationId, {
         brandId: context.brandId,
         id: postId,
-        isDeleted: false,
-        organizationId: context.organizationId,
-      },
+      }),
     });
 
     return {
@@ -428,11 +419,9 @@ export class SourcePostsService {
     context: { organizationId: string; brandId: string },
     query: { platform?: string; search?: string; source?: string },
   ) {
-    const where: Record<string, unknown> = {
+    const where: Record<string, unknown> = scopedWhere(context.organizationId, {
       brandId: context.brandId,
-      isDeleted: false,
-      organizationId: context.organizationId,
-    };
+    });
 
     if (query.platform) {
       where.platform = query.platform;

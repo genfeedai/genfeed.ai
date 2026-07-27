@@ -4,6 +4,7 @@ import type { MonitoredAccountDocument } from '@api/collections/monitored-accoun
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { PopulateOption } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -60,7 +61,7 @@ export class MonitoredAccountsService extends BaseService<
     organizationId: string,
   ): Promise<MonitoredAccountDocument[]> {
     const accounts = await this.prisma.monitoredAccount.findMany({
-      where: { isActive: true, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { isActive: true }),
     });
 
     return accounts as unknown as MonitoredAccountDocument[];
@@ -140,7 +141,7 @@ export class MonitoredAccountsService extends BaseService<
     organizationId: string,
   ): Promise<MonitoredAccountDocument | null> {
     const accounts = await this.prisma.monitoredAccount.findMany({
-      where: { isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, {}),
     });
 
     const match = accounts.find(
@@ -158,7 +159,7 @@ export class MonitoredAccountsService extends BaseService<
     organizationId: string,
   ): Promise<MonitoredAccountDocument[]> {
     const accounts = await this.prisma.monitoredAccount.findMany({
-      where: { botConfigId, isActive: true, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { botConfigId, isActive: true }),
     });
 
     return accounts as unknown as MonitoredAccountDocument[];
@@ -173,7 +174,7 @@ export class MonitoredAccountsService extends BaseService<
     lastProcessedTweetId: string,
   ): Promise<MonitoredAccountDocument | null> {
     const existing = await this.prisma.monitoredAccount.findFirst({
-      where: { id, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id }),
     });
 
     if (!existing) return null;

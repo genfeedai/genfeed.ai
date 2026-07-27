@@ -18,6 +18,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -151,11 +152,7 @@ export class TasksService extends BaseService<
     organizationId: string,
   ): Promise<TaskDocument[]> {
     return (await this.delegate.findMany({
-      where: {
-        isDeleted: false,
-        organizationId,
-        parentId: taskId,
-      },
+      where: scopedWhere(organizationId, { parentId: taskId }),
     })) as unknown as TaskDocument[];
   }
 
@@ -177,12 +174,10 @@ export class TasksService extends BaseService<
     organizationId: string,
   ): Promise<TaskDocument | null> {
     const existing = await this.delegate.findFirst({
-      where: {
+      where: scopedWhere(organizationId, {
         id: taskId,
-        isDeleted: false,
-        organizationId,
         OR: [{ checkoutAgentId: null }, { checkoutAgentId: agentId }],
-      },
+      }),
     });
 
     if (!existing) return null;
@@ -196,11 +191,11 @@ export class TasksService extends BaseService<
         checkoutRunId: runId,
         status: 'in_progress',
       },
-      where: { id: taskId, organizationId, isDeleted: false },
+      where: scopedWhere(organizationId, { id: taskId }),
     });
 
     return (await this.delegate.findFirst({
-      where: { id: taskId, organizationId, isDeleted: false },
+      where: scopedWhere(organizationId, { id: taskId }),
     })) as unknown as TaskDocument;
   }
 
@@ -212,12 +207,10 @@ export class TasksService extends BaseService<
     await findOrThrow(
       this.delegate,
       {
-        where: {
+        where: scopedWhere(organizationId, {
           id: taskId,
           checkoutAgentId: agentId,
-          isDeleted: false,
-          organizationId,
-        },
+        }),
       },
       'Task',
       taskId,
@@ -230,11 +223,11 @@ export class TasksService extends BaseService<
         checkoutAgentId: null,
         checkoutRunId: null,
       },
-      where: { id: taskId, organizationId, isDeleted: false },
+      where: scopedWhere(organizationId, { id: taskId }),
     });
 
     return (await this.delegate.findFirst({
-      where: { id: taskId, organizationId, isDeleted: false },
+      where: scopedWhere(organizationId, { id: taskId }),
     })) as unknown as TaskDocument;
   }
 
@@ -377,7 +370,7 @@ export class TasksService extends BaseService<
    * reuse the canonical lookup.
    */
   async requireTask(id: string, organizationId: string): Promise<TaskDocument> {
-    const task = await this.findOne({ id, isDeleted: false, organizationId });
+    const task = await this.findOne(scopedWhere(organizationId, { id }));
     if (!task) throw new NotFoundException('Task', id);
     return task;
   }

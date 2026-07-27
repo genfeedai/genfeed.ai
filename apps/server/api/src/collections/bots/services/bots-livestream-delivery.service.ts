@@ -4,6 +4,7 @@ import type {
 } from '@api/collections/bots/schemas/bot.schema';
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
@@ -80,12 +81,10 @@ export class BotsLivestreamDeliveryService {
     const organizationId = bot.organizationId;
 
     const credential = await this.prisma.credential.findFirst({
-      where: {
+      where: scopedWhere(organizationId, {
         id: credentialId,
         isConnected: true,
-        isDeleted: false,
-        organizationId,
-      },
+      }),
     });
 
     if (!credential) {

@@ -1,4 +1,5 @@
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -58,11 +59,7 @@ export class RateLimitService {
     try {
       // Get the bot config to check rate limits
       const record = await this.prisma.replyBotConfig.findFirst({
-        where: {
-          id: botConfigId,
-          isDeleted: false,
-          organizationId,
-        },
+        where: scopedWhere(organizationId, { id: botConfigId }),
       });
 
       if (!record) {
@@ -179,11 +176,7 @@ export class RateLimitService {
 
     try {
       const record = await this.prisma.replyBotConfig.findFirst({
-        where: {
-          id: botConfigId,
-          isDeleted: false,
-          organizationId,
-        },
+        where: scopedWhere(organizationId, { id: botConfigId }),
       });
 
       if (!record) {

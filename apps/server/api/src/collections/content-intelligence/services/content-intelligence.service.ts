@@ -6,6 +6,7 @@ import type { CreatorAnalysisDocument } from '@api/collections/content-intellige
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { CreatorAnalysisStatus } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -54,12 +55,7 @@ export class ContentIntelligenceService extends BaseService<
     platform: string,
     handle: string,
   ): Promise<CreatorAnalysisDocument | null> {
-    return this.findOne({
-      handle,
-      isDeleted: false,
-      organizationId,
-      platform,
-    });
+    return this.findOne(scopedWhere(organizationId, { handle, platform }));
   }
 
   findByOrganization(

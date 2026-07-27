@@ -9,6 +9,7 @@ import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
@@ -139,11 +140,9 @@ export class BatchWorkflowService {
     // Verify every ingredientId belongs to the caller's organization and is not deleted.
     // This prevents cross-tenant IDOR where an attacker submits IDs owned by another org.
     const ownedCount = await this.prisma.ingredient.count({
-      where: {
+      where: scopedWhere(organizationId, {
         id: { in: ingredientIds },
-        organizationId,
-        isDeleted: false,
-      } as never,
+      }) as never,
     });
 
     if (ownedCount !== ingredientIds.length) {

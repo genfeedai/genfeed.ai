@@ -6,6 +6,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { PopulateOption } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -66,7 +67,7 @@ export class PersonasService extends BaseService<
       data: {
         assignedMembers: { set: memberIds.map((id) => ({ id })) },
       } as never,
-      where: { id: personaId, organizationId, isDeleted: false } as never,
+      where: scopedWhere(organizationId, { id: personaId }) as never,
     });
 
     if (!persona) {

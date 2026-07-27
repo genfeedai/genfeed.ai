@@ -12,6 +12,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { ByokProvider } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -308,7 +309,7 @@ export class SkillsService {
   ): Promise<string[]> {
     const brand = await findOrThrow(
       this.prisma.brand,
-      { where: { id: brandId, isDeleted: false, organizationId } },
+      { where: scopedWhere(organizationId, { id: brandId }) },
       'Brand',
       brandId,
     );

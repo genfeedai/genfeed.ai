@@ -13,6 +13,7 @@ import type {
   ContentSurface,
   Publishability,
 } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -93,11 +94,7 @@ export class AccountPublishingContextService {
           slug: true,
           text: true,
         },
-        where: {
-          id: params.brandId,
-          isDeleted: false,
-          organizationId: params.organizationId,
-        },
+        where: scopedWhere(params.organizationId, { id: params.brandId }),
       }),
       this.prisma.post.findMany({
         orderBy: { createdAt: 'desc' },
@@ -110,12 +107,10 @@ export class AccountPublishingContextService {
           status: true,
         },
         take: 5,
-        where: {
+        where: scopedWhere(params.organizationId, {
           brandId: params.brandId,
           credentialId: params.credentialId,
-          isDeleted: false,
-          organizationId: params.organizationId,
-        },
+        }),
       }),
     ]);
 

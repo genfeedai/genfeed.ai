@@ -9,6 +9,7 @@ import { mapPostCategoryToContentType } from '@api/collections/content-performan
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -66,7 +67,7 @@ export class ContentPerformanceService extends BaseService<
   ): Promise<ContentPerformanceDocument[]> {
     if (dto.brand) {
       const brand = await this.prisma.brand.findFirst({
-        where: { id: dto.brand, isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, { id: dto.brand }),
       });
       if (!brand) {
         throw new BadRequestException(
@@ -113,7 +114,7 @@ export class ContentPerformanceService extends BaseService<
     let validatedBrandId: string | undefined;
     if (dto.brandId) {
       const brand = await this.prisma.brand.findFirst({
-        where: { id: dto.brandId, isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, { id: dto.brandId }),
       });
       if (!brand) {
         throw new BadRequestException(
@@ -133,14 +134,12 @@ export class ContentPerformanceService extends BaseService<
     const matchedPosts =
       postMatchConditions.length > 0
         ? await this.prisma.post.findMany({
-            where: {
-              isDeleted: false,
-              organizationId,
+            where: scopedWhere(organizationId, {
               OR: postMatchConditions.map((c) => ({
                 externalId: c.externalId,
                 platform: c.platform,
               })),
-            },
+            }),
           })
         : [];
 
@@ -207,16 +206,14 @@ export class ContentPerformanceService extends BaseService<
 
     if (dto.postId) {
       post = await this.prisma.post.findFirst({
-        where: { id: dto.postId, isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, { id: dto.postId }),
       });
     } else if (dto.externalPostId) {
       post = await this.prisma.post.findFirst({
-        where: {
+        where: scopedWhere(organizationId, {
           externalId: dto.externalPostId,
-          isDeleted: false,
-          organizationId,
           platform: this.toCredentialPlatform(dto.platform),
-        },
+        }),
       });
     }
 
@@ -254,10 +251,7 @@ export class ContentPerformanceService extends BaseService<
     filters: QueryContentPerformanceDto,
     organizationId: string,
   ): Promise<ContentPerformanceDocument[]> {
-    const where: Record<string, unknown> = {
-      isDeleted: false,
-      organizationId,
-    };
+    const where: Record<string, unknown> = scopedWhere(organizationId, {});
 
     if (filters.brand) {
       where.brandId = filters.brand;
@@ -302,10 +296,7 @@ export class ContentPerformanceService extends BaseService<
     brandId?: string,
     limit = 10,
   ): Promise<ContentPerformanceDocument[]> {
-    const where: Record<string, unknown> = {
-      isDeleted: false,
-      organizationId,
-    };
+    const where: Record<string, unknown> = scopedWhere(organizationId, {});
 
     if (brandId) {
       where.brandId = brandId;
@@ -326,7 +317,7 @@ export class ContentPerformanceService extends BaseService<
     generationId: string,
   ): Promise<Record<string, unknown>> {
     const rows = await this.delegate.findMany({
-      where: { generationId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { generationId }),
     });
 
     if (rows.length === 0) return {};

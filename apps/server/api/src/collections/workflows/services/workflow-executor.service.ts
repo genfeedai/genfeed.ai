@@ -38,6 +38,7 @@ import {
   AgentScopeContextService,
   resolveNestedActionOrigin,
   runWithActionOrigin,
+  scopedWhere,
 } from '@genfeedai/server';
 import { buildWorkflowEtaSnapshot } from '@helpers/generation-eta.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -223,7 +224,7 @@ export class WorkflowExecutorService {
       this.prisma.workflow,
       {
         select: EXECUTABLE_WORKFLOW_SELECT,
-        where: { id: workflowId, isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, { id: workflowId }),
       },
       'Workflow',
       workflowId,
@@ -340,11 +341,7 @@ export class WorkflowExecutorService {
 
     const workflowDoc = await this.prisma.workflow.findFirst({
       select: EXECUTABLE_WORKFLOW_SELECT,
-      where: {
-        id: workflowId,
-        isDeleted: false,
-        organizationId: jobData.organizationId,
-      },
+      where: scopedWhere(jobData.organizationId, { id: workflowId }),
     });
 
     if (!workflowDoc) {

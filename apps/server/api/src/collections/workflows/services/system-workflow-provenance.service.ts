@@ -15,6 +15,7 @@ import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfe
 import {
   resolveNestedActionOrigin,
   runWithActionOrigin,
+  scopedWhere,
   withActionOriginMetadata,
 } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -247,14 +248,12 @@ export class SystemWorkflowProvenanceService {
     userId: string;
     version?: number;
   }): Promise<WorkflowRecord> {
-    const where = {
-      isDeleted: false,
+    const where = scopedWhere(input.organizationId, {
       metadata: {
         equals: input.canonicalId,
         path: [SYSTEM_WORKFLOW_METADATA_KEY, 'canonicalId'],
       },
-      organizationId: input.organizationId,
-    };
+    });
 
     const existing = await this.prisma.workflow.findFirst({
       select: { id: true, label: true },

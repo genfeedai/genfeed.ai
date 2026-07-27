@@ -11,6 +11,7 @@ import {
   type ServerLogger,
   type ServerPrisma,
 } from '@server/server.dependencies';
+import { scopedWhere } from '@server/tenancy/scoped-where';
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -178,11 +179,7 @@ export class AdBulkUploadJobsService {
     organizationId: string,
   ): Promise<AdBulkUploadJobDocument | null> {
     const job = await this.prisma.adBulkUploadJob.findFirst({
-      where: {
-        id,
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { id }),
     });
 
     return job ? this.normalizeJob(job as Record<string, unknown>) : null;
@@ -198,10 +195,7 @@ export class AdBulkUploadJobsService {
   ): Promise<AdBulkUploadJobDocument[]> {
     const jobs = await this.prisma.adBulkUploadJob.findMany({
       orderBy: { createdAt: 'desc' },
-      where: {
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId),
     });
     const offset = params?.offset ?? 0;
     const limit = params?.limit ?? 50;

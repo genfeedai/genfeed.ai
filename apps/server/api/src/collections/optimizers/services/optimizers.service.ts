@@ -14,6 +14,7 @@ import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
@@ -480,11 +481,7 @@ Return ONLY valid JSON with this structure. Do not include any text before or af
     return (await this.prisma.optimization.findMany({
       orderBy: { createdAt: 'desc' },
       take: limit,
-      where: {
-        isDeleted: false,
-        organizationId,
-        ...(userId ? { userId } : {}),
-      },
+      where: scopedWhere(organizationId, { ...(userId ? { userId } : {}) }),
     })) as never[];
   }
 

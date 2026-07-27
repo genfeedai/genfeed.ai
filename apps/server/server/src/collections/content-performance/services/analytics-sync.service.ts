@@ -9,6 +9,7 @@ import {
   type ServerLogger,
   type ServerPrisma,
 } from '@server/server.dependencies';
+import { scopedWhere } from '@server/tenancy/scoped-where';
 
 export interface AnalyticsSyncResult {
   synced: number;
@@ -251,11 +252,7 @@ export class AnalyticsSyncService {
       // Collect post IDs to batch-fetch post data
       const postIds = [...new Set(analyticsBatch.map((a) => String(a.postId)))];
       const posts = await this.prisma.post.findMany({
-        where: {
-          id: { in: postIds },
-          isDeleted: false,
-          organizationId,
-        },
+        where: scopedWhere(organizationId, { id: { in: postIds } }),
       });
       const postMap = new Map(posts.map((p) => [p.id, p]));
 
@@ -361,11 +358,9 @@ export class AnalyticsSyncService {
     organizationId: string,
     brandId?: string,
   ): Promise<Date | null> {
-    const where: Record<string, unknown> = {
-      isDeleted: false,
-      organizationId,
+    const where: Record<string, unknown> = scopedWhere(organizationId, {
       source: PerformanceSource.API,
-    };
+    });
 
     if (brandId) {
       where.brandId = brandId;

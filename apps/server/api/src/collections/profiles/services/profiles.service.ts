@@ -19,6 +19,7 @@ import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
@@ -133,7 +134,7 @@ export class ProfilesService {
     excludeId?: string,
   ) {
     const profiles = await this.prisma.profile.findMany({
-      where: { isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, {}),
     });
 
     await Promise.all(
@@ -199,10 +200,7 @@ export class ProfilesService {
   ): Promise<Profile[]> {
     const results = await this.prisma.profile.findMany({
       orderBy: { createdAt: 'desc' },
-      where: {
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, {}),
     });
 
     return results
@@ -234,7 +232,7 @@ export class ProfilesService {
   async findOne(id: string, organizationId: string): Promise<Profile> {
     const profile = await findOrThrow(
       this.prisma.profile,
-      { where: { id, isDeleted: false, organizationId } },
+      { where: scopedWhere(organizationId, { id }) },
       'Profile',
     );
 
@@ -246,7 +244,7 @@ export class ProfilesService {
    */
   async getDefault(organizationId: string): Promise<Profile | null> {
     const results = await this.prisma.profile.findMany({
-      where: { isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, {}),
     });
 
     const profile = results
@@ -271,7 +269,7 @@ export class ProfilesService {
 
     const existing = await findOrThrow(
       this.prisma.profile,
-      { where: { id, isDeleted: false, organizationId } },
+      { where: scopedWhere(organizationId, { id }) },
       'Profile',
     );
 
@@ -294,7 +292,7 @@ export class ProfilesService {
   async remove(id: string, organizationId: string): Promise<void> {
     await findOrThrow(
       this.prisma.profile,
-      { where: { id, isDeleted: false, organizationId } },
+      { where: scopedWhere(organizationId, { id }) },
       'Profile',
     );
 
@@ -353,11 +351,7 @@ export class ProfilesService {
             usageCount: nextUsageCount,
           }) as never,
         },
-        where: {
-          id: profile.id,
-          organizationId,
-          isDeleted: false,
-        } as never,
+        where: scopedWhere(organizationId, { id: profile.id }) as never,
       });
 
       return {

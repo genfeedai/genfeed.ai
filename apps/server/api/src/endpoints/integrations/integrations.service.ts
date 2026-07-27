@@ -10,6 +10,7 @@ import {
   IntegrationPlatform as PrismaIntegrationPlatform,
   IntegrationStatus as PrismaIntegrationStatus,
 } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { RedisService } from '@libs/redis/redis.service';
 import {
   BadRequestException,
@@ -38,11 +39,7 @@ export class IntegrationsService {
 
     // Check if integration for this platform already exists
     const existing = await this.prisma.orgIntegration.findFirst({
-      where: {
-        isDeleted: false,
-        organizationId: orgId,
-        platform,
-      },
+      where: scopedWhere(orgId, { platform }),
     });
 
     if (existing) {
@@ -75,10 +72,7 @@ export class IntegrationsService {
 
   async findAll(orgId: string): Promise<Record<string, unknown>[]> {
     const integrations = await this.prisma.orgIntegration.findMany({
-      where: {
-        isDeleted: false,
-        organizationId: orgId,
-      },
+      where: scopedWhere(orgId),
     });
 
     return integrations.map((integration) => ({
@@ -96,7 +90,7 @@ export class IntegrationsService {
   ): Promise<Record<string, unknown>> {
     const integration = await findOrThrow(
       this.prisma.orgIntegration,
-      { where: { id: integrationId, isDeleted: false, organizationId: orgId } },
+      { where: scopedWhere(orgId, { id: integrationId }) },
       'Integration',
     );
 
@@ -159,7 +153,7 @@ export class IntegrationsService {
   ): Promise<Record<string, unknown>> {
     const existing = await findOrThrow(
       this.prisma.orgIntegration,
-      { where: { id: integrationId, isDeleted: false, organizationId: orgId } },
+      { where: scopedWhere(orgId, { id: integrationId }) },
       'Integration',
     );
 
@@ -203,7 +197,7 @@ export class IntegrationsService {
   async remove(orgId: string, integrationId: string): Promise<void> {
     const existing = await findOrThrow(
       this.prisma.orgIntegration,
-      { where: { id: integrationId, isDeleted: false, organizationId: orgId } },
+      { where: scopedWhere(orgId, { id: integrationId }) },
       'Integration',
     );
 

@@ -9,6 +9,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -183,16 +184,14 @@ export class ClipResultsService extends BaseService<
     projectId: string;
   }): Promise<ClipResultDocument | null> {
     const result = await this.delegate.findFirst({
-      where: {
+      where: scopedWhere(input.organizationId, {
         OR: [
           { id: input.clipResultId },
           { mongoId: input.clipResultId },
           { providerJobId: input.clipResultId },
         ],
-        isDeleted: false,
-        organizationId: input.organizationId,
         projectId: input.projectId,
-      },
+      }),
     });
 
     return result ? this.normalizeDocument(result) : null;

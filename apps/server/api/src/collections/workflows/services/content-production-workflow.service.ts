@@ -18,6 +18,7 @@ import {
   VideoTaskModel,
 } from '@genfeedai/enums';
 import type { ContentSchedule, Credential, Persona } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -174,13 +175,11 @@ export class ContentProductionWorkflowService {
       const duePersonas = (await this.prisma.persona.findMany({
         include: { credentials: true },
         take: MAX_PERSONAS_PER_CYCLE,
-        where: {
+        where: scopedWhere(organizationId, {
           isAutopilotEnabled: true,
-          isDeleted: false,
           nextAutopilotRunAt: { lte: now },
-          organizationId,
           status: PersonaStatus.ACTIVE as never,
-        },
+        }),
       })) as PersonaWithCredentials[];
 
       for (const persona of duePersonas) {
@@ -221,11 +220,7 @@ export class ContentProductionWorkflowService {
   ): Promise<ContentProductionWorkflowResult> {
     const action: ContentProductionAction = 'contentScheduleRun';
     const schedule = await this.prisma.contentSchedule.findFirst({
-      where: {
-        id: contentScheduleId,
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { id: contentScheduleId }),
     });
 
     if (!schedule) {

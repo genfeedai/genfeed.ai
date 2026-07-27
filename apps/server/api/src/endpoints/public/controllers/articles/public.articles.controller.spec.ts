@@ -21,9 +21,14 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
-vi.mock('@genfeedai/serializers', () => ({
-  ArticleSerializer: { opts: {}, serialize: vi.fn((data) => data) },
-}));
+vi.mock('@genfeedai/serializers', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@genfeedai/serializers')>();
+  return {
+    ...actual,
+    ArticleSerializer: { opts: {}, serialize: vi.fn((data) => data) },
+  };
+});
 
 describe('PublicArticlesController', () => {
   let controller: PublicArticlesController;

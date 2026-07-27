@@ -13,6 +13,7 @@ import type {
   InstagramRemixMode,
 } from '@genfeedai/interfaces';
 import { AgentToolName } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 function readOptionalNumber(value: unknown): number | undefined {
@@ -209,13 +210,13 @@ export class AgentInstagramInspirationToolHandler {
       platform: 'instagram',
     });
     const credential = this.credentialsService
-      ? await this.credentialsService.findOne({
-          brandId,
-          isConnected: true,
-          isDeleted: false,
-          organizationId: ctx.organizationId,
-          platform: CredentialPlatform.INSTAGRAM,
-        })
+      ? await this.credentialsService.findOne(
+          scopedWhere(ctx.organizationId, {
+            brandId,
+            isConnected: true,
+            platform: CredentialPlatform.INSTAGRAM,
+          }),
+        )
       : null;
 
     return {

@@ -3,8 +3,13 @@ import { NotificationChannel, ReviewGateStatus } from '../src/review-gate.enum';
 
 describe('review-gate.enum', () => {
   describe('ReviewGateStatus', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(ReviewGateStatus)).toHaveLength(4);
+    it('should have the intended members', () => {
+      expect(Object.keys(ReviewGateStatus)).toEqual([
+        'PENDING',
+        'APPROVED',
+        'REJECTED',
+        'TIMEOUT',
+      ]);
     });
 
     it('should have correct values', () => {

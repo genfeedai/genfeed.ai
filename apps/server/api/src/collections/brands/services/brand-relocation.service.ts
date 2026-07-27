@@ -14,6 +14,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { MemberRole } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -654,7 +655,7 @@ export class BrandRelocationService {
   ): Promise<boolean> {
     const member = await this.prisma.member.findFirst({
       select: { role: { select: { key: true } }, roleKey: true },
-      where: { isActive: true, isDeleted: false, organizationId, userId },
+      where: scopedWhere(organizationId, { isActive: true, userId }),
     });
     if (!member) {
       return false;

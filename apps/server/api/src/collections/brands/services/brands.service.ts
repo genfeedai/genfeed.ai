@@ -35,6 +35,7 @@ import type {
   IBrandKitDraft,
 } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -118,10 +119,7 @@ export class BrandsService extends BaseService<
       brandIds?: string[];
     } = {},
   ): Promise<BrandDocument[]> {
-    const where: Record<string, unknown> = {
-      isDeleted: false,
-      organizationId,
-    };
+    const where: Record<string, unknown> = scopedWhere(organizationId, {});
 
     if (options.brandIds && options.brandIds.length > 0) {
       where.id = { in: options.brandIds };
@@ -225,7 +223,7 @@ export class BrandsService extends BaseService<
     });
 
     const existing = await this.delegate.findFirst({
-      where: { id: brandId, isDeleted: false, organizationId: orgId },
+      where: scopedWhere(orgId, { id: brandId }),
     });
 
     if (!existing) {
@@ -424,21 +422,19 @@ export class BrandsService extends BaseService<
 
     // Deselect all brands for user, then select the resolved target brand.
     await this.delegate.updateMany({
-      where: { isDeleted: false, organizationId, userId },
+      where: scopedWhere(organizationId, { userId }),
       data: { isSelected: false },
     });
 
     await this.delegate.updateMany({
-      where: { id: targetBrand.id, organizationId, isDeleted: false },
+      where: scopedWhere(organizationId, { id: targetBrand.id }),
       data: { isSelected: true },
     });
 
     // Return the updated brand
-    const updatedBrand = await this.findOne({
-      id: targetBrand.id,
-      isDeleted: false,
-      organizationId,
-    });
+    const updatedBrand = await this.findOne(
+      scopedWhere(organizationId, { id: targetBrand.id }),
+    );
 
     if (!updatedBrand) {
       throw new NotFoundException('Brand', brandId);
@@ -459,7 +455,7 @@ export class BrandsService extends BaseService<
     });
 
     await this.delegate.updateMany({
-      where: { isDeleted: false, organizationId, userId },
+      where: scopedWhere(organizationId, { userId }),
       data: { isSelected: false },
     });
   }

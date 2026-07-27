@@ -20,6 +20,7 @@ import {
   VoiceCloneStatus,
   VoiceProvider,
 } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
@@ -93,15 +94,15 @@ export class VoiceCloneService {
     id: string,
   ): Promise<IngredientDocument | null> {
     const publicMetadata = getPublicMetadata(user);
-    const voice = await this.voicesService.findOne({
-      _id: id,
-      category: CategoryPrismaUtil.toIngredientCategory(
-        IngredientCategory.VOICE,
-      ),
-      isCloned: true,
-      isDeleted: false,
-      organizationId: publicMetadata.organization,
-    });
+    const voice = await this.voicesService.findOne(
+      scopedWhere(publicMetadata.organization, {
+        _id: id,
+        category: CategoryPrismaUtil.toIngredientCategory(
+          IngredientCategory.VOICE,
+        ),
+        isCloned: true,
+      }),
+    );
     if (!voice) {
       return null;
     }

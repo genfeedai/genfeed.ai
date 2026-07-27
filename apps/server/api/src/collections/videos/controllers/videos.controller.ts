@@ -50,6 +50,7 @@ import type {
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
 import { VideoSerializer } from '@genfeedai/serializers';
+import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import {
   Body,
@@ -234,14 +235,12 @@ export class VideosController {
     const publicMetadata = getPublicMetadata(user);
 
     const pipeline = {
-      where: {
+      where: scopedWhere(publicMetadata.organization, {
         _id: videoId,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.VIDEO,
         ),
-        isDeleted: false,
-        organizationId: publicMetadata.organization,
-      },
+      }),
     };
 
     const result = await this.videosService.findAll(pipeline, {
@@ -256,14 +255,12 @@ export class VideosController {
 
     // Populate relationships that aren't in aggregation
     const populatedData = await this.videosService.findOne(
-      {
+      scopedWhere(publicMetadata.organization, {
         _id: videoId,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.VIDEO,
         ),
-        isDeleted: false,
-        organizationId: publicMetadata.organization,
-      },
+      }),
       [
         PopulatePatterns.metadataFull,
         PopulatePatterns.promptFull,
@@ -382,14 +379,14 @@ export class VideosController {
     const publicMetadata = getPublicMetadata(user);
 
     // Find the video first to ensure it exists and belongs to the user or is part of the same organization
-    const video = await this.videosService.findOne({
-      _id: videoId,
-      organizationId: publicMetadata.organization,
-      category: CategoryPrismaUtil.toIngredientCategory(
-        IngredientCategory.VIDEO,
-      ),
-      isDeleted: false,
-    });
+    const video = await this.videosService.findOne(
+      scopedWhere(publicMetadata.organization, {
+        _id: videoId,
+        category: CategoryPrismaUtil.toIngredientCategory(
+          IngredientCategory.VIDEO,
+        ),
+      }),
+    );
 
     if (!video) {
       return returnNotFound(this.constructorName, videoId);

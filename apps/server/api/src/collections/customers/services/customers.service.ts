@@ -7,6 +7,7 @@ import type {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -26,10 +27,7 @@ export class CustomersService extends BaseService<
 
   findByOrganizationId(organizationId: string): Promise<Customer | null> {
     return this.delegate.findFirst({
-      where: {
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, {}),
     }) as Promise<Customer | null>;
   }
 

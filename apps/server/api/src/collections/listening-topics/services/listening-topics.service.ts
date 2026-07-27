@@ -23,6 +23,7 @@ import {
   type INormalizedListeningTopicContract,
   LISTENING_CONTRACT_VERSION,
 } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import {
   BadRequestException,
   ConflictException,
@@ -57,12 +58,10 @@ export class ListeningTopicsService {
     const fingerprint = buildTopicFingerprint(normalized);
     const existing = await this.prisma.listeningTopic.findFirst({
       include: topicInclude,
-      where: {
+      where: scopedWhere(context.organizationId, {
         brandId: context.brandId,
         fingerprint,
-        isDeleted: false,
-        organizationId: context.organizationId,
-      },
+      }),
     });
 
     if (existing) {
@@ -103,12 +102,10 @@ export class ListeningTopicsService {
 
       const concurrentWinner = await this.prisma.listeningTopic.findFirst({
         include: topicInclude,
-        where: {
+        where: scopedWhere(context.organizationId, {
           brandId: context.brandId,
           fingerprint,
-          isDeleted: false,
-          organizationId: context.organizationId,
-        },
+        }),
       });
       if (!concurrentWinner) {
         throw error;
@@ -177,12 +174,10 @@ export class ListeningTopicsService {
   ): Promise<ListeningTopicDocument> {
     const topic = await this.prisma.listeningTopic.findFirst({
       include: topicInclude,
-      where: {
+      where: scopedWhere(context.organizationId, {
         brandId: context.brandId,
         id,
-        isDeleted: false,
-        organizationId: context.organizationId,
-      },
+      }),
     });
 
     if (!topic) {
@@ -216,13 +211,11 @@ export class ListeningTopicsService {
     const fingerprint = buildTopicFingerprint(normalized);
     const duplicate = await this.prisma.listeningTopic.findFirst({
       select: { id: true },
-      where: {
+      where: scopedWhere(context.organizationId, {
         brandId: context.brandId,
         fingerprint,
         id: { not: id },
-        isDeleted: false,
-        organizationId: context.organizationId,
-      },
+      }),
     });
 
     if (duplicate) {
@@ -373,13 +366,11 @@ export class ListeningTopicsService {
   ): Promise<IAuthorizedListeningSource[]> {
     const sources = await this.prisma.socialSource.findMany({
       select: { id: true, platform: true },
-      where: {
+      where: scopedWhere(context.organizationId, {
         brandId: context.brandId,
         id: { in: sourceIds },
         isActive: true,
-        isDeleted: false,
-        organizationId: context.organizationId,
-      },
+      }),
     });
 
     if (sources.length !== sourceIds.length) {
@@ -483,12 +474,7 @@ function buildTopicFingerprint(
 }
 
 function activeTopicWriteWhere(id: string, context: IListeningScope) {
-  return {
-    brandId: context.brandId,
-    id,
-    isDeleted: false,
-    organizationId: context.organizationId,
-  };
+  return scopedWhere(context.organizationId, { brandId: context.brandId, id });
 }
 
 function isFingerprintUniqueViolation(error: unknown): boolean {

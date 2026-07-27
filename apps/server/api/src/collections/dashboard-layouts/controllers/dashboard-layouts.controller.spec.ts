@@ -12,11 +12,16 @@ vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn(() => ({ organization: 'org-1' })),
 }));
 
-vi.mock('@genfeedai/serializers', () => ({
-  DashboardLayoutSerializer: {
-    serialize: vi.fn((data: unknown) => ({ data })),
-  },
-}));
+vi.mock('@genfeedai/serializers', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@genfeedai/serializers')>();
+  return {
+    ...actual,
+    DashboardLayoutSerializer: {
+      serialize: vi.fn((data: unknown) => ({ data })),
+    },
+  };
+});
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((name: string, id: string) => ({
@@ -142,22 +147,21 @@ describe('DashboardLayoutsController', () => {
       expect(result).toEqual({ error: 'DashboardLayoutsController:brand-1' });
     });
 
-    it.each([
-      undefined,
-      '',
-      '   ',
-    ])('returns HTTP 400 when the brand query param is missing or blank (%j)', async (brandId) => {
-      const request = controller.findForPage(
-        mockRequest as never,
-        mockUser,
-        brandId as string,
-      );
+    it.each([undefined, '', '   '])(
+      'returns HTTP 400 when the brand query param is missing or blank (%j)',
+      async (brandId) => {
+        const request = controller.findForPage(
+          mockRequest as never,
+          mockUser,
+          brandId as string,
+        );
 
-      await expect(request).rejects.toBeInstanceOf(BadRequestException);
-      await expect(request).rejects.toMatchObject({ status: 400 });
+        await expect(request).rejects.toBeInstanceOf(BadRequestException);
+        await expect(request).rejects.toMatchObject({ status: 400 });
 
-      expect(service.findForPage).not.toHaveBeenCalled();
-    });
+        expect(service.findForPage).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('upsert', () => {

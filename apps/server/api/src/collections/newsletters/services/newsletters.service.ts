@@ -12,7 +12,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { Prisma } from '@genfeedai/prisma';
-import { AgentArtifactReferenceService } from '@genfeedai/server';
+import { AgentArtifactReferenceService, scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -88,12 +88,7 @@ export class NewslettersService extends BaseService<
     ctx: TenantContext,
   ): Promise<NewsletterDocument> {
     const data = await this.delegate.findFirst({
-      where: {
-        id,
-        brandId: ctx.brandId,
-        isDeleted: false,
-        organizationId: ctx.organizationId,
-      },
+      where: scopedWhere(ctx.organizationId, { id, brandId: ctx.brandId }),
     });
 
     if (!data) {
@@ -469,12 +464,10 @@ export class NewslettersService extends BaseService<
     limit = 5,
   ): Promise<NewsletterDocument[]> {
     const results = await this.delegate.findMany({
-      where: {
+      where: scopedWhere(ctx.organizationId, {
         brandId: ctx.brandId,
-        isDeleted: false,
-        organizationId: ctx.organizationId,
         status: 'published',
-      },
+      }),
       orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
       take: limit,
     });
@@ -487,12 +480,10 @@ export class NewslettersService extends BaseService<
     ctx: TenantContext,
   ): Promise<NewsletterDocument[]> {
     const documents = await this.delegate.findMany({
-      where: {
+      where: scopedWhere(ctx.organizationId, {
         id: { in: ids },
         brandId: ctx.brandId,
-        isDeleted: false,
-        organizationId: ctx.organizationId,
-      },
+      }),
     });
 
     const docs = documents as unknown as NewsletterDocument[];

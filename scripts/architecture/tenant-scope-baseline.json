@@ -386,14 +386,6 @@
     },
     {
       "delegate": "contentPerformance",
-      "file": "apps/server/api/src/collections/content-performance/services/attribution.service.ts",
-      "fingerprint": "b5b6354d5a68a8385cdd",
-      "method": "findMany",
-      "model": "ContentPerformance",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "contentPerformance",
       "file": "apps/server/api/src/collections/content-performance/services/optimization-cycle.service.ts",
       "fingerprint": "2f87a531e7e49de5a2cd",
       "method": "findMany",
@@ -439,14 +431,6 @@
       "method": "update",
       "model": "ContentRun",
       "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "contentRun",
-      "file": "apps/server/api/src/collections/content-runs/services/content-runs.service.ts",
-      "fingerprint": "112980562fd9bed72a23",
-      "method": "findMany",
-      "model": "ContentRun",
-      "reason": "unresolved-where"
     },
     {
       "delegate": "contentRun",
@@ -625,14 +609,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "post",
-      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
-      "fingerprint": "5e675948f2c4dbce4476",
-      "method": "findMany",
-      "model": "Post",
-      "reason": "unresolved-where"
-    },
-    {
       "delegate": "creativePattern",
       "file": "apps/server/api/src/collections/creative-patterns/creative-patterns.service.ts",
       "fingerprint": "00fcb8edb9e10226b054",
@@ -655,14 +631,6 @@
       "method": "update",
       "model": "CreativePattern",
       "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "credential",
-      "file": "apps/server/api/src/collections/credentials/services/account-health.service.ts",
-      "fingerprint": "3f812a9974a153b86db8",
-      "method": "findFirst",
-      "model": "Credential",
-      "reason": "unresolved-where"
     },
     {
       "delegate": "credential",
@@ -713,14 +681,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "credential",
-      "file": "apps/server/api/src/collections/credentials/services/credentials.service.ts",
-      "fingerprint": "3b697a80794d9d9e6ece",
-      "method": "count",
-      "model": "Credential",
-      "reason": "unresolved-where"
-    },
-    {
       "delegate": "creditBalance",
       "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
       "fingerprint": "91c23c48d96d89f12d49",
@@ -759,14 +719,6 @@
       "method": "findMany",
       "model": "CronJob",
       "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "cronJob",
-      "file": "apps/server/api/src/collections/cron-jobs/services/cron-jobs.service.ts",
-      "fingerprint": "5e68634bfa8ecbe2c260",
-      "method": "findMany",
-      "model": "CronJob",
-      "reason": "unresolved-where"
     },
     {
       "delegate": "cronJob",
@@ -1097,22 +1049,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "editorProject",
-      "file": "apps/server/api/src/collections/editor-projects/editor-projects.service.ts",
-      "fingerprint": "5f33eddcbed525c7aa65",
-      "method": "updateMany",
-      "model": "EditorProject",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "editorProject",
-      "file": "apps/server/api/src/collections/editor-projects/editor-projects.service.ts",
-      "fingerprint": "ce57e7a885f198216d87",
-      "method": "updateMany",
-      "model": "EditorProject",
-      "reason": "unresolved-where"
-    },
-    {
       "delegate": "elementBlacklist",
       "file": "apps/server/api/src/collections/elements/blacklists/services/blacklists.service.ts",
       "fingerprint": "943b1db4856f9f022535",
@@ -1195,71 +1131,7 @@
     {
       "delegate": "ingredient",
       "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
-      "fingerprint": "057fd70e76af6bb54c8c",
-      "method": "count",
-      "model": "Ingredient",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "ingredient",
-      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
-      "fingerprint": "284604e8565681e49f2c",
-      "method": "count",
-      "model": "Ingredient",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "ingredient",
-      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
       "fingerprint": "53c9102476169353bbe1",
-      "method": "count",
-      "model": "Ingredient",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "ingredient",
-      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
-      "fingerprint": "8c1e040cf54dc05cc365",
-      "method": "count",
-      "model": "Ingredient",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "ingredient",
-      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
-      "fingerprint": "9a66a06f1f1ccf75b863",
-      "method": "count",
-      "model": "Ingredient",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "ingredient",
-      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
-      "fingerprint": "a04247e5e48a919c0423",
-      "method": "count",
-      "model": "Ingredient",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "ingredient",
-      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
-      "fingerprint": "ad91074c86ba27a5f572",
-      "method": "count",
-      "model": "Ingredient",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "ingredient",
-      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
-      "fingerprint": "cc75a072c22dea487fd3",
-      "method": "count",
-      "model": "Ingredient",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "ingredient",
-      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
-      "fingerprint": "e7ea04560d0b3230feb8",
       "method": "count",
       "model": "Ingredient",
       "reason": "unresolved-where"
@@ -1301,14 +1173,6 @@
       "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
       "fingerprint": "feea9ffdfa8f48e94bec",
       "method": "findMany",
-      "model": "Ingredient",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "ingredient",
-      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
-      "fingerprint": "a6e7635faed46e2f57da",
-      "method": "groupBy",
       "model": "Ingredient",
       "reason": "unresolved-where"
     },
@@ -1399,14 +1263,6 @@
       "method": "findFirst",
       "model": "Invitation",
       "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "invitation",
-      "file": "apps/server/api/src/collections/members/services/invitation.service.ts",
-      "fingerprint": "4aaf970e032f14539bca",
-      "method": "findMany",
-      "model": "Invitation",
-      "reason": "unresolved-where"
     },
     {
       "delegate": "invitation",
@@ -1753,14 +1609,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "optimization",
-      "file": "apps/server/api/src/collections/optimizers/services/optimizers.service.ts",
-      "fingerprint": "c629624c60abd7fcebae",
-      "method": "findMany",
-      "model": "Optimization",
-      "reason": "unresolved-where"
-    },
-    {
       "delegate": "outreachCampaign",
       "file": "apps/server/api/src/collections/outreach-campaigns/services/outreach-campaigns.service.ts",
       "fingerprint": "173c3609323857c7ae5e",
@@ -1927,14 +1775,6 @@
       "method": "update",
       "model": "OutreachCampaign",
       "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "postGroup",
-      "file": "apps/server/api/src/collections/post-groups/services/post-group-persistence.service.ts",
-      "fingerprint": "445b08c1ebf1632488f1",
-      "method": "findMany",
-      "model": "PostGroup",
-      "reason": "unresolved-where"
     },
     {
       "delegate": "postGroup",
@@ -4001,14 +3841,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "post",
-      "file": "apps/server/api/src/services/agent-context-assembly/agent-context-assembly.service.ts",
-      "fingerprint": "945caa9a9095e0014a0f",
-      "method": "findMany",
-      "model": "Post",
-      "reason": "unresolved-where"
-    },
-    {
       "delegate": "agentThreadSnapshot",
       "file": "apps/server/api/src/services/agent-threading/services/agent-runtime-session.service.ts",
       "fingerprint": "6a240ebc4d7cba06dac4",
@@ -4023,14 +3855,6 @@
       "method": "update",
       "model": "AgentThreadSnapshot",
       "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "agentThreadEvent",
-      "file": "apps/server/api/src/services/agent-threading/services/agent-thread-engine.service.ts",
-      "fingerprint": "15e0585eb608ce705b55",
-      "method": "findMany",
-      "model": "AgentThreadEvent",
-      "reason": "unresolved-where"
     },
     {
       "delegate": "agentThreadSnapshot",
@@ -4172,14 +3996,6 @@
       "delegate": "batch",
       "file": "apps/server/api/src/services/batch-generation/batch-generation-review.service.ts",
       "fingerprint": "53c1bfd78ff5985e887f",
-      "method": "findMany",
-      "model": "Batch",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "batch",
-      "file": "apps/server/api/src/services/batch-generation/batch-generation-review.service.ts",
-      "fingerprint": "9f14259587facd7c7fc9",
       "method": "findMany",
       "model": "Batch",
       "reason": "unresolved-where"

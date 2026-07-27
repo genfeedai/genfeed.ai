@@ -29,6 +29,7 @@ import type {
   SortObject,
 } from '@genfeedai/interfaces';
 import { TaskSerializer } from '@genfeedai/serializers';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -267,11 +268,9 @@ export class TasksController extends BaseCRUDController<
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
     const { organization } = getPublicMetadata(user);
-    const doc = await this.tasksService.findOne({
-      _id: id,
-      isDeleted: false,
-      organizationId: organization,
-    });
+    const doc = await this.tasksService.findOne(
+      scopedWhere(organization, { _id: id }),
+    );
 
     if (!doc) {
       throw new NotFoundException('Task');

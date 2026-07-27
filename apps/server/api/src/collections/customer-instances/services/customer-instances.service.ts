@@ -7,6 +7,7 @@ import type {
 } from '@api/collections/customer-instances/schemas/customer-instance.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -74,11 +75,7 @@ export class CustomerInstancesService extends BaseService<
   ): Promise<CustomerInstance | null> {
     return this.prisma.customerInstance
       .findMany({
-        where: {
-          isDeleted: false,
-          organizationId,
-          status: 'running',
-        },
+        where: scopedWhere(organizationId, { status: 'running' }),
         orderBy: { createdAt: 'desc' },
       })
       .then(
@@ -100,7 +97,7 @@ export class CustomerInstancesService extends BaseService<
   findAllByOrg(organizationId: string): Promise<CustomerInstance[]> {
     return this.prisma.customerInstance
       .findMany({
-        where: { isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, {}),
         orderBy: { createdAt: 'desc' },
       })
       .then((instances) =>

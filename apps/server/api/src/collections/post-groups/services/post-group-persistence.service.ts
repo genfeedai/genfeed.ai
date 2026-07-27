@@ -22,6 +22,7 @@ import {
 } from '@genfeedai/enums';
 import type { IReleaseGroup } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -176,7 +177,7 @@ export class PostGroupPersistenceService {
     idempotencyKey: string,
   ): Promise<IReleaseGroup | undefined> {
     const group = (await this.prisma.postGroup.findFirst({
-      where: { idempotencyKey, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { idempotencyKey }),
     })) as SchedulerPostGroup | null;
 
     if (!group) {
@@ -205,17 +206,15 @@ export class PostGroupPersistenceService {
   ): Promise<IReleaseGroup[]> {
     const targetRows = await this.prisma.post.groupBy({
       by: ['groupId'],
-      where: {
+      where: scopedWhere(query.organizationId, {
         ...(query.brandId ? { brandId: query.brandId } : {}),
         groupId: { not: null },
-        isDeleted: false,
-        organizationId: query.organizationId,
         parentId: null,
         scheduledDate: {
           gte: query.startDate,
           lte: query.endDate,
         },
-      },
+      }),
     });
     const targetGroupIds = [
       ...new Set(
@@ -239,13 +238,11 @@ export class PostGroupPersistenceService {
 
     const groups = (await this.prisma.postGroup.findMany({
       orderBy: { id: 'asc' },
-      where: {
+      where: scopedWhere(query.organizationId, {
         ...(query.brandId ? { brandId: query.brandId } : {}),
-        isDeleted: false,
-        organizationId: query.organizationId,
         OR: scheduleFilters,
         ...(query.statuses?.length ? { status: { in: query.statuses } } : {}),
-      },
+      }),
     })) as SchedulerPostGroup[];
 
     if (groups.length === 0) {
@@ -260,12 +257,10 @@ export class PostGroupPersistenceService {
         { createdAt: 'asc' },
         { id: 'asc' },
       ],
-      where: {
+      where: scopedWhere(query.organizationId, {
         groupId: { in: groupIds },
-        isDeleted: false,
-        organizationId: query.organizationId,
         parentId: null,
-      },
+      }),
     })) as SchedulerPostTarget[];
     const targetsByGroup = new Map<string, SchedulerPostTarget[]>();
     for (const target of targets) {
@@ -311,11 +306,7 @@ export class PostGroupPersistenceService {
         organizationId: true,
         platform: true,
       },
-      where: {
-        id: { in: ids },
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { id: { in: ids } }),
     })) as SchedulerCredential[];
     const byId = new Map(
       credentials.map((credential) => [credential.id, credential]),
@@ -366,7 +357,7 @@ export class PostGroupPersistenceService {
 
     const brand = await tx.brand.findFirst({
       select: { id: true },
-      where: { id: brandId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: brandId }),
     });
 
     if (!brand) {
@@ -431,7 +422,7 @@ export class PostGroupPersistenceService {
     groupId: string,
   ): Promise<SchedulerPostGroup> {
     const group = (await client.postGroup.findFirst({
-      where: { id: groupId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: groupId }),
     })) as SchedulerPostGroup | null;
 
     if (!group) {
@@ -448,12 +439,7 @@ export class PostGroupPersistenceService {
     targetId: string,
   ): Promise<SchedulerPostTarget> {
     const target = (await client.post.findFirst({
-      where: {
-        groupId,
-        id: targetId,
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { groupId, id: targetId }),
     })) as SchedulerPostTarget | null;
 
     if (!target) {
@@ -470,12 +456,7 @@ export class PostGroupPersistenceService {
   ): Promise<SchedulerPostTarget[]> {
     return (await client.post.findMany({
       orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
-      where: {
-        groupId,
-        isDeleted: false,
-        organizationId,
-        parentId: null,
-      },
+      where: scopedWhere(organizationId, { groupId, parentId: null }),
     })) as SchedulerPostTarget[];
   }
 

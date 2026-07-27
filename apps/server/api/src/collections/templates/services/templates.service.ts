@@ -15,6 +15,7 @@ import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/t
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
@@ -398,13 +399,11 @@ export class TemplatesService {
     if (organization) {
       const orgPrompt = await this.prisma.template.findFirst({
         include: { metadata: true },
-        where: {
+        where: scopedWhere(organization, {
           isActive: true,
-          isDeleted: false,
           key,
-          organizationId: organization,
           purpose: 'prompt',
-        },
+        }),
       });
 
       if (orgPrompt) {
