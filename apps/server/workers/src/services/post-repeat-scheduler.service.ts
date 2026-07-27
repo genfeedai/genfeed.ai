@@ -1,8 +1,18 @@
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { PostCategory, type PostFrequency, PostStatus } from '@genfeedai/enums';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  SystemWorkflowProvenanceService,
+} from '@api/collections/workflows/services/system-workflow-provenance.service';
+import {
+  PostCategory,
+  type PostFrequency,
+  PostStatus,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { ReleaseRecurrenceMaterializerService } from '@workers/services/release-recurrence-materializer.service';
 
 type CronPostChild = {
   id?: unknown;
@@ -18,9 +28,16 @@ export class PostRepeatSchedulerService {
   constructor(
     private readonly logger: LoggerService,
     private readonly postsService: PostsService,
+    private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
+    private readonly releaseRecurrenceMaterializerService: ReleaseRecurrenceMaterializerService,
   ) {}
 
   async scheduleNextRepeat(post: PostEntity, url: string): Promise<void> {
+    await this.materializeRecurrence(post);
+    if (!post.isRepeat || !post.repeatFrequency) {
+      return;
+    }
+
     try {
       const currentCount = post.repeatCount || 0;
       const nextRepeatCount = currentCount + 1;
@@ -112,6 +129,48 @@ export class PostRepeatSchedulerService {
         postId: post.id,
       });
     }
+  }
+
+  async materializeRecurrence(post: PostEntity): Promise<void> {
+    const groupId = this.readPostString(post, ['groupId']);
+    const organizationId = this.readPostString(post, [
+      'organizationId',
+      'organization',
+    ]);
+    if (
+      !groupId ||
+      !organizationId ||
+      !(await this.releaseRecurrenceMaterializerService.shouldMaterialize({
+        groupId,
+        organizationId,
+      }))
+    ) {
+      return;
+    }
+
+    await this.systemWorkflowProvenanceService.runAction(
+      {
+        actionType: 'expand-evergreen-release',
+        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.EVERGREEN_RELEASE_EXPANSION,
+        description:
+          'Materializes the next bounded occurrence of a terminal evergreen release.',
+        inputValues: {
+          groupId,
+          sourcePostId: post.id.toString(),
+        },
+        label: 'Evergreen Release Expansion',
+        organizationId,
+        source: 'PostRepeatSchedulerService.materializeRecurrence',
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+        userId: this.readPostString(post, ['userId', 'user']),
+      },
+      (provenance) =>
+        this.releaseRecurrenceMaterializerService.materializeNext({
+          groupId,
+          organizationId,
+          workflowExecutionId: provenance.executionId,
+        }),
+    );
   }
 
   private async cloneChildrenForRepeat(

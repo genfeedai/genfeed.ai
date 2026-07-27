@@ -1,5 +1,6 @@
 import {
   previewRecurrenceOccurrences,
+  type RecurrenceInput,
   recurrenceInputSchema,
 } from '@api-types/contracts';
 import {
@@ -18,6 +19,16 @@ const TERMINAL_RELEASE_STATES = new Set<string>([
   ReleaseStatus.PARTIALLY_PUBLISHED,
   ReleaseStatus.PUBLISHED,
 ]);
+
+type RecurrenceSourceGroup = Prisma.PostGroupGetPayload<Record<string, never>>;
+type RecurrenceSourceTarget = Prisma.PostGetPayload<{
+  include: {
+    children: {
+      include: { ingredients: { select: { id: true } } };
+    };
+    ingredients: { select: { id: true } };
+  };
+}>;
 
 export type MaterializeRecurrenceInput = {
   groupId: string;
@@ -109,28 +120,7 @@ export class ReleaseRecurrenceMaterializerService {
       );
     }
 
-    const targets = await tx.post.findMany({
-      include: {
-        children: {
-          include: {
-            ingredients: { select: { id: true } },
-          },
-          orderBy: [{ order: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
-          where: {
-            isDeleted: false,
-            organizationId: input.organizationId,
-          },
-        },
-        ingredients: { select: { id: true } },
-      },
-      orderBy: [{ order: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
-      where: {
-        groupId: group.id,
-        isDeleted: false,
-        organizationId: input.organizationId,
-        parentId: null,
-      },
-    });
+    const targets = await this.loadTargets(tx, group.id, input.organizationId);
     if (targets.length === 0) {
       throw new Error(`Scheduler release ${group.id} has no channel targets.`);
     }
@@ -206,153 +196,21 @@ export class ReleaseRecurrenceMaterializerService {
       );
     }
 
-    const occurrence = await tx.postGroup.create({
-      data: {
-        attachments: group.attachments,
-        baseContent: group.baseContent,
-        brandId: group.brandId,
-        idempotencyKey: occurrenceKey,
-        media: group.media,
-        organizationId: group.organizationId,
-        ownerId: group.ownerId,
-        recurrence: this.toJson({
-          ...parsedRecurrence.data,
-          isExhausted:
-            followingPreview.isExhausted &&
-            followingPreview.occurrences.length === 0,
-          nextRunAt: followingPreview.occurrences[0] ?? null,
-          parentReleaseId: rootReleaseId,
-          repeatCount: nextRepeatCount,
-        }),
-        scheduledAt: occurrenceAt,
-        status: ReleaseStatus.SCHEDULED,
-        statusTransitions: this.toJson([
-          {
-            actorId: group.ownerId,
-            at: new Date().toISOString(),
-            from: null,
-            reason: `Materialized evergreen occurrence ${nextRepeatCount} from ${rootReleaseId}.`,
-            to: ReleaseStatus.SCHEDULED,
-          },
-        ]),
-        timezone: group.timezone,
-        title: group.title,
-      },
+    const occurrence = await this.createOccurrence(tx, {
+      followingOccurrence: followingPreview.occurrences[0] ?? null,
+      group,
+      input,
+      isExhausted:
+        followingPreview.isExhausted &&
+        followingPreview.occurrences.length === 0,
+      nextRepeatCount,
+      occurrenceAt,
+      occurrenceKey,
+      recurrence: parsedRecurrence.data,
+      rootReleaseId,
+      sourceSchedule: startAt,
+      targets,
     });
-
-    for (const sourceTarget of targets) {
-      const scheduledDate = this.offsetSchedule(
-        sourceTarget.scheduledDate,
-        startAt,
-        occurrenceAt,
-      );
-      const target = await tx.post.create({
-        data: {
-          agentContextSource: sourceTarget.agentContextSource,
-          agentContextVersion: sourceTarget.agentContextVersion,
-          agentRunId: sourceTarget.agentRunId,
-          agentStrategyId: sourceTarget.agentStrategyId,
-          agentThreadId: sourceTarget.agentThreadId,
-          brandId: sourceTarget.brandId,
-          category: sourceTarget.category,
-          credentialId: sourceTarget.credentialId,
-          description: sourceTarget.description,
-          groupId: occurrence.id,
-          ...(sourceTarget.ingredients.length > 0
-            ? {
-                ingredients: {
-                  connect: sourceTarget.ingredients.map(({ id }) => ({ id })),
-                },
-              }
-            : {}),
-          label: sourceTarget.label,
-          order: sourceTarget.order,
-          organizationId: input.organizationId,
-          originalPostId: sourceTarget.originalPostId ?? sourceTarget.id,
-          platform: sourceTarget.platform,
-          scheduledDate,
-          source: sourceTarget.source,
-          sourceActionId: sourceTarget.sourceActionId,
-          sourceWorkflowId: sourceTarget.sourceWorkflowId,
-          sourceWorkflowName: sourceTarget.sourceWorkflowName,
-          status: PostStatus.SCHEDULED,
-          targetAttachments: sourceTarget.targetAttachments,
-          targetExecutionState: TargetExecutionState.SCHEDULED,
-          targetIdempotencyKey: this.targetKey(
-            rootReleaseId,
-            nextRepeatCount,
-            sourceTarget.originalPostId ?? sourceTarget.id,
-          ),
-          targetReadiness: sourceTarget.targetReadiness ?? Prisma.JsonNull,
-          targetSettings: sourceTarget.targetSettings,
-          targetValidationIssues: sourceTarget.targetValidationIssues,
-          targetValidationState: sourceTarget.targetValidationState,
-          timezone: sourceTarget.timezone,
-          userId: sourceTarget.userId,
-          workflowExecutionId: input.workflowExecutionId,
-        },
-      });
-
-      for (const sourceChild of sourceTarget.children) {
-        const childScheduledDate = this.offsetSchedule(
-          sourceChild.scheduledDate,
-          startAt,
-          occurrenceAt,
-        );
-        await tx.post.create({
-          data: {
-            agentContextSource: sourceChild.agentContextSource,
-            agentContextVersion: sourceChild.agentContextVersion,
-            agentRunId: sourceChild.agentRunId,
-            agentStrategyId: sourceChild.agentStrategyId,
-            agentThreadId: sourceChild.agentThreadId,
-            brandId: sourceChild.brandId,
-            category: sourceChild.category,
-            credentialId: sourceChild.credentialId,
-            description: sourceChild.description,
-            groupId: occurrence.id,
-            ...(sourceChild.ingredients.length > 0
-              ? {
-                  ingredients: {
-                    connect: sourceChild.ingredients.map(({ id }) => ({ id })),
-                  },
-                }
-              : {}),
-            label: sourceChild.label,
-            order: sourceChild.order,
-            organizationId: input.organizationId,
-            originalPostId: sourceChild.originalPostId ?? sourceChild.id,
-            parentId: target.id,
-            platform: sourceChild.platform,
-            scheduledDate: childScheduledDate,
-            source: sourceChild.source,
-            sourceActionId: sourceChild.sourceActionId,
-            sourceWorkflowId: sourceChild.sourceWorkflowId,
-            sourceWorkflowName: sourceChild.sourceWorkflowName,
-            status: PostStatus.SCHEDULED,
-            targetExecutionState: TargetExecutionState.SCHEDULED,
-            timezone: sourceChild.timezone,
-            userId: sourceChild.userId,
-            workflowExecutionId: input.workflowExecutionId,
-          },
-        });
-      }
-
-      await this.publishApprovalsService.createForCurrentPost({
-        actorUserId: group.ownerId,
-        mode: 'scheduled',
-        organizationId: group.organizationId,
-        postId: target.id,
-        provenance: {
-          occurrenceIndex: nextRepeatCount,
-          releaseId: occurrence.id,
-          sourceReleaseId: rootReleaseId,
-          surface: 'evergreen-recurrence',
-          workflowExecutionId: input.workflowExecutionId,
-        },
-        transaction: tx,
-      });
-    }
 
     await tx.postGroup.updateMany({
       data: {
@@ -372,6 +230,228 @@ export class ReleaseRecurrenceMaterializerService {
     });
 
     return { occurrenceId: occurrence.id, status: 'created' };
+  }
+
+  private async loadTargets(
+    tx: Prisma.TransactionClient,
+    groupId: string,
+    organizationId: string,
+  ): Promise<RecurrenceSourceTarget[]> {
+    return tx.post.findMany({
+      include: {
+        children: {
+          include: {
+            ingredients: { select: { id: true } },
+          },
+          orderBy: [{ order: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+          where: {
+            isDeleted: false,
+            organizationId,
+          },
+        },
+        ingredients: { select: { id: true } },
+      },
+      orderBy: [{ order: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+      where: {
+        groupId,
+        isDeleted: false,
+        organizationId,
+        parentId: null,
+      },
+    });
+  }
+
+  private async createOccurrence(
+    tx: Prisma.TransactionClient,
+    context: {
+      followingOccurrence: string | null;
+      group: RecurrenceSourceGroup;
+      input: MaterializeRecurrenceInput;
+      isExhausted: boolean;
+      nextRepeatCount: number;
+      occurrenceAt: Date;
+      occurrenceKey: string;
+      recurrence: RecurrenceInput;
+      rootReleaseId: string;
+      sourceSchedule: Date;
+      targets: RecurrenceSourceTarget[];
+    },
+  ): Promise<{ id: string }> {
+    const occurrence = await tx.postGroup.create({
+      data: {
+        attachments: context.group.attachments,
+        baseContent: context.group.baseContent,
+        brandId: context.group.brandId,
+        idempotencyKey: context.occurrenceKey,
+        media: context.group.media,
+        organizationId: context.group.organizationId,
+        ownerId: context.group.ownerId,
+        recurrence: this.toJson({
+          ...context.recurrence,
+          isExhausted: context.isExhausted,
+          nextRunAt: context.followingOccurrence,
+          parentReleaseId: context.rootReleaseId,
+          repeatCount: context.nextRepeatCount,
+        }),
+        scheduledAt: context.occurrenceAt,
+        status: ReleaseStatus.SCHEDULED,
+        statusTransitions: this.toJson([
+          {
+            actorId: context.group.ownerId,
+            at: new Date().toISOString(),
+            from: null,
+            reason: `Materialized evergreen occurrence ${context.nextRepeatCount} from ${context.rootReleaseId}.`,
+            to: ReleaseStatus.SCHEDULED,
+          },
+        ]),
+        timezone: context.group.timezone,
+        title: context.group.title,
+      },
+    });
+
+    for (const sourceTarget of context.targets) {
+      await this.cloneTarget(tx, sourceTarget, occurrence.id, context);
+    }
+    return occurrence;
+  }
+
+  private async cloneTarget(
+    tx: Prisma.TransactionClient,
+    sourceTarget: RecurrenceSourceTarget,
+    occurrenceId: string,
+    context: {
+      group: RecurrenceSourceGroup;
+      input: MaterializeRecurrenceInput;
+      nextRepeatCount: number;
+      occurrenceAt: Date;
+      rootReleaseId: string;
+      sourceSchedule: Date;
+    },
+  ): Promise<void> {
+    const scheduledDate = this.offsetSchedule(
+      sourceTarget.scheduledDate,
+      context.sourceSchedule,
+      context.occurrenceAt,
+    );
+    const target = await tx.post.create({
+      data: {
+        agentContextSource: sourceTarget.agentContextSource,
+        agentContextVersion: sourceTarget.agentContextVersion,
+        agentRunId: sourceTarget.agentRunId,
+        agentStrategyId: sourceTarget.agentStrategyId,
+        agentThreadId: sourceTarget.agentThreadId,
+        brandId: sourceTarget.brandId,
+        category: sourceTarget.category,
+        credentialId: sourceTarget.credentialId,
+        description: sourceTarget.description,
+        groupId: occurrenceId,
+        ...(sourceTarget.ingredients.length > 0
+          ? {
+              ingredients: {
+                connect: sourceTarget.ingredients.map(({ id }) => ({ id })),
+              },
+            }
+          : {}),
+        label: sourceTarget.label,
+        order: sourceTarget.order,
+        organizationId: context.input.organizationId,
+        originalPostId: sourceTarget.originalPostId ?? sourceTarget.id,
+        platform: sourceTarget.platform,
+        scheduledDate,
+        source: sourceTarget.source,
+        sourceActionId: sourceTarget.sourceActionId,
+        sourceWorkflowId: sourceTarget.sourceWorkflowId,
+        sourceWorkflowName: sourceTarget.sourceWorkflowName,
+        status: PostStatus.SCHEDULED,
+        targetAttachments: sourceTarget.targetAttachments,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+        targetIdempotencyKey: this.targetKey(
+          context.rootReleaseId,
+          context.nextRepeatCount,
+          sourceTarget.originalPostId ?? sourceTarget.id,
+        ),
+        targetReadiness: sourceTarget.targetReadiness ?? Prisma.JsonNull,
+        targetSettings: sourceTarget.targetSettings,
+        targetValidationIssues: sourceTarget.targetValidationIssues,
+        targetValidationState: sourceTarget.targetValidationState,
+        timezone: sourceTarget.timezone,
+        userId: sourceTarget.userId,
+        workflowExecutionId: context.input.workflowExecutionId,
+      },
+    });
+
+    for (const sourceChild of sourceTarget.children) {
+      await this.cloneChild(tx, sourceChild, target.id, occurrenceId, context);
+    }
+    await this.publishApprovalsService.createForCurrentPost({
+      actorUserId: context.group.ownerId,
+      mode: 'scheduled',
+      organizationId: context.group.organizationId,
+      postId: target.id,
+      provenance: {
+        occurrenceIndex: context.nextRepeatCount,
+        releaseId: occurrenceId,
+        sourceReleaseId: context.rootReleaseId,
+        surface: 'evergreen-recurrence',
+        workflowExecutionId: context.input.workflowExecutionId,
+      },
+      transaction: tx,
+    });
+  }
+
+  private async cloneChild(
+    tx: Prisma.TransactionClient,
+    sourceChild: RecurrenceSourceTarget['children'][number],
+    parentId: string,
+    occurrenceId: string,
+    context: {
+      input: MaterializeRecurrenceInput;
+      occurrenceAt: Date;
+      sourceSchedule: Date;
+    },
+  ): Promise<void> {
+    const scheduledDate = this.offsetSchedule(
+      sourceChild.scheduledDate,
+      context.sourceSchedule,
+      context.occurrenceAt,
+    );
+    await tx.post.create({
+      data: {
+        agentContextSource: sourceChild.agentContextSource,
+        agentContextVersion: sourceChild.agentContextVersion,
+        agentRunId: sourceChild.agentRunId,
+        agentStrategyId: sourceChild.agentStrategyId,
+        agentThreadId: sourceChild.agentThreadId,
+        brandId: sourceChild.brandId,
+        category: sourceChild.category,
+        credentialId: sourceChild.credentialId,
+        description: sourceChild.description,
+        groupId: occurrenceId,
+        ...(sourceChild.ingredients.length > 0
+          ? {
+              ingredients: {
+                connect: sourceChild.ingredients.map(({ id }) => ({ id })),
+              },
+            }
+          : {}),
+        label: sourceChild.label,
+        order: sourceChild.order,
+        organizationId: context.input.organizationId,
+        originalPostId: sourceChild.originalPostId ?? sourceChild.id,
+        parentId,
+        platform: sourceChild.platform,
+        scheduledDate,
+        source: sourceChild.source,
+        sourceActionId: sourceChild.sourceActionId,
+        sourceWorkflowId: sourceChild.sourceWorkflowId,
+        sourceWorkflowName: sourceChild.sourceWorkflowName,
+        status: PostStatus.SCHEDULED,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+        timezone: sourceChild.timezone,
+        userId: sourceChild.userId,
+        workflowExecutionId: context.input.workflowExecutionId,
+      },
+    });
   }
 
   private resolveSourceSchedule(
