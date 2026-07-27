@@ -93,6 +93,29 @@ describe('AgentChatInput', () => {
     expect(screen.getByLabelText('Open composer actions')).toBeInTheDocument();
   });
 
+  it('uses the compact rail treatment without duplicating shell context', () => {
+    render(
+      <ConversationComposerShellProvider
+        contextLabel="Default Workspace · Default Brand"
+        draftScopeKey="acme:thread-1:3"
+        placement="inspector"
+        portalTarget={null}
+        shellState="canvas"
+      >
+        <AgentChatInput density="compact" onSend={vi.fn()} />
+      </ConversationComposerShellProvider>,
+    );
+
+    expect(screen.getByTestId('agent-chat-input-shell')).toHaveClass(
+      'rounded-lg',
+    );
+    expect(
+      screen.queryByText('Default Workspace · Default Brand'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Actions')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Open composer actions')).toBeInTheDocument();
+  });
+
   it('adds pasted image files to the prompt attachments', () => {
     const addFiles = vi.fn();
     const file = new File(['image'], 'image.png', { type: 'image/png' });

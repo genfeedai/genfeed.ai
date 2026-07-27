@@ -52,6 +52,7 @@ vi.mock('@genfeedai/agent', () => ({
     dispatchAction,
     draftScopeKey,
     isComposerVisible,
+    placement,
     portalTarget,
     scopeControls,
   }: {
@@ -72,6 +73,7 @@ vi.mock('@genfeedai/agent', () => ({
     }) => void;
     draftScopeKey: string;
     isComposerVisible?: boolean;
+    placement?: string;
     portalTarget?: HTMLElement | null;
     scopeControls?: ReactNode;
   }) => (
@@ -81,6 +83,7 @@ vi.mock('@genfeedai/agent', () => ({
         ?.map((item) => item.reference.recordId)
         .join(',')}
       data-composer-visible={String(isComposerVisible)}
+      data-composer-placement={placement}
       data-composer-target={
         portalTarget?.dataset.testid ?? (portalTarget ? 'unknown' : 'inline')
       }
@@ -556,6 +559,9 @@ describe('UniversalWorkspaceShell', () => {
     expect(
       screen.getByLabelText('Primary workspace canvas'),
     ).toBeInTheDocument();
+    expect(screen.getByTestId('workspace-canvas-layout')).toHaveClass(
+      'focus:outline-none',
+    );
     expect(screen.getByTestId('canonical-canvas')).toBeInTheDocument();
     expect(
       screen.queryByTestId('inspector-conversation'),
@@ -633,6 +639,9 @@ describe('UniversalWorkspaceShell', () => {
       'data-composer-target',
       'workspace-inspector-composer-slot',
     );
+    expect(
+      screen.getByTestId('universal-workspace-shell').parentElement,
+    ).toHaveAttribute('data-composer-placement', 'inspector');
     expect(inspectorConversationMount).toHaveBeenCalledTimes(1);
     expect(router.replace).not.toHaveBeenCalledWith(
       expect.stringContaining('thread='),

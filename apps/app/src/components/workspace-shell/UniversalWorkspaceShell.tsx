@@ -939,7 +939,7 @@ function UniversalWorkspaceShellContent({
             {conversationSlot}
             {isInspectorComposerOwner ? (
               <div
-                className="shrink-0 border-t border-border p-3"
+                className="shrink-0 border-t border-border p-2"
                 data-testid="workspace-inspector-composer-slot"
                 ref={setComposerPortalTarget}
               />
@@ -1057,6 +1057,13 @@ function UniversalWorkspaceShellContent({
         draftScopeKey={draftScopeKey}
         isConsequentiallyBlocked={conversationScope.isConsequentiallyBlocked}
         isComposerVisible
+        placement={
+          state === 'overlay'
+            ? 'overlay'
+            : isAgentRoute
+              ? 'surface'
+              : 'inspector'
+        }
         portalTarget={composerPortalTarget}
         references={activeResearchSurfaceAdapter?.references}
         scopeControls={
@@ -1098,7 +1105,7 @@ function UniversalWorkspaceShellContent({
               <section
                 aria-label="Primary workspace canvas"
                 className={cn(
-                  'min-h-0 min-w-0 flex-1 bg-background',
+                  'min-h-0 min-w-0 flex-1 bg-background focus:outline-none',
                   isAgentRoute || workflowSurfaceRoute.isGraphCanvas
                     ? 'overflow-hidden'
                     : 'overflow-auto',
