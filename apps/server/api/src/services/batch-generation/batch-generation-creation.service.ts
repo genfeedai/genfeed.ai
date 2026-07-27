@@ -20,6 +20,7 @@ import {
   PostStatus,
 } from '@genfeedai/enums';
 import type { IBatchSummary } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -222,11 +223,7 @@ export class BatchGenerationCreationService {
 
     const ownedIngredients = await this.prisma.ingredient.findMany({
       select: { id: true },
-      where: {
-        id: { in: ingredientIds },
-        isDeleted: false,
-        organizationId: orgId,
-      },
+      where: scopedWhere(orgId, { id: { in: ingredientIds } }),
     });
     if (ownedIngredients.length !== ingredientIds.length) {
       throw new BadRequestException(
@@ -318,11 +315,7 @@ export class BatchGenerationCreationService {
             reviewBatchId: batchId,
             reviewItemId: item._id,
           },
-          where: {
-            id: item.postId,
-            isDeleted: false,
-            organizationId: orgId,
-          },
+          where: scopedWhere(orgId, { id: item.postId }),
         });
       }),
     );
@@ -347,17 +340,13 @@ export class BatchGenerationCreationService {
       if (postIds.length > 0) {
         await this.prisma.post.updateMany({
           data: { isDeleted: true },
-          where: {
-            id: { in: postIds },
-            isDeleted: false,
-            organizationId: orgId,
-          },
+          where: scopedWhere(orgId, { id: { in: postIds } }),
         });
       }
       if (batchId) {
         await this.prisma.batch.updateMany({
           data: { isDeleted: true },
-          where: { id: batchId, isDeleted: false, organizationId: orgId },
+          where: scopedWhere(orgId, { id: batchId }),
         });
       }
     } catch (cleanupError: unknown) {

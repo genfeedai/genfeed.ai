@@ -6,6 +6,7 @@ import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/interfaces/billing';
+import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -67,12 +68,10 @@ export class ByokBillingService {
     try {
       const transactions = await this.prisma.creditTransaction.findMany({
         select: { amount: true },
-        where: {
+        where: scopedWhere(organizationId, {
           createdAt: { gte: startDate, lte: endDate },
-          isDeleted: false,
-          organizationId,
           source: CreditTransactionCategory.BYOK_USAGE,
-        },
+        }),
       });
 
       const totalUsage = transactions.reduce(

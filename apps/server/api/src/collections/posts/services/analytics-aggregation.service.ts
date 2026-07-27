@@ -24,6 +24,7 @@ import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AnalyticsMetric } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { Injectable } from '@nestjs/common';
 
 export type {
@@ -118,16 +119,14 @@ export class AnalyticsAggregationService {
         } as never),
       ]);
 
-    const postCount = await this.postsService.count({
-      isDeleted: false,
-      organizationId,
-      ...(brandId ? { brandId } : {}),
-    });
+    const postCount = await this.postsService.count(
+      scopedWhere(organizationId, { ...(brandId ? { brandId } : {}) }),
+    );
 
     // Authoritative brand count for the organization — org-scoped and
     // soft-delete-aware so the "Total Brands" metric matches the brand switcher.
     const totalBrands = await this.prisma.brand.count({
-      where: { isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, {}),
     });
 
     const activePlatforms = (platformRows as Array<{ platform: string }>).map(
@@ -519,7 +518,7 @@ export class AnalyticsAggregationService {
     // Authoritative brand count for the organization — org-scoped and
     // soft-delete-aware so the "Total Brands" metric matches the brand switcher.
     const totalBrands = await this.prisma.brand.count({
-      where: { isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, {}),
     });
 
     return postAnalyticsProjection.buildPlatformOverview({

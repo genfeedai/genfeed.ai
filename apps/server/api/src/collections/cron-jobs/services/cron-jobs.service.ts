@@ -43,6 +43,7 @@ import {
   AgentExecutionTrigger,
   AgentType,
 } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, GoneException, Injectable } from '@nestjs/common';
 
@@ -153,13 +154,15 @@ export class CronJobsService {
   ): Promise<CronJobDocument[]> {
     const docs = await this.prisma.cronJob.findMany({
       orderBy: { createdAt: 'desc' },
-      where: {
-        isDeleted: false,
-        organizationId,
+      where: scopedWhere(organizationId, {
         ...(filters.enabled !== undefined
-          ? { status: filters.enabled ? 'ACTIVE' : 'PAUSED' }
+          ? {
+              status: filters.enabled
+                ? ('ACTIVE' as const)
+                : ('PAUSED' as const),
+            }
           : {}),
-      },
+      }),
     });
 
     return docs
@@ -174,11 +177,7 @@ export class CronJobsService {
     organizationId: string,
   ): Promise<CronJobDocument | null> {
     const job = await this.prisma.cronJob.findFirst({
-      where: {
-        id,
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { id }),
     });
 
     return job ? toCronJobDocument(job) : null;
@@ -220,11 +219,7 @@ export class CronJobsService {
     const runs = await this.prisma.cronRun.findMany({
       orderBy: { createdAt: 'desc' },
       take: 100,
-      where: {
-        cronJobId: id,
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { cronJobId: id }),
     });
 
     return runs.map((run) => toCronRunDocument(run));
@@ -236,12 +231,7 @@ export class CronJobsService {
     organizationId: string,
   ): Promise<CronRunDocument | null> {
     const run = await this.prisma.cronRun.findFirst({
-      where: {
-        cronJobId: jobId,
-        id: runId,
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { cronJobId: jobId, id: runId }),
     });
 
     return run ? toCronRunDocument(run) : null;
@@ -312,12 +302,10 @@ export class CronJobsService {
     userId: string;
   }): Promise<Record<string, unknown>> {
     const row = await this.prisma.cronJob.findFirst({
-      where: {
+      where: scopedWhere(params.organizationId, {
         id: params.legacyCronJobId,
-        isDeleted: false,
-        organizationId: params.organizationId,
         userId: params.userId,
-      },
+      }),
     });
 
     if (!row) {
@@ -545,12 +533,7 @@ export class CronJobsService {
 
     const strategy = strategyId
       ? await this.prisma.agentStrategy.findFirst({
-          where: {
-            id: strategyId,
-            isDeleted: false,
-            organizationId: orgId,
-            userId,
-          },
+          where: scopedWhere(orgId, { id: strategyId, userId }),
         })
       : null;
     const normalizedStrategy = this.normalizeAgentStrategy(strategy);

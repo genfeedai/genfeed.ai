@@ -46,6 +46,7 @@ import {
   PromptTemplateKey,
 } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -246,13 +247,9 @@ export class ArticlesService extends BaseService<
 
     this.assertArticleOwnershipIds(userId, organizationId, brandId);
 
-    const result = await super.findOne({
-      id,
-      brandId,
-      isDeleted: false,
-      organizationId,
-      userId,
-    });
+    const result = await super.findOne(
+      scopedWhere(organizationId, { id, brandId, userId }),
+    );
 
     if (!result) {
       throw new NotFoundException('Article');
@@ -274,13 +271,7 @@ export class ArticlesService extends BaseService<
     const article = await findOrThrow(
       this.delegate,
       {
-        where: {
-          brandId,
-          isDeleted: false,
-          organizationId,
-          slug,
-          userId,
-        },
+        where: scopedWhere(organizationId, { brandId, slug, userId }),
       },
       'Article',
     );
@@ -475,13 +466,9 @@ export class ArticlesService extends BaseService<
       this.assertArticleOwnershipIds(userId, organizationId, brandId);
 
       // First verify the article exists and belongs to the user
-      const article = await super.findOne({
-        id,
-        brandId,
-        isDeleted: false,
-        organizationId,
-        userId,
-      });
+      const article = await super.findOne(
+        scopedWhere(organizationId, { id, brandId, userId }),
+      );
 
       if (!article) {
         throw new NotFoundException('Article');
@@ -720,10 +707,9 @@ export class ArticlesService extends BaseService<
       };
     }
 
-    const settings = await this.organizationSettingsService.findOne({
-      isDeleted: false,
-      organizationId,
-    });
+    const settings = await this.organizationSettingsService.findOne(
+      scopedWhere(organizationId, {}),
+    );
 
     return {
       generationModel: settings?.defaultModel || DEFAULT_TEXT_MODEL,

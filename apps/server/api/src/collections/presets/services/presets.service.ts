@@ -5,6 +5,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { PopulateOption } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, Injectable } from '@nestjs/common';
 
@@ -84,7 +85,7 @@ export class PresetsService extends BaseService<
     if (organizationId && brandId) {
       const preset = (
         await this.prisma.preset.findMany({
-          where: { brandId, isDeleted: false, organizationId },
+          where: scopedWhere(organizationId, { brandId }),
         })
       ).find((item) => this.readPresetKey(item) === key);
       if (preset) return preset as unknown as PresetDocument;
@@ -94,7 +95,7 @@ export class PresetsService extends BaseService<
     if (organizationId) {
       const preset = (
         await this.prisma.preset.findMany({
-          where: { brandId: null, isDeleted: false, organizationId },
+          where: scopedWhere(organizationId, { brandId: null }),
         })
       ).find((item) => this.readPresetKey(item) === key);
       if (preset) return preset as unknown as PresetDocument;

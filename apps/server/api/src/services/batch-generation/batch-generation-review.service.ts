@@ -13,7 +13,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { BatchItemStatus, BatchStatus, PostStatus } from '@genfeedai/enums';
 import type { IBatchSummary, IPublishApproval } from '@genfeedai/interfaces';
-import { AgentArtifactReferenceService } from '@genfeedai/server';
+import { AgentArtifactReferenceService, scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -33,11 +33,7 @@ export class BatchGenerationReviewService {
     limit = 5,
   ): Promise<ReviewInboxSummary> {
     const batches = (await this.prisma.batch.findMany({
-      where: {
-        isDeleted: false,
-        organizationId: orgId,
-        ...(brandId ? { brandId } : {}),
-      },
+      where: scopedWhere(orgId, { ...(brandId ? { brandId } : {}) }),
     })) as BatchWithConfig[];
 
     let approvedCount = 0;
@@ -105,7 +101,7 @@ export class BatchGenerationReviewService {
   async getBatch(batchId: string, orgId: string): Promise<IBatchSummary> {
     const batch = (await findOrThrow(
       this.prisma.batch,
-      { where: { id: batchId, isDeleted: false, organizationId: orgId } },
+      { where: scopedWhere(orgId, { id: batchId }) },
       'Batch',
       batchId,
     )) as BatchWithConfig;
@@ -120,10 +116,7 @@ export class BatchGenerationReviewService {
     const limit = Math.min(query?.limit ?? 20, 100);
     const offset = query?.offset ?? 0;
 
-    const where: Record<string, unknown> = {
-      isDeleted: false,
-      organizationId: orgId,
-    };
+    const where: Record<string, unknown> = scopedWhere(orgId);
     if (query?.status) {
       where.status = query.status;
     }
@@ -154,7 +147,7 @@ export class BatchGenerationReviewService {
   ): Promise<IBatchSummary> {
     const batchRecord = await findOrThrow(
       this.prisma.batch,
-      { where: { id: batchId, isDeleted: false, organizationId: orgId } },
+      { where: scopedWhere(orgId, { id: batchId }) },
       'Batch',
       batchId,
     );
@@ -244,11 +237,7 @@ export class BatchGenerationReviewService {
               reviewVersionPinId: versionPinIds.get(postId),
               reviewedAt: new Date(reviewedAt),
             },
-            where: {
-              id: postId,
-              isDeleted: false,
-              organizationId: orgId,
-            },
+            where: scopedWhere(orgId, { id: postId }),
           }),
         ),
       );
@@ -261,17 +250,13 @@ export class BatchGenerationReviewService {
       if (postIdsToSchedule.length > 0) {
         await transaction.post.updateMany({
           data: { status: PostStatus.SCHEDULED as never },
-          where: {
-            id: { in: postIdsToSchedule },
-            isDeleted: false,
-            organizationId: orgId,
-          },
+          where: scopedWhere(orgId, { id: { in: postIdsToSchedule } }),
         });
       }
 
       const batchUpdate = await transaction.batch.updateMany({
         data: { items: batchItems as never },
-        where: { id: batchId, isDeleted: false, organizationId: orgId },
+        where: scopedWhere(orgId, { id: batchId }),
       });
       if (batchUpdate.count !== 1) {
         throw new NotFoundException({
@@ -280,7 +265,7 @@ export class BatchGenerationReviewService {
       }
 
       const updated = await transaction.batch.findFirst({
-        where: { id: batchId, isDeleted: false, organizationId: orgId },
+        where: scopedWhere(orgId, { id: batchId }),
       });
       if (!updated) {
         throw new NotFoundException('Batch', batchId);
@@ -340,7 +325,7 @@ export class BatchGenerationReviewService {
   ): Promise<IBatchSummary> {
     const batchRecord = await findOrThrow(
       this.prisma.batch,
-      { where: { id: batchId, isDeleted: false, organizationId: orgId } },
+      { where: scopedWhere(orgId, { id: batchId }) },
       'Batch',
       batchId,
     );
@@ -381,11 +366,7 @@ export class BatchGenerationReviewService {
           reviewedAt: new Date(reviewedAt),
           reviewFeedback: feedback,
         },
-        where: {
-          id: { in: postIdsToReject },
-          isDeleted: false,
-          organizationId: orgId,
-        },
+        where: scopedWhere(orgId, { id: { in: postIdsToReject } }),
       });
       await Promise.all(
         postIdsToReject.map((postId) =>
@@ -401,14 +382,14 @@ export class BatchGenerationReviewService {
 
     const batchUpdate = await this.prisma.batch.updateMany({
       data: { items: batchItems as never },
-      where: { id: batchId, isDeleted: false, organizationId: orgId },
+      where: scopedWhere(orgId, { id: batchId }),
     });
     if (batchUpdate.count !== 1) {
       throw new NotFoundException('Batch', batchId);
     }
     const updatedBatch = (await findOrThrow(
       this.prisma.batch,
-      { where: { id: batchId, isDeleted: false, organizationId: orgId } },
+      { where: scopedWhere(orgId, { id: batchId }) },
       'Batch',
       batchId,
     )) as BatchWithConfig;
@@ -430,7 +411,7 @@ export class BatchGenerationReviewService {
   ): Promise<IBatchSummary> {
     const batchRecord = await findOrThrow(
       this.prisma.batch,
-      { where: { id: batchId, isDeleted: false, organizationId: orgId } },
+      { where: scopedWhere(orgId, { id: batchId }) },
       'Batch',
       batchId,
     );
@@ -472,11 +453,7 @@ export class BatchGenerationReviewService {
           reviewFeedback: feedback,
           status: PostStatus.DRAFT as never,
         },
-        where: {
-          id: { in: postIdsToKeepAsDraft },
-          isDeleted: false,
-          organizationId: orgId,
-        },
+        where: scopedWhere(orgId, { id: { in: postIdsToKeepAsDraft } }),
       });
       await Promise.all(
         postIdsToKeepAsDraft.map((postId) =>
@@ -492,14 +469,14 @@ export class BatchGenerationReviewService {
 
     const batchUpdate = await this.prisma.batch.updateMany({
       data: { items: batchItems as never },
-      where: { id: batchId, isDeleted: false, organizationId: orgId },
+      where: scopedWhere(orgId, { id: batchId }),
     });
     if (batchUpdate.count !== 1) {
       throw new NotFoundException('Batch', batchId);
     }
     const updatedBatch = (await findOrThrow(
       this.prisma.batch,
-      { where: { id: batchId, isDeleted: false, organizationId: orgId } },
+      { where: scopedWhere(orgId, { id: batchId }) },
       'Batch',
       batchId,
     )) as BatchWithConfig;
@@ -518,7 +495,7 @@ export class BatchGenerationReviewService {
   async cancelBatch(batchId: string, orgId: string): Promise<IBatchSummary> {
     const batchRecord = await findOrThrow(
       this.prisma.batch,
-      { where: { id: batchId, isDeleted: false, organizationId: orgId } },
+      { where: scopedWhere(orgId, { id: batchId }) },
       'Batch',
       batchId,
     );
@@ -536,14 +513,14 @@ export class BatchGenerationReviewService {
         items: batchItems as never,
         status: BatchStatus.CANCELLED as never,
       },
-      where: { id: batchId, isDeleted: false, organizationId: orgId },
+      where: scopedWhere(orgId, { id: batchId }),
     });
     if (batchUpdate.count !== 1) {
       throw new NotFoundException('Batch', batchId);
     }
     const updatedBatch = (await findOrThrow(
       this.prisma.batch,
-      { where: { id: batchId, isDeleted: false, organizationId: orgId } },
+      { where: scopedWhere(orgId, { id: batchId }) },
       'Batch',
       batchId,
     )) as BatchWithConfig;
@@ -569,7 +546,7 @@ export class BatchGenerationReviewService {
 
     const batchRecord = await findOrThrow(
       this.prisma.batch,
-      { where: { id: batchId, isDeleted: false, organizationId: orgId } },
+      { where: scopedWhere(orgId, { id: batchId }) },
       'Batch',
       batchId,
     );
@@ -578,18 +555,14 @@ export class BatchGenerationReviewService {
       data: {
         status: dto.status as never,
       },
-      where: {
-        id: batchRecord.id,
-        isDeleted: false,
-        organizationId: orgId,
-      },
+      where: scopedWhere(orgId, { id: batchRecord.id }),
     });
     if (batchUpdate.count !== 1) {
       throw new NotFoundException('Batch', batchId);
     }
     const updatedBatch = (await findOrThrow(
       this.prisma.batch,
-      { where: { id: batchId, isDeleted: false, organizationId: orgId } },
+      { where: scopedWhere(orgId, { id: batchId }) },
       'Batch',
       batchId,
     )) as BatchWithConfig;

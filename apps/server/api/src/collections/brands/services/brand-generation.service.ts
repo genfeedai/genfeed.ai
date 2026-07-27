@@ -17,6 +17,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type { FastlaneFormat, FastlaneIdea } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -73,11 +74,9 @@ export class BrandGenerationService {
       ].filter(Boolean);
       contextText = parts.join('\n');
     } else if (dto.brandId) {
-      const brand = await findBrand({
-        id: dto.brandId,
-        isDeleted: false,
-        organizationId,
-      });
+      const brand = await findBrand(
+        scopedWhere(organizationId, { id: dto.brandId }),
+      );
       if (!brand) {
         throw new BadRequestException('Brand not found');
       }
@@ -159,11 +158,7 @@ export class BrandGenerationService {
       service: this.constructorName,
     });
 
-    const brand = await findBrand({
-      id: brandId,
-      isDeleted: false,
-      organizationId,
-    });
+    const brand = await findBrand(scopedWhere(organizationId, { id: brandId }));
     if (!brand) {
       throw new NotFoundException('Brand not found');
     }

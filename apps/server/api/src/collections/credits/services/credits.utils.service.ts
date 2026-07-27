@@ -16,6 +16,7 @@ import type {
   IAddCreditsOptions,
   ICreditsUtilsService,
 } from '@genfeedai/interfaces/billing';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, Optional } from '@nestjs/common';
@@ -57,10 +58,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     organizationId: string,
   ): Promise<void> {
     const organizationSettings = await this.organizationSettingsService.findOne(
-      {
-        isDeleted: false,
-        organizationId: organizationId,
-      },
+      scopedWhere(organizationId, {}),
     );
 
     if (organizationSettings && !organizationSettings.hasEverHadCredits) {
@@ -112,21 +110,19 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         if (options?.referenceId && options.referenceType) {
           const existingTransaction = tx
             ? await tx.creditTransaction.findFirst({
-                where: {
+                where: scopedWhere(organizationId, {
                   category: CreditTransactionCategory.DEDUCT,
-                  isDeleted: false,
-                  organizationId,
                   referenceId: options.referenceId,
                   referenceType: options.referenceType,
-                },
+                }),
               })
-            : await this.creditTransactionsService.findOne({
-                category: CreditTransactionCategory.DEDUCT,
-                isDeleted: false,
-                organizationId,
-                referenceId: options.referenceId,
-                referenceType: options.referenceType,
-              });
+            : await this.creditTransactionsService.findOne(
+                scopedWhere(organizationId, {
+                  category: CreditTransactionCategory.DEDUCT,
+                  referenceId: options.referenceId,
+                  referenceType: options.referenceType,
+                }),
+              );
 
           if (existingTransaction) {
             this.loggerService.log(
@@ -218,7 +214,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       // Phase C — no legacy auth provider publicMetadata write-back).
       const defaultBrand = await this.prisma.brand.findFirst({
         select: { id: true },
-        where: { isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, {}),
       });
 
       this.eventEmitter.emit('credits.activity', {
@@ -775,13 +771,13 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       // is retained for the activity event below.
       const subscription = await this.prisma.subscription.findFirst({
         select: { id: true, userId: true },
-        where: { isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, {}),
       });
 
       if (subscription?.userId) {
         const defaultBrand = await this.prisma.brand.findFirst({
           select: { id: true },
-          where: { isDeleted: false, organizationId },
+          where: scopedWhere(organizationId, {}),
         });
 
         this.eventEmitter.emit('credits.activity', {

@@ -11,6 +11,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import type { ServerLogger, ServerPrisma } from '@server/server.dependencies';
+import { scopedWhere } from '@server/tenancy/scoped-where';
 
 const MAX_SCOPE_PROVENANCE_ENTRIES = 50;
 const MAX_LEGACY_BRAND_FALLBACK_USES = 20;
@@ -250,12 +251,10 @@ export class AgentScopeContextService {
       !thread.isLegacyBrandFallbackEligible
     ) {
       const unchanged = await this.prisma.agentThread.findFirst({
-        where: {
+        where: scopedWhere(params.organizationId, {
           id: params.threadId,
-          isDeleted: false,
-          organizationId: params.organizationId,
           userId: params.userId,
-        },
+        }),
       });
 
       if (!unchanged) {
@@ -287,13 +286,11 @@ export class AgentScopeContextService {
         isLegacyBrandFallbackEligible: false,
         scopeChangeProvenance: nextProvenance as never,
       },
-      where: {
+      where: scopedWhere(params.organizationId, {
         contextVersion: params.expectedContextVersion,
         id: params.threadId,
-        isDeleted: false,
-        organizationId: params.organizationId,
         userId: params.userId,
-      },
+      }),
     });
 
     if (result.count !== 1) {
@@ -308,12 +305,10 @@ export class AgentScopeContextService {
     }
 
     const updated = await this.prisma.agentThread.findFirst({
-      where: {
+      where: scopedWhere(params.organizationId, {
         id: params.threadId,
-        isDeleted: false,
-        organizationId: params.organizationId,
         userId: params.userId,
-      },
+      }),
     });
 
     if (!updated) {
@@ -416,7 +411,7 @@ export class AgentScopeContextService {
   ): Promise<void> {
     const brand = await this.prisma.brand.findFirst({
       select: { id: true },
-      where: { id: brandId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: brandId }),
     });
 
     if (!brand) {
@@ -445,7 +440,7 @@ export class AgentScopeContextService {
         scopeChangeProvenance: true,
         userId: true,
       },
-      where: { id: threadId, isDeleted: false, organizationId, userId },
+      where: scopedWhere(organizationId, { id: threadId, userId }),
     })) as AgentThreadScopeRow | null;
   }
 
@@ -467,12 +462,10 @@ export class AgentScopeContextService {
     const latestBrandedMessage = await this.prisma.agentMessage.findFirst({
       orderBy: { createdAt: 'desc' },
       select: { brandId: true },
-      where: {
+      where: scopedWhere(thread.organizationId, {
         brandId: { not: null },
-        isDeleted: false,
-        organizationId: thread.organizationId,
         threadId: thread.id,
-      },
+      }),
     });
     const messageBrandId = latestBrandedMessage?.brandId ?? undefined;
 
@@ -499,18 +492,16 @@ export class AgentScopeContextService {
         legacyBrandFallbackLastSource: source,
         legacyBrandFallbackLastUsedAt: new Date(),
       },
-      where: {
+      where: scopedWhere(thread.organizationId, {
         brandId: null,
         contextVersion: thread.contextVersion,
         id: thread.id,
-        isDeleted: false,
         isLegacyBrandFallbackEligible: true,
         legacyBrandFallbackCount: {
           lt: MAX_LEGACY_BRAND_FALLBACK_USES,
         },
-        organizationId: thread.organizationId,
         userId: thread.userId,
-      },
+      }),
     });
 
     if (result.count !== 1) {

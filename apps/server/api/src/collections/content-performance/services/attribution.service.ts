@@ -1,5 +1,6 @@
 import type { ContentPerformanceDocument } from '@api/collections/content-performance/schemas/content-performance.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -43,11 +44,7 @@ export class AttributionService {
     generationId: string,
   ): Promise<AttributionResult | null> {
     const rows = (await this.prisma.contentPerformance.findMany({
-      where: {
-        generationId,
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { generationId }),
     })) as ContentPerformanceDocument[];
 
     if (!rows.length) {
@@ -71,12 +68,10 @@ export class AttributionService {
     limit = 20,
   ): Promise<AttributionResult[]> {
     const rows = (await this.prisma.contentPerformance.findMany({
-      where: {
+      where: scopedWhere(organizationId, {
         generationId: { not: null },
-        isDeleted: false,
-        organizationId,
         ...(brandId ? { brandId } : {}),
-      },
+      }),
     })) as ContentPerformanceDocument[];
 
     return this.aggregateRows(rows)

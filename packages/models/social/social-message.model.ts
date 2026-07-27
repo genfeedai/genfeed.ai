@@ -1,3 +1,4 @@
+import type { SocialMessageWorkflowTriggerStatus } from '@genfeedai/enums';
 import type {
   SocialActionProvenance,
   SocialMessage,
@@ -36,6 +37,11 @@ export class SocialMessageModel implements SocialMessage {
   idempotencyKey?: string | null;
   workflowRunId?: string | null;
   agentRunId?: string | null;
+  workflowTriggerStatus?: SocialMessageWorkflowTriggerStatus | null;
+  workflowTriggerJobId?: string | null;
+  workflowTriggerError?: string | null;
+  workflowTriggerAttemptedAt?: string | null;
+  workflowTriggerQueuedAt?: string | null;
   actionProvenance?: SocialActionProvenance;
   failureReason?: string | null;
   metadata?: Record<string, unknown>;

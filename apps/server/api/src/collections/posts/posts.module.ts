@@ -30,7 +30,10 @@ import { NotificationsPublisherModule } from '@api/services/notifications/publis
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { QuotaModule } from '@api/services/quota/quota.module';
 import { SeoModule } from '@api/services/seo/seo.module';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { forwardRef, Module } from '@nestjs/common';
+import { PostAnalyticsCollectionStateService } from '@server/analytics/services/post-analytics-collection-state.service';
+import { SERVER_TOKENS } from '@server/server.dependencies';
 
 @Module({
   // PostsOperationsController must register before PostsController: its static
@@ -43,7 +46,12 @@ import { forwardRef, Module } from '@nestjs/common';
     PostsOperationsController,
     PostsController,
   ],
-  exports: [AnalyticsAggregationService, PostAnalyticsService, PostsService],
+  exports: [
+    AnalyticsAggregationService,
+    PostAnalyticsCollectionStateService,
+    PostAnalyticsService,
+    PostsService,
+  ],
   imports: [
     forwardRef(() => ActivitiesModule),
     forwardRef(() => ByokModule),
@@ -65,6 +73,8 @@ import { forwardRef, Module } from '@nestjs/common';
     AnalyticsAggregationService,
     CreditsGuard,
     CreditsInterceptor,
+    PostAnalyticsCollectionStateService,
+    { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
     PostAnalyticsService,
     PostGenerationService,
     PostThreadGenerationService,

@@ -28,6 +28,7 @@ import type {
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
@@ -204,12 +205,14 @@ export class GifsController {
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
-    const gif = await this.gifsService.findOne({
-      _id: gifId,
-      organizationId: publicMetadata.organization,
-      category: CategoryPrismaUtil.toIngredientCategory(IngredientCategory.GIF),
-      isDeleted: false,
-    });
+    const gif = await this.gifsService.findOne(
+      scopedWhere(publicMetadata.organization, {
+        _id: gifId,
+        category: CategoryPrismaUtil.toIngredientCategory(
+          IngredientCategory.GIF,
+        ),
+      }),
+    );
 
     if (!gif) {
       return returnNotFound(this.constructorName, gifId);

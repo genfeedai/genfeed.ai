@@ -12,6 +12,7 @@ import { validateCronPayload } from '@api/collections/cron-jobs/utils/cron-paylo
 import { computeNextRunAtOrThrow } from '@api/collections/cron-jobs/utils/cron-schedule.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import { Injectable } from '@nestjs/common';
 
 const LEGACY_CRON_JOB_MIGRATION_SOURCE = 'legacy-cron-job';
@@ -193,12 +194,10 @@ export class LegacyCronJobMigrationService {
       if (workflowId) {
         const workflow = await this.prisma.workflow.findFirst({
           select: { id: true },
-          where: {
+          where: scopedWhere(job.organizationId, {
             id: workflowId,
-            isDeleted: false,
-            organizationId: job.organizationId,
             userId: job.userId,
-          },
+          }),
         });
         if (!workflow) {
           errors.push('payload.workflowId does not reference a live workflow');

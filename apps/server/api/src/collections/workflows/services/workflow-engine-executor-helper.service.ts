@@ -8,6 +8,7 @@ import {
   MetadataExtension,
   TransformationCategory,
 } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import type {
   ExecutableNode,
   INodeExecutor,
@@ -221,11 +222,9 @@ export class WorkflowEngineExecutorHelperService {
 
     const sourceIngredientId = this.extractIngredientId(source);
     if (sourceIngredientId && this.ingredientsService) {
-      const sourceIngredient = await this.ingredientsService.findOne({
-        _id: sourceIngredientId,
-        isDeleted: false,
-        organizationId,
-      });
+      const sourceIngredient = await this.ingredientsService.findOne(
+        scopedWhere(organizationId, { _id: sourceIngredientId }),
+      );
 
       // Read the scalar FK (`brandId`) — the Mongo-era `brand` alias is
       // undefined on Prisma rows. See .agents/memory/rules/prisma_legacy_alias_fields.md.

@@ -30,7 +30,7 @@ import type {
   PostGroupCreateProvenance,
 } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
-import { PostPublishQueueService } from '@genfeedai/server';
+import { PostPublishQueueService, scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, Injectable } from '@nestjs/common';
 
@@ -275,14 +275,12 @@ export class PostGroupsService {
               this.contractService.validationIssues(validation),
             targetValidationState: validation.validationState,
           },
-          where: {
+          where: scopedWhere(organizationId, {
             groupId: group.id,
             id: target.id,
-            isDeleted: false,
-            organizationId,
             targetExecutionState: target.targetExecutionState,
             updatedAt: target.updatedAt,
-          },
+          }),
         });
         if (updated.count !== 1) {
           throw new ConflictException(
@@ -410,12 +408,10 @@ export class PostGroupsService {
       if (Object.keys(targetUpdate).length > 0) {
         await tx.post.updateMany({
           data: targetUpdate,
-          where: {
+          where: scopedWhere(organizationId, {
             groupId: existing.id,
-            isDeleted: false,
-            organizationId,
             targetExecutionState: { in: Array.from(GROUP_ACTION_STATES) },
-          },
+          }),
         });
       }
 
@@ -760,12 +756,10 @@ export class PostGroupsService {
           status: TargetExecutionState.SCHEDULED,
           targetExecutionState: TargetExecutionState.SCHEDULED,
         },
-        where: {
+        where: scopedWhere(organizationId, {
           groupId: group.id,
-          isDeleted: false,
-          organizationId,
           targetExecutionState: { in: Array.from(GROUP_ACTION_STATES) },
-        },
+        }),
       });
 
       return this.persistenceService.recalculateAndHydrate(
@@ -803,11 +797,9 @@ export class PostGroupsService {
           },
         },
       },
-      where: {
+      where: scopedWhere(release.organizationId, {
         id: { in: targets.map((target) => target.id) },
-        isDeleted: false,
-        organizationId: release.organizationId,
-      },
+      }),
     });
     const approvals = new Map(
       durableTargets.map((target) => [target.id, target.publishApproval]),
@@ -866,11 +858,7 @@ export class PostGroupsService {
             status: TargetExecutionState.PAUSED,
             targetExecutionState: TargetExecutionState.PAUSED,
           },
-          where: {
-            groupId: release.id,
-            isDeleted: false,
-            organizationId: release.organizationId,
-          },
+          where: scopedWhere(release.organizationId, { groupId: release.id }),
         }),
         this.prisma.postGroup.update({
           data: { status: ReleaseStatus.PAUSED },
@@ -901,12 +889,10 @@ export class PostGroupsService {
           status: nextState,
           targetExecutionState: nextState,
         },
-        where: {
+        where: scopedWhere(organizationId, {
           groupId: group.id,
-          isDeleted: false,
-          organizationId,
           targetExecutionState: { in: [...fromStates] },
-        },
+        }),
       });
 
       return this.persistenceService.recalculateAndHydrate(

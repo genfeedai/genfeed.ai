@@ -23,6 +23,7 @@ import {
   RunSurface,
 } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -262,11 +263,9 @@ export class RunsService extends BaseService<
     dto: CreateRunDto,
   ): Promise<{ reused: boolean; run: RunDocument }> {
     if (dto.idempotencyKey) {
-      const existingRun = await this.findOne({
-        idempotencyKey: dto.idempotencyKey,
-        isDeleted: false,
-        organizationId,
-      });
+      const existingRun = await this.findOne(
+        scopedWhere(organizationId, { idempotencyKey: dto.idempotencyKey }),
+      );
 
       if (existingRun) {
         await this.fireMeteringHook(existingRun, RunMeteringStage.CREATED);
@@ -315,10 +314,7 @@ export class RunsService extends BaseService<
     const limit = Math.min(Math.max(query.limit ?? 20, 1), 100);
     const offset = Math.max(query.offset ?? 0, 0);
 
-    const filters: Record<string, unknown> = {
-      isDeleted: false,
-      organizationId,
-    };
+    const filters: Record<string, unknown> = scopedWhere(organizationId, {});
 
     if (query.status) {
       filters.status = query.status;
@@ -355,7 +351,7 @@ export class RunsService extends BaseService<
     organizationId: string,
   ): Promise<RunDocument | null> {
     const result = await this.prisma.run.findFirst({
-      where: { id: runId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: runId }),
     });
     return result as unknown as RunDocument | null;
   }

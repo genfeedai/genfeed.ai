@@ -1,6 +1,7 @@
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
+import type { ServerAnalyticsCollectionState } from '@genfeedai/interfaces';
 import {
   ANALYTICS_THREADS_QUEUE,
   SocialAnalyticsJobData,
@@ -12,6 +13,9 @@ import {
   type ProcessorCircuitBreaker,
 } from '@libs/utils/circuit-breaker/circuit-breaker.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Inject } from '@nestjs/common';
+import { classifyAnalyticsCollectionError } from '@server/analytics/analytics-collection-state';
+import { SERVER_TOKENS } from '@server/server.dependencies';
 import { Job } from 'bullmq';
 
 @Processor(ANALYTICS_THREADS_QUEUE)
@@ -22,6 +26,8 @@ export class AnalyticsThreadsProcessor extends WorkerHost {
   constructor(
     private readonly threadsService: ThreadsService,
     private readonly postAnalyticsService: PostAnalyticsService,
+    @Inject(SERVER_TOKENS.analyticsCollectionState)
+    private readonly analyticsCollectionState: ServerAnalyticsCollectionState,
     private readonly postsService: PostsService,
     private readonly logger: LoggerService,
   ) {
@@ -74,6 +80,13 @@ export class AnalyticsThreadsProcessor extends WorkerHost {
             post.id,
             analytics,
           );
+          await this.analyticsCollectionState.markReady({
+            attemptKey: job.data.attemptKey,
+            brandId: post.brand,
+            id: post.id,
+            organizationId: post.organization,
+            platform: post.platform,
+          });
           processed++;
 
           // Rate limiting delay
@@ -81,18 +94,33 @@ export class AnalyticsThreadsProcessor extends WorkerHost {
             await this.delay(this.DEFAULT_DELAY_MS);
           }
         } catch (error: unknown) {
+          const failure = classifyAnalyticsCollectionError(error, 'Threads');
           this.logger.error(
             `Failed to fetch Threads analytics for post ${post.id}`,
             error,
           );
 
-          // Disable analytics for this post to prevent repeated failures
+          await this.analyticsCollectionState.markFailed(
+            {
+              attemptKey: job.data.attemptKey,
+              brandId: post.brand,
+              id: post.id,
+              organizationId: post.organization,
+              platform: post.platform,
+            },
+            failure,
+          );
+
+          if (failure.isRetryable) {
+            continue;
+          }
+
           try {
             await this.postsService.patch(post.id, {
               isAnalyticsEnabled: false,
             });
             this.logger.log(
-              `Disabled analytics tracking for post ${post.id} due to fetch failure`,
+              `Disabled analytics tracking for post ${post.id} after a non-retryable failure`,
             );
           } catch (patchError: unknown) {
             this.logger.error(

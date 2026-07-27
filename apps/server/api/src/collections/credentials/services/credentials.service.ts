@@ -9,6 +9,7 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { CredentialPlatform, FileInputType } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
@@ -83,12 +84,10 @@ export class CredentialsService extends BaseService<
 
   countConnected(organizationId: string, brandId?: string): Promise<number> {
     return this.prisma.credential.count({
-      where: {
+      where: scopedWhere(organizationId, {
         isConnected: true,
-        isDeleted: false,
-        organizationId,
         ...(brandId ? { brandId } : {}),
-      },
+      }),
     });
   }
 
@@ -98,12 +97,12 @@ export class CredentialsService extends BaseService<
   ): Promise<CredentialDocument | null> {
     const normalizedHandle = handle.replace(/^@/, '');
 
-    return this.findOne({
-      externalHandle: { contains: normalizedHandle, mode: 'insensitive' },
-      isConnected: true,
-      isDeleted: false,
-      organizationId,
-    });
+    return this.findOne(
+      scopedWhere(organizationId, {
+        externalHandle: { contains: normalizedHandle, mode: 'insensitive' },
+        isConnected: true,
+      }),
+    );
   }
 
   async saveCredentials(

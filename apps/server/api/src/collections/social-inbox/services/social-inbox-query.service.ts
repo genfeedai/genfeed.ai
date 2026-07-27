@@ -21,6 +21,7 @@ import type {
   SocialInboxReference,
 } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const MAX_AGENT_CONTEXT_REFERENCES = 20;
@@ -81,11 +82,10 @@ export class SocialInboxQueryService {
 
     const limit = boundLimit(options.limit ?? 50);
     const page = boundPage(options.page);
-    const where: Prisma.SocialMessageWhereInput = {
-      conversationId,
-      isDeleted: false,
-      organizationId: scope.organizationId,
-    };
+    const where: Prisma.SocialMessageWhereInput = scopedWhere(
+      scope.organizationId,
+      { conversationId },
+    );
 
     const [docs, totalDocs] = await Promise.all([
       this.prisma.socialMessage.findMany({
@@ -159,12 +159,10 @@ export class SocialInboxQueryService {
         const message = await findOrThrow(
           this.prisma.socialMessage,
           {
-            where: {
+            where: scopedWhere(conversation.organizationId, {
               conversationId: conversation.id,
               id: reference.messageId,
-              isDeleted: false,
-              organizationId: conversation.organizationId,
-            },
+            }),
           },
           'Social message',
         );
@@ -220,27 +218,26 @@ export class SocialInboxQueryService {
     scope: SocialInboxScope,
     conversationId: string,
   ): Prisma.SocialConversationWhereInput {
-    return {
+    return scopedWhere(scope.organizationId, {
       id: conversationId,
-      isDeleted: false,
-      organizationId: scope.organizationId,
       ...(scope.brandId
         ? { OR: [{ brandId: scope.brandId }, { brandId: null }] }
         : {}),
-    };
+    });
   }
 
   private buildConversationWhere(
     scope: SocialInboxScope,
     query: SocialInboxListQuery,
   ): Prisma.SocialConversationWhereInput {
-    const where: Prisma.SocialConversationWhereInput = {
-      isDeleted: false,
-      organizationId: scope.organizationId,
-      ...(scope.brandId
-        ? { OR: [{ brandId: scope.brandId }, { brandId: null }] }
-        : {}),
-    };
+    const where: Prisma.SocialConversationWhereInput = scopedWhere(
+      scope.organizationId,
+      {
+        ...(scope.brandId
+          ? { OR: [{ brandId: scope.brandId }, { brandId: null }] }
+          : {}),
+      },
+    );
 
     if (query.platform) where.platform = query.platform;
     if (query.status) where.status = query.status;

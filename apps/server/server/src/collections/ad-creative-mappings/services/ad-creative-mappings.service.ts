@@ -6,6 +6,7 @@ import {
   type ServerLogger,
   type ServerPrisma,
 } from '@server/server.dependencies';
+import { scopedWhere } from '@server/tenancy/scoped-where';
 
 export interface CreateAdCreativeMappingInput {
   organization: string;
@@ -75,11 +76,7 @@ export class AdCreativeMappingsService {
     organizationId: string,
   ): Promise<Record<string, unknown> | null> {
     return this.prisma.adCreativeMapping.findFirst({
-      where: {
-        id,
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { id }),
     });
   }
 
@@ -89,10 +86,7 @@ export class AdCreativeMappingsService {
   ): Promise<Record<string, unknown>[]> {
     // genfeedContentId lives in data JSON — fetch by org then filter in memory
     const rows = await this.prisma.adCreativeMapping.findMany({
-      where: {
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId),
     });
     return rows.filter((row) => {
       const d = row.data as Record<string, unknown> | null;
@@ -106,10 +100,7 @@ export class AdCreativeMappingsService {
   ): Promise<Record<string, unknown> | null> {
     // externalAdId lives in data JSON — fetch by org then filter in memory
     const rows = await this.prisma.adCreativeMapping.findMany({
-      where: {
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId),
     });
     return (
       rows.find((row) => {
@@ -125,10 +116,7 @@ export class AdCreativeMappingsService {
   ): Promise<Record<string, unknown>[]> {
     // adAccountId lives in data JSON — fetch by org then filter in memory
     const rows = await this.prisma.adCreativeMapping.findMany({
-      where: {
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId),
     });
     return rows.filter((row) => {
       const d = row.data as Record<string, unknown> | null;
@@ -145,7 +133,7 @@ export class AdCreativeMappingsService {
 
     try {
       const existing = await this.prisma.adCreativeMapping.findFirst({
-        where: { id, isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, { id }),
       });
 
       if (!existing) {
@@ -187,7 +175,7 @@ export class AdCreativeMappingsService {
 
     try {
       const existing = await this.prisma.adCreativeMapping.findFirst({
-        where: { id, isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, { id }),
       });
 
       if (!existing) {

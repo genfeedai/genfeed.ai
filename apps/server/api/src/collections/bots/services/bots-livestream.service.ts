@@ -16,10 +16,10 @@ import type {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BotPlatform } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
-
 import { BotsLivestreamDeliveryService } from './bots-livestream-delivery.service';
 import {
   BotsLivestreamRuntimeService,
@@ -744,11 +744,7 @@ export class BotsLivestreamService {
         }
 
         const bot = await this.prisma.bot.findFirst({
-          where: {
-            id: session.botId,
-            isDeleted: false,
-            organizationId,
-          },
+          where: scopedWhere(organizationId, { id: session.botId }),
         });
 
         if (!bot) {

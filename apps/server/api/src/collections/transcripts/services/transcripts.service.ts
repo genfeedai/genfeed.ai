@@ -8,6 +8,7 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { TranscriptStatus } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -113,16 +114,10 @@ export class TranscriptsService extends BaseService<
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
-        where: {
-          isDeleted: false,
-          organizationId,
-        },
+        where: scopedWhere(organizationId, {}),
       }),
       this.delegate.count({
-        where: {
-          isDeleted: false,
-          organizationId,
-        },
+        where: scopedWhere(organizationId, {}),
       }),
     ]);
 

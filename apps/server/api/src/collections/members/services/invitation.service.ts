@@ -7,6 +7,7 @@ import {
   buildSystemEmailParagraph,
 } from '@genfeedai/helpers';
 import type { Invitation, Member, Prisma, User } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -167,13 +168,11 @@ export class InvitationService {
     const invitation = await this.prisma.$transaction(async (tx) => {
       await tx.invitation.updateMany({
         data: { isDeleted: true, revokedAt: new Date(), status: 'canceled' },
-        where: {
+        where: scopedWhere(input.organizationId, {
           acceptedAt: null,
           email,
-          isDeleted: false,
-          organizationId: input.organizationId,
           revokedAt: null,
-        },
+        }),
       });
 
       return tx.invitation.create({
@@ -222,11 +221,7 @@ export class InvitationService {
   ): Promise<InvitationView[]> {
     const invitations = await this.prisma.invitation.findMany({
       orderBy: { createdAt: 'desc' },
-      where: {
-        isDeleted: false,
-        organizationId,
-        ...this.buildStatusWhere(status),
-      },
+      where: scopedWhere(organizationId, { ...this.buildStatusWhere(status) }),
     });
 
     return invitations.map(toInvitationView);
@@ -433,12 +428,7 @@ export class InvitationService {
 
     const member = await this.prisma.member.findFirst({
       select: { id: true },
-      where: {
-        isActive: true,
-        isDeleted: false,
-        organizationId,
-        userId: user.id,
-      },
+      where: scopedWhere(organizationId, { isActive: true, userId: user.id }),
     });
 
     if (member) {
@@ -528,11 +518,7 @@ export class InvitationService {
     userId: string,
   ): Promise<Member> {
     const existing = await tx.member.findFirst({
-      where: {
-        isDeleted: false,
-        organizationId: invitation.organizationId,
-        userId,
-      },
+      where: scopedWhere(invitation.organizationId, { userId }),
     });
 
     if (existing) {

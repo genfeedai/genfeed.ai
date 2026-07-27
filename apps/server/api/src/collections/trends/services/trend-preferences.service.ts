@@ -1,5 +1,6 @@
 import type { TrendPreferencesDocument } from '@api/collections/trends/schemas/trend-preferences.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -18,7 +19,7 @@ export class TrendPreferencesService {
       // Try brand-specific preferences first
       if (brandId) {
         const brandPrefs = await this.prisma.trendPreferences.findFirst({
-          where: { brandId, isDeleted: false, organizationId },
+          where: scopedWhere(organizationId, { brandId }),
         });
         if (brandPrefs) {
           return this.normalizePreferences(brandPrefs);
@@ -27,7 +28,7 @@ export class TrendPreferencesService {
 
       // Fall back to org-level preferences
       const orgPrefs = await this.prisma.trendPreferences.findFirst({
-        where: { brandId: null, isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, { brandId: null }),
       });
       return this.normalizePreferences(orgPrefs);
     } catch (error: unknown) {
@@ -50,7 +51,7 @@ export class TrendPreferencesService {
     try {
       const brandId = preferences.brandId ?? null;
       const existing = await this.prisma.trendPreferences.findFirst({
-        where: { brandId, isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, { brandId }),
       });
       const storedConfig = this.readObjectRecord(existing?.config);
       const normalizedPreferences: Record<string, unknown> = {

@@ -3,6 +3,7 @@ import { UpdateTaskCommentDto } from '@api/collections/task-comments/dto/update-
 import type { TaskCommentDocument } from '@api/collections/task-comments/schemas/task-comment.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -35,11 +36,7 @@ export class TaskCommentsService extends BaseService<
   ): Promise<TaskCommentDocument[]> {
     const results = await this.prisma.taskComment.findMany({
       orderBy: { createdAt: 'asc' },
-      where: {
-        isDeleted: false,
-        organizationId,
-        taskId,
-      },
+      where: scopedWhere(organizationId, { taskId }),
     });
     return results as unknown as TaskCommentDocument[];
   }

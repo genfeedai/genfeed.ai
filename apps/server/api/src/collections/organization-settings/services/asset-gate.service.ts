@@ -1,5 +1,6 @@
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -41,11 +42,7 @@ export class AssetGateService {
       // already set (or the org has no settings row), so we invalidate the
       // access-bootstrap cache exactly once, on the org's first asset.
       const { modifiedCount } = await this.organizationSettingsService.patchAll(
-        {
-          hasGeneratedFirstAsset: false,
-          isDeleted: false,
-          organizationId,
-        },
+        scopedWhere(organizationId, { hasGeneratedFirstAsset: false }),
         { hasGeneratedFirstAsset: true },
       );
 

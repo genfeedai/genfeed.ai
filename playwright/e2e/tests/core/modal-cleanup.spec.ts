@@ -1,5 +1,8 @@
 import type { Page } from '@playwright/test';
-import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
+import {
+  mockActiveSubscription,
+  mockWorkspaceTasks,
+} from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 
 interface ModalGlobalState {
@@ -48,6 +51,7 @@ test.describe('Modal cleanup', () => {
       credits: 1000,
       plan: 'pro',
     });
+    await mockWorkspaceTasks(authenticatedPage);
   });
 
   test('route transitions clear stale modal body and app-root locks', async ({

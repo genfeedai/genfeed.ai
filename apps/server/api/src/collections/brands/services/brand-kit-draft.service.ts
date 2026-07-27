@@ -26,6 +26,7 @@ import type {
 } from '@genfeedai/interfaces';
 import { BRAND_KIT_FIELD_OWNERSHIP } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const BRAND_KIT_SCALAR_FIELDS: Partial<Record<BrandKitFieldKey, string>> = {
@@ -107,11 +108,7 @@ export class BrandKitDraftService {
       });
     }
 
-    const brand = await findBrand({
-      id: brandId,
-      isDeleted: false,
-      organizationId,
-    });
+    const brand = await findBrand(scopedWhere(organizationId, { id: brandId }));
 
     if (!brand) {
       throw new NotFoundException('Brand', brandId);
@@ -167,11 +164,7 @@ export class BrandKitDraftService {
     findBrand: BrandKitDraftBrandFinder,
     patchBrand: BrandKitBrandPatch,
   ): Promise<IBrandKitApplyResult> {
-    const brand = await findBrand({
-      id: brandId,
-      isDeleted: false,
-      organizationId,
-    });
+    const brand = await findBrand(scopedWhere(organizationId, { id: brandId }));
 
     if (!brand) {
       throw new NotFoundException('Brand', brandId);
@@ -393,11 +386,7 @@ export class BrandKitDraftService {
       });
     }
 
-    const brand = await findBrand({
-      id: brandId,
-      isDeleted: false,
-      organizationId,
-    });
+    const brand = await findBrand(scopedWhere(organizationId, { id: brandId }));
 
     if (!brand) {
       throw new NotFoundException('Brand', brandId);

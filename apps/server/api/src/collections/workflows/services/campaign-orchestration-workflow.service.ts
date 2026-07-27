@@ -4,6 +4,7 @@ import { TriggerEvaluatorQueueService } from '@api/services/agent-campaign/trigg
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { AgentCampaign } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -72,7 +73,7 @@ export class CampaignOrchestrationWorkflowService {
       const campaigns = (await this.prisma.agentCampaign.findMany({
         orderBy: { updatedAt: 'asc' },
         take: MAX_CAMPAIGNS_PER_CYCLE * 5,
-        where: { isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, {}),
       })) as AgentCampaignWithConfig[];
 
       const dueCampaigns = campaigns
@@ -128,7 +129,7 @@ export class CampaignOrchestrationWorkflowService {
         include: { agents: true },
         orderBy: { updatedAt: 'desc' },
         take: MAX_CAMPAIGNS_PER_CYCLE * 5,
-        where: { isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, {}),
       })) as AgentCampaignWithAgents[];
 
       const eligibleCampaigns = campaigns

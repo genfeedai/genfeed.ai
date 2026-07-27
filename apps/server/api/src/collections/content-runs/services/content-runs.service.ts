@@ -15,6 +15,7 @@ import type {
   CreateContentRunInput,
   UpdateContentRunInput,
 } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -223,7 +224,7 @@ export class ContentRunsService {
     patch: UpdateContentRunInput,
   ): Promise<Record<string, unknown>> {
     const existing = await this.prisma.contentRun.findFirst({
-      where: { id: runId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: runId }),
     });
 
     if (!existing) {
@@ -256,7 +257,7 @@ export class ContentRunsService {
     runId: string,
   ): Promise<Record<string, unknown>> {
     const existing = await this.prisma.contentRun.findFirst({
-      where: { id: runId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: runId }),
     });
 
     if (!existing) {
@@ -304,12 +305,10 @@ export class ContentRunsService {
   ): Promise<Record<string, unknown>[]> {
     const runs = await this.prisma.contentRun.findMany({
       orderBy: { createdAt: 'desc' },
-      where: {
+      where: scopedWhere(organizationId, {
         brandId,
-        isDeleted: false,
-        organizationId,
         ...(status ? { status } : {}),
-      },
+      }),
     });
 
     const hydratedRuns = hydrateContentRuns(
@@ -328,11 +327,7 @@ export class ContentRunsService {
     runId: string,
   ): Promise<Record<string, unknown> | null> {
     const run = await this.prisma.contentRun.findFirst({
-      where: {
-        id: runId,
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { id: runId }),
     });
 
     return hydrateContentRun(run as unknown as Record<string, unknown> | null);

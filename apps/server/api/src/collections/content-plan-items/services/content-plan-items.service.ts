@@ -14,6 +14,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentPlanItemStatus } from '@genfeedai/enums';
 import type { ContentPlanItem as PrismaContentPlanItem } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -85,11 +86,7 @@ export class ContentPlanItemsService {
   ): Promise<ContentPlanItemDocument[]> {
     const docs = await this.prisma.contentPlanItem.findMany({
       orderBy: { createdAt: 'asc' },
-      where: {
-        isDeleted: false,
-        organizationId,
-        planId,
-      },
+      where: scopedWhere(organizationId, { planId }),
     });
 
     return this.sortByScheduledAt(docs.map((doc) => this.toDocument(doc)));
@@ -108,11 +105,7 @@ export class ContentPlanItemsService {
     itemId: string,
   ): Promise<ContentPlanItemDocument> {
     const item = await this.prisma.contentPlanItem.findFirst({
-      where: {
-        id: itemId,
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { id: itemId }),
     });
 
     if (!item) {
@@ -129,11 +122,7 @@ export class ContentPlanItemsService {
     updates?: { contentDraftId?: string; error?: string; confidence?: number },
   ): Promise<ContentPlanItemDocument> {
     const existing = await this.prisma.contentPlanItem.findFirst({
-      where: {
-        id: itemId,
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { id: itemId }),
     });
 
     if (!existing) {
@@ -164,11 +153,7 @@ export class ContentPlanItemsService {
   ): Promise<void> {
     await this.prisma.contentPlanItem.updateMany({
       data: { isDeleted: true },
-      where: {
-        isDeleted: false,
-        organizationId,
-        planId,
-      },
+      where: scopedWhere(organizationId, { planId }),
     });
   }
 

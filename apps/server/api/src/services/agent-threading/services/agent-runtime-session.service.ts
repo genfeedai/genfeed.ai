@@ -6,6 +6,7 @@ import type { AgentSessionBindingDocument } from '@api/services/agent-threading/
 import { AgentSessionBindingStatus } from '@api/services/agent-threading/types/agent-thread.types';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { Effect } from 'effect';
@@ -89,11 +90,9 @@ export class AgentRuntimeSessionService {
       }
 
       const existing = await this.prisma.agentThreadSnapshot.findFirst({
-        where: {
-          isDeleted: false,
-          organizationId: params.organizationId,
+        where: scopedWhere(params.organizationId, {
           threadId: params.threadId,
-        },
+        }),
       });
 
       let snapshot: Record<string, unknown> | null = null;
@@ -139,11 +138,7 @@ export class AgentRuntimeSessionService {
   ): Effect.Effect<AgentSessionBindingDocument | null, unknown> {
     return fromPromiseEffect(async () => {
       const snapshot = await this.prisma.agentThreadSnapshot.findFirst({
-        where: {
-          isDeleted: false,
-          organizationId,
-          threadId,
-        },
+        where: scopedWhere(organizationId, { threadId }),
       });
 
       return toSessionBindingDocument(

@@ -35,6 +35,7 @@ import {
 } from '@server/publish-approvals/publish-approval-contract.codec';
 import { digestPublishApprovalValue } from '@server/publish-approvals/publish-approval-integrity';
 import type { ServerLogger, ServerPrisma } from '@server/server.dependencies';
+import { scopedWhere } from '@server/tenancy/scoped-where';
 
 export type {
   ClaimPublishExecutionParams,
@@ -813,14 +814,12 @@ export class PublishApprovalsService {
     );
     const credential = await this.prisma.credential.findFirst({
       select: { id: true },
-      where: {
+      where: scopedWhere(post.organizationId, {
         brandId: post.brandId,
         id: post.credentialId,
         isConnected: true,
-        isDeleted: false,
-        organizationId: post.organizationId,
         platform: credentialPlatform,
-      },
+      }),
     });
     if (!credential) {
       await this.invalidatePost(
@@ -840,12 +839,10 @@ export class PublishApprovalsService {
     const [member, organization] = await Promise.all([
       this.prisma.member.findFirst({
         select: { id: true },
-        where: {
+        where: scopedWhere(approval.organizationId, {
           isActive: true,
-          isDeleted: false,
-          organizationId: approval.organizationId,
           userId: approval.actorUserId,
-        },
+        }),
       }),
       this.prisma.organization.findFirst({
         select: { userId: true },
@@ -875,10 +872,8 @@ export class PublishApprovalsService {
         reviewDecision: 'APPROVED',
         reviewVersionPinId: approval.artifactVersionPinId,
       },
-      where: {
+      where: scopedWhere(post.organizationId, {
         id: post.id,
-        isDeleted: false,
-        organizationId: post.organizationId,
         publishApprovals: {
           some: {
             id: approval.id,
@@ -886,7 +881,7 @@ export class PublishApprovalsService {
             status: { in: [...ACTIVATABLE_APPROVAL_STATUSES] },
           },
         },
-      },
+      }),
     });
     if (activated.count !== 1) {
       throw new ConflictException(
@@ -915,7 +910,7 @@ export class PublishApprovalsService {
         targetExecutionState: true,
         timezone: true,
       },
-      where: { id: postId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: postId }),
     })) as ApprovalPost | null;
     if (!post) {
       throw new PublishApprovalNotFoundException('Post', postId);

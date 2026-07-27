@@ -8,6 +8,7 @@ import {
   mockPostDetail,
   mockPostsList,
   mockReviewQueue,
+  mockWorkspaceTasks,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { AnalyticsPage } from '../../pages/analytics.page';
@@ -46,6 +47,7 @@ test.describe('Core Content Loop', () => {
     await mockBrandIdentityDefaults(authenticatedPage);
     await mockAnalyticsData(authenticatedPage);
     await mockPostsList(authenticatedPage, [contentLoopPost, failedPost]);
+    await mockWorkspaceTasks(authenticatedPage);
   });
 
   test('workspace overview exposes the core operator entry points', async ({

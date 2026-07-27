@@ -10,6 +10,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { McpApprovalStatus } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -42,11 +43,7 @@ export class McpApprovalsService extends BaseService<
     args: Record<string, unknown>,
   ): Promise<McpApprovalDocument> {
     const pendingCount = await this.delegate.count({
-      where: {
-        isDeleted: false,
-        organizationId,
-        status: McpApprovalStatus.PENDING,
-      },
+      where: scopedWhere(organizationId, { status: McpApprovalStatus.PENDING }),
     });
 
     if (pendingCount >= MAX_PENDING_APPROVALS_PER_ORG) {
@@ -94,11 +91,7 @@ export class McpApprovalsService extends BaseService<
     status?: McpApprovalStatus,
   ): Promise<McpApprovalDocument[]> {
     const docs = await this.delegate.findMany({
-      where: {
-        organizationId,
-        isDeleted: false,
-        ...(status ? { status } : {}),
-      },
+      where: scopedWhere(organizationId, { ...(status ? { status } : {}) }),
       orderBy: { createdAt: 'desc' },
     });
 
@@ -130,12 +123,10 @@ export class McpApprovalsService extends BaseService<
     // and the loser's updateMany matches 0 rows. This is what lets the MCP layer
     // safely gate tool execution on a successful resolve (no double-execution).
     const { count } = await this.delegate.updateMany({
-      where: {
+      where: scopedWhere(organizationId, {
         id,
-        organizationId,
-        isDeleted: false,
         status: McpApprovalStatus.PENDING,
-      },
+      }),
       data: {
         status,
         resolvedAt: new Date(),
@@ -152,7 +143,7 @@ export class McpApprovalsService extends BaseService<
     }
 
     return (await this.delegate.findFirst({
-      where: { id, organizationId, isDeleted: false },
+      where: scopedWhere(organizationId, { id }),
     })) as McpApprovalDocument;
   }
 
@@ -169,12 +160,10 @@ export class McpApprovalsService extends BaseService<
     result: Record<string, unknown>,
   ): Promise<void> {
     await this.delegate.updateMany({
-      where: {
+      where: scopedWhere(organizationId, {
         id,
-        organizationId,
-        isDeleted: false,
         status: McpApprovalStatus.APPROVED,
-      },
+      }),
       data: { result },
     });
   }

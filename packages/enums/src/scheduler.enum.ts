@@ -58,6 +58,31 @@ export enum TargetValidationState {
 }
 
 /**
+ * Lifecycle of analytics collection for one published channel target.
+ *
+ * This is independent from {@link TargetExecutionState}: analytics collection
+ * failures never turn a successfully published target into a failed publish.
+ */
+export enum TargetAnalyticsCollectionState {
+  PENDING = 'pending',
+  READY = 'ready',
+  STALE = 'stale',
+  UNAVAILABLE = 'unavailable',
+  FAILED = 'failed',
+}
+
+export enum TargetAnalyticsCapability {
+  SUPPORTED = 'supported',
+  UNSUPPORTED = 'unsupported',
+}
+
+export enum TargetAnalyticsFreshness {
+  FRESH = 'fresh',
+  STALE = 'stale',
+  UNAVAILABLE = 'unavailable',
+}
+
+/**
  * Kind of supplemental content attached to a release or a specific channel
  * target: a first comment, a follow-up thread, or an appended signature.
  */

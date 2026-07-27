@@ -8,7 +8,7 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { ContentDraftStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
-import { AgentArtifactReferenceService } from '@genfeedai/server';
+import { AgentArtifactReferenceService, scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import pLimit from 'p-limit';
@@ -41,12 +41,10 @@ export class ContentDraftsService extends BaseService<
     status?: ContentDraftStatus,
   ): Promise<ContentDraftDocument[]> {
     return this.delegate.findMany({
-      where: {
+      where: scopedWhere(organizationId, {
         brandId,
         ...(status ? { status } : {}),
-        isDeleted: false,
-        organizationId,
-      },
+      }),
     }) as Promise<ContentDraftDocument[]>;
   }
 
@@ -140,7 +138,7 @@ export class ContentDraftsService extends BaseService<
   ): Promise<ContentDraftDocument> {
     const existing = await findOrThrow(
       this.delegate,
-      { where: { id, isDeleted: false, organizationId } },
+      { where: scopedWhere(organizationId, { id }) },
       'ContentDraft',
       id,
     );
@@ -169,7 +167,7 @@ export class ContentDraftsService extends BaseService<
   ): Promise<ContentDraftDocument> {
     const existing = await findOrThrow(
       this.delegate,
-      { where: { id, isDeleted: false, organizationId } },
+      { where: scopedWhere(organizationId, { id }) },
       'ContentDraft',
       id,
     );
@@ -205,11 +203,7 @@ export class ContentDraftsService extends BaseService<
     }
 
     const drafts = (await this.delegate.findMany({
-      where: {
-        id: { in: ids },
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { id: { in: ids } }),
     })) as Array<Record<string, unknown>>;
 
     // Both passes are per-draft (each draft gets its own immutable version pin,
@@ -298,7 +292,7 @@ export class ContentDraftsService extends BaseService<
     if (!doc) {
       const existing = await findOrThrow(
         this.delegate,
-        { where: { id, isDeleted: false, organizationId } },
+        { where: scopedWhere(organizationId, { id }) },
         'ContentDraft',
         id,
       );
@@ -315,7 +309,7 @@ export class ContentDraftsService extends BaseService<
   ): Promise<ContentDraftDocument> {
     await findOrThrow(
       this.delegate,
-      { where: { id, isDeleted: false, organizationId } },
+      { where: scopedWhere(organizationId, { id }) },
       'ContentDraft',
       id,
     );
@@ -334,13 +328,11 @@ export class ContentDraftsService extends BaseService<
     threshold: number,
   ): Promise<{ modifiedCount: number }> {
     const result = (await this.delegate.updateMany({
-      where: {
+      where: scopedWhere(organizationId, {
         brandId,
         confidence: { gte: threshold },
-        isDeleted: false,
-        organizationId,
         status: ContentDraftStatus.PENDING,
-      },
+      }),
       data: { status: ContentDraftStatus.APPROVED },
     })) as { count: number };
 

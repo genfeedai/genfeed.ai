@@ -35,9 +35,14 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   ),
 }));
 
-vi.mock('@genfeedai/serializers', () => ({
-  AnnouncementSerializer: {},
-}));
+vi.mock('@genfeedai/serializers', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@genfeedai/serializers')>();
+  return {
+    ...actual,
+    AnnouncementSerializer: {},
+  };
+});
 
 const makeRequest = () => ({
   url: 'https://api.genfeed.ai/admin/announcements',

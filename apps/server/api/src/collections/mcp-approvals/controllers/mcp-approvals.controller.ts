@@ -12,6 +12,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { MemberRole } from '@genfeedai/enums';
 import { McpApprovalStatus } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -99,11 +100,9 @@ export class McpApprovalsController {
     @Param('id') id: string,
   ): Promise<{ data: McpApprovalResponse }> {
     const { organization } = getPublicMetadata(user);
-    const approval = await this.service.findOne({
-      id,
-      organizationId: organization,
-      isDeleted: false,
-    });
+    const approval = await this.service.findOne(
+      scopedWhere(organization, { id }),
+    );
 
     if (!approval) {
       throw new NotFoundException('MCP approval');
@@ -150,11 +149,9 @@ export class McpApprovalsController {
     const { organization } = getPublicMetadata(user);
     await this.service.attachResult(id, organization, dto.result);
 
-    const approval = await this.service.findOne({
-      id,
-      organizationId: organization,
-      isDeleted: false,
-    });
+    const approval = await this.service.findOne(
+      scopedWhere(organization, { id }),
+    );
 
     if (!approval) {
       throw new NotFoundException('MCP approval');

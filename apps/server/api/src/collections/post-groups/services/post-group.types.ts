@@ -47,6 +47,11 @@ export type SchedulerPostTarget = {
   agentRunId: string | null;
   agentStrategyId: string | null;
   agentThreadId: string | null;
+  analyticsCollectedAt: Date | null;
+  analyticsCollectionAttemptKey: string | null;
+  analyticsCollectionError: Prisma.JsonValue | null;
+  analyticsCollectionRequestedAt: Date | null;
+  analyticsCollectionState: string;
   brandId: string | null;
   createdAt: Date;
   credentialId: string;

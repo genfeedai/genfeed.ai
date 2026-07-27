@@ -30,11 +30,16 @@ vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   },
 }));
 
-vi.mock('@genfeedai/serializers', () => ({
-  ModelSerializer: {
-    serialize: vi.fn((data: unknown) => ({ data })),
-  },
-}));
+vi.mock('@genfeedai/serializers', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@genfeedai/serializers')>();
+  return {
+    ...actual,
+    ModelSerializer: {
+      serialize: vi.fn((data: unknown) => ({ data })),
+    },
+  };
+});
 
 type RequestWithContext = {
   context?: IRequestContext;

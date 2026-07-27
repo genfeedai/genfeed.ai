@@ -10,5 +10,7 @@ export interface SocialAnalyticsPostJobData {
 }
 
 export interface SocialAnalyticsJobData {
+  /** Idempotency key for the canonical target collection attempt. */
+  attemptKey?: string;
   posts: SocialAnalyticsPostJobData[];
 }
