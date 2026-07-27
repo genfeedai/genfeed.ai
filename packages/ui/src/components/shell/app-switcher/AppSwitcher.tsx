@@ -390,7 +390,7 @@ function AppSwitcherGridItem({
         </span>
         <span
           className={cn(
-            'block max-w-full truncate text-xs font-semibold leading-[1.125rem]',
+            'block whitespace-nowrap text-xs font-semibold leading-[1.125rem]',
             isActive
               ? 'text-foreground'
               : 'text-foreground/58 group-hover:text-foreground group-focus-visible:text-foreground',

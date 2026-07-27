@@ -178,6 +178,9 @@ describe('AppSwitcher', () => {
       '!ring-offset-0',
     );
     expect(workspaceIconTile).toHaveClass('bg-foreground', 'text-background');
+    const workspaceLabel = workspaceLink.querySelectorAll('span').item(1);
+    expect(workspaceLabel).toHaveClass('whitespace-nowrap');
+    expect(workspaceLabel).not.toHaveClass('truncate');
 
     rerender(
       <AppSwitcher orgSlug="acme" currentApp="workspace" variant="labeled" />,
