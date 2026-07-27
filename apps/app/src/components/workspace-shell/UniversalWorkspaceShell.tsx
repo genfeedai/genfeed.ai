@@ -801,8 +801,9 @@ function UniversalWorkspaceShellContent({
   // resolves to a fractional width that can never be matched exactly by a
   // reserved offset. A concrete number here is what keeps the topbar's right edge
   // flush against the rail's left edge with no seam.
+  const expandedInspectorWidth = inspectorWidth ?? INSPECTOR_DEFAULT_WIDTH;
   const inspectorRailWidth = isInspectorOpen
-    ? (inspectorWidth ?? INSPECTOR_DEFAULT_WIDTH)
+    ? expandedInspectorWidth
     : INSPECTOR_COLLAPSED_WIDTH;
 
   // The rail is fixed-positioned, so it no longer occupies a grid track. Publish
@@ -1186,7 +1187,7 @@ function UniversalWorkspaceShellContent({
                   aria-orientation="vertical"
                   aria-valuemax={INSPECTOR_MAX_WIDTH}
                   aria-valuemin={INSPECTOR_MIN_WIDTH}
-                  aria-valuenow={inspectorWidth ?? INSPECTOR_DEFAULT_WIDTH}
+                  aria-valuenow={expandedInspectorWidth}
                   ariaLabel="Resize workspace inspector"
                   className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize"
                   onKeyDown={handleInspectorResizeKeyDown}
@@ -1196,19 +1197,30 @@ function UniversalWorkspaceShellContent({
                   withWrapper={false}
                 />
               ) : null}
-              {/* Rendered through the collapse, not gated on it: the conversation
-                and its composer stay mounted at zero width so a collapse cannot
-                drop a draft or in-flight run. Only presentation portals are
-                gated, since they have nowhere to be seen in a hidden rail. */}
-              {renderInspectorContent(
-                isInspectorOpen ? (
-                  <div
-                    className="flex min-h-0 flex-1 flex-col empty:hidden"
-                    ref={setAgentInspectorPortalTarget}
-                  />
-                ) : null,
-                isMobileInspectorOpen ? null : conversationInspectorSlot,
-              )}
+              {/* Keep the contents at their expanded width while the outer rail
+                clips them during open/close. Measuring the conversation at
+                every intermediate width makes its tabs, empty state, and
+                composer visibly collapse before growing back. The inner shell
+                also remains mounted through collapse so drafts and active runs
+                survive. Only presentation portals are gated while hidden. */}
+              <div
+                className="absolute inset-y-0 right-0 flex min-h-0 flex-col"
+                data-testid="workspace-inspector-content"
+                style={{
+                  minWidth: expandedInspectorWidth,
+                  width: expandedInspectorWidth,
+                }}
+              >
+                {renderInspectorContent(
+                  isInspectorOpen ? (
+                    <div
+                      className="flex min-h-0 flex-1 flex-col empty:hidden"
+                      ref={setAgentInspectorPortalTarget}
+                    />
+                  ) : null,
+                  isMobileInspectorOpen ? null : conversationInspectorSlot,
+                )}
+              </div>
             </aside>
           </div>
 

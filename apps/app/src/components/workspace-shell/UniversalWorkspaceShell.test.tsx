@@ -705,6 +705,12 @@ describe('UniversalWorkspaceShell', () => {
     const composerSlot = screen.getByTestId(
       'workspace-inspector-composer-slot',
     );
+    const inspectorContent = screen.getByTestId('workspace-inspector-content');
+
+    expect(inspectorContent).toHaveStyle({
+      minWidth: '320px',
+      width: '320px',
+    });
 
     fireEvent.click(screen.getByRole('button', { name: 'Toggle inspector' }));
 
@@ -718,6 +724,13 @@ describe('UniversalWorkspaceShell', () => {
     expect(screen.getByTestId('workspace-inspector-composer-slot')).toBe(
       composerSlot,
     );
+    expect(screen.getByTestId('workspace-inspector-content')).toBe(
+      inspectorContent,
+    );
+    expect(inspectorContent).toHaveStyle({
+      minWidth: '320px',
+      width: '320px',
+    });
     expect(inspectorConversationMount).toHaveBeenCalledTimes(1);
   });
 

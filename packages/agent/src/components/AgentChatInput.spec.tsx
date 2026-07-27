@@ -93,7 +93,7 @@ describe('AgentChatInput', () => {
     expect(screen.getByLabelText('Open composer actions')).toBeInTheDocument();
   });
 
-  it('uses the compact rail treatment without duplicating shell context', () => {
+  it('uses the inspector rail treatment without duplicating shell context', () => {
     render(
       <ConversationComposerShellProvider
         contextLabel="Default Workspace · Default Brand"
@@ -102,7 +102,7 @@ describe('AgentChatInput', () => {
         portalTarget={null}
         shellState="canvas"
       >
-        <AgentChatInput density="compact" onSend={vi.fn()} />
+        <AgentChatInput density="inspector" onSend={vi.fn()} />
       </ConversationComposerShellProvider>,
     );
 
@@ -112,8 +112,11 @@ describe('AgentChatInput', () => {
     expect(
       screen.queryByText('Default Workspace · Default Brand'),
     ).not.toBeInTheDocument();
-    expect(screen.queryByText('Actions')).not.toBeInTheDocument();
+    expect(screen.getByText('Actions')).toBeInTheDocument();
     expect(screen.getByLabelText('Open composer actions')).toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox').closest('[data-density="inspector"]'),
+    ).toHaveClass('[&_.ProseMirror]:min-h-14');
   });
 
   it('adds pasted image files to the prompt attachments', () => {

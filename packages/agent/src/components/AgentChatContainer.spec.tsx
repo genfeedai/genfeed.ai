@@ -568,7 +568,7 @@ describe('AgentChatContainer', () => {
     );
   });
 
-  it('renders a full-width compact composer in the inspector portal', () => {
+  it('renders a full-width rail composer in the inspector portal', () => {
     const apiService = createApiService();
     const portalTarget = document.createElement('div');
     document.body.append(portalTarget);
@@ -595,7 +595,7 @@ describe('AgentChatContainer', () => {
     ).not.toBeNull();
     expect(screen.getByTestId('chat-input')).toHaveAttribute(
       'data-density',
-      'compact',
+      'inspector',
     );
     portalTarget.remove();
   });

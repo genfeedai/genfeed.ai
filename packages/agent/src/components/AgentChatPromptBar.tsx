@@ -135,7 +135,7 @@ export function AgentChatPromptBar({
         onStop={onStop}
         apiService={apiService}
         showStop={isRunActive}
-        density={isInspectorComposer ? 'compact' : 'default'}
+        density={isInspectorComposer ? 'inspector' : 'default'}
         attachments={chatAttachments}
         isUploading={isAttachmentUploading}
         dragState={dragState}

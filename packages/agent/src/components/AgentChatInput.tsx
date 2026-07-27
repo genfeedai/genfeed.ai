@@ -49,7 +49,7 @@ interface AgentChatInputProps {
   removeAttachment?: (id: string) => void;
   getCompletedAttachments?: () => ChatAttachment[];
   clearAllAttachments?: () => void;
-  density?: 'compact' | 'default';
+  density?: 'compact' | 'default' | 'inspector';
 }
 
 function mapAttachmentToTrayAsset(
@@ -83,6 +83,7 @@ export function AgentChatInput({
   density = 'default',
 }: AgentChatInputProps): ReactElement {
   const isCompact = density === 'compact';
+  const isInspector = density === 'inspector';
   const {
     actionFeedback,
     canSendMessage,
@@ -131,7 +132,11 @@ export function AgentChatInput({
 
   return (
     <div
-      className="relative w-full"
+      className={cn(
+        'relative w-full',
+        isInspector && '[&_.ProseMirror]:min-h-14',
+      )}
+      data-density={density}
       onPaste={handlePasteImages}
       {...dragHandlers}
     >
@@ -159,13 +164,13 @@ export function AgentChatInput({
           // underneath it — the outer lift is what separates the two, so no
           // opaque filler band is needed below the composer.
           'overflow-hidden border border-border bg-card shadow-composer transition-[border-color,box-shadow] focus-within:border-foreground/[0.18] focus-within:shadow-composer-strong',
-          isCompact ? 'rounded-lg' : 'rounded-xl',
+          isCompact || isInspector ? 'rounded-lg' : 'rounded-xl',
           isDragActive && 'ring-1 ring-primary/40',
         )}
         data-testid="agent-chat-input-shell"
         onPointerDown={handleShellPointerDown}
       >
-        {isCompact ? null : (
+        {isCompact || isInspector ? null : (
           <AgentComposerContextRail
             attachmentCount={attachments.length}
             referenceCount={references.length}
@@ -206,7 +211,7 @@ export function AgentChatInput({
             shouldShowSendButton={shouldShowSendButton}
             shouldShowVoiceInput={shouldShowVoiceInput}
             showStop={showStop}
-            density={density}
+            density={isCompact ? 'compact' : 'default'}
           />
         </div>
       </PromptBarShell>
