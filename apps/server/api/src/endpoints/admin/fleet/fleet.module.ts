@@ -10,6 +10,8 @@ import { TrainingsModule } from '@api/collections/trainings/trainings.module';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { AdminFleetController } from '@api/endpoints/admin/fleet/fleet.controller';
 import { AdminFleetService } from '@api/endpoints/admin/fleet/fleet.service';
+import { AdminFleetMediaController } from '@api/endpoints/admin/fleet/fleet-media.controller';
+import { AdminFleetOperationsController } from '@api/endpoints/admin/fleet/fleet-operations.controller';
 import { AdminFleetAssetService } from '@api/endpoints/admin/fleet/services/fleet-asset.service';
 import { AdminFleetCharacterService } from '@api/endpoints/admin/fleet/services/fleet-character.service';
 import { AdminFleetGenerationService } from '@api/endpoints/admin/fleet/services/fleet-generation.service';
@@ -32,7 +34,11 @@ import { TwitterModule } from '@api/services/integrations/twitter/twitter.module
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
-  controllers: [AdminFleetController],
+  controllers: [
+    AdminFleetMediaController,
+    AdminFleetOperationsController,
+    AdminFleetController,
+  ],
   exports: [AdminFleetService],
   imports: [
     forwardRef(() => BrandsModule),
