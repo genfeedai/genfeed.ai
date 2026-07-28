@@ -104,8 +104,10 @@ This decision was checked against the repository and live issue state on
 - `Asset` and `Post` are durable canonical records. There is no parallel
   artifact/version store; `Asset.sha256` exists, while publish review currently
   uses `Post.reviewDecision`, `reviewEvents`, and a free-form status string.
-- Generic feature flags still resolve local defaults. The agent-first shell is
-  not one of them and cannot be disabled by configuration.
+- Generic capability flags still resolve local defaults. App-switcher
+  discovery uses separate PostHog-backed `app_switcher_*` flags so hiding a
+  module never disables its canonical route. The agent-first shell is not a
+  flag and cannot be disabled by configuration.
 
 ## Optimization Target And Considered Approaches
 

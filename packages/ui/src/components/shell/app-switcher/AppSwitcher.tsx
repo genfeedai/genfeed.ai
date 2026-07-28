@@ -1,6 +1,8 @@
 'use client';
 
 import {
+  APP_SWITCHER_FEATURE_FLAGS,
+  type AppSwitcherFeatureFlagKey,
   createBrandAppRoute,
   createOrganizationAppRoute,
 } from '@genfeedai/constants';
@@ -41,6 +43,7 @@ type LifecycleAppSwitcherItemConfig = AppSwitcherItemConfig & {
   activeIds?: AppContext[];
   description: string;
   itemKey: string;
+  visibilityFlagKey?: AppSwitcherFeatureFlagKey;
 };
 
 type AppSwitcherSectionConfig = {
@@ -77,6 +80,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
           brandPath: '/workspace/overview',
           organizationPath: '/overview',
         }),
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.workspace,
       },
       {
         description: 'Ask and execute.',
@@ -85,6 +89,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         itemKey: 'home-agent',
         label: 'Agent',
         route: createScopedAppRoute({ brandPath: '/agent' }),
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.agent,
       },
       {
         description: 'Reply to audience.',
@@ -96,6 +101,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
           brandPath: '/messages',
           organizationPath: '/overview',
         }),
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.messages,
       },
     ],
   },
@@ -113,6 +119,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
           brandPath: '/research/discovery',
           organizationPath: '/overview',
         }),
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.research,
       },
     ],
   },
@@ -128,6 +135,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         itemKey: 'create-studio',
         label: 'Studio',
         route: createScopedAppRoute({ brandPath: '/studio/image' }),
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.studio,
       },
       {
         description: 'Use source assets.',
@@ -139,6 +147,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
           brandPath: '/library/overview',
           organizationPath: '/library',
         }),
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.library,
       },
     ],
   },
@@ -153,6 +162,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         itemKey: 'publish',
         label: 'Publish',
         route: createScopedAppRoute({ brandPath: '/posts' }),
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.posts,
       },
     ],
   },
@@ -167,6 +177,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         itemKey: 'analytics-overview',
         label: 'Analytics',
         route: createScopedAppRoute({ brandPath: '/analytics/overview' }),
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.analytics,
       },
     ],
   },
@@ -258,6 +269,38 @@ function getPrimaryApps(
   return PRIMARY_APP_ITEM_KEYS.map((itemKey) =>
     apps.find((app) => app.itemKey === itemKey),
   ).filter((app): app is LifecycleAppSwitcherItemConfig => Boolean(app));
+}
+
+function useAppSwitcherVisibility(): Record<
+  AppSwitcherFeatureFlagKey,
+  boolean
+> {
+  return {
+    [APP_SWITCHER_FEATURE_FLAGS.workspace]: useFeatureFlag(
+      APP_SWITCHER_FEATURE_FLAGS.workspace,
+    ),
+    [APP_SWITCHER_FEATURE_FLAGS.agent]: useFeatureFlag(
+      APP_SWITCHER_FEATURE_FLAGS.agent,
+    ),
+    [APP_SWITCHER_FEATURE_FLAGS.messages]: useFeatureFlag(
+      APP_SWITCHER_FEATURE_FLAGS.messages,
+    ),
+    [APP_SWITCHER_FEATURE_FLAGS.research]: useFeatureFlag(
+      APP_SWITCHER_FEATURE_FLAGS.research,
+    ),
+    [APP_SWITCHER_FEATURE_FLAGS.studio]: useFeatureFlag(
+      APP_SWITCHER_FEATURE_FLAGS.studio,
+    ),
+    [APP_SWITCHER_FEATURE_FLAGS.library]: useFeatureFlag(
+      APP_SWITCHER_FEATURE_FLAGS.library,
+    ),
+    [APP_SWITCHER_FEATURE_FLAGS.posts]: useFeatureFlag(
+      APP_SWITCHER_FEATURE_FLAGS.posts,
+    ),
+    [APP_SWITCHER_FEATURE_FLAGS.analytics]: useFeatureFlag(
+      APP_SWITCHER_FEATURE_FLAGS.analytics,
+    ),
+  };
 }
 
 function isActiveApp(
@@ -417,7 +460,7 @@ export function AppSwitcher({
   showAdmin = false,
   variant = 'icon',
 }: AppSwitcherProps) {
-  const isStudioEnabled = useFeatureFlag('studio');
+  const appSwitcherVisibility = useAppSwitcherVisibility();
   const preventTriggerAutoFocusRef = useRef(false);
   const [navigationAnnouncement, setNavigationAnnouncement] = useState('');
 
@@ -478,14 +521,16 @@ export function AppSwitcher({
     const availableSections = APP_SWITCHER_SECTIONS.map((section) => ({
       ...section,
       apps: section.apps.filter(
-        (app) => app.id !== 'studio' || isStudioEnabled,
+        (app) =>
+          !app.visibilityFlagKey ||
+          appSwitcherVisibility[app.visibilityFlagKey],
       ),
     })).filter((section) => section.apps.length > 0);
 
     return showAdmin
       ? [...availableSections, ADMIN_APP_SWITCHER_SECTION]
       : availableSections;
-  }, [isStudioEnabled, showAdmin]);
+  }, [appSwitcherVisibility, showAdmin]);
   const apps = useMemo(
     () => sections.flatMap((section) => section.apps),
     [sections],
@@ -514,6 +559,10 @@ export function AppSwitcher({
     return adminApp ? [...primaryApps, adminApp] : primaryApps;
   }, [activeApp, apps]);
   const tenantLabel = humanizeSlug(brandSlug || orgSlug);
+
+  if (visibleApps.length === 0) {
+    return null;
+  }
 
   return (
     <DropdownMenu modal={false}>

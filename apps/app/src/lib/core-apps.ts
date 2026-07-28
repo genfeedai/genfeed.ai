@@ -1,8 +1,12 @@
 import { isSaaS } from '@genfeedai/config/deployment';
-import { APP_ROUTES } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  APP_SWITCHER_FEATURE_FLAG_KEYS,
+  type AppSwitcherFeatureFlagKey,
+} from '@genfeedai/constants';
 
 export type CoreAppId = 'agent' | 'workflows' | 'studio' | 'editor';
-export type CoreAppFeatureFlagKey = 'studio';
+export type CoreAppFeatureFlagKey = 'studio' | AppSwitcherFeatureFlagKey;
 
 export interface CoreAppDefinition {
   description: string;
@@ -37,7 +41,7 @@ export const CORE_APPS: CoreAppDefinition[] = [
     description:
       'Generate image and video assets quickly with a prompt bar and Replicate models.',
     featureFlag: {
-      isEnabledByDefault: () => !isSaaS(),
+      isEnabledByDefault: () => true,
       key: 'studio',
     },
     href: APP_ROUTES.STUDIO.ROOT,
@@ -69,6 +73,11 @@ export function getCoreAppFeatureFlagFallbacks(): Record<
   CoreAppFeatureFlagKey,
   boolean
 > {
+  const appSwitcherDefault = !isSaaS();
+  const fallbacks = Object.fromEntries(
+    APP_SWITCHER_FEATURE_FLAG_KEYS.map((key) => [key, appSwitcherDefault]),
+  ) as Record<AppSwitcherFeatureFlagKey, boolean>;
+
   return CORE_APPS.reduce(
     (fallbacks, app) => {
       if (app.featureFlag) {
@@ -77,6 +86,11 @@ export function getCoreAppFeatureFlagFallbacks(): Record<
 
       return fallbacks;
     },
-    {} as Record<CoreAppFeatureFlagKey, boolean>,
+    {
+      ...fallbacks,
+      // Capability flags stay independent from app-switcher discovery flags.
+      // A hidden module remains reachable by direct URL for internal testing.
+      studio: true,
+    } as Record<CoreAppFeatureFlagKey, boolean>,
   );
 }

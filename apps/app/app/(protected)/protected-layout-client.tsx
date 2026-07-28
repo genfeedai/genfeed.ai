@@ -2,10 +2,16 @@
 
 import AppProtectedLayout from '@app-components/app-protected-layout';
 import { SessionKeepAlive } from '@genfeedai/auth-client';
+import { APP_SWITCHER_FEATURE_FLAG_KEYS } from '@genfeedai/constants';
+import { useAuthUser } from '@hooks/auth/use-auth-user';
 import { FeatureFlagProvider } from '@hooks/feature-flags/provider';
 import type { ProtectedBootstrapProps } from '@props/layout/protected-bootstrap.props';
 import { ErrorBoundary } from '@ui/error';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import {
+  identifyAnalyticsUser,
+  subscribeAnalyticsFeatureFlags,
+} from '@/lib/analytics';
 import { getCoreAppFeatureFlagFallbacks } from '@/lib/core-apps';
 import { captureWorkspaceShellSession } from '@/lib/workspace-shell/workspace-shell-telemetry';
 
@@ -15,12 +21,42 @@ export default function ProtectedLayoutClient({
   children,
   initialBootstrap,
 }: ProtectedBootstrapProps) {
+  const { user } = useAuthUser();
+  const [remoteFeatureFlags, setRemoteFeatureFlags] = useState<
+    Record<string, boolean>
+  >({});
+
   useEffect(() => {
     captureWorkspaceShellSession();
   }, []);
 
+  useEffect(() => {
+    setRemoteFeatureFlags({});
+
+    if (!user?.id) {
+      return;
+    }
+
+    identifyAnalyticsUser({
+      id: user.id,
+      isInternal:
+        user.primaryEmailAddress?.emailAddress
+          ?.trim()
+          .toLowerCase()
+          .endsWith('@genfeed.ai') === true,
+    });
+
+    return subscribeAnalyticsFeatureFlags(
+      APP_SWITCHER_FEATURE_FLAG_KEYS,
+      setRemoteFeatureFlags,
+    );
+  }, [user?.id, user?.primaryEmailAddress?.emailAddress]);
+
   return (
-    <FeatureFlagProvider fallbacks={CORE_APP_FEATURE_FLAG_FALLBACKS}>
+    <FeatureFlagProvider
+      fallbacks={CORE_APP_FEATURE_FLAG_FALLBACKS}
+      overrides={remoteFeatureFlags}
+    >
       {/*
         Pins the Better Auth session store active for the whole protected shell.
         Mounted here — above AppProtectedLayout's internal Suspense boundaries —
