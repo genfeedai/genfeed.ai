@@ -61,30 +61,20 @@ function buildProtectedRoutes(orgSlug: string, brandSlug: string): string[] {
   ];
 }
 
-async function readWorkspaceSlugs(page: Page): Promise<{
+function readScopedOverviewSlugs(page: Page): {
   brandSlug: string;
   orgSlug: string;
-}> {
-  const cookie = (await page.context().cookies()).find(
-    ({ name }) => name === 'gf_ws',
-  );
-  expect(
-    cookie,
-    'proxy did not prime the canonical workspace cookie',
-  ).toBeTruthy();
+} {
+  const segments = new URL(page.url()).pathname.split('/').filter(Boolean);
+  expect(segments.slice(2)).toEqual(['workspace', 'overview']);
 
-  const payload = cookie?.value.split('.')[0] ?? '';
-  const decoded = JSON.parse(
-    Buffer.from(payload, 'base64url').toString('utf8'),
-  ) as {
-    s?: { brandSlug?: string; orgSlug?: string };
-  };
-  expect(decoded.s?.orgSlug).toBeTruthy();
-  expect(decoded.s?.brandSlug).toBeTruthy();
+  const [orgSlug = '', brandSlug = ''] = segments;
+  expect(orgSlug).toBeTruthy();
+  expect(brandSlug).toBeTruthy();
 
   return {
-    brandSlug: decoded.s?.brandSlug ?? '',
-    orgSlug: decoded.s?.orgSlug ?? '',
+    brandSlug,
+    orgSlug,
   };
 }
 
@@ -94,14 +84,13 @@ test.describe('Authenticated route smoke (real Better Auth session)', () => {
   test('protected routes render under a real session', async ({ page }) => {
     const networkGuard = await setupStrictNetworkGuard(page, { strict: true });
 
-    // `/` renders the operational home in place. The proxy still resolves and
-    // signs the canonical scope cookie used by bare protected routes.
+    // `/` resolves the user's selected workspace from the authenticated
+    // bootstrap payload and redirects to its scoped overview.
     await assertRouteLoads(page, '/');
-    expect(new URL(page.url()).pathname).toBe('/');
-    await expect(
-      page.getByRole('heading', { level: 1, name: 'Operational home' }),
-    ).toBeVisible();
-    const { brandSlug, orgSlug } = await readWorkspaceSlugs(page);
+    const { brandSlug, orgSlug } = readScopedOverviewSlugs(page);
+    expect(new URL(page.url()).pathname).toBe(
+      createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.WORKSPACE.OVERVIEW),
+    );
 
     const failures: string[] = [];
     for (const route of buildProtectedRoutes(orgSlug, brandSlug)) {

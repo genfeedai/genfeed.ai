@@ -59,15 +59,16 @@ test.describe('Modal cleanup', () => {
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW);
-    // Page h1 is "Dashboard" (level 1); "Workspace" now lives in the breadcrumb.
     await expect(
-      authenticatedPage.getByRole('heading', { level: 1, name: 'Dashboard' }),
-    ).toBeVisible();
+      authenticatedPage.getByRole('navigation', { name: 'Breadcrumb' }),
+    ).toContainText('Dashboard');
 
     await setStaleModalGlobalState(authenticatedPage);
 
     await authenticatedPage
-      .getByRole('link', { name: 'Open Inbox' })
+      .getByTestId('sidebar-shell')
+      .first()
+      .getByRole('link', { name: 'Inbox' })
       .evaluate((link) => (link as HTMLAnchorElement).click());
 
     await expect(authenticatedPage).toHaveURL(/\/workspace\/inbox\/unread/);

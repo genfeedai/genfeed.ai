@@ -51,7 +51,7 @@ test.describe('Core Content Loop', () => {
     await mockWorkspaceTasks(authenticatedPage);
   });
 
-  test('workspace overview exposes the core operator entry points', async ({
+  test('workspace overview exposes the canonical workspace shell', async ({
     authenticatedPage,
   }) => {
     const overviewPage = new OverviewPage(authenticatedPage);
@@ -59,26 +59,29 @@ test.describe('Core Content Loop', () => {
     await overviewPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW);
 
     await expect(overviewPage.mainContent).toBeVisible();
-    // The page h1 is "Dashboard" (level 1); the "Workspace" qualifier now lives in
-    // the breadcrumb navigation, not the heading.
-    await expect(
-      authenticatedPage.getByRole('heading', { level: 1, name: 'Dashboard' }),
-    ).toBeVisible();
-    await expect(
-      authenticatedPage.getByRole('heading', { name: 'Operator tools' }),
-    ).toBeVisible();
-    // Operator-tool links are brand-scoped via useOrgUrl().href(), e.g.
-    // `/{orgSlug}/{brandSlug}/studio/image`, so assert on the route suffix
-    // rather than a bare path. "Open Inbox" is an unscoped literal Link.
-    await expect(
-      authenticatedPage.getByRole('link', { name: 'Studio Image' }),
-    ).toHaveAttribute('href', /\/studio\/image$/);
-    await expect(
-      authenticatedPage.getByRole('link', { name: 'Open Inbox' }),
-    ).toHaveAttribute('href', '/workspace/inbox/unread');
-    await expect(
-      authenticatedPage.getByRole('link', { name: 'Workflows' }),
-    ).toHaveAttribute('href', /\/workflows$/);
+    const breadcrumb = authenticatedPage.getByRole('navigation', {
+      name: 'Breadcrumb',
+    });
+    await expect(breadcrumb).toContainText('Workspace');
+    await expect(breadcrumb).toContainText('Dashboard');
+
+    const sidebar = authenticatedPage.getByTestId('sidebar-shell').first();
+    await expect(sidebar).toHaveAttribute(
+      'data-shell-current-app',
+      'workspace',
+    );
+    await expect(sidebar).toHaveAttribute(
+      'data-shell-section-label',
+      'Workspace',
+    );
+    await expect(sidebar.getByRole('link', { name: 'Inbox' })).toHaveAttribute(
+      'href',
+      /\/workspace\/inbox\/unread$/,
+    );
+    await expect(sidebar.getByRole('link', { name: 'Tasks' })).toHaveAttribute(
+      'href',
+      /\/workspace\/tasks$/,
+    );
   });
 
   test('studio supports content-type switching and prompt entry', async ({
