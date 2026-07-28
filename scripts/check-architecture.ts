@@ -5,6 +5,14 @@ const checks = [
     command: [
       'bun',
       'run',
+      'scripts/architecture/check-typescript-toolchain.ts',
+    ],
+    name: 'TypeScript 7 compiler boundary',
+  },
+  {
+    command: [
+      'bun',
+      'run',
       'scripts/architecture/check-no-api-bullmq-processors.ts',
     ],
     name: 'API BullMQ processor boundary',

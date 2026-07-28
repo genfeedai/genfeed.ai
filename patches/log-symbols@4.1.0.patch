@@ -1,0 +1,7 @@
+diff --git a/index.js b/index.js
+--- a/index.js
++++ b/index.js
+@@ -3 +3,2 @@
+-const isUnicodeSupported = require('is-unicode-supported');
++const unicodeSupportModule = require('is-unicode-supported');
++const isUnicodeSupported = unicodeSupportModule.default || unicodeSupportModule;

@@ -47,78 +47,88 @@ RUN curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.14" && \
 ENV PATH="/usr/local/bin:${PATH}"
 
 # ==================================================
-# Stage 2: Builder — install deps + build everything
+# Stage 2: Pruner — lockfile-backed community workspace
 # ==================================================
-FROM base AS builder
-WORKDIR /app
-ENV NODE_OPTIONS=--max-old-space-size=4096
+FROM base AS pruner
+
+RUN bun add --global turbo@2.10.7
+
+WORKDIR /ctx
+
+# The community image deliberately omits every ee/* workspace. Turbo derives
+# the complete OSS server + web closure and emits a matching pruned bun.lock,
+# replacing the mutable hand-maintained workspace rewrite.
+RUN --mount=type=bind,source=.,target=/ctx,ro \
+    /root/.bun/bin/turbo prune \
+      @genfeedai/api \
+      @genfeedai/app \
+      @genfeedai/discord \
+      @genfeedai/files \
+      @genfeedai/images \
+      @genfeedai/mcp \
+      @genfeedai/notifications \
+      @genfeedai/server \
+      @genfeedai/slack \
+      @genfeedai/telegram \
+      @genfeedai/videos \
+      @genfeedai/voices \
+      @genfeedai/workers \
+      --docker \
+      --out-dir /pruned
+
+# Generate a second lockfile-backed graph for the final image. Filtering at
+# prune time removes workspace devDependencies before Bun resolves production
+# dependencies, so build-only compiler packages cannot be hoisted into runtime.
+RUN --mount=type=bind,source=.,target=/ctx,ro \
+    /root/.bun/bin/turbo prune \
+      @genfeedai/api \
+      @genfeedai/app \
+      @genfeedai/discord \
+      @genfeedai/files \
+      @genfeedai/images \
+      @genfeedai/mcp \
+      @genfeedai/notifications \
+      @genfeedai/server \
+      @genfeedai/slack \
+      @genfeedai/telegram \
+      @genfeedai/videos \
+      @genfeedai/voices \
+      @genfeedai/workers \
+      --production \
+      --docker \
+      --out-dir /pruned-production
+
+# ==================================================
+# Stage 3: Build toolchain — native dependency compilation
+# ==================================================
+FROM base AS build-toolchain
 
 # node-pty (a runtime dependency of @genfeedai/notifications' terminal service)
 # is a native addon that ships no prebuild for this Node ABI, so bun compiles it
 # from source during `bun install` and needs node-gyp plus a C/C++ toolchain on
 # PATH. Without these the install aborts with `node-gyp: command not found` /
 # `install script from "node-pty" exited with 127`. Installed in the builder
-# stage ONLY: the compiled .node binary travels to the runtime stage via the
-# `COPY --from=builder /app/node_modules/` below, so the runtime image stays
-# slim (no python3/g++). Mirrors the toolchain install in docker/Dockerfile.server.
+# dependency stages only: the production dependency stage compiles its own
+# runtime-only native graph, so the runtime image stays slim (no python3/g++).
+# Mirrors the toolchain install in docker/Dockerfile.server.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ && \
     npm install -g node-gyp && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy workspace manifests for dependency resolution
-COPY package.json bun.lock turbo.json ./
+# ==================================================
+# Stage 4: Builder — frozen deps + build everything
+# ==================================================
+FROM build-toolchain AS builder
+WORKDIR /app
+ENV NODE_OPTIONS=--max-old-space-size=4096
 
-# Narrow the workspace to the server services + web app.
-# 'configs' is deliberately NOT listed: it is a plain directory of shared config
-# files (vitest-warning-filter.ts), not a Bun workspace package — it has no
-# package.json and the root manifest never declares it. Bun <=1.2 silently
-# ignored the dangling entry; Bun >=1.3 hard-fails with
-# `error: Workspace not found "configs"`. The files still arrive via the
-# `COPY configs/ configs/` below; they just aren't a workspace.
-#
-# '!packages/desktop-prisma' excludes ONE package from the packages/* glob. Its
-# postinstall runs `prisma generate`, which needs a schema we never copy (it
-# belongs to the Electron desktop app, not the server or web studio). Nothing in
-# this image's graph depends on it — only apps/desktop does — so dropping it is
-# safe. The broader packages/* stays because the web app (apps/app) does pull
-# other workspace packages, including @genfeedai/desktop-contracts. Bun honors
-# the negative glob (verified on 1.3.14).
-#
-# `delete p.scripts.postinstall` drops the root postinstall (scripts/setup-skills.sh,
-# which generates .claude/skills symlinks) — pointless in the image and its
-# script dir isn't copied before install. Mirrors docker/Dockerfile.server.
-#
-# 'ee/packages/*' is deliberately EXCLUDED — this is what makes the self-hosted
-# image the AGPL community build, carrying none of the commercial-licensed ee/
-# source. The api no longer imports @genfeedai/ee-billing as values (Phase C
-# decouple): its billing collection modules compose `@billing-providers`, which the
-# webpack alias in webpack.base.config.js resolves to the in-tree OSS fragment
-# (apps/server/api/src/common/subscriptions/billing.providers.oss.ts) whenever
-# ee/packages/billing is absent from the build — exactly this image. The runtime
-# string-token bindings then fall to the OSS stubs (no license key present), so the
-# always-on webhook/stripe read paths stay safe and user-initiated billing returns
-# 403. @genfeedai/ee-harness is likewise imported type-only and erased at compile,
-# so no ee/ source needs to be listed or copied.
+COPY --from=pruner /pruned/json/ ./
 RUN node -e "\
   const fs=require('fs');\
   const p=JSON.parse(fs.readFileSync('package.json','utf8'));\
-  p.workspaces=['apps/server/*','apps/app','packages/*','!packages/desktop-prisma'];\
   if(p.scripts) delete p.scripts.postinstall;\
-  if(p.dependencies?.resend==='~6.9.3') p.dependencies.resend='6.9.3';\
   fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\n');"
-
-# Copy all workspace package.json files for Bun resolution
-RUN --mount=type=bind,source=.,target=/ctx \
-    for f in \
-      /ctx/configs/package.json \
-      /ctx/packages/*/package.json \
-      /ctx/apps/server/*/package.json \
-      /ctx/apps/app/package.json; do \
-      [ -f "$f" ] || continue; \
-      dir=$(echo "$f" | sed 's|^/ctx/||; s|/package.json$||'); \
-      mkdir -p "$dir" && cp "$f" "$dir/package.json"; \
-    done
 
 # @genfeedai/prisma runs `prisma generate` in its postinstall during bun install,
 # so its schema + config must be present before the install — only the package.json
@@ -127,29 +137,20 @@ RUN --mount=type=bind,source=.,target=/ctx \
 COPY packages/prisma/prisma.config.mjs ./packages/prisma/prisma.config.mjs
 COPY packages/prisma/prisma/ ./packages/prisma/prisma/
 
-# Root patchedDependencies are resolved during bun install, before the full
-# source tree is copied into the builder stage.
+# Keep patch files available when a dependency in the pruned graph is patched.
 COPY patches/ patches/
 
-# --linker hoisted: bun 1.3 flipped the default workspace linker from hoisted to
-# isolated (per-package node_modules symlinked into a root .bun store). The runtime
-# stage below ships ONLY the root node_modules (and not apps/app/node_modules), yet
-# every runtime entrypoint resolves through it: `node apps/server/dist/apps/*/main.js`
-# walks up to /app/node_modules for externals, `bunx prisma migrate deploy` needs
-# prisma there, and `cd apps/app && bun run start` needs next there. Under the
-# isolated layout those resolutions die with MODULE_NOT_FOUND. Hoisting restores the
-# flat root node_modules the pre-1.3 image relied on. Mirrors docker/Dockerfile.server.
+# Nest's webpack externalizer relies on conventional node_modules paths and
+# otherwise tries to bundle native Remotion/Rspack binaries from Bun's .bun
+# store. Compatibility patches make the hoisted graph safe.
 RUN --mount=type=cache,id=bun-cache,target=/root/.bun/install/cache \
-    HUSKY=0 bun install --linker hoisted
-RUN bun -e "import { ensureBrowser } from '@remotion/renderer'; await ensureBrowser();"
+    HUSKY=0 bun install --frozen-lockfile --linker hoisted
 
 # Copy source
 COPY tsconfig.json tsconfig.server.decorators.json webpack.base.config.js ./
 COPY configs/ configs/
 COPY packages/ packages/
 COPY apps/server/ apps/server/
-
-RUN bun -e "import { bundle } from '@remotion/bundler'; import { resolve } from 'node:path'; await bundle({entryPoint:resolve('apps/server/files/src/remotion/index.tsx'),outDir:resolve('apps/server/files/remotion-bundle'),publicDir:null,rootDir:resolve('apps/server/files')});"
 
 # Build the shared packages that downstream project references resolve through
 # package exports before the parallel batch. A clean Docker context has no host
@@ -181,6 +182,11 @@ RUN set -e; \
     bun --filter @genfeedai/integrations build; \
     bun --filter @genfeedai/serializers build; \
     bun --filter @genfeedai/workflows build:server
+
+# Bundle the pinned composition after shared package exports are built so
+# Remotion can resolve @genfeedai/interfaces and @genfeedai/utils.
+RUN cd apps/server/files && \
+    bun -e "import { bundle } from '@remotion/bundler'; import { resolve } from 'node:path'; await bundle({entryPoint:resolve('src/remotion/index.tsx'),outDir:resolve('remotion-bundle'),publicDir:null,rootDir:resolve('.')});"
 
 # Disable deleteOutDir for parallel builds
 RUN sed -i 's/"deleteOutDir": true/"deleteOutDir": false/' apps/server/nest-cli.json
@@ -220,7 +226,49 @@ ENV NEXT_PUBLIC_BETTER_AUTH_ENABLED=$NEXT_PUBLIC_BETTER_AUTH_ENABLED
 RUN bun --filter @genfeedai/app build
 
 # ==================================================
-# Stage 3: Runtime — minimal production image
+# Stage 5: Production dependencies
+# ==================================================
+FROM build-toolchain AS production-deps
+WORKDIR /app
+
+COPY --from=pruner /pruned-production/json/ ./
+RUN node -e "\
+  const fs=require('fs');\
+  const p=JSON.parse(fs.readFileSync('package.json','utf8'));\
+  if(p.scripts) delete p.scripts.postinstall;\
+  fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\n');"
+COPY packages/prisma/prisma.config.mjs ./packages/prisma/prisma.config.mjs
+COPY packages/prisma/prisma/ ./packages/prisma/prisma/
+COPY patches/ patches/
+
+RUN --mount=type=cache,id=bun-production-cache,target=/root/.bun/install/cache \
+    HUSKY=0 bun install --production --frozen-lockfile --linker hoisted
+RUN cd apps/server/files && \
+    bun -e "import { ensureBrowser } from '@remotion/renderer'; await ensureBrowser();"
+
+# Prisma's optional TypeScript peer makes Bun install TS6 from workspace tooling
+# even in production mode. Runtime migrations use prisma.config.mjs, so the
+# compiler and its bin shims can be removed once install scripts are finished.
+RUN find node_modules -type d \
+      \( -path 'node_modules/typescript' -o -path '*/node_modules/typescript' \) \
+      -prune -exec rm -rf '{}' + && \
+    find node_modules -type l \
+      \( -name tsc -o -name tsserver \) -delete
+RUN set -e; \
+    leaked_typescript="$(find node_modules -type f -path '*/typescript/package.json' -print -quit)"; \
+    if [ -n "$leaked_typescript" ]; then \
+      echo "Unexpected runtime TypeScript package: $leaked_typescript"; \
+      exit 1; \
+    fi; \
+    for dependency in typescript @typescript/native tsup tsc-alias; do \
+      if [ -e "node_modules/$dependency" ]; then \
+        echo "Unexpected runtime build dependency: $dependency"; \
+        exit 1; \
+      fi; \
+    done
+
+# ==================================================
+# Stage 6: Runtime — minimal production image
 # ==================================================
 FROM base AS runtime
 WORKDIR /app
@@ -229,6 +277,10 @@ WORKDIR /app
 RUN mkdir -p /data/redis /data/files /data/tmp/videos && \
     useradd -m -u 1001 appuser && \
     chown -R appuser:appuser /data
+
+# Copy the production workspace manifests and generated install-time outputs.
+COPY --from=production-deps --chown=appuser /app/apps/ apps/
+COPY --from=production-deps --chown=appuser /app/packages/ packages/
 
 # Copy built NestJS services
 COPY --from=builder --chown=appuser /app/apps/server/dist/ apps/server/dist/
@@ -241,19 +293,14 @@ COPY --from=builder --chown=appuser /app/apps/app/public/ apps/app/public/
 COPY --from=builder --chown=appuser /app/apps/app/package.json apps/app/package.json
 
 # Copy runtime deps
-COPY --from=builder --chown=appuser /app/node_modules/ node_modules/
-COPY --from=builder --chown=appuser /app/package.json .
+COPY --from=production-deps --chown=appuser /app/node_modules/ node_modules/
+COPY --from=production-deps --chown=appuser /app/package.json .
 
-RUN test -x "$(find /app/node_modules/.remotion/chrome-headless-shell -type f -name chrome-headless-shell -print -quit)"
+RUN test -x "$(find /app -type f -name chrome-headless-shell -print -quit)"
 
-# packages/prisma must ship to runtime: unlike docker/Dockerfile.server (whose SaaS
-# entrypoints only `node main.js` and migrate as a separate deploy step), this
-# all-in-one entrypoint runs `prisma migrate deploy` on boot, which needs the schema,
-# the migrations dir, AND prisma.config.mjs (the datasource url lives only there) on
-# disk. It also restores the @genfeedai/prisma workspace symlink target
-# (node_modules/@genfeedai/prisma -> ../../packages/prisma) and the prisma-v7
-# generated client (packages/prisma/generated) the services resolve at runtime.
-COPY --from=builder --chown=appuser /app/packages/prisma/ packages/prisma/
+# packages/prisma is supplied by production-deps above after its install-time
+# generation, including the schema, migrations, config, and generated client
+# required by the self-hosted startup migration.
 
 # Copy entrypoint
 COPY --chown=appuser docker/selfhosted-entrypoint.sh /entrypoint.sh

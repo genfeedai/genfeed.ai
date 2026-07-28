@@ -7,9 +7,9 @@
 # ==================================================
 
 # ==================================================
-# Stage 1: Base - Install dependencies
+# Stage 1: Toolchain
 # ==================================================
-FROM node:24-slim AS base
+FROM node:24-slim AS toolchain
 
 # Install bun and build dependencies. node-pty in @genfeedai/notifications
 # compiles during bun install and expects node-gyp on PATH.
@@ -40,47 +40,140 @@ ENV FFMPEG_BIN=/usr/bin/ffmpeg
 # Mandatory for production build — give each parallel build enough memory
 ENV NODE_OPTIONS=--max-old-space-size=4096
 
+# ==================================================
+# Stage 2: Pruner - Produce a lockfile-backed server workspace
+# ==================================================
+FROM toolchain AS pruner
+
+# Keep this exact version aligned with the root turbo devDependency. The
+# resulting /pruned/json tree contains both the reduced workspace manifests and
+# the matching pruned bun.lock, so subsequent installs can be frozen.
+RUN bun add --global turbo@2.10.7
+
+WORKDIR /ctx
+
+RUN --mount=type=bind,source=.,target=/ctx,ro \
+    /root/.bun/bin/turbo prune \
+      @genfeedai/api \
+      @genfeedai/discord \
+      @genfeedai/files \
+      @genfeedai/images \
+      @genfeedai/mcp \
+      @genfeedai/notifications \
+      @genfeedai/server \
+      @genfeedai/slack \
+      @genfeedai/telegram \
+      @genfeedai/videos \
+      @genfeedai/voices \
+      @genfeedai/workers \
+      @genfeedai/ee-billing \
+      --docker \
+      --out-dir /pruned
+
+# The runtime dependency layer needs a different graph: excluding workspace
+# devDependencies here keeps compiler/build packages out of both its manifests
+# and its pruned lockfile, instead of asking Bun to filter a build-complete graph.
+RUN --mount=type=bind,source=.,target=/ctx,ro \
+    /root/.bun/bin/turbo prune \
+      @genfeedai/api \
+      @genfeedai/discord \
+      @genfeedai/files \
+      @genfeedai/images \
+      @genfeedai/mcp \
+      @genfeedai/notifications \
+      @genfeedai/server \
+      @genfeedai/slack \
+      @genfeedai/telegram \
+      @genfeedai/videos \
+      @genfeedai/voices \
+      @genfeedai/workers \
+      @genfeedai/ee-billing \
+      --production \
+      --docker \
+      --out-dir /pruned-production
+
+# ==================================================
+# Stage 3: Base - Install the frozen build dependency graph
+# ==================================================
+FROM toolchain AS base
+
 WORKDIR /usr/src/app
 
-# Build the reduced server-only workspace graph from every apps/server/*
-# workspace plus its transitive local dependencies. EE billing is an explicit
-# build-flavor seed because webpack source-aliases it without an API manifest
-# dependency. The generated manifest-only tree keeps both paths out of a
-# handwritten Docker allowlist.
-RUN --mount=type=bind,source=.,target=/ctx,ro \
-    bun /ctx/scripts/docker/prepare-server-workspace.ts \
-      --repo-root /ctx \
-      --output-root /usr/src/app \
-      --seed-workspace ee/packages/billing
+# Turbo's Docker prune output is manifest-only and includes the compatible
+# pruned lockfile. Drop the repository-only root postinstall before dependency
+# installation; workspace lifecycle scripts (Prisma, node-pty, etc.) still run.
+COPY --from=pruner /pruned/json/ ./
+RUN node -e "\
+  const fs=require('fs');\
+  const p=JSON.parse(fs.readFileSync('package.json','utf8'));\
+  if(p.scripts) delete p.scripts.postinstall;\
+  fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\n');"
 
 # @genfeedai/prisma runs `prisma generate` during install, so its schema must
 # exist in the manifest-only dependency layer.
 COPY packages/prisma/prisma.config.mjs ./packages/prisma/prisma.config.mjs
 COPY packages/prisma/prisma/ ./packages/prisma/prisma/
 
-# Snapshot the manifest-only tree before bun install can add workspace-local
-# install artifacts. The production stage copies this clean tree, including the
-# Prisma schema required by `prisma migrate deploy`.
-RUN mkdir -p /server-workspace-manifests && \
-    cp -a package.json apps packages ee /server-workspace-manifests/
-
-# Root patchedDependencies are resolved during bun install, before the full
-# source tree is copied into the builder stage.
+# Keep patch files available when a dependency in the pruned graph is patched.
 COPY patches/ patches/
 
-# Install dependencies (mount cache for bun's global cache to speed up repeat builds).
-# --linker hoisted: bun 1.3 defaults workspaces to isolated installs (per-package
-# node_modules symlink dirs into a root .bun store). The production stage only
-# ships the root node_modules, so runtime requires that resolve through package
-# dirs (tsconfig-paths/register in every service start:prod, prisma/config in
-# prisma.config.mjs) die with MODULE_NOT_FOUND. Hoisting restores the classic
-# layout the previously-working server image had.
+# Nest's webpack externalizer expects conventional node_modules paths; an
+# isolated graph makes it bundle Remotion/Rspack native binaries from .bun
+# paths. The targeted dependency patches above keep the hoisted graph safe.
 RUN --mount=type=cache,id=bun-cache,target=/root/.bun/install/cache \
-    HUSKY=0 bun install --linker hoisted
-RUN bun -e "import { ensureBrowser } from '@remotion/renderer'; await ensureBrowser();"
+    HUSKY=0 bun install --frozen-lockfile --linker hoisted
 
 # ==================================================
-# Stage 2: Builder - Build all services
+# Stage 4: Production dependencies
+# ==================================================
+FROM toolchain AS production-deps
+
+WORKDIR /usr/src/app
+
+COPY --from=pruner /pruned-production/json/ ./
+RUN node -e "\
+  const fs=require('fs');\
+  const p=JSON.parse(fs.readFileSync('package.json','utf8'));\
+  if(p.scripts) delete p.scripts.postinstall;\
+  fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\n');"
+COPY packages/prisma/prisma.config.mjs ./packages/prisma/prisma.config.mjs
+COPY packages/prisma/prisma/ ./packages/prisma/prisma/
+COPY patches/ patches/
+
+# Install a conventional root-resolvable runtime graph from the
+# production-pruned frozen lockfile. Nest's bundles externalize third-party
+# dependencies against this layout; Bun keeps conflicting versions nested while
+# the production prune keeps build dependencies out. Prisma remains a runtime
+# dependency because migration jobs execute it after the image is built.
+RUN --mount=type=cache,id=bun-production-cache,target=/root/.bun/install/cache \
+    HUSKY=0 bun install --production --frozen-lockfile --linker hoisted
+RUN cd apps/server/files && \
+    bun -e "import { ensureBrowser } from '@remotion/renderer'; await ensureBrowser();"
+
+# Prisma declares TypeScript as an optional peer, so Bun installs the repository's
+# TS6 API package even during a frozen production install. This image uses the
+# JavaScript prisma.config.mjs and never compiles at runtime; remove that
+# optional tool plus its command shims after lifecycle scripts have completed.
+RUN find node_modules -type d \
+      \( -path 'node_modules/typescript' -o -path '*/node_modules/typescript' \) \
+      -prune -exec rm -rf '{}' + && \
+    find node_modules -type l \
+      \( -name tsc -o -name tsserver \) -delete
+RUN set -e; \
+    leaked_typescript="$(find node_modules -type f -path '*/typescript/package.json' -print -quit)"; \
+    if [ -n "$leaked_typescript" ]; then \
+      echo "Unexpected runtime TypeScript package: $leaked_typescript"; \
+      exit 1; \
+    fi; \
+    for dependency in typescript @typescript/native tsup tsc-alias; do \
+      if [ -e "node_modules/$dependency" ]; then \
+        echo "Unexpected runtime build dependency: $dependency"; \
+        exit 1; \
+      fi; \
+    done
+
+# ==================================================
+# Stage 5: Builder - Build all services
 # ==================================================
 FROM base AS builder
 
@@ -119,7 +212,8 @@ COPY apps/server/ apps/server/
 
 # Bundle the pinned composition during the image build so the first customer
 # render does not pay a webpack startup penalty.
-RUN bun -e "import { bundle } from '@remotion/bundler'; import { resolve } from 'node:path'; await bundle({entryPoint:resolve('apps/server/files/src/remotion/index.tsx'),outDir:resolve('apps/server/files/remotion-bundle'),publicDir:null,rootDir:resolve('apps/server/files')});"
+RUN cd apps/server/files && \
+    bun -e "import { bundle } from '@remotion/bundler'; import { resolve } from 'node:path'; await bundle({entryPoint:resolve('src/remotion/index.tsx'),outDir:resolve('remotion-bundle'),publicDir:null,rootDir:resolve('.')});"
 
 # Patch nest-cli.json AFTER copying source (the COPY above would overwrite any earlier patch)
 # Disable deleteOutDir so parallel builds don't wipe each other's outputs from apps/server/dist/
@@ -190,7 +284,7 @@ RUN echo "Checking build outputs..." && \
     done
 
 # ==================================================
-# Stage 3: Production - Runtime image
+# Stage 6: Production - Runtime image
 # ==================================================
 FROM node:24-slim AS production
 
@@ -237,21 +331,22 @@ ENV PATH="/usr/local/bin:${PATH}"
 
 WORKDIR /usr/src/app
 
-# Copy the generated manifest-only workspace tree from base. This keeps
+# Copy the frozen production workspace tree. This keeps
 # production workspace resolution in lockstep with the install graph without
 # copying shared-package source into the runtime image.
-COPY --from=base /server-workspace-manifests/package.json ./package.json
-COPY --from=base /server-workspace-manifests/apps/server/ ./apps/server/
-COPY --from=base /server-workspace-manifests/packages/ ./packages/
-COPY --from=base /server-workspace-manifests/ee/ ./ee/
+COPY --from=production-deps /usr/src/app/package.json ./package.json
+COPY --from=production-deps /usr/src/app/apps/server/ ./apps/server/
+COPY --from=production-deps /usr/src/app/packages/ ./packages/
+COPY --from=production-deps /usr/src/app/ee/ ./ee/
 
-# Copy built artifacts and production dependencies from builder.
+# Copy built artifacts from the builder and runtime-only dependencies from the
+# production dependency stage.
 COPY --from=builder /usr/src/app/apps/server/dist ./apps/server/dist
 COPY --from=builder /usr/src/app/apps/server/files/src/remotion ./apps/server/files/src/remotion
 COPY --from=builder /usr/src/app/apps/server/files/remotion-bundle ./apps/server/files/remotion-bundle
-COPY --from=builder /usr/src/app/node_modules ./node_modules
+COPY --from=production-deps /usr/src/app/node_modules ./node_modules
 
-RUN test -x "$(find /usr/src/app/node_modules/.remotion/chrome-headless-shell -type f -name chrome-headless-shell -print -quit)"
+RUN test -x "$(find /usr/src/app -type f -name chrome-headless-shell -print -quit)"
 
 # Create non-root user for security (with a real, writable home — spawned
 # tools like yt-dlp/whisper write caches to $HOME and EACCES otherwise)

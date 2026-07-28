@@ -70,6 +70,7 @@
     "check:route-inventory": "bun run scripts/architecture/check-product-route-inventory.ts",
     "check:route-shadowing": "bun run scripts/architecture/check-route-shadowing.ts",
     "check:tenant-scope": "bun run scripts/architecture/check-tenant-scope.ts",
+    "check:typescript-toolchain": "bun run scripts/architecture/check-typescript-toolchain.ts",
     "check:ui-guards": "bun run scripts/ui/check-ui-guards.ts",
     "publish:package": "./scripts/publish-package.sh",
     "check:nested-node-modules": "bun run scripts/check-nested-node-modules.ts",
@@ -182,7 +183,6 @@
     "secretlint": "13.0.4",
     "swc-loader": "0.2.7",
     "tailwind-merge": "3.6.0",
-    "ts-loader": "9.6.2",
     "tsconfig-paths-webpack-plugin": "4.2.0",
     "turbo": "2.10.7",
     "typescript": "6.0.2",
@@ -306,6 +306,8 @@
     "zod": "4.4.3"
   },
   "patchedDependencies": {
+    "@remotion/bundler@4.0.500": "patches/@remotion%2Fbundler@4.0.500.patch",
+    "log-symbols@4.1.0": "patches/log-symbols@4.1.0.patch",
     "nextra-theme-docs@4.6.1": "patches/nextra-theme-docs@4.6.1.patch"
   }
 }

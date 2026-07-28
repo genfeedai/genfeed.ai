@@ -8,9 +8,6 @@
     "@genfeedai/ui": "workspace:*"
   },
   "description": "Genfeed MCP Server",
-  "devDependencies": {
-    "ts-loader": "9.6.2"
-  },
   "main": "../dist/apps/mcp/main.js",
   "name": "@genfeedai/mcp",
   "scripts": {

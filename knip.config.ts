@@ -29,7 +29,6 @@ const config: KnipConfig = {
     '@types/*',
     // Build/bundle tools loaded via config
     'esbuild-loader',
-    'ts-loader',
     'null-loader',
     'source-map-support',
     'pino-pretty',

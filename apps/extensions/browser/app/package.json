@@ -33,7 +33,7 @@
     "postcss": "8.5.23",
     "prettier": "3.9.6",
     "tailwindcss": "4.3.3",
-    "typescript": "6.0.2",
+    "@typescript/native": "npm:typescript@7.0.2",
     "vitest": "4.1.10"
   },
   "displayName": "Extension genfeed ai",
