@@ -151,7 +151,21 @@ COPY patches/ patches/
 RUN --mount=type=cache,id=bun-production-cache,target=/root/.bun/install/cache \
     HUSKY=0 bun install --production --frozen-lockfile --linker hoisted
 RUN bun -e "import { ensureBrowser } from '@remotion/renderer'; await ensureBrowser();"
+
+# Prisma declares TypeScript as an optional peer, so Bun hoists the repository's
+# TS6 API package even during a frozen production install. This image uses the
+# JavaScript prisma.config.mjs and never compiles at runtime; remove that
+# optional tool plus its command shims after lifecycle scripts have completed.
+RUN node -e "\
+  const fs=require('fs');\
+  for(const path of ['node_modules/typescript','node_modules/.bin/tsc','node_modules/.bin/tsserver'])\
+    fs.rmSync(path,{recursive:true,force:true});"
 RUN set -e; \
+    leaked_typescript="$(find node_modules -type f -path '*/typescript/package.json' -print -quit)"; \
+    if [ -n "$leaked_typescript" ]; then \
+      echo "Unexpected runtime TypeScript package: $leaked_typescript"; \
+      exit 1; \
+    fi; \
     for dependency in typescript @typescript/native tsup tsc-alias; do \
       if [ -e "node_modules/$dependency" ]; then \
         echo "Unexpected runtime build dependency: $dependency"; \

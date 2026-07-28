@@ -246,7 +246,20 @@ COPY patches/ patches/
 
 RUN --mount=type=cache,id=bun-production-cache,target=/root/.bun/install/cache \
     HUSKY=0 bun install --production --frozen-lockfile --linker hoisted
+
+# Prisma's optional TypeScript peer makes Bun hoist TS6 from workspace tooling
+# even in production mode. Runtime migrations use prisma.config.mjs, so the
+# compiler and its bin shims can be removed once install scripts are finished.
+RUN node -e "\
+  const fs=require('fs');\
+  for(const path of ['node_modules/typescript','node_modules/.bin/tsc','node_modules/.bin/tsserver'])\
+    fs.rmSync(path,{recursive:true,force:true});"
 RUN set -e; \
+    leaked_typescript="$(find node_modules -type f -path '*/typescript/package.json' -print -quit)"; \
+    if [ -n "$leaked_typescript" ]; then \
+      echo "Unexpected runtime TypeScript package: $leaked_typescript"; \
+      exit 1; \
+    fi; \
     for dependency in typescript @typescript/native tsup tsc-alias; do \
       if [ -e "node_modules/$dependency" ]; then \
         echo "Unexpected runtime build dependency: $dependency"; \
