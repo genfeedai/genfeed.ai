@@ -23,6 +23,7 @@ import {
   FleetGenerationJobSerializer,
   FleetLipSyncJobSerializer,
   FleetLipSyncStatusSerializer,
+  FleetPublishResultSerializer,
   FleetVoiceSerializer,
   IngredientSerializer,
   TrainingSerializer,
@@ -114,19 +115,24 @@ class AdminFleetController {
     summary: 'Publish an approved asset to platforms',
   })
   async publishAsset(
+    @Req() request: Request,
     @Param('id') id: string,
     @Body() dto: PublishAssetDto,
     @CurrentUser() user: User,
   ) {
     try {
       const { organization, brand } = getPublicMetadata(user);
-      return this.adminFleetService.publishAsset(
+      const result = await this.adminFleetService.publishAsset(
         id,
         organization,
         brand,
         dto.platforms,
         dto.caption,
       );
+      return serializeSingle(request, FleetPublishResultSerializer, {
+        id: `publish:${id}`,
+        ...result,
+      });
     } catch (error) {
       return ErrorResponse.handle(error, this.loggerService, 'publishAsset');
     }

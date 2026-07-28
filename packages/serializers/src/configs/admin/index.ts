@@ -11,6 +11,7 @@ export * from '@serializers/configs/admin/fleet-lip-sync-job.config';
 export * from '@serializers/configs/admin/fleet-lip-sync-status.config';
 export * from '@serializers/configs/admin/fleet-pipeline-campaign.config';
 export * from '@serializers/configs/admin/fleet-pipeline-stats.config';
+export * from '@serializers/configs/admin/fleet-publish-result.config';
 export * from '@serializers/configs/admin/fleet-service-status.config';
 export * from '@serializers/configs/admin/fleet-upload-dataset-result.config';
 export * from '@serializers/configs/admin/fleet-voice.config';

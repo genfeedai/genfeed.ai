@@ -40,7 +40,9 @@ import { AdminFleetMediaController } from '@api/endpoints/admin/fleet/fleet-medi
 import { AdminFleetOperationsController } from '@api/endpoints/admin/fleet/fleet-operations.controller';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
+import { FleetPublishResultSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import type { Request } from 'express';
@@ -442,10 +444,11 @@ describe('AdminFleetController', () => {
         } as PublishAssetDto;
 
         const mockPublishResult = {
-          id: 'asset1',
-          message: 'Publishing queued',
-          organization: 'org_123',
-          platforms: ['instagram', 'twitter'],
+          results: {
+            instagram: { id: 'instagram-1', success: true },
+            twitter: { id: 'twitter-1', success: true },
+          },
+          success: true,
         };
 
         adminFleetService.publishAsset.mockResolvedValue(
@@ -453,6 +456,7 @@ describe('AdminFleetController', () => {
         );
 
         const result = await mediaController.publishAsset(
+          mockRequest,
           'asset1',
           dto,
           mockUser,
@@ -465,7 +469,18 @@ describe('AdminFleetController', () => {
           dto.platforms,
           dto.caption,
         );
-        expect(result).toBeDefined();
+        expect(serializeSingle).toHaveBeenCalledWith(
+          mockRequest,
+          FleetPublishResultSerializer,
+          {
+            id: 'publish:asset1',
+            ...mockPublishResult,
+          },
+        );
+        expect(result).toEqual({
+          id: 'publish:asset1',
+          ...mockPublishResult,
+        });
       });
     });
   });
