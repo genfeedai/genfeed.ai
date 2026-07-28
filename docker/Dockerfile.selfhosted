@@ -296,6 +296,19 @@ COPY --from=builder --chown=appuser /app/apps/app/package.json apps/app/package.
 COPY --from=production-deps --chown=appuser /app/node_modules/ node_modules/
 COPY --from=production-deps --chown=appuser /app/package.json .
 
+# The Nest bundles were compiled against a hoisted build graph, but runtime
+# dependencies intentionally retain Bun's isolated workspace contexts. Link
+# each compiled service back to its owning workspace so Node resolves the exact
+# production peer graph without copying build dependencies into the image.
+RUN set -e; \
+    for svc in api workers files mcp notifications; do \
+      test -d "apps/server/$svc/node_modules"; \
+      test -d "apps/server/dist/apps/$svc"; \
+      ln -s "../../../$svc/node_modules" "apps/server/dist/apps/$svc/node_modules"; \
+    done; \
+    test -d "apps/server/dist/apps/api-workflow-backfill"; \
+    ln -s "../../../api/node_modules" "apps/server/dist/apps/api-workflow-backfill/node_modules"
+
 RUN test -x "$(find /app -type f -name chrome-headless-shell -print -quit)"
 
 # packages/prisma is supplied by production-deps above after its install-time

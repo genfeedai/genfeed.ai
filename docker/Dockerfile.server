@@ -347,6 +347,19 @@ COPY --from=builder /usr/src/app/apps/server/files/src/remotion ./apps/server/fi
 COPY --from=builder /usr/src/app/apps/server/files/remotion-bundle ./apps/server/files/remotion-bundle
 COPY --from=production-deps /usr/src/app/node_modules ./node_modules
 
+# Nest externalizes third-party packages from the hoisted build graph, while the
+# production graph stays isolated. Give each compiled service the package-local
+# node_modules context that owns its runtime dependencies instead of flattening
+# peer contexts back into the root.
+RUN set -e; \
+    for svc in api workers files mcp notifications telegram discord slack images voices videos; do \
+      test -d "apps/server/$svc/node_modules"; \
+      test -d "apps/server/dist/apps/$svc"; \
+      ln -s "../../../$svc/node_modules" "apps/server/dist/apps/$svc/node_modules"; \
+    done; \
+    test -d "apps/server/dist/apps/api-workflow-backfill"; \
+    ln -s "../../../api/node_modules" "apps/server/dist/apps/api-workflow-backfill/node_modules"
+
 RUN test -x "$(find /usr/src/app -type f -name chrome-headless-shell -print -quit)"
 
 # Create non-root user for security (with a real, writable home — spawned
