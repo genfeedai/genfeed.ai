@@ -328,6 +328,45 @@ describe('ReleaseRecurrenceMaterializerService', () => {
     ).rejects.toThrow('approval persistence failed');
   });
 
+  it('does not materialize when the recurrence is paused after preflight', async () => {
+    const { post, postGroup, prisma, publishApprovalsService, service } =
+      createHarness({
+        recurrence: { ...sourceGroup.recurrence, isPaused: true },
+      });
+    prisma.postGroup.findFirst.mockResolvedValue({
+      recurrence: sourceGroup.recurrence,
+      status: ReleaseStatus.PUBLISHED,
+    });
+
+    await expect(
+      service.shouldMaterialize({
+        groupId: 'release-1',
+        organizationId: 'org-1',
+      }),
+    ).resolves.toBe(true);
+    await expect(
+      service.materializeNext({
+        groupId: 'release-1',
+        organizationId: 'org-1',
+        workflowExecutionId: 'execution-paused-after-preflight',
+      }),
+    ).resolves.toEqual({ status: 'not_applicable' });
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(postGroup.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'release-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+    expect(post.findMany).not.toHaveBeenCalled();
+    expect(postGroup.create).not.toHaveBeenCalled();
+    expect(post.create).not.toHaveBeenCalled();
+    expect(postGroup.updateMany).not.toHaveBeenCalled();
+    expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
+  });
+
   it('checks terminal recurrence state with tenant and soft-delete guards', async () => {
     const { prisma, service } = createHarness();
     prisma.postGroup.findFirst.mockResolvedValue({
@@ -352,6 +391,17 @@ describe('ReleaseRecurrenceMaterializerService', () => {
 
     prisma.postGroup.findFirst.mockResolvedValue({
       recurrence: { ...sourceGroup.recurrence, isExhausted: true },
+      status: ReleaseStatus.PUBLISHED,
+    });
+    await expect(
+      service.shouldMaterialize({
+        groupId: 'release-1',
+        organizationId: 'org-1',
+      }),
+    ).resolves.toBe(false);
+
+    prisma.postGroup.findFirst.mockResolvedValue({
+      recurrence: { ...sourceGroup.recurrence, isPaused: true },
       status: ReleaseStatus.PUBLISHED,
     });
     await expect(

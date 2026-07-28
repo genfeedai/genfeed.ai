@@ -1,8 +1,6 @@
 import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
-const SERIALIZERS_NODE_MODULES = path.resolve(__dirname, './node_modules');
-
 export default defineConfig({
   resolve: {
     alias: [
@@ -16,17 +14,23 @@ export default defineConfig({
       },
       {
         find: '@genfeedai/constants',
-        replacement: path.resolve(
-          SERIALIZERS_NODE_MODULES,
-          '@genfeedai/constants/dist/index.js',
-        ),
+        replacement: path.resolve(__dirname, '../constants/src/index.ts'),
       },
       {
         find: '@genfeedai/enums',
-        replacement: path.resolve(
-          SERIALIZERS_NODE_MODULES,
-          '@genfeedai/enums/dist/index.js',
-        ),
+        replacement: path.resolve(__dirname, '../enums/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/interfaces\/(.*)$/,
+        replacement: path.resolve(__dirname, '../interfaces/src/$1'),
+      },
+      {
+        find: '@genfeedai/interfaces',
+        replacement: path.resolve(__dirname, '../interfaces/src/index.ts'),
+      },
+      {
+        find: '@genfeedai/pricing',
+        replacement: path.resolve(__dirname, '../pricing/src/index.ts'),
       },
       {
         find: /^@helpers\/(.*)$/,

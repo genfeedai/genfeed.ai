@@ -67,6 +67,7 @@ export class ReleaseRecurrenceMaterializerService {
     const recurrence = this.asRecord(group.recurrence);
     return (
       recurrence.isExhausted !== true &&
+      recurrence.isPaused !== true &&
       TERMINAL_RELEASE_STATES.has(group.status)
     );
   }
@@ -114,6 +115,10 @@ export class ReleaseRecurrenceMaterializerService {
     }
 
     const recurrenceRecord = this.asRecord(group.recurrence);
+    if (recurrenceRecord.isPaused === true) {
+      return { status: 'not_applicable' };
+    }
+
     const parsedRecurrence = recurrenceInputSchema.safeParse(recurrenceRecord);
     if (!parsedRecurrence.success) {
       throw new Error(
