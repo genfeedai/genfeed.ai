@@ -60,7 +60,7 @@
   "scripts": {
     "build": "bun build src/index.ts --outdir dist --target node",
     "build:standalone": "bun build src/index.ts --compile --outfile gf",
-    "deps:update": "bunx npm-check-updates -u && bun install",
+    "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
     "dev": "bun run src/index.ts",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",

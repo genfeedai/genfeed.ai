@@ -61,7 +61,7 @@
   "scripts": {
     "build": "tsc --build",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
-    "deps:update": "bunx npm-check-updates -u && bun install",
+    "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
     "dev": "tsc --watch",
     "prepublishOnly": "bun run build",
     "test": "vitest run --config vitest.config.ts",
