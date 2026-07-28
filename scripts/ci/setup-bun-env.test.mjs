@@ -9,11 +9,15 @@ const action = readFileSync(
   ),
   'utf8',
 );
+const executableAction = action
+  .split('\n')
+  .filter((line) => !line.trimStart().startsWith('#'))
+  .join('\n');
 
 test('keeps the shared Bun setup action free of runner package installs', () => {
-  assert.doesNotMatch(action, /\bapt-get\b/);
-  assert.doesNotMatch(action, /\binstall-deps\b/);
-  assert.doesNotMatch(action, /playwright install --with-deps/);
+  assert.doesNotMatch(executableAction, /\bapt-get\b/);
+  assert.doesNotMatch(executableAction, /\binstall-deps\b/);
+  assert.doesNotMatch(executableAction, /playwright install --with-deps/);
 });
 
 test('skips ffmpeg-static downloads without providing a working fake runtime', () => {
