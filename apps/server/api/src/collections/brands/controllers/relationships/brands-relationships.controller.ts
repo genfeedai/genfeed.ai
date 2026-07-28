@@ -61,6 +61,7 @@ import {
   ArticleCategory,
   AssetScope,
   IngredientCategory,
+  PostStatus,
 } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
@@ -379,17 +380,40 @@ export class BrandsRelationshipsController {
       parentId: null,
     };
 
+    const normalizedSearch = query.search?.trim();
+    if (normalizedSearch) {
+      matchFilter.OR = [
+        {
+          description: {
+            contains: normalizedSearch,
+            mode: 'insensitive',
+          },
+        },
+        {
+          label: {
+            contains: normalizedSearch,
+            mode: 'insensitive',
+          },
+        },
+      ];
+    }
+
     // Add platform filter if provided
     if (query.platform) {
       matchFilter.platform = query.platform;
     }
 
     // Add status filter if provided
-    if (query.status) {
+    if (query.publicationState === 'posted') {
+      matchFilter.status = PostStatus.PUBLIC;
+    } else if (query.publicationState === 'not-posted') {
+      matchFilter.status = { not: PostStatus.PUBLIC };
+    } else if (query.status) {
       matchFilter.status = query.status;
     }
 
     const aggregate = {
+      include: { ingredients: true },
       where: matchFilter,
       orderBy: handleQuerySort(query.sort),
     };

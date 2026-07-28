@@ -34,6 +34,10 @@ const checks = [
     name: 'Retired workspace-tasks shadow',
   },
   {
+    command: ['bun', 'run', 'scripts/architecture/check-portless-contract.ts'],
+    name: 'Portless local-development contract',
+  },
+  {
     command: [
       'bun',
       'run',

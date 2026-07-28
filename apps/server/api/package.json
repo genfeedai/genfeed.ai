@@ -69,7 +69,7 @@
     "deps:update": "bunx npm-check-updates -u --reject typescript,better-auth && bun install",
     "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start api --watch",
     "dev:direct": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start api --watch",
-    "dev:portless": "portless run --name api.genfeed bun run dev:direct",
+    "dev:portless": "bun run ../../../scripts/dev/run-portless.ts api -- bun run dev:direct",
     "dev:webpack": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start api --watch",
     "encrypt:credentials": "bun run scripts/backfill-credential-encryption.ts --live",
     "encrypt:credentials:dry": "bun run scripts/backfill-credential-encryption.ts",

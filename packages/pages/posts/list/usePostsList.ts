@@ -26,10 +26,14 @@ import {
   getCredentialForPlatform,
 } from '@pages/posts/list/components/posts-credential.helpers';
 import { generatePosts } from '@pages/posts/list/components/posts-generate.helpers';
-import { fetchPosts } from '@pages/posts/list/components/posts-query.helpers';
+import {
+  fetchPosts,
+  type PostsListResult,
+} from '@pages/posts/list/components/posts-query.helpers';
 import {
   buildPostsListQueryKey,
   getDefaultPostsSort,
+  type PostsPublicationState,
 } from '@pages/posts/list/posts-list-query';
 import type { ContentProps } from '@props/layout/content.props';
 import {
@@ -38,7 +42,6 @@ import {
   usePostMetadataOverlay,
   usePostRemixModal,
 } from '@providers/global-modals/global-modals.provider';
-import { PagesService } from '@services/content/pages.service';
 import { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -58,21 +61,34 @@ export const getDefaultSort = getDefaultPostsSort;
 
 export interface UsePostsListParams {
   initialPostPresets?: IPreset[];
+  initialPagination?: PostsListResult['pagination'];
   initialPosts?: IPost[];
   platform?: string;
+  publicationState?: PostsPublicationState;
   scope: ContentProps['scope'];
   status?: PostStatus;
 }
 
 export function usePostsList({
   initialPostPresets,
+  initialPagination,
   initialPosts,
   platform: platformParam,
+  publicationState: publicationStateProp,
   scope,
   status: statusProp,
 }: UsePostsListParams) {
   const hydratedPostPresets = initialPostPresets ?? [];
   const hydratedPosts = initialPosts ?? [];
+  const hydratedPagination = initialPagination ?? {
+    page: 1,
+    pageSize: ITEMS_PER_PAGE,
+    total: hydratedPosts.length,
+    totalPages: 1,
+  };
+  const publicationState =
+    publicationStateProp ??
+    (scope === PageScope.PUBLISHER ? 'not-posted' : undefined);
 
   const platform = normalizePostsPlatform(platformParam);
   const platformFilter = platform !== 'all' ? platform : undefined;
@@ -132,7 +148,7 @@ export function usePostsList({
 
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
 
-  const { setRefresh, setViewToggleNode } = usePostsLayout();
+  const { setFiltersNode, setRefresh, setViewToggleNode } = usePostsLayout();
 
   const [viewType, setViewType] = useState<ViewType>(() => {
     if (scope === PageScope.PUBLISHER) {
@@ -228,6 +244,7 @@ export function usePostsList({
     brandId,
     organizationId,
     platformFilter,
+    publicationState,
     currentPage,
     filterSearch,
     filterSort: filterSort || '',
@@ -236,13 +253,22 @@ export function usePostsList({
   });
 
   const {
-    data: posts = [],
+    data: postsResult = {
+      pagination: hydratedPagination,
+      posts: hydratedPosts,
+    },
     isLoading,
     refetch: refreshPosts,
     error: postsError,
-  } = useQuery<IPost[]>({
+  } = useQuery<PostsListResult>({
     enabled: scope === PageScope.SUPERADMIN || isReady,
-    initialData: initialPosts != null ? hydratedPosts : undefined,
+    initialData:
+      initialPosts != null
+        ? {
+            pagination: hydratedPagination,
+            posts: hydratedPosts,
+          }
+        : undefined,
     staleTime: initialPosts != null ? Number.POSITIVE_INFINITY : undefined,
     queryFn: () =>
       fetchPosts({
@@ -258,11 +284,13 @@ export function usePostsList({
         getPostsService,
         organizationId,
         platformFilter,
+        publicationState,
         scope,
         status,
       }),
     queryKey: postsQueryKey,
   });
+  const { pagination, posts } = postsResult;
 
   useEffect(() => {
     if (postsError instanceof Error) {
@@ -272,10 +300,13 @@ export function usePostsList({
 
   const setPosts = useCallback(
     (updatedPosts: IPost[]) => {
-      queryClient.setQueryData(postsQueryKey, updatedPosts);
+      queryClient.setQueryData<PostsListResult>(postsQueryKey, (current) => ({
+        pagination: current?.pagination ?? pagination,
+        posts: updatedPosts,
+      }));
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [queryClient, ...postsQueryKey, postsQueryKey],
+    [queryClient, pagination, ...postsQueryKey, postsQueryKey],
   );
 
   const findAllPosts = useCallback(() => refreshPosts(), [refreshPosts]);
@@ -339,30 +370,33 @@ export function usePostsList({
     [credentials],
   );
 
-  const prevPlatformRef = useRef(platform);
-  const prevStatusRef = useRef(status);
-
   useEffect(() => {
-    const platformChanged = prevPlatformRef.current !== platform;
-    const statusChanged = prevStatusRef.current !== status;
-
-    prevPlatformRef.current = platform;
-    prevStatusRef.current = status;
-
-    if (platformChanged || statusChanged) {
-      PagesService.setTotalPages(1);
-      PagesService.setTotalDocs(0);
-      PagesService.setCurrentPage(1);
-
-      const params = new URLSearchParams(searchParamsString);
-      params.delete('page');
-
-      const queryString = params.toString();
-      const newUrl = queryString ? `${pathname}?${queryString}` : pathname;
-
-      router.replace(newUrl, { scroll: false });
+    if (
+      isLoading ||
+      pagination.totalPages < 1 ||
+      currentPage <= pagination.totalPages
+    ) {
+      return;
     }
-  }, [platform, status, pathname, router, searchParamsString]);
+
+    const params = new URLSearchParams(searchParamsString);
+    if (pagination.totalPages === 1) {
+      params.delete('page');
+    } else {
+      params.set('page', String(pagination.totalPages));
+    }
+    const queryString = params.toString();
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+      scroll: false,
+    });
+  }, [
+    currentPage,
+    isLoading,
+    pagination.totalPages,
+    pathname,
+    router,
+    searchParamsString,
+  ]);
 
   const hasPublicPosts = useMemo(
     () => posts.some((post) => post.status === PostStatus.PUBLIC),
@@ -680,6 +714,38 @@ export function usePostsList({
     [pathname, router, searchParamsString],
   );
 
+  const handlePageChange = useCallback(
+    (page: number) => {
+      const params = new URLSearchParams(searchParamsString);
+      if (page <= 1) {
+        params.delete('page');
+      } else {
+        params.set('page', String(page));
+      }
+      const queryString = params.toString();
+      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+        scroll: false,
+      });
+    },
+    [pathname, router, searchParamsString],
+  );
+
+  const handlePublicationStateChange = useCallback(
+    (nextState: PostsPublicationState) => {
+      const params = new URLSearchParams(searchParamsString);
+      params.delete('page');
+      params.delete('status');
+      const queryString = params.toString();
+      const basePath = nextState === 'posted' ? '/posts/published' : '/posts';
+
+      router.replace(
+        href(queryString ? `${basePath}?${queryString}` : basePath),
+        { scroll: false },
+      );
+    },
+    [href, router, searchParamsString],
+  );
+
   return {
     actions,
     adminBrand,
@@ -687,6 +753,7 @@ export function usePostsList({
     availablePlatforms,
     browserTimezone,
     columns,
+    currentPage,
     filterSearch,
     filterSort,
     filters,
@@ -696,17 +763,22 @@ export function usePostsList({
     handleFiltersChange,
     handleGenerate,
     handleOpenPostDetail,
+    handlePageChange,
     handlePlatformChange,
+    handlePublicationStateChange,
     handlePostEvaluated,
     isGenerating,
     isLoading,
+    pagination,
     platform,
     postPresets,
     posts,
     primaryCardAction,
+    publicationState,
     scope,
     secondaryCardActions,
     selectedPostId,
+    setFiltersNode,
     setSelectedPostId,
     setToolbarSearchValue,
     setViewToggleNode,

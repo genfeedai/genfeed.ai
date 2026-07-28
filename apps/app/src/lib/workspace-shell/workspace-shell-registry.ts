@@ -205,6 +205,11 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/settings': 'General',
 } as const satisfies Readonly<Record<string, string>>);
 
+const BREADCRUMB_PARENT_OVERRIDES = Object.freeze({
+  '/:orgSlug/:brandSlug/research/ads/google': 'Ads',
+  '/:orgSlug/:brandSlug/research/ads/meta': 'Ads',
+} as const satisfies Readonly<Record<string, string>>);
+
 function humanizeBreadcrumbLabel(value: string): string {
   return value
     .split('-')
@@ -264,8 +269,16 @@ function getRouteBreadcrumbMetadata(
     BREADCRUMB_LEAF_OVERRIDES[
       canonicalUrl as keyof typeof BREADCRUMB_LEAF_OVERRIDES
     ] ?? getDefaultBreadcrumbLeafLabel(canonicalUrl);
+  const parentLabel =
+    BREADCRUMB_PARENT_OVERRIDES[
+      canonicalUrl as keyof typeof BREADCRUMB_PARENT_OVERRIDES
+    ];
 
-  return Object.freeze({ leafLabel, rootLabel });
+  return Object.freeze({
+    leafLabel,
+    ...(parentLabel ? { parentLabel } : {}),
+    rootLabel,
+  });
 }
 
 function resolveBreadcrumbMetadata(
@@ -277,8 +290,17 @@ function resolveBreadcrumbMetadata(
     (_, parameterName: string) =>
       humanizeBreadcrumbLabel(params[parameterName] ?? parameterName),
   );
+  const parentLabel = breadcrumb.parentLabel?.replace(
+    /:([A-Za-z][A-Za-z0-9]*)/g,
+    (_, parameterName: string) =>
+      humanizeBreadcrumbLabel(params[parameterName] ?? parameterName),
+  );
 
-  return Object.freeze({ ...breadcrumb, leafLabel });
+  return Object.freeze({
+    ...breadcrumb,
+    leafLabel,
+    ...(parentLabel ? { parentLabel } : {}),
+  });
 }
 
 function freezeRouteRegistration(

@@ -31,6 +31,8 @@
     "build:prod": "cd .. && nest build workers && cd workers && if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps || true; fi",
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
     "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start workers --watch",
+    "dev:direct": "bun run dev",
+    "dev:portless": "bun run dev:direct",
     "dev:webpack": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start workers --watch",
     "lint": "biome lint --write src --no-errors-on-unmatched",
     "sentry:inject": "sentry-cli sourcemaps inject --org genfeedai --project workers-genfeed-ai ../dist",

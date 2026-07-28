@@ -60,11 +60,14 @@ export function getGenfeedCorsOrigins(
 
   if (isDevelopment) {
     return [
-      // Local development domains (ports 3000-3999: web apps and local services).
-      // genfeed.localhost (and any *.genfeed.localhost subdomain) is the
-      // recommended dev host — it resolves to loopback with no /etc/hosts entry
-      // and isolates this project's cookie jar from other localhost projects.
+      // Explicit fixed-port fallback for dev:direct commands.
       /^http:\/\/(localhost|local\.genfeed\.ai|([a-z0-9-]+\.)*genfeed\.localhost):(3\d{3})$/,
+
+      // Canonical Portless contract. The repo pins its HTTP proxy to the
+      // unprivileged port 1355 and Portless may add a worktree prefix.
+      /^http:\/\/([a-z0-9-]+\.)*genfeed\.localhost:1355$/,
+
+      // Temporary compatibility for previously trusted Portless HTTPS routes.
       /^https:\/\/([a-z0-9-]+\.)*genfeed\.localhost$/,
 
       // Allow Chrome extensions in development

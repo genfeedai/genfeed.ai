@@ -1,4 +1,3 @@
-import { PostStatus } from '@genfeedai/enums';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import {
   type PostsListSearchParams,
@@ -13,7 +12,7 @@ export default async function PublishedPostsPage({
   searchParams: PostsListSearchParams;
 }) {
   return renderPostsListPage({
+    publicationStateOverride: 'posted',
     searchParams,
-    statusOverride: PostStatus.PUBLIC,
   });
 }

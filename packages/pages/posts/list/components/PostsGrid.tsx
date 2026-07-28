@@ -28,10 +28,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { memo, useMemo } from 'react';
 import {
+  HiArrowTopRightOnSquare,
   HiArrowUp,
   HiDocumentDuplicate,
   HiEllipsisHorizontal,
@@ -82,6 +84,7 @@ const EvalGridCell = memo(function EvalGridCell({
     <Button
       variant={ButtonVariant.GHOST}
       icon={<HiArrowUp />}
+      label="Evaluate"
       tooltip="Evaluate"
       isLoading={isEvaluating}
       onClick={(event) => {
@@ -89,10 +92,43 @@ const EvalGridCell = memo(function EvalGridCell({
         handleEvaluate();
       }}
       size={ButtonSize.XS}
-      className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 text-white/70 hover:bg-white/[0.06] hover:text-white"
+      className="rounded-lg border border-white/10 bg-white/[0.03] px-2.5 text-white/70 hover:bg-white/[0.06] hover:text-white"
     />
   );
 });
+
+function getPostMediaUrls(post: IPost): string[] {
+  return (post.ingredients ?? [])
+    .map(
+      (ingredient) =>
+        ingredient.cdnUrl ||
+        ingredient.thumbnailUrl ||
+        ingredient.ingredientUrl ||
+        '',
+    )
+    .filter((url): url is string => Boolean(url))
+    .slice(0, 4);
+}
+
+function getStatusPresentation(status: string): {
+  label: string;
+  variant: 'success' | 'info' | 'warning' | 'destructive' | 'ghost';
+} {
+  switch (status.toLowerCase()) {
+    case 'public':
+      return { label: 'Posted', variant: 'success' };
+    case 'scheduled':
+      return { label: 'Scheduled', variant: 'info' };
+    case 'processing':
+      return { label: 'Publishing', variant: 'info' };
+    case 'failed':
+      return { label: 'Failed', variant: 'destructive' };
+    case 'draft':
+      return { label: 'Draft', variant: 'warning' };
+    default:
+      return { label: status, variant: 'ghost' };
+  }
+}
 
 function stripHtml(value?: string): string {
   if (!value) {
@@ -177,13 +213,17 @@ const PostsGrid = memo(
             getPlatformIconComponent(post.platform) ?? HiDocumentDuplicate;
           const title = getPostTitle(post);
           const preview = getPostPreview(post);
+          const mediaUrls = getPostMediaUrls(post);
+          const statusPresentation = getStatusPresentation(post.status);
           const visiblePrimaryAction =
             primaryAction &&
             (!primaryAction.isVisible || primaryAction.isVisible(post))
               ? primaryAction
               : null;
           const visibleSecondaryActions = secondaryActions.filter(
-            (action) => !action.isVisible || action.isVisible(post),
+            (action) =>
+              action.key !== 'open-platform' &&
+              (!action.isVisible || action.isVisible(post)),
           );
           const primaryActionIcon =
             visiblePrimaryAction &&
@@ -218,9 +258,7 @@ const PostsGrid = memo(
                       {title}
                     </h3>
                     <p className="mt-1 text-xs uppercase tracking-[0.18em] text-foreground/35">
-                      {post.platform === Platform.TWITTER
-                        ? 'Post draft'
-                        : getPostsPlatformLabel(post.platform)}
+                      {getPostsPlatformLabel(post.platform)}
                     </p>
                   </div>
                 </Button>
@@ -276,12 +314,48 @@ const PostsGrid = memo(
                 )}
               </div>
 
+              {mediaUrls.length > 0 && (
+                <div
+                  className={cn(
+                    'mt-4 grid aspect-[16/9] overflow-hidden rounded-lg bg-secondary',
+                    mediaUrls.length > 1 && 'grid-cols-2',
+                  )}
+                >
+                  {mediaUrls.map((mediaUrl, index) => (
+                    <div
+                      key={`${post.id}-${mediaUrl}`}
+                      className={cn(
+                        'relative min-h-0 overflow-hidden',
+                        mediaUrls.length === 3 && index === 0 && 'row-span-2',
+                      )}
+                    >
+                      <Image
+                        alt={
+                          post.ingredients?.[index]?.metadataLabel ||
+                          `${title} media ${index + 1}`
+                        }
+                        className="object-cover"
+                        fill
+                        sizes="(max-width: 768px) 100vw, 33vw"
+                        src={mediaUrl}
+                        unoptimized
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <p className="mt-4 line-clamp-4 min-h-[5rem] text-sm leading-6 text-foreground/72">
                 {preview}
               </p>
 
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <Badge status={post.status} size={ComponentSize.SM} />
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/[0.08] pt-4">
+                <Badge
+                  variant={statusPresentation.variant}
+                  size={ComponentSize.SM}
+                >
+                  {statusPresentation.label}
+                </Badge>
 
                 {post.scheduledDate && (
                   <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs text-foreground/60">
@@ -294,10 +368,8 @@ const PostsGrid = memo(
                 )}
 
                 <EvalGridCell post={post} onEvaluated={onPostEvaluated} />
-              </div>
 
-              {visiblePrimaryAction && (
-                <div className="mt-4 border-t border-white/[0.08] pt-4">
+                {visiblePrimaryAction && (
                   <Button
                     variant={ButtonVariant.SECONDARY}
                     size={ButtonSize.SM}
@@ -310,8 +382,27 @@ const PostsGrid = memo(
                   >
                     {primaryActionLabel}
                   </Button>
-                </div>
-              )}
+                )}
+
+                {post.platformUrl && (
+                  <PrimitiveButton
+                    asChild
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.GHOST}
+                  >
+                    <a
+                      href={post.platformUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <HiArrowTopRightOnSquare className="size-4" />
+                      {post.platform === Platform.TWITTER
+                        ? 'View on X'
+                        : 'View post'}
+                    </a>
+                  </PrimitiveButton>
+                )}
+              </div>
             </div>
           );
         })}
@@ -342,7 +433,9 @@ const PostsGrid = memo(
             previousPost.status !== nextPost.status ||
             previousPost.evalScore !== nextPost.evalScore ||
             previousPost.description !== nextPost.description ||
+            previousPost.ingredients !== nextPost.ingredients ||
             previousPost.label !== nextPost.label ||
+            previousPost.platformUrl !== nextPost.platformUrl ||
             previousPost.scheduledDate !== nextPost.scheduledDate
           ) {
             return false;

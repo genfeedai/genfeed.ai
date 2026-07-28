@@ -9,6 +9,9 @@ export function AgentChatInputStyles(): ReactElement {
           overflow-y: auto;
           outline: none;
         }
+        [data-density='inspector'] .ProseMirror {
+          min-height: 56px;
+        }
         .ProseMirror p.is-editor-empty:first-child::before {
           content: attr(data-placeholder);
           float: left;

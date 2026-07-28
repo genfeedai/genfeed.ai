@@ -28,9 +28,15 @@
       "dependsOn": ["//#env:check"],
       "persistent": true
     },
+    "dev:direct": {
+      "cache": false,
+      "dependsOn": ["//#env:check"],
+      "persistent": true
+    },
     "dev:portless": {
       "cache": false,
       "dependsOn": ["//#env:check"],
+      "passThroughEnv": ["PORTLESS_URL"],
       "persistent": true
     },
     "lint": {

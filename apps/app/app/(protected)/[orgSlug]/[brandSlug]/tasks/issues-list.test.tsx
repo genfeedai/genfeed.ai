@@ -38,6 +38,9 @@ describe('IssuesList view controls', () => {
 
     expect(await screen.findByText('No tasks found')).toBeVisible();
     expect(
+      screen.getByText('Tasks will appear here once created.'),
+    ).not.toHaveClass('mb-6');
+    expect(
       screen.getByRole('heading', { level: 1, name: 'Tasks' }),
     ).toHaveClass('sr-only');
 

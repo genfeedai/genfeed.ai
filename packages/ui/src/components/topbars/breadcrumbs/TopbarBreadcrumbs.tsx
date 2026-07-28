@@ -24,6 +24,7 @@ export default function TopbarBreadcrumbs({
   const {
     activeGroupId,
     breadcrumbPageLabel,
+    breadcrumbParentLabel,
     breadcrumbRootLabel,
     exitNestedGroup,
     nestedGroupId,
@@ -34,7 +35,7 @@ export default function TopbarBreadcrumbs({
     activeGroupId && breadcrumbPageLabel && nestedGroupId,
   );
 
-  if (!groupLabel && !breadcrumbPageLabel) {
+  if (!groupLabel && !breadcrumbParentLabel && !breadcrumbPageLabel) {
     return null;
   }
 
@@ -61,10 +62,23 @@ export default function TopbarBreadcrumbs({
         </span>
       ) : null}
 
-      {groupLabel && breadcrumbPageLabel && (
+      {groupLabel && (breadcrumbParentLabel || breadcrumbPageLabel) && (
         <span aria-hidden="true" className="text-foreground/30 select-none">
           /
         </span>
+      )}
+
+      {breadcrumbParentLabel && (
+        <>
+          <span className="max-w-truncate-lg truncate font-semibold text-foreground/50">
+            {breadcrumbParentLabel}
+          </span>
+          {breadcrumbPageLabel && (
+            <span aria-hidden="true" className="text-foreground/30 select-none">
+              /
+            </span>
+          )}
+        </>
       )}
 
       {breadcrumbPageLabel && (

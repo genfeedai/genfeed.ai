@@ -1,6 +1,34 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { resolveAuthToken, resolveRequiredAuthToken } from './auth.helper';
+import {
+  normalizeAuthAvatarUrl,
+  resolveAuthToken,
+  resolveRequiredAuthToken,
+} from './auth.helper';
+
+describe('normalizeAuthAvatarUrl', () => {
+  it.each([
+    'https://img.clerk.com/proxy/avatar',
+    'https://images.clerk.dev/oauth_google/avatar',
+    'https://cdn.clerk.com/avatar.png',
+    'https://assets.clerk.dev/avatar.png',
+  ])('rejects a legacy Clerk-hosted avatar: %s', (url) => {
+    expect(normalizeAuthAvatarUrl(url)).toBeNull();
+  });
+
+  it('keeps an avatar hosted by the current identity provider', () => {
+    expect(
+      normalizeAuthAvatarUrl('https://lh3.googleusercontent.com/avatar.png'),
+    ).toBe('https://lh3.googleusercontent.com/avatar.png');
+  });
+
+  it.each([null, undefined, '', 'not-a-url'])(
+    'rejects an absent or invalid avatar URL: %s',
+    (url) => {
+      expect(normalizeAuthAvatarUrl(url)).toBeNull();
+    },
+  );
+});
 
 describe('resolveAuthToken', () => {
   beforeEach(() => {

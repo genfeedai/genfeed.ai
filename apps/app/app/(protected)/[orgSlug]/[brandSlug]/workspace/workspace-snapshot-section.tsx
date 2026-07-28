@@ -1,5 +1,6 @@
 import Card from '@ui/card/Card';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
+import type { ReactNode } from 'react';
 import { WORKSPACE_CARD_GRID_GAP_CLASS } from './workspace-task.helpers';
 
 interface SummaryItem {
@@ -8,11 +9,13 @@ interface SummaryItem {
 }
 
 interface WorkspaceSnapshotSectionProps {
+  actions?: ReactNode;
   isLoading?: boolean;
   summaryItems: SummaryItem[];
 }
 
 export function WorkspaceSnapshotSection({
+  actions,
   isLoading = false,
   summaryItems,
 }: WorkspaceSnapshotSectionProps) {
@@ -22,10 +25,13 @@ export function WorkspaceSnapshotSection({
       data-testid="workspace-snapshot"
       className="space-y-3 mb-5"
     >
-      <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-sm font-semibold text-foreground">
           Workspace at a glance
         </h2>
+        {actions ? (
+          <div className="flex flex-wrap items-center gap-2.5">{actions}</div>
+        ) : null}
       </div>
       <div className={WORKSPACE_CARD_GRID_GAP_CLASS}>
         {summaryItems.map((item) => (

@@ -134,6 +134,19 @@ describe('proxy', () => {
     vi.unstubAllEnvs();
   });
 
+  it.each(['/v1', '/v1/auth/get-session', '/v1/health'])(
+    'passes the same-origin API proxy route %s through without app auth routing',
+    async (pathname) => {
+      const { default: proxy } = await import('./proxy');
+
+      const response = await proxy(makeSignedOutRequest(pathname), {} as never);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('location')).toBeNull();
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
   // ─── Signed-in redirect away from root / public entry points ──────────────
 
   it.each(['/login', '/login/password', '/login/magic-link'])(

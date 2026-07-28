@@ -604,4 +604,20 @@ describe('AdsResearchPageClient', () => {
     fireEvent.click(screen.getByRole('button', { name: /close detail/i }));
     expect(screen.queryByRole('heading', { name: 'Ad Detail' })).toBeNull();
   });
+
+  it('shows where to connect ad accounts when the brand has none', () => {
+    useBrandMock.mockReturnValue({
+      brandId: 'brand-1',
+      credentials: [],
+      isReady: true,
+      selectedBrand: { label: 'Moonrise Studio' },
+    });
+
+    render(<AdsResearchPageClient />);
+
+    expect(screen.getByText('Connect Meta or Google Ads')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Manage ad connections' }),
+    ).toHaveAttribute('href', '/moonrise-org/moonrise-studio/settings');
+  });
 });

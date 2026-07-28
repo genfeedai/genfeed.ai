@@ -944,7 +944,7 @@ function UniversalWorkspaceShellContent({
             {conversationSlot}
             {isInspectorComposerOwner ? (
               <div
-                className="shrink-0 border-t border-border p-2"
+                className="shrink-0 p-2"
                 data-testid="workspace-inspector-composer-slot"
                 ref={setComposerPortalTarget}
               />
