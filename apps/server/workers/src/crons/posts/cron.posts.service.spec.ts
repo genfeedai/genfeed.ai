@@ -21,6 +21,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
+import { ScheduledPostExecutionGuardService } from '@workers/services/scheduled-post-execution-guard.service';
+import { ScheduledPostQueueService } from '@workers/services/scheduled-post-queue.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 const APPROVAL_JOB_IDENTITY = {
@@ -116,6 +118,8 @@ describe('CronPostsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CronPostsService,
+        ScheduledPostExecutionGuardService,
+        ScheduledPostQueueService,
         {
           provide: LoggerService,
           useValue: {
@@ -630,6 +634,7 @@ describe('CronPostsService', () => {
   });
 
   it('emits publish webhooks after a queued scheduled post publishes', async () => {
+    schedulerPublishStateService.transitionPost.mockResolvedValue(true);
     const post = {
       brand: 'brand-1',
       children: [],
@@ -638,6 +643,7 @@ describe('CronPostsService', () => {
       ingredients: [],
       organization: 'org-1',
       platform: CredentialPlatform.TWITTER,
+      reviewVersionPinId: 'pin-1',
       scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
       status: PostStatus.SCHEDULED,
       user: 'user-1',
@@ -708,6 +714,7 @@ describe('CronPostsService', () => {
       organization: 'org-1',
       platform: CredentialPlatform.TWITTER,
       repeatFrequency: 'daily',
+      reviewVersionPinId: 'pin-1',
       scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
       status: PostStatus.SCHEDULED,
       user: 'user-1',
@@ -794,6 +801,7 @@ describe('CronPostsService', () => {
       ingredients: [],
       organizationId: 'org-1',
       platform: CredentialPlatform.TWITTER,
+      reviewVersionPinId: 'pin-1',
       scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
       status: PostStatus.SCHEDULED,
       userId: 'user-1',
@@ -862,6 +870,7 @@ describe('CronPostsService', () => {
       ingredients: [],
       organizationId: 'org-1',
       platform: CredentialPlatform.TWITTER,
+      reviewVersionPinId: 'pin-1',
       retryCount: 0,
       scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
       status: PostStatus.SCHEDULED,
@@ -943,6 +952,7 @@ describe('CronPostsService', () => {
   });
 
   it('emits failure webhooks only after retries are exhausted', async () => {
+    schedulerPublishStateService.transitionPost.mockResolvedValue(true);
     const post = {
       brand: 'brand-1',
       children: [],
@@ -951,6 +961,7 @@ describe('CronPostsService', () => {
       ingredients: [],
       organization: 'org-1',
       platform: CredentialPlatform.TWITTER,
+      reviewVersionPinId: 'pin-1',
       retryCount: 3,
       scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
       status: PostStatus.SCHEDULED,
@@ -1016,6 +1027,7 @@ describe('CronPostsService', () => {
       ingredients: [],
       organizationId: 'org-scalar-1',
       platform: CredentialPlatform.GHOST,
+      reviewVersionPinId: 'pin-1',
       scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
       status: PostStatus.SCHEDULED,
       userId: 'user-scalar-1',
