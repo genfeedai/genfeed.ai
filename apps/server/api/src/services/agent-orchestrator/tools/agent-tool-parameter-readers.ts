@@ -1,3 +1,4 @@
+import { Platform } from '@genfeedai/enums';
 import type {
   AdsChannel,
   AdsResearchFilters,
@@ -26,6 +27,7 @@ export function readAdsSource(value: unknown): AdsResearchSource | undefined {
 export function readAdsPlatform(
   value: unknown,
 ): AdsResearchPlatform | undefined {
+  // Ads research uses product-channel names, not CredentialPlatform values.
   return value === 'meta' || value === 'google' ? value : undefined;
 }
 
@@ -33,7 +35,7 @@ export function readAdsChannel(value: unknown): AdsChannel | undefined {
   return value === 'all' ||
     value === 'search' ||
     value === 'display' ||
-    value === 'youtube'
+    value === Platform.YOUTUBE
     ? value
     : undefined;
 }

@@ -1,6 +1,6 @@
-import { formatAgentPlatformLabel } from '@api/services/agent-orchestrator/tools/agent-platform-label.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { formatPlatformLabel } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -92,7 +92,7 @@ export class AgentReviewToolHandler {
           ? 'This batch does not have any items in the current filter.'
           : `Loaded ${visibleItems.length} item${visibleItems.length === 1 ? '' : 's'} from this batch. ${readyCount} item${readyCount === 1 ? ' is' : 's are'} ready for review right now.`;
       const outcomeBullets = visibleItems.slice(0, 4).map((item) => {
-        const platformLabel = formatAgentPlatformLabel(item.platform);
+        const platformLabel = formatPlatformLabel(item.platform);
         const formatLabel =
           typeof item.format === 'string' ? item.format : null;
         const statusLabel =

@@ -14,7 +14,8 @@ import {
   ActivitySource,
   type CredentialPlatform,
   PostCategory,
-  PostStatus,
+  PostStatus,,
+  Platform,
 } from '@genfeedai/enums';
 import { buildTrendDigestHtml } from '@genfeedai/helpers';
 import type {
@@ -715,7 +716,7 @@ export class WorkflowTrendPublishExecutorRegistrarService {
   private toKeywordTriggerPlatform(
     platform: TrendPlatform,
   ): KeywordTriggerPlatform | null {
-    if (platform === 'twitter' || platform === 'instagram') {
+    if (platform === Platform.TWITTER || platform === Platform.INSTAGRAM) {
       return platform;
     }
 

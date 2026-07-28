@@ -1,3 +1,4 @@
+import { Platform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@notifications/config/config.service';
@@ -98,7 +99,7 @@ export class ChatBotService {
     prompt: string,
   ): Promise<void> {
     const response = await this.generateResponse(prompt);
-    if (platform === 'twitch') {
+    if (platform === Platform.TWITCH) {
       await this.sendToTwitchChat(token, channelId, response);
     } else {
       await this.sendToYouTubeChat(token, channelId, response);

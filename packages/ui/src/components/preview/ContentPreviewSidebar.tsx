@@ -29,13 +29,13 @@ export default function ContentPreviewSidebar({
     if (!platform) {
       return 'Preview';
     }
-    if (platform === CredentialPlatform.TWITTER || platform === 'twitter') {
+    if (platform === CredentialPlatform.TWITTER) {
       return 'Twitter/X';
     }
-    if (platform === CredentialPlatform.LINKEDIN || platform === 'linkedin') {
+    if (platform === CredentialPlatform.LINKEDIN) {
       return 'LinkedIn';
     }
-    if (platform === 'reddit') {
+    if (platform === CredentialPlatform.REDDIT) {
       return 'Reddit';
     }
     if (platform === 'article') {
@@ -45,15 +45,15 @@ export default function ContentPreviewSidebar({
   };
 
   const getPreviewTitle = () => {
-    if (platform === CredentialPlatform.TWITTER || platform === 'twitter') {
+    if (platform === CredentialPlatform.TWITTER) {
       return 'Viral thread preview';
     }
 
-    if (platform === CredentialPlatform.LINKEDIN || platform === 'linkedin') {
+    if (platform === CredentialPlatform.LINKEDIN) {
       return 'LinkedIn feed preview';
     }
 
-    if (platform === 'reddit') {
+    if (platform === CredentialPlatform.REDDIT) {
       return 'Reddit post preview';
     }
     if (platform === 'article') {

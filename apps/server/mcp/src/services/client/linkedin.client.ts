@@ -1,3 +1,4 @@
+import { Platform } from '@genfeedai/enums';
 import type { BaseApiClient } from './base-api-client';
 import type {
   LinkedInConnectionStatus,
@@ -49,7 +50,7 @@ export class LinkedInClient {
         const response = await http.get('/credentials/mentions');
         const mentions = response.data?.mentions || [];
         const linkedin = mentions.find(
-          (m: { platform?: string }) => m.platform === 'linkedin',
+          (m: { platform?: string }) => m.platform === Platform.LINKEDIN,
         );
 
         if (linkedin) {

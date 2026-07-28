@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant, Platform } from '@genfeedai/enums';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
@@ -138,7 +138,7 @@ export default function TrendContentCard({
   }, [router, sourceItem, trend]);
 
   const handleRemix = useCallback(() => {
-    if (item.platform === 'twitter') {
+    if (item.platform === Platform.TWITTER) {
       router.push(buildTrendSourceTwitterDraftHref(trend, sourceItem));
       return;
     }

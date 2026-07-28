@@ -1,17 +1,8 @@
 import { TrendsService } from '@api/collections/trends/services/trends.service';
-import { formatAgentPlatformLabel } from '@api/services/agent-orchestrator/tools/agent-platform-label.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { formatPlatformLabel } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';
-
-/** Display overrides where title-case of the enum value is wrong (TikTok, YouTube). */
-const PLATFORM_DISPLAY_OVERRIDES: Partial<Record<CredentialPlatform, string>> =
-  {
-    [CredentialPlatform.LINKEDIN]: 'LinkedIn',
-    [CredentialPlatform.TIKTOK]: 'TikTok',
-    [CredentialPlatform.YOUTUBE]: 'YouTube',
-  };
 
 /**
  * Trends listing tool + summary card builder.
@@ -68,7 +59,7 @@ export class AgentTrendsToolHandler {
     platform: string | undefined,
     trends: Record<string, unknown>[],
   ) {
-    const platformLabel = this.resolveTrendsPlatformLabel(platform);
+    const platformLabel = formatPlatformLabel(platform);
     const trendCount = trends.length;
     const title =
       trendCount === 0
@@ -114,27 +105,5 @@ export class AgentTrendsToolHandler {
       title,
       type: 'completion_summary_card' as const,
     };
-  }
-
-  private resolveTrendsPlatformLabel(
-    platform: string | undefined,
-  ): string | null {
-    if (typeof platform !== 'string') {
-      return null;
-    }
-
-    const normalized = platform.trim().toLowerCase();
-    if (!normalized) {
-      return null;
-    }
-
-    const enumMatch = Object.values(CredentialPlatform).find(
-      (value) => value === normalized,
-    );
-    if (enumMatch && PLATFORM_DISPLAY_OVERRIDES[enumMatch]) {
-      return PLATFORM_DISPLAY_OVERRIDES[enumMatch] ?? null;
-    }
-
-    return formatAgentPlatformLabel(platform);
   }
 }

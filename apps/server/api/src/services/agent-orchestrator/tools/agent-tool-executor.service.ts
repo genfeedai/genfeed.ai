@@ -38,7 +38,6 @@ import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/too
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
-import { formatAgentPlatformLabel } from '@api/services/agent-orchestrator/tools/agent-platform-label.util';
 import { AgentProactiveToolHandler } from '@api/services/agent-orchestrator/tools/agent-proactive-tool-handler.service';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import { AgentQualityToolHandler } from '@api/services/agent-orchestrator/tools/agent-quality-tool-handler.service';
@@ -70,9 +69,12 @@ import {
   BotCategory,
   BotPlatform,
   BotStatus,
+  formatPlatformLabel,
   IngredientCategory,
   IngredientStatus,
+  Platform,
   PostStatus,
+  parsePlatform,
   Status,
   VoiceCloneStatus,
   VoiceProvider,
@@ -181,7 +183,7 @@ interface OfficialWorkflowSource {
   price?: number;
   pricingTier?: string;
 }
-type LivestreamBotPlatform = 'youtube' | 'twitch';
+type LivestreamBotPlatform = Platform.YOUTUBE | Platform.TWITCH;
 type LivestreamBotMessageType =
   | 'scheduled_link_drop'
   | 'scheduled_host_prompt'
@@ -2512,15 +2514,21 @@ export class AgentToolExecutorService {
   private normalizeLivestreamBotPlatform(
     platform: unknown,
   ): LivestreamBotPlatform | null {
-    return platform === 'youtube' || platform === 'twitch' ? platform : null;
+    const parsed = parsePlatform(platform);
+    if (parsed === Platform.YOUTUBE || parsed === Platform.TWITCH) {
+      return parsed;
+    }
+    return null;
   }
 
   private toBotPlatform(platform: LivestreamBotPlatform): BotPlatform {
-    return platform === 'youtube' ? BotPlatform.YOUTUBE : BotPlatform.TWITCH;
+    return platform === Platform.YOUTUBE
+      ? BotPlatform.YOUTUBE
+      : BotPlatform.TWITCH;
   }
 
   private getLivestreamBotPageHref(platform: LivestreamBotPlatform): string {
-    return platform === 'youtube'
+    return platform === Platform.YOUTUBE
       ? '/agents/bots/youtube-chat'
       : '/agents/bots/twitch-chat';
   }
@@ -4908,12 +4916,13 @@ export class AgentToolExecutorService {
               : undefined,
           isEnabled: true,
           liveChatId:
-            platform === 'youtube' && typeof params.liveChatId === 'string'
+            platform === Platform.YOUTUBE &&
+            typeof params.liveChatId === 'string'
               ? params.liveChatId.trim() || undefined
               : undefined,
           platform: botPlatform,
           senderId:
-            platform === 'twitch' && typeof params.senderId === 'string'
+            platform === Platform.TWITCH && typeof params.senderId === 'string'
               ? params.senderId.trim() || undefined
               : undefined,
         },
@@ -6331,11 +6340,11 @@ export class AgentToolExecutorService {
     }
 
     if (platforms.length === 1) {
-      return formatAgentPlatformLabel(platforms[0]) ?? platforms[0];
+      return formatPlatformLabel(platforms[0]) ?? platforms[0];
     }
 
     return platforms
-      .map((platform) => formatAgentPlatformLabel(platform) ?? platform)
+      .map((platform) => formatPlatformLabel(platform) ?? platform)
       .join(', ');
   }
 

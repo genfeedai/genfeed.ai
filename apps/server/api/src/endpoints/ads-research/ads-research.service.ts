@@ -3,7 +3,7 @@ import type { CreativePatternDocument } from '@api/collections/creative-patterns
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
-import { WorkflowStatus, WorkflowTrigger } from '@genfeedai/enums';
+import { Platform, WorkflowStatus, WorkflowTrigger } from '@genfeedai/enums';
 import type {
   AdsAdapterContext,
   AdsPlatform,
@@ -637,7 +637,7 @@ export class AdsResearchService {
         objective,
         placements:
           params.ad.platform === 'google'
-            ? channel === 'youtube'
+            ? channel === Platform.YOUTUBE
               ? ['YouTube In-Feed', 'YouTube Shorts']
               : channel === 'display'
                 ? ['Display Network']
