@@ -20,8 +20,8 @@ export type { AgentThread as PrismaAgentThread } from '@genfeedai/prisma';
 export interface AgentRoomDocument extends Omit<PrismaAgentThread, 'config'> {
   _id: string;
   config?: Record<string, unknown>;
-  organization: string;
-  user: string;
+  organization?: string;
+  user?: string;
   [key: string]: unknown;
 }
 
