@@ -31,28 +31,25 @@ describe('Better Auth config', () => {
   describe('resolveTrustedOrigins', () => {
     it('auto-trusts genfeed.localhost, localhost AND local.genfeed.ai for local dev (no env needed)', () => {
       const origins = resolveTrustedOrigins(undefined, 'development');
-      expect(origins).toContain('http://genfeed.localhost:3000');
-      expect(origins).toContain('http://genfeed.localhost:3010');
-      expect(origins).toContain('http://localhost:3000');
-      expect(origins).toContain('http://local.genfeed.ai:3000');
+      expect(origins).toContain('http://genfeed.localhost:*');
+      expect(origins).toContain('http://localhost:*');
+      expect(origins).toContain('http://local.genfeed.ai:*');
     });
 
     it('merges configured origins with the local-dev defaults and de-dupes', () => {
       const origins = resolveTrustedOrigins(
-        'https://app.genfeed.ai, http://localhost:3000',
+        'https://app.genfeed.ai, http://localhost:*',
         'development',
       );
       expect(origins).toContain('https://app.genfeed.ai');
-      expect(origins.filter((o) => o === 'http://localhost:3000')).toHaveLength(
-        1,
-      );
+      expect(origins.filter((o) => o === 'http://localhost:*')).toHaveLength(1);
     });
 
     it('never auto-trusts localhost in production or staging', () => {
       for (const env of ['production', 'staging']) {
         const origins = resolveTrustedOrigins('https://app.genfeed.ai', env);
         expect(origins).toEqual(['https://app.genfeed.ai']);
-        expect(origins).not.toContain('http://localhost:3000');
+        expect(origins).not.toContain('http://localhost:*');
       }
     });
   });
