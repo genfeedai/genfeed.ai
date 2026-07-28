@@ -1,7 +1,5 @@
-import {
-  type SurfaceSummaryItem,
-  SurfaceSummaryStrip,
-} from '@ui/dashboard/SurfaceSummaryStrip';
+import type { SurfaceSummaryItem } from '@genfeedai/interfaces';
+import { SurfaceSummaryStrip } from '@ui/dashboard/SurfaceSummaryStrip';
 import type { ReactElement } from 'react';
 
 type MissionControlStatsGridProps = {

@@ -260,6 +260,7 @@ export * from './ui/quick-actions.interface';
 export * from './ui/quick-actions-submenu.interface';
 export * from './ui/skeleton.interface';
 export * from './ui/success-animation.interface';
+export * from './ui/surface-summary-item.interface';
 export * from './ui/tabs-enhanced.interface';
 export * from './ui/text-overlay-errors.interface';
 export * from './ui/textarea.interface';

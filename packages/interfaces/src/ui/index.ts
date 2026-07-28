@@ -19,6 +19,7 @@ export * from './quick-actions.interface';
 export * from './quick-actions-submenu.interface';
 export * from './skeleton.interface';
 export * from './success-animation.interface';
+export * from './surface-summary-item.interface';
 export * from './tabs-enhanced.interface';
 export * from './text-overlay-errors.interface';
 export * from './textarea.interface';
