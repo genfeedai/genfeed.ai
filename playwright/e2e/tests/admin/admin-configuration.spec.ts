@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
 
@@ -12,19 +13,19 @@ test.describe('Admin Configuration', () => {
   test.setTimeout(90_000);
 
   const routes = [
-    '/admin/configuration/elements/blacklists',
-    '/admin/configuration/elements/camera-movements',
-    '/admin/configuration/elements/cameras',
-    '/admin/configuration/elements/lenses',
-    '/admin/configuration/elements/lightings',
-    '/admin/configuration/elements/moods',
-    '/admin/configuration/elements/scenes',
-    '/admin/configuration/elements/sounds',
-    '/admin/configuration/elements/styles',
-    '/admin/configuration/font-families',
-    '/admin/configuration/presets',
-    '/admin/configuration/tags',
-    '/admin/configuration/tags/all',
+    APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS_BLACKLISTS,
+    APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS_CAMERA_MOVEMENTS,
+    APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS_CAMERAS,
+    APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS_LENSES,
+    APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS_LIGHTINGS,
+    APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS_MOODS,
+    APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS_SCENES,
+    APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS_SOUNDS,
+    APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS_STYLES,
+    APP_ROUTES.ADMIN.CONFIGURATION.FONT_FAMILIES,
+    APP_ROUTES.ADMIN.CONFIGURATION.PRESETS,
+    APP_ROUTES.ADMIN.CONFIGURATION.TAGS,
+    APP_ROUTES.ADMIN.CONFIGURATION.TAGS_ALL,
   ];
 
   for (const route of routes) {
@@ -34,7 +35,7 @@ test.describe('Admin Configuration', () => {
   }
 
   test('presets list stays interactive', async ({ adminPage }) => {
-    await assertRouteRenders(adminPage, '/admin/configuration/presets');
+    await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.CONFIGURATION.PRESETS);
     await tryClick(adminPage, 'button');
     await expect(adminPage.locator('body')).toBeVisible();
   });
@@ -42,7 +43,7 @@ test.describe('Admin Configuration', () => {
   test('element list stays interactive', async ({ adminPage }) => {
     await assertRouteRenders(
       adminPage,
-      '/admin/configuration/elements/cameras',
+      APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS_CAMERAS,
     );
     await tryClick(adminPage, 'button');
     await expect(adminPage.locator('body')).toBeVisible();

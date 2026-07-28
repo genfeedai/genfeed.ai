@@ -11,6 +11,7 @@ export * from '@serializers/server/admin/fleet-lip-sync-job.serializer';
 export * from '@serializers/server/admin/fleet-lip-sync-status.serializer';
 export * from '@serializers/server/admin/fleet-pipeline-campaign.serializer';
 export * from '@serializers/server/admin/fleet-pipeline-stats.serializer';
+export * from '@serializers/server/admin/fleet-publish-result.serializer';
 export * from '@serializers/server/admin/fleet-service-status.serializer';
 export * from '@serializers/server/admin/fleet-upload-dataset-result.serializer';
 export * from '@serializers/server/admin/fleet-voice.serializer';

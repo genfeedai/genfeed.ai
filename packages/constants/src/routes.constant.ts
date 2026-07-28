@@ -19,6 +19,7 @@ export const APP_ROUTES = {
       WARMUP_ACCOUNTS: '/admin/administration/warmup-accounts',
     },
     AGENT: '/admin/agent',
+    AGENT_NEW: '/admin/agent/new',
     AUTOMATION: {
       BOTS: '/admin/automation/bots',
       MODELS: '/admin/automation/models',
@@ -29,17 +30,30 @@ export const APP_ROUTES = {
     CONFIGURATION: {
       ELEMENTS: '/admin/configuration/elements',
       ELEMENTS_BLACKLISTS: '/admin/configuration/elements/blacklists',
+      ELEMENTS_CAMERA_MOVEMENTS:
+        '/admin/configuration/elements/camera-movements',
+      ELEMENTS_CAMERAS: '/admin/configuration/elements/cameras',
+      ELEMENTS_LENSES: '/admin/configuration/elements/lenses',
+      ELEMENTS_LIGHTINGS: '/admin/configuration/elements/lightings',
+      ELEMENTS_MOODS: '/admin/configuration/elements/moods',
+      ELEMENTS_SCENES: '/admin/configuration/elements/scenes',
+      ELEMENTS_SOUNDS: '/admin/configuration/elements/sounds',
+      ELEMENTS_STYLES: '/admin/configuration/elements/styles',
       FONT_FAMILIES: '/admin/configuration/font-families',
       PRESETS: '/admin/configuration/presets',
       TAGS: '/admin/configuration/tags',
       TAGS_ALL: '/admin/configuration/tags/all',
     },
     CONTENT: {
+      ANALYTICS: '/admin/content/analytics',
+      COMPANIES: '/admin/content/companies',
       INGREDIENTS: '/admin/content/ingredients',
       INGREDIENTS_VIDEOS: '/admin/content/ingredients/videos',
+      LEADS: '/admin/content/leads',
       POSTS: '/admin/content/posts',
       PROMPTS: '/admin/content/prompts',
       PROMPTS_LIST: '/admin/content/prompts/list',
+      TASKS: '/admin/content/tasks',
       TEMPLATES: '/admin/content/templates',
     },
     FLEET: {
@@ -52,6 +66,8 @@ export const APP_ROUTES = {
       TRAINING: '/admin/fleet/training',
       VOICES: '/admin/fleet/voices',
     },
+    FOLDERS: '/admin/folders',
+    IMAGES: '/admin/images',
     DARKROOM: {
       CHARACTERS: '/admin/fleet/characters',
       GALLERY: '/admin/fleet/gallery',
@@ -75,6 +91,7 @@ export const APP_ROUTES = {
       ANALYTICS_ORGANIZATIONS: '/admin/overview/analytics/organizations',
       DASHBOARD: '/admin/overview/dashboard',
     },
+    VIDEOS: '/admin/videos',
   },
   ANALYTICS: {
     ROOT: '/analytics',
@@ -115,6 +132,8 @@ export const APP_ROUTES = {
     CAPTIONS: '/library/captions',
     GIFS: '/library/gifs',
     IMAGES: '/library/images',
+    /** @deprecated Use OVERVIEW. Retained for legacy deep-link redirects. */
+    INGREDIENTS: '/library/ingredients',
     MOODBOARD: '/library/moodboard',
     MUSIC: '/library/music',
     OVERVIEW: '/library/overview',
@@ -150,6 +169,7 @@ export const APP_ROUTES = {
     ROOT: '/orchestration',
     RUNS: '/orchestration/runs',
     SKILLS: '/orchestration/skills',
+    STRATEGIES: '/orchestration/strategies',
     WORKFLOWS: '/orchestration/workflows',
   },
   OVERVIEW: {
@@ -180,10 +200,18 @@ export const APP_ROUTES = {
     BILLING: '/settings/billing',
     BRANDS: '/settings/brands',
     CREDITS: '/settings/credits',
+    ELEMENTS_SCENES: '/settings/elements/scenes',
     HELP: '/settings/help',
     MEMBERS: '/settings/members',
+    MODEL_IMAGE: '/settings/models/image',
     MODELS: '/settings/models',
     MODEL_TRAININGS: '/settings/models/trainings',
+    MODEL_VIDEO: '/settings/models/video',
+    ORGANIZATION: '/settings/organization',
+    ORGANIZATION_API_KEYS: '/settings/organization/api-keys',
+    ORGANIZATION_BILLING: '/settings/organization/billing',
+    ORGANIZATION_CREDENTIALS: '/settings/organization/credentials',
+    ORGANIZATION_POLICY: '/settings/organization/policy',
     PERSONAL: '/settings/personal',
     POLICY: '/settings/policy',
     PUBLISHING: '/settings/publishing',
@@ -196,6 +224,7 @@ export const APP_ROUTES = {
     CLIPS: '/studio/clips',
     FASTLANE: '/studio/fastlane',
     IMAGE: '/studio/image',
+    IMAGES: '/studio/images',
     MUSIC: '/studio/music',
     ROOT: '/studio',
     VIDEO: '/studio/video',
@@ -231,7 +260,9 @@ export const APP_ROUTE_PREFIXES = {
   LIBRARY: '/library',
   MESSAGES: APP_ROUTES.MESSAGES.ROOT,
   ORCHESTRATION: APP_ROUTES.ORCHESTRATION.ROOT,
+  OVERVIEW: APP_ROUTES.OVERVIEW.ROOT,
   POSTS: APP_ROUTES.POSTS.ROOT,
+  RESEARCH: APP_ROUTES.RESEARCH.ROOT,
   SETTINGS: APP_ROUTES.SETTINGS.ROOT,
   STUDIO: APP_ROUTES.STUDIO.ROOT,
   WORKFLOWS: APP_ROUTES.WORKFLOWS.ROOT,
@@ -244,6 +275,11 @@ export const APP_ROUTE_TEMPLATES = {
   ORGANIZATION: '/:orgSlug/~',
   ORGANIZATION_SETTINGS: '/:orgSlug/~/settings',
   PERSONAL_SETTINGS: APP_ROUTES.SETTINGS.ROOT,
+} as const;
+
+export const LEGACY_APP_ROUTES = {
+  /** @deprecated Use APP_ROUTES.WORKSPACE.TASKS. */
+  TASKS: '/tasks',
 } as const;
 
 export const COMPOSE_ROUTES = APP_ROUTES.COMPOSE;

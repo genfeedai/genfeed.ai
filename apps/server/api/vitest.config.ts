@@ -168,6 +168,20 @@ export default defineConfig({
         ),
       },
       {
+        find: '@genfeedai/api-types/contracts',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/api-types/src/contracts',
+        ),
+      },
+      {
+        find: '@genfeedai/api-types',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/api-types/src',
+        ),
+      },
+      {
         // Mirrors the webpack/tsconfig `@billing-providers` alias for the api's
         // own unit tests: with ee/packages/billing out of the api graph, the
         // billing collection modules resolve to the in-tree OSS fragment. The EE
@@ -218,6 +232,10 @@ export default defineConfig({
           serviceDir,
           '../../../packages/interfaces/src',
         ),
+      },
+      {
+        find: '@genfeedai/tools',
+        replacement: path.resolve(serviceDir, '../../../packages/tools/src'),
       },
       {
         find: /^@genfeedai\/auth-client\/(.*)$/,

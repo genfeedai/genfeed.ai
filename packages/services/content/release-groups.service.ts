@@ -1,7 +1,14 @@
+import type {
+  RecurrencePreviewInput,
+  RecurrencePreviewResult,
+  UpdateRecurrenceSeriesInput,
+} from '@api-types/contracts';
+import { API_ENDPOINTS } from '@genfeedai/constants';
 import type { IReleaseGroup } from '@genfeedai/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
+  deserializeResource,
   extractCollection,
   extractResource,
   type JsonApiResponseDocument,
@@ -15,10 +22,13 @@ export interface ReleaseGroupListQuery {
 
 export class ReleaseGroupsService extends HTTPBaseService {
   constructor(token: string) {
-    super(`${EnvironmentService.apiEndpoint}/post-groups`, token);
+    super(
+      `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.POST_GROUPS}`,
+      token,
+    );
   }
 
-  static getInstance(token: string): ReleaseGroupsService {
+  public static getInstance(token: string): ReleaseGroupsService {
     return HTTPBaseService.getBaseServiceInstance(
       ReleaseGroupsService,
       token,
@@ -39,5 +49,58 @@ export class ReleaseGroupsService extends HTTPBaseService {
     );
 
     return extractResource<IReleaseGroup>(response.data);
+  }
+
+  async getOne(groupId: string, signal?: AbortSignal): Promise<IReleaseGroup> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      `/${groupId}`,
+      { signal },
+    );
+    return deserializeResource<IReleaseGroup>(response.data);
+  }
+
+  async preview(
+    input: RecurrencePreviewInput,
+    signal?: AbortSignal,
+  ): Promise<RecurrencePreviewResult> {
+    const response = await this.instance.post<RecurrencePreviewResult>(
+      '/recurrence/preview',
+      input,
+      { signal },
+    );
+    return response.data;
+  }
+
+  async pauseFuture(groupId: string): Promise<IReleaseGroup> {
+    return this.postSeriesAction(groupId, 'pause');
+  }
+
+  async resumeFuture(groupId: string): Promise<IReleaseGroup> {
+    return this.postSeriesAction(groupId, 'resume');
+  }
+
+  async cancelFuture(groupId: string): Promise<IReleaseGroup> {
+    return this.postSeriesAction(groupId, 'cancel-future');
+  }
+
+  async editFuture(
+    groupId: string,
+    input: UpdateRecurrenceSeriesInput,
+  ): Promise<IReleaseGroup> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `/${groupId}/series/future`,
+      input,
+    );
+    return deserializeResource<IReleaseGroup>(response.data);
+  }
+
+  private async postSeriesAction(
+    groupId: string,
+    action: 'cancel-future' | 'pause' | 'resume',
+  ): Promise<IReleaseGroup> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/${groupId}/series/${action}`,
+    );
+    return deserializeResource<IReleaseGroup>(response.data);
   }
 }

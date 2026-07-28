@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockActiveSubscription,
   mockAnalyticsData,
@@ -108,7 +109,7 @@ test.describe('Analytics Deep Pages', () => {
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
 
-      await authenticatedPage.goto('/analytics/performance-lab');
+      await authenticatedPage.goto(APP_ROUTES.ANALYTICS.PERFORMANCE_LAB);
       await analyticsPage.waitForPageLoad();
 
       await expect(authenticatedPage).toHaveURL(/performance-lab/);
@@ -120,7 +121,7 @@ test.describe('Analytics Deep Pages', () => {
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
 
-      await authenticatedPage.goto('/analytics/performance-lab');
+      await authenticatedPage.goto(APP_ROUTES.ANALYTICS.PERFORMANCE_LAB);
       await analyticsPage.waitForPageLoad();
 
       // Performance lab should have comparison elements or charts
@@ -152,7 +153,7 @@ test.describe('Analytics Deep Pages', () => {
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
 
-      await authenticatedPage.goto('/analytics/trend-turnover');
+      await authenticatedPage.goto(APP_ROUTES.ANALYTICS.TREND_TURNOVER);
       await analyticsPage.waitForPageLoad();
 
       await expect(authenticatedPage).toHaveURL(/trend-turnover/);
@@ -164,7 +165,7 @@ test.describe('Analytics Deep Pages', () => {
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
 
-      await authenticatedPage.goto('/analytics/trend-turnover');
+      await authenticatedPage.goto(APP_ROUTES.ANALYTICS.TREND_TURNOVER);
       await analyticsPage.waitForPageLoad();
 
       // Trend data, charts, or empty state
@@ -191,7 +192,7 @@ test.describe('Analytics Deep Pages', () => {
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
 
-      await authenticatedPage.goto('/analytics/posts');
+      await authenticatedPage.goto(APP_ROUTES.ANALYTICS.POSTS);
       await analyticsPage.waitForPageLoad();
 
       await expect(authenticatedPage).toHaveURL(/analytics\/posts/);
@@ -203,7 +204,7 @@ test.describe('Analytics Deep Pages', () => {
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
 
-      await authenticatedPage.goto('/analytics/posts');
+      await authenticatedPage.goto(APP_ROUTES.ANALYTICS.POSTS);
       await analyticsPage.waitForPageLoad();
 
       await expect(
@@ -220,7 +221,7 @@ test.describe('Analytics Deep Pages', () => {
     }) => {
       const analyticsPage = new AnalyticsPage(authenticatedPage);
 
-      await authenticatedPage.goto('/analytics/posts');
+      await authenticatedPage.goto(APP_ROUTES.ANALYTICS.POSTS);
       await analyticsPage.waitForPageLoad();
 
       // Posts table rows, cards, or empty state
@@ -251,7 +252,7 @@ test.describe('Analytics Deep Pages', () => {
     test('should redirect unauthenticated user from analytics deep pages', async ({
       unauthenticatedPage,
     }) => {
-      await unauthenticatedPage.goto('/analytics/insights');
+      await unauthenticatedPage.goto(APP_ROUTES.ANALYTICS.INSIGHTS);
 
       // Should redirect to login
       await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
@@ -263,7 +264,7 @@ test.describe('Analytics Deep Pages', () => {
     test('should redirect unauthenticated user from performance lab', async ({
       unauthenticatedPage,
     }) => {
-      await unauthenticatedPage.goto('/analytics/performance-lab');
+      await unauthenticatedPage.goto(APP_ROUTES.ANALYTICS.PERFORMANCE_LAB);
 
       // Should redirect to login
       await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {

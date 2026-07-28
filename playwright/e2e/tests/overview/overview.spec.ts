@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockActiveSubscription,
   mockAnalyticsData,
@@ -18,7 +19,7 @@ test.describe('Overview Compatibility Redirect', () => {
   test('redirects authenticated users from /overview to /workspace', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/overview', {
+    await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -33,7 +34,7 @@ test.describe('Overview Compatibility Redirect', () => {
   test('keeps /overview as a compatibility redirect for unauthenticated users', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto('/overview', {
+    await unauthenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT, {
       waitUntil: 'domcontentloaded',
     });
 

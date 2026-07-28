@@ -9,6 +9,12 @@ import { createTestsGateJobs, evaluateTestsGate } from './tests-gate.mjs';
 const ALL_SUCCESS_ENV = {
   TEST_SCOPE_APP: 'true',
   TEST_SCOPE_API: 'true',
+  TEST_SCOPE_APP_TESTS: 'true',
+  TEST_SCOPE_API_TESTS: 'true',
+  TEST_SCOPE_PACKAGES: 'true',
+  TEST_SCOPE_SERVER_SERVICES: 'true',
+  TEST_SCOPE_WEB_DESKTOP_MOBILE: 'true',
+  TEST_SCOPE_EXTENSIONS: 'true',
   FULL_SUITE: 'false',
   TEST_SCOPE_RESULT: 'success',
   TEST_PACKAGES_RESULT: 'success',
@@ -55,6 +61,30 @@ test('fails when an applicable upstream job fails', () => {
   assert.deepEqual(result.failures, ['Package tests failure']);
 });
 
+test('accepts skipped workspace jobs only when the plan marks them inapplicable', () => {
+  const result = evaluate({
+    TEST_SCOPE_EXTENSIONS: 'false',
+    TEST_EXTENSIONS_RESULT: 'skipped',
+    TEST_SCOPE_SERVER_SERVICES: 'false',
+    TEST_SERVER_SERVICES_RESULT: 'skipped',
+  });
+
+  assert.equal(result.passed, true);
+  assert.equal(
+    result.rows.find((row) => row.name === 'Extension tests')?.classification,
+    'not applicable',
+  );
+});
+
+test('rejects skipped workspace jobs when the plan marks them applicable', () => {
+  const result = evaluate({ TEST_PACKAGES_RESULT: 'skipped' });
+
+  assert.equal(result.passed, false);
+  assert.deepEqual(result.failures, [
+    'Package tests was applicable but skipped',
+  ]);
+});
+
 test('fails closed when an applicable upstream result is missing', () => {
   assert.throws(
     () =>
@@ -93,6 +123,12 @@ test('reports a scope failure when its outputs are empty', () => {
   const result = evaluate({
     TEST_SCOPE_APP: '',
     TEST_SCOPE_API: '',
+    TEST_SCOPE_APP_TESTS: '',
+    TEST_SCOPE_API_TESTS: '',
+    TEST_SCOPE_PACKAGES: '',
+    TEST_SCOPE_SERVER_SERVICES: '',
+    TEST_SCOPE_WEB_DESKTOP_MOBILE: '',
+    TEST_SCOPE_EXTENSIONS: '',
     TEST_SCOPE_RESULT: 'failure',
   });
 
@@ -109,6 +145,17 @@ test('fails closed when a successful scope job omits its outputs', () => {
 
   assert.equal(result.status, 1);
   assert.match(result.stderr, /TEST_SCOPE_APP must be "true" or "false"/);
+});
+
+test('accepts an empty affected-test manifest without requiring a runner', () => {
+  const result = evaluate({
+    TEST_SCOPE_APP_TESTS: 'false',
+    TEST_APP_CHANGED_RESULT: 'skipped',
+    TEST_SCOPE_API_TESTS: 'false',
+    TEST_API_CHANGED_RESULT: 'skipped',
+  });
+
+  assert.equal(result.passed, true);
 });
 
 test('switches full-suite applicability without accepting missing matrix jobs', () => {

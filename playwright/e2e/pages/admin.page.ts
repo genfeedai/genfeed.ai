@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 
@@ -126,105 +127,105 @@ export class AdminPage {
   // ---------- Navigation ----------
 
   async gotoOverview(): Promise<void> {
-    await this.page.goto('/admin/overview/dashboard', {
+    await this.page.goto(APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD, {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoUsers(): Promise<void> {
-    await this.page.goto('/admin/administration/users', {
+    await this.page.goto(APP_ROUTES.ADMIN.ADMINISTRATION.USERS, {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoTemplates(): Promise<void> {
-    await this.page.goto('/admin/content/templates', {
+    await this.page.goto(APP_ROUTES.ADMIN.CONTENT.TEMPLATES, {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoFleetGallery(): Promise<void> {
-    await this.page.goto('/admin/fleet/gallery', {
+    await this.page.goto(APP_ROUTES.ADMIN.FLEET.GALLERY, {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoFleetCharacters(): Promise<void> {
-    await this.page.goto('/admin/fleet/characters', {
+    await this.page.goto(APP_ROUTES.ADMIN.FLEET.CHARACTERS, {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoFleetPipeline(): Promise<void> {
-    await this.page.goto('/admin/fleet/pipeline', {
+    await this.page.goto(APP_ROUTES.ADMIN.FLEET.PIPELINE, {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoFleetInfrastructure(): Promise<void> {
-    await this.page.goto('/admin/fleet/infrastructure', {
+    await this.page.goto(APP_ROUTES.ADMIN.FLEET.INFRASTRUCTURE, {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoCrmLeads(): Promise<void> {
-    await this.page.goto('/admin/content/leads', {
+    await this.page.goto(APP_ROUTES.ADMIN.CONTENT.LEADS, {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoCrmCompanies(): Promise<void> {
-    await this.page.goto('/admin/content/companies', {
+    await this.page.goto(APP_ROUTES.ADMIN.CONTENT.COMPANIES, {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoCrmTasks(): Promise<void> {
-    await this.page.goto('/admin/content/tasks', {
+    await this.page.goto(APP_ROUTES.ADMIN.CONTENT.TASKS, {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoCrmAnalytics(): Promise<void> {
-    await this.page.goto('/admin/content/analytics', {
+    await this.page.goto(APP_ROUTES.ADMIN.CONTENT.ANALYTICS, {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoAnalyticsAll(): Promise<void> {
-    await this.page.goto('/admin/overview/analytics/all', {
+    await this.page.goto(APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ALL, {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoAnalyticsOrganizations(): Promise<void> {
-    await this.page.goto('/admin/overview/analytics/organizations', {
+    await this.page.goto(APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS, {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoAnalyticsBrands(): Promise<void> {
-    await this.page.goto('/admin/overview/analytics/brands', {
+    await this.page.goto(APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BRANDS, {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();
   }
 
   async gotoAnalyticsBusiness(): Promise<void> {
-    await this.page.goto('/admin/overview/analytics/business', {
+    await this.page.goto(APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BUSINESS, {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();

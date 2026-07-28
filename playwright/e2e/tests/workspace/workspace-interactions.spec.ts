@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockActiveSubscription,
   mockAnalyticsData,
@@ -60,7 +61,10 @@ test.describe('Workspace — deep interactions', () => {
   test('switches between workspace inbox views and opens an item', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, '/workspace/inbox/unread');
+    await assertRouteRenders(
+      authenticatedPage,
+      APP_ROUTES.WORKSPACE.INBOX_UNREAD,
+    );
 
     const inbox = authenticatedPage.getByTestId('workspace-inbox');
     await expect(inbox).toBeVisible();
@@ -111,7 +115,7 @@ test.describe('Workspace — deep interactions', () => {
   test('exercises workspace snapshot panels and quick actions', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, '/workspace/overview');
+    await assertRouteRenders(authenticatedPage, APP_ROUTES.WORKSPACE.OVERVIEW);
 
     await expect(
       authenticatedPage.getByTestId('workspace-new-task'),
@@ -139,7 +143,10 @@ test.describe('Workspace — deep interactions', () => {
   test('renders the task inspector with review actions from the inbox', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, '/workspace/inbox/unread');
+    await assertRouteRenders(
+      authenticatedPage,
+      APP_ROUTES.WORKSPACE.INBOX_UNREAD,
+    );
 
     const firstRow = authenticatedPage
       .getByTestId('workspace-inbox')
@@ -186,7 +193,7 @@ test.describe('Overview — deep interactions', () => {
   }) => {
     await mockOverviewRunsData(authenticatedPage, [RUNNING_RUN, COMPLETED_RUN]);
 
-    await assertRouteRenders(authenticatedPage, '/overview');
+    await assertRouteRenders(authenticatedPage, APP_ROUTES.OVERVIEW.ROOT);
 
     // /overview is a compatibility redirect into the workspace overview.
     await expect(authenticatedPage).toHaveURL(/\/workspace\/overview/);
@@ -210,7 +217,7 @@ test.describe('Overview — deep interactions', () => {
   test('renders the overview activities feed with filters', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, '/overview/activities');
+    await assertRouteRenders(authenticatedPage, APP_ROUTES.OVERVIEW.ACTIVITIES);
 
     await expect(authenticatedPage).toHaveURL(/\/overview\/activities/);
 

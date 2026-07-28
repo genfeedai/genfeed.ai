@@ -327,6 +327,22 @@ describe('YtDlpService', () => {
       vi.useRealTimers();
     });
 
+    it('removes partial output after a non-zero exit', async () => {
+      const outputPath = path.join(FILES_TMP_ROOT, 'genfeed', 'video.mp4');
+      const mockProcess = useMockProcess(spawnMock);
+      fsMock.existsSync.mockReturnValue(true);
+
+      const promise = service.downloadVideo(
+        'https://youtube.com/watch?v=test',
+        outputPath,
+      );
+      closeProcess(mockProcess, 1);
+
+      await expect(promise).rejects.toThrow('yt-dlp exited with code 1');
+      expect(fsMock.unlinkSync).toHaveBeenCalledWith(outputPath);
+      expect(fsMock.unlinkSync).toHaveBeenCalledWith(`${outputPath}.part`);
+    });
+
     it('rejects a successful process that did not create an output file', async () => {
       const outputPath = path.join(FILES_TMP_ROOT, 'genfeed', 'video.mp4');
       const mockProcess = useMockProcess(spawnMock);

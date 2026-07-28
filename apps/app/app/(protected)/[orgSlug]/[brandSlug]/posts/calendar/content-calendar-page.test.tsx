@@ -119,6 +119,12 @@ vi.mock('./release-analytics-overlay', () => ({
   ),
 }));
 
+vi.mock('./evergreen-series-controls', () => ({
+  default: ({ groupId }: { groupId: string }) => (
+    <div data-testid="evergreen-series-controls">{groupId}</div>
+  ),
+}));
+
 describe('ContentCalendarPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -229,6 +235,9 @@ describe('ContentCalendarPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Open first item' }));
     expect(screen.getByTestId('release-overlay')).toHaveTextContent(
+      'release-1',
+    );
+    expect(screen.getByTestId('evergreen-series-controls')).toHaveTextContent(
       'release-1',
     );
   });

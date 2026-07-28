@@ -9,7 +9,6 @@ import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
-import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import type {
   PublishContext,
   PublishResult,
@@ -26,21 +25,17 @@ import {
   TargetExecutionState,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
-import type {
-  AgentScopeSource,
-  IChannelTargetError,
-} from '@genfeedai/interfaces';
+import type { IChannelTargetError } from '@genfeedai/interfaces';
 import type { PostPublishJobData } from '@genfeedai/queue-contracts';
-import {
-  AgentArtifactReferenceService,
-  AgentScopeContextService,
-  PostPublishQueueService,
-  PublishApprovalsService,
-} from '@genfeedai/server';
+import { PublishApprovalsService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
+import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
+import { readPostString } from '@workers/services/scheduled-post.utils';
+import { ScheduledPostExecutionGuardService } from '@workers/services/scheduled-post-execution-guard.service';
+import { ScheduledPostQueueService } from '@workers/services/scheduled-post-queue.service';
 import {
   SchedulerPublishStateService,
   type SchedulerPublishTargetUpdate,
@@ -62,7 +57,6 @@ type QueuedPostPublishSkip = {
 export class CronPostsService {
   private readonly constructorName: string = String(this.constructor.name);
   private readonly MAX_RETRY_ATTEMPTS = 3;
-  private readonly RETRY_BACKOFF_SECONDS = 60; // Minimum delay between retry attempts
 
   constructor(
     private readonly logger: LoggerService,
@@ -74,12 +68,11 @@ export class CronPostsService {
     private readonly publisherFactory: PublisherFactoryService,
     private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
     private readonly publishEventWebhookService: PublishEventWebhookService,
-    private readonly postPublishQueueService: PostPublishQueueService,
-    private readonly agentScopeContextService: AgentScopeContextService,
-    private readonly agentArtifactReferenceService: AgentArtifactReferenceService,
     private readonly publishApprovalsService: PublishApprovalsService,
     private readonly schedulerPublishStateService: SchedulerPublishStateService,
     private readonly postRepeatSchedulerService: PostRepeatSchedulerService,
+    private readonly scheduledPostExecutionGuardService: ScheduledPostExecutionGuardService,
+    private readonly scheduledPostQueueService: ScheduledPostQueueService,
   ) {}
 
   /**
@@ -90,7 +83,7 @@ export class CronPostsService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const posts = await this.findDueScheduledPosts();
+      const posts = await this.scheduledPostQueueService.findDuePosts();
 
       this.logger.log(`${url} found ${posts.length} posts`, {
         total: posts.length,
@@ -102,7 +95,7 @@ export class CronPostsService {
         return;
       }
 
-      await this.enqueuePostPublishJobs(posts);
+      await this.scheduledPostQueueService.enqueueDuePosts(posts);
     } catch (error: unknown) {
       this.logger.error(`${url} error`, { error });
     }
@@ -112,7 +105,7 @@ export class CronPostsService {
     data: PostPublishJobData,
   ): Promise<PublishResult | QueuedPostPublishSkip> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const post = await this.findQueuedPostForPublish(data);
+    const post = await this.scheduledPostQueueService.findQueuedPost(data);
 
     if (!post) {
       this.logger.log(`${url} skipped stale post publish job`, {
@@ -124,47 +117,6 @@ export class CronPostsService {
     }
 
     return this.publishPostWithSideEffects(post, data);
-  }
-
-  private async enqueuePostPublishJobs(posts: PostEntity[]): Promise<void> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    await Promise.all(
-      posts.map(async (post) => {
-        const organizationId = this.readPostString(post, [
-          'organization',
-          'organizationId',
-        ]);
-        if (!organizationId) {
-          this.logger.warn(`${url} missing organization for post publish job`, {
-            postId: post.id,
-          });
-          return;
-        }
-
-        const approval = post.publishApproval;
-        if (approval) {
-          await this.publishApprovalsService.markQueued(
-            approval.id,
-            organizationId,
-          );
-        }
-        await this.postPublishQueueService.enqueue({
-          ...(approval
-            ? {
-                approvalId: approval.id,
-                operationId: approval.operationId,
-                versionPinId: approval.artifactVersionPinId,
-              }
-            : post.reviewVersionPinId
-              ? { versionPinId: post.reviewVersionPinId }
-              : {}),
-          organizationId,
-          postId: post.id.toString(),
-          source: 'scheduled_sweep',
-        });
-      }),
-    );
   }
 
   private async publishPostWithSideEffects(
@@ -184,7 +136,9 @@ export class CronPostsService {
 
     let executionStartedAt = '';
     try {
-      await this.assertAgentPublishingScope(post);
+      await this.scheduledPostExecutionGuardService.assertAgentPublishingScope(
+        post,
+      );
       const claim = await this.publishApprovalsService.claimForExecution({
         approvalId,
         operationId,
@@ -195,18 +149,21 @@ export class CronPostsService {
       if (claim.isAlreadyPublished) {
         await this.postRepeatSchedulerService.materializeRecurrence(post);
         return {
-          externalId: this.readPostString(post, ['externalId']) ?? null,
+          externalId: readPostString(post, ['externalId']) ?? null,
           platform: post.platform,
           status: PostStatus.PUBLIC,
           success: true,
-          url: this.readPostString(post, ['url']) ?? '',
+          url: readPostString(post, ['url']) ?? '',
         };
       }
       if (!claim.executionStartedAt) {
         throw new Error('Publish execution claim did not return a lease.');
       }
       executionStartedAt = claim.executionStartedAt;
-      await this.assertPublishVersionPin(post, versionPinId);
+      await this.scheduledPostExecutionGuardService.assertPublishVersionPin(
+        post,
+        versionPinId,
+      );
     } catch (error: unknown) {
       if (executionStartedAt) {
         const errorMessage =
@@ -252,15 +209,14 @@ export class CronPostsService {
     if (result.success) {
       await this.activitiesService.create(
         new ActivityEntity({
-          brand: this.readPostString(post, ['brandId', 'brand']) ?? null,
+          brand: readPostString(post, ['brandId', 'brand']) ?? null,
           entityId: post.id,
           entityModel: ActivityEntityModel.POST,
           key: ActivityKey.POST_PUBLISHED,
           organization:
-            this.readPostString(post, ['organizationId', 'organization']) ??
-            null,
+            readPostString(post, ['organizationId', 'organization']) ?? null,
           source: ActivitySource.POST,
-          user: this.readPostString(post, ['userId', 'user']) ?? null,
+          user: readPostString(post, ['userId', 'user']) ?? null,
           value: `Published to ${result.platform}: ${result.url}`,
         }),
       );
@@ -269,65 +225,6 @@ export class CronPostsService {
     }
 
     return result;
-  }
-
-  private async assertPublishVersionPin(
-    post: PostEntity,
-    queuedVersionPinId?: string,
-  ): Promise<void> {
-    const durableVersionPinId = this.readPostString(post, [
-      'reviewVersionPinId',
-    ]);
-
-    if (queuedVersionPinId && !durableVersionPinId) {
-      throw new Error(
-        `Queued version pin ${queuedVersionPinId} has no durable review pin on post ${post.id.toString()}.`,
-      );
-    }
-
-    if (
-      queuedVersionPinId &&
-      durableVersionPinId &&
-      queuedVersionPinId !== durableVersionPinId
-    ) {
-      throw new Error(
-        `Queued version pin ${queuedVersionPinId} does not match post ${post.id.toString()} review pin ${durableVersionPinId}.`,
-      );
-    }
-
-    const versionPinId = queuedVersionPinId ?? durableVersionPinId;
-    if (!versionPinId) {
-      return;
-    }
-
-    const organizationId = this.readPostString(post, [
-      'organizationId',
-      'organization',
-    ]);
-    if (!organizationId) {
-      throw new Error(
-        `Post ${post.id.toString()} is missing an organization for version-pin validation.`,
-      );
-    }
-
-    const brandId = this.readPostString(post, ['brandId', 'brand']);
-    const resolved =
-      await this.agentArtifactReferenceService.assertVersionPinCurrent({
-        pinId: versionPinId,
-        readContext: {
-          ...(brandId ? { brandId } : {}),
-          organizationId,
-        },
-      });
-
-    if (
-      resolved.reference.kind !== 'post' ||
-      resolved.reference.recordId !== post.id.toString()
-    ) {
-      throw new Error(
-        `Version pin ${versionPinId} does not reference post ${post.id.toString()}.`,
-      );
-    }
   }
 
   private async handleTerminalPublishValidationFailure(
@@ -350,159 +247,6 @@ export class CronPostsService {
     this.emitPublishFailedWebhook(post, errorMessage);
 
     return this.createFailedResult('', errorMessage);
-  }
-
-  private async assertAgentPublishingScope(post: PostEntity): Promise<void> {
-    const threadId = this.readPostString(post, ['agentThreadId']);
-    if (!threadId) {
-      return;
-    }
-
-    const record = post as unknown as Record<string, unknown>;
-    const contextVersion = record.agentContextVersion;
-    const source = record.agentContextSource;
-    const organizationId = this.readPostString(post, [
-      'organizationId',
-      'organization',
-    ]);
-    const userId = this.readPostString(post, ['userId', 'user']);
-
-    if (
-      typeof contextVersion !== 'number' ||
-      !this.isAgentScopeSource(source) ||
-      !organizationId ||
-      !userId
-    ) {
-      throw new Error(
-        `Post ${post.id.toString()} has an incomplete durable agent scope.`,
-      );
-    }
-
-    const brandId = this.readPostString(post, ['brandId', 'brand']);
-    const scope = {
-      brandId,
-      contextVersion,
-      isLegacyFallback: source.startsWith('legacy_'),
-      isVersionExplicit: true,
-      organizationId,
-      source,
-      threadId,
-      userId,
-    };
-
-    await this.agentScopeContextService.assertConsequentialBoundary(
-      scope,
-      'publish',
-    );
-    this.agentScopeContextService.assertResourceBrand(
-      scope,
-      brandId,
-      'queued post',
-    );
-  }
-
-  private isAgentScopeSource(value: unknown): value is AgentScopeSource {
-    return (
-      value === 'explicit' ||
-      value === 'thread_created' ||
-      value === 'legacy_execution_policy' ||
-      value === 'legacy_message_history' ||
-      value === 'legacy_organization_only'
-    );
-  }
-
-  private async findQueuedPostForPublish(
-    data: PostPublishJobData,
-  ): Promise<PostEntity | null> {
-    const posts = await this.findDueScheduledPosts({
-      limit: 1,
-      organizationId: data.organizationId,
-      postId: data.postId,
-    });
-
-    return posts[0] ?? null;
-  }
-
-  private async findDueScheduledPosts(
-    filter: { limit?: number; organizationId?: string; postId?: string } = {},
-  ): Promise<PostEntity[]> {
-    const now = new Date();
-    const backoffThreshold = new Date(
-      now.getTime() - this.RETRY_BACKOFF_SECONDS * 1000,
-    );
-
-    const posts = await this.postsService.findAll(
-      {
-        include: {
-          children: {
-            include: {
-              credential: true,
-              ingredients: true,
-            },
-            where: {
-              status: PostStatus.SCHEDULED,
-            },
-          },
-          ingredients: true,
-          publishApproval: {
-            select: {
-              artifactVersionPinId: true,
-              id: true,
-              operationId: true,
-            },
-          },
-        },
-        where: {
-          ...(filter.postId ? { id: filter.postId } : {}),
-          ...(filter.organizationId
-            ? { organizationId: filter.organizationId }
-            : {}),
-          AND: [
-            {
-              OR: [
-                { lastAttemptAt: null },
-                { lastAttemptAt: { lte: backoffThreshold } },
-              ],
-            },
-          ],
-          OR: [
-            { scheduledDate: { lte: now } },
-            { nextScheduledDate: { lte: now } },
-          ],
-          isDeleted: false,
-          parentId: null,
-          status: { in: [PostStatus.SCHEDULED, PostStatus.PROCESSING] },
-        },
-      },
-      {
-        customLabels,
-        limit: filter.limit ?? 50,
-        page: 1,
-      },
-    );
-
-    return posts.docs as unknown as PostEntity[];
-  }
-
-  private readPostString(
-    post: PostEntity,
-    keys: readonly string[],
-  ): string | undefined {
-    const record = post as unknown as Record<string, unknown>;
-    for (const key of keys) {
-      const value = record[key];
-      if (typeof value === 'string' && value.length > 0) {
-        return value;
-      }
-      if (value && typeof value === 'object' && 'id' in value) {
-        const id = (value as { id?: unknown }).id;
-        if (typeof id === 'string' && id.length > 0) {
-          return id;
-        }
-      }
-    }
-
-    return undefined;
   }
 
   private async persistPublishState(
@@ -607,9 +351,6 @@ export class CronPostsService {
       : String(error || 'Post failed');
   }
 
-  /**
-   * Publish a single post using the appropriate platform publisher
-   */
   private async publishSinglePost(post: PostEntity): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -622,16 +363,16 @@ export class CronPostsService {
       status: PostStatus.PROCESSING,
     });
 
-    const postCredentialId = this.readPostString(post, [
+    const postCredentialId = readPostString(post, [
       'credentialId',
       'credential',
     ]);
-    const postOrganizationId = this.readPostString(post, [
+    const postOrganizationId = readPostString(post, [
       'organizationId',
       'organization',
     ]);
-    const postBrandId = this.readPostString(post, ['brandId', 'brand']);
-    const postUserId = this.readPostString(post, ['userId', 'user']);
+    const postBrandId = readPostString(post, ['brandId', 'brand']);
+    const postUserId = readPostString(post, ['userId', 'user']);
     let workflowExecutionId: string | undefined;
 
     try {
@@ -931,10 +672,6 @@ export class CronPostsService {
     }
   }
 
-  /**
-   * Common retry handler for both failure and error cases
-   * Returns true if post was scheduled for retry, false if max retries reached
-   */
   private async attemptRetry(
     post: PostEntity,
     canRetry: boolean,
@@ -970,7 +707,7 @@ export class CronPostsService {
       }
 
       this.logger.log(
-        `${url} will retry post (attempt ${currentRetryCount + 1}/${this.MAX_RETRY_ATTEMPTS}) after ${this.RETRY_BACKOFF_SECONDS}s backoff`,
+        `${url} will retry post (attempt ${currentRetryCount + 1}/${this.MAX_RETRY_ATTEMPTS}) after ${SCHEDULED_POST_RETRY_BACKOFF_SECONDS}s backoff`,
         { postId: post.id },
       );
 
@@ -1004,9 +741,6 @@ export class CronPostsService {
     return false;
   }
 
-  /**
-   * Handle publish failure with retry logic
-   */
   private async handlePublishFailure(
     post: PostEntity,
     result: PublishResult,
@@ -1044,9 +778,6 @@ export class CronPostsService {
     return result;
   }
 
-  /**
-   * Handle publish error with retry logic
-   */
   private async handlePublishError(
     post: PostEntity,
     error: unknown,
@@ -1118,9 +849,6 @@ export class CronPostsService {
     });
   }
 
-  /**
-   * Check if an error is retryable
-   */
   private isRetryableError(error: unknown): boolean {
     const retryableErrorPatterns = [
       'rate limit',
@@ -1151,9 +879,6 @@ export class CronPostsService {
     );
   }
 
-  /**
-   * Log quota exceeded activity
-   */
   private async logQuotaExceededActivity(
     post: PostEntity,
     quotaCheck: QuotaCheckResult,
@@ -1161,23 +886,19 @@ export class CronPostsService {
   ): Promise<void> {
     await this.activitiesService.create(
       new ActivityEntity({
-        brand: this.readPostString(post, ['brandId', 'brand']) ?? null,
+        brand: readPostString(post, ['brandId', 'brand']) ?? null,
         entityId: post.id,
         entityModel: ActivityEntityModel.POST,
         key: ActivityKey.POST_FAILED,
         organization:
-          this.readPostString(post, ['organizationId', 'organization']) ?? null,
+          readPostString(post, ['organizationId', 'organization']) ?? null,
         source: ActivitySource.POST,
-        user: this.readPostString(post, ['userId', 'user']) ?? null,
+        user: readPostString(post, ['userId', 'user']) ?? null,
         value: `Quota exceeded: ${quotaCheck.currentCount}/${quotaCheck.dailyLimit} posts for ${platform}`,
       }),
     );
   }
 
-  /**
-   * Mark all children of a post as failed
-   * Called when parent post fails to prevent orphaned scheduled children
-   */
   private async failChildren(post: PostEntity, reason: string): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const children = (post.children || []) as unknown as PostDocument[];
@@ -1207,31 +928,25 @@ export class CronPostsService {
     }
   }
 
-  /**
-   * Log failed activity
-   */
   private async logFailedActivity(
     post: PostEntity,
     errorMessage: string,
   ): Promise<void> {
     await this.activitiesService.create(
       new ActivityEntity({
-        brand: this.readPostString(post, ['brandId', 'brand']) ?? null,
+        brand: readPostString(post, ['brandId', 'brand']) ?? null,
         entityId: post.id,
         entityModel: ActivityEntityModel.POST,
         key: ActivityKey.POST_FAILED,
         organization:
-          this.readPostString(post, ['organizationId', 'organization']) ?? null,
+          readPostString(post, ['organizationId', 'organization']) ?? null,
         source: ActivitySource.POST,
-        user: this.readPostString(post, ['userId', 'user']) ?? null,
+        user: readPostString(post, ['userId', 'user']) ?? null,
         value: errorMessage,
       }),
     );
   }
 
-  /**
-   * Create a failed publish result
-   */
   private createFailedResult(platform: string, error?: string): PublishResult {
     return {
       error,

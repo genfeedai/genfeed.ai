@@ -9,6 +9,7 @@ import {
   mapLegacyPostStatusToTargetExecutionState,
   recurrenceInputSchema,
   updateChannelTargetSchema,
+  updateRecurrenceSeriesSchema,
 } from '@api-types/contracts/scheduler.contract';
 import {
   PostFrequency,
@@ -186,6 +187,28 @@ describe('updateChannelTargetSchema (worker state writes)', () => {
     });
 
     expect(result.success).toBe(true);
+  });
+});
+
+describe('updateRecurrenceSeriesSchema', () => {
+  test('accepts a future schedule edit without requiring a rule rewrite', () => {
+    expect(
+      updateRecurrenceSeriesSchema.safeParse({
+        scheduledDate: '2026-08-12T09:00:00Z',
+      }).success,
+    ).toBe(true);
+  });
+
+  test('rejects empty edits and unbounded recurrence rules', () => {
+    expect(updateRecurrenceSeriesSchema.safeParse({}).success).toBe(false);
+    expect(
+      updateRecurrenceSeriesSchema.safeParse({
+        recurrence: {
+          frequency: PostFrequency.DAILY,
+          interval: 1,
+        },
+      }).success,
+    ).toBe(false);
   });
 });
 

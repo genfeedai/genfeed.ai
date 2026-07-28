@@ -27,6 +27,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HiCalendarDays, HiDocumentText, HiListBullet } from 'react-icons/hi2';
+import EvergreenSeriesControls from './evergreen-series-controls';
 import ReleaseAnalyticsOverlay from './release-analytics-overlay';
 
 const DEFAULT_COLOR = '#8b5cf6';
@@ -236,6 +237,12 @@ export default function ContentCalendarPage(): React.JSX.Element {
 
     return [...releaseItems, ...postItems, ...articleItems];
   }, [posts, articles, releases]);
+  const selectedGroupId = useMemo(
+    () =>
+      selectedRelease?.id ??
+      posts.find((post) => post.id === selectedPostId)?.groupId,
+    [posts, selectedPostId, selectedRelease],
+  );
 
   const handleEventClick = useCallback(
     (item: ContentCalendarItem) => {
@@ -245,10 +252,12 @@ export default function ContentCalendarPage(): React.JSX.Element {
       }
 
       if (item.itemType === 'release') {
+        setSelectedPostId(null);
         setSelectedRelease(item.release);
         return;
       }
 
+      setSelectedRelease(null);
       setSelectedPostId(item.post.id);
     },
     [push],
@@ -301,6 +310,9 @@ export default function ContentCalendarPage(): React.JSX.Element {
         release={selectedRelease}
         onClose={() => setSelectedRelease(null)}
       />
+      {selectedGroupId ? (
+        <EvergreenSeriesControls groupId={selectedGroupId} />
+      ) : null}
     </>
   );
 

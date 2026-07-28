@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PostGroupsQueryDto } from '@api/collections/post-groups/dto/post-groups-query.dto';
+import { PostGroupRecurrenceService } from '@api/collections/post-groups/services/post-group-recurrence.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
@@ -30,7 +31,10 @@ import type { Request } from 'express';
 @ApiTags('PostGroups')
 @Controller('post-groups')
 export class PostGroupsController {
-  constructor(private readonly postGroupsService: PostGroupsService) {}
+  constructor(
+    private readonly postGroupsService: PostGroupsService,
+    private readonly postGroupRecurrenceService: PostGroupRecurrenceService,
+  ) {}
 
   @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -67,6 +71,13 @@ export class PostGroupsController {
       metadata,
     );
     return serializeSingle(req, ReleaseGroupSerializer, data);
+  }
+
+  @Post('recurrence/preview')
+  @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  previewRecurrence(@Body() body: unknown) {
+    return this.postGroupRecurrenceService.preview(body);
   }
 
   @Get(':id')
@@ -164,6 +175,76 @@ export class PostGroupsController {
   ) {
     const { organization } = getPublicMetadata(user);
     const data = await this.postGroupsService.resume(organization, user.id, id);
+    return serializeSingle(req, ReleaseGroupSerializer, data);
+  }
+
+  @Post(':id/series/pause')
+  @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async pauseSeries(
+    @Req() req: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ) {
+    const { organization } = getPublicMetadata(user);
+    const data = await this.postGroupRecurrenceService.pauseFuture(
+      organization,
+      user.id,
+      id,
+    );
+    return serializeSingle(req, ReleaseGroupSerializer, data);
+  }
+
+  @Post(':id/series/resume')
+  @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async resumeSeries(
+    @Req() req: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ) {
+    const { organization } = getPublicMetadata(user);
+    const data = await this.postGroupRecurrenceService.resumeFuture(
+      organization,
+      user.id,
+      id,
+    );
+    return serializeSingle(req, ReleaseGroupSerializer, data);
+  }
+
+  @Post(':id/series/cancel-future')
+  @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async cancelFutureSeries(
+    @Req() req: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ) {
+    const { organization } = getPublicMetadata(user);
+    const data = await this.postGroupRecurrenceService.cancelFuture(
+      organization,
+      user.id,
+      id,
+    );
+    return serializeSingle(req, ReleaseGroupSerializer, data);
+  }
+
+  @Patch(':id/series/future')
+  @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async editFutureSeries(
+    @Req() req: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    const { organization } = getPublicMetadata(user);
+    const data = await this.postGroupRecurrenceService.editFuture(
+      organization,
+      user.id,
+      id,
+      body,
+    );
     return serializeSingle(req, ReleaseGroupSerializer, data);
   }
 

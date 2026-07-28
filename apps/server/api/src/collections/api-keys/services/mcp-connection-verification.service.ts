@@ -1,7 +1,10 @@
 import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.schema';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants';
+import {
+  API_KEY_SCOPE_PRESETS,
+  CONNECT_GENFEED_VERIFICATION_METADATA_KEY,
+} from '@genfeedai/constants';
 import type {
   ConnectGenfeedVerificationFailureResult,
   ConnectGenfeedVerificationResult,
@@ -113,7 +116,7 @@ export class McpConnectionVerificationService {
     await this.apiKeysService.patch(input.apiKeyId, {
       metadata: {
         ...metadata,
-        connectGenfeed: {
+        [CONNECT_GENFEED_VERIFICATION_METADATA_KEY]: {
           lastVerifiedAt: verifiedAt,
           transport: 'streamable-http',
         },

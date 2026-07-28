@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockActiveSubscription,
   mockAnalyticsData,
@@ -134,7 +135,7 @@ test.describe('Analytics Overview', () => {
     test('should redirect unauthenticated user from trends page', async ({
       unauthenticatedPage,
     }) => {
-      await unauthenticatedPage.goto('/analytics/trends');
+      await unauthenticatedPage.goto(APP_ROUTES.ANALYTICS.TRENDS);
 
       await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
         timeout: 15000,

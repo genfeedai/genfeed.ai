@@ -1,40 +1,31 @@
-import type { SocialMessageWorkflowTriggerStatus } from '@genfeedai/enums';
+import type {
+  SocialActionActorType as SocialActionActorTypeEnum,
+  SocialAutomationState as SocialAutomationStateEnum,
+  SocialConversationStatus as SocialConversationStatusEnum,
+  SocialConversationType as SocialConversationTypeEnum,
+  SocialInboxPlatform,
+  SocialMessageDirection as SocialMessageDirectionEnum,
+  SocialMessageType as SocialMessageTypeEnum,
+  SocialMessageWorkflowTriggerStatus,
+} from '@genfeedai/enums';
 
-export type SocialPlatform =
-  | 'instagram'
-  | 'linkedin'
-  | 'twitter'
-  | 'unipile'
-  | 'youtube';
-
-export type SocialConversationStatus =
-  | 'archived'
-  | 'needs_review'
-  | 'open'
-  | 'resolved';
-
-export type SocialAutomationState =
-  | 'approved'
-  | 'automated'
-  | 'drafted'
-  | 'failed'
-  | 'manual'
-  | 'pending_approval';
-
-export type SocialConversationType = 'comment' | 'dm' | 'mention' | 'reply';
-export type SocialMessageDirection = 'inbound' | 'outbound' | 'system';
-export type SocialMessageType = 'comment' | 'dm' | 'draft' | 'note' | 'reply';
-export type SocialActionActorType = 'agent' | 'system' | 'user' | 'workflow';
+export type SocialPlatform = `${SocialInboxPlatform}`;
+export type SocialConversationStatus = `${SocialConversationStatusEnum}`;
+export type SocialAutomationState = `${SocialAutomationStateEnum}`;
+export type SocialConversationType = `${SocialConversationTypeEnum}`;
+export type SocialMessageDirection = `${SocialMessageDirectionEnum}`;
+export type SocialMessageType = `${SocialMessageTypeEnum}`;
+export type SocialActionActorType = `${SocialActionActorTypeEnum}`;
 
 export interface SocialActionProvenance {
   action?: string;
   actedAt?: string;
-  actorType?: SocialActionActorType | string;
+  actorType?: SocialActionActorType;
   agentRunId?: string | null;
   approvedAt?: string;
   approvedBy?: string | null;
   approvedMessageId?: string;
-  platform?: SocialPlatform | string;
+  platform?: SocialPlatform;
   rejectedAt?: string;
   rejectedBy?: string | null;
   status?: string;
@@ -61,8 +52,8 @@ export interface SocialConversation {
   credentialId?: string | null;
   post?: string | null;
   postId?: string | null;
-  platform: SocialPlatform | string;
-  conversationType: SocialConversationType | string;
+  platform: SocialPlatform;
+  conversationType: SocialConversationType;
   externalConversationId?: string | null;
   externalThreadId?: string | null;
   externalParentId?: string | null;
@@ -77,11 +68,11 @@ export interface SocialConversation {
   participantHandle?: string | null;
   participantName?: string | null;
   participantAvatarUrl?: string | null;
-  status: SocialConversationStatus | string;
+  status: SocialConversationStatus;
   priority: string;
   unreadCount: number;
   needsReview: boolean;
-  automationState: SocialAutomationState | string;
+  automationState: SocialAutomationState;
   assignedOwnerId?: string | null;
   tags: string[];
   latestMessageText?: string | null;
@@ -108,9 +99,9 @@ export interface SocialMessage {
   credentialId?: string | null;
   post?: string | null;
   postId?: string | null;
-  platform: SocialPlatform | string;
-  direction: SocialMessageDirection | string;
-  messageType: SocialMessageType | string;
+  platform: SocialPlatform;
+  direction: SocialMessageDirection;
+  messageType: SocialMessageType;
   body: string;
   externalMessageId?: string | null;
   externalParentMessageId?: string | null;
@@ -158,9 +149,9 @@ export interface SocialInboxRealtimeEvent {
 
 export interface SocialInboxAgentMessageContext {
   body: string;
-  direction: SocialMessageDirection | string;
+  direction: SocialMessageDirection;
   messageId: string;
-  messageType: SocialMessageType | string;
+  messageType: SocialMessageType;
 }
 
 export interface SocialInboxAgentContextRecord {

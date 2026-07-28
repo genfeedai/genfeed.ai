@@ -1,8 +1,10 @@
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants';
-import type { ICredential } from '@genfeedai/interfaces';
+import type { IActivity, ICredential } from '@genfeedai/interfaces';
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { describe, expect, it } from 'vitest';
 import {
+  getActivityBadge,
+  getCredentialBadge,
   getVerifiedMcpConnection,
   summarizeCredentialHealth,
 } from './operational-home.helpers';
@@ -72,6 +74,17 @@ describe('getVerifiedMcpConnection', () => {
       },
     ],
     [
+      'verification older than the key',
+      {
+        metadata: {
+          connectGenfeed: {
+            lastVerifiedAt: '2026-07-24T11:00:00.000Z',
+            transport: 'streamable-http',
+          },
+        },
+      },
+    ],
+    [
       'future verification',
       {
         metadata: {
@@ -90,6 +103,70 @@ describe('getVerifiedMcpConnection', () => {
         NOW,
       ),
     ).toBeNull();
+  });
+});
+
+describe('getCredentialBadge', () => {
+  it.each([
+    [
+      'disconnected',
+      { isConnected: false },
+      { label: 'Disconnected', variant: 'destructive' },
+    ],
+    [
+      'publishing hold',
+      { accountHealth: { holdPublishing: true }, isConnected: true },
+      { label: 'Needs attention', variant: 'warning' },
+    ],
+    [
+      'high risk',
+      { accountHealth: { riskLevel: 'high' }, isConnected: true },
+      { label: 'Needs attention', variant: 'warning' },
+    ],
+    [
+      'healthy',
+      { accountHealth: { state: 'healthy' }, isConnected: true },
+      { label: 'Healthy', variant: 'success' },
+    ],
+    [
+      'low risk',
+      { accountHealth: { riskLevel: 'low' }, isConnected: true },
+      { label: 'Healthy', variant: 'success' },
+    ],
+    [
+      'unknown',
+      { isConnected: true },
+      { label: 'Connected', variant: 'outline' },
+    ],
+  ])('maps %s credentials', (_label, credential, expected) => {
+    expect(getCredentialBadge(credential as unknown as ICredential)).toEqual(
+      expected,
+    );
+  });
+});
+
+describe('getActivityBadge', () => {
+  it.each([
+    [
+      'failed',
+      { status: 'failed' },
+      { label: 'Failed', variant: 'destructive' },
+    ],
+    [
+      'processing',
+      { value: 'processing' },
+      { label: 'In progress', variant: 'warning' },
+    ],
+    [
+      'published',
+      { status: 'published' },
+      { label: 'Completed', variant: 'success' },
+    ],
+    ['unknown', {}, { label: 'Recorded', variant: 'outline' }],
+  ])('maps %s activity', (_label, activity, expected) => {
+    expect(getActivityBadge(activity as unknown as IActivity)).toEqual(
+      expected,
+    );
   });
 });
 

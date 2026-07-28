@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockAnalyticsData,
   mockContentLibrary,
@@ -27,7 +28,7 @@ test.describe('Visual Regression Tests - Desktop', () => {
     test('Login/Landing Page - should match baseline', async ({
       unauthenticatedPage,
     }) => {
-      await unauthenticatedPage.goto('/login');
+      await unauthenticatedPage.goto(APP_ROUTES.LOGIN);
 
       // Wait for page to be fully loaded
       await unauthenticatedPage.waitForLoadState('domcontentloaded');
@@ -47,7 +48,7 @@ test.describe('Visual Regression Tests - Desktop', () => {
       // Set up mock analytics data for consistency
       await mockAnalyticsData(authenticatedPage);
 
-      await authenticatedPage.goto('/overview');
+      await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT);
 
       // Wait for dashboard to fully load
       await authenticatedPage.waitForLoadState('domcontentloaded');
@@ -70,7 +71,7 @@ test.describe('Visual Regression Tests - Desktop', () => {
       // Mock content library for consistency
       await mockContentLibrary(authenticatedPage, 'images', 6);
 
-      await authenticatedPage.goto('/studio');
+      await authenticatedPage.goto(APP_ROUTES.STUDIO.ROOT);
 
       // Wait for studio page to load
       await authenticatedPage.waitForLoadState('domcontentloaded');
@@ -91,7 +92,7 @@ test.describe('Visual Regression Tests - Desktop', () => {
       // Mock content library for consistency
       await mockContentLibrary(authenticatedPage, 'videos', 6);
 
-      await authenticatedPage.goto('/studio?tab=video');
+      await authenticatedPage.goto(`${APP_ROUTES.STUDIO.ROOT}?tab=video`);
 
       // Wait for video tab to load
       await authenticatedPage.waitForLoadState('domcontentloaded');
@@ -109,7 +110,7 @@ test.describe('Visual Regression Tests - Desktop', () => {
     test('Settings - Profile Page - should match baseline', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/settings');
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ROOT);
 
       // Wait for settings page to load
       await authenticatedPage.waitForLoadState('domcontentloaded');
@@ -127,7 +128,7 @@ test.describe('Visual Regression Tests - Desktop', () => {
     test('Settings - Billing Page - should match baseline', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/settings/organization/billing');
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ORGANIZATION_BILLING);
 
       // Wait for billing page to load
       await authenticatedPage.waitForLoadState('domcontentloaded');
@@ -153,7 +154,7 @@ test.describe('Visual Regression Tests - Mobile', () => {
     test('Login/Landing Page - Mobile - should match baseline', async ({
       unauthenticatedPage,
     }) => {
-      await unauthenticatedPage.goto('/login');
+      await unauthenticatedPage.goto(APP_ROUTES.LOGIN);
 
       // Wait for page to be fully loaded
       await unauthenticatedPage.waitForLoadState('domcontentloaded');
@@ -175,7 +176,7 @@ test.describe('Visual Regression Tests - Mobile', () => {
       // Set up mock analytics data for consistency
       await mockAnalyticsData(authenticatedPage);
 
-      await authenticatedPage.goto('/overview');
+      await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT);
 
       // Wait for dashboard to fully load
       await authenticatedPage.waitForLoadState('domcontentloaded');
@@ -196,7 +197,7 @@ test.describe('Visual Regression Tests - Mobile', () => {
       // Mock content library for consistency
       await mockContentLibrary(authenticatedPage, 'images', 6);
 
-      await authenticatedPage.goto('/studio');
+      await authenticatedPage.goto(APP_ROUTES.STUDIO.ROOT);
 
       // Wait for studio page to load
       await authenticatedPage.waitForLoadState('domcontentloaded');
@@ -214,7 +215,7 @@ test.describe('Visual Regression Tests - Mobile', () => {
     test('Settings - Profile Page - Mobile - should match baseline', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/settings');
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ROOT);
 
       // Wait for settings page to load
       await authenticatedPage.waitForLoadState('domcontentloaded');
@@ -232,7 +233,7 @@ test.describe('Visual Regression Tests - Mobile', () => {
     test('Settings - Billing Page - Mobile - should match baseline', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/settings/organization/billing');
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ORGANIZATION_BILLING);
 
       // Wait for billing page to load
       await authenticatedPage.waitForLoadState('domcontentloaded');
@@ -265,7 +266,7 @@ test.describe('Visual Regression Tests - Critical UI Components', () => {
       });
     });
 
-    await authenticatedPage.goto('/studio');
+    await authenticatedPage.goto(APP_ROUTES.STUDIO.ROOT);
     await authenticatedPage.waitForLoadState('domcontentloaded');
     await authenticatedPage.waitForTimeout(500);
 

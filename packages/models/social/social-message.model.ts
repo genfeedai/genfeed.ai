@@ -21,9 +21,9 @@ export class SocialMessageModel implements SocialMessage {
   credentialId?: string | null;
   post?: string | null;
   postId?: string | null;
-  platform!: SocialPlatform | string;
-  direction!: SocialMessageDirection | string;
-  messageType!: SocialMessageType | string;
+  platform!: SocialPlatform;
+  direction!: SocialMessageDirection;
+  messageType!: SocialMessageType;
   body!: string;
   externalMessageId?: string | null;
   externalParentMessageId?: string | null;

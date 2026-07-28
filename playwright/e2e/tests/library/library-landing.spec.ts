@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockActiveSubscription,
   mockContentLibrary,
@@ -22,7 +23,7 @@ test.describe('Library Landing', () => {
   test('loads the Library landing with workspace controls', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/library/overview');
+    await authenticatedPage.goto(APP_ROUTES.LIBRARY.OVERVIEW);
     await authenticatedPage.waitForLoadState('domcontentloaded');
 
     await expect(authenticatedPage).toHaveURL(/library\/overview/);
@@ -45,7 +46,7 @@ test.describe('Library Landing', () => {
       plan: 'pro',
     });
 
-    await authenticatedPage.goto('/library/overview');
+    await authenticatedPage.goto(APP_ROUTES.LIBRARY.OVERVIEW);
     await authenticatedPage.waitForLoadState('domcontentloaded');
 
     await expect(
@@ -61,7 +62,7 @@ test.describe('Library Landing', () => {
   }) => {
     await mockContentLibrary(authenticatedPage, 'videos', 3);
 
-    await authenticatedPage.goto('/library/overview');
+    await authenticatedPage.goto(APP_ROUTES.LIBRARY.OVERVIEW);
     await authenticatedPage.waitForLoadState('domcontentloaded');
 
     const videosEntry = authenticatedPage.getByTestId(

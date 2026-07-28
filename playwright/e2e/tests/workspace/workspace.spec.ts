@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { Page } from '@playwright/test';
 import {
   mockActiveSubscription,
@@ -42,7 +43,7 @@ test.describe('Workspace', () => {
   test('loads the new workspace home for authenticated users', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/workspace', {
+    await authenticatedPage.goto(APP_ROUTES.WORKSPACE.ROOT, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -103,7 +104,7 @@ test.describe('Workspace', () => {
   test('creates image, video, and caption tasks with the expected routing paths', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/workspace/overview', {
+    await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -146,7 +147,7 @@ test.describe('Workspace', () => {
   test('opens the task composer from the workspace sidebar quick action', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/workspace/inbox/unread', {
+    await authenticatedPage.goto(APP_ROUTES.WORKSPACE.INBOX_UNREAD, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -166,7 +167,7 @@ test.describe('Workspace', () => {
   test('supports inbox tabs and review actions from the workspace', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/workspace/inbox', {
+    await authenticatedPage.goto(APP_ROUTES.WORKSPACE.INBOX, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -216,7 +217,7 @@ test.describe('Workspace', () => {
   test('renders linked ingredient outputs in the workspace task inspector', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/workspace/overview', {
+    await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -245,7 +246,7 @@ test.describe('Workspace', () => {
   test('keeps advanced-tool handoff links reachable from the workspace', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/workspace', {
+    await authenticatedPage.goto(APP_ROUTES.WORKSPACE.ROOT, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -268,7 +269,7 @@ test.describe('Workspace', () => {
   }) => {
     await mockAgentChatDependencies(authenticatedPage);
 
-    await authenticatedPage.goto('/workspace/overview', {
+    await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -293,7 +294,7 @@ test.describe('Workspace', () => {
       authenticatedPage.getByText(/COULD happen next:/),
     ).toBeVisible();
 
-    await authenticatedPage.goto('/workspace/overview', {
+    await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW, {
       waitUntil: 'domcontentloaded',
     });
     await authenticatedPage
@@ -316,7 +317,7 @@ test.describe('Workspace', () => {
       authenticatedPage.getByText('Created 2 follow-up tasks.'),
     ).toBeVisible();
 
-    await authenticatedPage.goto('/workspace/tasks', {
+    await authenticatedPage.goto(APP_ROUTES.WORKSPACE.TASKS, {
       waitUntil: 'domcontentloaded',
     });
 

@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockActiveSubscription,
   mockLibraryData,
@@ -23,7 +24,7 @@ test.describe('Content Library', () => {
 
   test.describe('Page Display', () => {
     test('should display library page', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/library/captions');
+      await authenticatedPage.goto(APP_ROUTES.LIBRARY.CAPTIONS);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/library/);
@@ -33,7 +34,7 @@ test.describe('Content Library', () => {
     });
 
     test('should show captions section', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/library/captions');
+      await authenticatedPage.goto(APP_ROUTES.LIBRARY.CAPTIONS);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/captions/);
@@ -43,7 +44,7 @@ test.describe('Content Library', () => {
     });
 
     test('should show assets section', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/library/videos');
+      await authenticatedPage.goto(APP_ROUTES.LIBRARY.VIDEOS);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/videos/);
@@ -77,7 +78,7 @@ test.describe('Content Library', () => {
     test('should navigate between library sections', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/library/captions');
+      await authenticatedPage.goto(APP_ROUTES.LIBRARY.CAPTIONS);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Navigate to assets
@@ -137,7 +138,7 @@ test.describe('Content Library', () => {
     test('should display items in captions section', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/library/captions');
+      await authenticatedPage.goto(APP_ROUTES.LIBRARY.CAPTIONS);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(
@@ -168,7 +169,7 @@ test.describe('Content Library', () => {
     test('should display items in assets section', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/library/videos');
+      await authenticatedPage.goto(APP_ROUTES.LIBRARY.VIDEOS);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(

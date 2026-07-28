@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
 
@@ -5,10 +6,10 @@ test.describe('Admin Content', () => {
   test.setTimeout(60_000);
 
   const routes = [
-    '/admin/content/posts',
-    '/admin/content/posts/mock-id',
-    '/admin/content/prompts/list',
-    '/admin/content/ingredients/image',
+    APP_ROUTES.ADMIN.CONTENT.POSTS,
+    `${APP_ROUTES.ADMIN.CONTENT.POSTS}/mock-id`,
+    APP_ROUTES.ADMIN.CONTENT.PROMPTS_LIST,
+    `${APP_ROUTES.ADMIN.CONTENT.INGREDIENTS}/image`,
   ];
 
   for (const route of routes) {
@@ -18,14 +19,14 @@ test.describe('Admin Content', () => {
   }
 
   test('prompts list stays interactive', async ({ adminPage }) => {
-    await assertRouteRenders(adminPage, '/admin/content/prompts/list');
+    await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.CONTENT.PROMPTS_LIST);
     await tryClick(adminPage, '[data-testid="content-prompts-surface"] button');
     await tryClick(adminPage, 'button');
     await expect(adminPage.locator('body')).toBeVisible();
   });
 
   test('posts list responds to clicks', async ({ adminPage }) => {
-    await assertRouteRenders(adminPage, '/admin/content/posts');
+    await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.CONTENT.POSTS);
     await tryClick(adminPage, 'button');
     await expect(adminPage.locator('body')).toBeVisible();
   });

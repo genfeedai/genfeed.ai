@@ -36,15 +36,21 @@ import {
 } from '@api/endpoints/admin/fleet/dto';
 import { AdminFleetController } from '@api/endpoints/admin/fleet/fleet.controller';
 import { AdminFleetService } from '@api/endpoints/admin/fleet/fleet.service';
+import { AdminFleetMediaController } from '@api/endpoints/admin/fleet/fleet-media.controller';
+import { AdminFleetOperationsController } from '@api/endpoints/admin/fleet/fleet-operations.controller';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
+import { FleetPublishResultSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import type { Request } from 'express';
 
 describe('AdminFleetController', () => {
   let controller: AdminFleetController;
+  let mediaController: AdminFleetMediaController;
+  let operationsController: AdminFleetOperationsController;
   let adminFleetService: vi.Mocked<AdminFleetService>;
   let fleetService: vi.Mocked<FleetService>;
   let _loggerService: vi.Mocked<LoggerService>;
@@ -104,7 +110,12 @@ describe('AdminFleetController', () => {
       log: vi.fn(),
     } as unknown as vi.Mocked<LoggerService>;
 
-    controller = new AdminFleetController(
+    controller = new AdminFleetController(adminFleetService, _loggerService);
+    mediaController = new AdminFleetMediaController(
+      adminFleetService,
+      _loggerService,
+    );
+    operationsController = new AdminFleetOperationsController(
       adminFleetService,
       fleetService,
       _loggerService,
@@ -116,9 +127,14 @@ describe('AdminFleetController', () => {
   });
 
   it('requires IP whitelist and platform superadmin guards', () => {
-    const guards = Reflect.getMetadata(GUARDS_METADATA, AdminFleetController);
-
-    expect(guards).toEqual([IpWhitelistGuard, SuperAdminGuard]);
+    for (const controllerClass of [
+      AdminFleetMediaController,
+      AdminFleetOperationsController,
+      AdminFleetController,
+    ]) {
+      const guards = Reflect.getMetadata(GUARDS_METADATA, controllerClass);
+      expect(guards).toEqual([IpWhitelistGuard, SuperAdminGuard]);
+    }
   });
 
   describe('Characters', () => {
@@ -352,7 +368,7 @@ describe('AdminFleetController', () => {
 
         adminFleetService.getAssets.mockResolvedValue(mockAssets as never);
 
-        const result = await controller.listAssets(
+        const result = await mediaController.listAssets(
           mockRequest,
           query,
           mockUser,
@@ -379,7 +395,7 @@ describe('AdminFleetController', () => {
 
         adminFleetService.reviewAsset.mockResolvedValue(mockReviewed as never);
 
-        const result = await controller.reviewAsset(
+        const result = await mediaController.reviewAsset(
           mockRequest,
           'asset1',
           dto,
@@ -406,7 +422,7 @@ describe('AdminFleetController', () => {
 
         adminFleetService.reviewAsset.mockResolvedValue(mockReviewed as never);
 
-        const _result = await controller.reviewAsset(
+        const _result = await mediaController.reviewAsset(
           mockRequest,
           'asset2',
           dto,
@@ -428,17 +444,23 @@ describe('AdminFleetController', () => {
         } as PublishAssetDto;
 
         const mockPublishResult = {
-          id: 'asset1',
-          message: 'Publishing queued',
-          organization: 'org_123',
-          platforms: ['instagram', 'twitter'],
+          results: {
+            instagram: { id: 'instagram-1', success: true },
+            twitter: { id: 'twitter-1', success: true },
+          },
+          success: true,
         };
 
         adminFleetService.publishAsset.mockResolvedValue(
           mockPublishResult as never,
         );
 
-        const result = await controller.publishAsset('asset1', dto, mockUser);
+        const result = await mediaController.publishAsset(
+          mockRequest,
+          'asset1',
+          dto,
+          mockUser,
+        );
 
         expect(adminFleetService.publishAsset).toHaveBeenCalledWith(
           'asset1',
@@ -447,7 +469,18 @@ describe('AdminFleetController', () => {
           dto.platforms,
           dto.caption,
         );
-        expect(result).toBeDefined();
+        expect(serializeSingle).toHaveBeenCalledWith(
+          mockRequest,
+          FleetPublishResultSerializer,
+          {
+            id: 'publish:asset1',
+            ...mockPublishResult,
+          },
+        );
+        expect(result).toEqual({
+          id: 'publish:asset1',
+          ...mockPublishResult,
+        });
       });
     });
   });
@@ -470,7 +503,7 @@ describe('AdminFleetController', () => {
           mockIngredient as never,
         );
 
-        const result = await controller.generateImage(
+        const result = await mediaController.generateImage(
           mockRequest,
           dto,
           mockUser,
@@ -511,7 +544,7 @@ describe('AdminFleetController', () => {
           mockJob as never,
         );
 
-        const result = await controller.createGenerateJob(
+        const result = await mediaController.createGenerateJob(
           mockRequest,
           dto,
           mockUser,
@@ -546,7 +579,7 @@ describe('AdminFleetController', () => {
 
         adminFleetService.getGenerationJob.mockResolvedValue(mockJob as never);
 
-        const result = await controller.getGenerateJob(
+        const result = await mediaController.getGenerateJob(
           mockRequest,
           'job_123',
           mockUser,
@@ -576,7 +609,7 @@ describe('AdminFleetController', () => {
           mockTrainings as never,
         );
 
-        const result = await controller.listTrainings(
+        const result = await mediaController.listTrainings(
           mockRequest,
           undefined,
           mockUser,
@@ -596,7 +629,7 @@ describe('AdminFleetController', () => {
           mockTrainings as never,
         );
 
-        const _result = await controller.listTrainings(
+        const _result = await mediaController.listTrainings(
           mockRequest,
           'test-persona',
           mockUser,
@@ -619,7 +652,7 @@ describe('AdminFleetController', () => {
 
         adminFleetService.getTraining.mockResolvedValue(mockTraining as never);
 
-        const result = await controller.getTraining(
+        const result = await mediaController.getTraining(
           mockRequest,
           'train1',
           mockUser,
@@ -647,7 +680,7 @@ describe('AdminFleetController', () => {
 
         adminFleetService.startTraining.mockResolvedValue(mockResult as never);
 
-        const result = await controller.startTraining(
+        const result = await mediaController.startTraining(
           mockRequest,
           dto,
           mockUser,
@@ -678,7 +711,10 @@ describe('AdminFleetController', () => {
           mockCampaigns as never,
         );
 
-        const result = await controller.listCampaigns(mockRequest, mockUser);
+        const result = await operationsController.listCampaigns(
+          mockRequest,
+          mockUser,
+        );
 
         expect(adminFleetService.listCampaigns).toHaveBeenCalledWith('org_123');
         expect(result).toBeDefined();
@@ -695,7 +731,10 @@ describe('AdminFleetController', () => {
           mockStats as never,
         );
 
-        const result = await controller.getPipelineStats(mockRequest, mockUser);
+        const result = await operationsController.getPipelineStats(
+          mockRequest,
+          mockUser,
+        );
 
         expect(adminFleetService.getPipelineStats).toHaveBeenCalledWith(
           'org_123',
@@ -727,7 +766,7 @@ describe('AdminFleetController', () => {
 
         adminFleetService.getEC2Status.mockResolvedValue(mockStatus as never);
 
-        const result = await controller.getEC2Status(mockRequest);
+        const result = await operationsController.getEC2Status(mockRequest);
 
         expect(adminFleetService.getEC2Status).toHaveBeenCalled();
         expect(result).toEqual(
@@ -753,7 +792,7 @@ describe('AdminFleetController', () => {
 
         adminFleetService.ec2Action.mockResolvedValue(mockResult as never);
 
-        const result = await controller.ec2Action(mockRequest, dto);
+        const result = await operationsController.ec2Action(mockRequest, dto);
 
         expect(adminFleetService.ec2Action).toHaveBeenCalledWith(
           'i-123',
@@ -778,7 +817,7 @@ describe('AdminFleetController', () => {
 
         adminFleetService.ec2Action.mockResolvedValue(mockResult as never);
 
-        const _result = await controller.ec2Action(mockRequest, dto);
+        const _result = await operationsController.ec2Action(mockRequest, dto);
 
         expect(adminFleetService.ec2Action).toHaveBeenCalledWith(
           'i-456',
@@ -807,7 +846,10 @@ describe('AdminFleetController', () => {
 
         adminFleetService.ec2ActionAll.mockResolvedValue(mockResult as never);
 
-        const result = await controller.ec2ActionAll(mockRequest, dto);
+        const result = await operationsController.ec2ActionAll(
+          mockRequest,
+          dto,
+        );
 
         expect(adminFleetService.ec2ActionAll).toHaveBeenCalledWith(
           'start',
@@ -836,7 +878,10 @@ describe('AdminFleetController', () => {
           mockResult as never,
         );
 
-        const result = await controller.invalidateCloudFront(mockRequest, dto);
+        const result = await operationsController.invalidateCloudFront(
+          mockRequest,
+          dto,
+        );
 
         expect(adminFleetService.invalidateCloudFront).toHaveBeenCalledWith(
           'E123ABC',
@@ -859,7 +904,7 @@ describe('AdminFleetController', () => {
           mockHealth as never,
         );
 
-        const result = await controller.getServiceHealth(mockRequest);
+        const result = await operationsController.getServiceHealth(mockRequest);
 
         expect(adminFleetService.getServiceHealth).toHaveBeenCalled();
         expect(result).toEqual(
@@ -895,7 +940,7 @@ describe('AdminFleetController', () => {
 
         fleetService.getFleetHealth.mockResolvedValue(mockFleetHealth as never);
 
-        const result = await controller.getFleetHealth(mockRequest);
+        const result = await operationsController.getFleetHealth(mockRequest);
 
         expect(fleetService.getFleetHealth).toHaveBeenCalled();
         expect(result).toEqual({

@@ -3,7 +3,7 @@ import { ApiKeyScope, PostStatus } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import {
   CURATED_ACTION_CATALOG,
-  requiresPublishingApproval,
+  isPublishingApprovalRequired,
 } from '@genfeedai/tools';
 import { ForbiddenException } from '@nestjs/common';
 
@@ -29,7 +29,7 @@ const PUBLISHING_CAPABILITY_SCOPES = {
 } as const satisfies Record<PublishingCapability, readonly ApiKeyScope[]>;
 
 const PUBLISHING_MCP_APPROVAL_TOOLS: ReadonlySet<string> = new Set(
-  CURATED_ACTION_CATALOG.filter(requiresPublishingApproval).map(
+  CURATED_ACTION_CATALOG.filter(isPublishingApprovalRequired).map(
     (entry) => entry.name,
   ),
 );

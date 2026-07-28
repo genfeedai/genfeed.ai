@@ -1,55 +1,35 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+import {
+  SocialAutomationState,
+  SocialConversationStatus,
+  SocialConversationType,
+  SocialInboxPlatform,
+} from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsIn, IsOptional, IsString } from 'class-validator';
-
-const SOCIAL_PLATFORMS = [
-  'youtube',
-  'instagram',
-  'twitter',
-  'linkedin',
-  'unipile',
-] as const;
-
-const CONVERSATION_STATUSES = [
-  'open',
-  'needs_review',
-  'resolved',
-  'archived',
-] as const;
-
-const AUTOMATION_STATES = [
-  'manual',
-  'drafted',
-  'pending_approval',
-  'approved',
-  'automated',
-  'failed',
-] as const;
-
-const CONVERSATION_TYPES = ['comment', 'dm', 'mention', 'reply'] as const;
+import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class SocialInboxQueryDto extends BaseQueryDto {
-  @ApiProperty({ enum: SOCIAL_PLATFORMS, required: false })
+  @ApiProperty({ enum: SocialInboxPlatform, required: false })
   @IsOptional()
-  @IsIn(SOCIAL_PLATFORMS)
-  platform?: string;
+  @IsEnum(SocialInboxPlatform)
+  platform?: SocialInboxPlatform;
 
-  @ApiProperty({ enum: CONVERSATION_STATUSES, required: false })
+  @ApiProperty({ enum: SocialConversationStatus, required: false })
   @IsOptional()
-  @IsIn(CONVERSATION_STATUSES)
-  status?: string;
+  @IsEnum(SocialConversationStatus)
+  status?: SocialConversationStatus;
 
-  @ApiProperty({ enum: AUTOMATION_STATES, required: false })
+  @ApiProperty({ enum: SocialAutomationState, required: false })
   @IsOptional()
-  @IsIn(AUTOMATION_STATES)
-  automationState?: string;
+  @IsEnum(SocialAutomationState)
+  automationState?: SocialAutomationState;
 
-  @ApiProperty({ enum: CONVERSATION_TYPES, required: false })
+  @ApiProperty({ enum: SocialConversationType, required: false })
   @IsOptional()
-  @IsIn(CONVERSATION_TYPES)
-  conversationType?: string;
+  @IsEnum(SocialConversationType)
+  conversationType?: SocialConversationType;
 
   @ApiProperty({ required: false })
   @IsOptional()

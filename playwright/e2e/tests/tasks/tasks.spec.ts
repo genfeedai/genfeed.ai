@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { Page, Route } from '@playwright/test';
 import { playwrightApiOrigin } from '../../config/environment';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
@@ -360,11 +361,13 @@ test.describe('Tasks', () => {
   test('loads the tasks list, filters it, and opens the task overlay', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/tasks', {
+    await authenticatedPage.goto(APP_ROUTES.WORKSPACE.TASKS, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/tasks(?:$|[?#])/);
+    expect(new URL(authenticatedPage.url()).pathname).toBe(
+      APP_ROUTES.WORKSPACE.TASKS,
+    );
     await expect(
       authenticatedPage.getByRole('heading', { name: 'Tasks' }),
     ).toBeVisible();
@@ -404,7 +407,7 @@ test.describe('Tasks', () => {
   test('creates a new task from the list view', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/tasks', {
+    await authenticatedPage.goto(APP_ROUTES.WORKSPACE.TASKS, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -437,11 +440,13 @@ test.describe('Tasks', () => {
   test('loads the task detail page and supports status plus comment updates', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/tasks/GEN-101', {
+    await authenticatedPage.goto(`${APP_ROUTES.WORKSPACE.TASKS}/GEN-101`, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/tasks\/GEN-101(?:$|[?#])/);
+    expect(new URL(authenticatedPage.url()).pathname).toBe(
+      `${APP_ROUTES.WORKSPACE.TASKS}/GEN-101`,
+    );
     await expect(
       authenticatedPage.getByRole('heading', {
         name: 'Regression in task orchestration',
@@ -480,7 +485,7 @@ test.describe('Tasks — Unauthenticated Access', () => {
   test('redirects unauthenticated users from the tasks list', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto('/tasks', {
+    await unauthenticatedPage.goto(APP_ROUTES.WORKSPACE.TASKS, {
       timeout: 30000,
       waitUntil: 'domcontentloaded',
     });
@@ -495,7 +500,8 @@ test.describe('Tasks — Unauthenticated Access', () => {
       // Local keyless dev mode intentionally skips auth enforcement.
     }
 
-    await expect(unauthenticatedPage).toHaveURL(/\/tasks(?:$|[?#])/);
-    await expect(unauthenticatedPage).toHaveURL(/\/tasks(?:$|[?#])/);
+    expect(new URL(unauthenticatedPage.url()).pathname).toBe(
+      APP_ROUTES.WORKSPACE.TASKS,
+    );
   });
 });

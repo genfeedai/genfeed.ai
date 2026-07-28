@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
 
@@ -12,12 +13,12 @@ test.describe('Admin Automation', () => {
   test.setTimeout(90_000);
 
   const routes = [
-    '/admin/automation/bots',
-    '/admin/automation/models/image',
-    '/admin/automation/trainings',
-    '/admin/automation/trainings/mock-id/images',
-    '/admin/automation/trainings/mock-id/sources',
-    '/admin/automation/workflows',
+    APP_ROUTES.ADMIN.AUTOMATION.BOTS,
+    `${APP_ROUTES.ADMIN.AUTOMATION.MODELS}/image`,
+    APP_ROUTES.ADMIN.AUTOMATION.TRAININGS,
+    `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/mock-id/images`,
+    `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/mock-id/sources`,
+    APP_ROUTES.ADMIN.AUTOMATION.WORKFLOWS,
   ];
 
   for (const route of routes) {
@@ -27,14 +28,14 @@ test.describe('Admin Automation', () => {
   }
 
   test('bots list stays interactive', async ({ adminPage }) => {
-    await assertRouteRenders(adminPage, '/admin/automation/bots');
+    await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.AUTOMATION.BOTS);
     await tryClick(adminPage, '[data-testid="automation-bots-surface"]');
     await tryClick(adminPage, 'button');
     await expect(adminPage.locator('body')).toBeVisible();
   });
 
   test('workflows list stays interactive', async ({ adminPage }) => {
-    await assertRouteRenders(adminPage, '/admin/automation/workflows');
+    await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.AUTOMATION.WORKFLOWS);
     await tryClick(adminPage, 'button');
     await expect(adminPage.locator('body')).toBeVisible();
   });

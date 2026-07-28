@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockActiveSubscription,
   mockBrandsData,
@@ -59,7 +60,7 @@ test.describe('Workflows', () => {
   test('workflow creation route renders restored navigation and draft actions', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/workflows/new', {
+    await authenticatedPage.goto(APP_ROUTES.WORKFLOWS.NEW, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -81,7 +82,7 @@ test.describe('Workflows', () => {
   test('workflow executions route renders execution history shell', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/workflows/executions', {
+    await authenticatedPage.goto(APP_ROUTES.WORKFLOWS.EXECUTIONS, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -94,7 +95,7 @@ test.describe('Workflows', () => {
   test('unauthenticated user is redirected away from workflow editor routes', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto('/workflows/new', {
+    await unauthenticatedPage.goto(APP_ROUTES.WORKFLOWS.NEW, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -107,7 +108,7 @@ test.describe('Workflows', () => {
   test('unauthenticated user is redirected away from workflow executions', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto('/workflows/executions', {
+    await unauthenticatedPage.goto(APP_ROUTES.WORKFLOWS.EXECUTIONS, {
       waitUntil: 'domcontentloaded',
     });
 

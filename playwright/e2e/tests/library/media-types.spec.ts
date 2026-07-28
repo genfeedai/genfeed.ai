@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockActiveSubscription,
   mockContentLibrary,
@@ -24,7 +25,7 @@ test.describe('Library Media Types', () => {
 
   test.describe('Captions Page', () => {
     test('should display captions page', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/library/captions');
+      await authenticatedPage.goto(APP_ROUTES.LIBRARY.CAPTIONS);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/captions/);
@@ -36,7 +37,7 @@ test.describe('Library Media Types', () => {
     test('should show captions list or empty state', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/library/captions');
+      await authenticatedPage.goto(APP_ROUTES.LIBRARY.CAPTIONS);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const hasItems = await authenticatedPage
@@ -64,7 +65,7 @@ test.describe('Library Media Types', () => {
 
   test.describe('GIFs Page', () => {
     test('should display GIF library page', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/library/gifs');
+      await authenticatedPage.goto(APP_ROUTES.LIBRARY.GIFS);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/gifs/);
@@ -74,7 +75,7 @@ test.describe('Library Media Types', () => {
     test('should show GIF grid or empty state', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/library/gifs');
+      await authenticatedPage.goto(APP_ROUTES.LIBRARY.GIFS);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // GIF items in masonry/grid layout or empty state
@@ -105,7 +106,7 @@ test.describe('Library Media Types', () => {
     test('should display the Library landing with workspace controls', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/library/overview');
+      await authenticatedPage.goto(APP_ROUTES.LIBRARY.OVERVIEW);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/overview/);
@@ -128,7 +129,7 @@ test.describe('Library Media Types', () => {
         plan: 'pro',
       });
 
-      await authenticatedPage.goto('/library/overview');
+      await authenticatedPage.goto(APP_ROUTES.LIBRARY.OVERVIEW);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(
@@ -144,7 +145,7 @@ test.describe('Library Media Types', () => {
     }) => {
       await mockContentLibrary(authenticatedPage, 'videos', 3);
 
-      await authenticatedPage.goto('/library/overview');
+      await authenticatedPage.goto(APP_ROUTES.LIBRARY.OVERVIEW);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const videosEntry = authenticatedPage.getByTestId(
@@ -171,7 +172,7 @@ test.describe('Library Media Types', () => {
 
   test.describe('Music Page', () => {
     test('should display music library page', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/library/music');
+      await authenticatedPage.goto(APP_ROUTES.LIBRARY.MUSIC);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/music/);
@@ -181,7 +182,7 @@ test.describe('Library Media Types', () => {
     test('should show music tracks or empty state', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/library/music');
+      await authenticatedPage.goto(APP_ROUTES.LIBRARY.MUSIC);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Music track items or empty state
@@ -211,7 +212,7 @@ test.describe('Library Media Types', () => {
 
   test.describe('Voices Page', () => {
     test('should display voices page', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/library/voices');
+      await authenticatedPage.goto(APP_ROUTES.LIBRARY.VOICES);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/voices/);
@@ -221,7 +222,7 @@ test.describe('Library Media Types', () => {
     test('should show voice samples or empty state', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/library/voices');
+      await authenticatedPage.goto(APP_ROUTES.LIBRARY.VOICES);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Voice items or empty state
@@ -254,7 +255,7 @@ test.describe('Library Media Types', () => {
     }) => {
       await mockContentLibrary(authenticatedPage, 'videos', 3);
 
-      await authenticatedPage.goto('/library/videos');
+      await authenticatedPage.goto(APP_ROUTES.LIBRARY.VIDEOS);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Search input, filter buttons, or sort controls
@@ -292,7 +293,7 @@ test.describe('Library Media Types', () => {
     test('should redirect unauthenticated user from library captions', async ({
       unauthenticatedPage,
     }) => {
-      await unauthenticatedPage.goto('/library/captions');
+      await unauthenticatedPage.goto(APP_ROUTES.LIBRARY.CAPTIONS);
 
       // Should redirect to login
       await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
@@ -304,7 +305,7 @@ test.describe('Library Media Types', () => {
     test('should redirect unauthenticated user from library voices', async ({
       unauthenticatedPage,
     }) => {
-      await unauthenticatedPage.goto('/library/voices');
+      await unauthenticatedPage.goto(APP_ROUTES.LIBRARY.VOICES);
 
       // Should redirect to login
       await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {

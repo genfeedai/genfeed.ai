@@ -146,6 +146,7 @@ export class YtDlpService {
           }
           settle(() => resolve(outputPath));
         } else {
+          this.cleanupPartialOutput(outputPath);
           settle(() => reject(new Error(`yt-dlp exited with code ${code}`)));
         }
       });

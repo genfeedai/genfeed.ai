@@ -1,18 +1,9 @@
 import { cn } from '@genfeedai/helpers/formatting/cn';
+import type { SurfaceSummaryItem } from '@genfeedai/interfaces';
 import { Skeleton } from '@ui/primitives/skeleton';
-import type { ReactNode } from 'react';
 import { DashboardGrid } from './DashboardGrid';
 
-export interface SurfaceSummaryItem {
-  /** Secondary line under the value — context, not a second metric. */
-  accent?: ReactNode;
-  icon?: ReactNode;
-  isLoading?: boolean;
-  label: string;
-  /** Extra card classes for per-item emphasis (e.g. a warning tint). */
-  tone?: string;
-  value: string;
-}
+export type { SurfaceSummaryItem } from '@genfeedai/interfaces';
 
 /**
  * Inline strips render *inside* the agent conversation thread, where a surface
@@ -21,6 +12,10 @@ export interface SurfaceSummaryItem {
  */
 const INLINE_ITEM_LIMIT = 3;
 const PAGE_ITEM_LIMIT = 4;
+
+function isSupportedAccent(value: unknown): value is string {
+  return typeof value === 'string';
+}
 
 const DENSITY = {
   comfortable: {
@@ -76,32 +71,40 @@ export function SurfaceSummaryStrip({
   return (
     <section className={className} data-testid={testId}>
       <DashboardGrid cols={visibleItems.length >= 4 ? 4 : 3}>
-        {visibleItems.map((item) => (
-          <div
-            key={item.label}
-            className={cn(
-              'rounded-card bg-card shadow-border',
-              styles.card,
-              styles.body,
-              item.tone,
-            )}
-          >
-            <div className="flex items-start justify-between gap-3">
-              {item.isLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <div className={styles.value}>{item.value}</div>
+        {visibleItems.map((item) => {
+          const accent = isSupportedAccent(item.accent)
+            ? item.accent
+            : undefined;
+
+          return (
+            <div
+              key={item.label}
+              className={cn(
+                'rounded-card bg-card shadow-border',
+                styles.card,
+                styles.body,
+                item.tone,
               )}
-              {item.icon ? <span className="shrink-0">{item.icon}</span> : null}
+            >
+              <div className="flex items-start justify-between gap-3">
+                {item.isLoading ? (
+                  <Skeleton className="h-8 w-16" />
+                ) : (
+                  <div className={styles.value}>{item.value}</div>
+                )}
+                {item.icon ? (
+                  <span className="shrink-0">{item.icon}</span>
+                ) : null}
+              </div>
+              <p className={cn('mt-1', styles.label)}>{item.label}</p>
+              {item.isLoading ? (
+                <Skeleton className="mt-2 h-3 w-28" />
+              ) : accent ? (
+                <p className={cn('mt-1.5', styles.accent)}>{accent}</p>
+              ) : null}
             </div>
-            <p className={cn('mt-1', styles.label)}>{item.label}</p>
-            {item.isLoading ? (
-              <Skeleton className="mt-2 h-3 w-28" />
-            ) : item.accent ? (
-              <p className={cn('mt-1.5', styles.accent)}>{item.accent}</p>
-            ) : null}
-          </div>
-        ))}
+          );
+        })}
       </DashboardGrid>
     </section>
   );

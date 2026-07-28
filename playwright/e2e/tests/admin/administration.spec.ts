@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
 
@@ -12,9 +13,9 @@ test.describe('Admin Administration', () => {
   test.setTimeout(60_000);
 
   const routes = [
-    '/admin/administration/announcements',
-    '/admin/administration/roles',
-    '/admin/administration/subscriptions',
+    APP_ROUTES.ADMIN.ADMINISTRATION.ANNOUNCEMENTS,
+    APP_ROUTES.ADMIN.ADMINISTRATION.ROLES,
+    APP_ROUTES.ADMIN.ADMINISTRATION.SUBSCRIPTIONS,
   ];
 
   for (const route of routes) {
@@ -24,13 +25,16 @@ test.describe('Admin Administration', () => {
   }
 
   test('announcements view stays interactive', async ({ adminPage }) => {
-    await assertRouteRenders(adminPage, '/admin/administration/announcements');
+    await assertRouteRenders(
+      adminPage,
+      APP_ROUTES.ADMIN.ADMINISTRATION.ANNOUNCEMENTS,
+    );
     await tryClick(adminPage, 'button');
     await expect(adminPage.locator('body')).toBeVisible();
   });
 
   test('roles view stays interactive', async ({ adminPage }) => {
-    await assertRouteRenders(adminPage, '/admin/administration/roles');
+    await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.ADMINISTRATION.ROLES);
     await tryClick(adminPage, '[role="tab"]');
     await tryClick(adminPage, 'button');
     await expect(adminPage.locator('body')).toBeVisible();

@@ -13,6 +13,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PostGroupsController } from '@api/collections/post-groups/controllers/post-groups.controller';
 import type { PostGroupsQueryDto } from '@api/collections/post-groups/dto/post-groups-query.dto';
+import { PostGroupRecurrenceService } from '@api/collections/post-groups/services/post-group-recurrence.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import { ApiKeyScope, ReleaseStatus } from '@genfeedai/enums';
@@ -31,6 +32,13 @@ describe('PostGroupsController', () => {
     resume: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
     updateTarget: ReturnType<typeof vi.fn>;
+  };
+  let recurrenceService: {
+    cancelFuture: ReturnType<typeof vi.fn>;
+    editFuture: ReturnType<typeof vi.fn>;
+    pauseFuture: ReturnType<typeof vi.fn>;
+    preview: ReturnType<typeof vi.fn>;
+    resumeFuture: ReturnType<typeof vi.fn>;
   };
 
   const user = { id: 'user-1' } as User;
@@ -54,11 +62,22 @@ describe('PostGroupsController', () => {
             updateTarget: vi.fn().mockResolvedValue({ id: 'group-1' }),
           },
         },
+        {
+          provide: PostGroupRecurrenceService,
+          useValue: {
+            cancelFuture: vi.fn().mockResolvedValue({ id: 'group-1' }),
+            editFuture: vi.fn().mockResolvedValue({ id: 'group-1' }),
+            pauseFuture: vi.fn().mockResolvedValue({ id: 'group-1' }),
+            preview: vi.fn().mockResolvedValue({ success: true }),
+            resumeFuture: vi.fn().mockResolvedValue({ id: 'group-1' }),
+          },
+        },
       ],
     }).compile();
 
     controller = module.get(PostGroupsController);
     service = module.get(PostGroupsService);
+    recurrenceService = module.get(PostGroupRecurrenceService);
   });
 
   afterEach(() => {
@@ -123,6 +142,45 @@ describe('PostGroupsController', () => {
     );
   });
 
+  it('routes recurrence preview and series lifecycle through the scoped service', async () => {
+    const previewBody = {
+      recurrence: { frequency: 'weekly', interval: 1 },
+      startAt: '2026-08-03T09:00:00.000Z',
+      timezone: 'UTC',
+    };
+
+    await controller.previewRecurrence(previewBody);
+    await controller.pauseSeries(req, user, 'group-1');
+    await controller.resumeSeries(req, user, 'group-1');
+    await controller.cancelFutureSeries(req, user, 'group-1');
+    await controller.editFutureSeries(req, user, 'group-1', {
+      scheduledDate: '2026-08-12T09:00:00.000Z',
+    });
+
+    expect(recurrenceService.preview).toHaveBeenCalledWith(previewBody);
+    expect(recurrenceService.pauseFuture).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      'group-1',
+    );
+    expect(recurrenceService.resumeFuture).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      'group-1',
+    );
+    expect(recurrenceService.cancelFuture).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      'group-1',
+    );
+    expect(recurrenceService.editFuture).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      'group-1',
+      { scheduledDate: '2026-08-12T09:00:00.000Z' },
+    );
+  });
+
   it('declares fail-closed publishing scopes on consequential routes', () => {
     expect(
       Reflect.getMetadata(
@@ -153,8 +211,13 @@ describe('PostGroupsController', () => {
     ).toEqual([ApiKeyScope.POSTS_SCHEDULE, ApiKeyScope.POSTS_PUBLISH]);
     for (const handler of [
       PostGroupsController.prototype.cancel,
+      PostGroupsController.prototype.cancelFutureSeries,
+      PostGroupsController.prototype.editFutureSeries,
       PostGroupsController.prototype.pause,
+      PostGroupsController.prototype.pauseSeries,
+      PostGroupsController.prototype.previewRecurrence,
       PostGroupsController.prototype.resume,
+      PostGroupsController.prototype.resumeSeries,
     ]) {
       expect(Reflect.getMetadata(API_KEY_SCOPES_KEY, handler)).toEqual([
         ApiKeyScope.POSTS_SCHEDULE,

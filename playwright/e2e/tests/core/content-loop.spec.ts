@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   generateMockPost,
   mockActiveSubscription,
@@ -55,7 +56,7 @@ test.describe('Core Content Loop', () => {
   }) => {
     const overviewPage = new OverviewPage(authenticatedPage);
 
-    await overviewPage.goto('/workspace/overview');
+    await overviewPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW);
 
     await expect(overviewPage.mainContent).toBeVisible();
     // The page h1 is "Dashboard" (level 1); the "Workspace" qualifier now lives in
