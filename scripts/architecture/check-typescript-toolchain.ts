@@ -92,12 +92,14 @@ for (const manifestPath of manifestPaths) {
     );
   }
 
+  const typescriptOverride = manifest.overrides?.typescript;
   if (
-    manifest.overrides?.typescript &&
-    manifest.overrides.typescript !== TYPESCRIPT_6_VERSION
+    typescriptOverride &&
+    (typescriptOverride !== TYPESCRIPT_6_VERSION ||
+      !LEGACY_API_CONSUMERS.has(manifestPath))
   ) {
     violations.push(
-      `${manifestPath}: TypeScript override must remain on the compatibility API version ${TYPESCRIPT_6_VERSION}.`,
+      `${manifestPath}: TypeScript override ${TYPESCRIPT_6_VERSION} is restricted to compiler-API consumers.`,
     );
   }
 }
@@ -113,12 +115,15 @@ for (const expectedConsumer of LEGACY_API_CONSUMERS) {
 const compilerVersion = spawnSync('node_modules/.bin/tsc', ['--version'], {
   encoding: 'utf8',
 });
-if (
-  compilerVersion.status !== 0 ||
-  compilerVersion.stdout.trim() !== 'Version 7.0.2'
-) {
+const compilerStdout = compilerVersion.stdout?.trim() ?? '';
+const compilerStderr = compilerVersion.stderr?.trim() ?? '';
+const compilerError = compilerVersion.error?.message ?? '';
+if (compilerVersion.status !== 0 || compilerStdout !== 'Version 7.0.2') {
+  const compilerDiagnostic =
+    [compilerStdout, compilerStderr, compilerError].find(Boolean) ??
+    'no diagnostic output';
   violations.push(
-    `node_modules/.bin/tsc must resolve to TypeScript 7.0.2, found "${compilerVersion.stdout.trim() || compilerVersion.stderr.trim()}".`,
+    `node_modules/.bin/tsc must resolve to TypeScript 7.0.2, found "${compilerDiagnostic}".`,
   );
 }
 

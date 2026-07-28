@@ -380,18 +380,16 @@ run_db_migrations() {
   # and egress to the public RDS endpoint (default bridge network provides it).
   # Run as root + HOME=/tmp so the schema engine can write its cache regardless
   # of the image's non-root runtime user.
-  # `bun x` (not `bunx`): the image only ships the bun binary, and the
-  # node:24-slim entrypoint rewrites an unknown first arg into `node bunx ...`
-  # -> MODULE_NOT_FOUND. Prisma is an intentional runtime dependency, so this
-  # resolves the exact lockfile version instead of downloading a second,
-  # independently pinned CLI during every deployment.
+  # Invoke the package-local binary from the image's frozen isolated install.
+  # This fails closed if Prisma is ever pruned instead of letting `bun x`
+  # download a registry version during a production deployment.
   if docker run --rm \
       --user root \
       -e HOME=/tmp \
       --env-file "$ENV_FILE" \
       -w /usr/src/app/packages/prisma \
       "$DEFAULT_SERVER_IMAGE" \
-      bun x prisma migrate deploy; then
+      /usr/src/app/packages/prisma/node_modules/.bin/prisma migrate deploy; then
     log "Prisma migrations applied (or already up to date)"
     return 0
   fi
