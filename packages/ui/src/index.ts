@@ -80,6 +80,13 @@ export type { ModalContentProps, ModalSize } from './modals/compound/Modal';
 export { Modal } from './modals/compound/modal.compound';
 // Primitives (Radix UI based)
 export * from './primitives';
+export type { ConversationSidebarFilter } from './sidebar/ConversationSidebar';
+export {
+  ConversationSidebarFilters,
+  ConversationSidebarSearch,
+  ConversationSidebarSection,
+  conversationSidebarRowClassName,
+} from './sidebar/ConversationSidebar';
 export { SidebarNavItem } from './sidebar/SidebarNavItem';
 export { SidebarSection } from './sidebar/SidebarSection';
 

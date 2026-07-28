@@ -53,6 +53,7 @@ type AgentThreadListProps = {
   isActive?: boolean;
   onActionsChange?: (actions: ReactNode) => void;
   onNavigate?: (path: string) => void;
+  searchAction?: ReactNode;
 };
 
 const LazyAgentThreadList = dynamic<AgentThreadListProps>(
@@ -196,12 +197,13 @@ function AppLayoutWithDynamicMenu({
   }, [isWorkspaceShellMounted, workspaceShellRoute?.telemetryClass]);
 
   const renderConversations = useCallback(
-    () =>
+    (searchAction?: ReactNode) =>
       agentApiService ? (
         <LazyAgentThreadList
           apiService={agentApiService}
           onNavigate={handleNavigate}
           onActionsChange={setConversationActions}
+          searchAction={searchAction}
         />
       ) : null,
     [agentApiService, handleNavigate, setConversationActions],

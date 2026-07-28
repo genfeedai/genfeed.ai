@@ -5,6 +5,7 @@ import {
   ButtonVariant,
   ComponentSize,
 } from '@genfeedai/enums';
+import { conversationSidebarRowClassName } from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
@@ -120,6 +121,12 @@ export function AgentThreadListRow({
     pendingInputCount: conv.pendingInputCount,
   });
   const statusA11yLabel = getThreadStatusA11yLabel(conv, statusMeta);
+  const preview =
+    conv.lastAssistantPreview ||
+    conv.lastMessage ||
+    conv.source ||
+    conv.platform ||
+    'Agent conversation';
   const statusIndicator = isLoadingStatus ? (
     <Spinner
       size={ComponentSize.XS}
@@ -143,16 +150,16 @@ export function AgentThreadListRow({
     <div
       key={conv.id}
       className={cn(
-        'group relative flex h-9 w-full items-center transition-colors',
-        conv.status === AgentThreadStatus.ARCHIVED && 'opacity-55',
-        conv.id === activeThreadId
-          ? 'bg-foreground/[0.06]'
-          : 'hover:bg-foreground/[0.06]',
+        'flex min-h-14 items-stretch',
+        conversationSidebarRowClassName({
+          isMuted: conv.status === AgentThreadStatus.ARCHIVED,
+          isSelected: isActiveConversation,
+        }),
       )}
       onContextMenu={(event) => onContextMenu(event, conv.id)}
     >
       {renamingThreadId === conv.id ? (
-        <div className="flex h-full flex-1 items-center gap-2 px-3">
+        <div className="flex min-h-14 flex-1 items-center gap-2 px-3">
           {statusIndicator}
           <Input
             ref={renameInputRef}
@@ -184,20 +191,22 @@ export function AgentThreadListRow({
       ) : (
         <Link
           href={getThreadHref(conv.id)}
-          className="flex h-full min-w-0 flex-1 items-center gap-1.5 px-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/60"
+          className="flex min-w-0 flex-1 gap-2.5 rounded-md px-3 py-2 pr-9 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/60"
           onClick={() => {
             onSelect(conv);
           }}
         >
-          {statusMeta ? (
-            <SimpleTooltip label={statusMeta.label} position="top">
-              {statusIndicator}
-            </SimpleTooltip>
-          ) : (
-            statusIndicator
-          )}
-          <div className="flex min-w-0 flex-1 items-center gap-1.5">
-            <div className="flex min-w-0 flex-1 items-center gap-1.5">
+          <span className="mt-1">
+            {statusMeta ? (
+              <SimpleTooltip label={statusMeta.label} position="top">
+                {statusIndicator}
+              </SimpleTooltip>
+            ) : (
+              statusIndicator
+            )}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 items-center gap-1.5">
               {conv.isPinned ? (
                 <PiPushPinSimple
                   className="size-3 shrink-0 -rotate-45 text-foreground/42"
@@ -207,17 +216,36 @@ export function AgentThreadListRow({
               <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground/90">
                 {conv.title || 'Untitled'}
               </span>
+              {relativeTime ? (
+                <span className="shrink-0 text-[11px] text-foreground/36">
+                  {relativeTime}
+                </span>
+              ) : null}
             </div>
-            {relativeTime ? (
-              <span className="shrink-0 text-[11px] text-foreground/42">
-                {relativeTime}
+            <div className="mt-0.5 flex min-w-0 items-center gap-2">
+              <span className="min-w-0 flex-1 truncate text-[11px] text-foreground/38">
+                {preview}
               </span>
-            ) : null}
+              {statusMeta ? (
+                <span
+                  className={cn(
+                    'shrink-0 text-[10px] font-medium',
+                    statusMeta.tone === 'warning'
+                      ? 'text-warning'
+                      : statusMeta.tone === 'running'
+                        ? 'text-info'
+                        : 'text-foreground/44',
+                  )}
+                >
+                  {statusMeta.label}
+                </span>
+              ) : null}
+            </div>
           </div>
         </Link>
       )}
 
-      <div className="ml-1 shrink-0 self-center">
+      <div className="absolute right-1.5 top-1.5 shrink-0">
         <DropdownMenu
           open={openMenuThreadId === conv.id}
           onOpenChange={(open) => {

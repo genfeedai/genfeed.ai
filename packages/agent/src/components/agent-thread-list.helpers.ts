@@ -5,6 +5,114 @@ export { getErrorMessage } from '@genfeedai/utils/error/error-handler.util';
 
 export const AGENT_REFRESH_CONVERSATIONS_EVENT = 'agent:threads:refresh';
 
+export type AgentThreadListFilter = 'all' | 'needs-you' | 'working' | 'pinned';
+
+export interface AgentThreadListGroups {
+  needsYou: AgentThread[];
+  working: AgentThread[];
+  pinned: AgentThread[];
+  recent: AgentThread[];
+}
+
+function isThreadNeedsYou(thread: AgentThread): boolean {
+  return (
+    thread.attentionState === 'needs-input' ||
+    (thread.pendingInputCount ?? 0) > 0 ||
+    thread.runStatus === 'waiting_input'
+  );
+}
+
+function isThreadWorking(
+  thread: AgentThread,
+  options?: {
+    activeRunStatus?: string | null;
+    activeThreadId?: string | null;
+    isStreaming?: boolean;
+  },
+): boolean {
+  if (thread.runStatus === 'queued' || thread.runStatus === 'running') {
+    return true;
+  }
+
+  return (
+    thread.id === options?.activeThreadId &&
+    (options.isStreaming === true ||
+      options.activeRunStatus === 'running' ||
+      options.activeRunStatus === 'cancelling')
+  );
+}
+
+function matchesThreadSearch(
+  thread: AgentThread,
+  searchQuery: string,
+): boolean {
+  const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
+  if (!normalizedQuery) {
+    return true;
+  }
+
+  return [
+    thread.title,
+    thread.lastMessage,
+    thread.lastAssistantPreview,
+    thread.platform,
+    thread.source,
+  ].some((value) => value?.toLocaleLowerCase().includes(normalizedQuery));
+}
+
+export function groupAgentThreads(
+  threads: AgentThread[],
+  options: {
+    activeRunStatus?: string | null;
+    activeThreadId?: string | null;
+    filter: AgentThreadListFilter;
+    isStreaming?: boolean;
+    searchQuery: string;
+  },
+): AgentThreadListGroups {
+  const matchingThreads = threads.filter((thread) => {
+    if (!matchesThreadSearch(thread, options.searchQuery)) {
+      return false;
+    }
+
+    switch (options.filter) {
+      case 'needs-you':
+        return isThreadNeedsYou(thread);
+      case 'working':
+        return isThreadWorking(thread, options);
+      case 'pinned':
+        return thread.isPinned === true;
+      default:
+        return true;
+    }
+  });
+
+  const groups: AgentThreadListGroups = {
+    needsYou: [],
+    working: [],
+    pinned: [],
+    recent: [],
+  };
+
+  for (const thread of matchingThreads) {
+    if (isThreadNeedsYou(thread)) {
+      groups.needsYou.push(thread);
+      continue;
+    }
+    if (isThreadWorking(thread, options)) {
+      groups.working.push(thread);
+      continue;
+    }
+    if (thread.isPinned) {
+      groups.pinned.push(thread);
+      continue;
+    }
+    groups.recent.push(thread);
+  }
+
+  return groups;
+}
+
 export function formatRelativeTime(timestamp?: string): string | null {
   if (!timestamp) {
     return null;

@@ -39,7 +39,9 @@ export function parseTrustedOrigins(value: string | undefined): string[] {
 
 /**
  * Frontends local dev serves from, auto-trusted so a fresh clone works with zero
- * `BETTER_AUTH_TRUSTED_ORIGINS` config — app (3000), website (3002), API (3010).
+ * `BETTER_AUTH_TRUSTED_ORIGINS` config. Port wildcards keep alternate Next.js
+ * ports (for example 3131 in a worktree) on the same supported local origin
+ * contract as the shared CORS configuration.
  *
  * Recommended dev host is `genfeed.localhost`: `*.localhost` resolves to loopback
  * in every modern browser/OS (RFC 6761) with NO `/etc/hosts` entry, and gives
@@ -48,15 +50,9 @@ export function parseTrustedOrigins(value: string | undefined): string[] {
  * is kept for back-compat during migration; plain `localhost` also works.
  */
 const LOCAL_DEV_TRUSTED_ORIGINS = [
-  'http://genfeed.localhost:3000',
-  'http://localhost:3000',
-  'http://local.genfeed.ai:3000',
-  'http://genfeed.localhost:3002',
-  'http://localhost:3002',
-  'http://local.genfeed.ai:3002',
-  'http://genfeed.localhost:3010',
-  'http://localhost:3010',
-  'http://local.genfeed.ai:3010',
+  'http://genfeed.localhost:*',
+  'http://localhost:*',
+  'http://local.genfeed.ai:*',
 ] as const;
 
 /**
