@@ -1,19 +1,25 @@
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { AgentToolInternalApiService } from '@api/services/agent-orchestrator/tools/agent-tool-internal-api.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { PostStatus } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
+import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
 /**
  * Proactive agent tools: approval summary, performance, calendar, strategy bookkeeping.
  * Extracted from AgentToolExecutorService per #519.
- * (discover_engagements / draft_engagement_reply remain on executor — they need callInternalApi.)
+ * Includes discover_engagements / draft_engagement_reply via AgentToolInternalApiService.
  */
 @Injectable()
 export class AgentProactiveToolHandler {
+  private readonly constructorName = String(this.constructor.name);
+
   constructor(
+    private readonly loggerService: LoggerService,
     private readonly postsService: PostsService,
+    private readonly internalApi: AgentToolInternalApiService,
     @Optional()
     private readonly batchGenerationService?: BatchGenerationService,
   ) {}
@@ -215,6 +221,151 @@ export class AgentProactiveToolHandler {
         recorded: true,
         repliesDrafted: (params.repliesDrafted as number) || 0,
         summary: params.summary as string,
+      },
+      success: true,
+    };
+  }
+
+  async discoverEngagements(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const keywords = params.keywords as string[];
+    const platform = params.platform as string;
+    const limit = (params.limit as number) || 20;
+
+    if (!keywords?.length || !platform) {
+      return {
+        creditsUsed: 0,
+        error: 'keywords and platform are required',
+        success: false,
+      };
+    }
+
+    // Use internal API to search for tweets/posts matching keywords
+    const query = keywords.join(' OR ');
+
+    try {
+      const response = await this.internalApi.callInternalApi(
+        'GET',
+        `/v1/trends/search?q=${encodeURIComponent(query)}&platform=${platform}&limit=${limit}`,
+        undefined,
+        ctx,
+      );
+
+      const results = (response.results ?? response.data ?? []) as Record<
+        string,
+        unknown
+      >[];
+
+      return {
+        creditsUsed: 1,
+        data: {
+          count: results.length,
+          platform,
+          posts: results
+            .slice(0, limit)
+            .map((post: Record<string, unknown>) => ({
+              author: post.author ?? post.username,
+              content: post.content ?? post.text,
+              engagement: post.engagement ?? post.likes,
+              id: String(post.id ?? post.externalId),
+              url: post.url,
+            })),
+          query,
+        },
+        success: true,
+      };
+    } catch {
+      // Fallback: return empty results if search endpoint not available
+      return {
+        creditsUsed: 1,
+        data: {
+          count: 0,
+          message:
+            'Engagement discovery search returned no results. The search endpoint may not be configured for this platform yet.',
+          platform,
+          posts: [],
+          query,
+        },
+        success: true,
+      };
+    }
+  }
+
+  async draftEngagementReply(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    if (!this.batchGenerationService) {
+      return {
+        creditsUsed: 0,
+        error: 'Batch generation service not available',
+        success: false,
+      };
+    }
+
+    const targetPostId = params.targetPostId as string;
+    const replyContent = params.replyContent as string;
+    const platform = params.platform as string;
+
+    if (!targetPostId || !replyContent || !platform) {
+      return {
+        creditsUsed: 0,
+        error: 'targetPostId, replyContent, and platform are required',
+        success: false,
+      };
+    }
+
+    // Create a batch with a single engagement item
+    const brandId = params.brandId as string | undefined;
+
+    const batchData: Record<string, unknown> = {
+      brandId: brandId || undefined,
+      count: 1,
+      platforms: [platform],
+      source: 'proactive',
+    };
+
+    const batch = await this.batchGenerationService.createBatch(
+      batchData as never,
+      ctx.userId,
+      ctx.organizationId,
+    );
+
+    // Add the engagement item directly
+    const batchId = String(batch.id);
+    await this.internalApi
+      .callInternalApi(
+        'POST',
+        `/v1/batches/${batchId}/items`,
+        {
+          caption: replyContent,
+          platform,
+          status: 'pending',
+          targetAuthor: params.targetAuthor,
+          targetPostContent: params.targetPostContent,
+          targetPostId,
+          targetPostUrl: params.targetPostUrl,
+          type: 'engagement',
+        },
+        ctx,
+      )
+      .catch(() => {
+        // If direct item add fails, the batch was still created
+        this.loggerService.warn(
+          `Could not add engagement item to batch ${batchId} via API, batch created as placeholder`,
+          this.constructorName,
+        );
+      });
+
+    return {
+      creditsUsed: 1,
+      data: {
+        batchId,
+        message: 'Engagement reply drafted and added to review queue.',
+        platform,
+        targetPostId,
       },
       success: true,
     };

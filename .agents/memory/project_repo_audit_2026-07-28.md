@@ -40,13 +40,20 @@ Audit-only pass, then P0 implementation. Remaining work is tracked here so it is
 | #519 connection+ | resolve_handle folded into connection handler |
 | #519 ads research | **Extracted** → `agent-ads-research-tool-handler.service.ts` (5 tools + brand/workflow helpers) |
 | #519 livestream | **Extracted** → `agent-livestream-tool-handler.service.ts` (create + manage) |
-| Executor size | ~9,138 → **~6,499** LOC. Remaining heavy: onboarding, workflows, media generation, publish, analytics. |
+| #519 internal API | **Extracted** → `agent-tool-internal-api.service.ts` (`callInternalApi` + `callInternalFindOne`) |
+| #519 onboarding | **Extracted** → `agent-onboarding-tool-handler.service.ts` (6 tools + journey helpers) |
+| #519 publish+ | CREATE_POST / SCHEDULE_POST folded into `agent-publish-tool-handler.service.ts` |
+| #519 analytics | **Extracted** → `agent-analytics-tool-handler.service.ts` (GET_ANALYTICS) |
+| #519 workflows | **Extracted** → `agent-workflow-tool-handler.service.ts` (10 workflow tools + install/bootstrap) |
+| #519 media gen | **Extracted** → `agent-media-generation-tool-handler.service.ts` (AI_ACTION + generate_* + identity) |
+| #519 proactive+ | DISCOVER_ENGAGEMENTS / DRAFT_ENGAGEMENT_REPLY folded into proactive handler |
+| Executor size | ~9,138 → ~6,499 → **~2,208** LOC. Residual: catalog, brand voice, monthly content, prepare*, spawn/request, select ingredient, dashboard render helpers. |
 
 **Out of P0 scope (already epics):** `mongoId` cutover (#1041 + children). Do not drop columns without telemetry (#1779 → #1780 → #1781 → #1782).
 
 **Ship status:** P0 + completed #519 extracts + platform helpers → PR [#2175](https://github.com/genfeedai/genfeed.ai/pull/2175) (`codex/repo-audit-2026-07-28`, rebased onto `master` after `#2172`). Dirty skill symlink deletions stay out of product PRs.
 
-**Next extract (this worktree):** onboarding (`callInternalApi`) → workflows / media gen / publish / analytics.
+**Next extract (this worktree residual):** brand voice / monthly content → prepare* catalog / spawn-request.
 
 ## P1 — architecture / DRY (existing GH)
 
