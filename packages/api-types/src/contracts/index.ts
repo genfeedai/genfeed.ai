@@ -9,6 +9,7 @@
  */
 
 export * from './channel-capabilities.contract';
+export * from './generation-brief.contract';
 export * from './ingredients.contract';
 export * from './posting-sets.contract';
 export * from './posts.contract';
