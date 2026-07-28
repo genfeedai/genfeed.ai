@@ -10,7 +10,23 @@ vi.mock('@next/bundle-analyzer', () => ({
   default: () => (nextConfig: Record<string, unknown>) => nextConfig,
 }));
 
-describe('app next.config redirects', () => {
+describe('app next.config', () => {
+  it('allows current social-provider avatars without retaining Clerk hosts', () => {
+    const hostnames = config.images?.remotePatterns?.map((pattern) =>
+      pattern instanceof URL ? pattern.hostname : pattern.hostname,
+    );
+
+    expect(hostnames).toEqual(
+      expect.arrayContaining([
+        'avatars.githubusercontent.com',
+        'lh3.googleusercontent.com',
+      ]),
+    );
+    expect(hostnames?.some((hostname) => hostname.includes('clerk'))).toBe(
+      false,
+    );
+  });
+
   it('does not define stale bare overview redirects', async () => {
     const redirects = await config.redirects?.();
     expect(redirects?.some((redirect) => redirect.source === '/')).toBe(false);

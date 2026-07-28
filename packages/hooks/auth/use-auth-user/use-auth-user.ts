@@ -2,7 +2,10 @@
 
 import { authClient } from '@genfeedai/auth-client';
 import type { IAuthPublicData } from '@genfeedai/interfaces';
-import { getPlaywrightAuthState } from '@helpers/auth/auth.helper';
+import {
+  getPlaywrightAuthState,
+  normalizeAuthAvatarUrl,
+} from '@helpers/auth/auth.helper';
 import { useMemo } from 'react';
 
 export type AuthPublicMetadata = Partial<IAuthPublicData>;
@@ -64,7 +67,7 @@ function toAuthUser(user: BetterAuthUserShape): AuthUser | null {
     firstName,
     fullName,
     id: user.id,
-    imageUrl: user.image ?? null,
+    imageUrl: normalizeAuthAvatarUrl(user.image),
     lastName,
     primaryEmailAddress: { emailAddress: user.email ?? null },
     publicMetadata: user.publicMetadata ?? {},
