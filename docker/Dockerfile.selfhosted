@@ -59,7 +59,7 @@ WORKDIR /ctx
 # the complete OSS server + web closure and emits a matching pruned bun.lock,
 # replacing the mutable hand-maintained workspace rewrite.
 RUN --mount=type=bind,source=.,target=/ctx,ro \
-    turbo prune \
+    /root/.bun/bin/turbo prune \
       @genfeedai/api \
       @genfeedai/app \
       @genfeedai/discord \

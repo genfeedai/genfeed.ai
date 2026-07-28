@@ -53,7 +53,7 @@ RUN bun add --global turbo@2.10.7
 WORKDIR /ctx
 
 RUN --mount=type=bind,source=.,target=/ctx,ro \
-    turbo prune \
+    /root/.bun/bin/turbo prune \
       @genfeedai/api \
       @genfeedai/discord \
       @genfeedai/files \
