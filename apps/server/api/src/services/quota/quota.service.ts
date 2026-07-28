@@ -50,10 +50,15 @@ export class QuotaService {
    * QuotaModule ↔ PostsModule
    */
   private getPostsService(): PostsService {
-    if (!this.postsService) {
-      this.postsService = this.moduleRef.get(PostsService, { strict: false });
+    const postsService =
+      this.postsService ?? this.moduleRef.get(PostsService, { strict: false });
+
+    if (!postsService) {
+      throw new Error('PostsService not available');
     }
-    return this.postsService;
+
+    this.postsService = postsService;
+    return postsService;
   }
 
   /**
