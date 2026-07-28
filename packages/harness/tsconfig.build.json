@@ -3,7 +3,6 @@
     "declaration": true,
     "declarationMap": true,
     "esModuleInterop": true,
-    "ignoreDeprecations": "6.0",
     "forceConsistentCasingInFileNames": true,
     "inlineSources": true,
     "sourceMap": true,
