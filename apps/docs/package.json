@@ -22,7 +22,7 @@
     "build": "next build --turbopack",
     "dev": "next dev --turbopack --port 3001",
     "dev:direct": "next dev --turbopack",
-    "dev:portless": "portless run --name docs.genfeed bun run dev:direct",
+    "dev:portless": "bun run ../../scripts/dev/run-portless.ts docs -- bun run dev:direct",
     "format:check": "prettier --check .",
     "format:fix": "prettier --write .",
     "lint": "biome check app components content tests mdx-components.tsx next.config.mjs vitest.config.ts package.json tsconfig.json types styles README.md",

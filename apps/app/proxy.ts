@@ -773,6 +773,15 @@ function isPlaywrightBypassRequest(req: NextRequest): boolean {
 }
 
 export async function proxy(req: NextRequest) {
+  // `/v1` is the same-origin API/auth proxy used by local Portless routes.
+  // It must reach the Next.js rewrite without entering app-page auth routing.
+  if (
+    req.nextUrl.pathname === '/v1' ||
+    req.nextUrl.pathname.startsWith('/v1/')
+  ) {
+    return NextResponse.next();
+  }
+
   if (
     !hasWarnedAboutHostedModeMisconfiguration &&
     req.nextUrl.hostname === 'app.genfeed.ai' &&
@@ -1017,7 +1026,7 @@ export default proxy;
 
 export const config = {
   matcher: [
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|xml|txt)).*)',
+    '/((?!_next|v1(?:/|$)|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|xml|txt)).*)',
     '/(api|trpc)(.*)',
   ],
 };

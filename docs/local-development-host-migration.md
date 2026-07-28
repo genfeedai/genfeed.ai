@@ -1,9 +1,29 @@
 # Local development host migration
 
-`genfeed.localhost` is the canonical interactive-development host. The local
-app uses port `3000`, the API uses `3010`, and notifications/websockets use
-`3111`. Root environment files are the source of truth; `bun run env:sync local`
-distributes those values to app and service env files.
+Portless HTTP routes on port `1355` are the canonical interactive-development
+contract:
+
+- `http://app.genfeed.localhost:1355`
+- `http://api.genfeed.localhost:1355`
+- `http://notifications.genfeed.localhost:1355`
+
+Linked worktrees automatically add their branch prefix to every route. The
+repository runner derives sibling URLs from each process's `PORTLESS_URL`, so
+one worktree never mixes its app with another worktree's API.
+
+The runner explicitly disables TLS and hosts-file synchronization. It never
+binds port `443`, installs a certificate authority, edits `/etc/hosts`, or needs
+`sudo`.
+
+Browser API and auth calls use the app's same-origin `/v1` route; Next.js
+proxies those requests to the derived API route. This keeps Better Auth cookies
+scoped to the app/worktree host. Server-to-server calls use direct derived
+Portless service routes.
+
+Fixed ports remain available only through `bun run dev:direct:*`. In that
+fallback, the app uses `3000`, API `3010`, and notifications/websockets `3111`.
+Root environment files remain the direct-runtime source of truth and
+`bun run env:sync local` distributes them to app and service env files.
 
 Plain `localhost` remains valid for Docker/self-hosted loopback, health checks,
 CI web servers, and tests where cookie/host isolation is irrelevant. Deployed
@@ -57,4 +77,3 @@ Remaining `3011` references are intentional:
 | Architecture/current docs | `CLAUDE.md`, `CONTRIBUTING.md`, extension README, repo map, project-structure/tech-context memory | Explicitly documents the local/deployed port split. |
 | Compatibility test | `packages/libs/config/cors.config.spec.ts` | Proves the loopback/deployed port remains allowed. |
 | Shared Claude launch overlap | `.claude/launch.json` | Intentionally left to PR #1716, which already changes its preview port to `3111`; duplicating that edit would create avoidable PR overlap. |
-

@@ -57,7 +57,7 @@ describe('CORS Configuration', () => {
         expect(localPattern.test('http://localhost:2999')).toBe(false);
       });
 
-      it('should allow portless genfeed localhost hosts', () => {
+      it('should allow canonical HTTP Portless hosts on port 1355', () => {
         const origins = getGenfeedCorsOrigins({
           isDevelopment: true,
         });
@@ -67,20 +67,20 @@ describe('CORS Configuration', () => {
             o instanceof RegExp &&
             o.source.includes('genfeed') &&
             o.source.includes('localhost') &&
-            o.test('https://app.genfeed.localhost'),
+            o.test('http://app.genfeed.localhost:1355'),
         ) as RegExp;
 
         expect(portlessPattern).toBeDefined();
-        expect(portlessPattern.test('https://app.genfeed.localhost')).toBe(
+        expect(portlessPattern.test('http://app.genfeed.localhost:1355')).toBe(
           true,
         );
         expect(
-          portlessPattern.test('https://feat-123.app.genfeed.localhost'),
+          portlessPattern.test('http://feat-123.app.genfeed.localhost:1355'),
         ).toBe(true);
-        expect(portlessPattern.test('http://app.genfeed.localhost')).toBe(
+        expect(portlessPattern.test('http://app.genfeed.localhost:1356')).toBe(
           false,
         );
-        expect(portlessPattern.test('https://app.example.localhost')).toBe(
+        expect(portlessPattern.test('http://app.example.localhost:1355')).toBe(
           false,
         );
       });

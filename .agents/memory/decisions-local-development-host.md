@@ -1,9 +1,9 @@
 ---
 name: Local Development Host Decisions
-description: Architecture choices for canonical genfeed.localhost endpoints and the notifications development port
+description: Architecture choices for Portless runtime URL derivation and direct fixed-port fallbacks
 type: project
 status: active
-last_verified: 2026-07-14
+last_verified: 2026-07-28
 topics: [development, environment, configuration, notifications]
 ---
 
@@ -11,19 +11,20 @@ topics: [development, environment, configuration, notifications]
 
 ## Optimization target
 
-Minimize endpoint drift across local apps, services, browser extensions, and test tooling without coupling browser bundles to server-only configuration APIs.
+Eliminate endpoint and auth-cookie drift across local apps and services while preserving zero-setup worktree isolation and an explicit fixed-port debugging escape hatch.
 
 ## Approaches considered
 
-1. **One universal TypeScript constants package.** This gives one import for every runtime, but it turns environment-specific deployment values into compiled constants and risks pulling server-oriented configuration dependencies into browser bundles.
-2. **Root env source plus runtime-specific config adapters.** Root `.env.local` values are distributed by `scripts/env-sync.ts`; Next.js, Plasmo, NestJS, workflow UI, and Playwright read through their existing environment/config boundaries. Shared UI packages accept injected endpoints where runtime configuration is required.
-3. **Independent defaults in every consumer.** This is the smallest immediate diff, but it preserves the failure mode that produced inconsistent hosts and notifications ports.
+1. **Static Portless URLs in env files.** Simple for the main checkout, but it loses automatic branch prefixes in linked worktrees and cannot follow a configured proxy port or TLD.
+2. **Runtime-derived sibling origins.** Each Portless process receives `PORTLESS_URL`; a shared runner replaces the service label while preserving protocol, proxy port, TLD, and worktree prefix.
+3. **Fixed ports as the normal contract.** Familiar and dependency-free, but collisions make ports unstable and it provides no worktree namespace.
 
 ## Decision
 
-Use approach 2. The canonical interactive-development endpoints live in the root environment contract and flow into generated app/service env files. Browser code reads only `NEXT_PUBLIC_*` or `PLASMO_PUBLIC_*` values (or receives an injected URL); NestJS code uses its config service. Docker/self-hosted loopback configuration remains independent because its network topology intentionally differs.
+Use approach 2. The repository wrapper always starts Portless as plain HTTP on unprivileged port `1355`, disables hosts-file synchronization, and derives every sibling service origin from `PORTLESS_URL`. Root `dev*` commands use that contract; package `dev:direct` and root `dev:direct:*` commands retain the fixed-port escape hatch.
 
-Use `genfeed.localhost` as the interactive-development host and port `3111` for the local notifications/websocket service. Keep port `3011` for Docker, self-hosted, deployed infrastructure, health checks, and tests that intentionally model those boundaries.
+The app's public API variables point to its own `/v1` route. Next.js rewrites that route to the derived API origin, keeping Better Auth cookies host-scoped to one app/worktree instead of sharing them across `*.genfeed.localhost`. Server-to-server variables use the direct derived service origins.
+
+Fixed direct development continues to use `genfeed.localhost` with app `3000`, API `3010`, and notifications `3111`. Keep port `3011` for Docker, self-hosted, deployed infrastructure, health checks, and tests that intentionally model those boundaries.
 
 Keep `local.genfeed.ai` only in explicitly documented temporary compatibility allowlists and focused compatibility tests.
-

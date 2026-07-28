@@ -60,34 +60,34 @@ require local Node.js or Bun. See [docs/self-hosting.md](docs/self-hosting.md).
 
 ### Dev host
 
-Plain `localhost` works out of the box. The **recommended** dev host, though, is
-`genfeed.localhost`:
+Normal `bun run dev*` commands use Portless over plain HTTP on unprivileged
+port `1355`:
 
-- `*.localhost` resolves to loopback in every modern browser and OS
-  ([RFC 6761](https://www.rfc-editor.org/rfc/rfc6761)) — **no `/etc/hosts` entry
-  needed** (unlike the older `local.genfeed.ai`, which required one).
-- Browser cookies are keyed by host, not port, so a distinct host gives this
-  project its **own cookie jar**. The app (`:3000`) and API (`:3010`) still
-  share it (same host → auth cookies flow), but it never collides with the
-  session/JWT of another project you run on plain `localhost`.
+- App: `http://app.genfeed.localhost:1355`
+- API: `http://api.genfeed.localhost:1355`
+- Notifications: `http://notifications.genfeed.localhost:1355`
 
-To use it, point the frontend and Better Auth at `genfeed.localhost` in
-`.env.local`:
+`*.localhost` resolves to loopback without `/etc/hosts`. The repository runner
+disables Portless TLS and hosts-file synchronization, so local development
+does not bind port `443`, install certificates, or require `sudo`. Linked
+worktrees receive branch-prefixed routes automatically.
 
-```env
-BETTER_AUTH_URL=http://genfeed.localhost:3010
-NEXT_PUBLIC_API_ENDPOINT=http://genfeed.localhost:3010/v1
-NEXT_PUBLIC_WS_ENDPOINT=ws://genfeed.localhost:3111
+The app keeps browser API and auth traffic on its own `/v1` route, which Next.js
+proxies to the matching Portless API route. Runtime endpoint and redirect
+variables are derived from the process's worktree-aware `PORTLESS_URL`; do not
+mix Portless routes with fixed-port values.
+
+Fixed ports remain available for explicit debugging:
+
+```bash
+bun run dev:direct:app
+bun run dev:direct:essentials
+bun run dev:direct:frontend
 ```
 
-`genfeed.localhost` and plain `localhost` are auto-trusted by Better Auth
-outside production/staging. The legacy `local.genfeed.ai` host remains in the
-temporary compatibility allowlist, so no
-`BETTER_AUTH_TRUSTED_ORIGINS` config is required for local dev
-(`apps/server/api/src/auth/better-auth/better-auth.config.ts`).
-
-Port `3111` is the interactive local notifications/websocket port. Container,
-self-hosted, and deployed notifications services continue to use port `3011`.
+Those commands use the root env contract: app `3000`, API `3010`, and
+notifications/websocket `3111`. Container, self-hosted, and deployed
+notifications services continue to use port `3011`.
 
 ## Branch and pull-request workflow
 
