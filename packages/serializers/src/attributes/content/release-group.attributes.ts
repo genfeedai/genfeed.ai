@@ -22,6 +22,7 @@ export const releaseGroupAttributes = createEntityAttributes([
   'idempotencyKey',
   'targets',
   'targetSummary',
+  'analyticsComparison',
   'attachments',
   'statusTransitions',
 ]);

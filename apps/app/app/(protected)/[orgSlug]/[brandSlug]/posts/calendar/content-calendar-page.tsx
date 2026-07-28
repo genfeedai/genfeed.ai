@@ -8,7 +8,7 @@ import {
   PageScope,
   PostStatus,
 } from '@genfeedai/enums';
-import type { IArticle } from '@genfeedai/interfaces';
+import type { IArticle, IReleaseGroup } from '@genfeedai/interfaces';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -18,6 +18,7 @@ import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
 import type { CalendarItem } from '@props/components/calendar.props';
 import { ArticlesService } from '@services/content/articles.service';
 import { PostsService } from '@services/content/posts.service';
+import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
@@ -27,6 +28,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HiCalendarDays, HiDocumentText, HiListBullet } from 'react-icons/hi2';
 import EvergreenSeriesControls from './evergreen-series-controls';
+import ReleaseAnalyticsOverlay from './release-analytics-overlay';
 
 const DEFAULT_COLOR = '#8b5cf6';
 const ARTICLE_STATUS_COLORS: Record<string, string> = {
@@ -45,7 +47,15 @@ interface ArticleContentCalendarItem extends CalendarItem {
   itemType: 'article';
 }
 
-type ContentCalendarItem = PostContentCalendarItem | ArticleContentCalendarItem;
+interface ReleaseContentCalendarItem extends CalendarItem {
+  itemType: 'release';
+  release: IReleaseGroup;
+}
+
+type ContentCalendarItem =
+  | PostContentCalendarItem
+  | ArticleContentCalendarItem
+  | ReleaseContentCalendarItem;
 
 function getPlatformColor(platform: string): string {
   const platformKey = platform?.toLowerCase();
@@ -97,9 +107,17 @@ export default function ContentCalendarPage(): React.JSX.Element {
     ArticlesService.getInstance(token),
   );
 
+  const getReleaseGroupsService = useAuthedService((token: string) =>
+    ReleaseGroupsService.getInstance(token),
+  );
+
   const [posts, setPosts] = useState<Post[]>([]);
   const [articles, setArticles] = useState<IArticle[]>([]);
+  const [releases, setReleases] = useState<IReleaseGroup[]>([]);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [selectedRelease, setSelectedRelease] = useState<IReleaseGroup | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [dateRange, setDateRange] = useCalendarWeekRange();
 
@@ -114,10 +132,12 @@ export default function ContentCalendarPage(): React.JSX.Element {
       setIsLoading(true);
 
       try {
-        const [postsService, articlesService] = await Promise.all([
-          getPostsService(),
-          getArticlesService(),
-        ]);
+        const [postsService, articlesService, releaseGroupsService] =
+          await Promise.all([
+            getPostsService(),
+            getArticlesService(),
+            getReleaseGroupsService(),
+          ]);
 
         const postsQuery: Record<string, string | boolean | undefined> = {
           brandId,
@@ -131,10 +151,16 @@ export default function ContentCalendarPage(): React.JSX.Element {
           startDate: dateRange.start.toISOString(),
         };
 
-        const [fetchedPosts, fetchedArticles] = await Promise.all([
-          postsService.findAll(postsQuery),
-          articlesService.findAll(articlesQuery),
-        ]);
+        const [fetchedPosts, fetchedArticles, fetchedReleases] =
+          await Promise.all([
+            postsService.findAll(postsQuery),
+            articlesService.findAll(articlesQuery),
+            releaseGroupsService.findAll({
+              brandId,
+              endDate: dateRange.end.toISOString(),
+              startDate: dateRange.start.toISOString(),
+            }),
+          ]);
 
         if (!isActive) {
           return;
@@ -142,6 +168,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
 
         setPosts(fetchedPosts);
         setArticles(fetchedArticles);
+        setReleases(fetchedReleases);
       } catch (error) {
         if (!isActive) {
           return;
@@ -165,19 +192,23 @@ export default function ContentCalendarPage(): React.JSX.Element {
     brandId,
     getPostsService,
     getArticlesService,
+    getReleaseGroupsService,
     notificationsService,
   ]);
 
   const calendarItems: ContentCalendarItem[] = useMemo(() => {
-    const postItems: PostContentCalendarItem[] = posts.map((post) => ({
-      id: post.id,
-      isDisabled: isPostDisabled(post),
-      itemType: 'post',
-      post,
-      scheduledDate: post.scheduledDate ?? undefined,
-      status: post.platform || '',
-      title: getPostEventTitle(post),
-    }));
+    const releaseIds = new Set(releases.map((release) => release.id));
+    const postItems: PostContentCalendarItem[] = posts
+      .filter((post) => !post.groupId || !releaseIds.has(post.groupId))
+      .map((post) => ({
+        id: post.id,
+        isDisabled: isPostDisabled(post),
+        itemType: 'post',
+        post,
+        scheduledDate: post.scheduledDate ?? undefined,
+        status: post.platform || '',
+        title: getPostEventTitle(post),
+      }));
 
     const articleItems: ArticleContentCalendarItem[] = articles.map(
       (article) => ({
@@ -190,11 +221,27 @@ export default function ContentCalendarPage(): React.JSX.Element {
       }),
     );
 
-    return [...postItems, ...articleItems];
-  }, [posts, articles]);
+    const releaseItems: ReleaseContentCalendarItem[] = releases.map(
+      (release) => ({
+        id: release.id,
+        itemType: 'release',
+        release,
+        scheduledDate:
+          release.scheduledAt ??
+          release.targets?.find((target) => target.scheduledAt)?.scheduledAt ??
+          undefined,
+        status: release.status,
+        title: release.title,
+      }),
+    );
+
+    return [...releaseItems, ...postItems, ...articleItems];
+  }, [posts, articles, releases]);
   const selectedGroupId = useMemo(
-    () => posts.find((post) => post.id === selectedPostId)?.groupId,
-    [posts, selectedPostId],
+    () =>
+      selectedRelease?.id ??
+      posts.find((post) => post.id === selectedPostId)?.groupId,
+    [posts, selectedPostId, selectedRelease],
   );
 
   const handleEventClick = useCallback(
@@ -204,6 +251,13 @@ export default function ContentCalendarPage(): React.JSX.Element {
         return;
       }
 
+      if (item.itemType === 'release') {
+        setSelectedPostId(null);
+        setSelectedRelease(item.release);
+        return;
+      }
+
+      setSelectedRelease(null);
       setSelectedPostId(item.post.id);
     },
     [push],
@@ -219,6 +273,10 @@ export default function ContentCalendarPage(): React.JSX.Element {
   const getEventColor = useCallback((item: ContentCalendarItem) => {
     if (item.itemType === 'article') {
       return getArticleColor(item.status);
+    }
+
+    if (item.itemType === 'release') {
+      return DEFAULT_COLOR;
     }
 
     return getPlatformColor(item.status);
@@ -247,6 +305,10 @@ export default function ContentCalendarPage(): React.JSX.Element {
         postId={selectedPostId}
         scope={PageScope.PUBLISHER}
         onClose={() => setSelectedPostId(null)}
+      />
+      <ReleaseAnalyticsOverlay
+        release={selectedRelease}
+        onClose={() => setSelectedRelease(null)}
       />
       {selectedGroupId ? (
         <EvergreenSeriesControls groupId={selectedGroupId} />

@@ -120,6 +120,30 @@ describe('PostGroupContractService', () => {
       },
       state: 'ready',
     });
+    expect(release.analyticsComparison).toEqual(
+      expect.objectContaining({
+        metricDefinitions: [
+          'views',
+          'likes',
+          'comments',
+          'shares',
+          'saves',
+          'engagementRate',
+        ],
+        releaseId: 'group-1',
+        state: 'ready',
+        targets: [
+          expect.objectContaining({
+            metrics: expect.objectContaining({ views: 1000 }),
+            snapshotIdentity: {
+              snapshotDate: '2026-07-21T00:00:00.000Z',
+              updatedAt: '2026-07-21T12:30:00.000Z',
+            },
+            targetId: 'target-1',
+          }),
+        ],
+      }),
+    );
   });
 
   it.each([
