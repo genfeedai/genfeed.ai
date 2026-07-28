@@ -32,6 +32,7 @@ import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { MarketplaceInstallService } from '@api/marketplace-integration/marketplace-install.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
+import { AgentAdsResearchToolHandler } from '@api/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
 import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service';
 import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
@@ -48,11 +49,6 @@ import {
   SAFE_AGENT_SCHEDULE_ERROR,
 } from '@api/services/agent-orchestrator/tools/agent-schedule-error.util';
 import {
-  readAdsChannel,
-  readAdsMetric,
-  readAdsPlatform,
-  readAdsSource,
-  readAdsTimeframe,
   readOptionalNumber,
   readOptionalString,
 } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
@@ -98,12 +94,6 @@ import type {
   ValidatedAgentScope,
 } from '@genfeedai/interfaces';
 import { AgentToolName, toAgentScopeMetadata } from '@genfeedai/interfaces';
-import type {
-  AdsChannel,
-  AdsResearchFilters,
-  AdsResearchPlatform,
-  AdsResearchSource,
-} from '@genfeedai/interfaces/integrations/ads-research.interface';
 import {
   AgentScopeContextService,
   resolveNestedActionOrigin,
@@ -437,6 +427,7 @@ export class AgentToolExecutorService {
     private readonly proactiveHandler: AgentProactiveToolHandler,
     private readonly qualityHandler: AgentQualityToolHandler,
     private readonly reviewHandler: AgentReviewToolHandler,
+    private readonly adsResearchHandler: AgentAdsResearchToolHandler,
     @Optional()
     private readonly agentScopeContextService?: AgentScopeContextService,
   ) {
@@ -972,19 +963,19 @@ export class AgentToolExecutorService {
         return this.trendsHandler.getTrends(params, ctx);
 
       case AgentToolName.LIST_ADS_RESEARCH:
-        return this.listAdsResearch(params, ctx);
+        return this.adsResearchHandler.listAdsResearch(params, ctx);
 
       case AgentToolName.GET_AD_RESEARCH_DETAIL:
-        return this.getAdResearchDetail(params, ctx);
+        return this.adsResearchHandler.getAdResearchDetail(params, ctx);
 
       case AgentToolName.CREATE_AD_REMIX_WORKFLOW:
-        return this.createAdRemixWorkflow(params, ctx);
+        return this.adsResearchHandler.createAdRemixWorkflow(params, ctx);
 
       case AgentToolName.GENERATE_AD_PACK:
-        return this.generateAdPack(params, ctx);
+        return this.adsResearchHandler.generateAdPack(params, ctx);
 
       case AgentToolName.PREPARE_AD_LAUNCH_REVIEW:
-        return this.prepareAdLaunchReview(params, ctx);
+        return this.adsResearchHandler.prepareAdLaunchReview(params, ctx);
 
       case AgentToolName.AI_ACTION:
         return this.aiAction(params, ctx);
@@ -3529,432 +3520,6 @@ export class AgentToolExecutorService {
         },
       ],
       success: true,
-    };
-  }
-
-  private async listAdsResearch(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    if (!this.instagramInspirationHandler.adsResearchService) {
-      return {
-        creditsUsed: 0,
-        error: 'Ads research service is not available.',
-        success: false,
-      };
-    }
-
-    const brandContext = await this.resolveAdsBrandContext(params, ctx);
-    const filters: AdsResearchFilters = {
-      adAccountId: readOptionalString(params.adAccountId),
-      brandId: brandContext.brandId,
-      brandName: brandContext.brandName,
-      channel: readAdsChannel(params.channel),
-      credentialId: readOptionalString(params.credentialId),
-      industry: readOptionalString(params.industry) ?? brandContext.industry,
-      limit: readOptionalNumber(params.limit),
-      loginCustomerId: readOptionalString(params.loginCustomerId),
-      metric: readAdsMetric(params.metric),
-      platform: readAdsPlatform(params.platform),
-      source: readAdsSource(params.source) ?? 'all',
-      timeframe: readAdsTimeframe(params.timeframe),
-    };
-
-    const result =
-      await this.instagramInspirationHandler.adsResearchService.listAds(
-        ctx.organizationId,
-        filters,
-      );
-    const surfacedItems = [...result.publicAds, ...result.connectedAds].slice(
-      0,
-      6,
-    );
-    const platformHref =
-      result.summary.selectedPlatform === 'google'
-        ? '/research/ads/google'
-        : result.summary.selectedPlatform === 'meta'
-          ? '/research/ads/meta'
-          : '/research/ads';
-
-    return {
-      creditsUsed: 0,
-      data: {
-        connectedAds: result.connectedAds,
-        filters: result.filters,
-        publicAds: result.publicAds,
-        reviewPolicy: result.summary.reviewPolicy,
-      },
-      nextActions: [
-        {
-          ctas: [
-            { href: platformHref, label: 'Open ads hub' },
-            { href: '/research/ads', label: 'Open all ads' },
-          ],
-          description: `Found ${result.summary.publicCount} public winners and ${result.summary.connectedCount} connected-account ads. Public winners stay first, and every workflow or launch prep remains paused for review.`,
-          id: `ads-search-results-${Date.now()}`,
-          items: surfacedItems.map((item) => ({
-            id: item.id,
-            platform: item.platform,
-            previewUrl: item.previewUrl,
-            title: item.title,
-            type: item.source,
-          })),
-          metrics: {
-            items: [
-              { label: 'Public ads', value: result.summary.publicCount },
-              {
-                label: 'Connected ads',
-                value: result.summary.connectedCount,
-              },
-            ],
-          },
-          title: 'Ads search results',
-          type: 'ads_search_results_card',
-        },
-      ],
-      success: true,
-    };
-  }
-
-  private async getAdResearchDetail(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    if (!this.instagramInspirationHandler.adsResearchService) {
-      return {
-        creditsUsed: 0,
-        error: 'Ads research service is not available.',
-        success: false,
-      };
-    }
-
-    const source = readAdsSource(params.source);
-    const adId = readOptionalString(params.adId);
-
-    if (!source || source === 'all' || !adId) {
-      return {
-        creditsUsed: 0,
-        error: 'adId and source are required to inspect an ad.',
-        success: false,
-      };
-    }
-
-    const detail =
-      await this.instagramInspirationHandler.adsResearchService.getAdDetail(
-        ctx.organizationId,
-        {
-          adAccountId: readOptionalString(params.adAccountId),
-          channel: readAdsChannel(params.channel),
-          credentialId: readOptionalString(params.credentialId),
-          id: adId,
-          loginCustomerId: readOptionalString(params.loginCustomerId),
-          platform: readAdsPlatform(params.platform),
-          source,
-        },
-      );
-
-    return {
-      creditsUsed: 0,
-      data: {
-        detail,
-      },
-      nextActions: [
-        {
-          ctas: [
-            {
-              href:
-                detail.platform === 'google'
-                  ? '/research/ads/google'
-                  : '/research/ads/meta',
-              label: 'Open platform ads',
-            },
-            { href: '/research/ads', label: 'Open ads hub' },
-          ],
-          data: {
-            campaignName: detail.campaignName,
-            channel: detail.channel,
-            explanation: detail.explanation,
-            headline:
-              detail.creative.headline || detail.headline || detail.title,
-            platform: detail.platform,
-            source: detail.source,
-          },
-          description:
-            detail.explanation ||
-            'Review the creative, metrics, and reusable pattern before remixing it.',
-          id: `ad-detail-summary-${detail.source}-${detail.sourceId}`,
-          title: 'Ad detail summary',
-          type: 'ad_detail_summary_card',
-        },
-      ],
-      success: true,
-    };
-  }
-
-  private async createAdRemixWorkflow(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    if (!this.instagramInspirationHandler.adsResearchService) {
-      return {
-        creditsUsed: 0,
-        error: 'Ads research service is not available.',
-        success: false,
-      };
-    }
-
-    const baseInput = await this.buildAdsWorkflowInput(params, ctx);
-    if ('error' in baseInput) {
-      return {
-        creditsUsed: 0,
-        error: baseInput.error,
-        success: false,
-      };
-    }
-
-    const workflow =
-      await this.instagramInspirationHandler.adsResearchService.createRemixWorkflow(
-        baseInput,
-      );
-
-    return {
-      creditsUsed: 0,
-      data: {
-        adPack: workflow.adPack,
-        reviewRequired: workflow.reviewRequired,
-        workflowId: workflow.workflowId,
-        workflowName: workflow.workflowName,
-      },
-      nextActions: [
-        {
-          ctas: [
-            {
-              href: `/workflows/${workflow.workflowId}`,
-              label: 'Open workflow',
-            },
-            {
-              href: '/workflows',
-              label: 'Open workflows',
-            },
-          ],
-          description:
-            workflow.workflowDescription ||
-            'Ad remix workflow created. Review the ad pack and launch prep before publishing anything.',
-          id: `workflow-created-${workflow.workflowId}`,
-          title: 'Ad remix workflow created',
-          type: 'workflow_created_card',
-          workflowDescription: workflow.workflowDescription,
-          workflowId: workflow.workflowId,
-          workflowName: workflow.workflowName,
-        },
-      ],
-      success: true,
-    };
-  }
-
-  private async generateAdPack(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    if (!this.instagramInspirationHandler.adsResearchService) {
-      return {
-        creditsUsed: 0,
-        error: 'Ads research service is not available.',
-        success: false,
-      };
-    }
-
-    const baseInput = await this.buildAdsWorkflowInput(params, ctx);
-    if ('error' in baseInput) {
-      return {
-        creditsUsed: 0,
-        error: baseInput.error,
-        success: false,
-      };
-    }
-
-    const adPack =
-      await this.instagramInspirationHandler.adsResearchService.generateAdPack(
-        ctx.organizationId,
-        baseInput,
-      );
-
-    return {
-      creditsUsed: 0,
-      data: {
-        adPack,
-      },
-      nextActions: [
-        {
-          ctas: [{ href: '/research/ads', label: 'Open ads hub' }],
-          data: {
-            explanation: adPack.assetCreativeBrief,
-            headline: adPack.headlines[0],
-          },
-          description:
-            'Brand-specific ad pack drafted from the source winner. Review the CTA, targeting notes, and creative brief before launch prep.',
-          id: `ad-pack-summary-${Date.now()}`,
-          title: 'Ad pack drafted',
-          type: 'ad_detail_summary_card',
-        },
-      ],
-      success: true,
-    };
-  }
-
-  private async prepareAdLaunchReview(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    if (!this.instagramInspirationHandler.adsResearchService) {
-      return {
-        creditsUsed: 0,
-        error: 'Ads research service is not available.',
-        success: false,
-      };
-    }
-
-    const baseInput = await this.buildAdsWorkflowInput(params, ctx);
-    if ('error' in baseInput) {
-      return {
-        creditsUsed: 0,
-        error: baseInput.error,
-        success: false,
-      };
-    }
-
-    const launchPrep =
-      await this.instagramInspirationHandler.adsResearchService.prepareCampaignForReview(
-        {
-          ...baseInput,
-          campaignName: readOptionalString(params.campaignName),
-          createWorkflow: params.createWorkflow === true,
-          dailyBudget: readOptionalNumber(params.dailyBudget),
-        },
-      );
-
-    return {
-      creditsUsed: 0,
-      data: {
-        launchPrep,
-      },
-      nextActions: [
-        {
-          ctas: [
-            ...(launchPrep.workflowId
-              ? [
-                  {
-                    href: `/workflows/${launchPrep.workflowId}`,
-                    label: 'Open workflow',
-                  },
-                ]
-              : []),
-            { href: '/research/ads', label: 'Open ads hub' },
-          ],
-          data: {
-            channel: launchPrep.channel,
-            platform: launchPrep.platform,
-            publishMode: launchPrep.publishMode,
-            status: launchPrep.status,
-            workflowId: launchPrep.workflowId,
-          },
-          description:
-            'Paused launch prep created. Human review is required before anything goes live.',
-          id: `campaign-launch-prep-${Date.now()}`,
-          title: 'Campaign launch prep',
-          type: 'campaign_launch_prep_card',
-        },
-      ],
-      requiresConfirmation: true,
-      success: true,
-    };
-  }
-
-  private async resolveAdsBrandContext(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<{
-    brandId?: string;
-    brandName?: string;
-    industry?: string;
-  }> {
-    const explicitBrandId = readOptionalString(params.brandId);
-    const fallbackBrandId = ctx.brandId;
-    const brandLookupId = explicitBrandId ?? fallbackBrandId;
-
-    if (!brandLookupId) {
-      return {};
-    }
-
-    const brand = await this.resolveWorkflowBrand(
-      { brandId: brandLookupId },
-      ctx,
-    );
-
-    if (!brand) {
-      return {
-        brandId: brandLookupId,
-      };
-    }
-
-    const brandRecord = brand as Record<string, unknown>;
-
-    return {
-      brandId: String(brandRecord.id ?? brandLookupId),
-      brandName:
-        readOptionalString(brandRecord.name) ??
-        readOptionalString(brandRecord.label),
-      industry:
-        readOptionalString(brandRecord.industry) ??
-        readOptionalString(brandRecord.niche) ??
-        readOptionalString(brandRecord.category),
-    };
-  }
-
-  private async buildAdsWorkflowInput(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<
-    | {
-        userId: string;
-        organizationId: string;
-        brandId?: string;
-        brandName?: string;
-        industry?: string;
-        objective?: string;
-        source: Exclude<AdsResearchSource, 'all'>;
-        adId: string;
-        platform?: AdsResearchPlatform;
-        channel?: AdsChannel;
-        credentialId?: string;
-        adAccountId?: string;
-        loginCustomerId?: string;
-      }
-    | { error: string }
-  > {
-    const source = readAdsSource(params.source);
-    const adId = readOptionalString(params.adId);
-
-    if (!source || source === 'all' || !adId) {
-      return { error: 'adId and source are required for ads remix actions.' };
-    }
-
-    const brandContext = await this.resolveAdsBrandContext(params, ctx);
-
-    return {
-      adAccountId: readOptionalString(params.adAccountId),
-      adId,
-      brandId: brandContext.brandId,
-      brandName: brandContext.brandName,
-      channel: readAdsChannel(params.channel),
-      credentialId: readOptionalString(params.credentialId),
-      industry: readOptionalString(params.industry) ?? brandContext.industry,
-      loginCustomerId: readOptionalString(params.loginCustomerId),
-      objective: readOptionalString(params.objective),
-      organizationId: ctx.organizationId,
-      platform: readAdsPlatform(params.platform),
-      source,
-      userId: ctx.userId,
     };
   }
 

@@ -38,11 +38,14 @@ Audit-only pass, then P0 implementation. Remaining work is tracked here so it is
 | #519 review queue | **Extracted** → `agent-review-tool-handler.service.ts` |
 | #519 workspace+ | list_posts + open_studio_handoff folded into workspace handler |
 | #519 connection+ | resolve_handle folded into connection handler |
-| Executor size | ~9,138 → **~7,574** LOC. Remaining heavy: onboarding, workflows, media generation, publish, ads research, livestream, analytics. |
+| #519 ads research | **Extracted** → `agent-ads-research-tool-handler.service.ts` (5 tools + brand/workflow helpers) |
+| Executor size | ~9,138 → **~7,149** LOC. Remaining heavy: onboarding, workflows, media generation, publish, livestream, analytics. |
 
 **Out of P0 scope (already epics):** `mongoId` cutover (#1041 + children). Do not drop columns without telemetry (#1779 → #1780 → #1781 → #1782).
 
-**Worktree hygiene (ops, not code debt):** branch `codex/fix-posts-surface` remote was gone at audit time; re-push or open PR before stacking more work. Dirty skill symlink deletions should not mix into product PRs.
+**Ship status:** P0 + completed #519 extracts + platform helpers → PR [#2175](https://github.com/genfeedai/genfeed.ai/pull/2175) (`codex/repo-audit-2026-07-28`, rebased onto `master` after `#2172`). Dirty skill symlink deletions stay out of product PRs.
+
+**Next extract (this worktree):** livestream → onboarding (`callInternalApi`) → workflows / media gen / publish / analytics.
 
 ## P1 — architecture / DRY (existing GH)
 

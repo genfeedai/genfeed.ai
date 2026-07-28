@@ -7,6 +7,7 @@ vi.mock(
 
 import 'reflect-metadata';
 import { AiActionType } from '@api/endpoints/ai-actions/dto/ai-action.dto';
+import { AgentAdsResearchToolHandler } from '@api/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
 import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service';
 import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
@@ -791,6 +792,10 @@ describe('AgentToolExecutorService', () => {
     const reviewHandler = new AgentReviewToolHandler(
       batchGenerationService as never,
     );
+    const adsResearchHandler = new AgentAdsResearchToolHandler(
+      adsResearchService as never,
+      brandsService as never,
+    );
     const connectionHandler = new AgentConnectionToolHandler(
       credentialsService as never,
     );
@@ -849,6 +854,7 @@ describe('AgentToolExecutorService', () => {
       proactiveHandler,
       qualityHandler,
       reviewHandler,
+      adsResearchHandler,
       agentScopeContextService as never,
     );
 
@@ -4199,6 +4205,7 @@ describe('AgentToolExecutorService', () => {
 
   it('should fail rate_content when scorer service is unavailable', async () => {
     const {
+      adsResearchService,
       aiActionsService,
       brandsService,
       credentialsService,
@@ -4267,6 +4274,11 @@ describe('AgentToolExecutorService', () => {
         undefined,
         undefined,
         undefined,
+      ),
+      new AgentReviewToolHandler({} as never),
+      new AgentAdsResearchToolHandler(
+        adsResearchService as never,
+        brandsService as never,
       ),
       undefined as never, // agentScopeContextService
     );
