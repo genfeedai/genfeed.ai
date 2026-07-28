@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockActiveSubscription,
   mockPostsList,
@@ -26,7 +27,7 @@ test.describe('Posts — Content Types', () => {
   test('article composer loads at /compose/article', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/compose/article');
+    await authenticatedPage.goto(APP_ROUTES.COMPOSE.ARTICLE);
 
     await expect(authenticatedPage).toHaveURL(/compose\/article/);
   });
@@ -50,7 +51,7 @@ test.describe('Posts — Content Types', () => {
       await route.continue();
     });
 
-    await authenticatedPage.goto('/posts/newsletters');
+    await authenticatedPage.goto(APP_ROUTES.POSTS.NEWSLETTERS);
 
     await expect(authenticatedPage).toHaveURL(/posts\/newsletters/);
     // Page should render newsletter-specific content
@@ -62,7 +63,7 @@ test.describe('Posts — Content Types', () => {
   test('composer page opens with editor visible', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/compose');
+    await authenticatedPage.goto(APP_ROUTES.COMPOSE.ROOT);
 
     // /compose redirects to /compose/article
     await expect(authenticatedPage).toHaveURL(/\/compose\/article/);
@@ -72,7 +73,7 @@ test.describe('Posts — Content Types', () => {
   });
 
   test('remix page loads remix interface', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/posts/remix');
+    await authenticatedPage.goto(APP_ROUTES.POSTS.REMIX);
 
     await expect(authenticatedPage).toHaveURL(/posts\/remix/);
     // Remix page should render its interface
@@ -84,7 +85,7 @@ test.describe('Posts — Content Types', () => {
   test('review page shows review queue', async ({ authenticatedPage }) => {
     await mockReviewQueue(authenticatedPage);
 
-    await authenticatedPage.goto('/posts/review');
+    await authenticatedPage.goto(APP_ROUTES.POSTS.REVIEW);
 
     await expect(authenticatedPage).toHaveURL(/posts\/review/);
     // Review queue should display batch/review UI
@@ -96,7 +97,7 @@ test.describe('Posts — Content Types', () => {
   test('unauthenticated user is redirected from posts routes', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto('/compose');
+    await unauthenticatedPage.goto(APP_ROUTES.COMPOSE.ROOT);
 
     // Should redirect to login
     await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {

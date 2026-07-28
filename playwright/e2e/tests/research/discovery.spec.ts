@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockActiveSubscription,
   mockAnalyticsData,
@@ -28,7 +29,7 @@ test.describe('Research Section', () => {
     }) => {
       const researchPage = new ResearchPage(authenticatedPage);
 
-      await researchPage.goto('/research');
+      await researchPage.goto(APP_ROUTES.RESEARCH.ROOT);
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
 
       await expect(authenticatedPage).toHaveURL(/research\/discovery/);
@@ -232,7 +233,7 @@ test.describe('Research Section', () => {
     }) => {
       const researchPage = new ResearchPage(authenticatedPage);
 
-      await researchPage.goto('/research/twitter');
+      await researchPage.goto(`${APP_ROUTES.RESEARCH.ROOT}/twitter`);
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
 
       await expect(authenticatedPage).toHaveURL(/research\/twitter/);
@@ -248,7 +249,7 @@ test.describe('Research — Unauthenticated Access', () => {
   test('should redirect unauthenticated user from /research to login', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto('/research');
+    await unauthenticatedPage.goto(APP_ROUTES.RESEARCH.ROOT);
     await unauthenticatedPage.waitForLoadState('domcontentloaded');
 
     await expect(unauthenticatedPage).toHaveURL(/login|sign-in/, {
@@ -259,7 +260,7 @@ test.describe('Research — Unauthenticated Access', () => {
   test('should redirect unauthenticated user from /research/discovery to login', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto('/research/discovery');
+    await unauthenticatedPage.goto(APP_ROUTES.RESEARCH.DISCOVERY);
     await unauthenticatedPage.waitForLoadState('domcontentloaded');
 
     await expect(unauthenticatedPage).toHaveURL(/login|sign-in/, {
@@ -270,7 +271,7 @@ test.describe('Research — Unauthenticated Access', () => {
   test('should redirect unauthenticated user from /research/ads to login', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto('/research/ads');
+    await unauthenticatedPage.goto(APP_ROUTES.RESEARCH.ADS);
     await unauthenticatedPage.waitForLoadState('domcontentloaded');
 
     await expect(unauthenticatedPage).toHaveURL(/login|sign-in/, {

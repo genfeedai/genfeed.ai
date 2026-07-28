@@ -6,6 +6,7 @@ import {
   COMPOSE_ROUTES,
   createBrandAppRoute,
   createOrganizationAppRoute,
+  LEGACY_APP_ROUTES,
 } from './routes.constant';
 
 function collectRouteValues(value: unknown): string[] {
@@ -53,6 +54,7 @@ describe('routes.constant', () => {
 
   it('keeps Tasks inside the Workspace route family', () => {
     expect(APP_ROUTES.WORKSPACE.TASKS).toBe('/workspace/tasks');
+    expect(LEGACY_APP_ROUTES.TASKS).toBe('/tasks');
   });
 
   it('builds scoped brand and organization routes', () => {

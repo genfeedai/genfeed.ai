@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockActiveSubscription,
   mockAutomationData,
@@ -17,7 +18,7 @@ test.describe('Agents Runs', () => {
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(
-      '/orchestration/runs?q=trend&sort=credits&range=30d',
+      `${APP_ROUTES.ORCHESTRATION.RUNS}?q=trend&sort=credits&range=30d`,
     );
 
     await expect(authenticatedPage).toHaveURL(
@@ -41,7 +42,7 @@ test.describe('Agents Runs', () => {
   test('redirects unauthenticated users from the runs page', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto('/orchestration/runs');
+    await unauthenticatedPage.goto(APP_ROUTES.ORCHESTRATION.RUNS);
 
     try {
       await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {

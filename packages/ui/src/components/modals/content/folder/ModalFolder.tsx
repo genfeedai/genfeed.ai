@@ -1,6 +1,11 @@
 import { type FolderSchema, folderSchema } from '@genfeedai/client/schemas';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { AlertCategory, ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import {
+  AlertCategory,
+  ButtonVariant,
+  ModalEnum,
+  PageScope,
+} from '@genfeedai/enums';
 import {
   hasFormErrors,
   parseFormErrors,
@@ -24,6 +29,7 @@ export default function ModalFolder({
   item,
   onConfirm,
   brandId: propBrandId,
+  scope = PageScope.BRAND,
 }: ModalFolderProps) {
   const { brands } = useBrand();
   const isManagerApp = EnvironmentService.currentApp === 'app';
@@ -62,11 +68,11 @@ export default function ModalFolder({
       form.setValue('brand', item.brand?.id, { shouldValidate: true });
     } else {
       // Set default brand if provided via props
-      if (propBrandId) {
+      if (scope === PageScope.BRAND && propBrandId) {
         form.setValue('brand', propBrandId, { shouldValidate: true });
       }
     }
-  }, [item, form, propBrandId]);
+  }, [item, form, propBrandId, scope]);
 
   const processKeyDownModalFolder = (
     e: React.KeyboardEvent<HTMLTextAreaElement>,

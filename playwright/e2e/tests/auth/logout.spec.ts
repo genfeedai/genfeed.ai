@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   expect,
   simulateLogout,
@@ -18,7 +19,7 @@ test.describe('Logout Flow', () => {
     test('should render the logout page shell', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/logout');
+      await authenticatedPage.goto(APP_ROUTES.LOGOUT);
 
       await expect(authenticatedPage.getByText('Signing out...')).toBeVisible();
       await expect(authenticatedPage).toHaveURL(/\/logout|\/login|\/sign-in/i);
@@ -27,7 +28,7 @@ test.describe('Logout Flow', () => {
     test('should keep the logout shell visible while sign-out runs', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/logout');
+      await authenticatedPage.goto(APP_ROUTES.LOGOUT);
 
       await expect(authenticatedPage.getByText('Signing out...')).toBeVisible();
       await expect(authenticatedPage).toHaveURL(/\/logout|\/login|\/sign-in/i);
@@ -36,7 +37,7 @@ test.describe('Logout Flow', () => {
     test('should clear authentication state on logout', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/logout');
+      await authenticatedPage.goto(APP_ROUTES.LOGOUT);
 
       await simulateLogout(authenticatedPage);
 
@@ -51,11 +52,11 @@ test.describe('Logout Flow', () => {
     test('should handle expired session gracefully', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/overview');
+      await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT);
 
       await simulateSessionExpiry(authenticatedPage);
 
-      await authenticatedPage.goto('/studio');
+      await authenticatedPage.goto(APP_ROUTES.STUDIO.ROOT);
 
       const url = authenticatedPage.url();
       const isOnProtectedPage =
@@ -69,7 +70,7 @@ test.describe('Logout Flow', () => {
     test('should redirect to login when session expires', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/overview');
+      await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT);
 
       // Simulate session expiration
       await simulateSessionExpiry(authenticatedPage);
@@ -99,7 +100,7 @@ test.describe('Logout Flow', () => {
       await simulateLogout(authenticatedPage);
 
       // Navigate to logout again
-      await authenticatedPage.goto('/logout');
+      await authenticatedPage.goto(APP_ROUTES.LOGOUT);
 
       // Wait for any redirects
       await authenticatedPage.waitForTimeout(1000);
@@ -113,7 +114,7 @@ test.describe('Logout Flow', () => {
       authenticatedPage,
     }) => {
       // Start navigating
-      const navigationPromise = authenticatedPage.goto('/studio');
+      const navigationPromise = authenticatedPage.goto(APP_ROUTES.STUDIO.ROOT);
 
       // Simulate logout mid-navigation
       await authenticatedPage.waitForTimeout(100);
@@ -132,7 +133,7 @@ test.describe('Logout Flow', () => {
     test('should clear local storage on logout', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/overview');
+      await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT);
 
       // Set some data in local storage
       await authenticatedPage.evaluate(() => {
@@ -156,7 +157,7 @@ test.describe('Logout Flow', () => {
     test('should show loading state during logout', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/logout');
+      await authenticatedPage.goto(APP_ROUTES.LOGOUT);
 
       await expect(authenticatedPage.getByText('Signing out...')).toBeVisible();
     });
@@ -164,7 +165,7 @@ test.describe('Logout Flow', () => {
     test('should show confirmation message on successful logout', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/logout');
+      await authenticatedPage.goto(APP_ROUTES.LOGOUT);
 
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
@@ -204,13 +205,13 @@ test.describe('Logout Flow', () => {
     test('should not leak sensitive data after logout', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/overview');
+      await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT);
 
       // Simulate logout
       await simulateLogout(authenticatedPage);
 
       // Navigate to login
-      await authenticatedPage.goto('/login');
+      await authenticatedPage.goto(APP_ROUTES.LOGIN);
 
       // Check that no user data is visible
       const pageContent = await authenticatedPage.content();

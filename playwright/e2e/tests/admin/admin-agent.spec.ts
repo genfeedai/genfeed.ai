@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
 
@@ -12,7 +13,11 @@ import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
 test.describe('Admin Agent', () => {
   test.setTimeout(60_000);
 
-  const routes = ['/admin/agent', '/admin/agent/new', '/admin/agent/agent-1'];
+  const routes = [
+    APP_ROUTES.ADMIN.AGENT,
+    APP_ROUTES.ADMIN.AGENT_NEW,
+    `${APP_ROUTES.ADMIN.AGENT}/agent-1`,
+  ];
 
   for (const route of routes) {
     test(`renders ${route}`, async ({ adminPage }) => {
@@ -21,13 +26,13 @@ test.describe('Admin Agent', () => {
   }
 
   test('agent index stays interactive', async ({ adminPage }) => {
-    await assertRouteRenders(adminPage, '/admin/agent');
+    await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.AGENT);
     await tryClick(adminPage, 'button');
     await expect(adminPage.locator('body')).toBeVisible();
   });
 
   test('new agent thread stays interactive', async ({ adminPage }) => {
-    await assertRouteRenders(adminPage, '/admin/agent/new');
+    await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.AGENT_NEW);
     await tryClick(adminPage, 'textarea');
     await tryClick(adminPage, 'button');
     await expect(adminPage.locator('body')).toBeVisible();

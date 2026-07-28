@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockAdminStats,
   mockCrmAnalytics,
@@ -92,7 +93,7 @@ test.describe('Admin Content Management', () => {
       await mockCrmCompanyDetail(adminPage, 'company-1');
       await mockCrmLeads(adminPage, 4);
 
-      await adminPage.goto('/admin/content/companies/company-1');
+      await adminPage.goto(`${APP_ROUTES.ADMIN.CONTENT.COMPANIES}/company-1`);
       const admin = new AdminPage(adminPage);
 
       await admin.assertPageVisible();
@@ -168,7 +169,7 @@ test.describe('Admin Content Management', () => {
     }) => {
       await mockOrganizationIdentityDefaults(adminPage);
 
-      await adminPage.goto('/library/voices');
+      await adminPage.goto(APP_ROUTES.LIBRARY.VOICES);
       const admin = new AdminPage(adminPage);
 
       await admin.assertPageVisible();

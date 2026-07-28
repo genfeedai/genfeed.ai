@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   generateMockPost,
   mockActiveSubscription,
@@ -74,7 +75,7 @@ test.describe('Calendar — deep interactions', () => {
     const calendar = new CalendarPage(authenticatedPage);
 
     await mockCalendarPosts(authenticatedPage, buildScheduledPosts());
-    await assertRouteRenders(authenticatedPage, '/posts/calendar');
+    await assertRouteRenders(authenticatedPage, APP_ROUTES.POSTS.CALENDAR);
 
     await calendar.goToNextPeriod().catch(() => {});
     await calendar.goToPreviousPeriod().catch(() => {});
@@ -91,7 +92,7 @@ test.describe('Calendar — deep interactions', () => {
     authenticatedPage,
   }) => {
     await mockCalendarPosts(authenticatedPage, buildScheduledPosts());
-    await assertRouteRenders(authenticatedPage, '/posts/calendar');
+    await assertRouteRenders(authenticatedPage, APP_ROUTES.POSTS.CALENDAR);
 
     // Tabs render as links/icons in the calendar header; best-effort toggle.
     await tryClick(authenticatedPage, 'a:has-text("Articles")');
@@ -110,7 +111,7 @@ test.describe('Calendar — deep interactions', () => {
     const calendar = new CalendarPage(authenticatedPage);
 
     await mockCalendarPosts(authenticatedPage, buildScheduledPosts());
-    await assertRouteRenders(authenticatedPage, '/posts/calendar');
+    await assertRouteRenders(authenticatedPage, APP_ROUTES.POSTS.CALENDAR);
 
     const eventCount = await calendar.getEventCount().catch(() => 0);
     if (eventCount > 0) {
@@ -144,9 +145,11 @@ test.describe('Tasks — deep interactions', () => {
   test('renders the tasks list and cycles the status filter', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, '/tasks');
+    await assertRouteRenders(authenticatedPage, APP_ROUTES.WORKSPACE.TASKS);
 
-    await expect(authenticatedPage).toHaveURL(/\/tasks(?:$|[?#])/);
+    expect(new URL(authenticatedPage.url()).pathname).toBe(
+      APP_ROUTES.WORKSPACE.TASKS,
+    );
 
     const statusFilter = authenticatedPage.locator('select').first();
     if (await statusFilter.isVisible().catch(() => false)) {
@@ -166,7 +169,7 @@ test.describe('Tasks — deep interactions', () => {
   test('opens a task overlay from the list view', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, '/tasks');
+    await assertRouteRenders(authenticatedPage, APP_ROUTES.WORKSPACE.TASKS);
 
     // Empty mocked collections mean rows may be absent; guard the click.
     const firstTask = authenticatedPage
@@ -189,9 +192,14 @@ test.describe('Tasks — deep interactions', () => {
   test('renders a task detail route directly', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, '/tasks/task-201');
+    await assertRouteRenders(
+      authenticatedPage,
+      `${APP_ROUTES.WORKSPACE.TASKS}/task-201`,
+    );
 
-    await expect(authenticatedPage).toHaveURL(/\/tasks\/task-201(?:$|[?#])/);
+    expect(new URL(authenticatedPage.url()).pathname).toBe(
+      `${APP_ROUTES.WORKSPACE.TASKS}/task-201`,
+    );
 
     // Touch any status / action controls present on the detail page.
     await tryClick(authenticatedPage, 'button:has-text("In Progress")');

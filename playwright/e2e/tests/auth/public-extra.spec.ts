@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
 
@@ -23,7 +24,7 @@ test.describe('Public Routes (Unauthenticated)', () => {
   }
 
   test('sign-up stays interactive', async ({ unauthenticatedPage }) => {
-    await assertRouteRenders(unauthenticatedPage, '/sign-up', {
+    await assertRouteRenders(unauthenticatedPage, APP_ROUTES.SIGN_UP, {
       allowRedirectToLogin: true,
     });
     await tryClick(unauthenticatedPage, 'button');
@@ -43,13 +44,19 @@ test.describe('Managed Credits (Authenticated)', () => {
   test.setTimeout(60_000);
 
   test('renders /managed-credits/success', async ({ authenticatedPage }) => {
-    await assertRouteRenders(authenticatedPage, '/managed-credits/success');
+    await assertRouteRenders(
+      authenticatedPage,
+      APP_ROUTES.MANAGED_CREDITS_SUCCESS,
+    );
   });
 
   test('managed-credits success stays interactive', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, '/managed-credits/success');
+    await assertRouteRenders(
+      authenticatedPage,
+      APP_ROUTES.MANAGED_CREDITS_SUCCESS,
+    );
     await tryClick(authenticatedPage, 'a');
     await expect(authenticatedPage.locator('body')).toBeVisible();
   });

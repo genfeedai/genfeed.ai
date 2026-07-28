@@ -31,6 +31,11 @@ import {
 } from '@/lib/navigation/operator-shell';
 import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
 import { useCommandPaletteStore } from '@/store/commandPaletteStore';
+import {
+  createLibraryFolderQuery,
+  getLibraryFolderOwnerId,
+  getLibraryFolderScope,
+} from './library-folder-scope';
 
 const FOLDER_COMPATIBLE_ROUTES = new Set<string>([
   APP_ROUTES.LIBRARY.AVATARS,
@@ -50,10 +55,16 @@ export default function LibrarySidebarNav() {
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const { replace } = useRouter();
-  const { brandId } = useBrand();
+  const { brandId, organizationId } = useBrand();
   const { href } = useOrgUrl();
   const notifications = NotificationsService.getInstance();
   const selectedFolderId = searchParams.get('folder');
+  const folderScope = getLibraryFolderScope(normalizedPathname);
+  const folderOwnerId = getLibraryFolderOwnerId(
+    folderScope,
+    brandId,
+    organizationId,
+  );
   const taskContextSearchParams = useMemo(
     () =>
       pickOperatorTaskContextSearchParams(
@@ -74,18 +85,18 @@ export default function LibrarySidebarNav() {
     isLoading: isLoadingFolders,
     refetch: refetchFolders,
   } = useQuery<IFolder[]>({
-    enabled: Boolean(brandId),
+    enabled: Boolean(folderOwnerId),
     queryFn: async () => {
       const service = await getFoldersService();
-      const query: IQueryParams = {
-        brand: brandId ?? undefined,
-        isActive: true,
-        pagination: false,
-      };
+      const query: IQueryParams = createLibraryFolderQuery(
+        folderScope,
+        brandId,
+        organizationId,
+      );
 
       return service.findAll(query);
     },
-    queryKey: ['library-sidebar-folders', brandId],
+    queryKey: ['library-sidebar-folders', folderScope, folderOwnerId],
   });
 
   const handleSelectFolder = (folder: IFolder | null) => {
@@ -204,7 +215,9 @@ export default function LibrarySidebarNav() {
       </div>
 
       <LazyModalFolder
-        brandId={brandId ?? undefined}
+        brandId={
+          folderScope === PageScope.BRAND ? (brandId ?? undefined) : undefined
+        }
         item={null}
         onConfirm={(shouldRefreshAssets) => {
           void refetchFolders();
@@ -212,7 +225,7 @@ export default function LibrarySidebarNav() {
             dispatchLibraryAssetsRefresh();
           }
         }}
-        scope={PageScope.BRAND}
+        scope={folderScope}
       />
     </>
   );

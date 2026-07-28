@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockActiveSubscription,
   mockSkillsCatalog,
@@ -16,7 +17,7 @@ test.describe('Agents Skills', () => {
   test('loads the skills catalog for authenticated users', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/orchestration/skills', {
+    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.SKILLS, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -39,7 +40,7 @@ test.describe('Agents Skills', () => {
   test('redirects unauthenticated users from the skills route', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto('/orchestration/skills', {
+    await unauthenticatedPage.goto(APP_ROUTES.ORCHESTRATION.SKILLS, {
       waitUntil: 'domcontentloaded',
     });
 

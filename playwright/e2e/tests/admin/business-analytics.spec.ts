@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockAdminStats,
   mockBusinessAnalytics,
@@ -152,7 +153,7 @@ test.describe('Admin Business Analytics', () => {
   }) => {
     const admin = new AdminPage(adminPage);
     // Navigate to overview analytics first, then click Business tab
-    await adminPage.goto('/admin/overview/analytics/all', {
+    await adminPage.goto(APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ALL, {
       waitUntil: 'domcontentloaded',
     });
     await admin.waitForPageLoad();

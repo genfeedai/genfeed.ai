@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockActiveSubscription,
   mockAutomationData,
@@ -27,7 +28,7 @@ test.describe('Agents — Sub-Sections', () => {
 
   test('campaigns page loads campaigns list', async ({ authenticatedPage }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto('/orchestration/campaigns', {
+    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.CAMPAIGNS, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -41,7 +42,7 @@ test.describe('Agents — Sub-Sections', () => {
     authenticatedPage,
   }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto('/orchestration/campaigns/new', {
+    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.CAMPAIGNS_NEW, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -54,7 +55,7 @@ test.describe('Agents — Sub-Sections', () => {
     authenticatedPage,
   }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto('/orchestration/outreach-campaigns');
+    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.OUTREACH_CAMPAIGNS);
 
     await expect(authenticatedPage).toHaveURL(
       /orchestration\/outreach-campaigns/,
@@ -68,7 +69,9 @@ test.describe('Agents — Sub-Sections', () => {
     authenticatedPage,
   }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto('/orchestration/outreach-campaigns/new');
+    await authenticatedPage.goto(
+      APP_ROUTES.ORCHESTRATION.OUTREACH_CAMPAIGNS_NEW,
+    );
 
     await expect(authenticatedPage).toHaveURL(
       /orchestration\/outreach-campaigns\/new/,
@@ -78,7 +81,7 @@ test.describe('Agents — Sub-Sections', () => {
 
   test('runs page shows run history', async ({ authenticatedPage }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto('/orchestration/runs', {
+    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.RUNS, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -93,7 +96,7 @@ test.describe('Agents — Sub-Sections', () => {
     authenticatedPage,
   }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto('/orchestration/strategies', {
+    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.STRATEGIES, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -106,7 +109,7 @@ test.describe('Agents — Sub-Sections', () => {
     await mockWorkflowExecutions(authenticatedPage, []);
     await mockWorkflowTemplates(authenticatedPage, []);
 
-    await authenticatedPage.goto('/workflows', {
+    await authenticatedPage.goto(APP_ROUTES.WORKFLOWS.ROOT, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -123,7 +126,7 @@ test.describe('Agents — Sub-Sections', () => {
     await mockWorkflowExecutions(authenticatedPage, []);
     await mockWorkflowTemplates(authenticatedPage, []);
 
-    await authenticatedPage.goto('/workflows/new', {
+    await authenticatedPage.goto(APP_ROUTES.WORKFLOWS.NEW, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -140,7 +143,7 @@ test.describe('Agents — Sub-Sections', () => {
     await mockWorkflowExecutions(authenticatedPage, []);
     await mockWorkflowTemplates(authenticatedPage, []);
 
-    await authenticatedPage.goto('/workflows/templates', {
+    await authenticatedPage.goto(APP_ROUTES.WORKFLOWS.TEMPLATES, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -153,7 +156,7 @@ test.describe('Agents — Sub-Sections', () => {
   test('unauthenticated user is redirected from agents routes', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto('/orchestration/campaigns', {
+    await unauthenticatedPage.goto(APP_ROUTES.ORCHESTRATION.CAMPAIGNS, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -176,7 +179,7 @@ test.describe('Agents — Sub-Sections', () => {
   test('unauthenticated user is redirected from outreach campaign routes', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto('/orchestration/outreach-campaigns');
+    await unauthenticatedPage.goto(APP_ROUTES.ORCHESTRATION.OUTREACH_CAMPAIGNS);
 
     await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
       timeout: 15000,

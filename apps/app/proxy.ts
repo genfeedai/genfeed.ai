@@ -4,6 +4,12 @@ import {
   isDesktopClient,
   isSaaS,
 } from '@genfeedai/config/deployment';
+import {
+  APP_ROUTE_PREFIXES,
+  APP_ROUTES,
+  createBrandAppRoute,
+  LEGACY_APP_ROUTES,
+} from '@genfeedai/constants';
 import { type NextRequest, NextResponse } from 'next/server';
 
 type BootstrapBrandSummary = {
@@ -32,38 +38,42 @@ type OrganizationMineResponseItem = {
   slug?: string;
 };
 
-const ONBOARDING_PATH = '/onboarding';
-const SEEDED_WORKSPACE_PATH = '/default/default/workspace/overview';
+const ONBOARDING_PATH = APP_ROUTES.ONBOARDING.ROOT;
+const SEEDED_WORKSPACE_PATH = createBrandAppRoute(
+  'default',
+  'default',
+  APP_ROUTES.WORKSPACE.OVERVIEW,
+);
 const ONBOARDING_STEPS = ['brand', 'providers', 'summary'] as const;
 let hasWarnedAboutHostedModeMisconfiguration = false;
 
 const BRAND_SCOPED_PREFIXES = [
-  'analytics',
-  'agent',
-  'compose',
-  'editor',
-  'tasks',
-  'library',
-  'orchestration',
-  'overview',
-  'posts',
-  'research',
-  'studio',
-  'workflows',
-  'workspace',
+  APP_ROUTE_PREFIXES.ANALYTICS.slice(1),
+  APP_ROUTE_PREFIXES.AGENT.slice(1),
+  APP_ROUTE_PREFIXES.COMPOSE.slice(1),
+  APP_ROUTE_PREFIXES.EDITOR.slice(1),
+  LEGACY_APP_ROUTES.TASKS.slice(1),
+  APP_ROUTE_PREFIXES.LIBRARY.slice(1),
+  APP_ROUTE_PREFIXES.ORCHESTRATION.slice(1),
+  APP_ROUTE_PREFIXES.OVERVIEW.slice(1),
+  APP_ROUTE_PREFIXES.POSTS.slice(1),
+  APP_ROUTE_PREFIXES.RESEARCH.slice(1),
+  APP_ROUTE_PREFIXES.STUDIO.slice(1),
+  APP_ROUTE_PREFIXES.WORKFLOWS.slice(1),
+  APP_ROUTE_PREFIXES.WORKSPACE.slice(1),
 ] as const;
 
-const ORG_SCOPED_PREFIXES = ['settings'] as const;
+const ORG_SCOPED_PREFIXES = [APP_ROUTE_PREFIXES.SETTINGS.slice(1)] as const;
 
 const FLAT_PATH_REDIRECTS = new Map<string, string>([
-  ['/analytics', '/analytics/overview'],
-  ['/compose', '/compose/article'],
-  ['/library', '/library/overview'],
-  ['/research', '/research/discovery'],
-  ['/studio', '/studio/image'],
-  ['/tasks', '/workspace/tasks'],
-  ['/workspace', '/workspace/overview'],
-  ['/workspace/inbox', '/workspace/inbox/unread'],
+  [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
+  [APP_ROUTES.COMPOSE.ROOT, APP_ROUTES.COMPOSE.ARTICLE],
+  [APP_ROUTE_PREFIXES.LIBRARY, APP_ROUTES.LIBRARY.OVERVIEW],
+  [APP_ROUTES.RESEARCH.ROOT, APP_ROUTES.RESEARCH.DISCOVERY],
+  [APP_ROUTES.STUDIO.ROOT, APP_ROUTES.STUDIO.IMAGE],
+  [LEGACY_APP_ROUTES.TASKS, APP_ROUTES.WORKSPACE.TASKS],
+  [APP_ROUTES.WORKSPACE.ROOT, APP_ROUTES.WORKSPACE.OVERVIEW],
+  [APP_ROUTES.WORKSPACE.INBOX, APP_ROUTES.WORKSPACE.INBOX_UNREAD],
 ]);
 
 function getApiBaseUrl(): string {
@@ -101,7 +111,7 @@ function canonicalizeLegacyScopedProtectedPath(
 
   if (
     (segments.length !== 3 && segments.length !== 4) ||
-    section !== 'tasks' ||
+    section !== LEGACY_APP_ROUTES.TASKS.slice(1) ||
     !orgSlug ||
     !brandSlug ||
     !SLUG_RE.test(orgSlug) ||
@@ -111,7 +121,11 @@ function canonicalizeLegacyScopedProtectedPath(
   }
 
   const taskPath = taskId ? `/${taskId}` : '';
-  return `/${orgSlug}/${brandSlug}/workspace/tasks${taskPath}`;
+  return createBrandAppRoute(
+    orgSlug,
+    brandSlug,
+    `${APP_ROUTES.WORKSPACE.TASKS}${taskPath}`,
+  );
 }
 
 function createSafeRedirectUrl(req: NextRequest, pathname: string): URL {

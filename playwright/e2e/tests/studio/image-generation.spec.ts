@@ -42,7 +42,7 @@ test.describe('Image Generation', () => {
     test('should normalize plural image routes to the canonical path', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/studio/images');
+      await authenticatedPage.goto(APP_ROUTES.STUDIO.IMAGES);
 
       await expect(authenticatedPage).toHaveURL(/\/studio\/image(?:\?.*)?$/);
     });

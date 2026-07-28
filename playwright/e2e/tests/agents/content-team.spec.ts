@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockActiveSubscription,
   mockAutomationData,
@@ -20,7 +21,7 @@ test.describe('Agents — Content Team', () => {
   test('content team landing page loads and shows core controls', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/orchestration', {
+    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.ROOT, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -43,7 +44,7 @@ test.describe('Agents — Content Team', () => {
   });
 
   test('hire flow renders and submits', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/orchestration/hire', {
+    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.HIRE, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -64,7 +65,7 @@ test.describe('Agents — Content Team', () => {
   test('orchestrator flow renders and submits a basic team launch', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/orchestration/orchestrator', {
+    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.ORCHESTRATOR, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -88,7 +89,7 @@ test.describe('Agents — Content Team', () => {
   test('unauthenticated user is redirected from content team routes', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto('/orchestration', {
+    await unauthenticatedPage.goto(APP_ROUTES.ORCHESTRATION.ROOT, {
       waitUntil: 'domcontentloaded',
     });
 

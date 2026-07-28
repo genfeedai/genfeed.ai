@@ -6,17 +6,27 @@ export type ButtonVariantConfig = {
   shipVariant: 'default' | 'secondary' | 'destructive' | 'ghost' | 'link';
 };
 
-export const BUTTON_VARIANT_CONFIG: Record<ButtonVariant, ButtonVariantConfig> =
-  {
-    [ButtonVariant.DEFAULT]: { shipVariant: 'default' },
-    [ButtonVariant.DESTRUCTIVE]: { shipVariant: 'destructive' },
-    [ButtonVariant.GHOST]: { shipVariant: 'ghost' },
-    [ButtonVariant.LINK]: { shipVariant: 'link' },
-    [ButtonVariant.SECONDARY]: { shipVariant: 'secondary' },
-    [ButtonVariant.UNSTYLED]: { shipVariant: 'default' },
-  };
+export type CanonicalButtonVariant =
+  | ButtonVariant.DEFAULT
+  | ButtonVariant.DESTRUCTIVE
+  | ButtonVariant.GHOST
+  | ButtonVariant.LINK
+  | ButtonVariant.SECONDARY
+  | ButtonVariant.UNSTYLED;
 
-const LEGACY_BUTTON_VARIANT_ALIASES: Record<string, ButtonVariant> = {
+export const BUTTON_VARIANT_CONFIG: Record<
+  CanonicalButtonVariant,
+  ButtonVariantConfig
+> = {
+  [ButtonVariant.DEFAULT]: { shipVariant: 'default' },
+  [ButtonVariant.DESTRUCTIVE]: { shipVariant: 'destructive' },
+  [ButtonVariant.GHOST]: { shipVariant: 'ghost' },
+  [ButtonVariant.LINK]: { shipVariant: 'link' },
+  [ButtonVariant.SECONDARY]: { shipVariant: 'secondary' },
+  [ButtonVariant.UNSTYLED]: { shipVariant: 'default' },
+};
+
+const LEGACY_BUTTON_VARIANT_ALIASES: Record<string, CanonicalButtonVariant> = {
   black: ButtonVariant.DEFAULT,
   generate: ButtonVariant.DEFAULT,
   outline: ButtonVariant.SECONDARY,
@@ -27,14 +37,17 @@ const LEGACY_BUTTON_VARIANT_ALIASES: Record<string, ButtonVariant> = {
 
 export function resolveButtonVariant(
   variant?: ButtonVariant | null,
-): ButtonVariant {
+): CanonicalButtonVariant {
   if (!variant) {
     return ButtonVariant.DEFAULT;
   }
 
+  const canonicalVariant = variant as CanonicalButtonVariant;
   return (
     LEGACY_BUTTON_VARIANT_ALIASES[variant] ??
-    (variant in BUTTON_VARIANT_CONFIG ? variant : ButtonVariant.DEFAULT)
+    (canonicalVariant in BUTTON_VARIANT_CONFIG
+      ? canonicalVariant
+      : ButtonVariant.DEFAULT)
   );
 }
 

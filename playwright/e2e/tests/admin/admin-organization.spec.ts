@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
 
@@ -11,7 +12,7 @@ import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
 test.describe('Admin Organization', () => {
   test.setTimeout(60_000);
 
-  const routes = ['/admin/organization', '/admin/folders'];
+  const routes = [APP_ROUTES.ADMIN.ORGANIZATION, APP_ROUTES.ADMIN.FOLDERS];
 
   for (const route of routes) {
     test(`renders ${route}`, async ({ adminPage }) => {
@@ -22,7 +23,7 @@ test.describe('Admin Organization', () => {
   test('organization settings surface stays interactive', async ({
     adminPage,
   }) => {
-    await assertRouteRenders(adminPage, '/admin/organization');
+    await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.ORGANIZATION);
     await expect(
       adminPage.locator('[data-testid="organization-settings-surface"]'),
     ).toBeVisible();
@@ -31,7 +32,7 @@ test.describe('Admin Organization', () => {
   });
 
   test('folders view stays interactive', async ({ adminPage }) => {
-    await assertRouteRenders(adminPage, '/admin/folders');
+    await assertRouteRenders(adminPage, APP_ROUTES.ADMIN.FOLDERS);
     await tryClick(adminPage, 'button');
     await expect(adminPage.locator('body')).toBeVisible();
   });

@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { formData } from '../../fixtures/test-data.fixture';
 import { LoginPage } from '../../pages/login.page';
@@ -122,7 +123,7 @@ test.describe('Login Page', () => {
     }) => {
       const loginPage = new LoginPage(authenticatedPage);
 
-      await authenticatedPage.goto('/login');
+      await authenticatedPage.goto(APP_ROUTES.LOGIN);
       await loginPage.waitForPageLoad();
 
       await expect(authenticatedPage).toHaveURL(/\/login/);
@@ -309,7 +310,7 @@ test.describe('Login Success Flow', () => {
   test('should redirect to overview after successful login', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/overview');
+    await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT);
 
     await expect(authenticatedPage).toHaveURL(/overview/);
   });
@@ -317,7 +318,7 @@ test.describe('Login Success Flow', () => {
   test('should load the overview shell after login', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto('/overview');
+    await authenticatedPage.goto(APP_ROUTES.OVERVIEW.ROOT);
     await authenticatedPage.waitForLoadState('domcontentloaded');
 
     await expect(authenticatedPage).toHaveURL(/overview/);
