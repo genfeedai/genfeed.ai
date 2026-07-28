@@ -24,6 +24,12 @@ Audit-only pass, then P0 implementation. Remaining work is tracked here so it is
 | Live Prisma alias reads | Scalar-first fixes in bot resolver, credentials controller, asset-access guard, TikTok status, YouTube analytics enqueue, content-engine, BYOK billing, ad-optimization, reply-bot |
 | Soft-delete memory | `project_soft_delete_is_deleted.md` |
 
+## P1 progress (same worktree)
+
+| Item | Status |
+|---|---|
+| #519 brand interview tool family | **Extracted** → `agent-brand-interview-tool-handler.service.ts`; executor delegates 4 tools; constructor drops direct `BrandInterviewService` dep. Executor ~9,138 → ~8,944 LOC. Next slices: onboarding tools, then workflow family. |
+
 **Out of P0 scope (already epics):** `mongoId` cutover (#1041 + children). Do not drop columns without telemetry (#1779 → #1780 → #1781 → #1782).
 
 **Worktree hygiene (ops, not code debt):** branch `codex/fix-posts-surface` remote was gone at audit time; re-push or open PR before stacking more work. Dirty skill symlink deletions should not mix into product PRs.

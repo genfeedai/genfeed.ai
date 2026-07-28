@@ -7,6 +7,7 @@ vi.mock(
 
 import 'reflect-metadata';
 import { AiActionType } from '@api/endpoints/ai-actions/dto/ai-action.dto';
+import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
@@ -764,6 +765,9 @@ describe('AgentToolExecutorService', () => {
         credentialsService as never,
         instagramInspirationService as never,
       );
+    const brandInterviewHandler = new AgentBrandInterviewToolHandler(
+      brandInterviewService as never,
+    );
 
     const service = new AgentToolExecutorService(
       loggerService,
@@ -803,7 +807,7 @@ describe('AgentToolExecutorService', () => {
       ingredientsService as never,
       {} as never, // votesService
       instagramInspirationHandler,
-      brandInterviewService as never,
+      brandInterviewHandler,
       agentScopeContextService as never,
     );
 
@@ -4208,7 +4212,7 @@ describe('AgentToolExecutorService', () => {
       undefined as never, // ingredientsService
       undefined as never, // votesService
       instagramInspirationHandler,
-      undefined as never, // brandInterviewService
+      new AgentBrandInterviewToolHandler(undefined),
       undefined as never, // agentScopeContextService
     );
 
