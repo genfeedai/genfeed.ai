@@ -1,3 +1,4 @@
+import { formatAgentPlatformLabel } from '@api/services/agent-orchestrator/tools/agent-platform-label.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import type { AgentToolResult } from '@genfeedai/interfaces';
@@ -91,7 +92,7 @@ export class AgentReviewToolHandler {
           ? 'This batch does not have any items in the current filter.'
           : `Loaded ${visibleItems.length} item${visibleItems.length === 1 ? '' : 's'} from this batch. ${readyCount} item${readyCount === 1 ? ' is' : 's are'} ready for review right now.`;
       const outcomeBullets = visibleItems.slice(0, 4).map((item) => {
-        const platformLabel = this.formatQueueItemLabel(item.platform);
+        const platformLabel = formatAgentPlatformLabel(item.platform);
         const formatLabel =
           typeof item.format === 'string' ? item.format : null;
         const statusLabel =
@@ -231,23 +232,5 @@ export class AgentReviewToolHandler {
     }
 
     return normalized;
-  }
-
-  private formatQueueItemLabel(value: unknown): string | null {
-    if (typeof value !== 'string') {
-      return null;
-    }
-
-    const normalized = value.trim().toLowerCase();
-
-    if (!normalized) {
-      return null;
-    }
-
-    if (normalized === 'twitter' || normalized === 'x') {
-      return 'X';
-    }
-
-    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
   }
 }

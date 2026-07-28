@@ -38,6 +38,7 @@ import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/too
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
+import { formatAgentPlatformLabel } from '@api/services/agent-orchestrator/tools/agent-platform-label.util';
 import { AgentProactiveToolHandler } from '@api/services/agent-orchestrator/tools/agent-proactive-tool-handler.service';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import { AgentQualityToolHandler } from '@api/services/agent-orchestrator/tools/agent-quality-tool-handler.service';
@@ -6330,11 +6331,11 @@ export class AgentToolExecutorService {
     }
 
     if (platforms.length === 1) {
-      return platforms[0] === 'twitter' ? 'X' : platforms[0];
+      return formatAgentPlatformLabel(platforms[0]) ?? platforms[0];
     }
 
     return platforms
-      .map((platform) => (platform === 'twitter' ? 'X' : platform))
+      .map((platform) => formatAgentPlatformLabel(platform) ?? platform)
       .join(', ');
   }
 
