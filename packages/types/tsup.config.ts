@@ -2,7 +2,11 @@ import { defineConfig } from 'tsup';
 
 export default defineConfig({
   clean: true,
-  dts: true,
+  dts: {
+    compilerOptions: {
+      ignoreDeprecations: '6.0',
+    },
+  },
   entry: {
     comfyui: 'src/comfyui/index.ts',
     index: 'src/index.ts',

@@ -3,7 +3,11 @@ import { defineConfig } from 'tsup';
 export default defineConfig([
   {
     clean: true,
-    dts: true,
+    dts: {
+      compilerOptions: {
+        ignoreDeprecations: '6.0',
+      },
+    },
     entry: [
       'src/index.ts',
       'src/contracts/index.ts',
@@ -18,7 +22,11 @@ export default defineConfig([
   {
     bundle: false,
     clean: false,
-    dts: true,
+    dts: {
+      compilerOptions: {
+        ignoreDeprecations: '6.0',
+      },
+    },
     entry: {
       canvas: 'src/ui/canvas/index.ts',
       hooks: 'src/ui/hooks/index.ts',
