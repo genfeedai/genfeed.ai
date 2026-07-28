@@ -1,5 +1,5 @@
-import { Platform } from './platform.enum';
-import { Scope } from './scope.enum';
+import { Platform } from './platform.enum.js';
+import { Scope } from './scope.enum.js';
 
 export enum BotCategory {
   CHAT = 'chat',

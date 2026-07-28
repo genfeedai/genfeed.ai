@@ -1,4 +1,4 @@
-export { Scope as ArticleScope } from './scope.enum';
+export { Scope as ArticleScope } from './scope.enum.js';
 
 export enum ArticleStatus {
   DRAFT = 'draft',

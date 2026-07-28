@@ -1,4 +1,4 @@
-import { Platform } from './platform.enum';
+import { Platform } from './platform.enum.js';
 
 export const WatchlistPlatform = {
   INSTAGRAM: Platform.INSTAGRAM,

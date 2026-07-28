@@ -1,6 +1,6 @@
 import { ModelCategory } from '@genfeedai/enums';
-import { ASPECT_RATIOS } from './model-aspect-ratios.constant';
-import { MODEL_KEYS } from './model-keys.constant';
+import { ASPECT_RATIOS } from './model-aspect-ratios.constant.js';
+import { MODEL_KEYS } from './model-keys.constant.js';
 
 export type ModelCapabilityCategory =
   | ModelCategory.TEXT

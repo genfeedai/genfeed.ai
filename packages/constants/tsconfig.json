@@ -7,8 +7,8 @@
     "forceConsistentCasingInFileNames": true,
     "inlineSources": true,
     "lib": ["ES2020"],
-    "module": "ESNext",
-    "moduleResolution": "bundler",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "outDir": "./dist",
     "paths": {
       "@genfeedai/enums": ["../enums/src/index.ts"],

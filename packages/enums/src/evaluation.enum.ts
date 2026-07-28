@@ -1,4 +1,4 @@
-import { Platform } from './platform.enum';
+import { Platform } from './platform.enum.js';
 
 export enum EvaluationType {
   PRE_PUBLICATION = 'pre-publication',
