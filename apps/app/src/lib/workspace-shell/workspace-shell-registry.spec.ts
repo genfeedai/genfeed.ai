@@ -130,6 +130,20 @@ describe('workspace shell trusted registry', () => {
   );
 
   it.each([
+    ['/acme/moonrise/research/ads/google', 'Google'],
+    ['/acme/moonrise/research/ads/meta', 'Meta'],
+  ] as const)(
+    'keeps Ads in the breadcrumb hierarchy for %s',
+    (pathname, leafLabel) => {
+      expect(resolveWorkspaceShellRoute(pathname)?.breadcrumb).toEqual({
+        leafLabel,
+        parentLabel: 'Ads',
+        rootLabel: 'Research',
+      });
+    },
+  );
+
+  it.each([
     ['/:orgSlug/:brandSlug/posts/calendar', 'canvas'],
     ['/:orgSlug/:brandSlug/library/moodboard', 'canvas'],
     ['/:orgSlug/:brandSlug/orchestration/skills', 'canvas'],

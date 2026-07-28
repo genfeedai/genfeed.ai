@@ -1,5 +1,7 @@
 import { type PageScope, PostStatus } from '@genfeedai/enums';
 
+export type PostsPublicationState = 'posted' | 'not-posted';
+
 export interface PostsListQueryKeyInput {
   adminBrand: string;
   adminOrg: string;
@@ -10,6 +12,7 @@ export interface PostsListQueryKeyInput {
   filterStatus: PostStatus | string;
   organizationId?: string | null;
   platformFilter?: string;
+  publicationState?: PostsPublicationState;
   scope: PageScope;
   status?: PostStatus;
 }
@@ -34,6 +37,7 @@ export function buildPostsListQueryKey({
   filterStatus,
   organizationId,
   platformFilter,
+  publicationState,
   scope,
   status,
 }: PostsListQueryKeyInput) {
@@ -43,6 +47,7 @@ export function buildPostsListQueryKey({
     brandId,
     organizationId,
     platformFilter,
+    publicationState,
     filterSearch,
     filterStatus,
     filterSort,

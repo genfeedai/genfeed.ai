@@ -132,10 +132,7 @@ export function AgentChatInput({
 
   return (
     <div
-      className={cn(
-        'relative w-full',
-        isInspector && '[&_.ProseMirror]:min-h-14',
-      )}
+      className="relative w-full"
       data-density={density}
       onPaste={handlePasteImages}
       {...dragHandlers}

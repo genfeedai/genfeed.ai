@@ -137,10 +137,6 @@ export function getPublisherPostsStatusPath(
 ): string {
   const normalizedStatus = normalizePublisherPostsStatus(status);
 
-  if (normalizedStatus === PostStatus.SCHEDULED) {
-    return APP_ROUTES.POSTS.SCHEDULED;
-  }
-
   if (normalizedStatus === PostStatus.PUBLIC) {
     return APP_ROUTES.POSTS.PUBLISHED;
   }

@@ -134,9 +134,11 @@ describe('TrendsList', () => {
       data: [
         {
           creatorHandle: 'creator',
+          externalId: '7123456789012345678',
           id: 'video-1',
           platform: 'tiktok',
           title: 'Viral hook',
+          videoUrl: 'https://www.tiktok.com/@creator/video/7123456789012345678',
           views: 15000,
           viralScore: 88,
         },
@@ -232,9 +234,10 @@ describe('TrendsList', () => {
     expect(
       screen.getByRole('button', { name: 'Refresh feed' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Hook pattern')).toBeInTheDocument();
-    expect(screen.getByText('Creator format')).toBeInTheDocument();
-    expect(screen.getByText('Remix angle')).toBeInTheDocument();
+    expect(screen.getByText('No viral videos yet')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Refresh videos' }),
+    ).toBeInTheDocument();
   });
 
   it('renders the search bar', () => {
@@ -250,6 +253,10 @@ describe('TrendsList', () => {
 
     expect(screen.getByText('Viral Videos')).toBeInTheDocument();
     expect(screen.getByText('Viral hook')).toBeInTheDocument();
+    expect(screen.getByTitle('Viral hook video')).toHaveAttribute(
+      'src',
+      'https://www.tiktok.com/player/v1/7123456789012345678?autoplay=0&loop=0&muted=0',
+    );
   });
 
   it('renders the section topbar with the title and tabs inside the bordered bar', () => {

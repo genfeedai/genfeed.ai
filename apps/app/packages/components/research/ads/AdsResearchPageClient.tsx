@@ -16,6 +16,7 @@ import Container from '@ui/layout/container/Container';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
+import Link from 'next/link';
 import type { ChangeEvent } from 'react';
 import {
   HiOutlineFunnel,
@@ -268,6 +269,31 @@ export default function AdsResearchPageClient({
                 resultsError?.message ||
                 'Try refreshing the page.'}
             </div>
+          </div>
+        </Alert>
+      )}
+
+      {credentialOptions.length === 0 && (
+        <Alert type={AlertCategory.INFO} className="mb-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <div className="font-medium">Connect Meta or Google Ads</div>
+              <div className="text-xs text-foreground/70">
+                Meta Ads uses your connected Facebook account. Google Ads has
+                its own connection. Connected campaigns appear here after you
+                choose the credential and ad account in Filters.
+              </div>
+            </div>
+            <Button
+              asChild
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.SM}
+              className="shrink-0"
+            >
+              <Link href={href(APP_ROUTES.SETTINGS.ROOT)}>
+                Manage ad connections
+              </Link>
+            </Button>
           </div>
         </Alert>
       )}

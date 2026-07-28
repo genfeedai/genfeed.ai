@@ -4,18 +4,14 @@ import {
   PostsLayoutContext,
   type RefreshFunction,
 } from '@contexts/posts/posts-layout-context';
-import { ButtonSize, ButtonVariant, PostStatus } from '@genfeedai/enums';
-import {
-  getPublisherPostsHref,
-  getPublisherPostsStatusFromPathname,
-} from '@helpers/content/posts.helper';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Suspense, useCallback, useMemo, useReducer } from 'react';
 import { HiOutlineNewspaper } from 'react-icons/hi2';
@@ -105,12 +101,6 @@ const NOOP_POSTS_LAYOUT_CONTEXT_VALUE = {
 function PostsLayoutContentContent({ children }: { children: ReactNode }) {
   const { refresh } = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString() ?? '';
-  const parsedSearchParams = useMemo(
-    () => new URLSearchParams(searchParamsString),
-    [searchParamsString],
-  );
   const { href } = useOrgUrl();
 
   const [state, dispatch] = useReducer(
@@ -126,53 +116,13 @@ function PostsLayoutContentContent({ children }: { children: ReactNode }) {
     scheduleActionsNode,
   } = state;
 
-  const lastSegment = pathname?.split('/').pop();
+  const pathSegments = (pathname ?? '').split('/').filter(Boolean);
+  const postsSegmentIndex = pathSegments.lastIndexOf('posts');
+  const routeSuffix =
+    postsSegmentIndex === -1 ? [] : pathSegments.slice(postsSegmentIndex + 1);
+  const lastSegment = routeSuffix[0];
   const isDetailRoute =
-    pathname?.match(/^\/posts\/[^/]+$/) &&
-    !KNOWN_SUB_ROUTES.includes(lastSegment ?? '');
-  const statusFromPathname = getPublisherPostsStatusFromPathname(pathname);
-  // Status is derived solely from the nested route path; the /posts index is
-  // the Drafts view. Query `?status=` is no longer a navigation source.
-  const activeStatus = statusFromPathname ?? PostStatus.DRAFT;
-  const activeTab = useMemo(() => {
-    return href(
-      getPublisherPostsHref({
-        platform: parsedSearchParams.get('platform'),
-        status: activeStatus,
-      }),
-    );
-  }, [activeStatus, href, parsedSearchParams]);
-  const tabs = useMemo(
-    () => [
-      {
-        href: href(
-          getPublisherPostsHref({
-            platform: parsedSearchParams.get('platform'),
-          }),
-        ),
-        label: 'Drafts',
-      },
-      {
-        href: href(
-          getPublisherPostsHref({
-            platform: parsedSearchParams.get('platform'),
-            status: 'scheduled',
-          }),
-        ),
-        label: 'Scheduled',
-      },
-      {
-        href: href(
-          getPublisherPostsHref({
-            platform: parsedSearchParams.get('platform'),
-            status: 'public',
-          }),
-        ),
-        label: 'Published',
-      },
-    ],
-    [href, parsedSearchParams],
-  );
+    routeSuffix.length === 1 && !KNOWN_SUB_ROUTES.includes(lastSegment ?? '');
 
   const handleRefresh = useCallback(() => {
     if (typeof refreshFn === 'function') {
@@ -245,12 +195,11 @@ function PostsLayoutContentContent({ children }: { children: ReactNode }) {
         label="Posts"
         description="Manage and publish across platforms."
         icon={HiOutlineNewspaper}
-        tabs={tabs}
-        activeTab={activeTab}
+        titleVisibility="sr-only"
         right={
           <div className="flex items-center gap-2">
-            {viewToggleNode}
             {filtersNode}
+            {viewToggleNode}
             {exportNode}
             {scheduleActionsNode}
             <Button

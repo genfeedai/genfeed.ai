@@ -114,9 +114,9 @@ describe('AgentChatInput', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByText('Actions')).toBeInTheDocument();
     expect(screen.getByLabelText('Open composer actions')).toBeInTheDocument();
-    expect(
-      screen.getByRole('textbox').closest('[data-density="inspector"]'),
-    ).toHaveClass('[&_.ProseMirror]:min-h-14');
+    expect(getComputedStyle(screen.getByRole('textbox')).minHeight).toBe(
+      '56px',
+    );
   });
 
   it('keeps topbar-owned scope controls out of the prompt bar', () => {

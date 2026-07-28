@@ -124,6 +124,7 @@ export interface WorkspaceShellAdapterSeam {
 
 export interface WorkspaceShellBreadcrumbMetadata {
   readonly leafLabel: string;
+  readonly parentLabel?: string;
   readonly rootLabel: string;
 }
 

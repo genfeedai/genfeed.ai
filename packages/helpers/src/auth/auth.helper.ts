@@ -44,6 +44,44 @@ const PLAYWRIGHT_JWT_STORAGE_KEYS = [
   'better-auth-db-jwt',
 ];
 
+function isLegacyClerkHostname(hostname: string): boolean {
+  return (
+    hostname === 'clerk.com' ||
+    hostname.endsWith('.clerk.com') ||
+    hostname === 'clerk.dev' ||
+    hostname.endsWith('.clerk.dev')
+  );
+}
+
+/**
+ * Better Auth maps its session image field to the canonical users.avatar
+ * column. Migrated users can still carry an old Clerk proxy URL in that
+ * column, but Clerk is no longer an auth or image-hosting dependency.
+ */
+export function normalizeAuthAvatarUrl(
+  value: string | null | undefined,
+): string | null {
+  const candidate = value?.trim();
+  if (!candidate) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(candidate);
+
+    if (
+      !['http:', 'https:'].includes(parsed.protocol) ||
+      isLegacyClerkHostname(parsed.hostname.toLowerCase())
+    ) {
+      return null;
+    }
+
+    return candidate;
+  } catch {
+    return null;
+  }
+}
+
 export function getAuthPublicData(user: AuthUserLike): IAuthPublicData {
   return (user.publicMetadata || {}) as unknown as IAuthPublicData;
 }

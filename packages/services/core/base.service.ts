@@ -1,3 +1,4 @@
+import type { IPaginatedResponse } from '@genfeedai/interfaces';
 import type {
   IHttpError,
   IServiceSerializer,
@@ -192,10 +193,11 @@ export abstract class BaseService<
     }
 
     // Validate each item if schema is provided
-    if (this.itemSchema) {
+    const itemSchema = this.itemSchema;
+    if (itemSchema) {
       items.forEach((item: Partial<T>, index: number) => {
         try {
-          TypeValidator.assertType(item, this.itemSchema!, `item[${index}]`);
+          TypeValidator.assertType(item, itemSchema, `item[${index}]`);
         } catch (error) {
           logger.error('Item validation failed', { error, index, item });
           throw error;
@@ -204,6 +206,27 @@ export abstract class BaseService<
     }
 
     return items.map((item) => new this.model(item));
+  };
+
+  protected mapPage = async (
+    document: JsonApiResponseDocument,
+  ): Promise<IPaginatedResponse<T>> => {
+    const items = await this.mapMany(document);
+    const pagination = document.links?.pagination;
+    const page = pagination?.page ?? 1;
+    const pageSize = pagination?.limit ?? items.length;
+    const total = pagination?.total ?? items.length;
+    const totalPages = Math.max(1, pagination?.pages ?? 1);
+
+    return {
+      hasNext: page < totalPages,
+      hasPrevious: page > 1,
+      items,
+      page,
+      pageSize,
+      total,
+      totalPages,
+    };
   };
 
   protected mapOne = async (document: JsonApiResponseDocument): Promise<T> => {
@@ -283,23 +306,26 @@ export abstract class BaseService<
     query: Record<string, unknown> = {},
     signal?: AbortSignal,
   ): Promise<T[]> {
+    return this.findAllPage(query, signal).then((result) => {
+      if ((query as { page?: number }).page) {
+        PagesService.setCurrentPage(result.page);
+        PagesService.setTotalPages(result.totalPages);
+        PagesService.setTotalDocs(result.total);
+      }
+
+      return result.items;
+    });
+  }
+
+  public findAllPage(
+    query: Record<string, unknown> = {},
+    signal?: AbortSignal,
+  ): Promise<IPaginatedResponse<T>> {
     return this.executeWithErrorHandling(
       `GET ${this.baseURL}`,
       this.instance
         .get<JsonApiResponseDocument>('', { params: query, signal })
-        .then((res) => res.data)
-        .then(async (res) => {
-          const page = (query as { page?: number }).page;
-          const pagination = res.links?.pagination;
-
-          if (page && pagination) {
-            PagesService.setCurrentPage(pagination.page);
-            PagesService.setTotalPages(pagination.pages);
-            PagesService.setTotalDocs(pagination.total || 0);
-          }
-
-          return await this.mapMany(res);
-        }),
+        .then((response) => this.mapPage(response.data)),
     );
   }
 

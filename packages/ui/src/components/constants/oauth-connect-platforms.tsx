@@ -2,6 +2,7 @@ import { CredentialPlatform } from '@genfeedai/enums';
 import type { ReactNode } from 'react';
 import {
   FaFacebook,
+  FaGoogle,
   FaInstagram,
   FaLinkedin,
   FaMastodon,
@@ -21,6 +22,7 @@ export interface OAuthConnectPlatform {
   icon: ReactNode;
   label: string;
   platform: CredentialPlatform;
+  servicePath?: string;
 }
 
 /**
@@ -59,6 +61,12 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
     icon: <FaFacebook className="mr-1.5 size-3.5" />,
     label: 'Facebook',
     platform: CredentialPlatform.FACEBOOK,
+  },
+  {
+    icon: <FaGoogle className="mr-1.5 size-3.5" />,
+    label: 'Google Ads',
+    platform: CredentialPlatform.GOOGLE_ADS,
+    servicePath: 'google-ads',
   },
   {
     icon: <FaLinkedin className="mr-1.5 size-3.5" />,

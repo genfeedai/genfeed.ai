@@ -35,7 +35,7 @@ describe('PostsLayoutContent', () => {
     );
   });
 
-  it('renders publisher tabs with canonical path hrefs and active state', () => {
+  it('renders list actions without route-level status tabs', () => {
     render(
       <PostsLayoutContent>
         <div>child content</div>
@@ -43,48 +43,23 @@ describe('PostsLayoutContent', () => {
     );
 
     expect(screen.getByText('child content')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /drafts/i })).toHaveAttribute(
-      'href',
-      '/acme-org/acme-creator/posts?platform=youtube',
-    );
-    expect(screen.getByRole('link', { name: /scheduled/i })).toHaveAttribute(
-      'href',
-      '/acme-org/acme-creator/posts/scheduled?platform=youtube',
-    );
-    expect(screen.getByRole('link', { name: /published/i })).toHaveAttribute(
-      'href',
-      '/acme-org/acme-creator/posts/published?platform=youtube',
-    );
     expect(screen.getByRole('link', { name: /new release/i })).toHaveAttribute(
       'href',
       '/acme-org/acme-creator/posts/composer',
     );
-    expect(screen.getByRole('link', { name: /scheduled/i })).toHaveAttribute(
-      'data-state',
-      'active',
-    );
+    expect(
+      screen.queryByRole('link', { name: /drafts/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /scheduled/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /published/i }),
+    ).not.toBeInTheDocument();
   });
 
-  it('uses the canonical status path to select the active publisher tab', () => {
-    usePathnameMock.mockReturnValue('/posts/published');
-    useSearchParamsMock.mockReturnValue(
-      new URLSearchParams('platform=youtube'),
-    );
-
-    render(
-      <PostsLayoutContent>
-        <div>published content</div>
-      </PostsLayoutContent>,
-    );
-
-    expect(screen.getByRole('link', { name: /published/i })).toHaveAttribute(
-      'data-state',
-      'active',
-    );
-  });
-
-  it('skips the container chrome for detail routes', () => {
-    usePathnameMock.mockReturnValue('/posts/post-123');
+  it('skips the container chrome for organization-and-brand-scoped detail routes', () => {
+    usePathnameMock.mockReturnValue('/acme-org/acme-creator/posts/post-123');
     useSearchParamsMock.mockReturnValue(new URLSearchParams(''));
 
     render(
@@ -95,7 +70,7 @@ describe('PostsLayoutContent', () => {
 
     expect(screen.getByText('detail content')).toBeInTheDocument();
     expect(
-      screen.queryByRole('link', { name: /drafts/i }),
+      screen.queryByRole('link', { name: /new release/i }),
     ).not.toBeInTheDocument();
   });
 });

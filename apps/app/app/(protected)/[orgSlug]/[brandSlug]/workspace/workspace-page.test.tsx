@@ -307,6 +307,11 @@ describe('WorkspacePageContent', () => {
     expect(
       screen.getByText('Activity will appear here once tasks start running.'),
     ).toBeVisible();
+    expect(
+      within(screen.getByTestId('workspace-activity')).queryByRole('heading', {
+        name: 'Activity',
+      }),
+    ).not.toBeInTheDocument();
   });
 
   it('loads inbox tasks, opens the inspector, and executes task actions', async () => {
@@ -314,7 +319,23 @@ describe('WorkspacePageContent', () => {
 
     expect(await screen.findByText('Campaign image')).toBeVisible();
     expect(mocks.agentRunsList).not.toHaveBeenCalled();
-    expect(screen.getByText('Workspace at a glance')).toBeVisible();
+    const workspaceSnapshot = screen.getByTestId('workspace-snapshot');
+
+    expect(
+      within(workspaceSnapshot).getByText('Workspace at a glance'),
+    ).toBeVisible();
+    expect(
+      within(workspaceSnapshot).getByRole('link', { name: /unread/i }),
+    ).toBeVisible();
+    expect(
+      within(workspaceSnapshot).getByRole('button', { name: /refresh/i }),
+    ).toBeVisible();
+    expect(
+      within(workspaceSnapshot).getByText('Workspace at a glance')
+        .parentElement,
+    ).toContainElement(
+      within(workspaceSnapshot).getByRole('link', { name: /unread/i }),
+    );
     expect(mocks.subscribe).toHaveBeenCalled();
 
     fireEvent.click(screen.getByText('Campaign image'));

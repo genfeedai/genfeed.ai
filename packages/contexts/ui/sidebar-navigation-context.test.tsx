@@ -35,6 +35,12 @@ function NavigationState() {
   );
 }
 
+function BreadcrumbParentState() {
+  const { breadcrumbParentLabel } = useSidebarNavigation();
+
+  return <span>{breadcrumbParentLabel || 'none'}</span>;
+}
+
 function renderNavigation(items: MenuItemConfig[]) {
   return render(
     <SidebarNavigationProvider items={items}>
@@ -140,6 +146,25 @@ describe('SidebarNavigationProvider', () => {
     expect(
       screen.getByText('Assets|none|Library|Moodboard|canonical|1'),
     ).toBeInTheDocument();
+  });
+
+  it('forwards the optional canonical breadcrumb parent', () => {
+    pathnameState.value = '/acme/brand/research/ads/google';
+
+    render(
+      <SidebarNavigationProvider
+        breadcrumb={{
+          leafLabel: 'Google',
+          parentLabel: 'Ads',
+          rootLabel: 'Research',
+        }}
+        items={[]}
+      >
+        <BreadcrumbParentState />
+      </SidebarNavigationProvider>,
+    );
+
+    expect(screen.getByText('Ads')).toBeInTheDocument();
   });
 
   it('treats a permanent shell topbar as canonical page identity without route metadata', () => {

@@ -46,6 +46,31 @@ vi.mock('@services/core/base.service', () => {
     mapMany(res: { data: unknown[] }) {
       return res.data;
     }
+    async mapPage(res: {
+      data: unknown[];
+      links?: {
+        pagination?: {
+          limit: number;
+          page: number;
+          pages: number;
+          total?: number;
+        };
+      };
+    }) {
+      const items = res.data;
+      const pagination = res.links?.pagination;
+      const page = pagination?.page ?? 1;
+      const totalPages = pagination?.pages ?? 1;
+      return {
+        hasNext: page < totalPages,
+        hasPrevious: page > 1,
+        items,
+        page,
+        pageSize: pagination?.limit ?? items.length,
+        total: pagination?.total ?? items.length,
+        totalPages,
+      };
+    }
 
     static getInstance(this: unknown, token: string) {
       return new (MockBaseService as new (token: string) => unknown)(token);
@@ -249,6 +274,35 @@ describe('BrandsService', () => {
         `/${mockBrandId}/posts`,
         expect.any(Object),
       );
+    });
+
+    it('returns posts and pagination from the same response document', async () => {
+      mockGet.mockResolvedValue({
+        data: {
+          data: [{ id: 'post-1', status: 'draft' }],
+          links: {
+            pagination: {
+              limit: 12,
+              page: 2,
+              pages: 4,
+              total: 43,
+            },
+          },
+        },
+      });
+
+      const result = await service.findBrandPostsPage(mockBrandId, {
+        limit: 12,
+        page: 2,
+      });
+
+      expect(result).toMatchObject({
+        items: [{ id: 'post-1', status: 'draft' }],
+        page: 2,
+        pageSize: 12,
+        total: 43,
+        totalPages: 4,
+      });
     });
   });
 
