@@ -1,8 +1,9 @@
-# Failed deploys never burn a version number
+# One stable release ships community and SaaS from one SHA
 
-- **Cutting the release before the gates is normal.** The release/tag may be created pre-gate (`gh release create vX.Y.Z --target master`); the release event triggers the gated self-hosted publish and the cloud deploy runs its own QA gate.
-- **THE RULE: a failed deploy never spawns a new version.** If the gate/deploy fails, fix on master and re-ship the SAME vX.Y.Z — delete the unshipped release+tag and re-cut it at the fixed sha (safe when nothing consumed it: no self-hosted image published, no ECS rollout). NEVER bump to vX.Y.Z+1 because a deploy failed.
-- **Version numbers mean "this shipped".** v0.4.3 was cut, failed its gates, got deleted, and is re-cut same-number from the fixed sha once green. Skipping to v0.4.4 would leave a phantom version and make the history lie.
-- **Partial-consumption caveat:** if one side already consumed the tag (e.g. self-hosted image published but cloud failed — v0.4.2), do NOT delete that tag; ship the fix by re-cutting the same next version only if IT is unconsumed, and note the mismatch in the release notes.
+- **Cut stable releases only through the manual `Release` GitHub Actions workflow on `master`.** Do not publish a GitHub release directly with `gh release create` or the Releases UI.
+- The workflow pins one immutable master SHA, runs Full Suite once, publishes and smoke-tests the self-hosted community image/assets, deploys ECS and all Vercel frontends, runs production smoke checks, and only then makes the GitHub release public.
+- A GitHub release or tag alone is never proof that SaaS deployed. Only a successful canonical `Release`, normal `Deploy ECS (production)`, or emergency fastlane workflow is a valid deployed-SHA marker.
+- **A failed deploy never spawns a new version.** Fix on master and re-ship the same `vX.Y.Z`. Reuse or delete the unshipped draft/tag when nothing consumed it; never bump merely because a gate failed.
+- **Version numbers mean both distribution lanes shipped.** If one lane partially consumed the version, preserve the tag, repair the failed lane at the same pinned SHA when safe, and record the degraded/recovery path.
 
-last_verified: 2026-07-02
+last_verified: 2026-07-28

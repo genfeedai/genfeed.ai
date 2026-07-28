@@ -28,7 +28,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [system_workflows_content_os](system_workflows_content_os.md) — automation via immutable system workflows
 - [curated_agent_mcp_actions](curated_agent_mcp_actions.md) — one reviewed action catalog; OpenAPI ≠ tool parity
 - [pricing_output_meter](pricing_output_meter.md) — credits throttle usage; no hard product caps
-- [release_tag_after_green_deploy](release_tag_after_green_deploy.md) — failed deploy: delete the unconsumed tag and re-cut the SAME version; never bump
+- [release_tag_after_green_deploy](release_tag_after_green_deploy.md) — one manual stable release ships community + SaaS from one SHA; failed deploys reuse the same version
 - [production_deploy_master_only](production_deploy_master_only.md) — never deploy a non-master ref to production unless Vincent explicitly overrides; master CI only
 - [feedback_vercel_release_gate](feedback_vercel_release_gate.md) — Vercel deploys only via the release workflow
 - [feedback_library_information_architecture](feedback_library_information_architecture.md) — Library destinations live in nav; folders and asset types are filters

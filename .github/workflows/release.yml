@@ -1,0 +1,211 @@
+name: Release
+run-name: Release ${{ inputs.tag }}
+
+# Canonical stable-release entry point. A maintainer chooses the version and
+# dispatches this workflow from master. The workflow pins that master SHA,
+# verifies it once, publishes community and SaaS from the same commit, and only
+# then makes the GitHub release public.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "stable release tag (vX.Y.Z)"
+        required: true
+        type: string
+
+concurrency:
+  group: release-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate-release:
+    name: Validate release and create draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    outputs:
+      image_tag: ${{ steps.release.outputs.image_tag }}
+      major_minor_tag: ${{ steps.release.outputs.major_minor_tag }}
+      release_sha: ${{ steps.release.outputs.release_sha }}
+      release_tag: ${{ steps.release.outputs.release_tag }}
+    steps:
+      - name: Validate production ref
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
+            echo "::error::Stable releases must run from refs/heads/master (got ${GITHUB_REF})"
+            exit 1
+          fi
+
+      - name: Checkout pinned master SHA
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate version and create or reuse draft release
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REQUESTED_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+
+          release_tag="${REQUESTED_TAG}"
+          release_sha="${GITHUB_SHA}"
+          if [[ ! "${release_tag}" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "::error::Stable release tag must use vX.Y.Z: ${release_tag}"
+            exit 1
+          fi
+
+          image_tag="${release_tag#v}"
+          major_minor_tag="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+
+          latest_tag="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq '.tag_name' 2>/dev/null || true)"
+          if [ -n "${latest_tag}" ]; then
+            highest="$(printf '%s\n%s\n' "${latest_tag#v}" "${image_tag}" | sort -V | tail -n 1)"
+            if [ "${highest}" != "${image_tag}" ] || [ "${latest_tag#v}" = "${image_tag}" ]; then
+              echo "::error::Release ${release_tag} must be newer than latest published release ${latest_tag}."
+              exit 1
+            fi
+          fi
+
+          release_json="$(
+            gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --slurp |
+              jq --arg tag "${release_tag}" '[.[][] | select(.tag_name == $tag)] | first // empty'
+          )"
+          if [ -n "${release_json}" ]; then
+            if [ "$(jq -r '.draft' <<<"${release_json}")" != "true" ]; then
+              echo "::error::Release ${release_tag} is already published."
+              exit 1
+            fi
+
+            draft_target="$(jq -r '.target_commitish' <<<"${release_json}")"
+            if [ "${draft_target}" != "${release_sha}" ]; then
+              echo "::error::Draft ${release_tag} targets ${draft_target}, not pinned master SHA ${release_sha}."
+              exit 1
+            fi
+            echo "Reusing draft release ${release_tag} at ${release_sha}."
+          else
+            if git ls-remote --exit-code --tags origin "refs/tags/${release_tag}" >/dev/null 2>&1; then
+              echo "::error::Tag ${release_tag} already exists without a reusable draft release."
+              exit 1
+            fi
+
+            gh release create "${release_tag}" \
+              --draft \
+              --generate-notes \
+              --target "${release_sha}" \
+              --title "${release_tag}"
+            echo "Created draft release ${release_tag} at ${release_sha}."
+          fi
+
+          {
+            echo "image_tag=${image_tag}"
+            echo "major_minor_tag=${major_minor_tag}"
+            echo "release_sha=${release_sha}"
+            echo "release_tag=${release_tag}"
+          } >>"${GITHUB_OUTPUT}"
+
+  verify-suite:
+    name: Full Suite
+    needs: validate-release
+    permissions:
+      actions: write
+      contents: read
+      issues: write
+      packages: write
+      pull-requests: write
+      statuses: write
+    uses: ./.github/workflows/full-suite.yml
+    secrets: inherit
+
+  publish-community:
+    name: Publish Community
+    needs: [validate-release, verify-suite]
+    permissions:
+      contents: write
+      packages: write
+    uses: ./.github/workflows/_publish-selfhosted-core.yml
+    with:
+      advance_latest: false
+      attach_assets: true
+      checkout_ref: ${{ needs.validate-release.outputs.release_sha }}
+      image_tag: ${{ needs.validate-release.outputs.image_tag }}
+      major_minor_tag: ""
+      release_tag: ${{ needs.validate-release.outputs.release_tag }}
+    secrets: inherit
+
+  deploy-saas:
+    name: Deploy SaaS
+    needs: [validate-release, verify-suite]
+    permissions:
+      id-token: write
+      contents: read
+      packages: read
+      issues: write
+    uses: ./.github/workflows/_deploy-ecs-core.yml
+    with:
+      image_tag: ${{ needs.validate-release.outputs.release_sha }}
+      allow_rollback: false
+    secrets: inherit
+
+  promote-community:
+    name: Promote Community release channels
+    needs: [validate-release, publish-community, deploy-saas]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ghcr.io/${{ github.repository }}
+      IMAGE_TAG: ${{ needs.validate-release.outputs.image_tag }}
+      MAJOR_MINOR_TAG: ${{ needs.validate-release.outputs.major_minor_tag }}
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Advance stable Community channels
+        run: |
+          set -euo pipefail
+          docker buildx imagetools create \
+            --tag "${IMAGE}:${MAJOR_MINOR_TAG}" \
+            --tag "${IMAGE}:latest" \
+            "${IMAGE}:${IMAGE_TAG}"
+
+  publish-release:
+    name: Publish GitHub release
+    needs: [validate-release, publish-community, deploy-saas, promote-community]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_SHA: ${{ needs.validate-release.outputs.release_sha }}
+      RELEASE_TAG: ${{ needs.validate-release.outputs.release_tag }}
+    steps:
+      - name: Publish verified release
+        run: |
+          set -euo pipefail
+          gh release edit "${RELEASE_TAG}" --draft=false --latest
+          {
+            echo "## Release published"
+            echo ""
+            echo "- Release: \`${RELEASE_TAG}\`"
+            echo "- SHA: \`${RELEASE_SHA}\`"
+            echo "- Community: published and smoke-tested"
+            echo "- SaaS: ECS, Vercel frontends, and production smoke completed"
+          } >>"${GITHUB_STEP_SUMMARY}"

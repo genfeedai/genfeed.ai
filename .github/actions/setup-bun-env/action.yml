@@ -56,41 +56,19 @@ runs:
         restore-keys: |
           ${{ runner.os }}-turbo-
 
-    # Neutralize install-time binary downloads where the package supports it.
-    # ffmpeg-static@5.3.0 postinstalls by downloading a ~40MB binary from the
-    # GitHub releases CDN unless FFMPEG_BIN points at an existing file. Fanned
-    # across the ~35 cold-cache jobs of a release/deploy run, a single CDN hiccup
-    # fails a job and (via cancel-doomed-run) cancels the entire production
-    # deploy. Pointing FFMPEG_BIN at the runner's ffmpeg removes that CDN call.
+    # ffmpeg-static@5.3.0 downloads a ~40 MB binary during install unless
+    # FFMPEG_BIN points at an existing file. CI does not execute ffmpeg: the
+    # files-service specs mock ffmpeg-static, while production Docker images
+    # install ffmpeg and set FFMPEG_BIN themselves. /bin/false therefore skips
+    # the flaky download without installing OS packages on every runner, and
+    # fails closed if a future CI test accidentally tries to execute it.
     #
-    # ffprobe-static@3.1.0 is different: the published package has no install or
-    # postinstall script, has no supported path override, and its index.js exports
-    # its bundled bin/<platform>/<arch>/ffprobe path. Installing ffmpeg also makes
-    # a runner-local ffprobe available, so export the common ffprobe path env vars
-    # when present for direct consumers or future package versions that honor
-    # them. The pinned ffprobe-static package does not add an install-time CDN
-    # download to skip.
-    - name: Use system ffmpeg/ffprobe (skip supported static-binary downloads)
+    # ffprobe-static@3.1.0 already ships its binary in the package and has no
+    # install hook, so it needs no CI override.
+    - name: Disable ffmpeg-static binary download in CI
       shell: bash
       run: |
-        # Some runner images already have ffmpeg and ffprobe; otherwise this apt
-        # path provides both. Keep it non-fatal (|| true): if it cannot install,
-        # the env exports below are skipped and the install keeps the
-        # pre-existing behavior instead of adding a new failure mode.
-        if ! command -v ffmpeg >/dev/null 2>&1 || ! command -v ffprobe >/dev/null 2>&1; then
-          sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg || true
-        fi
-
-        ffmpeg_bin="$(command -v ffmpeg || true)"
-        if [ -n "${ffmpeg_bin}" ]; then
-          echo "FFMPEG_BIN=${ffmpeg_bin}" >> "$GITHUB_ENV"
-        fi
-
-        ffprobe_bin="$(command -v ffprobe || true)"
-        if [ -n "${ffprobe_bin}" ]; then
-          echo "FFPROBE_BIN=${ffprobe_bin}" >> "$GITHUB_ENV"
-          echo "FFPROBE_PATH=${ffprobe_bin}" >> "$GITHUB_ENV"
-        fi
+        echo "FFMPEG_BIN=/bin/false" >> "$GITHUB_ENV"
 
     # Retry with exponential backoff as defense against generic registry/CDN
     # transients (the supported ffmpeg-static download is neutralized above via
@@ -130,12 +108,11 @@ runs:
         path: ~/.cache/ms-playwright
         key: ${{ runner.os }}-playwright-${{ hashFiles('**/bun.lock') }}
 
-    - name: Install Playwright browsers (cache miss)
+    # GitHub's ubuntu-latest image already contains Chromium's required shared
+    # libraries. `install --with-deps` and `install-deps` also apt-install large
+    # optional font packs; a throttled Ubuntu mirror made one release shard spend
+    # 40+ minutes here. Cache only the browser and never mutate runner packages.
+    - name: Install Playwright browser (cache miss)
       if: ${{ inputs.cache-playwright == 'true' && steps.playwright-cache.outputs.cache-hit != 'true' }}
       shell: bash
-      run: npx playwright install --with-deps chromium
-
-    - name: Install Playwright OS deps (cache hit)
-      if: ${{ inputs.cache-playwright == 'true' && steps.playwright-cache.outputs.cache-hit == 'true' }}
-      shell: bash
-      run: npx playwright install-deps chromium || true
+      run: npx playwright install chromium
