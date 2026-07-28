@@ -8,8 +8,6 @@ import { ImagesService } from '@api/collections/images/services/images.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { CreateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/create-outreach-campaign.dto';
-import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
@@ -38,6 +36,7 @@ import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-a
 import { MarketplaceInstallService } from '@api/marketplace-integration/marketplace-install.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service';
+import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
@@ -68,8 +67,6 @@ import {
   BotCategory,
   BotPlatform,
   BotStatus,
-  CampaignPlatform,
-  CampaignType,
   IngredientCategory,
   IngredientStatus,
   PostStatus,
@@ -392,7 +389,7 @@ export class AgentToolExecutorService {
     private readonly botsLivestreamService:
       | AgentBotsLivestreamServiceLike
       | undefined,
-    private readonly campaignsService: OutreachCampaignsService,
+    private readonly campaignHandler: AgentCampaignToolHandler,
     private readonly workflowExecutorService: WorkflowExecutorService,
     private readonly workflowsService: WorkflowsService,
     @Optional()
@@ -1028,19 +1025,19 @@ export class AgentToolExecutorService {
         return this.batchApproveReject(params, ctx);
 
       case AgentToolName.CREATE_CAMPAIGN:
-        return this.createCampaign(params, ctx);
+        return this.campaignHandler.createCampaign(params, ctx);
 
       case AgentToolName.START_CAMPAIGN:
-        return this.startCampaign(params, ctx);
+        return this.campaignHandler.startCampaign(params, ctx);
 
       case AgentToolName.PAUSE_CAMPAIGN:
-        return this.pauseCampaign(params, ctx);
+        return this.campaignHandler.pauseCampaign(params, ctx);
 
       case AgentToolName.COMPLETE_CAMPAIGN:
-        return this.completeCampaign(params, ctx);
+        return this.campaignHandler.completeCampaign(params, ctx);
 
       case AgentToolName.GET_CAMPAIGN_ANALYTICS:
-        return this.getCampaignAnalytics(params, ctx);
+        return this.campaignHandler.getCampaignAnalytics(params, ctx);
 
       // Onboarding tools
       case AgentToolName.CREATE_BRAND:
@@ -5056,176 +5053,6 @@ export class AgentToolExecutorService {
           workflowDescription: source.description,
           workflowId: installResult.resourceId,
           workflowName: source.name,
-        },
-      ],
-      success: true,
-    };
-  }
-
-  private async createCampaign(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    const platform = String(params.platform || 'twitter').toLowerCase();
-    const campaignType = String(params.campaignType || 'manual').toLowerCase();
-
-    const createDto: CreateOutreachCampaignDto = {
-      campaignType: campaignType as CampaignType,
-      credential: String(params.credential),
-      description: (params.description as string) || '',
-      isActive: true,
-      label: String(params.label || 'Agent Campaign'),
-      organization: ctx.organizationId,
-      platform: platform as CampaignPlatform,
-      user: ctx.userId,
-    };
-
-    const campaign = await this.campaignsService.createScoped(createDto, {
-      brandId: ctx.brandId,
-      organizationId: ctx.organizationId,
-      userId: ctx.userId,
-    });
-    const campaignId = String(campaign.id);
-
-    return {
-      creditsUsed: 1,
-      data: {
-        campaignId,
-        label: campaign.label,
-        platform: campaign.platform,
-        status: campaign.status,
-      },
-      nextActions: [
-        {
-          ctas: [
-            {
-              href: `/orchestration/outreach-campaigns/${campaignId}`,
-              label: 'Open campaign',
-            },
-            {
-              action: 'start_campaign',
-              label: 'Start campaign',
-              payload: { campaignId },
-            },
-          ],
-          data: {
-            campaignId,
-            label: campaign.label,
-            platform: campaign.platform,
-            status: campaign.status,
-          },
-          id: `campaign-created-${campaignId}`,
-          title: `Campaign created: ${campaign.label}`,
-          type: 'campaign_create_card',
-        },
-      ],
-      success: true,
-    };
-  }
-
-  private async startCampaign(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    const campaignId = String(params.campaignId || '');
-    const campaign = await this.campaignsService.start(
-      campaignId,
-      ctx.organizationId,
-    );
-
-    return {
-      creditsUsed: 0,
-      data: {
-        campaignId,
-        status: campaign.status,
-      },
-      requiresConfirmation: true,
-      riskLevel: 'medium',
-      success: true,
-    };
-  }
-
-  private async pauseCampaign(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    const campaignId = String(params.campaignId || '');
-    const campaign = await this.campaignsService.pause(
-      campaignId,
-      ctx.organizationId,
-    );
-
-    return {
-      creditsUsed: 0,
-      data: {
-        campaignId,
-        status: campaign.status,
-      },
-      success: true,
-    };
-  }
-
-  private async completeCampaign(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    const campaignId = String(params.campaignId || '');
-    const campaign = await this.campaignsService.complete(
-      campaignId,
-      ctx.organizationId,
-    );
-
-    return {
-      creditsUsed: 0,
-      data: {
-        campaignId,
-        status: campaign.status,
-      },
-      success: true,
-    };
-  }
-
-  private async getCampaignAnalytics(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    const campaignId = String(params.campaignId || '');
-    const analytics = await this.campaignsService.getAnalytics(
-      campaignId,
-      ctx.organizationId,
-    );
-
-    return {
-      creditsUsed: 0,
-      data: {
-        campaignId,
-        repliesPerHour: analytics.repliesPerHour,
-        successRate: analytics.successRate,
-      },
-      nextActions: [
-        {
-          ctas: [
-            {
-              href: `/orchestration/outreach-campaigns/${campaignId}`,
-              label: 'Open campaign',
-            },
-          ],
-          id: `campaign-analytics-${campaignId}-${Date.now()}`,
-          metrics: this.buildMetricItems([
-            {
-              decimals: 1,
-              label: 'Replies / hour',
-              value: analytics.repliesPerHour ?? 0,
-            },
-            {
-              decimals: 1,
-              label: 'Success rate',
-              suffix: '%',
-              value: analytics.successRate ?? 0,
-            },
-          ]),
-          title: 'Campaign analytics snapshot',
-          type: 'analytics_snapshot_card',
         },
       ],
       success: true,

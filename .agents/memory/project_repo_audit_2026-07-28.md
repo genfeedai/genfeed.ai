@@ -28,7 +28,9 @@ Audit-only pass, then P0 implementation. Remaining work is tracked here so it is
 
 | Item | Status |
 |---|---|
-| #519 brand interview tool family | **Extracted** → `agent-brand-interview-tool-handler.service.ts`; executor delegates 4 tools; constructor drops direct `BrandInterviewService` dep. Executor ~9,138 → ~8,944 LOC. Next slices: onboarding tools, then workflow family. |
+| #519 brand interview tool family | **Extracted** → `agent-brand-interview-tool-handler.service.ts` (4 tools) |
+| #519 campaign tool family | **Extracted** → `agent-campaign-tool-handler.service.ts` (5 tools); drops direct `OutreachCampaignsService` from executor |
+| Executor size | ~9,138 → **~8,769** LOC after brand-interview + campaign extracts. Next: onboarding tools, then workflow family. |
 
 **Out of P0 scope (already epics):** `mongoId` cutover (#1041 + children). Do not drop columns without telemetry (#1779 → #1780 → #1781 → #1782).
 

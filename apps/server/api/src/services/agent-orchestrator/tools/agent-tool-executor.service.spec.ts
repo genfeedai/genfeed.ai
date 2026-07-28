@@ -8,6 +8,7 @@ vi.mock(
 import 'reflect-metadata';
 import { AiActionType } from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service';
+import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
@@ -501,7 +502,16 @@ describe('AgentToolExecutorService', () => {
       }),
     };
 
-    const campaignsService = { findOne: vi.fn() };
+    const campaignsService = {
+      complete: vi.fn(),
+      createScoped: vi.fn(),
+      getAnalytics: vi.fn(),
+      pause: vi.fn(),
+      start: vi.fn(),
+    };
+    const campaignHandler = new AgentCampaignToolHandler(
+      campaignsService as never,
+    );
 
     const imagesService = {
       findAllByOrganization: vi.fn().mockResolvedValue([]),
@@ -781,7 +791,7 @@ describe('AgentToolExecutorService', () => {
       publishHandler,
       botsService as never,
       botsLivestreamService as never,
-      campaignsService as never,
+      campaignHandler,
       workflowExecutorService as never,
       workflowsService as never,
       workflowGenerationService as never,
@@ -4186,7 +4196,7 @@ describe('AgentToolExecutorService', () => {
       new AgentPublishToolHandler({} as never),
       {} as never,
       {} as never,
-      {} as never,
+      new AgentCampaignToolHandler({} as never),
       { findOne: vi.fn() } as never,
       workflowsService as never,
       undefined as never,
