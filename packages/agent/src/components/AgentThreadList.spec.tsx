@@ -471,7 +471,7 @@ describe('AgentThreadList', () => {
     expect(storeState.threads[0]?.title).toBe('Renamed thread');
   });
 
-  it('renders one-line rows without preview text', async () => {
+  it('renders compact context previews below thread titles', async () => {
     const thread = createThread('conv-1', 'Compact row', {
       lastAssistantPreview: 'This preview should not render anymore.',
     });
@@ -484,8 +484,8 @@ describe('AgentThreadList', () => {
 
     expect(await screen.findByText('Compact row')).toBeInTheDocument();
     expect(
-      screen.queryByText('This preview should not render anymore.'),
-    ).toBeNull();
+      screen.getByText('This preview should not render anymore.'),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Awaiting response')).toBeNull();
   });
 
@@ -505,7 +505,7 @@ describe('AgentThreadList', () => {
     );
 
     expect(statusDot).toHaveClass('bg-amber-300');
-    expect(screen.queryByText('Needs input')).toBeNull();
+    expect(screen.getByText('Needs input')).toBeInTheDocument();
   });
 
   it('pins a conversation and moves it to the top of the list', async () => {
@@ -542,7 +542,7 @@ describe('AgentThreadList', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders pinned conversations in a lighter section above the rest of the list', async () => {
+  it('renders pinned conversations in their own prioritized section', async () => {
     const pinnedThread = {
       ...createThread('conv-2', 'Pinned thread'),
       isPinned: true,
@@ -560,14 +560,13 @@ describe('AgentThreadList', () => {
 
     render(<AgentThreadList apiService={apiService as never} />);
 
-    const pinnedSection = await screen.findByTestId('pinned-thread-section');
+    const pinnedSection = await screen.findByRole('region', {
+      name: 'Pinned',
+    });
 
-    expect(pinnedSection).not.toHaveClass('sticky');
-    expect(screen.queryByText('Pinned')).toBeNull();
-    expect(pinnedSection.textContent?.indexOf('Pinned thread')).toBeGreaterThan(
-      -1,
-    );
-    expect(pinnedSection.textContent?.includes('Later thread')).toBeFalsy();
+    expect(screen.getByText('Pinned')).toBeInTheDocument();
+    expect(pinnedSection).toHaveTextContent('Pinned thread');
+    expect(pinnedSection).not.toHaveTextContent('Later thread');
   });
 
   it('does not add an extra horizontal gutter around the thread rows', async () => {

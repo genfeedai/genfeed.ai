@@ -4,18 +4,12 @@ import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/agent/components/AgentThreadList', () => ({
-  AGENT_REFRESH_CONVERSATIONS_EVENT: 'agent:threads:refresh',
-  AgentThreadList: () => <div>Thread list</div>,
-}));
-
-vi.mock('@ui/menus/sidebar-search-trigger/SidebarSearchTrigger', () => ({
-  default: function MockSidebarSearchTrigger(props: { onClick?: () => void }) {
-    return (
-      <button type="button" onClick={props.onClick}>
-        Search
-      </button>
-    );
-  },
+  AgentThreadList: ({ searchAction }: { searchAction?: ReactNode }) => (
+    <div>
+      {searchAction}
+      <div>Thread list</div>
+    </div>
+  ),
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -53,23 +47,25 @@ describe('AgentSidebarContent', () => {
     expect(
       screen.getByRole('link', { name: 'Back to overview' }),
     ).toHaveAttribute('href', '/test-org/test-brand/overview');
-    expect(screen.getByRole('link', { name: /New Thread/ })).toHaveAttribute(
-      'href',
-      '/test-org/~/agent/new',
-    );
+    expect(
+      screen.getByRole('link', { name: 'New agent thread' }),
+    ).toHaveAttribute('href', '/test-org/~/agent/new');
   });
 
-  it('shows keyboard shortcut badge on the new thread link', () => {
+  it('uses a compact new-thread action beside the conversation controls', () => {
     render(<AgentSidebarContent apiService={{} as never} />);
 
-    expect(screen.getByText('⌘⇧N')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'New agent thread' }),
+    ).toBeInTheDocument();
   });
 
   it('keeps the sidebar focused on agent actions and threads', () => {
     render(<AgentSidebarContent apiService={{} as never} />);
 
-    expect(screen.getByRole('button', { name: 'Search' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'New agent thread' }),
+    ).toBeInTheDocument();
     expect(screen.getByText('Thread list')).toBeInTheDocument();
   });
 

@@ -43,17 +43,20 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  HiOutlineArrowPath,
   HiOutlineBolt,
   HiOutlineChatBubbleLeftRight,
   HiOutlineCheckCircle,
   HiOutlineChevronLeft,
   HiOutlineChevronRight,
-  HiOutlineInboxStack,
   HiOutlineLink,
   HiOutlinePaperAirplane,
 } from 'react-icons/hi2';
 import { useWorkspaceNavPanel } from '@/components/workspace-shell/WorkspaceNavPanelContext';
+import {
+  getParticipantLabel,
+  MessagesConversationSidebar,
+  type MessagesInboxView,
+} from './messages-conversation-sidebar';
 import {
   createMessagesIdempotencyKey,
   createSocialConversationReference,
@@ -78,28 +81,6 @@ const EMPTY_PAGINATION: PaginationState = {
 };
 
 const SELECTED_CONVERSATION_PARAM = 'socialConversation';
-
-const PLATFORM_OPTIONS: Array<{
-  label: string;
-  value: SocialPlatform | 'all';
-}> = [
-  { label: 'All Platforms', value: 'all' },
-  { label: 'YouTube', value: 'youtube' },
-  { label: 'Instagram', value: 'instagram' },
-  { label: 'X / Twitter', value: 'twitter' },
-  { label: 'LinkedIn', value: 'linkedin' },
-];
-
-const STATUS_OPTIONS: Array<{
-  label: string;
-  value: SocialConversationStatus | 'all';
-}> = [
-  { label: 'All Statuses', value: 'all' },
-  { label: 'Open', value: 'open' },
-  { label: 'Needs Review', value: 'needs_review' },
-  { label: 'Resolved', value: 'resolved' },
-  { label: 'Archived', value: 'archived' },
-];
 
 const AUTOMATION_OPTIONS: Array<{
   label: string;
@@ -176,15 +157,6 @@ function formatTime(value?: string | null): string {
   }
 
   return MESSAGE_TIME.format(date);
-}
-
-function getParticipantLabel(conversation: SocialConversationModel): string {
-  return (
-    conversation.participantName ||
-    conversation.participantHandle ||
-    conversation.participantExternalId ||
-    'Unknown sender'
-  );
 }
 
 function formatActionLabel(value?: string | null): string | null {
@@ -291,141 +263,6 @@ function PlatformPill({ platform }: { platform: string }) {
     <span className="inline-flex items-center rounded bg-white/[0.07] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/45">
       {platform}
     </span>
-  );
-}
-
-function ConversationRow({
-  conversation,
-  isDisabled,
-  isSelected,
-  onSelect,
-}: {
-  conversation: SocialConversationModel;
-  isDisabled: boolean;
-  isSelected: boolean;
-  onSelect: (conversationId: string) => void;
-}) {
-  return (
-    <Button
-      aria-pressed={isSelected}
-      ariaLabel={`Open social conversation with ${getParticipantLabel(conversation)}`}
-      isDisabled={isDisabled}
-      variant={ButtonVariant.UNSTYLED}
-      className={cn(
-        'block w-full border-b border-white/[0.06] px-4 py-3 text-left transition-colors',
-        isSelected ? 'bg-white/[0.06]' : 'hover:bg-white/[0.035]',
-      )}
-      onClick={() => onSelect(conversation.id)}
-    >
-      <span className="mb-2 flex items-center justify-between gap-3">
-        <span className="min-w-0 truncate text-sm font-medium text-white/90">
-          {getParticipantLabel(conversation)}
-        </span>
-        <span className="shrink-0 text-[11px] text-white/35">
-          {formatTime(conversation.latestMessageAt)}
-        </span>
-      </span>
-      <span className="mb-2 flex items-center gap-1.5">
-        <PlatformPill platform={conversation.platform} />
-        <StatusPill status={conversation.status} />
-        {conversation.unreadCount > 0 ? (
-          <span className="inline-flex items-center rounded bg-primary/20 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-            {conversation.unreadCount} unread
-          </span>
-        ) : null}
-      </span>
-      <span className="line-clamp-2 text-xs leading-relaxed text-white/48">
-        {conversation.latestMessageText || 'No message preview available'}
-      </span>
-    </Button>
-  );
-}
-
-function MessagesConversationNavPanel({
-  busyAction,
-  conversations,
-  isLoading,
-  onNextPage,
-  onPreviousPage,
-  onSelect,
-  pagination,
-  selectedId,
-}: {
-  busyAction: string | null;
-  conversations: SocialConversationModel[];
-  isLoading: boolean;
-  onNextPage: () => void;
-  onPreviousPage: () => void;
-  onSelect: (conversationId: string) => void;
-  pagination: PaginationState;
-  selectedId: string | null;
-}) {
-  return (
-    <nav
-      aria-label="Social conversations"
-      className="flex h-full min-h-0 flex-col"
-    >
-      <div
-        className="flex h-12 shrink-0 items-center justify-between border-b border-white/[0.08] px-4"
-        data-testid="messages-conversation-nav-header"
-      >
-        <div className="flex items-center gap-2 text-sm font-medium text-white/76">
-          <HiOutlineInboxStack className="size-4 text-white/38" />
-          Conversations
-        </div>
-        <span className="text-xs text-white/32">{pagination.total}</span>
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {isLoading ? (
-          <div className="p-4">
-            <LazyLoadingFallback variant="minimal" />
-          </div>
-        ) : conversations.length === 0 ? (
-          <div className="flex h-64 flex-col items-center justify-center px-6 text-center">
-            <HiOutlineChatBubbleLeftRight className="mb-3 size-8 text-white/20" />
-            <p className="text-sm text-white/50">No messages found</p>
-            <p className="mt-1 text-xs text-white/30">
-              New social conversations will appear here after sync.
-            </p>
-          </div>
-        ) : (
-          conversations.map((conversation) => (
-            <ConversationRow
-              conversation={conversation}
-              isDisabled={Boolean(busyAction)}
-              isSelected={conversation.id === selectedId}
-              key={conversation.id}
-              onSelect={onSelect}
-            />
-          ))
-        )}
-      </div>
-      {pagination.totalPages > 1 ? (
-        <div className="flex shrink-0 items-center justify-between border-t border-white/[0.08] px-3 py-2">
-          <Button
-            ariaLabel="Previous conversations page"
-            icon={<HiOutlineChevronLeft className="size-4" />}
-            isDisabled={!pagination.hasPrevious}
-            onClick={onPreviousPage}
-            size={ButtonSize.ICON}
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          />
-          <span className="text-xs text-white/38">
-            Page {pagination.page} of {pagination.totalPages}
-          </span>
-          <Button
-            ariaLabel="Next conversations page"
-            icon={<HiOutlineChevronRight className="size-4" />}
-            isDisabled={!pagination.hasNext}
-            onClick={onNextPage}
-            size={ButtonSize.ICON}
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          />
-        </div>
-      ) : null}
-    </nav>
   );
 }
 
@@ -612,6 +449,46 @@ export default function MessagesPage() {
     },
     [updateSelectedConversationParam],
   );
+  const inboxView = useMemo<MessagesInboxView>(() => {
+    if (needsReviewOnly) {
+      return 'review';
+    }
+    if (unreadOnly) {
+      return 'unread';
+    }
+
+    switch (status) {
+      case 'all':
+        return 'all';
+      case 'archived':
+        return 'archived';
+      case 'resolved':
+        return 'resolved';
+      default:
+        return 'inbox';
+    }
+  }, [needsReviewOnly, status, unreadOnly]);
+  const handleInboxViewChange = useCallback((view: MessagesInboxView) => {
+    setConversationPage(1);
+    setNeedsReviewOnly(view === 'review');
+    setUnreadOnly(view === 'unread');
+
+    switch (view) {
+      case 'all':
+      case 'unread':
+      case 'review':
+        setStatus('all');
+        break;
+      case 'archived':
+        setStatus('archived');
+        break;
+      case 'resolved':
+        setStatus('resolved');
+        break;
+      default:
+        setStatus('open');
+    }
+  }, []);
 
   const query = useMemo(
     () => ({
@@ -892,14 +769,6 @@ export default function MessagesPage() {
       draftRevisionRef.current += 1;
       pendingIdempotencyKeysRef.current.clear();
       setDraft(event.target.value);
-    },
-    [],
-  );
-
-  const handleSearchChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      setConversationPage(1);
-      setSearch(event.target.value);
     },
     [],
   );
@@ -1206,18 +1075,74 @@ export default function MessagesPage() {
     postReplyReason: 'Select a conversation before replying.',
     sendDmReason: 'Select a conversation before sending a DM.',
   };
+  const advancedFilters = (
+    <div className="space-y-3">
+      <div className="space-y-1.5">
+        <p className="text-[11px] font-medium text-foreground/54">Automation</p>
+        <Select
+          value={automationState}
+          onValueChange={(value) => {
+            setConversationPage(1);
+            setAutomationState(value as SocialAutomationState | 'all');
+          }}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Automation" />
+          </SelectTrigger>
+          <SelectContent>
+            {AUTOMATION_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <Input
+        label="Credential or account ID"
+        value={credentialId}
+        onChange={(event) => {
+          setConversationPage(1);
+          setCredentialId(event.target.value);
+        }}
+      />
+      <Input
+        label="Assigned owner ID"
+        value={assignedOwnerId}
+        onChange={(event) => {
+          setAssignedOwnerId(event.target.value);
+          setConversationPage(1);
+        }}
+      />
+    </div>
+  );
   const conversationNavPanel = (
-    <MessagesConversationNavPanel
+    <MessagesConversationSidebar
+      advancedFilters={advancedFilters}
       busyAction={busyAction}
+      connectionState={connectionState}
       conversations={conversations}
       isLoading={isLoadingConversations}
       onNextPage={() => setConversationPage((page) => page + 1)}
+      onPlatformChange={(value) => {
+        setConversationPage(1);
+        setPlatform(value);
+      }}
       onPreviousPage={() =>
         setConversationPage((page) => Math.max(1, page - 1))
       }
+      onSearchChange={(value) => {
+        setConversationPage(1);
+        setSearch(value);
+      }}
       onSelect={handleSelectConversation}
+      onSync={handleSyncYoutube}
+      onViewChange={handleInboxViewChange}
       pagination={conversationPagination}
+      platform={platform}
+      search={search}
       selectedId={selectedId}
+      view={inboxView}
     />
   );
   const isConversationNavPortaled = Boolean(workspaceNavPanel?.portalTarget);
@@ -1231,139 +1156,6 @@ export default function MessagesPage() {
         ? createPortal(conversationNavPanel, workspaceNavPanel.portalTarget)
         : null}
       <h1 className="sr-only">Messages</h1>
-      <div
-        className="mb-4 grid shrink-0 gap-2 md:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_150px_150px_150px_120px_auto]"
-        data-testid="messages-filter-toolbar"
-      >
-        <Input
-          placeholder="Search people, handles, content"
-          value={search}
-          onChange={handleSearchChange}
-        />
-        <Select
-          value={platform}
-          onValueChange={(value) => {
-            setConversationPage(1);
-            setPlatform(value as SocialPlatform | 'all');
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Platform" />
-          </SelectTrigger>
-          <SelectContent>
-            {PLATFORM_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={status}
-          onValueChange={(value) => {
-            setConversationPage(1);
-            setStatus(value as SocialConversationStatus | 'all');
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            {STATUS_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={automationState}
-          onValueChange={(value) => {
-            setConversationPage(1);
-            setAutomationState(value as SocialAutomationState | 'all');
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Automation" />
-          </SelectTrigger>
-          <SelectContent>
-            {AUTOMATION_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={unreadOnly ? 'unread' : 'all'}
-          onValueChange={(value) => {
-            setConversationPage(1);
-            setUnreadOnly(value === 'unread');
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Unread" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="unread">Unread</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="flex items-center justify-end gap-2 md:col-span-2 xl:col-span-1 xl:pl-2">
-          <Button
-            variant={ButtonVariant.GHOST}
-            size={ButtonSize.SM}
-            icon={<HiOutlineArrowPath className="size-4" />}
-            isDisabled={Boolean(busyAction) && busyAction !== 'sync'}
-            isLoading={busyAction === 'sync'}
-            onClick={handleSyncYoutube}
-          >
-            Sync YouTube
-          </Button>
-          <span
-            aria-live="polite"
-            className="whitespace-nowrap text-xs capitalize text-white/38"
-            role="status"
-          >
-            Realtime: {connectionState}
-          </span>
-        </div>
-      </div>
-
-      <div className="mb-4 grid shrink-0 gap-2 md:grid-cols-[minmax(160px,1fr)_minmax(160px,1fr)_160px]">
-        <Input
-          placeholder="Credential/account ID"
-          value={credentialId}
-          onChange={(event) => {
-            setConversationPage(1);
-            setCredentialId(event.target.value);
-          }}
-        />
-        <Input
-          placeholder="Assigned owner ID"
-          value={assignedOwnerId}
-          onChange={(event) => {
-            setAssignedOwnerId(event.target.value);
-            setConversationPage(1);
-          }}
-        />
-        <Select
-          value={needsReviewOnly ? 'needs-review' : 'all'}
-          onValueChange={(value) => {
-            setConversationPage(1);
-            setNeedsReviewOnly(value === 'needs-review');
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Review" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Review</SelectItem>
-            <SelectItem value="needs-review">Needs Review</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
       {error ? (
         <div
           className="mb-4 rounded border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive"

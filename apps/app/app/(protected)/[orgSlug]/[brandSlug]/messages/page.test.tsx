@@ -1,12 +1,6 @@
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
 import '@testing-library/jest-dom/vitest';
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ChangeEvent, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SocialMessagesPage from './page';
@@ -271,7 +265,7 @@ describe('SocialMessagesPage', () => {
       await screen.findByRole('heading', { level: 1, name: 'Messages' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /sync youtube/i }),
+      screen.getByRole('button', { name: 'Sync social messages' }),
     ).toBeInTheDocument();
     await waitFor(() =>
       expect(mocks.listPage).toHaveBeenCalledWith(
@@ -352,15 +346,15 @@ describe('SocialMessagesPage', () => {
 
     expect(await screen.findByText('No messages found')).toBeInTheDocument();
     expect(
-      screen.getByTestId('messages-conversation-nav-header'),
-    ).toHaveTextContent('Conversations');
-
-    const toolbar = screen.getByTestId('messages-filter-toolbar');
-    expect(
-      within(toolbar).getByPlaceholderText('Search people, handles, content'),
+      screen.getByRole('navigation', { name: 'Social conversations' }),
     ).toBeInTheDocument();
     expect(
-      within(toolbar).getByRole('button', { name: /sync youtube/i }),
+      screen.getByRole('textbox', {
+        name: 'Search social conversations',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Sync social messages' }),
     ).toBeInTheDocument();
 
     expect(screen.getByTestId('messages-surface-layout')).toHaveClass(

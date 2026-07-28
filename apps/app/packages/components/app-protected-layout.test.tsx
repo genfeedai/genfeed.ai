@@ -313,6 +313,7 @@ vi.mock('next/dynamic', () => ({
     if (source.includes('AgentThreadList')) {
       return function LazyAgentThreadListStub(props: {
         onActionsChange?: (actions: ReactNode) => void;
+        searchAction?: ReactNode;
       }) {
         agentThreadListSpy(props);
         useEffect(() => {
@@ -323,7 +324,7 @@ vi.mock('next/dynamic', () => ({
           return () => props.onActionsChange?.(null);
         }, [props.onActionsChange]);
 
-        return <div data-testid="agent-thread-list" />;
+        return <div data-testid="agent-thread-list">{props.searchAction}</div>;
       };
     }
 
@@ -652,7 +653,7 @@ describe('AppProtectedLayout', () => {
     );
 
     expect(
-      screen.getByRole('link', { name: /New Thread/ }),
+      screen.getByRole('link', { name: 'New agent thread' }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Conversation header action' }),
