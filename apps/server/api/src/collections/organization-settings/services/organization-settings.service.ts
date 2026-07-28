@@ -35,10 +35,16 @@ export class OrganizationSettingsService extends BaseService<
   }
 
   private getModelsService(): ModelsService {
-    if (!this.modelsService) {
-      this.modelsService = this.moduleRef.get(ModelsService, { strict: false });
+    const modelsService =
+      this.modelsService ??
+      this.moduleRef.get(ModelsService, { strict: false });
+
+    if (!modelsService) {
+      throw new Error('ModelsService not available');
     }
-    return this.modelsService;
+
+    this.modelsService = modelsService;
+    return modelsService;
   }
 
   /**

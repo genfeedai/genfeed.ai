@@ -7,15 +7,12 @@ describe('requireVideoOutputPath', () => {
     expect(requireVideoOutputPath('/tmp/video.mp4')).toBe('/tmp/video.mp4');
   });
 
-  it.each([
-    [''],
-    [null],
-    [undefined],
-    [123],
-    [{}],
-  ])('rejects %p as a missing output path', (value) => {
-    expect(() => requireVideoOutputPath(value)).toThrow(
-      'Video processing result missing outputPath',
-    );
-  });
+  it.each([[''], [null], [undefined], [123], [{}]])(
+    'rejects %p as a missing output path',
+    (value) => {
+      expect(() => requireVideoOutputPath(value)).toThrow(
+        'Video processing result missing outputPath',
+      );
+    },
+  );
 });

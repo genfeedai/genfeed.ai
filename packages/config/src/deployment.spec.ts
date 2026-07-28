@@ -35,14 +35,17 @@ describe('deployment axes', () => {
     ['false', 'true', 'self-hosted'],
     [undefined, '1', 'cloud'],
     [' TRUE ', undefined, 'cloud'],
-  ] as const)('resolves server=%s public=%s as %s', (serverFlag, publicFlag, expected) => {
-    vi.stubEnv('GENFEED_CLOUD', serverFlag);
-    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', publicFlag);
+  ] as const)(
+    'resolves server=%s public=%s as %s',
+    (serverFlag, publicFlag, expected) => {
+      vi.stubEnv('GENFEED_CLOUD', serverFlag);
+      vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', publicFlag);
 
-    expect(getDeployment()).toBe(expected);
-    expect(isCloudDeployment()).toBe(expected === 'cloud');
-    expect(isSelfHostedDeployment()).toBe(expected === 'self-hosted');
-  });
+      expect(getDeployment()).toBe(expected);
+      expect(isCloudDeployment()).toBe(expected === 'cloud');
+      expect(isSelfHostedDeployment()).toBe(expected === 'self-hosted');
+    },
+  );
 
   it.each([
     ['1', 'desktop'],
@@ -61,11 +64,14 @@ describe('deployment axes', () => {
     ['1', '1', false, false],
     [undefined, undefined, false, true],
     [undefined, '1', false, false],
-  ] as const)('maps cloud=%s desktop=%s to SaaS=%s Community=%s', (cloudFlag, desktopFlag, expectedSaaS, expectedCommunity) => {
-    vi.stubEnv('GENFEED_CLOUD', cloudFlag);
-    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', desktopFlag);
+  ] as const)(
+    'maps cloud=%s desktop=%s to SaaS=%s Community=%s',
+    (cloudFlag, desktopFlag, expectedSaaS, expectedCommunity) => {
+      vi.stubEnv('GENFEED_CLOUD', cloudFlag);
+      vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', desktopFlag);
 
-    expect(isSaaS()).toBe(expectedSaaS);
-    expect(isCommunity()).toBe(expectedCommunity);
-  });
+      expect(isSaaS()).toBe(expectedSaaS);
+      expect(isCommunity()).toBe(expectedCommunity);
+    },
+  );
 });

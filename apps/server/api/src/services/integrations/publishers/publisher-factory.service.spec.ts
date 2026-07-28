@@ -193,11 +193,12 @@ describe('PublisherFactoryService', () => {
       CredentialPlatform.BEEHIIV,
     ] as const;
 
-    it.each(
-      SUPPORTED,
-    )('should return true for supported platform: %s', (platform) => {
-      expect(service.isSupported(platform)).toBe(true);
-    });
+    it.each(SUPPORTED)(
+      'should return true for supported platform: %s',
+      (platform) => {
+        expect(service.isSupported(platform)).toBe(true);
+      },
+    );
 
     it('should return false for an unsupported platform', () => {
       expect(service.isSupported('NOT_A_PLATFORM' as CredentialPlatform)).toBe(

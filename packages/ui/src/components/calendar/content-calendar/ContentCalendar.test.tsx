@@ -1,6 +1,6 @@
-import type { CalendarOptions } from '@fullcalendar/core';
 import { act, render, waitFor } from '@testing-library/react';
 import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
+import type { CalendarOptions } from 'fullcalendar';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const calendarMocks = vi.hoisted(() => {
@@ -45,15 +45,19 @@ const calendarMocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@fullcalendar/core/index.js', () => ({
+vi.mock('fullcalendar', () => ({
   Calendar: calendarMocks.Calendar,
 }));
 
-vi.mock('@fullcalendar/timegrid/index.js', () => ({
+vi.mock('fullcalendar/timegrid', () => ({
   default: {},
 }));
 
-vi.mock('@fullcalendar/interaction/index.js', () => ({
+vi.mock('fullcalendar/interaction', () => ({
+  default: {},
+}));
+
+vi.mock('fullcalendar/themes/classic', () => ({
   default: {},
 }));
 

@@ -21,10 +21,13 @@ describe('proactive onboarding value helpers', () => {
     [ProactiveOnboardingStatus.PAYMENT_MADE, 'ready', 100],
     [ProactiveOnboardingStatus.CONVERTED, 'ready', 100],
     [undefined, 'not_started', 0],
-  ])('maps %s to its preparation stage and percentage', (status, expectedStage, expectedPercent) => {
-    expect(getProactivePrepStage(status)).toBe(expectedStage);
-    expect(getProactivePrepPercent(status)).toBe(expectedPercent);
-  });
+  ])(
+    'maps %s to its preparation stage and percentage',
+    (status, expectedStage, expectedPercent) => {
+      expect(getProactivePrepStage(status)).toBe(expectedStage);
+      expect(getProactivePrepPercent(status)).toBe(expectedPercent);
+    },
+  );
 
   it.each([
     ProactiveOnboardingStatus.CONTENT_READY,

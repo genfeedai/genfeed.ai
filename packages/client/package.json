@@ -54,7 +54,7 @@
   "scripts": {
     "build": "tsc --build && test -f dist/index.js",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
-    "deps:update": "bunx npm-check-updates -u && bun install",
+    "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
     "test": "vitest run --config vitest.config.ts",
     "test:cov": "vitest run --config vitest.config.ts --coverage"
   },

@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
     "composite": true,
-    "ignoreDeprecations": "6.0",
     "declaration": true,
     "declarationMap": true,
     "esModuleInterop": true,

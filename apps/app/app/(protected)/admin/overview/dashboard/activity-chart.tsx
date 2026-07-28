@@ -130,7 +130,7 @@ export default function ActivityChart({ data, isLoading }: ActivityChartProps) {
                   marginBottom: '8px',
                 }}
                 itemStyle={{ color: 'hsl(var(--foreground))' }}
-                labelFormatter={(label) => formatDate(label)}
+                labelFormatter={(label) => formatDate(String(label))}
               />
               <Area
                 type="monotone"

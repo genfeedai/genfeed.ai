@@ -58,18 +58,17 @@ describe('AssetGateService', () => {
     ).not.toHaveBeenCalled();
   });
 
-  it.each([
-    undefined,
-    null,
-    '',
-  ])('no-ops on a missing organization id (%s)', async (organizationId) => {
-    await service.markFirstAssetGenerated(organizationId);
+  it.each([undefined, null, ''])(
+    'no-ops on a missing organization id (%s)',
+    async (organizationId) => {
+      await service.markFirstAssetGenerated(organizationId);
 
-    expect(organizationSettingsService.patchAll).not.toHaveBeenCalled();
-    expect(
-      accessBootstrapCacheService.invalidateForOrganization,
-    ).not.toHaveBeenCalled();
-  });
+      expect(organizationSettingsService.patchAll).not.toHaveBeenCalled();
+      expect(
+        accessBootstrapCacheService.invalidateForOrganization,
+      ).not.toHaveBeenCalled();
+    },
+  );
 
   it('swallows and logs errors so generation is never broken', async () => {
     organizationSettingsService.patchAll.mockRejectedValue(

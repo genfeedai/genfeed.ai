@@ -4,13 +4,13 @@
     "@genfeedai/enums": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "26.1.1",
+    "@types/node": "26.1.2",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
-    "next": "16.2.10",
-    "react": "19.2.7",
-    "react-dom": "19.2.7",
-    "react-hook-form": "7.81.0",
+    "next": "16.2.12",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-hook-form": "7.83.0",
     "react-icons": "5.7.0",
     "typescript": "6.0.2"
   },
@@ -45,7 +45,7 @@
   "scripts": {
     "build": "tsc --build",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
-    "deps:update": "bunx npm-check-updates -u && bun install",
+    "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
     "dev": "tsc --watch",
     "test": "bun test src",
     "type-check": "tsc --noEmit"

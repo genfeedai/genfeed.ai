@@ -90,16 +90,18 @@ const routes = [
 ] as const;
 
 describe('files controller boundaries', () => {
-  it.each(
-    controllers,
-  )('%s keeps its files route prefix', (controller, expectedPath) => {
-    expect(Reflect.getMetadata(PATH_METADATA, controller)).toBe(expectedPath);
-  });
+  it.each(controllers)(
+    '%s keeps its files route prefix',
+    (controller, expectedPath) => {
+      expect(Reflect.getMetadata(PATH_METADATA, controller)).toBe(expectedPath);
+    },
+  );
 
-  it.each(
-    routes,
-  )('preserves route metadata for %s', (handler, method, path) => {
-    expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(method);
-    expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
-  });
+  it.each(routes)(
+    'preserves route metadata for %s',
+    (handler, method, path) => {
+      expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(method);
+      expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
+    },
+  );
 });

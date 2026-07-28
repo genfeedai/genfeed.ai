@@ -186,13 +186,16 @@ describe('VoiceTrainingService', () => {
       ['batchSize', { batchSize: 0 }],
       ['batchSize', { batchSize: 99_999 }],
       ['batchSize', { batchSize: Number.POSITIVE_INFINITY }],
-    ])('rejects an out-of-contract %s without spawning', async (_field, overrides) => {
-      await expect(
-        service.startTraining({ voiceId: 'test-voice', ...overrides }),
-      ).rejects.toThrow(BadRequestException);
+    ])(
+      'rejects an out-of-contract %s without spawning',
+      async (_field, overrides) => {
+        await expect(
+          service.startTraining({ voiceId: 'test-voice', ...overrides }),
+        ).rejects.toThrow(BadRequestException);
 
-      expect(mockSpawn).not.toHaveBeenCalled();
-    });
+        expect(mockSpawn).not.toHaveBeenCalled();
+      },
+    );
 
     it('does not record a job when a request is rejected', async () => {
       await expect(

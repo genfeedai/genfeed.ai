@@ -70,26 +70,29 @@ describe('SidebarNavigationProvider', () => {
     ],
     ['/acme/brand/workspace/inbox', '/workspace', '/workspace/inbox', 'Inbox'],
     ['/acme/brand/compose/post', '/compose', '/compose/post', 'Post'],
-  ])('prefers the most specific match for %s', (pathname, rootPath, childPath, childLabel) => {
-    pathnameState.value = pathname;
+  ])(
+    'prefers the most specific match for %s',
+    (pathname, rootPath, childPath, childLabel) => {
+      pathnameState.value = pathname;
 
-    renderNavigation([
-      {
-        href: `${rootPath}/overview`,
-        label: 'Overview',
-        matchPaths: [rootPath],
-      },
-      {
-        href: childPath,
-        label: childLabel,
-        matchPaths: [childPath],
-      },
-    ]);
+      renderNavigation([
+        {
+          href: `${rootPath}/overview`,
+          label: 'Overview',
+          matchPaths: [rootPath],
+        },
+        {
+          href: childPath,
+          label: childLabel,
+          matchPaths: [childPath],
+        },
+      ]);
 
-    expect(
-      screen.getByText(`none|${childLabel}|none|${childLabel}|derived|1`),
-    ).toBeInTheDocument();
-  });
+      expect(
+        screen.getByText(`none|${childLabel}|none|${childLabel}|derived|1`),
+      ).toBeInTheDocument();
+    },
+  );
 
   it('ignores task-context query parameters when matching menu hrefs', () => {
     pathnameState.value = '/acme/brand/library/images';

@@ -42,19 +42,18 @@ describe('redactSensitiveValue', () => {
     ).toEqual({ attempts: 2, models: ['gpt-5', 'claude'] });
   });
 
-  it.each([
-    '',
-    'RSA ',
-    'EC ',
-  ])('redacts complete %sprivate key blocks', (keyType) => {
-    const beginMarker = ['-----BEGIN ', keyType, 'PRIVATE KEY-----'].join('');
-    const endMarker = ['-----END ', keyType, 'PRIVATE KEY-----'].join('');
-    const value = [beginMarker, 'private-material', endMarker].join('\n');
+  it.each(['', 'RSA ', 'EC '])(
+    'redacts complete %sprivate key blocks',
+    (keyType) => {
+      const beginMarker = ['-----BEGIN ', keyType, 'PRIVATE KEY-----'].join('');
+      const endMarker = ['-----END ', keyType, 'PRIVATE KEY-----'].join('');
+      const value = [beginMarker, 'private-material', endMarker].join('\n');
 
-    expect(redactSensitiveString(`before ${value} after`)).toBe(
-      `before ${REDACTED_VALUE} after`,
-    );
-  });
+      expect(redactSensitiveString(`before ${value} after`)).toBe(
+        `before ${REDACTED_VALUE} after`,
+      );
+    },
+  );
 
   it('preserves an incomplete private key marker like the previous matcher', () => {
     const value = ['-----BEGIN ', 'PRIVATE KEY-----\ntruncated'].join('');

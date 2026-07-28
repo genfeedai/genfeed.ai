@@ -16,12 +16,10 @@ describe('mapPostCategoryToContentType', () => {
     expect(mapPostCategoryToContentType(category)).toBe(contentType);
   });
 
-  it.each([
-    undefined,
-    null,
-    '',
-    'unknown-category',
-  ])('defaults %p to caption', (category) => {
-    expect(mapPostCategoryToContentType(category)).toBe(ContentType.CAPTION);
-  });
+  it.each([undefined, null, '', 'unknown-category'])(
+    'defaults %p to caption',
+    (category) => {
+      expect(mapPostCategoryToContentType(category)).toBe(ContentType.CAPTION);
+    },
+  );
 });

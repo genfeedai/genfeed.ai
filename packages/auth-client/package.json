@@ -5,9 +5,9 @@
   },
   "description": "Genfeed.ai first-party Better Auth client, epic #735",
   "devDependencies": {
-    "@types/node": "26.1.1",
+    "@types/node": "26.1.2",
     "@types/react": "19.2.17",
-    "react": "19.2.7",
+    "react": "19.2.8",
     "typescript": "6.0.2"
   },
   "exports": {
@@ -49,7 +49,7 @@
   "scripts": {
     "build": "tsc --build && test -f dist/index.js",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
-    "deps:update": "bunx npm-check-updates -u && bun install",
+    "deps:update": "bunx npm-check-updates -u --reject typescript,better-auth && bun install",
     "test": "vitest run --config vitest.config.ts",
     "test:cov": "vitest run --config vitest.config.ts --coverage"
   },

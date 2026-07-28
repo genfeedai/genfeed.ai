@@ -248,13 +248,16 @@ describe('TrainingService', () => {
       ['learningRate', { learningRate: 5 }],
       ['learningRate', { learningRate: '1e-4' as unknown as number }],
       ['learningRate', { learningRate: Number.POSITIVE_INFINITY }],
-    ])('rejects an out-of-contract %s without spawning', async (_field, overrides) => {
-      await expect(
-        service.startTraining({ ...VALID_REQUEST, ...overrides }),
-      ).rejects.toThrow(BadRequestException);
+    ])(
+      'rejects an out-of-contract %s without spawning',
+      async (_field, overrides) => {
+        await expect(
+          service.startTraining({ ...VALID_REQUEST, ...overrides }),
+        ).rejects.toThrow(BadRequestException);
 
-      expect(mockSpawn).not.toHaveBeenCalled();
-    });
+        expect(mockSpawn).not.toHaveBeenCalled();
+      },
+    );
 
     it('does not record a job when a request is rejected', async () => {
       await expect(

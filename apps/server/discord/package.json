@@ -2,7 +2,7 @@
   "dependencies": {
     "@genfeedai/config": "workspace:*",
     "@genfeedai/integrations": "workspace:*",
-    "discord.js": "14.26.4"
+    "discord.js": "14.27.0"
   },
   "description": "Genfeed Discord Service",
   "devDependencies": {

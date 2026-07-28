@@ -19,6 +19,10 @@ const XYFLOW_REACT_MOCK = path.resolve(
   __dirname,
   './tests/__mocks__/xyflow-react.tsx',
 );
+const BETTER_AUTH_REACT_MOCK = path.resolve(
+  __dirname,
+  './tests/__mocks__/better-auth-react.ts',
+);
 const EMPTY_STYLE_MOCK = path.resolve(__dirname, './tests/__mocks__/style.ts');
 const API_TYPES_SRC = path.resolve(__dirname, '../api-types/src');
 const AUTH_CLIENT_SRC = path.resolve(__dirname, '../auth-client/src');
@@ -34,6 +38,13 @@ const PAGES_SRC = path.resolve(__dirname, '../pages');
 export default defineConfig({
   resolve: {
     alias: [
+      {
+        // Resolve Better Auth to a timer-free test implementation before
+        // dependency externalization. Runtime vi.mock interception does not
+        // cover package-local realpaths in every Bun dependency layout.
+        find: /^better-auth\/react$/,
+        replacement: BETTER_AUTH_REACT_MOCK,
+      },
       {
         find: /^@genfeedai\/auth-client$/,
         replacement: path.resolve(AUTH_CLIENT_SRC, 'index.ts'),

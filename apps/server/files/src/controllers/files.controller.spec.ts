@@ -609,7 +609,7 @@ describe('FilesController', () => {
         ...baseBody,
         params: {
           assetManifest: [],
-          rendererVersion: 'remotion@4.0.486' as const,
+          rendererVersion: 'remotion@4.0.500' as const,
           snapshot: {
             projectId: 'project-123',
             settings: {
