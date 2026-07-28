@@ -99,7 +99,7 @@ for (const manifestPath of manifestPaths) {
       !LEGACY_API_CONSUMERS.has(manifestPath))
   ) {
     violations.push(
-      `${manifestPath}: TypeScript override ${TYPESCRIPT_6_VERSION} is restricted to compiler-API consumers.`,
+      `${manifestPath}: TypeScript override ${typescriptOverride} is restricted to compiler-API consumers; expected ${TYPESCRIPT_6_VERSION}.`,
     );
   }
 }
