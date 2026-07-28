@@ -31,6 +31,10 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
 const appRoot = path.join(repoRoot, 'apps/app/app');
+const appRoutesFile = path.join(
+  repoRoot,
+  'packages/constants/src/routes.constant.ts',
+);
 const e2eRoots = [
   path.join(repoRoot, 'playwright/e2e/tests'),
   path.join(repoRoot, 'playwright/e2e/pages'),
@@ -175,8 +179,48 @@ const STRING_LITERAL_RE = /[`'"]([^`'"\n]+)[`'"]/g;
 // `const NAME = '/literal'` path constants used to build template routes.
 const PATH_CONST_RE =
   /\bconst\s+([A-Z][A-Z0-9_]*)\s*=\s*['"`](\/[^'"`\n]*)['"`]/g;
+const APP_ROUTE_REFERENCE_RE = /\bAPP_ROUTES(?:\.[A-Z][A-Z0-9_]*)+/g;
 // A candidate route after substitution: starts with `/`, only route-ish chars.
 const ROUTE_SHAPE_RE = /^\/[\w\-~/*]*$/;
+
+/**
+ * Read the shared APP_ROUTES object without importing TypeScript into this
+ * dependency-free Node script.
+ * @returns {Map<string, string>}
+ */
+function readAppRouteConstants() {
+  const routes = new Map();
+  const stack = [];
+  let insideAppRoutes = false;
+
+  for (const line of readFileSync(appRoutesFile, 'utf8').split('\n')) {
+    if (!insideAppRoutes) {
+      insideAppRoutes = /^export const APP_ROUTES = \{$/.test(line);
+      continue;
+    }
+
+    const group = line.match(/^\s*([A-Z][A-Z0-9_]*):\s*\{$/);
+    if (group) {
+      stack.push(group[1]);
+      continue;
+    }
+
+    const route = line.match(
+      /^\s*([A-Z][A-Z0-9_]*):\s*(['"`])(\/[^'"`]*)\2,\s*$/,
+    );
+    if (route) {
+      routes.set(['APP_ROUTES', ...stack, route[1]].join('.'), route[3]);
+      continue;
+    }
+
+    if (/^\s*},?\s*$/.test(line)) {
+      if (stack.length === 0) break;
+      stack.pop();
+    }
+  }
+
+  return routes;
+}
 
 /**
  * Resolve `${CONST}` references inside a template-literal route using the
@@ -202,6 +246,7 @@ function resolveTemplate(raw, consts) {
 function collectNavigatedKeys() {
   const keys = new Set();
   const files = e2eRoots.flatMap((root) => listFilesRecursive(root));
+  const appRoutes = readAppRouteConstants();
 
   for (const file of files) {
     // The generated sweep is accounted for separately as "effective" coverage.
@@ -212,6 +257,11 @@ function collectNavigatedKeys() {
     const consts = {};
     for (const match of src.matchAll(PATH_CONST_RE)) {
       consts[match[1]] = match[2];
+    }
+
+    for (const match of src.matchAll(APP_ROUTE_REFERENCE_RE)) {
+      const route = appRoutes.get(match[0]);
+      if (route) keys.add(canonicalize(route));
     }
 
     for (const match of src.matchAll(STRING_LITERAL_RE)) {

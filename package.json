@@ -148,6 +148,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.3",
+    "@genfeedai/constants": "workspace:*",
     "@google/design.md": "0.3.0",
     "@nestjs/cli": "11.0.23",
     "@nestjs/testing": "11.1.28",
