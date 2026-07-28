@@ -62,7 +62,7 @@ export default function ModalGalleryFooter({
                   onClick={() => {
                     const referencesData = selectedItems.map((id) => ({
                       id,
-                      url: `${EnvironmentService.ingredientsEndpoint}/references/${id}`,
+                      url: `${EnvironmentService.cdnUrl}/references/${id}`,
                     })) as unknown as IAsset[];
 
                     if (onSelectAccountReference && referencesData.length > 0) {

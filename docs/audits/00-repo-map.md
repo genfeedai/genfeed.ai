@@ -202,7 +202,8 @@ deduped issue.
 - **Ads:** google-ads, meta-ads, tiktok-ads (+ ad-sync/ad-insights queue families).
 - **Data/misc:** apify, news, giphy, google-search-console, **solana** (a crypto integration in a content platform — worth a deliberate keep/kill decision), stripe.
 - **Email:** resend (notifications service schema `resendSchema`).
-- **Storage/CDN:** AWS S3 (`packages/storage` + `packages/libs/s3`), domains `cdn/assets/ingredients.genfeed.ai` referenced from client configs.
+- **Storage/CDN:** AWS S3 (`packages/storage` + `packages/libs/s3`) behind
+  `cdn.genfeed.ai`; generated media lives under `/ingredients`.
 - Structural pattern confirmed (3+ examples): integration modules built with `createServiceModule` (higgsfield, fanvue, twitter, tiktok-ads module files).
 
 ### 4.4 Observability

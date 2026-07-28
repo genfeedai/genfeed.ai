@@ -19,8 +19,9 @@ function createMocks() {
   } as unknown as AssetsService;
 
   const configService = {
+    cdnUrl: BASE_URL,
     get: vi.fn().mockReturnValue(BASE_URL),
-    ingredientsEndpoint: BASE_URL,
+    ingredientsEndpoint: `${BASE_URL}/ingredients`,
   } as unknown as ConfigService;
 
   const loggerService = {
@@ -68,7 +69,7 @@ describe('buildReferenceImageUrl', () => {
       referenceId,
     });
 
-    expect(url).toBe(`${BASE_URL}/images/${referenceId}`);
+    expect(url).toBe(`${BASE_URL}/ingredients/images/${referenceId}`);
     expect(ingredientsService.findOne).toHaveBeenCalledTimes(1);
     const ingredientQuery = (ingredientsService.findOne as vi.Mock).mock
       .calls[0][0];
@@ -95,7 +96,7 @@ describe('buildReferenceImageUrl', () => {
       referenceId,
     });
 
-    expect(url).toBe(`${BASE_URL}/thumbnails/${referenceId}`);
+    expect(url).toBe(`${BASE_URL}/ingredients/thumbnails/${referenceId}`);
     expect(ingredientsService.findOne).toHaveBeenCalledTimes(2);
     const videoQuery = (ingredientsService.findOne as vi.Mock).mock.calls[1][0];
     expect(videoQuery.category).toBe('video');

@@ -424,6 +424,12 @@ describe('BrandsService', () => {
           url: 'https://acme.example/logo.png',
         },
       );
+      expect(assetDelegate.update).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          cloudObjectKey: 'logos/asset_new',
+        }),
+        where: { id: 'asset_new' },
+      });
       expect(assetDelegate.updateMany).toHaveBeenCalledWith({
         data: { isDeleted: true },
         where: expect.objectContaining({

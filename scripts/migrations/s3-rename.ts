@@ -10,9 +10,9 @@
  *   ├── ingredients/videos/
  *   ├── ingredients/musics/
  *   ├── ingredients/voices/
- *   ├── ingredients/logos/
- *   ├── ingredients/banners/
- *   ├── ingredients/references/
+ *   ├── logos/
+ *   ├── banners/
+ *   ├── references/
  *   ├── ingredients/thumbnails/
  *   ├── ingredients/trainings/    (mongoId as FOLDER name, multi-file)
  *   ├── assets/branding/
@@ -111,9 +111,9 @@ const INGREDIENT_CATEGORY_TO_PREFIX: Record<string, string> = {
 const TRAINING_PREFIX = 'ingredients/trainings';
 
 const ASSET_CATEGORY_TO_PREFIX: Record<string, string> = {
-  LOGO: 'ingredients/logos',
-  BANNER: 'ingredients/banners',
-  REFERENCE: 'ingredients/references',
+  LOGO: 'logos',
+  BANNER: 'banners',
+  REFERENCE: 'references',
 };
 
 // ---------------------------------------------------------------------------

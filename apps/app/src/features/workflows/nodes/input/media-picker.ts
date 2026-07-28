@@ -132,7 +132,7 @@ function buildImageUrl(id: string): string {
 }
 
 function buildReferenceUrl(id: string): string {
-  return `${EnvironmentService.ingredientsEndpoint}/references/${id}`;
+  return `${EnvironmentService.cdnUrl}/references/${id}`;
 }
 
 function buildVideoUrl(id: string): string {

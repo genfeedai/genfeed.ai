@@ -346,15 +346,15 @@ export class WorkflowEngineExecutorHelperService {
   }
 
   buildLogoAssetUrl(assetId: string): string {
-    return `${this.configService.ingredientsEndpoint}/logos/${assetId}`;
+    return `${this.configService.cdnUrl}/logos/${assetId}`;
   }
 
   buildBannerAssetUrl(assetId: string): string {
-    return `${this.configService.ingredientsEndpoint}/banners/${assetId}`;
+    return `${this.configService.cdnUrl}/banners/${assetId}`;
   }
 
   buildReferenceAssetUrl(assetId: string): string {
-    return `${this.configService.ingredientsEndpoint}/references/${assetId}`;
+    return `${this.configService.cdnUrl}/references/${assetId}`;
   }
 
   buildMediaItemUrl(

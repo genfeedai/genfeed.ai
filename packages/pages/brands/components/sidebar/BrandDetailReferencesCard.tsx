@@ -25,7 +25,7 @@ export default function BrandDetailReferencesCard({
             {brand.references?.map((ref) => (
               <div key={ref.id} className="relative w-full aspect-square group">
                 <Image
-                  src={`${EnvironmentService.ingredientsEndpoint}/references/${ref.id}`}
+                  src={`${EnvironmentService.cdnUrl}/references/${ref.id}`}
                   alt={`Reference ${ref.id}`}
                   className="w-full h-full object-cover"
                   width={300}

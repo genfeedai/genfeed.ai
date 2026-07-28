@@ -111,7 +111,7 @@ vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     assetsEndpoint: 'https://assets.genfeed.ai',
     cdnUrl: 'https://cdn.genfeed.ai',
-    ingredientsEndpoint: 'https://ingredients.genfeed.ai',
+    ingredientsEndpoint: 'https://cdn.genfeed.ai/ingredients',
   },
 }));
 
@@ -802,7 +802,7 @@ describe('Ingredient', () => {
         status: IngredientStatus.GENERATED,
       });
 
-      expect(ingredient.ingredientUrl).toContain('ingredients.genfeed.ai');
+      expect(ingredient.ingredientUrl).toContain('cdn.genfeed.ai/ingredients');
       expect(ingredient.ingredientUrl).toContain('ing_123');
     });
 

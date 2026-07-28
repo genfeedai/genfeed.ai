@@ -80,9 +80,9 @@ const INGREDIENT_CATEGORY_TO_PREFIX: Record<string, string> = {
 };
 
 const ASSET_CATEGORY_TO_PREFIX: Record<string, string> = {
-  LOGO: 'ingredients/logos',
-  BANNER: 'ingredients/banners',
-  REFERENCE: 'ingredients/references',
+  LOGO: 'logos',
+  BANNER: 'banners',
+  REFERENCE: 'references',
 };
 
 // ---------------------------------------------------------------------------

@@ -56,9 +56,7 @@ describe('reference.util', () => {
         url: 'references/ref-123',
       };
       const result = resolveIngredientReferenceUrl(asset);
-      expect(result).toBe(
-        `${EnvironmentService.ingredientsEndpoint}/references/ref-123`,
-      );
+      expect(result).toBe(`${EnvironmentService.cdnUrl}/references/ref-123`);
     });
 
     it('should resolve URL from asset object with URL starting with /references/', () => {
@@ -67,9 +65,7 @@ describe('reference.util', () => {
         url: '/references/ref-123',
       };
       const result = resolveIngredientReferenceUrl(asset);
-      expect(result).toBe(
-        `${EnvironmentService.ingredientsEndpoint}/references/ref-123`,
-      );
+      expect(result).toBe(`${EnvironmentService.cdnUrl}/references/ref-123`);
     });
 
     it('should resolve URL from asset object with URL starting with ingredients/', () => {

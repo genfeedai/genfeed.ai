@@ -61,7 +61,7 @@ export async function buildReferenceImageUrl(params: {
     });
 
     if (asset?.id) {
-      return `${configService.ingredientsEndpoint}/references/${asset.id}`;
+      return `${configService.cdnUrl}/references/${asset.id}`;
     }
 
     loggerService?.warn('Reference not found or invalid', {

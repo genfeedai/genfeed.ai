@@ -133,7 +133,7 @@ describe('Brand Kit JSON:API contract', () => {
           diagnostics: [],
           role: 'logo',
           status: 'imported',
-          url: '/ingredients/logos/asset-1',
+          url: '/logos/asset-1',
         },
       ],
       skippedCandidateIds: [],

@@ -53,14 +53,14 @@ export class Brand extends BaseBrand {
     if (!this.logo) {
       return undefined;
     }
-    return `${EnvironmentService.ingredientsEndpoint}/logos/${this.logo.id}`;
+    return `${EnvironmentService.cdnUrl}/logos/${this.logo.id}`;
   }
 
   get bannerUrl(): string | undefined {
     if (!this.banner) {
       return undefined;
     }
-    return `${EnvironmentService.ingredientsEndpoint}/banners/${this.banner.id}`;
+    return `${EnvironmentService.cdnUrl}/banners/${this.banner.id}`;
   }
 
   get primaryReferenceUrl(): string | undefined {
@@ -68,7 +68,7 @@ export class Brand extends BaseBrand {
     if (!firstReference) {
       return undefined;
     }
-    return `${EnvironmentService.ingredientsEndpoint}/references/${firstReference.id}`;
+    return `${EnvironmentService.cdnUrl}/references/${firstReference.id}`;
   }
 
   get totalCredentials(): number {

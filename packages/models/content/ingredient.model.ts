@@ -183,7 +183,7 @@ export class Ingredient extends BaseIngredient {
   public get brandLogoUrl(): string {
     const logo = (this.brand as IBrand)?.logo as IAsset | undefined;
     if (logo) {
-      return `${EnvironmentService.ingredientsEndpoint}/logos/${logo}`;
+      return `${EnvironmentService.cdnUrl}/logos/${logo}`;
     }
     return `${EnvironmentService.assetsEndpoint}/placeholders/square.jpg`;
   }

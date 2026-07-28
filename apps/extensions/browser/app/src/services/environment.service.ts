@@ -16,9 +16,11 @@ export const apiEndpoint =
 export const assetsEndpoint =
   process.env.PLASMO_PUBLIC_ASSETS_ENDPOINT || 'https://assets.genfeed.ai';
 
-export const ingredientsEndpoint =
-  process.env.PLASMO_PUBLIC_INGREDIENTS_ENDPOINT ||
-  'https://ingredients.genfeed.ai';
+export const cdnEndpoint = isDevelopment
+  ? 'http://genfeed.localhost:3010'
+  : 'https://cdn.genfeed.ai';
+
+export const ingredientsEndpoint = `${cdnEndpoint}/ingredients`;
 
 export const wsEndpoint =
   process.env.PLASMO_PUBLIC_WS_ENDPOINT || 'https://notifications.genfeed.ai';
@@ -87,6 +89,7 @@ export const EnvironmentService = {
   appDomain,
   authCookieOrigins,
   assetsEndpoint,
+  cdnEndpoint,
   cookieDomain,
   ingredientsEndpoint,
   isDevelopment,

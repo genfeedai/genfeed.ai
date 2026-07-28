@@ -172,6 +172,23 @@ describe('UploadService', () => {
       );
     });
 
+    it.each(['banners', 'logos', 'references'])(
+      'stores %s at the CDN root',
+      async (type) => {
+        await service.uploadToS3('brand-asset', type, {
+          contentType: 'image/png',
+          data: Buffer.from('image'),
+          type: 'buffer',
+        });
+
+        expect(mockStorage.upload).toHaveBeenCalledWith(
+          expect.any(Buffer),
+          `${type}/brand-asset`,
+          'image/png',
+        );
+      },
+    );
+
     it('rejects an object key that escapes the ingredients prefix', async () => {
       await expect(
         service.uploadToS3('../../escaped', 'images', {

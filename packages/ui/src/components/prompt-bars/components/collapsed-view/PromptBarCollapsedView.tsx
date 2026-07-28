@@ -113,7 +113,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
                   <Image
                     src={
                       referenceSource === 'brand'
-                        ? `${EnvironmentService.ingredientsEndpoint}/references/${firstReference.id}`
+                        ? `${EnvironmentService.cdnUrl}/references/${firstReference.id}`
                         : `${EnvironmentService.ingredientsEndpoint}/images/${firstReference.id}`
                     }
                     alt="Reference"
