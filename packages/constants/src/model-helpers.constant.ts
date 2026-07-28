@@ -5,7 +5,7 @@ import {
   MODEL_OUTPUT_CAPABILITIES,
   type ModelOutputCapability,
   type VideoModelCapability,
-} from './model-capabilities.constant';
+} from './model-capabilities.constant.js';
 
 const DURATION_CATEGORIES = new Set([
   ModelCategory.VIDEO,

@@ -1,7 +1,7 @@
 import type {
   IOnboardingJourneyMissionDefinition,
   OnboardingJourneyMissionId,
-} from './onboarding-journey.types';
+} from './onboarding-journey.types.js';
 
 export const ONBOARDING_JOURNEY_MISSION_ORDER: OnboardingJourneyMissionId[] = [
   'complete_company_info',
