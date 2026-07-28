@@ -2,16 +2,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { workflowCommand } from '../../src/commands/workflow';
 import { GenfeedError } from '../../src/utils/errors';
 
-const { mockGet, mockHandleError, mockPost, mockPrintJson, mockRequireAuth } =
-  vi.hoisted(() => ({
-    mockGet: vi.fn(),
-    mockHandleError: vi.fn((error: unknown) => {
-      throw error;
-    }),
-    mockPost: vi.fn(),
-    mockPrintJson: vi.fn(),
-    mockRequireAuth: vi.fn(),
-  }));
+const { mockGet, mockHandleError, mockPost, mockPrintJson, mockRequireAuth } = vi.hoisted(() => ({
+  mockGet: vi.fn(),
+  mockHandleError: vi.fn((error: unknown) => {
+    throw error;
+  }),
+  mockPost: vi.fn(),
+  mockPrintJson: vi.fn(),
+  mockRequireAuth: vi.fn(),
+}));
 
 vi.mock('../../src/api/client', () => ({
   get: (...args: unknown[]) => mockGet(...args),
@@ -27,8 +26,7 @@ vi.mock('../../src/ui/theme', () => ({
 }));
 
 vi.mock('../../src/utils/errors', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('../../src/utils/errors')>();
+  const actual = await importOriginal<typeof import('../../src/utils/errors')>();
   return {
     ...actual,
     handleError: (error: unknown) => mockHandleError(error),
@@ -54,29 +52,29 @@ describe('workflow command', () => {
       await expect(
         workflowCommand.parseAsync(['run', 'workflow-1', '--inputs', inputs], {
           from: 'user',
-        }),
+        })
       ).rejects.toThrow(GenfeedError);
 
       expect(mockHandleError).toHaveBeenCalledWith(
         expect.objectContaining({
           message: '--inputs must be a JSON object',
-        }),
+        })
       );
       expect(mockPost).not.toHaveBeenCalled();
-    },
+    }
   );
 
   it('rejects malformed --inputs JSON with a stable CLI error', async () => {
     await expect(
       workflowCommand.parseAsync(['run', 'workflow-1', '--inputs', '{bad'], {
         from: 'user',
-      }),
+      })
     ).rejects.toThrow(GenfeedError);
 
     expect(mockHandleError).toHaveBeenCalledWith(
       expect.objectContaining({
         message: '--inputs must be a JSON object',
-      }),
+      })
     );
     expect(mockPost).not.toHaveBeenCalled();
   });
@@ -92,7 +90,7 @@ describe('workflow command', () => {
   it('posts object inputs for workflow execution', async () => {
     await workflowCommand.parseAsync(
       ['run', 'workflow-1', '--inputs', '{"topic":"launch"}', '--json'],
-      { from: 'user' },
+      { from: 'user' }
     );
 
     expect(mockPost).toHaveBeenCalledWith('/workflow-executions', {
