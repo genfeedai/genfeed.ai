@@ -11,7 +11,7 @@ import {
   ButtonVariant,
   PageScope,
 } from '@genfeedai/enums';
-import type { IActivity, IAgentRun, ICredential } from '@genfeedai/interfaces';
+import type { IAgentRun, ICredential } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
@@ -28,7 +28,11 @@ import {
   HiOutlineExclamationTriangle,
 } from 'react-icons/hi2';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
-import { summarizeCredentialHealth } from './operational-home.helpers';
+import {
+  getActivityBadge,
+  getCredentialBadge,
+  summarizeCredentialHealth,
+} from './operational-home.helpers';
 
 interface OperationalHomeSectionsProps {
   brandSlug?: string;
@@ -381,39 +385,18 @@ function getCredentialLabel(credential: ICredential): string {
   );
 }
 
-function getCredentialBadge(credential: ICredential): {
-  label: string;
-  variant: 'destructive' | 'outline' | 'success' | 'warning';
-} {
-  if (!credential.isConnected) {
-    return { label: 'Disconnected', variant: 'destructive' };
-  }
-
-  if (
-    credential.accountHealth?.holdPublishing ||
-    credential.accountHealth?.riskLevel === 'high'
-  ) {
-    return { label: 'Needs attention', variant: 'warning' };
-  }
-
-  if (
-    credential.accountHealth?.state === 'healthy' ||
-    credential.accountHealth?.riskLevel === 'low'
-  ) {
-    return { label: 'Healthy', variant: 'success' };
-  }
-
-  return { label: 'Connected', variant: 'outline' };
-}
-
 function CredentialHealthSurface({
   brandSlug,
   credentials,
+  isError,
+  isLoading,
   onRetry,
   orgSlug,
 }: {
   brandSlug?: string;
   credentials: ICredential[];
+  isError: boolean;
+  isLoading: boolean;
   onRetry: () => Promise<void>;
   orgSlug: string;
 }) {
@@ -454,70 +437,58 @@ function CredentialHealthSurface({
       eyebrow="Credential health"
       title="Channel readiness"
     >
-      <MetricGrid>
-        <Metric label="Total accounts" value={String(summary.total)} />
-        <Metric label="Needs attention" value={String(summary.attention)} />
-        <Metric label="Healthy" value={String(summary.healthy)} />
-        <Metric label="Unknown health" value={String(summary.unknown)} />
-      </MetricGrid>
+      {isLoading ? (
+        <LoadingPanel label="Loading credential health..." />
+      ) : isError ? (
+        <ErrorPanel
+          description="Credential health is temporarily unavailable. Approval, publishing, and activity summaries remain available."
+          onRetry={onRetry}
+        />
+      ) : (
+        <>
+          <MetricGrid>
+            <Metric label="Total accounts" value={String(summary.total)} />
+            <Metric label="Needs attention" value={String(summary.attention)} />
+            <Metric label="Healthy" value={String(summary.healthy)} />
+            <Metric label="Unknown health" value={String(summary.unknown)} />
+          </MetricGrid>
 
-      <div className="space-y-2">
-        {credentials.length === 0 ? (
-          <EmptyPanel
-            actionHref={settingsHref}
-            actionLabel={brandSlug ? 'Connect an account' : 'Set up a brand'}
-            description="No publishing credentials are connected yet."
-          />
-        ) : (
-          credentials.slice(0, 4).map((credential) => {
-            const badge = getCredentialBadge(credential);
+          <div className="space-y-2">
+            {credentials.length === 0 ? (
+              <EmptyPanel
+                actionHref={settingsHref}
+                actionLabel={
+                  brandSlug ? 'Connect an account' : 'Set up a brand'
+                }
+                description="No publishing credentials are connected yet."
+              />
+            ) : (
+              credentials.slice(0, 4).map((credential) => {
+                const badge = getCredentialBadge(credential);
 
-            return (
-              <div
-                className="flex items-center justify-between gap-3 rounded-card bg-background px-4 py-3 shadow-border"
-                key={credential.id}
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-foreground">
-                    {getCredentialLabel(credential)}
-                  </p>
-                  <p className="mt-1 text-xs capitalize text-foreground/45">
-                    {credential.platform}
-                  </p>
-                </div>
-                <Badge variant={badge.variant}>{badge.label}</Badge>
-              </div>
-            );
-          })
-        )}
-      </div>
+                return (
+                  <div
+                    className="flex items-center justify-between gap-3 rounded-card bg-background px-4 py-3 shadow-border"
+                    key={credential.id}
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {getCredentialLabel(credential)}
+                      </p>
+                      <p className="mt-1 text-xs capitalize text-foreground/45">
+                        {credential.platform}
+                      </p>
+                    </div>
+                    <Badge variant={badge.variant}>{badge.label}</Badge>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </>
+      )}
     </WorkspaceSurface>
   );
-}
-
-function getActivityBadge(activity: IActivity): {
-  label: string;
-  variant: 'destructive' | 'outline' | 'success' | 'warning';
-} {
-  const normalized = (activity.status ?? activity.value ?? '').toLowerCase();
-
-  if (normalized.includes('fail') || normalized.includes('error')) {
-    return { label: 'Failed', variant: 'destructive' };
-  }
-
-  if (normalized.includes('pending') || normalized.includes('processing')) {
-    return { label: 'In progress', variant: 'warning' };
-  }
-
-  if (
-    normalized.includes('complete') ||
-    normalized.includes('publish') ||
-    normalized.includes('success')
-  ) {
-    return { label: 'Completed', variant: 'success' };
-  }
-
-  return { label: 'Recorded', variant: 'outline' };
 }
 
 function ActivitySurface({ activityHref }: { activityHref: string }) {
@@ -593,7 +564,8 @@ export default function OperationalHomeSections({
   brandSlug,
   orgSlug,
 }: OperationalHomeSectionsProps) {
-  const { credentials, refreshBrands } = useBrand();
+  const { credentials, credentialsError, credentialsLoading, refreshBrands } =
+    useBrand();
   const {
     activeRuns,
     analytics,
@@ -639,6 +611,8 @@ export default function OperationalHomeSections({
       <CredentialHealthSurface
         brandSlug={brandSlug}
         credentials={credentials}
+        isError={Boolean(credentialsError)}
+        isLoading={credentialsLoading}
         onRetry={refreshBrands}
         orgSlug={orgSlug}
       />

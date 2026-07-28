@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
   API_KEY_SCOPE_PRESETS,
+  CONNECT_GENFEED_VERIFICATION_METADATA_KEY,
   SELF_SERVICE_API_KEY_SCOPES,
 } from './api-key-presets.constant';
 import { API_KEY_SCOPE_OPTIONS } from './api-key-scope-labels.constant';
 
 describe('API key scope presets', () => {
+  it('reserves Connect Genfeed verification metadata for the server', () => {
+    expect(CONNECT_GENFEED_VERIFICATION_METADATA_KEY).toBe('connectGenfeed');
+  });
+
   it('keeps content creation draft-only with the legacy alias', () => {
     expect(API_KEY_SCOPE_PRESETS.content).toContain('posts:create');
     expect(API_KEY_SCOPE_PRESETS.content).toContain('posts:draft');

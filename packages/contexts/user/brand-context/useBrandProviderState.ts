@@ -153,6 +153,8 @@ export function useBrandProviderState({
 
   const {
     data: brandsData,
+    error: credentialsError,
+    isFetching: credentialsLoading,
     isLoading: brandsLoading,
     refetch: refetchBrands,
   } = useQuery({
@@ -448,6 +450,8 @@ export function useBrandProviderState({
     brandId: scopedBrandId,
     brands,
     credentials,
+    credentialsError,
+    credentialsLoading,
     darkroomCapabilities,
     darkroomCapabilitiesLoading,
     isReady,

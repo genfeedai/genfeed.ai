@@ -8,6 +8,7 @@ import { McpConnectionVerificationService } from '@api/collections/api-keys/serv
 import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { ApiAccessGuard } from '@api/helpers/guards/api-access/api-access.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { CONNECT_GENFEED_VERIFICATION_METADATA_KEY } from '@genfeedai/constants';
 import {
   ActionOrigin,
   API_KEY_ACTION_ORIGIN_METADATA_KEY,
@@ -159,6 +160,10 @@ describe('ApiKeysController', () => {
         metadata: {
           [API_KEY_ACTION_ORIGIN_METADATA_KEY]: 'mcp',
           [API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY]: 'spoofed-proof',
+          [CONNECT_GENFEED_VERIFICATION_METADATA_KEY]: {
+            lastVerifiedAt: '2026-07-28T00:00:00.000Z',
+            transport: 'streamable-http',
+          },
           purpose: 'automation',
         },
         scopes: ['read'],
@@ -352,12 +357,48 @@ describe('ApiKeysController', () => {
         metadata: {
           [API_KEY_ACTION_ORIGIN_METADATA_KEY]: 'mcp',
           [API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY]: 'spoofed-proof',
+          [CONNECT_GENFEED_VERIFICATION_METADATA_KEY]: {
+            lastVerifiedAt: '2026-07-28T00:00:00.000Z',
+            transport: 'streamable-http',
+          },
           purpose: 'automation',
         },
       });
 
       expect(service.patch).toHaveBeenCalledWith(id, {
         metadata: { purpose: 'automation' },
+      });
+    });
+
+    it('preserves server verification while rejecting a replacement marker', async () => {
+      const id = '507f1f77bcf86cd799439014';
+      const serverVerification = {
+        lastVerifiedAt: '2026-07-27T23:00:00.000Z',
+        transport: 'streamable-http',
+      };
+      mockApiKeysService.findOne.mockResolvedValue({
+        ...mockApiKey,
+        metadata: {
+          [CONNECT_GENFEED_VERIFICATION_METADATA_KEY]: serverVerification,
+        },
+      });
+      mockApiKeysService.patch.mockResolvedValue(mockApiKey);
+
+      await controller.update(mockRequest, mockUser, id, {
+        metadata: {
+          [CONNECT_GENFEED_VERIFICATION_METADATA_KEY]: {
+            lastVerifiedAt: '2099-01-01T00:00:00.000Z',
+            transport: 'streamable-http',
+          },
+          purpose: 'desktop',
+        },
+      });
+
+      expect(service.patch).toHaveBeenCalledWith(id, {
+        metadata: {
+          [CONNECT_GENFEED_VERIFICATION_METADATA_KEY]: serverVerification,
+          purpose: 'desktop',
+        },
       });
     });
 
@@ -452,6 +493,33 @@ describe('ApiKeysController', () => {
       expect(service.revoke).not.toHaveBeenCalled();
       expect(service.createWithKey).not.toHaveBeenCalled();
       expect(result).toBeDefined();
+    });
+
+    it('does not carry connection verification onto a replacement key', async () => {
+      const id = '507f1f77bcf86cd799439014';
+      mockApiKeysService.findOne.mockResolvedValue({
+        ...mockApiKey,
+        metadata: {
+          [CONNECT_GENFEED_VERIFICATION_METADATA_KEY]: {
+            lastVerifiedAt: '2026-07-27T23:00:00.000Z',
+            transport: 'streamable-http',
+          },
+          purpose: 'desktop',
+        },
+      });
+      mockApiKeysService.rotateWithKey.mockResolvedValue({
+        apiKey: mockApiKey,
+        plainKey: 'plain_rotated_api_key_12345',
+      });
+
+      await controller.rotate(mockRequest, mockUser, id);
+
+      expect(service.rotateWithKey).toHaveBeenCalledWith(
+        id,
+        expect.objectContaining({
+          metadata: { purpose: 'desktop' },
+        }),
+      );
     });
 
     it('should throw NotFoundException when rotating a missing key', async () => {

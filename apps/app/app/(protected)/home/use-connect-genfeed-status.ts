@@ -31,8 +31,10 @@ type ConnectGenfeedStatus =
       verifiedAt: null;
     };
 
-export function useConnectGenfeedStatus(): ConnectGenfeedStatus {
-  const { isReady, organizationId } = useBrand();
+export function useConnectGenfeedStatus(
+  organizationId: string,
+): ConnectGenfeedStatus {
+  const { isReady } = useBrand();
   const getApiKeysService = useAuthedService(
     useCallback((token: string) => ApiKeysService.getInstance(token), []),
   );

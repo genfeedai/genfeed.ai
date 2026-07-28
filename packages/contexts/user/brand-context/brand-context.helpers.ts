@@ -83,6 +83,8 @@ export const DEFAULT_BRAND_CONTEXT: BrandContextType = {
   brandId: '',
   brands: [],
   credentials: [],
+  credentialsError: null,
+  credentialsLoading: false,
   darkroomCapabilities: null,
   darkroomCapabilitiesLoading: false,
   isReady: false,

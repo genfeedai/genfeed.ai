@@ -10,6 +10,7 @@ import { CacheInvalidationService } from '@api/common/services/cache-invalidatio
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { isCloudDeployment } from '@genfeedai/config';
+import { CONNECT_GENFEED_VERIFICATION_METADATA_KEY } from '@genfeedai/constants';
 import {
   ActionOrigin,
   API_KEY_ACTION_ORIGIN_METADATA_KEY,
@@ -349,6 +350,8 @@ export class ApiKeysService extends BaseService<
     const {
       [API_KEY_ACTION_ORIGIN_METADATA_KEY]: _untrustedOrigin,
       [API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY]: _untrustedProof,
+      [CONNECT_GENFEED_VERIFICATION_METADATA_KEY]:
+        _untrustedConnectGenfeedVerification,
       ...safeMetadata
     } = dto.metadata ?? {};
     if (!trustedOrigin) {

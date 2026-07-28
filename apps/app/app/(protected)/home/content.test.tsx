@@ -20,6 +20,8 @@ const mocks = vi.hoisted(() => ({
       },
     ],
     credentials: [],
+    credentialsError: null,
+    credentialsLoading: false,
     organizationId: 'org_1',
     refreshBrands: vi.fn(async () => undefined),
     selectedBrand: {
@@ -34,6 +36,8 @@ const mocks = vi.hoisted(() => ({
       slug?: string;
     }>;
     credentials: [];
+    credentialsError: Error | null;
+    credentialsLoading: boolean;
     organizationId: string;
     refreshBrands: () => Promise<void>;
     selectedBrand: {
@@ -42,6 +46,7 @@ const mocks = vi.hoisted(() => ({
       slug?: string;
     } | null;
   },
+  connectionOrganizationId: '',
   connectionRefresh: vi.fn(async () => undefined),
   connectionState: {
     error: null,
@@ -115,7 +120,10 @@ vi.mock('@/components/ui/client-formatted-date', () => ({
 }));
 
 vi.mock('./use-connect-genfeed-status', () => ({
-  useConnectGenfeedStatus: () => mocks.connectionState,
+  useConnectGenfeedStatus: (organizationId: string) => {
+    mocks.connectionOrganizationId = organizationId;
+    return mocks.connectionState;
+  },
 }));
 
 const { default: OperationalHomeContent } = await import('./content');
@@ -133,6 +141,8 @@ describe('OperationalHomeContent', () => {
       },
     ];
     mocks.brandState.organizationId = 'org_1';
+    mocks.brandState.credentialsError = null;
+    mocks.brandState.credentialsLoading = false;
     mocks.brandState.refreshBrands = mocks.brandRefresh;
     mocks.brandState.selectedBrand = {
       organization: { slug: 'acme' },
@@ -146,6 +156,7 @@ describe('OperationalHomeContent', () => {
       status: 'unconfigured',
       verifiedAt: null,
     };
+    mocks.connectionOrganizationId = '';
     mocks.overviewIsError = false;
   });
 
@@ -201,6 +212,17 @@ describe('OperationalHomeContent', () => {
     ).toBeInTheDocument();
     expect(screen.getByTestId('operational-home-activity')).toBeInTheDocument();
     expect(screen.queryByText(/Studio/i)).not.toBeInTheDocument();
+  });
+
+  it('uses the access-state organization fallback for connection status', () => {
+    mocks.brandState.organizationId = '';
+
+    render(<OperationalHomeContent />);
+
+    expect(mocks.connectionOrganizationId).toBe('org_1');
+    expect(
+      screen.getByRole('link', { name: /Connect Genfeed/ }),
+    ).toHaveAttribute('href', '/acme/~/connect');
   });
 
   it('keeps operational summaries available when status resolution fails', () => {
@@ -331,6 +353,34 @@ describe('OperationalHomeContent', () => {
     expect(
       screen.getByTestId('operational-home-credentials'),
     ).toBeInTheDocument();
+  });
+
+  it('distinguishes credential loading from an empty credential list', () => {
+    mocks.brandState.credentialsLoading = true;
+
+    render(<OperationalHomeContent />);
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Loading credential health',
+    );
+    expect(
+      screen.queryByText('No publishing credentials are connected yet.'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('surfaces credential errors with a working retry', () => {
+    mocks.brandState.credentialsError = new Error('credentials unavailable');
+
+    render(<OperationalHomeContent />);
+
+    expect(
+      screen.getByText(/Credential health is temporarily unavailable/),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(mocks.brandRefresh).toHaveBeenCalledOnce();
+    expect(
+      screen.queryByText('No publishing credentials are connected yet.'),
+    ).not.toBeInTheDocument();
   });
 
   it('announces connection-state loading while keeping operations visible', () => {

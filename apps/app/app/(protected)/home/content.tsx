@@ -94,13 +94,17 @@ function ConnectionState({
 export default function OperationalHomeContent() {
   const { brands, organizationId, selectedBrand } = useBrand();
   const { accessState } = useAccessState();
-  const connection = useConnectGenfeedStatus();
-  const { brandSlug, orgSlug } = resolveOperationalHomeScope({
+  const {
+    brandSlug,
+    organizationId: resolvedOrganizationId,
+    orgSlug,
+  } = resolveOperationalHomeScope({
     accessOrganizationId: accessState?.organizationId,
     brands,
     organizationId,
     selectedBrand,
   });
+  const connection = useConnectGenfeedStatus(resolvedOrganizationId);
 
   if (!orgSlug) {
     return (

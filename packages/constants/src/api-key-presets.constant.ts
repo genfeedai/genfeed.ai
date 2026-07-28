@@ -63,6 +63,9 @@ export const API_KEY_SCOPE_PRESETS = {
   ],
 } as const satisfies Record<string, readonly string[]>;
 
+/** Reserved API-key metadata field written only after server-side MCP verification. */
+export const CONNECT_GENFEED_VERIFICATION_METADATA_KEY = 'connectGenfeed';
+
 export type ApiKeyScopePreset = keyof typeof API_KEY_SCOPE_PRESETS;
 export type ApiKeyScopePresetValue =
   (typeof API_KEY_SCOPE_PRESETS)[ApiKeyScopePreset][number];

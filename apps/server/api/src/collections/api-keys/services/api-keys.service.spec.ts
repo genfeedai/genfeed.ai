@@ -2,6 +2,7 @@ import { createHmac } from 'node:crypto';
 import type { CreateApiKeyDto } from '@api/collections/api-keys/dto/create-api-key.dto';
 import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.schema';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
+import { CONNECT_GENFEED_VERIFICATION_METADATA_KEY } from '@genfeedai/constants';
 import {
   ActionOrigin,
   API_KEY_ACTION_ORIGIN_METADATA_KEY,
@@ -286,6 +287,10 @@ describe('ApiKeysService', () => {
           label: 'CLI',
           metadata: {
             [API_KEY_ACTION_ORIGIN_METADATA_KEY]: ActionOrigin.MCP,
+            [CONNECT_GENFEED_VERIFICATION_METADATA_KEY]: {
+              lastVerifiedAt: '2099-01-01T00:00:00.000Z',
+              transport: 'streamable-http',
+            },
             kind: 'cli-session',
           },
           organizationId: 'org-1',
