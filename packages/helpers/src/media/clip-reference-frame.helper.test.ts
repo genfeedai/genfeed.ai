@@ -115,24 +115,23 @@ describe('normalizeClipReferenceFrameSet', () => {
     ).toThrow(/duplicate candidate id frame-1/);
   });
 
-  it.each([
-    Number.NaN,
-    Number.POSITIVE_INFINITY,
-    -1,
-  ])('rejects invalid timestamp %s', (timestampSeconds) => {
-    expect(() =>
-      normalizeClipReferenceFrameSet(
-        createReferenceFrames({
-          candidates: [
-            {
-              ...createReferenceFrames().candidates[0],
-              timestampSeconds,
-            },
-          ],
-        }),
-      ),
-    ).toThrow(/finite non-negative number/);
-  });
+  it.each([Number.NaN, Number.POSITIVE_INFINITY, -1])(
+    'rejects invalid timestamp %s',
+    (timestampSeconds) => {
+      expect(() =>
+        normalizeClipReferenceFrameSet(
+          createReferenceFrames({
+            candidates: [
+              {
+                ...createReferenceFrames().candidates[0],
+                timestampSeconds,
+              },
+            ],
+          }),
+        ),
+      ).toThrow(/finite non-negative number/);
+    },
+  );
 
   it('rejects unsafe URLs, storage traversal, and non-image media types', () => {
     const candidate = createReferenceFrames().candidates[0];

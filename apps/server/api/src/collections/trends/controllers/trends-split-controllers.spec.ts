@@ -44,22 +44,29 @@ describe('Trends split controllers', () => {
     [TrendsAnalyticsController, 'getTrendingSounds', 'sounds'],
     [TrendsAnalyticsController, 'getTurnoverStats', 'turnover'],
     [TrendsAnalyticsController, 'getTurnoverTimeline', 'turnover/timeline'],
-  ] as const)('preserves moved route metadata', (controllerClass, methodName, path) => {
-    const handler = Reflect.get(
-      controllerClass.prototype,
-      methodName,
-    ) as object;
+  ] as const)(
+    'preserves moved route metadata',
+    (controllerClass, methodName, path) => {
+      const handler = Reflect.get(
+        controllerClass.prototype,
+        methodName,
+      ) as object;
 
-    expect(Reflect.getMetadata(PATH_METADATA, controllerClass)).toBe('trends');
-    expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
-    expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(
-      RequestMethod.GET,
-    );
-    expect(Reflect.getMetadata('swagger/apiOperation', handler)).toMatchObject({
-      operationId: `TrendsController.${methodName}`,
-      summary: methodName,
-    });
-  });
+      expect(Reflect.getMetadata(PATH_METADATA, controllerClass)).toBe(
+        'trends',
+      );
+      expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
+      expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(
+        RequestMethod.GET,
+      );
+      expect(
+        Reflect.getMetadata('swagger/apiOperation', handler),
+      ).toMatchObject({
+        operationId: `TrendsController.${methodName}`,
+        summary: methodName,
+      });
+    },
+  );
 
   it('registers static sibling controllers before the wildcard controller', () => {
     const controllers = Reflect.getMetadata(

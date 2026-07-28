@@ -276,20 +276,23 @@ describe('TrackedLinksService', () => {
     '::ffff:172.16.0.1',
     'fc00::1',
     'fe80::1',
-  ])('does not call the geolocation API for private/reserved IP %s', async (ip) => {
-    const { service } = makeService();
-    const fetchSpy = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(new Response('US'));
-    const probe = service as unknown as {
-      getCountryFromIP(ip?: string): Promise<string | undefined>;
-    };
+  ])(
+    'does not call the geolocation API for private/reserved IP %s',
+    async (ip) => {
+      const { service } = makeService();
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(new Response('US'));
+      const probe = service as unknown as {
+        getCountryFromIP(ip?: string): Promise<string | undefined>;
+      };
 
-    await expect(probe.getCountryFromIP(ip)).resolves.toBeUndefined();
-    expect(fetchSpy).not.toHaveBeenCalled();
+      await expect(probe.getCountryFromIP(ip)).resolves.toBeUndefined();
+      expect(fetchSpy).not.toHaveBeenCalled();
 
-    fetchSpy.mockRestore();
-  });
+      fetchSpy.mockRestore();
+    },
+  );
 
   it('queries the geolocation API for valid public IPs only', async () => {
     const { service } = makeService();

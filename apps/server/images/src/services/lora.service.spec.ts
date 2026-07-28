@@ -143,18 +143,21 @@ describe('LoraService', () => {
       '/etc/shadow.safetensors',
       '../../root/.ssh/id_rsa.safetensors',
       '/comfyui/models/loras-sibling/evil.safetensors',
-    ])('should reject localPath %s outside the configured LoRA directory', async (localPath) => {
-      mockStat.mockResolvedValue({ size: 12345 });
+    ])(
+      'should reject localPath %s outside the configured LoRA directory',
+      async (localPath) => {
+        mockStat.mockResolvedValue({ size: 12345 });
 
-      await expect(
-        service.uploadLora({ localPath, loraName: 'my-lora' }),
-      ).rejects.toThrow(BadRequestException);
+        await expect(
+          service.uploadLora({ localPath, loraName: 'my-lora' }),
+        ).rejects.toThrow(BadRequestException);
 
-      // The file is never read, so its bytes never reach a bucket the
-      // caller can list.
-      expect(mockStat).not.toHaveBeenCalled();
-      expect(mockS3Service.uploadFile).not.toHaveBeenCalled();
-    });
+        // The file is never read, so its bytes never reach a bucket the
+        // caller can list.
+        expect(mockStat).not.toHaveBeenCalled();
+        expect(mockS3Service.uploadFile).not.toHaveBeenCalled();
+      },
+    );
 
     it('should accept a path relative to the configured LoRA directory', async () => {
       mockStat.mockResolvedValue({ size: 12345 });

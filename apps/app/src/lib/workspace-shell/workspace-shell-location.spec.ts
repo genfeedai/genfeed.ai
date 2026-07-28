@@ -130,26 +130,29 @@ describe('workspace shell URL restoration', () => {
     [undefined, 'unauthorized_overlay_reference'],
     [() => 'unauthorized' as const, 'unauthorized_overlay_reference'],
     [() => 'stale' as const, 'stale_overlay_reference'],
-  ])('fails %s reference access back to the exact underlying URL', (resolveOverlayReferenceAccess, restorationFailure) => {
-    const restored = restoreWorkspaceShellLocation({
-      pathname: '/acme/moonrise/library/images',
-      resolveOverlayReferenceAccess,
-      searchParams: new URLSearchParams({
-        folder: 'launch',
-        overlay: 'shell-preview',
-        overlayRef: 'asset:asset-123',
-        thread: 'thread-1',
-      }),
-    });
+  ])(
+    'fails %s reference access back to the exact underlying URL',
+    (resolveOverlayReferenceAccess, restorationFailure) => {
+      const restored = restoreWorkspaceShellLocation({
+        pathname: '/acme/moonrise/library/images',
+        resolveOverlayReferenceAccess,
+        searchParams: new URLSearchParams({
+          folder: 'launch',
+          overlay: 'shell-preview',
+          overlayRef: 'asset:asset-123',
+          thread: 'thread-1',
+        }),
+      });
 
-    expect(restored).toMatchObject({
-      overlay: null,
-      restorationFailure,
-      state: 'canvas',
-      threadId: null,
-    });
-    expect(restored?.canonicalSearchParams.toString()).toBe('folder=launch');
-  });
+      expect(restored).toMatchObject({
+        overlay: null,
+        restorationFailure,
+        state: 'canvas',
+        threadId: null,
+      });
+      expect(restored?.canonicalSearchParams.toString()).toBe('folder=launch');
+    },
+  );
 
   it('rejects parameters on an overlay registered without parameters', () => {
     expect(

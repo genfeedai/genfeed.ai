@@ -58,19 +58,22 @@ describe('TaskRoutingService', () => {
         'backlog',
         false,
       ],
-    ])('routes "%s" → %s via %s', async (request, outputType, executionPathUsed, status, reviewTriggered) => {
-      const decision = await service.buildRoutingDecision(
-        dto({ request }),
-        'Title',
-      );
+    ])(
+      'routes "%s" → %s via %s',
+      async (request, outputType, executionPathUsed, status, reviewTriggered) => {
+        const decision = await service.buildRoutingDecision(
+          dto({ request }),
+          'Title',
+        );
 
-      expect(decision.outputType).toBe(outputType);
-      expect(decision.executionPathUsed).toBe(executionPathUsed);
-      expect(decision.status).toBe(status);
-      expect(decision.reviewTriggered).toBe(reviewTriggered);
-      expect(decision.chosenProvider).toBe('genfeed-router');
-      expect(decision.skillsUsed).toEqual([]);
-    });
+        expect(decision.outputType).toBe(outputType);
+        expect(decision.executionPathUsed).toBe(executionPathUsed);
+        expect(decision.status).toBe(status);
+        expect(decision.reviewTriggered).toBe(reviewTriggered);
+        expect(decision.chosenProvider).toBe('genfeed-router');
+        expect(decision.skillsUsed).toEqual([]);
+      },
+    );
 
     it('honours an explicit outputType over keyword inference', async () => {
       const decision = await service.buildRoutingDecision(

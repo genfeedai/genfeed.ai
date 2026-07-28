@@ -129,23 +129,20 @@ describe('generation brief contract', () => {
     expect(result.success).toBe(false);
   });
 
-  test.each([
-    '0:0',
-    '0:1',
-    '1:0',
-    '10000:1',
-    '1:10000',
-  ])('rejects the invalid or unbounded aspect ratio %s', (aspectRatio) => {
-    const result = generationBriefSchema.safeParse({
-      fidelityMode: 'guided',
-      intent: { objective: 'Create an image.' },
-      mediaKind: 'image',
-      output: { aspectRatio },
-      version: 1,
-    });
+  test.each(['0:0', '0:1', '1:0', '10000:1', '1:10000'])(
+    'rejects the invalid or unbounded aspect ratio %s',
+    (aspectRatio) => {
+      const result = generationBriefSchema.safeParse({
+        fidelityMode: 'guided',
+        intent: { objective: 'Create an image.' },
+        mediaKind: 'image',
+        output: { aspectRatio },
+        version: 1,
+      });
 
-    expect(result.success).toBe(false);
-  });
+      expect(result.success).toBe(false);
+    },
+  );
 
   test('defines exhaustive deterministic Off, Guided, and Strict behavior', () => {
     expect(Object.keys(generationFidelityPolicies).sort()).toEqual(
