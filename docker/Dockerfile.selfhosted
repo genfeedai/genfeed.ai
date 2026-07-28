@@ -140,16 +140,11 @@ COPY packages/prisma/prisma/ ./packages/prisma/prisma/
 # Keep patch files available when a dependency in the pruned graph is patched.
 COPY patches/ patches/
 
-# --linker hoisted: bun 1.3 flipped the default workspace linker from hoisted to
-# isolated (per-package node_modules symlinked into a root .bun store). The runtime
-# stage below ships ONLY the root node_modules (and not apps/app/node_modules), yet
-# every runtime entrypoint resolves through it: `node apps/server/dist/apps/*/main.js`
-# walks up to /app/node_modules for externals, `bunx prisma migrate deploy` needs
-# prisma there, and `cd apps/app && bun run start` needs next there. Under the
-# isolated layout those resolutions die with MODULE_NOT_FOUND. Hoisting restores the
-# flat root node_modules the pre-1.3 image relied on. Mirrors docker/Dockerfile.server.
+# Keep build-time dependency contexts isolated. Hoisting this full graph mixes
+# incompatible generations of CommonJS build-tool dependencies; the runtime
+# stage receives its own production-only hoisted graph below.
 RUN --mount=type=cache,id=bun-cache,target=/root/.bun/install/cache \
-    HUSKY=0 bun install --frozen-lockfile --linker hoisted
+    HUSKY=0 bun install --frozen-lockfile --linker isolated
 RUN bun -e "import { ensureBrowser } from '@remotion/renderer'; await ensureBrowser();"
 
 # Copy source
@@ -246,6 +241,7 @@ COPY patches/ patches/
 
 RUN --mount=type=cache,id=bun-production-cache,target=/root/.bun/install/cache \
     HUSKY=0 bun install --production --frozen-lockfile --linker hoisted
+RUN node --input-type=module -e "await import('log-symbols')"
 
 # Prisma's optional TypeScript peer makes Bun hoist TS6 from workspace tooling
 # even in production mode. Runtime migrations use prisma.config.mjs, so the

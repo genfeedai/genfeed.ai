@@ -117,15 +117,12 @@ COPY packages/prisma/prisma/ ./packages/prisma/prisma/
 # Keep patch files available when a dependency in the pruned graph is patched.
 COPY patches/ patches/
 
-# Install dependencies (mount cache for Bun's global cache to speed up repeat builds).
-# --linker hoisted: bun 1.3 defaults workspaces to isolated installs (per-package
-# node_modules symlink dirs into a root .bun store). The production stage only
-# ships the root node_modules, so runtime requires that resolve through package
-# dirs (tsconfig-paths/register in every service start:prod, prisma/config in
-# prisma.config.mjs) die with MODULE_NOT_FOUND. Hoisting restores the classic
-# layout the previously-working server image had.
+# The build stage keeps Bun's peer contexts isolated. A hoisted build graph can
+# combine Nest CLI's CommonJS log-symbols@4 with is-unicode-supported@2 from a
+# different tool, which crashes before Nest can compile. The final image gets a
+# separate hoisted, production-only install below.
 RUN --mount=type=cache,id=bun-cache,target=/root/.bun/install/cache \
-    HUSKY=0 bun install --frozen-lockfile --linker hoisted
+    HUSKY=0 bun install --frozen-lockfile --linker isolated
 RUN bun -e "import { ensureBrowser } from '@remotion/renderer'; await ensureBrowser();"
 
 # ==================================================
@@ -150,6 +147,7 @@ COPY patches/ patches/
 # migration jobs execute it after the image is built.
 RUN --mount=type=cache,id=bun-production-cache,target=/root/.bun/install/cache \
     HUSKY=0 bun install --production --frozen-lockfile --linker hoisted
+RUN node --input-type=module -e "await import('log-symbols')"
 RUN bun -e "import { ensureBrowser } from '@remotion/renderer'; await ensureBrowser();"
 
 # Prisma declares TypeScript as an optional peer, so Bun hoists the repository's
