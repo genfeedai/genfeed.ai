@@ -187,7 +187,7 @@ function ensureFeatureFlagSubscription(): void {
 
   unsubscribeFromFeatureFlags = client.onFeatureFlags(
     (_flags, _variants, context) => {
-      notifyFeatureFlagSubscriptions(context.errorsLoading);
+      notifyFeatureFlagSubscriptions(context?.errorsLoading === true);
     },
   );
 }
