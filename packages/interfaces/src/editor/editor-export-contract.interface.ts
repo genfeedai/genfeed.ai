@@ -5,7 +5,7 @@ import type {
 } from './editor-project.interface';
 
 export const EDITOR_EXPORT_CONTRACT_VERSION = 1 as const;
-export const EDITOR_RENDERER_VERSION = 'remotion@4.0.486' as const;
+export const EDITOR_RENDERER_VERSION = 'remotion@4.0.500' as const;
 export const EDITOR_RENDER_TIMEOUT_MS = 15 * 60 * 1000;
 
 export type EditorRenderTerminalReason =
