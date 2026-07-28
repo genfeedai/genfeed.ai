@@ -207,6 +207,8 @@ export class OrganizationsService extends BaseService<
 
   /**
    * Generate a unique slug, appending a counter if needed.
+   * Soft-deleted organizations still reserve their slugs at the database
+   * constraint and must participate in collision checks.
    * Pass `excludeOrgId` when updating an existing org's slug to avoid
    * treating the org's own current slug as a collision.
    */
@@ -222,7 +224,6 @@ export class OrganizationsService extends BaseService<
     let counter = 2;
     while (true) {
       const filter: Prisma.OrganizationWhereInput = {
-        isDeleted: false,
         slug: candidate,
       };
       if (excludeOrgId) {

@@ -283,6 +283,19 @@ describe('OrganizationsService', () => {
       expect(slug).toBe('genfeed-ai-2');
     });
 
+    it('treats a soft-deleted organization slug as reserved by the global unique constraint', async () => {
+      organizationDelegate.findFirst
+        .mockResolvedValueOnce({ id: 'org_deleted', isDeleted: true })
+        .mockResolvedValueOnce(null);
+
+      const slug = await service.generateUniqueSlug('Genfeed.ai');
+
+      expect(slug).toBe('genfeed-ai-2');
+      expect(organizationDelegate.findFirst).toHaveBeenNthCalledWith(1, {
+        where: { slug: 'genfeed-ai' },
+      });
+    });
+
     it('throws BadRequestException when the generated slug is too short', async () => {
       await expect(service.generateUniqueSlug('!!')).rejects.toThrow(
         'Label too short to generate a valid slug',

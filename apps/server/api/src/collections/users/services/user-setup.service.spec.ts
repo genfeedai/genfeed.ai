@@ -47,6 +47,7 @@ describe('UserSetupService', () => {
   const mockBrandsService = {
     create: vi.fn(),
     findOne: vi.fn(),
+    generateUniqueSlug: vi.fn(),
   };
 
   const mockDefaultRecurringContentService = {
@@ -125,6 +126,9 @@ describe('UserSetupService', () => {
       mockSettingsService.create.mockResolvedValue(mockUserSettings);
 
       mockBrandsService.findOne.mockResolvedValue(null);
+      mockBrandsService.generateUniqueSlug.mockResolvedValue(
+        'default-organization',
+      );
       mockBrandsService.create.mockResolvedValue(mockBrand);
       mockDefaultRecurringContentService.ensureDefaultBundle.mockResolvedValue({
         isConfigured: true,
@@ -423,10 +427,19 @@ describe('UserSetupService', () => {
     });
 
     describe('brand creation', () => {
-      it('should call brandsService.create once with the organization id', async () => {
+      it('should create the default brand with a globally unique slug', async () => {
         await service.initializeUserResources(userId);
 
+        expect(mockBrandsService.generateUniqueSlug).toHaveBeenCalledWith(
+          'Default Organization',
+        );
         expect(mockBrandsService.create).toHaveBeenCalledTimes(1);
+        expect(mockBrandsService.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            organizationId: orgId,
+            slug: 'default-organization',
+          }),
+        );
       });
     });
 
