@@ -2,6 +2,7 @@
 
 import { TrainingProvider } from '@contexts/content/training-context/training-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   ButtonSize,
   ButtonVariant,
@@ -228,7 +229,7 @@ export default function TrainingDetail({
                   size={ComponentSize.SM}
                 />
               ) : undefined,
-            href: `/trainings/${trainingId}/images`,
+            href: `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/${trainingId}/images`,
             icon: HiPhoto,
             label: 'Images',
           },
@@ -241,7 +242,7 @@ export default function TrainingDetail({
                   size={ComponentSize.SM}
                 />
               ) : undefined,
-            href: `/trainings/${trainingId}/sources`,
+            href: `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/${trainingId}/sources`,
             icon: HiCircleStack,
             label: 'Sources',
           },

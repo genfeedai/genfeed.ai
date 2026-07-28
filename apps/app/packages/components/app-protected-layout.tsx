@@ -436,10 +436,9 @@ function AppLayoutWithDynamicMenu({
         <StreakNotificationsBridge initialStreak={initialBootstrap?.streak} />
       ) : null}
       <CommandPaletteProvider>
-        {/* The conversation is reachable from every surface, so its threads
-          belong in the palette on every surface — the focused onboarding flow
-          being the one place with no palette to put them in. */}
-        {isFocusedOnboardingRoute ? null : (
+        {/* Admin is an isolated control plane and intentionally has no Agent
+          thread commands. Focused onboarding has no palette to put them in. */}
+        {isFocusedOnboardingRoute || isAdminRoute ? null : (
           <AgentThreadCommandsBridge
             threads={threads}
             enabled

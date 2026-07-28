@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { IContentTemplate } from '@genfeedai/interfaces/content/template-ui.interface';
 import { Pre } from '@genfeedai/ui';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -48,7 +49,7 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
     } catch (error) {
       logger.error('Failed to load template', error);
       notificationsService.error('Failed to load template');
-      push('/content/templates');
+      push(APP_ROUTES.ADMIN.CONTENT.TEMPLATES);
     }
   }, [templateId, getTemplatesService, notificationsService, push]);
 

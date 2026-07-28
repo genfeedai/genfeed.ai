@@ -186,9 +186,6 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/workflows/new': 'New Workflow',
   '/:orgSlug/~/write/:segment': ':segment',
   '/admin': 'Dashboard',
-  '/admin/agent': 'New Conversation',
-  '/admin/agent/:threadId': 'Conversation',
-  '/admin/agent/new': 'New Conversation',
   '/admin/automation/models/:type': ':type Models',
   '/admin/automation/trainings/:id/images': 'Training Images',
   '/admin/automation/trainings/:id/sources': 'Training Sources',
@@ -926,9 +923,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
 
 const ADMIN_CONTROL_PLANE_ROUTE_PATTERNS = [
   '/admin',
-  '/admin/agent',
-  '/admin/agent/new',
-  '/admin/agent/:threadId',
   '/admin/overview/dashboard',
   '/admin/overview/activities',
   '/admin/content/posts',

@@ -1,7 +1,7 @@
 'use client';
 
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { AnalyticsMetric, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TableColumn } from '@props/ui/display/table.props';
@@ -33,7 +33,7 @@ export interface AnalyticsOrganizationsListProps {
 }
 
 export default function AnalyticsOrganizationsList({
-  basePath = '/analytics',
+  basePath = APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS,
 }: AnalyticsOrganizationsListProps) {
   const { dateRange, refreshTrigger } = useAnalyticsContext();
 

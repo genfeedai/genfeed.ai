@@ -16,12 +16,10 @@ import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
-import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import {
   HiEllipsisVertical,
   HiOutlineClipboardDocumentList,
-  HiPencil,
   HiTrash,
 } from 'react-icons/hi2';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
@@ -199,14 +197,6 @@ export default function WorkflowsPage() {
                         usePortal
                       >
                         <ul className="menu p-0">
-                          <li>
-                            <Button asChild variant={ButtonVariant.SECONDARY}>
-                              <Link href={`/workflows/${workflow.id}`}>
-                                <HiPencil className="size-4" />
-                                View/Edit
-                              </Link>
-                            </Button>
-                          </li>
                           <li>
                             <Button
                               variant={ButtonVariant.GHOST}

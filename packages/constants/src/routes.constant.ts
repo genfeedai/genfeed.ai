@@ -18,8 +18,6 @@ export const APP_ROUTES = {
       USERS: '/admin/administration/users',
       WARMUP_ACCOUNTS: '/admin/administration/warmup-accounts',
     },
-    AGENT: '/admin/agent',
-    AGENT_NEW: '/admin/agent/new',
     AUTOMATION: {
       BOTS: '/admin/automation/bots',
       MODELS: '/admin/automation/models',

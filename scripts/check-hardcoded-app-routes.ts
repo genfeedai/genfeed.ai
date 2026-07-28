@@ -153,11 +153,24 @@ const OBJECT_PROP_PATTERN = new RegExp(
  */
 const ALLOWLISTED_ROUTE_VALUES = new Set<string>([]);
 
-type Violation = {
+export type Violation = {
   file: string;
   line: number;
   path: string;
 };
+
+const ADMIN_SOURCE_PREFIX = 'apps/app/app/(protected)/admin/';
+const ADMIN_ESCAPE_LITERAL = `(['"\`])(\\/(?!admin(?:[/?#]|$))[^'"\`\\n]*)\\1`;
+const ADMIN_ESCAPE_PATTERNS = [
+  new RegExp(`\\b(?:href|to)=\\{?\\s*${ADMIN_ESCAPE_LITERAL}`, 'g'),
+  new RegExp(
+    `(?:push|replace|redirect|assign)\\(\\s*${ADMIN_ESCAPE_LITERAL}`,
+    'g',
+  ),
+  new RegExp(`\\b(?:href|to):\\s*${ADMIN_ESCAPE_LITERAL}`, 'g'),
+  new RegExp(`\\bbasePath\\s*=\\s*${ADMIN_ESCAPE_LITERAL}`, 'g'),
+  new RegExp(`\\bpathname\\s*(?:===|!==)\\s*${ADMIN_ESCAPE_LITERAL}`, 'g'),
+];
 
 function collectRouteValues(value: unknown): string[] {
   if (typeof value === 'string') {
@@ -220,7 +233,45 @@ function findViolations(filePath: string, rootDir: string): Violation[] {
   collect(content, JSX_ATTR_PATTERN, filePath, rootDir, violations);
   collect(content, NAV_CALL_PATTERN, filePath, rootDir, violations);
   collect(content, OBJECT_PROP_PATTERN, filePath, rootDir, violations);
+
+  const relativeFilePath = path
+    .relative(rootDir, filePath)
+    .replaceAll('\\', '/');
+  if (relativeFilePath.startsWith(ADMIN_SOURCE_PREFIX)) {
+    violations.push(
+      ...findAdminRouteContainmentViolations(content, relativeFilePath),
+    );
+  }
+
   return violations;
+}
+
+export function findAdminRouteContainmentViolations(
+  content: string,
+  file: string,
+): Violation[] {
+  const violations: Violation[] = [];
+
+  for (const pattern of ADMIN_ESCAPE_PATTERNS) {
+    for (const match of content.matchAll(pattern)) {
+      const routePath = match[2];
+      if (!routePath) {
+        continue;
+      }
+
+      const index = match.index ?? 0;
+      violations.push({
+        file,
+        line: content.slice(0, index).split('\n').length,
+        path: routePath,
+      });
+    }
+  }
+
+  return violations.sort(
+    (left, right) =>
+      left.line - right.line || left.path.localeCompare(right.path),
+  );
 }
 
 function findPlaywrightViolations(

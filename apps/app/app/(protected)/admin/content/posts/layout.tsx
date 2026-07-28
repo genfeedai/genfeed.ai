@@ -5,6 +5,7 @@ import {
   PostsLayoutContext,
   type RefreshFunction,
 } from '@contexts/posts/posts-layout-context';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { Platform } from '@genfeedai/enums';
 import { getPostPlatformTabs } from '@helpers/content/posts.helper';
 import Container from '@ui/layout/container/Container';
@@ -95,8 +96,10 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
     scheduleActionsNode,
   } = state;
 
-  const isListRoute = pathname === '/content/posts';
-  const isDetailRoute = pathname.match(/^\/content\/posts\/[^/]+$/);
+  const isListRoute = pathname === APP_ROUTES.ADMIN.CONTENT.POSTS;
+  const isDetailRoute =
+    pathname.startsWith(`${APP_ROUTES.ADMIN.CONTENT.POSTS}/`) &&
+    pathname.split('/').length === 5;
 
   const platformParam = parsedSearchParams.get('platform');
   const activeTab =
@@ -114,9 +117,9 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
       }
 
       if (tab === 'all') {
-        push('/content/posts');
+        push(APP_ROUTES.ADMIN.CONTENT.POSTS);
       } else {
-        push(`/content/posts?platform=${tab}`);
+        push(`${APP_ROUTES.ADMIN.CONTENT.POSTS}?platform=${tab}`);
       }
     },
     [push, activeTab],

@@ -1,7 +1,6 @@
 'use client';
 
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Bot } from '@models/automation/bot.model';
 import { BotsService } from '@services/automation/bots.service';
@@ -13,16 +12,8 @@ import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
-import { Button } from '@ui/primitives/button';
-import { Dropdown } from '@ui/primitives/dropdown';
-import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  HiEllipsisVertical,
-  HiOutlineCpuChip,
-  HiPencil,
-  HiTrash,
-} from 'react-icons/hi2';
+import { HiOutlineCpuChip } from 'react-icons/hi2';
 
 const BOT_SKELETON_KEYS = [
   'bot-skeleton-1',
@@ -172,37 +163,6 @@ export default function BotsPage() {
                         </div>
                       )}
                     </div>
-
-                    <Dropdown
-                      trigger={
-                        <Button
-                          variant={ButtonVariant.GHOST}
-                          size={ButtonSize.ICON}
-                        >
-                          <HiEllipsisVertical className="size-4" />
-                        </Button>
-                      }
-                      usePortal
-                    >
-                      <ul className="menu p-0">
-                        <li>
-                          <Button asChild variant={ButtonVariant.SECONDARY}>
-                            <Link href={`/bots/${bot.id}/edit`}>
-                              <HiPencil className="size-4" />
-                              Edit
-                            </Link>
-                          </Button>
-                        </li>
-                        <li>
-                          <Button asChild variant={ButtonVariant.GHOST}>
-                            <Link href={`/bots/${bot.id}/delete`}>
-                              <HiTrash className="size-4" />
-                              Delete
-                            </Link>
-                          </Button>
-                        </li>
-                      </ul>
-                    </Dropdown>
                   </div>
                 </div>
               </Card>
