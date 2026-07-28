@@ -54,6 +54,7 @@ describe('CronPostsService', () => {
   let publishApprovalsService: {
     claimForExecution: ReturnType<typeof vi.fn>;
     completeExecution: ReturnType<typeof vi.fn>;
+    markEnqueueFailed: ReturnType<typeof vi.fn>;
     markQueued: ReturnType<typeof vi.fn>;
   };
   let schedulerPublishStateService: {
@@ -105,6 +106,7 @@ describe('CronPostsService', () => {
         isAlreadyPublished: false,
       }),
       completeExecution: vi.fn().mockResolvedValue(undefined),
+      markEnqueueFailed: vi.fn().mockResolvedValue(undefined),
       markQueued: vi.fn().mockResolvedValue(undefined),
     };
     schedulerPublishStateService = {

@@ -9,8 +9,8 @@ import {
 } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-
-export const SCHEDULED_POST_RETRY_BACKOFF_SECONDS = 60;
+import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
+import { readPostString } from '@workers/services/scheduled-post.utils';
 
 export type ScheduledPostFilter = {
   limit?: number;
@@ -28,9 +28,9 @@ export class ScheduledPostQueueService {
   ) {}
 
   async enqueueDuePosts(posts: PostEntity[]): Promise<void> {
-    await Promise.all(
+    await Promise.allSettled(
       posts.map(async (post) => {
-        const organizationId = this.readPostString(post, [
+        const organizationId = readPostString(post, [
           'organization',
           'organizationId',
         ]);
@@ -43,26 +43,55 @@ export class ScheduledPostQueueService {
         }
 
         const approval = post.publishApproval;
-        if (approval) {
-          await this.publishApprovalsService.markQueued(
-            approval.id,
+        let approvalMarkedQueued = false;
+        try {
+          if (approval) {
+            await this.publishApprovalsService.markQueued(
+              approval.id,
+              organizationId,
+            );
+            approvalMarkedQueued = true;
+          }
+          await this.postPublishQueueService.enqueue({
+            ...(approval
+              ? {
+                  approvalId: approval.id,
+                  operationId: approval.operationId,
+                  versionPinId: approval.artifactVersionPinId,
+                }
+              : post.reviewVersionPinId
+                ? { versionPinId: post.reviewVersionPinId }
+                : {}),
             organizationId,
+            postId: post.id.toString(),
+            source: 'scheduled_sweep',
+          });
+        } catch (error: unknown) {
+          if (approval && approvalMarkedQueued) {
+            try {
+              await this.publishApprovalsService.markEnqueueFailed(
+                approval.id,
+                organizationId,
+                error instanceof Error
+                  ? error.message
+                  : 'Scheduled publish enqueue failed.',
+              );
+            } catch (compensationError: unknown) {
+              this.logger.error(
+                'ScheduledPostQueueService failed to compensate queued approval',
+                {
+                  approvalId: approval.id,
+                  error: compensationError,
+                  postId: post.id,
+                },
+              );
+            }
+          }
+          this.logger.error(
+            'ScheduledPostQueueService failed to queue scheduled post',
+            { error, postId: post.id },
           );
         }
-        await this.postPublishQueueService.enqueue({
-          ...(approval
-            ? {
-                approvalId: approval.id,
-                operationId: approval.operationId,
-                versionPinId: approval.artifactVersionPinId,
-              }
-            : post.reviewVersionPinId
-              ? { versionPinId: post.reviewVersionPinId }
-              : {}),
-          organizationId,
-          postId: post.id.toString(),
-          source: 'scheduled_sweep',
-        });
       }),
     );
   }
@@ -82,6 +111,7 @@ export class ScheduledPostQueueService {
               ingredients: true,
             },
             where: {
+              isDeleted: false,
               status: PostStatus.SCHEDULED,
             },
           },
@@ -127,33 +157,43 @@ export class ScheduledPostQueueService {
   }
 
   async findQueuedPost(data: PostPublishJobData): Promise<PostEntity | null> {
-    const posts = await this.findDuePosts({
-      limit: 1,
-      organizationId: data.organizationId,
-      postId: data.postId,
-    });
+    const posts = await this.postsService.findAll(
+      {
+        include: {
+          children: {
+            include: {
+              credential: true,
+              ingredients: true,
+            },
+            where: {
+              isDeleted: false,
+              status: PostStatus.SCHEDULED,
+            },
+          },
+          ingredients: true,
+          publishApproval: {
+            select: {
+              artifactVersionPinId: true,
+              id: true,
+              operationId: true,
+            },
+          },
+        },
+        where: {
+          id: data.postId,
+          isDeleted: false,
+          organizationId: data.organizationId,
+          parentId: null,
+          status: { in: [PostStatus.SCHEDULED, PostStatus.PROCESSING] },
+        },
+      },
+      {
+        customLabels,
+        limit: 1,
+        page: 1,
+      },
+    );
 
-    return posts[0] ?? null;
-  }
-
-  private readPostString(
-    post: PostEntity,
-    keys: readonly string[],
-  ): string | undefined {
-    const record = post as unknown as Record<string, unknown>;
-    for (const key of keys) {
-      const value = record[key];
-      if (typeof value === 'string' && value.length > 0) {
-        return value;
-      }
-      if (value && typeof value === 'object' && 'id' in value) {
-        const id = (value as { id?: unknown }).id;
-        if (typeof id === 'string' && id.length > 0) {
-          return id;
-        }
-      }
-    }
-
-    return undefined;
+    return (posts.docs[0] as unknown as PostEntity | undefined) ?? null;
   }
 }

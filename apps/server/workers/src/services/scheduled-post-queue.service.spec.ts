@@ -10,9 +10,11 @@ describe('ScheduledPostQueueService', () => {
     enqueue: vi.fn(),
   };
   const publishApprovalsService = {
+    markEnqueueFailed: vi.fn(),
     markQueued: vi.fn(),
   };
   const logger = {
+    error: vi.fn(),
     warn: vi.fn(),
   };
 
@@ -28,6 +30,7 @@ describe('ScheduledPostQueueService', () => {
     vi.setSystemTime(new Date('2026-07-28T06:00:00.000Z'));
     postsService.findAll.mockResolvedValue({ docs: [] });
     postPublishQueueService.enqueue.mockResolvedValue('job-1');
+    publishApprovalsService.markEnqueueFailed.mockResolvedValue(undefined);
     publishApprovalsService.markQueued.mockResolvedValue(undefined);
   });
 
@@ -41,6 +44,14 @@ describe('ScheduledPostQueueService', () => {
 
     expect(postsService.findAll).toHaveBeenCalledWith(
       expect.objectContaining({
+        include: expect.objectContaining({
+          children: expect.objectContaining({
+            where: {
+              isDeleted: false,
+              status: PostStatus.SCHEDULED,
+            },
+          }),
+        }),
         where: {
           AND: [
             {
@@ -86,13 +97,19 @@ describe('ScheduledPostQueueService', () => {
     await expect(service.findQueuedPost(job)).resolves.toBeNull();
     expect(postsService.findAll).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({
+        where: {
           id: 'post-1',
+          isDeleted: false,
           organizationId: 'org-1',
-        }),
+          parentId: null,
+          status: { in: [PostStatus.SCHEDULED, PostStatus.PROCESSING] },
+        },
       }),
-      expect.objectContaining({ limit: 1 }),
+      expect.objectContaining({ limit: 1, page: 1 }),
     );
+    const query = postsService.findAll.mock.calls[0]?.[0];
+    expect(query?.where).not.toHaveProperty('AND');
+    expect(query?.where).not.toHaveProperty('OR');
   });
 
   it('marks an approval queued before preserving its bound queue identity', async () => {
@@ -152,5 +169,77 @@ describe('ScheduledPostQueueService', () => {
       { postId: 'post-1' },
     );
     expect(postPublishQueueService.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('compensates a failed approval enqueue without blocking sibling posts', async () => {
+    const enqueueError = new Error('queue unavailable');
+    postPublishQueueService.enqueue.mockImplementation(async (data) => {
+      if (data.postId === 'post-1') {
+        throw enqueueError;
+      }
+      return 'job-2';
+    });
+
+    await service.enqueueDuePosts([
+      {
+        id: 'post-1',
+        organizationId: 'org-1',
+        publishApproval: {
+          artifactVersionPinId: 'pin-1',
+          id: 'approval-1',
+          operationId: 'operation-1',
+        },
+      } as never,
+      {
+        id: 'post-2',
+        organizationId: 'org-1',
+        reviewVersionPinId: 'pin-2',
+      } as never,
+    ]);
+
+    expect(publishApprovalsService.markEnqueueFailed).toHaveBeenCalledWith(
+      'approval-1',
+      'org-1',
+      'queue unavailable',
+    );
+    expect(postPublishQueueService.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({ postId: 'post-2', versionPinId: 'pin-2' }),
+    );
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('failed to queue'),
+      { error: enqueueError, postId: 'post-1' },
+    );
+  });
+
+  it('isolates approval transition failures without compensating unqueued state', async () => {
+    const transitionError = new Error('approval transition unavailable');
+    publishApprovalsService.markQueued.mockRejectedValueOnce(transitionError);
+
+    await service.enqueueDuePosts([
+      {
+        id: 'post-1',
+        organizationId: 'org-1',
+        publishApproval: {
+          artifactVersionPinId: 'pin-1',
+          id: 'approval-1',
+          operationId: 'operation-1',
+        },
+      } as never,
+      {
+        id: 'post-2',
+        organizationId: 'org-1',
+        reviewVersionPinId: 'pin-2',
+      } as never,
+    ]);
+
+    expect(publishApprovalsService.markEnqueueFailed).not.toHaveBeenCalled();
+    expect(postPublishQueueService.enqueue).toHaveBeenCalledTimes(1);
+    expect(postPublishQueueService.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({ postId: 'post-2', versionPinId: 'pin-2' }),
+    );
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('failed to queue'),
+      { error: transitionError, postId: 'post-1' },
+    );
   });
 });

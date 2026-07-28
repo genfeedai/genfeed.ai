@@ -781,6 +781,46 @@ describe('PublishApprovalsService', () => {
     );
   });
 
+  it('records queue insertion failure as retryable approval failure', async () => {
+    const queued = makeApproval({ status: PublishApprovalStatus.QUEUED });
+    const failed = makeApproval({
+      lastError: 'queue unavailable',
+      status: PublishApprovalStatus.FAILED,
+    });
+    const publishApproval = {
+      findFirst: vi
+        .fn()
+        .mockResolvedValueOnce(queued)
+        .mockResolvedValueOnce(failed),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    };
+    const service = new PublishApprovalsService(
+      { publishApproval } as never,
+      {} as AgentArtifactReferenceService,
+    );
+
+    await expect(
+      service.markEnqueueFailed('approval-1', 'org-1', 'queue unavailable'),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        status: PublishApprovalStatus.FAILED,
+      }),
+    );
+    expect(publishApproval.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          lastError: 'queue unavailable',
+          status: PublishApprovalStatus.FAILED,
+        }),
+        where: {
+          id: 'approval-1',
+          organizationId: 'org-1',
+          status: PublishApprovalStatus.QUEUED,
+        },
+      }),
+    );
+  });
+
   it('clears every post approval marker when invalidating queued approval state', async () => {
     const approval = makeApproval();
     const post = { updateMany: vi.fn().mockResolvedValue({ count: 1 }) };

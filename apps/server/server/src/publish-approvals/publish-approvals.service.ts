@@ -367,6 +367,20 @@ export class PublishApprovalsService {
     );
   }
 
+  async markEnqueueFailed(
+    approvalId: string,
+    organizationId: string,
+    reason: string,
+  ): Promise<IPublishApproval> {
+    return this.transitionStatus(
+      approvalId,
+      organizationId,
+      PublishApprovalStatus.FAILED,
+      undefined,
+      reason,
+    );
+  }
+
   async claimForExecution(
     params: ClaimPublishExecutionParams,
   ): Promise<PublishExecutionClaim> {
