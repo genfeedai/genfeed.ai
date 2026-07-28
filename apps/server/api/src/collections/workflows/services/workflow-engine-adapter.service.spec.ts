@@ -26,7 +26,7 @@ describe('WorkflowEngineAdapterService', () => {
 
     service = new WorkflowEngineAdapterService(
       {
-        ingredientsEndpoint: 'https://ingredients.example.com',
+        cdnUrl: 'https://cdn.example.com',
       } as never,
       loggerService as never,
     );
@@ -37,7 +37,7 @@ describe('WorkflowEngineAdapterService', () => {
     sendDm?: ReturnType<typeof vi.fn>;
   }): WorkflowEngineAdapterService {
     const args = new Array(41).fill(undefined);
-    args[0] = { ingredientsEndpoint: 'https://ingredients.example.com' };
+    args[0] = { cdnUrl: 'https://cdn.example.com' };
     args[1] = loggerService;
     args[SOCIAL_INBOX_SERVICE_INDEX] = socialInboxService;
     return new WorkflowEngineAdapterService(...args);
@@ -48,7 +48,7 @@ describe('WorkflowEngineAdapterService', () => {
     runProactiveStrategies?: ReturnType<typeof vi.fn>;
   }): WorkflowEngineAdapterService {
     const args = new Array(41).fill(undefined);
-    args[0] = { ingredientsEndpoint: 'https://ingredients.example.com' };
+    args[0] = { cdnUrl: 'https://cdn.example.com' };
     args[1] = loggerService;
     args[AGENT_AUTOPILOT_SERVICE_INDEX] = agentAutopilotService;
     return new WorkflowEngineAdapterService(...args);
@@ -401,7 +401,7 @@ describe('WorkflowEngineAdapterService', () => {
         replyUrl: 'https://social.example.com/direct-reply-1',
       });
       const args = new Array(41).fill(undefined);
-      args[0] = { ingredientsEndpoint: 'https://ingredients.example.com' };
+      args[0] = { cdnUrl: 'https://cdn.example.com' };
       args[1] = loggerService;
       args[SOCIAL_ADAPTER_FACTORY_INDEX] = {
         getAdapter: vi.fn().mockReturnValue({ replyToPost }),
@@ -451,7 +451,7 @@ describe('WorkflowEngineAdapterService', () => {
         }),
       };
       const args = new Array(37).fill(undefined);
-      args[0] = { ingredientsEndpoint: 'https://ingredients.example.com' };
+      args[0] = { cdnUrl: 'https://cdn.example.com' };
       args[1] = loggerService;
       args[36] = livestreamBotWorkflowService;
       const livestreamAdapter = new WorkflowEngineAdapterService(...args);
@@ -770,7 +770,7 @@ describe('WorkflowEngineAdapterService', () => {
 
       const avatarService = new WorkflowEngineAdapterService(
         {
-          ingredientsEndpoint: 'https://ingredients.example.com',
+          cdnUrl: 'https://cdn.example.com',
         } as never,
         loggerService as never,
         undefined,
@@ -864,7 +864,7 @@ describe('WorkflowEngineAdapterService', () => {
 
       const executionService = new WorkflowEngineAdapterService(
         {
-          ingredientsEndpoint: 'https://ingredients.example.com',
+          cdnUrl: 'https://cdn.example.com',
         } as never,
         loggerService as never,
         undefined,
@@ -1032,7 +1032,7 @@ describe('WorkflowEngineAdapterService', () => {
 
       const imageWorkflowService = new WorkflowEngineAdapterService(
         {
-          ingredientsEndpoint: 'https://ingredients.example.com',
+          cdnUrl: 'https://cdn.example.com',
         } as never,
         loggerService as never,
         undefined,
@@ -1110,7 +1110,7 @@ describe('WorkflowEngineAdapterService', () => {
     it('fails image generation workflows when brandId is missing', async () => {
       const imageWorkflowService = new WorkflowEngineAdapterService(
         {
-          ingredientsEndpoint: 'https://ingredients.example.com',
+          cdnUrl: 'https://cdn.example.com',
         } as never,
         loggerService as never,
         undefined,
@@ -1454,7 +1454,7 @@ describe('WorkflowEngineAdapterService', () => {
 
       const brandAssetService = new WorkflowEngineAdapterService(
         {
-          ingredientsEndpoint: 'https://ingredients.example.com',
+          cdnUrl: 'https://cdn.example.com',
         } as never,
         loggerService as never,
         undefined,
@@ -1501,14 +1501,14 @@ describe('WorkflowEngineAdapterService', () => {
       };
 
       await expect(runNode('logo')).resolves.toBe(
-        'https://ingredients.example.com/logos/logo-1',
+        'https://cdn.example.com/logos/logo-1',
       );
       await expect(runNode('banner')).resolves.toBe(
-        'https://ingredients.example.com/banners/banner-1',
+        'https://cdn.example.com/banners/banner-1',
       );
       await expect(runNode('references')).resolves.toEqual([
-        'https://ingredients.example.com/references/ref-1',
-        'https://ingredients.example.com/references/ref-2',
+        'https://cdn.example.com/references/ref-1',
+        'https://cdn.example.com/references/ref-2',
       ]);
     });
   });
@@ -1552,7 +1552,7 @@ describe('WorkflowEngineAdapterService', () => {
       creditsUtilsService: unknown,
     ) => {
       const args = new Array(28).fill(undefined);
-      args[0] = { ingredientsEndpoint: 'https://ingredients.example.com' };
+      args[0] = { cdnUrl: 'https://cdn.example.com' };
       args[1] = loggerService;
       args[CACHE_INDEX] = cacheService;
       args[CREDITS_INDEX] = creditsUtilsService;

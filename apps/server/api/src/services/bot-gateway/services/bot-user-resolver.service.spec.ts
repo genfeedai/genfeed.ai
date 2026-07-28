@@ -142,7 +142,7 @@ describe('BotUserResolverService', () => {
         platformUserId,
         'UnknownBrand',
       );
-      expect(result?.brandId).toBe(cred.brand.toString());
+      expect(result?.brandId).toBe(cred.brandId.toString());
     });
 
     it('returns original user on brand lookup error', async () => {

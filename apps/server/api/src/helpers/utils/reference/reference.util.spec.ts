@@ -230,7 +230,7 @@ describe('buildReferenceImageUrls', () => {
     });
 
     expect(result).toEqual([
-      `${BASE_URL}/images/${id1}`,
+      `${BASE_URL}/ingredients/images/${id1}`,
       `${BASE_URL}/references/${id2}`,
     ]);
     // id1: 1 call (IMAGE found), id2: 2 calls (IMAGE + VIDEO), invalidId: 1 (throws)
