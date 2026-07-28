@@ -8,6 +8,7 @@ const getToken = vi.fn(async () => 'token-123');
 const postConnect = vi.fn(async () => ({
   url: 'https://oauth.example/connect',
 }));
+const servicesPlatform = vi.fn();
 const listBrandAccountHealth = vi.fn(async () => [
   {
     assessedAt: '2026-06-30T10:00:00.000Z',
@@ -78,6 +79,10 @@ vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
 
 vi.mock('@services/external/services.service', () => ({
   ServicesService: class {
+    constructor(platform: string) {
+      servicesPlatform(platform);
+    }
+
     postConnect = postConnect;
   },
 }));
@@ -245,6 +250,24 @@ describe('BrandDetailSocialMediaCard', () => {
         'https://oauth.example/connect',
         '_self',
       );
+    });
+  });
+
+  it('exposes the Google Ads integration with its API route key', async () => {
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[]}
+        connectedPlatformsCount={0}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /connect/i }));
+    fireEvent.click(screen.getByRole('button', { name: /google ads/i }));
+
+    await waitFor(() => {
+      expect(servicesPlatform).toHaveBeenCalledWith('google-ads');
+      expect(postConnect).toHaveBeenCalledWith({ brand: 'brand-1' });
     });
   });
 

@@ -8,6 +8,7 @@ let mockNavigationState: {
   activeGroupId: string;
   activePageLabel: string;
   breadcrumbPageLabel?: string;
+  breadcrumbParentLabel?: string;
   breadcrumbRootLabel?: string;
   exitNestedGroup: typeof mockExitNestedGroup;
   nestedGroupId?: string | null;
@@ -24,6 +25,7 @@ vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
     breadcrumbPageLabel:
       mockNavigationState.breadcrumbPageLabel ??
       mockNavigationState.activePageLabel,
+    breadcrumbParentLabel: mockNavigationState.breadcrumbParentLabel ?? '',
     breadcrumbRootLabel:
       mockNavigationState.breadcrumbRootLabel ??
       mockNavigationState.activeGroupId,
@@ -92,6 +94,24 @@ describe('TopbarBreadcrumbs', () => {
     expect(screen.getByText('Library')).toBeInTheDocument();
     expect(screen.getByText('Moodboard')).toBeInTheDocument();
     expect(screen.queryByText('Assets')).not.toBeInTheDocument();
+  });
+
+  it('renders a canonical parent segment for nested product routes', () => {
+    mockNavigationState = {
+      activeGroupId: 'Research',
+      activePageLabel: 'Google',
+      breadcrumbPageLabel: 'Google',
+      breadcrumbParentLabel: 'Ads',
+      breadcrumbRootLabel: 'Research',
+      exitNestedGroup: mockExitNestedGroup,
+    };
+
+    render(<TopbarBreadcrumbs />);
+
+    expect(screen.getByText('Research')).toBeInTheDocument();
+    expect(screen.getByText('Ads')).toBeInTheDocument();
+    expect(screen.getByText('Google')).toBeInTheDocument();
+    expect(screen.getAllByText('/')).toHaveLength(2);
   });
 
   it('uses a fallback root label when the active page has no group', () => {

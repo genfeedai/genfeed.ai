@@ -24077,6 +24077,28 @@
             }
           },
           {
+            "description": "Separate posts that have been published from work in progress",
+            "in": "query",
+            "name": "publicationState",
+            "required": false,
+            "schema": {
+              "enum": [
+                "posted",
+                "not-posted"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Search post labels and descriptions",
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "description": "Filter posts scheduled after this date (ISO 8601 format)",
             "in": "query",
             "name": "startDate",
@@ -37549,6 +37571,28 @@
             }
           },
           {
+            "description": "Separate posts that have been published from work in progress",
+            "in": "query",
+            "name": "publicationState",
+            "required": false,
+            "schema": {
+              "enum": [
+                "posted",
+                "not-posted"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Search post labels and descriptions",
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "description": "Filter posts scheduled after this date (ISO 8601 format)",
             "in": "query",
             "name": "startDate",
@@ -39628,6 +39672,28 @@
             "required": false,
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "description": "Separate posts that have been published from work in progress",
+            "in": "query",
+            "name": "publicationState",
+            "required": false,
+            "schema": {
+              "enum": [
+                "posted",
+                "not-posted"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Search post labels and descriptions",
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           },
           {

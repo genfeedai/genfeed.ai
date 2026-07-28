@@ -147,22 +147,40 @@ describe('BrandsRelationshipsController', () => {
   });
 
   describe('findAllPosts', () => {
-    it('uses a Prisma-safe root-post filter', async () => {
+    it('uses one filtered query for unposted search results and pagination', async () => {
       await controller.findAllPosts(
         {} as Request,
         '507f1f77bcf86cd799439013',
         mockUser,
-        { status: 'draft' } as never,
+        {
+          publicationState: 'not-posted',
+          search: 'launch',
+        } as never,
       );
 
       expect(mockServices.postsService.findAll).toHaveBeenCalledWith(
         {
+          include: { ingredients: true },
           orderBy: { createdAt: -1 },
           where: {
+            OR: [
+              {
+                description: {
+                  contains: 'launch',
+                  mode: 'insensitive',
+                },
+              },
+              {
+                label: {
+                  contains: 'launch',
+                  mode: 'insensitive',
+                },
+              },
+            ],
             brand: '507f1f77bcf86cd799439013',
             isDeleted: false,
             parentId: null,
-            status: 'draft',
+            status: { not: 'public' },
           },
         },
         expect.objectContaining({ limit: 10, page: 1 }),
