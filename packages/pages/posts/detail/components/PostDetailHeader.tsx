@@ -95,6 +95,7 @@ export default function PostDetailHeader({
               aria-label="Open published post"
             >
               <HiArrowTopRightOnSquare />
+              View live post
             </a>
           </PrimitiveButton>
         )}

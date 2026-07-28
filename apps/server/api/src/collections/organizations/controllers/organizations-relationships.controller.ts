@@ -57,7 +57,7 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { MemberRole } from '@genfeedai/enums';
+import { MemberRole, PostStatus } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -511,8 +511,32 @@ export class OrganizationsRelationshipsController {
       parentId: null,
       ...(Object.keys(scheduledDate).length > 0 && { scheduledDate }),
       ...(query.platform && { platform: query.platform }),
-      ...(query.status && { status: query.status }),
+      ...(query.publicationState === 'posted'
+        ? { status: PostStatus.PUBLIC }
+        : query.publicationState === 'not-posted'
+          ? { status: { not: PostStatus.PUBLIC } }
+          : query.status
+            ? { status: query.status }
+            : {}),
       ...(query.credential && { credential: query.credential }),
+      ...(query.search?.trim()
+        ? {
+            OR: [
+              {
+                description: {
+                  contains: query.search.trim(),
+                  mode: 'insensitive',
+                },
+              },
+              {
+                label: {
+                  contains: query.search.trim(),
+                  mode: 'insensitive',
+                },
+              },
+            ],
+          }
+        : {}),
     };
 
     const data: AggregatePaginateResult<PostDocument> =

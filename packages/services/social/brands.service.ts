@@ -17,6 +17,7 @@ import type {
   IBrandSetupRequest,
   IBrandSetupResponse,
   IImage,
+  IPaginatedResponse,
   IPost,
   IQueryParams,
   IVideo,
@@ -111,22 +112,42 @@ export class BrandsService extends BaseService<Brand> {
     id: string,
     query?: IQueryParams,
   ): Promise<Post[]> {
+    const result = await this.findBrandPostsPage(id, query);
+    if (query?.page) {
+      PagesService.setCurrentPage(result.page);
+      PagesService.setTotalPages(result.totalPages);
+      PagesService.setTotalDocs(result.total);
+    }
+
+    return result.items;
+  }
+
+  public async findBrandPostsPage(
+    id: string,
+    query?: IQueryParams,
+  ): Promise<IPaginatedResponse<Post>> {
     return await this.instance
       .get<JsonApiResponseDocument>(`/${id}/posts`, {
         params: query,
       })
-      .then((res) => {
-        const document = res.data;
-        const pagination = document.links?.pagination;
-
-        if (query?.page && pagination) {
-          PagesService.setCurrentPage(pagination.page);
-          PagesService.setTotalPages(pagination.pages);
-        }
-
-        return deserializeCollection<Partial<IPost>>(document).map(
+      .then((response) => {
+        const document = response.data;
+        const items = deserializeCollection<Partial<IPost>>(document).map(
           (item) => new Post(item),
         );
+        const pagination = document.links?.pagination;
+        const page = pagination?.page ?? 1;
+        const totalPages = Math.max(1, pagination?.pages ?? 1);
+
+        return {
+          hasNext: page < totalPages,
+          hasPrevious: page > 1,
+          items,
+          page,
+          pageSize: pagination?.limit ?? items.length,
+          total: pagination?.total ?? items.length,
+          totalPages,
+        };
       });
   }
 

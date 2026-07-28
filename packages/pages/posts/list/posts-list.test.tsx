@@ -57,7 +57,15 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 
 vi.mock('@tanstack/react-query', () => ({
   useQuery: () => ({
-    data: resourceData,
+    data: {
+      pagination: {
+        page: 1,
+        pageSize: 12,
+        total: resourceData.length,
+        totalPages: 1,
+      },
+      posts: resourceData,
+    },
     isLoading: false,
     refetch: resourceRefreshMock,
   }),
@@ -169,7 +177,7 @@ describe('PostsList', () => {
     resourceData = [];
   });
 
-  it('renders the inline toolbar and prompt bar without duplicate status chrome', async () => {
+  it('registers one header toolbar and renders the prompt bar without duplicate status chrome', async () => {
     render(
       <PostsList
         scope={PageScope.PUBLISHER}
@@ -178,7 +186,7 @@ describe('PostsList', () => {
       />,
     );
 
-    expect(screen.getByText('Posts toolbar')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Not posted' })).toBeVisible();
     expect(
       screen.getByPlaceholderText(/ai productivity tips/i),
     ).toBeInTheDocument();
@@ -186,7 +194,7 @@ describe('PostsList', () => {
     expect(screen.queryByText('Generated')).not.toBeInTheDocument();
 
     await waitFor(() => {
-      expect(setFiltersNodeMock).not.toHaveBeenCalled();
+      expect(setFiltersNodeMock).toHaveBeenCalled();
     });
   });
 

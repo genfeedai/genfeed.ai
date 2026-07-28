@@ -6,8 +6,13 @@ import {
   loadProtectedBootstrap,
 } from '@app-server/protected-bootstrap.server';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { ModelCategory, PageScope, PostStatus } from '@genfeedai/enums';
-import type { IPost, IPreset, IQueryParams } from '@genfeedai/interfaces';
+import { ModelCategory, PageScope, type PostStatus } from '@genfeedai/enums';
+import type {
+  IPaginatedResponse,
+  IPost,
+  IPreset,
+  IQueryParams,
+} from '@genfeedai/interfaces';
 import { logger } from '@services/core/logger.service';
 import { PresetsService } from '@services/elements/presets.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
@@ -19,12 +24,19 @@ export interface PostsPageData {
   organizationId: string | null;
   postPresets: IPreset[];
   posts: IPost[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 export interface LoadPostsPageDataOptions {
   currentPage: number;
   platformFilter?: string;
   scope: PageScope;
+  publicationState?: 'posted' | 'not-posted';
   search?: string;
   sort?: string;
   status?: PostStatus;
@@ -35,6 +47,7 @@ export const loadPostsPageData = cache(
     currentPage,
     platformFilter,
     scope,
+    publicationState,
     search,
     sort,
     status,
@@ -50,6 +63,12 @@ export const loadPostsPageData = cache(
         organizationId: null,
         postPresets: [],
         posts: [],
+        pagination: {
+          page: currentPage,
+          pageSize: ITEMS_PER_PAGE,
+          total: 0,
+          totalPages: 1,
+        },
       };
     }
 
@@ -60,6 +79,7 @@ export const loadPostsPageData = cache(
       search?: string;
       sort?: string;
       status?: string;
+      publicationState?: string;
     } = {
       limit: ITEMS_PER_PAGE,
       page: currentPage,
@@ -73,6 +93,10 @@ export const loadPostsPageData = cache(
       query.status = status;
     }
 
+    if (publicationState) {
+      query.publicationState = publicationState;
+    }
+
     if (search) {
       query.search = search;
     }
@@ -81,25 +105,35 @@ export const loadPostsPageData = cache(
       query.sort = sort;
     }
 
+    const emptyPostsPage: IPaginatedResponse<IPost> = {
+      hasNext: false,
+      hasPrevious: currentPage > 1,
+      items: [],
+      page: currentPage,
+      pageSize: ITEMS_PER_PAGE,
+      total: 0,
+      totalPages: 1,
+    };
+
     const postsPromise =
       (scope === PageScope.BRAND || scope === PageScope.PUBLISHER) && brandId
         ? BrandsService.getInstance(token)
-            .findBrandPosts(brandId, query)
+            .findBrandPostsPage(brandId, query)
             .catch((error) => {
               logger.error('Failed to load initial brand posts', error);
-              return [];
+              return emptyPostsPage;
             })
         : scope === PageScope.ORGANIZATION && organizationId
           ? OrganizationsService.getInstance(token)
-              .findOrganizationPosts(organizationId, query)
+              .findOrganizationPostsPage(organizationId, query)
               .catch((error) => {
                 logger.error(
                   'Failed to load initial organization posts',
                   error,
                 );
-                return [];
+                return emptyPostsPage;
               })
-          : Promise.resolve([]);
+          : Promise.resolve(emptyPostsPage);
 
     const postPresetsPromise =
       scope === PageScope.PUBLISHER
@@ -120,7 +154,7 @@ export const loadPostsPageData = cache(
             })
         : Promise.resolve([]);
 
-    const [posts, postPresets] = await Promise.all([
+    const [postsPage, postPresets] = await Promise.all([
       postsPromise,
       postPresetsPromise,
     ]);
@@ -129,13 +163,13 @@ export const loadPostsPageData = cache(
       brandId,
       organizationId,
       postPresets: JSON.parse(JSON.stringify(postPresets)) as IPreset[],
-      posts: JSON.parse(
-        JSON.stringify(
-          scope === PageScope.PUBLISHER && !status
-            ? posts.filter((post) => post.status !== PostStatus.PUBLIC)
-            : posts,
-        ),
-      ) as IPost[],
+      posts: JSON.parse(JSON.stringify(postsPage.items)) as IPost[],
+      pagination: {
+        page: postsPage.page,
+        pageSize: postsPage.pageSize,
+        total: postsPage.total,
+        totalPages: postsPage.totalPages,
+      },
     };
   },
 );

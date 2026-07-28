@@ -45,7 +45,15 @@ const deleteAction: PostCardAction = {
 const basePost = {
   description: 'A draft post preview that should render cleanly.',
   id: 'post-1',
+  ingredients: [
+    {
+      cdnUrl: 'https://cdn.example.com/tweet-image.jpg',
+      id: 'ingredient-1',
+      metadataLabel: 'Tweet image',
+    },
+  ],
   platform: Platform.TWITTER,
+  platformUrl: 'https://x.com/genfeedai/status/123',
   status: PostStatus.DRAFT,
 } as IPost;
 
@@ -83,6 +91,26 @@ describe('PostsGrid', () => {
         name: /delete post/i,
       }),
     ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /evaluate/i })).toBeVisible();
+    expect(screen.getByRole('link', { name: /view on x/i })).toHaveAttribute(
+      'href',
+      basePost.platformUrl,
+    );
+  });
+
+  it('renders attached tweet media in the card', () => {
+    render(
+      <PostsGrid
+        posts={[basePost]}
+        onPostEvaluated={vi.fn()}
+        primaryAction={primaryAction}
+      />,
+    );
+
+    expect(screen.getByRole('img', { name: /tweet image/i })).toHaveAttribute(
+      'src',
+      expect.stringContaining('tweet-image.jpg'),
+    );
   });
 
   it('opens post details on card click', () => {

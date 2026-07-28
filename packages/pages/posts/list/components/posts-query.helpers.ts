@@ -1,6 +1,10 @@
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { PageScope, PostStatus } from '@genfeedai/enums';
-import type { IPost, IQueryParams } from '@genfeedai/interfaces';
+import { PageScope, type PostStatus } from '@genfeedai/enums';
+import type {
+  IPaginatedResponse,
+  IPost,
+  IQueryParams,
+} from '@genfeedai/interfaces';
 import type { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
 import type { OrganizationsService } from '@services/organization/organizations.service';
@@ -15,6 +19,7 @@ export type FetchPostsParams = {
   filterSearch: string;
   filterSort: string | undefined;
   currentPage: number;
+  publicationState?: 'posted' | 'not-posted';
   status: PostStatus | undefined;
   adminOrg: string;
   adminBrand: string;
@@ -22,6 +27,28 @@ export type FetchPostsParams = {
   getOrganizationsService: () => Promise<OrganizationsService>;
   getPostsService: () => Promise<PostsService>;
 };
+
+export interface PostsListResult {
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+  posts: IPost[];
+}
+
+function toPostsListResult(result: IPaginatedResponse<IPost>): PostsListResult {
+  return {
+    pagination: {
+      page: result.page,
+      pageSize: result.pageSize,
+      total: result.total,
+      totalPages: result.totalPages,
+    },
+    posts: result.items,
+  };
+}
 
 export async function fetchPosts({
   scope,
@@ -32,13 +59,14 @@ export async function fetchPosts({
   filterSearch,
   filterSort,
   currentPage,
+  publicationState,
   status,
   adminOrg,
   adminBrand,
   getBrandsService,
   getOrganizationsService,
   getPostsService,
-}: FetchPostsParams): Promise<IPost[]> {
+}: FetchPostsParams): Promise<PostsListResult> {
   let url = 'GET /posts';
 
   const query: IQueryParams & {
@@ -46,6 +74,7 @@ export async function fetchPosts({
     status?: string;
     search?: string;
     sort?: string;
+    publicationState?: string;
   } = {
     limit: ITEMS_PER_PAGE,
     page: currentPage,
@@ -55,14 +84,11 @@ export async function fetchPosts({
     query.platform = platformFilter;
   }
 
-  // Add status filter from filters state
-  // For publisher app (PUBLISHER scope), exclude PUBLIC by default if no status filter is set
-  if (scope === PageScope.PUBLISHER && !filterStatus && !status) {
-    // Exclude PUBLIC status - we'll filter client-side after fetching
+  if (publicationState) {
+    query.publicationState = publicationState;
   } else if (filterStatus) {
     query.status = filterStatus;
   } else if (status) {
-    // If status prop is provided (analytics app), use it
     query.status = status;
   }
 
@@ -76,17 +102,25 @@ export async function fetchPosts({
     query.sort = filterSort;
   }
 
-  let data: IPost[] = [];
+  let data: IPaginatedResponse<IPost> = {
+    hasNext: false,
+    hasPrevious: currentPage > 1,
+    items: [],
+    page: currentPage,
+    pageSize: ITEMS_PER_PAGE,
+    total: 0,
+    totalPages: 1,
+  };
 
   // Load posts based on scope
   if ((scope === PageScope.BRAND || scope === PageScope.PUBLISHER) && brandId) {
     const service = await getBrandsService();
     url = `GET /brands/${brandId}/posts`;
-    data = await service.findBrandPosts(brandId, query);
+    data = await service.findBrandPostsPage(brandId, query);
   } else if (scope === PageScope.ORGANIZATION && organizationId) {
     const service = await getOrganizationsService();
     url = `GET /organizations/${organizationId}/posts`;
-    data = await service.findOrganizationPosts(organizationId, query);
+    data = await service.findOrganizationPostsPage(organizationId, query);
   } else if (scope === PageScope.SUPERADMIN) {
     const service = await getPostsService();
     url = 'GET /posts';
@@ -96,24 +130,18 @@ export async function fetchPosts({
     if (adminBrand) {
       query.brand = adminBrand;
     }
-    data = await service.findAll(query);
+    data = await service.findAllPage(query);
   } else if (!scope && organizationId) {
     // Default to organization scope
     const service = await getOrganizationsService();
     url = `GET /organizations/${organizationId}/posts`;
-    data = await service.findOrganizationPosts(organizationId, query);
+    data = await service.findOrganizationPostsPage(organizationId, query);
   } else {
     // Fallback to global (will likely require superadmin)
     const service = await getPostsService();
-    data = await service.findAll(query);
+    data = await service.findAllPage(query);
   }
 
-  logger.info(`${url} success`, data);
-
-  // For publisher app (PUBLISHER scope), exclude PUBLIC posts by default if no status filter is set
-  if (scope === PageScope.PUBLISHER && !filterStatus && !status) {
-    return data.filter((post) => post.status !== PostStatus.PUBLIC);
-  }
-
-  return data;
+  logger.info(`${url} success`, data.items);
+  return toPostsListResult(data);
 }

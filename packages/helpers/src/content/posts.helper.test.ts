@@ -43,7 +43,7 @@ describe('PostsHelper', () => {
       PostsHelper.getPublisherPostsHref({ platform: 'all', status: 'draft' }),
     ).toBe('/posts');
     expect(PostsHelper.getPublisherPostsHref({ status: 'scheduled' })).toBe(
-      '/posts/scheduled',
+      '/posts',
     );
     expect(
       PostsHelper.getPublisherPostsHref({

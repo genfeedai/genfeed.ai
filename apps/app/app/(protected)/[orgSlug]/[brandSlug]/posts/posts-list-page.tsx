@@ -3,7 +3,7 @@ import {
   prefetchServerQuery,
   ServerQueryHydrationBoundary,
 } from '@app-server/query-hydration.server';
-import { PageScope, PostStatus } from '@genfeedai/enums';
+import { PageScope } from '@genfeedai/enums';
 import {
   normalizePostsPlatform,
   type PublisherPostsStatus,
@@ -12,6 +12,7 @@ import PostsList from '@pages/posts/list/posts-list';
 import {
   buildPostsListQueryKey,
   getDefaultPostsSort,
+  type PostsPublicationState,
 } from '@pages/posts/list/posts-list-query';
 
 export type PostsListSearchParams = Promise<{
@@ -25,18 +26,24 @@ export type PostsListSearchParams = Promise<{
 export async function renderPostsListPage({
   searchParams,
   scope = PageScope.PUBLISHER,
+  publicationStateOverride,
   statusOverride,
 }: {
   searchParams: PostsListSearchParams;
   scope?: PageScope;
+  publicationStateOverride?: PostsPublicationState;
   statusOverride?: PublisherPostsStatus;
 }) {
   const { page, platform, search, sort } = await searchParams;
-  // `status` no longer comes from the query string — nested routes
-  // (/posts/scheduled, /posts/published) pass `statusOverride`, and the /posts
-  // index is always the Drafts view. Legacy `?status=` links are redirected to
-  // their canonical path in page.tsx.
-  const normalizedStatus = statusOverride ?? PostStatus.DRAFT;
+  // Publisher navigation is intentionally two-state: work that is not posted
+  // yet and work that is already live. Individual draft/scheduled/processing
+  // states remain visible on each card instead of becoming route-level tabs.
+  const normalizedStatus = statusOverride;
+  const publicationState =
+    publicationStateOverride ??
+    (scope === PageScope.PUBLISHER && !normalizedStatus
+      ? 'not-posted'
+      : undefined);
   const parsedPage = Math.floor(Number.parseInt(page ?? '1', 10));
   const currentPage = Number.isFinite(parsedPage) ? Math.max(1, parsedPage) : 1;
   const normalizedPlatform = normalizePostsPlatform(platform);
@@ -44,6 +51,7 @@ export async function renderPostsListPage({
     currentPage,
     platformFilter:
       normalizedPlatform !== 'all' ? normalizedPlatform : undefined,
+    publicationState,
     scope,
     search,
     sort,
@@ -52,9 +60,13 @@ export async function renderPostsListPage({
   const platformFilter =
     normalizedPlatform !== 'all' ? normalizedPlatform : undefined;
   const filterSort = sort || getDefaultPostsSort(normalizedStatus);
+  const initialPostsResult = {
+    pagination: initialData.pagination,
+    posts: initialData.posts,
+  };
 
   await prefetchServerQuery({
-    queryFn: () => initialData.posts,
+    queryFn: () => initialPostsResult,
     queryKey: buildPostsListQueryKey({
       adminBrand: '',
       adminOrg: '',
@@ -65,6 +77,7 @@ export async function renderPostsListPage({
       filterStatus: normalizedStatus || '',
       organizationId: initialData.organizationId,
       platformFilter,
+      publicationState,
       scope,
       status: normalizedStatus,
     }),
@@ -75,7 +88,9 @@ export async function renderPostsListPage({
       <PostsList
         initialPostPresets={initialData.postPresets}
         initialPosts={initialData.posts}
+        initialPagination={initialData.pagination}
         platform={normalizedPlatform}
+        publicationState={publicationState}
         scope={scope}
         status={normalizedStatus}
       />
