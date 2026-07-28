@@ -13,9 +13,9 @@ import { TREND_DIGEST_CREDIT_COST } from '@genfeedai/constants';
 import {
   ActivitySource,
   type CredentialPlatform,
-  PostCategory,
-  PostStatus,,
   Platform,
+  PostCategory,
+  PostStatus,
 } from '@genfeedai/enums';
 import { buildTrendDigestHtml } from '@genfeedai/helpers';
 import type {
