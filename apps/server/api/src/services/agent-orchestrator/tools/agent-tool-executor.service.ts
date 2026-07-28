@@ -41,6 +41,7 @@ import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/to
 import { AgentProactiveToolHandler } from '@api/services/agent-orchestrator/tools/agent-proactive-tool-handler.service';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import { AgentQualityToolHandler } from '@api/services/agent-orchestrator/tools/agent-quality-tool-handler.service';
+import { AgentReviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-review-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import {
   readAgentScheduleValidationError,
@@ -432,6 +433,7 @@ export class AgentToolExecutorService {
     private readonly trendsHandler: AgentTrendsToolHandler,
     private readonly proactiveHandler: AgentProactiveToolHandler,
     private readonly qualityHandler: AgentQualityToolHandler,
+    private readonly reviewHandler: AgentReviewToolHandler,
     @Optional()
     private readonly agentScopeContextService?: AgentScopeContextService,
   ) {
@@ -910,7 +912,7 @@ export class AgentToolExecutorService {
         return this.workspaceHandler.getCurrentBrand(ctx);
 
       case AgentToolName.LIST_POSTS:
-        return this.listPosts(params, ctx);
+        return this.workspaceHandler.listPosts(params, ctx);
 
       case AgentToolName.CREATE_POST:
         return this.createPost(params, ctx);
@@ -1006,19 +1008,19 @@ export class AgentToolExecutorService {
         return this.generateVoice(params, ctx);
 
       case AgentToolName.OPEN_STUDIO_HANDOFF:
-        return this.openStudioHandoff(params);
+        return this.workspaceHandler.openStudioHandoff(params);
 
       case AgentToolName.GENERATE_CONTENT_BATCH:
         return this.generateContentBatch(params, ctx);
 
       case AgentToolName.RESOLVE_HANDLE:
-        return this.resolveHandle(params, ctx);
+        return this.connectionHandler.resolveHandle(params, ctx);
 
       case AgentToolName.LIST_REVIEW_QUEUE:
-        return this.listReviewQueue(params, ctx);
+        return this.reviewHandler.listReviewQueue(params, ctx);
 
       case AgentToolName.BATCH_APPROVE_REJECT:
-        return this.batchApproveReject(params, ctx);
+        return this.reviewHandler.batchApproveReject(params, ctx);
 
       case AgentToolName.CREATE_CAMPAIGN:
         return this.campaignHandler.createCampaign(params, ctx);
@@ -2815,47 +2817,6 @@ export class AgentToolExecutorService {
       bot,
       platform: this.inferLivestreamBotPlatform(bot),
       session,
-    };
-  }
-
-  private async listPosts(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    const limit = (params.limit as number) || 10;
-    const matchStage: Record<string, unknown> = {
-      isDeleted: false,
-      organization: ctx.organizationId,
-    };
-
-    if (params.status) {
-      matchStage.status = params.status;
-    }
-
-    const posts = await this.postsService.findAll(
-      { where: matchStage, orderBy: { createdAt: -1 } },
-      {},
-    );
-
-    return {
-      creditsUsed: 0,
-      data: {
-        count: posts.docs?.length ?? 0,
-        posts:
-          posts.docs?.map((p) => {
-            const post = p as unknown as Record<string, unknown>;
-            return {
-              createdAt: post.createdAt,
-              description: post.description,
-              id: String(post.id),
-              label: post.label,
-              platform: post.platform,
-              scheduledDate: post.scheduledDate,
-              status: post.status,
-            };
-          }) ?? [],
-      },
-      success: true,
     };
   }
 
@@ -5921,37 +5882,6 @@ export class AgentToolExecutorService {
     };
   }
 
-  private async openStudioHandoff(
-    params: Record<string, unknown>,
-  ): Promise<AgentToolResult> {
-    const ingredientId = params.ingredientId
-      ? String(params.ingredientId)
-      : null;
-    const type = String(params.type || 'image');
-    const href = ingredientId
-      ? `/g/${type}/${ingredientId}`
-      : `/studio?type=${type}`;
-
-    return {
-      creditsUsed: 0,
-      data: { href, ingredientId, type },
-      nextActions: [
-        {
-          ctas: [{ href, label: 'Open in Studio' }],
-          data: { href, ingredientId, type },
-          id: `studio-handoff-${Date.now()}`,
-          title: 'Continue in Studio',
-          type: 'image_transform_card',
-        },
-      ],
-      success: true,
-    };
-  }
-
-  // ──────────────────────────────────────────────
-  // BATCH TOOLS
-  // ──────────────────────────────────────────────
-
   private async generateContentBatch(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
@@ -6407,296 +6337,6 @@ export class AgentToolExecutorService {
       .map((platform) => (platform === 'twitter' ? 'X' : platform))
       .join(', ');
   }
-
-  private async resolveHandle(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    if (!this.credentialsService) {
-      return {
-        creditsUsed: 0,
-        error: 'Credentials service not available',
-        success: false,
-      };
-    }
-
-    const handle = params.handle as string;
-
-    if (!handle) {
-      return {
-        creditsUsed: 0,
-        error: 'handle parameter is required',
-        success: false,
-      };
-    }
-
-    const credential = await this.credentialsService.findByHandle(
-      handle,
-      ctx.organizationId,
-    );
-
-    if (!credential) {
-      return {
-        creditsUsed: 0,
-        error: `No connected credential found for handle "${handle}"`,
-        success: false,
-      };
-    }
-
-    return {
-      creditsUsed: 0,
-      data: {
-        brandId: String(credential.brand),
-        credentialId: String(credential.id),
-        externalHandle: credential.externalHandle,
-        externalName: credential.externalName,
-        platform: credential.platform,
-      },
-      success: true,
-    };
-  }
-
-  private async listReviewQueue(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    if (!this.batchGenerationService) {
-      return {
-        creditsUsed: 0,
-        error: 'Batch generation service not available',
-        success: false,
-      };
-    }
-
-    const batchId = this.normalizeBatchIdParam(params.batchId);
-    const limit = (params.limit as number) || 20;
-
-    if (params.batchId != null && !batchId) {
-      return {
-        creditsUsed: 0,
-        error: 'batchId must be a 24 character hex string',
-        success: false,
-      };
-    }
-
-    if (batchId) {
-      const batch = await this.batchGenerationService.getBatch(
-        batchId,
-        ctx.organizationId,
-      );
-
-      if (!batch) {
-        return {
-          creditsUsed: 0,
-          error: `Batch ${batchId} not found`,
-          success: false,
-        };
-      }
-
-      const statusFilter = params.status as string | undefined;
-      let items = batch.items || [];
-
-      if (statusFilter) {
-        items = items.filter(
-          (item: unknown) =>
-            (item as Record<string, unknown>).status === statusFilter,
-        );
-      }
-
-      const visibleItems = items.slice(0, limit).map((item) => {
-        const reviewItem = item as unknown as Record<string, unknown>;
-        return {
-          caption: reviewItem.caption,
-          format: reviewItem.format,
-          id: String(reviewItem.id),
-          mediaUrl: reviewItem.mediaUrl,
-          platform: reviewItem.platform,
-          reviewDecision:
-            typeof reviewItem.reviewDecision === 'string'
-              ? reviewItem.reviewDecision
-              : undefined,
-          scheduledDate: reviewItem.scheduledDate,
-          status: reviewItem.status,
-        };
-      });
-
-      const readyCount = items.filter((item: unknown) => {
-        const reviewItem = item as Record<string, unknown>;
-        return (
-          reviewItem.reviewDecision !== 'approved' &&
-          reviewItem.reviewDecision !== 'rejected' &&
-          reviewItem.status !== 'failed'
-        );
-      }).length;
-      const summaryText =
-        visibleItems.length === 0
-          ? 'This batch does not have any items in the current filter.'
-          : `Loaded ${visibleItems.length} item${visibleItems.length === 1 ? '' : 's'} from this batch. ${readyCount} item${readyCount === 1 ? ' is' : 's are'} ready for review right now.`;
-      const outcomeBullets = visibleItems.slice(0, 4).map((item) => {
-        const platformLabel = this.formatQueueItemLabel(item.platform);
-        const formatLabel =
-          typeof item.format === 'string' ? item.format : null;
-        const statusLabel =
-          item.reviewDecision ??
-          (typeof item.status === 'string' ? item.status : null);
-
-        return [platformLabel, formatLabel, statusLabel]
-          .filter((value): value is string => Boolean(value))
-          .join(' · ');
-      });
-
-      return {
-        creditsUsed: 0,
-        data: {
-          batchId: String(batch.id),
-          batchStatus: batch.status,
-          items: visibleItems,
-          totalCount: batch.totalCount,
-        },
-        nextActions: [
-          {
-            id: `review-queue-${String(batch.id)}`,
-            outcomeBullets,
-            primaryCta: {
-              href: `/posts/review?batch=${String(batch.id)}&filter=ready`,
-              label: 'Open review queue',
-            },
-            status: 'completed',
-            summaryText,
-            title: 'Review queue loaded',
-            type: 'completion_summary_card',
-          },
-        ],
-        success: true,
-      };
-    }
-
-    // List recent batches
-    const result = await this.batchGenerationService.getBatches(
-      ctx.organizationId,
-      { limit },
-    );
-
-    return {
-      creditsUsed: 0,
-      data: {
-        batches: result.items.map((b) => ({
-          completedCount: b.completedCount,
-          failedCount: b.failedCount,
-          id: b.id,
-          pendingCount: b.pendingCount,
-          status: b.status,
-          totalCount: b.totalCount,
-        })),
-        total: result.total,
-      },
-      success: true,
-    };
-  }
-
-  private async batchApproveReject(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    if (!this.batchGenerationService) {
-      return {
-        creditsUsed: 0,
-        error: 'Batch generation service not available',
-        success: false,
-      };
-    }
-
-    const batchId = this.normalizeBatchIdParam(params.batchId);
-    const itemIds = params.itemIds as string[];
-    const action = params.action as string;
-
-    if (!batchId || !itemIds?.length || !action) {
-      return {
-        creditsUsed: 0,
-        error: 'batchId, itemIds, and action are required',
-        success: false,
-      };
-    }
-
-    if (action === 'approve') {
-      return {
-        creditsUsed: 0,
-        error:
-          'Model and conversation actions cannot grant publish approval. Use the typed review control.',
-        nextActions: [
-          {
-            id: `review-queue-approval-${batchId}`,
-            primaryCta: {
-              href: `/posts/review?batch=${batchId}&filter=ready`,
-              label: 'Review exact versions',
-            },
-            status: 'pending',
-            summaryText:
-              'Approval requires the authenticated version-bound review control.',
-            title: 'Publish approval required',
-            type: 'completion_summary_card',
-          },
-        ],
-        success: false,
-      };
-    } else {
-      await this.batchGenerationService.rejectItems(
-        batchId,
-        itemIds,
-        ctx.organizationId,
-      );
-    }
-
-    return {
-      creditsUsed: 1,
-      data: {
-        action,
-        batchId,
-        itemCount: itemIds.length,
-      },
-      success: true,
-    };
-  }
-
-  private normalizeBatchIdParam(value: unknown): string | undefined {
-    if (typeof value !== 'string') {
-      return undefined;
-    }
-
-    const normalized = value
-      .trim()
-      .replace(/^batch\s*id\s*/i, '')
-      .replace(/^[:#\s-]+/, '')
-      .trim();
-
-    if (!normalized) {
-      return undefined;
-    }
-
-    return normalized;
-  }
-
-  private formatQueueItemLabel(value: unknown): string | null {
-    if (typeof value !== 'string') {
-      return null;
-    }
-
-    const normalized = value.trim().toLowerCase();
-
-    if (!normalized) {
-      return null;
-    }
-
-    if (normalized === 'twitter' || normalized === 'x') {
-      return 'X';
-    }
-
-    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
-  }
-
-  // ──────────────────────────────────────────────
-  // PROACTIVE AGENT TOOLS
-  // ──────────────────────────────────────────────
 
   private async discoverEngagements(
     params: Record<string, unknown>,

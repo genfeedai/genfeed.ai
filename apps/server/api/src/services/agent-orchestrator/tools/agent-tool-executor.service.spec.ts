@@ -786,6 +786,10 @@ describe('AgentToolExecutorService', () => {
     const workspaceHandler = new AgentWorkspaceToolHandler(
       creditsUtilsService as never,
       brandsService as never,
+      postsService as never,
+    );
+    const reviewHandler = new AgentReviewToolHandler(
+      batchGenerationService as never,
     );
     const connectionHandler = new AgentConnectionToolHandler(
       credentialsService as never,
@@ -844,6 +848,7 @@ describe('AgentToolExecutorService', () => {
       trendsHandler,
       proactiveHandler,
       qualityHandler,
+      reviewHandler,
       agentScopeContextService as never,
     );
 
@@ -4246,7 +4251,11 @@ describe('AgentToolExecutorService', () => {
       undefined as never, // ingredientsService
       instagramInspirationHandler,
       new AgentBrandInterviewToolHandler(undefined),
-      new AgentWorkspaceToolHandler({} as never, brandsService as never),
+      new AgentWorkspaceToolHandler(
+        {} as never,
+        brandsService as never,
+        postsService as never,
+      ),
       new AgentConnectionToolHandler(credentialsService as never),
       new AgentTrendsToolHandler({
         getTrends: vi.fn().mockResolvedValue([]),

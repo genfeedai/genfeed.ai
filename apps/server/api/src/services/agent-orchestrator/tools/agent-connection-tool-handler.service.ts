@@ -73,6 +73,58 @@ export class AgentConnectionToolHandler {
     };
   }
 
+  async resolveHandle(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    if (!this.credentialsService) {
+      return {
+        creditsUsed: 0,
+        error: 'Credentials service not available',
+        success: false,
+      };
+    }
+
+    const handle = params.handle as string;
+
+    if (!handle) {
+      return {
+        creditsUsed: 0,
+        error: 'handle parameter is required',
+        success: false,
+      };
+    }
+
+    const credential = await this.credentialsService.findByHandle(
+      handle,
+      ctx.organizationId,
+    );
+
+    if (!credential) {
+      return {
+        creditsUsed: 0,
+        error: `No connected credential found for handle "${handle}"`,
+        success: false,
+      };
+    }
+
+    return {
+      creditsUsed: 0,
+      data: {
+        brandId: String(
+          (credential as { brandId?: string }).brandId ??
+            (credential as { brand?: string }).brand ??
+            '',
+        ),
+        credentialId: String(credential.id),
+        externalHandle: credential.externalHandle,
+        externalName: credential.externalName,
+        platform: credential.platform,
+      },
+      success: true,
+    };
+  }
+
   buildOAuthConnectCard(
     platform: string,
     returnTo: string,

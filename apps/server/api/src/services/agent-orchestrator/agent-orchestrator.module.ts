@@ -52,6 +52,7 @@ import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/to
 import { AgentProactiveToolHandler } from '@api/services/agent-orchestrator/tools/agent-proactive-tool-handler.service';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import { AgentQualityToolHandler } from '@api/services/agent-orchestrator/tools/agent-quality-tool-handler.service';
+import { AgentReviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-review-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
@@ -132,6 +133,7 @@ import { forwardRef, Module } from '@nestjs/common';
     AgentProactiveToolHandler,
     AgentPublishToolHandler,
     AgentQualityToolHandler,
+    AgentReviewToolHandler,
     AgentTrendsToolHandler,
     AgentWorkspaceToolHandler,
     AgentOrchestratorService,

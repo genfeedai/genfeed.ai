@@ -28,9 +28,17 @@ Audit-only pass, then P0 implementation. Remaining work is tracked here so it is
 
 | Item | Status |
 |---|---|
-| #519 brand interview tool family | **Extracted** → `agent-brand-interview-tool-handler.service.ts` (4 tools) |
-| #519 campaign tool family | **Extracted** → `agent-campaign-tool-handler.service.ts` (5 tools); drops direct `OutreachCampaignsService` from executor |
-| Executor size | ~9,138 → **~8,769** LOC after brand-interview + campaign extracts. Next: onboarding tools, then workflow family. |
+| #519 brand interview | **Extracted** → `agent-brand-interview-tool-handler.service.ts` (4 tools) |
+| #519 campaign | **Extracted** → `agent-campaign-tool-handler.service.ts` (5 tools) |
+| #519 workspace | **Extracted** → `agent-workspace-tool-handler.service.ts` (credits + brands) |
+| #519 connection | **Extracted** → `agent-connection-tool-handler.service.ts` (status + OAuth card) |
+| #519 trends | **Extracted** → `agent-trends-tool-handler.service.ts` |
+| #519 proactive | **Extracted** → `agent-proactive-tool-handler.service.ts` (approval/perf/calendar/strategy; discover/draft stay for callInternalApi) |
+| #519 quality | **Extracted** → `agent-quality-tool-handler.service.ts` (rate content/SEO/ingredient + top/replicate) |
+| #519 review queue | **Extracted** → `agent-review-tool-handler.service.ts` |
+| #519 workspace+ | list_posts + open_studio_handoff folded into workspace handler |
+| #519 connection+ | resolve_handle folded into connection handler |
+| Executor size | ~9,138 → **~7,574** LOC. Remaining heavy: onboarding, workflows, media generation, publish, ads research, livestream, analytics. |
 
 **Out of P0 scope (already epics):** `mongoId` cutover (#1041 + children). Do not drop columns without telemetry (#1779 → #1780 → #1781 → #1782).
 
