@@ -517,9 +517,9 @@ describe('MenuShared', () => {
     const globalConfig: MenuConfig = {
       items: [
         {
-          href: '/admin/agent',
+          href: '/admin/overview/dashboard',
           hrefScope: 'global',
-          label: 'Agent',
+          label: 'Dashboard',
         },
       ],
       logoHref: '/',
@@ -527,10 +527,28 @@ describe('MenuShared', () => {
 
     render(<MenuShared config={globalConfig} />);
 
-    expect(screen.getByText('Agent')).toHaveAttribute(
+    expect(screen.getByText('Dashboard')).toHaveAttribute(
       'data-href',
-      '/admin/agent',
+      '/admin/overview/dashboard',
     );
+  });
+
+  it('keeps a nested admin destination active in the global route scope', () => {
+    mockPathname.value = '/admin/content/posts';
+    const globalConfig: MenuConfig = {
+      items: [
+        {
+          href: '/admin/content/posts',
+          hrefScope: 'global',
+          label: 'Posts',
+        },
+      ],
+      logoHref: '/admin',
+    };
+
+    render(<MenuShared config={globalConfig} />);
+
+    expect(screen.getByText('Posts')).toHaveAttribute('data-active', 'true');
   });
 
   it('does not reuse raw href keys for settings items with different scopes', () => {

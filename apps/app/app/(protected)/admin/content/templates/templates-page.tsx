@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { IContentTemplate } from '@genfeedai/interfaces/content/template-ui.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { TemplateService } from '@services/content/template.service';
@@ -76,7 +77,7 @@ export default function TemplatesPage() {
               {(templates ?? []).map((template) => (
                 <Link
                   key={template.id}
-                  href={`/templates/${template.id}`}
+                  href={`${APP_ROUTES.ADMIN.CONTENT.TEMPLATES}/${template.id}`}
                   className="group block h-full rounded-[1.35rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   aria-label={`Open template ${template.name}`}
                 >

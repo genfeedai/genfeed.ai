@@ -3,7 +3,6 @@ import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interf
 import {
   HiBanknotes,
   HiChartBar,
-  HiChatBubbleLeftRight,
   HiClipboardDocumentList,
   HiCog6Tooth,
   HiCpuChip,
@@ -14,7 +13,6 @@ import {
   HiNewspaper,
   HiOutlineBanknotes,
   HiOutlineChartBar,
-  HiOutlineChatBubbleLeftRight,
   HiOutlineClipboardDocumentList,
   HiOutlineCog6Tooth,
   HiOutlineCpuChip,
@@ -40,14 +38,6 @@ import {
 export const ADMIN_LOGO_HREF = APP_ROUTES.ADMIN.ROOT;
 
 export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
-  {
-    group: '',
-    href: APP_ROUTES.ADMIN.AGENT,
-    label: 'Agent',
-    matchPaths: [APP_ROUTES.ADMIN.AGENT],
-    outline: HiOutlineChatBubbleLeftRight,
-    solid: HiChatBubbleLeftRight,
-  },
   {
     group: 'Overview',
     href: APP_ROUTES.ADMIN.ROOT,

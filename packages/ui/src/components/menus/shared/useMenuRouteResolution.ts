@@ -13,6 +13,10 @@ export function useMenuRouteResolution() {
   const routeScope = useMemo(() => {
     const parts = rawPathname.split('/').filter(Boolean);
 
+    if (parts[0] === 'admin') {
+      return 'global' as const;
+    }
+
     if (parts[0] === 'settings') {
       return 'personal' as const;
     }
@@ -26,6 +30,10 @@ export function useMenuRouteResolution() {
 
   const pathname = useMemo(() => {
     const parts = rawPathname.split('/').filter(Boolean);
+
+    if (parts[0] === 'admin') {
+      return rawPathname;
+    }
 
     if (parts.length >= 2 && parts[1] === '~') {
       return `/${parts.slice(2).join('/')}`;

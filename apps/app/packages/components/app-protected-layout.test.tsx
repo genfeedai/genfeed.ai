@@ -1204,6 +1204,12 @@ describe('AppProtectedLayout', () => {
       }),
     );
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('universal-workspace-shell'),
+    ).not.toBeInTheDocument();
+    expect(appLayoutSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ isWorkspaceShell: false }),
+    );
   });
 
   it('forwards collapse controls into the dedicated Library sidebar', () => {

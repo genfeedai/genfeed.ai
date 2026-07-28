@@ -152,7 +152,8 @@ export function useAppProtectedLayout(
     () => resolveWorkspaceShellRoute(rawPathname),
     [rawPathname],
   );
-  const isUniversalWorkspaceShell = Boolean(workspaceShellRoute);
+  const isUniversalWorkspaceShell =
+    Boolean(workspaceShellRoute) && !isAdminRoute;
 
   const currentApp: AppContext = isStudioRoute
     ? 'studio'

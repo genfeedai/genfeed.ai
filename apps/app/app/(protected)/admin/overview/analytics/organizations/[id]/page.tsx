@@ -1,4 +1,5 @@
 import LazyLoadingFallback from '@components/loading/fallback/LazyLoadingFallback';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import AnalyticsOrganizationOverview from '@pages/analytics/organization-overview/analytics-organization-overview';
 import type { AnalyticsDetailPageProps } from '@props/admin/analytics.props';
@@ -15,7 +16,7 @@ export default async function OrganizationDetailPage({
     <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
       <AnalyticsOrganizationOverview
         organizationId={id}
-        basePath="/analytics"
+        basePath={APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS}
       />
     </Suspense>
   );
