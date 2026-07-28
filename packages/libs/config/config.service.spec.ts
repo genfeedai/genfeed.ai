@@ -124,6 +124,12 @@ describe('ConfigService', () => {
       expect(configService.cdnUrl).toBe('http://localhost:3002');
     });
 
+    it('should fall back to the managed CDN root when unset', () => {
+      delete env.GENFEEDAI_CDN_URL;
+
+      expect(new ConfigService().cdnUrl).toBe('https://cdn.genfeed.ai');
+    });
+
     it('should leave DB_MODE undefined when it is not configured', () => {
       expect(configService.get('DB_MODE')).toBeUndefined();
     });

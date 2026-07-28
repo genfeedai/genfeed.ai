@@ -168,13 +168,7 @@ export class ConfigService extends BaseConfigService<ApiEnvConfig> {
   }
 
   public get cdnUrl(): string {
-    const cdnUrl = this.envConfig.GENFEEDAI_CDN_URL;
-    if (!cdnUrl) {
-      throw new Error(
-        'GENFEEDAI_CDN_URL is required to build public asset URLs but is not set',
-      );
-    }
-    return cdnUrl;
+    return this.envConfig.GENFEEDAI_CDN_URL ?? 'https://cdn.genfeed.ai';
   }
 
   public get ingredientsEndpoint(): string {
