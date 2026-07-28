@@ -7,7 +7,7 @@ import { CronByokBillingService } from '@workers/crons/byok-billing/cron.byok-bi
 
 const mockOrg = (id: string) => ({
   byokBillingStatus: ByokBillingStatus.ACTIVE,
-  organization: { toString: () => id },
+  organizationId: id,
   subscriptionTier: SubscriptionTier.BYOK,
 });
 
@@ -130,7 +130,7 @@ describe('CronByokBillingService', () => {
 
   it('skips orgs without organization id and increments skippedCount', async () => {
     organizationSettingsService.findAll.mockResolvedValue({
-      docs: [{ organization: null }, mockOrg('org-x')],
+      docs: [{ organizationId: null }, mockOrg('org-x')],
     });
 
     await service.processMonthlyByokBilling();

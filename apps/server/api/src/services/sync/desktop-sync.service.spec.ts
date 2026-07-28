@@ -334,12 +334,11 @@ describe('DesktopSyncService', () => {
     ).rejects.toMatchObject({ status: 415 });
   });
 
-  it('rejects a push against a soft-deleted cloud asset and surfaces updatedAt as the tombstone instant', async () => {
+  it('rejects a push against a soft-deleted cloud asset and surfaces isDeleted + updatedAt', async () => {
     const { prisma, service } = buildService();
-    // deletedAt is no longer stored on Asset (isDeleted is the sole soft-delete
-    // signal); the desktop tombstone timeline must therefore be fed from
-    // updatedAt. This locks that wire contract so a future refactor can't
-    // silently drop or repoint the tombstone instant.
+    // Soft-delete is boolean-only (isDeleted). The tombstone instant is
+    // updatedAt — set when the cloud Asset row was deleted. Wire both so a
+    // future refactor cannot silently drop the flag or repoint the instant.
     const deletedInstant = new Date('2026-05-01T12:00:00.000Z');
     prisma.asset.findFirst.mockResolvedValue({
       cloudObjectKey: `${organizationId}/hash/logo.png`,
@@ -370,7 +369,7 @@ describe('DesktopSyncService', () => {
     expect(result.data).toMatchObject({ accepted: 0, rejected: 1 });
     expect(result.data.assets[0]).toMatchObject({
       cloudAssetId: 'asset-cloud',
-      deletedAt: deletedInstant,
+      isDeleted: true,
       localAssetId: 'asset-local',
       reason: 'cloud-deleted',
       residency: 'synced',

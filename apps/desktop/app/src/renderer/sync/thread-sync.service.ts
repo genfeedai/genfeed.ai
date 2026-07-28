@@ -48,7 +48,7 @@ type AssetPushResponse = {
     assets: Array<{
       cloudAssetId?: string;
       cloudObjectKey?: string;
-      deletedAt?: string;
+      isDeleted?: boolean;
       localAssetId: string;
       needsUpload?: boolean;
       reason?: string;
@@ -313,10 +313,11 @@ export class ThreadSyncService {
         if (pushedAsset.reason === 'cloud-deleted') {
           await window.genfeedDesktop.sync.recordAssetSync(session.userId, {
             cloudId: pushedAsset.cloudAssetId,
-            deletedAt: pushedAsset.deletedAt ?? new Date().toISOString(),
+            isDeleted: pushedAsset.isDeleted ?? true,
             localAssetId: pushedAsset.localAssetId,
             residency: pushedAsset.residency,
-            updatedAt: pushedAsset.updatedAt,
+            // Tombstone instant is updatedAt (set when isDeleted flipped on cloud).
+            updatedAt: pushedAsset.updatedAt ?? new Date().toISOString(),
             uploadPolicy: 'never',
           });
         }

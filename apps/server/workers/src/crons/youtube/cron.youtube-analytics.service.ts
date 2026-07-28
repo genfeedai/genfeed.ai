@@ -2,6 +2,7 @@ import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueueService } from '@api/queues/core/queue.service';
+import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import {
   ANALYTICS_YOUTUBE_QUEUE,
@@ -11,10 +12,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
-type AnalyticsYoutubePost = PostEntity & {
-  brand: unknown;
-  organization: unknown;
-};
+type AnalyticsYoutubePost = PostEntity;
 
 /**
  * YouTube Analytics Cron Service
@@ -67,7 +65,18 @@ export class CronYoutubeAnalyticsService {
       const postsByBrand = new Map<string, typeof posts.docs>();
 
       for (const post of posts.docs) {
-        const brandKey = `${post.organization}:${post.brand}`;
+        const organizationId = resolveRelationId(
+          post.organizationId,
+          post.organization,
+        );
+        const brandId = resolveRelationId(post.brandId, post.brand);
+        if (!organizationId || !brandId) {
+          this.logger.warn(
+            `${url} skipping post ${post.id} — missing organizationId/brandId`,
+          );
+          continue;
+        }
+        const brandKey = `${organizationId}:${brandId}`;
         if (!postsByBrand.has(brandKey)) {
           postsByBrand.set(brandKey, []);
         }
@@ -87,7 +96,9 @@ export class CronYoutubeAnalyticsService {
           batches.push(brandPosts.slice(i, i + this.BATCH_SIZE));
         }
 
-        // Add each batch to the queue
+        // Add each batch to the queue. Job payload still uses the historical
+        // `organization` / `brand` field names (queue contract), but values
+        // come from scalar FKs on the Prisma post row.
         for (let i = 0; i < batches.length; i++) {
           const batch = batches[i];
           const jobData: YouTubeAnalyticsJobData = {
@@ -95,9 +106,11 @@ export class CronYoutubeAnalyticsService {
             organizationId,
             posts: batch.map((post) => ({
               id: post.id.toString(),
-              brand: post.brand.toString(),
+              brand: resolveRelationId(post.brandId, post.brand) ?? brandId,
               externalId: post.externalId!,
-              organization: post.organization.toString(),
+              organization:
+                resolveRelationId(post.organizationId, post.organization) ??
+                organizationId,
             })),
           };
 

@@ -36,6 +36,7 @@ import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { QuotaService } from '@api/services/quota/quota.service';
+import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type {
@@ -75,10 +76,6 @@ interface CredentialMentionItem {
   id: string;
   name: string;
   platform: CredentialPlatform;
-}
-
-function readId(value: unknown): string {
-  return typeof value === 'string' ? value : '';
 }
 
 function toCredentialPlatform(platform: unknown): CredentialPlatform {
@@ -320,8 +317,14 @@ export class CredentialsController {
       );
     }
 
-    const credentialOrganizationId = readId(credential.organization);
-    const credentialBrandId = readId(credential.brand);
+    const credentialOrganizationId = resolveRelationId(
+      credential.organizationId,
+      credential.organization,
+    );
+    const credentialBrandId = resolveRelationId(
+      credential.brandId,
+      credential.brand,
+    );
 
     if (!credentialOrganizationId || !credentialBrandId) {
       throw new HttpException(
@@ -386,7 +389,7 @@ export class CredentialsController {
         );
       }
 
-      const brandId = readId(credential.brand);
+      const brandId = resolveRelationId(credential.brandId, credential.brand);
       if (!brandId) {
         throw new HttpException(
           {

@@ -7,9 +7,9 @@ import { Test, type TestingModule } from '@nestjs/testing';
 
 const mockCredential = (overrides: Record<string, unknown> = {}) => ({
   id: 'test-object-id',
-  brand: 'test-object-id',
-  organization: 'test-object-id',
-  user: 'test-object-id',
+  brandId: 'test-object-id',
+  organizationId: 'test-object-id',
+  userId: 'test-object-id',
   ...overrides,
 });
 
@@ -72,10 +72,10 @@ describe('BotUserResolverService', () => {
       credentialsService.findOne.mockResolvedValue(cred as never);
       const result = await service.resolveUser(platform, platformUserId);
       expect(result).toEqual({
-        brandId: cred.brand.toString(),
-        credentialId: cred.id.toString(),
-        organizationId: cred.organization.toString(),
-        userId: cred.user.toString(),
+        brandId: cred.brandId,
+        credentialId: cred.id,
+        organizationId: cred.organizationId,
+        userId: cred.userId,
       });
     });
 

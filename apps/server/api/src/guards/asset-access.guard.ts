@@ -1,5 +1,6 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { AssetScope } from '@genfeedai/enums';
 import {
   CanActivate,
@@ -68,7 +69,9 @@ export class AssetAccessGuard implements CanActivate {
     // Check permissions based on scope
     switch (assetScope) {
       case AssetScope.ORGANIZATION: {
-        const assetUserId = this.getRefId(asset.user);
+        // Scalar FKs first — Mongo-era aliases type-check but are often undefined
+        // on Prisma rows unless the relation was included/back-filled.
+        const assetUserId = resolveRelationId(asset.userId, asset.user);
 
         if (
           assetUserId === user.id ||
@@ -77,9 +80,10 @@ export class AssetAccessGuard implements CanActivate {
           return true;
         }
 
-        // Then check organization membership
-        // asset.organization can be either a populated Organization object or just an ObjectId
-        const assetOrgId = this.getRefId(asset.organization);
+        const assetOrgId = resolveRelationId(
+          asset.organizationId,
+          asset.organization,
+        );
         const userOrgId = user.publicMetadata?.organization?.toString();
 
         if (assetOrgId && userOrgId && assetOrgId === userOrgId) {
@@ -92,7 +96,7 @@ export class AssetAccessGuard implements CanActivate {
       }
 
       case AssetScope.BRAND: {
-        const brandAssetUserId = this.getRefId(asset.user);
+        const brandAssetUserId = resolveRelationId(asset.userId, asset.user);
 
         if (
           brandAssetUserId === user.id ||
@@ -101,9 +105,7 @@ export class AssetAccessGuard implements CanActivate {
           return true;
         }
 
-        // Then check brand membership
-        // asset.brand can be either a populated Brand object or just an ObjectId
-        const assetBrandId = this.getRefId(asset.brand);
+        const assetBrandId = resolveRelationId(asset.brandId, asset.brand);
         const userBrandId = user.publicMetadata?.brand?.toString();
 
         if (assetBrandId && userBrandId && assetBrandId === userBrandId) {
@@ -116,7 +118,7 @@ export class AssetAccessGuard implements CanActivate {
       }
 
       case AssetScope.USER: {
-        const userAssetUserId = this.getRefId(asset.user);
+        const userAssetUserId = resolveRelationId(asset.userId, asset.user);
 
         if (
           userAssetUserId === user.id ||
@@ -131,15 +133,5 @@ export class AssetAccessGuard implements CanActivate {
       default:
         throw new ForbiddenException('Invalid asset scope');
     }
-  }
-
-  private getRefId(
-    ref: string | { _id?: string; id?: string } | null | undefined,
-  ): string | undefined {
-    if (typeof ref === 'string') {
-      return ref;
-    }
-
-    return ref?.id?.toString() ?? ref?._id?.toString();
   }
 }

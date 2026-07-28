@@ -297,8 +297,8 @@ export class DesktopSyncService {
       cloudId: asset.cloudId ?? null,
       cloudObjectKey: asset.cloudObjectKey ?? null,
       createdAt: asset.createdAt,
-      deletedAt: asset.deletedAt ?? null,
       displayName: asset.displayName,
+      isDeleted: asset.isDeleted ?? false,
       id: asset.id,
       kind: asset.kind,
       localPath: asset.localPath ?? null,
@@ -369,9 +369,8 @@ export class DesktopSyncService {
       cloudId: cloudAsset.id,
       cloudObjectKey: cloudAsset.cloudObjectKey ?? localAsset?.cloudObjectKey,
       createdAt: localAsset?.createdAt ?? cloudAsset.createdAt,
-      deletedAt:
-        cloudAsset.deletedAt ??
-        (cloudAsset.isDeleted ? cloudAsset.updatedAt : localAsset?.deletedAt),
+      // Soft-delete is boolean-only; tombstone instant is updatedAt.
+      isDeleted: cloudAsset.isDeleted ?? localAsset?.isDeleted ?? false,
       displayName,
       id: localAsset?.id ?? cloudAsset.localAssetId ?? `cloud-${cloudAsset.id}`,
       kind,
@@ -577,7 +576,7 @@ export class DesktopSyncService {
       ...existing,
       cloudId: update.cloudId ?? existing.cloudId,
       cloudObjectKey: update.cloudObjectKey ?? existing.cloudObjectKey,
-      deletedAt: update.deletedAt ?? existing.deletedAt,
+      isDeleted: update.isDeleted ?? existing.isDeleted ?? false,
       residency: update.residency ?? existing.residency,
       updatedAt: update.updatedAt ?? toIso(),
       uploadPolicy: update.uploadPolicy ?? existing.uploadPolicy,
