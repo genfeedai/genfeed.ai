@@ -117,11 +117,12 @@ COPY packages/prisma/prisma/ ./packages/prisma/prisma/
 # Keep patch files available when a dependency in the pruned graph is patched.
 COPY patches/ patches/
 
-# Keep Bun's peer contexts isolated. A hoisted graph can
-# combine Nest CLI's CommonJS log-symbols@4 with is-unicode-supported@2 from a
-# different tool, which crashes before Nest can compile.
+# Nest's webpack externalizer expects conventional node_modules paths; an
+# isolated build graph makes it bundle Remotion/Rspack native binaries from
+# .bun paths. The targeted dependency patches above keep this hoisted build
+# graph compatible, while runtime dependencies remain isolated below.
 RUN --mount=type=cache,id=bun-cache,target=/root/.bun/install/cache \
-    HUSKY=0 bun install --frozen-lockfile --linker isolated
+    HUSKY=0 bun install --frozen-lockfile --linker hoisted
 
 # ==================================================
 # Stage 4: Production dependencies

@@ -140,11 +140,12 @@ COPY packages/prisma/prisma/ ./packages/prisma/prisma/
 # Keep patch files available when a dependency in the pruned graph is patched.
 COPY patches/ patches/
 
-# Keep build-time dependency contexts isolated. Hoisting this full graph mixes
-# incompatible generations of CommonJS build-tool dependencies. The runtime
-# stage also preserves isolated contexts in a production-only graph.
+# Nest's webpack externalizer relies on conventional node_modules paths and
+# otherwise tries to bundle native Remotion/Rspack binaries from Bun's .bun
+# store. Compatibility patches make the hoisted build graph safe; the runtime
+# still receives an isolated production-only graph below.
 RUN --mount=type=cache,id=bun-cache,target=/root/.bun/install/cache \
-    HUSKY=0 bun install --frozen-lockfile --linker isolated
+    HUSKY=0 bun install --frozen-lockfile --linker hoisted
 
 # Copy source
 COPY tsconfig.json tsconfig.server.decorators.json webpack.base.config.js ./
