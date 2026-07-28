@@ -436,20 +436,21 @@ describe('PlatformTimeSeriesChart', () => {
       { color: 'hsl(var(--foreground))', label: 'Medium', platform: 'medium' },
     ];
 
-    it.each(allPlatforms)(
-      'renders $label button with correct color',
-      ({ platform, label, color }) => {
-        render(
-          <PlatformTimeSeriesChart
-            data={mockData}
-            platforms={[platform as any]}
-          />,
-        );
-        expect(screen.getByText(label)).toBeInTheDocument();
-        const area = screen.getByTestId(`area-${platform}`);
-        expect(area).toHaveAttribute('data-stroke', color);
-      },
-    );
+    it.each(allPlatforms)('renders $label button with correct color', ({
+      platform,
+      label,
+      color,
+    }) => {
+      render(
+        <PlatformTimeSeriesChart
+          data={mockData}
+          platforms={[platform as any]}
+        />,
+      );
+      expect(screen.getByText(label)).toBeInTheDocument();
+      const area = screen.getByTestId(`area-${platform}`);
+      expect(area).toHaveAttribute('data-stroke', color);
+    });
   });
 
   describe('Edge Cases', () => {

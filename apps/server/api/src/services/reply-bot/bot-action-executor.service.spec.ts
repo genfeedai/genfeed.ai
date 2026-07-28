@@ -67,48 +67,48 @@ describe('BotActionExecutorService', () => {
       { isSupported: false, platform: ReplyBotPlatform.YOUTUBE },
       { isSupported: false, platform: ReplyBotPlatform.REDDIT },
       { isSupported: false, platform: 'unknown' },
-    ])(
-      'routes reply actions fail-closed for $platform',
-      async ({ isSupported, platform }) => {
-        const postTwitterReply = vi
-          .spyOn(
-            service as unknown as BotActionExecutorRouting,
-            'postTwitterReply',
-          )
-          .mockResolvedValue({ contentId: 'reply-1', success: true });
-        mockInstagramService.postComment.mockResolvedValue({
-          commentId: 'reply-1',
-        });
-        const credential = {
-          accessToken: 'token',
-          brandId: 'brand-1',
-          organizationId: 'org-1',
-          platform,
-        } as IReplyBotCredentialData;
+    ])('routes reply actions fail-closed for $platform', async ({
+      isSupported,
+      platform,
+    }) => {
+      const postTwitterReply = vi
+        .spyOn(
+          service as unknown as BotActionExecutorRouting,
+          'postTwitterReply',
+        )
+        .mockResolvedValue({ contentId: 'reply-1', success: true });
+      mockInstagramService.postComment.mockResolvedValue({
+        commentId: 'reply-1',
+      });
+      const credential = {
+        accessToken: 'token',
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        platform,
+      } as IReplyBotCredentialData;
 
-        const result = await service.postReply(
-          credential,
-          targetContent,
-          'Nice post!',
-        );
+      const result = await service.postReply(
+        credential,
+        targetContent,
+        'Nice post!',
+      );
 
-        expect(result.success).toBe(isSupported);
-        if (isSupported) {
-          expect(result.error).toBeUndefined();
-          if (platform === ReplyBotPlatform.TWITTER) {
-            expect(postTwitterReply).toHaveBeenCalledOnce();
-          } else {
-            expect(mockInstagramService.postComment).toHaveBeenCalledOnce();
-          }
+      expect(result.success).toBe(isSupported);
+      if (isSupported) {
+        expect(result.error).toBeUndefined();
+        if (platform === ReplyBotPlatform.TWITTER) {
+          expect(postTwitterReply).toHaveBeenCalledOnce();
         } else {
-          expect(result.error).toBe(
-            `Unsupported reply bot platform: ${platform}`,
-          );
-          expect(postTwitterReply).not.toHaveBeenCalled();
-          expect(mockInstagramService.postComment).not.toHaveBeenCalled();
+          expect(mockInstagramService.postComment).toHaveBeenCalledOnce();
         }
-      },
-    );
+      } else {
+        expect(result.error).toBe(
+          `Unsupported reply bot platform: ${platform}`,
+        );
+        expect(postTwitterReply).not.toHaveBeenCalled();
+        expect(mockInstagramService.postComment).not.toHaveBeenCalled();
+      }
+    });
 
     it('should route to Instagram when platform is instagram', async () => {
       const credential = {
@@ -169,50 +169,41 @@ describe('BotActionExecutorService', () => {
       { isSupported: false, platform: ReplyBotPlatform.YOUTUBE },
       { isSupported: false, platform: ReplyBotPlatform.REDDIT },
       { isSupported: false, platform: 'unknown' },
-    ])(
-      'routes DM actions fail-closed for $platform',
-      async ({ isSupported, platform }) => {
-        const sendTwitterDm = vi
-          .spyOn(
-            service as unknown as BotActionExecutorRouting,
-            'sendTwitterDm',
-          )
-          .mockResolvedValue({ success: true });
-        mockInstagramService.sendCommentReplyDm.mockResolvedValue(undefined);
-        const credential = {
-          accessToken: 'token',
-          brandId: 'brand-1',
-          organizationId: 'org-1',
-          platform,
-        } as IReplyBotCredentialData;
+    ])('routes DM actions fail-closed for $platform', async ({
+      isSupported,
+      platform,
+    }) => {
+      const sendTwitterDm = vi
+        .spyOn(service as unknown as BotActionExecutorRouting, 'sendTwitterDm')
+        .mockResolvedValue({ success: true });
+      mockInstagramService.sendCommentReplyDm.mockResolvedValue(undefined);
+      const credential = {
+        accessToken: 'token',
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        platform,
+      } as IReplyBotCredentialData;
 
-        const result = await service.sendDm(
-          credential,
-          'recipient-1',
-          'Hello!',
-        );
+      const result = await service.sendDm(credential, 'recipient-1', 'Hello!');
 
-        expect(result.success).toBe(isSupported);
-        if (isSupported) {
-          expect(result.error).toBeUndefined();
-          if (platform === ReplyBotPlatform.TWITTER) {
-            expect(sendTwitterDm).toHaveBeenCalledOnce();
-          } else {
-            expect(
-              mockInstagramService.sendCommentReplyDm,
-            ).toHaveBeenCalledOnce();
-          }
+      expect(result.success).toBe(isSupported);
+      if (isSupported) {
+        expect(result.error).toBeUndefined();
+        if (platform === ReplyBotPlatform.TWITTER) {
+          expect(sendTwitterDm).toHaveBeenCalledOnce();
         } else {
-          expect(result.error).toBe(
-            `Unsupported reply bot platform: ${platform}`,
-          );
-          expect(sendTwitterDm).not.toHaveBeenCalled();
           expect(
             mockInstagramService.sendCommentReplyDm,
-          ).not.toHaveBeenCalled();
+          ).toHaveBeenCalledOnce();
         }
-      },
-    );
+      } else {
+        expect(result.error).toBe(
+          `Unsupported reply bot platform: ${platform}`,
+        );
+        expect(sendTwitterDm).not.toHaveBeenCalled();
+        expect(mockInstagramService.sendCommentReplyDm).not.toHaveBeenCalled();
+      }
+    });
 
     it('should route to Instagram DM when platform is instagram', async () => {
       const credential = {

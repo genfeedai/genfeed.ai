@@ -133,16 +133,15 @@ describe('LocalStorageProvider path containment', () => {
   });
 
   describe('exists', () => {
-    it.each(ESCAPING_PATHS)(
-      'rejects %s rather than probing it',
-      async (filePath) => {
-        await expect(provider.exists(filePath)).rejects.toThrow(
-          /must stay within/,
-        );
+    it.each(
+      ESCAPING_PATHS,
+    )('rejects %s rather than probing it', async (filePath) => {
+      await expect(provider.exists(filePath)).rejects.toThrow(
+        /must stay within/,
+      );
 
-        expect(mockAccess).not.toHaveBeenCalled();
-      },
-    );
+      expect(mockAccess).not.toHaveBeenCalled();
+    });
   });
 
   it('rejects a non-string path', async () => {

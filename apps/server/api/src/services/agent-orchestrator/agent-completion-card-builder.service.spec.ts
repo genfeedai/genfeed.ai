@@ -317,16 +317,16 @@ describe('AgentCompletionCardBuilderService', () => {
       expectedId: 'trends-batch',
       toolName: AgentToolName.GET_TRENDS,
     },
-  ])(
-    'preserves $expectedId as the first suggestion for $toolName',
-    ({ expectedId, toolName }) => {
-      const result = service.buildAssistantUiActions({
-        reviewRequired: false,
-        toolCalls: [{ status: 'completed', toolName }],
-        uiActions: [],
-      });
+  ])('preserves $expectedId as the first suggestion for $toolName', ({
+    expectedId,
+    toolName,
+  }) => {
+    const result = service.buildAssistantUiActions({
+      reviewRequired: false,
+      toolCalls: [{ status: 'completed', toolName }],
+      uiActions: [],
+    });
 
-      expect(result.suggestedActions[0]?.id).toBe(expectedId);
-    },
-  );
+    expect(result.suggestedActions[0]?.id).toBe(expectedId);
+  });
 });

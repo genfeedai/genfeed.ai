@@ -93,23 +93,24 @@ function release(state: IReleaseGroup['analyticsComparison']['state']) {
 }
 
 describe('ReleaseAnalyticsOverlay', () => {
-  it.each(['ready', 'mixed', 'stale'] as const)(
-    'renders named target metrics for the %s state',
-    (state) => {
-      render(
-        <ReleaseAnalyticsOverlay release={release(state)} onClose={vi.fn()} />,
-      );
+  it.each([
+    'ready',
+    'mixed',
+    'stale',
+  ] as const)('renders named target metrics for the %s state', (state) => {
+    render(
+      <ReleaseAnalyticsOverlay release={release(state)} onClose={vi.fn()} />,
+    );
 
-      expect(
-        screen.getByRole('table', {
-          name: 'Normalized analytics metrics by release target',
-        }),
-      ).toBeInTheDocument();
-      expect(screen.getByText('100')).toBeInTheDocument();
-      expect(screen.getByText('14%')).toBeInTheDocument();
-      expect(screen.getAllByText(state).length).toBeGreaterThan(0);
-    },
-  );
+    expect(
+      screen.getByRole('table', {
+        name: 'Normalized analytics metrics by release target',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('100')).toBeInTheDocument();
+    expect(screen.getByText('14%')).toBeInTheDocument();
+    expect(screen.getAllByText(state).length).toBeGreaterThan(0);
+  });
 
   it('surfaces a sanitized collection error without inventing metrics', () => {
     render(

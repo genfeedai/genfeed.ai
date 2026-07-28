@@ -66,17 +66,18 @@ describe('AvatarVideoService', () => {
       expect(service.getProvider()).toBe(heygenProvider);
     });
 
-    it.each(['did', 'tavus', 'musetalk'] as const)(
-      'should reject unavailable provider %s',
-      (providerName) => {
-        expect(() => service.getProvider(providerName)).toThrow(
-          BadRequestException,
-        );
-        expect(logger.warn).toHaveBeenCalledWith(
-          expect.stringContaining(providerName),
-        );
-      },
-    );
+    it.each([
+      'did',
+      'tavus',
+      'musetalk',
+    ] as const)('should reject unavailable provider %s', (providerName) => {
+      expect(() => service.getProvider(providerName)).toThrow(
+        BadRequestException,
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining(providerName),
+      );
+    });
 
     it('should reject unknown provider names instead of falling back silently', () => {
       expect(() =>

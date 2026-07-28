@@ -750,32 +750,33 @@ describe('MenuShared', () => {
     { group: 'Settings', href: '/settings/models/all', label: 'Models' },
     { group: 'Insights', href: '/insights/overview', label: 'Overview' },
     { group: 'Content', href: '/content/posts', label: 'Posts' },
-  ])(
-    'routes to default nested page when clicking group drill-down row',
-    ({ group, href, label }) => {
-      const nestedConfig: MenuConfig = {
-        items: [
-          {
-            drillDown: true,
-            group,
-            href,
-            label,
-          },
-          {
-            group,
-            href: `${href}/secondary`,
-            label: 'Secondary',
-          },
-        ],
-        logoHref: '/',
-      };
+  ])('routes to default nested page when clicking group drill-down row', ({
+    group,
+    href,
+    label,
+  }) => {
+    const nestedConfig: MenuConfig = {
+      items: [
+        {
+          drillDown: true,
+          group,
+          href,
+          label,
+        },
+        {
+          group,
+          href: `${href}/secondary`,
+          label: 'Secondary',
+        },
+      ],
+      logoHref: '/',
+    };
 
-      render(<MenuShared config={nestedConfig} />);
+    render(<MenuShared config={nestedConfig} />);
 
-      fireEvent.click(screen.getByRole('link', { name: group }));
+    fireEvent.click(screen.getByRole('link', { name: group }));
 
-      expect(mockEnterNestedGroup).toHaveBeenCalledWith(group);
-      expect(mockPush).not.toHaveBeenCalledWith(href);
-    },
-  );
+    expect(mockEnterNestedGroup).toHaveBeenCalledWith(group);
+    expect(mockPush).not.toHaveBeenCalledWith(href);
+  });
 });

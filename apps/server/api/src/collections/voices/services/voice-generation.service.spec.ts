@@ -70,16 +70,13 @@ describe('VoiceGenerationService', () => {
   it.each([
     [{ text: '', voiceId: 'voice-1' }, 'Text is required'],
     [{ text: 'Hello', voiceId: '' }, 'voiceId is required'],
-  ])(
-    'validates required generation input before spending',
-    async (dto, detail) => {
-      await expect(service.generate(user, dto, request)).rejects.toMatchObject({
-        response: { detail },
-        status: HttpStatus.BAD_REQUEST,
-      });
-      expect(shared.saveDocuments).not.toHaveBeenCalled();
-    },
-  );
+  ])('validates required generation input before spending', async (dto, detail) => {
+    await expect(service.generate(user, dto, request)).rejects.toMatchObject({
+      response: { detail },
+      status: HttpStatus.BAD_REQUEST,
+    });
+    expect(shared.saveDocuments).not.toHaveBeenCalled();
+  });
 
   it('creates, renders, settles, and returns a generated voice', async () => {
     const result = await service.generate(

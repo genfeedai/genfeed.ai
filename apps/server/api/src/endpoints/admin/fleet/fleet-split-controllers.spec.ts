@@ -130,23 +130,20 @@ describe('Admin Fleet split controllers', () => {
       'infrastructure/fleet/health',
       RequestMethod.GET,
     ],
-  ] as const)(
-    'preserves %s.%s route and OpenAPI identity',
-    (controllerClass, methodName, path, requestMethod) => {
-      const handler = Reflect.get(
-        controllerClass.prototype,
-        methodName,
-      ) as object;
+  ] as const)('preserves %s.%s route and OpenAPI identity', (controllerClass, methodName, path, requestMethod) => {
+    const handler = Reflect.get(
+      controllerClass.prototype,
+      methodName,
+    ) as object;
 
-      expect(Reflect.getMetadata(PATH_METADATA, controllerClass)).toEqual([
-        'admin/fleet',
-        'admin/darkroom',
-      ]);
-      expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
-      expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(requestMethod);
-      expect(controllerClass.name).toBe('AdminFleetController');
-    },
-  );
+    expect(Reflect.getMetadata(PATH_METADATA, controllerClass)).toEqual([
+      'admin/fleet',
+      'admin/darkroom',
+    ]);
+    expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
+    expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(requestMethod);
+    expect(controllerClass.name).toBe('AdminFleetController');
+  });
 
   it.each([
     AdminFleetMediaController,

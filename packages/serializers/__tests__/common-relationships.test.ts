@@ -197,24 +197,22 @@ describe('common-relationships', () => {
       { name: 'BRAND_MINIMAL_REL', rel: BRAND_MINIMAL_REL },
     ];
 
-    test.each(allRelationships)(
-      '$name should have required properties',
-      ({ rel }) => {
-        expect(rel).toHaveProperty('type');
-        expect(rel).toHaveProperty('ref');
-        expect(rel).toHaveProperty('attributes');
-        expect(typeof rel.type).toBe('string');
-        expect(rel.ref).toBe('id');
-        expect(Array.isArray(rel.attributes)).toBe(true);
-      },
-    );
+    test.each(allRelationships)('$name should have required properties', ({
+      rel,
+    }) => {
+      expect(rel).toHaveProperty('type');
+      expect(rel).toHaveProperty('ref');
+      expect(rel).toHaveProperty('attributes');
+      expect(typeof rel.type).toBe('string');
+      expect(rel.ref).toBe('id');
+      expect(Array.isArray(rel.attributes)).toBe(true);
+    });
 
-    test.each(allRelationships)(
-      '$name should have non-empty type',
-      ({ rel }) => {
-        expect(rel.type.length).toBeGreaterThan(0);
-      },
-    );
+    test.each(allRelationships)('$name should have non-empty type', ({
+      rel,
+    }) => {
+      expect(rel.type.length).toBeGreaterThan(0);
+    });
   });
 
   describe('Spread Usage Pattern', () => {

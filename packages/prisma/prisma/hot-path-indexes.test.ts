@@ -33,17 +33,16 @@ const hotPathIndexes = [
 ] as const;
 
 describe('app shell hot-path Prisma indexes', () => {
-  it.each(hotPathIndexes)(
-    'keeps %s in schema and migration source',
-    (indexName) => {
-      expect(schemaSource).toContain(`map: "${indexName}"`);
-      // Built CONCURRENTLY so the deploy never ACCESS EXCLUSIVE-locks these hot
-      // tables. Guardrail: a plain `CREATE INDEX` regression must fail CI.
-      expect(migrationSource).toContain(
-        `CREATE INDEX CONCURRENTLY "${indexName}"`,
-      );
-    },
-  );
+  it.each(
+    hotPathIndexes,
+  )('keeps %s in schema and migration source', (indexName) => {
+    expect(schemaSource).toContain(`map: "${indexName}"`);
+    // Built CONCURRENTLY so the deploy never ACCESS EXCLUSIVE-locks these hot
+    // tables. Guardrail: a plain `CREATE INDEX` regression must fail CI.
+    expect(migrationSource).toContain(
+      `CREATE INDEX CONCURRENTLY "${indexName}"`,
+    );
+  });
 });
 
 // UNIQUE indexes added in #1194 (#1185) on hot, continuously-written tables

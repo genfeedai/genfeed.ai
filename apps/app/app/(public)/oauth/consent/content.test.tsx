@@ -135,36 +135,33 @@ describe('OAuthConsentPage', () => {
   it.each<[string, boolean]>([
     ['Authorize', true],
     ['Deny', false],
-  ])(
-    'posts the %s decision and performs a full redirect',
-    async (label, approved) => {
-      globalThis.fetch = vi.fn(async () => {
-        return new Response(
-          JSON.stringify({
-            redirectUrl: 'https://claude.ai/oauth/callback?code=one-time',
-          }),
-          { headers: { 'content-type': 'application/json' }, status: 200 },
-        );
-      }) as typeof fetch;
+  ])('posts the %s decision and performs a full redirect', async (label, approved) => {
+    globalThis.fetch = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          redirectUrl: 'https://claude.ai/oauth/callback?code=one-time',
+        }),
+        { headers: { 'content-type': 'application/json' }, status: 200 },
+      );
+    }) as typeof fetch;
 
-      render(<OAuthConsentPage />);
-      fireEvent.click(screen.getByRole('button', { name: label }));
+    render(<OAuthConsentPage />);
+    fireEvent.click(screen.getByRole('button', { name: label }));
 
-      await waitFor(() => {
-        expect(globalThis.fetch).toHaveBeenCalledWith(
-          'https://api.genfeed.ai/v1/oauth/authorize/decision',
-          expect.objectContaining({
-            body: expect.stringContaining(`"approved":${approved}`),
-            headers: expect.objectContaining({
-              Authorization: 'Bearer session-token',
-            }),
-            method: 'POST',
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        'https://api.genfeed.ai/v1/oauth/authorize/decision',
+        expect.objectContaining({
+          body: expect.stringContaining(`"approved":${approved}`),
+          headers: expect.objectContaining({
+            Authorization: 'Bearer session-token',
           }),
-        );
-        expect(redirectMock).toHaveBeenCalledWith(
-          'https://claude.ai/oauth/callback?code=one-time',
-        );
-      });
-    },
-  );
+          method: 'POST',
+        }),
+      );
+      expect(redirectMock).toHaveBeenCalledWith(
+        'https://claude.ai/oauth/callback?code=one-time',
+      );
+    });
+  });
 });

@@ -134,31 +134,31 @@ describe('AgentArtifactReferenceService', () => {
       },
       kind: 'post',
     },
-  ])(
-    'resolves and serializes an authorized $kind record',
-    async ({ fixture, kind }) => {
-      prisma[
-        kind === 'content-draft' ? 'contentDraft' : kind
-      ].findFirst.mockResolvedValue(fixture);
-      if (kind === 'asset') {
-        prisma.brand.findFirst.mockResolvedValue({
-          id: brandId,
-          organizationId: orgId,
-        });
-      }
-
-      const result = await service.resolveReference(reference(kind), {
-        brandId,
+  ])('resolves and serializes an authorized $kind record', async ({
+    fixture,
+    kind,
+  }) => {
+    prisma[
+      kind === 'content-draft' ? 'contentDraft' : kind
+    ].findFirst.mockResolvedValue(fixture);
+    if (kind === 'asset') {
+      prisma.brand.findFirst.mockResolvedValue({
+        id: brandId,
         organizationId: orgId,
       });
+    }
 
-      expect(result).toMatchObject({
-        reference: { kind, recordId: `${kind}-1` },
-        serialized: { data: { id: `${kind}-1` } },
-        source: 'canonical',
-      });
-    },
-  );
+    const result = await service.resolveReference(reference(kind), {
+      brandId,
+      organizationId: orgId,
+    });
+
+    expect(result).toMatchObject({
+      reference: { kind, recordId: `${kind}-1` },
+      serialized: { data: { id: `${kind}-1` } },
+      source: 'canonical',
+    });
+  });
 
   it('rejects forged reference scope before returning the canonical record', async () => {
     prisma.post.findFirst.mockResolvedValue({

@@ -15,14 +15,17 @@ describe('scopedWhere', () => {
     });
   });
 
-  it.each(['', null, undefined, false, 0])(
-    'rejects a falsy organization id (%s)',
-    (organizationId) => {
-      expect(() =>
-        scopedWhere(organizationId as unknown as string),
-      ).toThrowError('scopedWhere: organizationId is required');
-    },
-  );
+  it.each([
+    '',
+    null,
+    undefined,
+    false,
+    0,
+  ])('rejects a falsy organization id (%s)', (organizationId) => {
+    expect(() => scopedWhere(organizationId as unknown as string)).toThrowError(
+      'scopedWhere: organizationId is required',
+    );
+  });
 });
 
 describe('brandScope', () => {
@@ -30,10 +33,11 @@ describe('brandScope', () => {
     expect(brandScope('brand-1')).toEqual({ brandId: 'brand-1' });
   });
 
-  it.each([null, undefined, ''])(
-    'returns an empty filter for an absent brand id (%s)',
-    (brandId) => {
-      expect(brandScope(brandId)).toEqual({});
-    },
-  );
+  it.each([
+    null,
+    undefined,
+    '',
+  ])('returns an empty filter for an absent brand id (%s)', (brandId) => {
+    expect(brandScope(brandId)).toEqual({});
+  });
 });

@@ -354,68 +354,65 @@ describe('OrganizationsController', () => {
       SubscriptionTier.FREE,
       SubscriptionTier.BYOK,
       SubscriptionTier.PRO,
-    ])(
-      'blocks %s after the single organization limit is reached',
-      async (tier) => {
-        mockOrganizationSettingsService.findOne.mockResolvedValue({
-          subscriptionTier: tier,
-        });
-        mockOrganizationsService.count.mockResolvedValue(
-          SINGLE_ORGANIZATION_LIMIT,
-        );
+    ])('blocks %s after the single organization limit is reached', async (tier) => {
+      mockOrganizationSettingsService.findOne.mockResolvedValue({
+        subscriptionTier: tier,
+      });
+      mockOrganizationsService.count.mockResolvedValue(
+        SINGLE_ORGANIZATION_LIMIT,
+      );
 
-        await expect(
-          controller.createOrganization({ label: 'Second Org' }, currentUser),
-        ).rejects.toMatchObject({
-          response: {
-            code: 'PLAN_LIMIT_EXCEEDED',
-            meta: {
-              currentCount: SINGLE_ORGANIZATION_LIMIT,
-              limit: SINGLE_ORGANIZATION_LIMIT,
-              resource: 'organizations',
-              upgradeTier: SubscriptionTier.SCALE,
-            },
+      await expect(
+        controller.createOrganization({ label: 'Second Org' }, currentUser),
+      ).rejects.toMatchObject({
+        response: {
+          code: 'PLAN_LIMIT_EXCEEDED',
+          meta: {
+            currentCount: SINGLE_ORGANIZATION_LIMIT,
+            limit: SINGLE_ORGANIZATION_LIMIT,
+            resource: 'organizations',
+            upgradeTier: SubscriptionTier.SCALE,
           },
-          status: 403,
-        });
-        expect(mockOrganizationsService.create).not.toHaveBeenCalled();
-        expect(mockBrandsService.create).not.toHaveBeenCalled();
-      },
-    );
+        },
+        status: 403,
+      });
+      expect(mockOrganizationsService.create).not.toHaveBeenCalled();
+      expect(mockBrandsService.create).not.toHaveBeenCalled();
+    });
 
-    it.each([SubscriptionTier.SCALE, SubscriptionTier.ENTERPRISE])(
-      'allows additional organizations for %s',
-      async (tier) => {
-        mockOrganizationSettingsService.findOne.mockResolvedValue({
-          subscriptionTier: tier,
-        });
+    it.each([
+      SubscriptionTier.SCALE,
+      SubscriptionTier.ENTERPRISE,
+    ])('allows additional organizations for %s', async (tier) => {
+      mockOrganizationSettingsService.findOne.mockResolvedValue({
+        subscriptionTier: tier,
+      });
 
-        const result = await controller.createOrganization(
-          { description: 'Desc', label: 'New Org' },
-          currentUser,
-        );
+      const result = await controller.createOrganization(
+        { description: 'Desc', label: 'New Org' },
+        currentUser,
+      );
 
-        expect(result).toEqual({
-          brand: { id: 'brand_new', label: 'New Org' },
-          organization: { id: 'org_new', label: 'New Org' },
-        });
-        expect(mockOrganizationsService.count).not.toHaveBeenCalled();
-        expect(mockOrganizationsService.create).toHaveBeenCalledWith(
-          expect.objectContaining({
-            label: 'New Org',
-            slug: 'new-org',
-            userId: 'user_1',
-          }),
-        );
-        expect(mockMembersService.create).toHaveBeenCalledWith(
-          expect.objectContaining({
-            organizationId: 'org_new',
-            roleId: 'role_admin',
-            userId: 'user_1',
-          }),
-        );
-      },
-    );
+      expect(result).toEqual({
+        brand: { id: 'brand_new', label: 'New Org' },
+        organization: { id: 'org_new', label: 'New Org' },
+      });
+      expect(mockOrganizationsService.count).not.toHaveBeenCalled();
+      expect(mockOrganizationsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          label: 'New Org',
+          slug: 'new-org',
+          userId: 'user_1',
+        }),
+      );
+      expect(mockMembersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organizationId: 'org_new',
+          roleId: 'role_admin',
+          userId: 'user_1',
+        }),
+      );
+    });
   });
 
   // Organization rows carry no `organizationId`/`brandId` pointer, so the base

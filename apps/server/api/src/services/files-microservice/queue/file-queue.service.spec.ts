@@ -234,18 +234,15 @@ describe('FileQueueService', () => {
     it.each([
       [404, NotFoundException],
       [409, ConflictException],
-    ])(
-      'maps an upstream %i cancellation race to a domain exception',
-      async (status, ExceptionType) => {
-        vi.spyOn(httpService, 'post').mockReturnValue(
-          throwError(() => ({ response: { status } })),
-        );
+    ])('maps an upstream %i cancellation race to a domain exception', async (status, ExceptionType) => {
+      vi.spyOn(httpService, 'post').mockReturnValue(
+        throwError(() => ({ response: { status } })),
+      );
 
-        await expect(
-          service.cancelEditorRender('job_123'),
-        ).rejects.toBeInstanceOf(ExceptionType);
-      },
-    );
+      await expect(
+        service.cancelEditorRender('job_123'),
+      ).rejects.toBeInstanceOf(ExceptionType);
+    });
   });
 
   describe('waitForJob', () => {

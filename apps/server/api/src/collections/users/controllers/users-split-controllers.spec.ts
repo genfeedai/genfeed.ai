@@ -23,27 +23,22 @@ describe('Users split controllers', () => {
     ],
     ['updateBrandSelection', 'me/brands/:brandId', RequestMethod.PATCH],
     ['updateSettings', ':userId/settings', RequestMethod.PATCH],
-  ] as const)(
-    'preserves %s route and OpenAPI metadata',
-    (methodName, path, method) => {
-      const handler = Reflect.get(
-        UsersRelationshipsController.prototype,
-        methodName,
-      ) as object;
+  ] as const)('preserves %s route and OpenAPI metadata', (methodName, path, method) => {
+    const handler = Reflect.get(
+      UsersRelationshipsController.prototype,
+      methodName,
+    ) as object;
 
-      expect(
-        Reflect.getMetadata(PATH_METADATA, UsersRelationshipsController),
-      ).toBe('users');
-      expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
-      expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(method);
-      expect(
-        Reflect.getMetadata('swagger/apiOperation', handler),
-      ).toMatchObject({
-        operationId: `UsersController.${methodName}`,
-        summary: methodName,
-      });
-    },
-  );
+    expect(
+      Reflect.getMetadata(PATH_METADATA, UsersRelationshipsController),
+    ).toBe('users');
+    expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
+    expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(method);
+    expect(Reflect.getMetadata('swagger/apiOperation', handler)).toMatchObject({
+      operationId: `UsersController.${methodName}`,
+      summary: methodName,
+    });
+  });
 
   it('preserves the shared users role guard', () => {
     expect(

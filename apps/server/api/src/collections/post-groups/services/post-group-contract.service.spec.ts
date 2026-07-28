@@ -151,33 +151,30 @@ describe('PostGroupContractService', () => {
     ['brand', { brandId: 'brand-2' }],
     ['platform', { platform: CredentialPlatform.LINKEDIN }],
     ['target', { postId: 'target-2' }],
-  ])(
-    'rejects an analytics row from a different %s scope',
-    (_scope, overrides) => {
-      const group = makeGroup();
-      const target = makeTarget();
-      const analytics = makeAnalytics(overrides);
+  ])('rejects an analytics row from a different %s scope', (_scope, overrides) => {
+    const group = makeGroup();
+    const target = makeTarget();
+    const analytics = makeAnalytics(overrides);
 
-      const release = service.toReleaseGroup(
-        group,
-        [target],
-        new Map([[target.id, analytics]]),
-      );
+    const release = service.toReleaseGroup(
+      group,
+      [target],
+      new Map([[target.id, analytics]]),
+    );
 
-      expect(release.targets?.[0]?.analytics).toEqual({
-        collection: {
-          capability: TargetAnalyticsCapability.SUPPORTED,
-          error: null,
-          freshness: TargetAnalyticsFreshness.UNAVAILABLE,
-          lastCollectedAt: null,
-          requestedAt: null,
-          state: TargetAnalyticsCollectionState.UNAVAILABLE,
-        },
-        snapshot: null,
-        state: 'unavailable',
-      });
-    },
-  );
+    expect(release.targets?.[0]?.analytics).toEqual({
+      collection: {
+        capability: TargetAnalyticsCapability.SUPPORTED,
+        error: null,
+        freshness: TargetAnalyticsFreshness.UNAVAILABLE,
+        lastCollectedAt: null,
+        requestedAt: null,
+        state: TargetAnalyticsCollectionState.UNAVAILABLE,
+      },
+      snapshot: null,
+      state: 'unavailable',
+    });
+  });
 
   it('preserves the last-good snapshot while surfacing a retryable failure', () => {
     vi.setSystemTime(new Date('2026-07-21T14:00:00.000Z'));

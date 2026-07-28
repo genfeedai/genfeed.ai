@@ -97,20 +97,17 @@ describe('MemberCreditsGuard', () => {
     SubscriptionTier.PRO,
     SubscriptionTier.SCALE,
     SubscriptionTier.ENTERPRISE,
-  ])(
-    'allows adding members past stored seatsLimit on unlimited-seat %s',
-    async (subscriptionTier) => {
-      organizationSettingsService.findOne.mockResolvedValue({
-        seatsLimit: 1,
-        subscriptionTier,
-      });
-      membersService.findAll.mockResolvedValue({
-        docs: new Array(50).fill({}),
-      });
+  ])('allows adding members past stored seatsLimit on unlimited-seat %s', async (subscriptionTier) => {
+    organizationSettingsService.findOne.mockResolvedValue({
+      seatsLimit: 1,
+      subscriptionTier,
+    });
+    membersService.findAll.mockResolvedValue({
+      docs: new Array(50).fill({}),
+    });
 
-      await expect(guard.canActivate(createContext())).resolves.toBe(true);
-    },
-  );
+    await expect(guard.canActivate(createContext())).resolves.toBe(true);
+  });
 
   it('blocks with ForbiddenException once an unlimited-seat org hits the fair-use ceiling', async () => {
     organizationSettingsService.findOne.mockResolvedValue({

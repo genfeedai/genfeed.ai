@@ -478,54 +478,51 @@ describe('PublishApprovalsService', () => {
   it.each([
     [true, PublishApprovalStatus.PUBLISHED, 'success'],
     [false, PublishApprovalStatus.FAILED, 'failure'],
-  ] as const)(
-    'records provider completion telemetry for success=%s',
-    async (isSuccess, completedStatus, outcome) => {
-      const executionStartedAt = new Date();
-      const executing = makeApproval({
-        status: PublishApprovalStatus.EXECUTING,
-        updatedAt: executionStartedAt,
-      });
-      const completed = makeApproval({ status: completedStatus });
-      const publishApproval = {
-        findFirst: vi
-          .fn()
-          .mockResolvedValueOnce(executing)
-          .mockResolvedValueOnce(completed),
-        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-      };
-      const logger = { log: vi.fn() };
-      const service = new PublishApprovalsService(
-        { publishApproval } as never,
-        {} as AgentArtifactReferenceService,
-        logger as never,
-      );
+  ] as const)('records provider completion telemetry for success=%s', async (isSuccess, completedStatus, outcome) => {
+    const executionStartedAt = new Date();
+    const executing = makeApproval({
+      status: PublishApprovalStatus.EXECUTING,
+      updatedAt: executionStartedAt,
+    });
+    const completed = makeApproval({ status: completedStatus });
+    const publishApproval = {
+      findFirst: vi
+        .fn()
+        .mockResolvedValueOnce(executing)
+        .mockResolvedValueOnce(completed),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    };
+    const logger = { log: vi.fn() };
+    const service = new PublishApprovalsService(
+      { publishApproval } as never,
+      {} as AgentArtifactReferenceService,
+      logger as never,
+    );
 
-      await service.completeExecution({
-        approvalId: 'approval-1',
-        ...(!isSuccess ? { error: 'provider failed' } : {}),
-        executionStartedAt: executionStartedAt.toISOString(),
-        isSuccessful: isSuccess,
-        operationId: 'operation-1',
-        organizationId: 'org-1',
-        versionPinId: 'pin-1',
-      });
+    await service.completeExecution({
+      approvalId: 'approval-1',
+      ...(!isSuccess ? { error: 'provider failed' } : {}),
+      executionStartedAt: executionStartedAt.toISOString(),
+      isSuccessful: isSuccess,
+      operationId: 'operation-1',
+      organizationId: 'org-1',
+      versionPinId: 'pin-1',
+    });
 
-      expect(publishApproval.updateMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ status: completedStatus }),
-        }),
-      );
-      expect(logger.log).toHaveBeenCalledWith('conversation_shell_approval', {
-        action: 'execute',
-        integrity: 'matched',
-        organizationId: 'org-1',
-        origin: ActionOrigin.UNKNOWN,
-        outcome,
-        telemetryQueryVersion: 1,
-      });
-    },
-  );
+    expect(publishApproval.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: completedStatus }),
+      }),
+    );
+    expect(logger.log).toHaveBeenCalledWith('conversation_shell_approval', {
+      action: 'execute',
+      integrity: 'matched',
+      organizationId: 'org-1',
+      origin: ActionOrigin.UNKNOWN,
+      outcome,
+      telemetryQueryVersion: 1,
+    });
+  });
 
   it('allows only one queued execution claimant', async () => {
     const approval = makeApproval({ scopeDigest: scopeDigest() });

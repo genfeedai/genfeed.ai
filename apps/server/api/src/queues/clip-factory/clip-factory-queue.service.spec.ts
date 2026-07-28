@@ -194,17 +194,18 @@ describe('ClipFactoryQueueService', () => {
       expect(queue.add).not.toHaveBeenCalled();
     });
 
-    it.each(['did', 'tavus', 'musetalk'] as const)(
-      'should reject unsupported avatar provider %s before queueing',
-      async (avatarProvider) => {
-        await expect(
-          service.enqueue(
-            makeJobData({ avatarProvider: avatarProvider as never }),
-          ),
-        ).rejects.toBeInstanceOf(BadRequestException);
+    it.each([
+      'did',
+      'tavus',
+      'musetalk',
+    ] as const)('should reject unsupported avatar provider %s before queueing', async (avatarProvider) => {
+      await expect(
+        service.enqueue(
+          makeJobData({ avatarProvider: avatarProvider as never }),
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
 
-        expect(queue.add).not.toHaveBeenCalled();
-      },
-    );
+      expect(queue.add).not.toHaveBeenCalled();
+    });
   });
 });

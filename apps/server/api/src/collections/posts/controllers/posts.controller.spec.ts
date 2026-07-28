@@ -260,27 +260,24 @@ describe('PostsController.patch publishing scopes', () => {
       [ApiKeyScope.POSTS_SCHEDULE],
       ApiKeyScope.POSTS_PUBLISH,
     ],
-  ])(
-    'fails closed before writes when %s',
-    async (_case, existingStatus, updateDto, scopes, requiredScope) => {
-      const { controller, postsService } = makeController(existingStatus);
+  ])('fails closed before writes when %s', async (_case, existingStatus, updateDto, scopes, requiredScope) => {
+    const { controller, postsService } = makeController(existingStatus);
 
-      await expect(
-        controller.patch(
-          request,
-          makeUser({ isApiKey: true, scopes }),
-          postId,
-          updateDto,
-        ),
-      ).rejects.toMatchObject({
-        response: expect.objectContaining({
-          code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
-          requiredScopes: [requiredScope],
-        }),
-      });
-      expect(postsService.patch).not.toHaveBeenCalled();
-    },
-  );
+    await expect(
+      controller.patch(
+        request,
+        makeUser({ isApiKey: true, scopes }),
+        postId,
+        updateDto,
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+        requiredScopes: [requiredScope],
+      }),
+    });
+    expect(postsService.patch).not.toHaveBeenCalled();
+  });
 });
 
 describe('PostsController.findAll (#1223)', () => {

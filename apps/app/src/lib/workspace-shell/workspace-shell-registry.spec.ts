@@ -119,15 +119,12 @@ describe('workspace shell trusted registry', () => {
       'Campaign',
     ],
     ['/acme/moonrise/orchestration/library/images', 'Workflows', 'Images'],
-  ] as const)(
-    'resolves canonical breadcrumb metadata for %s',
-    (pathname, rootLabel, leafLabel) => {
-      expect(resolveWorkspaceShellRoute(pathname)?.breadcrumb).toEqual({
-        leafLabel,
-        rootLabel,
-      });
-    },
-  );
+  ] as const)('resolves canonical breadcrumb metadata for %s', (pathname, rootLabel, leafLabel) => {
+    expect(resolveWorkspaceShellRoute(pathname)?.breadcrumb).toEqual({
+      leafLabel,
+      rootLabel,
+    });
+  });
 
   it.each([
     ['/:orgSlug/:brandSlug/posts/calendar', 'canvas'],

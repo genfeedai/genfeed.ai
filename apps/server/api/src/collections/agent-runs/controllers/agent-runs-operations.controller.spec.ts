@@ -44,20 +44,15 @@ describe('AgentRunsOperationsController', () => {
       ':id/retries',
       'AgentRunsController.retryRun',
     ],
-  ])(
-    'preserves route and operation metadata for %s',
-    (_name, handler, path, operationId) => {
-      expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
-      expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(
-        RequestMethod.POST,
-      );
-      expect(
-        Reflect.getMetadata('swagger/apiOperation', handler),
-      ).toMatchObject({
-        operationId,
-      });
-    },
-  );
+  ])('preserves route and operation metadata for %s', (_name, handler, path, operationId) => {
+    expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
+    expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(
+      RequestMethod.POST,
+    );
+    expect(Reflect.getMetadata('swagger/apiOperation', handler)).toMatchObject({
+      operationId,
+    });
+  });
 
   it('delegates cancellation with authenticated scope', async () => {
     const run = { id: 'run1', status: 'cancelled' };

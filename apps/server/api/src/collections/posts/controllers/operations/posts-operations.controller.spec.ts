@@ -386,22 +386,19 @@ Tweet 3: Tech innovation is changing the world.`,
     ['enhancePost', ':postId/enhancements'],
     ['scoreSeo', ':postId/seo-scores'],
     ['generateHookVariations', 'hook-generations'],
-  ] as const)(
-    'keeps %s registered as POST /posts/%s on the generation controller',
-    (methodName, path) => {
-      const handler = PostsGenerationController.prototype[methodName];
+  ] as const)('keeps %s registered as POST /posts/%s on the generation controller', (methodName, path) => {
+    const handler = PostsGenerationController.prototype[methodName];
 
-      expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
-      expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(
-        RequestMethod.POST,
-      );
-      expect(
-        PostsOperationsController.prototype[
-          methodName as keyof PostsOperationsController
-        ],
-      ).toBeUndefined();
-    },
-  );
+    expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
+    expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(
+      RequestMethod.POST,
+    );
+    expect(
+      PostsOperationsController.prototype[
+        methodName as keyof PostsOperationsController
+      ],
+    ).toBeUndefined();
+  });
 
   it('keeps the shared posts route prefix and role guard', () => {
     expect(Reflect.getMetadata(PATH_METADATA, PostsGenerationController)).toBe(
@@ -423,20 +420,17 @@ Tweet 3: Tech innovation is changing the world.`,
     'enhancePost',
     'scoreSeo',
     'generateHookVariations',
-  ] as const)(
-    'preserves credits guards and interceptor on %s',
-    (methodName) => {
-      const handler = PostsGenerationController.prototype[methodName];
+  ] as const)('preserves credits guards and interceptor on %s', (methodName) => {
+    const handler = PostsGenerationController.prototype[methodName];
 
-      expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toEqual([
-        SubscriptionGuard,
-        CreditsGuard,
-      ]);
-      expect(Reflect.getMetadata(INTERCEPTORS_METADATA, handler)).toEqual([
-        CreditsInterceptor,
-      ]);
-    },
-  );
+    expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toEqual([
+      SubscriptionGuard,
+      CreditsGuard,
+    ]);
+    expect(Reflect.getMetadata(INTERCEPTORS_METADATA, handler)).toEqual([
+      CreditsInterceptor,
+    ]);
+  });
 
   // ==========================================================================
   // POST /posts/account-generations - generateAccountContent (post format)
@@ -816,25 +810,22 @@ Tweet 3: Tech innovation is changing the world.`,
       ['a missing scope list', []],
       ['the legacy draft scope', [ApiKeyScope.POSTS_CREATE]],
       ['a whitespace-prefixed scope', [` ${ApiKeyScope.POSTS_SCHEDULE}`]],
-    ])(
-      'rejects API-key batch scheduling with %s before reads or writes',
-      async (_case, scopes) => {
-        await expect(
-          controller.batchUpdate(
-            mockRequest,
-            batchScheduleDto,
-            apiKeyUser(scopes),
-          ),
-        ).rejects.toMatchObject({
-          response: expect.objectContaining({
-            code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
-            requiredScopes: [ApiKeyScope.POSTS_SCHEDULE],
-          }),
-        });
-        expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
-        expect(mockPostsService.batchSchedule).not.toHaveBeenCalled();
-      },
-    );
+    ])('rejects API-key batch scheduling with %s before reads or writes', async (_case, scopes) => {
+      await expect(
+        controller.batchUpdate(
+          mockRequest,
+          batchScheduleDto,
+          apiKeyUser(scopes),
+        ),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+          requiredScopes: [ApiKeyScope.POSTS_SCHEDULE],
+        }),
+      });
+      expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
+      expect(mockPostsService.batchSchedule).not.toHaveBeenCalled();
+    });
 
     it('should record every scheduled activity in one insert', async () => {
       await controller.batchUpdate(mockRequest, batchScheduleDto, mockUser);
@@ -935,25 +926,22 @@ Tweet 3: Tech innovation is changing the world.`,
         [ApiKeyScope.POSTS_SCHEDULE],
         [ApiKeyScope.POSTS_PUBLISH],
       ],
-    ])(
-      'rejects API-key %s before reads or writes',
-      async (_case, status, scopes, requiredScopes) => {
-        await expect(
-          controller.addThreadReply(mockRequest, apiKeyUser(scopes), postId, {
-            ...createPostDto,
-            status,
-          }),
-        ).rejects.toMatchObject({
-          response: expect.objectContaining({
-            code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
-            requiredScopes,
-          }),
-        });
-        expect(mockPostsService.findOne).not.toHaveBeenCalled();
-        expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
-        expect(mockPostsService.addThreadReply).not.toHaveBeenCalled();
-      },
-    );
+    ])('rejects API-key %s before reads or writes', async (_case, status, scopes, requiredScopes) => {
+      await expect(
+        controller.addThreadReply(mockRequest, apiKeyUser(scopes), postId, {
+          ...createPostDto,
+          status,
+        }),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+          requiredScopes,
+        }),
+      });
+      expect(mockPostsService.findOne).not.toHaveBeenCalled();
+      expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
+      expect(mockPostsService.addThreadReply).not.toHaveBeenCalled();
+    });
 
     it('should throw NOT_FOUND when parent post not found', async () => {
       mockPostsService.findOne.mockResolvedValueOnce(null);

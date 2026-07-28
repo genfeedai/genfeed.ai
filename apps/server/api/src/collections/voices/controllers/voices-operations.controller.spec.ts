@@ -67,15 +67,10 @@ describe('VoicesOperationsController', () => {
   it.each([
     ['generate', VoicesOperationsController.prototype.generate],
     ['cloneVoice', VoicesOperationsController.prototype.cloneVoice],
-  ])(
-    'preserves the public VoicesController operation id for %s',
-    (name, handler) => {
-      expect(
-        Reflect.getMetadata('swagger/apiOperation', handler),
-      ).toMatchObject({
-        operationId: `VoicesController.${name}`,
-        summary: name,
-      });
-    },
-  );
+  ])('preserves the public VoicesController operation id for %s', (name, handler) => {
+    expect(Reflect.getMetadata('swagger/apiOperation', handler)).toMatchObject({
+      operationId: `VoicesController.${name}`,
+      summary: name,
+    });
+  });
 });

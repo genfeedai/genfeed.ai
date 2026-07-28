@@ -135,25 +135,26 @@ describe('SocketService', () => {
       expect(mockLogger.warn).not.toHaveBeenCalled();
     });
 
-    it.each(['ping timeout', 'transport close', 'transport error'])(
-      'records %s as an automatically recovering interruption',
-      (reason) => {
-        SocketService.getInstance();
+    it.each([
+      'ping timeout',
+      'transport close',
+      'transport error',
+    ])('records %s as an automatically recovering interruption', (reason) => {
+      SocketService.getInstance();
 
-        socketState.active = true;
-        socketEventHandlers.get('disconnect')?.(reason);
+      socketState.active = true;
+      socketEventHandlers.get('disconnect')?.(reason);
 
-        expect(mockLogger.info).toHaveBeenCalledWith(
-          'Socket connection interrupted',
-          {
-            expected: false,
-            reason,
-            recovery: 'automatic',
-          },
-        );
-        expect(mockLogger.warn).not.toHaveBeenCalled();
-      },
-    );
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'Socket connection interrupted',
+        {
+          expected: false,
+          reason,
+          recovery: 'automatic',
+        },
+      );
+      expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
 
     it('keeps server-forced disconnects observable with bounded context', () => {
       SocketService.getInstance();

@@ -246,14 +246,15 @@ describe('PlatformBreakdownChart', () => {
       },
     ];
 
-    it.each(allPlatforms)(
-      'renders $platform with correct color',
-      ({ platform, value, expectedColor }) => {
-        render(<PlatformBreakdownChart data={[{ platform, value }]} />);
-        const cell = screen.getByTestId('cell');
-        expect(cell).toHaveAttribute('data-fill', expectedColor);
-      },
-    );
+    it.each(allPlatforms)('renders $platform with correct color', ({
+      platform,
+      value,
+      expectedColor,
+    }) => {
+      render(<PlatformBreakdownChart data={[{ platform, value }]} />);
+      const cell = screen.getByTestId('cell');
+      expect(cell).toHaveAttribute('data-fill', expectedColor);
+    });
   });
 
   describe('Case Insensitivity', () => {

@@ -135,14 +135,15 @@ describe('createPathSecurity', () => {
       );
     });
 
-    it.each(['~/secrets', '$HOME/file', '%USERPROFILE%\\x'])(
-      'blocks home/env expansion in %s',
-      (badPath) => {
-        expect(() => security.validateFilePath(badPath)).toThrow(
-          'forbidden pattern',
-        );
-      },
-    );
+    it.each([
+      '~/secrets',
+      '$HOME/file',
+      '%USERPROFILE%\\x',
+    ])('blocks home/env expansion in %s', (badPath) => {
+      expect(() => security.validateFilePath(badPath)).toThrow(
+        'forbidden pattern',
+      );
+    });
 
     it.each([
       // biome-ignore lint/suspicious/noTemplateCurlyInString: testing shell expansion pattern
@@ -187,12 +188,15 @@ describe('createPathSecurity', () => {
   });
 
   describe('validateFileExtension', () => {
-    it.each(['video.mp4', 'video.MOV', 'image.png', 'audio.mp3', 'x.webp'])(
-      'accepts allowed extension in %s',
-      (name) => {
-        expect(() => security.validateFileExtension(name)).not.toThrow();
-      },
-    );
+    it.each([
+      'video.mp4',
+      'video.MOV',
+      'image.png',
+      'audio.mp3',
+      'x.webp',
+    ])('accepts allowed extension in %s', (name) => {
+      expect(() => security.validateFileExtension(name)).not.toThrow();
+    });
 
     it('rejects a file with no extension', () => {
       expect(() => security.validateFileExtension('file')).toThrow(
@@ -200,14 +204,16 @@ describe('createPathSecurity', () => {
       );
     });
 
-    it.each(['file.exe', 'file.sh', 'file.bat', 'file.php'])(
-      'rejects disallowed extension %s',
-      (name) => {
-        expect(() => security.validateFileExtension(name)).toThrow(
-          'is not allowed',
-        );
-      },
-    );
+    it.each([
+      'file.exe',
+      'file.sh',
+      'file.bat',
+      'file.php',
+    ])('rejects disallowed extension %s', (name) => {
+      expect(() => security.validateFileExtension(name)).toThrow(
+        'is not allowed',
+      );
+    });
 
     it('honors a custom allowed-extension list', () => {
       const restricted = createPathSecurity({
@@ -393,23 +399,26 @@ describe('createPathSecurity', () => {
       ).toThrow('100 characters or less');
     });
 
-    it.each(['../clip', '..\\clip', 'nested/clip', 'nested\\clip'])(
-      'rejects filename path components: %s',
-      (filename) => {
-        expect(() =>
-          security.createSecureTempPath('/tmp', filename, '.mp4'),
-        ).toThrow('filename must be a single path component');
-      },
-    );
+    it.each([
+      '../clip',
+      '..\\clip',
+      'nested/clip',
+      'nested\\clip',
+    ])('rejects filename path components: %s', (filename) => {
+      expect(() =>
+        security.createSecureTempPath('/tmp', filename, '.mp4'),
+      ).toThrow('filename must be a single path component');
+    });
 
-    it.each(['../../mp4', '/../../evil.mp4', '.mp4/../../evil'])(
-      'rejects extension path components: %s',
-      (extension) => {
-        expect(() =>
-          security.createSecureTempPath('/tmp', 'clip', extension),
-        ).toThrow('extension must be a single file extension');
-      },
-    );
+    it.each([
+      '../../mp4',
+      '/../../evil.mp4',
+      '.mp4/../../evil',
+    ])('rejects extension path components: %s', (extension) => {
+      expect(() =>
+        security.createSecureTempPath('/tmp', 'clip', extension),
+      ).toThrow('extension must be a single file extension');
+    });
 
     it('generates a fresh path on every call', () => {
       const a = security.createSecureTempPath('/tmp', 'clip', '.mp4');
@@ -429,12 +438,16 @@ describe('createPathSecurity', () => {
 });
 
 describe('assertSafeSegment', () => {
-  it.each(['alice_lora', 'alice-lora', 'Alice_Zimage', 'v2.1', 'a', '0'])(
-    'accepts single-segment identifiers: %s',
-    (value) => {
-      expect(assertSafeSegment(value, 'loraName', createError)).toBe(value);
-    },
-  );
+  it.each([
+    'alice_lora',
+    'alice-lora',
+    'Alice_Zimage',
+    'v2.1',
+    'a',
+    '0',
+  ])('accepts single-segment identifiers: %s', (value) => {
+    expect(assertSafeSegment(value, 'loraName', createError)).toBe(value);
+  });
 
   it.each([
     '',

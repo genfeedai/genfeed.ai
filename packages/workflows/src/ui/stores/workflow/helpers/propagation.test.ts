@@ -130,12 +130,14 @@ describe('getNodeOutput', () => {
 /* -------------------------------------------------------------------------- */
 
 describe('getOutputType', () => {
-  it.each(['prompt', 'llm', 'tweetParser', 'transcribe'])(
-    'returns text for %s',
-    (type) => {
-      expect(getOutputType(type)).toBe('text');
-    },
-  );
+  it.each([
+    'prompt',
+    'llm',
+    'tweetParser',
+    'transcribe',
+  ])('returns text for %s', (type) => {
+    expect(getOutputType(type)).toBe('text');
+  });
 
   it.each([
     'imageGen',
@@ -165,12 +167,13 @@ describe('getOutputType', () => {
     expect(getOutputType(type)).toBe('video');
   });
 
-  it.each(['textToSpeech', 'audio', 'audioInput'])(
-    'returns audio for %s',
-    (type) => {
-      expect(getOutputType(type)).toBe('audio');
-    },
-  );
+  it.each([
+    'textToSpeech',
+    'audio',
+    'audioInput',
+  ])('returns audio for %s', (type) => {
+    expect(getOutputType(type)).toBe('audio');
+  });
 
   it('returns null for unknown type', () => {
     expect(getOutputType('unknownWidget')).toBeNull();

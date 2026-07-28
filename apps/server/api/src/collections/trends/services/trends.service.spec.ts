@@ -755,23 +755,20 @@ describe('TrendsService', () => {
       'tiktok',
       'twitter',
       'youtube',
-    ])(
-      'returns platform-scoped bootstrap content for %s when the corpus is empty',
-      async (platform) => {
-        const result = await service.getTrendContent(undefined, undefined, {
-          limit: 10,
-          platform,
-        });
+    ])('returns platform-scoped bootstrap content for %s when the corpus is empty', async (platform) => {
+      const result = await service.getTrendContent(undefined, undefined, {
+        limit: 10,
+        platform,
+      });
 
-        expect(result.items.length).toBeGreaterThan(0);
-        expect(result.items.every((item) => item.platform === platform)).toBe(
-          true,
-        );
-        expect(
-          result.items.every((item) => item.sourcePreviewState === 'fallback'),
-        ).toBe(true);
-      },
-    );
+      expect(result.items.length).toBeGreaterThan(0);
+      expect(result.items.every((item) => item.platform === platform)).toBe(
+        true,
+      );
+      expect(
+        result.items.every((item) => item.sourcePreviewState === 'fallback'),
+      ).toBe(true);
+    });
   });
 
   describe('getTrendsWithAccessControl', () => {
@@ -1070,24 +1067,21 @@ describe('TrendsService', () => {
       'tiktok',
       'twitter',
       'youtube',
-    ])(
-      'should return [] for %s when cache is missing and fetching is disabled',
-      async (platform) => {
-        prisma.trend.findMany.mockResolvedValue([]);
+    ])('should return [] for %s when cache is missing and fetching is disabled', async (platform) => {
+      prisma.trend.findMany.mockResolvedValue([]);
 
-        const result = await service.getTrends(
-          mockOrganizationId,
-          mockBrandId,
-          platform,
-          {
-            allowFetchIfMissing: false,
-          },
-        );
+      const result = await service.getTrends(
+        mockOrganizationId,
+        mockBrandId,
+        platform,
+        {
+          allowFetchIfMissing: false,
+        },
+      );
 
-        // Empty signal allows callers to detect cache-miss and perform live fetch
-        expect(result).toEqual([]);
-      },
-    );
+      // Empty signal allows callers to detect cache-miss and perform live fetch
+      expect(result).toEqual([]);
+    });
 
     it('should return bootstrap trends when cache is missing and live fetch also returns nothing', async () => {
       prisma.trend.findMany.mockResolvedValue([]);

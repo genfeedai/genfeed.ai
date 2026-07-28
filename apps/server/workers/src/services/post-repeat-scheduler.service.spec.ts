@@ -131,35 +131,37 @@ describe('PostRepeatSchedulerService', () => {
       frequency: 'yearly',
       interval: 1,
     },
-  ])(
-    'schedules the next $frequency repeat with the existing date semantics',
-    async ({ expectedDate, frequency, interval, repeatDaysOfWeek }) => {
-      await service.scheduleNextRepeat(
-        {
-          ...basePost,
-          repeatDaysOfWeek,
-          repeatFrequency: frequency,
-          repeatInterval: interval,
-        } as never,
-        'CronPostsService publish',
-      );
+  ])('schedules the next $frequency repeat with the existing date semantics', async ({
+    expectedDate,
+    frequency,
+    interval,
+    repeatDaysOfWeek,
+  }) => {
+    await service.scheduleNextRepeat(
+      {
+        ...basePost,
+        repeatDaysOfWeek,
+        repeatFrequency: frequency,
+        repeatInterval: interval,
+      } as never,
+      'CronPostsService publish',
+    );
 
-      expect(postsService.patch).toHaveBeenCalledWith('post-1', {
+    expect(postsService.patch).toHaveBeenCalledWith('post-1', {
+      repeatCount: 1,
+    });
+    expect(postsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brand: 'brand-1',
+        credential: 'credential-1',
+        organization: 'organization-1',
         repeatCount: 1,
-      });
-      expect(postsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          brand: 'brand-1',
-          credential: 'credential-1',
-          organization: 'organization-1',
-          repeatCount: 1,
-          repeatFrequency: frequency,
-          scheduledDate: expectedDate,
-          user: 'user-1',
-        }),
-      );
-    },
-  );
+        repeatFrequency: frequency,
+        scheduledDate: expectedDate,
+        user: 'user-1',
+      }),
+    );
+  });
 
   it('increments the completed post and stops when repeats are exhausted', async () => {
     await service.scheduleNextRepeat(
