@@ -1,4 +1,4 @@
-import { APP_ROUTES } from './routes.constant.js';
+import { APP_ROUTES } from './routes.constant';
 
 export type LifecycleSystemEmailSequence =
   | 'welcome'

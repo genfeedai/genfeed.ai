@@ -1,4 +1,4 @@
-export { Platform as TemplatePlatform } from './platform.enum.js';
+export { Platform as TemplatePlatform } from './platform.enum';
 
 export enum TemplateCategory {
   CAPTION = 'caption',

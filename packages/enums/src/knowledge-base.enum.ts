@@ -1,4 +1,4 @@
-import { Scope } from './scope.enum.js';
+import { Scope } from './scope.enum';
 
 export enum KnowledgeBaseStatus {
   DRAFT = 'draft',

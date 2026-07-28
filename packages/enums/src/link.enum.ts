@@ -1,4 +1,4 @@
-import { Platform } from './platform.enum.js';
+import { Platform } from './platform.enum';
 
 export const LinkCategory = {
   FACEBOOK: Platform.FACEBOOK,

@@ -1,1 +1,1 @@
-export { Platform as CredentialPlatform } from './platform.enum.js';
+export { Platform as CredentialPlatform } from './platform.enum';

@@ -1,4 +1,4 @@
-export { Scope as AssetScope } from './scope.enum.js';
+export { Scope as AssetScope } from './scope.enum';
 
 export enum IngredientCategory {
   IMAGE = 'image',
