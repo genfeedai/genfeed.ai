@@ -1,0 +1,36 @@
+diff --git a/dist/esbuild-loader/index.js b/dist/esbuild-loader/index.js
+--- a/dist/esbuild-loader/index.js
++++ b/dist/esbuild-loader/index.js
+@@ -6,13 +6,16 @@
+ const node_path_1 = __importDefault(require("node:path"));
+ const esbuild_1 = require("esbuild");
+ const isTsExtensionPtrn = /\.ts$/i;
+-const isTypescriptInstalled = () => {
++const getTypescriptCompilerApi = () => {
+     try {
+-        require.resolve('typescript');
+-        return true;
++        const typescript = require('typescript');
++        return typeof typescript.readConfigFile === 'function' &&
++            typeof (typescript.sys === null || typescript.sys === void 0 ? void 0 : typescript.sys.readFile) === 'function'
++            ? typescript
++            : null;
+     }
+     catch (_a) {
+-        return false;
++        return null;
+     }
+ };
+ async function ESBuildLoader(source) {
+@@ -33,9 +36,8 @@
+         sourcemap: this.sourceMap,
+         sourcefile: this.resourcePath,
+     };
+-    if (!('tsconfigRaw' in transformOptions) && isTypescriptInstalled()) {
+-        // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+-        const typescript = require('typescript');
++    const typescript = getTypescriptCompilerApi();
++    if (!('tsconfigRaw' in transformOptions) && typescript) {
+         const tsConfig = typescript.readConfigFile(tsConfigPath, typescript.sys.readFile);
+         transformOptions.tsconfigRaw = tsConfig.config;
+     }

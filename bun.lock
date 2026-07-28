@@ -469,8 +469,6 @@
       },
       "devDependencies": {
         "@types/ffprobe-static": "2.0.3",
-        "@typescript/native": "npm:typescript@7.0.2",
-        "typescript": "6.0.2",
       },
     },
     "apps/server/images": {
@@ -1339,6 +1337,7 @@
     },
   },
   "patchedDependencies": {
+    "@remotion/bundler@4.0.500": "patches/@remotion%2Fbundler@4.0.500.patch",
     "log-symbols@4.1.0": "patches/log-symbols@4.1.0.patch",
     "nextra-theme-docs@4.6.1": "patches/nextra-theme-docs@4.6.1.patch",
   },

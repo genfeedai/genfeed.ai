@@ -306,6 +306,7 @@
     "zod": "4.4.3"
   },
   "patchedDependencies": {
+    "@remotion/bundler@4.0.500": "patches/@remotion%2Fbundler@4.0.500.patch",
     "log-symbols@4.1.0": "patches/log-symbols@4.1.0.patch",
     "nextra-theme-docs@4.6.1": "patches/nextra-theme-docs@4.6.1.patch"
   }

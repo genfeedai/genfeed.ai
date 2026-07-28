@@ -9,7 +9,6 @@ const LEGACY_API_CONSUMERS = new Set([
   'apps/app/package.json',
   'apps/desktop/app/package.json',
   'apps/docs/package.json',
-  'apps/server/files/package.json',
   'apps/website/package.json',
   'package.json',
   'packages/errors/package.json',
