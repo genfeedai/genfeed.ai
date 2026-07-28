@@ -9,6 +9,7 @@ import {
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
+import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import {
   CredentialPlatform,
   PostStatus,
@@ -207,9 +208,20 @@ export class CronTiktokStatusService {
       }
 
       // Refresh token before API call - pass credentialId to ensure we use the correct credential
+      const organizationId = resolveRelationId(
+        post.organizationId,
+        post.organization,
+      );
+      const brandId = resolveRelationId(post.brandId, post.brand);
+      if (!organizationId || !brandId) {
+        this.logger.warn(
+          `${url} post ${post.id} missing organizationId/brandId — skipping refresh`,
+        );
+        return;
+      }
       const refreshedCredential = await this.tiktokService.refreshToken(
-        post.organization.toString(),
-        post.brand.toString(),
+        organizationId,
+        brandId,
         credential.id,
       );
 
@@ -455,12 +467,13 @@ export class CronTiktokStatusService {
             },
             label: 'TikTok Status Reconciliation',
             metadata: { platform: CredentialPlatform.TIKTOK },
-            organizationId: post.organization.toString(),
+            organizationId:
+              resolveRelationId(post.organizationId, post.organization) ?? '',
             postIds: [String(post.id)],
             schedule: '*/5 * * * *',
             source: 'CronTiktokStatusService.checkPostStatus',
             trigger: WorkflowExecutionTrigger.SCHEDULED,
-            userId: post.user?.toString(),
+            userId: resolveRelationId(post.userId, post.user),
           },
           transition,
         );

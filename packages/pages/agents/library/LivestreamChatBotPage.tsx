@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant, Platform } from '@genfeedai/enums';
 import Card from '@ui/card/Card';
 import Textarea from '@ui/inputs/textarea/Textarea';
 import Container from '@ui/layout/container/Container';
@@ -54,10 +54,10 @@ export default function LivestreamChatBotPage({
   }
 
   const youtubeFirstStatus = session?.platformStates.find(
-    (platformState) => platformState.platform === 'youtube',
+    (platformState) => platformState.platform === Platform.YOUTUBE,
   );
   const twitchStatus = session?.platformStates.find(
-    (platformState) => platformState.platform === 'twitch',
+    (platformState) => platformState.platform === Platform.TWITCH,
   );
 
   return (
@@ -156,7 +156,7 @@ export default function LivestreamChatBotPage({
                 <Button
                   label="YouTube"
                   variant={
-                    selectedPlatform === 'youtube'
+                    selectedPlatform === Platform.YOUTUBE
                       ? ButtonVariant.DEFAULT
                       : ButtonVariant.SECONDARY
                   }
@@ -165,7 +165,7 @@ export default function LivestreamChatBotPage({
                 <Button
                   label="Twitch"
                   variant={
-                    selectedPlatform === 'twitch'
+                    selectedPlatform === Platform.TWITCH
                       ? ButtonVariant.DEFAULT
                       : ButtonVariant.SECONDARY
                   }

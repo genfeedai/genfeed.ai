@@ -318,7 +318,6 @@ export interface IDesktopBrandManifest {
   assets: Array<{
     cloudObjectKey?: string;
     createdAt: string;
-    deletedAt?: string;
     displayName?: string;
     id: string;
     isDeleted?: boolean;
@@ -375,9 +374,10 @@ export interface IDesktopAsset {
   cloudId?: string;
   cloudObjectKey?: string;
   createdAt: string;
-  deletedAt?: string;
   displayName: string;
   id: string;
+  /** Soft-delete flag. Tombstone instant is `updatedAt` when true. */
+  isDeleted?: boolean;
   kind: DesktopAssetKind;
   localPath?: string;
   mimeType: string;
@@ -430,7 +430,7 @@ export interface IDesktopSyncOpAck {
 export interface IDesktopAssetSyncUpdate {
   cloudId?: string;
   cloudObjectKey?: string;
-  deletedAt?: string;
+  isDeleted?: boolean;
   localAssetId: string;
   residency?: DesktopAssetResidency;
   updatedAt?: string;

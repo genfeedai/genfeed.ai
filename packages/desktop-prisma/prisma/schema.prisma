@@ -256,7 +256,9 @@ model DesktopAsset {
   uploadPolicy     String  @default("never") @map("upload_policy")
   originalFileName String  @map("original_file_name")
   displayName      String  @map("display_name")
-  deletedAt        String? @map("deleted_at")
+  // Soft-delete is boolean-only. Deletion instant is `updatedAt` (set on the
+  // same write that flips isDeleted), matching the cloud Asset contract.
+  isDeleted        Boolean @default(false) @map("is_deleted")
   createdAt        String  @map("created_at")
   updatedAt        String  @map("updated_at")
 

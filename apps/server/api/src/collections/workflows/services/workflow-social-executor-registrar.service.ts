@@ -2,6 +2,7 @@ import { SocialInboxService } from '@api/collections/social-inbox/services/socia
 import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
 import { YoutubeSocialAdapter } from '@api/collections/workflows/services/adapters/youtube-social.adapter';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
+import { Platform } from '@genfeedai/enums';
 import {
   CommentTriggerExecutor,
   type DmSender,
@@ -105,7 +106,7 @@ export class WorkflowSocialExecutorRegistrarService {
         return this.publishSocialInboxReply(params);
       }
 
-      if (params.platform === 'youtube') {
+      if (params.platform === Platform.YOUTUBE) {
         if (!youtubeSocialAdapter) {
           throw new Error('YouTube social adapter is not available');
         }
@@ -212,7 +213,7 @@ export class WorkflowSocialExecutorRegistrarService {
       return adapter.createEngagementChecker()(params);
     });
     input.commentTriggerExecutor.setChecker((params) => {
-      if (params.platform === 'youtube') {
+      if (params.platform === Platform.YOUTUBE) {
         if (!youtubeSocialAdapter) {
           throw new Error('YouTube social adapter is not available');
         }

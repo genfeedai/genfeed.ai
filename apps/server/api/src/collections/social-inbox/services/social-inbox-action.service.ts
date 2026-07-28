@@ -26,6 +26,7 @@ import { InstagramService } from '@api/services/integrations/instagram/services/
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import { Platform } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import {
@@ -344,7 +345,7 @@ export class SocialInboxActionService {
       throw new BadRequestException('A brand is required to publish replies');
     }
 
-    if (conversation.platform === 'youtube') {
+    if (conversation.platform === Platform.YOUTUBE) {
       const parentCommentId = conversation.externalParentId;
       if (!parentCommentId) {
         throw new BadRequestException(
@@ -365,7 +366,7 @@ export class SocialInboxActionService {
       };
     }
 
-    if (conversation.platform === 'instagram') {
+    if (conversation.platform === Platform.INSTAGRAM) {
       const parentCommentId =
         conversation.externalParentId ?? conversation.externalConversationId;
       if (!parentCommentId) {

@@ -114,10 +114,20 @@ export class CronContentEngineService {
     agentConfig?: unknown;
   }): Promise<void> {
     const brandId = String(brand.id);
-    const organizationId = String(brand.organization ?? brand.organizationId);
-    const userId = brand.user
-      ? String(brand.user)
-      : (brand.userId ?? organizationId);
+    // Scalar FKs first — Mongo-era aliases are often undefined on Prisma rows.
+    const organizationIdRaw = brand.organizationId ?? brand.organization;
+    const organizationId =
+      organizationIdRaw == null || organizationIdRaw === ''
+        ? ''
+        : String(organizationIdRaw);
+    if (!organizationId) {
+      return;
+    }
+    const userIdRaw = brand.userId ?? brand.user;
+    const userId =
+      userIdRaw == null || userIdRaw === ''
+        ? organizationId
+        : String(userIdRaw);
     const strategy = (
       brand.agentConfig as
         | {

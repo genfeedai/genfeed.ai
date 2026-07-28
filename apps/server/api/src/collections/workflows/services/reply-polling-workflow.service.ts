@@ -14,6 +14,7 @@ import {
 } from '@api/services/reply-bot/reply-bot-orchestrator.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  Platform,
   ReplyBotPlatform,
   WorkflowLifecycle,
   WorkflowStatus,
@@ -412,7 +413,7 @@ export class ReplyPollingWorkflowService {
     platform: string;
   } | null> {
     const checker =
-      platform === 'twitter'
+      platform === Platform.TWITTER
         ? this.twitterAdapter.createMentionChecker()
         : null;
 
@@ -445,7 +446,9 @@ export class ReplyPollingWorkflowService {
     lastEventId: string | null,
   ) {
     const checker =
-      platform === 'twitter' ? this.twitterAdapter.createLikeChecker() : null;
+      platform === Platform.TWITTER
+        ? this.twitterAdapter.createLikeChecker()
+        : null;
 
     if (!checker) {
       return null;
@@ -477,7 +480,7 @@ export class ReplyPollingWorkflowService {
     lastEventId: string | null,
   ) {
     const checker =
-      platform === 'twitter'
+      platform === Platform.TWITTER
         ? this.twitterAdapter.createFollowerChecker()
         : null;
 
@@ -509,7 +512,9 @@ export class ReplyPollingWorkflowService {
     lastEventId: string | null,
   ) {
     const checker =
-      platform === 'twitter' ? this.twitterAdapter.createRepostChecker() : null;
+      platform === Platform.TWITTER
+        ? this.twitterAdapter.createRepostChecker()
+        : null;
 
     if (!checker) {
       return null;
@@ -541,7 +546,7 @@ export class ReplyPollingWorkflowService {
     lastEventId: string | null,
   ) {
     const checker =
-      platform === 'twitter'
+      platform === Platform.TWITTER
         ? this.twitterAdapter.createKeywordChecker()
         : null;
 
@@ -625,7 +630,7 @@ export class ReplyPollingWorkflowService {
     lastEventId: string | null,
   ) {
     const checker =
-      platform === 'twitter'
+      platform === Platform.TWITTER
         ? this.twitterAdapter.createEngagementChecker()
         : null;
 

@@ -2,6 +2,7 @@ import type {
   AgentUiAction,
   AgentUiActionCta,
 } from '@genfeedai/agent/models/agent-chat.model';
+import { isTwitterPlatform } from '@genfeedai/enums';
 import Badge from '@ui/display/badge/Badge';
 import type { ReactElement } from 'react';
 import {
@@ -19,7 +20,7 @@ interface BatchGenerationResultCardProps {
 function formatPlatformLabel(platform: string): string {
   const normalized = platform.trim().toLowerCase();
 
-  if (normalized === 'twitter' || normalized === 'x') {
+  if (isTwitterPlatform(normalized)) {
     return 'X';
   }
 

@@ -1,3 +1,4 @@
+import { Platform } from '@genfeedai/enums';
 import type { ExecutableNode } from '../../types';
 import {
   BaseExecutor,
@@ -69,11 +70,11 @@ const VALID_INSPIRATION_STYLES = new Set<TrendInspirationStyle>([
 function aspectRatioForPlatform(
   platform: TrendInspirationPlatform,
 ): TrendAspectRatio {
-  if (platform === 'youtube' || platform === 'twitter') {
+  if (platform === Platform.YOUTUBE || platform === Platform.TWITTER) {
     return '16:9';
   }
 
-  return platform === 'instagram' ? '1:1' : '9:16';
+  return platform === Platform.INSTAGRAM ? '1:1' : '9:16';
 }
 
 function styleForInspiration(

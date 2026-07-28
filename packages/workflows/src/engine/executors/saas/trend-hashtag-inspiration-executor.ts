@@ -1,3 +1,4 @@
+import { Platform } from '@genfeedai/enums';
 import type { ExecutableNode } from '../../types';
 import {
   BaseExecutor,
@@ -52,11 +53,13 @@ function selectContentType(
   platform: TrendInspirationPlatform,
 ): TrendContentType {
   if (preference === 'image') {
-    return platform === 'instagram' ? 'carousel' : 'image';
+    return platform === Platform.INSTAGRAM ? 'carousel' : 'image';
   }
 
   if (preference === 'any') {
-    return platform === 'twitter' || platform === 'reddit' ? 'thread' : 'video';
+    return platform === Platform.TWITTER || platform === Platform.REDDIT
+      ? 'thread'
+      : 'video';
   }
 
   return 'video';

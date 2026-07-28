@@ -7,6 +7,7 @@ import type {
 } from '@api/collections/social-inbox/schemas/social-inbox.schema';
 import type { SocialInboxPage } from '@api/collections/social-inbox/services/social-inbox.types';
 import { replaceMarkup } from '@api/shared/utils/string/strip-markup.util';
+import { Platform } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
 
 type JsonRecord = Record<string, unknown>;
@@ -118,7 +119,7 @@ export function getAvailability(params: {
     };
   }
 
-  if (params.platform === 'youtube') {
+  if (params.platform === Platform.YOUTUBE) {
     return {
       canPostReply: Boolean(params.externalParentId),
       canSendDm: false,

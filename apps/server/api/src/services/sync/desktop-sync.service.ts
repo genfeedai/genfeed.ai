@@ -26,7 +26,7 @@ import type { UploadDesktopAssetDto } from './dto/upload-desktop-asset.dto';
 type DesktopAssetPushResult = {
   cloudAssetId?: string;
   cloudObjectKey?: string | null;
-  deletedAt?: Date | null;
+  isDeleted?: boolean;
   localAssetId: string;
   needsUpload?: boolean;
   reason?: string;
@@ -507,10 +507,9 @@ export class DesktopSyncService {
           assets.push({
             cloudAssetId: existing.id,
             cloudObjectKey: existing.cloudObjectKey,
-            // Soft-delete timestamp is no longer stored on Asset (isDeleted is the
-            // sole soft-delete signal); surface updatedAt as the deletion instant
-            // so the desktop client's tombstone timeline stays populated.
-            deletedAt: existing.updatedAt,
+            // Soft-delete is boolean-only. Tombstone instant is updatedAt
+            // (set when isDeleted flipped on the cloud Asset row).
+            isDeleted: true,
             localAssetId: asset.id,
             reason: 'cloud-deleted',
             residency: existing.residency,

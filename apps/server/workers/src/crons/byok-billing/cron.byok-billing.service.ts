@@ -51,7 +51,16 @@ export class CronByokBillingService {
       );
 
       for (const orgSettings of organizations) {
-        const organizationId = orgSettings.organization?.toString();
+        // organizationId is the Prisma scalar FK; `organization` is a Mongo-era
+        // alias that is often undefined on plain rows.
+        const organizationId =
+          typeof orgSettings.organizationId === 'string' &&
+          orgSettings.organizationId.length > 0
+            ? orgSettings.organizationId
+            : typeof orgSettings.organization === 'string' &&
+                orgSettings.organization.length > 0
+              ? orgSettings.organization
+              : undefined;
 
         if (!organizationId) {
           skippedCount++;

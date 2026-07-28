@@ -13,6 +13,7 @@ import { TREND_DIGEST_CREDIT_COST } from '@genfeedai/constants';
 import {
   ActivitySource,
   type CredentialPlatform,
+  Platform,
   PostCategory,
   PostStatus,
 } from '@genfeedai/enums';
@@ -715,7 +716,7 @@ export class WorkflowTrendPublishExecutorRegistrarService {
   private toKeywordTriggerPlatform(
     platform: TrendPlatform,
   ): KeywordTriggerPlatform | null {
-    if (platform === 'twitter' || platform === 'instagram') {
+    if (platform === Platform.TWITTER || platform === Platform.INSTAGRAM) {
       return platform;
     }
 

@@ -1,3 +1,4 @@
+import { Platform } from '@genfeedai/enums';
 import {
   BRAND_KIT_FIELD_OWNERSHIP,
   type BrandKitAssetRole,
@@ -110,11 +111,11 @@ const SOCIAL_URL_FIELDS: ReadonlyArray<{
     | 'twitterUrl'
     | 'linkedinUrl';
 }> = [
-  { key: 'youtubeUrl', platform: 'youtube' },
-  { key: 'tiktokUrl', platform: 'tiktok' },
-  { key: 'instagramUrl', platform: 'instagram' },
-  { key: 'twitterUrl', platform: 'twitter' },
-  { key: 'linkedinUrl', platform: 'linkedin' },
+  { key: 'youtubeUrl', platform: Platform.YOUTUBE },
+  { key: 'tiktokUrl', platform: Platform.TIKTOK },
+  { key: 'instagramUrl', platform: Platform.INSTAGRAM },
+  { key: 'twitterUrl', platform: Platform.TWITTER },
+  { key: 'linkedinUrl', platform: Platform.LINKEDIN },
 ];
 
 function hasText(value: unknown): value is string {

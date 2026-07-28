@@ -5,6 +5,7 @@ import {
   AgentAutonomyMode,
   AgentRunFrequency,
   AgentType,
+  Platform,
 } from '@genfeedai/enums';
 import type { IAgentWizardFormData } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -31,7 +32,7 @@ const DEFAULT_FORM: IAgentWizardFormData = {
   label: '',
   minCreditThreshold: 50,
   model: '',
-  platforms: ['twitter'],
+  platforms: [Platform.TWITTER],
   qualityTier: 'balanced',
   runFrequency: AgentRunFrequency.DAILY,
   startImmediately: true,
@@ -125,7 +126,7 @@ export default function AgentWizardPage() {
           : {}),
         ...(config?.strategy?.platforms?.length &&
         prev.platforms.length === 1 &&
-        prev.platforms[0] === 'twitter'
+        prev.platforms[0] === Platform.TWITTER
           ? { platforms: config.strategy.platforms }
           : {}),
         ...(config?.autoPublish?.isEnabled || config?.autoPublish?.enabled

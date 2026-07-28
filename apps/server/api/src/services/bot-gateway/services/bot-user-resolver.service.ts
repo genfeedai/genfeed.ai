@@ -1,14 +1,11 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type { IBotResolvedUser } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-
-function readId(value: unknown): string {
-  return typeof value === 'string' ? value : '';
-}
 
 @Injectable()
 export class BotUserResolverService {
@@ -47,10 +44,15 @@ export class BotUserResolverService {
         return null;
       }
 
-      const brandId = readId(credential.brand);
-      const credentialId = readId(credential.id);
-      const organizationId = readId(credential.organization);
-      const userId = readId(credential.user);
+      // Scalar FKs first; Mongo-era aliases on CredentialDocument are optional
+      // and often undefined at runtime on Prisma rows.
+      const brandId = resolveRelationId(credential.brandId, credential.brand);
+      const credentialId = resolveRelationId(credential.id, credential._id);
+      const organizationId = resolveRelationId(
+        credential.organizationId,
+        credential.organization,
+      );
+      const userId = resolveRelationId(credential.userId, credential.user);
 
       if (!brandId || !credentialId || !organizationId || !userId) {
         this.loggerService.warn(`${url} credential missing ownership ids`, {

@@ -13,6 +13,7 @@ import type {
   ApifyYouTubeVideo,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import { Platform } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -147,7 +148,7 @@ export class TrendSourceItemsService {
           ? trend.metadata.creatorHandle
           : undefined,
       contentType:
-        trend.platform === 'twitter'
+        trend.platform === Platform.TWITTER
           ? 'tweet'
           : trend.metadata?.videoUrl
             ? 'video'

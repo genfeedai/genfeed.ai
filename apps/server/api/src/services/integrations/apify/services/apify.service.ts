@@ -21,6 +21,7 @@ import { ApifyRedditService } from '@api/services/integrations/apify/services/mo
 import { ApifyTikTokService } from '@api/services/integrations/apify/services/modules/apify-tiktok.service';
 import { ApifyTwitterService } from '@api/services/integrations/apify/services/modules/apify-twitter.service';
 import { ApifyYouTubeService } from '@api/services/integrations/apify/services/modules/apify-youtube.service';
+import { Platform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -296,9 +297,13 @@ export class ApifyService {
       | ApifyNormalizedInstagramComment
       | ApifyNormalizedTikTokComment
       | ApifyNormalizedYouTubeComment,
-    platform: 'twitter' | 'instagram' | 'tiktok' | 'youtube',
+    platform:
+      | Platform.TWITTER
+      | Platform.INSTAGRAM
+      | Platform.TIKTOK
+      | Platform.YOUTUBE,
   ): ApifyNormalizedSocialComment {
-    if (platform === 'twitter') {
+    if (platform === Platform.TWITTER) {
       const tweet = comment as ApifyNormalizedTweet;
       return {
         authorAvatarUrl: tweet.authorAvatarUrl,
@@ -315,12 +320,12 @@ export class ApifyService {
         metrics: tweet.metrics
           ? { likes: tweet.metrics.likes, replies: tweet.metrics.replies }
           : undefined,
-        platform: 'twitter',
+        platform: Platform.TWITTER,
         text: tweet.text,
       };
     }
 
-    if (platform === 'instagram') {
+    if (platform === Platform.INSTAGRAM) {
       const igComment = comment as ApifyNormalizedInstagramComment;
       return {
         authorAvatarUrl: igComment.authorAvatarUrl,
@@ -334,12 +339,12 @@ export class ApifyService {
         createdAt: igComment.createdAt,
         id: igComment.id,
         metrics: igComment.metrics,
-        platform: 'instagram',
+        platform: Platform.INSTAGRAM,
         text: igComment.text,
       };
     }
 
-    if (platform === 'tiktok') {
+    if (platform === Platform.TIKTOK) {
       const ttComment = comment as ApifyNormalizedTikTokComment;
       return {
         authorAvatarUrl: ttComment.authorAvatarUrl,
@@ -351,7 +356,7 @@ export class ApifyService {
         createdAt: ttComment.createdAt,
         id: ttComment.id,
         metrics: ttComment.metrics,
-        platform: 'tiktok',
+        platform: Platform.TIKTOK,
         text: ttComment.text,
       };
     }
@@ -369,7 +374,7 @@ export class ApifyService {
       createdAt: ytComment.createdAt,
       id: ytComment.id,
       metrics: ytComment.metrics,
-      platform: 'youtube',
+      platform: Platform.YOUTUBE,
       text: ytComment.text,
     };
   }

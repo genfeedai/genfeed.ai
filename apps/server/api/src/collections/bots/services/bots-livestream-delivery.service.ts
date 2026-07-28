@@ -4,6 +4,7 @@ import type {
 } from '@api/collections/bots/schemas/bot.schema';
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { Platform } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -36,7 +37,7 @@ export class BotsLivestreamDeliveryService {
   ): Promise<{ resolvedTargetId?: string }> {
     const credential = await this.resolveCredential(bot, target);
 
-    if (target.platform === 'youtube') {
+    if (target.platform === Platform.YOUTUBE) {
       const liveChatId = await this.resolveYoutubeLiveChatId(
         target,
         credential,

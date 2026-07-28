@@ -49,6 +49,7 @@ describe('DesktopPgliteService', () => {
       { migration_name: '0001_init' },
       { migration_name: '0002_local_cloud_identity' },
       { migration_name: '0003_normalize_user_auth_provider_column' },
+      { migration_name: '0004_desktop_asset_is_deleted' },
     ]);
     expect(workspaceRows.rows).toEqual([{ name: 'desktop_workspace' }]);
     expect(userColumnRows.rows).toContainEqual({ name: 'auth_provider_id' });

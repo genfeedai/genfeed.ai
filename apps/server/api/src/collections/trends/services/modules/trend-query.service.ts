@@ -3,6 +3,7 @@ import type { TrendSourceClassification } from '@api/collections/trends/interfac
 import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema';
 import { normalizeTrendSourceClassification } from '@api/collections/trends/utils/trend-source-classification.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { Platform } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -193,7 +194,7 @@ export class TrendQueryService {
         sourcePreviewCache: [
           {
             contentType:
-              trend.platform === 'twitter'
+              trend.platform === Platform.TWITTER
                 ? 'tweet'
                 : trend.metadata.trendType === 'video'
                   ? 'video'
