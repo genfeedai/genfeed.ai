@@ -25,7 +25,7 @@ import { sanitizeAnalyticsUrl } from './analytics-url';
 
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
 const POSTHOG_HOST =
-  process.env.NEXT_PUBLIC_POSTHOG_HOST ?? 'https://us.i.posthog.com';
+  process.env.NEXT_PUBLIC_POSTHOG_HOST ?? 'https://eu.i.posthog.com';
 
 let client: PostHog | null = null;
 let hasInitStarted = false;

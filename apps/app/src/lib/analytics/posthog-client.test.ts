@@ -87,7 +87,10 @@ describe('initAnalytics', () => {
     expect(mocks.posthogInit).toHaveBeenCalledTimes(1);
     expect(mocks.posthogInit).toHaveBeenCalledWith(
       'phc_test_key',
-      expect.objectContaining({ autocapture: false }),
+      expect.objectContaining({
+        api_host: 'https://eu.i.posthog.com',
+        autocapture: false,
+      }),
     );
   });
 
