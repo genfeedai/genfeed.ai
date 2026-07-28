@@ -14,6 +14,7 @@ import AppTable from '@ui/display/table/Table';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import Tabs from '@ui/navigation/tabs/Tabs';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
@@ -221,41 +222,9 @@ function WorkspacePageContentContent({
       icon={HiOutlineSquares2X2}
       fullWidth
       titleVisibility="sr-only"
-      {...(isInboxSection
-        ? {
-            activeTab: defaultInboxView,
-            headerTabs: {
-              activeTab: defaultInboxView,
-              fullWidth: false,
-              items: INBOX_VIEW_OPTIONS.map((option) => {
-                const count =
-                  option.id === 'unread'
-                    ? unreadInboxTasks.length
-                    : option.id === 'recent'
-                      ? recentInboxTasks.length
-                      : queueTasks.length;
-                return {
-                  badge: isWorkspaceTasksLoading ? (
-                    <Skeleton
-                      variant="text"
-                      width={14}
-                      height={12}
-                      className="opacity-70"
-                    />
-                  ) : (
-                    <span className="text-[11px] opacity-70">{count}</span>
-                  ),
-                  href: `/workspace/inbox/${option.id}`,
-                  id: option.id,
-                  label: option.label,
-                };
-              }),
-              size: 'sm' as const,
-              variant: 'underline' as const,
-            },
-          }
-        : {})}
-      right={isOverviewSection ? undefined : workspaceHeaderActions}
+      right={
+        isOverviewSection || isInboxSection ? undefined : workspaceHeaderActions
+      }
     >
       {workspaceActionError ? (
         <Alert type={AlertCategory.ERROR} className="mb-4">
@@ -298,6 +267,40 @@ function WorkspacePageContentContent({
 
       {shouldShowSectionSnapshot ? (
         <WorkspaceSnapshotSection
+          actions={
+            <>
+              <Tabs
+                activeTab={defaultInboxView}
+                fullWidth={false}
+                items={INBOX_VIEW_OPTIONS.map((option) => {
+                  const count =
+                    option.id === 'unread'
+                      ? unreadInboxTasks.length
+                      : option.id === 'recent'
+                        ? recentInboxTasks.length
+                        : queueTasks.length;
+                  return {
+                    badge: isWorkspaceTasksLoading ? (
+                      <Skeleton
+                        variant="text"
+                        width={14}
+                        height={12}
+                        className="opacity-70"
+                      />
+                    ) : (
+                      <span className="text-[11px] opacity-70">{count}</span>
+                    ),
+                    href: `/workspace/inbox/${option.id}`,
+                    id: option.id,
+                    label: option.label,
+                  };
+                })}
+                size="sm"
+                variant="underline"
+              />
+              {workspaceHeaderActions}
+            </>
+          }
           isLoading={isWorkspaceTasksLoading}
           summaryItems={summaryItems}
         />
@@ -344,11 +347,7 @@ function WorkspacePageContentContent({
             <section
               aria-busy={isWorkspaceTasksLoading}
               data-testid="workspace-activity"
-              className="space-y-3"
             >
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/35">
-                Activity
-              </h2>
               <AppTable<Task>
                 items={activityItems}
                 isLoading={isWorkspaceTasksLoading}

@@ -33,6 +33,8 @@ export function CardEmptyContent({
   className,
   size = CardEmptySize.DEFAULT,
 }: CardEmptyProps) {
+  const hasAction = Boolean(action || actions);
+
   return (
     <div
       aria-live="polite"
@@ -66,7 +68,9 @@ export function CardEmptyContent({
       )}
 
       {description && (
-        <p className="text-foreground/60 max-w-md mb-6">{description}</p>
+        <p className={cn('max-w-md text-foreground/60', hasAction && 'mb-6')}>
+          {description}
+        </p>
       )}
 
       {actions
