@@ -1,5 +1,6 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.16/schema.json",
+  "root": false,
+  "$schema": "https://biomejs.dev/schemas/2.5.5/schema.json",
   "files": {
     "includes": [
       "**",
@@ -68,7 +69,7 @@
       "a11y": {
         "noLabelWithoutControl": "off"
       },
-      "recommended": true
+      "preset": "recommended"
     }
   },
   "overrides": [

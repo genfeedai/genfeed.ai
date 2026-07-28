@@ -1,18 +1,28 @@
 'use client';
 
 import type {
-  CalendarOptions,
-  DatesSetArg,
-  EventClickArg,
-  EventInput,
-  Calendar as FullCalendarInstance,
-} from '@fullcalendar/core';
-import type {
   CalendarItem,
   ContentCalendarProps,
 } from '@genfeedai/props/components/calendar.props';
 import Card from '@ui/card/Card';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type {
+  CalendarOptions,
+  DatesSetInfo,
+  EventClickInfo,
+  EventInput,
+  Calendar as FullCalendarInstance,
+} from 'fullcalendar';
+import 'fullcalendar/skeleton.css';
+import 'fullcalendar/themes/classic/palette.css';
+import 'fullcalendar/themes/classic/theme.css';
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 interface FullCalendarHostProps {
   options: CalendarOptions;
@@ -22,6 +32,11 @@ interface CalendarDateRange {
   end: Date;
   start: Date;
 }
+
+const calendarThemeStyle = {
+  '--fc-classic-border': 'rgba(255, 255, 255, 0.06)',
+  '--fc-classic-strong-border': 'rgba(255, 255, 255, 0.06)',
+} as CSSProperties;
 
 function isSameDateRange(
   dateRange: CalendarDateRange | null,
@@ -52,11 +67,12 @@ function FullCalendarHost({ options }: FullCalendarHostProps) {
       setLoadError(null);
 
       try {
-        const [coreModule, timeGridModule, interactionModule] =
+        const [coreModule, timeGridModule, interactionModule, themeModule] =
           await Promise.all([
-            import('@fullcalendar/core/index.js'),
-            import('@fullcalendar/timegrid/index.js'),
-            import('@fullcalendar/interaction/index.js'),
+            import('fullcalendar'),
+            import('fullcalendar/timegrid'),
+            import('fullcalendar/interaction'),
+            import('fullcalendar/themes/classic'),
           ]);
 
         if (!isMounted || !elementRef.current) {
@@ -65,7 +81,11 @@ function FullCalendarHost({ options }: FullCalendarHostProps) {
 
         calendar = new coreModule.Calendar(elementRef.current, {
           ...options,
-          plugins: [timeGridModule.default, interactionModule.default],
+          plugins: [
+            themeModule.default,
+            timeGridModule.default,
+            interactionModule.default,
+          ],
         });
         calendarRef.current = calendar;
         calendar.render();
@@ -115,10 +135,10 @@ export default function ContentCalendar<T extends CalendarItem>({
     () =>
       items.reduce<EventInput[]>((acc, item) => {
         if (item.scheduledDate) {
+          const color = getEventColor(item);
           acc.push({
-            backgroundColor: getEventColor(item),
-            borderColor: getEventColor(item),
-            classNames: item.isDisabled ? ['event-disabled'] : [],
+            className: item.isDisabled ? 'event-disabled' : '',
+            color,
             extendedProps: {
               isDisabled: item.isDisabled,
               item,
@@ -134,7 +154,7 @@ export default function ContentCalendar<T extends CalendarItem>({
   );
 
   const handleEventClick = useCallback(
-    (info: EventClickArg) => {
+    (info: EventClickInfo) => {
       if (info.event.extendedProps.isDisabled) {
         return;
       }
@@ -145,7 +165,7 @@ export default function ContentCalendar<T extends CalendarItem>({
   );
 
   const handleDatesSet = useCallback(
-    (arg: DatesSetArg) => {
+    (arg: DatesSetInfo) => {
       if (isSameDateRange(dateRangeRef.current, arg.start, arg.end)) {
         return;
       }
@@ -199,18 +219,10 @@ export default function ContentCalendar<T extends CalendarItem>({
       )}
 
       <Card className="w-full border border-white/[0.06]" bodyClassName="p-0">
-        <style>{`
-          .fullcalendar-container .fc td,
-          .fullcalendar-container .fc th,
-          .fullcalendar-container .fc .fc-scrollgrid,
-          .fullcalendar-container .fc .fc-scrollgrid-section > * {
-            border-color: rgba(255, 255, 255, 0.06) !important;
-          }
-        `}</style>
         {events.length === 0 && emptyState ? (
           emptyState
         ) : (
-          <div className="fullcalendar-container">
+          <div className="fullcalendar-container" style={calendarThemeStyle}>
             <FullCalendarHost options={calendarOptions} />
           </div>
         )}

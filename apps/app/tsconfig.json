@@ -75,14 +75,8 @@
       "@genfeedai/utils/*": ["../../packages/utils/*"],
       "@genfeedai/workflows": ["../../packages/workflows/src/index.ts"],
       "@genfeedai/workflows/*": ["../../packages/workflows/src/*"],
-      "@fullcalendar/core": ["./node_modules/@fullcalendar/core/index.d.ts"],
-      "@fullcalendar/interaction": [
-        "./node_modules/@fullcalendar/interaction/index.d.ts"
-      ],
-      "@fullcalendar/react": ["./node_modules/@fullcalendar/react/index.d.ts"],
-      "@fullcalendar/timegrid": [
-        "./node_modules/@fullcalendar/timegrid/index.d.ts"
-      ],
+      "fullcalendar": ["./node_modules/fullcalendar/index.d.ts"],
+      "fullcalendar/*": ["./node_modules/fullcalendar/*"],
       "@ui/primitives/card": ["./src/components/ui/card.tsx"],
       "@config/*": ["../../packages/config/src/*"],
       "@configs/*": ["../../packages/next-config/*"],

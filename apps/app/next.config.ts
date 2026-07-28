@@ -347,9 +347,7 @@ config.turbopack = {
 };
 
 config.transpilePackages = [
-  '@fullcalendar/core',
-  '@fullcalendar/interaction',
-  '@fullcalendar/timegrid',
+  'fullcalendar',
   '@tiptap/core',
   '@tiptap/extension-image',
   '@tiptap/extension-link',
