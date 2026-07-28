@@ -1,6 +1,6 @@
 # Postgres RDS instances (us-west-1)
 
-last_verified: 2026-07-28
+last_verified: 2026-07-29
 
 | Instance | Role | Endpoint | Notes |
 |---|---|---|---|
@@ -32,4 +32,12 @@ last_verified: 2026-07-28
 - 2026-06-08: `genfeed-local` renamed → `genfeed-data` (promoted to prod); old empty `genfeed-data` deleted (final snapshot `genfeed-data-empty-final-20260608`).
 - 2026-07-28: pruned 68 redundant manual snapshots after retaining the explicit
   pre/post content-reset pair above.
+- 2026-07-29: removed 723 inactive global Hugging Face discovery rows and two
+  inactive legacy OpenAI/Sora rows in one guarded transaction. Dependency
+  checks found no child-model, workflow, or organization-setting references.
+  The retained production catalog is 166 rows: 157 Replicate models (49 active)
+  and nine active managed `genfeed-ai` models. Workflow count remained 381.
+  Treat OpenRouter as the curated text-model catalog and Replicate as the
+  discovered media-model catalog; do not restore unbounded Hugging Face or
+  OpenAI database ingestion.
 - Local homebrew Postgres `genfeed` db (localhost:5432) is the current local development DB. As of 2026-07-08, the API points there and the observed local rows are the seed skeleton: one `vincent@genfeed.ai` user, one `default` organization, one `default` brand, zero ingredients, and zero posts.
