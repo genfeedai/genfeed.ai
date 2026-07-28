@@ -16,8 +16,10 @@ import type {
 } from '@api/collections/social-inbox/services/social-inbox.types';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import { SocialMessageDirection, SocialMessageType } from '@genfeedai/enums';
 import type {
   SocialInboxAgentContextRecord,
+  SocialInboxAgentMessageContext,
   SocialInboxReference,
 } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
@@ -26,6 +28,40 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 
 const MAX_AGENT_CONTEXT_REFERENCES = 20;
 const SAFE_AGENT_CONTEXT_REFERENCE_ID = /^[A-Za-z0-9_-]{1,128}$/;
+const SOCIAL_MESSAGE_DIRECTIONS = new Set<string>(
+  Object.values(SocialMessageDirection),
+);
+const SOCIAL_MESSAGE_TYPES = new Set<string>(Object.values(SocialMessageType));
+
+function isSocialMessageDirection(
+  value: string,
+): value is SocialInboxAgentMessageContext['direction'] {
+  return SOCIAL_MESSAGE_DIRECTIONS.has(value);
+}
+
+function isSocialMessageType(
+  value: string,
+): value is SocialInboxAgentMessageContext['messageType'] {
+  return SOCIAL_MESSAGE_TYPES.has(value);
+}
+
+function toAgentMessageContext(
+  message: SocialMessageDocument,
+): SocialInboxAgentMessageContext {
+  if (
+    !isSocialMessageDirection(message.direction) ||
+    !isSocialMessageType(message.messageType)
+  ) {
+    throw new BadRequestException('Unsupported social message state');
+  }
+
+  return {
+    body: message.body,
+    direction: message.direction,
+    messageId: message.id,
+    messageType: message.messageType,
+  };
+}
 
 @Injectable()
 export class SocialInboxQueryService {
@@ -178,14 +214,7 @@ export class SocialInboxQueryService {
           conversationId: conversation.id,
           kind: 'social-message',
           messageId: messageDocument.id,
-          messages: [
-            {
-              body: messageDocument.body,
-              direction: messageDocument.direction,
-              messageId: messageDocument.id,
-              messageType: messageDocument.messageType,
-            },
-          ],
+          messages: [toAgentMessageContext(messageDocument)],
         });
         continue;
       }
@@ -202,12 +231,7 @@ export class SocialInboxQueryService {
       context.push({
         conversationId: conversation.id,
         kind: 'social-conversation',
-        messages: recentMessages.docs.map((message) => ({
-          body: message.body,
-          direction: message.direction,
-          messageId: message.id,
-          messageType: message.messageType,
-        })),
+        messages: recentMessages.docs.map(toAgentMessageContext),
       });
     }
 

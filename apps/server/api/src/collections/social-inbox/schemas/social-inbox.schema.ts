@@ -1,4 +1,11 @@
 import type {
+  SocialAutomationState as SocialAutomationStateEnum,
+  SocialConversationStatus as SocialConversationStatusEnum,
+  SocialConversationType as SocialConversationTypeEnum,
+  SocialMessageDirection as SocialMessageDirectionEnum,
+  SocialMessageType as SocialMessageTypeEnum,
+} from '@genfeedai/enums';
+import type {
   SocialConversation as PrismaSocialConversation,
   SocialMessage as PrismaSocialMessage,
 } from '@genfeedai/prisma';
@@ -23,22 +30,11 @@ export type SocialMessageDocument = PrismaSocialMessage & {
   user?: string | null;
 };
 
-export type SocialConversationStatus =
-  | 'open'
-  | 'needs_review'
-  | 'resolved'
-  | 'archived';
-
-export type SocialConversationType = 'comment' | 'dm' | 'mention' | 'reply';
-export type SocialMessageDirection = 'inbound' | 'outbound' | 'system';
-export type SocialMessageType = 'comment' | 'reply' | 'dm' | 'note' | 'draft';
-export type SocialAutomationState =
-  | 'manual'
-  | 'drafted'
-  | 'pending_approval'
-  | 'approved'
-  | 'automated'
-  | 'failed';
+export type SocialConversationStatus = `${SocialConversationStatusEnum}`;
+export type SocialConversationType = `${SocialConversationTypeEnum}`;
+export type SocialMessageDirection = `${SocialMessageDirectionEnum}`;
+export type SocialMessageType = `${SocialMessageTypeEnum}`;
+export type SocialAutomationState = `${SocialAutomationStateEnum}`;
 
 export interface SocialConversationAvailability {
   canPostReply: boolean;

@@ -1,21 +1,16 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+import { SocialConversationStatus, SocialMessageType } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
   IsArray,
+  IsEnum,
   IsIn,
   IsOptional,
   IsString,
   MaxLength,
   MinLength,
 } from 'class-validator';
-
-const CONVERSATION_STATUSES = [
-  'open',
-  'needs_review',
-  'resolved',
-  'archived',
-] as const;
 
 export class SocialReplyDto {
   @ApiProperty({ maxLength: 5000, minLength: 1 })
@@ -48,10 +43,13 @@ export class SocialDmDto extends SocialReplyDto {
 }
 
 export class SocialDraftDto extends SocialDmDto {
-  @ApiProperty({ enum: ['reply', 'dm'], required: false })
+  @ApiProperty({
+    enum: [SocialMessageType.REPLY, SocialMessageType.DM],
+    required: false,
+  })
   @IsOptional()
-  @IsIn(['reply', 'dm'])
-  messageType?: 'dm' | 'reply';
+  @IsIn([SocialMessageType.REPLY, SocialMessageType.DM])
+  messageType?: SocialMessageType.DM | SocialMessageType.REPLY;
 }
 
 const DRAFT_DECISIONS = ['approved', 'rejected'] as const;
@@ -80,10 +78,10 @@ export class SocialDraftUpdateDto {
  * `PATCH /:conversationId` accepting any subset of the mutable fields.
  */
 export class SocialConversationUpdateDto {
-  @ApiProperty({ enum: CONVERSATION_STATUSES, required: false })
+  @ApiProperty({ enum: SocialConversationStatus, required: false })
   @IsOptional()
-  @IsIn(CONVERSATION_STATUSES)
-  status?: string;
+  @IsEnum(SocialConversationStatus)
+  status?: SocialConversationStatus;
 
   @ApiProperty({ required: false, type: [String] })
   @IsOptional()

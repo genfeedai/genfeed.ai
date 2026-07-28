@@ -19,8 +19,8 @@ export class SocialConversationModel implements SocialConversation {
   credentialId?: string | null;
   post?: string | null;
   postId?: string | null;
-  platform!: SocialPlatform | string;
-  conversationType!: SocialConversationType | string;
+  platform!: SocialPlatform;
+  conversationType!: SocialConversationType;
   externalConversationId?: string | null;
   externalThreadId?: string | null;
   externalParentId?: string | null;
@@ -35,11 +35,11 @@ export class SocialConversationModel implements SocialConversation {
   participantHandle?: string | null;
   participantName?: string | null;
   participantAvatarUrl?: string | null;
-  status!: SocialConversationStatus | string;
+  status!: SocialConversationStatus;
   priority!: string;
   unreadCount!: number;
   needsReview!: boolean;
-  automationState!: SocialAutomationState | string;
+  automationState!: SocialAutomationState;
   assignedOwnerId?: string | null;
   tags!: string[];
   latestMessageText?: string | null;

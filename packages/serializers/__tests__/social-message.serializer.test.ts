@@ -1,4 +1,10 @@
-import { SocialMessageWorkflowTriggerStatus } from '@genfeedai/enums';
+import {
+  SocialActionActorType,
+  SocialInboxPlatform,
+  SocialMessageDirection,
+  SocialMessageType,
+  SocialMessageWorkflowTriggerStatus,
+} from '@genfeedai/enums';
 import { socialMessageAttributes } from '@serializers/attributes/social/social-message.attributes';
 import { SocialMessageSerializer } from '@serializers/server/social/social-message.serializer';
 import { describe, expect, it, vi } from 'vitest';
@@ -15,13 +21,17 @@ function serializeWorkflowTrigger(
   overrides: Record<string, unknown> = {},
 ): Record<string, unknown> {
   const output = SocialMessageSerializer.serialize({
+    actionProvenance: {
+      actorType: SocialActionActorType.WORKFLOW,
+      platform: SocialInboxPlatform.YOUTUBE,
+    },
     body: 'Ship it',
     createdAt: ATTEMPTED_AT,
-    direction: 'inbound',
+    direction: SocialMessageDirection.INBOUND,
     id: 'social-message-1',
     isDeleted: false,
-    messageType: 'comment',
-    platform: 'youtube',
+    messageType: SocialMessageType.COMMENT,
+    platform: SocialInboxPlatform.YOUTUBE,
     privateInternalValue: 'must-not-leak',
     status: 'received',
     updatedAt: QUEUED_AT,
@@ -39,6 +49,13 @@ function serializeWorkflowTrigger(
 describe('SocialMessageSerializer workflow trigger contract', () => {
   it('serializes every populated workflow trigger lifecycle field', () => {
     expect(serializeWorkflowTrigger()).toMatchObject({
+      actionProvenance: {
+        actorType: 'workflow',
+        platform: 'youtube',
+      },
+      direction: 'inbound',
+      messageType: 'comment',
+      platform: 'youtube',
       workflowTriggerAttemptedAt: ATTEMPTED_AT,
       workflowTriggerError: 'redis unavailable',
       workflowTriggerJobId: 'social-comment-trigger-org-message',
