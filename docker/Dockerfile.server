@@ -70,6 +70,28 @@ RUN --mount=type=bind,source=.,target=/ctx,ro \
       --docker \
       --out-dir /pruned
 
+# The runtime dependency layer needs a different graph: excluding workspace
+# devDependencies here keeps compiler/build packages out of both its manifests
+# and its pruned lockfile, instead of asking Bun to filter a build-complete graph.
+RUN --mount=type=bind,source=.,target=/ctx,ro \
+    /root/.bun/bin/turbo prune \
+      @genfeedai/api \
+      @genfeedai/discord \
+      @genfeedai/files \
+      @genfeedai/images \
+      @genfeedai/mcp \
+      @genfeedai/notifications \
+      @genfeedai/server \
+      @genfeedai/slack \
+      @genfeedai/telegram \
+      @genfeedai/videos \
+      @genfeedai/voices \
+      @genfeedai/workers \
+      @genfeedai/ee-billing \
+      --production \
+      --docker \
+      --out-dir /pruned-production
+
 # ==================================================
 # Stage 3: Base - Install the frozen build dependency graph
 # ==================================================
@@ -113,7 +135,7 @@ FROM toolchain AS production-deps
 
 WORKDIR /usr/src/app
 
-COPY --from=pruner /pruned/json/ ./
+COPY --from=pruner /pruned-production/json/ ./
 RUN node -e "\
   const fs=require('fs');\
   const p=JSON.parse(fs.readFileSync('package.json','utf8'));\
@@ -129,10 +151,13 @@ COPY patches/ patches/
 RUN --mount=type=cache,id=bun-production-cache,target=/root/.bun/install/cache \
     HUSKY=0 bun install --production --frozen-lockfile --linker hoisted
 RUN bun -e "import { ensureBrowser } from '@remotion/renderer'; await ensureBrowser();"
-RUN test ! -e node_modules/typescript && \
-    test ! -e node_modules/@typescript/native && \
-    test ! -e node_modules/tsup && \
-    test ! -e node_modules/tsc-alias
+RUN set -e; \
+    for dependency in typescript @typescript/native tsup tsc-alias; do \
+      if [ -e "node_modules/$dependency" ]; then \
+        echo "Unexpected runtime build dependency: $dependency"; \
+        exit 1; \
+      fi; \
+    done
 
 # ==================================================
 # Stage 5: Builder - Build all services

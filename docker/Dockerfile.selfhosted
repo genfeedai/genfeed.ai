@@ -76,6 +76,28 @@ RUN --mount=type=bind,source=.,target=/ctx,ro \
       --docker \
       --out-dir /pruned
 
+# Generate a second lockfile-backed graph for the final image. Filtering at
+# prune time removes workspace devDependencies before Bun resolves production
+# dependencies, so build-only compiler packages cannot be hoisted into runtime.
+RUN --mount=type=bind,source=.,target=/ctx,ro \
+    /root/.bun/bin/turbo prune \
+      @genfeedai/api \
+      @genfeedai/app \
+      @genfeedai/discord \
+      @genfeedai/files \
+      @genfeedai/images \
+      @genfeedai/mcp \
+      @genfeedai/notifications \
+      @genfeedai/server \
+      @genfeedai/slack \
+      @genfeedai/telegram \
+      @genfeedai/videos \
+      @genfeedai/voices \
+      @genfeedai/workers \
+      --production \
+      --docker \
+      --out-dir /pruned-production
+
 # ==================================================
 # Stage 3: Build toolchain — native dependency compilation
 # ==================================================
@@ -212,7 +234,7 @@ RUN bun --filter @genfeedai/app build
 FROM build-toolchain AS production-deps
 WORKDIR /app
 
-COPY --from=pruner /pruned/json/ ./
+COPY --from=pruner /pruned-production/json/ ./
 RUN node -e "\
   const fs=require('fs');\
   const p=JSON.parse(fs.readFileSync('package.json','utf8'));\
@@ -224,10 +246,13 @@ COPY patches/ patches/
 
 RUN --mount=type=cache,id=bun-production-cache,target=/root/.bun/install/cache \
     HUSKY=0 bun install --production --frozen-lockfile --linker hoisted
-RUN test ! -e node_modules/typescript && \
-    test ! -e node_modules/@typescript/native && \
-    test ! -e node_modules/tsup && \
-    test ! -e node_modules/tsc-alias
+RUN set -e; \
+    for dependency in typescript @typescript/native tsup tsc-alias; do \
+      if [ -e "node_modules/$dependency" ]; then \
+        echo "Unexpected runtime build dependency: $dependency"; \
+        exit 1; \
+      fi; \
+    done
 
 # Remotion downloads its pinned Chrome shell outside Bun's dependency graph.
 # Reuse the builder artifact instead of downloading it a second time.
