@@ -12,7 +12,7 @@ const SCOPED_WORKSPACE_JOBS = [
     'TEST_SCOPE_SERVER_SERVICES',
   ],
   [
-    'Web, desktop, and mobile tests',
+    'Web and mobile tests',
     'TEST_WEB_DESKTOP_MOBILE_RESULT',
     'TEST_SCOPE_WEB_DESKTOP_MOBILE',
   ],

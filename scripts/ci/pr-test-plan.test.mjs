@@ -178,7 +178,7 @@ test('creates a fail-closed plan with explicit applicability', () => {
       extensions: [],
       packages: ['@genfeedai/interfaces#test'],
       server: [],
-      web: ['@genfeedai/desktop#test'],
+      web: ['@genfeedai/website#test'],
     },
   });
 
@@ -194,6 +194,20 @@ test('creates a fail-closed plan with explicit applicability', () => {
     server: false,
     web: true,
   });
+});
+
+test('keeps dormant extension tests out of full-suite plans', () => {
+  const plan = createPrTestPlan({
+    base: 'base-sha',
+    changedFiles: [],
+    forceAllSurfaces: true,
+    runHeavy: true,
+    turboTasks: {
+      extensions: ['@genfeedai/extension-browser#test'],
+    },
+  });
+
+  assert.equal(plan.workspaceGroups.extensions, false);
 });
 
 test('keeps the workflow wired to exact changed selection and dynamic shards', () => {

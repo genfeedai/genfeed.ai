@@ -1,14 +1,17 @@
 name: Desktop QA
 
 on:
-  pull_request:
-    paths:
-      - "apps/app/**"
-      - "apps/desktop/**"
-      - "packages/desktop-contracts/**"
-      - "packages/props/**"
-      - "packages/ui/**"
-      - ".github/workflows/desktop-qa.yml"
+  # Temporarily disabled while the desktop app is not an active delivery
+  # surface. Re-enable PR QA by uncommenting this trigger; keep the manual and
+  # reusable entry points below for future desktop work and tagged releases.
+  # pull_request:
+  #   paths:
+  #     - "apps/app/**"
+  #     - "apps/desktop/**"
+  #     - "packages/desktop-contracts/**"
+  #     - "packages/props/**"
+  #     - "packages/ui/**"
+  #     - ".github/workflows/desktop-qa.yml"
   workflow_dispatch:
   workflow_call:
 

@@ -12,8 +12,10 @@ on:
     inputs:
       run_heavy_tests:
         # Gate for the heavy test matrix (packages, server services,
-        # web/desktop/mobile, extensions, app + api shards). Callers on the
-        # release path (full-suite.yml) pass `true` to run the full suite.
+        # web/mobile, app + api shards). Desktop and extension checks are
+        # temporarily dormant while those surfaces are not being delivered.
+        # Callers on the release path (full-suite.yml) pass `true` to run the
+        # remaining full suite.
         #
         # This is an explicit input — NOT a `github.event_name == 'workflow_call'`
         # check — because a reusable workflow inherits the CALLER's originating
@@ -184,8 +186,10 @@ jobs:
         run: bun run check:route-inventory
       - name: Tenant Scope (API + shared server)
         run: bun run check:tenant-scope
-      - name: Desktop Schema Drift
-        run: bun run check:desktop-schema-drift
+      # Temporarily disabled while desktop is not an active delivery surface.
+      # Re-enable these two lines when desktop work resumes.
+      # - name: Desktop Schema Drift
+      #   run: bun run check:desktop-schema-drift
       - name: Serializer Drift Regression Tests
         run: bunx vitest run --config scripts/serializer-drift/vitest.config.ts
       - name: Serializer Drift
@@ -376,7 +380,7 @@ jobs:
           fi
 
   test-web-desktop-mobile:
-    name: Test Web, Desktop, Mobile
+    name: Test Web and Mobile
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [trust, test-scope]
@@ -393,12 +397,14 @@ jobs:
         uses: ./.github/actions/setup-bun-env
         with:
           bun-version: '1.3.14'
-      - name: Run web, desktop, and mobile tests
+      - name: Run web and mobile tests
         run: |
+          # Temporarily disabled while desktop is not an active delivery surface:
+          # --filter=@genfeedai/desktop
           if [ "${{ needs.test-scope.outputs.force_full }}" = "true" ]; then
-            bunx turbo run test --filter=@genfeedai/website --filter=@genfeedai/docs --filter=@genfeedai/desktop --filter=@genfeedai/mobile
+            bunx turbo run test --filter=@genfeedai/website --filter=@genfeedai/docs --filter=@genfeedai/mobile
           else
-            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run test --affected --filter=@genfeedai/website --filter=@genfeedai/docs --filter=@genfeedai/desktop --filter=@genfeedai/mobile
+            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run test --affected --filter=@genfeedai/website --filter=@genfeedai/docs --filter=@genfeedai/mobile
           fi
 
   test-extensions:
@@ -406,8 +412,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [trust, test-scope]
+    # Temporarily disabled while extensions are not active delivery surfaces.
+    # Re-enable by setting ENABLE_EXTENSION_CI=true and removing `extensions`
+    # from TEMPORARILY_DISABLED_TEST_GROUPS in scripts/ci/pr-test-plan.mjs.
     if: >-
-      needs.trust.outputs.is-trusted == 'true'
+      vars.ENABLE_EXTENSION_CI == 'true'
+      && needs.trust.outputs.is-trusted == 'true'
       && (inputs.run_heavy_tests
         || (github.event_name == 'pull_request'
           && needs.test-scope.outputs.extensions == 'true'))
