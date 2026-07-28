@@ -59,6 +59,7 @@ These are already in context every request — do not re-read them to "check".
 - [brand-social-visual-enrichment](spec-brand-social-visual-enrichment.md) · [decisions](decisions-brand-social-visual-enrichment.md)
 - [mcp-instagram-meta-inspiration-remix](spec-mcp-instagram-meta-inspiration-remix.md) · [decisions](decisions-mcp-instagram-meta-inspiration-remix.md)
 - [local-development-host](spec-local-development-host.md) · [decisions](decisions-local-development-host.md)
+- [adaptive-pr-validation](spec-adaptive-pr-validation.md) · [decisions](decisions-adaptive-pr-validation.md) — #1850
 
 ## Project state
 
