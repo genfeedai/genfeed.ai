@@ -83,7 +83,7 @@
     "electron": "43.2.0",
     "electron-builder": "26.15.3",
     "esbuild": "0.28.1",
-    "jsdom": "30.0.0",
+    "jsdom": "29.1.1",
     "typescript": "6.0.2",
     "vitest": "4.1.10"
   },
@@ -104,7 +104,7 @@
     "clean": "rm -rf dist .next out",
     "copy:app-shell": "node ./scripts/copy-app-shell.cjs",
     "copy:assets": "mkdir -p dist/assets && cp -r assets/* dist/assets/ && mkdir -p dist/desktop-prisma && cp -r ../../../packages/desktop-prisma/prisma/migrations dist/desktop-prisma/migrations",
-    "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
+    "deps:update": "bunx npm-check-updates -u --reject typescript,jsdom && bun install",
     "dev": "bun run electron:install-binary && bun run native:rebuild && node ./scripts/dev.cjs",
     "electron:install-binary": "node ./scripts/install-electron.cjs",
     "icon:mac": "bash ./scripts/generate-macos-icon.sh",

@@ -42,7 +42,7 @@
     "@vitest/coverage-v8": "4.1.10",
     "eslint": "10.8.0",
     "eslint-config-expo": "57.0.0",
-    "jsdom": "30.0.0",
+    "jsdom": "29.1.1",
     "typescript": "6.0.2",
     "vitest": "4.1.10"
   },
@@ -57,7 +57,7 @@
   "scripts": {
     "android": "expo start --android",
     "cache:clear": "rm -rf node_modules .expo .expo-shared .next dist build",
-    "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
+    "deps:update": "bunx npm-check-updates -u --reject typescript,jsdom && bun install",
     "ios": "expo start --ios",
     "lint": "bunx expo lint",
     "lint:fix": "bunx expo lint --fix",

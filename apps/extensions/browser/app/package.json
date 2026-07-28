@@ -29,7 +29,7 @@
     "@types/react-dom": "19.2.3",
     "@vitest/coverage-v8": "4.1.10",
     "autoprefixer": "10.5.4",
-    "jsdom": "30.0.0",
+    "jsdom": "29.1.1",
     "postcss": "8.5.23",
     "prettier": "3.9.6",
     "tailwindcss": "4.3.3",
@@ -77,7 +77,7 @@
   "scripts": {
     "build": "npm exec plasmo build",
     "cache:clear": "./scripts/bash/cache-clear.sh",
-    "deps:update": "bunx npm-check-updates -u --reject typescript,tailwindcss && bun install",
+    "deps:update": "bunx npm-check-updates -u --reject typescript,tailwindcss,jsdom && bun install",
     "dev": "npm exec plasmo dev",
     "dev:debug": "PLASMO_PUBLIC_ENV=development npm exec plasmo dev",
     "format:check": "prettier --check .",

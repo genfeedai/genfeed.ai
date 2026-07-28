@@ -52,7 +52,7 @@
     "@types/react-color": "3.0.13",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.4",
-    "jsdom": "30.0.0",
+    "jsdom": "29.1.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "tsc-alias": "1.9.1",
