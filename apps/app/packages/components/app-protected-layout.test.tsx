@@ -854,24 +854,27 @@ describe('AppProtectedLayout', () => {
     ['/workflows/executions', 'Runs'],
     ['/admin', 'Dashboard'],
     ['/agent/new', 'New conversation'],
-  ])('feeds the active surface navigation to breadcrumbs on %s', (pathname, expectedLabel) => {
-    mockPathname.value = pathname;
+  ])(
+    'feeds the active surface navigation to breadcrumbs on %s',
+    (pathname, expectedLabel) => {
+      mockPathname.value = pathname;
 
-    render(
-      <AppProtectedLayout>
-        <div>Protected content</div>
-      </AppProtectedLayout>,
-    );
+      render(
+        <AppProtectedLayout>
+          <div>Protected content</div>
+        </AppProtectedLayout>,
+      );
 
-    const layoutProps = appLayoutSpy.mock.lastCall?.[0] as {
-      menuItems?: { label: string }[];
-    };
-    expect(layoutProps.menuItems).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ label: expectedLabel }),
-      ]),
-    );
-  });
+      const layoutProps = appLayoutSpy.mock.lastCall?.[0] as {
+        menuItems?: { label: string }[];
+      };
+      expect(layoutProps.menuItems).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ label: expectedLabel }),
+        ]),
+      );
+    },
+  );
 
   it.each([
     ['/org-123/~/settings/api-keys', 'Settings', 'API Keys'],
@@ -898,20 +901,23 @@ describe('AppProtectedLayout', () => {
       'Workflows',
       'Campaign',
     ],
-  ] as const)('feeds canonical root and leaf breadcrumb metadata on %s', (pathname, rootLabel, leafLabel) => {
-    mockPathname.value = pathname;
+  ] as const)(
+    'feeds canonical root and leaf breadcrumb metadata on %s',
+    (pathname, rootLabel, leafLabel) => {
+      mockPathname.value = pathname;
 
-    render(
-      <AppProtectedLayout>
-        <div>Protected content</div>
-      </AppProtectedLayout>,
-    );
+      render(
+        <AppProtectedLayout>
+          <div>Protected content</div>
+        </AppProtectedLayout>,
+      );
 
-    const layoutProps = appLayoutSpy.mock.lastCall?.[0] as {
-      breadcrumb?: { leafLabel: string; rootLabel: string };
-    };
-    expect(layoutProps.breadcrumb).toEqual({ leafLabel, rootLabel });
-  });
+      const layoutProps = appLayoutSpy.mock.lastCall?.[0] as {
+        breadcrumb?: { leafLabel: string; rootLabel: string };
+      };
+      expect(layoutProps.breadcrumb).toEqual({ leafLabel, rootLabel });
+    },
+  );
 
   it('hides sidebar and topbar chrome for focused onboarding agent routes', () => {
     // Org-scoped on purpose: onboarding is a registered shell route, so this is
@@ -1151,30 +1157,33 @@ describe('AppProtectedLayout', () => {
     ['/org-123/brand-123/analytics/overview', 'analytics', 'Analytics'],
     ['/org-123/brand-123/workflows', 'workflows', 'Workflows'],
     ['/org-123/brand-123/posts/remix', 'posts', 'Workspace'],
-  ])('keeps the %s app-switcher surface on its own module nav', (pathname, currentApp, sectionLabel) => {
-    mockPathname.value = pathname;
+  ])(
+    'keeps the %s app-switcher surface on its own module nav',
+    (pathname, currentApp, sectionLabel) => {
+      mockPathname.value = pathname;
 
-    render(
-      <AppProtectedLayout>
-        <div>Protected content</div>
-      </AppProtectedLayout>,
-    );
+      render(
+        <AppProtectedLayout>
+          <div>Protected content</div>
+        </AppProtectedLayout>,
+      );
 
-    const sidebarProps = appSidebarSpy.mock.calls.at(-1)?.[0];
+      const sidebarProps = appSidebarSpy.mock.calls.at(-1)?.[0];
 
-    expect(sidebarProps).toEqual(
-      expect.objectContaining({
-        currentApp,
-        sectionLabel,
-        shellChromeVariant: 'default',
-      }),
-    );
-    expect(sidebarProps).not.toHaveProperty('backHref');
-    expect(sidebarProps).not.toHaveProperty('backLabel');
-    expect(
-      screen.queryByRole('link', { name: 'Back to Workspace' }),
-    ).not.toBeInTheDocument();
-  });
+      expect(sidebarProps).toEqual(
+        expect.objectContaining({
+          currentApp,
+          sectionLabel,
+          shellChromeVariant: 'default',
+        }),
+      );
+      expect(sidebarProps).not.toHaveProperty('backHref');
+      expect(sidebarProps).not.toHaveProperty('backLabel');
+      expect(
+        screen.queryByRole('link', { name: 'Back to Workspace' }),
+      ).not.toBeInTheDocument();
+    },
+  );
 
   it('renders admin routes through the admin sidebar', () => {
     mockPathname.value = '/admin';

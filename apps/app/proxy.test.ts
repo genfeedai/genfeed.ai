@@ -136,25 +136,24 @@ describe('proxy', () => {
 
   // ─── Signed-in redirect away from root / public entry points ──────────────
 
-  it.each([
-    '/login',
-    '/login/password',
-    '/login/magic-link',
-  ])('redirects a signed-in user away from %s to default workspace routing', async (pathname) => {
-    const { default: proxy } = await import('./proxy');
+  it.each(['/login', '/login/password', '/login/magic-link'])(
+    'redirects a signed-in user away from %s to default workspace routing',
+    async (pathname) => {
+      const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      makeSignedInRequest(pathname, {
-        search: '?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
-      }),
-      {} as never,
-    );
+      const response = await proxy(
+        makeSignedInRequest(pathname, {
+          search: '?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
+        }),
+        {} as never,
+      );
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
-    );
-  });
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toBe(
+        'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+      );
+    },
+  );
 
   it('keeps logout reachable for a signed-in user', async () => {
     const { default: proxy } = await import('./proxy');
@@ -205,17 +204,17 @@ describe('proxy', () => {
     );
   });
 
-  it.each([
-    '/forgot-password',
-    '/reset-password',
-  ])('lets signed-out users render public reset route %s', async (pathname) => {
-    const { default: proxy } = await import('./proxy');
+  it.each(['/forgot-password', '/reset-password'])(
+    'lets signed-out users render public reset route %s',
+    async (pathname) => {
+      const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(makeSignedOutRequest(pathname), {} as never);
+      const response = await proxy(makeSignedOutRequest(pathname), {} as never);
 
-    expect(response.status).not.toBe(307);
-    expect(response.headers.get('location')).toBeNull();
-  });
+      expect(response.status).not.toBe(307);
+      expect(response.headers.get('location')).toBeNull();
+    },
+  );
 
   it('does not treat the deleted request-access route as public', async () => {
     const { default: proxy } = await import('./proxy');
@@ -737,20 +736,23 @@ describe('proxy', () => {
       '/acme/moonrise-studio/tasks/GEN-42',
       '/acme/moonrise-studio/workspace/tasks/GEN-42',
     ],
-  ])('redirects legacy scoped task route %s to %s', async (pathname, canonicalPathname) => {
-    const { default: proxy } = await import('./proxy');
+  ])(
+    'redirects legacy scoped task route %s to %s',
+    async (pathname, canonicalPathname) => {
+      const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      makeSignedInRequest(pathname, { search: '?view=kanban' }),
-      {} as never,
-    );
+      const response = await proxy(
+        makeSignedInRequest(pathname, { search: '?view=kanban' }),
+        {} as never,
+      );
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      `http://localhost:3000${canonicalPathname}?view=kanban`,
-    );
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toBe(
+        `http://localhost:3000${canonicalPathname}?view=kanban`,
+      );
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
 
   it('canonicalizes the legacy flat tasks route before workspace scoping', async () => {
     const { default: proxy } = await import('./proxy');

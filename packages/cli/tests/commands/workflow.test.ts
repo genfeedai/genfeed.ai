@@ -46,23 +46,21 @@ describe('workflow command', () => {
     });
   });
 
-  it.each([
-    '[]',
-    'null',
-    '"text"',
-    '42',
-  ])('rejects non-object --inputs value %s', async (inputs) => {
-    await expect(
-      workflowCommand.parseAsync(['run', 'workflow-1', '--inputs', inputs], { from: 'user' })
-    ).rejects.toThrow(GenfeedError);
+  it.each(['[]', 'null', '"text"', '42'])(
+    'rejects non-object --inputs value %s',
+    async (inputs) => {
+      await expect(
+        workflowCommand.parseAsync(['run', 'workflow-1', '--inputs', inputs], { from: 'user' })
+      ).rejects.toThrow(GenfeedError);
 
-    expect(mockHandleError).toHaveBeenCalledWith(
-      expect.objectContaining({
-        message: '--inputs must be a JSON object',
-      })
-    );
-    expect(mockPost).not.toHaveBeenCalled();
-  });
+      expect(mockHandleError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: '--inputs must be a JSON object',
+        })
+      );
+      expect(mockPost).not.toHaveBeenCalled();
+    }
+  );
 
   it('rejects malformed --inputs JSON with a stable CLI error', async () => {
     await expect(

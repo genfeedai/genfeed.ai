@@ -6,15 +6,14 @@ afterEach(() => {
 });
 
 describe('Agent CLI terminal deployment contract', () => {
-  it.each([
-    '1',
-    'true',
-    ' TRUE ',
-  ])('is unavailable for cloud flag %s', (cloudFlag) => {
-    vi.stubEnv('GENFEED_CLOUD', cloudFlag);
+  it.each(['1', 'true', ' TRUE '])(
+    'is unavailable for cloud flag %s',
+    (cloudFlag) => {
+      vi.stubEnv('GENFEED_CLOUD', cloudFlag);
 
-    expect(isAgentCliTerminalAvailable()).toBe(false);
-  });
+      expect(isAgentCliTerminalAvailable()).toBe(false);
+    },
+  );
 
   it('is available for self-hosted deployments', () => {
     vi.stubEnv('GENFEED_CLOUD', undefined);
