@@ -124,6 +124,12 @@ describe('ConfigService', () => {
       expect(configService.cdnUrl).toBe('http://localhost:3002');
     });
 
+    it('should remove trailing slashes from the canonical CDN root', () => {
+      env.GENFEEDAI_CDN_URL = 'https://cdn.example.com///';
+
+      expect(new ConfigService().cdnUrl).toBe('https://cdn.example.com');
+    });
+
     it('should fall back to the managed CDN root when unset', () => {
       delete env.GENFEEDAI_CDN_URL;
 

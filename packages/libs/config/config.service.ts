@@ -168,7 +168,9 @@ export class ConfigService extends BaseConfigService<ApiEnvConfig> {
   }
 
   public get cdnUrl(): string {
-    return this.envConfig.GENFEEDAI_CDN_URL ?? 'https://cdn.genfeed.ai';
+    return (
+      this.envConfig.GENFEEDAI_CDN_URL ?? 'https://cdn.genfeed.ai'
+    ).replace(/\/+$/, '');
   }
 
   public get ingredientsEndpoint(): string {

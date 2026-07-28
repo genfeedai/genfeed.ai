@@ -110,7 +110,13 @@ const INGREDIENT_CATEGORY_TO_PREFIX: Record<string, string> = {
 
 const TRAINING_PREFIX = 'ingredients/trainings';
 
-const ASSET_CATEGORY_TO_PREFIX: Record<string, string> = {
+const ASSET_SOURCE_PREFIX_BY_CATEGORY: Record<string, string> = {
+  LOGO: 'ingredients/logos',
+  BANNER: 'ingredients/banners',
+  REFERENCE: 'ingredients/references',
+};
+
+const ASSET_TARGET_PREFIX_BY_CATEGORY: Record<string, string> = {
   LOGO: 'logos',
   BANNER: 'banners',
   REFERENCE: 'references',
@@ -477,14 +483,19 @@ async function processAssets(
   const failures: string[] = [];
   let renamedCount = 0;
 
-  const filteredRows = rows.filter((r) => ASSET_CATEGORY_TO_PREFIX[r.category]);
+  const filteredRows = rows.filter(
+    (r) =>
+      ASSET_SOURCE_PREFIX_BY_CATEGORY[r.category] &&
+      ASSET_TARGET_PREFIX_BY_CATEGORY[r.category],
+  );
 
   const tasks: RenameTask[] = filteredRows.map((r) => {
-    const prefix = ASSET_CATEGORY_TO_PREFIX[r.category];
+    const sourcePrefix = ASSET_SOURCE_PREFIX_BY_CATEGORY[r.category];
+    const targetPrefix = ASSET_TARGET_PREFIX_BY_CATEGORY[r.category];
     return {
       label: `asset:${r.category}:${r.mongoId}`,
-      sourceKey: `${prefix}/${r.mongoId}`,
-      targetKey: `${prefix}/${r.id}`,
+      sourceKey: `${sourcePrefix}/${r.mongoId}`,
+      targetKey: `${targetPrefix}/${r.id}`,
     };
   });
 

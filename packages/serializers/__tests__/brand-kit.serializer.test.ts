@@ -150,6 +150,7 @@ describe('Brand Kit JSON:API contract', () => {
               assetId: 'asset-1',
               role: 'logo',
               status: 'imported',
+              url: '/logos/asset-1',
             }),
           ],
           status: 'accepted',
