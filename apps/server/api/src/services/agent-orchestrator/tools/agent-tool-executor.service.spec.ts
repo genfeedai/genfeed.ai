@@ -13,6 +13,7 @@ import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools
 import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
+import { AgentLivestreamToolHandler } from '@api/services/agent-orchestrator/tools/agent-livestream-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import { AgentProactiveToolHandler } from '@api/services/agent-orchestrator/tools/agent-proactive-tool-handler.service';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
@@ -518,6 +519,11 @@ describe('AgentToolExecutorService', () => {
     const campaignHandler = new AgentCampaignToolHandler(
       campaignsService as never,
     );
+    const livestreamHandler = new AgentLivestreamToolHandler(
+      brandsService as never,
+      botsService as never,
+      botsLivestreamService as never,
+    );
 
     const imagesService = {
       findAllByOrganization: vi.fn().mockResolvedValue([]),
@@ -822,9 +828,8 @@ describe('AgentToolExecutorService', () => {
       memoryGoalsHandler,
       dashboardHandler,
       publishHandler,
-      botsService as never,
-      botsLivestreamService as never,
       campaignHandler,
+      livestreamHandler,
       workflowExecutorService as never,
       workflowsService as never,
       workflowGenerationService as never,
@@ -4232,9 +4237,12 @@ describe('AgentToolExecutorService', () => {
       new AgentMemoryGoalsToolHandler(undefined as never, undefined as never),
       new AgentDashboardToolHandler(undefined as never),
       new AgentPublishToolHandler({} as never),
-      {} as never,
-      {} as never,
       new AgentCampaignToolHandler({} as never),
+      new AgentLivestreamToolHandler(
+        brandsService as never,
+        {} as never,
+        {} as never,
+      ),
       { findOne: vi.fn() } as never,
       workflowsService as never,
       undefined as never,

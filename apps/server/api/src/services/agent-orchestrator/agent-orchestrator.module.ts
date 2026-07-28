@@ -49,6 +49,7 @@ import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools
 import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
+import { AgentLivestreamToolHandler } from '@api/services/agent-orchestrator/tools/agent-livestream-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import { AgentProactiveToolHandler } from '@api/services/agent-orchestrator/tools/agent-proactive-tool-handler.service';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
@@ -128,6 +129,7 @@ import { forwardRef, Module } from '@nestjs/common';
     AgentAdsResearchToolHandler,
     AgentBrandInterviewToolHandler,
     AgentCampaignToolHandler,
+    AgentLivestreamToolHandler,
     AgentConnectionToolHandler,
     AgentDashboardToolHandler,
     AgentInstagramInspirationToolHandler,
