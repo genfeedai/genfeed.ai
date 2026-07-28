@@ -228,11 +228,12 @@ export default function BrandDetailSocialMediaCard({
     };
   }, [loadAccountHealth]);
 
-  const handleConnectPlatform = async (platform: string) => {
+  const handleConnectPlatform = async (item: OAuthConnectPlatform) => {
+    const platform = item.platform;
     try {
       setConnectingPlatform(platform);
       const token = (await resolveAuthToken(getToken)) ?? '';
-      const service = new ServicesService(platform, token);
+      const service = new ServicesService(item.servicePath ?? platform, token);
       const credentialOAuth = await service.postConnect({ brand: brandId });
       window.open(credentialOAuth.url, '_self');
     } catch (error) {
@@ -281,7 +282,7 @@ export default function BrandDetailSocialMediaCard({
         key={item.platform}
         variant={ButtonVariant.SECONDARY}
         size={ButtonSize.SM}
-        onClick={() => handleConnectPlatform(item.platform)}
+        onClick={() => handleConnectPlatform(item)}
         isLoading={connectingPlatform === item.platform}
         isDisabled={connectingPlatform !== null}
       >
