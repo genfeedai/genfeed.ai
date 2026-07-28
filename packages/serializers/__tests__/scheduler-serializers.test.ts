@@ -73,6 +73,12 @@ describe('Built server serializers', () => {
 describe('Release group serialization', () => {
   test('serializes a partially-published release with mixed target states', () => {
     const result = ReleaseGroupSerializer.serialize({
+      analyticsComparison: {
+        metricDefinitions: ['views'],
+        releaseId: 'rel_1',
+        state: 'mixed',
+        targets: [],
+      },
       id: 'rel_1',
       baseContent: 'Launch day is here.',
       idempotencyKey: 'idem-1',
@@ -112,6 +118,12 @@ describe('Release group serialization', () => {
       failed: 1,
       published: 1,
       total: 2,
+    });
+    expect(result.data.attributes.analyticsComparison).toEqual({
+      metricDefinitions: ['views'],
+      releaseId: 'rel_1',
+      state: 'mixed',
+      targets: [],
     });
     expect(result.data.relationships).toHaveProperty('targets');
   });

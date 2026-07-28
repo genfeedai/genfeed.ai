@@ -1,3 +1,4 @@
+import type { IReleaseGroup } from '@genfeedai/interfaces';
 import type { BaseApiClient } from './base-api-client';
 
 export type ScheduledReleaseControlAction =
@@ -17,7 +18,7 @@ export class SchedulerClient {
   createScheduledRelease(
     release: Record<string, unknown>,
     idempotencyKey?: string,
-  ): Promise<Record<string, unknown>> {
+  ): Promise<IReleaseGroup> {
     this.base.logger.debug('Creating scheduled release');
 
     return this.base.request(
@@ -28,13 +29,13 @@ export class SchedulerClient {
             ? { headers: { 'idempotency-key': idempotencyKey } }
             : {}),
         });
-        return this.base.unwrapObject(response);
+        return this.base.unwrapObject<IReleaseGroup>(response);
       },
       this.base.failWithDetail('Failed to create scheduled release'),
     );
   }
 
-  getScheduledRelease(releaseId: string): Promise<Record<string, unknown>> {
+  getScheduledRelease(releaseId: string): Promise<IReleaseGroup> {
     this.base.logger.debug(`Getting scheduled release: ${releaseId}`);
 
     return this.base.request(
@@ -43,7 +44,7 @@ export class SchedulerClient {
         const response = await http.get(
           `/post-groups/${encodeURIComponent(releaseId)}`,
         );
-        return this.base.unwrapObject(response);
+        return this.base.unwrapObject<IReleaseGroup>(response);
       },
       this.base.failWithDetail('Failed to get scheduled release'),
     );
@@ -53,7 +54,7 @@ export class SchedulerClient {
     releaseId: string,
     changes: Record<string, unknown>,
     targetId?: string,
-  ): Promise<Record<string, unknown>> {
+  ): Promise<IReleaseGroup> {
     this.base.logger.debug('Updating scheduled release', {
       releaseId,
       targetId,
@@ -67,7 +68,7 @@ export class SchedulerClient {
           ? `${releasePath}/targets/${encodeURIComponent(targetId)}`
           : releasePath;
         const response = await http.patch(endpoint, changes);
-        return this.base.unwrapObject(response);
+        return this.base.unwrapObject<IReleaseGroup>(response);
       },
       this.base.failWithDetail('Failed to update scheduled release'),
     );
@@ -76,7 +77,7 @@ export class SchedulerClient {
   controlScheduledRelease(
     releaseId: string,
     action: ScheduledReleaseControlAction,
-  ): Promise<Record<string, unknown>> {
+  ): Promise<IReleaseGroup> {
     this.base.logger.debug('Controlling scheduled release', {
       action,
       releaseId,
@@ -88,7 +89,7 @@ export class SchedulerClient {
         const response = await http.post(
           `/post-groups/${encodeURIComponent(releaseId)}/${action}`,
         );
-        return this.base.unwrapObject(response);
+        return this.base.unwrapObject<IReleaseGroup>(response);
       },
       this.base.failWithDetail('Failed to control scheduled release'),
     );

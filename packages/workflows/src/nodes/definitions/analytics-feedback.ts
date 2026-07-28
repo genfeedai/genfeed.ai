@@ -27,7 +27,14 @@ export const analyticsFeedbackNodeDefinition = {
   defaultData: DEFAULT_ANALYTICS_FEEDBACK_DATA,
   description: 'Read performance analytics to guide content strategy',
   icon: 'BarChart3',
-  inputs: [],
+  inputs: [
+    {
+      id: 'releaseAnalytics',
+      label: 'Release analytics',
+      required: false,
+      type: 'json',
+    },
+  ],
   label: 'Analytics Feedback',
   outputs: [
     { id: 'topTopics', label: 'Top Topics', type: 'text[]' },
@@ -46,6 +53,11 @@ export const analyticsFeedbackNodeDefinition = {
       type: 'number',
     },
     { id: 'bestPostingTimes', label: 'Best Posting Times', type: 'json' },
+    {
+      id: 'releaseEvidence',
+      label: 'Release Evidence',
+      type: 'json',
+    },
   ],
   type: 'analyticsFeedback',
 };

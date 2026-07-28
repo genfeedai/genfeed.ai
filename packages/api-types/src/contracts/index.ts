@@ -19,3 +19,4 @@ export * from './publishing-readiness.contract';
 export * from './recurrence-preview.contract';
 export * from './scheduler.contract';
 export * from './scheduler-analytics-collection.contract';
+export * from './scheduler-analytics-comparison.contract';

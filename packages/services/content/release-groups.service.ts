@@ -9,8 +9,16 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
   deserializeResource,
+  extractCollection,
+  extractResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
+
+export interface ReleaseGroupListQuery {
+  brandId?: string;
+  endDate: string;
+  startDate: string;
+}
 
 export class ReleaseGroupsService extends HTTPBaseService {
   constructor(token: string) {
@@ -25,6 +33,22 @@ export class ReleaseGroupsService extends HTTPBaseService {
       ReleaseGroupsService,
       token,
     ) as ReleaseGroupsService;
+  }
+
+  async findAll(query: ReleaseGroupListQuery): Promise<IReleaseGroup[]> {
+    const response = await this.instance.get<JsonApiResponseDocument>('', {
+      params: query,
+    });
+
+    return extractCollection<IReleaseGroup>(response.data);
+  }
+
+  async findOne(releaseId: string): Promise<IReleaseGroup> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      `/${releaseId}`,
+    );
+
+    return extractResource<IReleaseGroup>(response.data);
   }
 
   async getOne(groupId: string, signal?: AbortSignal): Promise<IReleaseGroup> {

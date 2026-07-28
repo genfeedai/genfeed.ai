@@ -7,12 +7,16 @@ import '@testing-library/jest-dom/vitest';
 
 const findPostsMock = vi.fn();
 const findArticlesMock = vi.fn();
+const findReleasesMock = vi.fn();
 const pushMock = vi.fn();
 const setDateRangeMock = vi.fn();
 const useAuthedServiceMock = vi.fn();
 const getPostsServiceMock = vi.fn(async () => ({ findAll: findPostsMock }));
 const getArticlesServiceMock = vi.fn(async () => ({
   findAll: findArticlesMock,
+}));
+const getReleaseGroupsServiceMock = vi.fn(async () => ({
+  findAll: findReleasesMock,
 }));
 const calendarRenderProps: Array<{
   getEventColor: (item: {
@@ -109,6 +113,18 @@ vi.mock('@pages/posts/detail/PostDetailOverlay', () => ({
   ),
 }));
 
+vi.mock('./release-analytics-overlay', () => ({
+  default: ({ release }: { release: { id: string } | null }) => (
+    <div data-testid="release-overlay">{release?.id ?? 'closed'}</div>
+  ),
+}));
+
+vi.mock('./evergreen-series-controls', () => ({
+  default: ({ groupId }: { groupId: string }) => (
+    <div data-testid="evergreen-series-controls">{groupId}</div>
+  ),
+}));
+
 describe('ContentCalendarPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -117,11 +133,14 @@ describe('ContentCalendarPage', () => {
     useAuthedServiceMock.mockImplementation(() => {
       useAuthedServiceCallCount += 1;
 
-      if (useAuthedServiceCallCount % 2 === 1) {
+      const serviceIndex = useAuthedServiceCallCount % 3;
+      if (serviceIndex === 1) {
         return getPostsServiceMock;
       }
 
-      return getArticlesServiceMock;
+      return serviceIndex === 2
+        ? getArticlesServiceMock
+        : getReleaseGroupsServiceMock;
     });
     findPostsMock.mockResolvedValue([
       {
@@ -133,6 +152,7 @@ describe('ContentCalendarPage', () => {
       },
     ]);
     findArticlesMock.mockResolvedValue([]);
+    findReleasesMock.mockResolvedValue([]);
   });
 
   it('opens the shared post overlay when a calendar post is clicked', async () => {
@@ -141,6 +161,7 @@ describe('ContentCalendarPage', () => {
     await waitFor(() => {
       expect(findPostsMock).toHaveBeenCalled();
       expect(findArticlesMock).toHaveBeenCalled();
+      expect(findReleasesMock).toHaveBeenCalled();
       expect(
         calendarRenderProps[calendarRenderProps.length - 1]?.items,
       ).toHaveLength(1);
@@ -159,6 +180,7 @@ describe('ContentCalendarPage', () => {
     await waitFor(() => {
       expect(findPostsMock).toHaveBeenCalled();
       expect(findArticlesMock).toHaveBeenCalled();
+      expect(findReleasesMock).toHaveBeenCalled();
       expect(calendarRenderProps.length).toBeGreaterThan(1);
     });
 
@@ -174,6 +196,49 @@ describe('ContentCalendarPage', () => {
     );
     expect(latestRenderProps?.getEventColor).toBe(
       firstRenderProps?.getEventColor,
+    );
+  });
+
+  it('opens one release drilldown and suppresses its legacy post duplicate', async () => {
+    findPostsMock.mockResolvedValue([
+      {
+        groupId: 'release-1',
+        id: 'post-456',
+        platform: 'instagram',
+        scheduledDate: '2026-03-12T10:00:00.000Z',
+        status: 'draft',
+      },
+    ]);
+    findReleasesMock.mockResolvedValue([
+      {
+        analyticsComparison: {
+          metricDefinitions: [],
+          releaseId: 'release-1',
+          state: 'empty',
+          targets: [],
+        },
+        id: 'release-1',
+        scheduledAt: '2026-03-12T10:00:00.000Z',
+        status: 'scheduled',
+        title: 'Campaign release',
+      },
+    ]);
+
+    render(<ContentCalendarPage />);
+
+    await waitFor(() => {
+      const items =
+        calendarRenderProps[calendarRenderProps.length - 1]?.items ?? [];
+      expect(items).toHaveLength(1);
+      expect(items[0]?.id).toBe('release-1');
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open first item' }));
+    expect(screen.getByTestId('release-overlay')).toHaveTextContent(
+      'release-1',
+    );
+    expect(screen.getByTestId('evergreen-series-controls')).toHaveTextContent(
+      'release-1',
     );
   });
 });
