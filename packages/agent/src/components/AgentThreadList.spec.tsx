@@ -312,7 +312,7 @@ describe('AgentThreadList', () => {
     const threadLink = screen.getByText('Linked thread').closest('a');
 
     expect(threadLink).toHaveAttribute('href', '/agent/conv-1');
-    expect(threadLink?.parentElement).toHaveClass('h-9');
+    expect(threadLink?.parentElement).toHaveClass('min-h-14');
   });
 
   it('does not render malformed threads without usable ids', async () => {
@@ -564,7 +564,7 @@ describe('AgentThreadList', () => {
       name: 'Pinned',
     });
 
-    expect(screen.getByText('Pinned')).toBeInTheDocument();
+    expect(pinnedSection).toHaveAccessibleName('Pinned');
     expect(pinnedSection).toHaveTextContent('Pinned thread');
     expect(pinnedSection).not.toHaveTextContent('Later thread');
   });
@@ -699,7 +699,7 @@ describe('AgentThreadList', () => {
         'Awaiting response status for Assess desktop app readiness',
       ),
     ).toHaveClass('animate-spin');
-    expect(screen.queryByText('Awaiting response')).toBeNull();
+    expect(screen.getByText('Awaiting response')).toBeInTheDocument();
     expect(screen.getByTitle('Awaiting response')).toBeInTheDocument();
   });
 
