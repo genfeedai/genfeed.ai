@@ -1,9 +1,7 @@
 name: Daily Production Deploy
 
-# Deploy-only by design. GitHub Releases in this repo drive the self-hosted
-# Docker publish path; managed genfeed.ai production deploys are master-only via
-# "Deploy ECS (production)". Do not cut tags here until a canonical cloud
-# release-cut workflow exists.
+# Deploy-only fallback for unreleased master changes. Stable releases use the
+# canonical Release workflow, which publishes community and SaaS from one SHA.
 #
 # Off switch: repository variable DAILY_PRODUCTION_DEPLOY_ENABLED must be the
 # string "true" to activate the cron. Default (unset/anything else) is a
@@ -31,7 +29,7 @@ env:
   DEPLOY_WORKFLOW: deploy-ecs.yml
   FASTLANE_WORKFLOW: deploy-ecs-fastlane.yml
   FULL_SUITE_WORKFLOW: full-suite.yml
-  RELEASE_WORKFLOW: docker-publish.yml
+  RELEASE_WORKFLOW: release.yml
 
 jobs:
   preflight:
@@ -41,7 +39,6 @@ jobs:
     permissions:
       actions: read
       contents: read
-      deployments: read
     outputs:
       should_deploy: ${{ steps.preflight.outputs.should_deploy }}
       issue_needed: ${{ steps.preflight.outputs.issue_needed }}
@@ -54,7 +51,6 @@ jobs:
       gate_run_url: ${{ steps.preflight.outputs.gate_run_url }}
       deploy_marker_url: ${{ steps.preflight.outputs.deploy_marker_url }}
       deployed_sha: ${{ steps.preflight.outputs.deployed_sha }}
-      latest_release_url: ${{ steps.preflight.outputs.latest_release_url }}
     steps:
       - name: Guard DAILY_PRODUCTION_DEPLOY_ENABLED
         id: enabled_guard
@@ -113,7 +109,6 @@ jobs:
               gate_run_url: '',
               deploy_marker_url: '',
               deployed_sha: '',
-              latest_release_url: '',
             };
 
             function setOutputs() {
@@ -164,53 +159,6 @@ jobs:
                 .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
             }
 
-            async function resolveTagSha(tagName) {
-              const ref = await github.rest.git.getRef({
-                owner,
-                repo,
-                ref: `tags/${tagName}`,
-              });
-
-              if (ref.data.object.type === 'commit') {
-                return ref.data.object.sha;
-              }
-
-              if (ref.data.object.type === 'tag') {
-                const tag = await github.rest.git.getTag({
-                  owner,
-                  repo,
-                  tag_sha: ref.data.object.sha,
-                });
-                return tag.data.object.sha;
-              }
-
-              return '';
-            }
-
-            async function latestSuccessfulProductionDeployment() {
-              const deployments = await github.rest.repos.listDeployments({
-                owner,
-                repo,
-                environment: 'production',
-                per_page: 30,
-              });
-
-              for (const deployment of deployments.data) {
-                const statuses = await github.rest.repos.listDeploymentStatuses({
-                  owner,
-                  repo,
-                  deployment_id: deployment.id,
-                  per_page: 1,
-                });
-                const latestStatus = statuses.data[0];
-                if (latestStatus?.state === 'success') {
-                  return deployment;
-                }
-              }
-
-              return null;
-            }
-
             try {
               if (process.env.SHOULD_CONTINUE !== 'true') {
                 skip(
@@ -240,7 +188,7 @@ jobs:
               const activeWorkflows = [
                 [process.env.DEPLOY_WORKFLOW, 'Deploy ECS (production)'],
                 [process.env.FASTLANE_WORKFLOW, 'Deploy ECS fastlane'],
-                [process.env.RELEASE_WORKFLOW, 'Docker Publish (Self-Hosted)'],
+                [process.env.RELEASE_WORKFLOW, 'Release'],
               ];
 
               for (const [workflowId, label] of activeWorkflows) {
@@ -254,42 +202,19 @@ jobs:
                 }
               }
 
-              const successfulDeployRun = await latestSuccessfulRunForSha(process.env.DEPLOY_WORKFLOW, masterSha);
-              if (successfulDeployRun) {
-                result.deploy_marker_url = successfulDeployRun.html_url;
-                result.deployed_sha = masterSha;
-                skip(
-                  `Current master SHA is already deployed by Deploy ECS (production): ${successfulDeployRun.html_url}`,
-                  'clean no-op',
-                );
-                return;
-              }
+              const successfulWorkflowMarkers = [
+                [process.env.DEPLOY_WORKFLOW, 'Deploy ECS (production)'],
+                [process.env.FASTLANE_WORKFLOW, 'Deploy ECS fastlane'],
+                [process.env.RELEASE_WORKFLOW, 'the canonical Release workflow'],
+              ];
 
-              try {
-                const release = await github.rest.repos.getLatestRelease({ owner, repo });
-                result.latest_release_url = release.data.html_url;
-                const releaseSha = await resolveTagSha(release.data.tag_name);
-                if (releaseSha === masterSha) {
+              for (const [workflowId, label] of successfulWorkflowMarkers) {
+                const successfulRun = await latestSuccessfulRunForSha(workflowId, masterSha);
+                if (successfulRun) {
+                  result.deploy_marker_url = successfulRun.html_url;
                   result.deployed_sha = masterSha;
                   skip(
-                    `Current master SHA is already represented by latest GitHub release ${release.data.tag_name}: ${release.data.html_url}`,
-                    'clean no-op',
-                  );
-                  return;
-                }
-              } catch (error) {
-                if (error.status !== 404) {
-                  throw error;
-                }
-              }
-
-              const deployment = await latestSuccessfulProductionDeployment();
-              if (deployment) {
-                result.deploy_marker_url = result.deploy_marker_url || `GitHub deployment ${deployment.id}`;
-                if (deployment.sha === masterSha) {
-                  result.deployed_sha = masterSha;
-                  skip(
-                    `Current master SHA is already represented by successful production deployment ${deployment.id}.`,
+                    `Current master SHA is already shipped by ${label}: ${successfulRun.html_url}`,
                     'clean no-op',
                   );
                   return;
@@ -653,7 +578,6 @@ jobs:
           CI_RUN_URL: ${{ needs.preflight.outputs.ci_run_url }}
           GATE_RUN_URL: ${{ needs.preflight.outputs.gate_run_url }}
           DEPLOY_MARKER_URL: ${{ needs.preflight.outputs.deploy_marker_url }}
-          LATEST_RELEASE_URL: ${{ needs.preflight.outputs.latest_release_url }}
           DEPLOY_RUN_URL: ${{ needs.dispatch-deploy.outputs.deploy_run_url }}
           ISSUE_URL: ${{ needs.report-failure.outputs.issue_url }}
         run: |
@@ -690,7 +614,6 @@ jobs:
             echo "- Gate run URL: ${gate_run_url}"
             echo "- Deploy run URL: ${deploy_run_url}"
             echo "- Latest deploy marker: ${DEPLOY_MARKER_URL:-not available}"
-            echo "- Latest release URL: ${LATEST_RELEASE_URL:-not available}"
             echo "- Tracking issue: ${issue_url}"
             echo ""
             echo "Results: preflight=\`${PREFLIGHT_RESULT}\`, dispatch=\`${DISPATCH_RESULT}\`, report=\`${REPORT_RESULT}\`."

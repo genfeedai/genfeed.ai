@@ -4,15 +4,14 @@
 # Mirror of build-verify.yml, but targets docker/Dockerfile.selfhosted (Redis +
 # NestJS services + Next.js in one container) instead of the microservice image.
 #
-# Why this exists: the self-hosted image is published ONLY on `release: published`
-# (see docker-publish.yml). A break in Dockerfile.selfhosted (a missing apt
-# package, a failed `bun.sh` install) OR a runtime break (the image boots but does
-# not serve LOCAL mode cleanly — e.g. `/` fails to redirect to the seeded
-# workspace, #1450) should be caught while cutting a release, but not paid on
-# every PR. Building alone is not enough: v0.5.0 built fine and still shipped a
-# broken LOCAL-mode root, red for days, because nothing booted the image before
-# publish. This guard is manual/reusable so Full Suite and release prep can run
-# the full build + boot + LOCAL E2E before publishing.
+# Why this exists: the self-hosted image is published by the canonical stable
+# release workflow and the manual recovery wrapper. A break in
+# Dockerfile.selfhosted (a missing apt package, a failed `bun.sh` install) OR a
+# runtime break (the image boots but does not serve LOCAL mode cleanly — e.g.
+# `/` fails to redirect to the seeded workspace, #1450) must be caught before
+# the GitHub release becomes public. Building alone is not enough: v0.5.0 built
+# fine and still shipped a broken LOCAL-mode root, red for days, because nothing
+# booted the image before publish.
 name: Build Verify (Self-Hosted)
 
 on:
@@ -88,8 +87,8 @@ jobs:
           push: false
           load: true
           tags: ${{ env.IMAGE_NAME }}:test
-          # Shares the gha cache scope with docker-publish.yml so a real release
-          # publish warms this guard and vice-versa.
+          # Shares the gha cache scope with _publish-selfhosted-core.yml so a
+          # real release publish warms this guard and vice-versa.
           cache-from: type=gha,scope=selfhosted
           cache-to: type=gha,mode=max,scope=selfhosted
           platforms: linux/amd64
