@@ -152,10 +152,12 @@ or an external (private console/fleet) deploy mechanism outside this repo.
 ### 3.4 Self-hosted / community
 
 `docker/Dockerfile.selfhosted` (single image, `selfhosted-entrypoint.sh`,
-`docker-compose.selfhosted.yml`). Published to GHCR **only** by `docker-publish.yml` on GitHub
-Release, gated on `full-suite.yml` + `build-verify-selfhosted.yml` (which boots the image and
-greps for `ee/` coupling). Nightly release e2e: `e2e-selfhosted-release.yml` boots the released
-image and runs `test:e2e:release`, reporting to a deduped issue.
+`docker-compose.selfhosted.yml`). Stable versions are published to GHCR by the canonical manual
+`release.yml` workflow from the same SHA deployed to SaaS, gated on `full-suite.yml` +
+`build-verify-selfhosted.yml` (which boots the image and greps for `ee/` coupling).
+`docker-publish.yml` is a manual recovery wrapper. Nightly release e2e:
+`e2e-selfhosted-release.yml` boots the released image and runs `test:e2e:release`, reporting to a
+deduped issue.
 
 ### 3.5 Client distribution
 
@@ -214,10 +216,10 @@ image and runs `test:e2e:release`, reporting to a deduped issue.
 
 ## 5. CI / test / tooling map
 
-### 5.1 CI surface (25 workflows — full table verified)
+### 5.1 CI surface (28 workflows)
 
 - **On PR:** `ci.yml` (trust-gated: gitleaks, secretlint, executable runtime/security contracts, format, lint, typecheck, changed tests, and build), plus path-scoped link, deploy-script, desktop, self-hosted install, and server-image checks.
-- **QA gate for releases:** `full-suite.yml` = ci(heavy) + `build-verify.yml` (boots all 12 bundles + EE api bundle) + `e2e.yml` (API e2e with Postgres/Redis service containers + 12-way sharded frontend e2e). Required by both `deploy-ecs.yml` and `docker-publish.yml`.
+- **QA gate for releases:** `full-suite.yml` = ci(heavy) + `build-verify.yml` (boots all 12 bundles + EE api bundle) + `e2e.yml` (API e2e with Postgres/Redis service containers + 12-way sharded frontend e2e). The canonical `release.yml` runs it once before community and SaaS fan out; standalone deploy/recovery workflows retain the same gate.
 - **Scheduled:** nightly E2E, nightly self-hosted release E2E, CodeQL, Trivy security scans, and production deployment automation.
 - **Manual-only despite their names:** `codeql.yml`, `security-scan.yml` (Trivy), `ide-extension-ci.yml` — no cron, no PR trigger.
 - **Absent:** `dependabot.yml`, `CODEOWNERS` (find: 0 matches repo-wide).

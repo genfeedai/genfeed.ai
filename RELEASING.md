@@ -14,13 +14,22 @@ This repo is trunk-based. `master` is the single trunk.
 Use this when shipping the hosted product and self-hosted image.
 
 1. Merge the intended changes to `master` via PR.
-2. Create a GitHub release from the `master` commit you want to ship.
-3. Use a semver tag such as `v1.2.3`.
+2. Open GitHub Actions → `Release`, choose `master`, and enter a new stable
+   semver tag such as `v1.2.3`.
+3. Dispatch the workflow once. Do not create or publish the GitHub release
+   separately with `gh release create` or the Releases UI.
 
-That release triggers:
+The canonical workflow pins the selected `master` SHA and runs Full Suite once.
+After that shared gate it ships both distribution lanes from the same commit:
 
-- `.github/workflows/docker-publish.yml` for the self-hosted image and public
-  install assets
+- community: self-hosted image, public install assets, and anonymous install
+  smoke
+- SaaS: ECS migrations/services, all Vercel frontends, and production smoke
+
+The workflow creates a draft release before the gates so a failed attempt can
+reuse the same version safely. It publishes the GitHub release and advances
+`latest` only after both community and SaaS succeed. A tag or draft release
+alone is not evidence that production shipped.
 
 The self-hosted release contract is version-bound:
 
@@ -37,10 +46,11 @@ nightly self-hosted E2E downloads that exact public bundle and does not log in t
 GHCR.
 
 If a published release is missing assets after a transient failure, dispatch
-`Docker Publish (Self-Hosted)` from `master` with `release_tag=v1.2.3`. Recovery
-is fail-closed: the tag must exist and point exactly at current `master`; the
-workflow rebuilds the exact image and reruns the public smoke before attaching
-assets. Never use recovery to overwrite a version that users already consumed.
+`Publish Self-Hosted (manual recovery)` from `master` with
+`release_tag=v1.2.3`. Recovery is fail-closed: the tag must exist and point
+exactly at current `master`; the workflow rebuilds the exact image and reruns
+the public smoke before attaching assets. Never use recovery to overwrite a
+version that users already consumed.
 
 For an unconsumed failed release whose tag is behind `master` (including the
 assetless v0.5.0 incident), first reverify that it has no image/assets/deployment,
@@ -59,10 +69,11 @@ Use `[{"path":"packages/create","version":"0.2.0"}]` for `packages_json` — the
 exact version already merged to `master`, never a `bump` request (see the npm
 section below) — and set `dry_run=false` only for the approved publish run.
 
-Production backend deploys are handled separately through
+Standalone production recovery/fallback deploys remain available through
 `.github/workflows/deploy-ecs.yml`, dispatched from `master` and gated by the
-GitHub `production` environment. The legacy `Deploy Production` workflow was
-removed after the Fargate cutover.
+GitHub `production` environment. Stable releases call the same reusable ECS
+core after their shared release gate. The legacy `Deploy Production` workflow
+was removed after the Fargate cutover.
 
 ## Desktop Release
 
@@ -132,7 +143,7 @@ That tag triggers `.github/workflows/browser-extension-submit.yml`, which builds
 
 If a release needs to cover the hosted product, desktop app, and browser extension, cut all tags from the same `master` commit:
 
-1. Create the main GitHub release tag, for example `v1.2.3`.
+1. Dispatch the canonical `Release` workflow with `v1.2.3`.
 2. Push `desktop-v1.2.3`.
 3. Push `mobile-v1.2.3`.
 4. Push `extension-browser-v1.2.3`.

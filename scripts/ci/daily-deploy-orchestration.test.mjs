@@ -184,3 +184,64 @@ test('keeps the daily and deploy workflow correlation contract wired', () => {
   assert.match(dailyWorkflow, /OUTCOME: .*'failed'/);
   assert.match(dailyWorkflow, /echo "- Outcome:/);
 });
+
+test('keeps one canonical release contract for community and SaaS', () => {
+  const releaseWorkflow = readFileSync(
+    fileURLToPath(
+      new URL('../../.github/workflows/release.yml', import.meta.url),
+    ),
+    'utf8',
+  );
+  const dockerWorkflow = readFileSync(
+    fileURLToPath(
+      new URL('../../.github/workflows/docker-publish.yml', import.meta.url),
+    ),
+    'utf8',
+  );
+  const dailyWorkflow = readFileSync(
+    fileURLToPath(
+      new URL(
+        '../../.github/workflows/daily-production-deploy.yml',
+        import.meta.url,
+      ),
+    ),
+    'utf8',
+  );
+
+  assert.match(releaseWorkflow, /^name: Release$/m);
+  assert.match(releaseWorkflow, /^ {2}workflow_dispatch:/m);
+  assert.match(
+    releaseWorkflow,
+    /uses: \.\/\.github\/workflows\/full-suite\.yml/,
+  );
+  assert.match(
+    releaseWorkflow,
+    /uses: \.\/\.github\/workflows\/_publish-selfhosted-core\.yml/,
+  );
+  assert.match(
+    releaseWorkflow,
+    /uses: \.\/\.github\/workflows\/_deploy-ecs-core\.yml/,
+  );
+  assert.match(
+    releaseWorkflow,
+    /promote-community:[\s\S]*?needs: \[validate-release, publish-community, deploy-saas\]/,
+  );
+  assert.match(
+    releaseWorkflow,
+    /needs: \[validate-release, publish-community, deploy-saas, promote-community\]/,
+  );
+  assert.match(
+    releaseWorkflow,
+    /gh release edit "\$\{RELEASE_TAG\}" --draft=false/,
+  );
+
+  assert.doesNotMatch(dockerWorkflow, /^ {2}release:/m);
+  assert.doesNotMatch(dailyWorkflow, /getLatestRelease/);
+  assert.doesNotMatch(dailyWorkflow, /listDeployments/);
+  assert.match(dailyWorkflow, /RELEASE_WORKFLOW: release\.yml/);
+  assert.match(dailyWorkflow, /the canonical Release workflow/);
+  assert.match(
+    dailyWorkflow,
+    /Current master SHA is already shipped by \$\{label\}/,
+  );
+});

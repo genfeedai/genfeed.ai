@@ -1,8 +1,6 @@
-name: Docker Publish (Self-Hosted)
+name: Publish Self-Hosted (manual recovery)
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       tag:
@@ -14,19 +12,13 @@ on:
         required: false
         default: ""
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-
 permissions:
   contents: read
   packages: write
 
 jobs:
-  # The community self-hosted image is what users `docker run`. Only master may
-  # produce it — a release cut from any non-master ref, or a manual dispatch off
-  # a feature branch, would otherwise ship pre-release code as the public image.
-  # Mirrors the production master-only release policy.
+  # Recovery-only wrapper for a missing public install artifact or an explicitly
+  # requested unversioned image. Stable releases use release.yml instead.
   validate-master-ref:
     name: Validate master ref
     runs-on: ubuntu-latest
@@ -36,6 +28,7 @@ jobs:
       attach_assets: ${{ steps.release.outputs.attach_assets }}
       checkout_ref: ${{ steps.release.outputs.checkout_ref }}
       image_tag: ${{ steps.release.outputs.image_tag }}
+      major_minor_tag: ${{ steps.release.outputs.major_minor_tag }}
       release_tag: ${{ steps.release.outputs.release_tag }}
     steps:
       - name: Require master for self-hosted publish
@@ -44,19 +37,17 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MANUAL_IMAGE_TAG: ${{ inputs.tag }}
           RECOVERY_RELEASE_TAG: ${{ inputs.release_tag }}
-          RELEASE_PRERELEASE: ${{ github.event.release.prerelease || false }}
-          RELEASE_TAG: ${{ github.event.release.tag_name || '' }}
         run: |
           set -euo pipefail
 
-          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ] && [ "${GITHUB_REF_NAME}" != "master" ]; then
-            echo "::error::Self-hosted publish via workflow_dispatch must run from master. Current ref: ${GITHUB_REF_NAME}"
+          if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
+            echo "::error::Self-hosted recovery must run from refs/heads/master. Current ref: ${GITHUB_REF}"
             exit 1
           fi
 
-          release_tag="${RELEASE_TAG}"
+          release_tag=""
           recovery=false
-          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ] && [ -n "${RECOVERY_RELEASE_TAG}" ]; then
+          if [ -n "${RECOVERY_RELEASE_TAG}" ]; then
             release_tag="${RECOVERY_RELEASE_TAG}"
             recovery=true
           fi
@@ -99,19 +90,27 @@ jobs:
             fi
 
             image_tag="${release_tag#v}"
-            advance_latest=true
-            if [ "${RELEASE_PRERELEASE}" = "true" ] || [[ "${release_tag}" == *-* ]]; then
-              advance_latest=false
+            advance_latest=false
+            major_minor_tag=""
+            if [[ "${release_tag}" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+              advance_latest=true
+              major_minor_tag="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
             fi
 
             {
               echo "advance_latest=${advance_latest}"
               echo "attach_assets=true"
-              echo "checkout_ref=${release_tag}"
+              echo "checkout_ref=${GITHUB_SHA}"
               echo "image_tag=${image_tag}"
+              echo "major_minor_tag=${major_minor_tag}"
               echo "release_tag=${release_tag}"
             } >> "${GITHUB_OUTPUT}"
             exit 0
+          fi
+
+          if [[ ! "${MANUAL_IMAGE_TAG}" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            echo "::error::Invalid image tag: ${MANUAL_IMAGE_TAG}"
+            exit 1
           fi
 
           {
@@ -119,6 +118,7 @@ jobs:
             echo "attach_assets=false"
             echo "checkout_ref=${GITHUB_SHA}"
             echo "image_tag=${MANUAL_IMAGE_TAG}"
+            echo "major_minor_tag="
             echo "release_tag="
           } >> "${GITHUB_OUTPUT}"
 
@@ -126,8 +126,8 @@ jobs:
   # until the ENTIRE suite is green: the ci.yml unit matrix (sharded app + api +
   # packages + server services + web/desktop/mobile + extensions), the prod-image
   # build-verify boot check, and the e2e suite. full-suite chains all three via
-  # workflow_call. Mirrors the qa-before-deploy gate in deploy-ecs.yml so a
-  # release publishes the same verification bar a production deploy clears.
+  # workflow_call. Stable releases run this gate once in release.yml; this
+  # recovery path keeps the same bar before republishing community artifacts.
   verify-suite:
     name: Full Suite (pre-publish gate)
     needs: validate-master-ref
@@ -147,159 +147,18 @@ jobs:
     uses: ./.github/workflows/full-suite.yml
     secrets: inherit
 
-  # Community-image boot gate — full-suite's build-verify covers the MICROSERVICE
-  # (prod) image, not docker/Dockerfile.selfhosted. This is the all-in-one
-  # community image this workflow is about to push, so its dedicated build/boot
-  # guard (previously wired into nothing automated) must gate the publish too.
-  verify-selfhosted:
-    name: Self-Hosted Build Verify (pre-publish gate)
-    needs: validate-master-ref
-    permissions:
-      contents: read
-      packages: write
-    uses: ./.github/workflows/build-verify-selfhosted.yml
-
-  build-and-push:
-    name: Build & Push Self-Hosted Image
-    needs: [validate-master-ref, verify-suite, verify-selfhosted]
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ needs.validate-master-ref.outputs.checkout_ref }}
-          persist-credentials: false
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            # validate-master-ref already proves release tags belong to master.
-            # Every successful stable release therefore advances :latest.
-            type=raw,value=${{ needs.validate-master-ref.outputs.image_tag }},enable=${{ needs.validate-master-ref.outputs.attach_assets == 'true' }}
-            type=raw,value=latest,enable=${{ needs.validate-master-ref.outputs.advance_latest == 'true' }}
-            type=raw,value=${{ needs.validate-master-ref.outputs.image_tag }},enable=${{ needs.validate-master-ref.outputs.attach_assets == 'false' }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Build and push
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: docker/Dockerfile.selfhosted
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=selfhosted
-          cache-to: type=gha,mode=max,scope=selfhosted
-
-  # One public contract for every installer: the GitHub tag, exact GHCR tag,
-  # checksummed release bundle, and @genfeedai/create smoke must agree before
-  # assets appear on the release. This job deliberately does not log in to GHCR;
-  # an anonymous pull is the behavior public self-hosters need.
-  publish-install-artifact:
-    name: Publish & Smoke Public Install Artifact
-    if: needs.validate-master-ref.outputs.attach_assets == 'true'
-    needs: [validate-master-ref, build-and-push]
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+  publish:
+    name: Publish Self-Hosted
+    needs: [validate-master-ref, verify-suite]
     permissions:
       contents: write
-    env:
-      RELEASE_TAG: ${{ needs.validate-master-ref.outputs.release_tag }}
-    steps:
-      - name: Checkout released source
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ env.RELEASE_TAG }}
-          persist-credentials: false
-
-      - name: Setup create package
-        uses: ./.github/actions/setup-bun-env
-        with:
-          node-version: "24.x"
-          bun-version: "1.3.14"
-          cache-turbo: "false"
-          install-command: "bun install --filter @genfeedai/create --frozen-lockfile --ignore-scripts"
-
-      - name: Test and build create package
-        run: |
-          bun run --cwd packages/create test
-          bun run --cwd packages/create check
-          bun run --cwd packages/create build
-
-      - name: Build version-pinned release bundle
-        id: bundle
-        run: scripts/sh/create-selfhosted-release-bundle.sh "${RELEASE_TAG}" "release/${RELEASE_TAG}"
-
-      - name: Smoke create against the release bundle
-        env:
-          IMAGE_TAG: ${{ steps.bundle.outputs.image_tag }}
-        run: |
-          set -euo pipefail
-          mkdir -p "${RUNNER_TEMP}/create-package" "${RUNNER_TEMP}/create-runner"
-          (
-            cd packages/create
-            bun pm pack --destination "${RUNNER_TEMP}/create-package" --ignore-scripts
-          )
-          create_archive="$(find "${RUNNER_TEMP}/create-package" -maxdepth 1 -name '*.tgz' -print -quit)"
-          (
-            cd "${RUNNER_TEMP}/create-runner"
-            bun add "${create_archive}" --ignore-scripts
-          )
-          create_bin="${RUNNER_TEMP}/create-runner/node_modules/.bin/genfeedai"
-          test "$("${create_bin}" --version)" = "$(jq -r '.version' packages/create/package.json)"
-
-          python3 -m http.server 8765 --directory release >/tmp/genfeed-release-server.log 2>&1 &
-          server_pid=$!
-          trap 'kill "${server_pid}"' EXIT
-
-          GENFEED_RELEASE_DOWNLOAD_BASE_URL=http://127.0.0.1:8765 \
-            "${create_bin}" "${RUNNER_TEMP}/genfeed-install" \
-              --release "${RELEASE_TAG}" --no-start
-
-          test "$(jq -r '.releaseTag' "${RUNNER_TEMP}/genfeed-install/release.json")" = "${RELEASE_TAG}"
-          test "$(jq -r '.image' "${RUNNER_TEMP}/genfeed-install/release.json")" = \
-            "ghcr.io/${GITHUB_REPOSITORY}:${IMAGE_TAG}"
-          docker compose \
-            --env-file "${RUNNER_TEMP}/genfeed-install/.env" \
-            -f "${RUNNER_TEMP}/genfeed-install/compose.yml" \
-            config --images | grep -Fx \
-              "ghcr.io/${GITHUB_REPOSITORY}:${IMAGE_TAG}"
-
-      - name: Anonymous exact-image pull and metadata check
-        env:
-          IMAGE_TAG: ${{ steps.bundle.outputs.image_tag }}
-        run: |
-          set -euo pipefail
-          image="ghcr.io/${GITHUB_REPOSITORY}:${IMAGE_TAG}"
-          docker pull "${image}"
-
-          actual_version="$(docker image inspect "${image}" --format '{{ index .Config.Labels "org.opencontainers.image.version" }}')"
-          actual_revision="$(docker image inspect "${image}" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')"
-          expected_revision="$(git rev-parse HEAD)"
-
-          test "${actual_version}" = "${IMAGE_TAG}"
-          test "${actual_revision}" = "${expected_revision}"
-
-      - name: Attach install bundle to GitHub release
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          fail_on_unmatched_files: true
-          files: |
-            ${{ steps.bundle.outputs.archive }}
-            ${{ steps.bundle.outputs.checksum }}
+      packages: write
+    uses: ./.github/workflows/_publish-selfhosted-core.yml
+    with:
+      advance_latest: ${{ needs.validate-master-ref.outputs.advance_latest == 'true' }}
+      attach_assets: ${{ needs.validate-master-ref.outputs.attach_assets == 'true' }}
+      checkout_ref: ${{ needs.validate-master-ref.outputs.checkout_ref }}
+      image_tag: ${{ needs.validate-master-ref.outputs.image_tag }}
+      major_minor_tag: ${{ needs.validate-master-ref.outputs.major_minor_tag }}
+      release_tag: ${{ needs.validate-master-ref.outputs.release_tag }}
+    secrets: inherit
