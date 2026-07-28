@@ -2,7 +2,7 @@
 name: Production AWS Runtime
 description: Live AWS source of truth for genfeed.ai production runtime
 type: reference
-last_verified: 2026-06-18
+last_verified: 2026-07-28
 ---
 
 # Production AWS Runtime - genfeed.ai
@@ -78,8 +78,12 @@ Live AWS wins over older AL2023 EC2 migration notes.
 - EC2 root volume `vol-0e73aa50957312b13`: no AWS Backup protected resource and
   no DLM lifecycle policy were present at cutover time.
 - Rollback snapshot `snap-0232fb7b41809e8e0` was created before stopping EC2.
-- RDS `genfeed-data`: automated backups are enabled with 1-day retention;
-  manual snapshots exist from 2026-06-08 and 2026-06-09.
+- RDS `genfeed-data`: automated backups have 7-day retention. Deletion
+  protection and Performance Insights are enabled. Manual snapshots are limited
+  to the explicit pre/post content-reset restore points documented in
+  `reference_postgres_rds.md`.
+- RDS storage remains unencrypted because encryption requires a replacement
+  instance and a deliberate endpoint cutover; it cannot be toggled in place.
 
 ## Community Deployment
 
