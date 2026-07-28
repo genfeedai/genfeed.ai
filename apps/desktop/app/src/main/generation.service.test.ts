@@ -10,6 +10,10 @@ import {
   type DesktopGenerationStore,
   type GenerationSyncJobRow,
 } from './generation.service';
+import {
+  DesktopGenerationProviderService,
+  type DesktopGenerationProviderStore,
+} from './generation-provider.service';
 
 const createDatabaseMock = () => {
   const kv = new Map<string, string>();
@@ -103,6 +107,31 @@ const providerConfig: IDesktopGenerationProviderConfig = {
   model: 'llama3.1',
   provider: 'ollama',
 };
+
+describe('DesktopGenerationProviderService', () => {
+  it('retains a saved key when the redacted config is saved unchanged', async () => {
+    const database = createDatabaseMock();
+    const service = new DesktopGenerationProviderService(
+      database as unknown as DesktopGenerationProviderStore,
+    );
+
+    await service.saveProviderConfig({
+      ...providerConfig,
+      apiKey: 'local-secret',
+    });
+    await service.saveProviderConfig(providerConfig);
+
+    await expect(service.getProviderConfig()).resolves.toMatchObject({
+      apiKey: 'local-secret',
+      baseUrl: providerConfig.baseUrl,
+      model: providerConfig.model,
+      provider: providerConfig.provider,
+    });
+    await expect(service.getPublicProviderConfig()).resolves.toMatchObject({
+      apiKeyConfigured: true,
+    });
+  });
+});
 
 describe('DesktopGenerationService', () => {
   const originalFetch = globalThis.fetch;
