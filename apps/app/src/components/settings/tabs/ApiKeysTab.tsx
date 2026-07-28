@@ -49,12 +49,12 @@ const API_KEYS: ApiKeyStatus[] = [
     name: 'fal.ai',
   },
   {
-    description: 'Alternative provider for AI models',
-    docsUrl: 'https://huggingface.co/settings/tokens',
-    envVar: 'HF_API_TOKEN',
+    description: 'Text models through a single compatible API',
+    docsUrl: 'https://openrouter.ai/settings/keys',
+    envVar: 'OPENROUTER_API_KEY',
     isConfigured: null,
     location: 'api',
-    name: 'Hugging Face',
+    name: 'OpenRouter',
   },
 ];
 

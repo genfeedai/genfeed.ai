@@ -1,7 +1,7 @@
 export enum ModelProvider {
   REPLICATE = 'replicate',
   FAL = 'fal',
-  HUGGINGFACE = 'huggingface',
+  OPENROUTER = 'openrouter',
   GENFEED_AI = 'genfeed-ai',
 }
 

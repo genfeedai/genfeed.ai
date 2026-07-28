@@ -7,8 +7,8 @@ export const PROVIDER_COLORS: Record<ProviderType, string> = {
     'bg-blue-500/10 text-blue-500 border-blue-500/20',
   [ProviderTypeEnum.FAL]:
     'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
-  [ProviderTypeEnum.HUGGINGFACE]:
-    'bg-orange-500/10 text-orange-500 border-orange-500/20',
+  [ProviderTypeEnum.OPENROUTER]:
+    'bg-violet-500/10 text-violet-500 border-violet-500/20',
   [ProviderTypeEnum.GENFEED_AI]:
     'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
 };

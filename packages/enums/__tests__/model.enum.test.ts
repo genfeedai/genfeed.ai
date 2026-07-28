@@ -218,23 +218,6 @@ describe('model.enum', () => {
       expect(MODEL_KEYS.FAL_ELEVEN_LABS_TTS).toBe('fal-ai/eleven-labs-tts');
       expect(MODEL_KEYS.FAL_FACE_SWAP).toBe('fal-ai/face-swap');
       expect(MODEL_KEYS.FAL_UPSCALER).toBe('fal-ai/clarity-upscaler');
-      expect(MODEL_KEYS.HF_SDXL).toBe(
-        'hf/stabilityai/stable-diffusion-xl-base-1.0',
-      );
-      expect(MODEL_KEYS.HF_FLUX_SCHNELL).toBe(
-        'hf/black-forest-labs/FLUX.1-schnell',
-      );
-      expect(MODEL_KEYS.HF_LLAMA_3_2_3B).toBe(
-        'hf/meta-llama/Llama-3.2-3B-Instruct',
-      );
-      expect(MODEL_KEYS.HF_MISTRAL_7B).toBe(
-        'hf/mistralai/Mistral-7B-Instruct-v0.3',
-      );
-      expect(MODEL_KEYS.HF_WHISPER_LARGE_V3).toBe('hf/openai/whisper-large-v3');
-      expect(MODEL_KEYS.HF_MMS_TTS_ENG).toBe('hf/facebook/mms-tts-eng');
-      expect(MODEL_KEYS.HF_STABLE_VIDEO_DIFFUSION).toBe(
-        'hf/stabilityai/stable-video-diffusion-img2vid-xt',
-      );
       expect(MODEL_KEYS.GENFEED_AI_FLUX_DEV).toBe('genfeed-ai/flux-dev');
       expect(MODEL_KEYS.GENFEED_AI_FLUX_DEV_PULID).toBe(
         'genfeed-ai/flux-dev-pulid',
@@ -267,7 +250,7 @@ describe('model.enum', () => {
     it('should have correct values', () => {
       expect(ModelProvider.REPLICATE).toBe('replicate');
       expect(ModelProvider.FAL).toBe('fal');
-      expect(ModelProvider.HUGGINGFACE).toBe('huggingface');
+      expect(ModelProvider.OPENROUTER).toBe('openrouter');
       expect(ModelProvider.GENFEED_AI).toBe('genfeed-ai');
     });
   });

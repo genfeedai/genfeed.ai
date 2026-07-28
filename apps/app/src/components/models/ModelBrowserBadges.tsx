@@ -14,7 +14,7 @@ export { UseCaseBadge } from './UseCaseBadge';
 const PROVIDER_LABELS: Record<ProviderType, string> = {
   [ProviderTypeEnum.REPLICATE]: 'Replicate',
   [ProviderTypeEnum.FAL]: 'fal.ai',
-  [ProviderTypeEnum.HUGGINGFACE]: 'Hugging Face',
+  [ProviderTypeEnum.OPENROUTER]: 'OpenRouter',
   [ProviderTypeEnum.GENFEED_AI]: 'Genfeed AI',
 };
 

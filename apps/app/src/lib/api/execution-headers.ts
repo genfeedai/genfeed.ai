@@ -1,7 +1,7 @@
 import { useSettingsStore } from '@genfeedai/workflows/ui/stores';
 
 /**
- * Resolve the provider auth headers (Replicate / Fal / HuggingFace BYOK keys)
+ * Resolve the provider auth headers (Replicate / Fal / OpenRouter BYOK keys)
  * attached to workflow-execute requests, read from the user's local settings.
  *
  * Injected into `packages/workflows/src/ui` via `WorkflowUIConfig.executionHeaders`
@@ -15,6 +15,6 @@ export function getExecutionProviderHeaders(): Record<string, string> {
   return {
     ...settings.getProviderHeader('replicate'),
     ...settings.getProviderHeader('fal'),
-    ...settings.getProviderHeader('huggingface'),
+    ...settings.getProviderHeader('openrouter'),
   };
 }

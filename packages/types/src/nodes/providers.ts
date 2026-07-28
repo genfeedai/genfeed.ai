@@ -5,7 +5,7 @@
 export enum ProviderTypeEnum {
   REPLICATE = 'replicate',
   FAL = 'fal',
-  HUGGINGFACE = 'huggingface',
+  OPENROUTER = 'openrouter',
   GENFEED_AI = 'genfeed-ai',
 }
 

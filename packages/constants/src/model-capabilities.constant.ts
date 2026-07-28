@@ -1108,65 +1108,6 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxUpscaleFactor: 4,
     },
 
-    // HuggingFace models
-    [MODEL_KEYS.HF_SDXL]: {
-      aspectRatios: ASPECT_RATIOS.IMAGEN,
-      category: ModelCategory.IMAGE,
-      defaultAspectRatio: '1:1',
-      isBatchSupported: false,
-      maxOutputs: 4,
-      maxReferences: 0,
-    },
-    [MODEL_KEYS.HF_FLUX_SCHNELL]: {
-      aspectRatios: ASPECT_RATIOS.FLUX_STANDARD,
-      category: ModelCategory.IMAGE,
-      defaultAspectRatio: '1:1',
-      isBatchSupported: false,
-      maxOutputs: 4,
-      maxReferences: 0,
-    },
-    [MODEL_KEYS.HF_LLAMA_3_2_3B]: {
-      category: ModelCategory.TEXT,
-      isBatchSupported: false,
-      maxOutputs: 1,
-      maxReferences: 0,
-    },
-    [MODEL_KEYS.HF_MISTRAL_7B]: {
-      category: ModelCategory.TEXT,
-      isBatchSupported: false,
-      maxOutputs: 1,
-      maxReferences: 0,
-    },
-    [MODEL_KEYS.HF_WHISPER_LARGE_V3]: {
-      category: ModelCategory.VOICE,
-      defaultDuration: 30,
-      durations: [5, 10, 30, 60],
-      hasDurationEditing: true,
-      isBatchSupported: false,
-      maxOutputs: 1,
-      maxReferences: 1,
-    },
-    [MODEL_KEYS.HF_MMS_TTS_ENG]: {
-      category: ModelCategory.VOICE,
-      defaultDuration: 30,
-      durations: [5, 10, 30, 60],
-      hasDurationEditing: true,
-      isBatchSupported: false,
-      maxOutputs: 1,
-      maxReferences: 0,
-    },
-    [MODEL_KEYS.HF_STABLE_VIDEO_DIFFUSION]: {
-      aspectRatios: ASPECT_RATIOS.VEO,
-      category: ModelCategory.VIDEO,
-      defaultAspectRatio: '16:9',
-      defaultDuration: 4,
-      durations: [4],
-      hasDurationEditing: false,
-      isBatchSupported: false,
-      maxOutputs: 1,
-      maxReferences: 1,
-    },
-
     // =========================================================================
     // GENFEED AI SELF-HOSTED MODELS (ComfyUI on gpu.genfeed.ai)
     // =========================================================================

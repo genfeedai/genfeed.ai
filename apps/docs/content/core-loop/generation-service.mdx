@@ -24,11 +24,10 @@ The generation story in the current repo spans a small set of stable entrypoints
   - assigns generation tool categories and UI action cards
 - [`apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts)
   - dispatches generation tools to the internal media APIs
-- [`packages/services/ai/enhanced-models.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/packages/services/ai/enhanced-models.service.ts)
-  - merges base catalog models with provider-discovered models
-- Provider packages:
-  - [`packages/services/ai/providers/fal/fal-provider.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/packages/services/ai/providers/fal/fal-provider.service.ts)
-  - [`packages/services/ai/providers/huggingface/huggingface-provider.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/packages/services/ai/providers/huggingface/huggingface-provider.service.ts)
+- [`apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts)
+  - discovers models from verified Replicate owners into an inactive review queue
+- [`packages/agent/src/constants/agent-models.constant.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/packages/agent/src/constants/agent-models.constant.ts)
+  - defines the curated OpenRouter text-model catalog
 
 ## Stable Generation Surface
 
@@ -36,8 +35,8 @@ For v1, the important point is not every experimental flow. It is the stable pat
 
 1. API/controller accepts a generation or batch request.
 2. `BatchGenerationService` or another generation-facing service delegates into content generation.
-3. Model/provider selection is resolved from the catalog plus provider-specific discovery.
-4. Provider packages normalize discovered models into one Genfeed-facing shape.
+3. Model/provider selection is resolved from reviewed model records or the curated OpenRouter catalog.
+4. Provider adapters normalize generation results into one Genfeed-facing shape.
 
 ## Stable `generate_*` Tool Surface
 
@@ -63,8 +62,8 @@ These are the stable tool names callers should depend on for v1. Lower-level wor
 | Media APIs         | `/v1/images`, `/v1/videos`, `/v1/musics`, `/v1/voices/generate`                               | Own request validation, model selection, credits, persistence, and completion polling    |
 | Skill execution    | `apps/server/api/src/services/skill-executor/*`                                               | Runs content skills such as `image-generation` and records Content Runs                  |
 | Provider access    | `apps/server/api/src/services/byok/*`                                                         | Resolves organization BYOK keys before hosted fallback                                   |
-| Provider adapters  | `apps/server/api/src/services/integrations/*`, `packages/services/ai/providers/*`             | Call Replicate, fal.ai, Leonardo, ElevenLabs, HuggingFace, and related provider surfaces |
-| Registry/discovery | `packages/services/ai/enhanced-models.service.ts`                                             | Merges base model catalog entries with provider-discovered models                        |
+| Provider adapters  | `apps/server/api/src/services/integrations/*`                                                | Call Replicate, fal.ai, Leonardo, ElevenLabs, OpenRouter, and related provider surfaces   |
+| Registry/discovery | `apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts`                   | Creates reviewed Replicate catalog candidates without auto-activation                    |
 
 ## Dataflow
 
@@ -74,7 +73,7 @@ flowchart LR
   B --> C["AgentToolExecutorService"]
   C --> D["Media API\n/v1/images, /v1/videos, /v1/musics, /v1/voices"]
   D --> E["Provider access\nBYOK or hosted"]
-  E --> F["Model catalog + EnhancedModelsService"]
+  E --> F["Reviewed model catalog"]
   F --> G["Provider adapter\nReplicate / fal.ai / Leonardo / ElevenLabs"]
   G --> H["Generated ingredient\npreview card / content run"]
 ```

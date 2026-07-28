@@ -234,7 +234,8 @@ Writes schema to: `apps/server/api/src/services/integrations/replicate/schemas/i
 
 Generic builder reads this at runtime for `output_format`, `seed`, `resolution`, image ref fields.
 
-**fal.ai models skip this** — fal handles schemas differently via `FalDiscoveryService`.
+**fal.ai runtime integrations skip this** — they use explicit provider adapters
+and are not ingested by the model catalog watcher.
 
 ---
 
@@ -369,8 +370,9 @@ bun run sync:replicate
 ### fal.ai model (any category)
 1. Model key constant
 2. Capabilities constant
-3. DB activation (auto-discovered by `FalDiscoveryService`)
-4. GitHub issue
+3. Explicit provider-adapter wiring
+4. Product approval before adding a catalog record
+5. GitHub issue
 
 **Note:** fal.ai models route through `ReplicatePromptBuilder` via `getProviderFromModelKey()` returning `ModelProvider.REPLICATE`. Generic builder handles them automatically. No schema sync needed.
 

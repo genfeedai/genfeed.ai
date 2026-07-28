@@ -55,7 +55,7 @@ export interface IModelDiscoveryInput {
   replicateUrl: string;
   versionId: string | null;
   category: ModelCategory;
-  provider: ModelProvider;
+  provider: ModelProvider.REPLICATE;
   providerCostUsd?: number;
 }
 
@@ -78,10 +78,4 @@ export interface IModelDiscoveryRunSummary {
   draftsCreated: number;
   errors: number;
   timestamp: Date;
-  falPolled?: number;
-  falNewFound?: number;
-  falDraftsCreated?: number;
-  hfPolled?: number;
-  hfNewFound?: number;
-  hfDraftsCreated?: number;
 }

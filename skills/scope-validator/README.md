@@ -39,7 +39,7 @@ This skill helps users and contributors understand the boundary between:
 | New AI model (Replicate) | Core | Submit PR |
 | Social publishing | Cloud | Subscribe at [genfeed.ai](https://genfeed.ai) |
 | Feed aggregation (RSS/Twitter) | Cloud | Subscribe |
-| FAL.ai / HuggingFace models | Cloud | Subscribe |
+| FAL.ai / OpenRouter models | Cloud | Subscribe |
 
 ## OSS Core Includes
 
@@ -55,7 +55,7 @@ This skill helps users and contributors understand the boundary between:
 - RSS/Twitter feed input
 - Tweet remix
 - FAL.ai provider
-- HuggingFace provider
+- OpenRouter provider
 - Managed hosting
 
 ## License

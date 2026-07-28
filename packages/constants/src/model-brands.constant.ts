@@ -1,5 +1,5 @@
 import type { IconType } from 'react-icons';
-import { SiBytedance, SiGoogle, SiHuggingface, SiMeta } from 'react-icons/si';
+import { SiBytedance, SiGoogle, SiMeta } from 'react-icons/si';
 
 export interface ModelBrandConfig {
   label: string;
@@ -15,7 +15,6 @@ export const MODEL_BRANDS: Record<string, ModelBrandConfig> = {
   'genfeed-ai': { color: '#3B82F6', label: 'GenFeed' },
   google: { color: '#4285F4', icon: SiGoogle, label: 'Google' },
   heygen: { color: '#00C2FF', label: 'HeyGen' },
-  hf: { color: '#FFD21E', icon: SiHuggingface, label: 'HuggingFace' },
   'ideogram-ai': { color: '#FF6B35', label: 'Ideogram' },
   kwaivgi: { color: '#FF2D55', label: 'Kling' },
   luma: { color: '#7C3AED', label: 'Luma' },
@@ -43,15 +42,9 @@ export const COST_TIER_DISPLAY: Record<
  * Extract brand slug from a model key.
  * e.g., "google/imagen-3" → "google"
  *       "fal-ai/flux/dev" → "fal-ai"
- *       "hf/stabilityai/..." → "hf"
  *       "genfeed-ai/flux-dev" → "genfeed-ai"
  */
 export function extractBrandFromKey(modelKey: string): string {
-  // HuggingFace prefix
-  if (modelKey.startsWith('hf/')) {
-    return 'hf';
-  }
-
   // Standard prefix extraction: "org/model-name" → "org"
   const slashIndex = modelKey.indexOf('/');
   if (slashIndex > 0) {

@@ -18,8 +18,16 @@ describe('byok-provider-map.util', () => {
       );
     });
 
+    it('should map OPENROUTER to OPENROUTER', () => {
+      expect(modelProviderToByokProvider(ModelProvider.OPENROUTER)).toBe(
+        ByokProvider.OPENROUTER,
+      );
+    });
+
     it('should return undefined for unknown provider', () => {
-      expect(modelProviderToByokProvider('unknown' as any)).toBeUndefined();
+      expect(
+        modelProviderToByokProvider('unknown' as ModelProvider),
+      ).toBeUndefined();
     });
   });
 

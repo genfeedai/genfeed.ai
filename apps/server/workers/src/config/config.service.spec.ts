@@ -155,8 +155,6 @@ describe('ConfigService (Workers)', () => {
       'AWS_REGION', // llm-idle cron EC2Client
       'AWS_ACCESS_KEY_ID', // llm-idle cron EC2Client
       'AWS_SECRET_ACCESS_KEY', // llm-idle cron EC2Client
-      'FAL_API_KEY', // fal-discovery service
-      'HUGGINGFACE_API_KEY', // hugging-face-discovery service
       'GPU_LLM_INSTANCE_ID', // llm-idle cron
       'SERVICE_NAME', // health-response label
     ] as const;

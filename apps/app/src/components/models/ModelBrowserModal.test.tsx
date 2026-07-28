@@ -22,7 +22,7 @@ vi.mock('@genfeedai/workflows/ui/stores', () => {
     addRecentModel: mockAddRecentModel,
     providers: {
       fal: { apiKey: null },
-      huggingface: { apiKey: null },
+      openrouter: { apiKey: null },
       replicate: { apiKey: 'test-key' },
     },
     recentModels: [
@@ -108,7 +108,7 @@ describe('ModelBrowserModal', () => {
   const mockFetchResponse = {
     json: () =>
       Promise.resolve({
-        configuredProviders: ['replicate', 'fal', 'huggingface'],
+        configuredProviders: ['replicate', 'fal', 'openrouter'],
         models: mockModels,
       }),
     ok: true,
@@ -165,7 +165,7 @@ describe('ModelBrowserModal', () => {
 
       expect(screen.getAllByText('Replicate').length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText('fal.ai').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByText('Hugging Face')).toBeInTheDocument();
+      expect(screen.getByText('OpenRouter')).toBeInTheDocument();
     });
   });
 

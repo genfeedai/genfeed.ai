@@ -118,7 +118,7 @@ export interface WorkflowUIHttpClient {
 }
 
 /**
- * Supplies the per-request provider auth headers (Replicate / Fal / HuggingFace
+ * Supplies the per-request provider auth headers (Replicate / Fal / OpenRouter
  * BYOK keys) attached to workflow-execute requests. Returns an empty record when
  * the user has not configured BYOK keys. Defaults to no headers so the package
  * stays provider-agnostic standalone.
@@ -180,7 +180,7 @@ export interface WorkflowUIConfig {
   /** Base URL for execution REST reconciliation and SSE subscriptions. */
   executionApiBaseUrl?: string;
   /**
-   * Provider auth headers (Replicate / Fal / HuggingFace BYOK keys) attached to
+   * Provider auth headers (Replicate / Fal / OpenRouter BYOK keys) attached to
    * execute requests. Returns no headers when omitted.
    */
   executionHeaders?: ExecutionHeaderProvider;
