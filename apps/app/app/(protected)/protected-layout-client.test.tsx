@@ -10,8 +10,19 @@ describe('app/(protected)/protected-layout-client.tsx', () => {
     );
     expect(source).toContain('export ');
     expect(source).toContain('getCoreAppFeatureFlagFallbacks');
-    expect(source).toContain(
-      'FeatureFlagProvider fallbacks={CORE_APP_FEATURE_FLAG_FALLBACKS}',
+    expect(source).toContain('fallbacks={CORE_APP_FEATURE_FLAG_FALLBACKS}');
+    expect(source).toContain('overrides={remoteFeatureFlags}');
+  });
+
+  it('identifies authenticated users before subscribing to PostHog flags', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'app/(protected)/protected-layout-client.tsx'),
+      'utf8',
     );
+    expect(source.indexOf('identifyAnalyticsUser({')).toBeGreaterThan(-1);
+    expect(source.indexOf('subscribeAnalyticsFeatureFlags(')).toBeGreaterThan(
+      source.indexOf('identifyAnalyticsUser({'),
+    );
+    expect(source).toContain("endsWith('@genfeed.ai')");
   });
 });

@@ -25,10 +25,29 @@ import { sanitizeAnalyticsUrl } from './analytics-url';
 
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
 const POSTHOG_HOST =
-  process.env.NEXT_PUBLIC_POSTHOG_HOST ?? 'https://us.i.posthog.com';
+  process.env.NEXT_PUBLIC_POSTHOG_HOST ?? 'https://eu.i.posthog.com';
 
 let client: PostHog | null = null;
 let hasInitStarted = false;
+let pendingIdentity: AnalyticsUserIdentity | null = null;
+let unsubscribeFromFeatureFlags: (() => void) | null = null;
+
+export interface AnalyticsUserIdentity {
+  id: string;
+  isInternal: boolean;
+}
+
+export type AnalyticsFeatureFlagValues = Record<string, boolean>;
+export type AnalyticsFeatureFlagListener = (
+  values: AnalyticsFeatureFlagValues,
+) => void;
+
+interface AnalyticsFeatureFlagSubscription {
+  keys: readonly string[];
+  listener: AnalyticsFeatureFlagListener;
+}
+
+const featureFlagSubscriptions = new Set<AnalyticsFeatureFlagSubscription>();
 
 /**
  * True only when the app is a cloud-connected, non-desktop build with a
@@ -125,6 +144,54 @@ function scrubEventProperties(
   return event;
 }
 
+function applyPendingIdentity(): void {
+  if (!(client && pendingIdentity)) {
+    return;
+  }
+
+  client.identify(pendingIdentity.id, {
+    is_internal: pendingIdentity.isInternal,
+  });
+}
+
+function resolveFeatureFlags(
+  keys: readonly string[],
+  errorsLoading = false,
+): AnalyticsFeatureFlagValues {
+  return Object.fromEntries(
+    keys.map((key) => [
+      key,
+      !errorsLoading &&
+        client?.getFeatureFlagResult(key, { send_event: false })?.enabled ===
+          true,
+    ]),
+  );
+}
+
+function notifyFeatureFlagSubscriptions(errorsLoading = false): void {
+  for (const subscription of featureFlagSubscriptions) {
+    subscription.listener(
+      resolveFeatureFlags(subscription.keys, errorsLoading),
+    );
+  }
+}
+
+function ensureFeatureFlagSubscription(): void {
+  if (
+    !client ||
+    unsubscribeFromFeatureFlags ||
+    featureFlagSubscriptions.size === 0
+  ) {
+    return;
+  }
+
+  unsubscribeFromFeatureFlags = client.onFeatureFlags(
+    (_flags, _variants, context) => {
+      notifyFeatureFlagSubscriptions(context?.errorsLoading === true);
+    },
+  );
+}
+
 /**
  * Initialise the PostHog client once, only when analytics is enabled. Safe to
  * call on every app boot: it no-ops on the server, when disabled, or when
@@ -163,11 +230,49 @@ export function initAnalytics(): void {
         person_profiles: 'identified_only',
       });
       client = posthog;
+      applyPendingIdentity();
+      ensureFeatureFlagSubscription();
     })
     .catch(() => {
       // Best-effort: swallow load/init failures so analytics can never surface
       // as an application error.
     });
+}
+
+/**
+ * Identify the authenticated account before evaluating person-targeted flags.
+ * Only the canonical user id and an internal-account boolean leave the client;
+ * email addresses and other profile fields remain private.
+ */
+export function identifyAnalyticsUser(identity: AnalyticsUserIdentity): void {
+  if (!identity.id) {
+    return;
+  }
+
+  pendingIdentity = identity;
+  applyPendingIdentity();
+}
+
+/**
+ * Subscribe to PostHog boolean flags without coupling shared UI packages to the
+ * PostHog SDK. Missing flags and loading failures resolve false (fail closed).
+ */
+export function subscribeAnalyticsFeatureFlags(
+  keys: readonly string[],
+  listener: AnalyticsFeatureFlagListener,
+): () => void {
+  const subscription = { keys, listener };
+  featureFlagSubscriptions.add(subscription);
+  ensureFeatureFlagSubscription();
+
+  return () => {
+    featureFlagSubscriptions.delete(subscription);
+
+    if (featureFlagSubscriptions.size === 0 && unsubscribeFromFeatureFlags) {
+      unsubscribeFromFeatureFlags();
+      unsubscribeFromFeatureFlags = null;
+    }
+  };
 }
 
 /**
@@ -207,11 +312,13 @@ export function identifyAnalyticsOrganization(organizationId: string): void {
 
 /** Clear the current user/group association (e.g. on sign-out). */
 export function resetAnalytics(): void {
+  pendingIdentity = null;
   if (!client) {
     return;
   }
   try {
     client.reset();
+    notifyFeatureFlagSubscriptions(true);
   } catch {
     // Best-effort reset.
   }
@@ -219,6 +326,10 @@ export function resetAnalytics(): void {
 
 /** Test-only hook to reset module singleton state between cases. */
 export function __resetAnalyticsForTests(): void {
+  unsubscribeFromFeatureFlags?.();
   client = null;
   hasInitStarted = false;
+  pendingIdentity = null;
+  unsubscribeFromFeatureFlags = null;
+  featureFlagSubscriptions.clear();
 }

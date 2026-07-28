@@ -21,9 +21,14 @@ export {
   sanitizeAnalyticsUrl,
 } from './analytics-url';
 export {
+  type AnalyticsFeatureFlagListener,
+  type AnalyticsFeatureFlagValues,
+  type AnalyticsUserIdentity,
   captureAnalyticsEvent,
   identifyAnalyticsOrganization,
+  identifyAnalyticsUser,
   initAnalytics,
   isAnalyticsEnabled,
   resetAnalytics,
+  subscribeAnalyticsFeatureFlags,
 } from './posthog-client';

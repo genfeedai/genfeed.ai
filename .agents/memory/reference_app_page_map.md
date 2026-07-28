@@ -48,13 +48,19 @@ Current primary modules:
 - Publish
 - Analytics
 
-Studio is capability-gated: it defaults off in the SaaS web app and remains on
-for Desktop and self-hosted deployments. Remix is a contextual action tied to a
-specific finding, asset, post, or content run rather than an app-switcher
-module. Admin is role-gated and can be surfaced separately. Deep views like
-Discovery, Socials, Ads, Batch, Review, Calendar, Scheduled, Post Analytics,
-Trend Analytics, and Repeat are internal navigation or contextual actions, not
-app-switcher modules.
+Every primary module has a display-only `app_switcher_*` PostHog flag. These
+flags default off in SaaS and on for Desktop/self-hosted deployments. PostHog
+identifies authenticated SaaS users by canonical `users.id` and targets
+internal accounts through a non-PII `is_internal` person property. Display flags
+never gate the underlying route, so hidden modules remain directly reachable
+for testing. The separate `studio` capability flag remains available as a route
+kill switch and defaults on.
+
+Remix is a contextual action tied to a specific finding, asset, post, or
+content run rather than an app-switcher module. Admin is role-gated and can be
+surfaced separately. Deep views like Discovery, Socials, Ads, Batch, Review,
+Calendar, Scheduled, Post Analytics, Trend Analytics, and Repeat are internal
+navigation or contextual actions, not app-switcher modules.
 
 ## Shell Surfaces
 

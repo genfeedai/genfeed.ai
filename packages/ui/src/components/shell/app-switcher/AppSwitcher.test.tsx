@@ -8,12 +8,19 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const featureFlags = vi.hoisted(() => ({
-  studio: true,
+  app_switcher_agent: true,
+  app_switcher_analytics: true,
+  app_switcher_library: true,
+  app_switcher_messages: true,
+  app_switcher_posts: true,
+  app_switcher_research: true,
+  app_switcher_studio: true,
+  app_switcher_workspace: true,
 }));
 
 vi.mock('@genfeedai/hooks/feature-flags/use-feature-flag', () => ({
   useFeatureFlag: (flagKey: string) =>
-    flagKey === 'studio' ? featureFlags.studio : true,
+    featureFlags[flagKey as keyof typeof featureFlags] ?? true,
 }));
 
 vi.mock('next/link', () => ({
@@ -124,6 +131,16 @@ vi.mock('@genfeedai/constants', () => {
         ? routePath
         : `/${routePath}`;
   return {
+    APP_SWITCHER_FEATURE_FLAGS: {
+      workspace: 'app_switcher_workspace',
+      agent: 'app_switcher_agent',
+      messages: 'app_switcher_messages',
+      research: 'app_switcher_research',
+      studio: 'app_switcher_studio',
+      library: 'app_switcher_library',
+      posts: 'app_switcher_posts',
+      analytics: 'app_switcher_analytics',
+    },
     createBrandAppRoute: (
       orgSlug: string,
       brandSlug: string,
@@ -144,7 +161,11 @@ const { AppSwitcher } = await import('./AppSwitcher');
 
 describe('AppSwitcher', () => {
   beforeEach(() => {
-    featureFlags.studio = true;
+    for (const key of Object.keys(featureFlags) as Array<
+      keyof typeof featureFlags
+    >) {
+      featureFlags[key] = true;
+    }
   });
 
   it('renders the active app label in the trigger button', () => {
@@ -226,8 +247,8 @@ describe('AppSwitcher', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('hides Studio when its product capability is disabled', () => {
-    featureFlags.studio = false;
+  it('hides Studio when its app-switcher discovery flag is disabled', () => {
+    featureFlags.app_switcher_studio = false;
 
     render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
 
@@ -235,6 +256,38 @@ describe('AppSwitcher', () => {
       screen.queryByRole('link', { name: 'Studio' }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Library' })).toBeInTheDocument();
+  });
+
+  it('independently hides every module whose discovery flag is disabled', () => {
+    featureFlags.app_switcher_messages = false;
+    featureFlags.app_switcher_research = false;
+    featureFlags.app_switcher_library = false;
+    featureFlags.app_switcher_analytics = false;
+
+    render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
+
+    for (const label of ['Messages', 'Research', 'Library', 'Analytics']) {
+      expect(
+        screen.queryByRole('link', { name: label }),
+      ).not.toBeInTheDocument();
+    }
+    for (const label of ['Workspace', 'Agent', 'Studio', 'Publish']) {
+      expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
+    }
+  });
+
+  it('hides the switcher when no modules are released', () => {
+    for (const key of Object.keys(featureFlags) as Array<
+      keyof typeof featureFlags
+    >) {
+      featureFlags[key] = false;
+    }
+
+    render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
+
+    expect(
+      screen.queryByRole('button', { name: 'Switch app' }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders the admin app only when enabled', () => {

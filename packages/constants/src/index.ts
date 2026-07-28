@@ -4,6 +4,7 @@ export * from './api-key-scope-labels.constant';
 export * from './carousel.constant';
 export * from './empty-states.constant';
 export * from './error-messages.constant';
+export * from './feature-flags.constant';
 export * from './gallery.constant';
 export * from './library.constant';
 export * from './lifecycle-emails.constant';
