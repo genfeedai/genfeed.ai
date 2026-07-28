@@ -33,7 +33,7 @@ import type { Request } from 'express';
 @ApiTags('Admin / Fleet')
 @Controller(['admin/fleet', 'admin/darkroom'])
 @UseGuards(IpWhitelistGuard, SuperAdminGuard)
-export class AdminFleetOperationsController {
+class AdminFleetController {
   constructor(
     private readonly adminFleetService: AdminFleetService,
     private readonly fleetService: FleetService,
@@ -42,7 +42,6 @@ export class AdminFleetOperationsController {
 
   @Get('pipeline/campaigns')
   @ApiOperation({
-    operationId: 'AdminFleetController.listCampaigns',
     summary: 'List campaigns with stats',
   })
   async listCampaigns(@Req() request: Request, @CurrentUser() user: User) {
@@ -77,7 +76,6 @@ export class AdminFleetOperationsController {
 
   @Get('pipeline/stats')
   @ApiOperation({
-    operationId: 'AdminFleetController.getPipelineStats',
     summary: 'Get pipeline statistics',
   })
   async getPipelineStats(@Req() request: Request, @CurrentUser() user: User) {
@@ -105,7 +103,6 @@ export class AdminFleetOperationsController {
 
   @Get('infrastructure/ec2/status')
   @ApiOperation({
-    operationId: 'AdminFleetController.getEC2Status',
     summary: 'List EC2 instances with status',
   })
   async getEC2Status(@Req() request: Request) {
@@ -133,7 +130,6 @@ export class AdminFleetOperationsController {
 
   @Post('infrastructure/ec2/action')
   @ApiOperation({
-    operationId: 'AdminFleetController.ec2Action',
     summary: 'Start or stop an EC2 instance',
   })
   async ec2Action(@Req() request: Request, @Body() dto: Ec2ActionDto) {
@@ -153,7 +149,6 @@ export class AdminFleetOperationsController {
 
   @Post('infrastructure/ec2/action-all')
   @ApiOperation({
-    operationId: 'AdminFleetController.ec2ActionAll',
     summary: 'Start or stop all matching EC2 instances',
   })
   async ec2ActionAll(@Req() request: Request, @Body() dto: BulkEc2ActionDto) {
@@ -173,7 +168,6 @@ export class AdminFleetOperationsController {
 
   @Post('infrastructure/cloudfront/invalidate')
   @ApiOperation({
-    operationId: 'AdminFleetController.invalidateCloudFront',
     summary: 'Invalidate CloudFront cache',
   })
   async invalidateCloudFront(
@@ -201,7 +195,6 @@ export class AdminFleetOperationsController {
 
   @Get('infrastructure/services')
   @ApiOperation({
-    operationId: 'AdminFleetController.getServiceHealth',
     summary: 'Check ComfyUI and Ollama health',
   })
   async getServiceHealth(@Req() request: Request) {
@@ -233,7 +226,6 @@ export class AdminFleetOperationsController {
 
   @Get('infrastructure/fleet/health')
   @ApiOperation({
-    operationId: 'AdminFleetController.getFleetHealth',
     summary: 'Get detailed GPU fleet health',
   })
   async getFleetHealth(@Req() request: Request) {
@@ -248,3 +240,5 @@ export class AdminFleetOperationsController {
     }
   }
 }
+
+export { AdminFleetController as AdminFleetOperationsController };

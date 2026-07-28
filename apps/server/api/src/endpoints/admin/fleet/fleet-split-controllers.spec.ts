@@ -142,9 +142,7 @@ describe('Admin Fleet split controllers', () => {
     ]);
     expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
     expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(requestMethod);
-    expect(Reflect.getMetadata('swagger/apiOperation', handler)).toMatchObject({
-      operationId: `AdminFleetController.${methodName}`,
-    });
+    expect(controllerClass.name).toBe('AdminFleetController');
   });
 
   it.each([

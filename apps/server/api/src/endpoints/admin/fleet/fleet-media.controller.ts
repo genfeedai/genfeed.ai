@@ -47,7 +47,7 @@ import type { Request } from 'express';
 @ApiTags('Admin / Fleet')
 @Controller(['admin/fleet', 'admin/darkroom'])
 @UseGuards(IpWhitelistGuard, SuperAdminGuard)
-export class AdminFleetMediaController {
+class AdminFleetController {
   constructor(
     private readonly adminFleetService: AdminFleetService,
     private readonly loggerService: LoggerService,
@@ -55,7 +55,6 @@ export class AdminFleetMediaController {
 
   @Get('assets')
   @ApiOperation({
-    operationId: 'AdminFleetController.listAssets',
     summary: 'List fleet assets with filters',
   })
   async listAssets(
@@ -89,7 +88,6 @@ export class AdminFleetMediaController {
   @Patch('assets/:id/review')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    operationId: 'AdminFleetController.reviewAsset',
     summary: 'Review an asset (approve/reject)',
   })
   async reviewAsset(
@@ -113,7 +111,6 @@ export class AdminFleetMediaController {
 
   @Post('assets/:id/publish')
   @ApiOperation({
-    operationId: 'AdminFleetController.publishAsset',
     summary: 'Publish an approved asset to platforms',
   })
   async publishAsset(
@@ -137,7 +134,6 @@ export class AdminFleetMediaController {
 
   @Post('generate')
   @ApiOperation({
-    operationId: 'AdminFleetController.generateImage',
     summary: 'Generate an image for a character',
   })
   async generateImage(
@@ -187,7 +183,6 @@ export class AdminFleetMediaController {
 
   @Post('generate/jobs')
   @ApiOperation({
-    operationId: 'AdminFleetController.createGenerateJob',
     summary: 'Queue an image generation job for a character',
   })
   async createGenerateJob(
@@ -218,7 +213,6 @@ export class AdminFleetMediaController {
 
   @Get('generate/jobs/:jobId')
   @ApiOperation({
-    operationId: 'AdminFleetController.getGenerateJob',
     summary: 'Get image generation job status',
   })
   async getGenerateJob(
@@ -243,7 +237,6 @@ export class AdminFleetMediaController {
 
   @Post('lip-sync')
   @ApiOperation({
-    operationId: 'AdminFleetController.generateLipSync',
     summary: 'Generate lip sync video for a character',
   })
   async generateLipSync(
@@ -268,7 +261,6 @@ export class AdminFleetMediaController {
 
   @Get('lip-sync/:jobId')
   @ApiOperation({
-    operationId: 'AdminFleetController.getLipSyncStatus',
     summary: 'Get lip sync job status',
   })
   async getLipSyncStatus(
@@ -292,7 +284,6 @@ export class AdminFleetMediaController {
 
   @Get('voices')
   @ApiOperation({
-    operationId: 'AdminFleetController.listVoices',
     summary: 'List available TTS voices',
   })
   async listVoices(@Req() request: Request) {
@@ -320,7 +311,6 @@ export class AdminFleetMediaController {
 
   @Post('voices/generate')
   @ApiOperation({
-    operationId: 'AdminFleetController.generateVoice',
     summary: 'Generate TTS audio',
   })
   async generateVoice(
@@ -345,7 +335,6 @@ export class AdminFleetMediaController {
 
   @Get('trainings')
   @ApiOperation({
-    operationId: 'AdminFleetController.listTrainings',
     summary: 'List trainings (optionally filtered by persona)',
   })
   async listTrainings(
@@ -378,7 +367,6 @@ export class AdminFleetMediaController {
 
   @Get('trainings/:id')
   @ApiOperation({
-    operationId: 'AdminFleetController.getTraining',
     summary: 'Get training details',
   })
   async getTraining(
@@ -400,7 +388,6 @@ export class AdminFleetMediaController {
 
   @Post('trainings')
   @ApiOperation({
-    operationId: 'AdminFleetController.startTraining',
     summary: 'Start LoRA training for a character',
   })
   async startTraining(
@@ -422,3 +409,5 @@ export class AdminFleetMediaController {
     }
   }
 }
+
+export { AdminFleetController as AdminFleetMediaController };
