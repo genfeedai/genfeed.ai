@@ -47,6 +47,7 @@ export const publishApprovalStatusTransitions = {
   ],
   [PublishApprovalStatus.QUEUED]: [
     PublishApprovalStatus.EXECUTING,
+    PublishApprovalStatus.FAILED,
     PublishApprovalStatus.CANCELLED,
     PublishApprovalStatus.INVALIDATED,
   ],

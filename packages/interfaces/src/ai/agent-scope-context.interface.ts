@@ -1,9 +1,12 @@
-export type AgentScopeSource =
-  | 'explicit'
-  | 'legacy_execution_policy'
-  | 'legacy_message_history'
-  | 'legacy_organization_only'
-  | 'thread_created';
+export const AGENT_SCOPE_SOURCES = [
+  'explicit',
+  'legacy_execution_policy',
+  'legacy_message_history',
+  'legacy_organization_only',
+  'thread_created',
+] as const;
+
+export type AgentScopeSource = (typeof AGENT_SCOPE_SOURCES)[number];
 
 export interface AgentScopePayload {
   brandId?: string | null;
