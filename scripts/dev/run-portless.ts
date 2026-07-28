@@ -9,16 +9,18 @@ import {
 const INNER_FLAG = '--portless-inner';
 const ARGUMENT_SEPARATOR = '--';
 
+interface ParsedArguments {
+  command: string[];
+  currentService: PortlessService;
+  inner: boolean;
+}
+
 function fail(message: string): never {
   console.error(message);
   process.exit(1);
 }
 
-function parseArguments(): {
-  command: string[];
-  currentService: PortlessService;
-  inner: boolean;
-} {
+function parseArguments(): ParsedArguments {
   const args = process.argv.slice(2);
   const inner = args[0] === INNER_FLAG;
   if (inner) {

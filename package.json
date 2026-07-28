@@ -102,7 +102,7 @@
     "dev:desktop": "bunx turbo run dev --filter=@genfeedai/desktop",
     "dev:docs": "bun run dev:portless:docs",
     "dev:frontend": "bun run dev:portless:frontend",
-    "dev:direct:all": "bunx turbo run dev",
+    "dev:direct:all": "bunx turbo run dev:direct",
     "dev:direct:app": "bunx turbo run dev:direct --filter=@genfeedai/app",
     "dev:direct:backend": "bunx turbo run dev:direct --filter=@genfeedai/api --filter=@genfeedai/files --filter=@genfeedai/mcp --filter=@genfeedai/notifications --filter=@genfeedai/workers --concurrency=6",
     "dev:direct:docs": "bunx turbo run dev:direct --filter=@genfeedai/docs",

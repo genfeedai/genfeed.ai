@@ -34,6 +34,7 @@ const DEFAULT_SCRIPT_EXPECTATIONS = {
   'dev:app:be': 'bun run dev:portless:essentials',
   'dev:app:fe': 'bun run dev:portless:app',
   'dev:backend': 'bun run dev:portless:backend',
+  'dev:direct:all': 'bunx turbo run dev:direct',
   'dev:docs': 'bun run dev:portless:docs',
   'dev:essentials': 'bun run dev:portless:essentials',
   'dev:frontend': 'bun run dev:portless:frontend',
