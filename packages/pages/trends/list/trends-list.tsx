@@ -25,6 +25,7 @@ import { useQuery } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { EmptyStateCard } from '@ui/feedback';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
@@ -47,6 +48,98 @@ import {
   HiOutlineSparkles,
 } from 'react-icons/hi2';
 
+function getVideoExternalId(video: ITrendVideo): string | null {
+  if (video.externalId) {
+    return video.externalId;
+  }
+
+  if (!video.videoUrl) {
+    return null;
+  }
+
+  try {
+    const url = new URL(video.videoUrl);
+    const tiktokId = url.pathname.match(/\/video\/([^/?]+)/)?.[1];
+    if (tiktokId) {
+      return tiktokId;
+    }
+
+    if (url.hostname === 'youtu.be') {
+      return url.pathname.split('/').filter(Boolean)[0] ?? null;
+    }
+
+    return url.searchParams.get('v');
+  } catch {
+    return null;
+  }
+}
+
+function getVideoEmbedUrl(video: ITrendVideo): string | null {
+  const externalId = getVideoExternalId(video);
+  if (!externalId) {
+    return null;
+  }
+
+  switch (video.platform.toLowerCase()) {
+    case 'tiktok':
+      return `https://www.tiktok.com/player/v1/${encodeURIComponent(externalId)}?autoplay=0&loop=0&muted=0`;
+    case 'youtube':
+      return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(externalId)}`;
+    default:
+      return null;
+  }
+}
+
+function ViralVideoPreview({
+  title,
+  video,
+}: {
+  title: string;
+  video: ITrendVideo;
+}) {
+  const embedUrl = getVideoEmbedUrl(video);
+
+  if (embedUrl) {
+    return (
+      <iframe
+        allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+        className="size-full border-0"
+        loading="lazy"
+        referrerPolicy="strict-origin-when-cross-origin"
+        src={embedUrl}
+        title={`${title} video`}
+      />
+    );
+  }
+
+  if (video.videoUrl) {
+    return (
+      <VideoPlayer
+        ariaLabel={`${title} video`}
+        className="bg-black"
+        src={video.videoUrl}
+        thumbnail={video.thumbnailUrl}
+        config={{
+          autoPlay: false,
+          controls: true,
+          loop: false,
+          muted: false,
+          playsInline: true,
+          preload: 'metadata',
+        }}
+      />
+    );
+  }
+
+  return (
+    <div className="flex size-full items-center justify-center bg-background-secondary text-foreground/35">
+      <HiOutlineFilm className="size-8" />
+      <span className="sr-only">Video preview unavailable</span>
+    </div>
+  );
+}
+
 function ViralVideoCard({
   finding,
   isSelected,
@@ -58,12 +151,15 @@ function ViralVideoCard({
   onSelect?: (finding: AuthorizedResearchFinding) => void;
   video: ITrendVideo;
 }) {
+  const title = video.title || video.hook || 'Untitled video';
+
   return (
-    <Card bodyClassName="p-4">
-      <div className="space-y-2">
-        <div className="text-base font-semibold text-foreground">
-          {video.title || video.hook || 'Untitled'}
-        </div>
+    <Card bodyClassName="gap-0 p-0">
+      <div className="aspect-video overflow-hidden bg-black">
+        <ViralVideoPreview title={title} video={video} />
+      </div>
+      <div className="space-y-3 p-4">
+        <div className="text-base font-semibold text-foreground">{title}</div>
         <div className="flex flex-wrap gap-2 text-xs text-foreground/55">
           <span className="capitalize">{video.platform}</span>
           {video.creatorHandle ? <span>@{video.creatorHandle}</span> : null}
@@ -550,7 +646,7 @@ export default function TrendsList() {
                     const finding = toTrendVideoFinding(video);
                     return (
                       <ViralVideoCard
-                        key={video.id}
+                        key={video.id || video.externalId || video.videoUrl}
                         finding={finding}
                         isSelected={isSameResearchFindingReference(
                           surface?.authorizedFinding?.reference ?? null,
