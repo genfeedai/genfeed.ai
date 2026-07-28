@@ -9,6 +9,7 @@ import 'reflect-metadata';
 import { AiActionType } from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { AgentAdsResearchToolHandler } from '@api/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
 import { AgentAnalyticsToolHandler } from '@api/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
+import { AgentBrandContentToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-content-tool-handler.service';
 import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service';
 import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
@@ -18,10 +19,13 @@ import { AgentLivestreamToolHandler } from '@api/services/agent-orchestrator/too
 import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
+import { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
 import { AgentProactiveToolHandler } from '@api/services/agent-orchestrator/tools/agent-proactive-tool-handler.service';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import { AgentQualityToolHandler } from '@api/services/agent-orchestrator/tools/agent-quality-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
+import { AgentSpawnToolHandler } from '@api/services/agent-orchestrator/tools/agent-spawn-tool-handler.service';
+import { AgentToolCatalogHandler } from '@api/services/agent-orchestrator/tools/agent-tool-catalog-handler.service';
 import {
   AgentToolExecutorService,
   type ToolExecutionContext,
@@ -777,7 +781,10 @@ describe('AgentToolExecutorService', () => {
       agentMemoryCaptureService as never,
       agentGoalsService as never,
     );
-    const dashboardHandler = new AgentDashboardToolHandler(undefined as never);
+    const dashboardHandler = new AgentDashboardToolHandler(
+      undefined,
+      streamPublisher as never,
+    );
     const agentScopeContextService = {
       assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
       assertResourceBrand: vi.fn(),
@@ -877,24 +884,30 @@ describe('AgentToolExecutorService', () => {
       undefined,
       ingredientsService as never,
       {} as never,
+      imagesService as never,
     );
+    const catalogHandler = new AgentToolCatalogHandler();
+    const brandContentHandler = new AgentBrandContentToolHandler(
+      loggerService,
+      brandsService as never,
+      batchGenerationService as never,
+    );
+    const prepareHandler = new AgentPrepareToolHandler(
+      brandsService as never,
+      workflowsService as never,
+      organizationSettingsService as never,
+      voicesService as never,
+    );
+    const spawnHandler = new AgentSpawnToolHandler(loggerService, undefined);
 
     const service = new AgentToolExecutorService(
       loggerService,
-      brandsService as never,
       routeRewriteService,
       memoryGoalsHandler,
       dashboardHandler,
       publishHandler,
       campaignHandler,
       livestreamHandler,
-      workflowsService as never,
-      batchGenerationService as never,
-      organizationSettingsService as never,
-      streamPublisher as never,
-      undefined as never, // agentSpawnService
-      imagesService as never,
-      voicesService as never,
       instagramInspirationHandler,
       brandInterviewHandler,
       workspaceHandler,
@@ -908,6 +921,10 @@ describe('AgentToolExecutorService', () => {
       analyticsHandler,
       workflowHandler,
       mediaGenerationHandler,
+      catalogHandler,
+      brandContentHandler,
+      prepareHandler,
+      spawnHandler,
       agentScopeContextService as never,
     );
 
@@ -4299,14 +4316,13 @@ describe('AgentToolExecutorService', () => {
     );
     const serviceWithoutScorer = new AgentToolExecutorService(
       loggerService,
-      brandsService as never,
       new AgentRouteRewriteService(
         loggerService,
         brandsService as never,
         organizationsService as never,
       ),
       new AgentMemoryGoalsToolHandler(undefined as never, undefined as never),
-      new AgentDashboardToolHandler(undefined as never),
+      new AgentDashboardToolHandler(undefined, undefined),
       publishHandlerWithoutScorer,
       new AgentCampaignToolHandler({} as never),
       new AgentLivestreamToolHandler(
@@ -4314,13 +4330,6 @@ describe('AgentToolExecutorService', () => {
         {} as never,
         {} as never,
       ),
-      workflowsService as never,
-      {} as never,
-      { findOne: vi.fn().mockResolvedValue({}) } as never,
-      undefined as never, // streamPublisher
-      undefined as never, // agentSpawnService
-      imagesService as never,
-      { findAll: vi.fn().mockResolvedValue({ docs: [] }) } as never,
       instagramInspirationHandler,
       new AgentBrandInterviewToolHandler(undefined),
       new AgentWorkspaceToolHandler(
@@ -4344,6 +4353,7 @@ describe('AgentToolExecutorService', () => {
         undefined,
         undefined,
         undefined,
+        imagesService as never,
       ),
       new AgentReviewToolHandler({} as never),
       new AgentAdsResearchToolHandler(
@@ -4379,6 +4389,19 @@ describe('AgentToolExecutorService', () => {
         undefined,
         undefined, // contentQualityScorerService intentionally absent
       ),
+      new AgentToolCatalogHandler(),
+      new AgentBrandContentToolHandler(
+        loggerService,
+        brandsService as never,
+        {} as never,
+      ),
+      new AgentPrepareToolHandler(
+        brandsService as never,
+        workflowsService as never,
+        { findOne: vi.fn().mockResolvedValue({}) } as never,
+        { findAll: vi.fn().mockResolvedValue({ docs: [] }) } as never,
+      ),
+      new AgentSpawnToolHandler(loggerService, undefined),
       undefined as never, // agentScopeContextService
     );
 

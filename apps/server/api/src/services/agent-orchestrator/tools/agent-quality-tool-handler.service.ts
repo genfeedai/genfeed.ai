@@ -1,11 +1,20 @@
+import { ImagesService } from '@api/collections/images/services/images.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { VoteEntity } from '@api/collections/votes/entities/vote.entity';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
-import { VoteEntityModel } from '@genfeedai/enums';
-import type { AgentToolResult, AgentUiAction } from '@genfeedai/interfaces';
+import {
+  IngredientCategory,
+  IngredientStatus,
+  VoteEntityModel,
+} from '@genfeedai/enums';
+import type {
+  AgentIngredientItem,
+  AgentToolResult,
+  AgentUiAction,
+} from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -25,6 +34,8 @@ export class AgentQualityToolHandler {
     private readonly ingredientsService?: IngredientsService,
     @Optional()
     private readonly votesService?: VotesService,
+    @Optional()
+    private readonly imagesService?: ImagesService,
   ) {}
 
   async rateContent(
@@ -384,5 +395,126 @@ export class AgentQualityToolHandler {
         success: false,
       };
     }
+  }
+
+  async selectIngredient(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const PICKER_LIMIT = 9;
+    const mediaType = (params.mediaType as string | undefined) ?? 'all';
+
+    const categoryFilter: string[] = [];
+    if (mediaType === 'image' || mediaType === 'all') {
+      categoryFilter.push(IngredientCategory.IMAGE);
+    }
+    if (mediaType === 'video' || mediaType === 'all') {
+      categoryFilter.push(IngredientCategory.VIDEO);
+    }
+
+    const baseFilters: Record<string, unknown> = {
+      category: { in: categoryFilter },
+      status: IngredientStatus.GENERATED,
+    };
+
+    if (params.brandId) {
+      baseFilters.brand = params.brandId as string;
+    }
+
+    type AssetDoc = {
+      id: unknown;
+      category: string;
+      cdnUrl?: string;
+      metadata?: { label?: string } | null;
+    };
+
+    let assets: AssetDoc[] = [];
+
+    if (this.imagesService) {
+      const docs = await this.imagesService.findAllByOrganization(
+        ctx.organizationId,
+        baseFilters,
+        { createdAt: -1 },
+        [{ path: 'metadata', select: '_id label' }],
+      );
+
+      assets = (docs as AssetDoc[]).slice(0, PICKER_LIMIT);
+    }
+
+    if (assets.length === 0) {
+      return {
+        creditsUsed: 0,
+        data: {
+          count: 0,
+          message: 'No media assets found in your library.',
+        },
+        success: true,
+      };
+    }
+
+    const ingredients: AgentIngredientItem[] = assets.map((asset) => {
+      const id = String(asset.id);
+      const url = asset.cdnUrl ?? '';
+      const isVideo = asset.category === IngredientCategory.VIDEO;
+      const title =
+        (asset.metadata as { label?: string } | null)?.label ?? undefined;
+
+      return {
+        id,
+        thumbnailUrl: url,
+        title,
+        type: isVideo ? ('video' as const) : ('image' as const),
+        url,
+      };
+    });
+
+    return {
+      creditsUsed: 0,
+      data: {
+        count: ingredients.length,
+        message: `Found ${ingredients.length} asset${ingredients.length === 1 ? '' : 's'} in your library.`,
+      },
+      nextActions: [
+        {
+          description:
+            'Select an asset from your library to use as an ingredient',
+          id: `ingredient-picker-${Date.now()}`,
+          ingredients,
+          title: 'Pick from your library',
+          type: 'ingredient_picker_card' as const,
+        },
+      ],
+      success: true,
+    };
+  }
+
+  suggestIngredientAlternatives(
+    params: Record<string, unknown>,
+  ): AgentToolResult {
+    const generationType = params.generationType as 'image' | 'video';
+    const alternatives = params.alternatives as
+      | { label: string; prompt: string }[]
+      | undefined;
+
+    if (!generationType || !alternatives?.length) {
+      return {
+        creditsUsed: 0,
+        error: 'generationType and alternatives are required',
+        success: false,
+      };
+    }
+
+    return {
+      creditsUsed: 0,
+      nextActions: [
+        {
+          alternatives: alternatives.map((a) => ({ ...a, generationType })),
+          id: `ingredient-alts-${Date.now()}`,
+          title: 'Alternative Prompts',
+          type: 'ingredient_alternatives_card' as const,
+        },
+      ],
+      success: true,
+    };
   }
 }

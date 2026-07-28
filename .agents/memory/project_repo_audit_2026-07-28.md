@@ -47,13 +47,19 @@ Audit-only pass, then P0 implementation. Remaining work is tracked here so it is
 | #519 workflows | **Extracted** → `agent-workflow-tool-handler.service.ts` (10 workflow tools + install/bootstrap) |
 | #519 media gen | **Extracted** → `agent-media-generation-tool-handler.service.ts` (AI_ACTION + generate_* + identity) |
 | #519 proactive+ | DISCOVER_ENGAGEMENTS / DRAFT_ENGAGEMENT_REPLY folded into proactive handler |
-| Executor size | ~9,138 → ~6,499 → **~2,208** LOC. Residual: catalog, brand voice, monthly content, prepare*, spawn/request, select ingredient, dashboard render helpers. |
+| #519 catalog | **Extracted** → `agent-tool-catalog-handler.service.ts` (LIST_GENFEED_TOOLS) |
+| #519 brand content | **Extracted** → `agent-brand-content-tool-handler.service.ts` (monthly + voice draft/save) |
+| #519 dashboard+ | RENDER_DASHBOARD + hydration folded into dashboard handler |
+| #519 prepare | **Extracted** → `agent-prepare-tool-handler.service.ts` (4 prepare tools) |
+| #519 quality+ | SELECT_INGREDIENT + SUGGEST_INGREDIENT_ALTERNATIVES folded into quality handler |
+| #519 spawn | **Extracted** → `agent-spawn-tool-handler.service.ts` (spawn + request_asset) |
+| Executor size | ~9,138 → ~6,499 → ~2,208 → **~515** LOC. Executor is thin routing only (dispatch + scope/action-origin). |
 
 **Out of P0 scope (already epics):** `mongoId` cutover (#1041 + children). Do not drop columns without telemetry (#1779 → #1780 → #1781 → #1782).
 
-**Ship status:** P0 + completed #519 extracts + platform helpers → PR [#2175](https://github.com/genfeedai/genfeed.ai/pull/2175) (`codex/repo-audit-2026-07-28`, rebased onto `master` after `#2172`). Dirty skill symlink deletions stay out of product PRs.
+**Ship status:** P0 + completed #519 extracts + platform helpers → PR [#2175](https://github.com/genfeedai/genfeed.ai/pull/2175) (`codex/repo-audit-2026-07-28`). Dirty skill symlink deletions stay out of product PRs.
 
-**Next extract (this worktree residual):** brand voice / monthly content → prepare* catalog / spawn-request.
+**#519 residual:** none for local tool bodies — executor is routing-only.
 
 ## P1 — architecture / DRY (existing GH)
 
