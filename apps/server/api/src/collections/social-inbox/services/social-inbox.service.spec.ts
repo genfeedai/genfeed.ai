@@ -564,6 +564,36 @@ describe('SocialInboxService', () => {
     ).rejects.toThrow('Invalid social inbox reference');
   });
 
+  it('rejects unsupported persisted message states from agent context', async () => {
+    const { messages, service } = createContext();
+    const message = await service.ingestInboundMessage({
+      body: 'Legacy customer text',
+      brandId: 'brand-1',
+      conversationType: 'comment',
+      externalConversationId: 'thread-1',
+      externalMessageId: 'comment-1',
+      organizationId: 'org-1',
+      platform: 'youtube',
+    });
+    const scope = {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+    messages[0].direction = 'unsupported-direction';
+
+    await expect(
+      service.resolveAgentContextReferences(scope, [
+        {
+          conversationId: message.conversationId,
+          kind: 'social-message',
+          messageId: message.id,
+          organizationId: 'org-1',
+        },
+      ]),
+    ).rejects.toThrow('Unsupported social message state');
+  });
+
   it('publishes redacted scoped realtime events for new inbox messages', async () => {
     const { notificationsPublisher, service } = createContext();
     const message = await service.ingestInboundMessage({
