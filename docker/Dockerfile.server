@@ -118,9 +118,8 @@ COPY packages/prisma/prisma/ ./packages/prisma/prisma/
 COPY patches/ patches/
 
 # Nest's webpack externalizer expects conventional node_modules paths; an
-# isolated build graph makes it bundle Remotion/Rspack native binaries from
-# .bun paths. The targeted dependency patches above keep this hoisted build
-# graph compatible, while runtime dependencies remain isolated below.
+# isolated graph makes it bundle Remotion/Rspack native binaries from .bun
+# paths. The targeted dependency patches above keep the hoisted graph safe.
 RUN --mount=type=cache,id=bun-cache,target=/root/.bun/install/cache \
     HUSKY=0 bun install --frozen-lockfile --linker hoisted
 
@@ -141,13 +140,13 @@ COPY packages/prisma/prisma.config.mjs ./packages/prisma/prisma.config.mjs
 COPY packages/prisma/prisma/ ./packages/prisma/prisma/
 COPY patches/ patches/
 
-# Install only runtime dependencies from the production-pruned frozen lockfile.
-# The final image copies both the root .bun store and workspace node_modules
-# links, preserving peer contexts while keeping build dependencies out. Prisma
-# is a runtime dependency because both the self-hosted entrypoint and deployment
-# migration jobs execute it after the image is built.
+# Install a conventional root-resolvable runtime graph from the
+# production-pruned frozen lockfile. Nest's bundles externalize third-party
+# dependencies against this layout; Bun keeps conflicting versions nested while
+# the production prune keeps build dependencies out. Prisma remains a runtime
+# dependency because migration jobs execute it after the image is built.
 RUN --mount=type=cache,id=bun-production-cache,target=/root/.bun/install/cache \
-    HUSKY=0 bun install --production --frozen-lockfile --linker isolated
+    HUSKY=0 bun install --production --frozen-lockfile --linker hoisted
 RUN cd apps/server/files && \
     bun -e "import { ensureBrowser } from '@remotion/renderer'; await ensureBrowser();"
 
@@ -346,19 +345,6 @@ COPY --from=builder /usr/src/app/apps/server/dist ./apps/server/dist
 COPY --from=builder /usr/src/app/apps/server/files/src/remotion ./apps/server/files/src/remotion
 COPY --from=builder /usr/src/app/apps/server/files/remotion-bundle ./apps/server/files/remotion-bundle
 COPY --from=production-deps /usr/src/app/node_modules ./node_modules
-
-# Nest externalizes third-party packages from the hoisted build graph, while the
-# production graph stays isolated. Give each compiled service the package-local
-# node_modules context that owns its runtime dependencies instead of flattening
-# peer contexts back into the root.
-RUN set -e; \
-    for svc in api workers files mcp notifications telegram discord slack images voices videos; do \
-      test -d "apps/server/$svc/node_modules"; \
-      test -d "apps/server/dist/apps/$svc"; \
-      ln -s "../../../$svc/node_modules" "apps/server/dist/apps/$svc/node_modules"; \
-    done; \
-    test -d "apps/server/dist/apps/api-workflow-backfill"; \
-    ln -s "../../../api/node_modules" "apps/server/dist/apps/api-workflow-backfill/node_modules"
 
 RUN test -x "$(find /usr/src/app -type f -name chrome-headless-shell -print -quit)"
 
