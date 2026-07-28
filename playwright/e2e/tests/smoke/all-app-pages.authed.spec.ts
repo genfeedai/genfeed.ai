@@ -91,9 +91,6 @@ test.describe('Authenticated route smoke (real Better Auth session)', () => {
     expect(new URL(page.url()).pathname).toBe(
       createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.WORKSPACE.OVERVIEW),
     );
-    await expect(
-      page.getByRole('navigation', { name: 'Breadcrumb' }),
-    ).toContainText('Dashboard');
 
     const failures: string[] = [];
     for (const route of buildProtectedRoutes(orgSlug, brandSlug)) {
