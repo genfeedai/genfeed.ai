@@ -91,14 +91,23 @@ vi.mock('@ui/primitives/button', () => ({
 
 vi.mock('@ui/primitives/input', () => ({
   Input: ({
+    'aria-label': ariaLabel,
     onChange,
     placeholder,
     value,
   }: {
+    'aria-label'?: string;
     onChange: (event: ChangeEvent<HTMLInputElement>) => void;
     placeholder?: string;
     value: string;
-  }) => <input placeholder={placeholder} value={value} onChange={onChange} />,
+  }) => (
+    <input
+      aria-label={ariaLabel}
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+    />
+  ),
 }));
 
 vi.mock('@ui/primitives/select', () => ({
