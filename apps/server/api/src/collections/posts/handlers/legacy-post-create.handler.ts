@@ -64,7 +64,7 @@ function getIngredientRefId(
   if (typeof value === 'string') {
     return value;
   }
-  return value?.id ?? value?.id;
+  return value?._id ?? value?.id;
 }
 
 function getPostCategoryFromIngredient(

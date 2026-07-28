@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CURATED_ACTION_CATALOG,
   isActionOnSurface,
-  requiresPublishingApproval,
+  isPublishingApprovalRequired,
 } from './curated-action-catalog.js';
 import { SOURCE_TOOLS } from './source/index.js';
 import {
@@ -71,7 +71,7 @@ describe('curated action catalog', () => {
 
   it('owns the exact reviewed set of publishing approval actions', () => {
     expect(
-      CURATED_ACTION_CATALOG.filter(requiresPublishingApproval).map(
+      CURATED_ACTION_CATALOG.filter(isPublishingApprovalRequired).map(
         (entry) => entry.name,
       ),
     ).toEqual([

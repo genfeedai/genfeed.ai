@@ -2274,6 +2274,48 @@ describe('AgentOrchestratorService', () => {
     expect(response.message.metadata.isFallbackContent).toBe(true);
   });
 
+  it('fails the run and publishes failure effects when deterministic batch generation rejects', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+    toolExecutorService.executeTool.mockRejectedValueOnce(
+      new Error('Batch publishing scope denied'),
+    );
+
+    await expect(
+      service.chatStream(
+        {
+          brandId: '67a123456789012345678905',
+          content: 'Generate 3 posts for LinkedIn',
+        },
+        {
+          organizationId: ORG_ID,
+          userId: USER_ID,
+        },
+      ),
+    ).rejects.toThrow('Batch publishing scope denied');
+
+    expect(agentRunsService.fail).toHaveBeenCalledWith(
+      RUN_ID,
+      ORG_ID,
+      'Batch publishing scope denied',
+    );
+    expect(streamPublisher.publishError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: 'Batch publishing scope denied',
+        runId: RUN_ID,
+      }),
+    );
+    expect(streamPublisher.publishWorkEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        detail: 'Batch publishing scope denied',
+        event: 'failed',
+        runId: RUN_ID,
+        status: 'failed',
+      }),
+    );
+  });
+
   it('asks for missing recurring workflow fields before creation', async () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
@@ -2311,6 +2353,49 @@ describe('AgentOrchestratorService', () => {
     );
     expect(response.message.content).toContain('core generation brief');
     expect(llmDispatcher.chatCompletion).not.toHaveBeenCalled();
+  });
+
+  it('fails the run and publishes failure effects when recurring workflow creation rejects', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+      settings: { timezone: 'Europe/Malta' },
+    } as never);
+    toolExecutorService.executeTool.mockRejectedValueOnce(
+      new Error('Recurring publishing scope denied'),
+    );
+
+    await expect(
+      service.chatStream(
+        {
+          content:
+            'Create 5 Instagram images for our skincare launch in a minimal beige luxury style every weekday at 5pm Malta time',
+        },
+        {
+          organizationId: ORG_ID,
+          userId: USER_ID,
+        },
+      ),
+    ).rejects.toThrow('Recurring publishing scope denied');
+
+    expect(agentRunsService.fail).toHaveBeenCalledWith(
+      RUN_ID,
+      ORG_ID,
+      'Recurring publishing scope denied',
+    );
+    expect(streamPublisher.publishError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: 'Recurring publishing scope denied',
+        runId: RUN_ID,
+      }),
+    );
+    expect(streamPublisher.publishWorkEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        detail: 'Recurring publishing scope denied',
+        event: 'failed',
+        runId: RUN_ID,
+        status: 'failed',
+      }),
+    );
   });
 
   it('creates recurring automation immediately when the request is complete', async () => {
