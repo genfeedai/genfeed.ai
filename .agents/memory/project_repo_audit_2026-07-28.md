@@ -65,7 +65,7 @@ Audit-only pass, then P0 implementation. Remaining work is tracked here so it is
 
 | Track | Issue(s) | Notes |
 |---|---|---|
-| God services | **#1736** epic; **#519** tool executor; **#520** orchestrator; **#1743** shared platform; **#1738–#1744** family splits | `agent-tool-executor.service.ts` ~9k LOC |
+| God services | **#1736** epic; **#519** tool executor (**done on #2175**); **#520** orchestrator next; **#1743** shared platform; **#1738–#1744** family splits | Orchestrator ~5.3k LOC is the remaining god object |
 | Workers ↔ API imports | **#1090** | Package boundary |
 | Conversation composer + rail registry | **#2012** | Architecture decision first |
 | Retire redundant routes | **#1867**, **#2122** | After telemetry |
@@ -102,9 +102,46 @@ Avoid: random memoization sweeps, package merges without a surface.
 
 ## Recommended next sequence after P0
 
-1. **P1 C slice:** one bounded extract from `agent-tool-executor` under #519 / #1736.
-2. **#2012 decision** on canonical composer + rail registry (no code until decision).
-3. **#1090** workers/API boundary when touching workers.
+1. ~~**P1 C slice:** one bounded extract from `agent-tool-executor` under #519 / #1736.~~ **Done** (#2175).
+2. **Merge #2175** (human/Codex) when CI green — do not stack more commits on that PR.
+3. **#520** — decompose `agent-orchestrator.service.ts` (~5.3k LOC) on a **new branch** off updated `master`.
+4. **#2012 decision** on canonical composer + rail registry (no code until decision).
+5. **#1090** workers/API boundary when touching workers.
+
+## Handoff — after #2175 (2026-07-29)
+
+**Who merges:** Vincent via Codex (not this Grok session).  
+**PR:** [#2175](https://github.com/genfeedai/genfeed.ai/pull/2175) · branch `codex/repo-audit-2026-07-28` · worktree `~/.grok/worktrees/genfeedai-genfeedai/2026-07-28-812b93b8`
+
+### Shipped in #2175
+- **P0:** soft-delete `isDeleted` (desktop + contracts); live Prisma scalar FK reads
+- **#519 complete:** tool executor ~9.1k → ~518 LOC, **0 local tool bodies**, 86 tools delegated to handlers
+- **Platform helpers:** `parsePlatform` / `formatPlatformLabel` / predicates in `@genfeedai/enums`
+
+### Do NOT continue on the same branch
+Open a **new branch from post-merge `master`** for the next god-file work. Keeps review/CI blast radius clean and avoids fighting merge conflicts on a already-large PR.
+
+### Next coding target: #520 (orchestrator)
+| File | LOC (approx) | Action |
+|---|---|---|
+| `apps/server/api/src/services/agent-orchestrator/agent-orchestrator.service.ts` | **~5,329** | Primary #520 target — turn runner + mode/state + context + UI-action splits per issue PRD |
+| `tools/agent-workflow-tool-handler.service.ts` | ~1,545 | Optional later split (already extracted from executor) |
+| `tools/agent-media-generation-tool-handler.service.ts` | ~1,221 | Optional later split |
+| `tools/agent-tool-registry.ts` | ~1,084 | Catalog/metadata — lower urgency |
+
+**Out of scope for immediate “clean big files” unless product-forced:** integration publishers (LinkedIn/IG/TikTok/etc.), stripe, content-optimization — those are #1743 / #1738–#1744 family work under epic #1736, not a free-for-all.
+
+### Suggested Codex prompt (next session)
+```
+After master includes PR #2175, branch codex/520-decompose-agent-orchestrator off master.
+Implement #520: decompose agent-orchestrator.service.ts (~5.3k) per issue PRD —
+shared turn runner + bounded mode/state-machine, context, and UI-action services.
+Preserve sync + streaming behavior. No new umbrella epic. MacBook: no local
+tests/typecheck/build; PR CI is the gate. Ready PR to master.
+```
+
+### P0 residual
+None for this audit pass. `mongoId` stays on #1041 telemetry path — do not reopen as P0.
 
 ## How to use this file
 
