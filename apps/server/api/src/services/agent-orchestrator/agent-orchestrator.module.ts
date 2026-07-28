@@ -16,6 +16,7 @@ import { CredentialsCoreModule } from '@api/collections/credentials/credentials-
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { DashboardLayoutsModule } from '@api/collections/dashboard-layouts/dashboard-layouts.module';
 import { ImagesModule } from '@api/collections/images/images.module';
+import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { OutreachCampaignsModule } from '@api/collections/outreach-campaigns/outreach-campaigns.module';
@@ -26,6 +27,7 @@ import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.mo
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { VoicesModule } from '@api/collections/voices/voices.module';
+import { VotesModule } from '@api/collections/votes/votes.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { AdsResearchModule } from '@api/endpoints/ads-research/ads-research.module';
@@ -43,12 +45,17 @@ import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrato
 import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
 import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service';
 import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
+import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
+import { AgentProactiveToolHandler } from '@api/services/agent-orchestrator/tools/agent-proactive-tool-handler.service';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
+import { AgentQualityToolHandler } from '@api/services/agent-orchestrator/tools/agent-quality-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
+import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentSpawnModule } from '@api/services/agent-spawn/agent-spawn.module';
 import { AgentThreadingModule } from '@api/services/agent-threading/agent-threading.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
@@ -93,6 +100,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => DashboardLayoutsModule),
     forwardRef(() => HttpModule),
     forwardRef(() => ImagesModule),
+    forwardRef(() => IngredientsModule),
     InstagramInspirationModule,
     forwardRef(() => LoggerModule),
     forwardRef(() => LlmDispatcherModule),
@@ -106,6 +114,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => TrendsModule),
     forwardRef(() => UsersModule),
     forwardRef(() => VoicesModule),
+    forwardRef(() => VotesModule),
     forwardRef(() => WorkflowExecutionsModule),
     forwardRef(() => WorkflowsModule),
     forwardRef(() => AgentSpawnModule),
@@ -116,10 +125,15 @@ import { forwardRef, Module } from '@nestjs/common';
     AgentCompletionCardBuilderService,
     AgentBrandInterviewToolHandler,
     AgentCampaignToolHandler,
+    AgentConnectionToolHandler,
     AgentDashboardToolHandler,
     AgentInstagramInspirationToolHandler,
     AgentMemoryGoalsToolHandler,
+    AgentProactiveToolHandler,
     AgentPublishToolHandler,
+    AgentQualityToolHandler,
+    AgentTrendsToolHandler,
+    AgentWorkspaceToolHandler,
     AgentOrchestratorService,
     AgentRouteRewriteService,
     AgentStreamEffectsService,

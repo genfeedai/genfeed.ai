@@ -9,15 +9,20 @@ import 'reflect-metadata';
 import { AiActionType } from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service';
 import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
+import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
+import { AgentProactiveToolHandler } from '@api/services/agent-orchestrator/tools/agent-proactive-tool-handler.service';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
+import { AgentQualityToolHandler } from '@api/services/agent-orchestrator/tools/agent-quality-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import {
   AgentToolExecutorService,
   type ToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
+import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import type { CreateReleaseGroupInput } from '@api-types/contracts/scheduler.contract';
 import { ApiKeyScope, PostStatus, ReleaseStatus } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
@@ -778,6 +783,25 @@ describe('AgentToolExecutorService', () => {
     const brandInterviewHandler = new AgentBrandInterviewToolHandler(
       brandInterviewService as never,
     );
+    const workspaceHandler = new AgentWorkspaceToolHandler(
+      creditsUtilsService as never,
+      brandsService as never,
+    );
+    const connectionHandler = new AgentConnectionToolHandler(
+      credentialsService as never,
+    );
+    const trendsHandler = new AgentTrendsToolHandler(trendsService as never);
+    const proactiveHandler = new AgentProactiveToolHandler(
+      postsService as never,
+      batchGenerationService as never,
+    );
+    const qualityHandler = new AgentQualityToolHandler(
+      loggerService,
+      contentQualityScorerService as never,
+      undefined,
+      ingredientsService as never,
+      {} as never,
+    );
 
     const service = new AgentToolExecutorService(
       loggerService,
@@ -797,7 +821,6 @@ describe('AgentToolExecutorService', () => {
       workflowGenerationService as never,
       marketplaceApiClient as never,
       marketplaceInstallService as never,
-      trendsService,
       aiActionsService as never,
       analyticsService as never,
       postAnalyticsService as never,
@@ -813,11 +836,14 @@ describe('AgentToolExecutorService', () => {
       imagesService as never,
       voicesService as never,
       contentQualityScorerService as never,
-      seoScorerService as never,
       ingredientsService as never,
-      {} as never, // votesService
       instagramInspirationHandler,
       brandInterviewHandler,
+      workspaceHandler,
+      connectionHandler,
+      trendsHandler,
+      proactiveHandler,
+      qualityHandler,
       agentScopeContextService as never,
     );
 
@@ -4202,7 +4228,6 @@ describe('AgentToolExecutorService', () => {
       undefined as never,
       undefined as never,
       undefined as never,
-      { getTrends: vi.fn().mockResolvedValue([]) } as never,
       aiActionsService as never,
       {} as never,
       {} as never,
@@ -4218,11 +4243,22 @@ describe('AgentToolExecutorService', () => {
       imagesService as never,
       { findAll: vi.fn().mockResolvedValue({ docs: [] }) } as never,
       undefined as never, // contentQualityScorerService (intentionally absent)
-      undefined as never, // seoScorerService
       undefined as never, // ingredientsService
-      undefined as never, // votesService
       instagramInspirationHandler,
       new AgentBrandInterviewToolHandler(undefined),
+      new AgentWorkspaceToolHandler({} as never, brandsService as never),
+      new AgentConnectionToolHandler(credentialsService as never),
+      new AgentTrendsToolHandler({
+        getTrends: vi.fn().mockResolvedValue([]),
+      } as never),
+      new AgentProactiveToolHandler(postsService as never, undefined),
+      new AgentQualityToolHandler(
+        loggerService,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+      ),
       undefined as never, // agentScopeContextService
     );
 

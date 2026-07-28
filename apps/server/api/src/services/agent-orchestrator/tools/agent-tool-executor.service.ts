@@ -10,11 +10,8 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
-import { VoteEntity } from '@api/collections/votes/entities/vote.entity';
-import { VotesService } from '@api/collections/votes/services/votes.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowGenerationService } from '@api/collections/workflows/services/workflow-generation.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
@@ -37,10 +34,13 @@ import { MarketplaceInstallService } from '@api/marketplace-integration/marketpl
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service';
 import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
+import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
+import { AgentProactiveToolHandler } from '@api/services/agent-orchestrator/tools/agent-proactive-tool-handler.service';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
+import { AgentQualityToolHandler } from '@api/services/agent-orchestrator/tools/agent-quality-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import {
   readAgentScheduleValidationError,
@@ -55,10 +55,11 @@ import {
   readOptionalNumber,
   readOptionalString,
 } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
+import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
+import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentSpawnService } from '@api/services/agent-spawn/agent-spawn.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
-import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
 import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { isEEEnabled } from '@genfeedai/config';
 import {
@@ -73,7 +74,6 @@ import {
   Status,
   VoiceCloneStatus,
   VoiceProvider,
-  VoteEntityModel,
   WorkflowExecutionTrigger,
   WorkflowTrigger,
 } from '@genfeedai/enums';
@@ -100,10 +100,6 @@ import type {
   AdsResearchPlatform,
   AdsResearchSource,
 } from '@genfeedai/interfaces/integrations/ads-research.interface';
-import {
-  serializeAgentBrand,
-  serializeAgentBrands,
-} from '@genfeedai/serializers';
 import {
   AgentScopeContextService,
   resolveNestedActionOrigin,
@@ -402,7 +398,6 @@ export class AgentToolExecutorService {
     private readonly marketplaceInstallService:
       | MarketplaceInstallService
       | undefined,
-    private readonly trendsService: TrendsService,
     private readonly aiActionsService: AiActionsService,
     private readonly analyticsService: AnalyticsService,
     private readonly postAnalyticsService: PostAnalyticsService,
@@ -429,13 +424,14 @@ export class AgentToolExecutorService {
     @Optional()
     private readonly contentQualityScorerService: ContentQualityScorerService,
     @Optional()
-    private readonly seoScorerService: SeoScorerService,
-    @Optional()
     private readonly ingredientsService: IngredientsService,
-    @Optional()
-    private readonly votesService: VotesService,
     private readonly instagramInspirationHandler: AgentInstagramInspirationToolHandler,
     private readonly brandInterviewHandler: AgentBrandInterviewToolHandler,
+    private readonly workspaceHandler: AgentWorkspaceToolHandler,
+    private readonly connectionHandler: AgentConnectionToolHandler,
+    private readonly trendsHandler: AgentTrendsToolHandler,
+    private readonly proactiveHandler: AgentProactiveToolHandler,
+    private readonly qualityHandler: AgentQualityToolHandler,
     @Optional()
     private readonly agentScopeContextService?: AgentScopeContextService,
   ) {
@@ -905,13 +901,13 @@ export class AgentToolExecutorService {
         return this.listGenfeedTools(params);
 
       case AgentToolName.GET_CREDITS_BALANCE:
-        return this.getCreditsBalance(ctx);
+        return this.workspaceHandler.getCreditsBalance(ctx);
 
       case AgentToolName.LIST_BRANDS:
-        return this.listBrands(ctx);
+        return this.workspaceHandler.listBrands(ctx);
 
       case AgentToolName.GET_CURRENT_BRAND:
-        return this.getCurrentBrand(ctx);
+        return this.workspaceHandler.getCurrentBrand(ctx);
 
       case AgentToolName.LIST_POSTS:
         return this.listPosts(params, ctx);
@@ -962,13 +958,13 @@ export class AgentToolExecutorService {
         return this.getAnalytics(params, ctx);
 
       case AgentToolName.GET_CONNECTION_STATUS:
-        return this.getConnectionStatus(params, ctx);
+        return this.connectionHandler.getConnectionStatus(params, ctx);
 
       case AgentToolName.INITIATE_OAUTH_CONNECT:
-        return this.initiateOAuthConnect(params, ctx);
+        return this.connectionHandler.initiateOAuthConnect(params, ctx);
 
       case AgentToolName.GET_TRENDS:
-        return this.getTrends(params, ctx);
+        return this.trendsHandler.getTrends(params, ctx);
 
       case AgentToolName.LIST_ADS_RESEARCH:
         return this.listAdsResearch(params, ctx);
@@ -1075,16 +1071,16 @@ export class AgentToolExecutorService {
         return this.draftEngagementReply(params, ctx);
 
       case AgentToolName.GET_APPROVAL_SUMMARY:
-        return this.getApprovalSummary(ctx);
+        return this.proactiveHandler.getApprovalSummary(ctx);
 
       case AgentToolName.ANALYZE_PERFORMANCE:
-        return this.analyzePerformance(params, ctx);
+        return this.proactiveHandler.analyzePerformance(params, ctx);
 
       case AgentToolName.GET_CONTENT_CALENDAR:
-        return this.getContentCalendar(params, ctx);
+        return this.proactiveHandler.getContentCalendar(params, ctx);
 
       case AgentToolName.UPDATE_STRATEGY_STATE:
-        return this.updateStrategyState(params, ctx);
+        return this.proactiveHandler.updateStrategyState(params, ctx);
 
       // Identity tools
       case AgentToolName.GENERATE_AS_IDENTITY:
@@ -1128,21 +1124,21 @@ export class AgentToolExecutorService {
 
       // Content quality scoring
       case AgentToolName.RATE_CONTENT:
-        return this.rateContent(params, ctx);
+        return this.qualityHandler.rateContent(params, ctx);
 
       // SEO scoring
       case AgentToolName.SCORE_SEO:
-        return this.scoreSeo(params, ctx);
+        return this.qualityHandler.scoreSeo(params, ctx);
 
       // Ingredient voting & replication tools
       case AgentToolName.RATE_INGREDIENT:
-        return this.rateIngredient(params, ctx);
+        return this.qualityHandler.rateIngredient(params, ctx);
 
       case AgentToolName.GET_TOP_INGREDIENTS:
-        return this.getTopIngredients(params, ctx);
+        return this.qualityHandler.getTopIngredients(params, ctx);
 
       case AgentToolName.REPLICATE_TOP_INGREDIENT:
-        return this.replicateTopIngredient(params, ctx);
+        return this.qualityHandler.replicateTopIngredient(params, ctx);
 
       case AgentToolName.CAPTURE_MEMORY:
         return this.memoryGoalsHandler.captureMemory(params, ctx);
@@ -2413,74 +2409,6 @@ export class AgentToolExecutorService {
     };
   }
 
-  private async getCreditsBalance(
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    const balance =
-      await this.creditsUtilsService.getOrganizationCreditsBalance(
-        ctx.organizationId,
-      );
-
-    return {
-      creditsUsed: 0,
-      data: { balance },
-      success: true,
-    };
-  }
-
-  private async listBrands(
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    const brands = await this.brandsService.findAll(
-      {
-        where: {
-          isDeleted: false,
-          organization: ctx.organizationId,
-        },
-      },
-      {},
-    );
-
-    return {
-      creditsUsed: 0,
-      data: {
-        brands: serializeAgentBrands(
-          (brands.docs as Record<string, unknown>[] | undefined) ?? [],
-        ),
-      },
-      success: true,
-    };
-  }
-
-  private async getCurrentBrand(
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    const currentBrand = await this.brandsService.findOne({
-      isDeleted: false,
-      isSelected: true,
-      organization: ctx.organizationId,
-      user: ctx.userId,
-    } as never);
-
-    if (!currentBrand) {
-      return {
-        creditsUsed: 0,
-        error: 'No brand is currently selected. Please select a brand first.',
-        success: false,
-      };
-    }
-
-    return {
-      creditsUsed: 0,
-      data: {
-        currentBrand: serializeAgentBrand(
-          currentBrand as unknown as Record<string, unknown>,
-        ),
-      },
-      success: true,
-    };
-  }
-
   private async resolveWorkflowBrand(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
@@ -3629,147 +3557,6 @@ export class AgentToolExecutorService {
           title: `Analytics summary (${period})`,
           type: 'analytics_snapshot_card',
         },
-      ],
-      success: true,
-    };
-  }
-
-  private async getConnectionStatus(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    if (!this.credentialsService) {
-      return {
-        creditsUsed: 0,
-        error: 'Credentials service not available',
-        success: false,
-      };
-    }
-
-    const platform = String(params.platform || '')
-      .trim()
-      .toLowerCase();
-    const credential = platform
-      ? await this.credentialsService.findOne({
-          isConnected: true,
-          isDeleted: false,
-          organization: ctx.organizationId,
-          platform,
-        })
-      : null;
-
-    return {
-      creditsUsed: 0,
-      data: {
-        connected: !!credential,
-        credentialId: credential ? String(credential.id) : null,
-        platform: platform || null,
-      },
-      nextActions: credential
-        ? []
-        : [this.buildOAuthConnectCard(platform, '/agent', 'status')],
-      success: true,
-    };
-  }
-
-  private async initiateOAuthConnect(
-    params: Record<string, unknown>,
-    _ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    const platform = String(params.platform || '')
-      .trim()
-      .toLowerCase();
-    const isOnboarding = Boolean(params.isOnboarding);
-    const returnTo = isOnboarding ? '/agent/onboarding' : '/agent';
-
-    return {
-      creditsUsed: 0,
-      data: {
-        platform: platform || null,
-        returnTo,
-      },
-      nextActions: [this.buildOAuthConnectCard(platform, returnTo, 'init')],
-      success: true,
-    };
-  }
-
-  private buildOAuthConnectCard(
-    platform: string,
-    returnTo: string,
-    mode: 'init' | 'status',
-  ): AgentUiAction {
-    const normalizedPlatform = platform.trim().toLowerCase();
-    const isGenericPicker = !normalizedPlatform;
-
-    if (isGenericPicker) {
-      return {
-        ctas: [
-          {
-            href: `/settings/api-keys?returnTo=${encodeURIComponent(returnTo)}`,
-            label: 'Open integrations',
-          },
-        ],
-        data: { isGenericIntegrationPicker: true, returnTo },
-        id: `oauth-connect-integrations-${Date.now()}`,
-        title: 'Choose an integration',
-        type: 'oauth_connect_card',
-      };
-    }
-
-    const connectHref = `/settings/api-keys?connect=${normalizedPlatform}&returnTo=${encodeURIComponent(returnTo)}`;
-    const label = normalizedPlatform;
-
-    return {
-      ctas: [{ href: connectHref, label: `Connect ${label}` }],
-      data: { platform: normalizedPlatform, returnTo },
-      id: `${mode === 'init' ? 'oauth-init' : 'oauth-connect'}-${normalizedPlatform}-${Date.now()}`,
-      platform: normalizedPlatform,
-      title:
-        mode === 'status'
-          ? `${label} not connected`
-          : `Connect ${label} account`,
-      type: 'oauth_connect_card',
-    };
-  }
-
-  private async getTrends(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    const platform = params.platform as string | undefined;
-
-    const cachedTrends = await this.trendsService.getTrends(
-      ctx.organizationId,
-      undefined,
-      platform,
-      { allowFetchIfMissing: false },
-    );
-    const trends =
-      cachedTrends.length > 0
-        ? cachedTrends
-        : await this.trendsService.getTrends(
-            ctx.organizationId,
-            undefined,
-            platform,
-            { allowFetchIfMissing: true },
-          );
-
-    return {
-      creditsUsed: 0,
-      data: {
-        count: trends.length,
-        trends: trends.slice(0, 20).map((t: Record<string, unknown>) => ({
-          id: String(t.id),
-          platform: t.platform,
-          score: t.score,
-          topic: t.topic ?? t.name,
-        })),
-      },
-      nextActions: [
-        this.buildTrendsSummaryCard(
-          platform,
-          trends as Record<string, unknown>[],
-        ),
       ],
       success: true,
     };
@@ -6907,67 +6694,6 @@ export class AgentToolExecutorService {
     return normalized.charAt(0).toUpperCase() + normalized.slice(1);
   }
 
-  private buildTrendsSummaryCard(
-    platform: string | undefined,
-    trends: Record<string, unknown>[],
-  ) {
-    const normalizedPlatform =
-      typeof platform === 'string' ? platform.trim().toLowerCase() : '';
-    const platformLabel =
-      normalizedPlatform === 'tiktok'
-        ? 'TikTok'
-        : normalizedPlatform === 'youtube'
-          ? 'YouTube'
-          : normalizedPlatform === 'linkedin'
-            ? 'LinkedIn'
-            : this.formatQueueItemLabel(platform);
-    const trendCount = trends.length;
-    const title =
-      trendCount === 0
-        ? `${platformLabel ? `${platformLabel} trends` : 'Trends'} unavailable`
-        : `${platformLabel ? `${platformLabel} trends` : 'Trends'} loaded`;
-    const summaryText =
-      trendCount === 0
-        ? `No ${platformLabel ? `${platformLabel} trends` : 'trends'} are available in the cached corpus right now. Open trends analytics to confirm source coverage before retrying this task.`
-        : `Loaded ${trendCount} ${platformLabel ? `${platformLabel} ` : ''}trend${trendCount === 1 ? '' : 's'} from the cached corpus. Open trends analytics to review the strongest hooks and decide what to remix.`;
-
-    const outcomeBullets =
-      trendCount === 0
-        ? [
-            `${platformLabel ? `${platformLabel} cached corpus` : 'Cached corpus'} returned 0 trends`,
-            'Live fetch fallback is disabled for this tool',
-          ]
-        : trends.slice(0, 4).map((trend) => {
-            const topic =
-              typeof trend.topic === 'string' && trend.topic.trim().length > 0
-                ? trend.topic.trim()
-                : typeof trend.name === 'string' && trend.name.trim().length > 0
-                  ? trend.name.trim()
-                  : 'Untitled trend';
-            const score =
-              typeof trend.score === 'number' && Number.isFinite(trend.score)
-                ? `score ${Math.round(trend.score)}`
-                : null;
-
-            return [topic, score]
-              .filter((value): value is string => Boolean(value))
-              .join(' · ');
-          });
-
-    return {
-      id: `trends-${(platform ?? 'all').trim().toLowerCase() || 'all'}-${Date.now()}`,
-      outcomeBullets,
-      primaryCta: {
-        href: '/analytics/trends',
-        label: 'Open trends analytics',
-      },
-      status: 'completed' as const,
-      summaryText,
-      title,
-      type: 'completion_summary_card' as const,
-    };
-  }
-
   // ──────────────────────────────────────────────
   // PROACTIVE AGENT TOOLS
   // ──────────────────────────────────────────────
@@ -7110,208 +6836,6 @@ export class AgentToolExecutorService {
         message: 'Engagement reply drafted and added to review queue.',
         platform,
         targetPostId,
-      },
-      success: true,
-    };
-  }
-
-  private async getApprovalSummary(
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    if (!this.batchGenerationService) {
-      return {
-        creditsUsed: 0,
-        error: 'Batch generation service not available',
-        success: false,
-      };
-    }
-
-    const result = await this.batchGenerationService.getBatches(
-      ctx.organizationId,
-      { limit: 50 },
-    );
-
-    let totalPending = 0;
-    let contentPending = 0;
-    let engagementPending = 0;
-    let oldestPendingAge = 0;
-
-    for (const batch of result.items) {
-      totalPending += batch.pendingCount ?? 0;
-      // Aggregate counts based on source
-      if (
-        (batch as unknown as Record<string, unknown>).source === 'proactive'
-      ) {
-        engagementPending += batch.pendingCount ?? 0;
-      } else {
-        contentPending += batch.pendingCount ?? 0;
-      }
-
-      if (batch.createdAt) {
-        const age = Date.now() - new Date(batch.createdAt as string).getTime();
-        if (age > oldestPendingAge && (batch.pendingCount ?? 0) > 0) {
-          oldestPendingAge = age;
-        }
-      }
-    }
-
-    const oldestPendingHours = Math.round(oldestPendingAge / 3600000);
-
-    return {
-      creditsUsed: 0,
-      data: {
-        contentPending,
-        engagementPending,
-        oldestPendingHours,
-        totalBatches: result.total,
-        totalPending,
-      },
-      success: true,
-    };
-  }
-
-  private async analyzePerformance(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    const days = (params.days as number) || 30;
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-
-    // Get published posts from the period
-    const posts = await this.postsService.findAll(
-      {
-        where: {
-          createdAt: { gte: startDate, lte: endDate },
-          isDeleted: false,
-          organization: ctx.organizationId,
-          status: PostStatus.PUBLIC,
-        },
-        orderBy: { createdAt: -1 },
-      },
-      {},
-    );
-
-    const postDocs = (posts.docs ?? []) as unknown as Record<string, unknown>[];
-
-    // Group by platform
-    const byPlatform: Record<string, number> = {};
-    for (const p of postDocs) {
-      const plat = (p.platform as string) || 'unknown';
-      byPlatform[plat] = (byPlatform[plat] || 0) + 1;
-    }
-
-    // Top performers by engagement
-    const topPerformers = postDocs
-      .filter((p) => p.engagement || p.likes || p.impressions)
-      .sort(
-        (a, b) =>
-          ((b.engagement as number) || (b.likes as number) || 0) -
-          ((a.engagement as number) || (a.likes as number) || 0),
-      )
-      .slice(0, 5)
-      .map((p) => ({
-        description: p.description,
-        engagement: p.engagement ?? p.likes,
-        id: String(p.id),
-        platform: p.platform,
-      }));
-
-    return {
-      creditsUsed: 0,
-      data: {
-        byPlatform,
-        days,
-        topPerformers,
-        totalPosts: postDocs.length,
-      },
-      success: true,
-    };
-  }
-
-  private async getContentCalendar(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    const days = (params.days as number) || 7;
-    const now = new Date();
-    const endDate = new Date();
-    endDate.setDate(endDate.getDate() + days);
-
-    // Get scheduled and draft posts for the coming week
-    const posts = await this.postsService.findAll(
-      {
-        where: {
-          OR: [
-            { scheduledDate: { gte: now, lte: endDate } },
-            { status: PostStatus.DRAFT },
-          ],
-          isDeleted: false,
-          organization: ctx.organizationId,
-        },
-        orderBy: { createdAt: -1, scheduledDate: 1 },
-      },
-      {},
-    );
-
-    const postDocs = (posts.docs ?? []) as unknown as Record<string, unknown>[];
-    const scheduled = postDocs.filter((p) => p.scheduledDate);
-    const drafts = postDocs.filter(
-      (p) => p.status === PostStatus.DRAFT && !p.scheduledDate,
-    );
-
-    // Find gap days (days with no scheduled content)
-    const scheduledDates = new Set(
-      scheduled.map(
-        (p) => new Date(p.scheduledDate as string).toISOString().split('T')[0],
-      ),
-    );
-
-    const gapDays: string[] = [];
-    for (let d = 0; d < days; d++) {
-      const date = new Date(now);
-      date.setDate(date.getDate() + d);
-      const dateStr = date.toISOString().split('T')[0];
-      if (!scheduledDates.has(dateStr)) {
-        gapDays.push(dateStr);
-      }
-    }
-
-    return {
-      creditsUsed: 0,
-      data: {
-        days,
-        draftsCount: drafts.length,
-        gapDays,
-        gapsCount: gapDays.length,
-        scheduled: scheduled.map((p) => ({
-          description: p.description,
-          id: String(p.id),
-          platform: p.platform,
-          scheduledDate: p.scheduledDate,
-        })),
-        scheduledCount: scheduled.length,
-      },
-      success: true,
-    };
-  }
-
-  private async updateStrategyState(
-    params: Record<string, unknown>,
-    _ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    // This is a bookkeeping tool — the actual state update happens
-    // in the CronProactiveAgentService after the agent run completes.
-    // Here we just acknowledge the summary for the thread record.
-    return {
-      creditsUsed: 0,
-      data: {
-        contentGenerated: (params.contentGenerated as number) || 0,
-        engagementsFound: (params.engagementsFound as number) || 0,
-        recorded: true,
-        repliesDrafted: (params.repliesDrafted as number) || 0,
-        summary: params.summary as string,
       },
       success: true,
     };
@@ -8407,363 +7931,4 @@ export class AgentToolExecutorService {
   // ──────────────────────────────────────────────
   // CONTENT QUALITY SCORING
   // ──────────────────────────────────────────────
-
-  private async rateContent(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    if (!this.contentQualityScorerService) {
-      return {
-        creditsUsed: 0,
-        error: 'ContentQualityScorerService not available',
-        success: false,
-      };
-    }
-
-    const contentId = params.contentId ? String(params.contentId) : undefined;
-    const contentType = params.contentType
-      ? String(params.contentType)
-      : 'image';
-    const context = params.context ? String(params.context) : undefined;
-
-    if (!contentId) {
-      return {
-        creditsUsed: 0,
-        error: 'contentId is required',
-        success: false,
-      };
-    }
-
-    try {
-      const result = await this.contentQualityScorerService.scoreContent(
-        contentId,
-        contentType,
-        context,
-        ctx.organizationId,
-      );
-
-      return {
-        creditsUsed: 0,
-        data: {
-          ...(result as unknown as Record<string, unknown>),
-          message: `Quality score: ${result.score}/10 (${result.category}). ${result.suggestions[0] ?? ''}`,
-        },
-        success: true,
-      };
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-
-      this.loggerService.error(`${this.constructorName} RATE_CONTENT failed`, {
-        contentId,
-        error: errorMessage,
-      });
-
-      return {
-        creditsUsed: 0,
-        error: `Rate content failed: ${errorMessage}`,
-        success: false,
-      };
-    }
-  }
-
-  // ──────────────────────────────────────────────
-  // SEO SCORING
-  // ──────────────────────────────────────────────
-
-  private async scoreSeo(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    if (!this.seoScorerService) {
-      return {
-        creditsUsed: 0,
-        error: 'SeoScorerService not available',
-        success: false,
-      };
-    }
-
-    const contentId = params.contentId ? String(params.contentId) : undefined;
-    const contentType =
-      String(params.contentType ?? 'article') === 'post' ? 'post' : 'article';
-    const targetKeyword = params.targetKeyword
-      ? String(params.targetKeyword)
-      : undefined;
-
-    if (!contentId) {
-      return {
-        creditsUsed: 0,
-        error: 'contentId is required',
-        success: false,
-      };
-    }
-
-    try {
-      const result =
-        contentType === 'post'
-          ? await this.seoScorerService.scorePost(
-              contentId,
-              ctx.organizationId,
-              targetKeyword,
-            )
-          : await this.seoScorerService.scoreArticle(
-              contentId,
-              ctx.organizationId,
-              targetKeyword,
-            );
-
-      return {
-        creditsUsed: 0,
-        data: {
-          breakdown: result.breakdown,
-          message: `SEO score: ${result.score}/100 (${result.rating}). ${result.suggestions[0] ?? ''}`,
-          rating: result.rating,
-          score: result.score,
-          suggestions: result.suggestions,
-        },
-        success: true,
-      };
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-
-      this.loggerService.error(`${this.constructorName} SCORE_SEO failed`, {
-        contentId,
-        error: errorMessage,
-      });
-
-      return {
-        creditsUsed: 0,
-        error: `Score SEO failed: ${errorMessage}`,
-        success: false,
-      };
-    }
-  }
-
-  // ──────────────────────────────────────────────
-  // INGREDIENT VOTING & REPLICATION TOOLS
-  // ──────────────────────────────────────────────
-
-  private async rateIngredient(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    try {
-      const ingredientId = String(params.ingredientId || '');
-
-      if (!ingredientId) {
-        return {
-          creditsUsed: 0,
-          error: 'Valid ingredientId is required',
-          success: false,
-        };
-      }
-
-      if (!this.votesService) {
-        return {
-          creditsUsed: 0,
-          error: 'VotesService not available',
-          success: false,
-        };
-      }
-
-      // Toggle: if an active vote exists, remove it; otherwise create one
-      const existing = await this.votesService.findOne({
-        entity: ingredientId,
-        isDeleted: false,
-        user: ctx.userId,
-      });
-
-      if (existing) {
-        const existingRecord = existing as Record<string, unknown>;
-        const existingVoteId = String(
-          existingRecord.id ?? existingRecord.mongoId ?? '',
-        );
-        await this.votesService.patchAll(
-          {
-            OR: [{ id: existingVoteId }, { mongoId: existingVoteId }],
-          },
-          { isDeleted: true },
-        );
-
-        return {
-          creditsUsed: 0,
-          data: {
-            action: 'removed',
-            ingredientId,
-          },
-          success: true,
-        };
-      }
-
-      const vote = await this.votesService.create(
-        new VoteEntity({
-          entity: ingredientId,
-          entityModel: VoteEntityModel.INGREDIENT,
-          user: ctx.userId,
-        }) as unknown as Parameters<VotesService['create']>[0],
-      );
-      const voteRecord = vote as Record<string, unknown>;
-
-      return {
-        creditsUsed: 0,
-        data: {
-          action: 'added',
-          ingredientId,
-          voteId: String(voteRecord.id ?? voteRecord.mongoId ?? ''),
-        },
-        success: true,
-      };
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      this.loggerService.error(
-        `${this.constructorName} RATE_INGREDIENT failed`,
-        { error: errorMessage },
-      );
-      return {
-        creditsUsed: 0,
-        error: `Rate ingredient failed: ${errorMessage}`,
-        success: false,
-      };
-    }
-  }
-
-  private async getTopIngredients(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    try {
-      const brandId = params.brandId ? String(params.brandId) : undefined;
-      const limit = Number(params.limit) || 10;
-      const category = params.category ? String(params.category) : undefined;
-
-      if (!this.ingredientsService) {
-        return {
-          creditsUsed: 0,
-          error: 'IngredientsService not available',
-          success: false,
-        };
-      }
-
-      const result = await this.ingredientsService.findTopByVotes({
-        brandId,
-        category,
-        limit,
-        organizationId: ctx.organizationId,
-      });
-
-      const ingredients = result.docs.map((doc) => ({
-        _id: String(doc.id),
-        category: (doc as unknown as Record<string, unknown>).category,
-        status: (doc as unknown as Record<string, unknown>).status,
-        totalVotes: (doc as unknown as Record<string, unknown>).totalVotes ?? 0,
-      }));
-
-      return {
-        creditsUsed: 0,
-        data: {
-          ingredients,
-          total: result.totalDocs,
-        },
-        success: true,
-      };
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      this.loggerService.error(
-        `${this.constructorName} GET_TOP_INGREDIENTS failed`,
-        { error: errorMessage },
-      );
-      return {
-        creditsUsed: 0,
-        error: `Get top ingredients failed: ${errorMessage}`,
-        success: false,
-      };
-    }
-  }
-
-  private async replicateTopIngredient(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    try {
-      const ingredientId = String(params.ingredientId || '');
-      const variations = Number(params.variations) || 3;
-
-      if (!ingredientId) {
-        return {
-          creditsUsed: 0,
-          error: 'Valid ingredientId is required',
-          success: false,
-        };
-      }
-
-      if (!this.ingredientsService) {
-        return {
-          creditsUsed: 0,
-          error: 'IngredientsService not available',
-          success: false,
-        };
-      }
-
-      const ingredient = await this.ingredientsService.findOne({
-        _id: ingredientId,
-        isDeleted: false,
-        organization: ctx.organizationId,
-      });
-
-      if (!ingredient) {
-        return {
-          creditsUsed: 0,
-          error: `Ingredient ${ingredientId} not found`,
-          success: false,
-        };
-      }
-
-      const ingredientData = ingredient as unknown as Record<string, unknown>;
-      const category = String(ingredientData.category || '');
-
-      // Return action card with ingredient metadata for the agent to use
-      // with existing generation tools (generate_image / generate_video)
-      return {
-        creditsUsed: 0,
-        data: {
-          category,
-          ingredientId,
-          message: `Ready to replicate ingredient. Use generate_image or generate_video with the same parameters to create ${variations} variation(s).`,
-          sourceMetadata: {
-            brand: ingredientData.brand
-              ? String(ingredientData.brand)
-              : undefined,
-            category,
-            prompt: ingredientData.prompt
-              ? String(ingredientData.prompt)
-              : undefined,
-            status: ingredientData.status,
-          },
-          suggestedVariations: variations,
-        },
-        nextActions: [
-          {
-            label: `Generate ${variations} variation(s)`,
-            type: 'generate',
-          } as unknown as AgentUiAction,
-        ],
-        success: true,
-      };
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      this.loggerService.error(
-        `${this.constructorName} REPLICATE_TOP_INGREDIENT failed`,
-        { error: errorMessage },
-      );
-      return {
-        creditsUsed: 0,
-        error: `Replicate ingredient failed: ${errorMessage}`,
-        success: false,
-      };
-    }
-  }
 }
