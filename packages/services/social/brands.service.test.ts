@@ -60,7 +60,7 @@ vi.mock('@services/core/base.service', () => {
       const items = res.data;
       const pagination = res.links?.pagination;
       const page = pagination?.page ?? 1;
-      const totalPages = pagination?.pages ?? 1;
+      const totalPages = Math.max(1, pagination?.pages ?? 1);
       return {
         hasNext: page < totalPages,
         hasPrevious: page > 1,

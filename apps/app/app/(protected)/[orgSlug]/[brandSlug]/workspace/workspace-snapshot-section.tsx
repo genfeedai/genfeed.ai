@@ -1,20 +1,9 @@
+import type { WorkspaceSnapshotSectionProps } from '@genfeedai/props/layout/workspace-snapshot-section.props';
 import Card from '@ui/card/Card';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
-import type { ReactNode } from 'react';
 import { WORKSPACE_CARD_GRID_GAP_CLASS } from './workspace-task.helpers';
 
-interface SummaryItem {
-  label: string;
-  value: string;
-}
-
-interface WorkspaceSnapshotSectionProps {
-  actions?: ReactNode;
-  isLoading?: boolean;
-  summaryItems: SummaryItem[];
-}
-
-export function WorkspaceSnapshotSection({
+export default function WorkspaceSnapshotSection({
   actions,
   isLoading = false,
   summaryItems,

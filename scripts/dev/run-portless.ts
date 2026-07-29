@@ -13,7 +13,7 @@ const ARGUMENT_SEPARATOR = '--';
 interface ParsedArguments {
   command: string[];
   currentService: PortlessService;
-  inner: boolean;
+  isInner: boolean;
 }
 
 function fail(message: string): never {
@@ -23,8 +23,8 @@ function fail(message: string): never {
 
 function parseArguments(): ParsedArguments {
   const args = process.argv.slice(2);
-  const inner = args[0] === INNER_FLAG;
-  if (inner) {
+  const isInner = args[0] === INNER_FLAG;
+  if (isInner) {
     args.shift();
   }
   const currentService = args.shift();
@@ -41,7 +41,7 @@ function parseArguments(): ParsedArguments {
     );
   }
 
-  return { command: args, currentService, inner };
+  return { command: args, currentService, isInner };
 }
 
 function run(
@@ -79,9 +79,9 @@ function run(
 }
 
 async function main(): Promise<void> {
-  const { command, currentService, inner } = parseArguments();
+  const { command, currentService, isInner } = parseArguments();
 
-  if (!inner) {
+  if (!isInner) {
     const scriptPath = fileURLToPath(import.meta.url);
     const exitCode = await run(
       [
