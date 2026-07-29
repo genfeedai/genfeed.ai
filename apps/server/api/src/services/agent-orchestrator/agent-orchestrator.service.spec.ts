@@ -14,6 +14,7 @@ import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
+import { AgentTurnRoundRunnerService } from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
 import { AGENT_ORCHESTRATOR_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/agent-orchestrator-system-prompt.constant';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
@@ -356,6 +357,7 @@ describe('AgentOrchestratorService', () => {
             AgentContextAssemblyService,
             CreditsUtilsService,
             AgentToolExecutorService,
+            AgentTurnRoundRunnerService,
             AgentCompletionCardBuilderService,
             AgentThreadEventRecorderService,
             OrganizationsService,
@@ -380,6 +382,7 @@ describe('AgentOrchestratorService', () => {
             contextAssemblySvc: AgentContextAssemblyService,
             creditsUtilsSvc: CreditsUtilsService,
             toolExecutorSvc: AgentToolExecutorService,
+            turnRoundRunnerSvc: AgentTurnRoundRunnerService,
             completionCardBuilderSvc: AgentCompletionCardBuilderService,
             threadEventRecorderSvc: AgentThreadEventRecorderService,
             organizationsSvc: OrganizationsService,
@@ -403,6 +406,7 @@ describe('AgentOrchestratorService', () => {
               contextAssemblySvc,
               creditsUtilsSvc,
               toolExecutorSvc,
+              turnRoundRunnerSvc,
               completionCardBuilderSvc,
               threadEventRecorderSvc,
               organizationsSvc,
@@ -426,6 +430,24 @@ describe('AgentOrchestratorService', () => {
         {
           provide: LoggerService,
           useValue: loggerMock,
+        },
+        {
+          inject: [
+            LoggerService,
+            CreditsUtilsService,
+            AgentToolExecutorService,
+          ],
+          provide: AgentTurnRoundRunnerService,
+          useFactory: (
+            loggerService: LoggerService,
+            creditsUtilsSvc: CreditsUtilsService,
+            toolExecutorSvc: AgentToolExecutorService,
+          ) =>
+            new AgentTurnRoundRunnerService(
+              loggerService,
+              creditsUtilsSvc,
+              toolExecutorSvc,
+            ),
         },
         {
           provide: AgentThreadEventRecorderService,

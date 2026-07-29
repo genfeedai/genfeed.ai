@@ -43,6 +43,7 @@ import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agen
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
+import { AgentTurnRoundRunnerService } from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
 import { AgentAdsResearchToolHandler } from '@api/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
 import { AgentAnalyticsToolHandler } from '@api/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
 import { AgentBrandContentToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-content-tool-handler.service';
@@ -163,6 +164,7 @@ import { forwardRef, Module } from '@nestjs/common';
     AgentStreamEffectsService,
     AgentThreadEventRecorderService,
     AgentToolExecutorService,
+    AgentTurnRoundRunnerService,
     {
       provide: 'AGENT_BRANDS_SERVICE',
       useExisting: BrandsService,

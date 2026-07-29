@@ -28,7 +28,10 @@ import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agen
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import {
-  AGENT_CREDIT_COSTS,
+  type AgentToolRoundState,
+  AgentTurnRoundRunnerService,
+} from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
+import {
   AGENT_MAX_TOOL_ROUNDS,
   getAgentTurnCost,
 } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
@@ -56,8 +59,6 @@ import {
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { getToolDefinitions } from '@api/services/agent-orchestrator/tools/agent-tool-registry';
 import {
-  type AgentArtifactCompletionMetadata,
-  buildAgentArtifactCompletionMetadata as buildArtifactMetadata,
   captureRunArtifacts,
   mergeAgentArtifactCompletionMetadata,
   persistRunArtifacts,
@@ -136,8 +137,6 @@ const PAID_SUBSCRIPTION_TIERS = new Set<string>([
   SubscriptionTier.ENTERPRISE,
 ]);
 
-const RESULT_SUMMARY_MAX_LENGTH = 500;
-
 // During live token streaming, cancellation cannot be checked per token
 // (isRunCancelled is a Redis lookup); throttle it to at most once per this
 // interval so a cancelled run tears down the upstream stream promptly without
@@ -157,23 +156,6 @@ class StreamCancelledError extends Error {
     super('agent stream cancelled');
     this.name = 'StreamCancelledError';
   }
-}
-
-function summarizeToolResult(result: {
-  success: boolean;
-  data?: Record<string, unknown>;
-  error?: string;
-}): string {
-  if (!result.success) {
-    return result.error ?? 'Failed';
-  }
-  if (!result.data) {
-    return 'OK';
-  }
-  const json = JSON.stringify(result.data);
-  return json.length > RESULT_SUMMARY_MAX_LENGTH
-    ? `${json.slice(0, RESULT_SUMMARY_MAX_LENGTH)}…`
-    : json;
 }
 
 type RecurringTaskContentType = 'image' | 'video' | 'post' | 'newsletter';
@@ -232,6 +214,7 @@ export class AgentOrchestratorService {
     private readonly contextAssemblyService: AgentContextAssemblyService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly toolExecutorService: AgentToolExecutorService,
+    private readonly turnRoundRunner: AgentTurnRoundRunnerService,
     private readonly completionCardBuilder: AgentCompletionCardBuilderService,
     private readonly threadEventRecorder: AgentThreadEventRecorderService,
     private readonly organizationsService: OrganizationsService,
@@ -598,17 +581,15 @@ export class AgentOrchestratorService {
       systemPromptOverride,
       turnCost,
     } = params;
-    let totalCreditsUsed = 0;
-    const allArtifactMetadata: AgentArtifactCompletionMetadata[] = [];
-    const allToolCalls: ToolCallSummary[] = [];
-    const allUiActions: AgentUiAction[] = [];
-    let highestRiskLevel: 'low' | 'medium' | 'high' = 'low';
-    let reviewRequired = false;
-    let latestUiBlocks: {
-      operation: AgentDashboardOperation;
-      blocks?: unknown[];
-      blockIds?: string[];
-    } | null = null;
+    const toolRoundState: AgentToolRoundState = {
+      artifactMetadata: [],
+      highestRiskLevel: 'low',
+      latestUiBlocks: null,
+      reviewRequired: false,
+      toolCalls: [],
+      totalCreditsUsed: 0,
+      uiActions: [],
+    };
 
     await this.threadEventRecorder.recordThreadTurnStarted({
       context,
@@ -710,16 +691,16 @@ export class AgentOrchestratorService {
           });
           const normalizedContent = this.normalizeFinalAssistantContent(
             threadEnvelope.content,
-            allToolCalls,
-            allUiActions,
+            toolRoundState.toolCalls,
+            toolRoundState.uiActions,
           );
           const content = normalizedContent.content;
 
-          totalCreditsUsed += await settleAgentTurnCredits({
+          toolRoundState.totalCreditsUsed += await settleAgentTurnCredits({
             creditsUtilsService: this.creditsUtilsService,
             model,
             organizationId: context.organizationId,
-            toolCalls: allToolCalls,
+            toolCalls: toolRoundState.toolCalls,
             turnCost,
             userId: context.userId,
           });
@@ -742,12 +723,13 @@ export class AgentOrchestratorService {
           const reasoning = assistantMessage.reasoning_content ?? null;
           const enhancedUiActions =
             this.completionCardBuilder.buildAssistantUiActions({
-              reviewRequired,
-              toolCalls: allToolCalls,
-              uiActions: allUiActions,
+              reviewRequired: toolRoundState.reviewRequired,
+              toolCalls: toolRoundState.toolCalls,
+              uiActions: toolRoundState.uiActions,
             });
-          const artifactMetadata =
-            mergeAgentArtifactCompletionMetadata(allArtifactMetadata);
+          const artifactMetadata = mergeAgentArtifactCompletionMetadata(
+            toolRoundState.artifactMetadata,
+          );
           const assistantMetadata = {
             ...artifactMetadata,
             ...buildAgentScopeMetadata(context),
@@ -761,14 +743,16 @@ export class AgentOrchestratorService {
             memoryInfluence,
             ...this.buildResolvedModelMetadata(model, Array.from(actualModels)),
             reasoning,
-            reviewRequired,
-            riskLevel: highestRiskLevel,
+            reviewRequired: toolRoundState.reviewRequired,
+            riskLevel: toolRoundState.highestRiskLevel,
             ...(enhancedUiActions.suggestedActions.length
               ? { suggestedActions: enhancedUiActions.suggestedActions }
               : {}),
-            totalCreditsUsed,
+            totalCreditsUsed: toolRoundState.totalCreditsUsed,
             uiActions: enhancedUiActions.uiActions,
-            ...(latestUiBlocks ? { uiBlocks: latestUiBlocks } : {}),
+            ...(toolRoundState.latestUiBlocks
+              ? { uiBlocks: toolRoundState.latestUiBlocks }
+              : {}),
           };
 
           await persistRunArtifacts(
@@ -793,7 +777,7 @@ export class AgentOrchestratorService {
             organizationId: context.organizationId,
             role: AgentMessageRole.ASSISTANT,
             room: threadId,
-            toolCalls: allToolCalls.map((tc) => ({
+            toolCalls: toolRoundState.toolCalls.map((tc) => ({
               creditsUsed: tc.creditsUsed,
               durationMs: tc.durationMs,
               error: tc.error,
@@ -820,308 +804,75 @@ export class AgentOrchestratorService {
 
           return {
             creditsRemaining,
-            creditsUsed: totalCreditsUsed,
+            creditsUsed: toolRoundState.totalCreditsUsed,
             message: {
               content,
               metadata: assistantMetadata,
               role: 'assistant',
             },
             threadId,
-            toolCalls: allToolCalls,
+            toolCalls: toolRoundState.toolCalls,
           };
         }
 
-        messages.push({
-          content: assistantMessage.content,
-          role: 'assistant' as const,
-          tool_calls: toolCalls,
-        });
-
-        for (const toolCall of toolCalls) {
-          const requestedToolName = toolCall.function.name as AgentToolName;
-          let toolParams: Record<string, unknown> = {};
-          const startTime = Date.now();
-
-          try {
-            toolParams = JSON.parse(toolCall.function.arguments);
-          } catch {
-            this.loggerService.warn(
-              `Failed to parse tool arguments for ${requestedToolName}`,
-              this.constructorName,
-            );
-          }
-
-          let toolName = requestedToolName;
-
-          if (!allowedToolNames.has(requestedToolName)) {
-            const recoveredToolName = this.getGenerationPreparationRedirect(
-              requestedToolName,
-              allowedToolNames,
-            );
-
-            if (recoveredToolName) {
-              toolName = recoveredToolName;
-              toolParams = this.buildUnknownToolRecoveryParams(
-                requestedToolName,
-                toolParams,
-              );
-
-              this.loggerService.warn(
-                `Recovered unknown tool ${requestedToolName} -> ${recoveredToolName}`,
-                {
-                  constructor: this.constructorName,
-                  model,
-                  organizationId: context.organizationId,
-                  source: request.source ?? 'agent',
-                  threadId,
-                  toolName: requestedToolName,
-                  userId: context.userId,
-                },
-              );
-            } else {
-              const unknownToolError = this.buildUnknownToolError(
-                requestedToolName,
-                allowedToolNames,
-              );
-              const durationMs = Date.now() - startTime;
-              const summary: ToolCallSummary = {
-                creditsUsed: 0,
-                durationMs,
-                error: unknownToolError,
-                status: 'failed',
-                toolName: requestedToolName,
-              };
-
-              this.loggerService.warn(unknownToolError, {
-                allowedToolsCount: allowedToolNames.size,
-                constructor: this.constructorName,
-                model,
-                organizationId: context.organizationId,
-                source: request.source ?? 'agent',
-                threadId,
-                toolName: requestedToolName,
-                userId: context.userId,
-              });
-
-              allToolCalls.push(summary);
-              await this.threadEventRecorder.recordToolCompleted({
-                context,
-                durationMs,
-                error: unknownToolError,
-                runId: context.runId,
-                status: 'failed',
-                threadId,
-                toolCallId: toolCall.id,
-                toolName: requestedToolName,
-              });
-
-              messages.push({
-                content: JSON.stringify({
-                  availableTools: Array.from(allowedToolNames),
-                  error: unknownToolError,
-                  success: false,
-                }),
-                role: 'tool' as const,
-                tool_call_id: toolCall.id,
-              });
-              continue;
-            }
-          }
-
-          const preRemapToolName = toolName;
-          const directGenerationOverride =
-            this.getGenerationPreparationRedirect(toolName, allowedToolNames);
-          if (directGenerationOverride) {
-            const originalToolName = toolName;
-            toolName = directGenerationOverride;
-            toolParams = this.buildUnknownToolRecoveryParams(
-              originalToolName,
-              toolParams,
-            );
-
-            this.loggerService.log(
-              `Remapped direct generation tool ${originalToolName} -> ${directGenerationOverride}`,
-              {
-                organizationId: context.organizationId,
-                source: request.source ?? 'agent',
-                threadId,
-                userId: context.userId,
-              },
-            );
-          }
-
-          await this.threadEventRecorder.recordToolStarted({
-            context,
-            parameters: toolParams,
-            runId: context.runId,
-            threadId,
-            toolCallId: toolCall.id,
-            toolName,
-          });
-
-          const creditCost = AGENT_CREDIT_COSTS[toolName] ?? 0;
-          // Gate affordability on the tool the model asked for: the
-          // prepare_generation remap above would otherwise resolve a zero
-          // cost and skip the check entirely (#482).
-          const preflightCreditCost = Math.max(
-            creditCost,
-            AGENT_CREDIT_COSTS[preRemapToolName] ?? 0,
-          );
-          if (preflightCreditCost > 0) {
-            const canAfford =
-              await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-                context.organizationId,
-                preflightCreditCost,
-              );
-
-            if (!canAfford) {
-              const durationMs = Date.now() - startTime;
-              const error = `Insufficient credits (need ${preflightCreditCost})`;
-              const summary: ToolCallSummary = {
-                creditsUsed: 0,
-                durationMs,
-                error,
-                status: 'failed',
-                toolName,
-              };
-
-              allToolCalls.push(summary);
-              await this.threadEventRecorder.recordToolCompleted({
-                context,
-                durationMs,
-                error,
-                runId: context.runId,
-                status: 'failed',
-                threadId,
-                toolCallId: toolCall.id,
-                toolName,
-              });
-
-              messages.push({
-                content: JSON.stringify({
-                  error: `Insufficient credits. This tool requires ${preflightCreditCost} credits.`,
-                  success: false,
-                }),
-                role: 'tool' as const,
-                tool_call_id: toolCall.id,
-              });
-              continue;
-            }
-          }
-          const result = await this.toolExecutorService.executeTool(
-            toolName,
-            toolParams,
-            {
-              apiKeyContext: context.apiKeyContext,
-              attachmentUrls: request.attachments?.map((a) => a.url),
-              authToken: context.authToken,
-              autonomyMode: policy.autonomyMode,
-              brandId: policy.brandId,
-              creditGovernance: policy.creditGovernance,
-              generationModelOverride: policy.generationModelOverride,
-              generationPriority,
-              organizationId: context.organizationId,
-              platform: policy.platform,
-              qualityTier: policy.qualityTier,
-              reviewModelOverride: policy.reviewModelOverride,
-              runId: context.runId,
-              strategyId: context.strategyId,
-              thinkingModel: policy.thinkingModelOverride ?? model,
-              threadId,
-              userId: context.userId,
-              validatedScope: policy.scope,
+        await this.turnRoundRunner.executeToolRound({
+          allowedToolNames,
+          assistantContent: assistantMessage.content,
+          attachmentUrls: request.attachments?.map((a) => a.url),
+          context,
+          generationPriority,
+          messages,
+          model,
+          policy,
+          source: request.source,
+          state: toolRoundState,
+          strategy: {
+            logParseErrors: true,
+            onRecordRunToolCall: (summary) => {
+              if (!context.runId) {
+                return;
+              }
+              this.agentRunsService
+                .recordToolCall(context.runId, context.organizationId, summary)
+                .catch(() => undefined);
             },
-          );
-          const durationMs = Date.now() - startTime;
-          allArtifactMetadata.push(buildArtifactMetadata(result.data, context));
-
-          if (result.nextActions?.length) {
-            allUiActions.push(...result.nextActions);
-          }
-
-          if (result.requiresConfirmation) {
-            reviewRequired = true;
-          }
-          if (result.riskLevel === 'high') {
-            highestRiskLevel = 'high';
-          } else if (
-            result.riskLevel === 'medium' &&
-            highestRiskLevel === 'low'
-          ) {
-            highestRiskLevel = 'medium';
-          }
-
-          // Generation tools delegate billing to their endpoint (dynamic
-          // amount); deducting the flat creditCost here would double-charge.
-          const isOrchestratorBilled =
-            result.success && creditCost > 0 && !result.isBillingDelegated;
-          if (isOrchestratorBilled) {
-            await this.creditsUtilsService.deductCreditsFromOrganization(
-              context.organizationId,
-              context.userId,
-              creditCost,
-              `Agent tool: ${toolName}`,
-              ActivitySource.SCRIPT,
-            );
-            totalCreditsUsed += creditCost;
-          }
-
-          const summary: ToolCallSummary = {
-            creditsUsed: isOrchestratorBilled ? creditCost : 0,
-            durationMs,
-            error: result.error,
-            parameters: toolParams,
-            resultSummary: summarizeToolResult(result),
-            status: result.success ? 'completed' : 'failed',
-            toolName,
-          };
-          allToolCalls.push(summary);
-
-          if (
-            toolName === AgentToolName.RENDER_DASHBOARD &&
-            result.data?.uiBlocks
-          ) {
-            const normalizedBlocks = this.normalizeUiBlocks(
-              result.data.uiBlocks as unknown[],
-            );
-            latestUiBlocks = {
-              blockIds: result.data.blockIds as string[] | undefined,
-              blocks: normalizedBlocks,
-              operation: result.data.operation as AgentDashboardOperation,
-            };
-            await this.threadEventRecorder.recordUiBlocksUpdated({
-              blockIds: result.data.blockIds as string[] | undefined,
-              blocks: normalizedBlocks,
-              context,
-              operation: result.data.operation as AgentDashboardOperation,
-              runId: context.runId,
-              threadId,
-            });
-          }
-
-          if (context.runId) {
-            this.agentRunsService
-              .recordToolCall(context.runId, context.organizationId, summary)
-              .catch(() => undefined);
-          }
-
-          await this.threadEventRecorder.recordToolCompleted({
-            context,
-            durationMs,
-            error: summary.error,
-            runId: context.runId,
-            status: summary.status,
-            threadId,
-            toolCallId: toolCall.id,
-            toolName,
-          });
-
-          messages.push({
-            content: JSON.stringify(result),
-            role: 'tool' as const,
-            tool_call_id: toolCall.id,
-          });
-        }
+            onToolCompleted: async (event) => {
+              await this.threadEventRecorder.recordToolCompleted({
+                context,
+                durationMs: event.durationMs,
+                error: event.summary.error,
+                runId: context.runId,
+                status: event.summary.status,
+                threadId,
+                toolCallId: event.toolCallId,
+                toolName: event.toolName,
+              });
+            },
+            onToolStarted: async (event) => {
+              await this.threadEventRecorder.recordToolStarted({
+                context,
+                parameters: event.parameters,
+                runId: context.runId,
+                threadId,
+                toolCallId: event.toolCallId,
+                toolName: event.toolName,
+              });
+            },
+            onUiBlocks: async (event) => {
+              await this.threadEventRecorder.recordUiBlocksUpdated({
+                blockIds: event.blockIds,
+                blocks: event.blocks,
+                context,
+                operation: event.operation,
+                runId: context.runId,
+                threadId,
+              });
+            },
+          },
+          thinkingModel: policy.thinkingModelOverride ?? model,
+          threadId,
+          toolCalls,
+        });
       }
 
       throw new Error(
@@ -1414,20 +1165,18 @@ export class AgentOrchestratorService {
         }),
       );
 
-      let totalCreditsUsed = 0;
-      const allArtifactMetadata: AgentArtifactCompletionMetadata[] = [];
-      const allToolCalls: ToolCallSummary[] = [];
-      const allUiActions: AgentUiAction[] = [];
+      const toolRoundState: AgentToolRoundState = {
+        artifactMetadata: [],
+        highestRiskLevel: 'low',
+        latestUiBlocks: null,
+        reviewRequired: false,
+        toolCalls: [],
+        totalCreditsUsed: 0,
+        uiActions: [],
+      };
       const memoryEntriesForResponse =
         this.buildMemoryEntriesForResponse(memoryEntries);
       const memoryInfluence = this.buildMemoryInfluenceMetadata(memoryEntries);
-      let highestRiskLevel: 'low' | 'medium' | 'high' = 'low';
-      let reviewRequired = false;
-      let latestUiBlocks: {
-        operation: AgentDashboardOperation;
-        blocks?: unknown[];
-        blockIds?: string[];
-      } | null = null;
 
       // Build thread history from separate messages collection
       const {
@@ -1611,16 +1360,16 @@ export class AgentOrchestratorService {
           });
           const normalizedContent = this.normalizeFinalAssistantContent(
             threadEnvelope.content,
-            allToolCalls,
-            allUiActions,
+            toolRoundState.toolCalls,
+            toolRoundState.uiActions,
           );
           const content = normalizedContent.content;
 
-          totalCreditsUsed += await settleAgentTurnCredits({
+          toolRoundState.totalCreditsUsed += await settleAgentTurnCredits({
             creditsUtilsService: this.creditsUtilsService,
             model,
             organizationId: context.organizationId,
-            toolCalls: allToolCalls,
+            toolCalls: toolRoundState.toolCalls,
             turnCost,
             userId: context.userId,
           });
@@ -1652,12 +1401,13 @@ export class AgentOrchestratorService {
 
           const enhancedUiActions =
             this.completionCardBuilder.buildAssistantUiActions({
-              reviewRequired,
-              toolCalls: allToolCalls,
-              uiActions: allUiActions,
+              reviewRequired: toolRoundState.reviewRequired,
+              toolCalls: toolRoundState.toolCalls,
+              uiActions: toolRoundState.uiActions,
             });
-          const artifactMetadata =
-            mergeAgentArtifactCompletionMetadata(allArtifactMetadata);
+          const artifactMetadata = mergeAgentArtifactCompletionMetadata(
+            toolRoundState.artifactMetadata,
+          );
 
           // Save assistant message to DB
           await persistRunArtifacts(
@@ -1685,8 +1435,8 @@ export class AgentOrchestratorService {
                 Array.from(actualModels),
               ),
               reasoning,
-              reviewRequired,
-              riskLevel: highestRiskLevel,
+              reviewRequired: toolRoundState.reviewRequired,
+              riskLevel: toolRoundState.highestRiskLevel,
               ...(enhancedUiActions.suggestedActions.length
                 ? { suggestedActions: enhancedUiActions.suggestedActions }
                 : {}),
@@ -1697,13 +1447,13 @@ export class AgentOrchestratorService {
                     total: response.usage.total_tokens,
                   }
                 : undefined,
-              totalCreditsUsed,
+              totalCreditsUsed: toolRoundState.totalCreditsUsed,
               uiActions: enhancedUiActions.uiActions,
             },
             organizationId: context.organizationId,
             role: AgentMessageRole.ASSISTANT,
             room: threadId,
-            toolCalls: allToolCalls.map((tc) => ({
+            toolCalls: toolRoundState.toolCalls.map((tc) => ({
               creditsUsed: tc.creditsUsed,
               durationMs: tc.durationMs,
               error: tc.error,
@@ -1739,362 +1489,163 @@ export class AgentOrchestratorService {
                   Array.from(actualModels),
                 ),
                 reasoning,
-                reviewRequired,
-                riskLevel: highestRiskLevel,
+                reviewRequired: toolRoundState.reviewRequired,
+                riskLevel: toolRoundState.highestRiskLevel,
                 ...(enhancedUiActions.suggestedActions.length
                   ? { suggestedActions: enhancedUiActions.suggestedActions }
                   : {}),
-                totalCreditsUsed,
+                totalCreditsUsed: toolRoundState.totalCreditsUsed,
                 uiActions: enhancedUiActions.uiActions,
-                ...(latestUiBlocks ? { uiBlocks: latestUiBlocks } : {}),
+                ...(toolRoundState.latestUiBlocks
+                  ? { uiBlocks: toolRoundState.latestUiBlocks }
+                  : {}),
               },
               content,
               context,
               creditsRemaining,
-              creditsUsed: totalCreditsUsed,
+              creditsUsed: toolRoundState.totalCreditsUsed,
               durationMs: runDurationMs,
               runStartedAt,
               threadId,
-              toolCalls: allToolCalls,
+              toolCalls: toolRoundState.toolCalls,
             }),
           );
 
           return;
         }
 
-        // Has tool calls — execute them
-        messages.push({
-          content: assistantMessage.content,
-          role: 'assistant' as const,
-          tool_calls: toolCalls,
-        });
+        // Has tool calls — shared runner (stream strategy: SSE + cancel)
+        const toolRoundResult = await this.turnRoundRunner.executeToolRound({
+          allowedToolNames,
+          assistantContent: assistantMessage.content,
+          attachmentUrls: attachments?.map((a) => a.url),
+          context,
+          generationPriority,
+          messages,
+          model,
+          policy: resolvedPolicy,
+          source,
+          state: toolRoundState,
+          strategy: {
+            deferUnknownToolFailure: true,
+            logParseErrors: false,
+            onAfterTool: async () =>
+              (await this.isRunCancelled(context)) ? 'cancel' : 'continue',
+            onBeforeTool: async () =>
+              (await this.isRunCancelled(context)) ? 'cancel' : 'continue',
+            onToolCompleted: async (event) => {
+              if (event.kind === 'unknown') {
+                await runEffectPromise(
+                  this.streamEffects.publishStreamingToolCompletedEffect({
+                    context,
+                    debug: {
+                      error: event.summary.error,
+                      parameters: event.parameters,
+                    },
+                    detail: event.summary.error,
+                    durationMs: event.summary.durationMs,
+                    error: event.summary.error,
+                    label: event.requestedToolName,
+                    parameters: event.parameters,
+                    resultSummary: event.summary.error,
+                    status: 'failed',
+                    threadId,
+                    toolCallId: event.toolCallId,
+                    toolName: event.requestedToolName,
+                  }),
+                );
+                return;
+              }
 
-        for (const toolCall of toolCalls) {
-          if (await this.isRunCancelled(context)) {
-            await this.handleCancelledStream(context, threadId);
-            return;
-          }
-
-          const requestedToolName = toolCall.function.name as AgentToolName;
-          let toolParams: Record<string, unknown> = {};
-          try {
-            toolParams = JSON.parse(toolCall.function.arguments);
-          } catch {
-            /* ignore parse errors */
-          }
-
-          let toolName = requestedToolName;
-
-          if (!allowedToolNames.has(requestedToolName)) {
-            const recoveredToolName = this.getGenerationPreparationRedirect(
-              requestedToolName,
-              allowedToolNames,
-            );
-
-            if (recoveredToolName) {
-              toolName = recoveredToolName;
-              toolParams = this.buildUnknownToolRecoveryParams(
-                requestedToolName,
-                toolParams,
-              );
-
-              this.loggerService.warn(
-                `Recovered unknown tool ${requestedToolName} -> ${recoveredToolName}`,
-                {
-                  constructor: this.constructorName,
-                  model,
-                  organizationId: context.organizationId,
-                  source: source ?? 'agent',
-                  threadId,
-                  toolName: requestedToolName,
-                  userId: context.userId,
-                },
-              );
-            }
-          }
-
-          const preRemapToolName = toolName;
-          const directGenerationOverride =
-            this.getGenerationPreparationRedirect(toolName, allowedToolNames);
-          if (directGenerationOverride) {
-            const originalToolName = toolName;
-            toolName = directGenerationOverride;
-            toolParams = this.buildUnknownToolRecoveryParams(
-              originalToolName,
-              toolParams,
-            );
-
-            this.loggerService.log(
-              `Remapped direct generation tool ${originalToolName} -> ${directGenerationOverride}`,
-              {
-                organizationId: context.organizationId,
-                source: source ?? 'agent',
-                threadId,
-                userId: context.userId,
-              },
-            );
-          }
-
-          const creditCost = AGENT_CREDIT_COSTS[toolName] ?? 0;
-          // Gate affordability on the tool the model asked for: the
-          // prepare_generation remap above would otherwise resolve a zero
-          // cost and skip the check entirely (#482).
-          const preflightCreditCost = Math.max(
-            creditCost,
-            AGENT_CREDIT_COSTS[preRemapToolName] ?? 0,
-          );
-          const startTime = Date.now();
-
-          await runEffectPromise(
-            this.streamEffects.publishStreamingToolStartedEffect({
-              context,
-              parameters: toolParams,
-              startedAt: new Date(startTime).toISOString(),
-              threadId,
-              toolCallId: toolCall.id,
-              toolName,
-            }),
-          );
-
-          if (!allowedToolNames.has(toolName)) {
-            const unknownToolError = this.buildUnknownToolError(
-              requestedToolName,
-              allowedToolNames,
-            );
-            const durationMs = Date.now() - startTime;
-
-            this.loggerService.warn(unknownToolError, {
-              allowedToolsCount: allowedToolNames.size,
-              constructor: this.constructorName,
-              model,
-              organizationId: context.organizationId,
-              source: source ?? 'agent',
-              threadId,
-              toolName: requestedToolName,
-              userId: context.userId,
-            });
-
-            const summary: ToolCallSummary = {
-              creditsUsed: 0,
-              durationMs,
-              error: unknownToolError,
-              status: 'failed',
-              toolName: requestedToolName,
-            };
-            allToolCalls.push(summary);
-
-            await runEffectPromise(
-              this.streamEffects.publishStreamingToolCompletedEffect({
-                context,
-                debug: { error: summary.error, parameters: toolParams },
-                detail: summary.error,
-                durationMs: summary.durationMs,
-                error: summary.error,
-                label: requestedToolName,
-                parameters: toolParams,
-                resultSummary: summary.error,
-                status: 'failed',
-                threadId,
-                toolCallId: toolCall.id,
-                toolName: requestedToolName,
-              }),
-            );
-
-            messages.push({
-              content: JSON.stringify({
-                availableTools: Array.from(allowedToolNames),
-                error: unknownToolError,
-                success: false,
-              }),
-              role: 'tool' as const,
-              tool_call_id: toolCall.id,
-            });
-            continue;
-          }
-
-          // Check credits
-          if (preflightCreditCost > 0) {
-            const canAfford =
-              await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-                context.organizationId,
-                preflightCreditCost,
-              );
-
-            if (!canAfford) {
-              const summary: ToolCallSummary = {
-                creditsUsed: 0,
-                durationMs: Date.now() - startTime,
-                error: `Insufficient credits (need ${preflightCreditCost})`,
-                status: 'failed',
-                toolName,
-              };
-              allToolCalls.push(summary);
+              if (event.kind === 'insufficient_credits') {
+                await runEffectPromise(
+                  this.streamEffects.publishStreamingToolCompletedEffect({
+                    context,
+                    debug: {
+                      error: event.summary.error,
+                      parameters: event.parameters,
+                    },
+                    detail: event.summary.error,
+                    durationMs: event.summary.durationMs,
+                    error: event.summary.error,
+                    parameters: event.parameters,
+                    resultSummary: event.summary.error,
+                    status: 'failed',
+                    threadId,
+                    toolCallId: event.toolCallId,
+                    toolName: event.toolName,
+                  }),
+                );
+                return;
+              }
 
               await runEffectPromise(
                 this.streamEffects.publishStreamingToolCompletedEffect({
                   context,
-                  debug: { error: summary.error, parameters: toolParams },
-                  detail: summary.error,
-                  durationMs: summary.durationMs,
-                  error: summary.error,
-                  parameters: toolParams,
-                  resultSummary: summary.error,
-                  status: 'failed',
+                  creditsUsed: event.summary.creditsUsed,
+                  debug: event.summary.error
+                    ? {
+                        error: event.summary.error,
+                        parameters: event.parameters,
+                        result: event.result?.data,
+                      }
+                    : {
+                        parameters: event.parameters,
+                        result: event.result?.data,
+                      },
+                  detail:
+                    event.summary.status === 'completed'
+                      ? (event.summary.resultSummary ??
+                        `${event.toolName} completed`)
+                      : event.summary.error,
+                  durationMs: event.durationMs,
+                  error: event.summary.error,
+                  parameters: event.parameters,
+                  resultSummary: event.summary.resultSummary,
+                  status: event.summary.status,
                   threadId,
-                  toolCallId: toolCall.id,
-                  toolName,
+                  toolCallId: event.toolCallId,
+                  toolName: event.toolName,
+                  uiActions: event.result?.nextActions,
                 }),
               );
-
-              messages.push({
-                content: JSON.stringify({
-                  error: `Insufficient credits. This tool requires ${preflightCreditCost} credits.`,
-                  success: false,
-                }),
-                role: 'tool' as const,
-                tool_call_id: toolCall.id,
-              });
-              continue;
-            }
-          }
-          const result = await this.toolExecutorService.executeTool(
-            toolName,
-            toolParams,
-            {
-              apiKeyContext: context.apiKeyContext,
-              attachmentUrls: attachments?.map((a) => a.url),
-              authToken: context.authToken,
-              autonomyMode: resolvedPolicy.autonomyMode,
-              brandId: resolvedPolicy.brandId,
-              creditGovernance: resolvedPolicy.creditGovernance,
-              generationModelOverride: resolvedPolicy.generationModelOverride,
-              generationPriority,
-              organizationId: context.organizationId,
-              platform: resolvedPolicy.platform,
-              qualityTier: resolvedPolicy.qualityTier,
-              reviewModelOverride: resolvedPolicy.reviewModelOverride,
-              runId: context.runId,
-              strategyId: context.strategyId,
-              thinkingModel: resolvedPolicy.thinkingModelOverride ?? undefined,
-              threadId,
-              userId: context.userId,
-              validatedScope: resolvedPolicy.scope,
             },
-          );
-
-          if (await this.isRunCancelled(context)) {
-            await this.handleCancelledStream(context, threadId);
-            return;
-          }
-
-          const durationMs = Date.now() - startTime;
-          allArtifactMetadata.push(buildArtifactMetadata(result.data, context));
-
-          if (result.nextActions?.length) {
-            allUiActions.push(...result.nextActions);
-          }
-
-          if (result.requiresConfirmation) {
-            reviewRequired = true;
-          }
-          if (result.riskLevel === 'high') {
-            highestRiskLevel = 'high';
-          } else if (
-            result.riskLevel === 'medium' &&
-            highestRiskLevel === 'low'
-          ) {
-            highestRiskLevel = 'medium';
-          }
-
-          // Generation tools delegate billing to their endpoint (dynamic
-          // amount); deducting the flat creditCost here would double-charge.
-          const isOrchestratorBilled =
-            result.success && creditCost > 0 && !result.isBillingDelegated;
-          if (isOrchestratorBilled) {
-            await this.creditsUtilsService.deductCreditsFromOrganization(
-              context.organizationId,
-              context.userId,
-              creditCost,
-              `Agent tool: ${toolName}`,
-              ActivitySource.SCRIPT,
-            );
-            totalCreditsUsed += creditCost;
-          }
-
-          const summary: ToolCallSummary = {
-            creditsUsed: isOrchestratorBilled ? creditCost : 0,
-            durationMs,
-            error: result.error,
-            parameters: toolParams,
-            resultSummary: summarizeToolResult(result),
-            status: result.success ? 'completed' : 'failed',
-            toolName,
-          };
-          allToolCalls.push(summary);
-
-          // Publish UI blocks from render_dashboard tool
-          if (
-            toolName === AgentToolName.RENDER_DASHBOARD &&
-            result.data?.uiBlocks
-          ) {
-            const normalizedBlocks = this.normalizeUiBlocks(
-              result.data.uiBlocks as unknown[],
-            );
-            latestUiBlocks = {
-              blockIds: result.data.blockIds as string[] | undefined,
-              blocks: normalizedBlocks,
-              operation: result.data.operation as AgentDashboardOperation,
-            };
-
-            if (!result.data?.deferUiBlocksPublish) {
+            onToolStarted: async (event) => {
+              await runEffectPromise(
+                this.streamEffects.publishStreamingToolStartedEffect({
+                  context,
+                  parameters: event.parameters,
+                  startedAt: new Date(event.startTime).toISOString(),
+                  threadId,
+                  toolCallId: event.toolCallId,
+                  toolName: event.toolName,
+                }),
+              );
+            },
+            onUiBlocks: async (event) => {
+              if (event.deferPublish) {
+                return;
+              }
               await runEffectPromise(
                 this.streamEffects.publishStreamUiBlocksEffect({
-                  blockIds: result.data.blockIds as string[] | undefined,
-                  blocks: normalizedBlocks as AgentUIBlocksEvent['blocks'],
+                  blockIds: event.blockIds,
+                  blocks: event.blocks as AgentUIBlocksEvent['blocks'],
                   context,
-                  operation: result.data.operation as AgentDashboardOperation,
+                  operation: event.operation,
                   runId: context.runId,
                   threadId,
                 }),
               );
-            }
-          }
+            },
+          },
+          thinkingModel: resolvedPolicy.thinkingModelOverride ?? undefined,
+          threadId,
+          toolCalls,
+        });
 
-          await runEffectPromise(
-            this.streamEffects.publishStreamingToolCompletedEffect({
-              context,
-              creditsUsed: summary.creditsUsed,
-              debug: summary.error
-                ? {
-                    error: summary.error,
-                    parameters: toolParams,
-                    result: result.data,
-                  }
-                : {
-                    parameters: toolParams,
-                    result: result.data,
-                  },
-              detail:
-                summary.status === 'completed'
-                  ? (summary.resultSummary ?? `${toolName} completed`)
-                  : summary.error,
-              durationMs,
-              error: summary.error,
-              parameters: toolParams,
-              resultSummary: summary.resultSummary,
-              status: summary.status,
-              threadId,
-              toolCallId: toolCall.id,
-              toolName,
-              uiActions: result.nextActions,
-            }),
-          );
-
-          messages.push({
-            content: JSON.stringify(result),
-            role: 'tool' as const,
-            tool_call_id: toolCall.id,
-          });
+        if (toolRoundResult.isCancelled) {
+          await this.handleCancelledStream(context, threadId);
+          return;
         }
       }
 
@@ -4098,63 +3649,6 @@ export class AgentOrchestratorService {
     return {
       end: end.toISOString(),
       start: start.toISOString(),
-    };
-  }
-
-  private buildUnknownToolError(
-    toolName: string,
-    allowedTools: Set<AgentToolName>,
-  ): string {
-    const knownTools = Array.from(allowedTools).sort();
-    const maxPreview = 15;
-    const preview = knownTools.slice(0, maxPreview).join(', ');
-    const suffix = knownTools.length > maxPreview ? ', ...' : '';
-
-    return `Unknown tool requested by model: ${toolName}. Available tools: ${preview}${suffix}`;
-  }
-
-  private getGenerationPreparationRedirect(
-    toolName: AgentToolName,
-    allowedTools: Set<AgentToolName>,
-  ): AgentToolName | null {
-    const canPrepareGeneration = allowedTools.has(
-      AgentToolName.PREPARE_GENERATION,
-    );
-    const isDirectGenerationTool =
-      toolName === AgentToolName.GENERATE_IMAGE ||
-      toolName === AgentToolName.GENERATE_VIDEO ||
-      toolName === AgentToolName.GENERATE_AS_IDENTITY;
-
-    if (canPrepareGeneration && isDirectGenerationTool) {
-      return AgentToolName.PREPARE_GENERATION;
-    }
-
-    return null;
-  }
-
-  private buildUnknownToolRecoveryParams(
-    requestedToolName: AgentToolName,
-    toolParams: Record<string, unknown>,
-  ): Record<string, unknown> {
-    if (
-      requestedToolName !== AgentToolName.GENERATE_IMAGE &&
-      requestedToolName !== AgentToolName.GENERATE_VIDEO &&
-      requestedToolName !== AgentToolName.GENERATE_AS_IDENTITY
-    ) {
-      return toolParams;
-    }
-
-    const prompt =
-      (toolParams.prompt as string | undefined) ||
-      (toolParams.description as string | undefined) ||
-      (toolParams.text as string | undefined) ||
-      '';
-
-    return {
-      ...toolParams,
-      generationType:
-        requestedToolName === AgentToolName.GENERATE_IMAGE ? 'image' : 'video',
-      prompt,
     };
   }
 
