@@ -5,6 +5,7 @@ import {
   escapeSystemEmailHtml,
   sanitizeSystemEmailUrl,
 } from '@genfeedai/helpers';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -13,6 +14,33 @@ import type {
   IBetterAuthResetPasswordParams,
   IBetterAuthVerificationEmailParams,
 } from '../better-auth.types';
+
+export function resolveBrowserAuthActionUrl(
+  actionUrl: string,
+  appUrl: string | undefined,
+): string {
+  if (!appUrl) {
+    return actionUrl;
+  }
+
+  try {
+    const action = new URL(actionUrl);
+    const app = new URL(appUrl);
+    const supportedProtocols = new Set(['http:', 'https:']);
+    if (
+      !supportedProtocols.has(action.protocol) ||
+      !supportedProtocols.has(app.protocol)
+    ) {
+      return actionUrl;
+    }
+
+    action.protocol = app.protocol;
+    action.host = app.host;
+    return action.toString();
+  } catch {
+    return actionUrl;
+  }
+}
 
 /**
  * Delivers Better Auth transactional emails through the existing notifications
@@ -24,6 +52,7 @@ export class BetterAuthMailerService {
   private readonly context = { service: BetterAuthMailerService.name };
 
   constructor(
+    private readonly configService: ConfigService,
     private readonly notificationsService: NotificationsService,
     private readonly logger: LoggerService,
   ) {}
@@ -34,11 +63,12 @@ export class BetterAuthMailerService {
     url,
   }: IBetterAuthMagicLinkParams): Promise<void> {
     const purpose = metadata?.intent === 'signup' ? 'sign-up' : 'sign-in';
+    const actionUrl = this.resolveActionUrl(url);
     const subject =
       purpose === 'sign-up'
         ? 'Your Genfeed.ai sign-up link'
         : 'Your Genfeed.ai sign-in link';
-    const html = this.buildMagicLinkHtml(url, purpose);
+    const html = this.buildMagicLinkHtml(actionUrl, purpose);
 
     await this.notificationsService.sendEmail(email, subject, html);
 
@@ -54,7 +84,7 @@ export class BetterAuthMailerService {
     user,
   }: IBetterAuthVerificationEmailParams): Promise<void> {
     const subject = 'Verify your Genfeed.ai email';
-    const html = this.buildVerificationEmailHtml(url);
+    const html = this.buildVerificationEmailHtml(this.resolveActionUrl(url));
 
     await this.notificationsService.sendEmail(user.email, subject, html);
 
@@ -69,7 +99,7 @@ export class BetterAuthMailerService {
     user,
   }: IBetterAuthResetPasswordParams): Promise<void> {
     const subject = 'Reset your Genfeed.ai password';
-    const html = this.buildResetPasswordHtml(url);
+    const html = this.buildResetPasswordHtml(this.resolveActionUrl(url));
 
     await this.notificationsService.sendEmail(user.email, subject, html);
 
@@ -77,6 +107,13 @@ export class BetterAuthMailerService {
       ...this.context,
       emailDomain: user.email.split('@')[1] ?? 'unknown',
     });
+  }
+
+  private resolveActionUrl(url: string): string {
+    return resolveBrowserAuthActionUrl(
+      url,
+      this.configService.get('GENFEEDAI_APP_URL'),
+    );
   }
 
   /**

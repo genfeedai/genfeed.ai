@@ -64,7 +64,8 @@ const CANONICAL_ENV_ENDPOINTS = {
   GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL:
     'https://notifications.genfeed.localhost',
   GENFEEDAI_PUBLIC_URL: 'https://website.genfeed.localhost',
-  NEXT_PUBLIC_API_ENDPOINT: 'https://api.genfeed.localhost/v1',
+  NEXT_PUBLIC_API_ENDPOINT: 'https://app.genfeed.localhost/v1',
+  NEXT_PUBLIC_API_URL: 'https://app.genfeed.localhost/v1',
   NEXT_PUBLIC_MCP_ENDPOINT: 'https://mcp.genfeed.localhost/mcp',
   NEXT_PUBLIC_WS_ENDPOINT: 'https://notifications.genfeed.localhost',
 } as const;
