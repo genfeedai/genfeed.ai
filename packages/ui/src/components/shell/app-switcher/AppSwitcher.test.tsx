@@ -497,7 +497,7 @@ describe('AppSwitcher', () => {
       );
       expect(screen.getByRole('link', { name: 'Messages' })).toHaveAttribute(
         'href',
-        '/acme/~/overview',
+        '/acme/~/messages',
       );
     });
 
@@ -513,8 +513,8 @@ describe('AppSwitcher', () => {
       render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
 
       for (const [label, href] of [
-        ['Messages', '/acme/~/overview'],
-        ['Research', '/acme/~/overview'],
+        ['Messages', '/acme/~/messages'],
+        ['Research', '/acme/~/research/discovery'],
         ['Studio', '/acme/~/studio/image'],
         ['Library', '/acme/~/library'],
         ['Publish', '/acme/~/posts'],
@@ -531,7 +531,7 @@ describe('AppSwitcher', () => {
       render(<AppSwitcher orgSlug="acme" currentApp="studio" />);
       expect(screen.getByRole('link', { name: 'Research' })).toHaveAttribute(
         'href',
-        '/acme/~/overview',
+        '/acme/~/research/discovery',
       );
     });
 
@@ -597,7 +597,7 @@ describe('AppSwitcher', () => {
 
       expect(screen.getByRole('link', { name: 'Research' })).toHaveAttribute(
         'href',
-        '/acme/~/overview',
+        '/acme/~/research/discovery',
       );
       expect(
         screen.queryByRole('link', { name: 'Remix' }),

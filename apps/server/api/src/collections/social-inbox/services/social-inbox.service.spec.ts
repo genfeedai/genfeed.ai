@@ -466,6 +466,59 @@ describe('SocialInboxService', () => {
     });
   });
 
+  it('lists org-wide when allBrands is set and filters by explicit brandId', async () => {
+    const { service } = createContext();
+
+    await service.ingestInboundMessage({
+      body: 'Brand one thread',
+      brandId: 'brand-1',
+      conversationType: 'comment',
+      externalConversationId: 'thread-brand-1',
+      externalMessageId: 'comment-brand-1',
+      organizationId: 'org-1',
+      participantExternalId: 'author-1',
+      participantName: 'Taylor',
+      platform: 'youtube',
+    });
+    await service.ingestInboundMessage({
+      body: 'Brand two thread',
+      brandId: 'brand-2',
+      conversationType: 'comment',
+      externalConversationId: 'thread-brand-2',
+      externalMessageId: 'comment-brand-2',
+      organizationId: 'org-1',
+      participantExternalId: 'author-2',
+      participantName: 'Jordan',
+      platform: 'youtube',
+    });
+
+    const sessionScoped = await service.listConversations(
+      { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
+      {},
+    );
+    expect(sessionScoped.docs).toHaveLength(1);
+    expect(sessionScoped.docs[0]?.brandId).toBe('brand-1');
+
+    const allBrands = await service.listConversations(
+      { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
+      { allBrands: true },
+    );
+    expect(allBrands.docs).toHaveLength(2);
+
+    const brandTwoOnly = await service.listConversations(
+      { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
+      { brandId: 'brand-2' },
+    );
+    expect(brandTwoOnly.docs).toHaveLength(1);
+    expect(brandTwoOnly.docs[0]?.brandId).toBe('brand-2');
+
+    const openedAcrossBrand = await service.getConversation(
+      { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
+      brandTwoOnly.docs[0]?.id as string,
+    );
+    expect(openedAcrossBrand.brandId).toBe('brand-2');
+  });
+
   it('authorizes typed agent selectors against the current inbox scope', async () => {
     const { service } = createContext();
     const message = await service.ingestInboundMessage({

@@ -3,6 +3,7 @@
 import { useAgentChatStore } from '@genfeedai/agent';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type {
   IPaginatedResponse,
@@ -364,9 +365,11 @@ function MessageBubble({
   );
 }
 
+const ALL_BRANDS_FILTER = 'all' as const;
+
 export default function MessagesPage() {
-  const { href } = useOrgUrl();
-  const { organizationId: scopedOrganizationId } = useBrand();
+  const { brandSlug, href } = useOrgUrl();
+  const { brands, organizationId: scopedOrganizationId } = useBrand();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
@@ -378,6 +381,26 @@ export default function MessagesPage() {
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
   const activeThread = useAgentChatStore((state) =>
     state.threads.find((thread) => thread.id === state.activeThreadId),
+  );
+
+  const routeBrandId = useMemo(() => {
+    if (!brandSlug) {
+      return undefined;
+    }
+
+    const routeBrand = brands.find((brand) => brand.slug === brandSlug);
+    return getBrandEntityId(routeBrand) || undefined;
+  }, [brandSlug, brands]);
+
+  const brandOptions = useMemo(
+    () =>
+      brands
+        .map((brand) => ({
+          id: getBrandEntityId(brand),
+          label: brand.label || brand.slug || getBrandEntityId(brand),
+        }))
+        .filter((brand) => Boolean(brand.id)),
+    [brands],
   );
 
   const [conversations, setConversations] = useState<SocialConversationModel[]>(
@@ -392,6 +415,17 @@ export default function MessagesPage() {
     useState(EMPTY_PAGINATION);
   const [messagePagination, setMessagePagination] = useState(EMPTY_PAGINATION);
   const [platform, setPlatform] = useState<SocialPlatform | 'all'>('all');
+  // null = derive from route (brand path seeds brand, org path stays all brands)
+  const [brandFilterOverride, setBrandFilterOverride] = useState<string | null>(
+    null,
+  );
+  const [brandFilterRouteKey, setBrandFilterRouteKey] = useState(brandSlug);
+  // Adjust state when the brand URL segment changes (brand ↔ org navigation).
+  if (brandFilterRouteKey !== brandSlug) {
+    setBrandFilterRouteKey(brandSlug);
+    setBrandFilterOverride(null);
+  }
+  const brandFilter = brandFilterOverride ?? routeBrandId ?? ALL_BRANDS_FILTER;
   const [status, setStatus] = useState<SocialConversationStatus | 'all'>(
     'open',
   );
@@ -490,10 +524,16 @@ export default function MessagesPage() {
     }
   }, []);
 
-  const query = useMemo(
-    () => ({
+  const query = useMemo(() => {
+    const isOrgWideBrandFilter = brandFilter === ALL_BRANDS_FILTER;
+
+    return {
       limit: 50,
       page: conversationPage,
+      // Org-scoped Messages must not inherit a stale session brand.
+      ...(isOrgWideBrandFilter
+        ? { allBrands: true }
+        : { brandId: brandFilter }),
       ...(platform !== 'all' ? { platform } : {}),
       ...(status !== 'all' ? { status } : {}),
       ...(automationState !== 'all' ? { automationState } : {}),
@@ -504,19 +544,19 @@ export default function MessagesPage() {
         ? { assignedOwnerId: assignedOwnerId.trim() }
         : {}),
       ...(search.trim() ? { search: search.trim() } : {}),
-    }),
-    [
-      assignedOwnerId,
-      automationState,
-      conversationPage,
-      credentialId,
-      needsReviewOnly,
-      platform,
-      search,
-      status,
-      unreadOnly,
-    ],
-  );
+    };
+  }, [
+    assignedOwnerId,
+    automationState,
+    brandFilter,
+    conversationPage,
+    credentialId,
+    needsReviewOnly,
+    platform,
+    search,
+    status,
+    unreadOnly,
+  ]);
 
   const selectedConversation = useMemo(
     () =>
@@ -1119,10 +1159,18 @@ export default function MessagesPage() {
   const conversationNavPanel = (
     <MessagesConversationSidebar
       advancedFilters={advancedFilters}
+      brandFilter={brandFilter}
+      brandOptions={brandOptions}
       busyAction={busyAction}
       connectionState={connectionState}
       conversations={conversations}
       isLoading={isLoadingConversations}
+      onBrandFilterChange={(value) => {
+        setConversationPage(1);
+        setSelectedId(null);
+        updateSelectedConversationParam(null);
+        setBrandFilterOverride(value);
+      }}
       onNextPage={() => setConversationPage((page) => page + 1)}
       onPlatformChange={(value) => {
         setConversationPage(1);

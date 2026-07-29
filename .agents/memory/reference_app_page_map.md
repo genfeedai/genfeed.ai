@@ -8,7 +8,7 @@ type: reference
 
 Last audited: 2026-07-27.
 
-The current executable protected denominator is 208 canonical patterns. Two
+The current executable protected denominator is 216 canonical patterns. Two
 intentional hard-cut families remain outside the denominator. The app switcher
 is only a discovery subset.
 
@@ -24,7 +24,7 @@ Source of truth:
 - Sidebar resolver in `apps/app/packages/components/AppProtectedLayoutSidebar.tsx`
 - App switcher in `packages/ui/src/components/shell/app-switcher/AppSwitcher.tsx`
 
-The application registry mirrors all 208 parity-eligible patterns below and
+The application registry mirrors all 216 parity-eligible patterns below and
 keeps Notifications plus trusted pickers as explicit non-route surfaces. The
 two hard-cut families remain outside it.
 
@@ -220,10 +220,18 @@ Agent:
 
 Messages:
 
+- `/:orgSlug/~/messages`
 - `/:orgSlug/:brandSlug/messages`
 
 Research:
 
+- `/:orgSlug/~/research/discovery` (org entry: brand gate → brand research)
+- `/:orgSlug/~/research/following`
+- `/:orgSlug/~/research/socials`
+- `/:orgSlug/~/research/ads`
+- `/:orgSlug/~/research/ads/google`
+- `/:orgSlug/~/research/ads/meta`
+- `/:orgSlug/~/research/:platform`
 - `/:orgSlug/:brandSlug/research/discovery`
 - `/:orgSlug/:brandSlug/research/following`
 - `/:orgSlug/:brandSlug/research/socials`

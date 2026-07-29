@@ -11,6 +11,13 @@ export interface SocialInboxListQuery {
   status?: string;
   automationState?: string;
   conversationType?: string;
+  /**
+   * When true, list every brand in the organization and ignore session brand
+   * scope. Used by org-scoped Messages (`/:org/~/messages`).
+   */
+  allBrands?: boolean;
+  /** Explicit brand filter for multi-brand org inboxes. */
+  brandId?: string;
   credentialId?: string;
   assignedOwnerId?: string;
   tag?: string;

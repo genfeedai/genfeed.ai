@@ -34096,6 +34096,24 @@
             }
           },
           {
+            "description": "Optional brand filter. When omitted, session brand scope still applies unless allBrands is true.",
+            "in": "query",
+            "name": "brandId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "List every brand in the organization, ignoring session brand scope.",
+            "in": "query",
+            "name": "allBrands",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "in": "query",
             "name": "status",
             "required": false,

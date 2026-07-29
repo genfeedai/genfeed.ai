@@ -163,6 +163,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
     'Outreach Campaign',
   '/:orgSlug/:brandSlug/posts/:id': 'Post',
   '/:orgSlug/:brandSlug/research/:platform': ':platform',
+  '/:orgSlug/~/research/:platform': ':platform',
   '/:orgSlug/:brandSlug/settings': 'General',
   '/:orgSlug/:brandSlug/studio/:type': ':type',
   '/:orgSlug/:brandSlug/studio/:type/:id': ':type',
@@ -205,6 +206,8 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
 const BREADCRUMB_PARENT_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/research/ads/google': 'Ads',
   '/:orgSlug/:brandSlug/research/ads/meta': 'Ads',
+  '/:orgSlug/~/research/ads/google': 'Ads',
+  '/:orgSlug/~/research/ads/meta': 'Ads',
 } as const satisfies Readonly<Record<string, string>>);
 
 function humanizeBreadcrumbLabel(value: string): string {
@@ -405,6 +408,40 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     surfaceKey: 'analytics',
     telemetryClass: 'product',
   }),
+  ...registerRoutes(['/:orgSlug/~/messages'], {
+    adapter: {
+      key: 'messages',
+      status: 'embedded',
+    },
+    fallback: '/:orgSlug/~/messages',
+    mode: 'canvas',
+    productClass: 'control-plane',
+    scope: 'organization',
+    surfaceKey: 'messages',
+    switcherItems: ['messages'],
+    telemetryClass: 'product',
+  }),
+  ...registerRoutes(
+    [
+      '/:orgSlug/~/research/discovery',
+      '/:orgSlug/~/research/following',
+      '/:orgSlug/~/research/socials',
+      '/:orgSlug/~/research/ads',
+      '/:orgSlug/~/research/ads/google',
+      '/:orgSlug/~/research/ads/meta',
+      '/:orgSlug/~/research/:platform',
+    ],
+    {
+      adapter: { key: 'research', status: 'embedded' },
+      fallback: '/:orgSlug/~/research/discovery',
+      mode: 'canvas',
+      productClass: 'visual-data',
+      scope: 'organization',
+      surfaceKey: 'research',
+      switcherItems: ['research'],
+      telemetryClass: 'product',
+    },
+  ),
   ...registerRoutes(
     ['/:orgSlug/~/agent', '/:orgSlug/~/agent/new', '/:orgSlug/~/agent/:id'],
     {

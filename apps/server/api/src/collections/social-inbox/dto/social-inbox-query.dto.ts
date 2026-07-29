@@ -16,6 +16,25 @@ export class SocialInboxQueryDto extends BaseQueryDto {
   @IsEnum(SocialInboxPlatform)
   platform?: SocialInboxPlatform;
 
+  @ApiProperty({
+    description:
+      'Optional brand filter. When omitted, session brand scope still applies unless allBrands is true.',
+    required: false,
+  })
+  @IsOptional()
+  @IsEntityId()
+  brandId?: string;
+
+  @ApiProperty({
+    description:
+      'List every brand in the organization, ignoring session brand scope.',
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  allBrands?: boolean;
+
   @ApiProperty({ enum: SocialConversationStatus, required: false })
   @IsOptional()
   @IsEnum(SocialConversationStatus)

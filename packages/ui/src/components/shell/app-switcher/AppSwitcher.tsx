@@ -97,10 +97,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         id: 'messages',
         itemKey: 'home-messages',
         label: 'Messages',
-        route: createScopedAppRoute({
-          brandPath: '/messages',
-          organizationPath: '/overview',
-        }),
+        route: createScopedAppRoute({ brandPath: '/messages' }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.messages,
       },
     ],
@@ -115,10 +112,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         id: 'research',
         itemKey: 'trends-research',
         label: 'Research',
-        route: createScopedAppRoute({
-          brandPath: '/research/discovery',
-          organizationPath: '/overview',
-        }),
+        route: createScopedAppRoute({ brandPath: '/research/discovery' }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.research,
       },
     ],
