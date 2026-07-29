@@ -24,7 +24,8 @@ Plasmo-based extension that brings GenFeed's AI workflows to multiple social med
 
 ```bash
 bun install
-# Create .env file with the API endpoint
+# Extension API traffic is direct (no Next.js /v1 proxy in the extension host).
+# Auth still happens on the app origin so cookies match Studio.
 echo "PLASMO_PUBLIC_API_ENDPOINT=https://api.genfeed.localhost/v1" > .env
 bun run dev             # generates build/chrome-mv3-dev
 ```
@@ -33,10 +34,11 @@ Load `build/chrome-mv3-dev` in Brave (Developer Mode → Load unpacked) during d
 
 ### Environment Configuration
 
-- **Development**: The extension opens `https://app.genfeed.localhost` for authentication
-- **Production**: Extension connects to `genfeed.ai` for authentication
+- **Development authentication host**: `https://app.genfeed.localhost` (opens in the browser for sign-in / sign-up)
+- **Development API host**: `https://api.genfeed.localhost/v1` via `PLASMO_PUBLIC_API_ENDPOINT` (extension background cannot use the app-origin `/v1` proxy)
+- **Production**: Extension connects to `genfeed.ai` for authentication and API
 - **Dark Mode**: Enabled by default for better user experience
-- **Authentication**: The extension opens GenFeed in your browser so you can sign in or sign up for free
+- **Studio browser bundles** (contrast): app traffic stays on `https://app.genfeed.localhost/v1` so Better Auth cookies stay same-origin
 
 ### Scripts
 

@@ -91,15 +91,13 @@ function readJson<T>(rootDir: string, relativePath: string): T {
   ) as T;
 }
 
-function readEnv(
-  rootDir: string,
-  relativePath: string,
-): Record<string, string> {
+/**
+ * Parse a dotenv-style file. Split on `/\r?\n/` so CRLF checkouts do not leave
+ * trailing `\r` on values (which would break exact endpoint comparisons).
+ */
+export function parseEnvExample(contents: string): Record<string, string> {
   const values: Record<string, string> = {};
-  for (const line of readFileSync(
-    path.join(rootDir, relativePath),
-    'utf8',
-  ).split(/\r?\n/)) {
+  for (const line of contents.split(/\r?\n/)) {
     const separator = line.indexOf('=');
     if (separator <= 0 || line.startsWith('#')) {
       continue;
@@ -107,6 +105,15 @@ function readEnv(
     values[line.slice(0, separator)] = line.slice(separator + 1);
   }
   return values;
+}
+
+function readEnv(
+  rootDir: string,
+  relativePath: string,
+): Record<string, string> {
+  return parseEnvExample(
+    readFileSync(path.join(rootDir, relativePath), 'utf8'),
+  );
 }
 
 export function checkPortlessContract(
