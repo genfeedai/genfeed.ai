@@ -14,6 +14,7 @@ export default function AuthActionSurface({
   description,
   error,
   footer,
+  hideHeading = false,
   supportingCopy,
   title,
 }: AuthActionSurfaceProps) {
@@ -22,12 +23,14 @@ export default function AuthActionSurface({
       className={cn('auth-action-surface w-full space-y-6', className)}
       data-testid="auth-action-surface"
     >
-      <div className="auth-action-heading space-y-1">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          {title}
-        </h1>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </div>
+      {!hideHeading ? (
+        <div className="auth-action-heading space-y-1">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
+            {title}
+          </h1>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
+      ) : null}
 
       {error ? (
         <div

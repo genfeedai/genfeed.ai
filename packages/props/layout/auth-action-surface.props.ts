@@ -6,6 +6,7 @@ export interface AuthActionSurfaceProps {
   description: string;
   error?: ReactNode;
   footer?: ReactNode;
+  hideHeading?: boolean;
   supportingCopy?: ReactNode;
   title: string;
 }

@@ -253,7 +253,7 @@ export default function SignUpBetterAuth({
             className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
             withWrapper={false}
           >
-            Continue with Google
+            Google
           </Button>
 
           <Button

@@ -35,6 +35,8 @@ import {
 const subscribe = () => () => {};
 const getSnapshot = () => true;
 const getServerSnapshot = () => false;
+const LOGIN_TITLE = 'Welcome back';
+const LOGIN_DESCRIPTION = 'Sign in to Genfeed';
 
 type LoginMode = 'chooser' | 'magic-link' | 'password';
 
@@ -297,7 +299,12 @@ export default function LoginBetterAuth({
   }
 
   return (
-    <AuthFormLayout logoSize="compact">
+    <AuthFormLayout
+      compactHeading={
+        <AuthHeading title={LOGIN_TITLE} description={LOGIN_DESCRIPTION} />
+      }
+      logoSize="compact"
+    >
       <AuthActionSurface
         actions={
           <>
@@ -310,7 +317,7 @@ export default function LoginBetterAuth({
               className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
               withWrapper={false}
             >
-              Continue with Google
+              Google
             </Button>
 
             <Button
@@ -338,7 +345,7 @@ export default function LoginBetterAuth({
             </Button>
           </>
         }
-        description="Sign in to Genfeed"
+        description={LOGIN_DESCRIPTION}
         error={socialErrorMessage}
         footer={
           <AuthFooterPrompt>
@@ -348,7 +355,8 @@ export default function LoginBetterAuth({
             </Link>
           </AuthFooterPrompt>
         }
-        title="Welcome back"
+        hideHeading
+        title={LOGIN_TITLE}
       />
     </AuthFormLayout>
   );

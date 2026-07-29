@@ -12,6 +12,7 @@ const LOGO_DIMENSIONS = {
 
 export default function AuthFormLayout({
   children,
+  compactHeading,
   logoSize = 'default',
 }: AuthFormLayoutProps) {
   const logoUrl = useThemeLogo();
@@ -24,15 +25,31 @@ export default function AuthFormLayout({
     return (
       <div className="min-h-screen flex flex-col justify-center items-center bg-background px-4 text-foreground">
         <div className="w-full max-w-[400px] rounded-2xl bg-card p-8 shadow-border">
-          {logoUrl && (
-            <Image
-              src={logoUrl}
-              className="mb-8 object-contain dark:invert"
-              alt={EnvironmentService.LOGO_ALT}
-              width={logoDimension}
-              height={logoDimension}
-              priority
-            />
+          {compactHeading ? (
+            <div className="mb-6 flex items-center gap-4">
+              {logoUrl && (
+                <Image
+                  src={logoUrl}
+                  className="shrink-0 object-contain dark:invert"
+                  alt={EnvironmentService.LOGO_ALT}
+                  width={logoDimension}
+                  height={logoDimension}
+                  priority
+                />
+              )}
+              <div className="min-w-0">{compactHeading}</div>
+            </div>
+          ) : (
+            logoUrl && (
+              <Image
+                src={logoUrl}
+                className="mb-8 object-contain dark:invert"
+                alt={EnvironmentService.LOGO_ALT}
+                width={logoDimension}
+                height={logoDimension}
+                priority
+              />
+            )
           )}
 
           {children}

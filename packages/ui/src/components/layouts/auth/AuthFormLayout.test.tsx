@@ -88,6 +88,23 @@ describe('AuthFormLayout', () => {
     expect(logo).toHaveClass('mb-8');
   });
 
+  it('should align a compact heading beside the logo', () => {
+    render(
+      <AuthFormLayout compactHeading={<h1>Welcome back</h1>} logoSize="compact">
+        <div>Content</div>
+      </AuthFormLayout>,
+    );
+
+    const heading = screen.getByRole('heading', { name: 'Welcome back' });
+    const header = heading.parentElement?.parentElement as HTMLElement;
+    const logo = screen.getByRole('img');
+
+    expect(header).toContainElement(logo);
+    expect(header).toHaveClass('flex');
+    expect(header).toHaveClass('items-center');
+    expect(logo).not.toHaveClass('mb-8');
+  });
+
   it('should wrap compact auth forms in an elevated card', () => {
     render(
       <AuthFormLayout logoSize="compact">

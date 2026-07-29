@@ -17,4 +17,20 @@ describe('AuthActionSurface', () => {
       screen.queryByText('Continue without an account'),
     ).not.toBeInTheDocument();
   });
+
+  it('allows a host layout to render the heading beside its logo', () => {
+    render(
+      <AuthActionSurface
+        actions={<span>Host action</span>}
+        description="Sign in to Genfeed"
+        hideHeading
+        title="Welcome back"
+      />,
+    );
+
+    expect(
+      screen.queryByRole('heading', { name: 'Welcome back' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Host action')).toBeInTheDocument();
+  });
 });
