@@ -39,10 +39,16 @@ import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
+import { AgentOrchestratorBatchService } from '@api/services/agent-orchestrator/agent-orchestrator-batch.service';
+import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
+import { AgentOrchestratorPlanModeService } from '@api/services/agent-orchestrator/agent-orchestrator-plan-mode.service';
+import { AgentOrchestratorRecurringTaskService } from '@api/services/agent-orchestrator/agent-orchestrator-recurring-task.service';
+import { AgentOrchestratorUiActionService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
+import { AgentTurnRoundRunnerService } from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
 import { AgentAdsResearchToolHandler } from '@api/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
 import { AgentAnalyticsToolHandler } from '@api/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
 import { AgentBrandContentToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-content-tool-handler.service';
@@ -158,11 +164,17 @@ import { forwardRef, Module } from '@nestjs/common';
     AgentReviewToolHandler,
     AgentTrendsToolHandler,
     AgentWorkspaceToolHandler,
+    AgentOrchestratorBatchService,
+    AgentOrchestratorContextService,
+    AgentOrchestratorPlanModeService,
+    AgentOrchestratorRecurringTaskService,
     AgentOrchestratorService,
+    AgentOrchestratorUiActionService,
     AgentRouteRewriteService,
     AgentStreamEffectsService,
     AgentThreadEventRecorderService,
     AgentToolExecutorService,
+    AgentTurnRoundRunnerService,
     {
       provide: 'AGENT_BRANDS_SERVICE',
       useExisting: BrandsService,
