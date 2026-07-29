@@ -26,10 +26,9 @@ import {
   AUTH_LINK_CLASS_NAME,
   AUTH_PRIMARY_BUTTON_CLASS_NAME,
   AUTH_SECONDARY_BUTTON_CLASS_NAME,
-  AuthBackLink,
   AuthCheckEmail,
   AuthFooterPrompt,
-  AuthHeading,
+  AuthFormActions,
 } from '../auth-ui';
 
 const subscribe = () => () => {};
@@ -161,18 +160,14 @@ export default function LoginBetterAuth({
   if (mode === 'magic-link' && isEmailSent) {
     return (
       <AuthFormLayout
-        compactHeading={
-          <AuthHeading
-            title="Check your email"
-            description={
-              <>
-                We sent a sign-in link to <strong>{email}</strong>. Click the
-                link in the email to sign in.
-              </>
-            }
-          />
+        description={
+          <>
+            We sent a sign-in link to <strong>{email}</strong>. Click the link
+            in the email to sign in.
+          </>
         }
         logoSize="compact"
+        title="Check your email"
       >
         <AuthCheckEmail backHref={chooserHref} backLabel="Back to sign in" />
       </AuthFormLayout>
@@ -182,13 +177,9 @@ export default function LoginBetterAuth({
   if (mode === 'magic-link') {
     return (
       <AuthFormLayout
-        compactHeading={
-          <AuthHeading
-            title="Sign in with a magic link"
-            description="Enter your email and we'll send you a secure sign-in link."
-          />
-        }
+        description="Enter your email and we'll send you a secure sign-in link."
         logoSize="compact"
+        title="Sign in with a magic link"
       >
         <div className="w-full space-y-6">
           <form onSubmit={handleMagicLink} className="space-y-4">
@@ -211,21 +202,22 @@ export default function LoginBetterAuth({
               <p className="text-sm text-destructive">{errorMessage}</p>
             ) : null}
 
-            <Button
-              type="submit"
-              variant={ButtonVariant.DEFAULT}
-              isLoading={isSubmitting}
-              isDisabled={!email || isSubmitting}
-              className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
-              withWrapper={false}
+            <AuthFormActions
+              backHref={chooserHref}
+              backLabel="Back to sign in options"
             >
-              Email me a sign-in link
-            </Button>
+              <Button
+                type="submit"
+                variant={ButtonVariant.DEFAULT}
+                isLoading={isSubmitting}
+                isDisabled={!email || isSubmitting}
+                className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
+                withWrapper={false}
+              >
+                Email me a sign-in link
+              </Button>
+            </AuthFormActions>
           </form>
-
-          <AuthBackLink href={chooserHref}>
-            Back to sign in options
-          </AuthBackLink>
         </div>
       </AuthFormLayout>
     );
@@ -234,13 +226,9 @@ export default function LoginBetterAuth({
   if (mode === 'password') {
     return (
       <AuthFormLayout
-        compactHeading={
-          <AuthHeading
-            title="Sign in with email and password"
-            description="Use the email and password attached to your Genfeed account."
-          />
-        }
+        description="Use the email and password attached to your Genfeed account."
         logoSize="compact"
+        title="Sign in with email and password"
       >
         <div className="w-full space-y-6">
           <form onSubmit={handleEmailPassword} className="space-y-4">
@@ -287,21 +275,22 @@ export default function LoginBetterAuth({
               <p className="text-sm text-destructive">{passwordErrorMessage}</p>
             ) : null}
 
-            <Button
-              type="submit"
-              variant={ButtonVariant.DEFAULT}
-              isLoading={isPasswordSubmitting}
-              isDisabled={!email || !password || isPasswordSubmitting}
-              className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
-              withWrapper={false}
+            <AuthFormActions
+              backHref={chooserHref}
+              backLabel="Back to sign in options"
             >
-              Sign in
-            </Button>
+              <Button
+                type="submit"
+                variant={ButtonVariant.DEFAULT}
+                isLoading={isPasswordSubmitting}
+                isDisabled={!email || !password || isPasswordSubmitting}
+                className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
+                withWrapper={false}
+              >
+                Sign in
+              </Button>
+            </AuthFormActions>
           </form>
-
-          <AuthBackLink href={chooserHref}>
-            Back to sign in options
-          </AuthBackLink>
         </div>
       </AuthFormLayout>
     );
@@ -309,10 +298,9 @@ export default function LoginBetterAuth({
 
   return (
     <AuthFormLayout
-      compactHeading={
-        <AuthHeading title={LOGIN_TITLE} description={LOGIN_DESCRIPTION} />
-      }
+      description={LOGIN_DESCRIPTION}
       logoSize="compact"
+      title={LOGIN_TITLE}
     >
       <AuthActionSurface
         actions={
@@ -354,7 +342,6 @@ export default function LoginBetterAuth({
             </Button>
           </>
         }
-        description={LOGIN_DESCRIPTION}
         error={socialErrorMessage}
         footer={
           <AuthFooterPrompt>
@@ -365,7 +352,6 @@ export default function LoginBetterAuth({
           </AuthFooterPrompt>
         }
         hideHeading
-        title={LOGIN_TITLE}
       />
     </AuthFormLayout>
   );

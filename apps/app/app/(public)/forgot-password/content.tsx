@@ -20,9 +20,8 @@ import {
 } from '../auth-callback-url';
 import {
   AUTH_PRIMARY_BUTTON_CLASS_NAME,
-  AuthBackLink,
   AuthCheckEmail,
-  AuthHeading,
+  AuthFormActions,
 } from '../auth-ui';
 
 const subscribe = () => () => {};
@@ -79,18 +78,14 @@ export default function ForgotPasswordContent() {
   if (isEmailSent) {
     return (
       <AuthFormLayout
-        compactHeading={
-          <AuthHeading
-            title="Check your email"
-            description={
-              <>
-                If an account exists for <strong>{email}</strong>, we&apos;ll
-                send a password reset link.
-              </>
-            }
-          />
+        description={
+          <>
+            If an account exists for <strong>{email}</strong>, we&apos;ll send a
+            password reset link.
+          </>
         }
         logoSize="compact"
+        title="Check your email"
       >
         <AuthCheckEmail backHref={loginHref} backLabel="Back to sign in" />
       </AuthFormLayout>
@@ -99,13 +94,9 @@ export default function ForgotPasswordContent() {
 
   return (
     <AuthFormLayout
-      compactHeading={
-        <AuthHeading
-          title="Reset your password"
-          description="Enter your account email and we'll send you a secure reset link."
-        />
-      }
+      description="Enter your account email and we'll send you a secure reset link."
       logoSize="compact"
+      title="Reset your password"
     >
       <div className="w-full space-y-6">
         <form onSubmit={handlePasswordResetRequest} className="space-y-4">
@@ -128,19 +119,19 @@ export default function ForgotPasswordContent() {
             <p className="text-sm text-destructive">{errorMessage}</p>
           ) : null}
 
-          <Button
-            type="submit"
-            variant={ButtonVariant.DEFAULT}
-            isLoading={isSubmitting}
-            isDisabled={!email || isSubmitting}
-            className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
-            withWrapper={false}
-          >
-            Email me a reset link
-          </Button>
+          <AuthFormActions backHref={loginHref} backLabel="Back to sign in">
+            <Button
+              type="submit"
+              variant={ButtonVariant.DEFAULT}
+              isLoading={isSubmitting}
+              isDisabled={!email || isSubmitting}
+              className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
+              withWrapper={false}
+            >
+              Email me a reset link
+            </Button>
+          </AuthFormActions>
         </form>
-
-        <AuthBackLink href={loginHref}>Back to sign in</AuthBackLink>
       </div>
     </AuthFormLayout>
   );

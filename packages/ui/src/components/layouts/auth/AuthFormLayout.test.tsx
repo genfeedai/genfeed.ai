@@ -90,7 +90,11 @@ describe('AuthFormLayout', () => {
 
   it('should align a compact heading beside the logo', () => {
     render(
-      <AuthFormLayout compactHeading={<h1>Welcome back</h1>} logoSize="compact">
+      <AuthFormLayout
+        description="Sign in to Genfeed"
+        logoSize="compact"
+        title="Welcome back"
+      >
         <div>Content</div>
       </AuthFormLayout>,
     );
@@ -103,6 +107,7 @@ describe('AuthFormLayout', () => {
     expect(header).toHaveClass('flex');
     expect(header).toHaveClass('items-center');
     expect(logo).not.toHaveClass('mb-8');
+    expect(screen.getByText('Sign in to Genfeed')).toBeInTheDocument();
   });
 
   it('should wrap compact auth forms in an elevated card', () => {

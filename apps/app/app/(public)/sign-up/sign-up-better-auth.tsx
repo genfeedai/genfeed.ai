@@ -27,10 +27,9 @@ import {
   AUTH_LINK_CLASS_NAME,
   AUTH_PRIMARY_BUTTON_CLASS_NAME,
   AUTH_SECONDARY_BUTTON_CLASS_NAME,
-  AuthBackLink,
   AuthCheckEmail,
   AuthFooterPrompt,
-  AuthHeading,
+  AuthFormActions,
 } from '../auth-ui';
 
 const subscribe = () => () => {};
@@ -170,18 +169,14 @@ export default function SignUpBetterAuth({
   if (mode === 'magic-link' && isEmailSent) {
     return (
       <AuthFormLayout
-        compactHeading={
-          <AuthHeading
-            title="Check your email"
-            description={
-              <>
-                We sent a sign-up link to <strong>{email}</strong>. Click the
-                link in the email to create your account.
-              </>
-            }
-          />
+        description={
+          <>
+            We sent a sign-up link to <strong>{email}</strong>. Click the link
+            in the email to create your account.
+          </>
         }
         logoSize="compact"
+        title="Check your email"
       >
         <AuthCheckEmail backHref={chooserHref} backLabel="Back to sign up" />
       </AuthFormLayout>
@@ -191,13 +186,9 @@ export default function SignUpBetterAuth({
   if (mode === 'magic-link') {
     return (
       <AuthFormLayout
-        compactHeading={
-          <AuthHeading
-            title="Sign up with a magic link"
-            description="Enter your email and we'll send you a secure sign-up link."
-          />
-        }
+        description="Enter your email and we'll send you a secure sign-up link."
         logoSize="compact"
+        title="Sign up with a magic link"
       >
         <div className="w-full space-y-6">
           <form onSubmit={handleMagicLink} className="space-y-4">
@@ -221,21 +212,22 @@ export default function SignUpBetterAuth({
               <p className="text-sm text-destructive">{errorMessage}</p>
             ) : null}
 
-            <Button
-              type="submit"
-              variant={ButtonVariant.DEFAULT}
-              isLoading={isSubmitting}
-              isDisabled={!email.trim() || isSubmitting}
-              className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
-              withWrapper={false}
+            <AuthFormActions
+              backHref={chooserHref}
+              backLabel="Back to sign up options"
             >
-              Email me a sign-up link
-            </Button>
+              <Button
+                type="submit"
+                variant={ButtonVariant.DEFAULT}
+                isLoading={isSubmitting}
+                isDisabled={!email.trim() || isSubmitting}
+                className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
+                withWrapper={false}
+              >
+                Email me a sign-up link
+              </Button>
+            </AuthFormActions>
           </form>
-
-          <AuthBackLink href={chooserHref}>
-            Back to sign up options
-          </AuthBackLink>
         </div>
       </AuthFormLayout>
     );
@@ -243,13 +235,9 @@ export default function SignUpBetterAuth({
 
   return (
     <AuthFormLayout
-      compactHeading={
-        <AuthHeading
-          title="Create your account"
-          description="Start using Genfeed"
-        />
-      }
+      description="Start using Genfeed"
       logoSize="compact"
+      title="Create your account"
     >
       <div className="w-full space-y-6">
         <div className="space-y-3">

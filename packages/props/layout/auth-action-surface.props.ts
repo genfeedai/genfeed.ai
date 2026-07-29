@@ -1,12 +1,24 @@
 import type { ReactNode } from 'react';
 
-export interface AuthActionSurfaceProps {
+interface AuthActionSurfaceBaseProps {
   actions: ReactNode;
   className?: string;
-  description: string;
   error?: ReactNode;
   footer?: ReactNode;
-  hideHeading?: boolean;
   supportingCopy?: ReactNode;
-  title: string;
 }
+
+type AuthActionSurfaceHeadingProps =
+  | {
+      description: string;
+      hideHeading?: false;
+      title: string;
+    }
+  | {
+      description?: never;
+      hideHeading: true;
+      title?: never;
+    };
+
+export type AuthActionSurfaceProps = AuthActionSurfaceBaseProps &
+  AuthActionSurfaceHeadingProps;

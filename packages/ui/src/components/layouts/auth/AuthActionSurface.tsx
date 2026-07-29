@@ -8,27 +8,20 @@ import type { AuthActionSurfaceProps } from '@genfeedai/props/layout/auth-action
  * This keeps browser-session forms out of native clients while preserving the
  * same Genfeed auth hierarchy across SaaS and Desktop.
  */
-export default function AuthActionSurface({
-  actions,
-  className,
-  description,
-  error,
-  footer,
-  hideHeading = false,
-  supportingCopy,
-  title,
-}: AuthActionSurfaceProps) {
+export default function AuthActionSurface(props: AuthActionSurfaceProps) {
+  const { actions, className, error, footer, supportingCopy } = props;
+
   return (
     <div
       className={cn('auth-action-surface w-full space-y-6', className)}
       data-testid="auth-action-surface"
     >
-      {!hideHeading ? (
+      {props.hideHeading !== true ? (
         <div className="auth-action-heading space-y-1">
           <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            {title}
+            {props.title}
           </h1>
-          <p className="text-sm text-muted-foreground">{description}</p>
+          <p className="text-sm text-muted-foreground">{props.description}</p>
         </div>
       ) : null}
 

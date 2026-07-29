@@ -7,9 +7,9 @@ import type { ReactNode } from 'react';
 /**
  * Shared building blocks for the public auth surface (login / sign-up /
  * forgot-password / reset-password). Keeping the heading, divider, footer,
- * back-link, "check your email" state, and the button/link chrome in one place
- * stops the four screens from drifting apart and matches the reference auth
- * card design.
+ * action row, "check your email" state, and the button/link chrome in one
+ * place stops the four screens from drifting apart and matches the reference
+ * auth card design.
  */
 
 /** Full-width primary submit action. */
@@ -23,22 +23,6 @@ export const AUTH_SECONDARY_BUTTON_CLASS_NAME =
 /** Inline accent link (sign-in / sign-up / forgot password). */
 export const AUTH_LINK_CLASS_NAME =
   'font-medium text-info transition-colors hover:text-info/80';
-
-interface AuthHeadingProps {
-  description: ReactNode;
-  title: string;
-}
-
-export function AuthHeading({ description, title }: AuthHeadingProps) {
-  return (
-    <div className="space-y-1">
-      <h1 className="text-xl font-semibold tracking-tight text-foreground">
-        {title}
-      </h1>
-      <p className="text-sm text-muted-foreground">{description}</p>
-    </div>
-  );
-}
 
 export function AuthDivider() {
   return (
@@ -74,6 +58,25 @@ export function AuthBackLink({ children, href }: AuthBackLinkProps) {
         <span>{children}</span>
       </Link>
     </Button>
+  );
+}
+
+interface AuthFormActionsProps {
+  backHref: string;
+  backLabel: ReactNode;
+  children: ReactNode;
+}
+
+export function AuthFormActions({
+  backHref,
+  backLabel,
+  children,
+}: AuthFormActionsProps) {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <AuthBackLink href={backHref}>{backLabel}</AuthBackLink>
+      {children}
+    </div>
   );
 }
 

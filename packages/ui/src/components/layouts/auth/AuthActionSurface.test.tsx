@@ -20,12 +20,7 @@ describe('AuthActionSurface', () => {
 
   it('allows a host layout to render the heading beside its logo', () => {
     render(
-      <AuthActionSurface
-        actions={<span>Host action</span>}
-        description="Sign in to Genfeed"
-        hideHeading
-        title="Welcome back"
-      />,
+      <AuthActionSurface actions={<span>Host action</span>} hideHeading />,
     );
 
     expect(

@@ -19,7 +19,6 @@ import { getAuthCallbackURL, getAuthFlowHref } from '../auth-callback-url';
 import {
   AUTH_LINK_CLASS_NAME,
   AUTH_PRIMARY_BUTTON_CLASS_NAME,
-  AuthHeading,
 } from '../auth-ui';
 
 const subscribe = () => () => {};
@@ -106,13 +105,9 @@ export default function ResetPasswordContent() {
   if (isResetComplete) {
     return (
       <AuthFormLayout
-        compactHeading={
-          <AuthHeading
-            title="Password updated"
-            description="Your password has been reset. Sign in with your new password to continue."
-          />
-        }
+        description="Your password has been reset. Sign in with your new password to continue."
         logoSize="compact"
+        title="Password updated"
       >
         <div className="w-full space-y-4 text-center">
           <CheckCircle2
@@ -135,13 +130,9 @@ export default function ResetPasswordContent() {
   if (hasRecoverableTokenError) {
     return (
       <AuthFormLayout
-        compactHeading={
-          <AuthHeading
-            title="Reset link expired"
-            description={getTokenErrorMessage(tokenError)}
-          />
-        }
+        description={getTokenErrorMessage(tokenError)}
         logoSize="compact"
+        title="Reset link expired"
       >
         <div className="w-full space-y-4 text-center">
           <RotateCcw
@@ -163,13 +154,9 @@ export default function ResetPasswordContent() {
 
   return (
     <AuthFormLayout
-      compactHeading={
-        <AuthHeading
-          title="Choose a new password"
-          description="Enter a new password for your Genfeed account."
-        />
-      }
+      description="Enter a new password for your Genfeed account."
       logoSize="compact"
+      title="Choose a new password"
     >
       <div className="w-full space-y-6">
         <form onSubmit={handlePasswordReset} className="space-y-4">
