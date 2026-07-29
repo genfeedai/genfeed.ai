@@ -50,6 +50,7 @@ describe('AgentComposerStatusStack', () => {
           label: 'Researching sources',
           status: AgentWorkEventStatus.RUNNING,
           threadId: 'thread-1',
+          toolName: 'research',
         }}
       />,
     );
@@ -57,6 +58,25 @@ describe('AgentComposerStatusStack', () => {
     expect(screen.getByText('Active')).toBeInTheDocument();
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
     expect(screen.queryByText(/%/)).not.toBeInTheDocument();
+  });
+
+  it('hides generic lifecycle bookends like Agent started', () => {
+    const { container } = render(
+      <AgentComposerStatusStack
+        {...baseProps}
+        activeWorkEvent={{
+          createdAt: '2026-07-13T00:00:00.000Z',
+          event: AgentWorkEventType.STARTED,
+          id: 'event-1',
+          label: 'Agent started',
+          status: AgentWorkEventStatus.RUNNING,
+          threadId: 'thread-1',
+        }}
+      />,
+    );
+
+    expect(screen.queryByText('Agent started')).not.toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('labels reconnect recovery without exposing prompt contents', () => {

@@ -157,15 +157,21 @@ export function AgentChatContainer({
   const conversationColumnMaxWidthClass = isWideLayout
     ? 'max-w-[52rem]'
     : 'max-w-[46rem]';
-  const activeWorkEvent = useMemo(
-    () =>
-      [...workEvents]
-        .reverse()
-        .find(
-          (event) => event.status === 'pending' || event.status === 'running',
-        ) ?? null,
-    [workEvents],
-  );
+  const activeWorkEvent = useMemo(() => {
+    // Prefer real tool/input work over stuck lifecycle bookends.
+    const pendingOrRunning = [...workEvents]
+      .reverse()
+      .filter(
+        (event) => event.status === 'pending' || event.status === 'running',
+      );
+    return (
+      pendingOrRunning.find((event) =>
+        Boolean(event.toolName || event.toolCallId),
+      ) ??
+      pendingOrRunning[0] ??
+      null
+    );
+  }, [workEvents]);
 
   const handleSuggestionSend = useCallback(
     (prompt: string) => {

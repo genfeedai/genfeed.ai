@@ -26,6 +26,8 @@ interface AgentModelSelectorProps {
   onModelChange: (model: string) => void;
   creditsAvailable: number | null;
   onBuyCredits?: () => void;
+  /** Match composer toolbar control height (send / icons). */
+  density?: 'compact' | 'default';
 }
 
 export function AgentModelSelector({
@@ -33,6 +35,7 @@ export function AgentModelSelector({
   onModelChange,
   creditsAvailable,
   onBuyCredits,
+  density = 'default',
 }: AgentModelSelectorProps): ReactElement {
   const [open, setOpen] = useState(false);
   const current = AGENT_MODELS.find((m) => m.key === selectedModel);
@@ -41,6 +44,7 @@ export function AgentModelSelector({
     AGENT_MODELS.some(
       (m) => m.creditCost != null && m.creditCost > creditsAvailable,
     );
+  const isCompact = density === 'compact';
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -48,7 +52,12 @@ export function AgentModelSelector({
         <Button
           variant={ButtonVariant.GHOST}
           withWrapper={false}
-          className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+          textTransform="none"
+          className={cn(
+            // Same height as send (size-8 / size-9) — trailing toolbar cluster
+            'inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border/60 bg-background-secondary/40 px-2.5 text-xs text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground',
+            isCompact ? 'h-8' : 'h-9',
+          )}
         >
           {current?.isReasoning && (
             <HiSparkles className="size-3 text-purple-400" />

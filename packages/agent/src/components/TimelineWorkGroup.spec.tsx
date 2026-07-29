@@ -44,7 +44,29 @@ vi.mock('../utils/format-duration', () => ({
 
 import { TimelineWorkGroup } from './TimelineWorkGroup';
 
-function buildEntry(eventCount: number): TimelineWorkGroupEntry {
+function buildLiveEntry(eventCount: number): TimelineWorkGroupEntry {
+  return {
+    createdAt: '2026-03-18T10:00:00.000Z',
+    events: Array.from({ length: eventCount }, (_, i) => ({
+      createdAt: '2026-03-18T10:00:00.000Z',
+      event: AgentWorkEventType.TOOL_STARTED,
+      id: `e-${i}`,
+      label: `Tool ${i}`,
+      status:
+        i === eventCount - 1
+          ? AgentWorkEventStatus.RUNNING
+          : AgentWorkEventStatus.COMPLETED,
+      threadId: 't1',
+      toolName: `tool_${i}`,
+    })),
+    id: 'wg-1',
+    kind: 'work-group',
+    presentation: 'live',
+    totalDurationMs: 1000,
+  };
+}
+
+function buildSettledEntry(eventCount: number): TimelineWorkGroupEntry {
   return {
     createdAt: '2026-03-18T10:00:00.000Z',
     events: Array.from({ length: eventCount }, (_, i) => ({
@@ -54,32 +76,65 @@ function buildEntry(eventCount: number): TimelineWorkGroupEntry {
       label: `Tool ${i}`,
       status: AgentWorkEventStatus.COMPLETED,
       threadId: 't1',
+      toolName: `tool_${i}`,
     })),
     id: 'wg-1',
     kind: 'work-group',
-    presentation: 'live',
+    presentation: 'archived',
     totalDurationMs: 1000,
   };
 }
 
 describe('TimelineWorkGroup', () => {
   it('renders step count at the trailing duration line for live groups', () => {
-    render(<TimelineWorkGroup entry={buildEntry(5)} />);
+    render(<TimelineWorkGroup entry={buildLiveEntry(5)} />);
     expect(screen.getByText(/5 steps/)).toBeTruthy();
     expect(screen.getByText(/Working for/i)).toBeTruthy();
   });
 
-  it('shows all entries for live groups above the duration footer', () => {
-    render(<TimelineWorkGroup entry={buildEntry(5)} />);
+  it('shows all real steps for live groups above the duration footer', () => {
+    render(<TimelineWorkGroup entry={buildLiveEntry(5)} />);
     const entries = screen.getAllByText(/^entry-e-/);
     expect(entries).toHaveLength(5);
     expect(screen.getByText('entry-e-0-active')).toBeTruthy();
     expect(screen.getByText('entry-e-4-active')).toBeTruthy();
-    expect(screen.queryByText(/Show .* more/)).toBeNull();
   });
 
   it('single event shows "1 step"', () => {
-    render(<TimelineWorkGroup entry={buildEntry(1)} />);
+    render(<TimelineWorkGroup entry={buildLiveEntry(1)} />);
+    expect(screen.getByText(/1 step(?!s)/)).toBeTruthy();
+  });
+
+  it('hides generic lifecycle bookends from the step list', () => {
+    render(
+      <TimelineWorkGroup
+        entry={{
+          ...buildLiveEntry(1),
+          events: [
+            {
+              createdAt: '2026-03-18T10:00:00.000Z',
+              event: AgentWorkEventType.STARTED,
+              id: 'e-started',
+              label: 'Agent started',
+              status: AgentWorkEventStatus.RUNNING,
+              threadId: 't1',
+            },
+            {
+              createdAt: '2026-03-18T10:00:01.000Z',
+              event: AgentWorkEventType.TOOL_STARTED,
+              id: 'e-tool',
+              label: 'Research',
+              status: AgentWorkEventStatus.RUNNING,
+              threadId: 't1',
+              toolName: 'research',
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.queryByText(/entry-e-started/)).toBeNull();
+    expect(screen.getByText('entry-e-tool-active')).toBeTruthy();
     expect(screen.getByText(/1 step(?!s)/)).toBeTruthy();
   });
 
@@ -87,8 +142,7 @@ describe('TimelineWorkGroup', () => {
     render(
       <TimelineWorkGroup
         entry={{
-          ...buildEntry(4),
-          presentation: 'archived',
+          ...buildSettledEntry(4),
           totalDurationMs: 237000,
         }}
       />,
@@ -103,8 +157,7 @@ describe('TimelineWorkGroup', () => {
     render(
       <TimelineWorkGroup
         entry={{
-          ...buildEntry(2),
-          presentation: 'archived',
+          ...buildSettledEntry(2),
           totalDurationMs: 4200,
         }}
       />,
@@ -113,18 +166,17 @@ describe('TimelineWorkGroup', () => {
     fireEvent.click(screen.getByRole('button', { name: /Worked for 4s/i }));
     expect(screen.getByText('entry-e-0-active')).toBeTruthy();
     expect(screen.getByText('entry-e-1-active')).toBeTruthy();
-    // Duration stays at the end after expand
     expect(screen.getByText('Worked for 4s')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: /Worked for 4s/i }));
     expect(screen.queryByText('entry-e-0-active')).toBeNull();
   });
 
-  it('stops animating stale active steps after a terminal event', () => {
+  it('treats stale lifecycle running as settled when a terminal event exists', () => {
     render(
       <TimelineWorkGroup
         entry={{
-          ...buildEntry(3),
+          ...buildSettledEntry(1),
           events: [
             {
               createdAt: '2026-03-18T10:00:00.000Z',
@@ -141,6 +193,7 @@ describe('TimelineWorkGroup', () => {
               label: 'Check Onboarding',
               status: AgentWorkEventStatus.PENDING,
               threadId: 't1',
+              toolName: 'check_onboarding',
             },
             {
               createdAt: '2026-03-18T10:00:02.000Z',
@@ -157,9 +210,9 @@ describe('TimelineWorkGroup', () => {
       />,
     );
 
-    expect(screen.getByText('entry-e-running-stopped')).toBeTruthy();
-    expect(screen.getByText('entry-e-pending-stopped')).toBeTruthy();
-    expect(screen.getByText('entry-e-failed-active')).toBeTruthy();
+    // Lifecycle hidden; tool pending + failed visible when expanded/open for failure
+    expect(screen.queryByText(/entry-e-running/)).toBeNull();
     expect(screen.getByText('Worked for 2s')).toBeTruthy();
+    expect(screen.getByText('Failed')).toBeTruthy();
   });
 });

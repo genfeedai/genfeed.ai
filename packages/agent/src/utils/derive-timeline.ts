@@ -60,8 +60,14 @@ export type TimelineEntry =
 
 const ADJACENCY_THRESHOLD_MS = 2000;
 
-function isGenericRunLifecycleEvent(event: EnrichedWorkEvent): boolean {
-  if (event.toolName) {
+/**
+ * Lifecycle bookends ("Agent started", "Run completed") are stream plumbing,
+ * not user-facing steps. Shared by timeline collapse + composer status strip.
+ */
+export function isGenericRunLifecycleEvent(
+  event: Pick<EnrichedWorkEvent, 'event' | 'label' | 'toolCallId' | 'toolName'>,
+): boolean {
+  if (event.toolName || event.toolCallId) {
     return false;
   }
 
@@ -92,19 +98,34 @@ function isGenericRunLifecycleEvent(event: EnrichedWorkEvent): boolean {
   );
 }
 
+/** True only for real in-flight work — not stuck lifecycle bookends. */
+export function isActiveWorkEvent(
+  event: Pick<
+    EnrichedWorkEvent,
+    'event' | 'label' | 'status' | 'toolCallId' | 'toolName'
+  >,
+): boolean {
+  if (
+    event.status !== AgentWorkEventStatus.RUNNING &&
+    event.status !== AgentWorkEventStatus.PENDING
+  ) {
+    return false;
+  }
+
+  return !isGenericRunLifecycleEvent(event);
+}
+
 function normalizeWorkGroupEvents(
   group: EnrichedWorkEvent[],
 ): EnrichedWorkEvent[] {
-  const hasSpecificEvents = group.some(
-    (event) => !isGenericRunLifecycleEvent(event),
-  );
-
-  if (!hasSpecificEvents) {
-    return group;
+  // Prefer real tool/input steps. Lifecycle-only groups keep a single
+  // representative event so duration still derives, but UI hides the noise.
+  const specific = group.filter((event) => !isGenericRunLifecycleEvent(event));
+  if (specific.length > 0) {
+    return specific;
   }
 
-  const filtered = group.filter((event) => !isGenericRunLifecycleEvent(event));
-  return filtered.length > 0 ? filtered : group;
+  return group;
 }
 
 function buildVisualStepKey(event: EnrichedWorkEvent): string | null {
@@ -286,11 +307,9 @@ function shouldArchiveWorkGroup(
     return false;
   }
 
-  const hasActiveEvent = events.some((event) =>
-    [AgentWorkEventStatus.RUNNING, AgentWorkEventStatus.PENDING].includes(
-      event.status,
-    ),
-  );
+  // Ignore stale "Agent started" / "Run started" still marked running after
+  // the run finished — those kept groups "live" and showed Working forever.
+  const hasActiveEvent = events.some((event) => isActiveWorkEvent(event));
   if (hasActiveEvent) {
     return false;
   }
@@ -304,9 +323,20 @@ function shouldArchiveWorkGroup(
     return false;
   }
 
-  const isSuccessfulCompletion = events.every(
-    (event) => event.status === AgentWorkEventStatus.COMPLETED,
-  );
+  // Lifecycle bookends may linger as "running" after the run ends. Treat them
+  // as settled when no real tool/input work is still active.
+  const isSuccessfulCompletion = events.every((event) => {
+    if (event.status === AgentWorkEventStatus.COMPLETED) {
+      return true;
+    }
+    if (isGenericRunLifecycleEvent(event)) {
+      return (
+        event.status !== AgentWorkEventStatus.FAILED &&
+        event.status !== AgentWorkEventStatus.CANCELLED
+      );
+    }
+    return false;
+  });
   if (!isSuccessfulCompletion) {
     return false;
   }

@@ -89,19 +89,25 @@ export function TimelineStreamingRow({
         ? 'Working…'
         : null;
 
+  const meaningfulNonToolEvents = nonToolWorkEvents.filter(
+    (event) => event.toolName || event.toolCallId || event.detail,
+  );
+
   return (
-    <div className="mb-3 flex justify-start motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out">
-      <div className="w-full max-w-none space-y-2 rounded-lg border border-border/65 bg-background-secondary/68 px-3 py-2.5 shadow-[0_1px_0_rgba(0,0,0,0.18)]">
-        <div className="flex items-center gap-1.5 text-[11px] text-foreground/50">
-          <HiSparkles className="size-3.5 text-primary/70" />
-          <AnimatedStatusText
-            text={progressSummary.label}
-            className="font-medium tracking-[0.01em]"
-          />
-        </div>
+    <div className="mb-2 flex justify-start motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out">
+      <div className="w-full max-w-none space-y-2 border-0 bg-transparent px-0.5 py-1">
+        {!hasContent ? (
+          <div className="flex items-center gap-1.5 text-[11px] text-foreground/50">
+            <HiSparkles className="size-3.5 text-primary/70" />
+            <AnimatedStatusText
+              text={progressSummary.label}
+              className="font-medium tracking-[0.01em]"
+            />
+          </div>
+        ) : null}
 
         {progressSummary.detail && !hasContent ? (
-          <p className="rounded-md border border-border/55 bg-background/55 px-3 py-2 text-[11px] leading-relaxed text-foreground/54">
+          <p className="text-[12px] leading-relaxed text-foreground/55">
             {progressSummary.detail}
           </p>
         ) : null}
@@ -110,13 +116,13 @@ export function TimelineStreamingRow({
           <TimelineWorkEntry key={event.id} event={event} />
         ))}
 
-        {nonToolWorkEvents.map((event) => (
+        {meaningfulNonToolEvents.map((event) => (
           <TimelineWorkEntry key={event.id} event={event} />
         ))}
 
         {hasContent ? (
-          <div className="px-0 py-1">
-            <p className="whitespace-pre-wrap break-words text-sm leading-6 text-foreground">
+          <div className="px-0 py-0.5">
+            <p className="whitespace-pre-wrap break-words text-[15px] leading-7 text-foreground">
               {displayedText}
               {(streamState.isStreaming || isAnimating) && (
                 <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-foreground align-middle" />
@@ -126,9 +132,9 @@ export function TimelineStreamingRow({
         ) : null}
 
         {durationFooter ? (
-          <div className="flex items-center gap-1.5 border-t border-border/50 pt-2 text-xs text-foreground/55">
+          <div className="flex items-center gap-1.5 pt-1 text-xs text-foreground/50">
             <HiClock className="size-3.5 shrink-0 text-foreground/40" />
-            <span className="font-medium text-foreground/70">
+            <span className="font-medium text-foreground/65">
               {durationFooter}
             </span>
           </div>

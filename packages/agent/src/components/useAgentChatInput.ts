@@ -28,6 +28,7 @@ import {
   writeConversationComposerDocument,
   writeConversationComposerFocusIntent,
 } from '@genfeedai/agent/stores/conversation-composer-draft.store';
+import { normalizeComposerPasteText } from '@genfeedai/agent/utils/normalize-composer-paste.util';
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import type {
   AttachmentItem,
@@ -38,6 +39,7 @@ import type {
 import { type Editor, Extension, type JSONContent } from '@tiptap/core';
 import type { MentionNodeAttrs } from '@tiptap/extension-mention';
 import Placeholder from '@tiptap/extension-placeholder';
+import { Fragment, Slice } from '@tiptap/pm/model';
 import { ReactRenderer, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import type { SuggestionProps } from '@tiptap/suggestion';
@@ -352,6 +354,56 @@ export function useAgentChatInput({
         class:
           'prose prose-sm prose-invert max-w-none flex-1 bg-transparent py-1.5 text-sm text-foreground focus:outline-none',
         role: 'textbox',
+      },
+      // Prefer plain text and collapse soft line wraps. HTML paste from chat
+      // bubbles / browsers often injects a hard break per visual line.
+      handlePaste: (view, event) => {
+        const clipboard = event.clipboardData;
+        if (!clipboard) {
+          return false;
+        }
+
+        const hasFiles = Array.from(clipboard.files ?? []).some(
+          (file) =>
+            file.type.startsWith('image/') ||
+            file.type.startsWith('video/') ||
+            file.type.startsWith('audio/'),
+        );
+        if (hasFiles) {
+          // Image paste is handled on the shell; leave default for files.
+          return false;
+        }
+
+        const plain = clipboard.getData('text/plain');
+        if (!plain) {
+          return false;
+        }
+
+        const normalized = normalizeComposerPasteText(plain);
+        event.preventDefault();
+        if (!normalized) {
+          return true;
+        }
+
+        const { state, dispatch } = view;
+        const { from, to } = state.selection;
+        const parts = normalized.split('\n\n');
+        const paragraphType = state.schema.nodes.paragraph;
+
+        if (!paragraphType || parts.length === 1) {
+          dispatch(state.tr.insertText(normalized, from, to));
+          return true;
+        }
+
+        const nodes = parts.map((part) =>
+          paragraphType.create(
+            null,
+            part.length > 0 ? state.schema.text(part) : undefined,
+          ),
+        );
+        const slice = new Slice(Fragment.fromArray(nodes), 0, 0);
+        dispatch(state.tr.replaceRange(from, to, slice));
+        return true;
       },
     },
     extensions: [

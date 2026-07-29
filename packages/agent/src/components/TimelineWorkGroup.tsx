@@ -1,6 +1,10 @@
 import { TimelineWorkEntry } from '@genfeedai/agent/components/TimelineWorkEntry';
 import { AgentWorkEventStatus } from '@genfeedai/agent/models/agent-chat.model';
-import type { TimelineWorkGroup as TimelineWorkGroupEntry } from '@genfeedai/agent/utils/derive-timeline';
+import {
+  isActiveWorkEvent,
+  isGenericRunLifecycleEvent,
+  type TimelineWorkGroup as TimelineWorkGroupEntry,
+} from '@genfeedai/agent/utils/derive-timeline';
 import { formatAgentErrorDetail } from '@genfeedai/agent/utils/format-agent-error.util';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -18,36 +22,37 @@ interface TimelineWorkGroupProps {
 }
 
 /**
- * T3-inspired run card: steps first, duration always last.
- * - Live: "Working for 12s" trails the open step list
- * - Settled: collapsed "Worked for 3m 15s" row; expand reveals steps above the
- *   same trailing duration line
+ * T3-style compact activity:
+ * - Real tool steps only (lifecycle bookends hidden)
+ * - Live: steps open + trailing "Working for …"
+ * - Settled: one-line "Worked for …" (expand for steps)
  */
 export function TimelineWorkGroup({
   entry,
 }: TimelineWorkGroupProps): ReactElement {
+  const visibleEvents = useMemo(
+    () => entry.events.filter((event) => !isGenericRunLifecycleEvent(event)),
+    [entry.events],
+  );
+  // Lifecycle-only runs still need a duration line; steps stay empty.
+  const stepEvents = visibleEvents.length > 0 ? visibleEvents : [];
+
   const terminalStatus = useMemo(() => {
-    if (
-      entry.events.some((event) => event.status === AgentWorkEventStatus.FAILED)
-    ) {
+    const source = entry.events;
+    if (source.some((event) => event.status === AgentWorkEventStatus.FAILED)) {
       return 'failed' as const;
     }
     if (
-      entry.events.some(
-        (event) => event.status === AgentWorkEventStatus.CANCELLED,
-      )
+      source.some((event) => event.status === AgentWorkEventStatus.CANCELLED)
     ) {
       return 'cancelled' as const;
     }
+    if (source.some((event) => isActiveWorkEvent(event))) {
+      return 'live' as const;
+    }
     if (
-      entry.events.some(
-        (event) => event.status === AgentWorkEventStatus.COMPLETED,
-      ) &&
-      entry.events.every(
-        (event) =>
-          event.status === AgentWorkEventStatus.COMPLETED ||
-          event.status === AgentWorkEventStatus.CANCELLED,
-      )
+      source.some((event) => event.status === AgentWorkEventStatus.COMPLETED) ||
+      source.every((event) => isGenericRunLifecycleEvent(event))
     ) {
       return 'completed' as const;
     }
@@ -55,22 +60,20 @@ export function TimelineWorkGroup({
   }, [entry.events]);
 
   const isTerminal = terminalStatus !== 'live';
-  // Only archive presentation collapses by default. Fresh failures stay open
-  // (still presentation: 'live' from derive-timeline) so the user sees steps.
-  const isCollapsible = entry.presentation === 'archived';
-  const [isExpanded, setIsExpanded] = useState(!isCollapsible);
-  const hasTerminalEvent = entry.events.some((event) =>
-    [
-      AgentWorkEventStatus.COMPLETED,
-      AgentWorkEventStatus.FAILED,
-      AgentWorkEventStatus.CANCELLED,
-    ].includes(event.status),
+  // Collapse whenever settled — presentation archive OR terminal without live work
+  const isCollapsible = isTerminal || entry.presentation === 'archived';
+  const [isExpanded, setIsExpanded] = useState(
+    !isCollapsible && entry.presentation === 'live',
   );
 
-  const liveElapsedLabel = useLiveElapsedLabel(
-    entry.createdAt,
-    !isTerminal && entry.presentation === 'live',
-  );
+  // Keep expand state in sync when a live group settles.
+  useEffect(() => {
+    if (isCollapsible) {
+      setIsExpanded(false);
+    }
+  }, [isCollapsible]);
+
+  const liveElapsedLabel = useLiveElapsedLabel(entry.createdAt, !isTerminal);
   const settledDurationLabel = formatDurationMs(entry.totalDurationMs);
   const durationPhrase = isTerminal
     ? settledDurationLabel
@@ -92,7 +95,7 @@ export function TimelineWorkGroup({
     return formatAgentErrorDetail(failed?.detail ?? failed?.label ?? null);
   }, [entry.events, terminalStatus]);
 
-  const stepCount = entry.events.length;
+  const stepCount = stepEvents.length;
   const statusLabel =
     terminalStatus === 'failed'
       ? 'Failed'
@@ -102,13 +105,13 @@ export function TimelineWorkGroup({
           ? 'Completed'
           : 'Running';
 
-  const showSteps = !isCollapsible || isExpanded;
+  const showSteps = stepCount > 0 && (!isCollapsible || isExpanded);
 
   const durationFooter = (
     <div
       className={cn(
-        'flex items-center justify-between gap-2 px-2.5 py-2',
-        showSteps && 'mt-1 border-t border-border/50',
+        'flex items-center justify-between gap-2 px-1 py-1',
+        showSteps && 'mt-0.5 border-t border-border/40 pt-1.5',
       )}
     >
       <div className="flex min-w-0 items-center gap-1.5 text-xs text-foreground/55">
@@ -127,14 +130,18 @@ export function TimelineWorkGroup({
               )}
               {statusLabel}
             </span>
-            <span aria-hidden="true" className="text-foreground/25">
-              ·
-            </span>
-            <span className="text-[11px] text-foreground/40">
-              {stepCount} step{stepCount !== 1 ? 's' : ''}
-            </span>
+            {stepCount > 0 ? (
+              <>
+                <span aria-hidden="true" className="text-foreground/25">
+                  ·
+                </span>
+                <span className="text-[11px] text-foreground/40">
+                  {stepCount} step{stepCount !== 1 ? 's' : ''}
+                </span>
+              </>
+            ) : null}
           </>
-        ) : (
+        ) : stepCount > 0 ? (
           <>
             <span aria-hidden="true" className="text-foreground/25">
               ·
@@ -143,7 +150,7 @@ export function TimelineWorkGroup({
               {stepCount} step{stepCount !== 1 ? 's' : ''}
             </span>
           </>
-        )}
+        ) : null}
         {failureDetail && !showSteps ? (
           <>
             <span aria-hidden="true" className="text-foreground/25">
@@ -155,10 +162,10 @@ export function TimelineWorkGroup({
           </>
         ) : null}
       </div>
-      {isCollapsible ? (
+      {isCollapsible && stepCount > 0 ? (
         <HiChevronDown
           className={cn(
-            'size-4 shrink-0 text-foreground/40 transition-transform',
+            'size-3.5 shrink-0 text-foreground/40 transition-transform',
             isExpanded ? 'rotate-180' : '',
           )}
         />
@@ -167,23 +174,25 @@ export function TimelineWorkGroup({
   );
 
   return (
-    <div className="mb-3 flex justify-start motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out">
+    <div className="mb-2 flex justify-start motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out">
       <div
         className={cn(
-          'w-full max-w-none rounded-lg border bg-background-secondary/80 p-1.5 shadow-[0_1px_0_rgba(0,0,0,0.18)]',
+          'w-full max-w-none rounded-md px-1.5 py-1',
+          // Hairline only — no elevated card competing with free-text answers
           terminalStatus === 'failed'
-            ? 'border-destructive/30'
-            : 'border-border/70',
+            ? 'border border-destructive/25 bg-destructive/[0.04]'
+            : 'border border-transparent hover:border-border/40',
         )}
+        data-testid="timeline-work-group"
       >
         {showSteps ? (
-          <div className="flex flex-col gap-0.5 px-0.5 pt-0.5">
-            {entry.events.map((event) => (
+          <div className="flex flex-col gap-0 px-0.5">
+            {stepEvents.map((event) => (
               <TimelineWorkEntry
                 key={event.id}
                 event={event}
                 stopActiveAnimation={
-                  hasTerminalEvent &&
+                  isTerminal &&
                   (event.status === AgentWorkEventStatus.PENDING ||
                     event.status === AgentWorkEventStatus.RUNNING)
                 }
@@ -192,13 +201,14 @@ export function TimelineWorkGroup({
           </div>
         ) : null}
 
-        {isCollapsible ? (
+        {isCollapsible && stepCount > 0 ? (
           <Button
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
+            textTransform="none"
             onClick={() => setIsExpanded((prev) => !prev)}
             aria-expanded={isExpanded}
-            className="w-full rounded-md text-left transition-colors hover:bg-background/55"
+            className="w-full rounded-md text-left transition-colors hover:bg-foreground/[0.04]"
           >
             {durationFooter}
           </Button>
