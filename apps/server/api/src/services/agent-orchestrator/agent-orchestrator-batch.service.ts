@@ -13,7 +13,9 @@ import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestra
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { captureRunArtifacts } from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
 import { extractBatchTopic } from '@api/services/agent-orchestrator/utils/agent-orchestrator-input-parsing.util';
+import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import { buildAgentScopeMetadata } from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
+import { buildFallbackThreadTitle } from '@api/services/agent-orchestrator/utils/agent-thread-title.util';
 import { AgentMessageRole } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';
@@ -35,7 +37,6 @@ interface BatchGenerationDraft {
  * thread title helpers.
  */
 export type AgentOrchestratorBatchHost = {
-  buildFallbackThreadTitle: (prompt: string) => string;
   maybeUpdateThreadTitle: (params: {
     context: AgentChatContext;
     seedTitle: string;
@@ -198,7 +199,7 @@ export class AgentOrchestratorBatchService {
       context: params.context,
       seedTitle: params.seedTitle,
       threadId: params.threadId,
-      title: host.buildFallbackThreadTitle(params.requestContent),
+      title: buildFallbackThreadTitle(params.requestContent),
     });
     const creditsRemaining =
       await this.creditsUtilsService.getOrganizationCreditsBalance(
@@ -219,7 +220,7 @@ export class AgentOrchestratorBatchService {
       ...artifactMetadata,
       ...buildAgentScopeMetadata(params.context),
       creditsRemaining,
-      ...this.buildResolvedModelMetadata(params.model),
+      ...buildResolvedModelMetadata(params.model),
       reviewRequired: result.requiresConfirmation ?? false,
       riskLevel: result.riskLevel ?? 'low',
       ...(enhancedUiActions.suggestedActions.length
@@ -379,31 +380,6 @@ export class AgentOrchestratorBatchService {
     return {
       end: end.toISOString(),
       start: start.toISOString(),
-    };
-  }
-
-  private buildResolvedModelMetadata(
-    requestedModel: string,
-    actualModels?: string[],
-  ): {
-    actualModel: string;
-    actualModels: string[];
-    model: string;
-    requestedModel: string;
-  } {
-    const normalizedActualModels = Array.from(
-      new Set((actualModels ?? []).filter((model) => model.trim().length > 0)),
-    );
-    const fallbackModel = requestedModel.trim() || requestedModel;
-    const actualModel = normalizedActualModels.at(-1) ?? fallbackModel;
-
-    return {
-      actualModel,
-      actualModels: normalizedActualModels.length
-        ? normalizedActualModels
-        : [actualModel],
-      model: actualModel,
-      requestedModel,
     };
   }
 }

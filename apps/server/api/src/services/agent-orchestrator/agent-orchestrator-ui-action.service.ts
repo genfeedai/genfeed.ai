@@ -21,6 +21,8 @@ import type {
 import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { captureRunArtifacts } from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
+import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator/utils/agent-final-content.util';
+import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import {
   buildAgentScopeMetadata,
   recordAgentRunScope,
@@ -709,58 +711,6 @@ export class AgentOrchestratorUiActionService {
     return normalized;
   }
 
-  private normalizeFinalAssistantContent(
-    content: string,
-    toolCalls: ToolCallSummary[],
-    uiActions: AgentUiAction[],
-  ): { content: string; isFallback: boolean } {
-    const hasBatchGenerationResultCard = uiActions.some(
-      (action) => action.type === 'batch_generation_result_card',
-    );
-
-    if (content.trim().length > 0) {
-      if (hasBatchGenerationResultCard) {
-        const normalizedBatchContent = content
-          .replace(/^\s*Batch Details:\s*$/gim, '')
-          .replace(/^\s*Batch ID:.*$/gim, '')
-          .replace(/^\s*Status:.*$/gim, '')
-          .replace(/^\s*Credits used:.*$/gim, '')
-          .replace(/\n{3,}/g, '\n\n')
-          .trim();
-
-        return {
-          content:
-            normalizedBatchContent.length > 0
-              ? normalizedBatchContent
-              : 'Your batch is in motion. The latest status is below.',
-          isFallback: false,
-        };
-      }
-
-      return { content, isFallback: false };
-    }
-
-    if (toolCalls.length === 0 && uiActions.length === 0) {
-      return { content, isFallback: false };
-    }
-
-    const hasVoiceCloneSetup = toolCalls.some(
-      (toolCall) =>
-        toolCall.status === 'completed' &&
-        toolCall.toolName === AgentToolName.PREPARE_VOICE_CLONE,
-    );
-
-    if (hasVoiceCloneSetup) {
-      return {
-        content:
-          'I opened voice clone setup below. Upload a sample or pick an existing voice.',
-        isFallback: true,
-      };
-    }
-
-    return { content: 'I prepared the next step below.', isFallback: true };
-  }
-
   private async finalizeStructuredAssistantTurn(params: {
     content: string;
     context: AgentChatContext;
@@ -817,7 +767,7 @@ export class AgentOrchestratorUiActionService {
         toolCalls: params.toolCalls,
         uiActions,
       });
-    const normalizedContent = this.normalizeFinalAssistantContent(
+    const normalizedContent = normalizeFinalAssistantContent(
       sanitizeAgentOutputText(params.content),
       params.toolCalls,
       enhancedUiActions.uiActions,
@@ -835,7 +785,7 @@ export class AgentOrchestratorUiActionService {
       ...artifactMetadata,
       ...buildAgentScopeMetadata(params.context),
       isFallbackContent: normalizedContent.isFallback,
-      ...this.buildResolvedModelMetadata(params.model),
+      ...buildResolvedModelMetadata(params.model),
       reviewRequired: params.result.requiresConfirmation ?? false,
       riskLevel: params.result.riskLevel ?? 'low',
       ...(enhancedUiActions.suggestedActions.length
@@ -894,31 +844,6 @@ export class AgentOrchestratorUiActionService {
       },
       threadId: params.threadId,
       toolCalls: params.toolCalls,
-    };
-  }
-
-  private buildResolvedModelMetadata(
-    requestedModel: string,
-    actualModels?: string[],
-  ): {
-    actualModel: string;
-    actualModels: string[];
-    model: string;
-    requestedModel: string;
-  } {
-    const normalizedActualModels = Array.from(
-      new Set((actualModels ?? []).filter((model) => model.trim().length > 0)),
-    );
-    const fallbackModel = requestedModel.trim() || requestedModel;
-    const actualModel = normalizedActualModels.at(-1) ?? fallbackModel;
-
-    return {
-      actualModel,
-      actualModels: normalizedActualModels.length
-        ? normalizedActualModels
-        : [actualModel],
-      model: actualModel,
-      requestedModel,
     };
   }
 

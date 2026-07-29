@@ -57,19 +57,19 @@ import {
   ResolvedAgentExecutionPolicy,
 } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { getToolDefinitions } from '@api/services/agent-orchestrator/tools/agent-tool-registry';
 import {
   captureRunArtifacts,
   mergeAgentArtifactCompletionMetadata,
   persistRunArtifacts,
 } from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
+import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator/utils/agent-final-content.util';
 import { extractBatchTopic } from '@api/services/agent-orchestrator/utils/agent-orchestrator-input-parsing.util';
 import { buildPageContextPrompt } from '@api/services/agent-orchestrator/utils/agent-page-context.util';
 import {
-  buildAgentRoutingMetadata,
-  resolveAgentRoutingPlugins,
-  resolveAgentRoutingPolicy,
-} from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';
+  buildResolvedModelMetadata,
+  normalizeResponseModel,
+} from '@api/services/agent-orchestrator/utils/agent-response-model.util';
+import { buildAgentRoutingMetadata } from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';
 import {
   buildAgentScopeMetadata,
   recordAgentRunScope,
@@ -79,6 +79,16 @@ import {
   applyAgentReplyStyle,
   buildAgentSystemPrompt,
 } from '@api/services/agent-orchestrator/utils/agent-system-prompt.util';
+import {
+  buildSeedThreadTitle,
+  extractThreadEnvelope,
+} from '@api/services/agent-orchestrator/utils/agent-thread-title.util';
+import {
+  BATCH_SCOPED_ALLOWED_TOOLS,
+  buildAgentChatCompletionParams,
+  buildToolDefinitions,
+  mergeAllowedTools,
+} from '@api/services/agent-orchestrator/utils/agent-tool-definitions.util';
 import { settleAgentTurnCredits } from '@api/services/agent-orchestrator/utils/agent-turn-credit.util';
 import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/sanitize-agent-output.util';
 import { AgentExecutionLaneService } from '@api/services/agent-threading/services/agent-execution-lane.service';
@@ -87,11 +97,6 @@ import { AgentRuntimeSessionService } from '@api/services/agent-threading/servic
 import type { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
-import type {
-  OpenRouterMessage,
-  OpenRouterPlugin,
-  OpenRouterTool,
-} from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import {
   ActivitySource,
@@ -103,7 +108,6 @@ import {
 import {
   AgentToolName,
   type AgentUIBlocksEvent,
-  type AgentUiAction,
   toAgentScopeMetadata,
   type ValidatedAgentScope,
 } from '@genfeedai/interfaces';
@@ -313,11 +317,7 @@ export class AgentOrchestratorService {
           turnCost,
         },
         {
-          buildFallbackThreadTitle: (prompt) =>
-            this.buildFallbackThreadTitle(prompt),
           maybeUpdateThreadTitle: (p) => this.maybeUpdateThreadTitle(p),
-          sanitizeGeneratedThreadTitle: (title, prompt) =>
-            this.sanitizeGeneratedThreadTitle(title, prompt),
         },
       );
 
@@ -393,11 +393,7 @@ export class AgentOrchestratorService {
         this.executeSynchronousChatLoop(params),
       generatePlanModeResponse: (params) =>
         this.planModeService.generatePlanModeResponse(params, {
-          buildFallbackThreadTitle: (prompt) =>
-            this.buildFallbackThreadTitle(prompt),
           maybeUpdateThreadTitle: (p) => this.maybeUpdateThreadTitle(p),
-          sanitizeGeneratedThreadTitle: (title, prompt) =>
-            this.sanitizeGeneratedThreadTitle(title, prompt),
         }),
       runInThreadLane: (threadId, run) => this.runInThreadLane(threadId, run),
     });
@@ -484,10 +480,12 @@ export class AgentOrchestratorService {
               context.resolvedSkills,
             ) as AgentToolName[] | undefined)
           : typeConfig?.defaultTools;
-      const tools = this.buildToolDefinitions(
-        this.mergeAllowedTools(
+      const tools = buildToolDefinitions(
+        mergeAllowedTools(
           syncBaseTools,
-          this.getRequestScopedAllowedTools(request.content),
+          this.batchService.isBatchGenerationIntent(request.content)
+            ? BATCH_SCOPED_ALLOWED_TOOLS
+            : undefined,
         ),
       );
       const allowedToolNames = new Set(
@@ -501,7 +499,7 @@ export class AgentOrchestratorService {
         round++;
 
         const response = await this.llmDispatcher.chatCompletion(
-          this.buildAgentChatCompletionParams({
+          buildAgentChatCompletionParams({
             messages,
             model,
             prompt: request.content,
@@ -531,14 +529,14 @@ export class AgentOrchestratorService {
         const toolCalls = assistantMessage.tool_calls;
 
         if (!toolCalls || toolCalls.length === 0) {
-          const threadEnvelope = this.extractThreadEnvelope({
+          const threadEnvelope = extractThreadEnvelope({
             assistantContent: sanitizeAgentOutputText(
               assistantMessage.content || '',
             ),
             prompt: request.content,
             seedTitle,
           });
-          const normalizedContent = this.normalizeFinalAssistantContent(
+          const normalizedContent = normalizeFinalAssistantContent(
             threadEnvelope.content,
             toolRoundState.toolCalls,
             toolRoundState.uiActions,
@@ -590,7 +588,7 @@ export class AgentOrchestratorService {
             isFallbackContent: normalizedContent.isFallback,
             memoryEntries: memoryEntriesForResponse,
             memoryInfluence,
-            ...this.buildResolvedModelMetadata(model, Array.from(actualModels)),
+            ...buildResolvedModelMetadata(model, Array.from(actualModels)),
             reasoning,
             reviewRequired: toolRoundState.reviewRequired,
             riskLevel: toolRoundState.highestRiskLevel,
@@ -904,11 +902,7 @@ export class AgentOrchestratorService {
           turnCost,
         },
         {
-          buildFallbackThreadTitle: (prompt) =>
-            this.buildFallbackThreadTitle(prompt),
           maybeUpdateThreadTitle: (p) => this.maybeUpdateThreadTitle(p),
-          sanitizeGeneratedThreadTitle: (title, prompt) =>
-            this.sanitizeGeneratedThreadTitle(title, prompt),
         },
       );
 
@@ -936,8 +930,6 @@ export class AgentOrchestratorService {
             threadId,
           },
           {
-            buildFallbackThreadTitle: (prompt) =>
-              this.buildFallbackThreadTitle(prompt),
             maybeUpdateThreadTitle: (p) => this.maybeUpdateThreadTitle(p),
           },
         )) ||
@@ -1079,9 +1071,13 @@ export class AgentOrchestratorService {
           .reverse()
           .find((message) => message.role === 'user')
           ?.content?.toString?.() ?? '';
-      const scopedTools = this.getRequestScopedAllowedTools(latestUserMessage);
-      const tools = this.buildToolDefinitions(
-        this.mergeAllowedTools(baseTools, scopedTools),
+      const scopedTools = this.batchService.isBatchGenerationIntent(
+        latestUserMessage,
+      )
+        ? BATCH_SCOPED_ALLOWED_TOOLS
+        : undefined;
+      const tools = buildToolDefinitions(
+        mergeAllowedTools(baseTools, scopedTools),
       );
       const allowedToolNames = new Set(
         tools.map((tool) => tool.function.name as AgentToolName),
@@ -1104,7 +1100,7 @@ export class AgentOrchestratorService {
         }
         round++;
 
-        const chatParams = this.buildAgentChatCompletionParams({
+        const chatParams = buildAgentChatCompletionParams({
           messages,
           model,
           prompt: latestUserMessage,
@@ -1224,14 +1220,14 @@ export class AgentOrchestratorService {
             return;
           }
 
-          const threadEnvelope = this.extractThreadEnvelope({
+          const threadEnvelope = extractThreadEnvelope({
             assistantContent: sanitizeAgentOutputText(
               assistantMessage.content || '',
             ),
             prompt: latestUserMessage,
             seedTitle: seedTitle ?? '',
           });
-          const normalizedContent = this.normalizeFinalAssistantContent(
+          const normalizedContent = normalizeFinalAssistantContent(
             threadEnvelope.content,
             toolRoundState.toolCalls,
             toolRoundState.uiActions,
@@ -1303,10 +1299,7 @@ export class AgentOrchestratorService {
               isFallbackContent: normalizedContent.isFallback,
               memoryEntries: memoryEntriesForResponse,
               memoryInfluence,
-              ...this.buildResolvedModelMetadata(
-                model,
-                Array.from(actualModels),
-              ),
+              ...buildResolvedModelMetadata(model, Array.from(actualModels)),
               reasoning,
               reviewRequired: toolRoundState.reviewRequired,
               riskLevel: toolRoundState.highestRiskLevel,
@@ -1357,10 +1350,7 @@ export class AgentOrchestratorService {
                 isFallbackContent: normalizedContent.isFallback,
                 memoryEntries: memoryEntriesForResponse,
                 memoryInfluence,
-                ...this.buildResolvedModelMetadata(
-                  model,
-                  Array.from(actualModels),
-                ),
+                ...buildResolvedModelMetadata(model, Array.from(actualModels)),
                 reasoning,
                 reviewRequired: toolRoundState.reviewRequired,
                 riskLevel: toolRoundState.highestRiskLevel,
@@ -1592,7 +1582,7 @@ export class AgentOrchestratorService {
       };
     }
 
-    const seedTitle = this.buildSeedThreadTitle(request.content);
+    const seedTitle = buildSeedThreadTitle(request.content);
 
     const thread = await this.agentThreadsService.create({
       ...preparedScope.initialScopeFields,
@@ -1606,100 +1596,6 @@ export class AgentOrchestratorService {
       isCreated: true,
       seedTitle,
       threadId: String(thread.id),
-    };
-  }
-
-  private buildSeedThreadTitle(content: string): string {
-    return content.substring(0, 100).trim();
-  }
-
-  private buildFallbackThreadTitle(prompt: string): string {
-    const fillerPattern =
-      /\b(can you|could you|help me|i need|i want|please|let's|lets|show me|tell me|give me|make me|create|generate|draft|write)\b/gi;
-    const cleaned = prompt
-      .replace(/[`"'“”‘’]/g, ' ')
-      .replace(/[^a-zA-Z0-9\s]/g, ' ')
-      .replace(fillerPattern, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-    const words = cleaned
-      .split(' ')
-      .filter((word) => word.length > 1)
-      .slice(0, 5);
-
-    if (words.length === 0) {
-      return this.buildSeedThreadTitle(prompt);
-    }
-
-    return words
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  }
-
-  private sanitizeGeneratedThreadTitle(title: string, prompt: string): string {
-    const normalized = title
-      .replace(/[`"'“”‘’]/g, ' ')
-      .replace(/[^\w\s'-]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    if (!normalized) {
-      return this.buildFallbackThreadTitle(prompt);
-    }
-
-    const words = normalized.split(' ').filter(Boolean).slice(0, 5);
-    if (words.length < 2) {
-      return this.buildFallbackThreadTitle(prompt);
-    }
-
-    return words
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  }
-
-  private extractThreadEnvelope(params: {
-    assistantContent: string;
-    prompt: string;
-    seedTitle: string;
-  }): { content: string; title: string | null } {
-    if (!params.seedTitle.trim()) {
-      return {
-        content: params.assistantContent,
-        title: null,
-      };
-    }
-
-    const trimmed = params.assistantContent.trim();
-    const fencedJsonMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-    const candidate = fencedJsonMatch?.[1]?.trim() ?? trimmed;
-    let parsed: {
-      content?: unknown;
-      title?: unknown;
-    } | null = null;
-
-    if (candidate.startsWith('{') && candidate.endsWith('}')) {
-      try {
-        parsed = JSON.parse(candidate) as {
-          content?: unknown;
-          title?: unknown;
-        };
-      } catch {
-        parsed = null;
-      }
-    }
-
-    const content =
-      typeof parsed?.content === 'string' && parsed.content.trim()
-        ? parsed.content.trim()
-        : params.assistantContent;
-    const parsedTitle =
-      typeof parsed?.title === 'string' ? parsed.title.trim() : '';
-
-    return {
-      content,
-      title: parsedTitle
-        ? this.sanitizeGeneratedThreadTitle(parsedTitle, params.prompt)
-        : this.buildFallbackThreadTitle(params.prompt),
     };
   }
 
@@ -1750,103 +1646,6 @@ export class AgentOrchestratorService {
     return await this.recurringTaskService.resumeRecurringTaskDraftFromInput(
       params,
     );
-  }
-
-  private buildToolDefinitions(
-    allowedTools?: AgentToolName[],
-  ): OpenRouterTool[] {
-    const all = getToolDefinitions();
-    const filtered = allowedTools
-      ? all.filter((t) => allowedTools.includes(t.name as AgentToolName))
-      : all;
-
-    return filtered.map((tool) => ({
-      function: {
-        description: tool.description,
-        name: tool.name,
-        parameters: tool.parameters,
-      },
-      type: 'function' as const,
-    }));
-  }
-
-  private mergeAllowedTools(
-    preferred?: AgentToolName[],
-    scoped?: AgentToolName[],
-  ): AgentToolName[] | undefined {
-    if (preferred && scoped) {
-      return preferred.filter((tool) => scoped.includes(tool));
-    }
-
-    return scoped ?? preferred;
-  }
-
-  private getRequestScopedAllowedTools(
-    requestContent: string,
-  ): AgentToolName[] | undefined {
-    if (!this.batchService.isBatchGenerationIntent(requestContent)) {
-      return undefined;
-    }
-
-    return [
-      AgentToolName.GENERATE_CONTENT_BATCH,
-      AgentToolName.BATCH_APPROVE_REJECT,
-      AgentToolName.GET_CURRENT_BRAND,
-      AgentToolName.LIST_BRANDS,
-      AgentToolName.LIST_REVIEW_QUEUE,
-    ];
-  }
-
-  private normalizeFinalAssistantContent(
-    content: string,
-    toolCalls: ToolCallSummary[],
-    uiActions: AgentUiAction[],
-  ): { content: string; isFallback: boolean } {
-    const hasBatchGenerationResultCard = uiActions.some(
-      (action) => action.type === 'batch_generation_result_card',
-    );
-
-    if (content.trim().length > 0) {
-      if (hasBatchGenerationResultCard) {
-        const normalizedBatchContent = content
-          .replace(/^\s*Batch Details:\s*$/gim, '')
-          .replace(/^\s*Batch ID:.*$/gim, '')
-          .replace(/^\s*Status:.*$/gim, '')
-          .replace(/^\s*Credits used:.*$/gim, '')
-          .replace(/\n{3,}/g, '\n\n')
-          .trim();
-
-        return {
-          content:
-            normalizedBatchContent.length > 0
-              ? normalizedBatchContent
-              : 'Your batch is in motion. The latest status is below.',
-          isFallback: false,
-        };
-      }
-
-      return { content, isFallback: false };
-    }
-
-    if (toolCalls.length === 0 && uiActions.length === 0) {
-      return { content, isFallback: false };
-    }
-
-    const hasVoiceCloneSetup = toolCalls.some(
-      (toolCall) =>
-        toolCall.status === 'completed' &&
-        toolCall.toolName === AgentToolName.PREPARE_VOICE_CLONE,
-    );
-
-    if (hasVoiceCloneSetup) {
-      return {
-        content:
-          'I opened voice clone setup below. Upload a sample or pick an existing voice.',
-        isFallback: true,
-      };
-    }
-
-    return { content: 'I prepared the next step below.', isFallback: true };
   }
 
   private async recordProfileSnapshot(
@@ -1938,96 +1737,6 @@ export class AgentOrchestratorService {
     );
   }
 
-  private buildAgentChatCompletionParams(params: {
-    messages: OpenRouterMessage[];
-    model: string;
-    prompt: string;
-    seedTitle?: string;
-    source?: AgentChatRequest['source'];
-    tools: OpenRouterTool[];
-  }): {
-    max_tokens: number;
-    messages: OpenRouterMessage[];
-    model: string;
-    plugins?: OpenRouterPlugin[];
-    temperature: number;
-    tool_choice: 'auto';
-    tools: OpenRouterTool[];
-  } {
-    const routingPolicy = resolveAgentRoutingPolicy({
-      model: params.model,
-      prompt: params.prompt,
-      source: params.source,
-    });
-    const plugins = resolveAgentRoutingPlugins(routingPolicy);
-    const titleInstruction = params.seedTitle?.trim()
-      ? [
-          {
-            content:
-              'If you are ready to provide the final assistant reply for this new conversation and you are not making a tool call, respond with valid JSON only: {"title":"3 to 5 word title in title case","content":"full assistant reply"}. If you need to make a tool call, do that normally and ignore this formatting instruction until the final reply.',
-            role: 'system' as const,
-          },
-        ]
-      : [];
-
-    return {
-      max_tokens: 4096,
-      messages: [...titleInstruction, ...params.messages],
-      model: params.model,
-      ...(plugins ? { plugins } : {}),
-      temperature: 0.7,
-      tool_choice: 'auto',
-      tools: params.tools,
-    };
-  }
-
-  private buildResolvedModelMetadata(
-    requestedModel: string,
-    actualModels?: string[],
-  ): {
-    actualModel: string;
-    actualModels: string[];
-    model: string;
-    requestedModel: string;
-  } {
-    const normalizedActualModels = Array.from(
-      new Set((actualModels ?? []).filter((model) => model.trim().length > 0)),
-    );
-    const fallbackModel = requestedModel.trim() || requestedModel;
-    const actualModel = normalizedActualModels.at(-1) ?? fallbackModel;
-
-    return {
-      actualModel,
-      actualModels: normalizedActualModels.length
-        ? normalizedActualModels
-        : [actualModel],
-      model: actualModel,
-      requestedModel,
-    };
-  }
-
-  private normalizeResponseModel(
-    requestedModel: string,
-    responseModel?: string,
-  ): string {
-    const trimmedRequestedModel = requestedModel.trim();
-    const trimmedResponseModel = responseModel?.trim();
-
-    if (!trimmedResponseModel) {
-      return trimmedRequestedModel;
-    }
-
-    if (
-      !trimmedResponseModel.includes('/') &&
-      !trimmedRequestedModel.startsWith('openrouter/')
-    ) {
-      const provider = trimmedRequestedModel.split('/')[0];
-      return `${provider}/${trimmedResponseModel}`;
-    }
-
-    return trimmedResponseModel;
-  }
-
   private async recordAgentResponseModel(params: {
     actualModels?: string[];
     context: AgentChatContext;
@@ -2037,7 +1746,7 @@ export class AgentOrchestratorService {
     source?: AgentChatRequest['source'];
     threadId: string;
   }): Promise<string> {
-    const actualModel = this.normalizeResponseModel(
+    const actualModel = normalizeResponseModel(
       params.requestedModel,
       params.responseModel,
     );
@@ -2056,7 +1765,7 @@ export class AgentOrchestratorService {
       await this.agentRunsService.mergeMetadata(
         params.runId,
         params.context.organizationId,
-        this.buildResolvedModelMetadata(params.requestedModel, [
+        buildResolvedModelMetadata(params.requestedModel, [
           ...(params.actualModels ?? []),
           actualModel,
         ]),

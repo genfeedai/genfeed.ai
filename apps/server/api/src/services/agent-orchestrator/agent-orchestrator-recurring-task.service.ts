@@ -18,10 +18,12 @@ import {
   extractRecurringContentCount,
   extractStyleNotes,
 } from '@api/services/agent-orchestrator/utils/agent-orchestrator-input-parsing.util';
+import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import {
   buildAgentScopeMetadata,
   recordAgentRunScope,
 } from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
+import { buildFallbackThreadTitle } from '@api/services/agent-orchestrator/utils/agent-thread-title.util';
 import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentMessageRole } from '@genfeedai/enums';
 import { AgentToolName, type ValidatedAgentScope } from '@genfeedai/interfaces';
@@ -177,7 +179,7 @@ export class AgentOrchestratorRecurringTaskService {
       context: params.context,
       seedTitle: params.seedTitle,
       threadId: params.threadId,
-      title: this.buildFallbackThreadTitle(params.requestContent),
+      title: buildFallbackThreadTitle(params.requestContent),
     });
 
     const creditsRemaining =
@@ -246,7 +248,7 @@ export class AgentOrchestratorRecurringTaskService {
       context: params.context,
       seedTitle: params.seedTitle,
       threadId: params.threadId,
-      title: this.buildFallbackThreadTitle(params.requestContent),
+      title: buildFallbackThreadTitle(params.requestContent),
     });
 
     const creditsRemaining =
@@ -363,7 +365,7 @@ export class AgentOrchestratorRecurringTaskService {
               ? 'I need the cadence for this recurring automation before I create it.'
               : 'I need one more creative constraint so each run stays useful instead of producing near-duplicates.',
         creditsUsed: 0,
-        metadata: this.buildResolvedModelMetadata(params.model),
+        metadata: buildResolvedModelMetadata(params.model),
       };
     }
     const result = await this.toolExecutorService.executeTool(
@@ -418,7 +420,7 @@ export class AgentOrchestratorRecurringTaskService {
               });
 
             return {
-              ...this.buildResolvedModelMetadata(params.model),
+              ...buildResolvedModelMetadata(params.model),
               reviewRequired: result.requiresConfirmation ?? false,
               riskLevel: result.riskLevel ?? 'low',
               ...(enhancedUiActions.suggestedActions.length
@@ -427,7 +429,7 @@ export class AgentOrchestratorRecurringTaskService {
               uiActions: enhancedUiActions.uiActions,
             };
           })()
-        : this.buildResolvedModelMetadata(params.model),
+        : buildResolvedModelMetadata(params.model),
     };
   }
 
@@ -837,33 +839,6 @@ export class AgentOrchestratorRecurringTaskService {
     return settings?.timezone?.trim() || 'UTC';
   }
 
-  private buildSeedThreadTitle(content: string): string {
-    return content.substring(0, 100).trim();
-  }
-
-  private buildFallbackThreadTitle(prompt: string): string {
-    const fillerPattern =
-      /\b(can you|could you|help me|i need|i want|please|let's|lets|show me|tell me|give me|make me|create|generate|draft|write)\b/gi;
-    const cleaned = prompt
-      .replace(/[`"'“”‘’]/g, ' ')
-      .replace(/[^a-zA-Z0-9\s]/g, ' ')
-      .replace(fillerPattern, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-    const words = cleaned
-      .split(' ')
-      .filter((word) => word.length > 1)
-      .slice(0, 5);
-
-    if (words.length === 0) {
-      return this.buildSeedThreadTitle(prompt);
-    }
-
-    return words
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  }
-
   private async maybeUpdateThreadTitle(params: {
     context: AgentChatContext;
     seedTitle: string;
@@ -897,31 +872,6 @@ export class AgentOrchestratorRecurringTaskService {
       params.context.organizationId,
       { title: nextTitle },
     );
-  }
-
-  private buildResolvedModelMetadata(
-    requestedModel: string,
-    actualModels?: string[],
-  ): {
-    actualModel: string;
-    actualModels: string[];
-    model: string;
-    requestedModel: string;
-  } {
-    const normalizedActualModels = Array.from(
-      new Set((actualModels ?? []).filter((model) => model.trim().length > 0)),
-    );
-    const fallbackModel = requestedModel.trim() || requestedModel;
-    const actualModel = normalizedActualModels.at(-1) ?? fallbackModel;
-
-    return {
-      actualModel,
-      actualModels: normalizedActualModels.length
-        ? normalizedActualModels
-        : [actualModel],
-      model: actualModel,
-      requestedModel,
-    };
   }
 
   private getRuntimeBindingEffect(
