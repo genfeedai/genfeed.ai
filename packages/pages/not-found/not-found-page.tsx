@@ -13,7 +13,7 @@ export default function NotFoundPage({
   const logoUrl = useThemeLogo();
 
   return (
-    <div className="container h-screen flex justify-center items-center text-center mx-auto bg-background">
+    <div className="flex min-h-dvh w-full items-center justify-center bg-black text-center">
       <div className="grid grid-cols-1">
         {logoUrl && (
           <Image
