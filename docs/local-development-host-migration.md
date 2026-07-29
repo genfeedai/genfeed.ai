@@ -1,29 +1,45 @@
 # Local development host migration
 
-Portless HTTP routes on port `1355` are the canonical interactive-development
-contract:
+Clean Portless HTTPS routes are the canonical interactive-development contract:
 
-- `http://app.genfeed.localhost:1355`
-- `http://api.genfeed.localhost:1355`
-- `http://notifications.genfeed.localhost:1355`
+- `https://app.genfeed.localhost`
+- `https://website.genfeed.localhost`
+- `https://docs.genfeed.localhost`
+- `https://api.genfeed.localhost`
+- `https://files.genfeed.localhost`
+- `https://mcp.genfeed.localhost`
+- `https://notifications.genfeed.localhost`
+
+Install or verify the required startup service once per development machine:
+
+```bash
+bun run dev:setup
+```
+
+The command is idempotent. It uses the repository-pinned Portless dependency,
+installs HTTPS on port `443` with `.localhost` routes, disables hosts-file
+synchronization, and verifies the resulting service status. Administrator
+approval may be required to install the startup service and trust the local CA.
+Run `bun run dev:doctor` for a read-only verification of the installed service.
 
 Linked worktrees automatically add their branch prefix to every route. The
 repository runner derives sibling URLs from each process's `PORTLESS_URL`, so
 one worktree never mixes its app with another worktree's API.
 
-The runner explicitly disables TLS and hosts-file synchronization. It never
-binds port `443`, installs a certificate authority, edits `/etc/hosts`, or needs
-`sudo`.
+The runner explicitly enables TLS on port `443` and disables hosts-file
+synchronization. Portless performs the one-time local CA trust needed for
+browser-valid HTTPS and never edits `/etc/hosts`.
 
 Browser API and auth calls use the app's same-origin `/v1` route; Next.js
 proxies those requests to the derived API route. This keeps Better Auth cookies
 scoped to the app/worktree host. Server-to-server calls use direct derived
 Portless service routes.
 
-Fixed ports remain available only through `bun run dev:direct:*`. In that
-fallback, the app uses `3000`, API `3010`, and notifications/websockets `3111`.
-Root environment files remain the direct-runtime source of truth and
-`bun run env:sync local` distributes them to app and service env files.
+Fixed ports remain available only through `bun run dev:direct:*`. The
+direct-runtime adapter injects app `3000`, API `3010`, and
+notifications/websockets `3111`; canonical environment files contain the clean
+HTTPS service origins and `bun run env:sync local` distributes those origins to
+app and service env files.
 
 Plain `localhost` remains valid for Docker/self-hosted loopback, health checks,
 CI web servers, and tests where cookie/host isolation is irrelevant. Deployed

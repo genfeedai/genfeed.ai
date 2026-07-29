@@ -1,19 +1,15 @@
 import { spawn } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
 import {
-  buildPortlessEnvironment,
+  buildDirectEnvironment,
   isPortlessService,
-  PORTLESS_PROXY_ENVIRONMENT,
   type PortlessService,
 } from './portless-env';
 
-const INNER_FLAG = '--portless-inner';
 const ARGUMENT_SEPARATOR = '--';
 
 interface ParsedArguments {
   command: string[];
   currentService: PortlessService;
-  inner: boolean;
 }
 
 function fail(message: string): never {
@@ -23,25 +19,21 @@ function fail(message: string): never {
 
 function parseArguments(): ParsedArguments {
   const args = process.argv.slice(2);
-  const inner = args[0] === INNER_FLAG;
-  if (inner) {
-    args.shift();
-  }
   const currentService = args.shift();
 
   if (!currentService || !isPortlessService(currentService)) {
     return fail(
-      `Expected a Portless service: app, api, docs, files, mcp, notifications, or website.`,
+      'Expected a direct service: app, api, docs, files, mcp, notifications, or website.',
     );
   }
 
   if (args.shift() !== ARGUMENT_SEPARATOR || args.length === 0) {
     return fail(
-      `Usage: bun run scripts/dev/run-portless.ts <service> -- <command> [...args]`,
+      'Usage: bun run scripts/dev/run-direct.ts <service> -- <command> [...args]',
     );
   }
 
-  return { command: args, currentService, inner };
+  return { command: args, currentService };
 }
 
 function run(
@@ -52,8 +44,8 @@ function run(
   if (!executable) {
     return Promise.reject(new Error('Cannot run an empty command.'));
   }
-  const args = command.slice(1);
-  const child = spawn(executable, args, {
+
+  const child = spawn(executable, command.slice(1), {
     env: environment,
     stdio: 'inherit',
   });
@@ -79,45 +71,18 @@ function run(
 }
 
 async function main(): Promise<void> {
-  const { command, currentService, inner } = parseArguments();
-
-  if (!inner) {
-    const scriptPath = fileURLToPath(import.meta.url);
-    const exitCode = await run(
-      [
-        'portless',
-        'run',
-        '--name',
-        `${currentService}.genfeed`,
-        process.execPath,
-        scriptPath,
-        INNER_FLAG,
-        currentService,
-        ARGUMENT_SEPARATOR,
-        ...command,
-      ],
-      {
+  const { command, currentService } = parseArguments();
+  const environment = process.env.PORTLESS_URL
+    ? process.env
+    : {
         ...process.env,
-        ...PORTLESS_PROXY_ENVIRONMENT,
-      },
-    );
-    process.exit(exitCode);
-  }
+        ...buildDirectEnvironment({
+          currentService,
+          existingEnv: process.env,
+        }),
+      };
 
-  const portlessUrl = process.env.PORTLESS_URL;
-  if (!portlessUrl) {
-    return fail('Portless did not provide PORTLESS_URL to the child process.');
-  }
-
-  const exitCode = await run(command, {
-    ...process.env,
-    ...buildPortlessEnvironment({
-      currentService,
-      existingEnv: process.env,
-      portlessUrl,
-    }),
-  });
-  process.exit(exitCode);
+  process.exit(await run(command, environment));
 }
 
 await main();

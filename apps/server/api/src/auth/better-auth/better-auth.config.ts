@@ -43,13 +43,15 @@ export function parseTrustedOrigins(value: string | undefined): string[] {
  * ports (for example 3131 in a worktree) on the same supported local origin
  * contract as the shared CORS configuration.
  *
- * Recommended dev host is `genfeed.localhost`: `*.localhost` resolves to loopback
- * in every modern browser/OS (RFC 6761) with NO `/etc/hosts` entry, and gives
- * this project its own cookie jar so its session/JWT never collides with another
- * project on plain `localhost`. `local.genfeed.ai` (needs an `/etc/hosts` entry)
- * is kept for back-compat during migration; plain `localhost` also works.
+ * Recommended dev hosts are the clean HTTPS `*.genfeed.localhost` Portless
+ * routes: `*.localhost` resolves to loopback in every modern browser/OS
+ * (RFC 6761) with NO `/etc/hosts` entry, and gives this project its own cookie
+ * jar so its session/JWT never collides with another project on plain
+ * `localhost`. `local.genfeed.ai` (needs an `/etc/hosts` entry) is kept for
+ * back-compat during migration; plain `localhost` also works.
  */
 const LOCAL_DEV_TRUSTED_ORIGINS = [
+  'https://*.genfeed.localhost',
   'http://genfeed.localhost:*',
   'http://localhost:*',
   'http://local.genfeed.ai:*',
@@ -59,10 +61,10 @@ const LOCAL_DEV_TRUSTED_ORIGINS = [
  * Resolve Better Auth's trusted origins. Always honours whatever
  * `BETTER_AUTH_TRUSTED_ORIGINS` lists; outside production/staging it also merges
  * the standard {@link LOCAL_DEV_TRUSTED_ORIGINS} so local dev needs zero env
- * config and never hits a spurious `INVALID_ORIGIN` when accessed via
- * `genfeed.localhost`, `localhost`, or `local.genfeed.ai`. Real deployments
- * (production/staging) get exactly the configured list — loopback hosts are
- * never auto-trusted there.
+ * config and never hits a spurious `INVALID_ORIGIN` when accessed via canonical
+ * Portless HTTPS, `genfeed.localhost`, `localhost`, or `local.genfeed.ai`.
+ * Real deployments (production/staging) get exactly the configured list —
+ * loopback hosts are never auto-trusted there.
  */
 export function resolveTrustedOrigins(
   value: string | undefined,

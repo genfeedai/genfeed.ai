@@ -104,7 +104,7 @@ PLASMO_PUBLIC_ENV=development  # This triggers genfeed.localhost
 "Genfeed Extension: JWT token received, storing..."
 
 # Cookie Fallback
-"Genfeed Extension: Checking cookies from http://genfeed.localhost:3000"
+"Genfeed Extension: Checking cookies from https://app.genfeed.localhost"
 "Genfeed Extension: Token retrieved from __session cookie"
 
 # Environment Detection

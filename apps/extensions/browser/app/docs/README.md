@@ -25,7 +25,7 @@ Plasmo-based extension that brings GenFeed's AI workflows to multiple social med
 ```bash
 bun install
 # Create .env file with the API endpoint
-echo "PLASMO_PUBLIC_API_ENDPOINT=http://genfeed.localhost:3010/v1" > .env
+echo "PLASMO_PUBLIC_API_ENDPOINT=https://api.genfeed.localhost/v1" > .env
 bun run dev             # generates build/chrome-mv3-dev
 ```
 
@@ -33,7 +33,7 @@ Load `build/chrome-mv3-dev` in Brave (Developer Mode → Load unpacked) during d
 
 ### Environment Configuration
 
-- **Development**: The extension uses `genfeed.localhost` for authentication
+- **Development**: The extension opens `https://app.genfeed.localhost` for authentication
 - **Production**: Extension connects to `genfeed.ai` for authentication
 - **Dark Mode**: Enabled by default for better user experience
 - **Authentication**: The extension opens GenFeed in your browser so you can sign in or sign up for free
@@ -64,8 +64,8 @@ The extension uses a modular platform configuration system (`src/platforms/`):
 - Shared services (`src/services`) mirror frontend service clients; keep contracts in sync
 - Authentication uses JWT tokens synced across platforms
 - Platform-specific post IDs and URLs handled automatically
-- Events sent to Notifications service for live updates (local port 3111;
-  container/deployed port 3011)
+- Events sent to `https://notifications.genfeed.localhost` for local live
+  updates; container/deployed runtimes retain their internal notification port.
 - Consistent design tokens across all platforms
 
 ### Adding New Platforms

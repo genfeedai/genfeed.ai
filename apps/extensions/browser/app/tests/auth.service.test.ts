@@ -32,7 +32,7 @@ describe('browser extension auth cookie configuration', () => {
 
     expect(chrome.cookies.getAll).toHaveBeenNthCalledWith(
       1,
-      { url: 'http://genfeed.localhost:3000' },
+      { url: 'https://app.genfeed.localhost' },
       expect.any(Function),
     );
     expect(chrome.cookies.getAll).toHaveBeenNthCalledWith(

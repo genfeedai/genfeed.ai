@@ -7,8 +7,12 @@ describe('BetterAuthMailerService', () => {
     const notificationsService = {
       sendEmail: vi.fn().mockResolvedValue(undefined),
     };
+    const configService = {
+      get: vi.fn().mockReturnValue('https://app.genfeed.ai'),
+    };
     const logger = { log: vi.fn() };
     const service = new BetterAuthMailerService(
+      configService as never,
       notificationsService as never,
       logger as never,
     );
@@ -30,7 +34,7 @@ describe('BetterAuthMailerService', () => {
     expect(html).toContain('Genfeed.ai');
     expect(html).toContain('Sign in to Genfeed.ai');
     expect(html).toContain(
-      'https://api.genfeed.ai/v1/auth/magic-link/verify?token=tok&amp;callbackURL=https%3A%2F%2Fapp.genfeed.ai%2F',
+      'https://app.genfeed.ai/v1/auth/magic-link/verify?token=tok&amp;callbackURL=https%3A%2F%2Fapp.genfeed.ai%2F',
     );
     expect(html).toContain('If you did not request this sign-in link');
   });
@@ -39,8 +43,12 @@ describe('BetterAuthMailerService', () => {
     const notificationsService = {
       sendEmail: vi.fn().mockResolvedValue(undefined),
     };
+    const configService = {
+      get: vi.fn().mockReturnValue('https://app.genfeed.ai'),
+    };
     const logger = { log: vi.fn() };
     const service = new BetterAuthMailerService(
+      configService as never,
       notificationsService as never,
       logger as never,
     );
@@ -69,8 +77,12 @@ describe('BetterAuthMailerService', () => {
     const notificationsService = {
       sendEmail: vi.fn().mockResolvedValue(undefined),
     };
+    const configService = {
+      get: vi.fn().mockReturnValue('https://app.genfeed.ai'),
+    };
     const logger = { log: vi.fn() };
     const service = new BetterAuthMailerService(
+      configService as never,
       notificationsService as never,
       logger as never,
     );
@@ -91,7 +103,7 @@ describe('BetterAuthMailerService', () => {
     const html = notificationsService.sendEmail.mock.calls[0]?.[2] as string;
     expect(html).toContain('Verify your email');
     expect(html).toContain(
-      'https://api.genfeed.ai/v1/auth/verify-email?token=verify&amp;callbackURL=https%3A%2F%2Fapp.genfeed.ai%2F',
+      'https://app.genfeed.ai/v1/auth/verify-email?token=verify&amp;callbackURL=https%3A%2F%2Fapp.genfeed.ai%2F',
     );
     expect(html).toContain('If you did not create a Genfeed.ai account');
   });
@@ -100,8 +112,12 @@ describe('BetterAuthMailerService', () => {
     const notificationsService = {
       sendEmail: vi.fn().mockResolvedValue(undefined),
     };
+    const configService = {
+      get: vi.fn().mockReturnValue('https://app.genfeed.ai'),
+    };
     const logger = { log: vi.fn() };
     const service = new BetterAuthMailerService(
+      configService as never,
       notificationsService as never,
       logger as never,
     );

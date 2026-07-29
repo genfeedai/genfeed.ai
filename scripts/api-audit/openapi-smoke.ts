@@ -84,7 +84,7 @@ export async function runOpenApiSmoke(
   const baseUrl = normalizeBaseUrl(
     options.baseUrl ??
       process.env.API_AUDIT_BASE_URL ??
-      'http://genfeed.localhost:3010/v1',
+      'https://api.genfeed.localhost/v1',
   );
   const openApiUrl =
     options.openApiUrl ??

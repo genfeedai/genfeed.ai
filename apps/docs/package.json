@@ -21,7 +21,7 @@
   "scripts": {
     "build": "next build --turbopack",
     "dev": "next dev --turbopack --port 3001",
-    "dev:direct": "next dev --turbopack",
+    "dev:direct": "bun run ../../scripts/dev/run-direct.ts docs -- next dev --turbopack",
     "dev:portless": "bun run ../../scripts/dev/run-portless.ts docs -- bun run dev:direct",
     "format:check": "prettier --check .",
     "format:fix": "prettier --write .",
