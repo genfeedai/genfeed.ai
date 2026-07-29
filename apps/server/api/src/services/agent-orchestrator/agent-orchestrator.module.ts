@@ -43,6 +43,7 @@ import { AgentOrchestratorBatchService } from '@api/services/agent-orchestrator/
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
 import { AgentOrchestratorPlanModeService } from '@api/services/agent-orchestrator/agent-orchestrator-plan-mode.service';
 import { AgentOrchestratorRecurringTaskService } from '@api/services/agent-orchestrator/agent-orchestrator-recurring-task.service';
+import { AgentOrchestratorStreamLoopService } from '@api/services/agent-orchestrator/agent-orchestrator-stream-loop.service';
 import { AgentOrchestratorUiActionService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
@@ -169,6 +170,7 @@ import { forwardRef, Module } from '@nestjs/common';
     AgentOrchestratorPlanModeService,
     AgentOrchestratorRecurringTaskService,
     AgentOrchestratorService,
+    AgentOrchestratorStreamLoopService,
     AgentOrchestratorUiActionService,
     AgentRouteRewriteService,
     AgentStreamEffectsService,

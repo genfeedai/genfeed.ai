@@ -15,6 +15,7 @@ import { AgentOrchestratorBatchService } from '@api/services/agent-orchestrator/
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
 import { AgentOrchestratorPlanModeService } from '@api/services/agent-orchestrator/agent-orchestrator-plan-mode.service';
 import { AgentOrchestratorRecurringTaskService } from '@api/services/agent-orchestrator/agent-orchestrator-recurring-task.service';
+import { AgentOrchestratorStreamLoopService } from '@api/services/agent-orchestrator/agent-orchestrator-stream-loop.service';
 import { AgentOrchestratorUiActionService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
@@ -370,10 +371,10 @@ describe('AgentOrchestratorService', () => {
             AgentThreadEventRecorderService,
             SettingsService,
             AgentStreamEffectsService,
+            AgentOrchestratorStreamLoopService,
             AgentRunsService,
             AgentThreadEngineService,
             AgentRuntimeSessionService,
-            ConfigService,
           ],
           provide: AgentOrchestratorService,
           useFactory: (
@@ -394,10 +395,10 @@ describe('AgentOrchestratorService', () => {
             threadEventRecorderSvc: AgentThreadEventRecorderService,
             settingsSvc: SettingsService,
             streamEffectsSvc: AgentStreamEffectsService,
+            streamLoopSvc: AgentOrchestratorStreamLoopService,
             agentRunsSvc: AgentRunsService,
             threadEngineSvc: AgentThreadEngineService,
             runtimeSessionSvc: AgentRuntimeSessionService,
-            configServiceSvc: ConfigService,
           ) =>
             new AgentOrchestratorService(
               loggerService,
@@ -417,14 +418,56 @@ describe('AgentOrchestratorService', () => {
               threadEventRecorderSvc,
               settingsSvc,
               streamEffectsSvc,
+              streamLoopSvc,
               agentRunsSvc,
               undefined,
               undefined,
               threadEngineSvc,
               runtimeSessionSvc,
-              undefined,
-              undefined,
-              undefined,
+            ),
+        },
+        {
+          inject: [
+            LoggerService,
+            LlmDispatcherService,
+            AgentThreadsService,
+            AgentMessagesService,
+            CreditsUtilsService,
+            AgentTurnRoundRunnerService,
+            AgentOrchestratorBatchService,
+            AgentOrchestratorContextService,
+            AgentCompletionCardBuilderService,
+            AgentStreamEffectsService,
+            AgentRunsService,
+            ConfigService,
+          ],
+          provide: AgentOrchestratorStreamLoopService,
+          useFactory: (
+            loggerService: LoggerService,
+            llmDispatcherService: LlmDispatcherService,
+            agentThreadsSvc: AgentThreadsService,
+            agentMessagesSvc: AgentMessagesService,
+            creditsUtilsSvc: CreditsUtilsService,
+            turnRoundRunnerSvc: AgentTurnRoundRunnerService,
+            batchSvc: AgentOrchestratorBatchService,
+            contextSvc: AgentOrchestratorContextService,
+            completionCardBuilderSvc: AgentCompletionCardBuilderService,
+            streamEffectsSvc: AgentStreamEffectsService,
+            agentRunsSvc: AgentRunsService,
+            configServiceSvc: ConfigService,
+          ) =>
+            new AgentOrchestratorStreamLoopService(
+              loggerService,
+              llmDispatcherService,
+              agentThreadsSvc,
+              agentMessagesSvc,
+              creditsUtilsSvc,
+              turnRoundRunnerSvc,
+              batchSvc,
+              contextSvc,
+              completionCardBuilderSvc,
+              streamEffectsSvc,
+              agentRunsSvc,
               undefined,
               configServiceSvc,
             ),
