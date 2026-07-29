@@ -29,7 +29,7 @@ import {
 import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/sanitize-agent-output.util';
 import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
-import { AgentAutonomyMode } from '@genfeedai/enums';
+import { AgentAutonomyMode, AgentMessageRole } from '@genfeedai/enums';
 import {
   type AgentDashboardOperation,
   AgentToolName,
