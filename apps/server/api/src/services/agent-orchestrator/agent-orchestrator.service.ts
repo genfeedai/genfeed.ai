@@ -1,4 +1,3 @@
-import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
 import { type AgentMemoryDocument } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import {
   type AgentFeedbackMemoryDocument,
@@ -18,8 +17,6 @@ import {
   runEffectPromise,
 } from '@api/helpers/utils/effect/effect.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import { AgentMessageBusService } from '@api/services/agent-campaign/agent-message-bus.service';
-import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentOrchestratorBatchService } from '@api/services/agent-orchestrator/agent-orchestrator-batch.service';
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
 import { AgentOrchestratorPlanModeService } from '@api/services/agent-orchestrator/agent-orchestrator-plan-mode.service';
@@ -29,7 +26,6 @@ import { AgentOrchestratorSyncLoopService } from '@api/services/agent-orchestrat
 import { AgentOrchestratorUiActionService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
-import { AgentTurnRoundRunnerService } from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
 import { getAgentTurnCost } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
 import {
   DEFAULT_AGENT_CHAT_MODEL,
@@ -51,7 +47,6 @@ import {
   type AgentGenerationPriority,
   ResolvedAgentExecutionPolicy,
 } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
-import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { extractBatchTopic } from '@api/services/agent-orchestrator/utils/agent-orchestrator-input-parsing.util';
 import { buildPageContextPrompt } from '@api/services/agent-orchestrator/utils/agent-page-context.util';
 import { buildAgentRoutingMetadata } from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';
@@ -72,8 +67,6 @@ import { AgentExecutionLaneService } from '@api/services/agent-threading/service
 import { AgentProfileResolverService } from '@api/services/agent-threading/services/agent-profile-resolver.service';
 import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import type { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
-import { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
-import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import {
   ActivitySource,
@@ -90,7 +83,6 @@ import {
   AgentScopeContextService,
   type PreparedAgentScope,
 } from '@genfeedai/server';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   HttpException,
@@ -106,29 +98,21 @@ export class AgentOrchestratorService {
 
   constructor(
     private readonly loggerService: LoggerService,
-    private readonly llmDispatcher: LlmDispatcherService,
     private readonly agentThreadsService: AgentThreadsService,
     private readonly agentScopeContextService: AgentScopeContextService,
     private readonly agentMessagesService: AgentMessagesService,
     private readonly creditsUtilsService: CreditsUtilsService,
-    private readonly toolExecutorService: AgentToolExecutorService,
-    private readonly turnRoundRunner: AgentTurnRoundRunnerService,
     private readonly uiActionService: AgentOrchestratorUiActionService,
     private readonly recurringTaskService: AgentOrchestratorRecurringTaskService,
     private readonly planModeService: AgentOrchestratorPlanModeService,
     private readonly batchService: AgentOrchestratorBatchService,
     private readonly contextService: AgentOrchestratorContextService,
-    private readonly completionCardBuilder: AgentCompletionCardBuilderService,
     private readonly threadEventRecorder: AgentThreadEventRecorderService,
     private readonly settingsService: SettingsService,
     private readonly streamEffects: AgentStreamEffectsService,
     private readonly streamLoopService: AgentOrchestratorStreamLoopService,
     private readonly syncLoopService: AgentOrchestratorSyncLoopService,
     private readonly agentRunsService: AgentRunsService,
-    @Optional()
-    private readonly agentMessageBusService?: AgentMessageBusService,
-    @Optional()
-    private readonly agentCampaignsService?: AgentCampaignsService,
     @Optional()
     private readonly agentThreadEngineService?: AgentThreadEngineService,
     @Optional()
@@ -138,11 +122,7 @@ export class AgentOrchestratorService {
     @Optional()
     private readonly agentProfileResolverService?: AgentProfileResolverService,
     @Optional()
-    private readonly threadContextCompressorService?: ThreadContextCompressorService,
-    @Optional()
     private readonly skillRuntimeService?: SkillRuntimeService,
-    @Optional()
-    private readonly configService?: ConfigService,
   ) {}
 
   async chat(
