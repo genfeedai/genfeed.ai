@@ -61,33 +61,118 @@ function buildProtectedRoutes(orgSlug: string, brandSlug: string): string[] {
   ];
 }
 
-function readScopedOverviewSlugs(page: Page): {
+type BootstrapBrand = {
+  _id?: string;
+  id?: string;
+  organization?: { slug?: string } | null;
+  slug?: string;
+};
+
+type BootstrapPayload = {
+  access?: { brandId?: string };
+  brands?: BootstrapBrand[];
+};
+
+function resolveWorkspaceOracle(payload: BootstrapPayload): {
   brandSlug: string;
   orgSlug: string;
 } {
-  const segments = new URL(page.url()).pathname.split('/').filter(Boolean);
-  expect(segments.slice(2)).toEqual(['workspace', 'overview']);
+  const brands = payload.brands ?? [];
+  const activeBrandId = payload.access?.brandId ?? '';
+  const matchedBrand = activeBrandId
+    ? brands.find(
+        (brand) => String(brand.id ?? brand._id ?? '') === activeBrandId,
+      )
+    : undefined;
+  const selectedBrand =
+    activeBrandId && matchedBrand?.slug
+      ? matchedBrand
+      : (brands.find((brand) => Boolean(brand.slug)) ?? matchedBrand);
+  const orgSlug =
+    selectedBrand?.organization?.slug ??
+    brands.find((brand) => Boolean(brand.organization?.slug))?.organization
+      ?.slug;
 
-  const [orgSlug = '', brandSlug = ''] = segments;
-  expect(orgSlug).toBeTruthy();
-  expect(brandSlug).toBeTruthy();
+  expect(
+    selectedBrand?.slug,
+    'bootstrap workspace oracle missing brand slug',
+  ).toBeTruthy();
+  expect(
+    orgSlug,
+    'bootstrap workspace oracle missing organization slug',
+  ).toBeTruthy();
 
   return {
-    brandSlug,
-    orgSlug,
+    brandSlug: selectedBrand?.slug as string,
+    orgSlug: orgSlug as string,
   };
+}
+
+/**
+ * Independent workspace oracle (#2162 / #2164).
+ * Do NOT derive expected org/brand slugs from `page.url()` — that would let a
+ * redirect to the wrong non-empty workspace pass. Read them from the
+ * authenticated bootstrap payload instead.
+ */
+async function readWorkspaceOracleFromBootstrap(page: Page): Promise<{
+  brandSlug: string;
+  orgSlug: string;
+}> {
+  const bootstrapResponsePromise = page.waitForResponse(
+    (response) => {
+      try {
+        const url = new URL(response.url());
+        return (
+          url.pathname.endsWith('/auth/bootstrap') &&
+          response.request().method() === 'GET' &&
+          response.ok()
+        );
+      } catch {
+        return false;
+      }
+    },
+    { timeout: 180_000 },
+  );
+
+  await assertRouteLoads(page, '/');
+  const response = await bootstrapResponsePromise;
+  const payload = (await response.json()) as BootstrapPayload;
+  return resolveWorkspaceOracle(payload);
 }
 
 test.describe('Authenticated route smoke (real Better Auth session)', () => {
   test.setTimeout(600_000);
 
+  test('workspace oracle follows the active bootstrap brand', () => {
+    expect(
+      resolveWorkspaceOracle({
+        access: { brandId: 'brand-selected' },
+        brands: [
+          {
+            id: 'brand-wrong',
+            organization: { slug: 'org-wrong' },
+            slug: 'brand-wrong',
+          },
+          {
+            id: 'brand-selected',
+            organization: { slug: 'org-selected' },
+            slug: 'brand-selected',
+          },
+        ],
+      }),
+    ).toEqual({
+      brandSlug: 'brand-selected',
+      orgSlug: 'org-selected',
+    });
+  });
+
   test('protected routes render under a real session', async ({ page }) => {
     const networkGuard = await setupStrictNetworkGuard(page, { strict: true });
 
     // `/` resolves the user's selected workspace from the authenticated
-    // bootstrap payload and redirects to its scoped overview.
-    await assertRouteLoads(page, '/');
-    const { brandSlug, orgSlug } = readScopedOverviewSlugs(page);
+    // bootstrap payload and redirects to its scoped overview. Oracle slugs
+    // come from the bootstrap response, not from the redirected URL.
+    const { brandSlug, orgSlug } = await readWorkspaceOracleFromBootstrap(page);
     expect(new URL(page.url()).pathname).toBe(
       createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.WORKSPACE.OVERVIEW),
     );
