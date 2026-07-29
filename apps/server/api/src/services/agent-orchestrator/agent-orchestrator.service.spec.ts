@@ -16,6 +16,7 @@ import { AgentOrchestratorContextService } from '@api/services/agent-orchestrato
 import { AgentOrchestratorPlanModeService } from '@api/services/agent-orchestrator/agent-orchestrator-plan-mode.service';
 import { AgentOrchestratorRecurringTaskService } from '@api/services/agent-orchestrator/agent-orchestrator-recurring-task.service';
 import { AgentOrchestratorStreamLoopService } from '@api/services/agent-orchestrator/agent-orchestrator-stream-loop.service';
+import { AgentOrchestratorSyncLoopService } from '@api/services/agent-orchestrator/agent-orchestrator-sync-loop.service';
 import { AgentOrchestratorUiActionService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
@@ -372,6 +373,7 @@ describe('AgentOrchestratorService', () => {
             SettingsService,
             AgentStreamEffectsService,
             AgentOrchestratorStreamLoopService,
+            AgentOrchestratorSyncLoopService,
             AgentRunsService,
             AgentThreadEngineService,
             AgentRuntimeSessionService,
@@ -396,6 +398,7 @@ describe('AgentOrchestratorService', () => {
             settingsSvc: SettingsService,
             streamEffectsSvc: AgentStreamEffectsService,
             streamLoopSvc: AgentOrchestratorStreamLoopService,
+            syncLoopSvc: AgentOrchestratorSyncLoopService,
             agentRunsSvc: AgentRunsService,
             threadEngineSvc: AgentThreadEngineService,
             runtimeSessionSvc: AgentRuntimeSessionService,
@@ -419,6 +422,7 @@ describe('AgentOrchestratorService', () => {
               settingsSvc,
               streamEffectsSvc,
               streamLoopSvc,
+              syncLoopSvc,
               agentRunsSvc,
               undefined,
               undefined,
@@ -470,6 +474,48 @@ describe('AgentOrchestratorService', () => {
               agentRunsSvc,
               undefined,
               configServiceSvc,
+            ),
+        },
+        {
+          inject: [
+            LoggerService,
+            LlmDispatcherService,
+            AgentThreadsService,
+            AgentMessagesService,
+            CreditsUtilsService,
+            AgentTurnRoundRunnerService,
+            AgentOrchestratorBatchService,
+            AgentOrchestratorContextService,
+            AgentCompletionCardBuilderService,
+            AgentThreadEventRecorderService,
+            AgentRunsService,
+          ],
+          provide: AgentOrchestratorSyncLoopService,
+          useFactory: (
+            loggerService: LoggerService,
+            llmDispatcherService: LlmDispatcherService,
+            agentThreadsSvc: AgentThreadsService,
+            agentMessagesSvc: AgentMessagesService,
+            creditsUtilsSvc: CreditsUtilsService,
+            turnRoundRunnerSvc: AgentTurnRoundRunnerService,
+            batchSvc: AgentOrchestratorBatchService,
+            contextSvc: AgentOrchestratorContextService,
+            completionCardBuilderSvc: AgentCompletionCardBuilderService,
+            threadEventRecorderSvc: AgentThreadEventRecorderService,
+            agentRunsSvc: AgentRunsService,
+          ) =>
+            new AgentOrchestratorSyncLoopService(
+              loggerService,
+              llmDispatcherService,
+              agentThreadsSvc,
+              agentMessagesSvc,
+              creditsUtilsSvc,
+              turnRoundRunnerSvc,
+              batchSvc,
+              contextSvc,
+              completionCardBuilderSvc,
+              threadEventRecorderSvc,
+              agentRunsSvc,
             ),
         },
         {
