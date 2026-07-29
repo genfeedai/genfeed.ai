@@ -25,7 +25,7 @@ export const AUTH_LINK_CLASS_NAME =
   'font-medium text-info transition-colors hover:text-info/80';
 
 interface AuthHeadingProps {
-  description: string;
+  description: ReactNode;
   title: string;
 }
 
@@ -63,41 +63,32 @@ interface AuthBackLinkProps {
 
 export function AuthBackLink({ children, href }: AuthBackLinkProps) {
   return (
-    <div className="text-center">
-      <Link
-        href={href}
-        className="inline-flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-      >
+    <Button
+      asChild
+      variant={ButtonVariant.SECONDARY}
+      className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
+      withWrapper={false}
+    >
+      <Link href={href}>
         <ArrowLeft className="size-4" aria-hidden="true" />
-        {children}
+        <span>{children}</span>
       </Link>
-    </div>
+    </Button>
   );
 }
 
 interface AuthCheckEmailProps {
   backHref: string;
   backLabel: string;
-  description: ReactNode;
-  title: string;
 }
 
-export function AuthCheckEmail({
-  backHref,
-  backLabel,
-  description,
-  title,
-}: AuthCheckEmailProps) {
+export function AuthCheckEmail({ backHref, backLabel }: AuthCheckEmailProps) {
   return (
     <div className="space-y-4 text-center">
       <MailCheck
         className="mx-auto size-8 text-muted-foreground"
         aria-hidden="true"
       />
-      <h1 className="text-xl font-semibold tracking-tight text-foreground">
-        {title}
-      </h1>
-      <p className="text-sm text-muted-foreground">{description}</p>
       <Button
         asChild
         variant={ButtonVariant.SECONDARY}

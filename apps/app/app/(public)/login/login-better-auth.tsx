@@ -160,31 +160,37 @@ export default function LoginBetterAuth({
 
   if (mode === 'magic-link' && isEmailSent) {
     return (
-      <AuthFormLayout logoSize="compact">
-        <AuthCheckEmail
-          title="Check your email"
-          description={
-            <>
-              We sent a sign-in link to <strong>{email}</strong>. Click the link
-              in the email to sign in.
-            </>
-          }
-          backHref={chooserHref}
-          backLabel="Back to sign in"
-        />
+      <AuthFormLayout
+        compactHeading={
+          <AuthHeading
+            title="Check your email"
+            description={
+              <>
+                We sent a sign-in link to <strong>{email}</strong>. Click the
+                link in the email to sign in.
+              </>
+            }
+          />
+        }
+        logoSize="compact"
+      >
+        <AuthCheckEmail backHref={chooserHref} backLabel="Back to sign in" />
       </AuthFormLayout>
     );
   }
 
   if (mode === 'magic-link') {
     return (
-      <AuthFormLayout logoSize="compact">
-        <div className="w-full space-y-6">
+      <AuthFormLayout
+        compactHeading={
           <AuthHeading
             title="Sign in with a magic link"
             description="Enter your email and we'll send you a secure sign-in link."
           />
-
+        }
+        logoSize="compact"
+      >
+        <div className="w-full space-y-6">
           <form onSubmit={handleMagicLink} className="space-y-4">
             <Field label="Email" isRequired>
               <Input
@@ -227,13 +233,16 @@ export default function LoginBetterAuth({
 
   if (mode === 'password') {
     return (
-      <AuthFormLayout logoSize="compact">
-        <div className="w-full space-y-6">
+      <AuthFormLayout
+        compactHeading={
           <AuthHeading
             title="Sign in with email and password"
             description="Use the email and password attached to your Genfeed account."
           />
-
+        }
+        logoSize="compact"
+      >
+        <div className="w-full space-y-6">
           <form onSubmit={handleEmailPassword} className="space-y-4">
             <Field label="Email" isRequired>
               <Input

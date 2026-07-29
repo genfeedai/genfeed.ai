@@ -141,6 +141,9 @@ describe('LoginPage', () => {
     expect(
       screen.getByRole('button', { name: 'Email me a sign-in link' }),
     ).toBeDisabled();
+    expect(
+      screen.getByRole('link', { name: 'Back to sign in options' }),
+    ).toHaveClass('h-10', 'w-full');
   });
 
   it('sends a magic-link sign-in with the default callback URL', async () => {

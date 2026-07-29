@@ -169,31 +169,37 @@ export default function SignUpBetterAuth({
 
   if (mode === 'magic-link' && isEmailSent) {
     return (
-      <AuthFormLayout logoSize="compact">
-        <AuthCheckEmail
-          title="Check your email"
-          description={
-            <>
-              We sent a sign-up link to <strong>{email}</strong>. Click the link
-              in the email to create your account.
-            </>
-          }
-          backHref={chooserHref}
-          backLabel="Back to sign up"
-        />
+      <AuthFormLayout
+        compactHeading={
+          <AuthHeading
+            title="Check your email"
+            description={
+              <>
+                We sent a sign-up link to <strong>{email}</strong>. Click the
+                link in the email to create your account.
+              </>
+            }
+          />
+        }
+        logoSize="compact"
+      >
+        <AuthCheckEmail backHref={chooserHref} backLabel="Back to sign up" />
       </AuthFormLayout>
     );
   }
 
   if (mode === 'magic-link') {
     return (
-      <AuthFormLayout logoSize="compact">
-        <div className="w-full space-y-6">
+      <AuthFormLayout
+        compactHeading={
           <AuthHeading
             title="Sign up with a magic link"
             description="Enter your email and we'll send you a secure sign-up link."
           />
-
+        }
+        logoSize="compact"
+      >
+        <div className="w-full space-y-6">
           <form onSubmit={handleMagicLink} className="space-y-4">
             <Field label="Email" isRequired>
               <Input
@@ -236,13 +242,16 @@ export default function SignUpBetterAuth({
   }
 
   return (
-    <AuthFormLayout logoSize="compact">
-      <div className="w-full space-y-6">
+    <AuthFormLayout
+      compactHeading={
         <AuthHeading
           title="Create your account"
           description="Start using Genfeed"
         />
-
+      }
+      logoSize="compact"
+    >
+      <div className="w-full space-y-6">
         <div className="space-y-3">
           <Button
             type="button"

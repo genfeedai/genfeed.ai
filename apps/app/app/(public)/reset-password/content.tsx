@@ -105,19 +105,20 @@ export default function ResetPasswordContent() {
 
   if (isResetComplete) {
     return (
-      <AuthFormLayout logoSize="compact">
+      <AuthFormLayout
+        compactHeading={
+          <AuthHeading
+            title="Password updated"
+            description="Your password has been reset. Sign in with your new password to continue."
+          />
+        }
+        logoSize="compact"
+      >
         <div className="w-full space-y-4 text-center">
           <CheckCircle2
             className="mx-auto size-8 text-muted-foreground"
             aria-hidden="true"
           />
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            Password updated
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Your password has been reset. Sign in with your new password to
-            continue.
-          </p>
           <Button
             asChild
             variant={ButtonVariant.DEFAULT}
@@ -133,18 +134,20 @@ export default function ResetPasswordContent() {
 
   if (hasRecoverableTokenError) {
     return (
-      <AuthFormLayout logoSize="compact">
+      <AuthFormLayout
+        compactHeading={
+          <AuthHeading
+            title="Reset link expired"
+            description={getTokenErrorMessage(tokenError)}
+          />
+        }
+        logoSize="compact"
+      >
         <div className="w-full space-y-4 text-center">
           <RotateCcw
             className="mx-auto size-8 text-muted-foreground"
             aria-hidden="true"
           />
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            Reset link expired
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {getTokenErrorMessage(tokenError)}
-          </p>
           <Button
             asChild
             variant={ButtonVariant.DEFAULT}
@@ -159,13 +162,16 @@ export default function ResetPasswordContent() {
   }
 
   return (
-    <AuthFormLayout logoSize="compact">
-      <div className="w-full space-y-6">
+    <AuthFormLayout
+      compactHeading={
         <AuthHeading
           title="Choose a new password"
           description="Enter a new password for your Genfeed account."
         />
-
+      }
+      logoSize="compact"
+    >
+      <div className="w-full space-y-6">
         <form onSubmit={handlePasswordReset} className="space-y-4">
           <Field label="New password" isRequired>
             <Input

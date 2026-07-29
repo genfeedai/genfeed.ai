@@ -78,30 +78,36 @@ export default function ForgotPasswordContent() {
 
   if (isEmailSent) {
     return (
-      <AuthFormLayout logoSize="compact">
-        <AuthCheckEmail
-          title="Check your email"
-          description={
-            <>
-              If an account exists for <strong>{email}</strong>, we&apos;ll send
-              a password reset link.
-            </>
-          }
-          backHref={loginHref}
-          backLabel="Back to sign in"
-        />
+      <AuthFormLayout
+        compactHeading={
+          <AuthHeading
+            title="Check your email"
+            description={
+              <>
+                If an account exists for <strong>{email}</strong>, we&apos;ll
+                send a password reset link.
+              </>
+            }
+          />
+        }
+        logoSize="compact"
+      >
+        <AuthCheckEmail backHref={loginHref} backLabel="Back to sign in" />
       </AuthFormLayout>
     );
   }
 
   return (
-    <AuthFormLayout logoSize="compact">
-      <div className="w-full space-y-6">
+    <AuthFormLayout
+      compactHeading={
         <AuthHeading
           title="Reset your password"
           description="Enter your account email and we'll send you a secure reset link."
         />
-
+      }
+      logoSize="compact"
+    >
+      <div className="w-full space-y-6">
         <form onSubmit={handlePasswordResetRequest} className="space-y-4">
           <Field label="Email" isRequired>
             <Input
