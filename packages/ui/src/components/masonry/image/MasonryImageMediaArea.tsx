@@ -90,8 +90,10 @@ export default function MasonryImageMediaArea({
           placeholder="blur"
           blurDataURL={BLUR_PLACEHOLDER}
           alt={image.promptText || 'Image'}
-          width={metadata?.width || 1080}
-          height={metadata?.height || 1920}
+          // Next/Image rejects non-positive dimensions; clamp so a broken
+          // metadata payload cannot throw into the ErrorBoundary on click.
+          width={Math.max(1, metadata?.width || 1080)}
+          height={Math.max(1, metadata?.height || 1920)}
           className={cn(
             'size-full transition-opacity duration-300',
             (isProcessing || isDarkroomLocked) && 'blur-sm',

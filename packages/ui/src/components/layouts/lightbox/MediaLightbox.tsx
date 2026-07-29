@@ -70,18 +70,26 @@ export default function MediaLightbox({
   }, [dominant]);
 
   useEffect(() => {
-    // Dynamically import ESM plugins on the client side
+    // Dynamically import ESM plugins on the client side. Abort on unmount so a
+    // late resolution cannot setState after teardown (React root races).
+    let isCancelled = false;
     Promise.all([
       import('yet-another-react-lightbox/plugins/video'),
       import('yet-another-react-lightbox/plugins/captions'),
       import('yet-another-react-lightbox/plugins/thumbnails'),
     ]).then(([VideoModule, CaptionsModule, ThumbnailsModule]) => {
+      if (isCancelled) {
+        return;
+      }
       setPlugins([
         VideoModule.default,
         CaptionsModule.default,
         ThumbnailsModule.default,
       ]);
     });
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   // Map ingredients to lightbox slides with their thumbnail URLs
@@ -150,17 +158,25 @@ export default function MediaLightbox({
     }, []);
   }, [items]);
 
-  // Don't render if no slides or plugins not loaded
-  if (slides.length === 0 || plugins.length === 0) {
+  // Mount only when open AND ready. Mounting a closed Lightbox with empty
+  // plugins has crashed production Studio image clicks with
+  // `Cannot read properties of undefined (reading 'root')` (APP-GENFEED-AI-7).
+  const isReady = plugins.length > 0 && slides.length > 0;
+  if (!open || !isReady) {
     return null;
   }
 
+  const safeIndex = Math.min(
+    Math.max(0, startIndex),
+    Math.max(0, slides.length - 1),
+  );
+
   return (
     <Lightbox
-      open={open}
+      open
       close={onClose}
       slides={slides}
-      index={startIndex}
+      index={safeIndex}
       plugins={plugins}
       captions={{
         descriptionMaxLines: 3,

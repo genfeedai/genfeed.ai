@@ -73,6 +73,19 @@ describe('Portless local-development environment', () => {
     expect(resolveDirectOrigins({ APP_PORT: '65536' }).app).toBe(
       'http://genfeed.localhost:3000',
     );
+    // Out-of-range / non-integer ports fall back; bounds 1 and 65535 are valid.
+    expect(resolveDirectOrigins({ APP_PORT: '0' }).app).toBe(
+      'http://genfeed.localhost:3000',
+    );
+    expect(resolveDirectOrigins({ APP_PORT: '1' }).app).toBe(
+      'http://genfeed.localhost:1',
+    );
+    expect(resolveDirectOrigins({ APP_PORT: '65535' }).app).toBe(
+      'http://genfeed.localhost:65535',
+    );
+    expect(resolveDirectOrigins({ APP_PORT: 'not-a-port' }).app).toBe(
+      'http://genfeed.localhost:3000',
+    );
 
     expect(
       buildDirectEnvironment({
