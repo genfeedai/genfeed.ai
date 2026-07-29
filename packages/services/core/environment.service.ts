@@ -260,11 +260,12 @@ export const EnvironmentService = {
   },
 
   get cdnUrl(): string {
+    // Strip trailing slashes so composed paths never become `//logos/...`.
     return (
       getDesktopEnvironmentOverrides().cdnUrl ||
       process.env.NEXT_PUBLIC_CDN_URL ||
       'https://cdn.genfeed.ai'
-    );
+    ).replace(/\/+$/, '');
   },
 
   /**

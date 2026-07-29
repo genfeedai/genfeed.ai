@@ -110,7 +110,9 @@ vi.mock('@models/organization/brand.model', () => ({
 vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     assetsEndpoint: 'https://assets.genfeed.ai',
+    // CDN root without `/ingredients` — brandLogoUrl composes `/logos/...`.
     cdnUrl: 'https://cdn.genfeed.ai',
+    // Ingredient media still uses the dedicated ingredients endpoint.
     ingredientsEndpoint: 'https://cdn.genfeed.ai/ingredients',
   },
 }));
@@ -902,9 +904,13 @@ describe('Ingredient', () => {
         }),
       });
 
+      // Must use cdnUrl root (not ingredientsEndpoint) so logos never resolve
+      // as `undefined/logos/...` when the mock omits a separate CDN root.
       expect(ingredient.brandLogoUrl).toBe(
         'https://cdn.genfeed.ai/logos/logo_123',
       );
+      expect(ingredient.brandLogoUrl).not.toContain('/ingredients/');
+      expect(ingredient.brandLogoUrl).not.toMatch(/^undefined\//);
     });
 
     it('should return logo URL when brand has a populated logo', () => {
