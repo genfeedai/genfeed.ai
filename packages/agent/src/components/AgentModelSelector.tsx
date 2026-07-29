@@ -67,7 +67,7 @@ export function AgentModelSelector({
         align="start"
         side="top"
         sideOffset={8}
-        className="w-72 border border-border p-1.5"
+        className="w-72 border border-border bg-popover p-1.5 text-popover-foreground"
       >
         <div className="flex flex-col gap-0.5">
           {AGENT_MODELS.map((model) => {
@@ -124,31 +124,39 @@ function ModelRow({
   isLocked: boolean;
   onSelect: () => void;
 }): ReactElement {
+  // Do not use Tailwind `bg-accent` inside `.ship-ui` popovers — ship remaps
+  // accent to solid white/near-black brand chips, which fights
+  // `text-foreground` / `text-muted-foreground` and produces white-on-white
+  // (or black-on-black) selected rows. Use translucent foreground instead.
   return (
     <Button
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
+      textTransform="none"
       onClick={onSelect}
       isDisabled={isLocked}
       ariaLabel={isLocked ? `Need ${model.creditCost} credits` : model.label}
+      aria-current={isSelected ? 'true' : undefined}
       className={cn(
-        'flex w-full items-center gap-2.5 px-2.5 py-2 text-left text-xs transition-colors',
-        isSelected && 'bg-accent',
-        isLocked ? 'cursor-not-allowed opacity-50' : 'hover:bg-accent',
+        'flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-xs transition-colors',
+        isSelected
+          ? 'bg-foreground/12 text-foreground ring-1 ring-inset ring-border'
+          : 'text-foreground hover:bg-foreground/[0.06]',
+        isLocked && 'cursor-not-allowed opacity-50',
       )}
     >
-      <div className="flex flex-1 flex-col gap-0.5">
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex items-center gap-1.5">
           {model.isReasoning && (
-            <HiSparkles className="size-3 text-purple-400" />
+            <HiSparkles className="size-3 shrink-0 text-purple-400" />
           )}
           <span className="font-medium text-foreground">{model.label}</span>
         </div>
-        <span className="text-[10px] text-muted-foreground">
+        <span className="text-[10px] leading-snug text-muted-foreground">
           {model.description}
         </span>
       </div>
-      <div className="flex items-center gap-1.5">
+      <div className="flex shrink-0 items-center gap-1.5">
         <CostBadge costTier={model.costTier} creditCost={model.creditCost} />
         {isLocked && <HiLockClosed className="size-3 text-muted-foreground" />}
       </div>
