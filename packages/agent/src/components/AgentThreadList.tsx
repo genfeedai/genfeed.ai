@@ -3,13 +3,7 @@ import {
   ConversationSidebarSearch,
   ConversationSidebarSection,
 } from '@genfeedai/ui';
-import {
-  type ReactElement,
-  type ReactNode,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { type ReactElement, type ReactNode, useMemo, useState } from 'react';
 import { AgentThreadListEmptyState } from './AgentThreadListEmptyState';
 import { AgentThreadListErrorBanner } from './AgentThreadListErrorBanner';
 import { AgentThreadListHeaderActions } from './AgentThreadListHeaderActions';
@@ -25,8 +19,14 @@ interface AgentThreadListProps {
   apiService: AgentApiService;
   isActive?: boolean;
   onNavigate?: (path: string) => void;
-  onActionsChange?: (actions: ReactNode) => void;
   searchAction?: ReactNode;
+  /**
+   * @deprecated No longer lifts actions into a parent slot. Header chrome is
+   * owned here so parent nav-panel identity stays stable (no remount loops).
+   */
+  onActionsChange?: (actions: ReactNode) => void;
+  /** When true, render the Conversations label above search. */
+  showTitle?: boolean;
 }
 
 export { AGENT_REFRESH_CONVERSATIONS_EVENT };
@@ -35,11 +35,10 @@ export function AgentThreadList({
   apiService,
   isActive = true,
   onNavigate,
-  onActionsChange,
   searchAction,
+  showTitle = true,
 }: AgentThreadListProps): ReactElement {
-  // Filter chips were removed — they forced horizontal scroll in a narrow
-  // column. Grouping (Needs you / Working / Pinned / Recent) is the filter.
+  // Filter chips removed — grouping sections are the filter surface.
   const filter: AgentThreadListFilter = 'all';
   const [searchQuery, setSearchQuery] = useState('');
   const {
@@ -87,47 +86,13 @@ export function AgentThreadList({
         isStreaming,
         searchQuery,
       }),
-    [
-      activeRunStatus,
-      activeThreadId,
-      filter,
-      isStreaming,
-      searchQuery,
-      threads,
-    ],
+    [activeRunStatus, activeThreadId, isStreaming, searchQuery, threads],
   );
   const visibleThreadCount =
     groups.needsYou.length +
     groups.working.length +
     groups.pinned.length +
     groups.recent.length;
-
-  const headerActions = useMemo(() => {
-    if (!shouldShowHeader) {
-      return null;
-    }
-    return (
-      <AgentThreadListHeaderActions
-        viewStatus={viewStatus}
-        threadCount={threads.length}
-        onArchiveAll={() => {
-          handleArchiveAllThreads().catch(() => undefined);
-        }}
-        onToggleView={handleToggleView}
-      />
-    );
-  }, [
-    shouldShowHeader,
-    viewStatus,
-    threads.length,
-    handleArchiveAllThreads,
-    handleToggleView,
-  ]);
-
-  useEffect(() => {
-    onActionsChange?.(headerActions);
-    return () => onActionsChange?.(null);
-  }, [headerActions, onActionsChange]);
 
   // Only replace the list with a spinner on the first load. Background
   // refreshes keep the existing rows so switching threads does not flash.
@@ -182,7 +147,10 @@ export function AgentThreadList({
   );
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div
+      className="flex h-full min-h-0 flex-col"
+      data-testid="agent-thread-list"
+    >
       <AgentThreadListErrorBanner
         authError={authError}
         loadError={loadError}
@@ -190,9 +158,25 @@ export function AgentThreadList({
         onRetry={handleRetryLoad}
       />
 
-      {headerActions && !onActionsChange ? (
-        <div className="group/collapsible flex items-center justify-end px-3 pb-1 pt-2">
-          {headerActions}
+      {showTitle || shouldShowHeader ? (
+        <div className="flex w-full items-center gap-2 px-3 py-1.5">
+          {showTitle ? (
+            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/40">
+              Conversations
+            </span>
+          ) : null}
+          {shouldShowHeader ? (
+            <div className="ml-auto flex items-center gap-0.5">
+              <AgentThreadListHeaderActions
+                viewStatus={viewStatus}
+                threadCount={threads.length}
+                onArchiveAll={() => {
+                  handleArchiveAllThreads().catch(() => undefined);
+                }}
+                onToggleView={handleToggleView}
+              />
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -221,7 +205,7 @@ export function AgentThreadList({
               No matching conversations
             </p>
             <p className="mt-1 text-xs text-foreground/30">
-              Try another search or filter.
+              Try another search.
             </p>
           </div>
         ) : (

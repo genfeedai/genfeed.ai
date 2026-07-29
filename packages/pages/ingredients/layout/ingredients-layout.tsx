@@ -9,6 +9,7 @@ import type {
 } from '@genfeedai/interfaces/utils/filters.interface';
 import type { IngredientsLayoutProps } from '@props/content/ingredients-layout.props';
 import Container from '@ui/layout/container/Container';
+import { useMemo } from 'react';
 import { HiOutlinePhoto } from 'react-icons/hi2';
 import IngredientsLayoutToolbar from './ingredients-layout-toolbar';
 import { useIngredientsLayout } from './use-ingredients-layout';
@@ -47,8 +48,16 @@ export default function IngredientsLayout({
     currentIngredient.description
   );
 
+  // Stable context identity — avoid `value={{ ... }}` inline objects that
+  // force every consumer to re-render (and can remount list chrome) on each
+  // parent pass, even when setHeaderMeta itself is stable.
+  const headerContextValue = useMemo(
+    () => ({ headerMeta, setHeaderMeta }),
+    [headerMeta, setHeaderMeta],
+  );
+
   return (
-    <IngredientsHeaderProvider value={{ headerMeta, setHeaderMeta }}>
+    <IngredientsHeaderProvider value={headerContextValue}>
       <IngredientsProvider value={contextValue}>
         <Container
           label={currentIngredient.label}
