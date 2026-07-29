@@ -115,7 +115,8 @@ export class PublicBrandsController {
 
     this.logger.log(url, { query: { slug } });
     const data = await this.brandsService.findOneBySlug({
-      slug: { mode: 'insensitive', contains: `^${slug}$` },
+      slug: { equals: slug, mode: 'insensitive' },
+      isDeleted: false,
     });
 
     if (!data) {

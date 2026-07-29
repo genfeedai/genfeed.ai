@@ -13,9 +13,10 @@ describe('NotFoundPage', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('should apply correct styles and classes', () => {
+  it('uses a full-viewport deep-black background without an inset container', () => {
     const { container } = render(<NotFoundPage />);
     const rootElement = container.firstChild as HTMLElement;
-    expect(rootElement).toBeInTheDocument();
+    expect(rootElement).toHaveClass('min-h-dvh', 'w-full', 'bg-black');
+    expect(rootElement).not.toHaveClass('container', 'bg-background');
   });
 });
