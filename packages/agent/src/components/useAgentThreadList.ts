@@ -45,6 +45,9 @@ export function useAgentThreadList({
   const isStreaming = useAgentChatStore((s) => s.stream.isStreaming);
 
   const [isLoading, setIsLoading] = useState(false);
+  // Bumped after every successful/failed load so soft refreshes still re-render
+  // even when isLoading stays false (store mocks and no-op setState edge cases).
+  const [, setListRevision] = useState(0);
   const [authError, setAuthError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [viewStatus, setViewStatus] = useState<AgentThreadStatus>(
@@ -123,6 +126,7 @@ export function useAgentThreadList({
         ? [activeThread, ...recentLocalThreads]
         : recentLocalThreads;
       setThreads(sortThreads([...preserved, ...renderableData]));
+      setListRevision((revision) => revision + 1);
       return true;
     } catch (error) {
       if (abortRef.current?.signal.aborted) {
@@ -131,11 +135,13 @@ export function useAgentThreadList({
       if (isAuthError(error)) {
         setAuthError(AUTH_REQUIRED_MESSAGE);
         setLoadError(null);
+        setListRevision((revision) => revision + 1);
         return false;
       }
       setLoadError(
         getErrorMessage(error, 'Failed to load threads. Please try again.'),
       );
+      setListRevision((revision) => revision + 1);
       return false;
     } finally {
       setIsLoading(false);

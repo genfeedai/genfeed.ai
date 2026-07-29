@@ -126,11 +126,11 @@ describe('TimelineStreamingRow', () => {
     expect(screen.getByText('Fast streamed answer')).toBeTruthy();
   });
 
-  it('renders thinking duration inline in the main status label', () => {
+  it('renders thinking status with Working for duration at the end', () => {
     render(<TimelineStreamingRow entry={buildEntry()} />);
 
-    expect(screen.getByLabelText('Thinking for 4s')).toBeTruthy();
-    expect(screen.queryByText('4s')).toBeNull();
+    expect(screen.getByLabelText('Thinking')).toBeTruthy();
+    expect(screen.getByText('Working for 4s')).toBeTruthy();
   });
 
   it('does not render tool work events twice when active tool calls exist', () => {

@@ -620,7 +620,11 @@ describe('AgentChatContainer', () => {
 
     expect(container.querySelector('[data-layout-mode]')).toBeNull();
     expect(screen.queryByText('chat-input')).not.toBeInTheDocument();
-    expect(screen.getByText('Inspector run failed')).toBeInTheDocument();
+    // Inline feedback uses productized error title/summary (not raw store text).
+    expect(screen.getByText('Run failed')).toBeInTheDocument();
+    expect(
+      screen.getByText(/The agent hit an error while running/i),
+    ).toBeInTheDocument();
     expect(screen.getByText('Submit requested input')).toBeInTheDocument();
     expect(container.querySelector('.pb-6')).not.toBeNull();
     expect(container.querySelector('.pb-56')).toBeNull();

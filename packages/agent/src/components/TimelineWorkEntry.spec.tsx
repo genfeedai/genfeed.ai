@@ -88,7 +88,8 @@ describe('TimelineWorkEntry', () => {
     const longDetail =
       'This is a very long detail string that exceeds sixty characters and should be truncated with an ellipsis';
     render(<TimelineWorkEntry event={buildEvent({ detail: longDetail })} />);
-    expect(screen.getByText(/\.\.\./)).toBeTruthy();
+    // Unicode ellipsis (…) not three ASCII dots
+    expect(screen.getByText(/…/)).toBeTruthy();
   });
 
   it('shows duration', () => {
