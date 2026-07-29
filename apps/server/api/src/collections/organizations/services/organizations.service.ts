@@ -1,6 +1,12 @@
 import { CreateOrganizationDto } from '@api/collections/organizations/dto/create-organization.dto';
 import { UpdateOrganizationDto } from '@api/collections/organizations/dto/update-organization.dto';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import {
+  isSlugUniqueConstraintError,
+  MAX_SLUG_ALLOCATION_ATTEMPTS,
+  nextSlugCandidate,
+  slugAllocationBase,
+} from '@api/collections/shared/slug-allocation.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
@@ -102,12 +108,87 @@ export class OrganizationsService extends BaseService<
     super(prisma, 'organization', logger);
   }
 
+  /**
+   * Category normalization throws synchronously so existing unit tests that use
+   * `expect(() => service.create(...)).toThrow()` still work. Slug-race retries
+   * live in the async helper returned below.
+   */
   create(createDto: CreateOrganizationDto): Promise<OrganizationDocument> {
     const normalizedDto = normalizeOrganizationCategoryFields(
       createDto as unknown as Record<string, unknown>,
-    ) as unknown as CreateOrganizationDto;
+    ) as unknown as CreateOrganizationDto & { label?: string; slug?: string };
 
-    return super.create(normalizedDto, this.populate);
+    return this.createWithSlugRetry(normalizedDto);
+  }
+
+  private async createWithSlugRetry(
+    normalizedDto: CreateOrganizationDto & { label?: string; slug?: string },
+  ): Promise<OrganizationDocument> {
+    const label =
+      typeof normalizedDto.label === 'string' && normalizedDto.label.trim()
+        ? normalizedDto.label.trim()
+        : 'organization';
+    const preferredSlug =
+      typeof normalizedDto.slug === 'string' && normalizedDto.slug.trim()
+        ? normalizedDto.slug.trim()
+        : await this.generateUniqueSlug(label);
+    const allocationBase = slugAllocationBase(preferredSlug);
+
+    let organization: OrganizationDocument | undefined;
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt < MAX_SLUG_ALLOCATION_ATTEMPTS; attempt++) {
+      const candidate =
+        attempt === 0
+          ? preferredSlug
+          : nextSlugCandidate(preferredSlug, attempt);
+
+      try {
+        organization = await super.create(
+          {
+            ...normalizedDto,
+            slug: candidate,
+          } as CreateOrganizationDto,
+          this.populate,
+        );
+        if (attempt > 0) {
+          this.logger.warn('Organization slug race recovered with suffix', {
+            attempt,
+            operation: 'create',
+            slug: candidate,
+          });
+        }
+        break;
+      } catch (error) {
+        lastError = error;
+        if (!isSlugUniqueConstraintError(error)) {
+          throw error;
+        }
+        this.logger.warn(
+          'Organization slug unique constraint collision; retrying',
+          {
+            attempt,
+            operation: 'create',
+            slug: candidate,
+          },
+        );
+      }
+    }
+
+    if (!organization) {
+      this.logger.error('Organization slug allocation exhausted', {
+        attempts: MAX_SLUG_ALLOCATION_ATTEMPTS,
+        base: allocationBase,
+        operation: 'create',
+      });
+      throw lastError instanceof Error
+        ? lastError
+        : new BadRequestException(
+            'Unable to allocate a unique organization slug after concurrent retries',
+          );
+    }
+
+    return organization;
   }
 
   findOne(
