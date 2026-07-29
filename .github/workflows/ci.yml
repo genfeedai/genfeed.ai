@@ -203,7 +203,7 @@ jobs:
       - name: CI Workflow Contracts
         run: node --test scripts/ci/daily-deploy-orchestration.test.mjs scripts/ci/pr-test-plan.test.mjs scripts/ci/pr-validation-workflows.test.mjs scripts/ci/setup-bun-env.test.mjs scripts/ci/tests-gate.test.mjs
       - name: Coverage Workspace Contract
-        run: bunx vitest run scripts/ci/coverage-workspaces.test.ts
+        run: bunx vitest run --config scripts/ci/vitest.config.ts coverage-workspaces.test.ts
       # Fail the build if the committed Prisma model metadata (enum-field-map)
       # has drifted from schema.prisma — soft-delete filtering + enum
       # normalization under the Prisma 7 driver adapter depend on it, and it
