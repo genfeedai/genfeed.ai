@@ -10,6 +10,9 @@ const calendarMocks = vi.hoisted(() => {
     render: () => void;
   }> = [];
 
+  let importBarrier: Promise<void> | null = null;
+  let releaseImportBarrier: (() => void) | null = null;
+
   class MockCalendar {
     destroy = vi.fn();
     options: CalendarOptions;
@@ -41,29 +44,85 @@ const calendarMocks = vi.hoisted(() => {
   return {
     Calendar: MockCalendar,
     createDatesSetArg,
+    holdNextImport() {
+      importBarrier = new Promise<void>((resolve) => {
+        releaseImportBarrier = resolve;
+      });
+    },
+    async releaseImport() {
+      releaseImportBarrier?.();
+      releaseImportBarrier = null;
+      importBarrier = null;
+      await Promise.resolve();
+      await Promise.resolve();
+    },
+    async waitForImportGate() {
+      if (importBarrier) {
+        await importBarrier;
+      }
+    },
     instances,
   };
 });
 
-vi.mock('fullcalendar', () => ({
-  Calendar: calendarMocks.Calendar,
-}));
+vi.mock('fullcalendar', async () => {
+  await calendarMocks.waitForImportGate();
+  return {
+    Calendar: calendarMocks.Calendar,
+  };
+});
 
-vi.mock('fullcalendar/timegrid', () => ({
-  default: {},
-}));
+vi.mock('fullcalendar/timegrid', async () => {
+  await calendarMocks.waitForImportGate();
+  return {
+    default: {},
+  };
+});
 
-vi.mock('fullcalendar/interaction', () => ({
-  default: {},
-}));
+vi.mock('fullcalendar/interaction', async () => {
+  await calendarMocks.waitForImportGate();
+  return {
+    default: {},
+  };
+});
 
-vi.mock('fullcalendar/themes/classic', () => ({
-  default: {},
-}));
+vi.mock('fullcalendar/themes/classic', async () => {
+  await calendarMocks.waitForImportGate();
+  return {
+    default: {},
+  };
+});
 
 describe('ContentCalendar', () => {
   beforeEach(() => {
     calendarMocks.instances.length = 0;
+  });
+
+  // Must run first while fullcalendar mocks are still cold so the import gate can delay.
+  it('does not construct a calendar when unmounted before async imports resolve', async () => {
+    calendarMocks.holdNextImport();
+
+    const { unmount } = render(
+      <ContentCalendar
+        items={[]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+      />,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(calendarMocks.instances).toHaveLength(0);
+
+    unmount();
+
+    await act(async () => {
+      await calendarMocks.releaseImport();
+    });
+
+    expect(calendarMocks.instances).toHaveLength(0);
   });
 
   it('skips duplicate datesSet notifications for the same visible range', async () => {
@@ -98,5 +157,29 @@ describe('ContentCalendar', () => {
     });
 
     expect(onDatesChange).toHaveBeenCalledTimes(2);
+  });
+
+  it('destroys the FullCalendar instance and aborts load on unmount', async () => {
+    const abortSpy = vi.spyOn(AbortController.prototype, 'abort');
+
+    const { unmount } = render(
+      <ContentCalendar
+        items={[]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(calendarMocks.instances).toHaveLength(1);
+    });
+
+    const instance = calendarMocks.instances[0];
+    unmount();
+
+    expect(instance?.destroy).toHaveBeenCalledTimes(1);
+    expect(abortSpy).toHaveBeenCalled();
+    abortSpy.mockRestore();
   });
 });

@@ -57,10 +57,11 @@ function FullCalendarHost({ options }: FullCalendarHostProps) {
 
   useEffect(() => {
     let calendar: FullCalendarInstance | null = null;
-    let isMounted = true;
+    const abortController = new AbortController();
+    const { signal } = abortController;
 
     async function loadCalendar() {
-      if (!elementRef.current) {
+      if (!elementRef.current || signal.aborted) {
         return;
       }
 
@@ -75,7 +76,7 @@ function FullCalendarHost({ options }: FullCalendarHostProps) {
             import('fullcalendar/themes/classic'),
           ]);
 
-        if (!isMounted || !elementRef.current) {
+        if (signal.aborted || !elementRef.current) {
           return;
         }
 
@@ -90,7 +91,7 @@ function FullCalendarHost({ options }: FullCalendarHostProps) {
         calendarRef.current = calendar;
         calendar.render();
       } catch (error) {
-        if (!isMounted) {
+        if (signal.aborted) {
           return;
         }
         setLoadError(
@@ -101,10 +102,10 @@ function FullCalendarHost({ options }: FullCalendarHostProps) {
       }
     }
 
-    loadCalendar();
+    void loadCalendar();
 
     return () => {
-      isMounted = false;
+      abortController.abort();
       calendar?.destroy();
       if (calendarRef.current === calendar) {
         calendarRef.current = null;
