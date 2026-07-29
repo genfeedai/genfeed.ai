@@ -17,7 +17,7 @@ export const assetsEndpoint =
   process.env.PLASMO_PUBLIC_ASSETS_ENDPOINT || 'https://assets.genfeed.ai';
 
 export const cdnEndpoint = isDevelopment
-  ? 'http://genfeed.localhost:3010'
+  ? 'https://api.genfeed.localhost'
   : 'https://cdn.genfeed.ai';
 
 export const ingredientsEndpoint = `${cdnEndpoint}/ingredients`;
@@ -27,7 +27,7 @@ export const wsEndpoint =
 
 export const websiteDomain =
   process.env.PLASMO_PUBLIC_WEBSITE_ENDPOINT ||
-  (isDevelopment ? 'http://genfeed.localhost:3002' : 'https://genfeed.ai');
+  (isDevelopment ? 'https://website.genfeed.localhost' : 'https://genfeed.ai');
 
 /**
  * Studio app (apps/app) URL — serves the auth routes (`/login`, `/sign-up`).
@@ -36,7 +36,7 @@ export const websiteDomain =
  */
 export const appDomain =
   process.env.PLASMO_PUBLIC_APP_ENDPOINT ||
-  (isDevelopment ? 'http://genfeed.localhost:3000' : 'https://app.genfeed.ai');
+  (isDevelopment ? 'https://app.genfeed.localhost' : 'https://app.genfeed.ai');
 
 function getOrigin(url: string): string {
   try {

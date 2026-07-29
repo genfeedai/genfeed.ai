@@ -60,17 +60,16 @@ require local Node.js or Bun. See [docs/self-hosting.md](docs/self-hosting.md).
 
 ### Dev host
 
-Normal `bun run dev*` commands use Portless over plain HTTP on unprivileged
-port `1355`:
+Normal `bun run dev*` commands use Portless over trusted local HTTPS:
 
-- App: `http://app.genfeed.localhost:1355`
-- API: `http://api.genfeed.localhost:1355`
-- Notifications: `http://notifications.genfeed.localhost:1355`
+- App: `https://app.genfeed.localhost`
+- API: `https://api.genfeed.localhost`
+- Notifications: `https://notifications.genfeed.localhost`
 
 `*.localhost` resolves to loopback without `/etc/hosts`. The repository runner
-disables Portless TLS and hosts-file synchronization, so local development
-does not bind port `443`, install certificates, or require `sudo`. Linked
-worktrees receive branch-prefixed routes automatically.
+enables Portless HTTPS on the standard port and disables hosts-file
+synchronization. Portless performs a one-time local CA trust on first use.
+Linked worktrees receive branch-prefixed routes automatically.
 
 The app keeps browser API and auth traffic on its own `/v1` route, which Next.js
 proxies to the matching Portless API route. Runtime endpoint and redirect
@@ -85,9 +84,10 @@ bun run dev:direct:essentials
 bun run dev:direct:frontend
 ```
 
-Those commands use the root env contract: app `3000`, API `3010`, and
-notifications/websocket `3111`. Container, self-hosted, and deployed
-notifications services continue to use port `3011`.
+Those commands inject their fixed bind ports at the direct-runtime boundary:
+app `3000`, API `3010`, and notifications/websocket `3111`. Canonical
+environment examples keep the clean HTTPS service origins. Container,
+self-hosted, and deployed notifications services continue to use port `3011`.
 
 ## Branch and pull-request workflow
 

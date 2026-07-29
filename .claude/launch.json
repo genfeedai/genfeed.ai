@@ -2,32 +2,29 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "website",
+      "name": "website (direct)",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "cd apps/website && bun run dev"],
+      "runtimeArgs": ["-c", "bun run dev:direct:website"],
       "port": 3002
     },
     {
-      "name": "app",
+      "name": "app (direct)",
       "runtimeExecutable": "bash",
-      "runtimeArgs": [
-        "-c",
-        "cd apps/app && API_URL=http://genfeed.localhost:3010/v1 bun run dev"
-      ],
+      "runtimeArgs": ["-c", "bun run dev:direct:app"],
       "port": 3000
     },
     {
-      "name": "api",
+      "name": "api (direct)",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "bunx turbo run dev --filter=@genfeedai/api"],
+      "runtimeArgs": ["-c", "bun run --cwd apps/server/api dev:direct"],
       "port": 3010
     },
     {
-      "name": "notifications",
+      "name": "notifications (direct)",
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "bunx turbo run dev --filter=@genfeedai/notifications"
+        "bun run --cwd apps/server/notifications dev:direct"
       ],
       "port": 3111
     }

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildDirectEnvironment,
   buildPortlessEnvironment,
+  PORTLESS_PROXY_ENVIRONMENT,
+  resolveDirectOrigins,
   resolvePortlessOrigins,
 } from './portless-env';
 
@@ -35,20 +38,48 @@ describe('Portless local-development environment', () => {
     ]);
   });
 
-  it('preserves the worktree prefix and unprivileged proxy port', () => {
+  it('preserves the worktree prefix on clean HTTPS origins', () => {
     const origins = resolvePortlessOrigins(
       'api',
-      'http://fix-auth.api.genfeed.localhost:1355',
+      'https://fix-auth.api.genfeed.localhost',
     );
 
     expect(origins).toEqual({
-      api: 'http://fix-auth.api.genfeed.localhost:1355',
-      app: 'http://fix-auth.app.genfeed.localhost:1355',
-      docs: 'http://fix-auth.docs.genfeed.localhost:1355',
-      files: 'http://fix-auth.files.genfeed.localhost:1355',
-      mcp: 'http://fix-auth.mcp.genfeed.localhost:1355',
-      notifications: 'http://fix-auth.notifications.genfeed.localhost:1355',
-      website: 'http://fix-auth.website.genfeed.localhost:1355',
+      api: 'https://fix-auth.api.genfeed.localhost',
+      app: 'https://fix-auth.app.genfeed.localhost',
+      docs: 'https://fix-auth.docs.genfeed.localhost',
+      files: 'https://fix-auth.files.genfeed.localhost',
+      mcp: 'https://fix-auth.mcp.genfeed.localhost',
+      notifications: 'https://fix-auth.notifications.genfeed.localhost',
+      website: 'https://fix-auth.website.genfeed.localhost',
+    });
+  });
+
+  it('pins canonical HTTPS proxy settings without hosts-file synchronization', () => {
+    expect(PORTLESS_PROXY_ENVIRONMENT).toEqual({
+      PORTLESS_HTTPS: '1',
+      PORTLESS_PORT: '443',
+      PORTLESS_SYNC_HOSTS: '0',
+      PORTLESS_TLD: 'localhost',
+    });
+  });
+
+  it('keeps fixed ports inside the explicit direct-runtime environment', () => {
+    expect(resolveDirectOrigins({ APP_PORT: '3100' })).toMatchObject({
+      api: 'http://genfeed.localhost:3010',
+      app: 'http://genfeed.localhost:3100',
+      notifications: 'http://genfeed.localhost:3111',
+    });
+
+    expect(
+      buildDirectEnvironment({
+        currentService: 'app',
+        existingEnv: {},
+      }),
+    ).toMatchObject({
+      API_URL: 'http://genfeed.localhost:3010',
+      NEXT_PUBLIC_API_ENDPOINT: 'http://genfeed.localhost:3000/v1',
+      PORT: '3000',
     });
   });
 

@@ -68,7 +68,7 @@
     "build:prod": "cd .. && nest build api && nest build api-workflow-backfill && nest build api-credential-backfill && cd api && (bun run sentry:sourcemaps || true)",
     "deps:update": "bunx npm-check-updates -u --reject typescript,better-auth && bun install",
     "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start api --watch",
-    "dev:direct": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start api --watch",
+    "dev:direct": "NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" bun run ../../../scripts/dev/run-direct.ts api -- bash -lc 'cd .. && nest start api --watch'",
     "dev:portless": "bun run ../../../scripts/dev/run-portless.ts api -- bun run dev:direct",
     "dev:webpack": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start api --watch",
     "encrypt:credentials": "bun run scripts/backfill-credential-encryption.ts --live",

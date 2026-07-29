@@ -12,10 +12,40 @@ export type PortlessService = (typeof PORTLESS_SERVICES)[number];
 
 export type PortlessOrigins = Record<PortlessService, string>;
 
-type PortlessEnvironmentOptions = {
+type LocalEnvironmentOptions = {
   currentService: PortlessService;
   existingEnv: Readonly<Record<string, string | undefined>>;
+};
+
+type PortlessEnvironmentOptions = LocalEnvironmentOptions & {
   portlessUrl: string;
+};
+
+export const PORTLESS_PROXY_ENVIRONMENT = {
+  PORTLESS_HTTPS: '1',
+  PORTLESS_PORT: '443',
+  PORTLESS_SYNC_HOSTS: '0',
+  PORTLESS_TLD: 'localhost',
+} as const;
+
+export const DIRECT_SERVICE_PORTS: Record<PortlessService, number> = {
+  api: 3010,
+  app: 3000,
+  docs: 3001,
+  files: 3012,
+  mcp: 3014,
+  notifications: 3111,
+  website: 3002,
+};
+
+const DIRECT_SERVICE_PORT_KEYS: Record<PortlessService, string> = {
+  api: 'API_PORT',
+  app: 'APP_PORT',
+  docs: 'DOCS_PORT',
+  files: 'FILES_PORT',
+  mcp: 'MCP_PORT',
+  notifications: 'NOTIFICATIONS_PORT',
+  website: 'WEBSITE_PORT',
 };
 
 const APP_REDIRECT_KEYS = [
@@ -73,8 +103,29 @@ function appendTrustedOrigins(
   ].join(',');
 }
 
+function resolveDirectPort(
+  service: PortlessService,
+  existingEnv: Readonly<Record<string, string | undefined>>,
+): number {
+  const configuredPort = Number(existingEnv[DIRECT_SERVICE_PORT_KEYS[service]]);
+  return Number.isInteger(configuredPort) && configuredPort > 0
+    ? configuredPort
+    : DIRECT_SERVICE_PORTS[service];
+}
+
 export function isPortlessService(value: string): value is PortlessService {
   return PORTLESS_SERVICES.includes(value as PortlessService);
+}
+
+export function resolveDirectOrigins(
+  existingEnv: Readonly<Record<string, string | undefined>>,
+): PortlessOrigins {
+  return Object.fromEntries(
+    PORTLESS_SERVICES.map((service) => [
+      service,
+      `http://genfeed.localhost:${resolveDirectPort(service, existingEnv)}`,
+    ]),
+  ) as PortlessOrigins;
 }
 
 export function resolvePortlessOrigins(
@@ -105,12 +156,11 @@ export function resolvePortlessOrigins(
   ) as PortlessOrigins;
 }
 
-export function buildPortlessEnvironment({
-  currentService,
-  existingEnv,
-  portlessUrl,
-}: PortlessEnvironmentOptions): Record<string, string> {
-  const origins = resolvePortlessOrigins(currentService, portlessUrl);
+function buildLocalEnvironment(
+  currentService: PortlessService,
+  existingEnv: Readonly<Record<string, string | undefined>>,
+  origins: PortlessOrigins,
+): Record<string, string> {
   const browserApiOrigin = currentService === 'app' ? origins.app : origins.api;
 
   const environment: Record<string, string> = {
@@ -146,4 +196,27 @@ export function buildPortlessEnvironment({
   }
 
   return environment;
+}
+
+export function buildDirectEnvironment({
+  currentService,
+  existingEnv,
+}: LocalEnvironmentOptions): Record<string, string> {
+  return {
+    ...buildLocalEnvironment(
+      currentService,
+      existingEnv,
+      resolveDirectOrigins(existingEnv),
+    ),
+    PORT: String(resolveDirectPort(currentService, existingEnv)),
+  };
+}
+
+export function buildPortlessEnvironment({
+  currentService,
+  existingEnv,
+  portlessUrl,
+}: PortlessEnvironmentOptions): Record<string, string> {
+  const origins = resolvePortlessOrigins(currentService, portlessUrl);
+  return buildLocalEnvironment(currentService, existingEnv, origins);
 }

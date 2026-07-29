@@ -32,6 +32,7 @@ describe('Better Auth config', () => {
     it('auto-trusts genfeed.localhost, localhost AND local.genfeed.ai for local dev (no env needed)', () => {
       const origins = resolveTrustedOrigins(undefined, 'development');
       expect(origins).toContain('http://genfeed.localhost:*');
+      expect(origins).toContain('https://*.genfeed.localhost');
       expect(origins).toContain('http://localhost:*');
       expect(origins).toContain('http://local.genfeed.ai:*');
     });

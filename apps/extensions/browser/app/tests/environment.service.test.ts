@@ -20,13 +20,13 @@ describe('browser extension environment service', () => {
   it('uses genfeed.localhost for development app and website defaults', async () => {
     const environment = await importEnvironmentService();
 
-    expect(environment.appDomain).toBe('http://genfeed.localhost:3000');
-    expect(environment.cdnEndpoint).toBe('http://genfeed.localhost:3010');
+    expect(environment.appDomain).toBe('https://app.genfeed.localhost');
+    expect(environment.cdnEndpoint).toBe('https://api.genfeed.localhost');
     expect(environment.ingredientsEndpoint).toBe(
-      'http://genfeed.localhost:3010/ingredients',
+      'https://api.genfeed.localhost/ingredients',
     );
-    expect(environment.websiteDomain).toBe('http://genfeed.localhost:3002');
-    expect(environment.cookieDomain).toBe('genfeed.localhost');
+    expect(environment.websiteDomain).toBe('https://website.genfeed.localhost');
+    expect(environment.cookieDomain).toBe('app.genfeed.localhost');
   });
 
   it('uses the canonical CDN for production ingredients', async () => {

@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { PORTLESS_PROXY_ENVIRONMENT } from '../dev/portless-env';
 
 const ROUTED_SERVICES = [
   { directory: 'apps/app', runnerPath: '../../', service: 'app' },
@@ -49,6 +50,31 @@ type PortlessConfig = {
   apps?: Record<string, { name?: string; script?: string }>;
 };
 
+const CANONICAL_ENV_ENDPOINTS = {
+  API_URL: 'https://api.genfeed.localhost',
+  BETTER_AUTH_URL: 'https://api.genfeed.localhost',
+  GENFEEDAI_API_URL: 'https://api.genfeed.localhost',
+  GENFEEDAI_APP_URL: 'https://app.genfeed.localhost',
+  GENFEEDAI_MICROSERVICES_FILES_URL: 'https://files.genfeed.localhost',
+  GENFEEDAI_MICROSERVICES_MCP_URL: 'https://mcp.genfeed.localhost',
+  GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL:
+    'https://notifications.genfeed.localhost',
+  GENFEEDAI_PUBLIC_URL: 'https://website.genfeed.localhost',
+  NEXT_PUBLIC_API_ENDPOINT: 'https://api.genfeed.localhost/v1',
+  NEXT_PUBLIC_MCP_ENDPOINT: 'https://mcp.genfeed.localhost/mcp',
+  NEXT_PUBLIC_WS_ENDPOINT: 'https://notifications.genfeed.localhost',
+} as const;
+
+const ROUTED_PORT_ENV_KEYS = [
+  'API_PORT',
+  'APP_PORT',
+  'DOCS_PORT',
+  'FILES_PORT',
+  'MCP_PORT',
+  'NOTIFICATIONS_PORT',
+  'WEBSITE_PORT',
+] as const;
+
 export type PortlessContractViolation = {
   message: string;
   path: string;
@@ -60,6 +86,24 @@ function readJson<T>(rootDir: string, relativePath: string): T {
   ) as T;
 }
 
+function readEnv(
+  rootDir: string,
+  relativePath: string,
+): Record<string, string> {
+  const values: Record<string, string> = {};
+  for (const line of readFileSync(
+    path.join(rootDir, relativePath),
+    'utf8',
+  ).split('\n')) {
+    const separator = line.indexOf('=');
+    if (separator <= 0 || line.startsWith('#')) {
+      continue;
+    }
+    values[line.slice(0, separator)] = line.slice(separator + 1);
+  }
+  return values;
+}
+
 export function checkPortlessContract(
   rootDir = process.cwd(),
 ): PortlessContractViolation[] {
@@ -67,6 +111,25 @@ export function checkPortlessContract(
   const rootManifest = readJson<PackageManifest>(rootDir, 'package.json');
   const rootScripts = rootManifest.scripts ?? {};
   const portlessConfig = readJson<PortlessConfig>(rootDir, 'portless.json');
+  const rootEnvironment = readEnv(rootDir, '.env.example');
+  const portlessRunner = readFileSync(
+    path.join(rootDir, 'scripts/dev/run-portless.ts'),
+    'utf8',
+  );
+
+  if (
+    PORTLESS_PROXY_ENVIRONMENT.PORTLESS_HTTPS !== '1' ||
+    PORTLESS_PROXY_ENVIRONMENT.PORTLESS_PORT !== '443' ||
+    PORTLESS_PROXY_ENVIRONMENT.PORTLESS_SYNC_HOSTS !== '0' ||
+    PORTLESS_PROXY_ENVIRONMENT.PORTLESS_TLD !== 'localhost' ||
+    !portlessRunner.includes('...PORTLESS_PROXY_ENVIRONMENT')
+  ) {
+    violations.push({
+      message:
+        'Portless must enforce HTTPS on 443 with .localhost routes and hosts-file synchronization disabled',
+      path: 'scripts/dev/run-portless.ts',
+    });
+  }
 
   for (const [script, expected] of Object.entries(
     DEFAULT_SCRIPT_EXPECTATIONS,
@@ -99,6 +162,14 @@ export function checkPortlessContract(
       });
     }
 
+    const directRunner = `scripts/dev/run-direct.ts ${route.service} --`;
+    if (!manifest.scripts?.['dev:direct']?.includes(directRunner)) {
+      violations.push({
+        message: `dev:direct must inject the ${route.service} fixed-port environment through run-direct.ts`,
+        path: manifestPath,
+      });
+    }
+
     if (
       configuredRoute?.name !== `${route.service}.genfeed` ||
       configuredRoute.script !== 'dev:direct'
@@ -122,6 +193,24 @@ export function checkPortlessContract(
       violations.push({
         message: `${script} must reserve enough Turbo concurrency with ${concurrency}`,
         path: 'package.json',
+      });
+    }
+  }
+
+  for (const [key, expectedValue] of Object.entries(CANONICAL_ENV_ENDPOINTS)) {
+    if (rootEnvironment[key] !== expectedValue) {
+      violations.push({
+        message: `${key} must be "${expectedValue}"`,
+        path: '.env.example',
+      });
+    }
+  }
+
+  for (const key of ROUTED_PORT_ENV_KEYS) {
+    if (rootEnvironment[key] !== undefined) {
+      violations.push({
+        message: `${key} belongs to the direct/E2E/Docker boundary, not the canonical environment example`,
+        path: '.env.example',
       });
     }
   }
