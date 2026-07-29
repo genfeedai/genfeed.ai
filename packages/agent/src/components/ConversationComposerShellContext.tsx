@@ -79,7 +79,10 @@ export function ConversationComposerShellProvider({
       | Promise<ConversationComposerDispatchResult> => {
       const latest = dispatchActionRef.current;
       if (!latest) {
-        return { handled: false };
+        return {
+          message: 'Composer actions are unavailable.',
+          status: 'unavailable',
+        };
       }
       return latest(invocation);
     },
