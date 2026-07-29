@@ -8,15 +8,17 @@ import { AgentPlanReviewSection } from '@genfeedai/agent/components/AgentPlanRev
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { OnboardingConversationCard } from '@genfeedai/agent/components/OnboardingConversationCard';
 import { WorkflowPhaseProgressBar } from '@genfeedai/agent/components/WorkflowPhaseProgressBar';
+import { DEFAULT_RUNTIME_AGENT_MODEL } from '@genfeedai/agent/constants/agent-runtime-model.constant';
 import { useAgentChatContainer } from '@genfeedai/agent/hooks/use-agent-chat-container';
 import type { AgentChatMessage as AgentChatMessageType } from '@genfeedai/agent/models/agent-chat.model';
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
-import { type ReactElement, useCallback, useMemo } from 'react';
+import { type ReactElement, useCallback, useMemo, useState } from 'react';
 import { HiOutlineArrowDown } from 'react-icons/hi2';
 
 interface AgentChatContainerProps {
@@ -78,6 +80,9 @@ export function AgentChatContainer({
   workspacePlanningTaskId = null,
 }: AgentChatContainerProps): ReactElement {
   const composerShell = useConversationComposerShell();
+  const [selectedModel, setSelectedModel] = useState(
+    () => model?.trim() || DEFAULT_RUNTIME_AGENT_MODEL,
+  );
   const {
     isGenerating,
     error,
@@ -126,7 +131,7 @@ export function AgentChatContainer({
     isLoadingThread,
     isReadOnly,
     isStreaming,
-    model,
+    model: selectedModel,
     onOnboardingCompleted,
     onCopy,
     onRegenerate,
@@ -136,6 +141,19 @@ export function AgentChatContainer({
   });
 
   const highlightedMessageId: string | null = null;
+  const formattedError = useMemo(
+    () => (error ? formatAgentError(error) : null),
+    [error],
+  );
+  const handleRetryLastFailedRun = useCallback(async () => {
+    const lastUser = [...timeline]
+      .reverse()
+      .find((entry) => entry.kind === 'user-message');
+    if (!lastUser || lastUser.kind !== 'user-message') {
+      return;
+    }
+    await handleRetry(lastUser.message);
+  }, [handleRetry, timeline]);
   const conversationColumnMaxWidthClass = isWideLayout
     ? 'max-w-[52rem]'
     : 'max-w-[46rem]';
@@ -179,7 +197,7 @@ export function AgentChatContainer({
 
   return (
     <div className="relative flex h-full flex-col">
-      {error && shouldRenderInlineComposerFeedback ? (
+      {formattedError && shouldRenderInlineComposerFeedback ? (
         <Alert
           className={cn(
             'mx-auto mt-3 w-[calc(100%-2rem)]',
@@ -188,7 +206,11 @@ export function AgentChatContainer({
           onClose={() => setError(null)}
           type={AlertCategory.ERROR}
         >
-          {error}
+          <span className="font-medium">{formattedError.title}</span>
+          <span className="mt-0.5 block text-xs opacity-90">
+            {formattedError.summary}
+            {formattedError.recovery ? ` ${formattedError.recovery}` : null}
+          </span>
         </Alert>
       ) : null}
 
@@ -235,6 +257,8 @@ export function AgentChatContainer({
           placeholder={placeholder}
           promptBarSuggestions={promptBarSuggestions}
           removeAttachment={removeAttachment}
+          selectedModel={selectedModel}
+          onModelChange={setSelectedModel}
         />
       ) : (
         <div
@@ -267,8 +291,8 @@ export function AgentChatContainer({
               )}
             >
               {activeThreadTitle ? (
-                <div className="mb-5 px-1">
-                  <p className="truncate text-sm font-medium text-foreground/70">
+                <div className="mb-4 border-b border-border/50 px-1 pb-3">
+                  <p className="truncate text-sm font-semibold tracking-tight text-foreground/85">
                     {activeThreadTitle}
                   </p>
                 </div>
@@ -317,6 +341,7 @@ export function AgentChatContainer({
                 onCopy={handleCopy}
                 onRetry={handleRetry}
                 onRegenerate={onRegenerate}
+                onRetryLastFailedRun={handleRetryLastFailedRun}
                 onOAuthConnect={onOAuthConnect}
                 onBrandCreate={onBrandCreate}
                 onSelectCreditPack={onSelectCreditPack}
@@ -352,7 +377,11 @@ export function AgentChatContainer({
           clearAllAttachments={clearAllAttachments}
           dragHandlers={dragHandlers}
           dragState={dragState}
-          error={composerShell ? error : null}
+          error={
+            composerShell && error
+              ? `${formatAgentError(error).title}: ${formatAgentError(error).summary}`
+              : null
+          }
           getCompletedAttachments={getCompletedAttachments}
           isAttachmentUploading={isAttachmentUploading}
           isBusy={
@@ -364,6 +393,7 @@ export function AgentChatContainer({
           latestProposedPlan={latestProposedPlan}
           layoutMode={promptBarLayoutMode}
           onClearError={() => setError(null)}
+          onModelChange={setSelectedModel}
           onSend={handleSend}
           onStop={handleStopRun}
           onSubmitInputRequest={handleSubmitInputRequest}
@@ -373,6 +403,7 @@ export function AgentChatContainer({
           placeholder={placeholder}
           promptBarSuggestions={promptBarSuggestions}
           removeAttachment={removeAttachment}
+          selectedModel={selectedModel}
           showSuggestedActionsWhenNotEmpty={showSuggestedActionsWhenNotEmpty}
           socketConnectionState={socketConnectionState}
         />

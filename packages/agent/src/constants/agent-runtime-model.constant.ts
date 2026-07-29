@@ -1,1 +1,2 @@
-export const DEFAULT_RUNTIME_AGENT_MODEL = 'moonshotai/kimi-k2.5';
+/** Default agent chat model — OpenRouter auto-routing (cheap + capable). */
+export const DEFAULT_RUNTIME_AGENT_MODEL = 'openrouter/auto';

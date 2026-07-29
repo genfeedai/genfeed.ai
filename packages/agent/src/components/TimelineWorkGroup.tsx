@@ -1,11 +1,17 @@
 import { TimelineWorkEntry } from '@genfeedai/agent/components/TimelineWorkEntry';
 import { AgentWorkEventStatus } from '@genfeedai/agent/models/agent-chat.model';
 import type { TimelineWorkGroup as TimelineWorkGroupEntry } from '@genfeedai/agent/utils/derive-timeline';
+import { formatAgentErrorDetail } from '@genfeedai/agent/utils/format-agent-error.util';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
-import { type ReactElement, useState } from 'react';
-import { HiCheckCircle, HiChevronDown, HiClock } from 'react-icons/hi2';
+import { type ReactElement, useMemo, useState } from 'react';
+import {
+  HiCheckCircle,
+  HiChevronDown,
+  HiClock,
+  HiExclamationCircle,
+} from 'react-icons/hi2';
 
 interface TimelineWorkGroupProps {
   entry: TimelineWorkGroupEntry;
@@ -14,8 +20,39 @@ interface TimelineWorkGroupProps {
 export function TimelineWorkGroup({
   entry,
 }: TimelineWorkGroupProps): ReactElement {
-  const isArchived = entry.presentation === 'archived';
-  const [isExpanded, setIsExpanded] = useState(!isArchived);
+  const terminalStatus = useMemo(() => {
+    if (
+      entry.events.some((event) => event.status === AgentWorkEventStatus.FAILED)
+    ) {
+      return 'failed' as const;
+    }
+    if (
+      entry.events.some(
+        (event) => event.status === AgentWorkEventStatus.CANCELLED,
+      )
+    ) {
+      return 'cancelled' as const;
+    }
+    if (
+      entry.events.some(
+        (event) => event.status === AgentWorkEventStatus.COMPLETED,
+      ) &&
+      entry.events.every(
+        (event) =>
+          event.status === AgentWorkEventStatus.COMPLETED ||
+          event.status === AgentWorkEventStatus.CANCELLED,
+      )
+    ) {
+      return 'completed' as const;
+    }
+    return 'live' as const;
+  }, [entry.events]);
+
+  const isTerminal = terminalStatus !== 'live';
+  const isArchived = entry.presentation === 'archived' || isTerminal;
+  const [isExpanded, setIsExpanded] = useState(
+    entry.presentation === 'live' && !isTerminal,
+  );
   const hasTerminalEvent = entry.events.some((event) =>
     [
       AgentWorkEventStatus.COMPLETED,
@@ -24,37 +61,76 @@ export function TimelineWorkGroup({
     ].includes(event.status),
   );
   const durationLabel = formatWorkedDuration(entry.totalDurationMs);
+  const failureDetail = useMemo(() => {
+    if (terminalStatus !== 'failed') {
+      return null;
+    }
+    const failed = [...entry.events]
+      .reverse()
+      .find((event) => event.status === AgentWorkEventStatus.FAILED);
+    return formatAgentErrorDetail(failed?.detail ?? failed?.label ?? null);
+  }, [entry.events, terminalStatus]);
+
+  const stepCount = entry.events.length;
+  const statusLabel =
+    terminalStatus === 'failed'
+      ? 'Failed'
+      : terminalStatus === 'cancelled'
+        ? 'Cancelled'
+        : terminalStatus === 'completed'
+          ? 'Completed'
+          : 'Running';
 
   return (
     <div className="mb-3 flex justify-start motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out">
-      <div className="w-full max-w-none rounded-2xl border border-border/65 bg-background-secondary/68 p-2.5 shadow-[0_1px_0_rgba(0,0,0,0.18)]">
+      <div
+        className={cn(
+          'w-full max-w-none rounded-lg border bg-background-secondary/80 p-2 shadow-[0_1px_0_rgba(0,0,0,0.18)]',
+          terminalStatus === 'failed'
+            ? 'border-destructive/30'
+            : 'border-border/70',
+        )}
+      >
         {isArchived ? (
           <Button
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
             onClick={() => setIsExpanded((prev) => !prev)}
             aria-expanded={isExpanded}
-            className="flex w-full items-center justify-between gap-3 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-background/55"
+            className="flex w-full items-center justify-between gap-3 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-background/55"
           >
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5 text-[11px] font-medium text-foreground/82">
-                <HiClock className="size-3.5 shrink-0 text-foreground/44" />
+              <div className="flex items-center gap-1.5 text-xs font-medium text-foreground/85">
+                <HiClock className="size-3.5 shrink-0 text-foreground/45" />
                 <span>
                   {durationLabel
-                    ? `Worked for ${durationLabel}`
-                    : 'Completed run'}
+                    ? `Worked ${durationLabel}`
+                    : terminalStatus === 'failed'
+                      ? 'Run failed'
+                      : 'Completed run'}
                 </span>
               </div>
-              <div className="mt-1 flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.12em] text-foreground/38">
+              <div className="mt-1 flex min-w-0 items-center gap-1.5 text-[11px] text-foreground/45">
                 <span>
-                  {entry.events.length} step
-                  {entry.events.length !== 1 ? 's' : ''}
+                  {stepCount} step{stepCount !== 1 ? 's' : ''}
                 </span>
-                <span aria-hidden="true">•</span>
+                <span aria-hidden="true">·</span>
                 <span className="inline-flex items-center gap-1">
-                  <HiCheckCircle className="size-3.5 text-emerald-500" />
-                  Completed
+                  {terminalStatus === 'failed' ? (
+                    <HiExclamationCircle className="size-3.5 text-destructive" />
+                  ) : (
+                    <HiCheckCircle className="size-3.5 text-emerald-500" />
+                  )}
+                  {statusLabel}
                 </span>
+                {failureDetail && !isExpanded ? (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="truncate text-foreground/40">
+                      {failureDetail}
+                    </span>
+                  </>
+                ) : null}
               </div>
             </div>
             <HiChevronDown
@@ -65,9 +141,15 @@ export function TimelineWorkGroup({
             />
           </Button>
         ) : (
-          <div className="px-1 pb-2 text-[10px] font-mono uppercase tracking-[0.14em] text-foreground/40">
-            Run <span aria-hidden="true">·</span> {entry.events.length} step
-            {entry.events.length !== 1 ? 's' : ''}
+          <div className="flex items-center justify-between gap-2 px-1.5 pb-2 pt-0.5">
+            <div className="text-[11px] font-medium tracking-wide text-foreground/50">
+              Run
+              <span className="mx-1.5 text-foreground/30" aria-hidden="true">
+                ·
+              </span>
+              {stepCount} step{stepCount !== 1 ? 's' : ''}
+            </div>
+            <div className="text-[11px] text-foreground/40">{statusLabel}</div>
           </div>
         )}
 

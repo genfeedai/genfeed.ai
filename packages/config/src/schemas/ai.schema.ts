@@ -20,6 +20,10 @@ export const generalAiSchema = {
     .valid('true', 'false')
     .default('false'),
   MAX_TOKENS: Joi.number().default(4000),
+  // OpenRouter is the primary text-model gateway for agent chat. Must stay on
+  // the validated schema so ConfigService.get('OPENROUTER_API_KEY') resolves
+  // after Joi validation (unknown keys alone are not enough for typed access).
+  OPENROUTER_API_KEY: Joi.string().optional().allow(''),
 };
 
 /**

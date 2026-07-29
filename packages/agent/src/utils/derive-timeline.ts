@@ -82,7 +82,13 @@ function isGenericRunLifecycleEvent(event: EnrichedWorkEvent): boolean {
     normalizedLabel === 'run completed' ||
     normalizedLabel === 'run failed' ||
     normalizedLabel === 'run cancelled' ||
-    normalizedLabel.startsWith('run ')
+    normalizedLabel === 'agent started' ||
+    normalizedLabel === 'agent failed' ||
+    normalizedLabel === 'agent completed' ||
+    normalizedLabel === 'agent cancelled' ||
+    normalizedLabel.startsWith('run ') ||
+    normalizedLabel.startsWith('agent ') ||
+    normalizedLabel.startsWith('turn ')
   );
 }
 

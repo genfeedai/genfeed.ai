@@ -5,6 +5,7 @@ import type {
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentSocketConnectionState } from '@genfeedai/agent/stores/agent-chat.store';
+import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
@@ -34,25 +35,14 @@ interface AgentComposerStatusStackProps {
 const STATUS_SURFACE_CLASS =
   'rounded-lg border bg-background-secondary px-3 py-2 shadow-sm';
 
-// Transport errors arrive as "<action>: <status> - <server detail>". The
-// server detail can be a raw ORM message, so it is split out and rendered as
-// bounded secondary text instead of one unreadable run-on line.
 function splitComposerError(error: string): {
   detail: string | null;
   summary: string;
 } {
-  const match = error.match(/^(.*?):\s*(\d{3})(?:\s*-\s*([\s\S]+))?$/);
-
-  if (!match) {
-    return { detail: null, summary: error };
-  }
-
-  const [, action, status, serverDetail] = match;
-  const trimmedDetail = serverDetail?.trim();
-
+  const formatted = formatAgentError(error);
   return {
-    detail: trimmedDetail || null,
-    summary: `${action} (${status})`,
+    detail: formatted.detail ?? formatted.recovery,
+    summary: `${formatted.title} — ${formatted.summary}`,
   };
 }
 

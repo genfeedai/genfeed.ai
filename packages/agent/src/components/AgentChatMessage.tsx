@@ -220,25 +220,25 @@ export function AgentChatMessage({
         data-message-role={message.role}
         data-message-surface={isUser ? 'bubble' : 'inline'}
         className={cn(
-          'group relative overflow-hidden border text-sm transition-[border-color,background-color,box-shadow] duration-300',
+          'group relative overflow-hidden border text-[13px] leading-5 transition-[border-color,background-color,box-shadow] duration-300',
           isHighlighted && SCROLL_FOCUS_SURFACE_CLASS,
           isUser
-            ? 'max-w-[82%] rounded-md border-border/70 bg-background/78 px-4 py-3 text-foreground shadow-[0_1px_0_rgba(0,0,0,0.18)]'
-            : 'w-full max-w-none rounded-md border-border/65 bg-background-secondary/72 px-4 py-3 text-foreground shadow-[0_1px_0_rgba(0,0,0,0.18)]',
+            ? 'max-w-[min(82%,36rem)] rounded-lg border-border/60 bg-background-secondary px-3.5 py-2.5 text-foreground shadow-[0_1px_0_rgba(0,0,0,0.18)]'
+            : 'w-full max-w-none rounded-lg border-border/55 bg-background-secondary/55 px-3.5 py-2.5 text-foreground',
         )}
       >
         <div
           aria-label={isUser ? 'Your message' : 'Assistant message'}
           className={cn(
-            'mb-2.5 flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.14em]',
-            isUser ? 'text-foreground/38' : 'text-foreground/44',
+            'mb-1.5 flex items-center gap-2 text-[11px] font-medium',
+            isUser ? 'text-foreground/45' : 'text-foreground/50',
           )}
           role="heading"
           aria-level={3}
         >
           <span>{isUser ? 'You' : 'Assistant'}</span>
           {!isUser && (toolCalls?.length ?? 0) > 0 ? (
-            <span className="rounded-full border border-border/60 bg-background/60 px-2 py-0.5 text-[9px] tracking-[0.12em] text-foreground/52">
+            <span className="rounded-full border border-border/50 bg-background/50 px-1.5 py-0.5 text-[10px] font-normal text-foreground/50">
               {toolCalls?.length} tool
               {(toolCalls?.length ?? 0) === 1 ? '' : 's'}
             </span>

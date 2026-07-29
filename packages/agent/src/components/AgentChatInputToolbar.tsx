@@ -1,3 +1,4 @@
+import { AgentModelSelector } from '@genfeedai/agent/components/AgentModelSelector';
 import { CONVERSATION_COMPOSER_ACTIONS } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
 import type { ConversationComposerActionName } from '@genfeedai/agent/models/conversation-composer.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
@@ -21,18 +22,22 @@ import {
 
 interface AgentChatInputToolbarProps {
   canSendMessage: boolean;
+  creditsAvailable?: number | null;
   disabled: boolean | undefined;
   hasEditor: boolean;
   isListening: boolean;
   isTranscribing: boolean;
   isUploading: boolean;
   onAddFiles?: (files: File[]) => void;
+  onBuyCredits?: () => void;
   onInsertReference: () => void;
+  onModelChange?: (model: string) => void;
   onSelectAction: (actionName: ConversationComposerActionName) => void;
   onSend: () => void;
   onStartListening: () => void;
   onStop: (() => void | Promise<void>) | undefined;
   onStopListening: () => void;
+  selectedModel?: string;
   shouldShowSendButton: boolean;
   shouldShowVoiceInput: boolean;
   showStop: boolean;
@@ -41,18 +46,22 @@ interface AgentChatInputToolbarProps {
 
 export function AgentChatInputToolbar({
   canSendMessage,
+  creditsAvailable = null,
   disabled,
   hasEditor,
   isListening,
   isTranscribing,
   isUploading,
   onAddFiles,
+  onBuyCredits,
   onInsertReference,
+  onModelChange,
   onSelectAction,
   onSend,
   onStartListening,
   onStop,
   onStopListening,
+  selectedModel,
   shouldShowSendButton,
   shouldShowVoiceInput,
   showStop,
@@ -61,6 +70,7 @@ export function AgentChatInputToolbar({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const isCompact = density === 'compact';
+  const showModelSelector = Boolean(selectedModel && onModelChange);
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>): void {
     const files = Array.from(event.target.files ?? []);
@@ -163,7 +173,16 @@ export function AgentChatInputToolbar({
         </Popover>
       </div>
 
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 items-center gap-1.5">
+        {showModelSelector && selectedModel && onModelChange ? (
+          <AgentModelSelector
+            selectedModel={selectedModel}
+            onModelChange={onModelChange}
+            creditsAvailable={creditsAvailable}
+            onBuyCredits={onBuyCredits}
+          />
+        ) : null}
+
         {showStop && onStop ? (
           <Button
             ariaLabel="Stop agent"

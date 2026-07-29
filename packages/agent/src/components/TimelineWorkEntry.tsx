@@ -5,6 +5,7 @@ import {
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { EnrichedWorkEvent } from '@genfeedai/agent/utils/derive-timeline';
+import { formatAgentErrorDetail } from '@genfeedai/agent/utils/format-agent-error.util';
 import { formatDuration } from '@genfeedai/agent/utils/format-duration';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
@@ -89,34 +90,36 @@ export function TimelineWorkEntry({
 }: TimelineWorkEntryProps): ReactElement {
   const [isExpanded, setIsExpanded] = useState(false);
   const label = getEventLabel(event);
-  const detail = event.detail
-    ? event.detail.length > 60
-      ? `${event.detail.slice(0, 57)}...`
+  const rawDetail =
+    event.status === AgentWorkEventStatus.FAILED
+      ? formatAgentErrorDetail(event.detail ?? event.resultSummary ?? null)
       : event.detail
-    : event.resultSummary
-      ? event.resultSummary.length > 60
-        ? `${event.resultSummary.slice(0, 57)}...`
-        : event.resultSummary
-      : null;
+        ? event.detail
+        : (event.resultSummary ?? null);
+  const detail = rawDetail
+    ? rawDetail.length > 72
+      ? `${rawDetail.slice(0, 69)}…`
+      : rawDetail
+    : null;
   const hasExpandableContent = Boolean(
-    event.parameters || event.resultSummary || event.debug,
+    event.parameters || event.resultSummary || event.debug || event.detail,
   );
 
   const content = (
-    <div className="flex items-center gap-1.5 p-1 text-xs">
+    <div className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-xs">
       <StatusIcon
         status={event.status}
         stopActiveAnimation={stopActiveAnimation}
       />
-      <span className="font-medium text-foreground/80">{label}</span>
+      <span className="font-medium text-foreground/85">{label}</span>
       {detail && (
         <>
-          <span className="text-muted-foreground/40">&mdash;</span>
-          <span className="truncate text-muted-foreground/60">{detail}</span>
+          <span className="text-muted-foreground/35">—</span>
+          <span className="truncate text-muted-foreground/65">{detail}</span>
         </>
       )}
       {event.durationMs != null && (
-        <span className="ml-auto shrink-0 text-muted-foreground/50">
+        <span className="ml-auto shrink-0 text-muted-foreground/45">
           {formatDuration(event.durationMs)}
         </span>
       )}
@@ -143,7 +146,7 @@ export function TimelineWorkEntry({
           error={
             event.debug?.error ??
             (event.status === AgentWorkEventStatus.FAILED
-              ? event.detail
+              ? (formatAgentErrorDetail(event.detail) ?? event.detail)
               : undefined)
           }
           parameters={event.parameters}
