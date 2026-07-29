@@ -42,7 +42,7 @@ export default function ModalGalleryItemReference({
         className={`relative w-full pb-[100%] bg-background overflow-hidden shadow-md ${isSelected ? 'ring-4 ring-primary' : ''}`}
       >
         <Image
-          src={`${EnvironmentService.ingredientsEndpoint}/references/${reference.id}`}
+          src={`${EnvironmentService.cdnUrl}/references/${reference.id}`}
           alt={reference.id}
           fill
           className="object-cover transition-all duration-300 transform-gpu opacity-80 hover:opacity-100 hover:rotate-1 hover:scale-[1.02] hover:translate-y-1"

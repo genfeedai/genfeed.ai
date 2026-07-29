@@ -35,6 +35,12 @@ locals {
     ["PORT", "SERVICE_NAME", "REDIS_PASSWORD"],
   ))
   ignored_ssm_secret_names = toset([
+    # Clerk has been fully replaced by Better Auth. Exclude legacy parameters
+    # while they are removed from SSM so no task definition can retain or
+    # reintroduce the retired runtime contract.
+    "CLERK_SECRET_KEY",
+    "CLERK_WEBHOOK_SIGNING_SECRET",
+    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
     # Retired Vercel deployment-notification gate. Keep it out of task definitions
     # even if a stale temporary parameter is present under the production path.
     "VERCEL_DEPLOYMENT_NOTIFICATIONS_ENABLED",

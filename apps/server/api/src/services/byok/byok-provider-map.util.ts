@@ -3,8 +3,8 @@ import { ByokProvider, ModelProvider } from '@genfeedai/enums';
 const MODEL_PROVIDER_TO_BYOK: Record<string, ByokProvider> = {
   [ModelProvider.REPLICATE]: ByokProvider.REPLICATE,
   [ModelProvider.FAL]: ByokProvider.FAL,
+  [ModelProvider.OPENROUTER]: ByokProvider.OPENROUTER,
   [ModelProvider.GENFEED_AI]: ByokProvider.REPLICATE,
-  [ModelProvider.HUGGINGFACE]: ByokProvider.REPLICATE,
 };
 
 /**
@@ -31,7 +31,6 @@ const MODEL_KEY_PREFIX_TO_BYOK: Array<[string, ByokProvider]> = [
   ['fal-ai/', ByokProvider.FAL],
   ['x-ai/', ByokProvider.OPENROUTER],
   ['genfeed-ai/', ByokProvider.REPLICATE],
-  ['hf/', ByokProvider.REPLICATE],
 ];
 
 /**

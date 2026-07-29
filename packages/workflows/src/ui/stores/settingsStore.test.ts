@@ -75,6 +75,24 @@ describe('settingsStore — sync not configured', () => {
     expect(persisted.hostExtension).toEqual({ value: 'keep-me' });
     expect(persisted.edgeStyle).toBe('straight');
   });
+
+  it('never persists provider API keys', () => {
+    const store = useSettingsStore.getState();
+    store.setProviderKey('fal', 'fal-secret');
+    store.setProviderKey('openrouter', 'openrouter-secret');
+    store.setProviderKey('replicate', 'replicate-secret');
+
+    const persisted = JSON.parse(
+      localStorage.getItem('genfeed-settings') ?? '{}',
+    );
+    expect(persisted.providers).toEqual({
+      fal: { enabled: true },
+      'genfeed-ai': { enabled: true },
+      openrouter: { enabled: true },
+      replicate: { enabled: true },
+    });
+    expect(JSON.stringify(persisted)).not.toContain('secret');
+  });
 });
 
 describe('settingsStore — syncFromServer', () => {

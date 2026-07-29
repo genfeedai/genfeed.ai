@@ -15,7 +15,6 @@ const WORKFLOWS_DIRECTORY = path.join(REPOSITORY_ROOT, '.github', 'workflows');
 const CANCELLABLE_PULL_REQUEST_WORKFLOWS = [
   'ci.yml',
   'deploy-scripts-ci.yml',
-  'desktop-qa.yml',
   'link-check.yml',
   'pr-full-suite.yml',
   'selfhosted-install-smoke.yml',
@@ -153,6 +152,15 @@ test('direct PR workflows cancel only within one PR or complete ref', () => {
       );
     }
   }
+});
+
+test('keeps desktop QA dormant but available for manual and release use', () => {
+  const workflow = readWorkflow('desktop-qa.yml');
+
+  assert.doesNotMatch(workflow, /^ {2}pull_request:/m);
+  assert.match(workflow, /^ {2}# pull_request:/m);
+  assert.match(workflow, /^ {2}workflow_dispatch:$/m);
+  assert.match(workflow, /^ {2}workflow_call:$/m);
 });
 
 test('server image PR validation bounds cache export without changing reachability', () => {

@@ -424,6 +424,12 @@ describe('BrandsService', () => {
           url: 'https://acme.example/logo.png',
         },
       );
+      expect(assetDelegate.update).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          cloudObjectKey: 'logos/asset_new',
+        }),
+        where: { id: 'asset_new' },
+      });
       expect(assetDelegate.updateMany).toHaveBeenCalledWith({
         data: { isDeleted: true },
         where: expect.objectContaining({
@@ -980,7 +986,20 @@ describe('BrandsService', () => {
 
       expect(slug).toBe('genfeed-ai');
       expect(delegate.findFirst).toHaveBeenCalledWith({
-        where: { isDeleted: false, slug: 'genfeed-ai' },
+        where: { slug: 'genfeed-ai' },
+      });
+    });
+
+    it('treats a soft-deleted brand slug as reserved by the global unique constraint', async () => {
+      delegate.findFirst
+        .mockResolvedValueOnce({ id: 'brand_deleted', isDeleted: true })
+        .mockResolvedValueOnce(null);
+
+      const slug = await service.generateUniqueSlug('Genfeed.ai');
+
+      expect(slug).toBe('genfeed-ai-2');
+      expect(delegate.findFirst).toHaveBeenNthCalledWith(1, {
+        where: { slug: 'genfeed-ai' },
       });
     });
 

@@ -29,10 +29,11 @@ export function resolveIngredientReferenceUrl(
 
     const normalized = url.replace(/^\/+/, '');
 
-    if (
-      normalized.startsWith('images/') ||
-      normalized.startsWith('references/')
-    ) {
+    if (normalized.startsWith('references/')) {
+      return `${EnvironmentService.cdnUrl}/${normalized}`;
+    }
+
+    if (normalized.startsWith('images/')) {
       return `${EnvironmentService.ingredientsEndpoint}/${normalized}`;
     }
 

@@ -54,6 +54,11 @@ describe('Model', () => {
       expect(model.providerBadgeClass).toContain('emerald');
     });
 
+    it('should return violet classes for OPENROUTER provider', () => {
+      const model = new Model({ provider: ModelProvider.OPENROUTER } as never);
+      expect(model.providerBadgeClass).toContain('violet');
+    });
+
     it('should return slate classes for unknown provider', () => {
       const model = new Model({ provider: 'UNKNOWN' } as never);
       expect(model.providerBadgeClass).toContain('slate');

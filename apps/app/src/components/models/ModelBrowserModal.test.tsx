@@ -22,7 +22,7 @@ vi.mock('@genfeedai/workflows/ui/stores', () => {
     addRecentModel: mockAddRecentModel,
     providers: {
       fal: { apiKey: null },
-      huggingface: { apiKey: null },
+      openrouter: { apiKey: null },
       replicate: { apiKey: 'test-key' },
     },
     recentModels: [
@@ -97,18 +97,12 @@ describe('ModelBrowserModal', () => {
       pricing: '$0.02/image',
       provider: 'replicate',
     },
-    {
-      capabilities: ['text-to-image'],
-      displayName: 'FAL FLUX',
-      id: 'fal-flux',
-      provider: 'fal',
-    },
   ];
 
   const mockFetchResponse = {
     json: () =>
       Promise.resolve({
-        configuredProviders: ['replicate', 'fal', 'huggingface'],
+        configuredProviders: ['replicate', 'openrouter'],
         models: mockModels,
       }),
     ok: true,
@@ -164,8 +158,7 @@ describe('ModelBrowserModal', () => {
       });
 
       expect(screen.getAllByText('Replicate').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText('fal.ai').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByText('Hugging Face')).toBeInTheDocument();
+      expect(screen.getByText('OpenRouter')).toBeInTheDocument();
     });
   });
 
@@ -243,15 +236,14 @@ describe('ModelBrowserModal', () => {
       render(<ModelBrowserModal {...defaultProps} />);
 
       await waitFor(() => {
-        expect(screen.getAllByText('fal.ai').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getByText('OpenRouter')).toBeInTheDocument();
       });
 
-      const falButtons = screen.getAllByText('fal.ai');
-      fireEvent.click(falButtons[0]);
+      fireEvent.click(screen.getByText('OpenRouter'));
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining('provider=fal'),
+          expect.stringContaining('provider=openrouter'),
           expect.any(Object),
         );
       });
@@ -376,7 +368,7 @@ describe('ModelBrowserModal', () => {
       render(<ModelBrowserModal {...defaultProps} />);
 
       await waitFor(() => {
-        expect(screen.getByText('3 models available')).toBeInTheDocument();
+        expect(screen.getByText('2 models available')).toBeInTheDocument();
       });
     });
 

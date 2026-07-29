@@ -1,8 +1,6 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type {
-  IDashboardLayout,
-  PersistedDashboardLayoutDocument,
-} from '@genfeedai/interfaces';
+import type { PersistedDashboardLayoutDocument } from '@genfeedai/interfaces/ai/agent-ui-block.interface';
+import type { IDashboardLayout } from '@genfeedai/interfaces/content/dashboard-layout.interface';
 
 export class DashboardLayout extends BaseEntity implements IDashboardLayout {
   public declare organizationId: string;

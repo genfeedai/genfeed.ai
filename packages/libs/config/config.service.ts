@@ -167,11 +167,14 @@ export class ConfigService extends BaseConfigService<ApiEnvConfig> {
     return this.isLocalDevFlagEnabled('GF_DEV_ENABLE_TELEGRAM_POLLING');
   }
 
-  /**
-   * Get the ingredients CDN endpoint
-   */
+  public get cdnUrl(): string {
+    return (
+      this.envConfig.GENFEEDAI_CDN_URL ?? 'https://cdn.genfeed.ai'
+    ).replace(/\/+$/, '');
+  }
+
   public get ingredientsEndpoint(): string {
-    return `${this.envConfig.GENFEEDAI_CDN_URL}/ingredients`;
+    return `${this.cdnUrl}/ingredients`;
   }
 
   /**

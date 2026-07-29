@@ -1,10 +1,22 @@
 # Postgres RDS instances (us-west-1)
 
-last_verified: 2026-07-08
+last_verified: 2026-07-29
 
 | Instance | Role | Endpoint | Notes |
 |---|---|---|---|
 | `genfeed-data` | **PRODUCTION** | `genfeed-data.cjo0gec08b5r.us-west-1.rds.amazonaws.com:5432` | **db.t4g.micro**, PG 18.3, `default.postgres18` (`max_connections` ≈ 80–110). Renamed from `genfeed-local` 2026-06-08. Master creds reset same day. Never point local env here. |
+
+## Production protection
+
+- Automated backup retention is 7 days.
+- Deletion protection and Performance Insights (7-day retention) are enabled.
+- The instance is not storage-encrypted. RDS cannot enable encryption in place;
+  fixing it requires copying a snapshot with encryption, restoring a replacement
+  instance, validating it, and deliberately cutting the production endpoint over.
+- Manual restore points are intentionally limited to:
+  - `pre-vincent-ingredient-reset-20260728-2035` — immediately before the
+    production content/ingredient reset.
+  - `post-content-reset-20260728-2144` — verified clean post-reset baseline.
 
 ## Connection gotchas
 
@@ -18,5 +30,14 @@ last_verified: 2026-07-08
 ## History
 
 - 2026-06-08: `genfeed-local` renamed → `genfeed-data` (promoted to prod); old empty `genfeed-data` deleted (final snapshot `genfeed-data-empty-final-20260608`).
-- Pre-rename snapshot: `rds:genfeed-local-2026-06-08-13-00`; pre-reconcile manual snapshot: `genfeed-data-pre-reconcile-20260609-1818`.
+- 2026-07-28: pruned 68 redundant manual snapshots after retaining the explicit
+  pre/post content-reset pair above.
+- 2026-07-29: removed 723 inactive global Hugging Face discovery rows and two
+  inactive legacy OpenAI/Sora rows in one guarded transaction. Dependency
+  checks found no child-model, workflow, or organization-setting references.
+  The retained production catalog is 166 rows: 157 Replicate models (49 active)
+  and nine active managed `genfeed-ai` models. Workflow count remained 381.
+  Treat OpenRouter as the curated text-model catalog and Replicate as the
+  discovered media-model catalog; do not restore unbounded Hugging Face or
+  OpenAI database ingestion.
 - Local homebrew Postgres `genfeed` db (localhost:5432) is the current local development DB. As of 2026-07-08, the API points there and the observed local rows are the seed skeleton: one `vincent@genfeed.ai` user, one `default` organization, one `default` brand, zero ingredients, and zero posts.

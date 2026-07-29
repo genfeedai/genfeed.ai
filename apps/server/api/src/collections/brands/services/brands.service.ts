@@ -171,7 +171,8 @@ export class BrandsService extends BaseService<
   /**
    * Generate a unique slug for a brand, appending a counter if needed.
    * Brand.slug is unique across all brands (not scoped by organization), so
-   * this cannot reuse a slug validated only against Organization.slug.
+   * this cannot reuse a slug validated only against Organization.slug. A
+   * soft-deleted brand still reserves its slug at the database constraint.
    * Pass `excludeBrandId` when updating an existing brand's slug to avoid
    * treating the brand's own current slug as a collision.
    */
@@ -194,7 +195,6 @@ export class BrandsService extends BaseService<
 
     while (true) {
       const filter: Prisma.BrandWhereInput = {
-        isDeleted: false,
         slug: candidate,
       };
       if (excludeBrandId) {

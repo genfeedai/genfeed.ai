@@ -1,7 +1,5 @@
 import {
   createServiceConfig,
-  falSchema,
-  huggingFaceSchema,
   type IEnvConfig,
   microservicesSchema,
   postgresSchema,
@@ -26,11 +24,6 @@ export class ConfigService extends createServiceConfig<WorkersEnvConfig>({
     // microservices URLs default to localhost in self-hosted instead of
     // silently resolving to undefined.
     microservicesSchema,
-    // #484: workers' model-discovery reads these AI-provider keys
-    // (fal-discovery.service, hugging-face-discovery.service). Both are optional
-    // fragments — absence is tolerated at runtime, presence is schema-documented.
-    falSchema,
-    huggingFaceSchema,
   ],
   extend: {
     GF_DEV_ENABLE_SCHEDULERS: Joi.string()

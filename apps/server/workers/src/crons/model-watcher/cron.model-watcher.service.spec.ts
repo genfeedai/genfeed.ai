@@ -6,19 +6,14 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@workers/config/config.service';
 import { CronModelWatcherService } from '@workers/crons/model-watcher/cron.model-watcher.service';
-import { FalDiscoveryService } from '@workers/services/fal-discovery.service';
-import { HuggingFaceDiscoveryService } from '@workers/services/hugging-face-discovery.service';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
 import { ModelPricingService } from '@workers/services/model-pricing.service';
 
 describe('CronModelWatcherService', () => {
   let service: CronModelWatcherService;
-  let modelsService: vi.Mocked<ModelsService>;
   let modelDiscoveryService: vi.Mocked<ModelDiscoveryService>;
-  let modelPricingService: vi.Mocked<ModelPricingService>;
   let configService: vi.Mocked<ConfigService>;
   let loggerService: vi.Mocked<LoggerService>;
-  let falDiscoveryService: vi.Mocked<FalDiscoveryService>;
   let notificationsService: vi.Mocked<NotificationsService>;
 
   const mockExistingModels = [
@@ -82,20 +77,6 @@ describe('CronModelWatcherService', () => {
           },
         },
         {
-          provide: FalDiscoveryService,
-          useValue: {
-            discoverModels: vi.fn().mockResolvedValue([]),
-            getModelPricing: vi.fn().mockResolvedValue(0),
-            isConfigured: vi.fn().mockReturnValue(false),
-          },
-        },
-        {
-          provide: HuggingFaceDiscoveryService,
-          useValue: {
-            discoverModels: vi.fn().mockResolvedValue([]),
-          },
-        },
-        {
           provide: NotificationsService,
           useValue: {
             sendModelDiscoveryNotification: vi
@@ -117,11 +98,8 @@ describe('CronModelWatcherService', () => {
     }).compile();
 
     service = module.get<CronModelWatcherService>(CronModelWatcherService);
-    modelsService = module.get(ModelsService);
     modelDiscoveryService = module.get(ModelDiscoveryService);
-    modelPricingService = module.get(ModelPricingService);
     configService = module.get(ConfigService);
-    falDiscoveryService = module.get(FalDiscoveryService);
     notificationsService = module.get(NotificationsService);
     loggerService = module.get(LoggerService);
   });
@@ -391,126 +369,6 @@ describe('CronModelWatcherService', () => {
       expect(result.newModelsFound).toBe(2);
       expect(result.errors).toBe(1);
       expect(result.draftsCreated).toBe(1);
-    });
-  });
-
-  describe('fal.ai polling', () => {
-    /**
-     * Helper: mock Replicate API to return one new model so the
-     * watcher proceeds past the early return and reaches pollFalModels.
-     */
-    function mockReplicateWithNewModel(): void {
-      globalThis.fetch = vi.fn().mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            next: null,
-            results: [
-              {
-                description: 'Replicate model for fal test',
-                latest_version: { id: 'v-rep', openapi_schema: {} },
-                name: 'rep-model',
-                owner: 'google',
-                url: 'https://replicate.com/google/rep-model',
-              },
-            ],
-          }),
-        ok: true,
-      } as Response);
-
-      modelDiscoveryService.createDraftModel.mockResolvedValue({
-        _id: 'draft-rep',
-        cost: 25,
-        key: 'google/rep-model',
-      } as unknown as ServerModelRecord);
-    }
-
-    it('should discover new fal.ai models not in DB', async () => {
-      mockReplicateWithNewModel();
-
-      falDiscoveryService.isConfigured.mockReturnValue(true);
-      falDiscoveryService.discoverModels.mockResolvedValueOnce([
-        {
-          category: ModelCategory.IMAGE,
-          cost: 10,
-          costPerUnit: 0.03,
-          description: 'A new fal model',
-          key: 'fal-ai/new-model',
-          label: 'New Model',
-          provider: ModelProvider.FAL,
-        },
-      ]);
-      falDiscoveryService.getModelPricing.mockResolvedValueOnce(50);
-
-      const result = await service.discoverNewModels();
-
-      expect(result.falNewFound).toBe(1);
-      expect(result.falDraftsCreated).toBe(1);
-
-      // Verify createDraftModel was called with fal provider
-      expect(modelDiscoveryService.createDraftModel).toHaveBeenCalledWith(
-        expect.objectContaining({
-          provider: ModelProvider.FAL,
-        }),
-      );
-    });
-
-    it('should skip fal.ai polling when FAL_API_KEY not configured', async () => {
-      mockReplicateWithNewModel();
-
-      falDiscoveryService.isConfigured.mockReturnValue(false);
-
-      await service.discoverNewModels();
-
-      expect(falDiscoveryService.discoverModels).not.toHaveBeenCalled();
-    });
-
-    it('should handle fal.ai API errors without failing Replicate polling', async () => {
-      mockReplicateWithNewModel();
-
-      falDiscoveryService.isConfigured.mockReturnValue(true);
-      falDiscoveryService.discoverModels.mockRejectedValueOnce(
-        new Error('fal.ai API timeout'),
-      );
-
-      const result = await service.discoverNewModels();
-
-      // Replicate polling should still have succeeded
-      expect(result.totalPolled).toBe(1);
-      expect(result.newModelsFound).toBe(1);
-      expect(result.draftsCreated).toBe(1);
-    });
-
-    it('summary includes fal.ai-specific counts', async () => {
-      mockReplicateWithNewModel();
-
-      falDiscoveryService.isConfigured.mockReturnValue(true);
-      falDiscoveryService.discoverModels.mockResolvedValueOnce([
-        {
-          category: ModelCategory.VIDEO,
-          cost: 50,
-          costPerUnit: 0.1,
-          description: 'Fal video model',
-          key: 'fal-ai/video-gen',
-          label: 'Video Gen',
-          provider: ModelProvider.FAL,
-        },
-      ]);
-      falDiscoveryService.getModelPricing.mockResolvedValueOnce(80);
-
-      modelDiscoveryService.createDraftModel.mockResolvedValue({
-        _id: 'draft-fal',
-        cost: 80,
-        key: 'fal-ai/video-gen',
-      } as unknown as ServerModelRecord);
-
-      const result = await service.discoverNewModels();
-
-      expect(result).toHaveProperty('falPolled');
-      expect(result).toHaveProperty('falNewFound');
-      expect(result).toHaveProperty('falDraftsCreated');
-      expect(result.falPolled).toBe(1);
-      expect(result.falNewFound).toBe(1);
-      expect(result.falDraftsCreated).toBe(1);
     });
   });
 

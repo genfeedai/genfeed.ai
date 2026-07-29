@@ -24,8 +24,7 @@ export function useModelBrowserModal({
   const recentModels = useSettingsStore((s) => s.recentModels);
   const addRecentModel = useSettingsStore((s) => s.addRecentModel);
   const replicateKey = useSettingsStore((s) => s.providers.replicate.apiKey);
-  const falKey = useSettingsStore((s) => s.providers.fal.apiKey);
-  const hfKey = useSettingsStore((s) => s.providers.huggingface.apiKey);
+  const openRouterKey = useSettingsStore((s) => s.providers.openrouter.apiKey);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [providerFilter, setProviderFilter] = useState<ProviderType | 'all'>(
@@ -67,11 +66,8 @@ export function useModelBrowserModal({
         if (replicateKey) {
           headers['X-Replicate-Key'] = replicateKey;
         }
-        if (falKey) {
-          headers['X-Fal-Key'] = falKey;
-        }
-        if (hfKey) {
-          headers['X-HF-Key'] = hfKey;
+        if (openRouterKey) {
+          headers['X-OpenRouter-Key'] = openRouterKey;
         }
 
         const response = await fetch(
@@ -105,8 +101,7 @@ export function useModelBrowserModal({
       useCaseFilter,
       capabilities,
       replicateKey,
-      falKey,
-      hfKey,
+      openRouterKey,
     ],
   );
 

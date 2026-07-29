@@ -27,7 +27,7 @@ vi.mock('@genfeedai/client/models', () => ({
     public references?: IAsset[];
     public links?: ILink[];
     public credentials?: ICredential[];
-    public user?: any;
+    public user?: unknown;
 
     constructor(partial: Partial<IBrand>) {
       Object.assign(this, partial);
@@ -45,7 +45,7 @@ vi.mock('@genfeedai/helpers/ui/mobile/mobile.helper', () => ({
 vi.mock('@models/auth/user.model', () => ({
   User: class User {
     public id?: string;
-    constructor(partial: any) {
+    constructor(partial: Record<string, unknown>) {
       Object.assign(this, partial);
     }
   },
@@ -54,7 +54,7 @@ vi.mock('@models/auth/user.model', () => ({
 vi.mock('@models/ingredients/asset.model', () => ({
   Asset: class Asset {
     public id?: string;
-    constructor(partial: any) {
+    constructor(partial: Record<string, unknown>) {
       Object.assign(this, partial);
     }
   },
@@ -63,7 +63,7 @@ vi.mock('@models/ingredients/asset.model', () => ({
 vi.mock('@models/social/link.model', () => ({
   Link: class Link {
     public id?: string;
-    constructor(partial: any) {
+    constructor(partial: Record<string, unknown>) {
       Object.assign(this, partial);
     }
   },
@@ -71,7 +71,7 @@ vi.mock('@models/social/link.model', () => ({
 
 vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
-    ingredientsEndpoint: 'https://ingredients.genfeed.ai',
+    cdnUrl: 'https://cdn.genfeed.ai',
   },
 }));
 
@@ -252,7 +252,7 @@ describe('Brand', () => {
       });
 
       expect(brand.logo).toBeDefined();
-      expect((brand.logo as any).id).toBe('asset-123');
+      expect((brand.logo as IAsset).id).toBe('asset-123');
     });
 
     it('should handle populated banner', () => {
@@ -268,7 +268,7 @@ describe('Brand', () => {
       });
 
       expect(brand.banner).toBeDefined();
-      expect((brand.banner as any).id).toBe('banner-123');
+      expect((brand.banner as IAsset).id).toBe('banner-123');
     });
 
     it('should handle populated references', () => {
@@ -306,9 +306,7 @@ describe('Brand', () => {
         logo: createAsset({ id: 'logo-123' }),
       });
 
-      expect(brand.logoUrl).toBe(
-        'https://ingredients.genfeed.ai/logos/logo-123',
-      );
+      expect(brand.logoUrl).toBe('https://cdn.genfeed.ai/logos/logo-123');
     });
 
     it('should return undefined when no logo', () => {
@@ -328,9 +326,7 @@ describe('Brand', () => {
         id: 'brand-123',
       });
 
-      expect(brand.bannerUrl).toBe(
-        'https://ingredients.genfeed.ai/banners/banner-123',
-      );
+      expect(brand.bannerUrl).toBe('https://cdn.genfeed.ai/banners/banner-123');
     });
 
     it('should return undefined when no banner', () => {
@@ -351,7 +347,7 @@ describe('Brand', () => {
       });
 
       expect(brand.primaryReferenceUrl).toBe(
-        'https://ingredients.genfeed.ai/references/ref-1',
+        'https://cdn.genfeed.ai/references/ref-1',
       );
     });
 

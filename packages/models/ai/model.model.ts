@@ -22,6 +22,8 @@ export class Model extends BaseModel {
         return 'bg-slate-500/15 text-slate-400 border-slate-500/30';
       case ModelProvider.FAL:
         return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
+      case ModelProvider.OPENROUTER:
+        return 'bg-violet-500/15 text-violet-400 border-violet-500/30';
       default:
         return 'bg-slate-500/15 text-slate-400 border-slate-500/30';
     }

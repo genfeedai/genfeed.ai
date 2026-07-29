@@ -68,7 +68,7 @@ vi.mock('@genfeedai/workflows/ui/stores', () => ({
         edgeStyle: 'default',
         providers: {
           fal: { apiKey: null, enabled: true },
-          huggingface: { apiKey: null, enabled: true },
+          openrouter: { apiKey: null, enabled: true },
           replicate: { apiKey: null, enabled: true },
         },
         setDebugMode: mockSetDebugMode,
@@ -267,7 +267,7 @@ describe('SettingsModal - API Keys Tab', () => {
 
     expect(screen.getAllByText('Replicate').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('fal.ai')).toBeInTheDocument();
-    expect(screen.getByText('Hugging Face')).toBeInTheDocument();
+    expect(screen.getByText('OpenRouter')).toBeInTheDocument();
   });
 
   it('should render external links to get API keys', () => {

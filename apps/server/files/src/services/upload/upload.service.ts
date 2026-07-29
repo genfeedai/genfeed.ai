@@ -44,6 +44,7 @@ type ProcessedUpload = PreparedUpload & {
 };
 
 const createBadRequest = (message: string) => new BadRequestException(message);
+const CDN_ROOT_UPLOAD_TYPES = new Set(['banners', 'logos', 'references']);
 
 @Injectable()
 export class UploadService {
@@ -391,11 +392,13 @@ export class UploadService {
       });
 
       const processed = await this.processImage(prepared, key, url);
-      const storagePath = resolveContainedObjectKey(
-        'ingredients',
-        `${type}/${key}`,
-        createBadRequest,
-      );
+      const storagePath = CDN_ROOT_UPLOAD_TYPES.has(type)
+        ? resolveContainedObjectKey(type, key, createBadRequest)
+        : resolveContainedObjectKey(
+            'ingredients',
+            `${type}/${key}`,
+            createBadRequest,
+          );
 
       const s3UploadStartTime = Date.now();
       this.loggerService.log(`${url} starting storage upload`, {

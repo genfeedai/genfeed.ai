@@ -13,8 +13,6 @@ import type {
   IReplicateModel,
   IReplicateModelsResponse,
 } from '@workers/interfaces/model-discovery.interface';
-import { FalDiscoveryService } from '@workers/services/fal-discovery.service';
-import { HuggingFaceDiscoveryService } from '@workers/services/hugging-face-discovery.service';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
 import { ModelPricingService } from '@workers/services/model-pricing.service';
 import { PlatformMarginService } from '@workers/services/platform-margin.service';
@@ -59,8 +57,6 @@ export class CronModelWatcherService {
     private readonly modelDiscoveryService: ModelDiscoveryService,
     private readonly modelPricingService: ModelPricingService,
     private readonly configService: ConfigService,
-    private readonly falDiscoveryService: FalDiscoveryService,
-    private readonly huggingFaceDiscoveryService: HuggingFaceDiscoveryService,
     private readonly notificationsService: NotificationsService,
     private readonly platformMarginService: PlatformMarginService,
   ) {}
@@ -82,12 +78,6 @@ export class CronModelWatcherService {
     const summary: IModelDiscoveryRunSummary = {
       draftsCreated: 0,
       errors: 0,
-      falDraftsCreated: 0,
-      falNewFound: 0,
-      falPolled: 0,
-      hfDraftsCreated: 0,
-      hfNewFound: 0,
-      hfPolled: 0,
       newModelsFound: 0,
       timestamp: new Date(),
       totalPolled: 0,
@@ -99,7 +89,6 @@ export class CronModelWatcherService {
       await this.platformMarginService.hydrate();
 
       // Step 1: Fetch all known model keys from database
-      const existingModels = await this.modelsService.findAllActive();
       const allModels = await this.modelsService.find({ isDeleted: false });
       const existingKeys = new Set(
         allModels
@@ -190,33 +179,16 @@ export class CronModelWatcherService {
         }
       }
 
-      // Step 6: Poll fal.ai for new models
-      const falSyncedKeys = await this.pollFalModels(summary, existingKeys);
-
-      // Step 7: Poll HuggingFace for new models
-      const hfSyncedKeys = await this.pollHuggingFaceModels(
-        summary,
-        existingKeys,
-      );
-
-      // Step 8: Touch lastSyncedAt for all previously discovered models seen in this run
-      const syncedKeys = [
-        ...officialModels.map((m) => `${m.owner}/${m.name}`),
-        ...falSyncedKeys,
-        ...hfSyncedKeys,
-      ].filter((k) => existingKeys.has(k));
+      // Step 6: Touch lastSyncedAt for Replicate models seen in this run.
+      const syncedKeys = officialModels
+        .map((m) => `${m.owner}/${m.name}`)
+        .filter((key) => existingKeys.has(key));
       await this.modelDiscoveryService.touchLastSyncedAt(syncedKeys);
 
-      // Step 9: Log summary
+      // Step 7: Log summary
       this.logger.log(`${url} completed`, {
         draftsCreated: summary.draftsCreated,
         errors: summary.errors,
-        falDraftsCreated: summary.falDraftsCreated,
-        falNewFound: summary.falNewFound,
-        falPolled: summary.falPolled,
-        hfDraftsCreated: summary.hfDraftsCreated,
-        hfNewFound: summary.hfNewFound,
-        hfPolled: summary.hfPolled,
         newModelsFound: summary.newModelsFound,
         totalPolled: summary.totalPolled,
       });
@@ -307,99 +279,6 @@ export class CronModelWatcherService {
   }
 
   /**
-   * Poll fal.ai for new models and create drafts.
-   * Isolated from Replicate polling so errors don't affect each other.
-   */
-  private async pollFalModels(
-    summary: IModelDiscoveryRunSummary,
-    existingKeys: Set<string>,
-  ): Promise<string[]> {
-    const context = `${this.constructorName} pollFalModels`;
-
-    if (!this.falDiscoveryService.isConfigured()) {
-      this.logger.log(`${context} skipped — FAL_API_KEY not configured`);
-      return [];
-    }
-
-    try {
-      const falModels = await this.falDiscoveryService.discoverModels();
-      summary.falPolled = falModels.length;
-
-      this.logger.log(
-        `${context} polled ${falModels.length} models from fal.ai`,
-      );
-
-      const syncedKeys = falModels
-        .filter((m) => m.key && existingKeys.has(m.key))
-        .map((m) => m.key as string);
-
-      const newFalModels = falModels.filter(
-        (m) => m.key && !existingKeys.has(m.key),
-      );
-      summary.falNewFound = newFalModels.length;
-
-      if (newFalModels.length === 0) {
-        this.logger.log(`${context} no new fal.ai models discovered`);
-        return syncedKeys;
-      }
-
-      this.logger.log(
-        `${context} found ${newFalModels.length} new fal.ai models`,
-      );
-
-      for (const falModel of newFalModels) {
-        try {
-          const modelKey = falModel.key as string;
-          const [owner, ...nameParts] = modelKey.split('/');
-          const name = nameParts.join('/');
-          const category = falModel.category || ModelCategory.IMAGE;
-
-          // Fetch real-time pricing from fal.ai
-          const pricingCredits =
-            await this.falDiscoveryService.getModelPricing(modelKey);
-          const providerCostUsd = falModel.costPerUnit ?? 0;
-
-          const discoveryInput: IModelDiscoveryInput = {
-            category,
-            description: falModel.description || '',
-            name,
-            owner,
-            provider: ModelProvider.FAL,
-            providerCostUsd,
-            replicateUrl: '',
-            versionId: null,
-          };
-
-          const draft =
-            await this.modelDiscoveryService.createDraftModel(discoveryInput);
-
-          if (draft) {
-            summary.falDraftsCreated = (summary.falDraftsCreated ?? 0) + 1;
-            await this.sendDiscoveryNotification(
-              modelKey,
-              category,
-              pricingCredits || draft.cost || 0,
-              providerCostUsd,
-              'fal',
-            );
-          }
-        } catch (error: unknown) {
-          summary.errors++;
-          this.logger.error(
-            `${context} failed to process fal model ${falModel.key}`,
-            { error },
-          );
-        }
-      }
-
-      return syncedKeys;
-    } catch (error: unknown) {
-      this.logger.error(`${context} fal.ai polling failed`, error);
-      return [];
-    }
-  }
-
-  /**
    * Send a Discord notification for a newly discovered model.
    * Silently swallows errors to avoid failing the watcher.
    */
@@ -461,89 +340,5 @@ export class CronModelWatcherService {
 
     // Fall back to description-only detection
     return this.modelDiscoveryService.detectCategory({}, model.description);
-  }
-
-  /**
-   * Poll HuggingFace Hub for new content-creation models and create drafts.
-   * Isolated from Replicate/Fal polling so errors don't affect each other.
-   */
-  private async pollHuggingFaceModels(
-    summary: IModelDiscoveryRunSummary,
-    existingKeys: Set<string>,
-  ): Promise<string[]> {
-    const context = `${this.constructorName} pollHuggingFaceModels`;
-
-    try {
-      const hfModels = await this.huggingFaceDiscoveryService.discoverModels();
-      summary.hfPolled = hfModels.length;
-
-      this.logger.log(
-        `${context} polled ${hfModels.length} models from HuggingFace`,
-      );
-
-      const syncedKeys = hfModels
-        .filter((m) => m.key && existingKeys.has(m.key))
-        .map((m) => m.key as string);
-
-      const newHfModels = hfModels.filter(
-        (m) => m.key && !existingKeys.has(m.key),
-      );
-      summary.hfNewFound = newHfModels.length;
-
-      if (newHfModels.length === 0) {
-        this.logger.log(`${context} no new HuggingFace models discovered`);
-        return syncedKeys;
-      }
-
-      this.logger.log(
-        `${context} found ${newHfModels.length} new HuggingFace models`,
-      );
-
-      for (const hfModel of newHfModels) {
-        try {
-          const modelKey = hfModel.key as string;
-          const parts = modelKey.split('/');
-          const owner = parts[0] ?? modelKey;
-          const name = parts.slice(1).join('/') || modelKey;
-          const category = hfModel.category ?? ModelCategory.IMAGE;
-
-          const discoveryInput: IModelDiscoveryInput = {
-            category,
-            description: hfModel.description || '',
-            name,
-            owner,
-            provider: ModelProvider.HUGGINGFACE,
-            providerCostUsd: 0,
-            replicateUrl: '',
-            versionId: null,
-          };
-
-          const draft =
-            await this.modelDiscoveryService.createDraftModel(discoveryInput);
-
-          if (draft) {
-            summary.hfDraftsCreated = (summary.hfDraftsCreated ?? 0) + 1;
-            await this.sendDiscoveryNotification(
-              modelKey,
-              category,
-              draft.cost ?? 0,
-              0,
-              'huggingface',
-            );
-          }
-        } catch (error: unknown) {
-          summary.errors++;
-          this.logger.error(
-            `${context} failed to process HuggingFace model ${hfModel.key}`,
-            { error },
-          );
-        }
-      }
-
-      return syncedKeys;
-    } catch (error: unknown) {
-      this.logger.error(`${context} HuggingFace polling failed`, error);
-      return [];
-    }
   }
 }

@@ -11,7 +11,7 @@ import {
 
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {
-    ingredientsEndpoint: 'https://ingredients.example.com',
+    cdnUrl: 'https://cdn.example.com',
   },
 }));
 
@@ -51,7 +51,7 @@ describe('workflow media picker helpers', () => {
 
     expect(selection?.itemCategory).toBe('reference');
     expect(selection?.resolvedUrl).toBe(
-      'https://ingredients.example.com/references/ref-1',
+      'https://cdn.example.com/references/ref-1',
     );
   });
 
@@ -130,21 +130,19 @@ describe('workflow media picker helpers', () => {
         itemCategory: 'reference',
         label: 'Reference',
         mimeType: null,
-        resolvedUrl: 'https://ingredients.example.com/references/ref-1',
-        thumbnailUrl: 'https://ingredients.example.com/references/ref-1',
+        resolvedUrl: 'https://cdn.example.com/references/ref-1',
+        thumbnailUrl: 'https://cdn.example.com/references/ref-1',
       },
     );
 
     const patch = buildWorkflowMediaNodePatch('image', config);
 
-    expect(patch.image).toBe(
-      'https://ingredients.example.com/references/ref-1',
-    );
+    expect(patch.image).toBe('https://cdn.example.com/references/ref-1');
     expect(patch.config).toMatchObject({
       itemCategory: 'reference',
       itemId: 'ref-1',
-      resolvedUrl: 'https://ingredients.example.com/references/ref-1',
-      selectedResolvedUrl: 'https://ingredients.example.com/references/ref-1',
+      resolvedUrl: 'https://cdn.example.com/references/ref-1',
+      selectedResolvedUrl: 'https://cdn.example.com/references/ref-1',
       source: 'brand-references',
     });
   });

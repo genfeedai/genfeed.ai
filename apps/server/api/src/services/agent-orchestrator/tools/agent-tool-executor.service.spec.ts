@@ -23,6 +23,7 @@ import { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/
 import { AgentProactiveToolHandler } from '@api/services/agent-orchestrator/tools/agent-proactive-tool-handler.service';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import { AgentQualityToolHandler } from '@api/services/agent-orchestrator/tools/agent-quality-tool-handler.service';
+import { AgentReviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-review-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentSpawnToolHandler } from '@api/services/agent-orchestrator/tools/agent-spawn-tool-handler.service';
 import { AgentToolCatalogHandler } from '@api/services/agent-orchestrator/tools/agent-tool-catalog-handler.service';
@@ -949,6 +950,7 @@ describe('AgentToolExecutorService', () => {
       ingredientsService,
       instagramInspirationHandler,
       instagramInspirationService,
+      internalApi,
       marketplaceApiClient,
       marketplaceInstallService,
       livestreamBotId: livestreamBotId.toString(),
@@ -1275,7 +1277,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.error).not.toContain('Prisma');
     expect(loggerService.error).toHaveBeenCalledWith(
       expect.stringContaining('Prisma connection detail'),
-      'AgentToolExecutorService',
+      'AgentPublishToolHandler',
     );
   });
 
@@ -3189,7 +3191,7 @@ describe('AgentToolExecutorService', () => {
         id: 'review-queue-69c2d469368c4314a3cfff32',
         outcomeBullets: [
           'Instagram · image · pending',
-          'Linkedin · image · approved',
+          'LinkedIn · image · approved',
         ],
         primaryCta: {
           href: '/posts/review?batch=69c2d469368c4314a3cfff32&filter=ready',
@@ -4007,14 +4009,11 @@ describe('AgentToolExecutorService', () => {
   });
 
   it('should gracefully fallback when generate_image endpoint fails', async () => {
-    const { loggerService, service } = createService();
+    const { internalApi, loggerService, service } = createService();
 
-    vi.spyOn(
-      service as unknown as {
-        callInternalApi: (...args: unknown[]) => Promise<unknown>;
-      },
-      'callInternalApi',
-    ).mockRejectedValue(new Error('timeout'));
+    vi.spyOn(internalApi, 'callInternalApi').mockRejectedValue(
+      new Error('timeout'),
+    );
 
     const result = await service.executeTool(
       AgentToolName.GENERATE_IMAGE,
@@ -4036,15 +4035,10 @@ describe('AgentToolExecutorService', () => {
   });
 
   it('should normalize generate_image prompt from description when prompt is missing', async () => {
-    const { service } = createService();
+    const { internalApi, service } = createService();
 
     const callInternalApiSpy = vi
-      .spyOn(
-        service as unknown as {
-          callInternalApi: (...args: unknown[]) => Promise<unknown>;
-        },
-        'callInternalApi',
-      )
+      .spyOn(internalApi, 'callInternalApi')
       .mockResolvedValue({
         data: { id: 'img-123' },
       });
@@ -4076,14 +4070,9 @@ describe('AgentToolExecutorService', () => {
   });
 
   it('should read generate_image id from a root response envelope', async () => {
-    const { service } = createService();
+    const { internalApi, service } = createService();
 
-    vi.spyOn(
-      service as unknown as {
-        callInternalApi: (...args: unknown[]) => Promise<unknown>;
-      },
-      'callInternalApi',
-    ).mockResolvedValue({
+    vi.spyOn(internalApi, 'callInternalApi').mockResolvedValue({
       id: 'img-root-123',
     });
 
@@ -4109,14 +4098,9 @@ describe('AgentToolExecutorService', () => {
   });
 
   it('should prefer voice audioUrl from the response envelope', async () => {
-    const { service } = createService();
+    const { internalApi, service } = createService();
 
-    vi.spyOn(
-      service as unknown as {
-        callInternalApi: (...args: unknown[]) => Promise<unknown>;
-      },
-      'callInternalApi',
-    ).mockResolvedValue({
+    vi.spyOn(internalApi, 'callInternalApi').mockResolvedValue({
       data: {
         audioUrl: 'https://cdn.example.test/voice-123.mp3',
         id: 'voice-123',

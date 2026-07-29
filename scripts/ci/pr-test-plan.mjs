@@ -22,6 +22,11 @@ const FORCE_FULL_PATTERNS = [
   /^scripts\/ci\/(?:pr-test-plan|tests-gate)(?:\.test)?\.mjs$/,
 ];
 
+// Keep dormant surface definitions in the planner so they can be restored
+// without reconstructing their CI contract. Remove a group from this set when
+// that surface becomes an active delivery target again.
+const TEMPORARILY_DISABLED_TEST_GROUPS = new Set(['extensions']);
+
 const TURBO_TEST_GROUPS = {
   extensions: [
     '--filter=@genfeedai/extension-browser',
@@ -32,7 +37,8 @@ const TURBO_TEST_GROUPS = {
   web: [
     '--filter=@genfeedai/website',
     '--filter=@genfeedai/docs',
-    '--filter=@genfeedai/desktop',
+    // Temporarily disabled while desktop is not an active delivery surface:
+    // '--filter=@genfeedai/desktop',
     '--filter=@genfeedai/mobile',
   ],
 };
@@ -214,7 +220,8 @@ export function createPrTestPlan({
     workspaceGroups: Object.fromEntries(
       Object.entries(normalizedTurboTasks).map(([group, tasks]) => [
         group,
-        runHeavy || classification.forceFull || tasks.length > 0,
+        !TEMPORARILY_DISABLED_TEST_GROUPS.has(group) &&
+          (runHeavy || classification.forceFull || tasks.length > 0),
       ]),
     ),
   };
@@ -422,7 +429,9 @@ async function runCli() {
   const turboTaskEntriesPromise = Promise.all(
     Object.entries(TURBO_TEST_GROUPS).map(async ([group, filters]) => [
       group,
-      args.event === 'pull_request' && !forceFull
+      args.event === 'pull_request' &&
+      !forceFull &&
+      !TEMPORARILY_DISABLED_TEST_GROUPS.has(group)
         ? await listTurboTasks(base, filters)
         : [],
     ]),

@@ -120,6 +120,22 @@ describe('ConfigService', () => {
       expect(ingredientsEndpoint).toBe('http://localhost:3002/ingredients');
     });
 
+    it('should expose the canonical CDN root', () => {
+      expect(configService.cdnUrl).toBe('http://localhost:3002');
+    });
+
+    it('should remove trailing slashes from the canonical CDN root', () => {
+      env.GENFEEDAI_CDN_URL = 'https://cdn.example.com///';
+
+      expect(new ConfigService().cdnUrl).toBe('https://cdn.example.com');
+    });
+
+    it('should fall back to the managed CDN root when unset', () => {
+      delete env.GENFEEDAI_CDN_URL;
+
+      expect(new ConfigService().cdnUrl).toBe('https://cdn.genfeed.ai');
+    });
+
     it('should leave DB_MODE undefined when it is not configured', () => {
       expect(configService.get('DB_MODE')).toBeUndefined();
     });

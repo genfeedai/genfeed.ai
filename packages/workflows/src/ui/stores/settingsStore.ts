@@ -39,7 +39,7 @@ export interface ProviderConfig {
 export interface ProviderSettings {
   replicate: ProviderConfig;
   fal: ProviderConfig;
-  huggingface: ProviderConfig;
+  openrouter: ProviderConfig;
   'genfeed-ai': ProviderConfig;
 }
 
@@ -126,7 +126,7 @@ const DEFAULT_SETTINGS = {
   providers: {
     fal: { apiKey: null, enabled: false },
     'genfeed-ai': { apiKey: null, enabled: true },
-    huggingface: { apiKey: null, enabled: false },
+    openrouter: { apiKey: null, enabled: false },
     replicate: { apiKey: null, enabled: true },
   },
   recentModels: [] as RecentModel[],
@@ -136,6 +136,60 @@ const DEFAULT_SETTINGS = {
 // =============================================================================
 // PERSISTENCE
 // =============================================================================
+
+function loadProviderSettings(
+  value: unknown,
+): typeof DEFAULT_SETTINGS.providers {
+  const persisted =
+    value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+
+  const enabled = (
+    provider: keyof ProviderSettings,
+    fallback: boolean,
+  ): boolean => {
+    const config = persisted[provider];
+    if (
+      config === null ||
+      typeof config !== 'object' ||
+      Array.isArray(config)
+    ) {
+      return fallback;
+    }
+
+    const persistedEnabled = (config as Record<string, unknown>).enabled;
+    return typeof persistedEnabled === 'boolean' ? persistedEnabled : fallback;
+  };
+
+  return {
+    fal: {
+      apiKey: null,
+      enabled: enabled('fal', DEFAULT_SETTINGS.providers.fal.enabled),
+    },
+    'genfeed-ai': {
+      apiKey: null,
+      enabled: enabled(
+        'genfeed-ai',
+        DEFAULT_SETTINGS.providers['genfeed-ai'].enabled,
+      ),
+    },
+    openrouter: {
+      apiKey: null,
+      enabled: enabled(
+        'openrouter',
+        DEFAULT_SETTINGS.providers.openrouter.enabled,
+      ),
+    },
+    replicate: {
+      apiKey: null,
+      enabled: enabled(
+        'replicate',
+        DEFAULT_SETTINGS.providers.replicate.enabled,
+      ),
+    },
+  };
+}
 
 function loadFromStorage(): Partial<typeof DEFAULT_SETTINGS> {
   if (typeof window === 'undefined') return {};
@@ -153,7 +207,7 @@ function loadFromStorage(): Partial<typeof DEFAULT_SETTINGS> {
             ? 'default'
             : (parsed.edgeStyle ?? DEFAULT_SETTINGS.edgeStyle),
         hasSeenWelcome: parsed.hasSeenWelcome ?? false,
-        providers: { ...DEFAULT_SETTINGS.providers, ...parsed.providers },
+        providers: loadProviderSettings(parsed.providers),
         recentModels: parsed.recentModels ?? [],
         showMinimap: parsed.showMinimap ?? DEFAULT_SETTINGS.showMinimap,
       };
@@ -198,15 +252,15 @@ function saveToStorage(state: {
       hasSeenWelcome: state.hasSeenWelcome,
       providers: {
         fal: {
-          apiKey: state.providers.fal.apiKey,
           enabled: state.providers.fal.enabled,
         },
-        huggingface: {
-          apiKey: state.providers.huggingface.apiKey,
-          enabled: state.providers.huggingface.enabled,
+        'genfeed-ai': {
+          enabled: state.providers['genfeed-ai'].enabled,
+        },
+        openrouter: {
+          enabled: state.providers.openrouter.enabled,
         },
         replicate: {
-          apiKey: state.providers.replicate.apiKey,
           enabled: state.providers.replicate.enabled,
         },
       },
@@ -261,7 +315,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
         providers: {
           fal: { ...state.providers.fal, apiKey: null },
           'genfeed-ai': { ...state.providers['genfeed-ai'], apiKey: null },
-          huggingface: { ...state.providers.huggingface, apiKey: null },
+          openrouter: { ...state.providers.openrouter, apiKey: null },
           replicate: { ...state.providers.replicate, apiKey: null },
         },
       }));
@@ -290,7 +344,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
       const headerMap: Record<ProviderType, string> = {
         [ProviderTypeEnum.REPLICATE]: 'X-Replicate-Key',
         [ProviderTypeEnum.FAL]: 'X-Fal-Key',
-        [ProviderTypeEnum.HUGGINGFACE]: 'X-HF-Key',
+        [ProviderTypeEnum.OPENROUTER]: 'X-OpenRouter-Key',
         [ProviderTypeEnum.GENFEED_AI]: 'X-Genfeed-Key',
       };
 
@@ -450,10 +504,10 @@ export const PROVIDER_INFO: Record<
     docsUrl: 'https://fal.ai/docs',
     name: 'fal.ai',
   },
-  [ProviderTypeEnum.HUGGINGFACE]: {
-    description: 'The AI community platform with 500k+ models',
-    docsUrl: 'https://huggingface.co/docs/api-inference',
-    name: 'Hugging Face',
+  [ProviderTypeEnum.OPENROUTER]: {
+    description: 'Curated text models through one compatible API',
+    docsUrl: 'https://openrouter.ai/docs',
+    name: 'OpenRouter',
   },
   [ProviderTypeEnum.GENFEED_AI]: {
     description: 'Built-in models powered by Genfeed',

@@ -89,7 +89,7 @@ function getModelName(value: string): string {
 // Model filtering
 // ---------------------------------------------------------------------------
 
-const SKIP_PREFIXES = ['genfeed-ai/', 'hf/', 'fal-ai/'];
+const SKIP_PREFIXES = ['genfeed-ai/', 'fal-ai/', 'hf/'];
 const SKIP_VALUES = new Set<string>([
   'klingai-v2',
   'leonardoai',

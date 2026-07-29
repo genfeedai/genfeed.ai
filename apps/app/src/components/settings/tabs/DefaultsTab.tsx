@@ -110,7 +110,6 @@ export function DefaultsTab() {
           <SelectContent>
             <SelectItem value="replicate">Replicate (Recommended)</SelectItem>
             <SelectItem value="fal">fal.ai</SelectItem>
-            <SelectItem value="huggingface">Hugging Face</SelectItem>
           </SelectContent>
         </Select>
       </SettingsField>

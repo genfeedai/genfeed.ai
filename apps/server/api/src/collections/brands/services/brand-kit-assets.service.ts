@@ -263,7 +263,7 @@ export class BrandKitAssetsService {
       await this.prisma.asset.update({
         where: { id: asset.id },
         data: {
-          cloudObjectKey: `ingredients/${ASSET_UPLOAD_TYPE_BY_ROLE[candidate.role]}/${asset.id}`,
+          cloudObjectKey: `${ASSET_UPLOAD_TYPE_BY_ROLE[candidate.role]}/${asset.id}`,
           mimeType: validation.mimeType,
           sizeBytes:
             typeof uploadMeta.size === 'number' ? uploadMeta.size : undefined,
@@ -462,7 +462,7 @@ export class BrandKitAssetsService {
     assetId: string,
     role: BrandKitAssetRole,
   ): string {
-    return `/ingredients/${ASSET_UPLOAD_TYPE_BY_ROLE[role]}/${assetId}`;
+    return `/${ASSET_UPLOAD_TYPE_BY_ROLE[role]}/${assetId}`;
   }
 
   private readExtension(url: URL): string {

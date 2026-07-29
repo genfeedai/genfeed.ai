@@ -385,16 +385,18 @@ export class UserSetupService {
       return existing;
     }
 
+    const label = 'Default Organization';
+    const slug = await this.brandsService.generateUniqueSlug(label);
     const brand = await this.brandsService.create({
       backgroundColor: '#000000',
       description: 'Default description. Use it as a pre-prompt',
       fontFamily: 'montserrat-black',
       isSelected: true,
-      label: 'Default Organization',
+      label,
       organizationId,
       primaryColor: '#000000',
       secondaryColor: '#FFFFFF',
-      slug: 'default',
+      slug,
       userId,
     } as unknown as Parameters<typeof this.brandsService.create>[0]);
 

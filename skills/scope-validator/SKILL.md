@@ -90,7 +90,7 @@ Helps users and contributors understand whether a feature belongs in:
 | Provider | Reason |
 |----------|--------|
 | FAL.ai | Cloud-only provider |
-| HuggingFace | Cloud-only provider |
+| OpenRouter | Cloud-hosted text-model provider |
 
 **OSS Provider:** Replicate only
 
@@ -106,7 +106,7 @@ THEN FAIL: "Node type '{node.type}' is Cloud-only. Use OSS alternatives or upgra
 ### Rule 2: Provider Check
 
 ```
-IF node.provider IN [fal, huggingface]
+IF node.provider IN [fal, openrouter]
 THEN FAIL: "Provider '{node.provider}' is Cloud-only. OSS only supports Replicate."
 ```
 
@@ -230,5 +230,5 @@ OSS Provider:
   replicate (only)
 
 Cloud Providers:
-  fal, huggingface
+  fal, openrouter
 ```

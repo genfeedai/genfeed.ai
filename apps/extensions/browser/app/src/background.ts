@@ -1,6 +1,10 @@
 import { authService } from '~services/auth.service';
 // Source of truth: environment.service.ts (PLASMO_PUBLIC_* config boundary)
-import { apiEndpoint, isGenfeedAuthUrl } from '~services/environment.service';
+import {
+  apiEndpoint,
+  ingredientsEndpoint,
+  isGenfeedAuthUrl,
+} from '~services/environment.service';
 import { initializeErrorTracking } from '~services/error-tracking.service';
 import type { ExtensionMessage } from '~types/extension';
 import { logger } from '~utils/logger.util';
@@ -572,7 +576,7 @@ async function generateImageFromPrompt(
     (data) => {
       if (data.id) {
         sendResponse({
-          imageUrl: `https://ingredients.genfeed.ai/images/${data.id}`,
+          imageUrl: `${ingredientsEndpoint}/images/${data.id}`,
           ingredientId: data.id,
           model: selectedModel,
           success: true,
@@ -861,7 +865,7 @@ async function generateReplyWithMedia(
       return;
     }
 
-    const imageUrl = `https://ingredients.genfeed.ai/images/${imageData.id}`;
+    const imageUrl = `${ingredientsEndpoint}/images/${imageData.id}`;
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     const imageDataUrl = await fetchBlobAsDataUrl(imageUrl, token);

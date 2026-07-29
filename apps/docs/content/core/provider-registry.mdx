@@ -1,41 +1,36 @@
 # Provider Registry
 
-Genfeed Core uses a provider registry to turn provider-specific model catalogs into one generation-facing model surface. OSS users can run with the built-in catalog alone, or add provider keys so the registry can include discovered provider models.
+Genfeed Core stores reviewed model records behind one generation-facing surface. Text models are curated through OpenRouter, media models are discovered from verified Replicate owners, and Genfeed-managed models remain an explicitly assigned provider.
 
 ## Registry Layers
 
-| Layer                | File                                                                         | Role                                                                                           |
-| -------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Base model catalog   | `packages/services/ai/models.service.ts`                                     | Returns the configured model records that are already known to the app                         |
-| Enhanced registry    | `packages/services/ai/enhanced-models.service.ts`                            | Merges base models with provider-discovered models and de-duplicates by model `key`            |
-| fal.ai provider      | `packages/services/ai/providers/fal/fal-provider.service.ts`                 | Reads the fal.ai catalog, filters active `fal-ai/*` models, maps pricing/capabilities/category |
-| HuggingFace provider | `packages/services/ai/providers/huggingface/huggingface-provider.service.ts` | Reads HuggingFace model metadata and maps pipeline tags into Genfeed model categories          |
-| BYOK access          | `apps/server/api/src/services/byok/*`                                        | Resolves organization provider keys before hosted/server fallback at execution time            |
-| Generation tools     | `packages/tools/src/registry/source.ts`                                | Exposes stable agent-facing generation tools such as `generate_image` and `generate_video`     |
+| Layer              | File                                                                         | Role                                                                                |
+| ------------------ | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Model records      | `packages/services/ai/models.service.ts`                                     | Returns reviewed model records already known to the app                             |
+| Replicate watcher  | `apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts`  | Creates inactive review drafts for models from verified Replicate owners            |
+| OpenRouter catalog | `packages/agent/src/constants/agent-models.constant.ts`                      | Defines the curated text-model choices exposed to the agent                         |
+| BYOK access        | `apps/server/api/src/services/byok/*`                                        | Resolves organization provider keys before hosted/server fallback at execution time |
+| Generation tools   | `packages/tools/src/registry/source/index.ts`                                | Exposes stable agent-facing tools such as `generate_image` and `generate_video`      |
 
 ## How Discovery Works
 
-`EnhancedModelsService` starts with the base model list, then optionally adds dynamic providers:
+The weekly watcher reads Replicate's catalog, restricts results to verified owners, de-duplicates them by model key, and creates inactive records for operator review. It never activates a discovered model automatically.
 
-1. `initialize({ falApiKey, huggingFaceApiKey })` configures provider discovery.
-2. `getAllModels({ includeDynamic: true })` reads base models.
-3. `getFalModels()` returns predefined fal.ai models and, when configured, discovered fal.ai catalog models.
-4. `getHuggingFaceModels()` returns predefined HuggingFace models and, when configured, discovered HuggingFace models.
-5. Dynamic models are appended only when their `key` is not already present in the base catalog.
+OpenRouter choices are curated in code rather than mirroring the full upstream catalog. This keeps the user-facing text-model set deliberate and prevents unbounded provider dumps from filling the model table.
 
-If a provider discovery call fails, the enhanced registry logs the provider error and returns the remaining model set instead of failing the whole model list.
+fal.ai remains a supported execution integration where a media path explicitly selects it, but Genfeed does not ingest the fal.ai catalog into the model table.
 
 ## Provider Configuration
 
 Provider discovery and provider execution are related but separate:
 
-| Concern                                 | Configuration                                                      | Used by                                                     |
-| --------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------- |
-| Server-level fal.ai discovery/execution | `FAL_API_KEY`                                                      | fal.ai provider registry and generation integrations        |
-| Server-level HuggingFace discovery      | `HUGGINGFACE_API_KEY`                                              | HuggingFace provider registry                               |
-| Server-level Replicate execution        | `REPLICATE_KEY`                                                    | Replicate generation integrations                           |
-| Organization BYOK execution             | Organization BYOK settings                                         | Runtime provider resolution in `ByokProviderFactoryService` |
-| Managed Cloud execution                 | `GENFEED_API_KEY`                                                  | Explicit Cloud-backed managed inference paths               |
+| Concern                     | Configuration              | Used by                                                     |
+| --------------------------- | -------------------------- | ----------------------------------------------------------- |
+| OpenRouter text execution   | `OPENROUTER_API_KEY`       | Curated agent and text-generation paths                     |
+| Replicate discovery/runtime | `REPLICATE_KEY`            | Replicate watcher and generation integrations               |
+| fal.ai runtime execution    | `FAL_API_KEY`              | Explicit fal.ai generation integrations                     |
+| Organization BYOK execution | Organization BYOK settings | Runtime provider resolution in `ByokProviderFactoryService` |
+| Managed Cloud execution     | `GENFEED_API_KEY`          | Explicit Cloud-backed managed inference paths               |
 
 Core does not require every provider key. At least one generation-capable provider must be configured for real generation, but docs and registry tests can run without live provider credentials.
 
@@ -48,7 +43,7 @@ For v1, callers should treat these as the stable generation-facing surfaces:
 - Agent tool registry/UI mapping: `packages/tools/src/registry/tool-registry.ts`
 - Internal media APIs: `/v1/images`, `/v1/videos`, `/v1/musics`, `/v1/voices/generate`
 - Skill execution path: `apps/server/api/src/services/skill-executor/*`
-- Provider registry path: `packages/services/ai/enhanced-models.service.ts`
+- Replicate discovery path: `apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts`
 
 Lower-level provider APIs and experimental model sync jobs can change as long as this stable surface keeps accepting the documented tool inputs and returns normalized generated media records.
 
@@ -56,13 +51,8 @@ Lower-level provider APIs and experimental model sync jobs can change as long as
 
 Provider registry behavior is covered by:
 
-- `packages/services/ai/enhanced-models.service.test.ts`
-- `packages/services/ai/providers/fal/fal-provider.service.test.ts`
-- `packages/services/ai/providers/huggingface/huggingface-provider.service.test.ts`
+- `apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.spec.ts`
+- `apps/server/workers/src/services/model-discovery.service.spec.ts`
+- `apps/server/api/src/services/byok/byok-provider-map.util.spec.ts`
 
-Run the registry tests with:
-
-```bash
-cd packages/services
-TZ=UTC bun run test ai/enhanced-models.service.test.ts ai/providers/fal/fal-provider.service.test.ts ai/providers/huggingface/huggingface-provider.service.test.ts
-```
+The repository CI runs these suites in their owning workspaces.

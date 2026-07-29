@@ -148,7 +148,8 @@ The extension now supports the following environment variables:
 
 - `PLASMO_PUBLIC_API_ENDPOINT` - API endpoint URL
 - `PLASMO_PUBLIC_ASSETS_ENDPOINT` - Assets endpoint URL
-- `PLASMO_PUBLIC_INGREDIENTS_ENDPOINT` - Ingredients endpoint URL
+- Ingredient media uses the canonical CDN (`https://cdn.genfeed.ai/ingredients`)
+  in production and the local API media route in development.
 - `PLASMO_PUBLIC_WS_ENDPOINT` - WebSocket endpoint URL
 - `PLASMO_PUBLIC_ENV` - Environment setting (development/production)
 

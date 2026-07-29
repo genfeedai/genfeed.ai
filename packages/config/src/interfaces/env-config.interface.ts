@@ -98,9 +98,6 @@ export interface IEnvConfig {
   // === fal.ai ===
   FAL_API_KEY?: string;
 
-  // === HuggingFace ===
-  HUGGINGFACE_API_KEY?: string;
-
   // === Replicate ===
   REPLICATE_KEY?: string;
   REPLICATE_WEBHOOK_SIGNING_SECRET?: string;

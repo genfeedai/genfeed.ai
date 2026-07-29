@@ -150,10 +150,9 @@ describe('Module dependency graph', () => {
 
   it('should track forwardRef count (ratchet — decrease only)', () => {
     const count = countForwardRefs();
-    // Raised from 1010 -> 1075 for legitimate feature growth (actual count is
-    // now 1026); keep headroom above current actual rather than ratcheting
-    // exactly to it so unrelated small additions don't require another bump.
-    const MAX_ALLOWED_FORWARD_REFS = 1075;
+    // The repository baseline is 1077. Keep the limit exact so any new
+    // forwardRef requires removing an existing circular dependency first.
+    const MAX_ALLOWED_FORWARD_REFS = 1077;
     console.log(`Total forwardRef() calls in module files: ${count}`);
     expect(count).toBeLessThanOrEqual(MAX_ALLOWED_FORWARD_REFS);
   });

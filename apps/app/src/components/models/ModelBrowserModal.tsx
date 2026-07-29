@@ -120,9 +120,9 @@ function ModelBrowserModalComponent({
                       ? 'All'
                       : provider === 'replicate'
                         ? 'Replicate'
-                        : provider === 'fal'
-                          ? 'fal.ai'
-                          : 'Hugging Face'}
+                        : provider === 'openrouter'
+                          ? 'OpenRouter'
+                          : 'Genfeed AI'}
                   </Button>
                 ))}
               </div>
@@ -181,8 +181,7 @@ function ModelBrowserModalComponent({
                 </p>
                 <p className="mt-1 text-xs text-warning/80">
                   Add API keys to your .env file to enable model selection.
-                  Supported providers: REPLICATE_API_TOKEN, FAL_API_KEY,
-                  HF_API_TOKEN
+                  Supported providers: REPLICATE_API_TOKEN, OPENROUTER_API_KEY
                 </p>
               </div>
             </div>

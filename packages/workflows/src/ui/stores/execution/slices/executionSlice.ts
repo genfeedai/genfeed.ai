@@ -15,7 +15,7 @@ const LOG_CONTEXT = 'ExecutionStore';
 
 /**
  * Start a workflow execution through the injected HTTP client, carrying the
- * app's provider auth headers (Replicate / Fal / HuggingFace BYOK keys). Both
+ * app's provider auth headers (Replicate / Fal / OpenRouter BYOK keys). Both
  * the client and the headers default to the package's standalone behavior when
  * the app has not configured them (see `executionApi`).
  */

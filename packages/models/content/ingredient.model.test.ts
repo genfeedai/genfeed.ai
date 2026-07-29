@@ -111,7 +111,7 @@ vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     assetsEndpoint: 'https://assets.genfeed.ai',
     cdnUrl: 'https://cdn.genfeed.ai',
-    ingredientsEndpoint: 'https://ingredients.genfeed.ai',
+    ingredientsEndpoint: 'https://cdn.genfeed.ai/ingredients',
   },
 }));
 
@@ -802,7 +802,7 @@ describe('Ingredient', () => {
         status: IngredientStatus.GENERATED,
       });
 
-      expect(ingredient.ingredientUrl).toContain('ingredients.genfeed.ai');
+      expect(ingredient.ingredientUrl).toContain('cdn.genfeed.ai/ingredients');
       expect(ingredient.ingredientUrl).toContain('ing_123');
     });
 
@@ -893,7 +893,7 @@ describe('Ingredient', () => {
   });
 
   describe('brandLogoUrl', () => {
-    it('should return logo URL when brand has logo', () => {
+    it('should return logo URL when brand has a scalar logo id', () => {
       const ingredient = createIngredient({
         brand: createBrand({
           id: 'brand_123',
@@ -902,7 +902,25 @@ describe('Ingredient', () => {
         }),
       });
 
-      expect(ingredient.brandLogoUrl).toContain('logos');
+      expect(ingredient.brandLogoUrl).toBe(
+        'https://cdn.genfeed.ai/logos/logo_123',
+      );
+    });
+
+    it('should return logo URL when brand has a populated logo', () => {
+      const ingredient = createIngredient({
+        brand: createBrand({
+          id: 'brand_123',
+          label: 'Test',
+          logo: {
+            id: 'logo_456',
+          } as never,
+        }),
+      });
+
+      expect(ingredient.brandLogoUrl).toBe(
+        'https://cdn.genfeed.ai/logos/logo_456',
+      );
     });
 
     it('should return placeholder when no logo', () => {
