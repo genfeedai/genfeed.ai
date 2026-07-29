@@ -134,13 +134,13 @@ function Button({
   const Comp = asChild ? Slot : 'button';
   const isButtonDisabled = disabled || isDisabled || isLoading;
   const resolvedVariant = resolveButtonVariant(variant);
-  // PUBLIC (marketing) buttons declare uppercase in their size styles; honor
-  // that as the default so website CTAs stay consistent with the topbar without
-  // each caller re-specifying it. Explicit textTransform still wins.
+  // Product buttons use title case (first letter of each word). PUBLIC
+  // (marketing) size stays uppercase for website CTAs. Explicit textTransform
+  // always wins when set.
   const effectiveTextTransform =
-    textTransform ?? (size === ButtonSize.PUBLIC ? 'uppercase' : 'none');
+    textTransform ?? (size === ButtonSize.PUBLIC ? 'uppercase' : 'capitalize');
   const transformClass =
-    TEXT_TRANSFORM_CLASSES[effectiveTextTransform] ?? 'normal-case';
+    TEXT_TRANSFORM_CLASSES[effectiveTextTransform] ?? 'capitalize';
   const sizeClassName = getSizeOverrideClassName(size);
 
   const content = asChild ? (
