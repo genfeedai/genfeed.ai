@@ -23,7 +23,10 @@ import {
   buildAgentScopeMetadata,
   recordAgentRunScope,
 } from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
-import { buildFallbackThreadTitle } from '@api/services/agent-orchestrator/utils/agent-thread-title.util';
+import {
+  buildFallbackThreadTitle,
+  maybeUpdateThreadTitle,
+} from '@api/services/agent-orchestrator/utils/agent-thread-title.util';
 import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentMessageRole } from '@genfeedai/enums';
 import { AgentToolName, type ValidatedAgentScope } from '@genfeedai/interfaces';
@@ -175,7 +178,8 @@ export class AgentOrchestratorRecurringTaskService {
       return null;
     }
 
-    await this.maybeUpdateThreadTitle({
+    await maybeUpdateThreadTitle({
+      agentThreadsService: this.agentThreadsService,
       context: params.context,
       seedTitle: params.seedTitle,
       threadId: params.threadId,
@@ -244,7 +248,8 @@ export class AgentOrchestratorRecurringTaskService {
       return false;
     }
 
-    await this.maybeUpdateThreadTitle({
+    await maybeUpdateThreadTitle({
+      agentThreadsService: this.agentThreadsService,
       context: params.context,
       seedTitle: params.seedTitle,
       threadId: params.threadId,
@@ -837,41 +842,6 @@ export class AgentOrchestratorRecurringTaskService {
       | undefined;
 
     return settings?.timezone?.trim() || 'UTC';
-  }
-
-  private async maybeUpdateThreadTitle(params: {
-    context: AgentChatContext;
-    seedTitle: string;
-    threadId: string;
-    title: string | null;
-  }): Promise<void> {
-    const seedTitle = params.seedTitle.trim();
-    const nextTitle = params.title?.trim() ?? '';
-
-    if (!seedTitle || !nextTitle || nextTitle === seedTitle) {
-      return;
-    }
-
-    const thread = (await this.agentThreadsService.findOne({
-      _id: params.threadId,
-      isDeleted: false,
-      organization: params.context.organizationId,
-      user: {
-        in: [params.context.userId],
-      },
-    })) as { title?: string } | null;
-
-    const currentTitle =
-      typeof thread?.title === 'string' ? thread.title.trim() : '';
-    if (currentTitle !== seedTitle) {
-      return;
-    }
-
-    await this.agentThreadsService.updateThreadMetadata(
-      params.threadId,
-      params.context.organizationId,
-      { title: nextTitle },
-    );
   }
 
   private getRuntimeBindingEffect(

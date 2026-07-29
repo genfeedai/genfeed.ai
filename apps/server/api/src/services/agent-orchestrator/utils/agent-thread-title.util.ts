@@ -1,7 +1,18 @@
+import type { AgentChatContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+
 /**
  * Pure thread-title helpers shared across orchestrator chat paths
  * (sync, stream, plan mode, batch, recurring tasks).
  */
+
+export type AgentThreadTitlePersistence = {
+  findOne: (query: Record<string, unknown>) => Promise<unknown>;
+  updateThreadMetadata: (
+    threadId: string,
+    organizationId: string,
+    metadata: { title: string },
+  ) => Promise<unknown>;
+};
 
 export function buildSeedThreadTitle(content: string): string {
   return content.substring(0, 100).trim();
@@ -98,4 +109,44 @@ export function extractThreadEnvelope(params: {
       ? sanitizeGeneratedThreadTitle(parsedTitle, params.prompt)
       : buildFallbackThreadTitle(params.prompt),
   };
+}
+
+/**
+ * Persist a generated title only while the thread still holds the seed title
+ * (first-message naming race-safe).
+ */
+export async function maybeUpdateThreadTitle(params: {
+  agentThreadsService: AgentThreadTitlePersistence;
+  context: AgentChatContext;
+  seedTitle: string;
+  threadId: string;
+  title: string | null;
+}): Promise<void> {
+  const seedTitle = params.seedTitle.trim();
+  const nextTitle = params.title?.trim() ?? '';
+
+  if (!seedTitle || !nextTitle || nextTitle === seedTitle) {
+    return;
+  }
+
+  const thread = (await params.agentThreadsService.findOne({
+    _id: params.threadId,
+    isDeleted: false,
+    organization: params.context.organizationId,
+    user: {
+      in: [params.context.userId],
+    },
+  })) as { title?: string } | null;
+
+  const currentTitle =
+    typeof thread?.title === 'string' ? thread.title.trim() : '';
+  if (currentTitle !== seedTitle) {
+    return;
+  }
+
+  await params.agentThreadsService.updateThreadMetadata(
+    params.threadId,
+    params.context.organizationId,
+    { title: nextTitle },
+  );
 }

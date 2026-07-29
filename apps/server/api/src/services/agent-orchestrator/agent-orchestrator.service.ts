@@ -82,6 +82,7 @@ import {
 import {
   buildSeedThreadTitle,
   extractThreadEnvelope,
+  maybeUpdateThreadTitle,
 } from '@api/services/agent-orchestrator/utils/agent-thread-title.util';
 import {
   BATCH_SCOPED_ALLOWED_TOOLS,
@@ -317,7 +318,11 @@ export class AgentOrchestratorService {
           turnCost,
         },
         {
-          maybeUpdateThreadTitle: (p) => this.maybeUpdateThreadTitle(p),
+          maybeUpdateThreadTitle: (p) =>
+            maybeUpdateThreadTitle({
+              ...p,
+              agentThreadsService: this.agentThreadsService,
+            }),
         },
       );
 
@@ -393,7 +398,11 @@ export class AgentOrchestratorService {
         this.executeSynchronousChatLoop(params),
       generatePlanModeResponse: (params) =>
         this.planModeService.generatePlanModeResponse(params, {
-          maybeUpdateThreadTitle: (p) => this.maybeUpdateThreadTitle(p),
+          maybeUpdateThreadTitle: (p) =>
+            maybeUpdateThreadTitle({
+              ...p,
+              agentThreadsService: this.agentThreadsService,
+            }),
         }),
       runInThreadLane: (threadId, run) => this.runInThreadLane(threadId, run),
     });
@@ -552,7 +561,8 @@ export class AgentOrchestratorService {
             userId: context.userId,
           });
 
-          await this.maybeUpdateThreadTitle({
+          await maybeUpdateThreadTitle({
+            agentThreadsService: this.agentThreadsService,
             context,
             seedTitle,
             threadId,
@@ -902,7 +912,11 @@ export class AgentOrchestratorService {
           turnCost,
         },
         {
-          maybeUpdateThreadTitle: (p) => this.maybeUpdateThreadTitle(p),
+          maybeUpdateThreadTitle: (p) =>
+            maybeUpdateThreadTitle({
+              ...p,
+              agentThreadsService: this.agentThreadsService,
+            }),
         },
       );
 
@@ -930,7 +944,11 @@ export class AgentOrchestratorService {
             threadId,
           },
           {
-            maybeUpdateThreadTitle: (p) => this.maybeUpdateThreadTitle(p),
+            maybeUpdateThreadTitle: (p) =>
+              maybeUpdateThreadTitle({
+                ...p,
+                agentThreadsService: this.agentThreadsService,
+              }),
           },
         )) ||
         (await this.recurringTaskService.tryHandleRecurringTaskDraftTurnStream({
@@ -1243,7 +1261,8 @@ export class AgentOrchestratorService {
             userId: context.userId,
           });
 
-          await this.maybeUpdateThreadTitle({
+          await maybeUpdateThreadTitle({
+            agentThreadsService: this.agentThreadsService,
             context,
             seedTitle: seedTitle ?? '',
             threadId,
@@ -1597,41 +1616,6 @@ export class AgentOrchestratorService {
       seedTitle,
       threadId: String(thread.id),
     };
-  }
-
-  private async maybeUpdateThreadTitle(params: {
-    context: AgentChatContext;
-    seedTitle: string;
-    threadId: string;
-    title: string | null;
-  }): Promise<void> {
-    const seedTitle = params.seedTitle.trim();
-    const nextTitle = params.title?.trim() ?? '';
-
-    if (!seedTitle || !nextTitle || nextTitle === seedTitle) {
-      return;
-    }
-
-    const thread = (await this.agentThreadsService.findOne({
-      _id: params.threadId,
-      isDeleted: false,
-      organization: params.context.organizationId,
-      user: {
-        in: [params.context.userId],
-      },
-    })) as { title?: string } | null;
-
-    const currentTitle =
-      typeof thread?.title === 'string' ? thread.title.trim() : '';
-    if (currentTitle !== seedTitle) {
-      return;
-    }
-
-    await this.agentThreadsService.updateThreadMetadata(
-      params.threadId,
-      params.context.organizationId,
-      { title: nextTitle },
-    );
   }
 
   async resumeRecurringTaskDraftFromInput(params: {
