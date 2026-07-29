@@ -18,12 +18,22 @@ vi.mock('next/navigation', () => ({
 vi.mock('@ui/layouts/auth/AuthFormLayout', () => ({
   default: ({
     children,
+    description,
     logoSize,
+    title,
   }: {
     children: React.ReactNode;
+    description?: React.ReactNode;
     logoSize?: string;
+    title?: string;
   }) => (
     <div data-logo-size={logoSize} data-testid="auth-form-layout">
+      {title ? (
+        <>
+          <h1>{title}</h1>
+          <p>{description}</p>
+        </>
+      ) : null}
       {children}
     </div>
   ),

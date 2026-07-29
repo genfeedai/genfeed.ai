@@ -25,12 +25,22 @@ vi.mock('next/navigation', () => ({
 vi.mock('@ui/layouts/auth/AuthFormLayout', () => ({
   default: ({
     children,
+    description,
     logoSize,
+    title,
   }: {
     children: React.ReactNode;
+    description?: React.ReactNode;
     logoSize?: string;
+    title?: string;
   }) => (
     <div data-logo-size={logoSize} data-testid="auth-form-layout">
+      {title ? (
+        <>
+          <h1>{title}</h1>
+          <p>{description}</p>
+        </>
+      ) : null}
       {children}
     </div>
   ),
@@ -62,9 +72,7 @@ describe('LoginPage', () => {
       screen.getByRole('heading', { name: 'Welcome back' }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('textbox', { name: /^Email/ })).toBeNull();
-    expect(
-      screen.getByRole('button', { name: 'Continue with Google' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Google' })).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Sign in with GitHub' }),
     ).toBeNull();
@@ -105,9 +113,7 @@ describe('LoginPage', () => {
   it('starts Google sign-in with the default callback URL', async () => {
     render(<LoginPage />);
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Continue with Google' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Google' }));
 
     await waitFor(() => {
       expect(authClientMocks.social).toHaveBeenCalledWith({
@@ -122,9 +128,7 @@ describe('LoginPage', () => {
 
     render(<LoginPage />);
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Continue with Google' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Google' }));
 
     await waitFor(() => {
       expect(authClientMocks.social).toHaveBeenCalledWith({
@@ -141,9 +145,11 @@ describe('LoginPage', () => {
       screen.getByRole('heading', { name: 'Sign in with a magic link' }),
     ).toBeInTheDocument();
     expect(getEmailInput()).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Email me a sign-in link' }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Send link' })).toBeDisabled();
+    expect(screen.getByRole('link', { name: 'Back' })).toHaveClass(
+      'h-10',
+      'w-full',
+    );
   });
 
   it('sends a magic-link sign-in with the default callback URL', async () => {
@@ -152,9 +158,7 @@ describe('LoginPage', () => {
     fireEvent.change(getEmailInput(), {
       target: { value: 'user@example.com' },
     });
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Email me a sign-in link' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Send link' }));
 
     await waitFor(() => {
       expect(authClientMocks.magicLink).toHaveBeenCalledWith({
@@ -177,9 +181,7 @@ describe('LoginPage', () => {
     fireEvent.change(getEmailInput(), {
       target: { value: 'cli@example.com' },
     });
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Email me a sign-in link' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Send link' }));
 
     await waitFor(() => {
       expect(authClientMocks.magicLink).toHaveBeenCalledWith({

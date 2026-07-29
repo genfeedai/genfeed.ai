@@ -83,9 +83,31 @@ describe('AuthFormLayout', () => {
     );
 
     const logo = screen.getByRole('img');
-    expect(logo).toHaveAttribute('width', '48');
-    expect(logo).toHaveAttribute('height', '48');
+    expect(logo).toHaveAttribute('width', '56');
+    expect(logo).toHaveAttribute('height', '56');
     expect(logo).toHaveClass('mb-8');
+  });
+
+  it('should align a compact heading beside the logo', () => {
+    render(
+      <AuthFormLayout
+        description="Sign in to Genfeed"
+        logoSize="compact"
+        title="Welcome back"
+      >
+        <div>Content</div>
+      </AuthFormLayout>,
+    );
+
+    const heading = screen.getByRole('heading', { name: 'Welcome back' });
+    const header = heading.parentElement?.parentElement as HTMLElement;
+    const logo = screen.getByRole('img');
+
+    expect(header).toContainElement(logo);
+    expect(header).toHaveClass('flex');
+    expect(header).toHaveClass('items-center');
+    expect(logo).not.toHaveClass('mb-8');
+    expect(screen.getByText('Sign in to Genfeed')).toBeInTheDocument();
   });
 
   it('should wrap compact auth forms in an elevated card', () => {

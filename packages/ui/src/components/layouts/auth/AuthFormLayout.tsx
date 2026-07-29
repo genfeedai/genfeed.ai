@@ -6,13 +6,15 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import Image from 'next/image';
 
 const LOGO_DIMENSIONS = {
-  compact: 48,
+  compact: 56,
   default: 80,
 } as const;
 
 export default function AuthFormLayout({
   children,
+  description,
   logoSize = 'default',
+  title,
 }: AuthFormLayoutProps) {
   const logoUrl = useThemeLogo();
   const logoDimension = LOGO_DIMENSIONS[logoSize];
@@ -23,16 +25,39 @@ export default function AuthFormLayout({
   if (logoSize === 'compact') {
     return (
       <div className="min-h-screen flex flex-col justify-center items-center bg-background px-4 text-foreground">
-        <div className="w-full max-w-[400px] rounded-2xl bg-card p-8 shadow-border">
-          {logoUrl && (
-            <Image
-              src={logoUrl}
-              className="mb-8 object-contain dark:invert"
-              alt={EnvironmentService.LOGO_ALT}
-              width={logoDimension}
-              height={logoDimension}
-              priority
-            />
+        <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-border sm:p-10">
+          {title ? (
+            <div className="mb-8 flex items-center gap-5">
+              {logoUrl && (
+                <Image
+                  src={logoUrl}
+                  className="shrink-0 object-contain dark:invert"
+                  alt={EnvironmentService.LOGO_ALT}
+                  width={logoDimension}
+                  height={logoDimension}
+                  priority
+                />
+              )}
+              <div className="min-w-0">
+                <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                  {title}
+                </h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {description}
+                </p>
+              </div>
+            </div>
+          ) : (
+            logoUrl && (
+              <Image
+                src={logoUrl}
+                className="mb-8 object-contain dark:invert"
+                alt={EnvironmentService.LOGO_ALT}
+                width={logoDimension}
+                height={logoDimension}
+                priority
+              />
+            )
           )}
 
           {children}

@@ -1,15 +1,15 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { ArrowLeft, MailCheck } from 'lucide-react';
+import { MailCheck } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 /**
  * Shared building blocks for the public auth surface (login / sign-up /
  * forgot-password / reset-password). Keeping the heading, divider, footer,
- * back-link, "check your email" state, and the button/link chrome in one place
- * stops the four screens from drifting apart and matches the reference auth
- * card design.
+ * action row, "check your email" state, and the button/link chrome in one
+ * place stops the four screens from drifting apart and matches the reference
+ * auth card design.
  */
 
 /** Full-width primary submit action. */
@@ -22,23 +22,7 @@ export const AUTH_SECONDARY_BUTTON_CLASS_NAME =
 
 /** Inline accent link (sign-in / sign-up / forgot password). */
 export const AUTH_LINK_CLASS_NAME =
-  'font-medium text-info transition-colors hover:text-info/80';
-
-interface AuthHeadingProps {
-  description: string;
-  title: string;
-}
-
-export function AuthHeading({ description, title }: AuthHeadingProps) {
-  return (
-    <div className="space-y-1">
-      <h1 className="text-xl font-semibold tracking-tight text-foreground">
-        {title}
-      </h1>
-      <p className="text-sm text-muted-foreground">{description}</p>
-    </div>
-  );
-}
+  'font-medium text-foreground transition-colors hover:text-foreground/80';
 
 export function AuthDivider() {
   return (
@@ -57,55 +41,50 @@ export function AuthFooterPrompt({ children }: { children: ReactNode }) {
 }
 
 interface AuthBackLinkProps {
-  children: ReactNode;
   href: string;
 }
 
-export function AuthBackLink({ children, href }: AuthBackLinkProps) {
+export function AuthBackLink({ href }: AuthBackLinkProps) {
   return (
-    <div className="text-center">
-      <Link
-        href={href}
-        className="inline-flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        {children}
+    <Button
+      asChild
+      variant={ButtonVariant.SECONDARY}
+      className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
+      withWrapper={false}
+    >
+      <Link href={href}>
+        <span>Back</span>
       </Link>
+    </Button>
+  );
+}
+
+interface AuthFormActionsProps {
+  backHref: string;
+  children: ReactNode;
+}
+
+export function AuthFormActions({ backHref, children }: AuthFormActionsProps) {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <AuthBackLink href={backHref} />
+      {children}
     </div>
   );
 }
 
 interface AuthCheckEmailProps {
   backHref: string;
-  backLabel: string;
-  description: ReactNode;
-  title: string;
 }
 
-export function AuthCheckEmail({
-  backHref,
-  backLabel,
-  description,
-  title,
-}: AuthCheckEmailProps) {
+export function AuthCheckEmail({ backHref }: AuthCheckEmailProps) {
   return (
     <div className="space-y-4 text-center">
       <MailCheck
         className="mx-auto size-8 text-muted-foreground"
         aria-hidden="true"
       />
-      <h1 className="text-xl font-semibold tracking-tight text-foreground">
-        {title}
-      </h1>
-      <p className="text-sm text-muted-foreground">{description}</p>
-      <Button
-        asChild
-        variant={ButtonVariant.SECONDARY}
-        className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
-        withWrapper={false}
-      >
-        <Link href={backHref}>{backLabel}</Link>
-      </Button>
+      <AuthBackLink href={backHref} />
     </div>
   );
 }

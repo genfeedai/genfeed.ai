@@ -34,12 +34,22 @@ vi.mock('next/navigation', () => ({
 vi.mock('@ui/layouts/auth/AuthFormLayout', () => ({
   default: ({
     children,
+    description,
     logoSize,
+    title,
   }: {
     children: React.ReactNode;
+    description?: React.ReactNode;
     logoSize?: string;
+    title?: string;
   }) => (
     <div data-logo-size={logoSize} data-testid="auth-form-layout">
+      {title ? (
+        <>
+          <h1>{title}</h1>
+          <p>{description}</p>
+        </>
+      ) : null}
       {children}
     </div>
   ),
@@ -96,9 +106,7 @@ describe('SignUpForm', () => {
     expect(
       screen.getByRole('heading', { name: 'Create your account' }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Continue with Google' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Google' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Magic Link' })).toHaveAttribute(
       'href',
       '/sign-up/magic-link',
@@ -138,9 +146,7 @@ describe('SignUpForm', () => {
     fireEvent.change(getEmailInput(), {
       target: { value: ' New@Example.com ' },
     });
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Email me a sign-up link' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Send link' }));
 
     await waitFor(() => {
       expect(authClientMocks.magicLink).toHaveBeenCalledWith({
@@ -173,9 +179,7 @@ describe('SignUpForm', () => {
     fireEvent.change(getEmailInput(), {
       target: { value: 'new@example.com' },
     });
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Email me a sign-up link' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Send link' }));
 
     await waitFor(() => {
       expect(authClientMocks.magicLink).toHaveBeenCalledWith({
@@ -225,9 +229,7 @@ describe('SignUpForm', () => {
 
     render(<SignUpForm />);
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Continue with Google' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Google' }));
 
     await waitFor(() => {
       expect(authClientMocks.social).toHaveBeenCalledWith({

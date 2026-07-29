@@ -19,7 +19,6 @@ import { getAuthCallbackURL, getAuthFlowHref } from '../auth-callback-url';
 import {
   AUTH_LINK_CLASS_NAME,
   AUTH_PRIMARY_BUTTON_CLASS_NAME,
-  AuthHeading,
 } from '../auth-ui';
 
 const subscribe = () => () => {};
@@ -105,19 +104,16 @@ export default function ResetPasswordContent() {
 
   if (isResetComplete) {
     return (
-      <AuthFormLayout logoSize="compact">
+      <AuthFormLayout
+        description="Your password has been reset. Sign in with your new password to continue."
+        logoSize="compact"
+        title="Password updated"
+      >
         <div className="w-full space-y-4 text-center">
           <CheckCircle2
             className="mx-auto size-8 text-muted-foreground"
             aria-hidden="true"
           />
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            Password updated
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Your password has been reset. Sign in with your new password to
-            continue.
-          </p>
           <Button
             asChild
             variant={ButtonVariant.DEFAULT}
@@ -133,18 +129,16 @@ export default function ResetPasswordContent() {
 
   if (hasRecoverableTokenError) {
     return (
-      <AuthFormLayout logoSize="compact">
+      <AuthFormLayout
+        description={getTokenErrorMessage(tokenError)}
+        logoSize="compact"
+        title="Reset link expired"
+      >
         <div className="w-full space-y-4 text-center">
           <RotateCcw
             className="mx-auto size-8 text-muted-foreground"
             aria-hidden="true"
           />
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            Reset link expired
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {getTokenErrorMessage(tokenError)}
-          </p>
           <Button
             asChild
             variant={ButtonVariant.DEFAULT}
@@ -159,13 +153,12 @@ export default function ResetPasswordContent() {
   }
 
   return (
-    <AuthFormLayout logoSize="compact">
+    <AuthFormLayout
+      description="Enter a new password for your Genfeed account."
+      logoSize="compact"
+      title="Choose a new password"
+    >
       <div className="w-full space-y-6">
-        <AuthHeading
-          title="Choose a new password"
-          description="Enter a new password for your Genfeed account."
-        />
-
         <form onSubmit={handlePasswordReset} className="space-y-4">
           <Field label="New password" isRequired>
             <Input

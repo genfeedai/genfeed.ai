@@ -26,15 +26,16 @@ import {
   AUTH_LINK_CLASS_NAME,
   AUTH_PRIMARY_BUTTON_CLASS_NAME,
   AUTH_SECONDARY_BUTTON_CLASS_NAME,
-  AuthBackLink,
   AuthCheckEmail,
   AuthFooterPrompt,
-  AuthHeading,
+  AuthFormActions,
 } from '../auth-ui';
 
 const subscribe = () => () => {};
 const getSnapshot = () => true;
 const getServerSnapshot = () => false;
+const LOGIN_TITLE = 'Welcome back';
+const LOGIN_DESCRIPTION = 'Sign in to Genfeed';
 
 type LoginMode = 'chooser' | 'magic-link' | 'password';
 
@@ -158,31 +159,29 @@ export default function LoginBetterAuth({
 
   if (mode === 'magic-link' && isEmailSent) {
     return (
-      <AuthFormLayout logoSize="compact">
-        <AuthCheckEmail
-          title="Check your email"
-          description={
-            <>
-              We sent a sign-in link to <strong>{email}</strong>. Click the link
-              in the email to sign in.
-            </>
-          }
-          backHref={chooserHref}
-          backLabel="Back to sign in"
-        />
+      <AuthFormLayout
+        description={
+          <>
+            We sent a sign-in link to <strong>{email}</strong>. Click the link
+            in the email to sign in.
+          </>
+        }
+        logoSize="compact"
+        title="Check your email"
+      >
+        <AuthCheckEmail backHref={chooserHref} />
       </AuthFormLayout>
     );
   }
 
   if (mode === 'magic-link') {
     return (
-      <AuthFormLayout logoSize="compact">
+      <AuthFormLayout
+        description="Enter your email and we'll send you a secure sign-in link."
+        logoSize="compact"
+        title="Sign in with a magic link"
+      >
         <div className="w-full space-y-6">
-          <AuthHeading
-            title="Sign in with a magic link"
-            description="Enter your email and we'll send you a secure sign-in link."
-          />
-
           <form onSubmit={handleMagicLink} className="space-y-4">
             <Field label="Email" isRequired>
               <Input
@@ -203,21 +202,19 @@ export default function LoginBetterAuth({
               <p className="text-sm text-destructive">{errorMessage}</p>
             ) : null}
 
-            <Button
-              type="submit"
-              variant={ButtonVariant.DEFAULT}
-              isLoading={isSubmitting}
-              isDisabled={!email || isSubmitting}
-              className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
-              withWrapper={false}
-            >
-              Email me a sign-in link
-            </Button>
+            <AuthFormActions backHref={chooserHref}>
+              <Button
+                type="submit"
+                variant={ButtonVariant.DEFAULT}
+                isLoading={isSubmitting}
+                isDisabled={!email || isSubmitting}
+                className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
+                withWrapper={false}
+              >
+                Send link
+              </Button>
+            </AuthFormActions>
           </form>
-
-          <AuthBackLink href={chooserHref}>
-            Back to sign in options
-          </AuthBackLink>
         </div>
       </AuthFormLayout>
     );
@@ -225,13 +222,12 @@ export default function LoginBetterAuth({
 
   if (mode === 'password') {
     return (
-      <AuthFormLayout logoSize="compact">
+      <AuthFormLayout
+        description="Use your Genfeed email and password."
+        logoSize="compact"
+        title="Sign in with password"
+      >
         <div className="w-full space-y-6">
-          <AuthHeading
-            title="Sign in with email and password"
-            description="Use the email and password attached to your Genfeed account."
-          />
-
           <form onSubmit={handleEmailPassword} className="space-y-4">
             <Field label="Email" isRequired>
               <Input
@@ -276,28 +272,30 @@ export default function LoginBetterAuth({
               <p className="text-sm text-destructive">{passwordErrorMessage}</p>
             ) : null}
 
-            <Button
-              type="submit"
-              variant={ButtonVariant.DEFAULT}
-              isLoading={isPasswordSubmitting}
-              isDisabled={!email || !password || isPasswordSubmitting}
-              className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
-              withWrapper={false}
-            >
-              Sign in
-            </Button>
+            <AuthFormActions backHref={chooserHref}>
+              <Button
+                type="submit"
+                variant={ButtonVariant.DEFAULT}
+                isLoading={isPasswordSubmitting}
+                isDisabled={!email || !password || isPasswordSubmitting}
+                className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
+                withWrapper={false}
+              >
+                Sign in
+              </Button>
+            </AuthFormActions>
           </form>
-
-          <AuthBackLink href={chooserHref}>
-            Back to sign in options
-          </AuthBackLink>
         </div>
       </AuthFormLayout>
     );
   }
 
   return (
-    <AuthFormLayout logoSize="compact">
+    <AuthFormLayout
+      description={LOGIN_DESCRIPTION}
+      logoSize="compact"
+      title={LOGIN_TITLE}
+    >
       <AuthActionSurface
         actions={
           <>
@@ -310,7 +308,7 @@ export default function LoginBetterAuth({
               className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
               withWrapper={false}
             >
-              Continue with Google
+              Google
             </Button>
 
             <Button
@@ -338,7 +336,6 @@ export default function LoginBetterAuth({
             </Button>
           </>
         }
-        description="Sign in to Genfeed"
         error={socialErrorMessage}
         footer={
           <AuthFooterPrompt>
@@ -348,7 +345,7 @@ export default function LoginBetterAuth({
             </Link>
           </AuthFooterPrompt>
         }
-        title="Welcome back"
+        hideHeading
       />
     </AuthFormLayout>
   );
