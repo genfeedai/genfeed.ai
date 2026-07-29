@@ -84,7 +84,7 @@ function pageFileToKey(filePath) {
  * @param {string} routePath
  * @returns {string}
  */
-function canonicalize(routePath) {
+export function canonicalize(routePath) {
   let p = routePath.split('?')[0].split('#')[0];
   p = p.replace(/\/+$/, '') || '/';
 
@@ -260,7 +260,10 @@ export function readAppRouteConstants(source) {
  * @returns {string}
  */
 export function readAppRouteSuffix(src, matchIndex, matchLength) {
-  const after = src.slice(matchIndex + matchLength, matchIndex + matchLength + 48);
+  const after = src.slice(
+    matchIndex + matchLength,
+    matchIndex + matchLength + 48,
+  );
   const concat = after.match(/^\s*\+\s*['"`](\/[^'"`]*)['"`]/);
   if (concat) {
     return concat[1];
@@ -313,11 +316,7 @@ function collectNavigatedKeys() {
     for (const match of src.matchAll(APP_ROUTE_REFERENCE_RE)) {
       const route = appRoutes.get(match[0]);
       if (!route) continue;
-      const suffix = readAppRouteSuffix(
-        src,
-        match.index ?? 0,
-        match[0].length,
-      );
+      const suffix = readAppRouteSuffix(src, match.index ?? 0, match[0].length);
       keys.add(canonicalize(`${route}${suffix}`));
     }
 
@@ -409,7 +408,8 @@ function safeExists(p) {
 
 const isDirectRun =
   process.argv[1] &&
-  path.resolve(fileURLToPath(import.meta.url)) === path.resolve(process.argv[1]);
+  path.resolve(fileURLToPath(import.meta.url)) ===
+    path.resolve(process.argv[1]);
 
 if (isDirectRun) {
   main();

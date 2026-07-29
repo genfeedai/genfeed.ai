@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  canonicalize,
   readAppRouteConstants,
   readAppRouteSuffix,
 } from './e2e-route-coverage.mjs';
@@ -37,7 +38,18 @@ export const APP_ROUTES = {
       readAppRouteSuffix(srcConcat, matchConcat.index, matchConcat[0].length),
       '/mock-id',
     );
+    assert.equal(
+      canonicalize(
+        `/admin/images${readAppRouteSuffix(
+          srcConcat,
+          matchConcat.index,
+          matchConcat[0].length,
+        )}`,
+      ),
+      '/admin/images/*',
+    );
 
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: fixture source is a template literal.
     const srcTemplate = '`${APP_ROUTES.STUDIO.IMAGE}/mock-id`';
     // Match only the APP_ROUTES token, not the surrounding template bits.
     const token = 'APP_ROUTES.STUDIO.IMAGE';
@@ -45,6 +57,12 @@ export const APP_ROUTES = {
     assert.equal(
       readAppRouteSuffix(srcTemplate, idx, token.length),
       '/mock-id',
+    );
+    assert.equal(
+      canonicalize(
+        `/studio/image${readAppRouteSuffix(srcTemplate, idx, token.length)}`,
+      ),
+      '/studio/image/*',
     );
   });
 });

@@ -62,13 +62,51 @@ function buildProtectedRoutes(orgSlug: string, brandSlug: string): string[] {
 }
 
 type BootstrapBrand = {
+  _id?: string;
+  id?: string;
   organization?: { slug?: string } | null;
   slug?: string;
 };
 
 type BootstrapPayload = {
+  access?: { brandId?: string };
   brands?: BootstrapBrand[];
 };
+
+function resolveWorkspaceOracle(payload: BootstrapPayload): {
+  brandSlug: string;
+  orgSlug: string;
+} {
+  const brands = payload.brands ?? [];
+  const activeBrandId = payload.access?.brandId ?? '';
+  const matchedBrand = activeBrandId
+    ? brands.find(
+        (brand) => String(brand.id ?? brand._id ?? '') === activeBrandId,
+      )
+    : undefined;
+  const selectedBrand =
+    activeBrandId && matchedBrand?.slug
+      ? matchedBrand
+      : (brands.find((brand) => Boolean(brand.slug)) ?? matchedBrand);
+  const orgSlug =
+    selectedBrand?.organization?.slug ??
+    brands.find((brand) => Boolean(brand.organization?.slug))?.organization
+      ?.slug;
+
+  expect(
+    selectedBrand?.slug,
+    'bootstrap workspace oracle missing brand slug',
+  ).toBeTruthy();
+  expect(
+    orgSlug,
+    'bootstrap workspace oracle missing organization slug',
+  ).toBeTruthy();
+
+  return {
+    brandSlug: selectedBrand?.slug as string,
+    orgSlug: orgSlug as string,
+  };
+}
 
 /**
  * Independent workspace oracle (#2162 / #2164).
@@ -99,32 +137,34 @@ async function readWorkspaceOracleFromBootstrap(page: Page): Promise<{
   await assertRouteLoads(page, '/');
   const response = await bootstrapResponsePromise;
   const payload = (await response.json()) as BootstrapPayload;
-  const brands = payload.brands ?? [];
-  expect(
-    brands.length,
-    'bootstrap returned no brands for workspace oracle',
-  ).toBeGreaterThan(0);
-
-  const selected = brands.find(
-    (brand) =>
-      typeof brand.slug === 'string' &&
-      brand.slug.length > 0 &&
-      typeof brand.organization?.slug === 'string' &&
-      brand.organization.slug.length > 0,
-  );
-  expect(
-    selected,
-    'bootstrap brand missing slug + organization.slug',
-  ).toBeTruthy();
-
-  return {
-    brandSlug: selected?.slug as string,
-    orgSlug: selected?.organization?.slug as string,
-  };
+  return resolveWorkspaceOracle(payload);
 }
 
 test.describe('Authenticated route smoke (real Better Auth session)', () => {
   test.setTimeout(600_000);
+
+  test('workspace oracle follows the active bootstrap brand', () => {
+    expect(
+      resolveWorkspaceOracle({
+        access: { brandId: 'brand-selected' },
+        brands: [
+          {
+            id: 'brand-wrong',
+            organization: { slug: 'org-wrong' },
+            slug: 'brand-wrong',
+          },
+          {
+            id: 'brand-selected',
+            organization: { slug: 'org-selected' },
+            slug: 'brand-selected',
+          },
+        ],
+      }),
+    ).toEqual({
+      brandSlug: 'brand-selected',
+      orgSlug: 'org-selected',
+    });
+  });
 
   test('protected routes render under a real session', async ({ page }) => {
     const networkGuard = await setupStrictNetworkGuard(page, { strict: true });
