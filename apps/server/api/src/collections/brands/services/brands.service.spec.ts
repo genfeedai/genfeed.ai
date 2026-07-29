@@ -122,6 +122,37 @@ describe('BrandsService', () => {
       slug: 'default-brand',
     };
 
+    it('retries with a deterministic suffix when two creates race on the same slug', async () => {
+      const collision = {
+        code: 'P2002',
+        meta: { target: ['slug'] },
+      };
+      delegate.create.mockRejectedValueOnce(collision).mockResolvedValueOnce({
+        ...createBrandDto,
+        id: 'brand-winner',
+        organizationId: 'org-1',
+        slug: 'default-brand-2',
+        userId: 'user-1',
+      });
+
+      const brand = await service.create({
+        ...createBrandDto,
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+
+      expect(brand.slug).toBe('default-brand-2');
+      expect(delegate.create).toHaveBeenCalledTimes(2);
+      const firstCall = delegate.create.mock.calls[0]?.[0] as
+        | { data: { slug: string } }
+        | undefined;
+      const secondCall = delegate.create.mock.calls[1]?.[0] as
+        | { data: { slug: string } }
+        | undefined;
+      expect(firstCall?.data.slug).toBe('default-brand');
+      expect(secondCall?.data.slug).toBe('default-brand-2');
+    });
+
     it('maps controller metadata aliases to canonical Prisma foreign keys', async () => {
       delegate.create.mockResolvedValue({
         ...createBrandDto,

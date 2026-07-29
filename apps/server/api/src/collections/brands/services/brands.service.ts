@@ -19,6 +19,12 @@ import {
   BrandRelocationService,
 } from '@api/collections/brands/services/brand-relocation.service';
 import {
+  isSlugUniqueConstraintError,
+  MAX_SLUG_ALLOCATION_ATTEMPTS,
+  nextSlugCandidate,
+  slugAllocationBase,
+} from '@api/collections/shared/slug-allocation.util';
+import {
   CACHE_PATTERNS,
   CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
@@ -84,20 +90,77 @@ export class BrandsService extends BaseService<
     const resolvedUserId =
       userId ?? (typeof user === 'string' ? user : undefined);
 
+    const label =
+      typeof createBrandDto.label === 'string' && createBrandDto.label.trim()
+        ? createBrandDto.label.trim()
+        : 'brand';
+    const preferredSlug =
+      typeof createBrandDto.slug === 'string' && createBrandDto.slug.trim()
+        ? createBrandDto.slug.trim()
+        : await this.generateUniqueSlug(label);
+    const allocationBase = slugAllocationBase(preferredSlug);
+
     this.logger.debug('Creating brand', {
-      label: createBrandDto.label,
+      label,
       operation: 'create',
       service: this.constructorName,
-      slug: createBrandDto.slug,
+      slug: preferredSlug,
     });
 
-    const brand = await super.create({
-      ...brandFields,
-      ...(resolvedOrganizationId
-        ? { organizationId: resolvedOrganizationId }
-        : {}),
-      ...(resolvedUserId ? { userId: resolvedUserId } : {}),
-    } as CreateBrandDto);
+    let brand: BrandDocument | undefined;
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt < MAX_SLUG_ALLOCATION_ATTEMPTS; attempt++) {
+      const candidate =
+        attempt === 0
+          ? preferredSlug
+          : nextSlugCandidate(allocationBase, attempt);
+
+      try {
+        brand = await super.create({
+          ...brandFields,
+          slug: candidate,
+          ...(resolvedOrganizationId
+            ? { organizationId: resolvedOrganizationId }
+            : {}),
+          ...(resolvedUserId ? { userId: resolvedUserId } : {}),
+        } as CreateBrandDto);
+        if (attempt > 0) {
+          this.logger.warn('Brand slug race recovered with suffix', {
+            attempt,
+            operation: 'create',
+            service: this.constructorName,
+            slug: candidate,
+          });
+        }
+        break;
+      } catch (error) {
+        lastError = error;
+        if (!isSlugUniqueConstraintError(error)) {
+          throw error;
+        }
+        this.logger.warn('Brand slug unique constraint collision; retrying', {
+          attempt,
+          operation: 'create',
+          service: this.constructorName,
+          slug: candidate,
+        });
+      }
+    }
+
+    if (!brand) {
+      this.logger.error('Brand slug allocation exhausted', {
+        attempts: MAX_SLUG_ALLOCATION_ATTEMPTS,
+        base: allocationBase,
+        operation: 'create',
+        service: this.constructorName,
+      });
+      throw lastError instanceof Error
+        ? lastError
+        : new BadRequestException(
+            'Unable to allocate a unique brand slug after concurrent retries',
+          );
+    }
 
     // Invalidate brand list cache so the new brand is immediately visible
     if (resolvedOrganizationId) {
