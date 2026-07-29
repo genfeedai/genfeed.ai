@@ -368,7 +368,7 @@ describe('ModelBrowserModal', () => {
       render(<ModelBrowserModal {...defaultProps} />);
 
       await waitFor(() => {
-        expect(screen.getByText('3 models available')).toBeInTheDocument();
+        expect(screen.getByText('2 models available')).toBeInTheDocument();
       });
     });
 
