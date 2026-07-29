@@ -39,6 +39,9 @@ import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
+import { AgentOrchestratorBatchService } from '@api/services/agent-orchestrator/agent-orchestrator-batch.service';
+import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
+import { AgentOrchestratorPlanModeService } from '@api/services/agent-orchestrator/agent-orchestrator-plan-mode.service';
 import { AgentOrchestratorRecurringTaskService } from '@api/services/agent-orchestrator/agent-orchestrator-recurring-task.service';
 import { AgentOrchestratorUiActionService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
@@ -161,6 +164,9 @@ import { forwardRef, Module } from '@nestjs/common';
     AgentReviewToolHandler,
     AgentTrendsToolHandler,
     AgentWorkspaceToolHandler,
+    AgentOrchestratorBatchService,
+    AgentOrchestratorContextService,
+    AgentOrchestratorPlanModeService,
     AgentOrchestratorRecurringTaskService,
     AgentOrchestratorService,
     AgentOrchestratorUiActionService,

@@ -9,11 +9,9 @@ import { type AgentMessageDocument } from '@api/collections/agent-messages/schem
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { CreateAgentRunDto } from '@api/collections/agent-runs/dto/create-agent-run.dto';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
-import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { resolveEffectiveAgentExecutionConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import {
   fromPromiseEffect,
@@ -21,8 +19,10 @@ import {
 } from '@api/helpers/utils/effect/effect.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AgentMessageBusService } from '@api/services/agent-campaign/agent-message-bus.service';
-import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
+import { AgentOrchestratorBatchService } from '@api/services/agent-orchestrator/agent-orchestrator-batch.service';
+import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
+import { AgentOrchestratorPlanModeService } from '@api/services/agent-orchestrator/agent-orchestrator-plan-mode.service';
 import { AgentOrchestratorRecurringTaskService } from '@api/services/agent-orchestrator/agent-orchestrator-recurring-task.service';
 import { AgentOrchestratorUiActionService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
@@ -149,18 +149,6 @@ class StreamCancelledError extends Error {
   }
 }
 
-interface BatchGenerationDraft {
-  brandId?: string;
-  count: number;
-  dateRange: {
-    end: string;
-    start: string;
-  };
-  handle?: string;
-  platforms: string[];
-  topics?: string[];
-}
-
 @Injectable()
 export class AgentOrchestratorService {
   private readonly constructorName = String(this.constructor.name);
@@ -171,19 +159,18 @@ export class AgentOrchestratorService {
     private readonly llmDispatcher: LlmDispatcherService,
     private readonly agentThreadsService: AgentThreadsService,
     private readonly agentScopeContextService: AgentScopeContextService,
-    private readonly agentMemoriesService: AgentMemoriesService,
     private readonly agentMessagesService: AgentMessagesService,
-    private readonly contextAssemblyService: AgentContextAssemblyService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly toolExecutorService: AgentToolExecutorService,
     private readonly turnRoundRunner: AgentTurnRoundRunnerService,
     private readonly uiActionService: AgentOrchestratorUiActionService,
     private readonly recurringTaskService: AgentOrchestratorRecurringTaskService,
+    private readonly planModeService: AgentOrchestratorPlanModeService,
+    private readonly batchService: AgentOrchestratorBatchService,
+    private readonly contextService: AgentOrchestratorContextService,
     private readonly completionCardBuilder: AgentCompletionCardBuilderService,
     private readonly threadEventRecorder: AgentThreadEventRecorderService,
-    private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly settingsService: SettingsService,
-    private readonly agentStrategiesService: AgentStrategiesService,
     private readonly streamEffects: AgentStreamEffectsService,
     private readonly agentRunsService: AgentRunsService,
     @Optional()
@@ -225,7 +212,10 @@ export class AgentOrchestratorService {
         user: context.userId,
       });
 
-      const resolved = await this.resolveSystemPromptAndModel(request, context);
+      const resolved = await this.contextService.resolveSystemPromptAndModel(
+        request,
+        context,
+      );
       const systemPromptOverride = resolved.systemPrompt;
       const resolvedMemories = resolved.memories ?? [];
       const generationPriority = context.strategyId
@@ -311,16 +301,25 @@ export class AgentOrchestratorService {
         userId: context.userId,
       });
 
-      const planModeResponse = await this.tryHandlePlanModeTurn({
-        context,
-        model,
-        request,
-        resolvedMemories,
-        seedTitle,
-        systemPromptOverride,
-        threadId,
-        turnCost,
-      });
+      const planModeResponse = await this.planModeService.tryHandlePlanModeTurn(
+        {
+          context,
+          model,
+          request,
+          resolvedMemories,
+          seedTitle,
+          systemPromptOverride,
+          threadId,
+          turnCost,
+        },
+        {
+          buildFallbackThreadTitle: (prompt) =>
+            this.buildFallbackThreadTitle(prompt),
+          maybeUpdateThreadTitle: (p) => this.maybeUpdateThreadTitle(p),
+          sanitizeGeneratedThreadTitle: (title, prompt) =>
+            this.sanitizeGeneratedThreadTitle(title, prompt),
+        },
+      );
 
       if (planModeResponse) {
         return withAgentScopeResult(planModeResponse, scope);
@@ -393,7 +392,13 @@ export class AgentOrchestratorService {
       executeSynchronousChatLoop: (params) =>
         this.executeSynchronousChatLoop(params),
       generatePlanModeResponse: (params) =>
-        this.generatePlanModeResponse(params),
+        this.planModeService.generatePlanModeResponse(params, {
+          buildFallbackThreadTitle: (prompt) =>
+            this.buildFallbackThreadTitle(prompt),
+          maybeUpdateThreadTitle: (p) => this.maybeUpdateThreadTitle(p),
+          sanitizeGeneratedThreadTitle: (title, prompt) =>
+            this.sanitizeGeneratedThreadTitle(title, prompt),
+        }),
       runInThreadLane: (threadId, run) => this.runInThreadLane(threadId, run),
     });
   }
@@ -447,7 +452,7 @@ export class AgentOrchestratorService {
         this.agentCampaignsService &&
         this.agentMessageBusService
       ) {
-        resolvedSystemPrompt = await this.injectCampaignContext(
+        resolvedSystemPrompt = await this.contextService.injectCampaignContext(
           context.campaignId,
           context.organizationId,
           resolvedSystemPrompt,
@@ -455,8 +460,11 @@ export class AgentOrchestratorService {
       }
 
       const { messages: recentMessages, compressedContext } =
-        await this.resolveThreadMessages(threadId, context.organizationId);
-      const history = this.buildMessageHistory(
+        await this.contextService.resolveThreadMessages(
+          threadId,
+          context.organizationId,
+        );
+      const history = this.contextService.buildMessageHistory(
         recentMessages,
         resolvedSystemPrompt,
         resolvedMemories,
@@ -558,9 +566,9 @@ export class AgentOrchestratorService {
               context.organizationId,
             );
           const memoryEntriesForResponse =
-            this.buildMemoryEntriesForResponse(resolvedMemories);
+            this.contextService.buildMemoryEntriesForResponse(resolvedMemories);
           const memoryInfluence =
-            this.buildMemoryInfluenceMetadata(resolvedMemories);
+            this.contextService.buildMemoryInfluenceMetadata(resolvedMemories);
           const reasoning = assistantMessage.reasoning_content ?? null;
           const enhancedUiActions =
             this.completionCardBuilder.buildAssistantUiActions({
@@ -746,7 +754,10 @@ export class AgentOrchestratorService {
       user: context.userId,
     });
 
-    const resolved = await this.resolveSystemPromptAndModel(request, context);
+    const resolved = await this.contextService.resolveSystemPromptAndModel(
+      request,
+      context,
+    );
     const systemPromptOverride = resolved.systemPrompt;
     const resolvedMemories = resolved.memories ?? [];
     const generationPriority = context.strategyId
@@ -879,17 +890,27 @@ export class AgentOrchestratorService {
       userId: context.userId,
     });
 
-    const handledPlanMode = await this.tryHandlePlanModeTurnStream({
-      context: streamContext,
-      model,
-      request,
-      resolvedMemories,
-      seedTitle,
-      startedAt,
-      systemPromptOverride,
-      threadId,
-      turnCost,
-    });
+    const handledPlanMode =
+      await this.planModeService.tryHandlePlanModeTurnStream(
+        {
+          context: streamContext,
+          model,
+          request,
+          resolvedMemories,
+          seedTitle,
+          startedAt,
+          systemPromptOverride,
+          threadId,
+          turnCost,
+        },
+        {
+          buildFallbackThreadTitle: (prompt) =>
+            this.buildFallbackThreadTitle(prompt),
+          maybeUpdateThreadTitle: (p) => this.maybeUpdateThreadTitle(p),
+          sanitizeGeneratedThreadTitle: (title, prompt) =>
+            this.sanitizeGeneratedThreadTitle(title, prompt),
+        },
+      );
 
     if (handledPlanMode) {
       return {
@@ -904,15 +925,22 @@ export class AgentOrchestratorService {
     let handledDeterministically: boolean;
     try {
       handledDeterministically =
-        (await this.tryHandleBatchGenerationTurnStream({
-          context: streamContext,
-          model,
-          policy,
-          requestContent: request.content,
-          seedTitle,
-          startedAt,
-          threadId,
-        })) ||
+        (await this.batchService.tryHandleBatchGenerationTurnStream(
+          {
+            context: streamContext,
+            model,
+            policy,
+            requestContent: request.content,
+            seedTitle,
+            startedAt,
+            threadId,
+          },
+          {
+            buildFallbackThreadTitle: (prompt) =>
+              this.buildFallbackThreadTitle(prompt),
+            maybeUpdateThreadTitle: (p) => this.maybeUpdateThreadTitle(p),
+          },
+        )) ||
         (await this.recurringTaskService.tryHandleRecurringTaskDraftTurnStream({
           context: streamContext,
           model,
@@ -1016,15 +1044,19 @@ export class AgentOrchestratorService {
         uiActions: [],
       };
       const memoryEntriesForResponse =
-        this.buildMemoryEntriesForResponse(memoryEntries);
-      const memoryInfluence = this.buildMemoryInfluenceMetadata(memoryEntries);
+        this.contextService.buildMemoryEntriesForResponse(memoryEntries);
+      const memoryInfluence =
+        this.contextService.buildMemoryInfluenceMetadata(memoryEntries);
 
       // Build thread history from separate messages collection
       const {
         messages: recentMessages,
         compressedContext: streamCompressedCtx,
-      } = await this.resolveThreadMessages(threadId, context.organizationId);
-      const history = this.buildMessageHistory(
+      } = await this.contextService.resolveThreadMessages(
+        threadId,
+        context.organizationId,
+      );
+      const history = this.contextService.buildMessageHistory(
         recentMessages,
         systemPromptOverride,
         memoryEntries,
@@ -1577,19 +1609,6 @@ export class AgentOrchestratorService {
     };
   }
 
-  private async isPlanModeEnabledForThread(
-    threadId: string,
-    organizationId: string,
-  ): Promise<boolean> {
-    const thread = await this.agentThreadsService.findOne({
-      _id: threadId,
-      isDeleted: false,
-      organization: organizationId,
-    });
-
-    return Boolean(thread?.planModeEnabled);
-  }
-
   private buildSeedThreadTitle(content: string): string {
     return content.substring(0, 100).trim();
   }
@@ -1733,787 +1752,6 @@ export class AgentOrchestratorService {
     );
   }
 
-  private async tryHandlePlanModeTurn(params: {
-    context: AgentChatContext;
-    model: string;
-    request: AgentChatRequest;
-    resolvedMemories: AgentMemoryDocument[];
-    seedTitle: string;
-    systemPromptOverride?: string;
-    threadId: string;
-    turnCost: number;
-  }): Promise<AgentChatResult | null> {
-    const isEnabled = await this.isPlanModeEnabledForThread(
-      params.threadId,
-      params.context.organizationId,
-    );
-
-    if (!isEnabled) {
-      return null;
-    }
-
-    return await this.generatePlanModeResponse({
-      context: params.context,
-      model: params.model,
-      request: params.request,
-      resolvedMemories: params.resolvedMemories,
-      seedTitle: params.seedTitle,
-      systemPromptOverride: params.systemPromptOverride,
-      threadId: params.threadId,
-      turnCost: params.turnCost,
-    });
-  }
-
-  private async tryHandlePlanModeTurnStream(params: {
-    context: AgentChatContext;
-    model: string;
-    request: AgentChatRequest;
-    resolvedMemories: AgentMemoryDocument[];
-    seedTitle: string;
-    startedAt: string;
-    systemPromptOverride?: string;
-    threadId: string;
-    turnCost: number;
-  }): Promise<boolean> {
-    const isEnabled = await this.isPlanModeEnabledForThread(
-      params.threadId,
-      params.context.organizationId,
-    );
-
-    if (!isEnabled) {
-      return false;
-    }
-
-    const response = await this.generatePlanModeResponse({
-      context: params.context,
-      model: params.model,
-      request: params.request,
-      resolvedMemories: params.resolvedMemories,
-      seedTitle: params.seedTitle,
-      systemPromptOverride: params.systemPromptOverride,
-      threadId: params.threadId,
-      turnCost: params.turnCost,
-    });
-
-    await runEffectPromise(
-      this.streamEffects.publishStreamDoneOnlyEffect({
-        content: response.message.content,
-        context: params.context,
-        creditsRemaining: response.creditsRemaining,
-        creditsUsed: response.creditsUsed,
-        metadata: response.message.metadata,
-        startedAt: params.startedAt,
-        threadId: params.threadId,
-        toolCalls: [],
-      }),
-    );
-
-    return true;
-  }
-
-  private async generatePlanModeResponse(params: {
-    context: AgentChatContext;
-    model: string;
-    reviewMetadata?: {
-      lastReviewAction?: 'approve' | 'request_changes';
-      revisionNote?: string;
-    };
-    request: AgentChatRequest;
-    resolvedMemories: AgentMemoryDocument[];
-    seedTitle: string;
-    systemPromptOverride?: string;
-    threadId: string;
-    turnCost: number;
-  }): Promise<AgentChatResult> {
-    const { messages: recentMessages, compressedContext: planCompressedCtx } =
-      await this.resolveThreadMessages(
-        params.threadId,
-        params.context.organizationId,
-      );
-    const history = this.buildMessageHistory(
-      recentMessages,
-      params.systemPromptOverride,
-      params.resolvedMemories,
-      params.request.attachments,
-      planCompressedCtx,
-    );
-
-    const response = await this.llmDispatcher.chatCompletion(
-      this.buildPlanningChatCompletionParams({
-        messages: history,
-        model: params.model,
-        prompt: params.request.content,
-        seedTitle: params.seedTitle,
-        source: params.request.source,
-      }),
-      params.context.organizationId,
-    );
-
-    const choice = response.choices[0];
-    if (!choice) {
-      throw new Error('No planning response from LLM');
-    }
-
-    const envelope = this.extractPlanEnvelope({
-      assistantContent: sanitizeAgentOutputText(choice.message.content || ''),
-      prompt: params.request.content,
-      seedTitle: params.seedTitle,
-    });
-    const plan = {
-      ...envelope.plan,
-      ...(params.reviewMetadata?.lastReviewAction
-        ? { lastReviewAction: params.reviewMetadata.lastReviewAction }
-        : {}),
-      ...(params.reviewMetadata?.revisionNote
-        ? { revisionNote: params.reviewMetadata.revisionNote }
-        : {}),
-    };
-
-    await this.creditsUtilsService.deductCreditsFromOrganization(
-      params.context.organizationId,
-      params.context.userId,
-      params.turnCost,
-      `Agent planning turn (${params.model})`,
-      ActivitySource.SCRIPT,
-    );
-
-    await this.maybeUpdateThreadTitle({
-      context: params.context,
-      seedTitle: params.seedTitle,
-      threadId: params.threadId,
-      title: envelope.title,
-    });
-
-    await this.threadEventRecorder.recordPlanUpserted({
-      context: params.context,
-      plan,
-      runId: params.context.runId,
-      threadId: params.threadId,
-    });
-
-    const creditsRemaining =
-      await this.creditsUtilsService.getOrganizationCreditsBalance(
-        params.context.organizationId,
-      );
-    const assistantMetadata = {
-      ...buildAgentScopeMetadata(params.context),
-      ...buildAgentRoutingMetadata({
-        model: params.model,
-        prompt: params.request.content,
-        source: params.request.source,
-      }),
-      ...this.buildResolvedModelMetadata(params.model),
-      proposedPlan: plan,
-      reviewRequired: true,
-      riskLevel: 'low' as const,
-      totalCreditsUsed: params.turnCost,
-    };
-    const content =
-      envelope.summary ||
-      'I drafted a plan and paused here for your approval. Review it, then approve or request changes.';
-
-    await this.agentMessagesService.addMessage({
-      brandId: params.context.scope?.brandId,
-      content,
-      metadata: {
-        creditsRemaining,
-        ...assistantMetadata,
-      },
-      organizationId: params.context.organizationId,
-      role: AgentMessageRole.ASSISTANT,
-      room: params.threadId,
-      userId: params.context.userId,
-    });
-    await this.threadEventRecorder.recordAssistantFinalized({
-      content,
-      context: params.context,
-      metadata: assistantMetadata,
-      runId: params.context.runId,
-      threadId: params.threadId,
-    });
-    await this.threadEventRecorder.recordRunCompleted({
-      context: params.context,
-      detail: 'Plan proposed and awaiting approval',
-      runId: params.context.runId,
-      threadId: params.threadId,
-    });
-
-    return {
-      creditsRemaining,
-      creditsUsed: params.turnCost,
-      message: {
-        content,
-        metadata: assistantMetadata,
-        role: 'assistant',
-      },
-      threadId: params.threadId,
-      toolCalls: [],
-    };
-  }
-
-  private async tryHandleBatchGenerationTurnStream(params: {
-    context: AgentChatContext;
-    model: string;
-    policy: ResolvedAgentExecutionPolicy;
-    requestContent: string;
-    seedTitle: string;
-    startedAt: string;
-    threadId: string;
-  }): Promise<boolean> {
-    const draft = this.extractBatchGenerationDraftFromMessage(
-      params.requestContent,
-      params.policy.brandId,
-    );
-
-    if (!draft) {
-      return false;
-    }
-
-    const toolName = AgentToolName.GENERATE_CONTENT_BATCH;
-    const toolCallId = `${params.context.runId ?? params.threadId}:batch`;
-    const toolParams: Record<string, unknown> = {
-      count: draft.count,
-      dateRange: draft.dateRange,
-      platforms: draft.platforms,
-      ...(draft.brandId ? { brandId: draft.brandId } : {}),
-      ...(draft.handle ? { handle: draft.handle } : {}),
-      ...(draft.topics?.length ? { topics: draft.topics } : {}),
-    };
-    const startedAtIso = new Date().toISOString();
-    const startTime = Date.now();
-
-    await this.threadEventRecorder.recordToolStarted({
-      context: params.context,
-      parameters: toolParams,
-      runId: params.context.runId,
-      threadId: params.threadId,
-      toolName,
-    });
-    await runEffectPromise(
-      this.streamEffects.publishStreamingToolStartedEffect({
-        context: params.context,
-        detail: `Starting ${toolName}`,
-        label: toolName,
-        parameters: toolParams,
-        progress: 10,
-        startedAt: startedAtIso,
-        threadId: params.threadId,
-        toolCallId,
-        toolName,
-        workEventDetail: `Creating ${draft.count} post${draft.count === 1 ? '' : 's'} and streaming drafts as they finish.`,
-        workEventLabel: 'Batch generation',
-      }),
-    );
-    const result = await this.toolExecutorService.executeTool(
-      toolName,
-      toolParams,
-      {
-        apiKeyContext: params.context.apiKeyContext,
-        authToken: params.context.authToken,
-        autonomyMode: params.policy.autonomyMode,
-        brandId: params.policy.brandId,
-        creditGovernance: params.policy.creditGovernance,
-        generationModelOverride: params.policy.generationModelOverride,
-        generationPriority: params.context.generationPriority,
-        organizationId: params.context.organizationId,
-        platform: params.policy.platform,
-        qualityTier: params.policy.qualityTier,
-        reviewModelOverride: params.policy.reviewModelOverride,
-        runId: params.context.runId,
-        strategyId: params.context.strategyId,
-        streamBatchToUser: true,
-        thinkingModel: params.policy.thinkingModelOverride ?? undefined,
-        threadId: params.threadId,
-        userId: params.context.userId,
-        validatedScope: params.policy.scope,
-      },
-    );
-
-    const durationMs = Date.now() - startTime;
-    const summary: ToolCallSummary = {
-      creditsUsed: result.success ? (result.creditsUsed ?? 0) : 0,
-      durationMs,
-      error: result.error,
-      parameters: toolParams,
-      resultSummary:
-        typeof result.data?.message === 'string'
-          ? result.data.message
-          : undefined,
-      status: result.success ? 'completed' : 'failed',
-      toolName,
-    };
-
-    await this.threadEventRecorder.recordToolCompleted({
-      context: params.context,
-      durationMs,
-      error: summary.error,
-      runId: params.context.runId,
-      status: summary.status,
-      threadId: params.threadId,
-      toolName,
-    });
-    await runEffectPromise(
-      this.streamEffects.publishStreamingToolCompletedEffect({
-        context: params.context,
-        creditsUsed: summary.creditsUsed,
-        detail: summary.error ?? summary.resultSummary,
-        durationMs,
-        error: summary.error,
-        label: toolName,
-        parameters: toolParams,
-        resultSummary: summary.resultSummary,
-        status: summary.status,
-        threadId: params.threadId,
-        toolCallId,
-        toolName,
-      }),
-    );
-
-    if (!result.success) {
-      await runEffectPromise(
-        this.streamEffects.publishStreamErrorOnlyEffect(
-          params.context,
-          params.threadId,
-          result.error ?? 'Batch generation failed',
-        ),
-      );
-      return true;
-    }
-
-    const fullContent =
-      typeof result.data?.streamedTranscript === 'string'
-        ? result.data.streamedTranscript
-        : typeof result.data?.message === 'string'
-          ? result.data.message
-          : 'Batch generation completed.';
-    await this.maybeUpdateThreadTitle({
-      context: params.context,
-      seedTitle: params.seedTitle,
-      threadId: params.threadId,
-      title: this.buildFallbackThreadTitle(params.requestContent),
-    });
-    const creditsRemaining =
-      await this.creditsUtilsService.getOrganizationCreditsBalance(
-        params.context.organizationId,
-      );
-    const enhancedUiActions =
-      this.completionCardBuilder.buildAssistantUiActions({
-        reviewRequired: result.requiresConfirmation ?? false,
-        toolCalls: [{ status: summary.status, toolName }],
-        uiActions: result.nextActions ?? [],
-      });
-    const artifactMetadata = await captureRunArtifacts(
-      this.agentRunsService,
-      params.context,
-      result.data,
-    );
-    const assistantMetadata = {
-      ...artifactMetadata,
-      ...buildAgentScopeMetadata(params.context),
-      creditsRemaining,
-      ...this.buildResolvedModelMetadata(params.model),
-      reviewRequired: result.requiresConfirmation ?? false,
-      riskLevel: result.riskLevel ?? 'low',
-      ...(enhancedUiActions.suggestedActions.length
-        ? { suggestedActions: enhancedUiActions.suggestedActions }
-        : {}),
-      totalCreditsUsed: result.creditsUsed ?? 0,
-      uiActions: enhancedUiActions.uiActions,
-    };
-
-    await this.agentMessagesService.addMessage({
-      brandId: params.context.scope?.brandId,
-      content: fullContent,
-      metadata: assistantMetadata,
-      organizationId: params.context.organizationId,
-      role: AgentMessageRole.ASSISTANT,
-      room: params.threadId,
-      toolCalls: [
-        {
-          creditsUsed: summary.creditsUsed,
-          durationMs: summary.durationMs,
-          error: summary.error,
-          parameters: summary.parameters ?? {},
-          result: summary.resultSummary
-            ? { summary: summary.resultSummary }
-            : {},
-          status: summary.status,
-          toolName,
-        },
-      ],
-      userId: params.context.userId,
-    });
-    await this.threadEventRecorder.recordAssistantFinalized({
-      content: fullContent,
-      context: params.context,
-      metadata: assistantMetadata,
-      runId: params.context.runId,
-      threadId: params.threadId,
-    });
-    await this.threadEventRecorder.recordRunCompleted({
-      context: params.context,
-      detail: 'Agent completed',
-      runId: params.context.runId,
-      threadId: params.threadId,
-    });
-    await runEffectPromise(
-      this.streamEffects.publishStreamDoneOnlyEffect({
-        content: fullContent,
-        context: params.context,
-        creditsRemaining,
-        creditsUsed: result.creditsUsed ?? 0,
-        metadata: assistantMetadata,
-        startedAt: params.startedAt,
-        threadId: params.threadId,
-        toolCalls: [summary],
-      }),
-    );
-
-    return true;
-  }
-
-  private async resolveSystemPromptAndModel(
-    request: AgentChatRequest,
-    context: AgentChatContext,
-  ): Promise<{
-    model: string | undefined;
-    policy: ResolvedAgentExecutionPolicy;
-    preparedScope: PreparedAgentScope;
-    resolvedSkills: ResolvedRuntimeSkill[];
-    systemPrompt: string | undefined;
-    memories: AgentMemoryDocument[];
-  }> {
-    const shouldUseOnboardingPrompt = request.source === 'onboarding';
-    const strategy = context.strategyId
-      ? await this.agentStrategiesService.findOneById(
-          context.strategyId,
-          context.organizationId,
-        )
-      : null;
-    const agentTypeConfig = request.agentType
-      ? getAgentTypeConfig(request.agentType)
-      : null;
-    const orgSettings = await this.organizationSettingsService.findOne({
-      isDeleted: false,
-      organization: context.organizationId,
-    });
-    const { policy: basePolicy, strategyModel } =
-      resolveEffectiveAgentExecutionConfig({
-        organizationSettings: orgSettings,
-        strategy,
-      });
-    const preparedScope = await this.agentScopeContextService.prepareForTurn({
-      expectedContextVersion: request.expectedContextVersion,
-      organizationId: context.organizationId,
-      policyBrandId: basePolicy.brandId,
-      requestedBrandId: request.brandId,
-      threadId: request.threadId,
-      userId: context.userId,
-    });
-    const policy: ResolvedAgentExecutionPolicy = {
-      ...basePolicy,
-      brandId:
-        preparedScope.existingScope?.brandId ?? preparedScope.initialBrandId,
-    };
-
-    let thread: {
-      systemPrompt?: string;
-      memoryEntryIds?: string[];
-    } | null = null;
-
-    if (isEntityId(request.threadId)) {
-      thread = (await this.agentThreadsService.findOne({
-        _id: request.threadId,
-        isDeleted: false,
-        organization: context.organizationId,
-      })) as { systemPrompt?: string; memoryEntryIds?: string[] } | null;
-    }
-
-    const memories =
-      await this.agentMemoriesService.getFeedbackMemoriesForGeneration(
-        context.userId,
-        context.organizationId,
-        {
-          brandId: policy.brandId,
-          campaignId: context.campaignId,
-          contentType: this.inferMemoryContentType(request.content),
-          limit: 8,
-          pinnedMemoryIds: thread?.memoryEntryIds,
-          platform: policy.platform,
-          query: request.content,
-        },
-      );
-
-    const replyStyle = orgSettings?.agentReplyStyle;
-    const subscriptionDefaultModel =
-      !request.model &&
-      !strategyModel &&
-      !policy.thinkingModelOverride &&
-      PAID_SUBSCRIPTION_TIERS.has(orgSettings?.subscriptionTier ?? '')
-        ? LOCAL_DEFAULT_AGENT_CHAT_MODEL
-        : undefined;
-    const shouldLoadBrandContext =
-      Boolean(policy.brandId) ||
-      (!thread?.systemPrompt && !request.systemPromptOverride);
-    const brandContext = shouldLoadBrandContext
-      ? await this.contextAssemblyService.assembleContext({
-          brandId: policy.brandId,
-          layers: {
-            brandGuidance: true,
-            brandIdentity: true,
-            brandMemory: true,
-          },
-          organizationId: context.organizationId,
-          platform: policy.platform,
-        })
-      : null;
-    const resolveModel = (brandDefaultModel?: string): string | undefined =>
-      request.model ||
-      strategyModel ||
-      policy.thinkingModelOverride ||
-      subscriptionDefaultModel ||
-      brandDefaultModel ||
-      agentTypeConfig?.defaultModel ||
-      DEFAULT_AGENT_CHAT_MODEL;
-
-    const resolvedSkills =
-      this.skillRuntimeService && policy.brandId
-        ? await this.skillRuntimeService.resolveActiveSkills(
-            context.organizationId,
-            policy.brandId,
-            strategy?.skillSlugs,
-          )
-        : [];
-    const skillPromptSuffix = this.skillRuntimeService
-      ? this.skillRuntimeService.buildSkillPromptSections(resolvedSkills)
-      : '';
-
-    if (shouldUseOnboardingPrompt) {
-      return {
-        memories,
-        model: resolveModel(),
-        policy,
-        preparedScope,
-        resolvedSkills,
-        systemPrompt: ONBOARDING_SYSTEM_PROMPT,
-      };
-    }
-
-    if (request.agentType === AgentType.BRAND_INTERVIEW) {
-      return {
-        memories,
-        model: resolveModel(),
-        policy,
-        preparedScope,
-        resolvedSkills,
-        systemPrompt: BRAND_INTERVIEW_SYSTEM_PROMPT,
-      };
-    }
-
-    const pageContextPrompt = buildPageContextPrompt(
-      request.pageContext,
-      request.artifactReferences,
-    );
-
-    if (thread?.systemPrompt) {
-      const prompt = [thread.systemPrompt, skillPromptSuffix, pageContextPrompt]
-        .filter(Boolean)
-        .join('\n\n');
-      return {
-        memories,
-        model: resolveModel(brandContext?.defaultModel),
-        policy,
-        preparedScope,
-        resolvedSkills,
-        systemPrompt: prompt,
-      };
-    }
-
-    if (request.systemPromptOverride) {
-      const prompt = [
-        request.systemPromptOverride,
-        skillPromptSuffix,
-        pageContextPrompt,
-      ]
-        .filter(Boolean)
-        .join('\n\n');
-      return {
-        memories,
-        model: resolveModel(brandContext?.defaultModel),
-        policy,
-        preparedScope,
-        resolvedSkills,
-        systemPrompt: prompt,
-      };
-    }
-    const basePrompt = buildAgentSystemPrompt({
-      content: request.content,
-      pageContextPrompt,
-      skillPromptSuffix,
-      typeSuffix: agentTypeConfig?.systemPromptSuffix,
-    });
-
-    if (brandContext) {
-      const systemPrompt = this.contextAssemblyService.buildSystemPrompt(
-        basePrompt,
-        brandContext,
-        { replyStyle },
-      );
-      return {
-        memories,
-        model: resolveModel(brandContext.defaultModel),
-        policy,
-        preparedScope,
-        resolvedSkills,
-        systemPrompt,
-      };
-    }
-
-    if (replyStyle || agentTypeConfig?.systemPromptSuffix) {
-      return {
-        memories,
-        model: resolveModel(),
-        policy,
-        preparedScope,
-        resolvedSkills,
-        systemPrompt: applyAgentReplyStyle(basePrompt, replyStyle),
-      };
-    }
-
-    return {
-      memories,
-      model: resolveModel(),
-      policy,
-      preparedScope,
-      resolvedSkills,
-      systemPrompt: agentTypeConfig?.systemPromptSuffix
-        ? basePrompt
-        : undefined,
-    };
-  }
-
-  private buildMessageHistory(
-    messages: AgentMessageDocument[],
-    systemPromptOverride?: string,
-    memories?: AgentMemoryDocument[],
-    attachments?: AgentChatAttachment[],
-    compressedThreadContext?: string,
-  ): OpenRouterMessage[] {
-    const systemPrompt = (
-      systemPromptOverride || AGENT_ORCHESTRATOR_SYSTEM_PROMPT
-    ).replace('{{date}}', new Date().toISOString().split('T')[0]);
-
-    const history: OpenRouterMessage[] = [
-      { content: systemPrompt, role: 'system' },
-    ];
-
-    if (memories && memories.length > 0) {
-      const preview = this.buildMemoryPromptSections(memories);
-
-      if (preview) {
-        history.push({
-          content: preview,
-          role: 'system',
-        });
-      }
-    }
-
-    // Inject compressed thread context as a user message if available
-    if (compressedThreadContext) {
-      history.push({
-        content: compressedThreadContext,
-        role: 'user',
-      });
-    }
-
-    // Messages are already limited by getRecentMessages() or getMessagesAfter()
-    const lastUserIndex = this.findLastUserMessageIndex(messages);
-
-    for (let i = 0; i < messages.length; i++) {
-      const msg = messages[i];
-      if (
-        msg.role === AgentMessageRole.USER ||
-        msg.role === AgentMessageRole.ASSISTANT
-      ) {
-        const isLatestUserMessage =
-          i === lastUserIndex && msg.role === AgentMessageRole.USER;
-
-        if (isLatestUserMessage && attachments?.length) {
-          history.push({
-            content: [
-              { text: msg.content || '', type: 'text' },
-              ...attachments.map((a) => ({
-                image_url: { url: a.url },
-                type: 'image_url' as const,
-              })),
-            ],
-            role: 'user',
-          });
-        } else {
-          history.push({
-            content: msg.content || '',
-            role: msg.role as 'user' | 'assistant',
-          });
-        }
-      }
-    }
-
-    return history;
-  }
-
-  /**
-   * Resolve messages and optional compressed context for a thread.
-   * If compaction is available, returns windowed messages + compressed context.
-   * Otherwise falls back to the standard getRecentMessages(20).
-   */
-  private async resolveThreadMessages(
-    threadId: string,
-    organizationId: string,
-  ): Promise<{
-    messages: AgentMessageDocument[];
-    compressedContext?: string;
-  }> {
-    if (!this.threadContextCompressorService) {
-      return {
-        messages: await this.agentMessagesService.getRecentMessages(threadId),
-      };
-    }
-
-    const state = await this.threadContextCompressorService.getStateOrCompact(
-      threadId,
-      organizationId,
-    );
-
-    if (!state) {
-      return {
-        messages: await this.agentMessagesService.getRecentMessages(threadId),
-      };
-    }
-
-    const windowMessages =
-      await this.threadContextCompressorService.getWindowMessages(
-        threadId,
-        state.data.lastIncorporatedMessageId ?? '',
-      );
-
-    const compressedContext =
-      this.threadContextCompressorService.renderStateAsUserMessage(
-        state,
-        windowMessages,
-      );
-
-    return { compressedContext, messages: windowMessages };
-  }
-
-  private findLastUserMessageIndex(messages: AgentMessageDocument[]): number {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === AgentMessageRole.USER) {
-        return i;
-      }
-    }
-    return -1;
-  }
-
   private buildToolDefinitions(
     allowedTools?: AgentToolName[],
   ): OpenRouterTool[] {
@@ -2546,7 +1784,7 @@ export class AgentOrchestratorService {
   private getRequestScopedAllowedTools(
     requestContent: string,
   ): AgentToolName[] | undefined {
-    if (!this.isBatchGenerationIntent(requestContent)) {
+    if (!this.batchService.isBatchGenerationIntent(requestContent)) {
       return undefined;
     }
 
@@ -2557,108 +1795,6 @@ export class AgentOrchestratorService {
       AgentToolName.LIST_BRANDS,
       AgentToolName.LIST_REVIEW_QUEUE,
     ];
-  }
-
-  private isBatchGenerationIntent(content: string): boolean {
-    const normalized = content.toLowerCase();
-
-    return (
-      /\b(generate|create|make|write|draft)\b/.test(normalized) &&
-      /\b\d+\s+(posts?|tweets?|drafts?)\b/.test(normalized)
-    );
-  }
-
-  private extractBatchGenerationDraftFromMessage(
-    content: string,
-    fallbackBrandId?: string | null,
-  ): BatchGenerationDraft | null {
-    if (!this.isBatchGenerationIntent(content)) {
-      return null;
-    }
-
-    const normalized = content.toLowerCase();
-    const countMatch = normalized.match(/\b(\d+)\s+(posts?|tweets?|drafts?)\b/);
-    const count = Number.parseInt(countMatch?.[1] ?? '', 10);
-
-    if (!Number.isFinite(count) || count <= 0) {
-      return null;
-    }
-
-    const handle = content.match(/@\w[\w.]{1,}/)?.[0];
-
-    if (!handle && !fallbackBrandId) {
-      return null;
-    }
-
-    const topics = this.extractBatchTopics(content, normalized);
-
-    return {
-      brandId: fallbackBrandId ?? undefined,
-      count,
-      dateRange: this.resolveBatchDateRange(normalized),
-      handle,
-      platforms: this.extractBatchPlatforms(normalized, countMatch?.[2]),
-      ...(topics.length > 0 ? { topics } : {}),
-    };
-  }
-
-  private extractBatchPlatforms(
-    normalizedContent: string,
-    noun?: string,
-  ): string[] {
-    if (
-      noun?.startsWith('tweet') ||
-      /\b(?:for|on)\s+(?:x|twitter)\b/.test(normalizedContent)
-    ) {
-      return ['twitter'];
-    }
-
-    if (/\b(?:for|on)\s+linkedin\b/.test(normalizedContent)) {
-      return ['linkedin'];
-    }
-
-    if (/\b(?:for|on)\s+instagram\b/.test(normalizedContent)) {
-      return ['instagram'];
-    }
-
-    return ['twitter'];
-  }
-
-  private extractBatchTopics(
-    originalContent: string,
-    normalizedContent: string,
-  ): string[] {
-    const topic = extractBatchTopic(originalContent, normalizedContent);
-
-    return topic ? [topic] : [];
-  }
-
-  private resolveBatchDateRange(normalizedContent: string): {
-    end: string;
-    start: string;
-  } {
-    const start = new Date();
-    const end = new Date(start);
-
-    if (/\bthis month\b/.test(normalizedContent)) {
-      end.setDate(end.getDate() + 30);
-    } else if (/\bnext month\b/.test(normalizedContent)) {
-      start.setMonth(start.getMonth() + 1, 1);
-      end.setTime(start.getTime());
-      end.setMonth(end.getMonth() + 1);
-      end.setDate(end.getDate() - 1);
-    } else if (/\bnext week\b/.test(normalizedContent)) {
-      start.setDate(start.getDate() + 7);
-      end.setTime(start.getTime());
-      end.setDate(end.getDate() + 7);
-    } else {
-      end.setDate(end.getDate() + 7);
-    }
-
-    return {
-      end: end.toISOString(),
-      start: start.toISOString(),
-    };
   }
 
   private normalizeFinalAssistantContent(
@@ -2711,255 +1847,6 @@ export class AgentOrchestratorService {
     }
 
     return { content: 'I prepared the next step below.', isFallback: true };
-  }
-
-  private buildMemoryEntriesForResponse(memoryEntries: AgentMemoryDocument[]) {
-    return memoryEntries.map((memory) => {
-      const timedMemory = memory as AgentMemoryDocument & { createdAt?: Date };
-      const influence = this.readMemoryInfluence(memory);
-
-      return {
-        confidence: memory.confidence,
-        content: memory.content,
-        contentType: memory.contentType,
-        createdAt: timedMemory.createdAt?.toISOString(),
-        generationInfluence: influence,
-        id: memory.id,
-        importance: memory.importance,
-        kind: memory.kind,
-        platform: memory.platform,
-        scope: memory.scope,
-        sourceContentId: memory.sourceContentId,
-        sourceMessageId: memory.sourceMessageId,
-        sourceType: memory.sourceType,
-        sourceUrl: memory.sourceUrl,
-        summary: memory.summary,
-        tags: memory.tags ?? [],
-      };
-    });
-  }
-
-  private buildMemoryInfluenceMetadata(memoryEntries: AgentMemoryDocument[]) {
-    const entries = this.buildMemoryEntriesForResponse(memoryEntries)
-      .filter((entry) => entry.generationInfluence)
-      .map((entry) => ({
-        confidence: entry.confidence,
-        contentType: entry.contentType,
-        id: entry.id,
-        kind: entry.kind,
-        platform: entry.platform,
-        reasons: entry.generationInfluence?.reasons ?? [],
-        score: entry.generationInfluence?.score ?? 0,
-        sourceType: entry.sourceType,
-        summary: entry.summary || entry.content?.slice(0, 160),
-      }));
-
-    if (entries.length === 0) {
-      return {
-        entries: [],
-        mode: 'new_exploration',
-        rankingStrategy: [
-          'platform',
-          'contentType',
-          'recency',
-          'confidence',
-          'performanceRelevance',
-        ],
-        summary:
-          'No relevant prior feedback memory matched this generation request.',
-      };
-    }
-
-    const winningCount = entries.filter((entry) =>
-      ['pattern', 'winner', 'positive_example'].includes(String(entry.kind)),
-    ).length;
-
-    return {
-      entries,
-      mode: winningCount > 0 ? 'prior_winning_patterns' : 'prior_feedback',
-      rankingStrategy: [
-        'platform',
-        'contentType',
-        'recency',
-        'confidence',
-        'performanceRelevance',
-        'queryTerms',
-      ],
-      summary: `Using ${entries.length} prior feedback ${
-        entries.length === 1 ? 'memory' : 'memories'
-      } before generation.`,
-    };
-  }
-
-  private buildMemoryPromptSections(memories: AgentMemoryDocument[]): string {
-    const sections = new Map<string, string[]>();
-    const order = [
-      'User Preferences',
-      'Saved Instructions',
-      'Winning Patterns',
-      'Reference Examples',
-      'Avoid These Patterns',
-    ];
-
-    for (const memory of memories) {
-      const section = this.resolveMemorySection(memory);
-      const line = this.formatMemoryLine(memory);
-
-      if (!line) {
-        continue;
-      }
-
-      const bucket = sections.get(section) ?? [];
-      bucket.push(line);
-      sections.set(section, bucket);
-    }
-
-    const rendered = order
-      .filter((section) => sections.has(section))
-      .map((section) => `## ${section}\n${sections.get(section)?.join('\n')}`)
-      .join('\n\n');
-
-    return rendered ? `Saved memory to consider:\n\n${rendered}` : '';
-  }
-
-  private resolveMemorySection(memory: AgentMemoryDocument): string {
-    switch (memory.kind) {
-      case 'negative_example':
-        return 'Avoid These Patterns';
-      case 'winner':
-      case 'pattern':
-        return 'Winning Patterns';
-      case 'reference':
-      case 'positive_example':
-        return 'Reference Examples';
-      case 'preference':
-        return 'User Preferences';
-      case 'instruction':
-      default:
-        return 'Saved Instructions';
-    }
-  }
-
-  private formatMemoryLine(memory: AgentMemoryDocument): string {
-    const base = (memory.summary || memory.content || '')
-      .trim()
-      .replace(/\s+/g, ' ');
-
-    if (!base) {
-      return '';
-    }
-
-    const qualifiers: string[] = [];
-    if (memory.contentType && memory.contentType !== 'generic') {
-      qualifiers.push(memory.contentType);
-    }
-    if (memory.platform) {
-      qualifiers.push(memory.platform);
-    }
-    if (memory.scope === 'brand') {
-      qualifiers.push('brand');
-    }
-
-    const prefix = qualifiers.length ? `[${qualifiers.join(' / ')}] ` : '';
-    const snippet = base.length > 220 ? `${base.slice(0, 217)}...` : base;
-    const influence = this.readMemoryInfluence(memory);
-    const topReason = influence?.reasons[0];
-    const influenceSuffix = influence
-      ? ` (score ${influence.score.toFixed(1)}${topReason ? `; ${topReason}` : ''})`
-      : '';
-    return `- ${prefix}${snippet}${influenceSuffix}`;
-  }
-
-  private readMemoryInfluence(
-    memory: AgentMemoryDocument,
-  ): AgentFeedbackMemoryInfluence | undefined {
-    return (memory as Partial<AgentFeedbackMemoryDocument>).generationInfluence;
-  }
-
-  private inferMemoryContentType(content: string): string {
-    const normalized = content.toLowerCase();
-
-    if (
-      normalized.includes('newsletter') ||
-      normalized.includes('substack') ||
-      normalized.includes('beehiiv') ||
-      normalized.includes('ghost')
-    ) {
-      return 'newsletter';
-    }
-
-    if (normalized.includes('thread')) {
-      return 'thread';
-    }
-
-    if (normalized.includes('tweet') || normalized.includes('x post')) {
-      return 'tweet';
-    }
-
-    if (normalized.includes('article') || normalized.includes('blog')) {
-      return 'article';
-    }
-
-    if (normalized.includes('post')) {
-      return 'post';
-    }
-
-    return 'generic';
-  }
-
-  /**
-   * Inject campaign context (brief + recent peer messages) into the system prompt.
-   * Called when a strategy is part of a campaign for coordination.
-   */
-  private async injectCampaignContext(
-    campaignId: string,
-    organizationId: string,
-    existingPrompt: string | undefined,
-  ): Promise<string | undefined> {
-    try {
-      const campaign = await this.agentCampaignsService?.findOneById(
-        campaignId,
-        organizationId,
-      );
-
-      if (!campaign) {
-        return existingPrompt;
-      }
-
-      const recentMessages =
-        await this.agentMessageBusService?.getRecentMessages(campaignId, 10);
-
-      const campaignSection = [
-        '\n\n## Campaign Coordination',
-        `You are part of campaign: "${campaign.label}"`,
-        campaign.brief ? `Campaign Brief: ${campaign.brief}` : '',
-        `Campaign Status: ${campaign.status}`,
-        `Credits Used: ${campaign.creditsUsed} / ${campaign.creditsAllocated} allocated`,
-        campaign.agents.length > 1
-          ? `Other agents in this campaign: ${campaign.agents.length - 1}`
-          : '',
-      ]
-        .filter(Boolean)
-        .join('\n');
-
-      let peerMessagesSection = '';
-      if (recentMessages && recentMessages.length > 0) {
-        const messageLines = recentMessages.map(
-          (msg) =>
-            `- [${msg.type}] Agent ${msg.agentId}: ${JSON.stringify(msg.payload)}`,
-        );
-        peerMessagesSection = `\n\n## Recent Peer Activity\n${messageLines.join('\n')}`;
-      }
-
-      const basePrompt = existingPrompt || '';
-      return `${basePrompt}${campaignSection}${peerMessagesSection}`;
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `${this.constructorName} failed to inject campaign context`,
-        error,
-      );
-      return existingPrompt;
-    }
   }
 
   private async recordProfileSnapshot(
@@ -3091,105 +1978,6 @@ export class AgentOrchestratorService {
       temperature: 0.7,
       tool_choice: 'auto',
       tools: params.tools,
-    };
-  }
-
-  private buildPlanningChatCompletionParams(params: {
-    messages: OpenRouterMessage[];
-    model: string;
-    prompt: string;
-    seedTitle?: string;
-    source?: AgentChatRequest['source'];
-  }): {
-    max_tokens: number;
-    messages: OpenRouterMessage[];
-    model: string;
-    plugins?: OpenRouterPlugin[];
-    temperature: number;
-  } {
-    const routingPolicy = resolveAgentRoutingPolicy({
-      model: params.model,
-      prompt: params.prompt,
-      source: params.source,
-    });
-    const plugins = resolveAgentRoutingPlugins(routingPolicy);
-    const planInstruction = {
-      content:
-        'Plan mode is enabled. Do not call tools or execute work. Respond with valid JSON only: {"title":"optional thread title","summary":"one short summary sentence","explanation":"brief rationale","content":"markdown plan","steps":[{"step":"...", "status":"pending"}]}. Keep the plan concise and execution-ready.',
-      role: 'system' as const,
-    };
-
-    return {
-      max_tokens: 2048,
-      messages: [planInstruction, ...params.messages],
-      model: params.model,
-      ...(plugins ? { plugins } : {}),
-      temperature: 0.3,
-    };
-  }
-
-  private extractPlanEnvelope(params: {
-    assistantContent: string;
-    prompt: string;
-    seedTitle: string;
-  }): {
-    title: string | null;
-    summary: string;
-    plan: {
-      id: string;
-      content: string;
-      explanation?: string;
-      steps?: Record<string, unknown>[];
-      status: 'awaiting_approval';
-      awaitingApproval: true;
-    };
-  } {
-    const trimmed = params.assistantContent.trim();
-    const fencedJsonMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-    const candidate = fencedJsonMatch?.[1]?.trim() ?? trimmed;
-    let parsed: Record<string, unknown> | null = null;
-
-    if (candidate.startsWith('{') && candidate.endsWith('}')) {
-      try {
-        parsed = JSON.parse(candidate) as Record<string, unknown>;
-      } catch {
-        parsed = null;
-      }
-    }
-
-    const content =
-      typeof parsed?.content === 'string' && parsed.content.trim()
-        ? parsed.content.trim()
-        : candidate;
-    const explanation =
-      typeof parsed?.explanation === 'string' && parsed.explanation.trim()
-        ? parsed.explanation.trim()
-        : undefined;
-    const summary =
-      typeof parsed?.summary === 'string' && parsed.summary.trim()
-        ? parsed.summary.trim()
-        : 'I drafted a plan and paused for your approval.';
-    const title =
-      typeof parsed?.title === 'string' && parsed.title.trim()
-        ? this.sanitizeGeneratedThreadTitle(parsed.title.trim(), params.prompt)
-        : params.seedTitle.trim()
-          ? this.buildFallbackThreadTitle(params.prompt)
-          : null;
-    const steps = Array.isArray(parsed?.steps)
-      ? (parsed?.steps as Record<string, unknown>[])
-      : undefined;
-
-    return {
-      plan: {
-        awaitingApproval: true,
-        content,
-        ...(explanation ? { explanation } : {}),
-        id: `plan-${Date.now()}`,
-        status: 'awaiting_approval',
-        ...(steps ? { steps } : {}),
-      },
-      summary,
-      title,
     };
   }
 
