@@ -27,7 +27,15 @@ vi.mock('@genfeedai/agent', () => ({
 }));
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({ organizationId: 'org-1' }),
+  useBrand: () => ({
+    brands: [{ id: 'brand-1', label: 'Demo Brand', slug: 'demo' }],
+    organizationId: 'org-1',
+  }),
+}));
+
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context.helpers', () => ({
+  getBrandEntityId: (brand: { id?: string } | null | undefined) =>
+    brand?.id ?? '',
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -36,6 +44,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
+    brandSlug: 'demo',
     href: mocks.href,
   }),
 }));
@@ -278,7 +287,7 @@ describe('SocialMessagesPage', () => {
     ).toBeInTheDocument();
     await waitFor(() =>
       expect(mocks.listPage).toHaveBeenCalledWith(
-        { limit: 50, page: 1, status: 'open' },
+        { brandId: 'brand-1', limit: 50, page: 1, status: 'open' },
         expect.any(AbortSignal),
       ),
     );

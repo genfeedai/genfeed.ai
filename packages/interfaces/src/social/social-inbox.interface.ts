@@ -162,8 +162,12 @@ export interface SocialInboxAgentContextRecord {
 }
 
 export interface SocialInboxQuery {
+  /** List every brand in the organization, ignoring session brand scope. */
+  allBrands?: boolean;
   assignedOwnerId?: string;
   automationState?: SocialAutomationState;
+  /** Explicit brand filter. */
+  brandId?: string;
   conversationType?: SocialConversationType;
   credentialId?: string;
   limit?: number;

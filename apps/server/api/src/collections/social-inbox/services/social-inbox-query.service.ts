@@ -242,24 +242,39 @@ export class SocialInboxQueryService {
     scope: SocialInboxScope,
     conversationId: string,
   ): Prisma.SocialConversationWhereInput {
+    // Org membership is the tenancy boundary. Brand is a list filter, not a
+    // hard ACL on conversation identity — org-scoped Messages needs to open
+    // conversations from any brand in the organization.
     return scopedWhere(scope.organizationId, {
       id: conversationId,
-      ...(scope.brandId
-        ? { OR: [{ brandId: scope.brandId }, { brandId: null }] }
-        : {}),
     });
+  }
+
+  private resolveListBrandId(
+    scope: SocialInboxScope,
+    query: SocialInboxListQuery,
+  ): string | undefined {
+    if (query.allBrands) {
+      return undefined;
+    }
+
+    if (typeof query.brandId === 'string' && query.brandId.trim()) {
+      return query.brandId.trim();
+    }
+
+    // Legacy: session brand still narrows when the client does not send brandId.
+    return scope.brandId;
   }
 
   private buildConversationWhere(
     scope: SocialInboxScope,
     query: SocialInboxListQuery,
   ): Prisma.SocialConversationWhereInput {
+    const brandId = this.resolveListBrandId(scope, query);
     const where: Prisma.SocialConversationWhereInput = scopedWhere(
       scope.organizationId,
       {
-        ...(scope.brandId
-          ? { OR: [{ brandId: scope.brandId }, { brandId: null }] }
-          : {}),
+        ...(brandId ? { OR: [{ brandId }, { brandId: null }] } : {}),
       },
     );
 

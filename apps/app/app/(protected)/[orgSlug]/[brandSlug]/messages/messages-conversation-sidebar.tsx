@@ -209,12 +209,20 @@ function ConversationRow({
   );
 }
 
+export type MessagesBrandFilterOption = {
+  id: string;
+  label: string;
+};
+
 interface MessagesConversationSidebarProps {
   advancedFilters: ReactNode;
+  brandFilter: string;
+  brandOptions: readonly MessagesBrandFilterOption[];
   busyAction: string | null;
   connectionState: string;
   conversations: SocialConversationModel[];
   isLoading: boolean;
+  onBrandFilterChange: (brandId: string) => void;
   onNextPage: () => void;
   onPlatformChange: (platform: SocialPlatform | 'all') => void;
   onPreviousPage: () => void;
@@ -231,10 +239,13 @@ interface MessagesConversationSidebarProps {
 
 export function MessagesConversationSidebar({
   advancedFilters,
+  brandFilter,
+  brandOptions,
   busyAction,
   connectionState,
   conversations,
   isLoading,
+  onBrandFilterChange,
   onNextPage,
   onPlatformChange,
   onPreviousPage,
@@ -312,7 +323,25 @@ export function MessagesConversationSidebar({
         value={view}
         onChange={onViewChange}
       />
-      <div className="px-3 pb-2">
+      <div className="space-y-2 px-3 pb-2">
+        {brandOptions.length > 0 ? (
+          <Select value={brandFilter} onValueChange={onBrandFilterChange}>
+            <SelectTrigger
+              aria-label="Filter conversations by brand"
+              className="h-7 w-full rounded-md border-border bg-foreground/[0.025] px-2.5 text-[11px] text-foreground/58"
+            >
+              <SelectValue placeholder="All brands" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All brands</SelectItem>
+              {brandOptions.map((option) => (
+                <SelectItem key={option.id} value={option.id}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
         <div className="flex gap-2">
           <Select
             value={platform}
@@ -365,7 +394,9 @@ export function MessagesConversationSidebar({
             <HiOutlineChatBubbleLeftRight className="mb-3 size-8 text-foreground/20" />
             <p className="text-sm text-foreground/50">No messages found</p>
             <p className="mt-1 text-xs text-foreground/30">
-              New social conversations will appear here after sync.
+              {brandFilter === 'all'
+                ? 'New social conversations will appear here after sync. Filter by brand anytime.'
+                : 'No conversations for this brand yet. Try another brand or sync accounts.'}
             </p>
           </div>
         ) : singleSectionLabel ? (

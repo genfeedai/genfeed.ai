@@ -31,11 +31,11 @@ function materializeRoutePattern(pattern: string): string {
 
 describe('workspace shell trusted registry', () => {
   it('owns the complete accepted protected-route denominator', () => {
-    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(208);
+    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(216);
     expect(
       new Set(PROTECTED_ROUTE_INVENTORY.map((route) => route.canonicalUrl))
         .size,
-    ).toBe(208);
+    ).toBe(216);
 
     for (const route of PROTECTED_ROUTE_INVENTORY) {
       expect(route.accessPolicy).toMatch(
@@ -329,6 +329,36 @@ describe('workspace shell trusted registry', () => {
     });
     expect(route && resolveWorkspaceShellSafeFallback(route)).toBe(
       '/acme/moonrise/messages',
+    );
+  });
+
+  it('registers organization-scoped Messages as an embedded surface', () => {
+    const route = resolveWorkspaceShellRoute('/acme/~/messages');
+
+    expect(route).toMatchObject({
+      adapter: { key: 'messages', status: 'embedded' },
+      canonicalUrl: '/:orgSlug/~/messages',
+      safeFallback: '/:orgSlug/~/messages',
+      scope: 'organization',
+      surfaceKey: 'messages',
+    });
+    expect(route && resolveWorkspaceShellSafeFallback(route)).toBe(
+      '/acme/~/messages',
+    );
+  });
+
+  it('registers organization-scoped Research as an embedded surface', () => {
+    const route = resolveWorkspaceShellRoute('/acme/~/research/discovery');
+
+    expect(route).toMatchObject({
+      adapter: { key: 'research', status: 'embedded' },
+      canonicalUrl: '/:orgSlug/~/research/discovery',
+      safeFallback: '/:orgSlug/~/research/discovery',
+      scope: 'organization',
+      surfaceKey: 'research',
+    });
+    expect(route && resolveWorkspaceShellSafeFallback(route)).toBe(
+      '/acme/~/research/discovery',
     );
   });
 
