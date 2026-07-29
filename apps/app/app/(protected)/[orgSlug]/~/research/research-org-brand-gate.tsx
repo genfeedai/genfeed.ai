@@ -3,8 +3,9 @@
 import { createBrandAppRoute } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import Card from '@ui/card/Card';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
