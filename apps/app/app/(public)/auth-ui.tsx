@@ -22,7 +22,7 @@ export const AUTH_SECONDARY_BUTTON_CLASS_NAME =
 
 /** Inline accent link (sign-in / sign-up / forgot password). */
 export const AUTH_LINK_CLASS_NAME =
-  'font-medium text-info transition-colors hover:text-info/80';
+  'font-medium text-foreground transition-colors hover:text-foreground/80';
 
 export function AuthDivider() {
   return (
