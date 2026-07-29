@@ -93,10 +93,17 @@ export function createDeployRunTitle(correlationId) {
 }
 
 export function matchesCorrelatedDeployRun(run, { correlationId, masterSha }) {
+  const expectedTitle = createDeployRunTitle(correlationId);
+  const title = normalize(run?.display_title || run?.name);
+  const correlationMarker = `daily:${normalize(correlationId)}`;
+
   return (
     run?.event === 'workflow_dispatch' &&
     run?.head_sha === masterSha &&
-    run?.display_title === createDeployRunTitle(correlationId)
+    (title === expectedTitle ||
+      // Tolerate GitHub truncating display titles or surface name vs
+      // display_title differences while still requiring the unique marker.
+      (Boolean(normalize(correlationId)) && title.includes(correlationMarker)))
   );
 }
 

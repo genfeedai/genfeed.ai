@@ -347,14 +347,16 @@ jobs:
             }
 
             async function findDispatchedRun() {
-              for (let attempt = 1; attempt <= 36; attempt += 1) {
+              // Poll longer than the GitHub Actions dispatch propagation lag
+              // under schedule backlog (observed multi-minute delays).
+              for (let attempt = 1; attempt <= 60; attempt += 1) {
                 const runs = await github.rest.actions.listWorkflowRuns({
                   owner,
                   repo,
                   workflow_id: workflowId,
                   branch: 'master',
                   event: 'workflow_dispatch',
-                  per_page: 20,
+                  per_page: 30,
                 });
                 const match = runs.data.workflow_runs
                   .filter((run) =>
@@ -367,7 +369,7 @@ jobs:
                 if (match) {
                   return match;
                 }
-                core.info(`Waiting for dispatched deploy run to appear (${attempt}/36)...`);
+                core.info(`Waiting for dispatched deploy run to appear (${attempt}/60)...`);
                 await sleep(5000);
               }
               return null;
