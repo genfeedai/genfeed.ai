@@ -11,12 +11,14 @@ export interface AgentModelOption {
   isReasoning?: boolean;
 }
 
-export const AUTO_AGENT_MODEL = '';
+export const AUTO_AGENT_MODEL = DEFAULT_RUNTIME_AGENT_MODEL;
 
 export const AGENT_MODELS: AgentModelOption[] = [
   {
     brandSlug: 'auto',
-    description: 'Use brand defaults and OpenRouter auto-routing',
+    costTier: CostTier.LOW,
+    creditCost: 1,
+    description: 'OpenRouter picks a fast, capable model for the turn',
     key: AUTO_AGENT_MODEL,
     label: 'Auto',
   },
@@ -24,7 +26,7 @@ export const AGENT_MODELS: AgentModelOption[] = [
     brandSlug: 'moonshotai',
     description: 'Agentic reasoning and multimodal work',
     isReasoning: true,
-    key: DEFAULT_RUNTIME_AGENT_MODEL,
+    key: 'moonshotai/kimi-k2.5',
     label: 'Kimi 2.5',
   },
   {

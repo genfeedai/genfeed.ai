@@ -1,101 +1,232 @@
 import { TimelineWorkEntry } from '@genfeedai/agent/components/TimelineWorkEntry';
 import { AgentWorkEventStatus } from '@genfeedai/agent/models/agent-chat.model';
-import type { TimelineWorkGroup as TimelineWorkGroupEntry } from '@genfeedai/agent/utils/derive-timeline';
+import {
+  isActiveWorkEvent,
+  isGenericRunLifecycleEvent,
+  type TimelineWorkGroup as TimelineWorkGroupEntry,
+} from '@genfeedai/agent/utils/derive-timeline';
+import { formatAgentErrorDetail } from '@genfeedai/agent/utils/format-agent-error.util';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
-import { type ReactElement, useState } from 'react';
-import { HiCheckCircle, HiChevronDown, HiClock } from 'react-icons/hi2';
+import { type ReactElement, useEffect, useMemo, useState } from 'react';
+import {
+  HiCheckCircle,
+  HiChevronDown,
+  HiClock,
+  HiExclamationCircle,
+} from 'react-icons/hi2';
 
 interface TimelineWorkGroupProps {
   entry: TimelineWorkGroupEntry;
 }
 
+/**
+ * T3-style compact activity:
+ * - Real tool steps only (lifecycle bookends hidden)
+ * - Live: steps open + trailing "Working for …"
+ * - Settled: one-line "Worked for …" (expand for steps)
+ */
 export function TimelineWorkGroup({
   entry,
 }: TimelineWorkGroupProps): ReactElement {
-  const isArchived = entry.presentation === 'archived';
-  const [isExpanded, setIsExpanded] = useState(!isArchived);
-  const hasTerminalEvent = entry.events.some((event) =>
-    [
-      AgentWorkEventStatus.COMPLETED,
-      AgentWorkEventStatus.FAILED,
-      AgentWorkEventStatus.CANCELLED,
-    ].includes(event.status),
+  const visibleEvents = useMemo(
+    () => entry.events.filter((event) => !isGenericRunLifecycleEvent(event)),
+    [entry.events],
   );
-  const durationLabel = formatWorkedDuration(entry.totalDurationMs);
+  // Lifecycle-only runs still need a duration line; steps stay empty.
+  const stepEvents = visibleEvents.length > 0 ? visibleEvents : [];
+
+  const terminalStatus = useMemo(() => {
+    const source = entry.events;
+    if (source.some((event) => event.status === AgentWorkEventStatus.FAILED)) {
+      return 'failed' as const;
+    }
+    if (
+      source.some((event) => event.status === AgentWorkEventStatus.CANCELLED)
+    ) {
+      return 'cancelled' as const;
+    }
+    if (source.some((event) => isActiveWorkEvent(event))) {
+      return 'live' as const;
+    }
+    if (
+      source.some((event) => event.status === AgentWorkEventStatus.COMPLETED) ||
+      source.every((event) => isGenericRunLifecycleEvent(event))
+    ) {
+      return 'completed' as const;
+    }
+    return 'live' as const;
+  }, [entry.events]);
+
+  const isTerminal = terminalStatus !== 'live';
+  // Collapse whenever settled — presentation archive OR terminal without live work
+  const isCollapsible = isTerminal || entry.presentation === 'archived';
+  const [isExpanded, setIsExpanded] = useState(
+    !isCollapsible && entry.presentation === 'live',
+  );
+
+  // Keep expand state in sync when a live group settles.
+  useEffect(() => {
+    if (isCollapsible) {
+      setIsExpanded(false);
+    }
+  }, [isCollapsible]);
+
+  const liveElapsedLabel = useLiveElapsedLabel(entry.createdAt, !isTerminal);
+  const settledDurationLabel = formatDurationMs(entry.totalDurationMs);
+  const durationPhrase = isTerminal
+    ? settledDurationLabel
+      ? `Worked for ${settledDurationLabel}`
+      : terminalStatus === 'failed'
+        ? 'Run failed'
+        : 'Worked'
+    : liveElapsedLabel
+      ? `Working for ${liveElapsedLabel}`
+      : 'Working…';
+
+  const failureDetail = useMemo(() => {
+    if (terminalStatus !== 'failed') {
+      return null;
+    }
+    const failed = [...entry.events]
+      .reverse()
+      .find((event) => event.status === AgentWorkEventStatus.FAILED);
+    return formatAgentErrorDetail(failed?.detail ?? failed?.label ?? null);
+  }, [entry.events, terminalStatus]);
+
+  const stepCount = stepEvents.length;
+  const statusLabel =
+    terminalStatus === 'failed'
+      ? 'Failed'
+      : terminalStatus === 'cancelled'
+        ? 'Cancelled'
+        : terminalStatus === 'completed'
+          ? 'Completed'
+          : 'Running';
+
+  const showSteps = stepCount > 0 && (!isCollapsible || isExpanded);
+
+  const durationFooter = (
+    <div
+      className={cn(
+        'flex items-center justify-between gap-2 px-1 py-1',
+        showSteps && 'mt-0.5 border-t border-border/40 pt-1.5',
+      )}
+    >
+      <div className="flex min-w-0 items-center gap-1.5 text-xs text-foreground/55">
+        <HiClock className="size-3.5 shrink-0 text-foreground/40" />
+        <span className="font-medium text-foreground/70">{durationPhrase}</span>
+        {isTerminal ? (
+          <>
+            <span aria-hidden="true" className="text-foreground/25">
+              ·
+            </span>
+            <span className="inline-flex items-center gap-1 text-[11px] text-foreground/45">
+              {terminalStatus === 'failed' ? (
+                <HiExclamationCircle className="size-3.5 text-destructive" />
+              ) : (
+                <HiCheckCircle className="size-3.5 text-emerald-500" />
+              )}
+              {statusLabel}
+            </span>
+            {stepCount > 0 ? (
+              <>
+                <span aria-hidden="true" className="text-foreground/25">
+                  ·
+                </span>
+                <span className="text-[11px] text-foreground/40">
+                  {stepCount} step{stepCount !== 1 ? 's' : ''}
+                </span>
+              </>
+            ) : null}
+          </>
+        ) : stepCount > 0 ? (
+          <>
+            <span aria-hidden="true" className="text-foreground/25">
+              ·
+            </span>
+            <span className="text-[11px] text-foreground/40">
+              {stepCount} step{stepCount !== 1 ? 's' : ''}
+            </span>
+          </>
+        ) : null}
+        {failureDetail && !showSteps ? (
+          <>
+            <span aria-hidden="true" className="text-foreground/25">
+              ·
+            </span>
+            <span className="truncate text-[11px] text-foreground/40">
+              {failureDetail}
+            </span>
+          </>
+        ) : null}
+      </div>
+      {isCollapsible && stepCount > 0 ? (
+        <HiChevronDown
+          className={cn(
+            'size-3.5 shrink-0 text-foreground/40 transition-transform',
+            isExpanded ? 'rotate-180' : '',
+          )}
+        />
+      ) : null}
+    </div>
+  );
 
   return (
-    <div className="mb-3 flex justify-start motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out">
-      <div className="w-full max-w-none rounded-2xl border border-border/65 bg-background-secondary/68 p-2.5 shadow-[0_1px_0_rgba(0,0,0,0.18)]">
-        {isArchived ? (
-          <Button
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
-            onClick={() => setIsExpanded((prev) => !prev)}
-            aria-expanded={isExpanded}
-            className="flex w-full items-center justify-between gap-3 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-background/55"
-          >
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 text-[11px] font-medium text-foreground/82">
-                <HiClock className="size-3.5 shrink-0 text-foreground/44" />
-                <span>
-                  {durationLabel
-                    ? `Worked for ${durationLabel}`
-                    : 'Completed run'}
-                </span>
-              </div>
-              <div className="mt-1 flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.12em] text-foreground/38">
-                <span>
-                  {entry.events.length} step
-                  {entry.events.length !== 1 ? 's' : ''}
-                </span>
-                <span aria-hidden="true">•</span>
-                <span className="inline-flex items-center gap-1">
-                  <HiCheckCircle className="size-3.5 text-emerald-500" />
-                  Completed
-                </span>
-              </div>
-            </div>
-            <HiChevronDown
-              className={cn(
-                'size-4 shrink-0 text-foreground/42 transition-transform',
-                isExpanded ? 'rotate-180' : '',
-              )}
-            />
-          </Button>
-        ) : (
-          <div className="px-1 pb-2 text-[10px] font-mono uppercase tracking-[0.14em] text-foreground/40">
-            Run <span aria-hidden="true">·</span> {entry.events.length} step
-            {entry.events.length !== 1 ? 's' : ''}
-          </div>
+    <div className="mb-2 flex justify-start motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out">
+      <div
+        className={cn(
+          'w-full max-w-none rounded-md px-1.5 py-1',
+          // Hairline only — no elevated card competing with free-text answers
+          terminalStatus === 'failed'
+            ? 'border border-destructive/25 bg-destructive/[0.04]'
+            : 'border border-transparent hover:border-border/40',
         )}
-
-        {isExpanded
-          ? entry.events.map((event) => (
+        data-testid="timeline-work-group"
+      >
+        {showSteps ? (
+          <div className="flex flex-col gap-0 px-0.5">
+            {stepEvents.map((event) => (
               <TimelineWorkEntry
                 key={event.id}
                 event={event}
                 stopActiveAnimation={
-                  hasTerminalEvent &&
+                  isTerminal &&
                   (event.status === AgentWorkEventStatus.PENDING ||
                     event.status === AgentWorkEventStatus.RUNNING)
                 }
               />
-            ))
-          : null}
+            ))}
+          </div>
+        ) : null}
+
+        {isCollapsible && stepCount > 0 ? (
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
+            textTransform="none"
+            onClick={() => setIsExpanded((prev) => !prev)}
+            aria-expanded={isExpanded}
+            className="w-full rounded-md text-left transition-colors hover:bg-foreground/[0.04]"
+          >
+            {durationFooter}
+          </Button>
+        ) : (
+          durationFooter
+        )}
       </div>
     </div>
   );
 }
 
-function formatWorkedDuration(durationMs: number | null): string | null {
-  if (durationMs == null) {
+function formatDurationMs(durationMs: number | null): string | null {
+  if (durationMs == null || !Number.isFinite(durationMs) || durationMs < 0) {
     return null;
   }
 
   if (durationMs < 1000) {
-    return `${durationMs}ms`;
+    return `${Math.max(0, Math.round(durationMs))}ms`;
   }
 
   const totalSeconds = Math.max(1, Math.round(durationMs / 1000));
@@ -107,4 +238,30 @@ function formatWorkedDuration(durationMs: number | null): string | null {
   }
 
   return `${minutes}m ${seconds}s`;
+}
+
+function useLiveElapsedLabel(startIso: string, isLive: boolean): string | null {
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!isLive) {
+      return;
+    }
+    setNowMs(Date.now());
+    const id = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [isLive, startIso]);
+
+  if (!isLive) {
+    return null;
+  }
+
+  const startMs = Date.parse(startIso);
+  if (!Number.isFinite(startMs)) {
+    return null;
+  }
+
+  return formatDurationMs(Math.max(0, nowMs - startMs));
 }

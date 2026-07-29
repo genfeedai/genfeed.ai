@@ -46,14 +46,7 @@ import {
   useRouter,
   useSearchParams,
 } from 'next/navigation';
-import {
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useOptionalAuth } from '@/hooks/useOptionalAuth';
 import {
   normalizeProtectedPathname,
@@ -262,8 +255,6 @@ export function useAppProtectedLayout(
     [brandSlug, taskContextSearchParams],
   );
 
-  const [conversationActions, setConversationActions] =
-    useState<ReactNode>(null);
   const threads = useAgentChatStore((s) => s.threads);
 
   const role = useUserRole();
@@ -509,9 +500,6 @@ export function useAppProtectedLayout(
     workflowsMenuItems,
     // task context
     taskContextSearchParams,
-    // conversation
-    conversationActions,
-    setConversationActions,
     // handlers
     handleNavigate,
     handleOpenCommandPalette,

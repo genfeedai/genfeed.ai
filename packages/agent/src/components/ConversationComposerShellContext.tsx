@@ -11,8 +11,10 @@ import {
   createContext,
   type ReactElement,
   type ReactNode,
+  useCallback,
   useContext,
   useMemo,
+  useRef,
 } from 'react';
 
 export interface ConversationComposerShellContextValue {
@@ -60,33 +62,62 @@ export function ConversationComposerShellProvider({
   scopeControls,
   shellState,
 }: ConversationComposerShellProviderProps): ReactElement {
+  // scopeControls is often an inline fragment from the shell. Hold it in a
+  // ref so identity churn there does not rebuild the whole context value and
+  // force every composer consumer to re-render on unrelated shell updates.
+  const scopeControlsRef = useRef(scopeControls);
+  scopeControlsRef.current = scopeControls;
+  const dispatchActionRef = useRef(dispatchAction);
+  dispatchActionRef.current = dispatchAction;
+  const hasDispatchAction = dispatchAction != null;
+
+  const stableDispatchAction = useCallback(
+    (
+      invocation: ConversationComposerActionInvocation,
+    ):
+      | ConversationComposerDispatchResult
+      | Promise<ConversationComposerDispatchResult> => {
+      const latest = dispatchActionRef.current;
+      if (!latest) {
+        return {
+          message: 'Composer actions are unavailable.',
+          status: 'unavailable',
+        };
+      }
+      return latest(invocation);
+    },
+    [],
+  );
+
   const value = useMemo<ConversationComposerShellContextValue>(
     () => ({
       artifactReferences,
       brandId,
       contextLabel,
-      dispatchAction,
+      dispatchAction: hasDispatchAction ? stableDispatchAction : undefined,
       draftScopeKey,
       isConsequentiallyBlocked,
       isComposerVisible,
       placement,
       portalTarget,
       references,
-      scopeControls,
+      get scopeControls() {
+        return scopeControlsRef.current;
+      },
       shellState,
     }),
     [
       artifactReferences,
       brandId,
       contextLabel,
-      dispatchAction,
+      hasDispatchAction,
+      stableDispatchAction,
       draftScopeKey,
       isConsequentiallyBlocked,
       isComposerVisible,
       placement,
       portalTarget,
       references,
-      scopeControls,
       shellState,
     ],
   );

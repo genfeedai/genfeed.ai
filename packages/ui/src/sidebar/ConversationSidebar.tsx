@@ -27,7 +27,7 @@ export function ConversationSidebarSearch({
   value,
 }: ConversationSidebarSearchProps) {
   return (
-    <div className="flex items-center gap-2 px-3 pb-2">
+    <div className="flex items-center gap-1.5 px-3 pb-2">
       <div className="relative min-w-0 flex-1">
         <HiMagnifyingGlass
           aria-hidden="true"
@@ -35,7 +35,7 @@ export function ConversationSidebarSearch({
         />
         <Input
           aria-label={ariaLabel}
-          className="h-8 rounded-md border-border bg-foreground/[0.025] pl-8 pr-2.5 text-xs placeholder:text-foreground/28"
+          className="h-8 w-full rounded-md border-border bg-background-secondary pl-8 pr-2.5 text-xs placeholder:text-foreground/28"
           placeholder={placeholder}
           value={value}
           onChange={(event: ChangeEvent<HTMLInputElement>) => {
@@ -43,7 +43,7 @@ export function ConversationSidebarSearch({
           }}
         />
       </div>
-      {action}
+      {action ? <div className="shrink-0">{action}</div> : null}
     </div>
   );
 }

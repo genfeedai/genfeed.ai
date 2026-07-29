@@ -50,6 +50,10 @@ interface AgentChatInputProps {
   getCompletedAttachments?: () => ChatAttachment[];
   clearAllAttachments?: () => void;
   density?: 'compact' | 'default' | 'inspector';
+  selectedModel?: string;
+  onModelChange?: (model: string) => void;
+  creditsAvailable?: number | null;
+  onBuyCredits?: () => void;
 }
 
 function mapAttachmentToTrayAsset(
@@ -81,6 +85,10 @@ export function AgentChatInput({
   getCompletedAttachments,
   clearAllAttachments,
   density = 'default',
+  selectedModel,
+  onModelChange,
+  creditsAvailable = null,
+  onBuyCredits,
 }: AgentChatInputProps): ReactElement {
   const isCompact = density === 'compact';
   const isInspector = density === 'inspector';
@@ -157,10 +165,9 @@ export function AgentChatInput({
 
       <PromptBarShell
         className={cn(
-          // The prompt bar floats over the conversation/canvas, which scrolls
-          // underneath it — the outer lift is what separates the two, so no
-          // opaque filler band is needed below the composer.
-          'overflow-hidden border border-border bg-card shadow-composer transition-[border-color,box-shadow] focus-within:border-foreground/[0.18] focus-within:shadow-composer-strong',
+          // Elevated composer surface so it reads as a product control, not a
+          // floating outline over the transcript.
+          'overflow-hidden border border-border/80 bg-background-secondary shadow-composer transition-[border-color,box-shadow,background-color] focus-within:border-foreground/20 focus-within:bg-background-secondary focus-within:shadow-composer-strong',
           isCompact || isInspector ? 'rounded-lg' : 'rounded-xl',
           isDragActive && 'ring-1 ring-primary/40',
         )}
@@ -191,13 +198,16 @@ export function AgentChatInput({
 
           <AgentChatInputToolbar
             canSendMessage={canSendMessage}
+            creditsAvailable={creditsAvailable}
             disabled={disabled}
             hasEditor={Boolean(editor)}
             isListening={isListening}
             isTranscribing={isTranscribing}
             isUploading={isUploading}
             onAddFiles={addFiles}
+            onBuyCredits={onBuyCredits}
             onInsertReference={handleInsertReference}
+            onModelChange={onModelChange}
             onSelectAction={handleSelectAction}
             onSend={() => {
               void handleSend();
@@ -205,6 +215,7 @@ export function AgentChatInput({
             onStartListening={startListening}
             onStop={onStop}
             onStopListening={stopListening}
+            selectedModel={selectedModel}
             shouldShowSendButton={shouldShowSendButton}
             shouldShowVoiceInput={shouldShowVoiceInput}
             showStop={showStop}

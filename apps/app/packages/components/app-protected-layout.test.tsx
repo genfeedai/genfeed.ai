@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { type ReactNode, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useWorkspaceNavPanel } from '@/components/workspace-shell/WorkspaceNavPanelContext';
@@ -312,19 +312,19 @@ vi.mock('next/dynamic', () => ({
 
     if (source.includes('AgentThreadList')) {
       return function LazyAgentThreadListStub(props: {
-        onActionsChange?: (actions: ReactNode) => void;
         searchAction?: ReactNode;
+        showTitle?: boolean;
       }) {
         agentThreadListSpy(props);
-        useEffect(() => {
-          props.onActionsChange?.(
-            <button type="button">Conversation header action</button>,
-          );
-
-          return () => props.onActionsChange?.(null);
-        }, [props.onActionsChange]);
-
-        return <div data-testid="agent-thread-list">{props.searchAction}</div>;
+        // Header actions are owned by the list itself (no parent lift) so
+        // nav-panel identity stays stable across thread switches.
+        return (
+          <div data-testid="agent-thread-list">
+            {props.showTitle ? <span>Conversations</span> : null}
+            <button type="button">Conversation header action</button>
+            {props.searchAction}
+          </div>
+        );
       };
     }
 
@@ -811,7 +811,7 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('passes conversation header actions through to the focused agent sidebar', () => {
+  it('keeps conversation header actions inside the agent sidebar list (no parent lift)', () => {
     mockPathname.value = '/agent/new';
 
     render(
@@ -823,6 +823,8 @@ describe('AppProtectedLayout', () => {
     expect(
       screen.getByRole('button', { name: 'Conversation header action' }),
     ).toBeInTheDocument();
+    // Must not surface via the legacy AppSidebar conversationActions slot —
+    // that lift recreated the nav panel and remounted the thread list.
     expect(
       screen.queryByTestId('conversation-actions-slot'),
     ).not.toBeInTheDocument();

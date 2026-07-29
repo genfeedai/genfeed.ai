@@ -220,35 +220,31 @@ export function AgentChatMessage({
         data-message-role={message.role}
         data-message-surface={isUser ? 'bubble' : 'inline'}
         className={cn(
-          'group relative overflow-hidden border text-sm transition-[border-color,background-color,box-shadow] duration-300',
+          'group relative transition-[border-color,background-color,box-shadow] duration-300',
           isHighlighted && SCROLL_FOCUS_SURFACE_CLASS,
           isUser
-            ? 'max-w-[82%] rounded-md border-border/70 bg-background/78 px-4 py-3 text-foreground shadow-[0_1px_0_rgba(0,0,0,0.18)]'
-            : 'w-full max-w-none rounded-md border-border/65 bg-background-secondary/72 px-4 py-3 text-foreground shadow-[0_1px_0_rgba(0,0,0,0.18)]',
+            ? 'max-w-[min(82%,36rem)] overflow-hidden rounded-lg border border-border/60 bg-background-secondary px-3.5 py-2.5 text-[13px] leading-5 text-foreground shadow-[0_1px_0_rgba(0,0,0,0.18)]'
+            : // Free-text assistant: no card chrome — document flow like T3/chat
+              'w-full max-w-none border-0 bg-transparent px-0.5 py-1 text-[15px] leading-7 text-foreground shadow-none',
         )}
       >
-        <div
-          aria-label={isUser ? 'Your message' : 'Assistant message'}
-          className={cn(
-            'mb-2.5 flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.14em]',
-            isUser ? 'text-foreground/38' : 'text-foreground/44',
-          )}
-          role="heading"
-          aria-level={3}
-        >
-          <span>{isUser ? 'You' : 'Assistant'}</span>
-          {!isUser && (toolCalls?.length ?? 0) > 0 ? (
-            <span className="rounded-full border border-border/60 bg-background/60 px-2 py-0.5 text-[9px] tracking-[0.12em] text-foreground/52">
-              {toolCalls?.length} tool
-              {(toolCalls?.length ?? 0) === 1 ? '' : 's'}
-            </span>
-          ) : null}
-        </div>
+        {isUser ? (
+          <div
+            aria-label="Your message"
+            className="mb-1.5 flex items-center gap-2 text-[11px] font-medium text-foreground/45"
+            role="heading"
+            aria-level={3}
+          >
+            <span>You</span>
+          </div>
+        ) : (
+          <span className="sr-only">Assistant message</span>
+        )}
 
         {shouldRenderMessageContent && (
           <div
             className={cn(
-              'relative overflow-hidden rounded-lg',
+              'relative overflow-hidden',
               !isExpanded && shouldTruncateContent && 'rounded-b-xl',
             )}
             style={{
@@ -258,16 +254,17 @@ export function AgentChatMessage({
             <SafeMarkdown
               content={visibleMessageContent}
               className={cn(
-                'prose prose-sm max-w-none break-words text-inherit prose-headings:text-inherit prose-p:text-inherit prose-strong:text-inherit prose-li:text-inherit prose-code:text-inherit prose-pre:bg-transparent',
-                !isUser &&
-                  'prose-p:my-2 prose-p:leading-6 prose-headings:mb-3 prose-headings:mt-5 prose-ul:my-3 prose-ol:my-3 prose-li:my-1 prose-li:leading-6 prose-pre:px-0 prose-pre:py-0',
+                'prose max-w-none break-words text-inherit prose-headings:text-inherit prose-p:text-inherit prose-strong:text-inherit prose-li:text-inherit prose-code:text-inherit prose-pre:bg-transparent',
+                isUser
+                  ? 'prose-sm prose-p:my-1.5 prose-p:leading-5'
+                  : 'prose-p:my-3 prose-p:leading-7 prose-headings:mb-3 prose-headings:mt-6 prose-ul:my-4 prose-ol:my-4 prose-li:my-1.5 prose-li:leading-7 prose-pre:px-0 prose-pre:py-0',
               )}
             />
             {isMessageAnimating && !shouldTruncateContent ? (
               <span className="inline-block h-4 w-0.5 animate-pulse bg-current align-middle opacity-70" />
             ) : null}
             {!isExpanded && shouldTruncateContent && (
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-background/90 to-transparent" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-background-secondary to-transparent" />
             )}
           </div>
         )}

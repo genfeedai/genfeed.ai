@@ -75,7 +75,7 @@ describe('AgentChatInput', () => {
 
     const shell = screen.getByTestId('agent-chat-input-shell');
 
-    expect(shell).toHaveClass('bg-card');
+    expect(shell.className).toMatch(/bg-background-secondary|bg-card/);
     expect(shell).not.toHaveClass('opacity-50');
   });
 

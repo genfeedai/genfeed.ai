@@ -5,6 +5,8 @@ import type {
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentSocketConnectionState } from '@genfeedai/agent/stores/agent-chat.store';
+import { isGenericRunLifecycleEvent } from '@genfeedai/agent/utils/derive-timeline';
+import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
@@ -34,25 +36,14 @@ interface AgentComposerStatusStackProps {
 const STATUS_SURFACE_CLASS =
   'rounded-lg border bg-background-secondary px-3 py-2 shadow-sm';
 
-// Transport errors arrive as "<action>: <status> - <server detail>". The
-// server detail can be a raw ORM message, so it is split out and rendered as
-// bounded secondary text instead of one unreadable run-on line.
 function splitComposerError(error: string): {
   detail: string | null;
   summary: string;
 } {
-  const match = error.match(/^(.*?):\s*(\d{3})(?:\s*-\s*([\s\S]+))?$/);
-
-  if (!match) {
-    return { detail: null, summary: error };
-  }
-
-  const [, action, status, serverDetail] = match;
-  const trimmedDetail = serverDetail?.trim();
-
+  const formatted = formatAgentError(error);
   return {
-    detail: trimmedDetail || null,
-    summary: `${action} (${status})`,
+    detail: formatted.detail ?? formatted.recovery,
+    summary: `${formatted.title} — ${formatted.summary}`,
   };
 }
 
@@ -80,14 +71,20 @@ export function AgentComposerStatusStack({
   socketConnectionState,
 }: AgentComposerStatusStackProps): ReactElement | null {
   const composerError = error ? splitComposerError(error) : null;
-  const determinateProgress = activeWorkEvent
-    ? getDeterminateProgress(activeWorkEvent)
+  // Lifecycle bookends ("Agent started") are not useful sticky status — only
+  // real tool/progress work belongs above the composer.
+  const meaningfulWorkEvent =
+    activeWorkEvent && !isGenericRunLifecycleEvent(activeWorkEvent)
+      ? activeWorkEvent
+      : null;
+  const determinateProgress = meaningfulWorkEvent
+    ? getDeterminateProgress(meaningfulWorkEvent)
     : null;
   const hasConnectionWarning = socketConnectionState !== 'connected';
   const hasPlanReview = latestProposedPlan?.status === 'awaiting_approval';
 
   if (
-    !activeWorkEvent &&
+    !meaningfulWorkEvent &&
     !error &&
     !hasConnectionWarning &&
     !hasPlanReview &&
@@ -160,7 +157,7 @@ export function AgentComposerStatusStack({
         </div>
       ) : null}
 
-      {activeWorkEvent ? (
+      {meaningfulWorkEvent ? (
         <div
           aria-live="polite"
           className={cn(STATUS_SURFACE_CLASS, 'border-border')}
@@ -168,7 +165,7 @@ export function AgentComposerStatusStack({
         >
           <div className="flex items-center justify-between gap-3 text-xs">
             <span className="truncate font-medium text-foreground/82">
-              {activeWorkEvent.label}
+              {meaningfulWorkEvent.label}
             </span>
             {determinateProgress !== null ? (
               <span className="shrink-0 tabular-nums text-muted-foreground">
@@ -178,14 +175,14 @@ export function AgentComposerStatusStack({
               <span className="shrink-0 text-muted-foreground">Active</span>
             )}
           </div>
-          {activeWorkEvent.detail ? (
+          {meaningfulWorkEvent.detail ? (
             <p className="mt-1 truncate text-[11px] text-muted-foreground">
-              {activeWorkEvent.detail}
+              {meaningfulWorkEvent.detail}
             </p>
           ) : null}
           {determinateProgress !== null ? (
             <Progress
-              aria-label={`${activeWorkEvent.label} progress`}
+              aria-label={`${meaningfulWorkEvent.label} progress`}
               aria-valuetext={`${Math.round(determinateProgress)} percent`}
               className="mt-2 h-1"
               value={determinateProgress}

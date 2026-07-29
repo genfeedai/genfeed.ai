@@ -2,6 +2,7 @@ import {
   AgentChatMessage,
   UiActionRenderer,
 } from '@genfeedai/agent/components/AgentChatMessage';
+import { AgentRunFailureCard } from '@genfeedai/agent/components/AgentRunFailureCard';
 import { AnimatedStatusText } from '@genfeedai/agent/components/AnimatedStatusText';
 import { TimelineStreamingRow } from '@genfeedai/agent/components/TimelineStreamingRow';
 import { TimelineWorkGroup } from '@genfeedai/agent/components/TimelineWorkGroup';
@@ -9,6 +10,7 @@ import type {
   AgentChatMessage as AgentChatMessageType,
   AgentUiAction,
 } from '@genfeedai/agent/models/agent-chat.model';
+import { AgentWorkEventStatus } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { TimelineEntry } from '@genfeedai/agent/utils/derive-timeline';
 import type { ReactElement, RefObject } from 'react';
@@ -25,6 +27,7 @@ type AgentChatTimelineProps = {
   onCopy: (content: string) => Promise<void>;
   onRetry: (message: AgentChatMessageType) => Promise<void>;
   onRegenerate?: (message: AgentChatMessageType) => void | Promise<void>;
+  onRetryLastFailedRun?: () => void | Promise<void>;
   onOAuthConnect?: (platform: string) => void;
   onBrandCreate?: (payload: {
     name: string;
@@ -54,12 +57,35 @@ export function AgentChatTimeline({
   onCopy,
   onRetry,
   onRegenerate,
+  onRetryLastFailedRun,
   onOAuthConnect,
   onBrandCreate,
   onSelectCreditPack,
   onSelectIngredient,
   onUiAction,
 }: AgentChatTimelineProps): ReactElement {
+  const lastFailedWorkGroup = [...timeline]
+    .reverse()
+    .find(
+      (entry) =>
+        entry.kind === 'work-group' &&
+        entry.events.some(
+          (event) => event.status === AgentWorkEventStatus.FAILED,
+        ),
+    );
+  const lastFailedDetail =
+    lastFailedWorkGroup && lastFailedWorkGroup.kind === 'work-group'
+      ? [...lastFailedWorkGroup.events]
+          .reverse()
+          .find((event) => event.status === AgentWorkEventStatus.FAILED)?.detail
+      : null;
+  const endsWithFailedRunWithoutAssistant =
+    timeline.length > 0 &&
+    timeline[timeline.length - 1]?.kind === 'work-group' &&
+    Boolean(lastFailedWorkGroup) &&
+    !isGenerating &&
+    !isStreamingActive;
+
   return (
     <>
       {timeline.map((entry, index) => {
@@ -94,6 +120,14 @@ export function AgentChatTimeline({
         }
       })}
 
+      {endsWithFailedRunWithoutAssistant ? (
+        <AgentRunFailureCard
+          error={lastFailedDetail}
+          isRetrying={isBusy}
+          onRetry={onRetryLastFailedRun}
+        />
+      ) : null}
+
       {pendingUiActions.length > 0 &&
         pendingUiActions.map((action) => (
           <UiActionRenderer
@@ -112,7 +146,7 @@ export function AgentChatTimeline({
       {isGenerating &&
         !isStreamingActive &&
         !timeline.some((e) => e.kind === 'streaming') && (
-          <div className="flex items-center gap-2.5 py-4">
+          <div className="flex items-center gap-2.5 py-3">
             <AnimatedStatusText
               text="Thinking"
               className="text-xs text-muted-foreground"

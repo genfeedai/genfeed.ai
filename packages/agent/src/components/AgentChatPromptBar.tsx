@@ -55,6 +55,10 @@ type AgentChatPromptBarProps = {
   onSubmitInputRequest: (answer: string) => void | Promise<void>;
   pendingInputRequest: AgentInputRequest | null;
   socketConnectionState: AgentSocketConnectionState;
+  selectedModel?: string;
+  onModelChange?: (model: string) => void;
+  creditsAvailable?: number | null;
+  onBuyCredits?: () => void;
 };
 
 export function AgentChatPromptBar({
@@ -84,6 +88,10 @@ export function AgentChatPromptBar({
   onSubmitInputRequest,
   pendingInputRequest,
   socketConnectionState,
+  selectedModel,
+  onModelChange,
+  creditsAvailable = null,
+  onBuyCredits,
 }: AgentChatPromptBarProps): ReactElement {
   const composerShell = useConversationComposerShell();
   const isInspectorComposer = composerShell?.placement === 'inspector';
@@ -144,6 +152,10 @@ export function AgentChatPromptBar({
         removeAttachment={removeAttachment}
         getCompletedAttachments={getCompletedAttachments}
         clearAllAttachments={clearAllAttachments}
+        selectedModel={selectedModel}
+        onModelChange={onModelChange}
+        creditsAvailable={creditsAvailable}
+        onBuyCredits={onBuyCredits}
       />
     </PromptBarContainer>
   );

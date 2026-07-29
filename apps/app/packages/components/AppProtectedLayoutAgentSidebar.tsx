@@ -1,53 +1,47 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import { HiPlus } from 'react-icons/hi2';
 
 type Props = {
-  conversationActions: ReactNode;
+  /**
+   * Stable factory from the protected layout. Must not close over
+   * frequently-changing parent state — the nav panel memo only depends on
+   * this reference and the route flag.
+   */
   renderConversations: (searchAction?: ReactNode) => ReactNode;
 };
 
-export default function AgentSidebarContent({
-  conversationActions,
-  renderConversations,
-}: Props) {
+/**
+ * Module-owned conversation nav column body.
+ *
+ * Header actions (refresh / archive) live inside `AgentThreadList` itself so
+ * we never lift ReactNode state into a parent useMemo that would recreate the
+ * nav panel identity and remount the list.
+ */
+export default function AgentSidebarContent({ renderConversations }: Props) {
   const { orgHref } = useOrgUrl();
-  const newThreadAction = (
-    <Button
-      asChild
-      ariaLabel="New agent thread"
-      className="size-8 shrink-0 rounded-md border border-border bg-foreground/[0.025] text-foreground/48 hover:bg-foreground/[0.07] hover:text-foreground"
-      size={ButtonSize.ICON}
-      variant={ButtonVariant.UNSTYLED}
-      withWrapper={false}
-    >
-      <Link href={orgHref(APP_ROUTES.AGENT.NEW)}>
-        <HiPlus className="size-4" />
+  const newThreadHref = orgHref(APP_ROUTES.AGENT.NEW);
+  const newThreadAction = useMemo(
+    () => (
+      <Link
+        href={newThreadHref}
+        aria-label="New agent thread"
+        className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background-secondary text-foreground/70 transition-colors hover:bg-foreground/[0.08] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+      >
+        <HiPlus className="size-4" aria-hidden="true" />
       </Link>
-    </Button>
+    ),
+    [newThreadHref],
   );
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex min-h-0 flex-1 flex-col pb-2 pt-2">
-        <div className="group/collapsible flex w-full items-center px-3 py-1 text-foreground/30">
-          <span className="text-[10px] font-bold uppercase tracking-[0.15em]">
-            Conversations
-          </span>
-          {conversationActions ? (
-            <div className="ml-auto">{conversationActions}</div>
-          ) : null}
-        </div>
-
-        <div className="min-h-0 flex-1">
-          {renderConversations(newThreadAction)}
-        </div>
+      <div className="flex min-h-0 flex-1 flex-col pb-2 pt-1">
+        {renderConversations(newThreadAction)}
       </div>
     </div>
   );

@@ -41,6 +41,8 @@ type AgentChatEmptyStateProps = {
   placeholder?: string;
   promptBarSuggestions: ReactNode;
   removeAttachment: (id: string) => void;
+  selectedModel?: string;
+  onModelChange?: (model: string) => void;
 };
 
 export function AgentChatEmptyState({
@@ -64,6 +66,8 @@ export function AgentChatEmptyState({
   placeholder,
   promptBarSuggestions,
   removeAttachment,
+  selectedModel,
+  onModelChange,
 }: AgentChatEmptyStateProps): ReactElement {
   return (
     <div className="relative flex min-h-0 flex-1 overflow-hidden">
@@ -74,8 +78,8 @@ export function AgentChatEmptyState({
             isWideLayout ? 'max-w-3xl' : 'max-w-3xl',
           )}
         >
-          <div className="mb-3 flex size-9 items-center justify-center rounded-md bg-foreground/[0.05] ring-1 ring-inset ring-foreground/[0.08]">
-            <HiOutlineSparkles className="size-4 text-foreground/68" />
+          <div className="mb-4 flex size-10 items-center justify-center rounded-lg border border-border/60 bg-background-secondary shadow-[0_1px_0_rgba(0,0,0,0.18)]">
+            <HiOutlineSparkles className="size-4 text-foreground/70" />
           </div>
 
           <h2 className="mb-1 text-center text-base font-semibold tracking-[-0.02em] text-foreground">
@@ -107,6 +111,8 @@ export function AgentChatEmptyState({
                 placeholder={placeholder}
                 removeAttachment={removeAttachment}
                 showStop={isRunActive}
+                selectedModel={selectedModel}
+                onModelChange={onModelChange}
               />
             </PromptBarContainer>
           ) : null}

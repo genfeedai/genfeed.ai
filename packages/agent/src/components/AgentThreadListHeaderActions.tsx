@@ -28,7 +28,7 @@ export function AgentThreadListHeaderActions({
     : 'Show archived threads';
 
   return (
-    <div className="pointer-events-none flex items-center gap-1 opacity-0 transition-opacity group-hover/collapsible:pointer-events-auto group-hover/collapsible:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100">
+    <div className="flex items-center gap-0.5">
       {!isArchivedView && (
         <SimpleTooltip label="Refresh conversations" position="bottom">
           <Button
@@ -36,7 +36,8 @@ export function AgentThreadListHeaderActions({
             size={ButtonSize.ICON}
             withWrapper={false}
             ariaLabel="Refresh conversations"
-            className="rounded p-1 text-foreground/42 hover:bg-foreground/[0.06] hover:text-foreground/78"
+            textTransform="none"
+            className="size-7 rounded-md text-foreground/45 hover:bg-foreground/[0.06] hover:text-foreground/80"
             onClick={() => {
               window.dispatchEvent(
                 new Event(AGENT_REFRESH_CONVERSATIONS_EVENT),
@@ -54,7 +55,8 @@ export function AgentThreadListHeaderActions({
             size={ButtonSize.ICON}
             withWrapper={false}
             ariaLabel="Archive all threads"
-            className="rounded p-1 text-foreground/42 hover:bg-foreground/[0.06] hover:text-foreground/78"
+            textTransform="none"
+            className="size-7 rounded-md text-foreground/45 hover:bg-foreground/[0.06] hover:text-foreground/80"
             onClick={onArchiveAll}
           >
             <HiOutlineArchiveBoxXMark className="size-3.5" />
@@ -67,7 +69,8 @@ export function AgentThreadListHeaderActions({
           size={ButtonSize.ICON}
           withWrapper={false}
           ariaLabel={toggleButtonLabel}
-          className="rounded p-1 text-foreground/42 hover:bg-foreground/[0.06] hover:text-foreground/78"
+          textTransform="none"
+          className="size-7 rounded-md text-foreground/45 hover:bg-foreground/[0.06] hover:text-foreground/80"
           onClick={onToggleView}
         >
           <HiArchiveBox className="size-3.5" />

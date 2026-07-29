@@ -34,14 +34,19 @@ export function AgentChatMessageFooter({
   onRemember,
 }: AgentChatMessageFooterProps): ReactElement {
   return (
-    <div className="mt-2 flex items-center justify-between gap-2 text-[10px]">
+    <div
+      className={cn(
+        'flex items-center justify-between gap-2 text-[10px]',
+        isUser ? 'mt-2' : 'mt-3',
+      )}
+    >
       <div
         className={cn(
           'flex items-center gap-1.5',
-          isUser ? 'text-foreground/38' : 'text-foreground/42',
+          isUser ? 'text-foreground/38' : 'text-foreground/40',
         )}
       >
-        {!isUser && <HiOutlineClock className="size-3" />}
+        {!isUser && <HiOutlineClock className="size-3 opacity-70" />}
         {metaItems.map((item, index) => (
           <span key={`${item}-${index}`} className="inline-flex items-center">
             {index > 0 ? (

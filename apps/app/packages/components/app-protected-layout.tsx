@@ -51,9 +51,9 @@ import {
 type AgentThreadListProps = {
   apiService: AgentApiService;
   isActive?: boolean;
-  onActionsChange?: (actions: ReactNode) => void;
   onNavigate?: (path: string) => void;
   searchAction?: ReactNode;
+  showTitle?: boolean;
 };
 
 const LazyAgentThreadList = dynamic<AgentThreadListProps>(
@@ -158,8 +158,6 @@ function AppLayoutWithDynamicMenu({
     studioMenuItems,
     workflowsMenuItems,
     taskContextSearchParams,
-    conversationActions,
-    setConversationActions,
     handleNavigate,
     handleOpenCommandPalette,
     isLowCreditsBannerEnabled,
@@ -202,64 +200,79 @@ function AppLayoutWithDynamicMenu({
         <LazyAgentThreadList
           apiService={agentApiService}
           onNavigate={handleNavigate}
-          onActionsChange={setConversationActions}
           searchAction={searchAction}
+          showTitle
         />
       ) : null,
-    [agentApiService, handleNavigate, setConversationActions],
+    [agentApiService, handleNavigate],
   );
 
-  // The conversation module's nav column. It is handed to the sidebar as a
-  // panel rather than special-cased there, so the next module to own its
-  // column (Library → collections, Workflows → runs) uses the same seam.
-  const conversationNavPanel = useMemo<SidebarNavPanel | null>(
-    () =>
-      isConversationRoute
-        ? {
-            render: () => (
-              <AgentSidebarContent
-                conversationActions={conversationActions}
-                renderConversations={renderConversations}
-              />
-            ),
-          }
-        : null,
-    [conversationActions, isConversationRoute, renderConversations],
-  );
+  // Keep nav-panel *identity* stable across renders. The panel object is
+  // handed into menuComponent; recreating it remounts the sidebar body.
+  // Closures read latest callbacks via refs so deps stay route-only.
+  const renderConversationsRef = useRef(renderConversations);
+  renderConversationsRef.current = renderConversations;
+  const conversationNavPanel = useMemo<SidebarNavPanel | null>(() => {
+    if (!isConversationRoute) {
+      return null;
+    }
+
+    // Stable identity for the factory passed into AgentSidebarContent — if
+    // this were an inline arrow recreated inside render(), every shell
+    // re-render would look like a prop change on the sidebar body.
+    const stableRenderConversations = (searchAction?: ReactNode) =>
+      renderConversationsRef.current(searchAction);
+
+    return {
+      render: () => (
+        <AgentSidebarContent renderConversations={stableRenderConversations} />
+      ),
+    };
+  }, [isConversationRoute]);
   const workspaceNavPanel = useWorkspaceNavPanel();
   const setWorkspaceNavPanelPortalTarget =
     workspaceNavPanel?.setPortalTarget ?? null;
+  const setWorkspaceNavPanelPortalTargetRef = useRef(
+    setWorkspaceNavPanelPortalTarget,
+  );
+  setWorkspaceNavPanelPortalTargetRef.current =
+    setWorkspaceNavPanelPortalTarget;
+  // Identity-stable portal ref — inline arrows on each renderBody() call would
+  // re-bind the ref every MenuShared pass (null → node flicker on consumers).
+  const workspaceNavPortalRef = useCallback((node: HTMLDivElement | null) => {
+    setWorkspaceNavPanelPortalTargetRef.current?.(node);
+  }, []);
   const messagesNavPanel = useMemo<SidebarNavPanel | null>(
     () =>
-      isMessagesRoute && setWorkspaceNavPanelPortalTarget
+      isMessagesRoute
         ? {
             render: () => (
               <div
                 className="flex h-full min-h-0 flex-col"
                 data-testid="messages-nav-panel"
-                ref={setWorkspaceNavPanelPortalTarget}
+                ref={workspaceNavPortalRef}
               />
             ),
             sectionLabel: 'Messages',
           }
         : null,
-    [isMessagesRoute, setWorkspaceNavPanelPortalTarget],
+    [isMessagesRoute, workspaceNavPortalRef],
   );
   const libraryNavPanel = useMemo<SidebarNavPanel | null>(
     () =>
-      isLibraryRoute && setWorkspaceNavPanelPortalTarget
+      isLibraryRoute
         ? {
             render: () => (
               <div
                 className="flex h-full min-h-0 flex-col"
                 data-testid="library-nav-panel"
-                ref={setWorkspaceNavPanelPortalTarget}
+                ref={workspaceNavPortalRef}
               />
             ),
             sectionLabel: 'Library',
           }
         : null,
-    [isLibraryRoute, setWorkspaceNavPanelPortalTarget],
+    [isLibraryRoute, workspaceNavPortalRef],
   );
   const activeNavPanel =
     conversationNavPanel ?? messagesNavPanel ?? libraryNavPanel;
