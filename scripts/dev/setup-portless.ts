@@ -14,6 +14,7 @@ export const PORTLESS_SERVICE_INSTALL_ARGS = [
 ] as const;
 
 const REQUIRED_STATUS_PATTERNS = [
+  /^\s*Manager state:\s+running\s*$/mu,
   /^\s*Installed:\s+yes\s*$/mu,
   /^\s*Proxy on 443:\s+responding\s*$/mu,
   /^\s*HTTPS:\s+yes\s*$/mu,

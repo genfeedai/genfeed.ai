@@ -44,4 +44,18 @@ describe('Portless developer setup', () => {
       `),
     ).toBe(false);
   });
+
+  it('rejects an installed service when the manager is stopped', () => {
+    expect(
+      isPortlessServiceReady(`
+        Manager state: stopped
+        Installed: yes
+        Proxy on 443: responding
+        HTTPS: yes
+        TLDs: .localhost
+        LAN mode: no
+        Wildcard: no
+      `),
+    ).toBe(false);
+  });
 });
