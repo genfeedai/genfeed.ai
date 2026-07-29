@@ -108,13 +108,22 @@ export class OrganizationsService extends BaseService<
     super(prisma, 'organization', logger);
   }
 
-  async create(
-    createDto: CreateOrganizationDto,
-  ): Promise<OrganizationDocument> {
+  /**
+   * Category normalization throws synchronously so existing unit tests that use
+   * `expect(() => service.create(...)).toThrow()` still work. Slug-race retries
+   * live in the async helper returned below.
+   */
+  create(createDto: CreateOrganizationDto): Promise<OrganizationDocument> {
     const normalizedDto = normalizeOrganizationCategoryFields(
       createDto as unknown as Record<string, unknown>,
     ) as unknown as CreateOrganizationDto & { label?: string; slug?: string };
 
+    return this.createWithSlugRetry(normalizedDto);
+  }
+
+  private async createWithSlugRetry(
+    normalizedDto: CreateOrganizationDto & { label?: string; slug?: string },
+  ): Promise<OrganizationDocument> {
     const label =
       typeof normalizedDto.label === 'string' && normalizedDto.label.trim()
         ? normalizedDto.label.trim()
@@ -132,7 +141,7 @@ export class OrganizationsService extends BaseService<
       const candidate =
         attempt === 0
           ? preferredSlug
-          : nextSlugCandidate(allocationBase, attempt);
+          : nextSlugCandidate(preferredSlug, attempt);
 
       try {
         organization = await super.create(
