@@ -333,7 +333,7 @@ export class AgentOrchestratorService {
   ): Promise<AgentChatResult> {
     return await this.uiActionService.handleThreadUiAction(request, context, {
       executeSynchronousChatLoop: (params) =>
-        this.executeSynchronousChatLoop(params),
+        this.syncLoopService.executeSynchronousChatLoop(params),
       generatePlanModeResponse: (params) =>
         this.planModeService.generatePlanModeResponse(params, {
           maybeUpdateThreadTitle: (p) =>
