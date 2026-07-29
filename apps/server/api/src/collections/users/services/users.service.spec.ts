@@ -53,6 +53,10 @@ describe('UsersService', () => {
     );
     const [args] = delegate.findMany.mock.calls[0];
     expect(args.select).not.toHaveProperty('isSuperAdmin');
+    // Column dropped in migration 20260726213000 / #2110. Re-adding it here
+    // resurrects Sentry API-GENFEED-AI-65 on any environment that already ran
+    // the drop migration (#2185).
+    expect(args.select).not.toHaveProperty('authProviderId');
   });
 
   it('preserves an explicit caller select', async () => {

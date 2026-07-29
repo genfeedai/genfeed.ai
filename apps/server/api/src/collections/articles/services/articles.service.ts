@@ -936,25 +936,37 @@ export class ArticlesService extends BaseService<
       ),
     ] as string[];
 
+    // Scope by id. Never load the full users/orgs tables — that is both an
+    // availability hazard (full-table findMany) and a schema-drift amplifier:
+    // production dropped `users.authProviderId` while older clients still
+    // projected every user row (Sentry API-GENFEED-AI-65 / #2185).
     const [users, orgs] = await Promise.all([
       this.usersService && userIds.length > 0
         ? this.usersService
-            .findAll({ where: {} }, { pagination: false })
-            .then((result) =>
-              result.docs.filter((u: Record<string, unknown>) =>
-                userIds.includes(String(u.id)),
-              ),
+            .findAll(
+              {
+                where: {
+                  id: { in: userIds },
+                  isDeleted: false,
+                },
+              },
+              { pagination: false },
             )
-        : Promise.resolve([]),
+            .then((result) => result.docs as Array<Record<string, unknown>>)
+        : Promise.resolve([] as Array<Record<string, unknown>>),
       this.organizationsService && orgIds.length > 0
         ? this.organizationsService
-            .findAll({ where: {} }, { pagination: false })
-            .then((result) =>
-              result.docs.filter((o: Record<string, unknown>) =>
-                orgIds.includes(String(o.id)),
-              ),
+            .findAll(
+              {
+                where: {
+                  id: { in: orgIds },
+                  isDeleted: false,
+                },
+              },
+              { pagination: false },
             )
-        : Promise.resolve([]),
+            .then((result) => result.docs as Array<Record<string, unknown>>)
+        : Promise.resolve([] as Array<Record<string, unknown>>),
     ]);
 
     const usersMap = new Map(

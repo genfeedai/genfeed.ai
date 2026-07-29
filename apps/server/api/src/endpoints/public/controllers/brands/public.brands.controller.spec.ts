@@ -70,7 +70,7 @@ describe('PublicBrandsController', () => {
   });
 
   describe('findBySlug', () => {
-    it('should return a public brand by slug', async () => {
+    it('queries an exact case-insensitive slug and excludes deleted brands', async () => {
       brandsService.findOneBySlug.mockResolvedValue(
         mockBrand as unknown as BrandEntity,
       );
@@ -79,7 +79,8 @@ describe('PublicBrandsController', () => {
 
       expect(result).toEqual(mockBrand);
       expect(brandsService.findOneBySlug).toHaveBeenCalledWith({
-        slug: { mode: 'insensitive', contains: '^test-brand$' },
+        slug: { equals: 'test-brand', mode: 'insensitive' },
+        isDeleted: false,
       });
     });
 
