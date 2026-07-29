@@ -1,0 +1,153 @@
+import type { AgentChatContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+
+/**
+ * Pure thread-title helpers shared across orchestrator chat paths
+ * (sync, stream, plan mode, batch, recurring tasks).
+ */
+
+export type AgentThreadTitlePersistence = {
+  findOne: (query: Record<string, unknown>) => Promise<unknown>;
+  updateThreadMetadata: (
+    threadId: string,
+    organizationId: string,
+    metadata: { title: string },
+  ) => Promise<unknown>;
+};
+
+export function buildSeedThreadTitle(content: string): string {
+  // Trim first so leading/trailing whitespace does not steal budget from the cap.
+  return content.trim().substring(0, 100);
+}
+
+export function buildFallbackThreadTitle(prompt: string): string {
+  const fillerPattern =
+    /\b(can you|could you|help me|i need|i want|please|let's|lets|show me|tell me|give me|make me|create|generate|draft|write)\b/gi;
+  const cleaned = prompt
+    .replace(/[`"'“”‘’]/g, ' ')
+    .replace(/[^a-zA-Z0-9\s]/g, ' ')
+    .replace(fillerPattern, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const words = cleaned
+    .split(' ')
+    .filter((word) => word.length > 1)
+    .slice(0, 5);
+
+  if (words.length === 0) {
+    return buildSeedThreadTitle(prompt);
+  }
+
+  return words
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+export function sanitizeGeneratedThreadTitle(
+  title: string,
+  prompt: string,
+): string {
+  const normalized = title
+    .replace(/[`"'“”‘’]/g, ' ')
+    .replace(/[^\w\s'-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!normalized) {
+    return buildFallbackThreadTitle(prompt);
+  }
+
+  const words = normalized.split(' ').filter(Boolean).slice(0, 5);
+  if (words.length < 2) {
+    return buildFallbackThreadTitle(prompt);
+  }
+
+  return words
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+export function extractThreadEnvelope(params: {
+  assistantContent: string;
+  prompt: string;
+  seedTitle: string;
+}): { content: string; title: string | null } {
+  if (!params.seedTitle.trim()) {
+    return {
+      content: params.assistantContent,
+      title: null,
+    };
+  }
+
+  const trimmed = params.assistantContent.trim();
+  const fencedJsonMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  const candidate = fencedJsonMatch?.[1]?.trim() ?? trimmed;
+  let parsed: {
+    content?: unknown;
+    title?: unknown;
+  } | null = null;
+
+  if (candidate.startsWith('{') && candidate.endsWith('}')) {
+    try {
+      parsed = JSON.parse(candidate) as {
+        content?: unknown;
+        title?: unknown;
+      };
+    } catch {
+      parsed = null;
+    }
+  }
+
+  const content =
+    typeof parsed?.content === 'string' && parsed.content.trim()
+      ? parsed.content.trim()
+      : params.assistantContent;
+  const parsedTitle =
+    typeof parsed?.title === 'string' ? parsed.title.trim() : '';
+
+  return {
+    content,
+    title: parsedTitle
+      ? sanitizeGeneratedThreadTitle(parsedTitle, params.prompt)
+      : buildFallbackThreadTitle(params.prompt),
+  };
+}
+
+/**
+ * Persist a generated title only while the thread still holds the seed title
+ * (first-message naming race-safe).
+ */
+export async function maybeUpdateThreadTitle(params: {
+  agentThreadsService: AgentThreadTitlePersistence;
+  context: AgentChatContext;
+  seedTitle: string;
+  threadId: string;
+  title: string | null;
+}): Promise<void> {
+  const seedTitle = params.seedTitle.trim();
+  const nextTitle = params.title?.trim() ?? '';
+
+  if (!seedTitle || !nextTitle || nextTitle === seedTitle) {
+    return;
+  }
+
+  const thread = (await params.agentThreadsService.findOne({
+    _id: params.threadId,
+    isDeleted: false,
+    organization: params.context.organizationId,
+    user: {
+      in: [params.context.userId],
+    },
+  })) as { title?: string } | null;
+
+  const currentTitle =
+    typeof thread?.title === 'string' ? thread.title.trim() : '';
+  if (currentTitle !== seedTitle) {
+    return;
+  }
+
+  await params.agentThreadsService.updateThreadMetadata(
+    params.threadId,
+    params.context.organizationId,
+    { title: nextTitle },
+  );
+}

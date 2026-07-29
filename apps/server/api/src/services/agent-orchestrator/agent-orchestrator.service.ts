@@ -1,4 +1,3 @@
-import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
 import { type AgentMemoryDocument } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import {
   type AgentFeedbackMemoryDocument,
@@ -18,29 +17,21 @@ import {
   runEffectPromise,
 } from '@api/helpers/utils/effect/effect.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import { AgentMessageBusService } from '@api/services/agent-campaign/agent-message-bus.service';
-import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentOrchestratorBatchService } from '@api/services/agent-orchestrator/agent-orchestrator-batch.service';
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
 import { AgentOrchestratorPlanModeService } from '@api/services/agent-orchestrator/agent-orchestrator-plan-mode.service';
 import { AgentOrchestratorRecurringTaskService } from '@api/services/agent-orchestrator/agent-orchestrator-recurring-task.service';
+import { AgentOrchestratorStreamLoopService } from '@api/services/agent-orchestrator/agent-orchestrator-stream-loop.service';
+import { AgentOrchestratorSyncLoopService } from '@api/services/agent-orchestrator/agent-orchestrator-sync-loop.service';
 import { AgentOrchestratorUiActionService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
-import {
-  type AgentToolRoundState,
-  AgentTurnRoundRunnerService,
-} from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
-import {
-  AGENT_MAX_TOOL_ROUNDS,
-  getAgentTurnCost,
-} from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
+import { getAgentTurnCost } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
 import {
   DEFAULT_AGENT_CHAT_MODEL,
   LOCAL_DEFAULT_AGENT_CHAT_MODEL,
 } from '@api/services/agent-orchestrator/constants/agent-default-model.constant';
 import { AGENT_ORCHESTRATOR_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/agent-orchestrator-system-prompt.constant';
-import { getAgentTypeConfig } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
 import { BRAND_INTERVIEW_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/brand-interview-system-prompt.constant';
 import { ONBOARDING_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/onboarding-system-prompt.constant';
 import type {
@@ -56,20 +47,9 @@ import {
   type AgentGenerationPriority,
   ResolvedAgentExecutionPolicy,
 } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
-import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { getToolDefinitions } from '@api/services/agent-orchestrator/tools/agent-tool-registry';
-import {
-  captureRunArtifacts,
-  mergeAgentArtifactCompletionMetadata,
-  persistRunArtifacts,
-} from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
 import { extractBatchTopic } from '@api/services/agent-orchestrator/utils/agent-orchestrator-input-parsing.util';
 import { buildPageContextPrompt } from '@api/services/agent-orchestrator/utils/agent-page-context.util';
-import {
-  buildAgentRoutingMetadata,
-  resolveAgentRoutingPlugins,
-  resolveAgentRoutingPolicy,
-} from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';
+import { buildAgentRoutingMetadata } from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';
 import {
   buildAgentScopeMetadata,
   recordAgentRunScope,
@@ -79,31 +59,22 @@ import {
   applyAgentReplyStyle,
   buildAgentSystemPrompt,
 } from '@api/services/agent-orchestrator/utils/agent-system-prompt.util';
-import { settleAgentTurnCredits } from '@api/services/agent-orchestrator/utils/agent-turn-credit.util';
-import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/sanitize-agent-output.util';
+import {
+  buildSeedThreadTitle,
+  maybeUpdateThreadTitle,
+} from '@api/services/agent-orchestrator/utils/agent-thread-title.util';
 import { AgentExecutionLaneService } from '@api/services/agent-threading/services/agent-execution-lane.service';
 import { AgentProfileResolverService } from '@api/services/agent-threading/services/agent-profile-resolver.service';
 import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import type { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
-import { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
-import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
-import type {
-  OpenRouterMessage,
-  OpenRouterPlugin,
-  OpenRouterTool,
-} from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import {
   ActivitySource,
   AgentExecutionTrigger,
   AgentMessageRole,
   AgentType,
-  SubscriptionTier,
 } from '@genfeedai/enums';
 import {
-  AgentToolName,
-  type AgentUIBlocksEvent,
-  type AgentUiAction,
   toAgentScopeMetadata,
   type ValidatedAgentScope,
 } from '@genfeedai/interfaces';
@@ -112,7 +83,6 @@ import {
   AgentScopeContextService,
   type PreparedAgentScope,
 } from '@genfeedai/server';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   HttpException,
@@ -122,61 +92,27 @@ import {
 } from '@nestjs/common';
 import { Effect } from 'effect';
 
-const PAID_SUBSCRIPTION_TIERS = new Set<string>([
-  SubscriptionTier.PRO,
-  SubscriptionTier.SCALE,
-  SubscriptionTier.ENTERPRISE,
-]);
-
-// During live token streaming, cancellation cannot be checked per token
-// (isRunCancelled is a Redis lookup); throttle it to at most once per this
-// interval so a cancelled run tears down the upstream stream promptly without
-// a lookup on every delta.
-const STREAM_CANCEL_CHECK_INTERVAL_MS = 750;
-// Per-token publish failures are swallowed to avoid aborting a live stream on a
-// transient Redis hiccup, but a sustained outage should be diagnosable — log at
-// most once per this interval per turn instead of once per dropped token.
-const STREAM_PUBLISH_LOG_INTERVAL_MS = 5_000;
-
-// Thrown from the streaming onToken callback when the run has been cancelled.
-// It unwinds the provider's for-await loop (tearing down the upstream HTTP/SDK
-// stream) and is caught at the dispatch site, which routes it to the
-// cancelled-stream handler rather than treating it as a generation error.
-class StreamCancelledError extends Error {
-  constructor() {
-    super('agent stream cancelled');
-    this.name = 'StreamCancelledError';
-  }
-}
-
 @Injectable()
 export class AgentOrchestratorService {
   private readonly constructorName = String(this.constructor.name);
-  private readonly activeStreams = new Set<string>();
 
   constructor(
     private readonly loggerService: LoggerService,
-    private readonly llmDispatcher: LlmDispatcherService,
     private readonly agentThreadsService: AgentThreadsService,
     private readonly agentScopeContextService: AgentScopeContextService,
     private readonly agentMessagesService: AgentMessagesService,
     private readonly creditsUtilsService: CreditsUtilsService,
-    private readonly toolExecutorService: AgentToolExecutorService,
-    private readonly turnRoundRunner: AgentTurnRoundRunnerService,
     private readonly uiActionService: AgentOrchestratorUiActionService,
     private readonly recurringTaskService: AgentOrchestratorRecurringTaskService,
     private readonly planModeService: AgentOrchestratorPlanModeService,
     private readonly batchService: AgentOrchestratorBatchService,
     private readonly contextService: AgentOrchestratorContextService,
-    private readonly completionCardBuilder: AgentCompletionCardBuilderService,
     private readonly threadEventRecorder: AgentThreadEventRecorderService,
     private readonly settingsService: SettingsService,
     private readonly streamEffects: AgentStreamEffectsService,
+    private readonly streamLoopService: AgentOrchestratorStreamLoopService,
+    private readonly syncLoopService: AgentOrchestratorSyncLoopService,
     private readonly agentRunsService: AgentRunsService,
-    @Optional()
-    private readonly agentMessageBusService?: AgentMessageBusService,
-    @Optional()
-    private readonly agentCampaignsService?: AgentCampaignsService,
     @Optional()
     private readonly agentThreadEngineService?: AgentThreadEngineService,
     @Optional()
@@ -186,21 +122,8 @@ export class AgentOrchestratorService {
     @Optional()
     private readonly agentProfileResolverService?: AgentProfileResolverService,
     @Optional()
-    private readonly threadContextCompressorService?: ThreadContextCompressorService,
-    @Optional()
     private readonly skillRuntimeService?: SkillRuntimeService,
-    @Optional()
-    private readonly configService?: ConfigService,
   ) {}
-
-  /**
-   * Whether real token-by-token LLM streaming is enabled for agent chat.
-   * Defaults to false (legacy simulated word-split streaming) when the flag or
-   * ConfigService is unavailable, so behaviour is unchanged unless opted in.
-   */
-  private isRealTokenStreamingEnabled(): boolean {
-    return this.configService?.get('AGENT_TOKEN_STREAMING_ENABLED') === 'true';
-  }
 
   async chat(
     request: AgentChatRequest,
@@ -313,11 +236,11 @@ export class AgentOrchestratorService {
           turnCost,
         },
         {
-          buildFallbackThreadTitle: (prompt) =>
-            this.buildFallbackThreadTitle(prompt),
-          maybeUpdateThreadTitle: (p) => this.maybeUpdateThreadTitle(p),
-          sanitizeGeneratedThreadTitle: (title, prompt) =>
-            this.sanitizeGeneratedThreadTitle(title, prompt),
+          maybeUpdateThreadTitle: (p) =>
+            maybeUpdateThreadTitle({
+              ...p,
+              agentThreadsService: this.agentThreadsService,
+            }),
         },
       );
 
@@ -339,7 +262,7 @@ export class AgentOrchestratorService {
       }
 
       const result = await this.runInThreadLane(threadId, async () => {
-        return this.executeSynchronousChatLoop({
+        return this.syncLoopService.executeSynchronousChatLoop({
           context,
           generationPriority,
           model,
@@ -390,352 +313,17 @@ export class AgentOrchestratorService {
   ): Promise<AgentChatResult> {
     return await this.uiActionService.handleThreadUiAction(request, context, {
       executeSynchronousChatLoop: (params) =>
-        this.executeSynchronousChatLoop(params),
+        this.syncLoopService.executeSynchronousChatLoop(params),
       generatePlanModeResponse: (params) =>
         this.planModeService.generatePlanModeResponse(params, {
-          buildFallbackThreadTitle: (prompt) =>
-            this.buildFallbackThreadTitle(prompt),
-          maybeUpdateThreadTitle: (p) => this.maybeUpdateThreadTitle(p),
-          sanitizeGeneratedThreadTitle: (title, prompt) =>
-            this.sanitizeGeneratedThreadTitle(title, prompt),
+          maybeUpdateThreadTitle: (p) =>
+            maybeUpdateThreadTitle({
+              ...p,
+              agentThreadsService: this.agentThreadsService,
+            }),
         }),
       runInThreadLane: (threadId, run) => this.runInThreadLane(threadId, run),
     });
-  }
-
-  private async executeSynchronousChatLoop(params: {
-    context: AgentChatContext;
-    threadId: string;
-    generationPriority: string;
-    model: string;
-    policy: ResolvedAgentExecutionPolicy;
-    request: AgentChatRequest;
-    resolvedMemories: AgentMemoryDocument[];
-    seedTitle: string;
-    systemPromptOverride?: string;
-    turnCost: number;
-  }): Promise<AgentChatResult> {
-    const {
-      context,
-      threadId,
-      generationPriority,
-      model,
-      policy,
-      request,
-      resolvedMemories,
-      seedTitle,
-      systemPromptOverride,
-      turnCost,
-    } = params;
-    const toolRoundState: AgentToolRoundState = {
-      artifactMetadata: [],
-      highestRiskLevel: 'low',
-      latestUiBlocks: null,
-      reviewRequired: false,
-      toolCalls: [],
-      totalCreditsUsed: 0,
-      uiActions: [],
-    };
-
-    await this.threadEventRecorder.recordThreadTurnStarted({
-      context,
-      model,
-      runId: context.runId,
-      source: request.source,
-      threadId,
-    });
-
-    try {
-      let resolvedSystemPrompt = systemPromptOverride;
-      if (
-        context.campaignId &&
-        this.agentCampaignsService &&
-        this.agentMessageBusService
-      ) {
-        resolvedSystemPrompt = await this.contextService.injectCampaignContext(
-          context.campaignId,
-          context.organizationId,
-          resolvedSystemPrompt,
-        );
-      }
-
-      const { messages: recentMessages, compressedContext } =
-        await this.contextService.resolveThreadMessages(
-          threadId,
-          context.organizationId,
-        );
-      const history = this.contextService.buildMessageHistory(
-        recentMessages,
-        resolvedSystemPrompt,
-        resolvedMemories,
-        request.attachments,
-        compressedContext,
-      );
-      const typeConfig = request.agentType
-        ? getAgentTypeConfig(request.agentType)
-        : null;
-      // Merge skill tool overrides into the base tool set (additive).
-      // When agentType is unset, pass undefined to preserve unrestricted toolset
-      // instead of [] which would wipe all base tools.
-      const syncBaseTools =
-        this.skillRuntimeService && context.resolvedSkills?.length
-          ? (this.skillRuntimeService.mergeSkillToolOverrides(
-              typeConfig?.defaultTools,
-              context.resolvedSkills,
-            ) as AgentToolName[] | undefined)
-          : typeConfig?.defaultTools;
-      const tools = this.buildToolDefinitions(
-        this.mergeAllowedTools(
-          syncBaseTools,
-          this.getRequestScopedAllowedTools(request.content),
-        ),
-      );
-      const allowedToolNames = new Set(
-        tools.map((tool) => tool.function.name as AgentToolName),
-      );
-      const messages = [...history];
-      let round = 0;
-      const actualModels = new Set<string>();
-
-      while (round < AGENT_MAX_TOOL_ROUNDS) {
-        round++;
-
-        const response = await this.llmDispatcher.chatCompletion(
-          this.buildAgentChatCompletionParams({
-            messages,
-            model,
-            prompt: request.content,
-            seedTitle,
-            source: request.source,
-            tools,
-          }),
-          context.organizationId,
-        );
-        const actualModel = await this.recordAgentResponseModel({
-          actualModels: Array.from(actualModels),
-          context,
-          requestedModel: model,
-          responseModel: response.model,
-          runId: context.runId,
-          source: request.source,
-          threadId,
-        });
-        actualModels.add(actualModel);
-
-        const choice = response.choices[0];
-        if (!choice) {
-          throw new Error('No response from LLM');
-        }
-
-        const assistantMessage = choice.message;
-        const toolCalls = assistantMessage.tool_calls;
-
-        if (!toolCalls || toolCalls.length === 0) {
-          const threadEnvelope = this.extractThreadEnvelope({
-            assistantContent: sanitizeAgentOutputText(
-              assistantMessage.content || '',
-            ),
-            prompt: request.content,
-            seedTitle,
-          });
-          const normalizedContent = this.normalizeFinalAssistantContent(
-            threadEnvelope.content,
-            toolRoundState.toolCalls,
-            toolRoundState.uiActions,
-          );
-          const content = normalizedContent.content;
-
-          toolRoundState.totalCreditsUsed += await settleAgentTurnCredits({
-            creditsUtilsService: this.creditsUtilsService,
-            model,
-            organizationId: context.organizationId,
-            toolCalls: toolRoundState.toolCalls,
-            turnCost,
-            userId: context.userId,
-          });
-
-          await this.maybeUpdateThreadTitle({
-            context,
-            seedTitle,
-            threadId,
-            title: threadEnvelope.title,
-          });
-
-          const creditsRemaining =
-            await this.creditsUtilsService.getOrganizationCreditsBalance(
-              context.organizationId,
-            );
-          const memoryEntriesForResponse =
-            this.contextService.buildMemoryEntriesForResponse(resolvedMemories);
-          const memoryInfluence =
-            this.contextService.buildMemoryInfluenceMetadata(resolvedMemories);
-          const reasoning = assistantMessage.reasoning_content ?? null;
-          const enhancedUiActions =
-            this.completionCardBuilder.buildAssistantUiActions({
-              reviewRequired: toolRoundState.reviewRequired,
-              toolCalls: toolRoundState.toolCalls,
-              uiActions: toolRoundState.uiActions,
-            });
-          const artifactMetadata = mergeAgentArtifactCompletionMetadata(
-            toolRoundState.artifactMetadata,
-          );
-          const assistantMetadata = {
-            ...artifactMetadata,
-            ...buildAgentScopeMetadata(context),
-            ...buildAgentRoutingMetadata({
-              model,
-              prompt: request.content,
-              source: request.source,
-            }),
-            isFallbackContent: normalizedContent.isFallback,
-            memoryEntries: memoryEntriesForResponse,
-            memoryInfluence,
-            ...this.buildResolvedModelMetadata(model, Array.from(actualModels)),
-            reasoning,
-            reviewRequired: toolRoundState.reviewRequired,
-            riskLevel: toolRoundState.highestRiskLevel,
-            ...(enhancedUiActions.suggestedActions.length
-              ? { suggestedActions: enhancedUiActions.suggestedActions }
-              : {}),
-            totalCreditsUsed: toolRoundState.totalCreditsUsed,
-            uiActions: enhancedUiActions.uiActions,
-            ...(toolRoundState.latestUiBlocks
-              ? { uiBlocks: toolRoundState.latestUiBlocks }
-              : {}),
-          };
-
-          await persistRunArtifacts(
-            this.agentRunsService,
-            context,
-            artifactMetadata,
-          );
-          await this.agentMessagesService.addMessage({
-            brandId: context.scope?.brandId,
-            content,
-            metadata: {
-              creditsRemaining,
-              ...assistantMetadata,
-              tokenUsage: response.usage
-                ? {
-                    completion: response.usage.completion_tokens,
-                    prompt: response.usage.prompt_tokens,
-                    total: response.usage.total_tokens,
-                  }
-                : undefined,
-            },
-            organizationId: context.organizationId,
-            role: AgentMessageRole.ASSISTANT,
-            room: threadId,
-            toolCalls: toolRoundState.toolCalls.map((tc) => ({
-              creditsUsed: tc.creditsUsed,
-              durationMs: tc.durationMs,
-              error: tc.error,
-              parameters: tc.parameters ?? {},
-              result: tc.resultSummary ? { summary: tc.resultSummary } : {},
-              status: tc.status,
-              toolName: tc.toolName,
-            })),
-            userId: context.userId,
-          });
-          await this.threadEventRecorder.recordAssistantFinalized({
-            content,
-            context,
-            metadata: assistantMetadata,
-            runId: context.runId,
-            threadId,
-          });
-          await this.threadEventRecorder.recordRunCompleted({
-            context,
-            detail: 'Agent completed',
-            runId: context.runId,
-            threadId,
-          });
-
-          return {
-            creditsRemaining,
-            creditsUsed: toolRoundState.totalCreditsUsed,
-            message: {
-              content,
-              metadata: assistantMetadata,
-              role: 'assistant',
-            },
-            threadId,
-            toolCalls: toolRoundState.toolCalls,
-          };
-        }
-
-        await this.turnRoundRunner.executeToolRound({
-          allowedToolNames,
-          assistantContent: assistantMessage.content,
-          attachmentUrls: request.attachments?.map((a) => a.url),
-          context,
-          generationPriority,
-          messages,
-          model,
-          policy,
-          source: request.source,
-          state: toolRoundState,
-          strategy: {
-            logParseErrors: true,
-            onRecordRunToolCall: (summary) => {
-              if (!context.runId) {
-                return;
-              }
-              this.agentRunsService
-                .recordToolCall(context.runId, context.organizationId, summary)
-                .catch(() => undefined);
-            },
-            onToolCompleted: async (event) => {
-              await this.threadEventRecorder.recordToolCompleted({
-                context,
-                durationMs: event.durationMs,
-                error: event.summary.error,
-                runId: context.runId,
-                status: event.summary.status,
-                threadId,
-                toolCallId: event.toolCallId,
-                toolName: event.toolName,
-              });
-            },
-            onToolStarted: async (event) => {
-              await this.threadEventRecorder.recordToolStarted({
-                context,
-                parameters: event.parameters,
-                runId: context.runId,
-                threadId,
-                toolCallId: event.toolCallId,
-                toolName: event.toolName,
-              });
-            },
-            onUiBlocks: async (event) => {
-              await this.threadEventRecorder.recordUiBlocksUpdated({
-                blockIds: event.blockIds,
-                blocks: event.blocks,
-                context,
-                operation: event.operation,
-                runId: context.runId,
-                threadId,
-              });
-            },
-          },
-          thinkingModel: policy.thinkingModelOverride ?? model,
-          threadId,
-          toolCalls,
-        });
-      }
-
-      throw new Error(
-        `Agent exceeded maximum tool-calling rounds (${AGENT_MAX_TOOL_ROUNDS})`,
-      );
-    } catch (error: unknown) {
-      await this.threadEventRecorder.recordRunFailed({
-        context,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        runId: context.runId,
-        threadId,
-      });
-      throw error;
-    }
   }
 
   async chatStream(
@@ -904,11 +492,11 @@ export class AgentOrchestratorService {
           turnCost,
         },
         {
-          buildFallbackThreadTitle: (prompt) =>
-            this.buildFallbackThreadTitle(prompt),
-          maybeUpdateThreadTitle: (p) => this.maybeUpdateThreadTitle(p),
-          sanitizeGeneratedThreadTitle: (title, prompt) =>
-            this.sanitizeGeneratedThreadTitle(title, prompt),
+          maybeUpdateThreadTitle: (p) =>
+            maybeUpdateThreadTitle({
+              ...p,
+              agentThreadsService: this.agentThreadsService,
+            }),
         },
       );
 
@@ -936,9 +524,11 @@ export class AgentOrchestratorService {
             threadId,
           },
           {
-            buildFallbackThreadTitle: (prompt) =>
-              this.buildFallbackThreadTitle(prompt),
-            maybeUpdateThreadTitle: (p) => this.maybeUpdateThreadTitle(p),
+            maybeUpdateThreadTitle: (p) =>
+              maybeUpdateThreadTitle({
+                ...p,
+                agentThreadsService: this.agentThreadsService,
+              }),
           },
         )) ||
         (await this.recurringTaskService.tryHandleRecurringTaskDraftTurnStream({
@@ -973,7 +563,7 @@ export class AgentOrchestratorService {
 
     // Fire-and-forget streaming
     this.runInThreadLane(threadId, async () => {
-      await this.runStreamLoop(
+      await this.streamLoopService.runStreamLoop(
         streamContext,
         threadId,
         systemPromptOverride,
@@ -1007,578 +597,6 @@ export class AgentOrchestratorService {
     };
   }
 
-  private async runStreamLoop(
-    context: AgentChatContext,
-    threadId: string,
-    systemPromptOverride: string | undefined,
-    model: string,
-    turnCost: number,
-    resolvedPolicy: ResolvedAgentExecutionPolicy,
-    generationPriority: string,
-    memoryEntries: AgentMemoryDocument[],
-    agentType?: AgentType,
-    source?: AgentChatRequest['source'],
-    seedTitle?: string,
-    runStartedAt?: string,
-    attachments?: AgentChatAttachment[],
-  ): Promise<void> {
-    this.activeStreams.add(threadId);
-
-    try {
-      await runEffectPromise(
-        this.streamEffects.publishStreamLifecycleStartedEffect({
-          context,
-          model,
-          startedAt: runStartedAt,
-          threadId,
-        }),
-      );
-
-      const toolRoundState: AgentToolRoundState = {
-        artifactMetadata: [],
-        highestRiskLevel: 'low',
-        latestUiBlocks: null,
-        reviewRequired: false,
-        toolCalls: [],
-        totalCreditsUsed: 0,
-        uiActions: [],
-      };
-      const memoryEntriesForResponse =
-        this.contextService.buildMemoryEntriesForResponse(memoryEntries);
-      const memoryInfluence =
-        this.contextService.buildMemoryInfluenceMetadata(memoryEntries);
-
-      // Build thread history from separate messages collection
-      const {
-        messages: recentMessages,
-        compressedContext: streamCompressedCtx,
-      } = await this.contextService.resolveThreadMessages(
-        threadId,
-        context.organizationId,
-      );
-      const history = this.contextService.buildMessageHistory(
-        recentMessages,
-        systemPromptOverride,
-        memoryEntries,
-        attachments,
-        streamCompressedCtx,
-      );
-      const typeConfig = agentType ? getAgentTypeConfig(agentType) : null;
-      // Merge skill tool overrides into the base tool set (additive).
-      // When agentType is unset, pass undefined to preserve unrestricted toolset
-      // instead of [] which would wipe all base tools.
-      const baseTools =
-        this.skillRuntimeService && context.resolvedSkills?.length
-          ? (this.skillRuntimeService.mergeSkillToolOverrides(
-              typeConfig?.defaultTools,
-              context.resolvedSkills,
-            ) as AgentToolName[] | undefined)
-          : typeConfig?.defaultTools;
-      const latestUserMessage =
-        [...history]
-          .reverse()
-          .find((message) => message.role === 'user')
-          ?.content?.toString?.() ?? '';
-      const scopedTools = this.getRequestScopedAllowedTools(latestUserMessage);
-      const tools = this.buildToolDefinitions(
-        this.mergeAllowedTools(baseTools, scopedTools),
-      );
-      const allowedToolNames = new Set(
-        tools.map((tool) => tool.function.name as AgentToolName),
-      );
-      const messages = [...history];
-      let round = 0;
-      const actualModels = new Set<string>();
-
-      // Real token streaming is skipped for title-seeding turns (seedTitle set,
-      // first message of a new thread) because the model returns a JSON
-      // {title, content} envelope there — streaming raw deltas would flash JSON
-      // at the user. Those turns keep the simulated word-split path.
-      const canStreamLiveTokens =
-        this.isRealTokenStreamingEnabled() && !(seedTitle ?? '').trim();
-
-      while (round < AGENT_MAX_TOOL_ROUNDS) {
-        if (await this.isRunCancelled(context)) {
-          await this.handleCancelledStream(context, threadId);
-          return;
-        }
-        round++;
-
-        const chatParams = this.buildAgentChatCompletionParams({
-          messages,
-          model,
-          prompt: latestUserMessage,
-          seedTitle: seedTitle ?? '',
-          source,
-          tools,
-        });
-
-        // Real deltas published live during this round; drives whether the
-        // final branch re-simulates word-split streaming or not.
-        let roundStreamedTokenCount = 0;
-        let lastCancelCheckAt = 0;
-        let lastPublishErrorLoggedAt = 0;
-
-        const onStreamToken = async (delta: string): Promise<void> => {
-          roundStreamedTokenCount++;
-
-          // Throttled cancellation check — unwinds the provider stream (and its
-          // upstream connection) instead of burning the whole generation after
-          // the user has already stopped the run.
-          const now = Date.now();
-          if (now - lastCancelCheckAt >= STREAM_CANCEL_CHECK_INTERVAL_MS) {
-            lastCancelCheckAt = now;
-            if (await this.isRunCancelled(context)) {
-              throw new StreamCancelledError();
-            }
-          }
-
-          await runEffectPromise(
-            this.streamEffects
-              .publishStreamTokenEffect({
-                runId: context.runId,
-                threadId,
-                token: delta,
-                userId: context.userId,
-              })
-              .pipe(
-                // Keep swallowing publish failures (a transient Redis hiccup must
-                // not abort a live stream) but surface a throttled log so a
-                // sustained outage is diagnosable rather than silent.
-                Effect.tapError((error) =>
-                  Effect.sync(() => {
-                    const errorAt = Date.now();
-                    if (
-                      errorAt - lastPublishErrorLoggedAt >=
-                      STREAM_PUBLISH_LOG_INTERVAL_MS
-                    ) {
-                      lastPublishErrorLoggedAt = errorAt;
-                      this.loggerService.warn(
-                        `${this.constructorName} stream token publish failed (throttled)`,
-                        {
-                          error:
-                            error instanceof Error
-                              ? error.message
-                              : String(error),
-                          threadId,
-                        },
-                      );
-                    }
-                  }),
-                ),
-                Effect.catchAll(() => Effect.void),
-              ),
-          );
-        };
-
-        // IIFE so a mid-stream cancellation (StreamCancelledError thrown from
-        // onStreamToken) is caught here and routed to the cancelled-stream
-        // handler; any other error still propagates as a real failure.
-        const response = await (async () => {
-          try {
-            return canStreamLiveTokens
-              ? await this.llmDispatcher.streamChatCompletionAggregated(
-                  chatParams,
-                  context.organizationId,
-                  onStreamToken,
-                )
-              : await this.llmDispatcher.chatCompletion(
-                  chatParams,
-                  context.organizationId,
-                );
-          } catch (error) {
-            if (error instanceof StreamCancelledError) {
-              return null;
-            }
-            throw error;
-          }
-        })();
-
-        if (!response) {
-          await this.handleCancelledStream(context, threadId);
-          return;
-        }
-        const actualModel = await this.recordAgentResponseModel({
-          actualModels: Array.from(actualModels),
-          context,
-          requestedModel: model,
-          responseModel: response.model,
-          runId: context.runId,
-          source,
-          threadId,
-        });
-        actualModels.add(actualModel);
-
-        const choice = response.choices[0];
-        if (!choice) {
-          throw new Error('No response from LLM');
-        }
-
-        const assistantMessage = choice.message;
-        const toolCalls = assistantMessage.tool_calls;
-
-        // No tool calls — final response
-        if (!toolCalls || toolCalls.length === 0) {
-          if (await this.isRunCancelled(context)) {
-            await this.handleCancelledStream(context, threadId);
-            return;
-          }
-
-          const threadEnvelope = this.extractThreadEnvelope({
-            assistantContent: sanitizeAgentOutputText(
-              assistantMessage.content || '',
-            ),
-            prompt: latestUserMessage,
-            seedTitle: seedTitle ?? '',
-          });
-          const normalizedContent = this.normalizeFinalAssistantContent(
-            threadEnvelope.content,
-            toolRoundState.toolCalls,
-            toolRoundState.uiActions,
-          );
-          const content = normalizedContent.content;
-
-          toolRoundState.totalCreditsUsed += await settleAgentTurnCredits({
-            creditsUtilsService: this.creditsUtilsService,
-            model,
-            organizationId: context.organizationId,
-            toolCalls: toolRoundState.toolCalls,
-            turnCost,
-            userId: context.userId,
-          });
-
-          await this.maybeUpdateThreadTitle({
-            context,
-            seedTitle: seedTitle ?? '',
-            threadId,
-            title: threadEnvelope.title,
-          });
-
-          const creditsRemaining =
-            await this.creditsUtilsService.getOrganizationCreditsBalance(
-              context.organizationId,
-            );
-          const reasoning = assistantMessage.reasoning_content ?? null;
-
-          await runEffectPromise(
-            this.streamEffects.publishStreamAssistantResponseEffect({
-              content,
-              context,
-              reasoning,
-              // When this round already streamed real deltas live, don't
-              // re-emit the content as simulated word-split tokens.
-              suppressTokenStreaming: roundStreamedTokenCount > 0,
-              threadId,
-            }),
-          );
-
-          const enhancedUiActions =
-            this.completionCardBuilder.buildAssistantUiActions({
-              reviewRequired: toolRoundState.reviewRequired,
-              toolCalls: toolRoundState.toolCalls,
-              uiActions: toolRoundState.uiActions,
-            });
-          const artifactMetadata = mergeAgentArtifactCompletionMetadata(
-            toolRoundState.artifactMetadata,
-          );
-
-          // Save assistant message to DB
-          await persistRunArtifacts(
-            this.agentRunsService,
-            context,
-            artifactMetadata,
-          );
-          await this.agentMessagesService.addMessage({
-            brandId: context.scope?.brandId,
-            content,
-            metadata: {
-              ...artifactMetadata,
-              ...buildAgentScopeMetadata(context),
-              ...buildAgentRoutingMetadata({
-                model,
-                prompt: latestUserMessage,
-                source,
-              }),
-              creditsRemaining,
-              isFallbackContent: normalizedContent.isFallback,
-              memoryEntries: memoryEntriesForResponse,
-              memoryInfluence,
-              ...this.buildResolvedModelMetadata(
-                model,
-                Array.from(actualModels),
-              ),
-              reasoning,
-              reviewRequired: toolRoundState.reviewRequired,
-              riskLevel: toolRoundState.highestRiskLevel,
-              ...(enhancedUiActions.suggestedActions.length
-                ? { suggestedActions: enhancedUiActions.suggestedActions }
-                : {}),
-              tokenUsage: response.usage
-                ? {
-                    completion: response.usage.completion_tokens,
-                    prompt: response.usage.prompt_tokens,
-                    total: response.usage.total_tokens,
-                  }
-                : undefined,
-              totalCreditsUsed: toolRoundState.totalCreditsUsed,
-              uiActions: enhancedUiActions.uiActions,
-            },
-            organizationId: context.organizationId,
-            role: AgentMessageRole.ASSISTANT,
-            room: threadId,
-            toolCalls: toolRoundState.toolCalls.map((tc) => ({
-              creditsUsed: tc.creditsUsed,
-              durationMs: tc.durationMs,
-              error: tc.error,
-              parameters: tc.parameters ?? {},
-              result: tc.resultSummary ? { summary: tc.resultSummary } : {},
-              status: tc.status,
-              toolName: tc.toolName,
-            })),
-            userId: context.userId,
-          });
-
-          let runDurationMs: number | undefined;
-          if (context.runId) {
-            const completedRun = await this.agentRunsService.complete(
-              context.runId,
-              context.organizationId,
-              content.slice(0, 200),
-            );
-            runDurationMs =
-              typeof completedRun?.durationMs === 'number'
-                ? completedRun.durationMs
-                : undefined;
-          }
-
-          await runEffectPromise(
-            this.streamEffects.publishStreamCompletionEffect({
-              completionMetadata: {
-                isFallbackContent: normalizedContent.isFallback,
-                memoryEntries: memoryEntriesForResponse,
-                memoryInfluence,
-                ...this.buildResolvedModelMetadata(
-                  model,
-                  Array.from(actualModels),
-                ),
-                reasoning,
-                reviewRequired: toolRoundState.reviewRequired,
-                riskLevel: toolRoundState.highestRiskLevel,
-                ...(enhancedUiActions.suggestedActions.length
-                  ? { suggestedActions: enhancedUiActions.suggestedActions }
-                  : {}),
-                totalCreditsUsed: toolRoundState.totalCreditsUsed,
-                uiActions: enhancedUiActions.uiActions,
-                ...(toolRoundState.latestUiBlocks
-                  ? { uiBlocks: toolRoundState.latestUiBlocks }
-                  : {}),
-              },
-              content,
-              context,
-              creditsRemaining,
-              creditsUsed: toolRoundState.totalCreditsUsed,
-              durationMs: runDurationMs,
-              runStartedAt,
-              threadId,
-              toolCalls: toolRoundState.toolCalls,
-            }),
-          );
-
-          return;
-        }
-
-        // Has tool calls — shared runner (stream strategy: SSE + cancel)
-        const toolRoundResult = await this.turnRoundRunner.executeToolRound({
-          allowedToolNames,
-          assistantContent: assistantMessage.content,
-          attachmentUrls: attachments?.map((a) => a.url),
-          context,
-          generationPriority,
-          messages,
-          model,
-          policy: resolvedPolicy,
-          source,
-          state: toolRoundState,
-          strategy: {
-            deferUnknownToolFailure: true,
-            logParseErrors: false,
-            onAfterTool: async () =>
-              (await this.isRunCancelled(context)) ? 'cancel' : 'continue',
-            onBeforeTool: async () =>
-              (await this.isRunCancelled(context)) ? 'cancel' : 'continue',
-            onToolCompleted: async (event) => {
-              if (event.kind === 'unknown') {
-                await runEffectPromise(
-                  this.streamEffects.publishStreamingToolCompletedEffect({
-                    context,
-                    debug: {
-                      error: event.summary.error,
-                      parameters: event.parameters,
-                    },
-                    detail: event.summary.error,
-                    durationMs: event.summary.durationMs,
-                    error: event.summary.error,
-                    label: event.requestedToolName,
-                    parameters: event.parameters,
-                    resultSummary: event.summary.error,
-                    status: 'failed',
-                    threadId,
-                    toolCallId: event.toolCallId,
-                    toolName: event.requestedToolName,
-                  }),
-                );
-                return;
-              }
-
-              if (event.kind === 'insufficient_credits') {
-                await runEffectPromise(
-                  this.streamEffects.publishStreamingToolCompletedEffect({
-                    context,
-                    debug: {
-                      error: event.summary.error,
-                      parameters: event.parameters,
-                    },
-                    detail: event.summary.error,
-                    durationMs: event.summary.durationMs,
-                    error: event.summary.error,
-                    parameters: event.parameters,
-                    resultSummary: event.summary.error,
-                    status: 'failed',
-                    threadId,
-                    toolCallId: event.toolCallId,
-                    toolName: event.toolName,
-                  }),
-                );
-                return;
-              }
-
-              await runEffectPromise(
-                this.streamEffects.publishStreamingToolCompletedEffect({
-                  context,
-                  creditsUsed: event.summary.creditsUsed,
-                  debug: event.summary.error
-                    ? {
-                        error: event.summary.error,
-                        parameters: event.parameters,
-                        result: event.result?.data,
-                      }
-                    : {
-                        parameters: event.parameters,
-                        result: event.result?.data,
-                      },
-                  detail:
-                    event.summary.status === 'completed'
-                      ? (event.summary.resultSummary ??
-                        `${event.toolName} completed`)
-                      : event.summary.error,
-                  durationMs: event.durationMs,
-                  error: event.summary.error,
-                  parameters: event.parameters,
-                  resultSummary: event.summary.resultSummary,
-                  status: event.summary.status,
-                  threadId,
-                  toolCallId: event.toolCallId,
-                  toolName: event.toolName,
-                  uiActions: event.result?.nextActions,
-                }),
-              );
-            },
-            onToolStarted: async (event) => {
-              await runEffectPromise(
-                this.streamEffects.publishStreamingToolStartedEffect({
-                  context,
-                  parameters: event.parameters,
-                  startedAt: new Date(event.startTime).toISOString(),
-                  threadId,
-                  toolCallId: event.toolCallId,
-                  toolName: event.toolName,
-                }),
-              );
-            },
-            onUiBlocks: async (event) => {
-              if (event.deferPublish) {
-                return;
-              }
-              await runEffectPromise(
-                this.streamEffects.publishStreamUiBlocksEffect({
-                  blockIds: event.blockIds,
-                  blocks: event.blocks as AgentUIBlocksEvent['blocks'],
-                  context,
-                  operation: event.operation,
-                  runId: context.runId,
-                  threadId,
-                }),
-              );
-            },
-          },
-          thinkingModel: resolvedPolicy.thinkingModelOverride ?? undefined,
-          threadId,
-          toolCalls,
-        });
-
-        if (toolRoundResult.isCancelled) {
-          await this.handleCancelledStream(context, threadId);
-          return;
-        }
-      }
-
-      const errorMsg = `Agent exceeded maximum tool-calling rounds (${AGENT_MAX_TOOL_ROUNDS})`;
-      await runEffectPromise(
-        this.streamEffects.publishStreamFailureEffect({
-          context,
-          error: errorMsg,
-          failRun: true,
-          threadId,
-        }),
-      );
-    } catch (error: unknown) {
-      if (await this.isRunCancelled(context)) {
-        await this.handleCancelledStream(context, threadId);
-        return;
-      }
-
-      await runEffectPromise(
-        this.streamEffects.publishStreamFailureEffect({
-          context,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          failRun: true,
-          threadId,
-        }),
-      );
-
-      this.loggerService.error(
-        `${this.constructorName} streaming chat failed`,
-        {
-          error: error instanceof Error ? error.message : error,
-          organizationId: context.organizationId,
-          userId: context.userId,
-        },
-      );
-    } finally {
-      this.activeStreams.delete(threadId);
-    }
-  }
-
-  private async isRunCancelled(context: AgentChatContext): Promise<boolean> {
-    if (!context.runId) {
-      return false;
-    }
-
-    return await this.agentRunsService.isCancelled(
-      context.runId,
-      context.organizationId,
-    );
-  }
-
-  private async handleCancelledStream(
-    context: AgentChatContext,
-    threadId: string,
-  ): Promise<void> {
-    await runEffectPromise(
-      this.streamEffects.publishStreamCancelledEffect(context, threadId),
-    );
-  }
-
   private async resolveOrCreateThreadId(
     request: AgentChatRequest,
     context: AgentChatContext,
@@ -1592,7 +610,7 @@ export class AgentOrchestratorService {
       };
     }
 
-    const seedTitle = this.buildSeedThreadTitle(request.content);
+    const seedTitle = buildSeedThreadTitle(request.content);
 
     const thread = await this.agentThreadsService.create({
       ...preparedScope.initialScopeFields,
@@ -1609,135 +627,6 @@ export class AgentOrchestratorService {
     };
   }
 
-  private buildSeedThreadTitle(content: string): string {
-    return content.substring(0, 100).trim();
-  }
-
-  private buildFallbackThreadTitle(prompt: string): string {
-    const fillerPattern =
-      /\b(can you|could you|help me|i need|i want|please|let's|lets|show me|tell me|give me|make me|create|generate|draft|write)\b/gi;
-    const cleaned = prompt
-      .replace(/[`"'“”‘’]/g, ' ')
-      .replace(/[^a-zA-Z0-9\s]/g, ' ')
-      .replace(fillerPattern, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-    const words = cleaned
-      .split(' ')
-      .filter((word) => word.length > 1)
-      .slice(0, 5);
-
-    if (words.length === 0) {
-      return this.buildSeedThreadTitle(prompt);
-    }
-
-    return words
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  }
-
-  private sanitizeGeneratedThreadTitle(title: string, prompt: string): string {
-    const normalized = title
-      .replace(/[`"'“”‘’]/g, ' ')
-      .replace(/[^\w\s'-]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    if (!normalized) {
-      return this.buildFallbackThreadTitle(prompt);
-    }
-
-    const words = normalized.split(' ').filter(Boolean).slice(0, 5);
-    if (words.length < 2) {
-      return this.buildFallbackThreadTitle(prompt);
-    }
-
-    return words
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  }
-
-  private extractThreadEnvelope(params: {
-    assistantContent: string;
-    prompt: string;
-    seedTitle: string;
-  }): { content: string; title: string | null } {
-    if (!params.seedTitle.trim()) {
-      return {
-        content: params.assistantContent,
-        title: null,
-      };
-    }
-
-    const trimmed = params.assistantContent.trim();
-    const fencedJsonMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-    const candidate = fencedJsonMatch?.[1]?.trim() ?? trimmed;
-    let parsed: {
-      content?: unknown;
-      title?: unknown;
-    } | null = null;
-
-    if (candidate.startsWith('{') && candidate.endsWith('}')) {
-      try {
-        parsed = JSON.parse(candidate) as {
-          content?: unknown;
-          title?: unknown;
-        };
-      } catch {
-        parsed = null;
-      }
-    }
-
-    const content =
-      typeof parsed?.content === 'string' && parsed.content.trim()
-        ? parsed.content.trim()
-        : params.assistantContent;
-    const parsedTitle =
-      typeof parsed?.title === 'string' ? parsed.title.trim() : '';
-
-    return {
-      content,
-      title: parsedTitle
-        ? this.sanitizeGeneratedThreadTitle(parsedTitle, params.prompt)
-        : this.buildFallbackThreadTitle(params.prompt),
-    };
-  }
-
-  private async maybeUpdateThreadTitle(params: {
-    context: AgentChatContext;
-    seedTitle: string;
-    threadId: string;
-    title: string | null;
-  }): Promise<void> {
-    const seedTitle = params.seedTitle.trim();
-    const nextTitle = params.title?.trim() ?? '';
-
-    if (!seedTitle || !nextTitle || nextTitle === seedTitle) {
-      return;
-    }
-
-    const thread = (await this.agentThreadsService.findOne({
-      _id: params.threadId,
-      isDeleted: false,
-      organization: params.context.organizationId,
-      user: {
-        in: [params.context.userId],
-      },
-    })) as { title?: string } | null;
-
-    const currentTitle =
-      typeof thread?.title === 'string' ? thread.title.trim() : '';
-    if (currentTitle !== seedTitle) {
-      return;
-    }
-
-    await this.agentThreadsService.updateThreadMetadata(
-      params.threadId,
-      params.context.organizationId,
-      { title: nextTitle },
-    );
-  }
-
   async resumeRecurringTaskDraftFromInput(params: {
     answer: string;
     fieldId?: string;
@@ -1750,103 +639,6 @@ export class AgentOrchestratorService {
     return await this.recurringTaskService.resumeRecurringTaskDraftFromInput(
       params,
     );
-  }
-
-  private buildToolDefinitions(
-    allowedTools?: AgentToolName[],
-  ): OpenRouterTool[] {
-    const all = getToolDefinitions();
-    const filtered = allowedTools
-      ? all.filter((t) => allowedTools.includes(t.name as AgentToolName))
-      : all;
-
-    return filtered.map((tool) => ({
-      function: {
-        description: tool.description,
-        name: tool.name,
-        parameters: tool.parameters,
-      },
-      type: 'function' as const,
-    }));
-  }
-
-  private mergeAllowedTools(
-    preferred?: AgentToolName[],
-    scoped?: AgentToolName[],
-  ): AgentToolName[] | undefined {
-    if (preferred && scoped) {
-      return preferred.filter((tool) => scoped.includes(tool));
-    }
-
-    return scoped ?? preferred;
-  }
-
-  private getRequestScopedAllowedTools(
-    requestContent: string,
-  ): AgentToolName[] | undefined {
-    if (!this.batchService.isBatchGenerationIntent(requestContent)) {
-      return undefined;
-    }
-
-    return [
-      AgentToolName.GENERATE_CONTENT_BATCH,
-      AgentToolName.BATCH_APPROVE_REJECT,
-      AgentToolName.GET_CURRENT_BRAND,
-      AgentToolName.LIST_BRANDS,
-      AgentToolName.LIST_REVIEW_QUEUE,
-    ];
-  }
-
-  private normalizeFinalAssistantContent(
-    content: string,
-    toolCalls: ToolCallSummary[],
-    uiActions: AgentUiAction[],
-  ): { content: string; isFallback: boolean } {
-    const hasBatchGenerationResultCard = uiActions.some(
-      (action) => action.type === 'batch_generation_result_card',
-    );
-
-    if (content.trim().length > 0) {
-      if (hasBatchGenerationResultCard) {
-        const normalizedBatchContent = content
-          .replace(/^\s*Batch Details:\s*$/gim, '')
-          .replace(/^\s*Batch ID:.*$/gim, '')
-          .replace(/^\s*Status:.*$/gim, '')
-          .replace(/^\s*Credits used:.*$/gim, '')
-          .replace(/\n{3,}/g, '\n\n')
-          .trim();
-
-        return {
-          content:
-            normalizedBatchContent.length > 0
-              ? normalizedBatchContent
-              : 'Your batch is in motion. The latest status is below.',
-          isFallback: false,
-        };
-      }
-
-      return { content, isFallback: false };
-    }
-
-    if (toolCalls.length === 0 && uiActions.length === 0) {
-      return { content, isFallback: false };
-    }
-
-    const hasVoiceCloneSetup = toolCalls.some(
-      (toolCall) =>
-        toolCall.status === 'completed' &&
-        toolCall.toolName === AgentToolName.PREPARE_VOICE_CLONE,
-    );
-
-    if (hasVoiceCloneSetup) {
-      return {
-        content:
-          'I opened voice clone setup below. Upload a sample or pick an existing voice.',
-        isFallback: true,
-      };
-    }
-
-    return { content: 'I prepared the next step below.', isFallback: true };
   }
 
   private async recordProfileSnapshot(
@@ -1936,133 +728,5 @@ export class AgentOrchestratorService {
     return this.agentExecutionLaneService.runExclusiveEffect(threadId, () =>
       fromPromiseEffect(run),
     );
-  }
-
-  private buildAgentChatCompletionParams(params: {
-    messages: OpenRouterMessage[];
-    model: string;
-    prompt: string;
-    seedTitle?: string;
-    source?: AgentChatRequest['source'];
-    tools: OpenRouterTool[];
-  }): {
-    max_tokens: number;
-    messages: OpenRouterMessage[];
-    model: string;
-    plugins?: OpenRouterPlugin[];
-    temperature: number;
-    tool_choice: 'auto';
-    tools: OpenRouterTool[];
-  } {
-    const routingPolicy = resolveAgentRoutingPolicy({
-      model: params.model,
-      prompt: params.prompt,
-      source: params.source,
-    });
-    const plugins = resolveAgentRoutingPlugins(routingPolicy);
-    const titleInstruction = params.seedTitle?.trim()
-      ? [
-          {
-            content:
-              'If you are ready to provide the final assistant reply for this new conversation and you are not making a tool call, respond with valid JSON only: {"title":"3 to 5 word title in title case","content":"full assistant reply"}. If you need to make a tool call, do that normally and ignore this formatting instruction until the final reply.',
-            role: 'system' as const,
-          },
-        ]
-      : [];
-
-    return {
-      max_tokens: 4096,
-      messages: [...titleInstruction, ...params.messages],
-      model: params.model,
-      ...(plugins ? { plugins } : {}),
-      temperature: 0.7,
-      tool_choice: 'auto',
-      tools: params.tools,
-    };
-  }
-
-  private buildResolvedModelMetadata(
-    requestedModel: string,
-    actualModels?: string[],
-  ): {
-    actualModel: string;
-    actualModels: string[];
-    model: string;
-    requestedModel: string;
-  } {
-    const normalizedActualModels = Array.from(
-      new Set((actualModels ?? []).filter((model) => model.trim().length > 0)),
-    );
-    const fallbackModel = requestedModel.trim() || requestedModel;
-    const actualModel = normalizedActualModels.at(-1) ?? fallbackModel;
-
-    return {
-      actualModel,
-      actualModels: normalizedActualModels.length
-        ? normalizedActualModels
-        : [actualModel],
-      model: actualModel,
-      requestedModel,
-    };
-  }
-
-  private normalizeResponseModel(
-    requestedModel: string,
-    responseModel?: string,
-  ): string {
-    const trimmedRequestedModel = requestedModel.trim();
-    const trimmedResponseModel = responseModel?.trim();
-
-    if (!trimmedResponseModel) {
-      return trimmedRequestedModel;
-    }
-
-    if (
-      !trimmedResponseModel.includes('/') &&
-      !trimmedRequestedModel.startsWith('openrouter/')
-    ) {
-      const provider = trimmedRequestedModel.split('/')[0];
-      return `${provider}/${trimmedResponseModel}`;
-    }
-
-    return trimmedResponseModel;
-  }
-
-  private async recordAgentResponseModel(params: {
-    actualModels?: string[];
-    context: AgentChatContext;
-    requestedModel: string;
-    responseModel?: string;
-    runId?: string;
-    source?: AgentChatRequest['source'];
-    threadId: string;
-  }): Promise<string> {
-    const actualModel = this.normalizeResponseModel(
-      params.requestedModel,
-      params.responseModel,
-    );
-
-    this.loggerService.log(`${this.constructorName} resolved agent response`, {
-      actualModel,
-      organizationId: params.context.organizationId,
-      requestedModel: params.requestedModel,
-      runId: params.runId,
-      source: params.source ?? 'agent',
-      threadId: params.threadId,
-      userId: params.context.userId,
-    });
-
-    if (params.runId) {
-      await this.agentRunsService.mergeMetadata(
-        params.runId,
-        params.context.organizationId,
-        this.buildResolvedModelMetadata(params.requestedModel, [
-          ...(params.actualModels ?? []),
-          actualModel,
-        ]),
-      );
-    }
-
-    return actualModel;
   }
 }

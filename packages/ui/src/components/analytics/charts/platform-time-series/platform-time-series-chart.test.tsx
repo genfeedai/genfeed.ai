@@ -1,3 +1,7 @@
+import type {
+  PlatformTimeSeriesChartProps,
+  PlatformTimeSeriesDataPoint,
+} from '@genfeedai/props/analytics/charts.props';
 import { PlatformTimeSeriesChart } from '@ui/analytics/charts/platform-time-series/platform-time-series-chart';
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
@@ -40,7 +44,7 @@ vi.mock('recharts', () => ({
   YAxis: () => <div data-testid="y-axis" />,
 }));
 
-const mockData = [
+const mockData: PlatformTimeSeriesDataPoint[] = [
   {
     date: '2024-01-01',
     instagram: 5000,
@@ -63,6 +67,10 @@ const mockData = [
     youtube: 2200,
   },
 ];
+
+type ChartPlatform = NonNullable<
+  PlatformTimeSeriesChartProps['platforms']
+>[number];
 
 const getPlatformButton = (label: string): HTMLButtonElement => {
   const button = screen.getByText(label).closest('button');
@@ -124,7 +132,12 @@ describe('PlatformTimeSeriesChart', () => {
     });
 
     it('shows empty message when data is undefined', () => {
-      render(<PlatformTimeSeriesChart data={undefined as any} />);
+      // Runtime defensive path: props require data, but callers may still pass nullish.
+      render(
+        <PlatformTimeSeriesChart
+          data={undefined as unknown as PlatformTimeSeriesDataPoint[]}
+        />,
+      );
       expect(screen.getByText('No data available')).toBeInTheDocument();
     });
 
@@ -400,7 +413,11 @@ describe('PlatformTimeSeriesChart', () => {
   });
 
   describe('All Platforms', () => {
-    const allPlatforms = [
+    const allPlatforms: Array<{
+      color: string;
+      label: string;
+      platform: ChartPlatform;
+    }> = [
       {
         color: 'var(--platform-instagram)',
         label: 'Instagram',
@@ -440,10 +457,7 @@ describe('PlatformTimeSeriesChart', () => {
       'renders $label button with correct color',
       ({ platform, label, color }) => {
         render(
-          <PlatformTimeSeriesChart
-            data={mockData}
-            platforms={[platform as any]}
-          />,
+          <PlatformTimeSeriesChart data={mockData} platforms={[platform]} />,
         );
         expect(screen.getByText(label)).toBeInTheDocument();
         const area = screen.getByTestId(`area-${platform}`);

@@ -29,7 +29,7 @@ import {
 } from './workspace-dashboard';
 import { workspaceInboxTableColumns } from './workspace-inbox-columns';
 import { WorkspaceOverviewSidebar } from './workspace-overview-sidebar';
-import { WorkspaceSnapshotSection } from './workspace-snapshot-section';
+import WorkspaceSnapshotSection from './workspace-snapshot-section';
 import {
   DEFAULT_REVIEW_INBOX,
   EMPTY_AGENT_RUNS,
@@ -290,7 +290,7 @@ function WorkspacePageContentContent({
                     ) : (
                       <span className="text-[11px] opacity-70">{count}</span>
                     ),
-                    href: `/workspace/inbox/${option.id}`,
+                    href: href(`/workspace/inbox/${option.id}`),
                     id: option.id,
                     label: option.label,
                   };

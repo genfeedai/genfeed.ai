@@ -142,6 +142,11 @@ export async function fetchPosts({
     data = await service.findAllPage(query);
   }
 
-  logger.info(`${url} success`, data.items);
+  logger.info(`${url} success`, {
+    itemCount: data.items.length,
+    page: data.page,
+    total: data.total,
+    totalPages: data.totalPages,
+  });
   return toPostsListResult(data);
 }

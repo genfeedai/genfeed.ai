@@ -11,12 +11,17 @@ import type {
   AgentChatRequest,
   AgentChatResult,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import {
   buildAgentRoutingMetadata,
   resolveAgentRoutingPlugins,
   resolveAgentRoutingPolicy,
 } from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';
 import { buildAgentScopeMetadata } from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
+import {
+  buildFallbackThreadTitle,
+  sanitizeGeneratedThreadTitle,
+} from '@api/services/agent-orchestrator/utils/agent-thread-title.util';
 import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/sanitize-agent-output.util';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type {
@@ -28,17 +33,15 @@ import { Injectable } from '@nestjs/common';
 
 /**
  * Host callbacks for plan-mode turns that still depend on orchestrator-owned
- * thread title helpers (shared with non-plan chat paths).
+ * thread title persistence (async DB update).
  */
 export type AgentOrchestratorPlanModeHost = {
-  buildFallbackThreadTitle: (prompt: string) => string;
   maybeUpdateThreadTitle: (params: {
     context: AgentChatContext;
     seedTitle: string;
     threadId: string;
     title: string | null;
   }) => Promise<void>;
-  sanitizeGeneratedThreadTitle: (title: string, prompt: string) => string;
 };
 
 @Injectable()
@@ -237,7 +240,7 @@ export class AgentOrchestratorPlanModeService {
         prompt: params.request.content,
         source: params.request.source,
       }),
-      ...this.buildResolvedModelMetadata(params.model),
+      ...buildResolvedModelMetadata(params.model),
       proposedPlan: plan,
       reviewRequired: true,
       riskLevel: 'low' as const,
@@ -379,9 +382,9 @@ export class AgentOrchestratorPlanModeService {
         : 'I drafted a plan and paused for your approval.';
     const title =
       typeof parsed?.title === 'string' && parsed.title.trim()
-        ? host.sanitizeGeneratedThreadTitle(parsed.title.trim(), params.prompt)
+        ? sanitizeGeneratedThreadTitle(parsed.title.trim(), params.prompt)
         : params.seedTitle.trim()
-          ? host.buildFallbackThreadTitle(params.prompt)
+          ? buildFallbackThreadTitle(params.prompt)
           : null;
     const steps = Array.isArray(parsed?.steps)
       ? (parsed?.steps as Record<string, unknown>[])
@@ -398,31 +401,6 @@ export class AgentOrchestratorPlanModeService {
       },
       summary,
       title,
-    };
-  }
-
-  private buildResolvedModelMetadata(
-    requestedModel: string,
-    actualModels?: string[],
-  ): {
-    actualModel: string;
-    actualModels: string[];
-    model: string;
-    requestedModel: string;
-  } {
-    const normalizedActualModels = Array.from(
-      new Set((actualModels ?? []).filter((model) => model.trim().length > 0)),
-    );
-    const fallbackModel = requestedModel.trim() || requestedModel;
-    const actualModel = normalizedActualModels.at(-1) ?? fallbackModel;
-
-    return {
-      actualModel,
-      actualModels: normalizedActualModels.length
-        ? normalizedActualModels
-        : [actualModel],
-      model: actualModel,
-      requestedModel,
     };
   }
 }
