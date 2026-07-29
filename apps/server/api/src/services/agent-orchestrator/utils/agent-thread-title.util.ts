@@ -15,7 +15,8 @@ export type AgentThreadTitlePersistence = {
 };
 
 export function buildSeedThreadTitle(content: string): string {
-  return content.substring(0, 100).trim();
+  // Trim first so leading/trailing whitespace does not steal budget from the cap.
+  return content.trim().substring(0, 100);
 }
 
 export function buildFallbackThreadTitle(prompt: string): string {
