@@ -93,10 +93,24 @@ export function createDeployRunTitle(correlationId) {
 }
 
 export function matchesCorrelatedDeployRun(run, { correlationId, masterSha }) {
+  const expectedTitle = createDeployRunTitle(correlationId);
+  const title = normalize(run?.display_title || run?.name);
+  const correlationMarker = `daily:${normalize(correlationId)}`;
+  const markerIndex = title.indexOf(correlationMarker);
+  const markerEnd = markerIndex + correlationMarker.length;
+  const markerSuffix =
+    markerIndex >= 0 ? title.slice(markerEnd, markerEnd + 1) : '';
+  const hasDelimitedCorrelationMarker =
+    markerIndex >= 0 &&
+    (markerSuffix === '' || /[\s()[\]{}·|/:;,]/u.test(markerSuffix));
+
   return (
     run?.event === 'workflow_dispatch' &&
     run?.head_sha === masterSha &&
-    run?.display_title === createDeployRunTitle(correlationId)
+    (title === expectedTitle ||
+      // Tolerate GitHub truncating display titles or surface name vs
+      // display_title differences while still requiring the exact marker.
+      (Boolean(normalize(correlationId)) && hasDelimitedCorrelationMarker))
   );
 }
 

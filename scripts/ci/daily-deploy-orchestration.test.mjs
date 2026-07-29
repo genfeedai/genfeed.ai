@@ -60,6 +60,28 @@ test('matches only the exact correlated workflow-dispatch run and master SHA', (
     ),
     false,
   );
+  assert.equal(
+    matchesCorrelatedDeployRun(
+      {
+        display_title: `Deploy ECS (production) · daily:${CORRELATION_ID} (extra)`,
+        event: 'workflow_dispatch',
+        head_sha: MASTER_SHA,
+      },
+      { correlationId: CORRELATION_ID, masterSha: MASTER_SHA },
+    ),
+    true,
+  );
+  assert.equal(
+    matchesCorrelatedDeployRun(
+      {
+        display_title: `Deploy ECS (production) · daily:${CORRELATION_ID}0`,
+        event: 'workflow_dispatch',
+        head_sha: MASTER_SHA,
+      },
+      { correlationId: CORRELATION_ID, masterSha: MASTER_SHA },
+    ),
+    false,
+  );
 });
 
 test('classifies the observed masked API shard failure before fail-fast cancellation', () => {
