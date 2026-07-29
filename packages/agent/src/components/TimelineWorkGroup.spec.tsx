@@ -63,19 +63,17 @@ function buildEntry(eventCount: number): TimelineWorkGroupEntry {
 }
 
 describe('TimelineWorkGroup', () => {
-  it('renders step count', () => {
+  it('renders step count at the trailing duration line for live groups', () => {
     render(<TimelineWorkGroup entry={buildEntry(5)} />);
     expect(screen.getByText(/5 steps/)).toBeTruthy();
+    expect(screen.getByText(/Working for/i)).toBeTruthy();
   });
 
-  it('shows all entries for live groups', () => {
+  it('shows all entries for live groups above the duration footer', () => {
     render(<TimelineWorkGroup entry={buildEntry(5)} />);
     const entries = screen.getAllByText(/^entry-e-/);
     expect(entries).toHaveLength(5);
     expect(screen.getByText('entry-e-0-active')).toBeTruthy();
-    expect(screen.getByText('entry-e-1-active')).toBeTruthy();
-    expect(screen.getByText('entry-e-2-active')).toBeTruthy();
-    expect(screen.getByText('entry-e-3-active')).toBeTruthy();
     expect(screen.getByText('entry-e-4-active')).toBeTruthy();
     expect(screen.queryByText(/Show .* more/)).toBeNull();
   });
@@ -85,7 +83,7 @@ describe('TimelineWorkGroup', () => {
     expect(screen.getByText(/1 step(?!s)/)).toBeTruthy();
   });
 
-  it('renders archived groups collapsed by default with completion header', () => {
+  it('renders settled groups collapsed with trailing Worked for duration', () => {
     render(
       <TimelineWorkGroup
         entry={{
@@ -101,7 +99,7 @@ describe('TimelineWorkGroup', () => {
     expect(screen.queryByText('entry-e-0-active')).toBeNull();
   });
 
-  it('expands and collapses archived groups from the compact header', () => {
+  it('expands and collapses settled groups from the trailing duration row', () => {
     render(
       <TimelineWorkGroup
         entry={{
@@ -115,6 +113,8 @@ describe('TimelineWorkGroup', () => {
     fireEvent.click(screen.getByRole('button', { name: /Worked for 4s/i }));
     expect(screen.getByText('entry-e-0-active')).toBeTruthy();
     expect(screen.getByText('entry-e-1-active')).toBeTruthy();
+    // Duration stays at the end after expand
+    expect(screen.getByText('Worked for 4s')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: /Worked for 4s/i }));
     expect(screen.queryByText('entry-e-0-active')).toBeNull();
@@ -160,5 +160,6 @@ describe('TimelineWorkGroup', () => {
     expect(screen.getByText('entry-e-running-stopped')).toBeTruthy();
     expect(screen.getByText('entry-e-pending-stopped')).toBeTruthy();
     expect(screen.getByText('entry-e-failed-active')).toBeTruthy();
+    expect(screen.getByText('Worked for 2s')).toBeTruthy();
   });
 });

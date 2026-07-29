@@ -15,6 +15,10 @@ interface TimelineStreamingRowProps {
   entry: TimelineStreaming;
 }
 
+/**
+ * Live stream card. T3 places "Working for …" at the end of the turn; we
+ * mirror that — status + tools + text first, duration always last.
+ */
 export function TimelineStreamingRow({
   entry,
 }: TimelineStreamingRowProps): ReactElement | null {
@@ -42,16 +46,11 @@ export function TimelineStreamingRow({
     hasReasoning ||
     hasToolCalls ||
     hasWorkEvents;
-  const statusLabel =
-    progressSummary.label === 'Thinking' && runDurationLabel
-      ? `Thinking for ${runDurationLabel}`
-      : progressSummary.label;
 
   if (!hasAnything) {
     return null;
   }
 
-  // Convert active tool calls to enriched work events for TimelineWorkEntry
   const toolCallEvents = streamState.activeToolCalls.map((tc) => ({
     createdAt: new Date().toISOString(),
     debug: tc.debug,
@@ -81,47 +80,41 @@ export function TimelineStreamingRow({
   }));
   const nonToolWorkEvents = workEvents.filter((event) => !event.toolCallId);
 
+  const durationFooter =
+    runDurationLabel != null && runDurationLabel.length > 0
+      ? streamState.isStreaming
+        ? `Working for ${runDurationLabel}`
+        : `Worked for ${runDurationLabel}`
+      : streamState.isStreaming
+        ? 'Working…'
+        : null;
+
   return (
     <div className="mb-3 flex justify-start motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out">
-      <div className="w-full max-w-none space-y-2 rounded-2xl border border-border/65 bg-background-secondary/68 px-4 py-3 shadow-[0_1px_0_rgba(0,0,0,0.18)]">
-        <div className="px-0 py-0.5">
-          <div className="flex items-center gap-1.5 text-[11px] text-foreground/46">
-            <HiSparkles className="size-3.5 text-primary/70" />
-            <AnimatedStatusText
-              text={statusLabel}
-              className="font-medium tracking-[0.01em]"
-            />
-            {progressSummary.label !== 'Thinking' && runDurationLabel ? (
-              <>
-                <span aria-hidden="true" className="text-muted-foreground/60">
-                  •
-                </span>
-                <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-[0.12em] text-foreground/38">
-                  <HiClock className="size-3" />
-                  <span>{runDurationLabel}</span>
-                </span>
-              </>
-            ) : null}
-          </div>
-          {progressSummary.detail && !hasContent ? (
-            <p className="mt-2 rounded-xl border border-border/55 bg-background/55 px-3 py-2 text-[11px] leading-relaxed text-foreground/54">
-              {progressSummary.detail}
-            </p>
-          ) : null}
+      <div className="w-full max-w-none space-y-2 rounded-lg border border-border/65 bg-background-secondary/68 px-3 py-2.5 shadow-[0_1px_0_rgba(0,0,0,0.18)]">
+        <div className="flex items-center gap-1.5 text-[11px] text-foreground/50">
+          <HiSparkles className="size-3.5 text-primary/70" />
+          <AnimatedStatusText
+            text={progressSummary.label}
+            className="font-medium tracking-[0.01em]"
+          />
         </div>
 
-        {/* Active tool calls as compact rows */}
+        {progressSummary.detail && !hasContent ? (
+          <p className="rounded-md border border-border/55 bg-background/55 px-3 py-2 text-[11px] leading-relaxed text-foreground/54">
+            {progressSummary.detail}
+          </p>
+        ) : null}
+
         {toolCallEvents.map((event) => (
           <TimelineWorkEntry key={event.id} event={event} />
         ))}
 
-        {/* Completed work events from the active run */}
         {nonToolWorkEvents.map((event) => (
           <TimelineWorkEntry key={event.id} event={event} />
         ))}
 
-        {/* Streaming content */}
-        {hasContent && (
+        {hasContent ? (
           <div className="px-0 py-1">
             <p className="whitespace-pre-wrap break-words text-sm leading-6 text-foreground">
               {displayedText}
@@ -130,7 +123,16 @@ export function TimelineStreamingRow({
               )}
             </p>
           </div>
-        )}
+        ) : null}
+
+        {durationFooter ? (
+          <div className="flex items-center gap-1.5 border-t border-border/50 pt-2 text-xs text-foreground/55">
+            <HiClock className="size-3.5 shrink-0 text-foreground/40" />
+            <span className="font-medium text-foreground/70">
+              {durationFooter}
+            </span>
+          </div>
+        ) : null}
       </div>
     </div>
   );
