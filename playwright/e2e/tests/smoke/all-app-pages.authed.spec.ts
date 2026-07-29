@@ -61,20 +61,65 @@ function buildProtectedRoutes(orgSlug: string, brandSlug: string): string[] {
   ];
 }
 
-function readScopedOverviewSlugs(page: Page): {
+type BootstrapBrand = {
+  organization?: { slug?: string } | null;
+  slug?: string;
+};
+
+type BootstrapPayload = {
+  brands?: BootstrapBrand[];
+};
+
+/**
+ * Independent workspace oracle (#2162 / #2164).
+ * Do NOT derive expected org/brand slugs from `page.url()` — that would let a
+ * redirect to the wrong non-empty workspace pass. Read them from the
+ * authenticated bootstrap payload instead.
+ */
+async function readWorkspaceOracleFromBootstrap(page: Page): Promise<{
   brandSlug: string;
   orgSlug: string;
-} {
-  const segments = new URL(page.url()).pathname.split('/').filter(Boolean);
-  expect(segments.slice(2)).toEqual(['workspace', 'overview']);
+}> {
+  const bootstrapResponsePromise = page.waitForResponse(
+    (response) => {
+      try {
+        const url = new URL(response.url());
+        return (
+          url.pathname.endsWith('/auth/bootstrap') &&
+          response.request().method() === 'GET' &&
+          response.ok()
+        );
+      } catch {
+        return false;
+      }
+    },
+    { timeout: 180_000 },
+  );
 
-  const [orgSlug = '', brandSlug = ''] = segments;
-  expect(orgSlug).toBeTruthy();
-  expect(brandSlug).toBeTruthy();
+  await assertRouteLoads(page, '/');
+  const response = await bootstrapResponsePromise;
+  const payload = (await response.json()) as BootstrapPayload;
+  const brands = payload.brands ?? [];
+  expect(
+    brands.length,
+    'bootstrap returned no brands for workspace oracle',
+  ).toBeGreaterThan(0);
+
+  const selected = brands.find(
+    (brand) =>
+      typeof brand.slug === 'string' &&
+      brand.slug.length > 0 &&
+      typeof brand.organization?.slug === 'string' &&
+      brand.organization.slug.length > 0,
+  );
+  expect(
+    selected,
+    'bootstrap brand missing slug + organization.slug',
+  ).toBeTruthy();
 
   return {
-    brandSlug,
-    orgSlug,
+    brandSlug: selected?.slug as string,
+    orgSlug: selected?.organization?.slug as string,
   };
 }
 
@@ -85,9 +130,9 @@ test.describe('Authenticated route smoke (real Better Auth session)', () => {
     const networkGuard = await setupStrictNetworkGuard(page, { strict: true });
 
     // `/` resolves the user's selected workspace from the authenticated
-    // bootstrap payload and redirects to its scoped overview.
-    await assertRouteLoads(page, '/');
-    const { brandSlug, orgSlug } = readScopedOverviewSlugs(page);
+    // bootstrap payload and redirects to its scoped overview. Oracle slugs
+    // come from the bootstrap response, not from the redirected URL.
+    const { brandSlug, orgSlug } = await readWorkspaceOracleFromBootstrap(page);
     expect(new URL(page.url()).pathname).toBe(
       createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.WORKSPACE.OVERVIEW),
     );

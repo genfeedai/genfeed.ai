@@ -186,17 +186,39 @@ const ROUTE_SHAPE_RE = /^\/[\w\-~/*]*$/;
 /**
  * Read the shared APP_ROUTES object without importing TypeScript into this
  * dependency-free Node script.
+ * Supports single-line and multiline value forms:
+ *   KEY: '/path',
+ *   KEY:
+ *     '/path',
+ * @param {string} [source] optional source text (tests)
  * @returns {Map<string, string>}
  */
-function readAppRouteConstants() {
+export function readAppRouteConstants(source) {
   const routes = new Map();
   const stack = [];
   let insideAppRoutes = false;
+  /** @type {string | null} */
+  let pendingKey = null;
+  const text = source ?? readFileSync(appRoutesFile, 'utf8');
 
-  for (const line of readFileSync(appRoutesFile, 'utf8').split('\n')) {
+  for (const line of text.split(/\r?\n/)) {
     if (!insideAppRoutes) {
       insideAppRoutes = /^export const APP_ROUTES = \{$/.test(line);
       continue;
+    }
+
+    if (pendingKey) {
+      const multilineValue = line.match(/^\s*(['"`])(\/[^'"`]*)\1,?\s*$/);
+      if (multilineValue) {
+        routes.set(
+          ['APP_ROUTES', ...stack, pendingKey].join('.'),
+          multilineValue[2],
+        );
+        pendingKey = null;
+        continue;
+      }
+      // Fall through if the next line is not a bare path value.
+      pendingKey = null;
     }
 
     const group = line.match(/^\s*([A-Z][A-Z0-9_]*):\s*\{$/);
@@ -213,6 +235,13 @@ function readAppRouteConstants() {
       continue;
     }
 
+    // Multiline key with value on the following line (ELEMENTS_CAMERA_MOVEMENTS).
+    const bareKey = line.match(/^\s*([A-Z][A-Z0-9_]*):\s*$/);
+    if (bareKey) {
+      pendingKey = bareKey[1];
+      continue;
+    }
+
     if (/^\s*},?\s*$/.test(line)) {
       if (stack.length === 0) break;
       stack.pop();
@@ -220,6 +249,28 @@ function readAppRouteConstants() {
   }
 
   return routes;
+}
+
+/**
+ * Resolve an APP_ROUTES reference plus any immediate path suffix
+ * (`APP_ROUTES.X + '/mock-id'` or `${APP_ROUTES.X}/mock-id`).
+ * @param {string} src
+ * @param {number} matchIndex
+ * @param {number} matchLength
+ * @returns {string}
+ */
+export function readAppRouteSuffix(src, matchIndex, matchLength) {
+  const after = src.slice(matchIndex + matchLength, matchIndex + matchLength + 48);
+  const concat = after.match(/^\s*\+\s*['"`](\/[^'"`]*)['"`]/);
+  if (concat) {
+    return concat[1];
+  }
+  // Template: `${APP_ROUTES.FOO}/mock-id` — after the closing `}` of ${...}
+  const templateTail = after.match(/^\}(\/[\w\-/*]*)/);
+  if (templateTail) {
+    return templateTail[1];
+  }
+  return '';
 }
 
 /**
@@ -261,7 +312,13 @@ function collectNavigatedKeys() {
 
     for (const match of src.matchAll(APP_ROUTE_REFERENCE_RE)) {
       const route = appRoutes.get(match[0]);
-      if (route) keys.add(canonicalize(route));
+      if (!route) continue;
+      const suffix = readAppRouteSuffix(
+        src,
+        match.index ?? 0,
+        match[0].length,
+      );
+      keys.add(canonicalize(`${route}${suffix}`));
     }
 
     for (const match of src.matchAll(STRING_LITERAL_RE)) {
@@ -350,4 +407,10 @@ function safeExists(p) {
   }
 }
 
-main();
+const isDirectRun =
+  process.argv[1] &&
+  path.resolve(fileURLToPath(import.meta.url)) === path.resolve(process.argv[1]);
+
+if (isDirectRun) {
+  main();
+}
