@@ -79,7 +79,12 @@ export function useAgentThreadList({
     abortRef.current?.abort();
     abortRef.current = new AbortController();
 
-    setIsLoading(true);
+    // Only flip loading when the store is empty so thread switches / soft
+    // refreshes do not replace the list with a spinner.
+    const hasExistingThreads = useAgentChatStore.getState().threads.length > 0;
+    if (!hasExistingThreads) {
+      setIsLoading(true);
+    }
     try {
       const data = await runAgentApiEffect(
         apiService.getThreadsEffect(

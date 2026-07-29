@@ -158,8 +158,6 @@ function AppLayoutWithDynamicMenu({
     studioMenuItems,
     workflowsMenuItems,
     taskContextSearchParams,
-    conversationActions,
-    setConversationActions,
     handleNavigate,
     handleOpenCommandPalette,
     isLowCreditsBannerEnabled,
@@ -197,34 +195,36 @@ function AppLayoutWithDynamicMenu({
   }, [isWorkspaceShellMounted, workspaceShellRoute?.telemetryClass]);
 
   const renderConversations = useCallback(
-    (searchAction?: ReactNode) =>
+    (
+      searchAction?: ReactNode,
+      onActionsChange?: (actions: ReactNode) => void,
+    ) =>
       agentApiService ? (
         <LazyAgentThreadList
           apiService={agentApiService}
           onNavigate={handleNavigate}
-          onActionsChange={setConversationActions}
+          onActionsChange={onActionsChange}
           searchAction={searchAction}
         />
       ) : null,
-    [agentApiService, handleNavigate, setConversationActions],
+    [agentApiService, handleNavigate],
   );
 
   // The conversation module's nav column. It is handed to the sidebar as a
   // panel rather than special-cased there, so the next module to own its
   // column (Library → collections, Workflows → runs) uses the same seam.
+  // Keep this identity stable — do not depend on header actions, or the
+  // thread list remounts (and reloads) on every action publish / thread switch.
   const conversationNavPanel = useMemo<SidebarNavPanel | null>(
     () =>
       isConversationRoute
         ? {
             render: () => (
-              <AgentSidebarContent
-                conversationActions={conversationActions}
-                renderConversations={renderConversations}
-              />
+              <AgentSidebarContent renderConversations={renderConversations} />
             ),
           }
         : null,
-    [conversationActions, isConversationRoute, renderConversations],
+    [isConversationRoute, renderConversations],
   );
   const workspaceNavPanel = useWorkspaceNavPanel();
   const setWorkspaceNavPanelPortalTarget =

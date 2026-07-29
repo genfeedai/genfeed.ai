@@ -1,7 +1,5 @@
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import {
-  type ConversationSidebarFilter,
-  ConversationSidebarFilters,
   ConversationSidebarSearch,
   ConversationSidebarSection,
 } from '@genfeedai/ui';
@@ -40,7 +38,9 @@ export function AgentThreadList({
   onActionsChange,
   searchAction,
 }: AgentThreadListProps): ReactElement {
-  const [filter, setFilter] = useState<AgentThreadListFilter>('all');
+  // Filter chips were removed — they forced horizontal scroll in a narrow
+  // column. Grouping (Needs you / Working / Pinned / Recent) is the filter.
+  const filter: AgentThreadListFilter = 'all';
   const [searchQuery, setSearchQuery] = useState('');
   const {
     threads,
@@ -78,31 +78,19 @@ export function AgentThreadList({
     handleRetryLoad,
   } = useAgentThreadList({ apiService, isActive, onNavigate });
 
-  const unfilteredGroups = useMemo(
-    () =>
-      groupAgentThreads(threads, {
-        activeRunStatus,
-        activeThreadId,
-        filter: 'all',
-        isStreaming,
-        searchQuery: '',
-      }),
-    [activeRunStatus, activeThreadId, isStreaming, threads],
-  );
-  const activeFilter = isArchivedView ? 'all' : filter;
   const groups = useMemo(
     () =>
       groupAgentThreads(threads, {
         activeRunStatus,
         activeThreadId,
-        filter: activeFilter,
+        filter,
         isStreaming,
         searchQuery,
       }),
     [
       activeRunStatus,
       activeThreadId,
-      activeFilter,
+      filter,
       isStreaming,
       searchQuery,
       threads,
@@ -113,33 +101,6 @@ export function AgentThreadList({
     groups.working.length +
     groups.pinned.length +
     groups.recent.length;
-  const filters = useMemo<
-    readonly ConversationSidebarFilter<AgentThreadListFilter>[]
-  >(
-    () => [
-      { label: 'All', value: 'all' },
-      {
-        count: unfilteredGroups.needsYou.length,
-        label: 'Needs you',
-        value: 'needs-you',
-      },
-      {
-        count: unfilteredGroups.working.length,
-        label: 'Working',
-        value: 'working',
-      },
-      {
-        count: threads.filter((thread) => thread.isPinned).length,
-        label: 'Pinned',
-        value: 'pinned',
-      },
-    ],
-    [
-      threads,
-      unfilteredGroups.needsYou.length,
-      unfilteredGroups.working.length,
-    ],
-  );
 
   const headerActions = useMemo(() => {
     if (!shouldShowHeader) {
@@ -168,8 +129,12 @@ export function AgentThreadList({
     return () => onActionsChange?.(null);
   }, [headerActions, onActionsChange]);
 
+  // Only replace the list with a spinner on the first load. Background
+  // refreshes keep the existing rows so switching threads does not flash.
   const showEmptyOrLoadStates =
-    isLoading || shouldShowLoadFailureState || shouldShowEmptyState;
+    (isLoading && threads.length === 0) ||
+    shouldShowLoadFailureState ||
+    shouldShowEmptyState;
 
   const renderThreadRow = (conv: (typeof threads)[number]) => (
     <AgentThreadListRow
@@ -238,14 +203,6 @@ export function AgentThreadList({
         value={searchQuery}
         onChange={setSearchQuery}
       />
-      {!isArchivedView ? (
-        <ConversationSidebarFilters
-          ariaLabel="Filter agent conversations"
-          filters={filters}
-          value={filter}
-          onChange={setFilter}
-        />
-      ) : null}
 
       <div
         data-testid="agent-thread-list-scroll"

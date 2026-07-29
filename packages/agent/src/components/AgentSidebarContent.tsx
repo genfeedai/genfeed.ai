@@ -5,9 +5,7 @@ import {
 } from '@genfeedai/agent/constants/agent-panel.constant';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import type { ReactElement } from 'react';
 import { HiArrowLeft, HiPlus } from 'react-icons/hi2';
@@ -24,18 +22,13 @@ export function AgentSidebarContent({
   const { href, orgHref } = useOrgUrl();
 
   const newThreadAction = (
-    <Button
-      asChild
-      ariaLabel="New agent thread"
-      className="size-8 shrink-0 rounded-md border border-border bg-foreground/[0.025] text-foreground/48 hover:bg-foreground/[0.07] hover:text-foreground"
-      size={ButtonSize.ICON}
-      variant={ButtonVariant.UNSTYLED}
-      withWrapper={false}
+    <Link
+      href={orgHref(APP_ROUTES.AGENT.NEW)}
+      aria-label="New agent thread"
+      className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background-secondary text-foreground/70 transition-colors hover:bg-foreground/[0.08] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
     >
-      <Link href={orgHref(APP_ROUTES.AGENT.NEW)}>
-        <HiPlus className="size-4" />
-      </Link>
-    </Button>
+      <HiPlus className="size-4" aria-hidden="true" />
+    </Link>
   );
 
   return (
