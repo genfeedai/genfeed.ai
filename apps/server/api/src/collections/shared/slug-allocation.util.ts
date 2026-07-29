@@ -30,14 +30,27 @@ export function isSlugUniqueConstraintError(error: unknown): boolean {
 }
 
 /**
- * Deterministic next candidate after a collision.
- * attempt 0 → base, 1 → base-2, 2 → base-3, …
+ * Deterministic next candidate after a collision. Continue from an existing
+ * allocator suffix instead of restarting at `-2`.
+ * `acme`, attempt 1 → `acme-2`; `acme-17`, attempt 1 → `acme-18`.
  */
-export function nextSlugCandidate(base: string, attempt: number): string {
+export function nextSlugCandidate(
+  preferredSlug: string,
+  attempt: number,
+): string {
+  const trimmed = preferredSlug.trim();
   if (attempt <= 0) {
-    return base;
+    return trimmed;
   }
-  return `${base}-${attempt + 1}`;
+  const match = trimmed.match(/^(.*?)-(\d+)$/);
+  if (match) {
+    const [, prefix, suffix] = match;
+    const numericSuffix = Number(suffix);
+    if (prefix && numericSuffix >= 2) {
+      return `${prefix}-${numericSuffix + attempt}`;
+    }
+  }
+  return `${trimmed}-${attempt + 1}`;
 }
 
 /**

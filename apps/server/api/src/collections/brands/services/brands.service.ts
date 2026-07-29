@@ -114,7 +114,7 @@ export class BrandsService extends BaseService<
       const candidate =
         attempt === 0
           ? preferredSlug
-          : nextSlugCandidate(allocationBase, attempt);
+          : nextSlugCandidate(preferredSlug, attempt);
 
       try {
         brand = await super.create({
