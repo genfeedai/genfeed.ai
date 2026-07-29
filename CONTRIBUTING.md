@@ -28,8 +28,18 @@ dependencies or update `bun.lock`.
 git clone https://github.com/<your-account>/genfeed.ai.git
 cd genfeed.ai
 bun install
+bun run dev:setup
 cp .env.example .env.local
 ```
+
+`bun run dev:setup` is the required one-time local host setup. It installs or
+verifies the repository-pinned Portless startup service with HTTPS on port
+`443`, `.localhost` routes, and hosts-file synchronization disabled. macOS and
+Linux may request administrator approval to install the startup service and
+trust the local certificate authority. The command is idempotent and can be
+rerun to repair the configuration.
+
+Verify the machine contract at any time with `bun run dev:doctor`.
 
 Edit `.env.local` before generating workspace env files. At minimum, align the
 database credentials with `docker/local/docker-compose.yml`:
@@ -63,13 +73,17 @@ require local Node.js or Bun. See [docs/self-hosting.md](docs/self-hosting.md).
 Normal `bun run dev*` commands use Portless over trusted local HTTPS:
 
 - App: `https://app.genfeed.localhost`
+- Website: `https://website.genfeed.localhost`
+- Docs: `https://docs.genfeed.localhost`
 - API: `https://api.genfeed.localhost`
+- Files: `https://files.genfeed.localhost`
+- MCP: `https://mcp.genfeed.localhost`
 - Notifications: `https://notifications.genfeed.localhost`
 
-`*.localhost` resolves to loopback without `/etc/hosts`. The repository runner
-enables Portless HTTPS on the standard port and disables hosts-file
-synchronization. Portless performs a one-time local CA trust on first use.
-Linked worktrees receive branch-prefixed routes automatically.
+`*.localhost` resolves to loopback without `/etc/hosts`. The required
+`bun run dev:setup` command installs the startup proxy, while every repository
+runner enforces HTTPS on the standard port and disables hosts-file
+synchronization. Linked worktrees receive branch-prefixed routes automatically.
 
 The app keeps browser API and auth traffic on its own `/v1` route, which Next.js
 proxies to the matching Portless API route. Runtime endpoint and redirect

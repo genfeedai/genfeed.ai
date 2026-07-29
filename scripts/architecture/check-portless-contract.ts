@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { PORTLESS_PROXY_ENVIRONMENT } from '../dev/portless-env';
+import { PORTLESS_SERVICE_INSTALL_ARGS } from '../dev/setup-portless';
 
 const ROUTED_SERVICES = [
   { directory: 'apps/app', runnerPath: '../../', service: 'app' },
@@ -30,6 +31,8 @@ const ROUTED_SERVICES = [
 
 const DEFAULT_SCRIPT_EXPECTATIONS = {
   dev: 'bun run dev:portless:all',
+  'dev:doctor': 'bun run scripts/dev/setup-portless.ts --check',
+  'dev:setup': 'bun run scripts/dev/setup-portless.ts',
   'dev:all': 'bun run dev:portless:all',
   'dev:app': 'bun run dev:portless:app',
   'dev:app:be': 'bun run dev:portless:essentials',
@@ -43,6 +46,7 @@ const DEFAULT_SCRIPT_EXPECTATIONS = {
 } as const;
 
 type PackageManifest = {
+  devDependencies?: Record<string, string>;
   scripts?: Record<string, string>;
 };
 
@@ -116,6 +120,10 @@ export function checkPortlessContract(
     path.join(rootDir, 'scripts/dev/run-portless.ts'),
     'utf8',
   );
+  const portlessSetup = readFileSync(
+    path.join(rootDir, 'scripts/dev/setup-portless.ts'),
+    'utf8',
+  );
 
   if (
     PORTLESS_PROXY_ENVIRONMENT.PORTLESS_HTTPS !== '1' ||
@@ -128,6 +136,26 @@ export function checkPortlessContract(
       message:
         'Portless must enforce HTTPS on 443 with .localhost routes and hosts-file synchronization disabled',
       path: 'scripts/dev/run-portless.ts',
+    });
+  }
+
+  if (rootManifest.devDependencies?.portless !== '0.15.4') {
+    violations.push({
+      message:
+        'Portless must remain an exact, repository-owned development dependency at version 0.15.4',
+      path: 'package.json',
+    });
+  }
+
+  if (
+    PORTLESS_SERVICE_INSTALL_ARGS.join(' ') !==
+      'service install --https --port 443 --tld localhost' ||
+    !portlessSetup.includes('...PORTLESS_PROXY_ENVIRONMENT')
+  ) {
+    violations.push({
+      message:
+        'dev:setup must install the Portless HTTPS startup service on port 443 with .localhost routes',
+      path: 'scripts/dev/setup-portless.ts',
     });
   }
 

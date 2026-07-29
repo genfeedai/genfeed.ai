@@ -3,8 +3,24 @@
 Clean Portless HTTPS routes are the canonical interactive-development contract:
 
 - `https://app.genfeed.localhost`
+- `https://website.genfeed.localhost`
+- `https://docs.genfeed.localhost`
 - `https://api.genfeed.localhost`
+- `https://files.genfeed.localhost`
+- `https://mcp.genfeed.localhost`
 - `https://notifications.genfeed.localhost`
+
+Install or verify the required startup service once per development machine:
+
+```bash
+bun run dev:setup
+```
+
+The command is idempotent. It uses the repository-pinned Portless dependency,
+installs HTTPS on port `443` with `.localhost` routes, disables hosts-file
+synchronization, and verifies the resulting service status. Administrator
+approval may be required to install the startup service and trust the local CA.
+Run `bun run dev:doctor` for a read-only verification of the installed service.
 
 Linked worktrees automatically add their branch prefix to every route. The
 repository runner derives sibling URLs from each process's `PORTLESS_URL`, so

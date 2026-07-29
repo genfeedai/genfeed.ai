@@ -21,7 +21,7 @@ Eliminate endpoint and auth-cookie drift across local apps and services while pr
 
 ## Decision
 
-Use approach 2. The repository wrapper always starts Portless as HTTPS on port `443`, disables hosts-file synchronization, and derives every sibling service origin from `PORTLESS_URL`. Root `dev*` commands use that contract; package `dev:direct` and root `dev:direct:*` commands retain the fixed-port escape hatch through an explicit direct-runtime environment adapter.
+Use approach 2. The repository pins Portless as a development dependency and exposes `bun run dev:setup` as an idempotent machine-onboarding command that installs or verifies the HTTPS startup service. The repository wrapper always starts Portless as HTTPS on port `443`, disables hosts-file synchronization, and derives every sibling service origin from `PORTLESS_URL`. Root `dev*` commands use that contract; package `dev:direct` and root `dev:direct:*` commands retain the fixed-port escape hatch through an explicit direct-runtime environment adapter.
 
 The app's public API variables point to its own `/v1` route. Next.js rewrites that route to the derived API origin, keeping Better Auth cookies host-scoped to one app/worktree instead of sharing them across `*.genfeed.localhost`. Server-to-server variables use the direct derived service origins.
 

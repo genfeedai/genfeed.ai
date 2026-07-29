@@ -16,6 +16,8 @@ names, trusted local HTTPS, and worktree isolation. Mixing a Portless app origin
 API origin split Better Auth's local cookie context and caused magic-link failure.
 
 **Apply:**
+- Run `bun run dev:setup` once per development machine. It idempotently installs or verifies the
+  repository-pinned Portless HTTPS startup service and never synchronizes `/etc/hosts`.
 - Normal root `dev*` commands use `https://<service>.genfeed.localhost`; linked worktrees
   automatically receive a branch prefix.
 - `scripts/dev/run-portless.ts` pins HTTPS, port `443`, `.localhost`, and no hosts-file sync,

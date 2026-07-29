@@ -22,7 +22,7 @@ Make worktree-aware Portless HTTPS routes the only default interactive local-dev
 
 ## Interfaces
 
-- `scripts/dev/run-portless.ts`, `scripts/dev/portless-env.ts`, and the direct-runtime environment adapter.
+- `scripts/dev/setup-portless.ts`, `scripts/dev/run-portless.ts`, `scripts/dev/portless-env.ts`, and the direct-runtime environment adapter.
 - Root `dev*`, `dev:portless:*`, and explicit `dev:direct:*` commands.
 - Root `.env.local` and generated app/service env files as canonical service-origin configuration.
 - Next.js `NEXT_PUBLIC_*` values.
@@ -34,6 +34,8 @@ Make worktree-aware Portless HTTPS routes the only default interactive local-dev
 ## Acceptance criteria
 
 - THE SYSTEM SHALL use clean HTTPS Portless routes on port `443` for every normal interactive-development command.
+- THE REPOSITORY SHALL pin Portless as an exact development dependency, expose `bun run dev:setup` as the required idempotent machine-onboarding command, and expose `bun run dev:doctor` as its read-only verification.
+- WHEN a developer runs `bun run dev:setup`, THE SYSTEM SHALL install or verify an HTTPS startup service on port `443` with `.localhost` routes, no LAN exposure, and hosts-file synchronization disabled.
 - THE SYSTEM SHALL enable Portless TLS and disable hosts-file synchronization in the repository runner.
 - THE SYSTEM SHALL expose `https://<service>.genfeed.localhost` without an explicit port for every routed interactive service.
 - THE SYSTEM SHALL preserve Portless worktree prefixes when deriving sibling service origins.
@@ -52,7 +54,7 @@ Make worktree-aware Portless HTTPS routes the only default interactive local-dev
 ## Test plan
 
 - Test main-checkout, worktree-prefixed, clean HTTPS, custom-TLD, trusted-origin, redirect, and malformed Portless URL derivation.
-- Guard package scripts, route mappings, default commands, and Turbo concurrency as an architecture invariant.
+- Guard the Portless dependency, setup command, package scripts, route mappings, default commands, and Turbo concurrency as architecture invariants.
 - Guard the HTTPS/443/no-hosts-sync proxy contract and canonical environment-example origins.
 - Test CORS acceptance for canonical HTTPS Portless routes and worktree prefixes.
 - Retain explicit compatibility assertions for Better Auth, CORS, Next development origins, terminal origins, extension host permissions, and local-only guards.
