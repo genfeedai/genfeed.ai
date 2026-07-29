@@ -145,12 +145,11 @@ describe('LoginPage', () => {
       screen.getByRole('heading', { name: 'Sign in with a magic link' }),
     ).toBeInTheDocument();
     expect(getEmailInput()).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Email me a sign-in link' }),
-    ).toBeDisabled();
-    expect(
-      screen.getByRole('link', { name: 'Back to sign in options' }),
-    ).toHaveClass('h-10', 'w-full');
+    expect(screen.getByRole('button', { name: 'Send link' })).toBeDisabled();
+    expect(screen.getByRole('link', { name: 'Back' })).toHaveClass(
+      'h-10',
+      'w-full',
+    );
   });
 
   it('sends a magic-link sign-in with the default callback URL', async () => {
@@ -159,9 +158,7 @@ describe('LoginPage', () => {
     fireEvent.change(getEmailInput(), {
       target: { value: 'user@example.com' },
     });
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Email me a sign-in link' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Send link' }));
 
     await waitFor(() => {
       expect(authClientMocks.magicLink).toHaveBeenCalledWith({
@@ -184,9 +181,7 @@ describe('LoginPage', () => {
     fireEvent.change(getEmailInput(), {
       target: { value: 'cli@example.com' },
     });
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Email me a sign-in link' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Send link' }));
 
     await waitFor(() => {
       expect(authClientMocks.magicLink).toHaveBeenCalledWith({

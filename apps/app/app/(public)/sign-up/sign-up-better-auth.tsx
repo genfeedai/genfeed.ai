@@ -178,7 +178,7 @@ export default function SignUpBetterAuth({
         logoSize="compact"
         title="Check your email"
       >
-        <AuthCheckEmail backHref={chooserHref} backLabel="Back to sign up" />
+        <AuthCheckEmail backHref={chooserHref} />
       </AuthFormLayout>
     );
   }
@@ -212,10 +212,7 @@ export default function SignUpBetterAuth({
               <p className="text-sm text-destructive">{errorMessage}</p>
             ) : null}
 
-            <AuthFormActions
-              backHref={chooserHref}
-              backLabel="Back to sign up options"
-            >
+            <AuthFormActions backHref={chooserHref}>
               <Button
                 type="submit"
                 variant={ButtonVariant.DEFAULT}
@@ -224,7 +221,7 @@ export default function SignUpBetterAuth({
                 className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
                 withWrapper={false}
               >
-                Email me a sign-up link
+                Send link
               </Button>
             </AuthFormActions>
           </form>

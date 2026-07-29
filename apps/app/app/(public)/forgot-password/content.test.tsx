@@ -59,12 +59,11 @@ describe('ForgotPasswordContent', () => {
       screen.getByRole('heading', { name: 'Reset your password' }),
     ).toBeInTheDocument();
     expect(getEmailInput()).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Email me a reset link' }),
-    ).toBeDisabled();
-    expect(
-      screen.getByRole('link', { name: 'Back to sign in' }),
-    ).toHaveAttribute('href', '/login/password');
+    expect(screen.getByRole('button', { name: 'Send link' })).toBeDisabled();
+    expect(screen.getByRole('link', { name: 'Back' })).toHaveAttribute(
+      'href',
+      '/login/password',
+    );
   });
 
   it('requests a password reset with an absolute reset redirect', async () => {
@@ -79,9 +78,7 @@ describe('ForgotPasswordContent', () => {
     fireEvent.change(getEmailInput(), {
       target: { value: 'user@example.com' },
     });
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Email me a reset link' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Send link' }));
 
     await waitFor(() => {
       expect(authClientMocks.requestPasswordReset).toHaveBeenCalledWith({
@@ -102,13 +99,9 @@ describe('ForgotPasswordContent', () => {
     fireEvent.change(getEmailInput(), {
       target: { value: 'user@example.com' },
     });
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Email me a reset link' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Send link' }));
 
     expect(await screen.findByText('Too many reset attempts.')).toBeVisible();
-    expect(
-      screen.getByRole('button', { name: 'Email me a reset link' }),
-    ).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Send link' })).toBeEnabled();
   });
 });

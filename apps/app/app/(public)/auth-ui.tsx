@@ -1,6 +1,6 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { ArrowLeft, MailCheck } from 'lucide-react';
+import { MailCheck } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
@@ -41,11 +41,10 @@ export function AuthFooterPrompt({ children }: { children: ReactNode }) {
 }
 
 interface AuthBackLinkProps {
-  children: ReactNode;
   href: string;
 }
 
-export function AuthBackLink({ children, href }: AuthBackLinkProps) {
+export function AuthBackLink({ href }: AuthBackLinkProps) {
   return (
     <Button
       asChild
@@ -54,8 +53,7 @@ export function AuthBackLink({ children, href }: AuthBackLinkProps) {
       withWrapper={false}
     >
       <Link href={href}>
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        <span>{children}</span>
+        <span>Back</span>
       </Link>
     </Button>
   );
@@ -63,18 +61,13 @@ export function AuthBackLink({ children, href }: AuthBackLinkProps) {
 
 interface AuthFormActionsProps {
   backHref: string;
-  backLabel: ReactNode;
   children: ReactNode;
 }
 
-export function AuthFormActions({
-  backHref,
-  backLabel,
-  children,
-}: AuthFormActionsProps) {
+export function AuthFormActions({ backHref, children }: AuthFormActionsProps) {
   return (
     <div className="grid grid-cols-2 gap-3">
-      <AuthBackLink href={backHref}>{backLabel}</AuthBackLink>
+      <AuthBackLink href={backHref} />
       {children}
     </div>
   );
@@ -82,24 +75,16 @@ export function AuthFormActions({
 
 interface AuthCheckEmailProps {
   backHref: string;
-  backLabel: string;
 }
 
-export function AuthCheckEmail({ backHref, backLabel }: AuthCheckEmailProps) {
+export function AuthCheckEmail({ backHref }: AuthCheckEmailProps) {
   return (
     <div className="space-y-4 text-center">
       <MailCheck
         className="mx-auto size-8 text-muted-foreground"
         aria-hidden="true"
       />
-      <Button
-        asChild
-        variant={ButtonVariant.SECONDARY}
-        className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
-        withWrapper={false}
-      >
-        <Link href={backHref}>{backLabel}</Link>
-      </Button>
+      <AuthBackLink href={backHref} />
     </div>
   );
 }

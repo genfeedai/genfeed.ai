@@ -146,9 +146,7 @@ describe('SignUpForm', () => {
     fireEvent.change(getEmailInput(), {
       target: { value: ' New@Example.com ' },
     });
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Email me a sign-up link' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Send link' }));
 
     await waitFor(() => {
       expect(authClientMocks.magicLink).toHaveBeenCalledWith({
@@ -181,9 +179,7 @@ describe('SignUpForm', () => {
     fireEvent.change(getEmailInput(), {
       target: { value: 'new@example.com' },
     });
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Email me a sign-up link' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Send link' }));
 
     await waitFor(() => {
       expect(authClientMocks.magicLink).toHaveBeenCalledWith({

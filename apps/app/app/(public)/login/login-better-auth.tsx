@@ -169,7 +169,7 @@ export default function LoginBetterAuth({
         logoSize="compact"
         title="Check your email"
       >
-        <AuthCheckEmail backHref={chooserHref} backLabel="Back to sign in" />
+        <AuthCheckEmail backHref={chooserHref} />
       </AuthFormLayout>
     );
   }
@@ -202,10 +202,7 @@ export default function LoginBetterAuth({
               <p className="text-sm text-destructive">{errorMessage}</p>
             ) : null}
 
-            <AuthFormActions
-              backHref={chooserHref}
-              backLabel="Back to sign in options"
-            >
+            <AuthFormActions backHref={chooserHref}>
               <Button
                 type="submit"
                 variant={ButtonVariant.DEFAULT}
@@ -214,7 +211,7 @@ export default function LoginBetterAuth({
                 className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
                 withWrapper={false}
               >
-                Email me a sign-in link
+                Send link
               </Button>
             </AuthFormActions>
           </form>
@@ -226,9 +223,9 @@ export default function LoginBetterAuth({
   if (mode === 'password') {
     return (
       <AuthFormLayout
-        description="Use the email and password attached to your Genfeed account."
+        description="Use your Genfeed email and password."
         logoSize="compact"
-        title="Sign in with email and password"
+        title="Sign in with password"
       >
         <div className="w-full space-y-6">
           <form onSubmit={handleEmailPassword} className="space-y-4">
@@ -275,10 +272,7 @@ export default function LoginBetterAuth({
               <p className="text-sm text-destructive">{passwordErrorMessage}</p>
             ) : null}
 
-            <AuthFormActions
-              backHref={chooserHref}
-              backLabel="Back to sign in options"
-            >
+            <AuthFormActions backHref={chooserHref}>
               <Button
                 type="submit"
                 variant={ButtonVariant.DEFAULT}

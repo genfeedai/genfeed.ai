@@ -87,7 +87,7 @@ export default function ForgotPasswordContent() {
         logoSize="compact"
         title="Check your email"
       >
-        <AuthCheckEmail backHref={loginHref} backLabel="Back to sign in" />
+        <AuthCheckEmail backHref={loginHref} />
       </AuthFormLayout>
     );
   }
@@ -119,7 +119,7 @@ export default function ForgotPasswordContent() {
             <p className="text-sm text-destructive">{errorMessage}</p>
           ) : null}
 
-          <AuthFormActions backHref={loginHref} backLabel="Back to sign in">
+          <AuthFormActions backHref={loginHref}>
             <Button
               type="submit"
               variant={ButtonVariant.DEFAULT}
@@ -128,7 +128,7 @@ export default function ForgotPasswordContent() {
               className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
               withWrapper={false}
             >
-              Email me a reset link
+              Send link
             </Button>
           </AuthFormActions>
         </form>
