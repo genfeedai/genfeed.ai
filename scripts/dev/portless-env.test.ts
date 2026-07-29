@@ -70,6 +70,9 @@ describe('Portless local-development environment', () => {
       app: 'http://genfeed.localhost:3100',
       notifications: 'http://genfeed.localhost:3111',
     });
+    expect(resolveDirectOrigins({ APP_PORT: '65536' }).app).toBe(
+      'http://genfeed.localhost:3000',
+    );
 
     expect(
       buildDirectEnvironment({

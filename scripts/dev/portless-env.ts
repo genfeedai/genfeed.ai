@@ -108,7 +108,9 @@ function resolveDirectPort(
   existingEnv: Readonly<Record<string, string | undefined>>,
 ): number {
   const configuredPort = Number(existingEnv[DIRECT_SERVICE_PORT_KEYS[service]]);
-  return Number.isInteger(configuredPort) && configuredPort > 0
+  return Number.isInteger(configuredPort) &&
+    configuredPort >= 1 &&
+    configuredPort <= 65_535
     ? configuredPort
     : DIRECT_SERVICE_PORTS[service];
 }

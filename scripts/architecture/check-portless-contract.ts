@@ -99,7 +99,7 @@ function readEnv(
   for (const line of readFileSync(
     path.join(rootDir, relativePath),
     'utf8',
-  ).split('\n')) {
+  ).split(/\r?\n/)) {
     const separator = line.indexOf('=');
     if (separator <= 0 || line.startsWith('#')) {
       continue;
