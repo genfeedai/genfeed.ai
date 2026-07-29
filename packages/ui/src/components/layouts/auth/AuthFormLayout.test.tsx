@@ -83,8 +83,8 @@ describe('AuthFormLayout', () => {
     );
 
     const logo = screen.getByRole('img');
-    expect(logo).toHaveAttribute('width', '48');
-    expect(logo).toHaveAttribute('height', '48');
+    expect(logo).toHaveAttribute('width', '56');
+    expect(logo).toHaveAttribute('height', '56');
     expect(logo).toHaveClass('mb-8');
   });
 
