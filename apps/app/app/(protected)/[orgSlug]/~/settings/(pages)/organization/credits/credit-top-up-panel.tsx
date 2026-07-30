@@ -69,10 +69,10 @@ export default function CreditTopUpPanel({
       return 'Enter a whole-dollar amount.';
     }
     if (isBelowMin) {
-      return `The minimum amount is ${formatUsd(PAYG_MIN_PURCHASE_USD)}.`;
+      return `Minimum ${formatUsd(PAYG_MIN_PURCHASE_USD)}.`;
     }
     if (isAboveMax) {
-      return `The maximum amount is ${formatUsd(PAYG_MAX_PURCHASE_USD)}. For a larger top-up, contact support.`;
+      return `Maximum ${formatUsd(PAYG_MAX_PURCHASE_USD)}. Contact support for more.`;
     }
     return null;
   })();
@@ -85,28 +85,27 @@ export default function CreditTopUpPanel({
     void onSubmit({ credits, usd });
   };
 
-  const optionClass = (selected: boolean) =>
+  const packClass = (selected: boolean) =>
     cn(
-      'flex w-full flex-col items-start gap-1 rounded border bg-muted/50 px-4 py-3 text-left transition-colors hover:bg-muted/70',
+      'inline-flex h-9 items-center gap-2 rounded border px-3 text-left transition-colors',
       selected
         ? 'border-foreground bg-foreground/[0.06] text-foreground'
-        : 'border-border text-muted-foreground',
+        : 'border-border bg-muted/40 text-muted-foreground hover:bg-muted/60 hover:text-foreground',
     );
 
   return (
-    <Card className="p-6">
-      <div className="space-y-6">
+    <Card className="p-4">
+      <div className="space-y-4">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Choose a pack or enter a custom amount. Credits land within a few
-            minutes and expire after one year.
+          <h2 className="text-base font-semibold text-foreground">{title}</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Credits land within a few minutes and expire after one year.
           </p>
         </div>
 
         <div className="space-y-2">
           <p className="text-sm font-medium text-foreground">Amount</p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="flex flex-wrap gap-2">
             {PAYG_CREDIT_PACKS.map((pack) => {
               const amountUsd = pack.credits / CREDITS_PER_USD;
               const isSelected = !isCustom && selectedUsd === amountUsd;
@@ -122,47 +121,37 @@ export default function CreditTopUpPanel({
                   }}
                   ariaLabel={`Select ${pack.label} credit pack`}
                   aria-pressed={isSelected}
-                  className={optionClass(isSelected)}
+                  className={packClass(isSelected)}
                 >
-                  <span className="text-xl font-semibold tabular-nums text-foreground">
+                  <span className="text-sm font-semibold tabular-nums text-foreground">
                     {pack.label}
                   </span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs tabular-nums text-muted-foreground">
                     {pack.credits.toLocaleString()} credits
                   </span>
                 </Button>
               );
             })}
+          </div>
 
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
               onClick={() => setIsCustom(true)}
               ariaLabel="Select custom credit amount"
               aria-pressed={isCustom}
-              className={optionClass(isCustom)}
+              className={packClass(isCustom)}
             >
-              <span className="text-xl font-semibold text-foreground">
+              <span className="text-sm font-semibold text-foreground">
                 Custom
               </span>
-              <span className="text-xs text-muted-foreground">
-                Any whole-dollar amount
-              </span>
             </Button>
-          </div>
 
-          {isCustom ? (
-            <div className="max-w-sm space-y-2 pt-1">
-              <label
-                htmlFor="custom-credit-usd"
-                className="mb-1 block text-sm font-medium text-foreground"
-              >
-                Custom amount (USD)
-              </label>
-              <div className="flex items-center gap-2">
+            {isCustom ? (
+              <>
                 <span className="text-sm text-muted-foreground">$</span>
                 <Input
-                  id="custom-credit-usd"
                   type="number"
                   inputMode="numeric"
                   min={PAYG_MIN_PURCHASE_USD}
@@ -173,33 +162,32 @@ export default function CreditTopUpPanel({
                   onChange={(event) => setCustomValue(event.target.value)}
                   placeholder={String(PAYG_MIN_PURCHASE_USD)}
                   aria-label="Custom credit top-up amount in dollars"
-                  className="mt-0"
+                  className="h-9 w-28"
                 />
-              </div>
-              <p
-                className={cn(
-                  'text-xs leading-5',
-                  customError ? 'text-destructive' : 'text-muted-foreground',
-                )}
-              >
-                {customError ??
-                  `Between ${formatUsd(PAYG_MIN_PURCHASE_USD)} and ${formatUsd(PAYG_MAX_PURCHASE_USD)}.`}
-              </p>
-            </div>
-          ) : null}
+                <p
+                  className={cn(
+                    'text-xs',
+                    customError ? 'text-destructive' : 'text-muted-foreground',
+                  )}
+                >
+                  {customError ??
+                    `${formatUsd(PAYG_MIN_PURCHASE_USD)}–${formatUsd(PAYG_MAX_PURCHASE_USD)}`}
+                </p>
+              </>
+            ) : null}
+          </div>
         </div>
 
         {helperContent}
 
-        <div className="space-y-2">
+        <div className="space-y-1">
           <p className="text-sm font-medium text-foreground">Payment method</p>
-          <p className="text-sm leading-6 text-muted-foreground">
-            This charge uses your default payment method. Update cards from the
-            billing portal.
+          <p className="text-xs leading-5 text-muted-foreground">
+            Uses your default card. Manage methods in the billing portal.
           </p>
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
             {isValid ? (
               <>
