@@ -196,9 +196,11 @@ describe('NewslettersController', () => {
     });
   });
 
-  describe('approve', () => {
+  describe('approve via PATCH action', () => {
     it('should approve a newsletter', async () => {
-      const result = await controller.approve(mockReq, mockUser, 'nl-1');
+      const result = await controller.patch(mockReq, mockUser, 'nl-1', {
+        action: 'approve',
+      } as never);
 
       expect(service.approveScoped).toHaveBeenCalledWith(
         'nl-1',
@@ -210,9 +212,11 @@ describe('NewslettersController', () => {
     });
   });
 
-  describe('publish', () => {
+  describe('publish via PATCH action', () => {
     it('should publish a newsletter', async () => {
-      const result = await controller.publish(mockReq, mockUser, 'nl-1');
+      const result = await controller.patch(mockReq, mockUser, 'nl-1', {
+        action: 'publish',
+      } as never);
 
       expect(service.publishScoped).toHaveBeenCalledWith(
         'nl-1',

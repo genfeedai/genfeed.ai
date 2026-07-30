@@ -138,10 +138,10 @@ describe('Admin Fleet split controllers', () => {
         methodName,
       ) as object;
 
-      expect(Reflect.getMetadata(PATH_METADATA, controllerClass)).toEqual([
+      // Dual darkroom mount removed — fleet is the only path.
+      expect(Reflect.getMetadata(PATH_METADATA, controllerClass)).toBe(
         'admin/fleet',
-        'admin/darkroom',
-      ]);
+      );
       expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
       expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(requestMethod);
       expect(controllerClass.name).toBe('AdminFleetController');
