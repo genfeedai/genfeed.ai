@@ -910,7 +910,9 @@ function UniversalWorkspaceShellContent({
         }
         value={activeInspectorTab}
       >
-        <div className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-border px-3">
+        {/* h-12 + border-b matches AppLayout topbar and sidebar header shell so
+            the chrome seam is one continuous line across the frame. */}
+        <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-3">
           {conversationSlot ? (
             <TabsList className="h-8">
               <TabsTrigger value="conversation">
@@ -921,20 +923,9 @@ function UniversalWorkspaceShellContent({
               </TabsTrigger>
             </TabsList>
           ) : (
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-foreground">
-                {WORKSPACE_INSPECTOR_CHROME.title}
-              </p>
-              <p className="truncate text-xs text-muted-foreground">
-                {surfaceScopeStatus === 'syncing'
-                  ? WORKSPACE_INSPECTOR_CHROME.surfaceSyncing
-                  : surfaceScopeStatus === 'error'
-                    ? WORKSPACE_INSPECTOR_CHROME.surfaceSyncFailed
-                    : effectiveThreadId
-                      ? WORKSPACE_INSPECTOR_CHROME.conversationConnected
-                      : WORKSPACE_INSPECTOR_CHROME.noConversationSelected}
-              </p>
-            </div>
+            <p className="truncate text-sm font-medium text-foreground">
+              {WORKSPACE_INSPECTOR_CHROME.title}
+            </p>
           )}
           {/* One chrome row only: expand lives here, not a second bar inside the
             conversation panel. Collapse stays in the app topbar. */}
@@ -1143,7 +1134,7 @@ function UniversalWorkspaceShellContent({
                 ref={primaryRegionRef}
                 tabIndex={-1}
               >
-                <div className="flex h-11 items-center justify-between border-b border-border px-3 xl:hidden">
+                <div className="flex h-12 items-center justify-between border-b border-border px-3 xl:hidden">
                   <Button
                     icon={<HiOutlineArrowLeft className="size-4" />}
                     onClick={handleReturnToConversation}

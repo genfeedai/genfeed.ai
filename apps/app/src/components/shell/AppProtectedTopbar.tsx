@@ -239,8 +239,8 @@ function AppProtectedTopbarContent({
       {/* Brand trigger has px-2 internally; collapsed sidebar leaves room for the fixed logo toggle. */}
       <div
         data-testid="app-protected-topbar-inner"
-        className={`grid h-full w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 pr-6 ${
-          isSidebarCollapsed ? 'pl-14' : 'pl-4'
+        className={`grid h-full w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 pr-5 sm:pr-6 ${
+          isSidebarCollapsed ? 'pl-14' : 'pl-5 sm:pl-6'
         }`}
       >
         <div className="flex min-w-0 items-center gap-2 justify-self-start">

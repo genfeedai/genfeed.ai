@@ -32,16 +32,16 @@ export default function Container({
   const hasHeaderRight = Boolean(right);
   const hasVisibleTitle = Boolean(label && titleVisibility !== 'sr-only');
   const hasScreenReaderTitle = Boolean(label && titleVisibility === 'sr-only');
-  const insetClassName = fullWidth ? 'px-5 sm:px-6 lg:px-6' : '';
+  // Equal page inset on every axis so content sits the same distance from
+  // the topbar, sidebar, and inspector — pages must not invent their own.
+  const insetClassName = fullWidth ? 'px-5 sm:px-6' : '';
   const bodyInsetClassName = fullWidth ? insetClassName : '';
 
   return (
     <div
       className={cn(
-        'w-full py-4',
-        fullWidth
-          ? 'mx-0 max-w-none'
-          : 'mx-auto max-w-[1280px] px-5 sm:px-6 lg:px-6',
+        'w-full py-5 sm:py-6',
+        fullWidth ? 'mx-0 max-w-none' : 'mx-auto max-w-[1280px] px-5 sm:px-6',
         className,
       )}
     >
