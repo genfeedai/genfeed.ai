@@ -9,6 +9,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   RunActionType,
   RunAuthType,
+  RunStatus,
   RunSurface,
   RunTrigger,
 } from '@genfeedai/enums';
@@ -146,6 +147,30 @@ describe('RunsController', () => {
         },
       ),
     ).rejects.toThrow(UnauthorizedException);
+  });
+
+  it('cancels a run via PATCH { status: cancelled }', async () => {
+    const mockRun = { _id: 'run-cancel', status: RunStatus.CANCELLED };
+    mockRunsService.cancelRun.mockResolvedValue(mockRun);
+
+    const result = await controller.update(
+      {
+        publicMetadata: {
+          organization: '507f1f77bcf86cd799439011',
+          user: '507f1f77bcf86cd799439012',
+        },
+      } as never,
+      { headers: {} } as never,
+      'run-cancel',
+      { status: RunStatus.CANCELLED },
+    );
+
+    expect(mockRunsService.cancelRun).toHaveBeenCalledWith(
+      'run-cancel',
+      '507f1f77bcf86cd799439011',
+    );
+    expect(mockRunsService.updateRun).not.toHaveBeenCalled();
+    expect(result).toEqual(mockRun);
   });
 
   it('should maintain identical create contract across TG/CLI/Extension/IDE surfaces and all run actions', async () => {

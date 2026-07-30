@@ -17,7 +17,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { ApiKeyScope, RunAuthType } from '@genfeedai/enums';
+import { ApiKeyScope, RunAuthType, RunStatus } from '@genfeedai/enums';
 import { RunSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -189,7 +189,10 @@ export class RunsController {
     ApiKeyScope.POSTS_CREATE,
     ApiKeyScope.ADMIN,
   )
-  @ApiOperation({ summary: 'Update run status/output/progress' })
+  @ApiOperation({
+    summary:
+      'Update run status/output/progress (cancel via { status: cancelled })',
+  })
   @ApiResponse({ description: 'Updated run', type: RunEntity })
   async update(
     @CurrentUser() user: User,
@@ -198,7 +201,13 @@ export class RunsController {
     @Body() dto: UpdateRunDto,
   ) {
     const { organizationId } = this.getRequestContext(user);
-    const run = await this.runsService.updateRun(runId, organizationId, dto);
+
+    // Cancel is a status transition on the run resource (same pattern as
+    // schedule cancel). Routes through cancelRun for terminal metering/events.
+    const run =
+      dto.status === RunStatus.CANCELLED
+        ? await this.runsService.cancelRun(runId, organizationId)
+        : await this.runsService.updateRun(runId, organizationId, dto);
 
     if (!run) {
       throw new NotFoundException('Run');
@@ -223,30 +232,6 @@ export class RunsController {
   ) {
     const { organizationId } = this.getRequestContext(user);
     const run = await this.runsService.executeRun(runId, organizationId);
-
-    if (!run) {
-      throw new NotFoundException('Run');
-    }
-
-    return serializeSingle(request, RunSerializer, run);
-  }
-
-  @Post(':runId/cancel')
-  @RequiredScopes(
-    ApiKeyScope.VIDEOS_CREATE,
-    ApiKeyScope.IMAGES_CREATE,
-    ApiKeyScope.POSTS_CREATE,
-    ApiKeyScope.ADMIN,
-  )
-  @ApiOperation({ summary: 'Cancel a run' })
-  @ApiResponse({ description: 'Run cancelled', type: RunEntity })
-  async cancel(
-    @CurrentUser() user: User,
-    @Req() request: Request,
-    @Param('runId') runId: string,
-  ) {
-    const { organizationId } = this.getRequestContext(user);
-    const run = await this.runsService.cancelRun(runId, organizationId);
 
     if (!run) {
       throw new NotFoundException('Run');

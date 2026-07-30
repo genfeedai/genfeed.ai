@@ -166,7 +166,6 @@ export class OrganizationsController extends BaseCRUDController<
    * List organizations.
    *
    * - `?mine=true` — membership summaries for the current user (cross-org).
-   *   Preferred over the legacy `GET /organizations/mine` path.
    * - default — platform-wide list (superadmin only).
    */
   @Get()
@@ -216,9 +215,8 @@ export class OrganizationsController extends BaseCRUDController<
   // /organizations/:organizationId/{brands,ingredients,videos,tags,posts,activities,analytics}.
 
   /**
-   * Create a new organization (preferred collection POST).
+   * Create a new organization (collection POST).
    * Seeds settings, brand, member; switches active org.
-   * Same behavior as legacy `POST /organizations/create`.
    */
   @Post()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -231,13 +229,10 @@ export class OrganizationsController extends BaseCRUDController<
   }
 
   /**
-   * @deprecated Prefer `GET /organizations?mine=true`.
-   * Returns all organizations the current user belongs to (as member or owner).
-   * Cross-org by design — no single-org auth scoping.
+   * Membership summaries for the current user (cross-org).
+   * Invoked via `GET /organizations?mine=true`.
    */
-  @Get('mine')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findMine(@CurrentUser() user: User): Promise<unknown[]> {
+  async findMine(user: User): Promise<unknown[]> {
     const publicMetadata = getPublicMetadata(user);
     const userId = publicMetadata.user;
 
@@ -403,13 +398,11 @@ export class OrganizationsController extends BaseCRUDController<
   }
 
   /**
-   * @deprecated Prefer `POST /organizations` (same handler).
+   * Shared create implementation for `POST /organizations`.
    */
-  @Post('create')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
   async createOrganization(
-    @Body() body: { label: string; description?: string },
-    @CurrentUser() user: User,
+    body: { label: string; description?: string },
+    user: User,
   ): Promise<unknown> {
     const publicMetadata = getPublicMetadata(user);
     const userId = publicMetadata.user;

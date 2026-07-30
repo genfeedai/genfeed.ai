@@ -39,7 +39,6 @@ describe('WorkflowCrudController', () => {
   };
 
   const mockWorkflowsService = {
-    cloneWorkflow: vi.fn(),
     createWorkflow: vi.fn(),
     findAll: vi.fn(),
     findMutableOwnedOrThrow: vi.fn(),
@@ -189,18 +188,20 @@ describe('WorkflowCrudController', () => {
     });
   });
 
-  describe('getStatistics', () => {
-    it('should return workflow statistics', async () => {
+  describe('findAll view=statistics', () => {
+    it('should return workflow statistics via the collection view', async () => {
       const stats = { active: 5, completed: 2, draft: 3, total: 10 };
       mockWorkflowsService.getWorkflowStatistics.mockResolvedValue(stats);
 
-      const result = await controller.getStatistics(mockUser);
+      const result = await controller.findAll(mockRequest, mockUser, {
+        view: 'statistics',
+      });
 
       expect(service.getWorkflowStatistics).toHaveBeenCalledWith(
         mockUser.publicMetadata.user,
         mockUser.publicMetadata.organization,
       );
-      expect(result.data).toEqual(stats);
+      expect(result).toEqual({ data: stats });
     });
   });
 
@@ -219,45 +220,28 @@ describe('WorkflowCrudController', () => {
     });
   });
 
-  describe('cloneWorkflow', () => {
-    it('should clone a workflow', async () => {
+  describe('create with sourceWorkflowId', () => {
+    it('should clone via create body', async () => {
       const id = '507f1f77bcf86cd799439014';
-      mockWorkflowsService.cloneWorkflow.mockResolvedValue({
+      mockWorkflowsService.createWorkflow.mockResolvedValue({
         ...mockWorkflow,
         _id: '507f1f77bcf86cd799439015',
         label: 'Test Workflow (Copy)',
       });
 
-      const result = await controller.cloneWorkflow(mockRequest, id, mockUser);
+      const result = await controller.create(
+        mockRequest,
+        { sourceWorkflowId: id } as never,
+        mockUser,
+      );
 
-      expect(service.cloneWorkflow).toHaveBeenCalledWith(
-        id,
+      expect(service.createWorkflow).toHaveBeenCalledWith(
         mockUser.publicMetadata.user,
         mockUser.publicMetadata.organization,
+        { sourceWorkflowId: id },
         mockUser.publicMetadata.brand,
       );
       expect(result).toBeDefined();
-    });
-
-    it('should clone a workflow for an explicit target brand', async () => {
-      const id = '507f1f77bcf86cd799439014';
-      mockWorkflowsService.cloneWorkflow.mockResolvedValue({
-        ...mockWorkflow,
-        _id: '507f1f77bcf86cd799439015',
-        brandId: '507f1f77bcf86cd799439016',
-        label: 'Test Workflow (Copy)',
-      });
-
-      await controller.cloneWorkflow(mockRequest, id, mockUser, {
-        brandId: '507f1f77bcf86cd799439016',
-      });
-
-      expect(service.cloneWorkflow).toHaveBeenCalledWith(
-        id,
-        mockUser.publicMetadata.user,
-        mockUser.publicMetadata.organization,
-        '507f1f77bcf86cd799439016',
-      );
     });
   });
 

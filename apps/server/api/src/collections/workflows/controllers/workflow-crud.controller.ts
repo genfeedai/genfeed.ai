@@ -1,5 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { CloneWorkflowDto } from '@api/collections/workflows/dto/clone-workflow.dto';
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import { WorkflowQueryDto } from '@api/collections/workflows/dto/query-workflow.dto';
 import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflow.dto';
@@ -45,17 +44,12 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBody } from '@nestjs/swagger';
 import type { Request } from 'express';
 
-type WorkflowStatistics = Awaited<
-  ReturnType<WorkflowsService['getWorkflowStatistics']>
->;
-
 /**
- * Standard workflow CRUD (+ statistics and ComfyUI export). Registered LAST
+ * Standard workflow CRUD (+ statistics view and ComfyUI export). Registered LAST
  * among the workflow controllers so its `:workflowId` param route never
- * shadows the literal routes (templates, statistics, batch, marketplace, …)
+ * shadows the literal routes (templates, batch, marketplace, …)
  * owned by the sibling controllers. Split out of the former monolithic
  * `WorkflowsController`.
  */
@@ -166,23 +160,6 @@ export class WorkflowCrudController {
     return serializeCollection(request, WorkflowSerializer, data);
   }
 
-  /**
-   * @deprecated Prefer `GET /workflows?view=statistics`.
-   */
-  @Get('statistics')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async getStatistics(
-    @CurrentUser() user: User,
-  ): Promise<{ data: WorkflowStatistics }> {
-    const publicMetadata = getPublicMetadata(user);
-    const stats = await this.workflowsService.getWorkflowStatistics(
-      publicMetadata.user,
-      publicMetadata.organization,
-    );
-
-    return { data: stats };
-  }
-
   @Get(':workflowId/export-comfyui')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async exportComfyUI(
@@ -223,34 +200,6 @@ export class WorkflowCrudController {
     );
 
     return serializeSingle(request, WorkflowSerializer, workflow);
-  }
-
-  /**
-   * @deprecated Prefer `POST /workflows` with `{ sourceWorkflowId }`.
-   */
-  @Post(':workflowId/clone')
-  @ApiBody({ required: false, type: CloneWorkflowDto })
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async cloneWorkflow(
-    @Req() request: Request,
-    @Param('workflowId') workflowId: string,
-    @CurrentUser() user: User,
-    @Body() dto: CloneWorkflowDto = {},
-  ): Promise<JsonApiSingleResponse> {
-    return wrapError(async () => {
-      const publicMetadata = getPublicMetadata(user);
-      const targetBrandId = dto.brandId ?? (publicMetadata.brand || undefined);
-
-      const clonedWorkflow = await this.workflowsService.cloneWorkflow(
-        workflowId,
-        publicMetadata.user,
-        publicMetadata.organization,
-        targetBrandId,
-      );
-
-      return serializeSingle(request, WorkflowSerializer, clonedWorkflow);
-    }, 'Failed to clone workflow');
   }
 
   /**

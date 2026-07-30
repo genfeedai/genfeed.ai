@@ -112,7 +112,7 @@ export interface CreateWorkflowInput {
   /** When `system-catalog`, installs the catalog entry named by `templateId`. */
   sourceType?: 'system-catalog' | 'seeded-template';
   templateId?: string;
-  /** Clone an existing workflow (preferred over POST /:id/clone). */
+  /** Clone an existing workflow via POST /workflows { sourceWorkflowId }. */
   sourceWorkflowId?: string;
   timezone?: string;
   trigger?: string;

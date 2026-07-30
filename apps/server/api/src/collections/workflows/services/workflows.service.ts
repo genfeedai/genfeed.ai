@@ -285,7 +285,7 @@ export class WorkflowsService extends BaseService<
     workflowData: CreateWorkflowDto,
     defaultBrandId?: string,
   ): Promise<WorkflowEntity> {
-    // Clone via create body (preferred over POST /:id/clone).
+    // Clone via create body (`sourceWorkflowId`).
     if (workflowData.sourceWorkflowId) {
       return this.cloneWorkflow(
         workflowData.sourceWorkflowId,

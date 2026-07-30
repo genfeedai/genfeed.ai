@@ -56,7 +56,7 @@ export class WorkflowQueryDto extends BaseQueryDto {
   @IsIn(['statistics'])
   @ApiProperty({
     description:
-      'When `statistics`, return aggregated workflow stats for the org instead of the list. Preferred over GET /workflows/statistics.',
+      'When `statistics`, return aggregated workflow stats for the org instead of the list.',
     enum: ['statistics'],
     required: false,
   })

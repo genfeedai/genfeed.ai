@@ -19,7 +19,7 @@ export class OrganizationQueryDto extends BaseQueryDto {
   )
   @ApiPropertyOptional({
     description:
-      'When true, return membership summaries for the current user (cross-org). Replaces GET /organizations/mine.',
+      'When true, return membership summaries for the current user (cross-org).',
   })
   readonly mine?: boolean;
 }

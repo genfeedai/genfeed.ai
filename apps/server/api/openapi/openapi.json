@@ -1118,15 +1118,6 @@
         ],
         "type": "object"
       },
-      "CloneWorkflowDto": {
-        "properties": {
-          "brandId": {
-            "description": "Target brand ID for the duplicated workflow. Defaults to the current selected brand.",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
       "CloudFrontInvalidateDto": {
         "properties": {
           "distributionId": {
@@ -5588,7 +5579,7 @@
             "type": "string"
           },
           "sourceWorkflowId": {
-            "description": "When set, create is a clone of this workflow (preferred over POST /workflows/:id/clone).",
+            "description": "When set, create is a clone of this workflow (POST /workflows body clone).",
             "type": "string"
           },
           "startedAt": {
@@ -14317,7 +14308,7 @@
             "type": "string"
           },
           "sourceWorkflowId": {
-            "description": "When set, create is a clone of this workflow (preferred over POST /workflows/:id/clone).",
+            "description": "When set, create is a clone of this workflow (POST /workflows body clone).",
             "type": "string"
           },
           "startedAt": {
@@ -35151,7 +35142,7 @@
             }
           },
           {
-            "description": "When true, return membership summaries for the current user (cross-org). Replaces GET /organizations/mine.",
+            "description": "When true, return membership summaries for the current user (cross-org).",
             "in": "query",
             "name": "mine",
             "required": false,
@@ -35218,46 +35209,6 @@
           }
         ],
         "summary": "findBySlug",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
-    "/organizations/create": {
-      "post": {
-        "operationId": "OrganizationsController.createOrganization",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "createOrganization",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
-    "/organizations/mine": {
-      "get": {
-        "operationId": "OrganizationsController.findMine",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "findMine",
         "tags": [
           "organizations"
         ]
@@ -35882,7 +35833,7 @@
             }
           },
           {
-            "description": "When true, return membership summaries for the current user (cross-org). Replaces GET /organizations/mine.",
+            "description": "When true, return membership summaries for the current user (cross-org).",
             "in": "query",
             "name": "mine",
             "required": false,
@@ -42125,42 +42076,6 @@
           }
         ],
         "summary": "Update run status/output/progress",
-        "tags": [
-          "Runs"
-        ]
-      }
-    },
-    "/runs/{runId}/cancel": {
-      "post": {
-        "operationId": "RunsController.cancel",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "runId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RunEntity"
-                }
-              }
-            },
-            "description": "Run cancelled"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Cancel a run",
         "tags": [
           "Runs"
         ]
@@ -52190,7 +52105,7 @@
             }
           },
           {
-            "description": "When `statistics`, return aggregated workflow stats for the org instead of the list. Preferred over GET /workflows/statistics.",
+            "description": "When `statistics`, return aggregated workflow stats for the org instead of the list.",
             "in": "query",
             "name": "view",
             "required": false,
@@ -52477,21 +52392,6 @@
         ]
       }
     },
-    "/workflows/statistics": {
-      "get": {
-        "operationId": "WorkflowCrudController.getStatistics",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "getStatistics",
-        "tags": [
-          "workflows"
-        ]
-      }
-    },
     "/workflows/templates": {
       "get": {
         "operationId": "WorkflowMarketplaceController.getTemplates",
@@ -52619,40 +52519,6 @@
           }
         },
         "summary": "runBatch",
-        "tags": [
-          "workflows"
-        ]
-      }
-    },
-    "/workflows/{workflowId}/clone": {
-      "post": {
-        "operationId": "WorkflowCrudController.cloneWorkflow",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "workflowId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CloneWorkflowDto"
-              }
-            }
-          },
-          "required": false
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "cloneWorkflow",
         "tags": [
           "workflows"
         ]
