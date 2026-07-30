@@ -211,8 +211,8 @@ describe('workflowsApi', () => {
       const result = await workflowsApi.duplicate('workflow-1');
 
       expect(apiClient.post).toHaveBeenCalledWith(
-        '/workflows/workflow-1/clone',
-        undefined,
+        '/workflows',
+        { label: 'Copy', sourceWorkflowId: 'workflow-1' },
         {
           signal: undefined,
         },
@@ -232,8 +232,12 @@ describe('workflowsApi', () => {
       await workflowsApi.duplicate('workflow-1', { brandId: 'brand-2' });
 
       expect(apiClient.post).toHaveBeenCalledWith(
-        '/workflows/workflow-1/clone',
-        { brandId: 'brand-2' },
+        '/workflows',
+        {
+          brandId: 'brand-2',
+          label: 'Copy',
+          sourceWorkflowId: 'workflow-1',
+        },
         {
           signal: undefined,
         },
@@ -248,8 +252,8 @@ describe('workflowsApi', () => {
       await workflowsApi.duplicate('workflow-1', abortController.signal);
 
       expect(apiClient.post).toHaveBeenCalledWith(
-        '/workflows/workflow-1/clone',
-        undefined,
+        '/workflows',
+        { label: 'Copy', sourceWorkflowId: 'workflow-1' },
         {
           signal: abortController.signal,
         },

@@ -966,7 +966,7 @@ describe('ClientService (MCP)', () => {
   });
 
   describe('duplicateWorkflow', () => {
-    it('should duplicate a workflow through the clone endpoint', async () => {
+    it('should duplicate a workflow via POST /workflows sourceWorkflowId', async () => {
       const mockResponse = {
         data: {
           data: {
@@ -980,9 +980,10 @@ describe('ClientService (MCP)', () => {
 
       const result = await service.duplicateWorkflow('workflow-123');
 
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-        '/workflows/workflow-123/clone',
-      );
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/workflows', {
+        label: 'Copy',
+        sourceWorkflowId: 'workflow-123',
+      });
       expect(result.id).toBe('workflow-copy');
       expect(result.name).toBe('System workflow (Copy)');
     });

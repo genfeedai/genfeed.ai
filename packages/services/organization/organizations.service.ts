@@ -44,6 +44,7 @@ import {
   BaseService,
   type JsonApiResponseDocument,
 } from '@services/core/base.service';
+import { EnvironmentService } from '@services/core/environment.service';
 import { deserializeCollection } from '@services/core/json-api';
 
 const ORGANIZATION_LIST_PAGE_SIZE = 100;
@@ -88,9 +89,10 @@ export class OrganizationsService extends BaseService<Organization> {
     query?: IQueryParams,
   ): Promise<Brand[]> {
     return await this.instance
-      .get<JsonApiResponseDocument>(`/${id}/brands`, {
-        params: query,
-      })
+      .get<JsonApiResponseDocument>(
+        `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.BRANDS}`,
+        { params: { ...query, organization: id } },
+      )
       .then((res) => {
         const document = res.data;
         const pagination = document.links?.pagination;
@@ -124,7 +126,10 @@ export class OrganizationsService extends BaseService<Organization> {
     query?: IQueryParams,
   ): Promise<Tag[]> {
     return await this.instance
-      .get<JsonApiResponseDocument>(`/${id}/tags`, { params: query })
+      .get<JsonApiResponseDocument>(
+        `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.TAGS}`,
+        { params: { ...query, organization: id } },
+      )
       .then((res) => {
         const tags = this.extractCollection<Partial<Tag>>(res.data);
         return tags.map((item) => new Tag(item));
@@ -135,6 +140,8 @@ export class OrganizationsService extends BaseService<Organization> {
     id: string,
     query?: IQueryParams,
   ): Promise<Ingredient[]> {
+    // Mixed-category ingredient list still lives on the org relationship route;
+    // typed collections (/videos, /images, …) cover single-category surfaces.
     return await this.instance
       .get<JsonApiResponseDocument>(`/${id}/ingredients`, {
         params: query,
@@ -291,9 +298,10 @@ export class OrganizationsService extends BaseService<Organization> {
     query?: IQueryParams,
   ): Promise<Activity[]> {
     return await this.instance
-      .get<JsonApiResponseDocument>(`/${id}/activities`, {
-        params: query,
-      })
+      .get<JsonApiResponseDocument>(
+        `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.ACTIVITIES}`,
+        { params: { ...query, organization: id } },
+      )
       .then((res) => {
         const document = res.data;
         const pagination = document.links?.pagination;
@@ -327,9 +335,10 @@ export class OrganizationsService extends BaseService<Organization> {
     query?: IQueryParams,
   ): Promise<IPaginatedResponse<Post>> {
     return await this.instance
-      .get<JsonApiResponseDocument>(`/${id}/posts`, {
-        params: query,
-      })
+      .get<JsonApiResponseDocument>(
+        `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.POSTS}`,
+        { params: { ...query, organization: id } },
+      )
       .then((response) => {
         const document = response.data;
         const items = this.extractCollection<Partial<IPost>>(document).map(
@@ -530,7 +539,7 @@ export class OrganizationsService extends BaseService<Organization> {
       .post<{
         organization: { id: string; label: string };
         brand: { id: string; label: string };
-      }>('/create', data)
+      }>('', data)
       .then((res) => res.data);
   }
 

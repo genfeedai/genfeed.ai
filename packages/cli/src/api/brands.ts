@@ -16,7 +16,8 @@ export interface Brand {
 }
 
 export async function listBrands(organizationId: string): Promise<Brand[]> {
-  const response = await get<JsonApiCollectionResponse>(`/organizations/${organizationId}/brands`);
+  const query = new URLSearchParams({ organization: organizationId });
+  const response = await get<JsonApiCollectionResponse>(`/brands?${query.toString()}`);
   return flattenCollection<Brand>(response);
 }
 

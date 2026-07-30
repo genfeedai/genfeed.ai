@@ -37,6 +37,7 @@ export const API_ENDPOINTS = {
   FONT_FAMILIES: '/font-families',
   HARNESS_PROFILES: '/harness-profiles',
   HEYGEN: '/heygen',
+  IMAGES: '/images',
   INGREDIENTS: '/ingredients',
   INSIGHTS: '/insights',
   KNOWLEDGE_BASES: '/knowledge-bases',

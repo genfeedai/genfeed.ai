@@ -143,6 +143,9 @@ export class OrganizationsRelationshipsController {
     }
   }
 
+  /**
+   * @deprecated Prefer `GET /brands?organization=:organizationId`.
+   */
   @Get(':organizationId/brands')
   @Cache({ tags: ['brands'], ttl: 300 })
   @LogMethod({ logEnd: false, logError: true, logStart: true })

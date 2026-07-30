@@ -38,8 +38,8 @@ describe.skipIf(!hasCredentials)('integration/endpoints-auth', () => {
     expect(result).toBe('ok');
   }, 15_000);
 
-  it('GET /organizations/:orgId/brands accepts API key', async () => {
-    const { result } = await checkEndpoint(client, `/organizations/${orgId}/brands`);
+  it('GET /brands?organization= accepts API key', async () => {
+    const { result } = await checkEndpoint(client, `/brands?organization=${orgId}`);
     expect(result).toBe('ok');
   }, 15_000);
 

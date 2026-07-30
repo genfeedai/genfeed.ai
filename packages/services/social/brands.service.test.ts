@@ -217,7 +217,10 @@ describe('BrandsService', () => {
 
       await service.findBrandCredentials(mockBrandId);
 
-      expect(mockGet).toHaveBeenCalledWith(`${mockBrandId}/credentials`);
+      expect(mockGet).toHaveBeenCalledWith(
+        expect.stringContaining('/credentials'),
+        { params: { brand: mockBrandId } },
+      );
     });
 
     it('returns array of credentials', async () => {
@@ -236,7 +239,9 @@ describe('BrandsService', () => {
 
       await service.findBrandLinks(mockBrandId);
 
-      expect(mockGet).toHaveBeenCalledWith(`/${mockBrandId}/links`);
+      expect(mockGet).toHaveBeenCalledWith(expect.stringContaining('/links'), {
+        params: { brand: mockBrandId },
+      });
     });
   });
 
@@ -247,8 +252,8 @@ describe('BrandsService', () => {
       await service.findBrandActivities(mockBrandId);
 
       expect(mockGet).toHaveBeenCalledWith(
-        `/${mockBrandId}/activities`,
-        expect.any(Object),
+        expect.stringContaining('/activities'),
+        { params: { brand: mockBrandId } },
       );
     });
 
@@ -258,9 +263,12 @@ describe('BrandsService', () => {
 
       await service.findBrandActivities(mockBrandId, query as never);
 
-      expect(mockGet).toHaveBeenCalledWith(`/${mockBrandId}/activities`, {
-        params: query,
-      });
+      expect(mockGet).toHaveBeenCalledWith(
+        expect.stringContaining('/activities'),
+        {
+          params: { ...query, brand: mockBrandId },
+        },
+      );
     });
   });
 
@@ -270,10 +278,9 @@ describe('BrandsService', () => {
 
       await service.findBrandPosts(mockBrandId);
 
-      expect(mockGet).toHaveBeenCalledWith(
-        `/${mockBrandId}/posts`,
-        expect.any(Object),
-      );
+      expect(mockGet).toHaveBeenCalledWith(expect.stringContaining('/posts'), {
+        params: { brand: mockBrandId },
+      });
     });
 
     it('returns posts and pagination from the same response document', async () => {

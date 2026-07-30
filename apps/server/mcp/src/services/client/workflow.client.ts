@@ -204,9 +204,10 @@ export class WorkflowClient {
     return this.base.request(
       'duplicating workflow',
       async (http) => {
-        const response = await http.post(
-          `/workflows/${encodeURIComponent(workflowId)}/clone`,
-        );
+        const response = await http.post('/workflows', {
+          label: 'Copy',
+          sourceWorkflowId: workflowId,
+        });
         return mapWorkflowResource(
           this.base.unwrapData<JsonApiResource>(response),
         );

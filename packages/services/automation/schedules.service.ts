@@ -127,9 +127,9 @@ class SmartSchedulerServiceClass {
 
   async cancelSchedule(id: string): Promise<void> {
     await this.request(
-      `/automation/schedules/${id}/cancel`,
-      'POST',
-      undefined,
+      `/automation/schedules/${id}`,
+      'PATCH',
+      { status: 'cancelled' },
       'Failed to cancel schedule',
     );
     logger.info('Schedule cancelled', { id });

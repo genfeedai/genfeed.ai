@@ -216,6 +216,21 @@ export class OrganizationsController extends BaseCRUDController<
   // /organizations/:organizationId/{brands,ingredients,videos,tags,posts,activities,analytics}.
 
   /**
+   * Create a new organization (preferred collection POST).
+   * Seeds settings, brand, member; switches active org.
+   * Same behavior as legacy `POST /organizations/create`.
+   */
+  @Post()
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async create(
+    @Req() _request: Request,
+    @CurrentUser() user: User,
+    @Body() body: { label: string; description?: string },
+  ): Promise<unknown> {
+    return this.createOrganization(body, user);
+  }
+
+  /**
    * @deprecated Prefer `GET /organizations?mine=true`.
    * Returns all organizations the current user belongs to (as member or owner).
    * Cross-org by design — no single-org auth scoping.
@@ -388,10 +403,7 @@ export class OrganizationsController extends BaseCRUDController<
   }
 
   /**
-   * POST /organizations/create
-   * Create a new organization for the current user.
-   * Seeds org settings, brand, and member records.
-   * Switches the user's active org to the newly created one.
+   * @deprecated Prefer `POST /organizations` (same handler).
    */
   @Post('create')
   @LogMethod({ logEnd: false, logError: true, logStart: true })

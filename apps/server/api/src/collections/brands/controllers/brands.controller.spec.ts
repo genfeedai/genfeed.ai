@@ -299,6 +299,26 @@ describe('BrandsController', () => {
       });
       expect(result.orderBy).toEqual({ label: 1 });
     });
+
+    it('scopes members to owned brands or the requested organization', () => {
+      const organizationId = 'org-member-scope-1';
+      const query = {
+        isDeleted: false,
+        organization: organizationId,
+        sort: 'label: 1',
+      } as BaseQueryDto;
+
+      const result = controller.buildFindAllQuery(mockUser, query);
+
+      expect(result.where).toEqual({
+        isDeleted: false,
+        OR: [
+          { user: (mockUser.publicMetadata as IAuthPublicMetadata).user },
+          { organization: organizationId },
+        ],
+      });
+      expect(result.orderBy).toEqual({ label: 1 });
+    });
   });
 
   describe('findOne', () => {

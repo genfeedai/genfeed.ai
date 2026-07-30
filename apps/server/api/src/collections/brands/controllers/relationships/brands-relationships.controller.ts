@@ -151,6 +151,9 @@ export class BrandsRelationshipsController {
     return brand;
   }
 
+  /**
+   * @deprecated Prefer `GET /videos?brand=:brandId`.
+   */
   @Get(':brandId/videos')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findBrandVideos(
@@ -189,6 +192,9 @@ export class BrandsRelationshipsController {
     return serializeCollection(request, VideoSerializer, data);
   }
 
+  /**
+   * @deprecated Prefer `GET /images?brand=:brandId`.
+   */
   @Get(':brandId/images')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findBrandImages(
@@ -355,6 +361,9 @@ export class BrandsRelationshipsController {
     return serializeCollection(request, LinkSerializer, data);
   }
 
+  /**
+   * @deprecated Prefer `GET /posts?brand=:brandId`.
+   */
   @Get(':brandId/posts')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAllPosts(

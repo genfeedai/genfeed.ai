@@ -51,7 +51,9 @@ describe('api/brands', () => {
 
       const result = await listBrands('org-123');
 
-      expect(mockFetch).toHaveBeenCalledWith('/organizations/org-123/brands', { method: 'GET' });
+      expect(mockFetch).toHaveBeenCalledWith('/brands?organization=org-123', {
+        method: 'GET',
+      });
       expect(result).toHaveLength(2);
       expect(result[0].id).toBe('brand-1');
       expect(result[0].label).toBe('Brand One');

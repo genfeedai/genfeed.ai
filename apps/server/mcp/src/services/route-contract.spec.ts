@@ -320,7 +320,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   },
   {
     method: 'Post',
-    sub: ':workflowId/clone',
+    sub: '',
     controller: 'workflowCrud',
     tools: ['duplicate_workflow'],
   },
