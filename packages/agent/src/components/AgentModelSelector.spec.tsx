@@ -66,7 +66,7 @@ describe('AgentModelSelector', () => {
   });
 
   it('clears open state when the selector becomes disabled', () => {
-    const { rerender } = render(
+    const { container, rerender } = render(
       <AgentModelSelector
         creditsAvailable={null}
         onModelChange={vi.fn()}
@@ -74,8 +74,7 @@ describe('AgentModelSelector', () => {
       />,
     );
 
-    // Open via controlled path: re-render with isDisabled must not leave open
-    // state latched for the next enable cycle.
+    // Disable while open would latch open=true without the reset effect.
     rerender(
       <AgentModelSelector
         creditsAvailable={null}
@@ -86,6 +85,7 @@ describe('AgentModelSelector', () => {
     );
 
     expect(screen.getByRole('button', { name: 'Select model' })).toBeDisabled();
+    expect(container.querySelector('[data-popover-open="true"]')).toBeNull();
 
     rerender(
       <AgentModelSelector
@@ -98,6 +98,8 @@ describe('AgentModelSelector', () => {
     expect(
       screen.getByRole('button', { name: 'Select model' }),
     ).not.toBeDisabled();
-    expect(screen.queryByTestId('model-selector-menu')).toBeNull();
+    // Re-enable must stay closed — not restore a previous open latch.
+    expect(container.querySelector('[data-popover-open="true"]')).toBeNull();
+    expect(container.querySelector('[data-popover-open="false"]')).toBeTruthy();
   });
 });
