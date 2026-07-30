@@ -22,7 +22,7 @@
   "include": ["src/**/*"],
   "references": [
     {
-      "path": "../pricing"
+      "path": "../pricing/tsconfig.json"
     }
   ]
 }

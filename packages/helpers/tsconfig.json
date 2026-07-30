@@ -46,19 +46,19 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
-      "path": "../auth-client"
+      "path": "../auth-client/tsconfig.json"
     },
     {
-      "path": "../constants"
+      "path": "../constants/tsconfig.json"
     },
     {
-      "path": "../enums"
+      "path": "../enums/tsconfig.json"
     },
     {
-      "path": "../interfaces"
+      "path": "../interfaces/tsconfig.json"
     },
     {
-      "path": "../pricing"
+      "path": "../pricing/tsconfig.json"
     }
   ]
 }

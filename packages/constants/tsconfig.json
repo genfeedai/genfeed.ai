@@ -22,7 +22,7 @@
   "include": ["src/**/*"],
   "references": [
     {
-      "path": "../enums"
+      "path": "../enums/tsconfig.json"
     }
   ]
 }

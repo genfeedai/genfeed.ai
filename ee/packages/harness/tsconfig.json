@@ -24,7 +24,7 @@
   "include": ["src/**/*"],
   "references": [
     {
-      "path": "../../../packages/harness"
+      "path": "../../../packages/harness/tsconfig.json"
     }
   ]
 }

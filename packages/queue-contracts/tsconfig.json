@@ -24,10 +24,10 @@
   "include": ["src/**/*"],
   "references": [
     {
-      "path": "../enums"
+      "path": "../enums/tsconfig.json"
     },
     {
-      "path": "../interfaces"
+      "path": "../interfaces/tsconfig.json"
     }
   ]
 }

@@ -56,19 +56,19 @@
   "include": ["src/**/*.d.ts", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
-      "path": "../client"
+      "path": "../client/tsconfig.json"
     },
     {
-      "path": "../config"
+      "path": "../config/tsconfig.json"
     },
     {
-      "path": "../enums"
+      "path": "../enums/tsconfig.json"
     },
     {
-      "path": "../interfaces"
+      "path": "../interfaces/tsconfig.json"
     },
     {
-      "path": "../pricing"
+      "path": "../pricing/tsconfig.json"
     }
   ]
 }
