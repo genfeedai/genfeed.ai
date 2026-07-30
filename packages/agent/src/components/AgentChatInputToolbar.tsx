@@ -186,6 +186,9 @@ export function AgentChatInputToolbar({
             creditsAvailable={creditsAvailable}
             onBuyCredits={onBuyCredits}
             density={isCompact ? 'compact' : 'default'}
+            isDisabled={Boolean(
+              disabled || showStop || isUploading || isTranscribing,
+            )}
           />
         ) : null}
 

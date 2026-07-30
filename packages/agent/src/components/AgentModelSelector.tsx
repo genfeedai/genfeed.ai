@@ -12,7 +12,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
-import { type ReactElement, useState } from 'react';
+import { type ReactElement, useEffect, useState } from 'react';
 import { HiChevronUp, HiLockClosed, HiSparkles } from 'react-icons/hi2';
 
 const COST_TIER_COLORS: Record<CostTier, string> = {
@@ -28,6 +28,8 @@ interface AgentModelSelectorProps {
   onBuyCredits?: () => void;
   /** Match composer toolbar control height (send / icons). */
   density?: 'compact' | 'default';
+  /** When true, block model switching (read-only / busy / blocked composer). */
+  isDisabled?: boolean;
 }
 
 export function AgentModelSelector({
@@ -36,8 +38,16 @@ export function AgentModelSelector({
   creditsAvailable,
   onBuyCredits,
   density = 'default',
+  isDisabled = false,
 }: AgentModelSelectorProps): ReactElement {
   const [open, setOpen] = useState(false);
+  // Drop leftover open state when the selector is disabled so re-enable cannot
+  // immediately reopen a menu that was open when the busy state began.
+  useEffect(() => {
+    if (isDisabled) {
+      setOpen(false);
+    }
+  }, [isDisabled]);
   const current = AGENT_MODELS.find((m) => m.key === selectedModel);
   const hasLockedModels =
     creditsAvailable != null &&
@@ -47,12 +57,21 @@ export function AgentModelSelector({
   const isCompact = density === 'compact';
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={isDisabled ? false : open}
+      onOpenChange={(nextOpen) => {
+        if (!isDisabled) {
+          setOpen(nextOpen);
+        }
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
+          ariaLabel="Select model"
           variant={ButtonVariant.GHOST}
           withWrapper={false}
           textTransform="none"
+          isDisabled={isDisabled}
           className={cn(
             // Same height as send (size-8 / size-9) — trailing toolbar cluster
             'inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border/60 bg-background-secondary/40 px-2.5 text-xs text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground',

@@ -18,7 +18,10 @@ export { AgentSidebar } from '@genfeedai/agent/components/AgentSidebar';
 export { AgentSidebarContent } from '@genfeedai/agent/components/AgentSidebarContent';
 export { AgentStrategyConfig } from '@genfeedai/agent/components/AgentStrategyConfig';
 export { AgentStrategyStatus } from '@genfeedai/agent/components/AgentStrategyStatus';
-export { AgentThreadList } from '@genfeedai/agent/components/AgentThreadList';
+export {
+  AgentThreadList,
+  type AgentThreadListProps,
+} from '@genfeedai/agent/components/AgentThreadList';
 export { AgentToolCallDisplay } from '@genfeedai/agent/components/AgentToolCallDisplay';
 export {
   CompositeLayout,

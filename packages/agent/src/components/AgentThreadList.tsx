@@ -15,7 +15,7 @@ import {
 } from './agent-thread-list.helpers';
 import { useAgentThreadList } from './useAgentThreadList';
 
-interface AgentThreadListProps {
+export type AgentThreadListProps = {
   apiService: AgentApiService;
   isActive?: boolean;
   onNavigate?: (path: string) => void;
@@ -27,7 +27,7 @@ interface AgentThreadListProps {
   onActionsChange?: (actions: ReactNode) => void;
   /** When true, render the Conversations label above search. */
   showTitle?: boolean;
-}
+};
 
 export { AGENT_REFRESH_CONVERSATIONS_EVENT };
 
