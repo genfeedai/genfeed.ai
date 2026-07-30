@@ -194,17 +194,30 @@ function WorkspacePageContentContent({
     ],
   );
 
+  const inboxEmpty =
+    section === 'inbox' && defaultInboxView === 'unread'
+      ? {
+          description: 'New items land here when the workspace routes work.',
+          label: 'No unread items',
+        }
+      : section === 'inbox' && defaultInboxView === 'recent'
+        ? {
+            description: 'Recent inbox activity will show up here.',
+            label: 'No recent items',
+          }
+        : {
+            description: 'Review and approval items will show up here.',
+            label: 'No inbox items yet',
+          };
+
   const inboxTable = (
     <AppTable<Task>
       items={
         section === 'inbox' ? visibleInboxTasks : reviewInboxTasks.slice(0, 5)
       }
       isLoading={isWorkspaceTasksLoading}
-      emptyLabel={
-        section === 'inbox' && defaultInboxView === 'unread'
-          ? 'No unread inbox items right now.'
-          : 'No inbox items yet.'
-      }
+      emptyLabel={inboxEmpty.label}
+      emptyDescription={inboxEmpty.description}
       getRowKey={(task) => task.id}
       getItemId={(task) => task.id}
       onRowClick={(task) => {
@@ -325,12 +338,7 @@ function WorkspacePageContentContent({
               className="space-y-3"
             >
               {section === 'inbox' ? (
-                <>
-                  <h2 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/35">
-                    {defaultInboxView}
-                  </h2>
-                  {inboxTable}
-                </>
+                <div className="w-full">{inboxTable}</div>
               ) : (
                 <WorkspaceSurface
                   title="Inbox"
@@ -351,7 +359,8 @@ function WorkspacePageContentContent({
               <AppTable<Task>
                 items={activityItems}
                 isLoading={isWorkspaceTasksLoading}
-                emptyLabel="Activity will appear here once tasks start running."
+                emptyLabel="No activity yet"
+                emptyDescription="Activity will appear here once tasks start running."
                 getRowKey={(task) => task.id}
                 getItemId={(task) => task.id}
                 onRowClick={(task) => {

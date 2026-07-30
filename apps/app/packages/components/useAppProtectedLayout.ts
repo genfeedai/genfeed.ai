@@ -8,6 +8,7 @@ import {
   POSTS_INSERT_AFTER_LABEL,
 } from '@app-config/menu-items.config';
 import { ORG_MENU_ITEMS } from '@app-config/org-menu-items.config';
+import { POSTS_MENU_ITEMS } from '@app-config/posts-menu-items.config';
 import { RESEARCH_MENU_ITEMS } from '@app-config/research-menu-items.config';
 import {
   buildSettingsMenuItems,
@@ -123,14 +124,6 @@ export function useAppProtectedLayout(
     isStudioPromptBarRoute ||
     isPostsPromptBarRoute ||
     isMissionControlPromptBarRoute;
-  const isOrgRoute = (() => {
-    const parts = rawPathname.split('/').filter(Boolean);
-    return (
-      parts[1] === '~' &&
-      !pathname.startsWith(APP_ROUTE_PREFIXES.SETTINGS) &&
-      !isConversationRoute
-    );
-  })();
   const isSettingsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.SETTINGS);
   const hasSecondaryTopbar =
     !isAdminRoute && pathname.startsWith(APP_ROUTE_PREFIXES.STUDIO);
@@ -141,6 +134,26 @@ export function useAppProtectedLayout(
     pathname.startsWith(APP_ROUTE_PREFIXES.ORCHESTRATION);
   const isEditorRoute = pathname.startsWith(APP_ROUTE_PREFIXES.EDITOR);
   const isAnalyticsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.ANALYTICS);
+  // Org shell only for true org destinations (overview, etc.). Module routes
+  // under `/:org/~/posts|studio|…` keep their own app sidebars — otherwise
+  // Publish/posts steals the Organization menu.
+  const isOrgRoute = (() => {
+    const parts = rawPathname.split('/').filter(Boolean);
+    return (
+      parts[1] === '~' &&
+      !pathname.startsWith(APP_ROUTE_PREFIXES.SETTINGS) &&
+      !isConversationRoute &&
+      !isPostsRoute &&
+      !isAnalyticsRoute &&
+      !isComposeRoute &&
+      !isStudioRoute &&
+      !isLibraryRoute &&
+      !isResearchRoute &&
+      !isWorkflowsRoute &&
+      !isMessagesRoute &&
+      !isEditorRoute
+    );
+  })();
   const workspaceShellRoute = useMemo(
     () => resolveWorkspaceShellRoute(rawPathname),
     [rawPathname],
@@ -360,6 +373,17 @@ export function useAppProtectedLayout(
     [taskContextSearchParams],
   );
 
+  const postsMenuItems = useMemo(
+    () =>
+      POSTS_MENU_ITEMS.map(
+        (item): MenuItemConfig => ({
+          ...item,
+          href: withTaskContextHref(item.href, taskContextSearchParams),
+        }),
+      ),
+    [taskContextSearchParams],
+  );
+
   const libraryMenuItems = useMemo(
     () =>
       LIBRARY_MENU_ITEMS.map(
@@ -469,6 +493,7 @@ export function useAppProtectedLayout(
     isMessagesRoute,
     isMoodboardRoute,
     isOrgRoute,
+    isPostsRoute,
     isPromptBarRoute,
     isResearchRoute,
     isSettingsRoute,
@@ -493,6 +518,7 @@ export function useAppProtectedLayout(
     libraryMenuItems,
     menuItems,
     orgMenuItems,
+    postsMenuItems,
     researchMenuItems,
     secondaryMenuItems,
     settingsMenuItems,

@@ -9,10 +9,10 @@ describe('AnalyticsOrganizationOverview', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('renders the four-card organization metric strip', () => {
+  it('renders the four-card organization metric strip without a redundant page title', () => {
     render(<AnalyticsOrganizationOverview />);
 
-    expect(screen.getByText('Organization Metrics')).toBeInTheDocument();
+    expect(screen.queryByText('Organization Metrics')).not.toBeInTheDocument();
     expect(screen.getByText('Total Brands')).toBeInTheDocument();
     expect(screen.getByText('Total Posts')).toBeInTheDocument();
     expect(screen.getByText('Total Views')).toBeInTheDocument();

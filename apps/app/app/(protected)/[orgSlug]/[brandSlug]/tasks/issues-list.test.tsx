@@ -36,10 +36,12 @@ describe('IssuesList view controls', () => {
   it('names the view controls and exposes their selected state', async () => {
     render(<IssuesList />);
 
-    expect(await screen.findByText('No tasks found')).toBeVisible();
+    expect(await screen.findByText('No tasks yet')).toBeVisible();
     expect(
-      screen.getByText('Tasks will appear here once created.'),
-    ).not.toHaveClass('mb-6');
+      screen.getByText(
+        'Create a task to start tracking work in this workspace.',
+      ),
+    ).toBeVisible();
     expect(
       screen.getByRole('heading', { level: 1, name: 'Tasks' }),
     ).toHaveClass('sr-only');

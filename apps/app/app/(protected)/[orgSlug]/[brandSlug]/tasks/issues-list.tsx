@@ -443,8 +443,8 @@ export default function IssuesList() {
         <LazyLoadingFallback variant="minimal" />
       ) : issues.length === 0 ? (
         <CardEmpty
-          label="No tasks found"
-          description="Tasks will appear here once created."
+          label="No tasks yet"
+          description="Create a task to start tracking work in this workspace."
         />
       ) : viewMode === ViewType.LIST ? (
         <Card>

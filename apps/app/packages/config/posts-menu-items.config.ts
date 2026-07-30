@@ -1,0 +1,90 @@
+import { APP_ROUTES } from '@genfeedai/constants';
+import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
+import {
+  HiCalendarDays,
+  HiChartBar,
+  HiClipboardDocumentCheck,
+  HiDocumentText,
+  HiEnvelope,
+  HiOutlineCalendarDays,
+  HiOutlineChartBar,
+  HiOutlineClipboardDocumentCheck,
+  HiOutlineDocumentText,
+  HiOutlineEnvelope,
+  HiOutlinePaperAirplane,
+  HiOutlineQueueList,
+  HiOutlineSparkles,
+  HiPaperAirplane,
+  HiQueueList,
+  HiSparkles,
+} from 'react-icons/hi2';
+
+export const POSTS_MENU_ITEMS: MenuItemConfig[] = [
+  {
+    group: '',
+    href: APP_ROUTES.POSTS.ROOT,
+    label: 'All posts',
+    matchPaths: [APP_ROUTES.POSTS.ROOT],
+    outline: HiOutlineDocumentText,
+    solid: HiDocumentText,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.POSTS.REVIEW,
+    label: 'Review',
+    matchPaths: [APP_ROUTES.POSTS.REVIEW],
+    outline: HiOutlineClipboardDocumentCheck,
+    solid: HiClipboardDocumentCheck,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.POSTS.SCHEDULED,
+    label: 'Scheduled',
+    matchPaths: [APP_ROUTES.POSTS.SCHEDULED],
+    outline: HiOutlineQueueList,
+    solid: HiQueueList,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.POSTS.PUBLISHED,
+    label: 'Published',
+    matchPaths: [APP_ROUTES.POSTS.PUBLISHED],
+    outline: HiOutlinePaperAirplane,
+    solid: HiPaperAirplane,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.POSTS.CALENDAR,
+    label: 'Calendar',
+    matchPaths: [APP_ROUTES.POSTS.CALENDAR],
+    outline: HiOutlineCalendarDays,
+    solid: HiCalendarDays,
+  },
+  {
+    group: '',
+    hasDividerAbove: true,
+    href: APP_ROUTES.POSTS.NEWSLETTERS,
+    label: 'Newsletters',
+    matchPaths: [APP_ROUTES.POSTS.NEWSLETTERS],
+    outline: HiOutlineEnvelope,
+    solid: HiEnvelope,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.POSTS.ANALYTICS,
+    label: 'Analytics',
+    matchPaths: [APP_ROUTES.POSTS.ANALYTICS],
+    outline: HiOutlineChartBar,
+    solid: HiChartBar,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.POSTS.REMIX,
+    label: 'Remix',
+    matchPaths: [APP_ROUTES.POSTS.REMIX],
+    outline: HiOutlineSparkles,
+    solid: HiSparkles,
+  },
+];
+
+export const POSTS_LOGO_HREF = APP_ROUTES.POSTS.ROOT;

@@ -13,7 +13,6 @@ import type {
 import { cn } from '@helpers/formatting/cn/cn.util';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import type { ReactElement, ReactNode } from 'react';
-import { HiOutlineSparkles } from 'react-icons/hi2';
 
 type AgentChatEmptyStateProps = {
   addFiles: (files: File[]) => void;
@@ -31,6 +30,8 @@ type AgentChatEmptyStateProps = {
   isReadOnly: boolean;
   isRunActive: boolean;
   isWideLayout: boolean;
+  /** Compact rail layout for the workspace inspector drawer. */
+  variant?: 'default' | 'inspector';
   onSend: (
     content: string,
     mentions?: ExtractedMention[],
@@ -61,6 +62,7 @@ export function AgentChatEmptyState({
   isReadOnly,
   isRunActive,
   isWideLayout,
+  variant = 'default',
   onSend,
   onStop,
   placeholder,
@@ -69,31 +71,48 @@ export function AgentChatEmptyState({
   selectedModel,
   onModelChange,
 }: AgentChatEmptyStateProps): ReactElement {
-  return (
-    <div className="relative flex min-h-0 flex-1 overflow-hidden">
-      <div className="flex min-h-0 flex-1 overflow-y-auto px-4 py-6 md:px-6">
-        <div
-          className={cn(
-            'mx-auto flex h-full w-full flex-col items-center justify-center',
-            isWideLayout ? 'max-w-3xl' : 'max-w-3xl',
-          )}
-        >
-          <div className="mb-4 flex size-10 items-center justify-center rounded-lg border border-border/60 bg-background-secondary shadow-[0_1px_0_rgba(0,0,0,0.18)]">
-            <HiOutlineSparkles className="size-4 text-foreground/70" />
-          </div>
+  const isInspector = variant === 'inspector';
 
-          <h2 className="mb-1 text-center text-base font-semibold tracking-[-0.02em] text-foreground">
+  if (isInspector) {
+    return (
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="flex min-h-0 flex-1 flex-col justify-center px-3 py-4">
+          <h2 className="text-sm font-semibold tracking-[-0.01em] text-foreground">
             {emptyStateTitle}
           </h2>
-          <p className="max-w-md text-center text-xs leading-5 text-foreground/52">
+          <p className="mt-1 text-xs leading-5 text-foreground/48">
+            {emptyStateDescription}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative flex min-h-0 flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-y-auto px-4 py-8 md:px-6">
+        <div
+          className={cn(
+            'mx-auto flex h-full w-full max-w-2xl flex-col items-center justify-center',
+            isWideLayout && 'md:max-w-3xl',
+          )}
+        >
+          <h2 className="mb-2 text-center text-2xl font-semibold tracking-[-0.03em] text-foreground md:text-[1.75rem]">
+            {emptyStateTitle}
+          </h2>
+          <p className="mb-5 max-w-2xl truncate text-center text-sm leading-5 text-foreground/48">
             {emptyStateDescription}
           </p>
 
+          {promptBarSuggestions ? (
+            <div className="mb-5 w-full max-w-2xl">{promptBarSuggestions}</div>
+          ) : null}
+
           {isComposerVisible ? (
             <PromptBarContainer
-              className="mt-4 w-full"
+              className="w-full"
               layoutMode="inflow"
-              maxWidth={isWideLayout ? '2xl' : '4xl'}
+              maxWidth="full"
               zIndex={60}
             >
               <AgentChatInput
@@ -115,10 +134,6 @@ export function AgentChatEmptyState({
                 onModelChange={onModelChange}
               />
             </PromptBarContainer>
-          ) : null}
-
-          {promptBarSuggestions ? (
-            <div className="mt-5">{promptBarSuggestions}</div>
           ) : null}
         </div>
       </div>

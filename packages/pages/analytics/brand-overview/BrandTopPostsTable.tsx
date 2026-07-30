@@ -38,7 +38,7 @@ export default function BrandTopPostsTable({
   return (
     <Card
       label="Recent Posts (Top 5)"
-      className="bg-background"
+      bodyClassName="gap-3 p-4 pb-0"
       headerAction={
         <Link
           href={getPublisherPostsHref({ status: PostStatus.PUBLIC })}
@@ -48,7 +48,7 @@ export default function BrandTopPostsTable({
         </Link>
       }
     >
-      <div className="overflow-x-auto">
+      <div className="-mx-4 overflow-x-auto">
         <Table
           items={topPosts}
           isLoading={isLoadingPosts}

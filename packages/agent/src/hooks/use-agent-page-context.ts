@@ -166,21 +166,21 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     suggestedActions: [
       {
         icon: HiOutlineCalendarDays({
-          className: 'size-5 text-foreground/50',
+          className: 'size-5 text-sky-400',
         }),
-        label: 'Generate',
+        label: 'Generate posts for this week',
         prompt: 'Generate 20 posts for this week across my connected platforms',
       },
       {
         icon: HiOutlineClipboardDocumentCheck({
-          className: 'size-5 text-foreground/50',
+          className: 'size-5 text-violet-400',
         }),
-        label: 'Review',
+        label: 'Review pending content',
         prompt: 'Show me pending content in the review queue',
       },
       {
-        icon: HiOutlineChartBar({ className: 'size-5 text-foreground/50' }),
-        label: 'Analytics',
+        icon: HiOutlineChartBar({ className: 'size-5 text-emerald-400' }),
+        label: "Check this week's analytics",
         prompt: 'How did my content perform this week? Show me the analytics',
       },
       {
@@ -532,20 +532,20 @@ const DEFAULT_CONTEXT: PageContextConfig = {
   placeholder: 'Ask me anything...',
   suggestedActions: [
     {
-      icon: HiOutlineCalendarDays({ className: 'size-5 text-foreground/50' }),
-      label: 'Generate',
+      icon: HiOutlineCalendarDays({ className: 'size-5 text-sky-400' }),
+      label: 'Generate posts for this week',
       prompt: 'Generate 20 posts for this week across my connected platforms',
     },
     {
       icon: HiOutlineClipboardDocumentCheck({
-        className: 'size-5 text-foreground/50',
+        className: 'size-5 text-violet-400',
       }),
-      label: 'Review',
+      label: 'Review pending content',
       prompt: 'Show me pending content in the review queue',
     },
     {
-      icon: HiOutlineChartBar({ className: 'size-5 text-foreground/50' }),
-      label: 'Analytics',
+      icon: HiOutlineChartBar({ className: 'size-5 text-emerald-400' }),
+      label: "Check this week's analytics",
       prompt: 'How did my content perform this week? Show me the analytics',
     },
   ],

@@ -10,6 +10,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import type { Post } from '@models/content/post.model';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
 import { BrandsService } from '@services/social/brands.service';
+import Card from '@ui/card/Card';
 import Table from '@ui/display/table/Table';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
@@ -195,14 +196,11 @@ export default function AnalyticsPlatformDetail({
         ]}
       />
 
-      <div className="bg-background p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">
-            All {platformLabel} Posts ({posts.length})
-          </h3>
-        </div>
-
-        <div className="overflow-x-auto">
+      <Card
+        label={`All ${platformLabel} Posts (${posts.length})`}
+        bodyClassName="gap-3 p-4 pb-0"
+      >
+        <div className="-mx-4 overflow-x-auto">
           <Table
             items={posts}
             isLoading={isLoading}
@@ -300,7 +298,7 @@ export default function AnalyticsPlatformDetail({
             ]}
           />
         </div>
-      </div>
+      </Card>
 
       <PostDetailOverlay
         postId={selectedPostId}

@@ -21,7 +21,6 @@ import { Button } from '@ui/primitives/button';
 import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
-import TopbarEnd from '@ui/topbars/end/TopbarEnd';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback } from 'react';
@@ -31,7 +30,7 @@ import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndic
 import { useWorkspaceInspector } from '@/components/workspace-shell/WorkspaceInspectorContext';
 import {
   appendSearchParamsToHref,
-  getBrandSwitchHref,
+  getCurrentBrandScopedPath,
   pickOperatorTaskContextSearchParams,
 } from '@/lib/navigation/operator-shell';
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
@@ -169,39 +168,33 @@ function AppProtectedTopbarContent({
       }
 
       if (nextOrgSlug && nextBrand?.slug) {
+        // Always enter (or stay in) brand scope and keep the current surface
+        // (e.g. /agent/new → /:org/:brand/agent/new). Never bounce to overview.
         push(
-          isOrganizationScopeRoute
-            ? createBrandAppRoute(
-                nextOrgSlug,
-                nextBrand.slug,
-                APP_ROUTES.WORKSPACE.OVERVIEW,
-              )
-            : getBrandSwitchHref({
-                nextBrandSlug: nextBrand.slug,
-                nextOrgSlug,
-                pathname,
-              }),
+          createBrandAppRoute(
+            nextOrgSlug,
+            nextBrand.slug,
+            getCurrentBrandScopedPath(pathname),
+          ),
         );
       }
     },
-    [
-      brands,
-      effectiveOrgSlug,
-      isOrganizationScopeRoute,
-      pathname,
-      push,
-      setBrandId,
-      setOrganizationId,
-    ],
+    [brands, effectiveOrgSlug, pathname, push, setBrandId, setOrganizationId],
   );
 
   const handleClearBrandSelection = useCallback(() => {
     setBrandId('');
 
     if (effectiveOrgSlug) {
-      push(createOrganizationAppRoute(effectiveOrgSlug, '/overview'));
+      // Drop brand scope but stay on the same app surface.
+      push(
+        createOrganizationAppRoute(
+          effectiveOrgSlug,
+          getCurrentBrandScopedPath(pathname),
+        ),
+      );
     }
-  }, [effectiveOrgSlug, push, setBrandId]);
+  }, [effectiveOrgSlug, pathname, push, setBrandId]);
 
   const taskId = searchParams.get('taskId');
   const taskTitle = searchParams.get('taskTitle');
@@ -367,8 +360,6 @@ function AppProtectedTopbarContent({
               )}
             </Button>
           ) : null}
-
-          {!isAdminChrome && isSidebarCollapsed ? <TopbarEnd /> : null}
         </div>
       </div>
     </header>

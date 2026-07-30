@@ -7,6 +7,7 @@ import {
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { BrandPerformanceChartProps } from '@genfeedai/props/analytics/charts.props';
 import Card from '@ui/card/Card';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
@@ -75,34 +76,37 @@ export function BrandPerformanceChart({
     [],
   );
 
-  const isEmpty = !data || data.length === 0;
+  // Brands with only zeros still "exist" in the API — treat no signal as empty
+  // so we don't show a blank chart frame with metric toggles and no story.
+  const hasSignal = Boolean(
+    data?.some((row) => row.engagement > 0 || row.posts > 0 || row.views > 0),
+  );
+  const isEmpty = !data || data.length === 0 || !hasSignal;
 
   // Sort and take top 10 brands by selected metric
-  const sortedData = data
-    .toSorted((a, b) => b[activeMetric] - a[activeMetric])
-    .slice(0, 10);
+  const sortedData = isEmpty
+    ? []
+    : data.toSorted((a, b) => b[activeMetric] - a[activeMetric]).slice(0, 10);
 
   return (
-    <Card className={className}>
-      <div className="p-6">
-        <h3 className="text-lg font-semibold mb-4">{title}</h3>
-        {/* Metric Toggle Buttons */}
-        <div className="flex flex-wrap gap-2 mb-4">
+    <Card className={className} label={title} bodyClassName="gap-3 p-4">
+      {!isEmpty ? (
+        <div className="mb-4 flex flex-wrap gap-2">
           {(Object.keys(METRIC_LABELS) as BrandMetricKey[]).map((metricKey) => (
             <Button
               type="button"
               key={metricKey}
               onClick={() => setActiveMetric(metricKey)}
-              isDisabled={isLoading || isEmpty}
+              isDisabled={isLoading}
               variant={ButtonVariant.UNSTYLED}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all border ${
+              className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-all ${
                 activeMetric === metricKey
-                  ? 'bg-white/10 border-white/20 text-white'
-                  : 'bg-transparent border-white/[0.08] text-white/50 hover:border-white/20 hover:text-white/80'
-              } ${isLoading || isEmpty ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  ? 'border-white/20 bg-white/10 text-white'
+                  : 'border-white/[0.08] bg-transparent text-white/50 hover:border-white/20 hover:text-white/80'
+              } ${isLoading ? 'cursor-not-allowed opacity-50' : ''}`}
             >
               <span
-                className="inline-block size-3 rounded-full mr-2"
+                className="mr-2 inline-block size-3 rounded-full"
                 style={{ backgroundColor: METRIC_COLORS[metricKey] }}
               />
 
@@ -110,21 +114,25 @@ export function BrandPerformanceChart({
             </Button>
           ))}
         </div>
+      ) : null}
 
-        {/* Chart */}
-        <div className="relative" style={{ height }}>
-          {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-card/50 z-10">
-              <span className="animate-pulse size-12 rounded-full bg-primary/30" />
-            </div>
-          )}
+      {/* Chart */}
+      <div className="relative" style={{ height }}>
+        {isLoading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/50">
+            <span className="size-12 animate-pulse rounded-full bg-primary/30" />
+          </div>
+        )}
 
-          {isEmpty && !isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center text-foreground/50">
-              No data available for the selected period
-            </div>
-          )}
+        {isEmpty && !isLoading ? (
+          <CardEmptyContent
+            className="absolute inset-0 py-0"
+            label="No brand performance yet"
+            description="Publish posts from a brand to see engagement, posts, and views ranked here."
+          />
+        ) : null}
 
+        {!isEmpty ? (
           <ChartContainer
             config={chartConfig}
             className="border-0 bg-transparent p-0 shadow-none"
@@ -178,7 +186,7 @@ export function BrandPerformanceChart({
               />
             </BarChart>
           </ChartContainer>
-        </div>
+        ) : null}
       </div>
     </Card>
   );

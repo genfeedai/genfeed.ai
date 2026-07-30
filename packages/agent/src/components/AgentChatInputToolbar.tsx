@@ -87,8 +87,8 @@ export function AgentChatInputToolbar({
   return (
     <div
       className={cn(
-        'mt-1 flex items-center justify-between gap-2 border-t border-border/70',
-        isCompact ? 'min-h-9 pt-1.5' : 'min-h-10 pt-2',
+        'mt-1 flex items-center justify-between gap-1',
+        isCompact ? 'min-h-9 pt-1' : 'min-h-10 pt-1.5',
       )}
     >
       <div className="flex min-w-0 items-center gap-0.5">
@@ -149,7 +149,7 @@ export function AgentChatInputToolbar({
           </PopoverTrigger>
           <PopoverContent
             align="start"
-            className="w-72 rounded-xl border-border bg-popover p-1.5 text-popover-foreground"
+            className="w-72 rounded-xl border-border bg-background p-1.5 text-foreground"
             side="top"
           >
             <div aria-label="Trusted composer actions" role="group">

@@ -14,6 +14,7 @@ import {
   AnalyticsService,
   type IBrandWithStats,
 } from '@services/analytics/analytics.service';
+import Card from '@ui/card/Card';
 import Table from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Input } from '@ui/primitives/input';
@@ -146,7 +147,7 @@ export default function AnalyticsBrandsList({
         </div>
       }
     >
-      <div className="bg-background p-6">
+      <Card bodyClassName="gap-0 p-0">
         <div className="overflow-x-auto">
           <Table
             items={filteredBrands}
@@ -271,7 +272,7 @@ export default function AnalyticsBrandsList({
             ]}
           />
         </div>
-      </div>
+      </Card>
     </Container>
   );
 }

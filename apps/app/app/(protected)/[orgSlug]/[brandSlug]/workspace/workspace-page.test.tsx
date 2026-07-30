@@ -304,6 +304,7 @@ describe('WorkspacePageContent', () => {
     });
 
     expect(screen.getByTestId('workspace-activity')).toBeInTheDocument();
+    expect(screen.getByText('No activity yet')).toBeVisible();
     expect(
       screen.getByText('Activity will appear here once tasks start running.'),
     ).toBeVisible();
@@ -322,20 +323,14 @@ describe('WorkspacePageContent', () => {
     const workspaceSnapshot = screen.getByTestId('workspace-snapshot');
 
     expect(
-      within(workspaceSnapshot).getByText('Workspace at a glance'),
-    ).toBeVisible();
+      within(workspaceSnapshot).queryByText('Workspace at a glance'),
+    ).not.toBeInTheDocument();
     expect(
       within(workspaceSnapshot).getByRole('link', { name: /unread/i }),
     ).toBeVisible();
     expect(
       within(workspaceSnapshot).getByRole('button', { name: /refresh/i }),
     ).toBeVisible();
-    expect(
-      within(workspaceSnapshot).getByText('Workspace at a glance')
-        .parentElement,
-    ).toContainElement(
-      within(workspaceSnapshot).getByRole('link', { name: /unread/i }),
-    );
     expect(mocks.subscribe).toHaveBeenCalled();
 
     fireEvent.click(screen.getByText('Campaign image'));

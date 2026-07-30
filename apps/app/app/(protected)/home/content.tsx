@@ -2,7 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useAccessState } from '@providers/access-state/access-state.provider';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
@@ -32,60 +32,66 @@ function ConnectionState({
   return (
     <WorkspaceSurface
       className="overflow-hidden"
-      contentClassName="gap-8 p-6 sm:p-8"
+      contentClassName="gap-4 p-4"
       data-testid="operational-home-unconfigured"
       framed={false}
     >
-      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <div className="space-y-5">
-          <div className="flex size-12 items-center justify-center rounded-lg bg-info/10 text-info shadow-border">
-            <HiOutlineCommandLine aria-hidden="true" className="size-6" />
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-info/10 text-info shadow-border">
+            <HiOutlineCommandLine aria-hidden="true" className="size-4" />
           </div>
-          <div className="max-w-2xl space-y-3">
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/35">
+          <div className="min-w-0 space-y-1.5">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/40">
               Connection required
             </p>
-            <h2 className="text-2xl font-semibold tracking-[-0.03em] text-foreground sm:text-3xl">
+            <h2 className="text-base font-semibold tracking-[-0.02em] text-foreground sm:text-lg">
               Connect an AI client to start operating
             </h2>
-            <p className="text-sm leading-7 text-foreground/60">
+            <p className="max-w-xl text-xs leading-5 text-foreground/55">
               Configure Claude Code, Codex, or another Streamable HTTP MCP
-              client. Genfeed will switch this home to live approvals,
-              publishing state, channel health, and activity after a successful
-              verification.
+              client. Live ops unlock after verification.
             </p>
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button asChild variant={ButtonVariant.DEFAULT}>
-              <Link href={connectHref}>
-                Connect Genfeed
-                <HiArrowRight aria-hidden="true" className="size-4" />
-              </Link>
-            </Button>
-            <Button asChild variant={ButtonVariant.SECONDARY}>
-              <Link href={apiKeysHref}>
-                <HiOutlineKey aria-hidden="true" className="size-4" />
-                Manage API keys
-              </Link>
-            </Button>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button
+                asChild
+                size={ButtonSize.SM}
+                variant={ButtonVariant.DEFAULT}
+              >
+                <Link href={connectHref}>
+                  Connect Genfeed
+                  <HiArrowRight aria-hidden="true" className="size-3.5" />
+                </Link>
+              </Button>
+              <Button
+                asChild
+                size={ButtonSize.SM}
+                variant={ButtonVariant.GHOST}
+              >
+                <Link href={apiKeysHref}>
+                  <HiOutlineKey aria-hidden="true" className="size-3.5" />
+                  Manage API keys
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
 
-        <div className="space-y-3 rounded-card bg-background p-5 shadow-border">
+        <ul className="flex shrink-0 flex-col gap-1.5 rounded-lg border border-border/50 px-3 py-2.5 sm:flex-row sm:items-center sm:gap-4 lg:flex-col lg:items-start">
           {[
             'Scoped MCP access',
             'Verified tool discovery',
             'Human approval controls',
           ].map((label) => (
-            <div className="flex items-center gap-3" key={label}>
+            <li className="flex items-center gap-2" key={label}>
               <HiOutlineCheckCircle
                 aria-hidden="true"
-                className="size-5 shrink-0 text-success"
+                className="size-3.5 shrink-0 text-success"
               />
-              <span className="text-sm text-foreground/65">{label}</span>
-            </div>
+              <span className="text-xs text-foreground/60">{label}</span>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
     </WorkspaceSurface>
   );

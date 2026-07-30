@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { BrandDetailLatestArticlesProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import Card from '@ui/card/Card';
@@ -12,60 +12,60 @@ export default function BrandDetailLatestArticles({
   articles,
 }: BrandDetailLatestArticlesProps) {
   return (
-    <Card>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold">Latest Articles</h2>
+    <Card
+      label="Latest Articles"
+      bodyClassName="gap-3 p-4"
+      headerAction={
         <Button
           asChild
-          className="inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap bg-secondary px-3 text-xs font-medium text-secondary-foreground shadow-sm transition-colors duration-300 hover:bg-secondary/80"
-          variant={ButtonVariant.UNSTYLED}
+          size={ButtonSize.SM}
+          variant={ButtonVariant.GHOST}
           withWrapper={false}
         >
           <NextLink href={`${EnvironmentService.apps.app}/compose/article`}>
-            View All
+            View all
           </NextLink>
         </Button>
-      </div>
-
+      }
+    >
       {articles && articles.length > 0 ? (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           {articles.map((article) => (
             <div
               key={article.id}
-              className="overflow-hidden hover:shadow-lg transition-shadow"
+              className="overflow-hidden rounded-lg border border-border/50"
             >
-              {article.bannerUrl && (
-                <div className="relative w-full h-48">
+              {article.bannerUrl ? (
+                <div className="relative h-36 w-full">
                   <Image
                     src={article.bannerUrl}
                     alt={article.label || 'Article'}
                     width={800}
                     height={400}
-                    className="w-full h-full object-cover"
+                    className="size-full object-cover"
                   />
                 </div>
-              )}
+              ) : null}
 
-              <div className="bg-muted/50 p-4">
-                <h3 className="text-lg font-semibold mb-2">{article.label}</h3>
-
-                {article.summary && (
-                  <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
+              <div className="p-3">
+                <h3 className="text-sm font-semibold">{article.label}</h3>
+                {article.summary ? (
+                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
                     {article.summary}
                   </p>
-                )}
-
+                ) : null}
                 <Button
                   asChild
-                  className="inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap bg-primary px-3 text-xs font-medium text-primary-foreground shadow transition-colors duration-300 hover:bg-primary/90"
-                  variant={ButtonVariant.UNSTYLED}
+                  className="mt-2 h-8 text-xs"
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.GHOST}
                   withWrapper={false}
                 >
                   <NextLink
                     href={`${EnvironmentService.apps.website}/articles/${article.slug}`}
                     target="_blank"
                   >
-                    Read Article
+                    Read article
                   </NextLink>
                 </Button>
               </div>
@@ -73,16 +73,25 @@ export default function BrandDetailLatestArticles({
           ))}
         </div>
       ) : (
-        <Button
-          asChild
-          className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors duration-300 hover:bg-primary/90 sm:h-9"
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-        >
-          <NextLink href={`${EnvironmentService.apps.app}`}>
-            Create an Article
-          </NextLink>
-        </Button>
+        <div className="flex flex-col items-center justify-center gap-1 px-4 py-8 text-center">
+          <p className="text-sm font-medium text-foreground/70">
+            No articles yet
+          </p>
+          <p className="max-w-xs text-xs leading-5 text-foreground/45">
+            Draft an article for this brand to populate this strip.
+          </p>
+          <Button
+            asChild
+            className="mt-2 h-8 text-xs"
+            size={ButtonSize.SM}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          >
+            <NextLink href={`${EnvironmentService.apps.app}/compose/article`}>
+              Create an article
+            </NextLink>
+          </Button>
+        </div>
       )}
     </Card>
   );

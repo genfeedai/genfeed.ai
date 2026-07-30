@@ -352,44 +352,36 @@ export default function BrandKitReviewCard({
 
   return (
     <Card
-      className="p-6"
       data-testid="brand-kit-review-card"
       label="Brand Kit Review"
-      description="Scan the brand website, compare proposed fields, and apply selected profile guidance."
+      description="Scan the brand site and apply proposed profile fields."
+      bodyClassName="gap-3 p-4"
     >
-      <div className="space-y-5">
-        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-          <Input
-            label="Website URL"
-            placeholder="https://example.com"
-            value={websiteUrl}
-            onChange={(event) => setWebsiteUrl(event.target.value)}
-          />
-
+      <div className="space-y-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+          <div className="min-w-0 flex-1">
+            <Input
+              label="Website URL"
+              placeholder="https://example.com"
+              value={websiteUrl}
+              onChange={(event) => setWebsiteUrl(event.target.value)}
+            />
+          </div>
           <Button
-            className="w-full md:w-auto"
+            className="h-9 shrink-0 sm:w-auto"
             isDisabled={!websiteUrl.trim()}
             isLoading={isScanning}
-            label={draft ? 'Rescan' : 'Scan Website'}
+            label={draft ? 'Rescan' : 'Scan'}
             onClick={() => void handleScan()}
           />
         </div>
 
-        <div>
-          <label
-            className="mb-1 block text-sm font-medium"
-            htmlFor="brand-kit-social-urls"
-          >
-            Social URLs
-          </label>
-          <Textarea
-            id="brand-kit-social-urls"
-            className="min-h-[72px]"
-            placeholder="https://linkedin.com/company/example"
-            value={socialUrls}
-            onChange={(event) => setSocialUrls(event.target.value)}
-          />
-        </div>
+        <Input
+          label="Social URLs"
+          placeholder="https://linkedin.com/company/example, https://x.com/example"
+          value={socialUrls}
+          onChange={(event) => setSocialUrls(event.target.value)}
+        />
 
         {error ? (
           <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
@@ -575,14 +567,21 @@ export default function BrandKitReviewCard({
             </div>
           </div>
         ) : (
-          <div className="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">
-            No brand kit draft loaded for {brand.label}.
+          <div className="flex flex-col items-start gap-1 rounded-md border border-dashed border-border/60 px-3 py-4">
+            <p className="text-sm font-medium text-foreground/70">
+              No brand kit draft yet
+            </p>
+            <p className="text-xs leading-5 text-foreground/45">
+              Enter a website URL and scan to load proposed fields for{' '}
+              {brand.label}.
+            </p>
           </div>
         )}
 
         <Button
-          label="Refresh Brand"
-          variant={ButtonVariant.SECONDARY}
+          className="h-8 text-xs"
+          label="Refresh brand"
+          variant={ButtonVariant.GHOST}
           onClick={() => void onRefreshBrand()}
         />
       </div>

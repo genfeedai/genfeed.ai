@@ -90,8 +90,15 @@ export function isAssetGateSectionPath(normalizedPathname: string): boolean {
 export function getCurrentBrandScopedPath(pathname: string): string {
   const parts = pathname.split('/').filter(Boolean);
 
-  if (parts.length >= 3 && parts[1] !== '~') {
-    return `/${parts.slice(2).join('/')}`;
+  // Brand (`/:org/:brand/...`) and org (`/:org/~/...`) scopes both keep the
+  // app surface after the scope segments when switching brand selection.
+  if (parts.length >= 3) {
+    const rest = `/${parts.slice(2).join('/')}`;
+    // Org overview alias normalizes to the canonical workspace overview path.
+    if (rest === '/overview') {
+      return APP_ROUTES.WORKSPACE.OVERVIEW;
+    }
+    return rest;
   }
 
   return APP_ROUTES.WORKSPACE.OVERVIEW;

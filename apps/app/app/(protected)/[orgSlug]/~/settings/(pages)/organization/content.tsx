@@ -34,15 +34,14 @@ export default function SettingsOrganizationPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Organization Information</h2>
-        <div className="space-y-4">
+    <div className="space-y-4">
+      <Card label="Organization Information" bodyClassName="gap-3 p-4">
+        <div className="space-y-3">
           <div>
             <span className="text-sm text-muted-foreground">
               Organization ID
             </span>
-            <p className="font-medium font-mono text-sm">
+            <p className="font-mono text-sm font-medium">
               {organizationId || 'Not set'}
             </p>
           </div>
@@ -53,9 +52,8 @@ export default function SettingsOrganizationPage() {
         </div>
       </Card>
 
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Workspace Controls</h2>
-        <div className="space-y-4">
+      <Card label="Workspace Controls" bodyClassName="gap-3 p-4">
+        <div className="space-y-3">
           {selectedBrand?.isDarkroomEnabled && (
             <Switch
               label="Reveal Darkroom NSFW Assets"

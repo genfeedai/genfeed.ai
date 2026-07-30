@@ -1174,17 +1174,16 @@ function UniversalWorkspaceShellContent({
                 </ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider>
               </section>
 
-              {/* The conversation route owns the full canvas. Its composer is a
-                bounded row beneath the transcript, so the canvas itself never
-                scrolls and the prompt bar never covers starter panels or the
-                final message. Product routes never render this slot. */}
+              {/* Conversation composer floats over the canvas (T3/Codex):
+                transcript scrolls underneath a frosted prompt bar. Empty
+                sessions keep the bar inline/centered and leave this slot empty
+                (`empty:hidden`). Product routes never render this slot. */}
               {isCanvasComposerVisible ? (
                 <div
-                  className="z-20 shrink-0 px-3 pb-3 md:px-5 md:pb-5"
+                  className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-3 pb-3 empty:hidden md:px-5 md:pb-5"
                   data-testid="workspace-composer-slot"
-                >
-                  <div ref={setComposerPortalTarget} />
-                </div>
+                  ref={setComposerPortalTarget}
+                />
               ) : null}
             </div>
 

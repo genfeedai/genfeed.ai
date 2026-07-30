@@ -27,6 +27,7 @@ export default function AppTable<T>({
   getRowKey,
   getRowClassName,
   emptyLabel = EMPTY_STATES.DEFAULT,
+  emptyDescription,
   emptyState,
 
   selectable = false,
@@ -116,8 +117,12 @@ export default function AppTable<T>({
       return <>{emptyState}</>;
     }
     return (
-      <div className="rounded bg-card shadow-border">
-        <CardEmptyContent label={emptyLabel} />
+      <div className="w-full min-h-[12rem]">
+        <CardEmptyContent
+          className="min-h-[12rem] w-full py-12"
+          label={emptyLabel}
+          description={emptyDescription}
+        />
       </div>
     );
   }

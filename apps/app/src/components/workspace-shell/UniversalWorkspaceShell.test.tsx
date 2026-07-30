@@ -576,7 +576,7 @@ describe('UniversalWorkspaceShell', () => {
       screen.getByTestId('conversation-inspector-provider'),
     ).toHaveAttribute('data-active', 'true');
     expect(screen.getByTestId('workspace-composer-slot')).toBeInTheDocument();
-    expect(screen.getByTestId('workspace-composer-slot')).not.toHaveClass(
+    expect(screen.getByTestId('workspace-composer-slot')).toHaveClass(
       'absolute',
     );
     expect(screen.getByTestId('workspace-canvas-layout')).toHaveClass(

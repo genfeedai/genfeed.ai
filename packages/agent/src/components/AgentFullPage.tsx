@@ -121,12 +121,12 @@ export function AgentFullPage({
   return (
     <div
       className={cn(
-        'flex min-h-0 flex-1 overflow-hidden bg-card text-card-foreground',
+        'flex min-h-0 flex-1 overflow-hidden bg-background text-foreground',
         onboardingMode && 'max-md:pb-14',
       )}
     >
       {showThreadSidebar ? (
-        <div className="hidden xl:flex xl:w-[15rem] xl:shrink-0 xl:border-r xl:border-border xl:bg-background-secondary">
+        <div className="hidden xl:flex xl:w-[15rem] xl:shrink-0 xl:border-r xl:border-border xl:bg-background">
           <AgentSidebarContent apiService={apiService} />
         </div>
       ) : null}
@@ -158,8 +158,8 @@ export function AgentFullPage({
               }
               emptyStateDescription={
                 onboardingMode
-                  ? "I'm your AI content agent. Let's get you set up in a few minutes."
-                  : 'Ask for help planning content, reviewing drafts, or understanding what to do next.'
+                  ? "I'm your AI content agent. Let's get you set up."
+                  : 'Plan content, review drafts, or decide what to do next.'
               }
               placeholder="Ask for help with content, review, or planning..."
               suggestedActions={
@@ -179,7 +179,7 @@ export function AgentFullPage({
           </div>
 
           {hasInlineContextPanel ? (
-            <div className="hidden min-h-0 overflow-hidden xl:flex xl:w-[24rem] xl:shrink-0 xl:border-l xl:border-border xl:bg-background-secondary">
+            <div className="hidden min-h-0 overflow-hidden xl:flex xl:w-[24rem] xl:shrink-0 xl:border-l xl:border-border xl:bg-background">
               {contextPanel}
             </div>
           ) : null}

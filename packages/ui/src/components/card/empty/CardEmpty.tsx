@@ -1,22 +1,21 @@
-import { ButtonVariant, CardEmptySize, CardVariant } from '@genfeedai/enums';
+import { ButtonVariant, CardEmptySize } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { CardEmptyProps } from '@genfeedai/props/ui/cards/card-empty.props';
-import Card from '@ui/card/Card';
 import CardIcon from '@ui/card/icon/CardIcon';
 import { Button } from '@ui/primitives/button';
 
 const SIZE_CLASSES = {
   [CardEmptySize.DEFAULT]: {
-    icon: 'size-16',
-    title: 'text-xl',
+    icon: 'size-10',
+    title: 'text-sm font-medium text-foreground/70',
   },
   [CardEmptySize.LG]: {
-    icon: 'size-20',
-    title: 'text-2xl',
+    icon: 'size-14',
+    title: 'text-base font-medium text-foreground/75',
   },
   [CardEmptySize.SM]: {
-    icon: 'size-12',
-    title: 'text-lg',
+    icon: 'size-8',
+    title: 'text-sm font-medium text-foreground/70',
   },
 };
 
@@ -39,15 +38,14 @@ export function CardEmptyContent({
     <div
       aria-live="polite"
       className={cn(
-        'flex flex-col items-center justify-center text-center py-12',
-        'bg-white/[0.02]',
+        'flex flex-col items-center justify-center gap-1 px-6 py-10 text-center',
         className,
       )}
     >
       {Icon && (
         <CardIcon
           icon={Icon}
-          className="mb-6 ring-1 ring-inset ring-white/10 rounded-full p-4"
+          className="mb-3 rounded-full p-2.5 ring-1 ring-inset ring-border/60"
           iconClassName={cn(
             'text-foreground/40',
             SIZE_CLASSES[size].icon,
@@ -56,19 +54,15 @@ export function CardEmptyContent({
         />
       )}
 
-      {label && (
-        <h3
-          className={cn(
-            'font-semibold text-foreground mb-2',
-            SIZE_CLASSES[size].title,
-          )}
-        >
-          {label}
-        </h3>
-      )}
+      {label && <h3 className={cn(SIZE_CLASSES[size].title)}>{label}</h3>}
 
       {description && (
-        <p className={cn('max-w-md text-foreground/60', hasAction && 'mb-6')}>
+        <p
+          className={cn(
+            'max-w-xs text-xs leading-5 text-foreground/45',
+            hasAction && 'mb-3',
+          )}
+        >
           {description}
         </p>
       )}
@@ -78,9 +72,10 @@ export function CardEmptyContent({
         : action && (
             <Button
               withWrapper={false}
-              variant={action.variant || ButtonVariant.DEFAULT}
+              variant={action.variant || ButtonVariant.GHOST}
               onClick={action.onClick}
               ariaLabel={action.ariaLabel || action.label}
+              className="mt-1 h-8 text-xs"
             >
               {action.label}
             </Button>
@@ -90,7 +85,9 @@ export function CardEmptyContent({
 }
 
 /**
- * CardEmpty - Empty state wrapped in a card
+ * CardEmpty — canonical list/page empty. No card chrome: one quiet centered
+ * block everywhere (tables, tasks, inbox, activity). Prefer `EmptyStateCard`
+ * when a bordered surface is intentional.
  */
 export default function CardEmpty({
   icon,
@@ -101,19 +98,17 @@ export default function CardEmpty({
   actions,
   className,
   size = CardEmptySize.DEFAULT,
-  variant = CardVariant.DEFAULT,
 }: CardEmptyProps) {
   return (
-    <Card variant={variant} className={className} bodyClassName="p-0">
-      <CardEmptyContent
-        icon={icon}
-        iconClassName={iconClassName}
-        label={label}
-        description={description}
-        action={action}
-        actions={actions}
-        size={size}
-      />
-    </Card>
+    <CardEmptyContent
+      icon={icon}
+      iconClassName={iconClassName}
+      label={label}
+      description={description}
+      action={action}
+      actions={actions}
+      className={cn('min-h-[12rem] w-full', className)}
+      size={size}
+    />
   );
 }

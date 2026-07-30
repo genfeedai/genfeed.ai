@@ -152,11 +152,13 @@ function AppLayoutWithDynamicMenu({
     libraryMenuItems,
     menuItems,
     orgMenuItems,
+    postsMenuItems,
     researchMenuItems,
     secondaryMenuItems,
     settingsMenuItems,
     studioMenuItems,
     workflowsMenuItems,
+    isPostsRoute,
     taskContextSearchParams,
     handleNavigate,
     handleOpenCommandPalette,
@@ -299,6 +301,7 @@ function AppLayoutWithDynamicMenu({
         isLibraryRoute={isLibraryRoute}
         isMessagesRoute={isMessagesRoute}
         isOrgRoute={isOrgRoute}
+        isPostsRoute={isPostsRoute}
         isResearchRoute={isResearchRoute}
         isSettingsRoute={isSettingsRoute}
         isStudioRoute={isStudioRoute}
@@ -309,6 +312,7 @@ function AppLayoutWithDynamicMenu({
         libraryMenuItems={libraryMenuItems}
         menuItems={menuItems}
         orgMenuItems={orgMenuItems}
+        postsMenuItems={postsMenuItems}
         researchMenuItems={researchMenuItems}
         secondaryMenuItems={secondaryMenuItems}
         settingsMenuItems={settingsMenuItems}
@@ -334,6 +338,7 @@ function AppLayoutWithDynamicMenu({
     isLibraryRoute,
     isMessagesRoute,
     isOrgRoute,
+    isPostsRoute,
     isResearchRoute,
     isSettingsRoute,
     isStudioRoute,
@@ -341,6 +346,7 @@ function AppLayoutWithDynamicMenu({
     libraryMenuItems,
     menuItems,
     orgMenuItems,
+    postsMenuItems,
     researchMenuItems,
     secondaryMenuItems,
     settingsMenuItems,

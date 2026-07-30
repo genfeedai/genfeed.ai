@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import type { BrandDetailLatestVideosProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -13,25 +13,27 @@ export default function BrandDetailLatestVideos({
   videos,
 }: BrandDetailLatestVideosProps) {
   const isStudioEnabled = useFeatureFlag('studio');
+  const createHref = `${EnvironmentService.apps.app}${isStudioEnabled ? '/studio/video' : '/agent/new'}`;
 
   return (
-    <Card>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold">Latest Videos</h2>
+    <Card
+      label="Latest Videos"
+      bodyClassName="gap-3 p-4"
+      headerAction={
         <Button
           asChild
-          className="inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap bg-secondary px-3 text-xs font-medium text-secondary-foreground shadow-sm transition-colors duration-300 hover:bg-secondary/80"
-          variant={ButtonVariant.UNSTYLED}
+          size={ButtonSize.SM}
+          variant={ButtonVariant.GHOST}
           withWrapper={false}
         >
           <Link href={`${EnvironmentService.apps.app}/library/overview`}>
-            View All
+            View all
           </Link>
         </Button>
-      </div>
-
+      }
+    >
       {videos && videos.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {videos.map((video) => (
             <LazyMasonryVideo
               key={video.id}
@@ -42,18 +44,23 @@ export default function BrandDetailLatestVideos({
           ))}
         </div>
       ) : (
-        <Button
-          asChild
-          className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors duration-300 hover:bg-primary/90 sm:h-9"
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-        >
-          <Link
-            href={`${EnvironmentService.apps.app}${isStudioEnabled ? '/studio/video' : '/agent/new'}`}
+        <div className="flex flex-col items-center justify-center gap-1 px-4 py-8 text-center">
+          <p className="text-sm font-medium text-foreground/70">
+            No videos yet
+          </p>
+          <p className="max-w-xs text-xs leading-5 text-foreground/45">
+            Generate a video for this brand to populate this strip.
+          </p>
+          <Button
+            asChild
+            className="mt-2 h-8 text-xs"
+            size={ButtonSize.SM}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
           >
-            Create a Video
-          </Link>
-        </Button>
+            <Link href={createHref}>Create a video</Link>
+          </Button>
+        </div>
       )}
     </Card>
   );

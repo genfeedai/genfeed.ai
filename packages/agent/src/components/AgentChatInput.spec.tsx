@@ -75,7 +75,7 @@ describe('AgentChatInput', () => {
 
     const shell = screen.getByTestId('agent-chat-input-shell');
 
-    expect(shell.className).toMatch(/bg-background-secondary|bg-card/);
+    expect(shell.className).toMatch(/bg-background\/55|backdrop-blur/);
     expect(shell).not.toHaveClass('opacity-50');
   });
 
@@ -119,7 +119,7 @@ describe('AgentChatInput', () => {
     );
   });
 
-  it('keeps topbar-owned scope controls out of the prompt bar', () => {
+  it('keeps topbar-owned scope controls and shell context labels out of the prompt bar', () => {
     render(
       <ConversationComposerShellProvider
         contextLabel="Default Workspace · Default Brand"
@@ -133,8 +133,8 @@ describe('AgentChatInput', () => {
     );
 
     expect(
-      screen.getByText('Default Workspace · Default Brand'),
-    ).toBeInTheDocument();
+      screen.queryByText('Default Workspace · Default Brand'),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Change workspace scope' }),
     ).not.toBeInTheDocument();

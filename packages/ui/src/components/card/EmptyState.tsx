@@ -1,3 +1,4 @@
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { EmptyStateProps } from '@genfeedai/props/ui/feedback/empty-state.props';
 import CardEmpty, { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 
@@ -33,7 +34,8 @@ export function EmptyState({
 }
 
 /**
- * EmptyStateCard - the same primitive wrapped in a `Card`.
+ * EmptyStateCard — bordered surface when the empty sits as a standalone card
+ * (e.g. dashboard tiles). List pages should use `EmptyState` / `CardEmpty`.
  */
 export function EmptyStateCard({
   title,
@@ -46,15 +48,21 @@ export function EmptyStateCard({
   variant,
 }: EmptyStateProps) {
   return (
-    <CardEmpty
-      icon={icon}
-      iconClassName={iconClassName}
-      label={title}
-      description={description}
-      action={action}
-      className={className}
-      size={size}
-      variant={variant}
-    />
+    <div
+      className={cn(
+        'overflow-hidden rounded-card border border-border/50 bg-background',
+        className,
+      )}
+    >
+      <CardEmpty
+        icon={icon}
+        iconClassName={iconClassName}
+        label={title}
+        description={description}
+        action={action}
+        size={size}
+        variant={variant}
+      />
+    </div>
   );
 }

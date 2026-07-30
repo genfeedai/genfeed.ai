@@ -3,6 +3,7 @@
 import { formatFullNumber } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { PlatformBreakdownChartProps } from '@genfeedai/props/analytics/analytics.props';
 import Card from '@ui/card/Card';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import dynamic from 'next/dynamic';
 import type { PieLabelRenderProps } from 'recharts';
@@ -74,33 +75,32 @@ export function PlatformBreakdownChart({
   className = '',
 }: PlatformBreakdownChartProps) {
   const chartData = data ?? [];
-  const isEmpty = chartData.length === 0;
-
-  // Filter out platforms with zero values
+  // Zero-value platforms are noise — empty when nothing has signal.
   const filteredData = chartData.filter((item) => item.value > 0);
+  const isEmpty = filteredData.length === 0;
 
   // Add total to each data point for percentage calculation
   const total = filteredData.reduce((sum, item) => sum + item.value, 0);
   const dataWithTotal = filteredData.map((item) => ({ ...item, total }));
 
   return (
-    <Card className={className}>
-      <div className="p-6">
-        <h3 className="text-lg font-semibold mb-4">{title}</h3>
-        {/* Chart */}
-        <div className="relative" style={{ height }}>
-          {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-card/50 z-10">
-              <span className="animate-pulse size-12 rounded-full bg-primary/30" />
-            </div>
-          )}
+    <Card className={className} label={title} bodyClassName="gap-3 p-4">
+      <div className="relative" style={{ height }}>
+        {isLoading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/50">
+            <span className="size-12 animate-pulse rounded-full bg-primary/30" />
+          </div>
+        )}
 
-          {isEmpty && !isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center text-foreground/50">
-              No platform data available
-            </div>
-          )}
+        {isEmpty && !isLoading ? (
+          <CardEmptyContent
+            className="absolute inset-0 py-0"
+            label="No platform distribution yet"
+            description="Connect channels and publish content to see how views split across platforms."
+          />
+        ) : null}
 
+        {!isEmpty ? (
           <ChartContainer
             config={Object.fromEntries(
               dataWithTotal.map((item) => [
@@ -151,7 +151,7 @@ export function PlatformBreakdownChart({
               />
             </PieChart>
           </ChartContainer>
-        </div>
+        ) : null}
       </div>
     </Card>
   );

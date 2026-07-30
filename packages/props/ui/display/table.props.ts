@@ -18,6 +18,8 @@ export interface TableProps<T> {
   getRowKey?: (item: T, index: number) => Key;
   getRowClassName?: (item: T) => string;
   emptyLabel?: string;
+  /** Optional supporting line under `emptyLabel`. Omit for title-only empties. */
+  emptyDescription?: string;
   emptyState?: ReactNode;
 
   // Selection support

@@ -171,9 +171,12 @@ export default function OrganizationIdentityDefaultsCard() {
   ]);
 
   return (
-    <Card className="p-6" data-testid="org-identity-defaults-card">
-      <h2 className="mb-4 text-lg font-semibold">Organization Identity</h2>
-      <div className="space-y-4">
+    <Card
+      label="Organization Identity"
+      bodyClassName="gap-3 p-4"
+      data-testid="org-identity-defaults-card"
+    >
+      <div className="space-y-3">
         <div>
           <label
             htmlFor="org-default-avatar"

@@ -101,10 +101,6 @@ vi.mock('@ui/primitives/button', () => ({
   ),
 }));
 
-vi.mock('@ui/topbars/end/TopbarEnd', () => ({
-  default: () => <div data-testid="topbar-account-menu" />,
-}));
-
 vi.mock('@/components/workspace-shell/WorkspaceInspectorContext', () => ({
   useWorkspaceInspector: () => workspaceInspectorState.value,
 }));
@@ -444,13 +440,21 @@ describe('AppProtectedTopbar', () => {
     expect(screen.getByTestId('app-protected-topbar-inner')).toHaveClass(
       'pl-14',
     );
-    expect(screen.getByTestId('topbar-account-menu')).toBeInTheDocument();
   });
 
-  it('keeps the account menu in the sidebar while it is expanded', () => {
-    render(<AppProtectedTopbar />);
+  it('does not mount a topbar account menu when the sidebar is collapsed', () => {
+    const { container } = render(
+      <AppProtectedTopbar
+        isSidebarCollapsed
+        onMenuToggle={vi.fn()}
+        onSidebarToggle={vi.fn()}
+      />,
+    );
 
     expect(screen.queryByTestId('topbar-account-menu')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="user-dropdown-trigger"]'),
+    ).toBeNull();
   });
 
   it('exposes the inspector toggle as a controlled disclosure', () => {
@@ -511,17 +515,32 @@ describe('AppProtectedTopbar', () => {
     expect(screen.getByTestId('clear-brand-selection')).toBeInTheDocument();
   });
 
-  it('routes the clear-brand action to organization overview', () => {
+  it('routes the clear-brand action to the org-scoped equivalent of the current surface', () => {
+    mockPathname.value = '/acme/brand/agent/new';
+
     render(
       <AppProtectedTopbar
         orgSlug="acme"
         brandSlug="brand"
-        currentApp="workspace"
+        currentApp="agent"
       />,
     );
 
     fireEvent.click(screen.getByTestId('clear-brand-selection'));
 
-    expect(mockPush).toHaveBeenCalledWith('/acme/~/overview');
+    expect(mockPush).toHaveBeenCalledWith('/acme/~/agent/new');
+  });
+
+  it('keeps the agent surface when selecting a brand from an org-scoped route', () => {
+    mockPathname.value = '/acme/~/agent/new';
+
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="agent" />);
+
+    const onBrandChange = brandSwitcherSpy.mock.calls.at(-1)?.[0]
+      ?.onBrandChange as ((id: string) => void) | undefined;
+    expect(onBrandChange).toEqual(expect.any(Function));
+    onBrandChange?.('brand');
+
+    expect(mockPush).toHaveBeenCalledWith('/acme/brand/agent/new');
   });
 });

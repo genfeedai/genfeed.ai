@@ -84,4 +84,18 @@ describe('PromptBarSuggestions', () => {
 
     expect(button).toHaveFocus();
   });
+
+  it('renders card tiles when variant is cards', () => {
+    render(
+      <PromptBarSuggestions
+        suggestions={suggestions}
+        onSuggestionSelect={vi.fn()}
+        variant="cards"
+      />,
+    );
+
+    const button = screen.getByRole('button', { name: 'Create a plan' });
+    expect(button.className).toContain('rounded-2xl');
+    expect(button.className).toContain('flex-col');
+  });
 });

@@ -115,15 +115,18 @@ export function AgentChatPromptBar({
       ) : null}
     </>
   );
+  const isPortaled = Boolean(composerShell?.portalTarget);
   const promptBar = (
     <PromptBarContainer
-      layoutMode={composerShell?.portalTarget ? 'inflow' : layoutMode}
+      layoutMode={isPortaled ? 'inflow' : layoutMode}
       maxWidth={isInspectorComposer ? 'full' : '4xl'}
-      showTopFade={!composerShell?.portalTarget}
+      // Overlay (portaled or surface-fixed) needs a scrim so transcript
+      // soft-fades into the frosted bar instead of clipping hard.
+      showTopFade={!isInspectorComposer}
       topContent={topContent}
       zIndex={40}
       className={cn(
-        composerShell?.portalTarget && 'w-full',
+        isPortaled && 'pointer-events-auto w-full',
         layoutMode === 'fixed' && 'bottom-2 md:bottom-4',
         layoutMode === 'surface-fixed' && 'bottom-3 md:bottom-5',
       )}
