@@ -936,6 +936,16 @@
         ],
         "type": "string"
       },
+      "CampaignStatus": {
+        "description": "Campaign status",
+        "enum": [
+          "draft",
+          "active",
+          "paused",
+          "completed"
+        ],
+        "type": "string"
+      },
       "CampaignTargetType": {
         "description": "Discriminator for how targets are added. Defaults to URL-based target detection. Use DM_RECIPIENT to add DM recipients by username.",
         "enum": [
@@ -5575,6 +5585,10 @@
               "system-catalog",
               "seeded-template"
             ],
+            "type": "string"
+          },
+          "sourceWorkflowId": {
+            "description": "When set, create is a clone of this workflow (preferred over POST /workflows/:id/clone).",
             "type": "string"
           },
           "startedAt": {
@@ -12997,6 +13011,107 @@
         },
         "type": "object"
       },
+      "UpdateOutreachCampaignDto": {
+        "properties": {
+          "aiConfig": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OutreachCampaignAiConfigDto"
+              }
+            ],
+            "description": "AI configuration for reply generation"
+          },
+          "brand": {
+            "description": "Brand this campaign is scoped to",
+            "type": "string"
+          },
+          "campaignType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CampaignType"
+              }
+            ],
+            "description": "Type of campaign",
+            "example": "manual"
+          },
+          "credential": {
+            "description": "Credential to use for posting replies",
+            "type": "string"
+          },
+          "description": {
+            "description": "Description of the campaign",
+            "type": "string"
+          },
+          "discoveryConfig": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OutreachCampaignDiscoveryConfigDto"
+              }
+            ],
+            "description": "Discovery configuration for AI-powered targeting"
+          },
+          "dmConfig": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OutreachCampaignDmConfigDto"
+              }
+            ],
+            "description": "DM configuration for DM outreach campaigns"
+          },
+          "isActive": {
+            "default": true,
+            "description": "Whether the campaign is active",
+            "type": "boolean"
+          },
+          "label": {
+            "description": "Name of the campaign",
+            "example": "Product Launch Campaign",
+            "type": "string"
+          },
+          "organization": {
+            "description": "Organization that owns this campaign",
+            "type": "string"
+          },
+          "platform": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CampaignPlatform"
+              }
+            ],
+            "description": "Platform for the campaign",
+            "example": "twitter"
+          },
+          "rateLimits": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OutreachCampaignRateLimitsDto"
+              }
+            ],
+            "description": "Rate limit configuration"
+          },
+          "schedule": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OutreachCampaignScheduleDto"
+              }
+            ],
+            "description": "Schedule configuration"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CampaignStatus"
+              }
+            ],
+            "description": "Campaign status"
+          },
+          "user": {
+            "description": "User that created this campaign",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "UpdatePersonaDto": {
         "properties": {
           "assignedMembers": {
@@ -14199,6 +14314,10 @@
               "system-catalog",
               "seeded-template"
             ],
+            "type": "string"
+          },
+          "sourceWorkflowId": {
+            "description": "When set, create is a clone of this workflow (preferred over POST /workflows/:id/clone).",
             "type": "string"
           },
           "startedAt": {
@@ -52777,6 +52896,18 @@
             "schema": {
               "enum": [
                 "system-catalog"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "When `statistics`, return aggregated workflow stats for the org instead of the list. Preferred over GET /workflows/statistics.",
+            "in": "query",
+            "name": "view",
+            "required": false,
+            "schema": {
+              "enum": [
+                "statistics"
               ],
               "type": "string"
             }

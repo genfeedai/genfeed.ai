@@ -327,7 +327,10 @@ describe('WorkflowApiService', () => {
     expect(mocks.patch).toHaveBeenNthCalledWith(2, '/workflow-1', {
       lifecycle: 'archived',
     });
-    expect(mocks.post).toHaveBeenCalledWith('/workflow-1/clone', undefined);
+    expect(mocks.post).toHaveBeenCalledWith('', {
+      label: 'Copy',
+      sourceWorkflowId: 'workflow-1',
+    });
     expect(mocks.delete).toHaveBeenCalledWith('/workflow-1');
   });
 
@@ -338,8 +341,10 @@ describe('WorkflowApiService', () => {
 
     await service().duplicate('workflow-1', { brandId: 'brand-2' });
 
-    expect(mocks.post).toHaveBeenCalledWith('/workflow-1/clone', {
+    expect(mocks.post).toHaveBeenCalledWith('', {
       brandId: 'brand-2',
+      label: 'Copy',
+      sourceWorkflowId: 'workflow-1',
     });
   });
 

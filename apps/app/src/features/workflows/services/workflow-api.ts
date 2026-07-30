@@ -112,6 +112,8 @@ export interface CreateWorkflowInput {
   /** When `system-catalog`, installs the catalog entry named by `templateId`. */
   sourceType?: 'system-catalog' | 'seeded-template';
   templateId?: string;
+  /** Clone an existing workflow (preferred over POST /:id/clone). */
+  sourceWorkflowId?: string;
   timezone?: string;
   trigger?: string;
 }
@@ -589,18 +591,17 @@ export class WorkflowApiService extends HTTPBaseService {
     }
   }
 
-  /** Duplicate (clone) a workflow */
+  /** Duplicate (clone) a workflow via POST /workflows { sourceWorkflowId } */
   async duplicate(
     id: string,
     options?: { brandId?: string | null },
   ): Promise<CloudWorkflowData> {
     try {
-      const response = await this.instance.post<JsonApiResponseDocument>(
-        `/${id}/clone`,
-        options,
-      );
-      const item = deserializeResource<CloudWorkflowData>(response.data);
-      return this.normalizeWorkflowData(item);
+      return await this.create({
+        ...(options?.brandId ? { brandId: options.brandId } : {}),
+        name: 'Copy',
+        sourceWorkflowId: id,
+      });
     } catch (error) {
       logger.error('Failed to duplicate workflow', { error, workflowId: id });
       throw error;

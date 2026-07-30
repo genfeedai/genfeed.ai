@@ -314,6 +314,15 @@ export class CreateWorkflowDto {
   })
   readonly templateId?: string;
 
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'When set, create is a clone of this workflow (preferred over POST /workflows/:id/clone).',
+    required: false,
+  })
+  readonly sourceWorkflowId?: string;
+
   @IsOptional()
   @IsIn(['system-catalog', 'seeded-template'])
   @ApiProperty({

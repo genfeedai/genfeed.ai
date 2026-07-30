@@ -51,4 +51,14 @@ export class WorkflowQueryDto extends BaseQueryDto {
     required: false,
   })
   readonly source?: 'system-catalog';
+
+  @IsOptional()
+  @IsIn(['statistics'])
+  @ApiProperty({
+    description:
+      'When `statistics`, return aggregated workflow stats for the org instead of the list. Preferred over GET /workflows/statistics.',
+    enum: ['statistics'],
+    required: false,
+  })
+  readonly view?: 'statistics';
 }

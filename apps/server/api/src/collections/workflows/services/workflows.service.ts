@@ -285,6 +285,20 @@ export class WorkflowsService extends BaseService<
     workflowData: CreateWorkflowDto,
     defaultBrandId?: string,
   ): Promise<WorkflowEntity> {
+    // Clone via create body (preferred over POST /:id/clone).
+    if (workflowData.sourceWorkflowId) {
+      return this.cloneWorkflow(
+        workflowData.sourceWorkflowId,
+        userId,
+        organizationId,
+        defaultBrandId ??
+          this.normalizeWorkflowBrandId(
+            (workflowData as WorkflowCreateExtras).brandId,
+            (workflowData as WorkflowCreateExtras).brands,
+          ),
+      );
+    }
+
     // Catalog install is create-with-template on the workflows collection —
     // not a separate /system-catalog install RPC (#2176).
     const metadataSourceType = workflowData.metadata?.sourceType;

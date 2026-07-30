@@ -122,6 +122,16 @@ export class WorkflowCrudController {
       }, 'Failed to list system workflow catalog');
     }
 
+    if (query.view === 'statistics') {
+      return wrapError(async () => {
+        const stats = await this.workflowsService.getWorkflowStatistics(
+          publicMetadata.user,
+          publicMetadata.organization,
+        );
+        return { data: stats };
+      }, 'Failed to load workflow statistics');
+    }
+
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -163,6 +173,9 @@ export class WorkflowCrudController {
     return serializeCollection(request, WorkflowSerializer, data);
   }
 
+  /**
+   * @deprecated Prefer `GET /workflows?view=statistics`.
+   */
   @Get('statistics')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getStatistics(
@@ -219,6 +232,9 @@ export class WorkflowCrudController {
     return serializeSingle(request, WorkflowSerializer, workflow);
   }
 
+  /**
+   * @deprecated Prefer `POST /workflows` with `{ sourceWorkflowId }`.
+   */
   @Post(':workflowId/clone')
   @ApiBody({ required: false, type: CloneWorkflowDto })
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
