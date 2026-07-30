@@ -1,5 +1,6 @@
 import { AGENT_MODELS } from '@genfeedai/agent/constants/agent-models.constant';
-import { ButtonSize, ButtonVariant, CostTier } from '@genfeedai/enums';
+import { COST_TIER_DISPLAY } from '@genfeedai/constants';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
@@ -65,12 +66,6 @@ const GENERATION_PRIORITY_OPTIONS: PriorityOption[] = [
     label: 'Budget',
   },
 ];
-
-const COST_TIER_COLORS: Record<CostTier, string> = {
-  [CostTier.LOW]: 'text-green-400 bg-green-400/10',
-  [CostTier.MEDIUM]: 'text-yellow-400 bg-yellow-400/10',
-  [CostTier.HIGH]: 'text-orange-400 bg-orange-400/10',
-};
 
 export function AgentSettings({
   initialSettings,
@@ -228,16 +223,17 @@ export function AgentSettings({
                   {model.description}
                 </span>
               </div>
-              {model.creditCost != null && model.costTier && (
+              {model.costTier && COST_TIER_DISPLAY[model.costTier] ? (
                 <span
                   className={cn(
                     'rounded-full px-2 py-0.5 text-[10px] font-bold',
-                    COST_TIER_COLORS[model.costTier],
+                    COST_TIER_DISPLAY[model.costTier].colorClass,
                   )}
+                  title={`Cost tier ${COST_TIER_DISPLAY[model.costTier].symbol}`}
                 >
-                  {model.creditCost}cr
+                  {COST_TIER_DISPLAY[model.costTier].symbol}
                 </span>
-              )}
+              ) : null}
               {selectedModel === model.key && (
                 <HiOutlineCheck className="size-4 text-primary" />
               )}
