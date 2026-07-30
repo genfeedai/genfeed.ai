@@ -5,15 +5,29 @@ import {
 } from './studio-menu-items.config';
 
 describe('STUDIO_MENU_ITEMS', () => {
-  it('keeps batch visually separated from generation modes', () => {
-    const batchItem = STUDIO_MENU_ITEMS.find(
-      (item) => item.href === '/studio/batch',
+  it('groups storyboard, batch, and fastlane under Automation', () => {
+    const automationItems = STUDIO_MENU_ITEMS.filter(
+      (item) => item.group === 'Automation',
     );
 
-    expect(batchItem).toMatchObject({
+    expect(automationItems.map((item) => item.label)).toEqual([
+      'Storyboard',
+      'Batch',
+      'Fastlane',
+    ]);
+    expect(automationItems[0]).toMatchObject({
       hasDividerAbove: true,
-      label: 'Batch',
+      href: '/studio/storyboard',
     });
+    expect(automationItems[1]?.href).toBe('/studio/batch');
+  });
+
+  it('keeps generation modes ungrouped above Automation', () => {
+    const generationLabels = STUDIO_MENU_ITEMS.filter(
+      (item) => item.group === '',
+    ).map((item) => item.label);
+
+    expect(generationLabels).toEqual(['Image', 'Video', 'Avatar', 'Music']);
   });
 
   it('keeps the studio logo href pointed at the library overview', () => {

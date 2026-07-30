@@ -1,6 +1,14 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
-import { CirclePlay, Image, Layers, Music, Users, Zap } from 'lucide-react';
+import {
+  CirclePlay,
+  Clapperboard,
+  Image,
+  Layers,
+  Music,
+  Users,
+  Zap,
+} from 'lucide-react';
 
 export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
   {
@@ -36,8 +44,16 @@ export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
     solid: Music,
   },
   {
-    group: '',
+    group: 'Automation',
     hasDividerAbove: true,
+    href: APP_ROUTES.STUDIO.STORYBOARD,
+    label: 'Storyboard',
+    matchPaths: [APP_ROUTES.STUDIO.STORYBOARD],
+    outline: Clapperboard,
+    solid: Clapperboard,
+  },
+  {
+    group: 'Automation',
     href: APP_ROUTES.STUDIO.BATCH,
     label: 'Batch',
     matchPaths: [APP_ROUTES.STUDIO.BATCH],
@@ -45,7 +61,7 @@ export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
     solid: Layers,
   },
   {
-    group: '',
+    group: 'Automation',
     href: APP_ROUTES.STUDIO.FASTLANE,
     label: 'Fastlane',
     matchPaths: [APP_ROUTES.STUDIO.FASTLANE],

@@ -62,14 +62,17 @@ test.describe('Studio video generation — deep interactions', () => {
     await expectNoErrorOverlay(authenticatedPage);
   });
 
-  test('interacts with the storyboard panel controls', async ({
+  test('interacts with the storyboard workspace controls', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, VIDEO_ROUTE);
+    await assertRouteRenders(
+      authenticatedPage,
+      '/test-org/brand-1/studio/storyboard',
+    );
 
-    await tryClick(authenticatedPage, '[data-testid="reference-button"]');
-    await tryClick(authenticatedPage, '[data-testid="end-frame-button"]');
-    await tryClick(authenticatedPage, 'button:has-text("Camera")');
+    await tryClick(authenticatedPage, 'button:has-text("Scenes")');
+    await tryClick(authenticatedPage, 'button:has-text("Merge videos")');
+    await tryClick(authenticatedPage, 'button:has-text("Frame sequence")');
     await tryClick(authenticatedPage, 'button:has-text("Clear")');
 
     await expect(authenticatedPage.locator('body')).toBeVisible();

@@ -705,6 +705,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/studio/batch',
       '/:orgSlug/:brandSlug/studio/clips',
       '/:orgSlug/:brandSlug/studio/fastlane',
+      '/:orgSlug/:brandSlug/studio/storyboard',
     ],
     {
       fallback: '/:orgSlug/:brandSlug/studio/image',

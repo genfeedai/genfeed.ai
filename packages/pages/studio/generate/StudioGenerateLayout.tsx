@@ -19,13 +19,10 @@ export default function StudioGenerateLayout({
     avatarOptions,
     avatarPreviewUrl,
     blacklists,
-    cameraMovementPreset,
     cameras,
     categoryType,
-    clearStoryboard,
     columns,
     currentModels,
-    customCameraPrompt,
     emptyLabel,
     filteredPresets,
     filters,
@@ -41,7 +38,6 @@ export default function StudioGenerateLayout({
     handleCreateVariation,
     handleEditIngredient,
     handleFiltersChange,
-    handleGenerateStoryboard,
     handleIngredientClick,
     handleLoadMore,
     handleMarkArchived,
@@ -56,7 +52,6 @@ export default function StudioGenerateLayout({
     handleSubmit,
     handleToggleFavorite,
     handleViewModeChange,
-    hasInterpolationModel,
     hasMore,
     initialLoadComplete,
     isAvatarCategory,
@@ -70,7 +65,6 @@ export default function StudioGenerateLayout({
     isLoadingMore,
     isMusicCategory,
     isRefreshing,
-    isStoryboardGenerating,
     isVideoCategory,
     lightboxIndex,
     lightboxOpen,
@@ -81,15 +75,10 @@ export default function StudioGenerateLayout({
     scenes,
     scrollFocusedAssetId,
     selectedIngredientIds,
-    setCameraMovementPreset,
-    setCustomCameraPrompt,
     setLightboxOpen,
     setPromptText,
-    setStoryboardFrames,
     setTableSelectedIds,
     sounds,
-    storyboardFormat,
-    storyboardFrames,
     styles,
     supportsMasonry,
     tableSelectedIds,
@@ -145,20 +134,8 @@ export default function StudioGenerateLayout({
       />
 
       <GenerateContentArea
-        isVideoCategory={isVideoCategory}
         isEmptyStudioState={isEmptyStudioState}
         emptyComposer={isEmptyStudioState ? studioComposer : undefined}
-        cameraMovementPreset={cameraMovementPreset}
-        customCameraPrompt={customCameraPrompt}
-        storyboardFormat={storyboardFormat}
-        storyboardFrames={storyboardFrames}
-        hasInterpolationModel={hasInterpolationModel}
-        isStoryboardGenerating={isStoryboardGenerating}
-        onCameraMovementPresetChange={setCameraMovementPreset}
-        onClearStoryboard={clearStoryboard}
-        onCustomCameraPromptChange={setCustomCameraPrompt}
-        onStoryboardFramesChange={setStoryboardFrames}
-        onGenerateStoryboard={handleGenerateStoryboard}
         viewMode={viewMode}
         tableSelectedIds={tableSelectedIds}
         onClearSelection={handleClearSelection}

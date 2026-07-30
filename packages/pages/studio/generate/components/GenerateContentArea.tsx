@@ -8,11 +8,9 @@ import {
 } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useDominantColor } from '@genfeedai/hooks/ui/use-dominant-color/use-dominant-color';
-import type { IImage, IIngredient } from '@genfeedai/interfaces';
-import type { CameraMovementPreset } from '@genfeedai/interfaces/studio/camera-movement.interface';
+import type { IIngredient } from '@genfeedai/interfaces';
 import { AssetDisplayGrid } from '@pages/studio/generate/components/AssetDisplayGrid';
 import { GenerateEmptyState } from '@pages/studio/generate/components/GenerateEmptyState';
-import { StoryboardPanel } from '@pages/studio/generate/components/StoryboardPanel';
 import StudioSelectionActionsBar from '@pages/studio/selection/StudioSelectionActionsBar';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import AmbientColorWash from '@ui/ambient/AmbientColorWash';
@@ -21,22 +19,8 @@ import { type ReactNode, useMemo } from 'react';
 
 interface GenerateContentAreaProps {
   // Category flags
-  isVideoCategory: boolean;
   isEmptyStudioState: boolean;
   emptyComposer?: ReactNode;
-
-  // Storyboard props (video only)
-  cameraMovementPreset: CameraMovementPreset;
-  customCameraPrompt: string;
-  storyboardFormat: IngredientFormat;
-  storyboardFrames: IImage[];
-  hasInterpolationModel: boolean;
-  isStoryboardGenerating: boolean;
-  onCameraMovementPresetChange: (preset: CameraMovementPreset) => void;
-  onClearStoryboard: () => void;
-  onCustomCameraPromptChange: (prompt: string) => void;
-  onStoryboardFramesChange: (frames: IImage[]) => void;
-  onGenerateStoryboard: () => void;
 
   // Selection bar props
   viewMode: ViewType.MASONRY | ViewType.TABLE;
@@ -80,20 +64,8 @@ interface GenerateContentAreaProps {
 }
 
 export function GenerateContentArea({
-  isVideoCategory,
   isEmptyStudioState,
   emptyComposer,
-  cameraMovementPreset,
-  customCameraPrompt,
-  storyboardFormat,
-  storyboardFrames,
-  hasInterpolationModel,
-  isStoryboardGenerating,
-  onCameraMovementPresetChange,
-  onClearStoryboard,
-  onCustomCameraPromptChange,
-  onStoryboardFramesChange,
-  onGenerateStoryboard,
   viewMode,
   tableSelectedIds,
   onClearSelection,
@@ -165,22 +137,6 @@ export function GenerateContentArea({
             isEmptyStudioState ? 'pb-6' : 'pb-40 md:pb-40',
           )}
         >
-          {isVideoCategory && (
-            <StoryboardPanel
-              cameraMovementPreset={cameraMovementPreset}
-              customCameraPrompt={customCameraPrompt}
-              format={storyboardFormat}
-              frames={storyboardFrames}
-              hasInterpolationModel={hasInterpolationModel}
-              isGenerating={isStoryboardGenerating}
-              onCameraMovementPresetChange={onCameraMovementPresetChange}
-              onClear={onClearStoryboard}
-              onCustomCameraPromptChange={onCustomCameraPromptChange}
-              onFramesChange={onStoryboardFramesChange}
-              onGenerate={onGenerateStoryboard}
-            />
-          )}
-
           {viewMode === ViewType.TABLE && tableSelectedIds.length > 0 && (
             <StudioSelectionActionsBar
               count={tableSelectedIds.length}

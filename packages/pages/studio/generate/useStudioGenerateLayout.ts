@@ -763,15 +763,13 @@ export function useStudioGenerateLayout({
             setPromptText(image.promptText);
           }
 
-          if (categoryType === IngredientCategory.VIDEO) {
-            appendStoryboardFrames([image as unknown as IImage]);
-          }
-
-          const message =
+          // Storyboard sequences live on /studio/storyboard. Video generate only
+          // uses the image as a single-clip reference in the prompt bar.
+          notificationsService.success(
             categoryType === IngredientCategory.VIDEO
-              ? 'Image added to storyboard.'
-              : 'Image set as reference.';
-          notificationsService.success(message);
+              ? 'Image set as video reference.'
+              : 'Image set as reference.',
+          );
         } else {
           notificationsService.error('Image not found');
         }
