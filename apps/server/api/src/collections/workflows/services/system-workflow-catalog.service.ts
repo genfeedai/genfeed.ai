@@ -99,10 +99,12 @@ export class SystemWorkflowCatalogService {
       const created = await this.prisma.$transaction(
         async (tx) => {
           const concurrent = await tx.workflow.findFirst({
-            where: this.buildSourceTemplateWhere(
-              input.organizationId,
-              entry.canonicalId,
-            ),
+            where: scopedWhere(input.organizationId, {
+              metadata: {
+                equals: entry.canonicalId,
+                path: ['sourceTemplateId'],
+              },
+            }),
           });
 
           if (concurrent) {
@@ -167,19 +169,12 @@ export class SystemWorkflowCatalogService {
     canonicalId: string,
   ) {
     return this.prisma.workflow.findFirst({
-      where: this.buildSourceTemplateWhere(organizationId, canonicalId),
-    });
-  }
-
-  private buildSourceTemplateWhere(
-    organizationId: string,
-    canonicalId: string,
-  ) {
-    return scopedWhere(organizationId, {
-      metadata: {
-        equals: canonicalId,
-        path: ['sourceTemplateId'],
-      },
+      where: scopedWhere(organizationId, {
+        metadata: {
+          equals: canonicalId,
+          path: ['sourceTemplateId'],
+        },
+      }),
     });
   }
 

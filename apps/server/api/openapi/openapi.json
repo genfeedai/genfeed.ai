@@ -7409,6 +7409,15 @@
         ],
         "type": "string"
       },
+      "InstallSystemWorkflowDto": {
+        "properties": {
+          "brandId": {
+            "description": "Optional brand to bind the installed workflow to. Defaults to the active brand when present.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "IntegrationPlatform": {
         "enum": [
           "telegram",
@@ -53655,6 +53664,55 @@
           }
         },
         "summary": "getStatistics",
+        "tags": [
+          "workflows"
+        ]
+      }
+    },
+    "/workflows/system-catalog": {
+      "get": {
+        "operationId": "SystemWorkflowCatalogController.listCatalog",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "listCatalog",
+        "tags": [
+          "workflows"
+        ]
+      }
+    },
+    "/workflows/system-catalog/{canonicalId}/install": {
+      "post": {
+        "operationId": "SystemWorkflowCatalogController.install",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "canonicalId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstallSystemWorkflowDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "install",
         "tags": [
           "workflows"
         ]

@@ -39,12 +39,6 @@ export class SystemWorkflowCatalogController {
   ) {}
 
   @Get('system-catalog')
-  @RolesDecorator(
-    MemberRole.OWNER,
-    MemberRole.ADMIN,
-    MemberRole.CREATOR,
-    MemberRole.VIEWER,
-  )
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async listCatalog(@CurrentUser() user: User): Promise<{
     data: Awaited<
