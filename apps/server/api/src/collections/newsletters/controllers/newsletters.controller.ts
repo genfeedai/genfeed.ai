@@ -85,6 +85,17 @@ export class NewslettersController {
     @Body() dto: UpdateNewsletterDto,
   ) {
     const ctx = extractRequestContext(user);
+
+    if (dto.action === 'approve') {
+      const data = await this.newslettersService.approveScoped(id, ctx);
+      return serializeSingle(request, NewsletterSerializer, data);
+    }
+
+    if (dto.action === 'publish') {
+      const data = await this.newslettersService.publishScoped(id, ctx);
+      return serializeSingle(request, NewsletterSerializer, data);
+    }
+
     const data = await this.newslettersService.updateScoped(id, dto, ctx);
     return serializeSingle(request, NewsletterSerializer, data);
   }
@@ -117,27 +128,5 @@ export class NewslettersController {
     return {
       data: await this.newslettersService.getContextPreview(id, ctx),
     };
-  }
-
-  @Post(':id/approve')
-  async approve(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-  ) {
-    const ctx = extractRequestContext(user);
-    const data = await this.newslettersService.approveScoped(id, ctx);
-    return serializeSingle(request, NewsletterSerializer, data);
-  }
-
-  @Post(':id/publish')
-  async publish(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-  ) {
-    const ctx = extractRequestContext(user);
-    const data = await this.newslettersService.publishScoped(id, ctx);
-    return serializeSingle(request, NewsletterSerializer, data);
   }
 }

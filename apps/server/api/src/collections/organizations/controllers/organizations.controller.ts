@@ -15,7 +15,6 @@ import { AccessBootstrapCacheService } from '@api/common/services/access-bootstr
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
-import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { PlanLimitExceededException } from '@api/helpers/exceptions/business/business-logic.exception';
@@ -163,14 +162,34 @@ export class OrganizationsController extends BaseCRUDController<
     return serializeSingle(request, OrganizationSerializer, org);
   }
 
+  /**
+   * List organizations.
+   *
+   * - `?mine=true` — membership summaries for the current user (cross-org).
+   *   Preferred over the legacy `GET /organizations/mine` path.
+   * - default — platform-wide list (superadmin only).
+   */
   @Get()
-  @RolesDecorator('superadmin')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAll(
     @Req() request: Request,
-    @CurrentUser() _user: User,
+    @CurrentUser() user: User,
     @Query() query: OrganizationQueryDto,
-  ): Promise<JsonApiCollectionResponse> {
+  ): Promise<JsonApiCollectionResponse | unknown[]> {
+    if (query.mine) {
+      return this.findMine(user);
+    }
+
+    if (!getIsSuperAdmin(user)) {
+      throw new HttpException(
+        {
+          detail: 'Platform superadmin access is required',
+          title: 'Forbidden',
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -195,7 +214,7 @@ export class OrganizationsController extends BaseCRUDController<
   // /organizations/:organizationId/{brands,ingredients,videos,tags,posts,activities,analytics}.
 
   /**
-   * GET /organizations/mine
+   * @deprecated Prefer `GET /organizations?mine=true`.
    * Returns all organizations the current user belongs to (as member or owner).
    * Cross-org by design — no single-org auth scoping.
    */

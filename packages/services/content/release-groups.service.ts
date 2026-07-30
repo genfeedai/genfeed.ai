@@ -98,8 +98,47 @@ export class ReleaseGroupsService extends HTTPBaseService {
     groupId: string,
     action: 'cancel-future' | 'pause' | 'resume',
   ): Promise<IReleaseGroup> {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      `/${groupId}/series/${action}`,
+    const patchAction =
+      action === 'pause'
+        ? 'series-pause'
+        : action === 'resume'
+          ? 'series-resume'
+          : 'series-cancel-future';
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `/${groupId}`,
+      { action: patchAction },
+    );
+    return deserializeResource<IReleaseGroup>(response.data);
+  }
+
+  async pause(groupId: string): Promise<IReleaseGroup> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `/${groupId}`,
+      { action: 'pause' },
+    );
+    return deserializeResource<IReleaseGroup>(response.data);
+  }
+
+  async resume(groupId: string): Promise<IReleaseGroup> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `/${groupId}`,
+      { action: 'resume' },
+    );
+    return deserializeResource<IReleaseGroup>(response.data);
+  }
+
+  async cancel(groupId: string): Promise<IReleaseGroup> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `/${groupId}`,
+      { action: 'cancel' },
+    );
+    return deserializeResource<IReleaseGroup>(response.data);
+  }
+
+  async publishNow(groupId: string): Promise<IReleaseGroup> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `/${groupId}`,
+      { action: 'publish-now' },
     );
     return deserializeResource<IReleaseGroup>(response.data);
   }

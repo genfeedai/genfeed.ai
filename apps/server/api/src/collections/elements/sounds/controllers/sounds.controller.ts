@@ -52,15 +52,15 @@ export class ElementsSoundsController extends BaseCRUDController<
     super(loggerService, soundsService, SoundSerializer, 'ElementSound');
   }
 
-  @Get(':soundId')
+  @Get(':id')
   @ApiOperation({ summary: 'Get a specific sound' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   findOne(
     @Req() request: Request,
     @CurrentUser() _user: User,
-    @Param('soundId') soundId: string,
+    @Param('id') id: string,
   ) {
-    return super.findOne(request, _user, soundId);
+    return super.findOne(request, _user, id);
   }
 
   @Post()
@@ -75,29 +75,29 @@ export class ElementsSoundsController extends BaseCRUDController<
     return super.create(request, user, createDto);
   }
 
-  @Patch(':soundId')
+  @Patch(':id')
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Update a sound' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   update(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Param('soundId') soundId: string,
+    @Param('id') id: string,
     @Body() updateDto: UpdateElementSoundDto,
   ) {
-    return super.patch(request, user, soundId, updateDto);
+    return super.patch(request, user, id, updateDto);
   }
 
-  @Delete(':soundId')
+  @Delete(':id')
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Delete a sound' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   remove(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Param('soundId') soundId: string,
+    @Param('id') id: string,
   ) {
-    return super.remove(request, user, soundId);
+    return super.remove(request, user, id);
   }
 
   /**

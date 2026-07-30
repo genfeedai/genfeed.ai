@@ -107,8 +107,67 @@ export class PostGroupsController {
     @Body() body: unknown,
   ) {
     const metadata = getPublicMetadata(user);
+    const organization = metadata.organization;
+    const action =
+      body && typeof body === 'object' && !Array.isArray(body)
+        ? (body as Record<string, unknown>).action
+        : undefined;
+
+    // State transitions via PATCH body (preferred over POST /:id/{verb}).
+    if (typeof action === 'string') {
+      let data: Awaited<ReturnType<PostGroupsService['pause']>>;
+      switch (action) {
+        case 'pause':
+          data = await this.postGroupsService.pause(organization, user.id, id);
+          break;
+        case 'resume':
+          data = await this.postGroupsService.resume(organization, user.id, id);
+          break;
+        case 'cancel':
+          data = await this.postGroupsService.cancel(organization, user.id, id);
+          break;
+        case 'publish-now':
+          data = await this.postGroupsService.publishNow(
+            organization,
+            user.id,
+            id,
+          );
+          break;
+        case 'series-pause':
+          data = await this.postGroupRecurrenceService.pauseFuture(
+            organization,
+            user.id,
+            id,
+          );
+          break;
+        case 'series-resume':
+          data = await this.postGroupRecurrenceService.resumeFuture(
+            organization,
+            user.id,
+            id,
+          );
+          break;
+        case 'series-cancel-future':
+          data = await this.postGroupRecurrenceService.cancelFuture(
+            organization,
+            user.id,
+            id,
+          );
+          break;
+        default:
+          data = await this.postGroupsService.update(
+            organization,
+            user.id,
+            id,
+            body,
+            metadata,
+          );
+      }
+      return serializeSingle(req, ReleaseGroupSerializer, data);
+    }
+
     const data = await this.postGroupsService.update(
-      metadata.organization,
+      organization,
       user.id,
       id,
       body,
@@ -139,96 +198,6 @@ export class PostGroupsController {
     return serializeSingle(req, ReleaseGroupSerializer, data);
   }
 
-  @Post(':id/cancel')
-  @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async cancel(
-    @Req() req: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-  ) {
-    const { organization } = getPublicMetadata(user);
-    const data = await this.postGroupsService.cancel(organization, user.id, id);
-    return serializeSingle(req, ReleaseGroupSerializer, data);
-  }
-
-  @Post(':id/pause')
-  @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async pause(
-    @Req() req: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-  ) {
-    const { organization } = getPublicMetadata(user);
-    const data = await this.postGroupsService.pause(organization, user.id, id);
-    return serializeSingle(req, ReleaseGroupSerializer, data);
-  }
-
-  @Post(':id/resume')
-  @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async resume(
-    @Req() req: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-  ) {
-    const { organization } = getPublicMetadata(user);
-    const data = await this.postGroupsService.resume(organization, user.id, id);
-    return serializeSingle(req, ReleaseGroupSerializer, data);
-  }
-
-  @Post(':id/series/pause')
-  @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async pauseSeries(
-    @Req() req: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-  ) {
-    const { organization } = getPublicMetadata(user);
-    const data = await this.postGroupRecurrenceService.pauseFuture(
-      organization,
-      user.id,
-      id,
-    );
-    return serializeSingle(req, ReleaseGroupSerializer, data);
-  }
-
-  @Post(':id/series/resume')
-  @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async resumeSeries(
-    @Req() req: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-  ) {
-    const { organization } = getPublicMetadata(user);
-    const data = await this.postGroupRecurrenceService.resumeFuture(
-      organization,
-      user.id,
-      id,
-    );
-    return serializeSingle(req, ReleaseGroupSerializer, data);
-  }
-
-  @Post(':id/series/cancel-future')
-  @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async cancelFutureSeries(
-    @Req() req: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-  ) {
-    const { organization } = getPublicMetadata(user);
-    const data = await this.postGroupRecurrenceService.cancelFuture(
-      organization,
-      user.id,
-      id,
-    );
-    return serializeSingle(req, ReleaseGroupSerializer, data);
-  }
-
   @Patch(':id/series/future')
   @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -244,23 +213,6 @@ export class PostGroupsController {
       user.id,
       id,
       body,
-    );
-    return serializeSingle(req, ReleaseGroupSerializer, data);
-  }
-
-  @Post(':id/publish-now')
-  @RequiredScopes(ApiKeyScope.POSTS_PUBLISH)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async publishNow(
-    @Req() req: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-  ) {
-    const { organization } = getPublicMetadata(user);
-    const data = await this.postGroupsService.publishNow(
-      organization,
-      user.id,
-      id,
     );
     return serializeSingle(req, ReleaseGroupSerializer, data);
   }

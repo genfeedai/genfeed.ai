@@ -106,7 +106,7 @@ describe('proxy', () => {
     // Default fetch mock handles all three Better Auth endpoints proxy.ts calls:
     //   1. GET /v1/auth/token  – exchanges the session cookie for a bearer token
     //   2. GET /v1/auth/bootstrap – returns brands + access info
-    //   3. GET /v1/organizations/mine – fallback org slug resolution
+    //   3. GET /v1/organizations?mine=true – fallback org slug resolution
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
 
@@ -126,7 +126,7 @@ describe('proxy', () => {
         );
       }
 
-      if (url.endsWith('/organizations/mine')) {
+      if (url.endsWith('/organizations?mine=true')) {
         return new Response(
           JSON.stringify([{ isActive: true, slug: 'acme' }]),
           { status: 200 },
@@ -380,7 +380,7 @@ describe('proxy', () => {
           );
         }
 
-        if (url.endsWith('/organizations/mine')) {
+        if (url.endsWith('/organizations?mine=true')) {
           return new Response(JSON.stringify(organizations), { status: 200 });
         }
 
@@ -504,7 +504,7 @@ describe('proxy', () => {
         );
       }
 
-      if (url.endsWith('/organizations/mine')) {
+      if (url.endsWith('/organizations?mine=true')) {
         return new Response(
           JSON.stringify([{ isActive: true, slug: 'acme' }]),
           { status: 200 },
@@ -544,7 +544,7 @@ describe('proxy', () => {
         );
       }
 
-      if (url.endsWith('/organizations/mine')) {
+      if (url.endsWith('/organizations?mine=true')) {
         return new Response(
           JSON.stringify([{ isActive: true, slug: 'acme' }]),
           { status: 200 },
@@ -585,7 +585,7 @@ describe('proxy', () => {
         );
       }
 
-      if (url.endsWith('/organizations/mine')) {
+      if (url.endsWith('/organizations?mine=true')) {
         return new Response(
           JSON.stringify([{ isActive: true, slug: 'acme' }]),
           { status: 200 },
@@ -675,7 +675,7 @@ describe('proxy', () => {
         );
       }
 
-      if (url.endsWith('/organizations/mine')) {
+      if (url.endsWith('/organizations?mine=true')) {
         return new Response(
           JSON.stringify([{ isActive: true, slug: 'acme' }]),
           { status: 200 },
@@ -839,7 +839,7 @@ describe('proxy', () => {
         );
       }
 
-      if (url.endsWith('/organizations/mine')) {
+      if (url.endsWith('/organizations?mine=true')) {
         return new Response(
           JSON.stringify([{ isActive: true, slug: 'acme' }]),
           { status: 200 },
@@ -892,7 +892,7 @@ describe('proxy', () => {
         );
       }
 
-      if (url.endsWith('/organizations/mine')) {
+      if (url.endsWith('/organizations?mine=true')) {
         return new Response(
           JSON.stringify([{ isActive: true, slug: 'acme' }]),
           { status: 200 },
@@ -1059,7 +1059,7 @@ describe('proxy', () => {
         );
       }
 
-      if (url.endsWith('/organizations/mine')) {
+      if (url.endsWith('/organizations?mine=true')) {
         return new Response(
           JSON.stringify([{ isActive: true, slug: 'acme' }]),
           { status: 200 },
@@ -1206,7 +1206,7 @@ describe('proxy', () => {
     );
     expect(
       fetchMock.mock.calls.some(([input]) =>
-        String(input).endsWith('/organizations/mine'),
+        String(input).endsWith('/organizations?mine=true'),
       ),
     ).toBe(false);
   });
@@ -1395,7 +1395,7 @@ describe('proxy', () => {
     ).toBe(true);
     expect(
       fetchMock.mock.calls.some(([input]) =>
-        String(input).endsWith('/organizations/mine'),
+        String(input).endsWith('/organizations?mine=true'),
       ),
     ).toBe(false);
 

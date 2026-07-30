@@ -51,15 +51,15 @@ export class ElementsStylesController extends BaseCRUDController<
     super(loggerService, stylesService, StyleSerializer, 'ElementStyle');
   }
 
-  @Get(':styleId')
+  @Get(':id')
   @ApiOperation({ summary: 'Get a specific style' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   findOne(
     @Req() request: Request,
     @CurrentUser() _user: User,
-    @Param('styleId') styleId: string,
+    @Param('id') id: string,
   ) {
-    return super.findOne(request, _user, styleId);
+    return super.findOne(request, _user, id);
   }
 
   @Post()
@@ -74,29 +74,29 @@ export class ElementsStylesController extends BaseCRUDController<
     return super.create(request, user, createDto);
   }
 
-  @Patch(':styleId')
+  @Patch(':id')
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Update a style' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   update(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Param('styleId') styleId: string,
+    @Param('id') id: string,
     @Body() updateDto: UpdateElementStyleDto,
   ) {
-    return super.patch(request, user, styleId, updateDto);
+    return super.patch(request, user, id, updateDto);
   }
 
-  @Delete(':styleId')
+  @Delete(':id')
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Delete a style' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   remove(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Param('styleId') styleId: string,
+    @Param('id') id: string,
   ) {
-    return super.remove(request, user, styleId);
+    return super.remove(request, user, id);
   }
 
   /**

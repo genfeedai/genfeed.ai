@@ -76,7 +76,7 @@ describe('OrganizationsService', () => {
   });
 
   describe('getMyOrganizations', () => {
-    it('coalesces concurrent callers onto a single GET /mine request', async () => {
+    it('coalesces concurrent callers onto a single GET ?mine=true request', async () => {
       const testableService =
         service as unknown as TestableOrganizationsService;
       let resolveGet: (value: { data: OrganizationListItem[] }) => void =
@@ -131,7 +131,7 @@ describe('OrganizationsService', () => {
 
       const result = await service.getMyOrganizations();
 
-      expect(get).toHaveBeenCalledWith('/mine');
+      expect(get).toHaveBeenCalledWith('', { params: { mine: true } });
       expect(result.map((org) => org.id)).toEqual(['org_1', 'org_2']);
     });
 

@@ -51,15 +51,15 @@ export class ElementsLensesController extends BaseCRUDController<
     super(loggerService, lensesService, LensSerializer, 'ElementLens');
   }
 
-  @Get(':lensId')
+  @Get(':id')
   @ApiOperation({ summary: 'Get a specific lens' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   findOne(
     @Req() request: Request,
     @CurrentUser() _user: User,
-    @Param('lensId') lensId: string,
+    @Param('id') id: string,
   ) {
-    return super.findOne(request, _user, lensId);
+    return super.findOne(request, _user, id);
   }
 
   @Post()
@@ -74,29 +74,29 @@ export class ElementsLensesController extends BaseCRUDController<
     return super.create(request, user, createDto);
   }
 
-  @Patch(':lensId')
+  @Patch(':id')
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Update a lens' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   update(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Param('lensId') lensId: string,
+    @Param('id') id: string,
     @Body() updateDto: UpdateElementLensDto,
   ) {
-    return super.patch(request, user, lensId, updateDto);
+    return super.patch(request, user, id, updateDto);
   }
 
-  @Delete(':lensId')
+  @Delete(':id')
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Delete a lens' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   remove(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Param('lensId') lensId: string,
+    @Param('id') id: string,
   ) {
-    return super.remove(request, user, lensId);
+    return super.remove(request, user, id);
   }
 
   /**

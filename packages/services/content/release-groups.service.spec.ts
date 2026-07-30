@@ -90,7 +90,7 @@ describe('ReleaseGroupsService', () => {
   });
 
   it('uses dedicated series commands for lifecycle mutations', async () => {
-    instance.post.mockResolvedValue({
+    instance.patch.mockResolvedValue({
       data: { data: { id: 'release-1' } },
     });
 
@@ -98,15 +98,15 @@ describe('ReleaseGroupsService', () => {
     await service.resumeFuture('release-1');
     await service.cancelFuture('release-1');
 
-    expect(instance.post).toHaveBeenNthCalledWith(1, '/release-1/series/pause');
-    expect(instance.post).toHaveBeenNthCalledWith(
-      2,
-      '/release-1/series/resume',
-    );
-    expect(instance.post).toHaveBeenNthCalledWith(
-      3,
-      '/release-1/series/cancel-future',
-    );
+    expect(instance.patch).toHaveBeenNthCalledWith(1, '/release-1', {
+      action: 'series-pause',
+    });
+    expect(instance.patch).toHaveBeenNthCalledWith(2, '/release-1', {
+      action: 'series-resume',
+    });
+    expect(instance.patch).toHaveBeenNthCalledWith(3, '/release-1', {
+      action: 'series-cancel-future',
+    });
   });
 
   it('edits only future occurrence state', async () => {

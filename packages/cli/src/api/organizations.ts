@@ -23,7 +23,7 @@ export interface SwitchOrganizationResponse {
 }
 
 export async function listMyOrganizations(): Promise<OrganizationOption[]> {
-  const response = await get<JsonApiCollectionResponse>('/organizations/mine');
+  const response = await get<JsonApiCollectionResponse>('/organizations?mine=true');
   return flattenCollection<OrganizationOption>(response);
 }
 

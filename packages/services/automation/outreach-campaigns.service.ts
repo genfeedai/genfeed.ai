@@ -208,8 +208,9 @@ export class OutreachCampaignsService extends BaseService<OutreachCampaign> {
    * Start a campaign
    */
   async start(id: string): Promise<OutreachCampaign> {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      `/${id}/start`,
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `/${id}`,
+      { status: 'active' },
     );
     return new OutreachCampaign(
       this.extractResource<Partial<ICampaign>>(response.data),
@@ -220,8 +221,9 @@ export class OutreachCampaignsService extends BaseService<OutreachCampaign> {
    * Pause a campaign
    */
   async pause(id: string): Promise<OutreachCampaign> {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      `/${id}/pause`,
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `/${id}`,
+      { status: 'paused' },
     );
     return new OutreachCampaign(
       this.extractResource<Partial<ICampaign>>(response.data),
@@ -232,8 +234,9 @@ export class OutreachCampaignsService extends BaseService<OutreachCampaign> {
    * Complete a campaign
    */
   async complete(id: string): Promise<OutreachCampaign> {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      `/${id}/complete`,
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `/${id}`,
+      { status: 'completed' },
     );
     return new OutreachCampaign(
       this.extractResource<Partial<ICampaign>>(response.data),

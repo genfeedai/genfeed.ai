@@ -56,15 +56,15 @@ export class ElementsLightingsController extends BaseCRUDController<
     );
   }
 
-  @Get(':lightingId')
+  @Get(':id')
   @ApiOperation({ summary: 'Get a specific lighting' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   findOne(
     @Req() request: Request,
     @CurrentUser() _user: User,
-    @Param('lightingId') lightingId: string,
+    @Param('id') id: string,
   ) {
-    return super.findOne(request, _user, lightingId);
+    return super.findOne(request, _user, id);
   }
 
   @Post()
@@ -79,29 +79,29 @@ export class ElementsLightingsController extends BaseCRUDController<
     return super.create(request, user, createDto);
   }
 
-  @Patch(':lightingId')
+  @Patch(':id')
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Update a lighting' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   update(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Param('lightingId') lightingId: string,
+    @Param('id') id: string,
     @Body() updateDto: UpdateElementLightingDto,
   ) {
-    return super.patch(request, user, lightingId, updateDto);
+    return super.patch(request, user, id, updateDto);
   }
 
-  @Delete(':lightingId')
+  @Delete(':id')
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Delete a lighting' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   remove(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Param('lightingId') lightingId: string,
+    @Param('id') id: string,
   ) {
-    return super.remove(request, user, lightingId);
+    return super.remove(request, user, id);
   }
 
   /**

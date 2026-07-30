@@ -12694,6 +12694,14 @@
       },
       "UpdateNewsletterDto": {
         "properties": {
+          "action": {
+            "description": "Lifecycle action. `approve` or `publish` run the dedicated transition; omit for field updates.",
+            "enum": [
+              "approve",
+              "publish"
+            ],
+            "type": "string"
+          },
           "angle": {
             "description": "Optional angle",
             "type": "string"
@@ -28675,13 +28683,13 @@
         ]
       }
     },
-    "/elements/blacklists/{blacklistId}": {
+    "/elements/blacklists/{id}": {
       "delete": {
         "operationId": "ElementsBlacklistsController.remove",
         "parameters": [
           {
             "in": "path",
-            "name": "blacklistId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -28708,7 +28716,7 @@
         "parameters": [
           {
             "in": "path",
-            "name": "blacklistId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -28730,45 +28738,6 @@
           "blacklists"
         ]
       },
-      "patch": {
-        "operationId": "ElementsBlacklistsController.update",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "blacklistId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateElementBlacklistDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Update a blacklist entry",
-        "tags": [
-          "blacklists"
-        ]
-      }
-    },
-    "/elements/blacklists/{id}": {
       "patch": {
         "operationId": "ElementsBlacklistsController.patch",
         "parameters": [
@@ -28845,13 +28814,13 @@
         ]
       }
     },
-    "/elements/camera-movements/{cameraMovementId}": {
+    "/elements/camera-movements/{id}": {
       "delete": {
         "operationId": "ElementsCameraMovementsController.remove",
         "parameters": [
           {
             "in": "path",
-            "name": "cameraMovementId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -28878,7 +28847,7 @@
         "parameters": [
           {
             "in": "path",
-            "name": "cameraMovementId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -28900,45 +28869,6 @@
           "camera-movements"
         ]
       },
-      "patch": {
-        "operationId": "ElementsCameraMovementsController.update",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "cameraMovementId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateElementCameraMovementDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Update a camera movement",
-        "tags": [
-          "camera-movements"
-        ]
-      }
-    },
-    "/elements/camera-movements/{id}": {
       "patch": {
         "operationId": "ElementsCameraMovementsController.patch",
         "parameters": [
@@ -29015,13 +28945,13 @@
         ]
       }
     },
-    "/elements/cameras/{cameraId}": {
+    "/elements/cameras/{id}": {
       "delete": {
         "operationId": "ElementsCamerasController.remove",
         "parameters": [
           {
             "in": "path",
-            "name": "cameraId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29048,7 +28978,7 @@
         "parameters": [
           {
             "in": "path",
-            "name": "cameraId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29070,45 +29000,6 @@
           "cameras"
         ]
       },
-      "patch": {
-        "operationId": "ElementsCamerasController.update",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "cameraId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateElementCameraDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Update a camera",
-        "tags": [
-          "cameras"
-        ]
-      }
-    },
-    "/elements/cameras/{id}": {
       "patch": {
         "operationId": "ElementsCamerasController.patch",
         "parameters": [
@@ -29186,41 +29077,12 @@
       }
     },
     "/elements/lenses/{id}": {
-      "patch": {
-        "operationId": "ElementsLensesController.patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "patch",
-        "tags": [
-          "lenses"
-        ]
-      }
-    },
-    "/elements/lenses/{lensId}": {
       "delete": {
         "operationId": "ElementsLensesController.remove",
         "parameters": [
           {
             "in": "path",
-            "name": "lensId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29247,7 +29109,7 @@
         "parameters": [
           {
             "in": "path",
-            "name": "lensId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29270,27 +29132,17 @@
         ]
       },
       "patch": {
-        "operationId": "ElementsLensesController.update",
+        "operationId": "ElementsLensesController.patch",
         "parameters": [
           {
             "in": "path",
-            "name": "lensId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateElementLensDto"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": ""
@@ -29301,7 +29153,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update a lens",
+        "summary": "patch",
         "tags": [
           "lenses"
         ]
@@ -29356,41 +29208,12 @@
       }
     },
     "/elements/lightings/{id}": {
-      "patch": {
-        "operationId": "ElementsLightingsController.patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "patch",
-        "tags": [
-          "lightings"
-        ]
-      }
-    },
-    "/elements/lightings/{lightingId}": {
       "delete": {
         "operationId": "ElementsLightingsController.remove",
         "parameters": [
           {
             "in": "path",
-            "name": "lightingId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29417,7 +29240,7 @@
         "parameters": [
           {
             "in": "path",
-            "name": "lightingId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29440,27 +29263,17 @@
         ]
       },
       "patch": {
-        "operationId": "ElementsLightingsController.update",
+        "operationId": "ElementsLightingsController.patch",
         "parameters": [
           {
             "in": "path",
-            "name": "lightingId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateElementLightingDto"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": ""
@@ -29471,7 +29284,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update a lighting",
+        "summary": "patch",
         "tags": [
           "lightings"
         ]
@@ -29526,41 +29339,12 @@
       }
     },
     "/elements/moods/{id}": {
-      "patch": {
-        "operationId": "ElementsMoodsController.patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "patch",
-        "tags": [
-          "moods"
-        ]
-      }
-    },
-    "/elements/moods/{moodId}": {
       "delete": {
         "operationId": "ElementsMoodsController.remove",
         "parameters": [
           {
             "in": "path",
-            "name": "moodId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29587,7 +29371,7 @@
         "parameters": [
           {
             "in": "path",
-            "name": "moodId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29610,27 +29394,17 @@
         ]
       },
       "patch": {
-        "operationId": "ElementsMoodsController.update",
+        "operationId": "ElementsMoodsController.patch",
         "parameters": [
           {
             "in": "path",
-            "name": "moodId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateElementMoodDto"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": ""
@@ -29641,7 +29415,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update a mood",
+        "summary": "patch",
         "tags": [
           "moods"
         ]
@@ -29696,41 +29470,12 @@
       }
     },
     "/elements/scenes/{id}": {
-      "patch": {
-        "operationId": "ElementsScenesController.patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "patch",
-        "tags": [
-          "scenes"
-        ]
-      }
-    },
-    "/elements/scenes/{sceneId}": {
       "delete": {
         "operationId": "ElementsScenesController.remove",
         "parameters": [
           {
             "in": "path",
-            "name": "sceneId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29757,7 +29502,7 @@
         "parameters": [
           {
             "in": "path",
-            "name": "sceneId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29780,27 +29525,17 @@
         ]
       },
       "patch": {
-        "operationId": "ElementsScenesController.update",
+        "operationId": "ElementsScenesController.patch",
         "parameters": [
           {
             "in": "path",
-            "name": "sceneId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateElementSceneDto"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": ""
@@ -29811,7 +29546,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update a scene",
+        "summary": "patch",
         "tags": [
           "scenes"
         ]
@@ -29866,41 +29601,12 @@
       }
     },
     "/elements/sounds/{id}": {
-      "patch": {
-        "operationId": "ElementsSoundsController.patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "patch",
-        "tags": [
-          "sounds"
-        ]
-      }
-    },
-    "/elements/sounds/{soundId}": {
       "delete": {
         "operationId": "ElementsSoundsController.remove",
         "parameters": [
           {
             "in": "path",
-            "name": "soundId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29927,7 +29633,7 @@
         "parameters": [
           {
             "in": "path",
-            "name": "soundId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29950,27 +29656,17 @@
         ]
       },
       "patch": {
-        "operationId": "ElementsSoundsController.update",
+        "operationId": "ElementsSoundsController.patch",
         "parameters": [
           {
             "in": "path",
-            "name": "soundId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateElementSoundDto"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": ""
@@ -29981,7 +29677,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update a sound",
+        "summary": "patch",
         "tags": [
           "sounds"
         ]
@@ -30036,41 +29732,12 @@
       }
     },
     "/elements/styles/{id}": {
-      "patch": {
-        "operationId": "ElementsStylesController.patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "patch",
-        "tags": [
-          "styles"
-        ]
-      }
-    },
-    "/elements/styles/{styleId}": {
       "delete": {
         "operationId": "ElementsStylesController.remove",
         "parameters": [
           {
             "in": "path",
-            "name": "styleId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -30097,7 +29764,7 @@
         "parameters": [
           {
             "in": "path",
-            "name": "styleId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -30120,27 +29787,17 @@
         ]
       },
       "patch": {
-        "operationId": "ElementsStylesController.update",
+        "operationId": "ElementsStylesController.patch",
         "parameters": [
           {
             "in": "path",
-            "name": "styleId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateElementStyleDto"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": ""
@@ -30151,7 +29808,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update a style",
+        "summary": "patch",
         "tags": [
           "styles"
         ]
@@ -35402,30 +35059,6 @@
         ]
       }
     },
-    "/newsletters/{id}/approve": {
-      "post": {
-        "operationId": "NewslettersController.approve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "approve",
-        "tags": [
-          "newsletters"
-        ]
-      }
-    },
     "/newsletters/{id}/context": {
       "get": {
         "operationId": "NewslettersController.context",
@@ -35445,30 +35078,6 @@
           }
         },
         "summary": "context",
-        "tags": [
-          "newsletters"
-        ]
-      }
-    },
-    "/newsletters/{id}/publish": {
-      "post": {
-        "operationId": "NewslettersController.publish",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "publish",
         "tags": [
           "newsletters"
         ]
@@ -36128,6 +35737,15 @@
             "description": "Filter by favorite status",
             "in": "query",
             "name": "isFavorite",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "When true, return membership summaries for the current user (cross-org). Replaces GET /organizations/mine.",
+            "in": "query",
+            "name": "mine",
             "required": false,
             "schema": {
               "type": "boolean"
@@ -36850,6 +36468,15 @@
             "description": "Filter by favorite status",
             "in": "query",
             "name": "isFavorite",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "When true, return membership summaries for the current user (cross-org). Replaces GET /organizations/mine.",
+            "in": "query",
+            "name": "mine",
             "required": false,
             "schema": {
               "type": "boolean"
@@ -38689,81 +38316,6 @@
         ]
       }
     },
-    "/outreach-campaigns/{id}/complete": {
-      "post": {
-        "operationId": "OutreachCampaignsController.completeCampaign",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Campaign completed successfully"
-          }
-        },
-        "summary": "Complete a campaign",
-        "tags": [
-          "outreach-campaigns",
-          "OutreachCampaigns"
-        ]
-      }
-    },
-    "/outreach-campaigns/{id}/pause": {
-      "post": {
-        "operationId": "OutreachCampaignsController.pauseCampaign",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Campaign paused successfully"
-          }
-        },
-        "summary": "Pause a campaign",
-        "tags": [
-          "outreach-campaigns",
-          "OutreachCampaigns"
-        ]
-      }
-    },
-    "/outreach-campaigns/{id}/start": {
-      "post": {
-        "operationId": "OutreachCampaignsController.startCampaign",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Campaign started successfully"
-          }
-        },
-        "summary": "Start a campaign",
-        "tags": [
-          "outreach-campaigns",
-          "OutreachCampaigns"
-        ]
-      }
-    },
     "/outreach-campaigns/{id}/targets": {
       "get": {
         "operationId": "OutreachCampaignsController.getTargets",
@@ -39379,126 +38931,6 @@
         ]
       }
     },
-    "/post-groups/{id}/cancel": {
-      "post": {
-        "operationId": "PostGroupsController.cancel",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "cancel",
-        "tags": [
-          "PostGroups"
-        ]
-      }
-    },
-    "/post-groups/{id}/pause": {
-      "post": {
-        "operationId": "PostGroupsController.pause",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "pause",
-        "tags": [
-          "PostGroups"
-        ]
-      }
-    },
-    "/post-groups/{id}/publish-now": {
-      "post": {
-        "operationId": "PostGroupsController.publishNow",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "publishNow",
-        "tags": [
-          "PostGroups"
-        ]
-      }
-    },
-    "/post-groups/{id}/resume": {
-      "post": {
-        "operationId": "PostGroupsController.resume",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "resume",
-        "tags": [
-          "PostGroups"
-        ]
-      }
-    },
-    "/post-groups/{id}/series/cancel-future": {
-      "post": {
-        "operationId": "PostGroupsController.cancelFutureSeries",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "cancelFutureSeries",
-        "tags": [
-          "PostGroups"
-        ]
-      }
-    },
     "/post-groups/{id}/series/future": {
       "patch": {
         "operationId": "PostGroupsController.editFutureSeries",
@@ -39518,54 +38950,6 @@
           }
         },
         "summary": "editFutureSeries",
-        "tags": [
-          "PostGroups"
-        ]
-      }
-    },
-    "/post-groups/{id}/series/pause": {
-      "post": {
-        "operationId": "PostGroupsController.pauseSeries",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "pauseSeries",
-        "tags": [
-          "PostGroups"
-        ]
-      }
-    },
-    "/post-groups/{id}/series/resume": {
-      "post": {
-        "operationId": "PostGroupsController.resumeSeries",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "resumeSeries",
         "tags": [
           "PostGroups"
         ]
