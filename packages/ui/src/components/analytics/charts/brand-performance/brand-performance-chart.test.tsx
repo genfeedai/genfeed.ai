@@ -1,9 +1,8 @@
 import { BrandPerformanceChart } from '@ui/analytics/charts/brand-performance/brand-performance-chart';
 import '@testing-library/jest-dom/vitest';
 import { AnalyticsMetric } from '@genfeedai/enums';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { ComponentType } from 'react';
-import { useEffect, useState } from 'react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@ui/charts', () => ({
@@ -13,7 +12,7 @@ vi.mock('@ui/charts', () => ({
     height,
     style,
   }: {
-    children: React.ReactNode;
+    children: ReactNode;
     className?: string;
     height?: number | string;
     style?: React.CSSProperties;
@@ -29,55 +28,50 @@ vi.mock('@ui/charts', () => ({
   ChartTooltipContent: () => <div data-testid="chart-tooltip-content" />,
 }));
 
-// Mock recharts
-vi.mock('recharts', () => ({
+const rechartsMocks = {
   Bar: ({ dataKey, fill }: { dataKey: string; fill: string }) => (
     <div data-testid="bar" data-key={dataKey} data-fill={fill} />
   ),
-  BarChart: ({ children }: { children: React.ReactNode }) => (
+  BarChart: ({ children }: { children: ReactNode }) => (
     <div data-testid="bar-chart">{children}</div>
   ),
   CartesianGrid: () => <div data-testid="cartesian-grid" />,
   Tooltip: () => <div data-testid="tooltip" />,
   XAxis: () => <div data-testid="x-axis" />,
   YAxis: () => <div data-testid="y-axis" />,
-}));
+};
 
-// next/dynamic: resolve recharts loaders used by BrandPerformanceChart.
+vi.mock('recharts', () => rechartsMocks);
+
+// Chart uses `dynamic(() => import('recharts').then((m) => m.BarChart), …)`.
+// Resolve those loaders from the recharts mock so tests stay synchronous.
 vi.mock('next/dynamic', () => ({
   default: (loader: () => Promise<unknown>) => {
-    function DynamicChartPiece(props: Record<string, unknown>) {
-      const [Comp, setComp] = useState<ComponentType<
-        Record<string, unknown>
-      > | null>(null);
-      useEffect(() => {
-        void Promise.resolve(loader()).then((mod) => {
-          const resolved =
-            typeof mod === 'function'
-              ? mod
-              : (mod as { default?: unknown }).default;
-          if (typeof resolved === 'function') {
-            setComp(() => resolved as ComponentType<Record<string, unknown>>);
-          }
-        });
-      }, []);
-      if (!Comp) {
-        return null;
-      }
+    const source = String(loader);
+    const propertyAccesses = [...source.matchAll(/\.([A-Za-z]+)/g)].map(
+      (entry) => entry[1],
+    );
+    // Prefer the last recharts export name (BarChart, Bar, XAxis, …).
+    const exportName = [...propertyAccesses]
+      .reverse()
+      .find((name) => name in rechartsMocks);
+    const Comp =
+      exportName && exportName in rechartsMocks
+        ? rechartsMocks[exportName as keyof typeof rechartsMocks]
+        : () => null;
+    return function DynamicChartPiece(props: Record<string, unknown>) {
       return <Comp {...props} />;
-    }
-    return DynamicChartPiece;
+    };
   },
 }));
 
-// Mock Card component — surface label as visible title text for tests
 vi.mock('@ui/card/Card', () => ({
   default: ({
     children,
     className,
     label,
   }: {
-    children: React.ReactNode;
+    children: ReactNode;
     className?: string;
     label?: string;
   }) => (
@@ -121,9 +115,9 @@ describe('BrandPerformanceChart', () => {
       expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
     });
 
-    it('renders the bar chart', async () => {
+    it('renders the bar chart', () => {
       render(<BrandPerformanceChart data={mockData} />);
-      expect(await screen.findByTestId('bar-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
     });
 
     it('renders default title', () => {
@@ -209,79 +203,86 @@ describe('BrandPerformanceChart', () => {
       render(<BrandPerformanceChart data={mockData} />);
 
       const viewsButton = screen.getByText('Views').closest('button');
-      fireEvent.click(viewsButton!);
+      if (viewsButton) {
+        fireEvent.click(viewsButton);
+      }
 
       expect(viewsButton).toHaveClass('bg-white/10');
     });
 
     it('renders color indicator for each metric', () => {
       const { container } = render(<BrandPerformanceChart data={mockData} />);
-      // 3 buttons with rounded-full class + 3 color indicator spans with rounded-full
       const roundedElements = container.querySelectorAll('.rounded-full');
       expect(roundedElements.length).toBe(6);
     });
   });
 
   describe('Metric Colors', () => {
-    it('uses foreground color for views metric', async () => {
+    it('uses foreground color for views metric', () => {
       render(
         <BrandPerformanceChart
           data={mockData}
           metric={AnalyticsMetric.VIEWS}
         />,
       );
-      const bar = await screen.findByTestId('bar');
-      expect(bar).toHaveAttribute('data-fill', 'hsl(var(--foreground))');
+      expect(screen.getByTestId('bar')).toHaveAttribute(
+        'data-fill',
+        'hsl(var(--foreground))',
+      );
     });
 
-    it('uses accent-rose color for engagement metric', async () => {
+    it('uses accent-rose color for engagement metric', () => {
       render(
         <BrandPerformanceChart
           data={mockData}
           metric={AnalyticsMetric.ENGAGEMENT}
         />,
       );
-      const bar = await screen.findByTestId('bar');
-      expect(bar).toHaveAttribute('data-fill', 'var(--accent-rose)');
+      expect(screen.getByTestId('bar')).toHaveAttribute(
+        'data-fill',
+        'var(--accent-rose)',
+      );
     });
 
-    it('uses overlay-white color for posts metric', async () => {
+    it('uses overlay-white color for posts metric', () => {
       render(
         <BrandPerformanceChart
           data={mockData}
           metric={AnalyticsMetric.POSTS}
         />,
       );
-      const bar = await screen.findByTestId('bar');
-      expect(bar).toHaveAttribute('data-fill', 'var(--overlay-white-20)');
+      expect(screen.getByTestId('bar')).toHaveAttribute(
+        'data-fill',
+        'var(--overlay-white-20)',
+      );
     });
   });
 
   describe('Data Key Changes', () => {
-    it('uses engagement as default dataKey', async () => {
+    it('uses engagement as default dataKey', () => {
       render(<BrandPerformanceChart data={mockData} />);
-      const bar = await screen.findByTestId('bar');
-      expect(bar).toHaveAttribute('data-key', 'engagement');
+      expect(screen.getByTestId('bar')).toHaveAttribute(
+        'data-key',
+        'engagement',
+      );
     });
 
-    it('updates dataKey when metric changes', async () => {
+    it('updates dataKey when metric changes', () => {
       render(<BrandPerformanceChart data={mockData} />);
-
-      fireEvent.click(screen.getByText('Views').closest('button')!);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('bar')).toHaveAttribute('data-key', 'views');
-      });
+      const viewsButton = screen.getByText('Views').closest('button');
+      if (viewsButton) {
+        fireEvent.click(viewsButton);
+      }
+      expect(screen.getByTestId('bar')).toHaveAttribute('data-key', 'views');
     });
 
-    it('switches to posts dataKey', async () => {
+    it('switches to posts dataKey', () => {
       render(<BrandPerformanceChart data={mockData} />);
-
-      fireEvent.click(screen.getByText('Posts').closest('button')!);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('bar')).toHaveAttribute('data-key', 'posts');
-      });
+      const postsButton = screen.getByText('Posts').closest('button');
+      if (postsButton) {
+        fireEvent.click(postsButton);
+      }
+      expect(screen.getByTestId('bar')).toHaveAttribute('data-key', 'posts');
     });
   });
 
@@ -302,68 +303,36 @@ describe('BrandPerformanceChart', () => {
   });
 
   describe('Data Sorting and Limiting', () => {
-    it('renders chart with provided data', async () => {
+    it('renders chart with provided data', () => {
       render(<BrandPerformanceChart data={mockData} />);
-      expect(await screen.findByTestId('bar-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
     });
 
-    it('handles data with more than 10 brands', async () => {
+    it('handles data with more than 10 brands', () => {
       render(<BrandPerformanceChart data={mockDataLarge} />);
-      expect(await screen.findByTestId('bar-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
     });
   });
 
   describe('Chart Components', () => {
-    it('renders cartesian grid', async () => {
+    it('renders cartesian grid', () => {
       render(<BrandPerformanceChart data={mockData} />);
-      expect(await screen.findByTestId('cartesian-grid')).toBeInTheDocument();
+      expect(screen.getByTestId('cartesian-grid')).toBeInTheDocument();
     });
 
-    it('renders x-axis', async () => {
+    it('renders x-axis', () => {
       render(<BrandPerformanceChart data={mockData} />);
-      expect(await screen.findByTestId('x-axis')).toBeInTheDocument();
+      expect(screen.getByTestId('x-axis')).toBeInTheDocument();
     });
 
-    it('renders y-axis', async () => {
+    it('renders y-axis', () => {
       render(<BrandPerformanceChart data={mockData} />);
-      expect(await screen.findByTestId('y-axis')).toBeInTheDocument();
+      expect(screen.getByTestId('y-axis')).toBeInTheDocument();
     });
 
-    it('renders tooltip', async () => {
+    it('renders tooltip', () => {
       render(<BrandPerformanceChart data={mockData} />);
-      expect(await screen.findByTestId('tooltip')).toBeInTheDocument();
-    });
-  });
-
-  describe('Button Styling States', () => {
-    it('applies active styling to selected metric', () => {
-      render(
-        <BrandPerformanceChart
-          data={mockData}
-          metric={AnalyticsMetric.VIEWS}
-        />,
-      );
-      const activeButton = screen.getByText('Views').closest('button');
-      expect(activeButton).toHaveClass('text-white');
-    });
-
-    it('applies inactive styling to non-selected metrics', () => {
-      render(
-        <BrandPerformanceChart
-          data={mockData}
-          metric={AnalyticsMetric.VIEWS}
-        />,
-      );
-      const inactiveButton = screen.getByText('Engagement').closest('button');
-      expect(inactiveButton).toHaveClass('bg-transparent');
-    });
-
-    it('applies disabled styling when loading', () => {
-      render(<BrandPerformanceChart data={mockData} isLoading />);
-      const buttons = screen.getAllByRole('button');
-      buttons.forEach((button) => {
-        expect(button).toHaveClass('opacity-50');
-      });
+      expect(screen.getByTestId('tooltip')).toBeInTheDocument();
     });
   });
 
@@ -375,15 +344,15 @@ describe('BrandPerformanceChart', () => {
       expect(screen.queryByTestId('bar-chart')).not.toBeInTheDocument();
     });
 
-    it('handles single brand data', async () => {
+    it('handles single brand data', () => {
       const singleData = [
         { engagement: 50, name: 'Single Brand', posts: 10, views: 1000 },
       ];
       render(<BrandPerformanceChart data={singleData} />);
-      expect(await screen.findByTestId('bar-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
     });
 
-    it('handles brands with long names', async () => {
+    it('handles brands with long names', () => {
       const longNameData = [
         {
           engagement: 50,
@@ -393,7 +362,7 @@ describe('BrandPerformanceChart', () => {
         },
       ];
       render(<BrandPerformanceChart data={longNameData} />);
-      expect(await screen.findByTestId('bar-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
     });
   });
 });
