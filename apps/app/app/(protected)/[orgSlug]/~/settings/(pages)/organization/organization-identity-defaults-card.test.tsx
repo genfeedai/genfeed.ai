@@ -123,13 +123,16 @@ vi.mock('@ui/card/Card', () => ({
   default: ({
     children,
     className,
+    label,
     'data-testid': testId,
   }: {
     children: ReactNode;
     className?: string;
+    label?: string;
     'data-testid'?: string;
   }) => (
     <section className={className} data-testid={testId}>
+      {label ? <h2>{label}</h2> : null}
       {children}
     </section>
   ),
