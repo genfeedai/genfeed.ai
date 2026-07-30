@@ -21,6 +21,7 @@ import { TrendsModule } from '@api/collections/trends/trends.module';
 import { VideoGenerationModule } from '@api/collections/videos/video-generation.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
+import { SystemWorkflowCatalogController } from '@api/collections/workflows/controllers/system-workflow-catalog.controller';
 import { WebhooksController } from '@api/collections/workflows/controllers/webhooks.controller';
 import { WorkflowBatchController } from '@api/collections/workflows/controllers/workflow-batch.controller';
 import { WorkflowBuilderController } from '@api/collections/workflows/controllers/workflow-builder.controller';
@@ -37,6 +38,7 @@ import { BatchWorkflowQueueService } from '@api/collections/workflows/services/b
 import { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
 import { ReplyPollingWorkflowService } from '@api/collections/workflows/services/reply-polling-workflow.service';
 import { ReviewGateNotificationService } from '@api/collections/workflows/services/review-gate-notification.service';
+import { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
@@ -77,6 +79,7 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [
     WorkflowBuilderController,
     WorkflowMarketplaceController,
+    SystemWorkflowCatalogController,
     WorkflowExecutionController,
     WorkflowBatchController,
     WorkflowWebhookManagementController,
@@ -87,6 +90,7 @@ import { forwardRef, Module } from '@nestjs/common';
     BatchWorkflowQueueService,
     BatchWorkflowService,
     LegacyWorkflowStepRunner,
+    SystemWorkflowCatalogService,
     WorkflowsService,
     WorkflowRunControlService,
     WorkflowSchedulerService,
@@ -170,6 +174,7 @@ import { forwardRef, Module } from '@nestjs/common';
     ReviewGateNotificationService,
     WorkflowRunControlService,
     WorkflowSchedulerService,
+    SystemWorkflowCatalogService,
     WorkflowTemplateSeederService,
     WorkflowWebhookService,
     WorkflowsService,

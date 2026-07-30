@@ -263,6 +263,24 @@ export interface BatchJobSummary {
   createdAt?: string;
 }
 
+/** System catalog entry from GET /workflows/system-catalog (#2176) */
+export interface SystemWorkflowCatalogEntry {
+  canonicalId: string;
+  category: string;
+  changeSummary: string;
+  description: string;
+  family: string;
+  icon?: string;
+  installable: boolean;
+  installed: boolean;
+  installedWorkflowId: string | null;
+  isScheduleEnabled: boolean;
+  label: string;
+  schedule?: string;
+  sourceIssue: number;
+  version: number;
+}
+
 /** Workflow template returned from GET /workflows/templates */
 export interface WorkflowTemplate {
   id: string;
@@ -818,6 +836,43 @@ export class WorkflowApiService extends HTTPBaseService {
       return response.data.data;
     } catch (error) {
       logger.error('Failed to list workflow templates', { error });
+      throw error;
+    }
+  }
+
+  /** List code-owned system workflow catalog entries for the active org */
+  async listSystemCatalog(): Promise<SystemWorkflowCatalogEntry[]> {
+    try {
+      const response = await this.instance.get<{
+        data: SystemWorkflowCatalogEntry[];
+      }>('/system-catalog');
+      return response.data.data;
+    } catch (error) {
+      logger.error('Failed to list system workflow catalog', { error });
+      throw error;
+    }
+  }
+
+  /**
+   * Install a system catalog workflow into the organization (#2176).
+   * Idempotent when the template is already installed.
+   */
+  async installSystemCatalog(
+    canonicalId: string,
+    brandId?: string,
+  ): Promise<CloudWorkflowData> {
+    try {
+      const response = await this.instance.post<JsonApiResponseDocument>(
+        `/system-catalog/${encodeURIComponent(canonicalId)}/install`,
+        brandId ? { brandId } : {},
+      );
+      const item = deserializeResource<CloudWorkflowData>(response.data);
+      return this.normalizeWorkflowData(item);
+    } catch (error) {
+      logger.error('Failed to install system workflow from catalog', {
+        canonicalId,
+        error,
+      });
       throw error;
     }
   }

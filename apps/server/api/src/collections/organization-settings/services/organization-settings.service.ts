@@ -3,7 +3,6 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { CreateOrganizationSettingDto } from '@api/collections/organization-settings/dto/create-organization-setting.dto';
 import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
 import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
-import type { WorkflowTemplateSeederService } from '@api/collections/workflows/services/workflow-template-seeder.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { IWebhookDeliveryStatus } from '@genfeedai/interfaces';
@@ -16,7 +15,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import * as Sentry from '@sentry/nestjs';
 
 @Injectable()
 export class OrganizationSettingsService extends BaseService<
@@ -48,12 +46,10 @@ export class OrganizationSettingsService extends BaseService<
   }
 
   /**
-   * Org-bootstrap chokepoint: all organization-creation paths (legacy auth provider webhook,
-   * OrganizationsController, UserSetupService) funnel through settings creation.
-   * After creating settings we idempotently seed predetermined workflows.
-   * Daily Trends Digest and tenant-product automation workflows are ON by default
-   * and skip per org until credentials/config make them eligible.
-   * Failures never block settings creation.
+   * Org-bootstrap chokepoint: all organization-creation paths funnel through
+   * settings creation. System workflows are **not** cloned here (#2176) —
+   * tenants discover them via `GET /workflows/system-catalog` and install
+   * opt-in via `POST /workflows/system-catalog/:canonicalId/install`.
    */
   async create(
     createDto: CreateOrganizationSettingDto,
@@ -65,101 +61,7 @@ export class OrganizationSettingsService extends BaseService<
       >['create']
     >[1],
   ): Promise<OrganizationSettingDocument> {
-    const settings = await super.create(createDto, populate ?? []);
-    await this.provisionDefaultWorkflows(settings);
-    return settings;
-  }
-
-  private async provisionDefaultWorkflows(
-    settings: OrganizationSettingDocument,
-  ): Promise<void> {
-    try {
-      const settingsRecord = settings as unknown as {
-        organization?: unknown;
-        organizationId?: unknown;
-      };
-      const organizationId = String(
-        settingsRecord.organizationId ?? settingsRecord.organization ?? '',
-      );
-      if (!organizationId) {
-        return;
-      }
-
-      const organization = await this.prisma.organization.findFirst({
-        select: { userId: true },
-        where: { id: organizationId, isDeleted: false },
-      });
-      if (!organization?.userId) {
-        return;
-      }
-
-      // Load the class for the ModuleRef token via a relative dynamic import.
-      // A top-level value import of the workflows collection here completes a
-      // module cycle (workflows → … → organization-settings) that TDZ-crashes
-      // the API on boot: "Cannot access 'OrganizationSettingsService' before
-      // initialization". Deferring the load to call time breaks the cycle.
-      const { WorkflowTemplateSeederService } = await import(
-        '../../workflows/services/workflow-template-seeder.service'
-      );
-      const workflowSeeder: WorkflowTemplateSeederService = this.moduleRef.get(
-        WorkflowTemplateSeederService,
-        { strict: false },
-      );
-      await workflowSeeder.ensureDailyTrendsDigestWorkflow(
-        organization.userId,
-        organizationId,
-      );
-      await workflowSeeder.ensureAdAutomationWorkflows(
-        organization.userId,
-        organizationId,
-      );
-      await workflowSeeder.ensureCampaignOrchestrationWorkflows(
-        organization.userId,
-        organizationId,
-      );
-      await workflowSeeder.ensureAgentAutopilotWorkflows(
-        organization.userId,
-        organizationId,
-      );
-      await workflowSeeder.ensureAnalyticsSyncWorkflows(
-        organization.userId,
-        organizationId,
-      );
-      await workflowSeeder.ensureContentProductionWorkflows(
-        organization.userId,
-        organizationId,
-      );
-      await workflowSeeder.ensureReplyPollingWorkflows(
-        organization.userId,
-        organizationId,
-      );
-      await workflowSeeder.ensureTrendNotificationWorkflows(
-        organization.userId,
-        organizationId,
-      );
-      await workflowSeeder.ensureLivestreamBotWorkflows(
-        organization.userId,
-        organizationId,
-      );
-      await workflowSeeder.ensureSystemActionWorkflows(
-        organization.userId,
-        organizationId,
-      );
-
-      // Seeded schedules fire via BullMQ job schedulers; register them now so
-      // they don't wait for the next service restart.
-      await workflowSeeder.syncOrganizationWorkflowSchedulers(organizationId);
-    } catch (error) {
-      // Swallowed so a non-critical provisioning step never fails org creation,
-      // but reported to Sentry as well as the log: otherwise new-org workflow
-      // seeding can fail silently for every org (e.g. a future DI/module-graph
-      // regression) with nothing but a log line nobody is watching.
-      this.logger?.error(
-        'Failed to provision default organization workflows',
-        error,
-      );
-      Sentry.captureException(error);
-    }
+    return super.create(createDto, populate ?? []);
   }
 
   private readJourneyState(

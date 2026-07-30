@@ -13,11 +13,12 @@ topics: [workflows, automation, publishing, social, agent, messages]
 
 **How to apply:**
 - Use workflows as the canonical executable unit for scheduled content work, publish actions, social reply/DM actions, comment-trigger automation, and recurring agent/product automations.
-- Seed canonical system workflows idempotently and protect them from normal user update/delete paths.
-- Let users duplicate system workflows into user/brand-owned editable workflows; duplicated workflows should resolve credentials through the selected user/brand account.
+- Keep system workflow **graphs in a code catalog** (`GET /workflows/system-catalog`). Do **not** clone the full system set at organization creation.
+- Tenants **install** the workflows they want (`POST /workflows/system-catalog/:canonicalId/install`), which creates a tenant-owned editable workflow with catalog provenance.
+- Operator/self-host scripts may still call `WorkflowTemplateSeederService` for backfill; product system-action wrappers may still create-on-demand as a fail-closed path.
 - Record workflow provenance on downstream content, messages, agent runs, and social actions.
 - New hard-coded content cron/action/publish paths need an explicit documented exception. Infrastructure maintenance can still use platform cron when it is not tenant/product automation.
-- UI, API, MCP, and agent controls should expose list, inspect, duplicate, trigger, run status, and run history for eligible workflows without allowing mutation of canonical system records.
+- UI, API, MCP, and agent controls should expose catalog list, install, inspect, duplicate, trigger, run status, and run history for eligible workflows.
 
 **Canonical tracking:**
 - Epic #1011: Productize System Workflows
