@@ -5,12 +5,18 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@ui/primitives/button', () => ({
   Button: function MockButton(props: {
+    ariaLabel?: string;
     children?: ReactNode;
     isDisabled?: boolean;
     onClick?: () => void;
   }) {
     return (
-      <button type="button" disabled={props.isDisabled} onClick={props.onClick}>
+      <button
+        type="button"
+        aria-label={props.ariaLabel}
+        disabled={props.isDisabled}
+        onClick={props.onClick}
+      >
         {props.children}
       </button>
     );
@@ -18,9 +24,12 @@ vi.mock('@ui/primitives/button', () => ({
 }));
 
 vi.mock('@ui/primitives/popover', () => ({
-  Popover: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  // Only render content when open so tests mirror closed-popover reality.
+  Popover: ({ children, open }: { children: ReactNode; open?: boolean }) => (
+    <div data-popover-open={open ? 'true' : 'false'}>{children}</div>
+  ),
   PopoverContent: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
+    <div data-testid="model-selector-menu">{children}</div>
   ),
   PopoverTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
@@ -38,7 +47,7 @@ describe('AgentModelSelector', () => {
       />,
     );
 
-    const trigger = screen.getByRole('button');
+    const trigger = screen.getByRole('button', { name: 'Select model' });
     expect(trigger).toBeDisabled();
   });
 
@@ -51,6 +60,8 @@ describe('AgentModelSelector', () => {
       />,
     );
 
-    expect(screen.getByRole('button')).not.toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Select model' }),
+    ).not.toBeDisabled();
   });
 });

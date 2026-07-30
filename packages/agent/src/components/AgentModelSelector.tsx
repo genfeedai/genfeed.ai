@@ -60,6 +60,7 @@ export function AgentModelSelector({
     >
       <PopoverTrigger asChild>
         <Button
+          ariaLabel="Select model"
           variant={ButtonVariant.GHOST}
           withWrapper={false}
           textTransform="none"
