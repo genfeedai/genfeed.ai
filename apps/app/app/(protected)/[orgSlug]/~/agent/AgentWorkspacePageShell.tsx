@@ -1,7 +1,7 @@
 'use client';
 
 import { AgentFullPage } from '@genfeedai/agent';
-import { isEEEnabled } from '@genfeedai/config/license';
+import { hasOrganizationBilling } from '@genfeedai/config/license';
 import { useAgentBrandCreate } from '@genfeedai/hooks/agent/use-agent-brand-create';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -58,7 +58,11 @@ export function AgentWorkspacePageShell({
         threadId={threadId}
         onNavigateToBilling={() => {
           push(
-            orgHref(isEEEnabled() ? '/settings/billing' : '/settings/credits'),
+            orgHref(
+              hasOrganizationBilling()
+                ? '/settings/billing'
+                : '/settings/credits',
+            ),
           );
         }}
         onOAuthConnect={handleOAuthConnect}
@@ -66,7 +70,7 @@ export function AgentWorkspacePageShell({
         onOnboardingCompleted={completeOnboardingFlow}
         onSelectCreditPack={(pack) => {
           push(
-            isEEEnabled()
+            hasOrganizationBilling()
               ? orgHref(`/settings/billing?pack=${pack.label.toLowerCase()}`)
               : orgHref('/settings/credits'),
           );

@@ -8,7 +8,7 @@
  * - Personal settings: /settings
  */
 
-import { isEEEnabled } from '@genfeedai/config/license';
+import { hasOrganizationBilling } from '@genfeedai/config/license';
 import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
 import { CommandPaletteService } from '@services/core/command-palette.service';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -319,7 +319,7 @@ export function createContentCommands(
 export function createSettingsCommands(orgSlug: string): ICommand[] {
   const appBase = EnvironmentService.apps.app;
   const orgPath = `${appBase}/${orgSlug}/~`;
-  const isBillingEnabled = isEEEnabled();
+  const isBillingEnabled = hasOrganizationBilling();
 
   return [
     {

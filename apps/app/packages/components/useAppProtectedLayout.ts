@@ -22,7 +22,7 @@ import {
   useAgentPageContext,
 } from '@genfeedai/agent';
 import { isDesktopClient } from '@genfeedai/config/deployment';
-import { isEEEnabled } from '@genfeedai/config/license';
+import { hasOrganizationBilling } from '@genfeedai/config/license';
 import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
@@ -452,7 +452,7 @@ export function useAppProtectedLayout(
     () =>
       buildSettingsMenuItems({
         scope: settingsScope,
-        isEnterprise: isEEEnabled(),
+        isEnterprise: hasOrganizationBilling(),
       }).map(
         (item): MenuItemConfig => ({
           ...item,

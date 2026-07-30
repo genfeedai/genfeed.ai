@@ -1,6 +1,6 @@
 'use client';
 
-import { isEEEnabled } from '@genfeedai/config/license';
+import { hasOrganizationBilling } from '@genfeedai/config/license';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
@@ -71,7 +71,7 @@ export default function LowCreditsBanner({
 }: LowCreditsBannerProps) {
   const { creditsBreakdown } = useSubscription();
   const { orgHref } = useOrgUrl();
-  const isBillingEnabled = isEEEnabled();
+  const isBillingEnabled = hasOrganizationBilling();
   const ctaHref = orgHref(
     isBillingEnabled
       ? APP_ROUTES.SETTINGS.BILLING

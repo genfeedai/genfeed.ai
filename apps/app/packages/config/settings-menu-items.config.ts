@@ -55,7 +55,7 @@ export interface BuildSettingsMenuItemsParams {
    * handled by the gear dropdown / org + brand switchers, not the sidebar.
    */
   scope: SettingsScope;
-  /** EE build — gates the organization Billing entry. */
+  /** SaaS or self-host EE — gates the organization Billing (subscription) entry. */
   isEnterprise?: boolean;
 }
 

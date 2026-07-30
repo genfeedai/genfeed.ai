@@ -9,7 +9,7 @@ import type {
   InstallReadinessResponse,
   OnboardingWorkspaceContext,
 } from '@api/endpoints/onboarding/onboarding.interfaces';
-import { isCloudDeployment, isEEEnabled } from '@genfeedai/config';
+import { hasOrganizationBilling, isCloudDeployment } from '@genfeedai/config';
 import type {
   IOnboardingAccessPreference,
   IOrganizationSetting,
@@ -162,7 +162,7 @@ export class OnboardingReadinessService {
     const brandId = workspace.brandId;
     const userId = workspace.userId;
     const providers = this.getProviderReadiness();
-    const showBillingUi = isEEEnabled();
+    const showBillingUi = hasOrganizationBilling();
 
     let hasOrganization = false;
     let hasBrand = false;

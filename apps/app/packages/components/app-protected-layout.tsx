@@ -3,7 +3,7 @@
 import StreakNotificationsBridge from '@app-components/streaks/StreakNotificationsBridge';
 import { CommandPaletteProvider } from '@contexts/features/command-palette.provider';
 import type { AgentApiService } from '@genfeedai/agent';
-import { isEEEnabled } from '@genfeedai/config/license';
+import { hasOrganizationBilling } from '@genfeedai/config/license';
 import type { SidebarNavPanel } from '@genfeedai/props/navigation/menu.props';
 import { useAgentThreadCommands } from '@hooks/commands/use-agent-thread-commands/use-agent-thread-commands';
 import type { LayoutProps } from '@props/layout/layout.props';
@@ -384,7 +384,7 @@ function AppLayoutWithDynamicMenu({
                       ? orgMenuItems
                       : menuItems;
   const lowCreditsBanner =
-    isEEEnabled() &&
+    hasOrganizationBilling() &&
     isLowCreditsBannerEnabled &&
     !isFocusedOnboardingRoute &&
     !isPromptBarRoute &&

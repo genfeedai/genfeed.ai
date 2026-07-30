@@ -49,7 +49,7 @@ describe('buildSettingsMenuItems', () => {
       ]);
     });
 
-    it('adds Billing only on the enterprise edition', () => {
+    it('adds Billing when organization billing is available (SaaS or EE)', () => {
       expect(
         buildSettingsMenuItems({
           scope: 'organization',

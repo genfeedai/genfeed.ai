@@ -1,7 +1,7 @@
 'use client';
 
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import { isEEEnabled } from '@genfeedai/config/license';
+import { hasOrganizationBilling } from '@genfeedai/config/license';
 import { APP_ROUTES } from '@genfeedai/constants';
 import {
   ButtonVariant,
@@ -174,7 +174,7 @@ export function StudioComposer({
         ? 'credits'
         : null;
   const isGenerationBlocked = isAvailabilityLoading || generationGate !== null;
-  const isBillingEnabled = isEEEnabled();
+  const isBillingEnabled = hasOrganizationBilling();
   const resolvedGenerateLabel = isAvailabilityLoading
     ? 'Loading options'
     : generationGate === 'model'

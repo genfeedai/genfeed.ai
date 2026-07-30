@@ -436,7 +436,7 @@ vi.mock('@providers/protected-providers/protected-providers', () => ({
 }));
 
 vi.mock('@genfeedai/config/license', () => ({
-  isEEEnabled: () => true,
+  hasOrganizationBilling: () => true,
 }));
 
 vi.mock('@genfeedai/config/deployment', () => ({
