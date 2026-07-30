@@ -62,7 +62,9 @@ export default function BrandDetailOverview({
           <div className="min-w-0">
             <h2 className="mb-1 text-2xl font-bold">{brand.label}</h2>
             {brand.slug ? (
-              <p className="mb-1 text-xs text-muted-foreground">@{brand.slug}</p>
+              <p className="mb-1 text-xs text-muted-foreground">
+                @{brand.slug}
+              </p>
             ) : null}
             <p className="text-muted-foreground">
               {brand.description || 'No description available'}

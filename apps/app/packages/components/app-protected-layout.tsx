@@ -1,5 +1,6 @@
 'use client';
 
+import LibrarySidebarNav from '@app/(protected)/[orgSlug]/[brandSlug]/library/library-sidebar-nav';
 import StreakNotificationsBridge from '@app-components/streaks/StreakNotificationsBridge';
 import { CommandPaletteProvider } from '@contexts/features/command-palette.provider';
 import type { AgentApiService } from '@genfeedai/agent';
@@ -39,7 +40,6 @@ import {
   captureWorkspaceShellError,
   captureWorkspaceShellPerformance,
 } from '@/lib/workspace-shell/workspace-shell-telemetry';
-import LibrarySidebarNav from '@app/(protected)/[orgSlug]/[brandSlug]/library/library-sidebar-nav';
 import AgentSidebarContent from './AppProtectedLayoutAgentSidebar';
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
 import AssetGateGuard from './asset-gate-guard';

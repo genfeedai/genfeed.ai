@@ -77,8 +77,8 @@ export default function BrandDetailAgentProfileCard({
         >
           <p className="text-xs leading-5 text-muted-foreground">
             Generate scans this brand (website when available, otherwise name /
-            description / guidance) and fills tone, style, audience, pillars, and
-            more. Edit and save anytime.
+            description / guidance) and fills tone, style, audience, pillars,
+            and more. Edit and save anytime.
           </p>
         </Card>
 

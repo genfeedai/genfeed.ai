@@ -1,5 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import { Platform, PostStatus } from '@genfeedai/enums';
+import * as formatHelper from '@helpers/formatting/format/format.helper';
 import {
   DiscordIcon,
   FacebookIcon,
@@ -22,8 +23,7 @@ import {
   WordpressIcon,
   XTwitterIcon,
   YoutubeIcon,
-} from '@genfeedai/helpers/ui/icons/brands';
-import * as formatHelper from '@helpers/formatting/format/format.helper';
+} from '@helpers/ui/icons/brands';
 import type { TabItem } from '@props/ui/navigation/tabs.props';
 import { LayoutGrid, Newspaper, Star } from 'lucide-react';
 import type { ComponentType } from 'react';

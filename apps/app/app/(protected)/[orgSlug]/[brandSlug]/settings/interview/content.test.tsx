@@ -269,7 +269,7 @@ describe('BrandSettingsInterviewPage', () => {
       status: 'in_progress',
     };
 
-    render(<BrandSettingsInterviewPage />);
+    const { rerender } = render(<BrandSettingsInterviewPage />);
 
     const answerField = screen.getByLabelText('Interview answer');
     fireEvent.change(answerField, {
@@ -281,11 +281,8 @@ describe('BrandSettingsInterviewPage', () => {
       'Acme Corp',
     );
 
-    // Re-render so selector reads the Map-backed draft after setAnswer.
-    mocks.draftGet.mockReturnValue('Acme Corp');
-    fireEvent.change(answerField, {
-      target: { value: 'Acme Corp' },
-    });
+    // Mock store does not notify React; re-render so getAnswer reads the Map.
+    rerender(<BrandSettingsInterviewPage />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 

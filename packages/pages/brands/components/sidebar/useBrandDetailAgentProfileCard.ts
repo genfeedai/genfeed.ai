@@ -253,7 +253,8 @@ function applyGeneratedProfileToForm(
       joinList(profile.doNotSoundLike) || current.voiceDoNotSoundLike,
     voiceMessagingPillars:
       joinList(profile.messagingPillars) || current.voiceMessagingPillars,
-    voiceSampleOutput: profile.sampleOutput?.trim() || current.voiceSampleOutput,
+    voiceSampleOutput:
+      profile.sampleOutput?.trim() || current.voiceSampleOutput,
     voiceStyle: style || current.voiceStyle,
     voiceTone: tone || current.voiceTone,
     voiceValues: joinList(profile.values) || current.voiceValues,

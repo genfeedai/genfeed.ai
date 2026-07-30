@@ -519,10 +519,7 @@ export default function BrandDetailManualKitCard({
               value={form.fontFamily || undefined}
               onValueChange={handleFontFamilyChange}
             >
-              <SelectTrigger
-                aria-label="Manual font family"
-                className="w-full"
-              >
+              <SelectTrigger aria-label="Manual font family" className="w-full">
                 <SelectValue placeholder="Font" />
               </SelectTrigger>
               <SelectContent>

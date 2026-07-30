@@ -5,8 +5,8 @@ import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import BrandKitReviewCard from '@pages/brands/components/brand-kit/BrandKitReviewCard';
 import BrandDetailManualKitCard from '@pages/brands/components/sidebar/BrandDetailManualKitCard';
 import BrandDetailReferencesCard from '@pages/brands/components/sidebar/BrandDetailReferencesCard';
-import BrandCompletenessCard from '@ui/cards/brand-completeness-card/BrandCompletenessCard';
 import Card from '@ui/card/Card';
+import BrandCompletenessCard from '@ui/cards/brand-completeness-card/BrandCompletenessCard';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 

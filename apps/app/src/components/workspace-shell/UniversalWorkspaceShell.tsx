@@ -188,9 +188,6 @@ function UniversalWorkspaceShellContent({
   // whole point of it no longer being a shell state you navigate away to.
   const [inspectorTab, setInspectorTab] =
     useState<WorkspaceInspectorTab>('conversation');
-  const [failedSurfaceScopeKey, setFailedSurfaceScopeKey] = useState<
-    string | null
-  >(null);
   const [researchSurfaceAdapter, setResearchSurfaceAdapter] = useState<{
     readonly registration: ResearchWorkspaceSurfaceAdapterRegistration;
     readonly token: symbol;
@@ -301,11 +298,6 @@ function UniversalWorkspaceShellContent({
     activeThread && surfaceBrandId && !isSurfaceScopeAligned
       ? `${activeThread.id}:${activeThread.contextVersion}:${surfaceBrandId}`
       : null;
-  const surfaceScopeStatus = !surfaceScopeKey
-    ? 'ready'
-    : failedSurfaceScopeKey === surfaceScopeKey
-      ? 'error'
-      : 'syncing';
   const surfaceReferences = isSurfaceScopeAligned
     ? productSurfaceAdapter?.references
     : undefined;
@@ -410,7 +402,6 @@ function UniversalWorkspaceShellContent({
       })
       .catch(() => {
         if (!abortController.signal.aborted) {
-          setFailedSurfaceScopeKey(surfaceScopeKey);
           captureWorkspaceShellScopeCorrection('failure');
           captureWorkspaceShellError('scope', 'scope_sync_failed');
         }

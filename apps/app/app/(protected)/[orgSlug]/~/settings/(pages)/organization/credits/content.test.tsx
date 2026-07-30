@@ -2,12 +2,30 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsCreditsPage from './content';
 
-const { isSelfHostedMock } = vi.hoisted(() => ({
-  isSelfHostedMock: vi.fn(),
-}));
+const { hasOrganizationBillingMock, isSelfHostedMock, paygMock } = vi.hoisted(
+  () => ({
+    hasOrganizationBillingMock: vi.fn(),
+    isSelfHostedMock: vi.fn(),
+    paygMock: vi.fn(),
+  }),
+);
 
 vi.mock('@genfeedai/config/deployment', () => ({
   isSelfHostedDeployment: () => isSelfHostedMock(),
+}));
+
+vi.mock('@genfeedai/config/license', () => ({
+  hasOrganizationBilling: () => hasOrganizationBillingMock(),
+}));
+
+vi.mock('@services/core/environment.service', () => ({
+  EnvironmentService: {
+    plans: {
+      get payg() {
+        return paygMock();
+      },
+    },
+  },
 }));
 
 vi.mock('../billing/add-credits-card', () => ({
@@ -21,7 +39,11 @@ vi.mock('./managed-credits-checkout-card', () => ({
 describe('SettingsCreditsPage', () => {
   beforeEach(() => {
     isSelfHostedMock.mockReset();
+    hasOrganizationBillingMock.mockReset();
+    paygMock.mockReset();
     isSelfHostedMock.mockReturnValue(true);
+    hasOrganizationBillingMock.mockReturnValue(false);
+    paygMock.mockReturnValue(undefined);
   });
 
   it('renders managed credits for self-hosted installs', () => {

@@ -95,7 +95,8 @@ export class BrandGenerationService {
       const websiteUrl = (
         (typeof brandWithLinks.websiteUrl === 'string' &&
           brandWithLinks.websiteUrl) ||
-        (typeof brandWithLinks.website === 'string' && brandWithLinks.website) ||
+        (typeof brandWithLinks.website === 'string' &&
+          brandWithLinks.website) ||
         websiteFromLinks ||
         ''
       ).trim();

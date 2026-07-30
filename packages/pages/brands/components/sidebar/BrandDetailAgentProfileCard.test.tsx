@@ -108,12 +108,12 @@ describe('BrandDetailAgentProfileCard', () => {
     expect(screen.getByLabelText('Persona')).toBeInTheDocument();
     expect(screen.getByLabelText('Messaging Pillars')).toBeInTheDocument();
     expect(screen.getByLabelText('Tone')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'Generate' }).length).toBeGreaterThan(
-      0,
-    );
-    expect(screen.getAllByRole('button', { name: 'Save' }).length).toBeGreaterThan(
-      0,
-    );
+    expect(
+      screen.getAllByRole('button', { name: 'Generate' }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole('button', { name: 'Save' }).length,
+    ).toBeGreaterThan(0);
   });
 
   it('saves expanded brand voice fields at brand and platform levels', async () => {

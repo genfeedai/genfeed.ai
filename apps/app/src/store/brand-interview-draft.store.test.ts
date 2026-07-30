@@ -24,9 +24,9 @@ describe('useBrandInterviewDraftStore', () => {
     store.clearAnswer('brand-1', 'tone');
 
     expect(store.getAnswer('brand-1', 'tone')).toBe('');
-    expect(useBrandInterviewDraftStore.getState().getAnswer('brand-1', 'style')).toBe(
-      'plain',
-    );
+    expect(
+      useBrandInterviewDraftStore.getState().getAnswer('brand-1', 'style'),
+    ).toBe('plain');
   });
 
   it('clears an entire brand draft', () => {

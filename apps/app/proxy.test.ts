@@ -41,6 +41,7 @@ function makeSignedInRequest(
     .map(([k, v]) => `${k}=${v}`)
     .join('; ');
 
+  const search = opts.search ?? '';
   return {
     cookies: {
       get: vi.fn((name: string) => {
@@ -55,9 +56,13 @@ function makeSignedInRequest(
     },
     nextUrl: {
       pathname,
-      search: opts.search ?? '',
+      search,
+      // proxy reads callbackUrl via nextUrl.searchParams.get(...)
+      searchParams: new URLSearchParams(
+        search.startsWith('?') ? search.slice(1) : search,
+      ),
     },
-    url: `http://localhost:3000${pathname}${opts.search ?? ''}`,
+    url: `http://localhost:3000${pathname}${search}`,
   } as never;
 }
 
@@ -65,6 +70,7 @@ function makeSignedInRequest(
  * Build a signed-out NextRequest-like mock (no session cookie present).
  */
 function makeSignedOutRequest(pathname: string, search?: string) {
+  const resolvedSearch = search ?? '';
   return {
     cookies: {
       get: vi.fn(() => undefined),
@@ -74,9 +80,14 @@ function makeSignedOutRequest(pathname: string, search?: string) {
     },
     nextUrl: {
       pathname,
-      search: search ?? '',
+      search: resolvedSearch,
+      searchParams: new URLSearchParams(
+        resolvedSearch.startsWith('?')
+          ? resolvedSearch.slice(1)
+          : resolvedSearch,
+      ),
     },
-    url: `http://localhost:3000${pathname}${search ?? ''}`,
+    url: `http://localhost:3000${pathname}${resolvedSearch}`,
   } as never;
 }
 

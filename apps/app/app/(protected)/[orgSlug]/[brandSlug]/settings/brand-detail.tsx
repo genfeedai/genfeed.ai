@@ -1,11 +1,7 @@
 'use client';
 
 import { MODEL_KEYS } from '@genfeedai/constants';
-import {
-  AlertCategory,
-  AssetCategory,
-  AssetScope,
-} from '@genfeedai/enums';
+import { AlertCategory, AssetCategory, AssetScope } from '@genfeedai/enums';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import BrandDetailBanner from '@pages/brands/components/banner/BrandDetailBanner';

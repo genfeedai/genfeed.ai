@@ -167,14 +167,12 @@ describe('BrandDetailManualKitCard', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Manual primary color picker')).toHaveAttribute(
-      'type',
-      'color',
-    );
-    expect(screen.getByLabelText('Manual secondary color picker')).toHaveAttribute(
-      'type',
-      'color',
-    );
+    expect(
+      screen.getByLabelText('Manual primary color picker'),
+    ).toHaveAttribute('type', 'color');
+    expect(
+      screen.getByLabelText('Manual secondary color picker'),
+    ).toHaveAttribute('type', 'color');
     expect(
       screen.getByLabelText('Manual background color picker'),
     ).toHaveAttribute('type', 'color');

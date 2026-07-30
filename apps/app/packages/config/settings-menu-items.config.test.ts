@@ -130,9 +130,7 @@ describe('buildSettingsMenuItems', () => {
 
     it('scopes every entry to the brand and marks Profile exact', () => {
       expect(items.every((item) => item.hrefScope === 'brand')).toBe(true);
-      expect(items.find((i) => i.label === 'Profile')?.isExactMatch).toBe(
-        true,
-      );
+      expect(items.find((i) => i.label === 'Profile')?.isExactMatch).toBe(true);
       expect(items.find((i) => i.label === 'Profile')?.href).toBe('/settings');
       expect(items.find((i) => i.label === 'Social')?.href).toBe(
         '/settings/social',

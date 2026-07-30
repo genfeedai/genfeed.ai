@@ -683,7 +683,8 @@ describe('UniversalWorkspaceShell', () => {
     expect(
       screen.getAllByTestId('workspace-inspector-composer-slot'),
     ).toHaveLength(1);
-    expect(screen.getByText('Context')).toBeInTheDocument();
+    // Desktop + mobile inspector hosts can both expose the Context tab label.
+    expect(screen.getAllByText('Context').length).toBeGreaterThan(0);
   });
 
   it('keeps the inspector conversation and composer mounted when collapsed', () => {

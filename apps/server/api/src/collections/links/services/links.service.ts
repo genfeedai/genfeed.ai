@@ -26,9 +26,7 @@ export class LinksService extends BaseService<
     super(prisma, 'link', logger);
   }
 
-  protected override normalizeData(
-    data: unknown,
-  ): Record<string, unknown> {
+  protected override normalizeData(data: unknown): Record<string, unknown> {
     const normalized = super.normalizeData(data);
     if (
       !normalized ||
