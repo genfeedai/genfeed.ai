@@ -1,7 +1,9 @@
 import { BrandPerformanceChart } from '@ui/analytics/charts/brand-performance/brand-performance-chart';
 import '@testing-library/jest-dom/vitest';
 import { AnalyticsMetric } from '@genfeedai/enums';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { ComponentType } from 'react';
+import { useEffect, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@ui/charts', () => ({
@@ -41,16 +43,46 @@ vi.mock('recharts', () => ({
   YAxis: () => <div data-testid="y-axis" />,
 }));
 
-// Mock Card component
+// next/dynamic: resolve recharts loaders used by BrandPerformanceChart.
+vi.mock('next/dynamic', () => ({
+  default: (loader: () => Promise<unknown>) => {
+    function DynamicChartPiece(props: Record<string, unknown>) {
+      const [Comp, setComp] = useState<ComponentType<
+        Record<string, unknown>
+      > | null>(null);
+      useEffect(() => {
+        void Promise.resolve(loader()).then((mod) => {
+          const resolved =
+            typeof mod === 'function'
+              ? mod
+              : (mod as { default?: unknown }).default;
+          if (typeof resolved === 'function') {
+            setComp(() => resolved as ComponentType<Record<string, unknown>>);
+          }
+        });
+      }, []);
+      if (!Comp) {
+        return null;
+      }
+      return <Comp {...props} />;
+    }
+    return DynamicChartPiece;
+  },
+}));
+
+// Mock Card component — surface label as visible title text for tests
 vi.mock('@ui/card/Card', () => ({
   default: ({
     children,
     className,
+    label,
   }: {
     children: React.ReactNode;
     className?: string;
+    label?: string;
   }) => (
     <div data-testid="card" className={className}>
+      {label ? <h3>{label}</h3> : null}
       {children}
     </div>
   ),
@@ -89,9 +121,9 @@ describe('BrandPerformanceChart', () => {
       expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
     });
 
-    it('renders the bar chart', () => {
+    it('renders the bar chart', async () => {
       render(<BrandPerformanceChart data={mockData} />);
-      expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
+      expect(await screen.findByTestId('bar-chart')).toBeInTheDocument();
     });
 
     it('renders default title', () => {
@@ -135,12 +167,9 @@ describe('BrandPerformanceChart', () => {
       expect(screen.getByText('No brand performance yet')).toBeInTheDocument();
     });
 
-    it('disables metric buttons when empty', () => {
+    it('hides metric buttons when empty (no signal)', () => {
       render(<BrandPerformanceChart data={[]} />);
-      const buttons = screen.getAllByRole('button');
-      buttons.forEach((button) => {
-        expect(button).toBeDisabled();
-      });
+      expect(screen.queryAllByRole('button')).toHaveLength(0);
     });
 
     it('does not show empty message when loading', () => {
@@ -194,63 +223,65 @@ describe('BrandPerformanceChart', () => {
   });
 
   describe('Metric Colors', () => {
-    it('uses foreground color for views metric', () => {
+    it('uses foreground color for views metric', async () => {
       render(
         <BrandPerformanceChart
           data={mockData}
           metric={AnalyticsMetric.VIEWS}
         />,
       );
-      const bar = screen.getByTestId('bar');
+      const bar = await screen.findByTestId('bar');
       expect(bar).toHaveAttribute('data-fill', 'hsl(var(--foreground))');
     });
 
-    it('uses accent-rose color for engagement metric', () => {
+    it('uses accent-rose color for engagement metric', async () => {
       render(
         <BrandPerformanceChart
           data={mockData}
           metric={AnalyticsMetric.ENGAGEMENT}
         />,
       );
-      const bar = screen.getByTestId('bar');
+      const bar = await screen.findByTestId('bar');
       expect(bar).toHaveAttribute('data-fill', 'var(--accent-rose)');
     });
 
-    it('uses overlay-white color for posts metric', () => {
+    it('uses overlay-white color for posts metric', async () => {
       render(
         <BrandPerformanceChart
           data={mockData}
           metric={AnalyticsMetric.POSTS}
         />,
       );
-      const bar = screen.getByTestId('bar');
+      const bar = await screen.findByTestId('bar');
       expect(bar).toHaveAttribute('data-fill', 'var(--overlay-white-20)');
     });
   });
 
   describe('Data Key Changes', () => {
-    it('uses engagement as default dataKey', () => {
+    it('uses engagement as default dataKey', async () => {
       render(<BrandPerformanceChart data={mockData} />);
-      const bar = screen.getByTestId('bar');
+      const bar = await screen.findByTestId('bar');
       expect(bar).toHaveAttribute('data-key', 'engagement');
     });
 
-    it('updates dataKey when metric changes', () => {
+    it('updates dataKey when metric changes', async () => {
       render(<BrandPerformanceChart data={mockData} />);
 
       fireEvent.click(screen.getByText('Views').closest('button')!);
 
-      const bar = screen.getByTestId('bar');
-      expect(bar).toHaveAttribute('data-key', 'views');
+      await waitFor(() => {
+        expect(screen.getByTestId('bar')).toHaveAttribute('data-key', 'views');
+      });
     });
 
-    it('switches to posts dataKey', () => {
+    it('switches to posts dataKey', async () => {
       render(<BrandPerformanceChart data={mockData} />);
 
       fireEvent.click(screen.getByText('Posts').closest('button')!);
 
-      const bar = screen.getByTestId('bar');
-      expect(bar).toHaveAttribute('data-key', 'posts');
+      await waitFor(() => {
+        expect(screen.getByTestId('bar')).toHaveAttribute('data-key', 'posts');
+      });
     });
   });
 
@@ -271,36 +302,36 @@ describe('BrandPerformanceChart', () => {
   });
 
   describe('Data Sorting and Limiting', () => {
-    it('renders chart with provided data', () => {
+    it('renders chart with provided data', async () => {
       render(<BrandPerformanceChart data={mockData} />);
-      expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
+      expect(await screen.findByTestId('bar-chart')).toBeInTheDocument();
     });
 
-    it('handles data with more than 10 brands', () => {
+    it('handles data with more than 10 brands', async () => {
       render(<BrandPerformanceChart data={mockDataLarge} />);
-      expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
+      expect(await screen.findByTestId('bar-chart')).toBeInTheDocument();
     });
   });
 
   describe('Chart Components', () => {
-    it('renders cartesian grid', () => {
+    it('renders cartesian grid', async () => {
       render(<BrandPerformanceChart data={mockData} />);
-      expect(screen.getByTestId('cartesian-grid')).toBeInTheDocument();
+      expect(await screen.findByTestId('cartesian-grid')).toBeInTheDocument();
     });
 
-    it('renders x-axis', () => {
+    it('renders x-axis', async () => {
       render(<BrandPerformanceChart data={mockData} />);
-      expect(screen.getByTestId('x-axis')).toBeInTheDocument();
+      expect(await screen.findByTestId('x-axis')).toBeInTheDocument();
     });
 
-    it('renders y-axis', () => {
+    it('renders y-axis', async () => {
       render(<BrandPerformanceChart data={mockData} />);
-      expect(screen.getByTestId('y-axis')).toBeInTheDocument();
+      expect(await screen.findByTestId('y-axis')).toBeInTheDocument();
     });
 
-    it('renders tooltip', () => {
+    it('renders tooltip', async () => {
       render(<BrandPerformanceChart data={mockData} />);
-      expect(screen.getByTestId('tooltip')).toBeInTheDocument();
+      expect(await screen.findByTestId('tooltip')).toBeInTheDocument();
     });
   });
 
@@ -337,21 +368,22 @@ describe('BrandPerformanceChart', () => {
   });
 
   describe('Edge Cases', () => {
-    it('handles data with zero values', () => {
+    it('handles data with zero values as empty', () => {
       const zeroData = [{ engagement: 0, name: 'Brand A', posts: 0, views: 0 }];
       render(<BrandPerformanceChart data={zeroData} />);
-      expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
+      expect(screen.getByText('No brand performance yet')).toBeInTheDocument();
+      expect(screen.queryByTestId('bar-chart')).not.toBeInTheDocument();
     });
 
-    it('handles single brand data', () => {
+    it('handles single brand data', async () => {
       const singleData = [
         { engagement: 50, name: 'Single Brand', posts: 10, views: 1000 },
       ];
       render(<BrandPerformanceChart data={singleData} />);
-      expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
+      expect(await screen.findByTestId('bar-chart')).toBeInTheDocument();
     });
 
-    it('handles brands with long names', () => {
+    it('handles brands with long names', async () => {
       const longNameData = [
         {
           engagement: 50,
@@ -361,7 +393,7 @@ describe('BrandPerformanceChart', () => {
         },
       ];
       render(<BrandPerformanceChart data={longNameData} />);
-      expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
+      expect(await screen.findByTestId('bar-chart')).toBeInTheDocument();
     });
   });
 });
