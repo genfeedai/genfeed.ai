@@ -323,7 +323,7 @@ describe('TagsList', () => {
     );
   });
 
-  it('uses organization service queries and only exposes edit actions for owned organization tags', async () => {
+  it('uses tags collection queries and only exposes edit actions for owned organization tags', async () => {
     render(
       <TagsList
         filter="organization"
@@ -352,11 +352,11 @@ describe('TagsList', () => {
     ).toBeNull();
 
     await waitFor(() => {
-      expect(mocks.findOrganizationTags).toHaveBeenCalledWith(
-        'org-1',
+      expect(mocks.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           brand: 'brand-1',
           category: 'credential',
+          organization: 'org-1',
           search: 'launch',
           sort: 'label: 1',
         }),

@@ -596,16 +596,12 @@ export class WorkflowApiService extends HTTPBaseService {
     id: string,
     options?: { brandId?: string | null },
   ): Promise<CloudWorkflowData> {
-    try {
-      return await this.create({
-        ...(options?.brandId ? { brandId: options.brandId } : {}),
-        name: 'Copy',
-        sourceWorkflowId: id,
-      });
-    } catch (error) {
-      logger.error('Failed to duplicate workflow', { error, workflowId: id });
-      throw error;
-    }
+    // Delegate to create — it already logs failures; avoid double-logging.
+    return this.create({
+      ...(options?.brandId ? { brandId: options.brandId } : {}),
+      name: 'Copy',
+      sourceWorkflowId: id,
+    });
   }
 
   // ---------------------------------------------------------------------------
