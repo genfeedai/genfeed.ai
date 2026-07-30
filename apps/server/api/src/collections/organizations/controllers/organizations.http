@@ -63,32 +63,16 @@ Authorization: Bearer {{bearerToken}}
 
 
 ########################################
-# Organization Activities
+# Organization Activities (flat collection)
 ########################################
 
 ### Get Organization Activities
-# Get activity log for the organization
-GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/activities?page=1&limit=50
+GET {{apiBaseUrl}}/activities?organization={{testOrganizationId}}&page=1&limit=50
 Authorization: Bearer {{bearerToken}}
 
 
 ### Get Organization Activities with Date Filter
-GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/activities?startDate=2025-10-01&endDate=2025-10-14
-Authorization: Bearer {{bearerToken}}
-
-
-########################################
-# Organization Publications
-########################################
-
-### Get Organization Publications
-# Get all published content from this organization
-GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/publications?page=1&limit=20
-Authorization: Bearer {{bearerToken}}
-
-
-### Filter Publications by Platform
-GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/publications?platform=twitter&page=1&limit=20
+GET {{apiBaseUrl}}/activities?organization={{testOrganizationId}}&startDate=2025-10-01&endDate=2025-10-14
 Authorization: Bearer {{bearerToken}}
 
 

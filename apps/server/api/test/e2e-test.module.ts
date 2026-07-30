@@ -554,7 +554,7 @@ export class E2ETestModule {
    */
   static async forOrganizations(): Promise<DynamicModule> {
     return E2ETestModule.forRoot({
-      controllers: [OrganizationsController],
+      controllers: [OrganizationsController, BrandsController],
       providers: [
         OrganizationsService,
         BrandsService,

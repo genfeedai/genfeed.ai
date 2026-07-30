@@ -1,40 +1,13 @@
 ### Genfeed API - Brands Relationships Endpoints
-### Get brand videos, images, articles, musics, credentials, links, posts, activities, tasks, analytics
+### Brand musics (no flat dual yet) and brand analytics aggregates
+### Prefer flat collections for media lists:
+###   GET /videos?brand=  /images?brand=  /articles?brand=
+###   GET /credentials?brand=  /links?brand=  /posts?brand=  /activities?brand=
 ### Protected by RolesGuard
 
 ########################################
-# Brand Media Assets
+# Brand Musics
 ########################################
-
-### Get Brand Videos
-GET {{apiBaseUrl}}/brands/{{testBrandId}}/videos
-Authorization: Bearer {{bearerToken}}
-
-
-### Get Brand Videos with Pagination
-GET {{apiBaseUrl}}/brands/{{testBrandId}}/videos?page=1&limit=20&sort=-createdAt
-Authorization: Bearer {{bearerToken}}
-
-
-### Get Brand Images
-GET {{apiBaseUrl}}/brands/{{testBrandId}}/images
-Authorization: Bearer {{bearerToken}}
-
-
-### Get Brand Images with Pagination
-GET {{apiBaseUrl}}/brands/{{testBrandId}}/images?page=1&limit=20&sort=-createdAt
-Authorization: Bearer {{bearerToken}}
-
-
-### Get Brand Articles
-GET {{apiBaseUrl}}/brands/{{testBrandId}}/articles
-Authorization: Bearer {{bearerToken}}
-
-
-### Get Brand Articles with Filters
-GET {{apiBaseUrl}}/brands/{{testBrandId}}/articles?page=1&limit=20&sort=-publishedAt
-Authorization: Bearer {{bearerToken}}
-
 
 ### Get Brand Musics
 GET {{apiBaseUrl}}/brands/{{testBrandId}}/musics
@@ -43,64 +16,6 @@ Authorization: Bearer {{bearerToken}}
 
 ### Get Brand Musics with Pagination
 GET {{apiBaseUrl}}/brands/{{testBrandId}}/musics?page=1&limit=20
-Authorization: Bearer {{bearerToken}}
-
-
-########################################
-# Brand Credentials & Links
-########################################
-
-### Get Brand Credentials
-GET {{apiBaseUrl}}/brands/{{testBrandId}}/credentials
-Authorization: Bearer {{bearerToken}}
-
-
-### Get Brand Links
-# Cached for 30 minutes
-GET {{apiBaseUrl}}/brands/{{testBrandId}}/links
-Authorization: Bearer {{bearerToken}}
-
-
-### Get Brand Links with Pagination
-GET {{apiBaseUrl}}/brands/{{testBrandId}}/links?page=1&limit=50
-Authorization: Bearer {{bearerToken}}
-
-
-########################################
-# Brand Posts
-########################################
-
-### Get Brand Posts
-GET {{apiBaseUrl}}/brands/{{testBrandId}}/posts
-Authorization: Bearer {{bearerToken}}
-
-
-### Get Brand Posts with Filters
-GET {{apiBaseUrl}}/brands/{{testBrandId}}/posts?platform=twitter&status=scheduled&page=1&limit=20&sort=-scheduledDate
-Authorization: Bearer {{bearerToken}}
-
-
-########################################
-# Brand Activities & Tasks
-########################################
-
-### Get Brand Activities
-GET {{apiBaseUrl}}/brands/{{testBrandId}}/activities
-Authorization: Bearer {{bearerToken}}
-
-
-### Get Brand Activities with Pagination
-GET {{apiBaseUrl}}/brands/{{testBrandId}}/activities?page=1&limit=20&sort=-createdAt
-Authorization: Bearer {{bearerToken}}
-
-
-### Get Brand Tasks
-GET {{apiBaseUrl}}/brands/{{testBrandId}}/tasks
-Authorization: Bearer {{bearerToken}}
-
-
-### Get Brand Tasks with Pagination
-GET {{apiBaseUrl}}/brands/{{testBrandId}}/tasks?page=1&limit=20&sort=-createdAt
 Authorization: Bearer {{bearerToken}}
 
 
@@ -139,18 +54,57 @@ Authorization: Bearer {{bearerToken}}
 
 
 ########################################
+# Flat collection equivalents (preferred)
+########################################
+
+### List Brand Videos (flat)
+GET {{apiBaseUrl}}/videos?brand={{testBrandId}}&page=1&limit=20&sort=-createdAt
+Authorization: Bearer {{bearerToken}}
+
+
+### List Brand Images (flat)
+GET {{apiBaseUrl}}/images?brand={{testBrandId}}&page=1&limit=20&sort=-createdAt
+Authorization: Bearer {{bearerToken}}
+
+
+### List Brand Articles (flat)
+GET {{apiBaseUrl}}/articles?brand={{testBrandId}}&page=1&limit=20&sort=-publishedAt
+Authorization: Bearer {{bearerToken}}
+
+
+### List Brand Credentials (flat)
+GET {{apiBaseUrl}}/credentials?brand={{testBrandId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### List Brand Links (flat)
+GET {{apiBaseUrl}}/links?brand={{testBrandId}}&page=1&limit=50
+Authorization: Bearer {{bearerToken}}
+
+
+### List Brand Posts (flat)
+GET {{apiBaseUrl}}/posts?brand={{testBrandId}}&platform=twitter&status=scheduled&page=1&limit=20&sort=-scheduledDate
+Authorization: Bearer {{bearerToken}}
+
+
+### List Brand Activities (flat)
+GET {{apiBaseUrl}}/activities?brand={{testBrandId}}&page=1&limit=20&sort=-createdAt
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
 # Test Cases
 ########################################
 
-### Test: Invalid Brand ID
-GET {{apiBaseUrl}}/brands/invalid-id/videos
+### Test: Invalid Brand ID (analytics)
+GET {{apiBaseUrl}}/brands/invalid-id/analytics
 Authorization: Bearer {{bearerToken}}
 
 
-### Test: Brand Not Found
-GET {{apiBaseUrl}}/brands/507f1f77bcf86cd799439011/videos
+### Test: Brand Not Found (analytics)
+GET {{apiBaseUrl}}/brands/507f1f77bcf86cd799439011/analytics
 Authorization: Bearer {{bearerToken}}
 
 
-### Test: Unauthorized Access
-GET {{apiBaseUrl}}/brands/{{testBrandId}}/videos
+### Test: Unauthorized Access (analytics)
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/analytics

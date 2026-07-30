@@ -4,17 +4,11 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { BrandsRelationshipsController } from '@api/collections/brands/controllers/relationships/brands-relationships.controller';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { ImagesService } from '@api/collections/images/services/images.service';
-import { LinksService } from '@api/collections/links/services/links.service';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
-import { PostsService } from '@api/collections/posts/services/posts.service';
-import { VideosService } from '@api/collections/videos/services/videos.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LoggerService } from '@libs/logger/logger.service';
 import { REQUEST } from '@nestjs/core';
@@ -42,9 +36,6 @@ describe('BrandsRelationshipsController', () => {
   };
 
   const mockServices = {
-    activitiesService: {
-      findAll: vi.fn().mockResolvedValue({ docs: [], total: 0 }),
-    },
     analyticsAggregationService: {
       getOverviewMetrics: vi.fn().mockResolvedValue({
         totalPosts: 0,
@@ -52,35 +43,20 @@ describe('BrandsRelationshipsController', () => {
         viewsGrowth: 0,
       }),
     },
-    articlesService: {
-      findAll: vi.fn().mockResolvedValue({ docs: [], total: 0 }),
-    },
     brandsService: {
       findOne: vi.fn().mockResolvedValue(mockBrand),
     },
     credentialsService: {
       findAll: vi.fn().mockResolvedValue({ docs: [] }),
     },
-    imagesService: {
-      findAll: vi.fn().mockResolvedValue({ docs: [], total: 0 }),
-    },
-    linksService: {
-      findAll: vi.fn().mockResolvedValue({ docs: [], total: 0 }),
-    },
     loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
     musicsService: {
-      findAll: vi.fn().mockResolvedValue({ docs: [], total: 0 }),
-    },
-    postsService: {
       findAll: vi.fn().mockResolvedValue({ docs: [], total: 0 }),
     },
     request: {
       params: {},
       query: {},
       user: mockUser,
-    },
-    videosService: {
-      findAll: vi.fn().mockResolvedValue({ docs: [], total: 0 }),
     },
   };
 
@@ -93,25 +69,16 @@ describe('BrandsRelationshipsController', () => {
           useValue: mockServices.request,
         },
         {
-          provide: ActivitiesService,
-          useValue: mockServices.activitiesService,
-        },
-        {
           provide: AnalyticsAggregationService,
           useValue: mockServices.analyticsAggregationService,
         },
-        { provide: ArticlesService, useValue: mockServices.articlesService },
         { provide: BrandsService, useValue: mockServices.brandsService },
         {
           provide: CredentialsService,
           useValue: mockServices.credentialsService,
         },
-        { provide: ImagesService, useValue: mockServices.imagesService },
-        { provide: LinksService, useValue: mockServices.linksService },
         { provide: LoggerService, useValue: mockServices.loggerService },
         { provide: MusicsService, useValue: mockServices.musicsService },
-        { provide: PostsService, useValue: mockServices.postsService },
-        { provide: VideosService, useValue: mockServices.videosService },
       ],
     })
       .overrideGuard(RolesGuard)
@@ -132,59 +99,17 @@ describe('BrandsRelationshipsController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('findBrandVideos', () => {
-    it('should return videos for brand', async () => {
-      const result = await controller.findBrandVideos(
+  describe('findBrandMusics', () => {
+    it('should return musics for brand', async () => {
+      const result = await controller.findBrandMusics(
         {} as unknown as Request,
         '507f1f77bcf86cd799439013',
         mockUser,
         {},
       );
 
-      expect(mockServices.videosService.findAll).toHaveBeenCalled();
+      expect(mockServices.musicsService.findAll).toHaveBeenCalled();
       expect(result).toBeDefined();
-    });
-  });
-
-  describe('findAllPosts', () => {
-    it('uses one filtered query for unposted search results and pagination', async () => {
-      await controller.findAllPosts(
-        {} as Request,
-        '507f1f77bcf86cd799439013',
-        mockUser,
-        {
-          publicationState: 'not-posted',
-          search: 'launch',
-        } as never,
-      );
-
-      expect(mockServices.postsService.findAll).toHaveBeenCalledWith(
-        {
-          include: { ingredients: true },
-          orderBy: { createdAt: -1 },
-          where: {
-            OR: [
-              {
-                description: {
-                  contains: 'launch',
-                  mode: 'insensitive',
-                },
-              },
-              {
-                label: {
-                  contains: 'launch',
-                  mode: 'insensitive',
-                },
-              },
-            ],
-            brand: '507f1f77bcf86cd799439013',
-            isDeleted: false,
-            parentId: null,
-            status: { not: 'public' },
-          },
-        },
-        expect.objectContaining({ limit: 10, page: 1 }),
-      );
     });
   });
 

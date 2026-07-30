@@ -14,12 +14,12 @@ describe('openapi smoke audit', () => {
         return new Response(
           JSON.stringify({
             paths: {
-              '/brands/{brandId}/posts': {
-                get: { operationId: 'listBrandPosts' },
+              '/resources/{resourceId}': {
+                get: { operationId: 'getResourceById' },
                 parameters: [
                   {
                     in: 'path',
-                    name: 'brandId',
+                    name: 'resourceId',
                     required: true,
                   },
                 ],
@@ -80,7 +80,7 @@ describe('openapi smoke audit', () => {
     expect(report.skipped).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          operationId: 'listBrandPosts',
+          operationId: 'getResourceById',
           skipReason: 'path params',
         }),
         expect.objectContaining({

@@ -208,11 +208,10 @@ export class OrganizationsController extends BaseCRUDController<
     return serializeCollection(request, OrganizationSerializer, data);
   }
 
-  // Sub-resource collection routes (brands, ingredients, videos, tags, posts,
-  // activities, analytics) moved to organizations-relationships.controller.ts
-  // to keep this controller under the runtime-complexity line cap. See
-  // OrganizationsRelationshipsController for GET
-  // /organizations/:organizationId/{brands,ingredients,videos,tags,posts,activities,analytics}.
+  // Sub-resource collection routes (ingredients, videos, tags, analytics)
+  // live in organizations-relationships.controller.ts. Prefer flat lists for
+  // brands/posts/activities: GET /brands?organization=, /posts?organization=,
+  // /activities?organization=.
 
   /**
    * Create a new organization (collection POST).

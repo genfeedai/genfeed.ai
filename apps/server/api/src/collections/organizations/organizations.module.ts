@@ -3,7 +3,6 @@
  * Multi-tenant organization management: org profiles, settings, billing,
 and member access control.
  */
-import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
@@ -42,7 +41,6 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [OrganizationsService],
   imports: [
     // Core modules
-    forwardRef(() => ActivitiesModule),
     forwardRef(() => BrandsModule),
     forwardRef(() => ByokModule),
     forwardRef(() => CommonModule),
@@ -53,6 +51,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => MembersModule),
     forwardRef(() => ModelsModule),
     forwardRef(() => OrganizationSettingsModule),
+    // PostsModule exports AnalyticsAggregationService for org analytics duals
     forwardRef(() => PostsModule),
     forwardRef(() => RolesModule),
     forwardRef(() => SettingsModule),

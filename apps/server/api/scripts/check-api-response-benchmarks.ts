@@ -164,14 +164,14 @@ type ApiBenchmarkSeedState = {
 const API_BENCHMARK_ENDPOINTS: ApiBenchmarkEndpoint[] = [
   {
     buildPath: (ctx) =>
-      `/v1/organizations/${ctx.organizationId}/brands?page=1&limit=${DEFAULT_PAGE_SIZE}`,
+      `/v1/brands?organization=${ctx.organizationId}&page=1&limit=${DEFAULT_PAGE_SIZE}`,
     id: 'organization-brands-list',
     label: 'Organization Brands List',
     method: 'GET',
   },
   {
     buildPath: (ctx) =>
-      `/v1/organizations/${ctx.organizationId}/posts?page=1&limit=${DEFAULT_PAGE_SIZE}`,
+      `/v1/posts?organization=${ctx.organizationId}&page=1&limit=${DEFAULT_PAGE_SIZE}`,
     id: 'organization-posts-list',
     label: 'Organization Posts List',
     method: 'GET',

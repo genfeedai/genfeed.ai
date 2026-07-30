@@ -17,21 +17,19 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 import { readFileSync } from 'node:fs';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationsRelationshipsController } from '@api/collections/organizations/controllers/organizations-relationships.controller';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
-import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { Request } from 'express';
 
 describe('OrganizationsRelationshipsController', () => {
   let controller: OrganizationsRelationshipsController;
@@ -47,17 +45,11 @@ describe('OrganizationsRelationshipsController', () => {
   } as unknown as User;
 
   const mockServices = {
-    activitiesService: {
-      findAll: vi.fn().mockResolvedValue({ docs: [], total: 0 }),
-    },
     analyticsAggregationService: {
       getOverviewMetrics: vi.fn().mockResolvedValue({
         totalPosts: 0,
         totalViews: 0,
       }),
-    },
-    brandsService: {
-      findAll: vi.fn().mockResolvedValue({ docs: [], total: 0 }),
     },
     credentialsService: {
       findAll: vi
@@ -76,9 +68,6 @@ describe('OrganizationsRelationshipsController', () => {
         _id: '507f1f77bcf86cd799439012',
       }),
     },
-    postsService: {
-      findAll: vi.fn().mockResolvedValue({ docs: [], total: 0 }),
-    },
     tagsService: {
       findAll: vi.fn().mockResolvedValue({ docs: [], total: 0 }),
     },
@@ -92,14 +81,9 @@ describe('OrganizationsRelationshipsController', () => {
       controllers: [OrganizationsRelationshipsController],
       providers: [
         {
-          provide: ActivitiesService,
-          useValue: mockServices.activitiesService,
-        },
-        {
           provide: AnalyticsAggregationService,
           useValue: mockServices.analyticsAggregationService,
         },
-        { provide: BrandsService, useValue: mockServices.brandsService },
         {
           provide: CredentialsService,
           useValue: mockServices.credentialsService,
@@ -117,7 +101,6 @@ describe('OrganizationsRelationshipsController', () => {
           provide: OrganizationsService,
           useValue: mockServices.organizationsService,
         },
-        { provide: PostsService, useValue: mockServices.postsService },
         {
           provide: TagsService,
           useValue: mockServices.tagsService,
@@ -134,47 +117,6 @@ describe('OrganizationsRelationshipsController', () => {
     );
     _organizationsService =
       module.get<OrganizationsService>(OrganizationsService);
-  });
-
-  describe('findAllPosts', () => {
-    it('preserves root-post, relation, and PostsQueryDto filters', async () => {
-      await controller.findAllPosts(
-        {} as never,
-        '507f1f77bcf86cd799439012',
-        mockUser,
-        {
-          credential: 'credential-1',
-          endDate: '2026-07-31T23:59:59.999Z',
-          platform: 'youtube',
-          startDate: '2026-07-01T00:00:00.000Z',
-          status: 'draft',
-        } as never,
-      );
-
-      expect(mockServices.postsService.findAll).toHaveBeenCalledWith(
-        {
-          include: {
-            credential: true,
-            ingredients: true,
-            postAnalytics: true,
-          },
-          orderBy: { createdAt: -1 },
-          where: {
-            credential: 'credential-1',
-            isDeleted: false,
-            organization: '507f1f77bcf86cd799439012',
-            parentId: null,
-            platform: 'youtube',
-            scheduledDate: {
-              gte: new Date('2026-07-01T00:00:00.000Z'),
-              lte: new Date('2026-07-31T23:59:59.999Z'),
-            },
-            status: 'draft',
-          },
-        },
-        expect.objectContaining({ limit: 10, page: 1 }),
-      );
-    });
   });
 
   describe('findAllIngredients', () => {
@@ -223,19 +165,6 @@ describe('OrganizationsRelationshipsController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
-  });
-
-  describe('findAllBrands', () => {
-    it('should return brands for organization', async () => {
-      const result = await controller.findAllBrands(
-        {} as unknown as Request,
-        '507f1f77bcf86cd799439012',
-        mockUser,
-        {},
-      );
-
-      expect(result).toBeDefined();
-    });
   });
 
   describe('findAllVideos', () => {
@@ -306,28 +235,6 @@ describe('OrganizationsRelationshipsController', () => {
               { userId: '507f1f77bcf86cd799439011' },
             ],
             isDeleted: false,
-          },
-        },
-        expect.objectContaining({ limit: 10, page: 1 }),
-      );
-    });
-  });
-
-  describe('findAllActivities', () => {
-    it('scopes activities to the organization with default sort', async () => {
-      await controller.findAllActivities(
-        {} as never,
-        '507f1f77bcf86cd799439012',
-        mockUser,
-        {} as never,
-      );
-
-      expect(mockServices.activitiesService.findAll).toHaveBeenCalledWith(
-        {
-          orderBy: { createdAt: -1, key: 1, label: 1 },
-          where: {
-            isDeleted: false,
-            organization: '507f1f77bcf86cd799439012',
           },
         },
         expect.objectContaining({ limit: 10, page: 1 }),

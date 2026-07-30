@@ -324,8 +324,7 @@ export class BrandsController extends BaseCRUDController<
   /**
    * List brands for the caller. Superadmins may pass `organization`/`brand`
    * query filters. Members get brands they own or that belong to the requested
-   * (or active) organization — same semantics as the nested
-   * `GET /organizations/:id/brands` dual.
+   * (or active) organization via `GET /brands?organization=`.
    */
   public buildFindAllQuery(user: User, query: BaseQueryDto) {
     const publicMetadata = getPublicMetadata(user);
@@ -372,8 +371,8 @@ export class BrandsController extends BaseCRUDController<
 
   @Get()
   // No @RolesDecorator('superadmin'): members list brands for their org via
-  // `GET /brands?organization=` (preferred over nested /organizations/:id/brands).
-  // Class-level RolesGuard still requires auth + org membership.
+  // `GET /brands?organization=`. Class-level RolesGuard still requires auth +
+  // org membership.
   @Cache({
     keyGenerator: (req) =>
       `brands:list:user:${req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`,
