@@ -13,8 +13,8 @@ topics: [workflows, automation, publishing, social, agent, messages]
 
 **How to apply:**
 - Use workflows as the canonical executable unit for scheduled content work, publish actions, social reply/DM actions, comment-trigger automation, and recurring agent/product automations.
-- Keep system workflow **graphs in a code catalog** (`GET /workflows/system-catalog`). Do **not** clone the full system set at organization creation.
-- Tenants **install** the workflows they want (`POST /workflows/system-catalog/:canonicalId/install`), which creates a tenant-owned editable workflow with catalog provenance.
+- Keep system workflow **graphs in a code catalog** (`GET /workflows?source=system-catalog`). Do **not** clone the full system set at organization creation.
+- Tenants **install** the workflows they want (`POST /workflows` with `templateId` + `sourceType: "system-catalog"`), which creates a tenant-owned editable workflow with catalog provenance.
 - Operator/self-host scripts may still call `WorkflowTemplateSeederService` for backfill; product system-action wrappers may still create-on-demand as a fail-closed path.
 - Record workflow provenance on downstream content, messages, agent runs, and social actions.
 - New hard-coded content cron/action/publish paths need an explicit documented exception. Infrastructure maintenance can still use platform cron when it is not tenant/product automation.

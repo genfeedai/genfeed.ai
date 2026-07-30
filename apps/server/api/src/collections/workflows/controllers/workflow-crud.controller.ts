@@ -4,6 +4,7 @@ import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflo
 import { WorkflowQueryDto } from '@api/collections/workflows/dto/query-workflow.dto';
 import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflow.dto';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
+import { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { SYSTEM_WORKFLOW_METADATA_KEY } from '@api/collections/workflows/system-workflow.contract';
@@ -67,6 +68,7 @@ export class WorkflowCrudController {
   constructor(
     private readonly workflowsService: WorkflowsService,
     private readonly workflowSchedulerService: WorkflowSchedulerService,
+    private readonly systemWorkflowCatalogService: SystemWorkflowCatalogService,
     readonly _loggerService: LoggerService,
   ) {}
 
@@ -98,13 +100,33 @@ export class WorkflowCrudController {
     @Req() request: Request,
     @CurrentUser() user: User,
     @Query() query: WorkflowQueryDto,
-  ): Promise<JsonApiCollectionResponse> {
+  ): Promise<
+    | JsonApiCollectionResponse
+    | {
+        data: Awaited<
+          ReturnType<SystemWorkflowCatalogService['listCatalogForOrganization']>
+        >;
+      }
+  > {
+    const publicMetadata = getPublicMetadata(user);
+
+    // Code-owned system catalog (not persisted rows). Same collection resource
+    // as workflows; filter via query instead of a parallel /system-catalog path.
+    if (query.source === 'system-catalog') {
+      return wrapError(async () => {
+        const data =
+          await this.systemWorkflowCatalogService.listCatalogForOrganization(
+            publicMetadata.organization,
+          );
+        return { data };
+      }, 'Failed to list system workflow catalog');
+    }
+
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
     // `referencable=true` widens the list to every workflow in the org (used to

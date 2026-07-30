@@ -3,6 +3,7 @@ import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflo
 import { WorkflowEntity } from '@api/collections/workflows/entities/workflow.entity';
 import { type WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
+import { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import {
   WorkflowExecutionQueueService,
   type WorkflowSchedulerSyncRow,
@@ -73,6 +74,8 @@ export class WorkflowsService extends BaseService<
     private readonly workflowExecutionQueueService?: WorkflowExecutionQueueService,
     @Optional()
     private readonly marketplaceApiClient?: MarketplaceApiClient,
+    @Optional()
+    private readonly systemWorkflowCatalogService?: SystemWorkflowCatalogService,
   ) {
     super(prisma, 'workflow', logger);
   }
@@ -282,6 +285,42 @@ export class WorkflowsService extends BaseService<
     workflowData: CreateWorkflowDto,
     defaultBrandId?: string,
   ): Promise<WorkflowEntity> {
+    // Catalog install is create-with-template on the workflows collection —
+    // not a separate /system-catalog install RPC (#2176).
+    const metadataSourceType = workflowData.metadata?.sourceType;
+    if (
+      workflowData.sourceType === 'system-catalog' ||
+      metadataSourceType === 'system-catalog'
+    ) {
+      const canonicalId = workflowData.templateId;
+      if (!canonicalId) {
+        throw new BadRequestException(
+          'templateId is required when sourceType is system-catalog',
+        );
+      }
+      if (!this.systemWorkflowCatalogService) {
+        throw new BadRequestException(
+          'System workflow catalog is not available',
+        );
+      }
+
+      const brandId = this.normalizeWorkflowBrandId(
+        (workflowData as WorkflowCreateExtras).brandId,
+        (workflowData as WorkflowCreateExtras).brands,
+        defaultBrandId,
+      );
+      await this.assertWorkflowBrandAccess(brandId, organizationId);
+
+      const installed = await this.systemWorkflowCatalogService.install({
+        brandId,
+        canonicalId,
+        organizationId,
+        userId,
+      });
+
+      return EntityFactory.fromDocument(WorkflowEntity, installed);
+    }
+
     const templateMetadata = workflowData.templateId
       ? {
           sourceTemplateId: workflowData.templateId,

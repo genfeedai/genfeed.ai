@@ -13,6 +13,7 @@ import {
   IsBoolean,
   IsDate,
   IsEnum,
+  IsIn,
   IsNotEmpty,
   IsNumber,
   IsObject,
@@ -312,6 +313,16 @@ export class CreateWorkflowDto {
     required: false,
   })
   readonly templateId?: string;
+
+  @IsOptional()
+  @IsIn(['system-catalog', 'seeded-template'])
+  @ApiProperty({
+    description:
+      'When `system-catalog`, `templateId` is a system catalog canonical id and create installs that catalog entry (idempotent).',
+    enum: ['system-catalog', 'seeded-template'],
+    required: false,
+  })
+  readonly sourceType?: 'system-catalog' | 'seeded-template';
 
   @IsEnum(WorkflowTrigger)
   @IsOptional()

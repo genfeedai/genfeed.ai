@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { WorkflowCrudController } from '@api/collections/workflows/controllers/workflow-crud.controller';
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflow.dto';
+import { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -54,6 +55,10 @@ describe('WorkflowCrudController', () => {
     updateSchedule: vi.fn(),
   };
 
+  const mockSystemWorkflowCatalogService = {
+    listCatalogForOrganization: vi.fn(),
+  };
+
   const mockLoggerService = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -69,6 +74,10 @@ describe('WorkflowCrudController', () => {
         {
           provide: WorkflowSchedulerService,
           useValue: mockWorkflowSchedulerService,
+        },
+        {
+          provide: SystemWorkflowCatalogService,
+          useValue: mockSystemWorkflowCatalogService,
         },
         { provide: LoggerService, useValue: mockLoggerService },
       ],

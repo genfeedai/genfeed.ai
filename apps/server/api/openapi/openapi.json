@@ -5569,6 +5569,14 @@
             "description": "Source asset that triggered the workflow",
             "type": "string"
           },
+          "sourceType": {
+            "description": "When `system-catalog`, `templateId` is a system catalog canonical id and create installs that catalog entry (idempotent).",
+            "enum": [
+              "system-catalog",
+              "seeded-template"
+            ],
+            "type": "string"
+          },
           "startedAt": {
             "description": "Workflow start timestamp",
             "format": "date-time",
@@ -7408,15 +7416,6 @@
           "rejected"
         ],
         "type": "string"
-      },
-      "InstallSystemWorkflowDto": {
-        "properties": {
-          "brandId": {
-            "description": "Optional brand to bind the installed workflow to. Defaults to the active brand when present.",
-            "type": "string"
-          }
-        },
-        "type": "object"
       },
       "IntegrationPlatform": {
         "enum": [
@@ -14184,6 +14183,14 @@
           },
           "sourceAsset": {
             "description": "Source asset that triggered the workflow",
+            "type": "string"
+          },
+          "sourceType": {
+            "description": "When `system-catalog`, `templateId` is a system catalog canonical id and create installs that catalog entry (idempotent).",
+            "enum": [
+              "system-catalog",
+              "seeded-template"
+            ],
             "type": "string"
           },
           "startedAt": {
@@ -53377,6 +53384,18 @@
             "schema": {
               "type": "boolean"
             }
+          },
+          {
+            "description": "When `system-catalog`, return the code-owned system workflow catalog for this organization instead of persisted workflows.",
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "enum": [
+                "system-catalog"
+              ],
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -53664,55 +53683,6 @@
           }
         },
         "summary": "getStatistics",
-        "tags": [
-          "workflows"
-        ]
-      }
-    },
-    "/workflows/system-catalog": {
-      "get": {
-        "operationId": "SystemWorkflowCatalogController.listCatalog",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "listCatalog",
-        "tags": [
-          "workflows"
-        ]
-      }
-    },
-    "/workflows/system-catalog/{canonicalId}/install": {
-      "post": {
-        "operationId": "SystemWorkflowCatalogController.install",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "canonicalId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/InstallSystemWorkflowDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "install",
         "tags": [
           "workflows"
         ]
