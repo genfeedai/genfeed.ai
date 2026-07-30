@@ -24,6 +24,7 @@ export { AgentStrategyStatus } from '@genfeedai/agent/components/AgentStrategySt
 export {
   AGENT_REFRESH_CONVERSATIONS_EVENT,
   AgentThreadList,
+  type AgentThreadListProps,
 } from '@genfeedai/agent/components/AgentThreadList';
 export { AgentToolCallDisplay } from '@genfeedai/agent/components/AgentToolCallDisplay';
 // Block renderers

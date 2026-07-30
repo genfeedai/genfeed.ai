@@ -18,6 +18,7 @@ import { ChevronUp, Lock, Search, Sparkles } from 'lucide-react';
 import {
   type ChangeEvent,
   type ReactElement,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -30,6 +31,8 @@ type AgentModelSelectorProps = {
   onBuyCredits?: () => void;
   /** Match composer toolbar control height (send / icons). */
   density?: 'compact' | 'default';
+  /** When true, block model switching (read-only / busy / blocked composer). */
+  isDisabled?: boolean;
 };
 
 type ModelRowProps = {
@@ -65,10 +68,21 @@ export function AgentModelSelector({
   creditsAvailable,
   onBuyCredits,
   density = 'default',
+  isDisabled = false,
 }: AgentModelSelectorProps): ReactElement {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Drop leftover open state when the selector is disabled so re-enable cannot
+  // immediately reopen a menu that was open when the busy state began.
+  useEffect(() => {
+    if (isDisabled) {
+      setOpen(false);
+      setSearchTerm('');
+    }
+  }, [isDisabled]);
+
   const current = AGENT_MODELS.find((m) => m.key === selectedModel);
   const hasLockedModels =
     creditsAvailable != null &&
@@ -93,8 +107,11 @@ export function AgentModelSelector({
 
   return (
     <Popover
-      open={open}
+      open={isDisabled ? false : open}
       onOpenChange={(isPopoverOpen) => {
+        if (isDisabled) {
+          return;
+        }
         setOpen(isPopoverOpen);
         if (!isPopoverOpen) {
           setSearchTerm('');
@@ -107,6 +124,7 @@ export function AgentModelSelector({
           variant={ButtonVariant.GHOST}
           withWrapper={false}
           textTransform="none"
+          isDisabled={isDisabled}
           className={cn(
             'inline-flex min-w-0 max-w-full items-center gap-1 rounded-lg text-xs text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground',
             isCompact

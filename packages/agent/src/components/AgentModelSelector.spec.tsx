@@ -55,4 +55,43 @@ describe('AgentModelSelector', () => {
     await user.click(screen.getByRole('button', { name: 'Select model' }));
     expect(screen.getByLabelText('Search models')).toHaveValue('');
   });
+
+  it('disables the trigger when isDisabled is set', () => {
+    render(
+      <AgentModelSelector
+        creditsAvailable={null}
+        isDisabled
+        onModelChange={vi.fn()}
+        selectedModel={AGENT_MODELS[0]?.key ?? 'auto'}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Select model' })).toBeDisabled();
+  });
+
+  it('clears open state when the selector becomes disabled', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <AgentModelSelector
+        creditsAvailable={null}
+        onModelChange={vi.fn()}
+        selectedModel={AGENT_MODELS[0]?.key ?? 'auto'}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Select model' }));
+    expect(screen.getByLabelText('Search models')).toBeInTheDocument();
+
+    rerender(
+      <AgentModelSelector
+        creditsAvailable={null}
+        isDisabled
+        onModelChange={vi.fn()}
+        selectedModel={AGENT_MODELS[0]?.key ?? 'auto'}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Select model' })).toBeDisabled();
+    expect(screen.queryByLabelText('Search models')).not.toBeInTheDocument();
+  });
 });

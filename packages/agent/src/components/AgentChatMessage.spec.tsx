@@ -221,6 +221,29 @@ describe('AgentChatMessage', () => {
     expect(surface).toBeTruthy();
   });
 
+  it('exposes heading semantics for assistant messages', () => {
+    render(
+      <AgentChatMessage
+        message={buildMessage('assistant', 'Heading semantics')}
+      />,
+    );
+
+    const heading = screen.getByRole('heading', {
+      level: 3,
+      name: 'Assistant message',
+    });
+    expect(heading).toBeTruthy();
+    expect(heading.className).toMatch(/sr-only/);
+  });
+
+  it('exposes heading semantics for user messages', () => {
+    render(<AgentChatMessage message={buildMessage('user', 'User bubble')} />);
+
+    expect(
+      screen.getByRole('heading', { level: 3, name: 'Your message' }),
+    ).toBeTruthy();
+  });
+
   it('keeps user messages in bubbles', () => {
     const { container } = render(
       <AgentChatMessage message={buildMessage('user', 'User bubble')} />,

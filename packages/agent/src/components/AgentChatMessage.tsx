@@ -238,7 +238,9 @@ export function AgentChatMessage({
             <span>You</span>
           </div>
         ) : (
-          <span className="sr-only">Assistant message</span>
+          <span className="sr-only" role="heading" aria-level={3}>
+            Assistant message
+          </span>
         )}
 
         {shouldRenderMessageContent && (

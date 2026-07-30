@@ -14,6 +14,15 @@ describe('normalizeComposerPasteText', () => {
     ).toBe('First paragraph.\n\nSecond paragraph.');
   });
 
+  it('treats whitespace-only blank lines as paragraph breaks', () => {
+    expect(normalizeComposerPasteText('First\n \nSecond')).toBe(
+      'First\n\nSecond',
+    );
+    expect(normalizeComposerPasteText('First\n\t\nSecond')).toBe(
+      'First\n\nSecond',
+    );
+  });
+
   it('normalizes windows newlines and nbsp', () => {
     expect(normalizeComposerPasteText('hello\r\nworld\u00a0there')).toBe(
       'hello world there',
