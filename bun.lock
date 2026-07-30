@@ -143,6 +143,7 @@
         "@typescript/native": "npm:typescript@7.0.2",
         "@vitejs/plugin-react": "6.0.4",
         "clsx": "2.1.1",
+        "esbuild": "0.28.1",
         "glob": "13.0.6",
         "lint-staged": "17.2.0",
         "monocart-reporter": "2.12.4",
