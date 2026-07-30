@@ -45,6 +45,7 @@ import {
 } from 'react';
 import {
   HiOutlineArrowLeft,
+  HiOutlineArrowsPointingOut,
   HiOutlineBolt,
   HiOutlineChatBubbleLeftRight,
   HiOutlineEye,
@@ -68,6 +69,7 @@ import {
   appendSearchParamsToHref,
   normalizeProtectedPathname,
 } from '@/lib/navigation/operator-shell';
+import { WORKSPACE_INSPECTOR_CHROME } from '@/lib/workspace-shell/workspace-inspector-chrome';
 import { resolveWorkspaceOverlayLaunch } from '@/lib/workspace-shell/workspace-overlay-launcher';
 import {
   removeWorkspaceShellOverlayParams,
@@ -908,28 +910,46 @@ function UniversalWorkspaceShellContent({
         }
         value={activeInspectorTab}
       >
-        <div className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
+        <div className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-border px-3">
           {conversationSlot ? (
             <TabsList className="h-8">
-              <TabsTrigger value="conversation">Conversation</TabsTrigger>
-              <TabsTrigger value="context">Context</TabsTrigger>
+              <TabsTrigger value="conversation">
+                {WORKSPACE_INSPECTOR_CHROME.conversationTab}
+              </TabsTrigger>
+              <TabsTrigger value="context">
+                {WORKSPACE_INSPECTOR_CHROME.contextTab}
+              </TabsTrigger>
             </TabsList>
           ) : (
-            <div>
-              <p className="text-sm font-medium text-foreground">Context</p>
-              <p className="text-xs text-muted-foreground">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-foreground">
+                {WORKSPACE_INSPECTOR_CHROME.title}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">
                 {surfaceScopeStatus === 'syncing'
-                  ? 'Synchronizing surface brand…'
+                  ? WORKSPACE_INSPECTOR_CHROME.surfaceSyncing
                   : surfaceScopeStatus === 'error'
-                    ? 'Surface brand synchronization failed'
+                    ? WORKSPACE_INSPECTOR_CHROME.surfaceSyncFailed
                     : effectiveThreadId
-                      ? 'Conversation connected'
-                      : 'No conversation selected'}
+                      ? WORKSPACE_INSPECTOR_CHROME.conversationConnected
+                      : WORKSPACE_INSPECTOR_CHROME.noConversationSelected}
               </p>
             </div>
           )}
-          {/* No collapse control here: the rail collapses to nothing, so the one
-            toggle is pinned in the topbar instead of disappearing with it. */}
+          {/* One chrome row only: expand lives here, not a second bar inside the
+            conversation panel. Collapse stays in the app topbar. */}
+          {conversationSlot && !isAgentRoute ? (
+            <Button
+              ariaLabel={WORKSPACE_INSPECTOR_CHROME.openFullConversation}
+              className="size-8 shrink-0"
+              icon={<HiOutlineArrowsPointingOut className="size-3.5" />}
+              onClick={handleReturnToConversation}
+              size={ButtonSize.ICON}
+              tooltip={WORKSPACE_INSPECTOR_CHROME.openFullConversation}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            />
+          ) : null}
         </div>
 
         {/* `forceMount` on both panes: switching tabs must not unmount the
@@ -963,8 +983,7 @@ function UniversalWorkspaceShellContent({
           {agentPanelSlot}
           {isAgentOwned ? null : isAgentRoute ? (
             <p className="px-1 text-xs leading-5 text-muted-foreground">
-              Context from the active conversation appears here as the agent
-              works.
+              {WORKSPACE_INSPECTOR_CHROME.emptyAgentBody}
             </p>
           ) : (
             <>
@@ -1239,9 +1258,11 @@ function UniversalWorkspaceShellContent({
           >
             <DrawerContent className="max-h-[85vh] rounded-t-[var(--radius-workspace-overlay)]">
               <DrawerHeader>
-                <DrawerTitle>Workspace inspector</DrawerTitle>
+                <DrawerTitle>
+                  {WORKSPACE_INSPECTOR_CHROME.mobileDrawerTitle}
+                </DrawerTitle>
                 <DrawerDescription>
-                  Conversation and context for the active workspace surface.
+                  {WORKSPACE_INSPECTOR_CHROME.mobileDrawerDescription}
                 </DrawerDescription>
               </DrawerHeader>
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">

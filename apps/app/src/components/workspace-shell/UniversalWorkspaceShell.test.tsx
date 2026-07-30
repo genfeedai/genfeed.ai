@@ -194,23 +194,11 @@ vi.mock('@genfeedai/agent', () => ({
     }
     return null;
   },
-  ConversationInspectorPanel: ({
-    onOpenConversation,
-  }: {
-    onOpenConversation?: () => void;
-  }) => {
+  ConversationInspectorPanel: () => {
     useEffect(() => {
       inspectorConversationMount();
     }, []);
-    return (
-      <div data-testid="inspector-conversation">
-        <button
-          aria-label="Open full conversation"
-          onClick={onOpenConversation}
-          type="button"
-        />
-      </div>
-    );
+    return <div data-testid="inspector-conversation" />;
   },
   runAgentApiEffect: (effect: Promise<unknown>) => effect,
   useAgentChatStore: Object.assign(
@@ -695,7 +683,7 @@ describe('UniversalWorkspaceShell', () => {
     expect(
       screen.getAllByTestId('workspace-inspector-composer-slot'),
     ).toHaveLength(1);
-    expect(screen.getByText('Workspace inspector')).toBeInTheDocument();
+    expect(screen.getByText('Context')).toBeInTheDocument();
   });
 
   it('keeps the inspector conversation and composer mounted when collapsed', () => {

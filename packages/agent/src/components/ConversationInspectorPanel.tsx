@@ -1,9 +1,6 @@
 import { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
-import { HiOutlineArrowsPointingOut } from 'react-icons/hi2';
 
 /**
  * The conversation as an inspector drawer: the same thread the `/agent`
@@ -15,43 +12,30 @@ import { HiOutlineArrowsPointingOut } from 'react-icons/hi2';
  * the shared conversation store and stays in sync with the full surface. Its
  * prompt bar portals itself into the inspector's composer slot, keeping the
  * transcript and its input together without covering the active canvas.
+ *
+ * Expand-to-full lives in the shell inspector header (one chrome row), not a
+ * second bar stacked above the transcript.
  */
 interface ConversationInspectorPanelProps {
   apiService: AgentApiService;
   /**
-   * Deep link out to the full conversation surface. Omitted when the host has
-   * nowhere to send the user — the drawer then stands alone.
+   * Kept for host API stability. Expand-to-full is owned by the shell header.
    */
   onOpenConversation?: () => void;
 }
 
 export function ConversationInspectorPanel({
   apiService,
-  onOpenConversation,
 }: ConversationInspectorPanelProps): ReactElement {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      {onOpenConversation ? (
-        <div className="flex shrink-0 items-center justify-end border-b border-border px-2 py-1.5">
-          <Button
-            icon={<HiOutlineArrowsPointingOut className="size-3.5" />}
-            onClick={onOpenConversation}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          >
-            Open full conversation
-          </Button>
-        </div>
-      ) : null}
-
       <AgentChatContainer
         apiService={apiService}
         emptyStateTitle="Start a conversation"
-        emptyStateDescription="Ask for help with what you are looking at — the thread follows you across the workspace."
+        emptyStateDescription="Ask about this page — the thread follows you."
         isStreaming
         isWideLayout={false}
-        placeholder="Ask for help with content, review, or planning..."
+        placeholder="Ask about this page..."
       />
     </div>
   );
