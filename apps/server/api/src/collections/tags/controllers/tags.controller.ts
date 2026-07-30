@@ -42,14 +42,20 @@ export class TagsController extends BaseCRUDController<
   public buildFindAllQuery(user: User, query: TagsQueryDto) {
     const publicMetadata = getPublicMetadata(user);
 
-    // Build OR conditions: global items OR user's org items OR user's items
+    // Build OR conditions: global items OR user's org items OR user's items.
+    // Prefer explicit `organization` query (collection style) over session org.
     const orConditions: MatchConditions[] = [
       { organization: null, user: null }, // global items (null, not missing)
     ];
 
-    if (publicMetadata.organization) {
+    const organizationId =
+      typeof query.organization === 'string' && query.organization.length > 0
+        ? query.organization
+        : publicMetadata.organization;
+
+    if (organizationId) {
       orConditions.push({
-        organization: publicMetadata.organization,
+        organization: organizationId,
       });
     }
 

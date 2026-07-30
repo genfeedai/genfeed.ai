@@ -125,6 +125,7 @@ export class OrganizationsService extends BaseService<Organization> {
     id: string,
     query?: IQueryParams,
   ): Promise<Tag[]> {
+    // Collection endpoint: GET /tags?organization=
     return await this.instance
       .get<JsonApiResponseDocument>(
         `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.TAGS}`,

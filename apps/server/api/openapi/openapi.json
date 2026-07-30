@@ -3048,7 +3048,7 @@
             "description": "Optional metadata associated with the image"
           },
           "metadataId": {
-            "description": "Metadata ID — preferred over the legacy `metadata` field",
+            "description": "Metadata ID \u2014 preferred over the legacy `metadata` field",
             "type": "string"
           },
           "model": {
@@ -3610,7 +3610,7 @@
             "$ref": "#/components/schemas/CreateMetadataDto"
           },
           "metadataId": {
-            "description": "Metadata ID — preferred over the legacy `metadata` field",
+            "description": "Metadata ID \u2014 preferred over the legacy `metadata` field",
             "type": "string"
           },
           "model": {
@@ -4844,7 +4844,7 @@
             "type": "string"
           },
           "voiceProvider": {
-            "description": "Voice provider hint — determines how voiceId is resolved (heygen | elevenlabs | genfeed-ai | hedra)",
+            "description": "Voice provider hint \u2014 determines how voiceId is resolved (heygen | elevenlabs | genfeed-ai | hedra)",
             "type": "string"
           }
         },
@@ -5225,7 +5225,7 @@
             "description": "Optional metadata associated with the video"
           },
           "metadataId": {
-            "description": "Metadata ID — preferred over the legacy `metadata` field",
+            "description": "Metadata ID \u2014 preferred over the legacy `metadata` field",
             "type": "string"
           },
           "model": {
@@ -8374,7 +8374,7 @@
         "properties": {
           "context": {
             "description": "Context about what you are selling or promoting",
-            "example": "Selling genfeed.ai/skills — AI content creation skills",
+            "example": "Selling genfeed.ai/skills \u2014 AI content creation skills",
             "type": "string"
           },
           "ctaLink": {
@@ -10386,7 +10386,7 @@
             "type": "number"
           },
           "autonomyMode": {
-            "description": "Autonomy mode — supervised requires manual review",
+            "description": "Autonomy mode \u2014 supervised requires manual review",
             "enum": [
               "supervised",
               "auto_publish"
@@ -11337,7 +11337,7 @@
             "type": "string"
           },
           "organizationId": {
-            "description": "Destination organization identifier. Providing a different value than the brand's current organization relocates the brand — cascading organizationId across all brand-owned records in one transaction. Superadmin, or an owner/admin of both the source and destination organizations, only.",
+            "description": "Destination organization identifier. Providing a different value than the brand's current organization relocates the brand \u2014 cascading organizationId across all brand-owned records in one transaction. Superadmin, or an owner/admin of both the source and destination organizations, only.",
             "type": "string"
           },
           "organizationLabel": {
@@ -12312,7 +12312,7 @@
             "type": "string"
           },
           "metadataId": {
-            "description": "Metadata ID — preferred over the legacy `metadata` field",
+            "description": "Metadata ID \u2014 preferred over the legacy `metadata` field",
             "type": "string"
           },
           "modelUsed": {
@@ -12856,7 +12856,7 @@
           },
           "isAdvancedMode": {
             "default": false,
-            "description": "Whether Advanced Mode is enabled — shows studio, workflow editor, and generation pages",
+            "description": "Whether Advanced Mode is enabled \u2014 shows studio, workflow editor, and generation pages",
             "type": "boolean"
           },
           "isAutoEvaluateEnabled": {
@@ -12884,7 +12884,7 @@
             "type": "boolean"
           },
           "isFirstLogin": {
-            "description": "Whether this is the org owner’s first login. Set to false to mark onboarding complete.",
+            "description": "Whether this is the org owner\u2019s first login. Set to false to mark onboarding complete.",
             "type": "boolean"
           },
           "isGenerateArticlesEnabled": {
@@ -13951,7 +13951,7 @@
             "type": "string"
           },
           "voiceProvider": {
-            "description": "Voice provider hint — determines how voiceId is resolved (heygen | elevenlabs | genfeed-ai | hedra)",
+            "description": "Voice provider hint \u2014 determines how voiceId is resolved (heygen | elevenlabs | genfeed-ai | hedra)",
             "type": "string"
           }
         },
@@ -23739,7 +23739,7 @@
             "bearer": []
           }
         ],
-        "summary": "YouTube → Clip Factory",
+        "summary": "YouTube \u2192 Clip Factory",
         "tags": [
           "clip-projects"
         ]
@@ -35600,115 +35600,6 @@
         ]
       }
     },
-    "/organizations/{organizationId}/tags": {
-      "get": {
-        "operationId": "OrganizationsRelationshipsController.findAllTags",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "organizationId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "findAllTags",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
     "/organizations/{organizationId}/twitter-pipeline/draft": {
       "post": {
         "operationId": "TwitterPipelineController.draft",
@@ -35805,223 +35696,6 @@
         },
         "tags": [
           "TwitterPipeline"
-        ]
-      }
-    },
-    "/organizations/{organizationId}/videos": {
-      "get": {
-        "operationId": "OrganizationsRelationshipsController.findAllVideos",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "organizationId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by status using repeated query keys (e.g., ?status=completed&status=failed). Defaults to [\"draft\", \"uploaded\", \"completed\"] when not specified.",
-            "in": "query",
-            "name": "status",
-            "required": false,
-            "schema": {
-              "example": [
-                "completed",
-                "failed"
-              ],
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          },
-          {
-            "description": "Filter by training ID",
-            "in": "query",
-            "name": "training",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by scope/visibility level",
-            "in": "query",
-            "name": "scope",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/AssetScope"
-            }
-          },
-          {
-            "description": "Filter by reference video ID",
-            "in": "query",
-            "name": "reference",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by video format",
-            "in": "query",
-            "name": "format",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by parent video ID",
-            "in": "query",
-            "name": "parent",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by folder ID",
-            "in": "query",
-            "name": "folder",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by provider",
-            "in": "query",
-            "name": "provider",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Search videos by text",
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Use lightweight mode (skip expensive lookups for masonry/gallery views)",
-            "in": "query",
-            "name": "lightweight",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
-            "in": "query",
-            "name": "latest",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "findAllVideos",
-        "tags": [
-          "organizations"
         ]
       }
     },
@@ -46062,7 +45736,7 @@
             }
           },
           {
-            "description": "Filter trainings by status using repeated query keys (e.g., ?status=completed&status=failed). Values are mapped to the TrainingStage enum: pending→PENDING, uploading→UPLOADING, processing→TRAINING, training→TRAINING, completed→READY, ready→READY, failed→FAILED, cancelled→CANCELLED. Unknown values are silently dropped.",
+            "description": "Filter trainings by status using repeated query keys (e.g., ?status=completed&status=failed). Values are mapped to the TrainingStage enum: pending\u2192PENDING, uploading\u2192UPLOADING, processing\u2192TRAINING, training\u2192TRAINING, completed\u2192READY, ready\u2192READY, failed\u2192FAILED, cancelled\u2192CANCELLED. Unknown values are silently dropped.",
             "in": "query",
             "name": "status",
             "required": false,

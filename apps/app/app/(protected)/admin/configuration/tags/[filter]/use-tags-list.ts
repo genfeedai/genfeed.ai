@@ -10,7 +10,6 @@ import { useConfirmModal } from '@providers/global-modals/global-modals.provider
 import { TagsService } from '@services/content/tags.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { OrganizationsService } from '@services/organization/organizations.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -32,10 +31,6 @@ export function useTagsList({
 
   const getTagsService = useAuthedService((token: string) =>
     TagsService.getInstance(token),
-  );
-
-  const getOrganizationsService = useAuthedService((token: string) =>
-    OrganizationsService.getInstance(token),
   );
 
   const notificationsService = NotificationsService.getInstance();
@@ -151,10 +146,7 @@ export function useTagsList({
         return [];
       }
 
-      const url =
-        scope === SUPERADMIN
-          ? 'GET /tags'
-          : `GET /organizations/${organizationId}/tags`;
+      const url = 'GET /tags';
 
       const query: IQueryParams = {};
       query.isActive = true;
@@ -170,7 +162,6 @@ export function useTagsList({
         query.sort = `${filters.sort}: ${sortDirection}`;
       }
 
-      let data: ITag[];
       if (scope === SUPERADMIN) {
         if (adminOrg) {
           query.organization = adminOrg;
@@ -178,18 +169,18 @@ export function useTagsList({
         if (adminBrand) {
           query.brand = adminBrand;
         }
-        const service = await getTagsService();
-        data = await service.findAll(query);
       } else {
         if (!organizationId) {
           return [];
         }
+        query.organization = organizationId;
         if (brandId) {
           query.brand = brandId;
         }
-        const service = await getOrganizationsService();
-        data = await service.findOrganizationTags(organizationId, query);
       }
+
+      const service = await getTagsService();
+      const data = await service.findAll(query);
 
       logger.info(`${url} success`, data);
       return data;

@@ -3,14 +3,13 @@
  * Handles organization relationship routes:
  * - Get organization analytics (aggregates — no flat dual)
  * - Get organization ingredients (no flat mixed list)
- * - Get organization videos
- * - Get organization tags (client still uses nested path; flat GET /tags
- *   scopes via publicMetadata.organization)
  *
- * Prefer flat lists for relationship duals that already honor filters:
+ * Prefer flat lists for relationship duals:
  * - GET /brands?organization=
  * - GET /posts?organization=
  * - GET /activities?organization=
+ * - GET /videos (org-scoped via session)
+ * - GET /tags?organization=
  */
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
@@ -26,16 +25,10 @@ import {
   TopContentQueryDto,
 } from '@api/collections/posts/dto/analytics-query.dto';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
-import type { TagDocument } from '@api/collections/tags/schemas/tag.schema';
-import { TagsService } from '@api/collections/tags/services/tags.service';
-import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
-import type { VideoDocument } from '@api/collections/videos/schemas/video.schema';
-import { VideosService } from '@api/collections/videos/services/videos.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   getIsSuperAdmin,
@@ -63,8 +56,6 @@ import {
   AnalyticsTimeseriesWithPlatformsSerializer,
   AnalyticsTopContentSerializer,
   IngredientSerializer,
-  TagSerializer,
-  VideoSerializer,
 } from '@genfeedai/serializers';
 import {
   Controller,
@@ -92,8 +83,6 @@ export class OrganizationsRelationshipsController {
     private readonly ingredientsService: IngredientsService,
     private readonly membersService: MembersService,
     private readonly organizationsService: OrganizationsService,
-    private readonly tagsService: TagsService,
-    private readonly videosService: VideosService,
   ) {}
 
   /**
@@ -369,67 +358,5 @@ export class OrganizationsRelationshipsController {
     return serializeCollection(request, IngredientSerializer, data);
   }
 
-  @Get(':organizationId/videos')
-  @Cache({ tags: ['videos'], ttl: 60 })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findAllVideos(
-    @Req() request: Request,
-    @Param('organizationId') organizationId: string,
-    @CurrentUser() user: User,
-    @Query() query: VideosQueryDto,
-  ): Promise<JsonApiCollectionResponse> {
-    const options = {
-      customLabels,
-      ...QueryDefaultsUtil.getPaginationDefaults(query),
-    };
-
-    const publicMetadata = getPublicMetadata(user);
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const data = (await this.videosService.findAll(
-      {
-        orderBy: handleQuerySort(query.sort),
-        where: {
-          isDeleted,
-          organization: organizationId,
-          user: publicMetadata.user,
-        },
-      },
-      options,
-    )) as unknown as AggregatePaginateResult<VideoDocument>;
-    return serializeCollection(request, VideoSerializer, data);
-  }
-
-  @Get(':organizationId/tags')
-  @Cache({ tags: ['tags'], ttl: 600 })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findAllTags(
-    @Req() request: Request,
-    @Param('organizationId') organizationId: string,
-    @CurrentUser() user: User,
-    @Query() query: BaseQueryDto,
-  ): Promise<JsonApiCollectionResponse> {
-    const options = {
-      customLabels,
-      ...QueryDefaultsUtil.getPaginationDefaults(query),
-    };
-    const publicMetadata = getPublicMetadata(user);
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-
-    const data: AggregatePaginateResult<TagDocument> =
-      await this.tagsService.findAll(
-        {
-          orderBy: handleQuerySort(query.sort),
-          where: {
-            OR: [
-              { organizationId: null, userId: null },
-              { organizationId },
-              { userId: publicMetadata.user },
-            ],
-            isDeleted,
-          },
-        },
-        options,
-      );
-    return serializeCollection(request, TagSerializer, data);
-  }
+  // Nested videos/tags duals removed: prefer GET /videos and GET /tags?organization=
 }
