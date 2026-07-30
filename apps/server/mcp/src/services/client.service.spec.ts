@@ -357,13 +357,14 @@ describe('ClientService (MCP)', () => {
       );
     });
 
-    it('posts lifecycle control actions to the release route', async () => {
-      (mockAxiosInstance.post as Mock).mockResolvedValue(releaseResponse);
+    it('patches lifecycle control actions onto the release route', async () => {
+      (mockAxiosInstance.patch as Mock).mockResolvedValue(releaseResponse);
 
       await service.controlScheduledRelease('release-1', 'pause');
 
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-        '/post-groups/release-1/pause',
+      expect(mockAxiosInstance.patch).toHaveBeenCalledWith(
+        '/post-groups/release-1',
+        { action: 'pause' },
       );
     });
   });

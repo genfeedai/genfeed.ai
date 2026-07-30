@@ -86,8 +86,10 @@ export class SchedulerClient {
     return this.base.request(
       'controlling scheduled release',
       async (http) => {
-        const response = await http.post(
-          `/post-groups/${encodeURIComponent(releaseId)}/${action}`,
+        // Lifecycle is PATCH /post-groups/:id { action } (REST collapse).
+        const response = await http.patch(
+          `/post-groups/${encodeURIComponent(releaseId)}`,
+          { action },
         );
         return this.base.unwrapObject<IReleaseGroup>(response);
       },
