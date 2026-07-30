@@ -17,19 +17,42 @@ describe('AgentModelSelector', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /auto/i }));
+    await user.click(screen.getByRole('button', { name: 'Select model' }));
 
     expect(screen.getByLabelText('Search models')).toBeInTheDocument();
-    expect(screen.getByRole('listbox', { name: 'Models' })).toHaveClass(
-      'max-h-72',
-    );
+    const modelGroup = screen.getByRole('group', { name: 'Models' });
+    expect(modelGroup).toHaveClass('max-h-72');
     expect(screen.queryByText(/^\d+cr$/)).not.toBeInTheDocument();
     expect(screen.getAllByTitle(/^Cost tier \$+$/).length).toBeGreaterThan(0);
 
     await user.type(screen.getByLabelText('Search models'), 'opus');
-    expect(screen.getByRole('option', { name: /claude opus/i })).toBeVisible();
+    expect(screen.getByRole('button', { name: /claude opus/i })).toBeVisible();
     expect(
-      screen.queryByRole('option', { name: /^auto$/i }),
+      screen.queryByRole('button', { name: /^auto$/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it('clears search when Buy Credits closes the popover', async () => {
+    const user = userEvent.setup();
+    const onBuyCredits = vi.fn();
+    // Force locked models so Buy Credits is visible.
+    render(
+      <AgentModelSelector
+        selectedModel={AGENT_MODELS[0]?.key ?? 'openrouter/auto'}
+        onModelChange={vi.fn()}
+        creditsAvailable={0}
+        onBuyCredits={onBuyCredits}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Select model' }));
+    await user.type(screen.getByLabelText('Search models'), 'opus');
+    expect(screen.getByLabelText('Search models')).toHaveValue('opus');
+
+    await user.click(screen.getByRole('button', { name: /buy credits/i }));
+    expect(onBuyCredits).toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Select model' }));
+    expect(screen.getByLabelText('Search models')).toHaveValue('');
   });
 });

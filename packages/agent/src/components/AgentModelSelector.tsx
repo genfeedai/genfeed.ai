@@ -23,14 +23,25 @@ import {
   useState,
 } from 'react';
 
-interface AgentModelSelectorProps {
+type AgentModelSelectorProps = {
   selectedModel: string;
   onModelChange: (model: string) => void;
   creditsAvailable: number | null;
   onBuyCredits?: () => void;
   /** Match composer toolbar control height (send / icons). */
   density?: 'compact' | 'default';
-}
+};
+
+type ModelRowProps = {
+  model: AgentModelOption;
+  isSelected: boolean;
+  isLocked: boolean;
+  onSelect: () => void;
+};
+
+type CostBadgeProps = {
+  costTier?: CostTier;
+};
 
 function costTierDisplay(costTier?: CostTier) {
   if (!costTier) {
@@ -38,6 +49,14 @@ function costTierDisplay(costTier?: CostTier) {
   }
 
   return COST_TIER_DISPLAY[costTier] ?? null;
+}
+
+function clearSearchAndClose(
+  setOpen: (isOpen: boolean) => void,
+  setSearchTerm: (term: string) => void,
+): void {
+  setSearchTerm('');
+  setOpen(false);
 }
 
 export function AgentModelSelector({
@@ -75,15 +94,16 @@ export function AgentModelSelector({
   return (
     <Popover
       open={open}
-      onOpenChange={(nextOpen) => {
-        setOpen(nextOpen);
-        if (!nextOpen) {
+      onOpenChange={(isPopoverOpen) => {
+        setOpen(isPopoverOpen);
+        if (!isPopoverOpen) {
           setSearchTerm('');
         }
       }}
     >
       <PopoverTrigger asChild>
         <Button
+          ariaLabel="Select model"
           variant={ButtonVariant.GHOST}
           withWrapper={false}
           textTransform="none"
@@ -137,10 +157,11 @@ export function AgentModelSelector({
             />
           </div>
         </div>
+        {/* Native button list — no listbox/option roles without roving focus. */}
         <div
           className="flex max-h-72 flex-col gap-0.5 overflow-y-auto p-1.5"
-          role="listbox"
           aria-label="Models"
+          role="group"
         >
           {filteredModels.length === 0 ? (
             <p className="px-2.5 py-6 text-center text-xs text-muted-foreground">
@@ -163,8 +184,7 @@ export function AgentModelSelector({
                   onSelect={() => {
                     if (!isLocked) {
                       onModelChange(model.key);
-                      setOpen(false);
-                      setSearchTerm('');
+                      clearSearchAndClose(setOpen, setSearchTerm);
                     }
                   }}
                 />
@@ -179,7 +199,9 @@ export function AgentModelSelector({
               withWrapper={false}
               onClick={() => {
                 onBuyCredits();
-                setOpen(false);
+                // Controlled close does not always fire onOpenChange — clear
+                // the filter here so reopen cannot show a stale searchTerm.
+                clearSearchAndClose(setOpen, setSearchTerm);
               }}
               className="w-full px-2 py-1.5 text-center text-xs font-black text-primary hover:bg-primary/10"
             >
@@ -197,12 +219,7 @@ function ModelRow({
   isSelected,
   isLocked,
   onSelect,
-}: {
-  model: AgentModelOption;
-  isSelected: boolean;
-  isLocked: boolean;
-  onSelect: () => void;
-}): ReactElement {
+}: ModelRowProps): ReactElement {
   // Do not use Tailwind `bg-accent` inside `.ship-ui` popovers — ship remaps
   // accent to solid white/near-black brand chips, which fights
   // `text-foreground` / `text-muted-foreground` and produces white-on-white
@@ -216,8 +233,6 @@ function ModelRow({
       isDisabled={isLocked}
       ariaLabel={isLocked ? `Need ${model.creditCost} credits` : model.label}
       aria-current={isSelected ? 'true' : undefined}
-      role="option"
-      aria-selected={isSelected}
       className={cn(
         'flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-xs transition-colors',
         isSelected
@@ -245,7 +260,7 @@ function ModelRow({
   );
 }
 
-function CostBadge({ costTier }: { costTier?: CostTier }): ReactElement | null {
+function CostBadge({ costTier }: CostBadgeProps): ReactElement | null {
   const display = costTierDisplay(costTier);
   if (!display) {
     return null;
