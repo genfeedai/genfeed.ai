@@ -28,7 +28,7 @@ vi.mock('@ui/charts', () => ({
   ChartTooltipContent: () => <div data-testid="chart-tooltip-content" />,
 }));
 
-const rechartsMocks = {
+const rechartsMocks = vi.hoisted(() => ({
   Bar: ({ dataKey, fill }: { dataKey: string; fill: string }) => (
     <div data-testid="bar" data-key={dataKey} data-fill={fill} />
   ),
@@ -39,7 +39,7 @@ const rechartsMocks = {
   Tooltip: () => <div data-testid="tooltip" />,
   XAxis: () => <div data-testid="x-axis" />,
   YAxis: () => <div data-testid="y-axis" />,
-};
+}));
 
 vi.mock('recharts', () => rechartsMocks);
 
