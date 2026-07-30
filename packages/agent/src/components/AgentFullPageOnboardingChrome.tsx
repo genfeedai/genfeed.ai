@@ -8,8 +8,8 @@ import {
   DrawerTitle,
 } from '@ui/primitives';
 import { Button } from '@ui/primitives/button';
+import { CircleCheck } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { HiOutlineCheckCircle } from 'react-icons/hi2';
 
 type AgentFullPageOnboardingChromeProps = {
   completionPercent: number;
@@ -57,7 +57,7 @@ export function AgentFullPageOnboardingChrome({
         onClick={() => onMobileChecklistOpenChange(true)}
       >
         <div className="flex items-center gap-2">
-          <HiOutlineCheckCircle className="size-5 text-primary" />
+          <CircleCheck className="size-5 text-primary" />
           <span className="text-sm font-medium text-foreground">
             Activation Journey
           </span>

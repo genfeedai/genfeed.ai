@@ -20,6 +20,7 @@ import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { Button } from '@ui/primitives/button';
+import { Download, ExternalLink, LinkIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -30,11 +31,7 @@ import {
   useMemo,
   useRef,
 } from 'react';
-import {
-  HiArrowDownTray,
-  HiArrowTopRightOnSquare,
-  HiLink,
-} from 'react-icons/hi2';
+
 import {
   type AnalyticsWorkspaceSurfaceAdapterState,
   useAnalyticsWorkspaceSurfaceAdapter,
@@ -85,7 +82,7 @@ function AnalyticsComposerQueryChip({
       data-testid="analytics-composer-query-reference"
       title={`${reference.route} · ${reference.dateRange.startDate} to ${reference.dateRange.endDate}`}
     >
-      <HiLink aria-hidden="true" className="size-3.5 shrink-0" />
+      <LinkIcon aria-hidden="true" className="size-3.5 shrink-0" />
       <span className="truncate">Visible analytics query</span>
     </span>
   );
@@ -222,7 +219,7 @@ function AnalyticsInspector({
       <div className="grid gap-2">
         {isExportAvailable ? (
           <Button
-            icon={<HiArrowDownTray aria-hidden="true" className="size-4" />}
+            icon={<Download aria-hidden="true" className="size-4" />}
             onClick={onOpenExport}
             size={ButtonSize.SM}
             variant={ButtonVariant.SECONDARY}
@@ -243,7 +240,7 @@ function AnalyticsInspector({
             target="_blank"
             rel="noreferrer"
           >
-            <HiArrowTopRightOnSquare aria-hidden="true" className="size-4" />
+            <ExternalLink aria-hidden="true" className="size-4" />
             Open canonical route
           </Link>
         </Button>

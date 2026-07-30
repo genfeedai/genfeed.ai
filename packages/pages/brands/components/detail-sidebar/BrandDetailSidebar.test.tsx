@@ -26,6 +26,13 @@ vi.mock(
 );
 
 vi.mock(
+  '@pages/brands/components/sidebar/BrandDetailSocialSummaryCard',
+  () => ({
+    default: () => <div>Social Summary Card</div>,
+  }),
+);
+
+vi.mock(
   '@pages/brands/components/sidebar/BrandDetailDefaultModelsCard',
   () => ({
     default: () => <div>Default Models Card</div>,
@@ -69,16 +76,26 @@ describe('BrandDetailSidebar', () => {
     socialConnections: [],
   };
 
-  it('renders all sidebar sections', () => {
+  it('renders account settings and full social cards when manage href is unset', () => {
     render(<BrandDetailSidebar {...props} />);
 
     expect(screen.getByText('Account Settings Card')).toBeInTheDocument();
     expect(screen.getByText('Social Media Card')).toBeInTheDocument();
     expect(screen.getByText('External Links Card')).toBeInTheDocument();
-    expect(screen.getByText('Manual Kit Card')).toBeInTheDocument();
-    expect(screen.getByText('Default Models Card')).toBeInTheDocument();
-    expect(screen.getByText('Agent Profile Card')).toBeInTheDocument();
-    expect(screen.getByText('Identity Card')).toBeInTheDocument();
-    expect(screen.getByText('References Card')).toBeInTheDocument();
+    expect(screen.queryByText('Social Summary Card')).not.toBeInTheDocument();
+  });
+
+  it('renders social summary instead of full cards when manage href is set', () => {
+    render(
+      <BrandDetailSidebar
+        {...props}
+        manageSocialHref="/org/brand/settings/social"
+      />,
+    );
+
+    expect(screen.getByText('Account Settings Card')).toBeInTheDocument();
+    expect(screen.getByText('Social Summary Card')).toBeInTheDocument();
+    expect(screen.queryByText('Social Media Card')).not.toBeInTheDocument();
+    expect(screen.queryByText('External Links Card')).not.toBeInTheDocument();
   });
 });

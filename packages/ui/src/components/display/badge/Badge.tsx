@@ -4,13 +4,8 @@ import type { IBadgeStatusConfig } from '@genfeedai/interfaces/ui/badge-status-c
 import type { BadgeProps } from '@genfeedai/props/ui/display/badge.props';
 import { Badge as PrimitiveBadge } from '@ui/primitives/badge';
 import type { VariantProps } from 'class-variance-authority';
-import {
-  HiArrowPath,
-  HiCalendar,
-  HiCheckCircle,
-  HiClock,
-  HiXCircle,
-} from 'react-icons/hi2';
+import { Calendar, CircleCheck, CircleX, Clock, RefreshCw } from 'lucide-react';
+
 import { badgeVariants } from './badge.variants';
 
 const PRIMITIVE_VARIANT_MAP = {
@@ -60,14 +55,14 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
     case 'active':
     case 'success':
       return {
-        icon: <HiCheckCircle className="size-3" />,
+        icon: <CircleCheck className="size-3" />,
         label: 'Completed',
         variant: 'success',
       };
 
     case 'scheduled':
       return {
-        icon: <HiCalendar className="size-3" />,
+        icon: <Calendar className="size-3" />,
         label: 'Scheduled',
         shouldSpin: false,
         variant: 'info',
@@ -77,7 +72,7 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
     case 'running':
     case 'uploading':
       return {
-        icon: <HiArrowPath className="size-3" />,
+        icon: <RefreshCw className="size-3" />,
         label: 'Processing',
         shouldSpin: true,
         variant: 'accent',
@@ -88,7 +83,7 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
     case 'inactive':
     case 'warning':
       return {
-        icon: <HiClock className="size-3" />,
+        icon: <Clock className="size-3" />,
         label: 'Pending',
         variant: 'secondary',
       };
@@ -98,7 +93,7 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
     case 'cancelled':
     case 'canceled':
       return {
-        icon: <HiXCircle className="size-3" />,
+        icon: <CircleX className="size-3" />,
         label: 'Failed',
         variant: 'error',
       };
@@ -108,7 +103,7 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
     case 'unlisted':
     case 'skipped':
       return {
-        icon: <HiClock className="size-3" />,
+        icon: <Clock className="size-3" />,
         label: 'Draft',
         variant: 'ghost',
       };
@@ -144,7 +139,7 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
     case 'validated':
     case 'operational':
       return {
-        icon: <HiCheckCircle className="size-3" />,
+        icon: <CircleCheck className="size-3" />,
         label: 'Operational',
         variant: 'validated',
       };

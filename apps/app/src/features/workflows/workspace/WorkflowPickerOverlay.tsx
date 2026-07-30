@@ -5,13 +5,14 @@ import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
-  HiOutlineArrowLeft,
-  HiOutlineArrowRight,
-  HiOutlineArrowTopRightOnSquare,
-  HiOutlineBolt,
-  HiOutlineMagnifyingGlass,
-  HiOutlinePaperClip,
-} from 'react-icons/hi2';
+  ArrowLeft,
+  ArrowRight,
+  ExternalLink,
+  Paperclip,
+  Search,
+  Zap,
+} from 'lucide-react';
+
 import type { WorkflowSummary } from '@/features/workflows/services/workflow-api';
 import { useWorkflowPicker } from './useWorkflowPicker';
 
@@ -44,7 +45,7 @@ export function WorkflowPickerOverlay({
     <div className="flex max-h-[min(62vh,36rem)] min-h-0 flex-col">
       <div className="border-b border-border p-4">
         <div className="relative">
-          <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             aria-label="Search authorized workflows"
             className="pl-9"
@@ -89,7 +90,7 @@ export function WorkflowPickerOverlay({
               <Card bodyClassName="gap-0 p-3" key={workflow._id}>
                 <div className="flex items-start gap-3">
                   <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                    <HiOutlineBolt className="size-5" />
+                    <Zap className="size-5" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -106,7 +107,7 @@ export function WorkflowPickerOverlay({
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Button
-                        icon={<HiOutlinePaperClip className="size-4" />}
+                        icon={<Paperclip className="size-4" />}
                         onClick={() => onAttachWorkflow(workflow)}
                         size={ButtonSize.SM}
                         variant={ButtonVariant.DEFAULT}
@@ -115,9 +116,7 @@ export function WorkflowPickerOverlay({
                         Use in request
                       </Button>
                       <Button
-                        icon={
-                          <HiOutlineArrowTopRightOnSquare className="size-4" />
-                        }
+                        icon={<ExternalLink className="size-4" />}
                         onClick={() => onOpenWorkflow(workflow)}
                         size={ButtonSize.SM}
                         variant={ButtonVariant.SECONDARY}
@@ -148,7 +147,7 @@ export function WorkflowPickerOverlay({
           <Button
             ariaLabel="Previous workflow page"
             disabled={page === 1 || isLoading}
-            icon={<HiOutlineArrowLeft className="size-4" />}
+            icon={<ArrowLeft className="size-4" />}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
             size={ButtonSize.ICON}
             variant={ButtonVariant.GHOST}
@@ -157,7 +156,7 @@ export function WorkflowPickerOverlay({
           <Button
             ariaLabel="Next workflow page"
             disabled={!hasNextPage || isLoading}
-            icon={<HiOutlineArrowRight className="size-4" />}
+            icon={<ArrowRight className="size-4" />}
             onClick={() => setPage((current) => current + 1)}
             size={ButtonSize.ICON}
             variant={ButtonVariant.GHOST}

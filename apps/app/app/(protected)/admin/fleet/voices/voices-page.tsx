@@ -21,8 +21,9 @@ import {
 } from '@ui/primitives/select';
 import { Slider } from '@ui/primitives/slider';
 import { Textarea } from '@ui/primitives/textarea';
+import { Volume2 } from 'lucide-react';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
-import { HiOutlineSpeakerWave } from 'react-icons/hi2';
+
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
 interface VoiceOption {
@@ -202,7 +203,7 @@ export default function VoicesPage() {
     <Container
       label="Text-to-Speech"
       description="Generate voice audio using ElevenLabs TTS"
-      icon={HiOutlineSpeakerWave}
+      icon={Volume2}
     >
       <WorkspaceSurface
         title="Generate Voice Audio"

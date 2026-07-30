@@ -3,7 +3,7 @@
 import { ButtonSize, ButtonVariant, type Platform } from '@genfeedai/enums';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { Button } from '@ui/primitives/button';
-import { HiArrowTopRightOnSquare } from 'react-icons/hi2';
+import { ExternalLink } from 'lucide-react';
 
 type Props = {
   url: string;
@@ -20,7 +20,7 @@ export default function ActivityLinkCell({ url, platform }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         {getPlatformIcon(platform, 'size-4')}
-        <HiArrowTopRightOnSquare className="size-3" />
+        <ExternalLink className="size-3" />
       </a>
     </Button>
   );

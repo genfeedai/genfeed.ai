@@ -7,7 +7,7 @@ import {
   NeuralGridItem,
   WebSection,
 } from '@web-components/content/NeuralGrid';
-import { LuArrowRight, LuLoader, LuSparkles } from 'react-icons/lu';
+import { ArrowRight, Loader, Sparkles } from 'lucide-react';
 
 type SkillsBundleCtaProps = {
   bundlePrice: number | string;
@@ -42,12 +42,12 @@ export default function SkillsBundleCta({
               onClick={onCheckout}
             >
               {checkoutLoading ? (
-                <LuLoader className="size-4 animate-spin" />
+                <Loader className="size-4 animate-spin" />
               ) : (
                 <>
-                  <LuSparkles className="size-4" />
+                  <Sparkles className="size-4" />
                   Buy Bundle
-                  <LuArrowRight className="size-4" />
+                  <ArrowRight className="size-4" />
                 </>
               )}
             </Button>

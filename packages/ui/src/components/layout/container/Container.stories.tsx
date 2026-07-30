@@ -2,7 +2,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import Button from '@ui/buttons/base/Button';
 import Container from '@ui/layout/container/Container';
-import { HiCog, HiHome } from 'react-icons/hi2';
+import { House as Home, Settings } from 'lucide-react';
 
 /**
  * Container component provides a consistent layout wrapper with title, description,
@@ -104,7 +104,7 @@ export const WithIcon: Story = {
     <Container
       label="Dashboard"
       description="Overview of your activity"
-      icon={HiHome}
+      icon={Home}
     >
       <div className="p-8 bg-background">Dashboard content</div>
     </Container>
@@ -174,7 +174,7 @@ export const FullExample: Story = {
     <Container
       label="Content Management"
       description="Manage your content and media"
-      icon={HiCog}
+      icon={Settings}
       tabs={[
         { id: 'videos', label: 'Videos' },
         { id: 'images', label: 'Images' },

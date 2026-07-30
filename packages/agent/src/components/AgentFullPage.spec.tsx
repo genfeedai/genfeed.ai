@@ -754,7 +754,7 @@ describe('AgentFullPage', () => {
     expect(screen.getByText('Start a chat')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Ask for help planning content, reviewing drafts, or understanding what to do next.',
+        'Plan content, review drafts, or decide what to do next.',
       ),
     ).toBeInTheDocument();
     expect(

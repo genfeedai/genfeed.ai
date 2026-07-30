@@ -10,8 +10,9 @@ import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
 import PageLayout from '@web-components/PageLayout';
+import { Check } from 'lucide-react';
 import Link from 'next/link';
-import { FaCheck } from 'react-icons/fa6';
+
 import { GitHubLink } from './github-link';
 import ProductAgentLibrary from './product-agent-library';
 import ProductBenefits from './product-benefits';
@@ -137,7 +138,7 @@ export default function ProductPage({ product }: { product: Product }) {
           <VStack gap={2}>
             {product.targetAudience.map((audience) => (
               <li key={audience} className="flex items-start gap-2 list-none">
-                <FaCheck className="size-4 text-success mt-1 flex-shrink-0" />
+                <Check className="size-4 text-success mt-1 flex-shrink-0" />
                 <span>{audience}</span>
               </li>
             ))}

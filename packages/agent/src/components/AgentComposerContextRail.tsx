@@ -1,6 +1,6 @@
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
+import { MessageSquare } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { HiOutlineChatBubbleLeftRight } from 'react-icons/hi2';
 
 interface AgentComposerContextRailProps {
   attachmentCount: number;
@@ -15,22 +15,22 @@ export function AgentComposerContextRail({
   const contextLabel = shell?.contextLabel ?? 'Conversation';
 
   return (
-    <div className="flex min-h-9 items-center gap-2 rounded-t-lg border-b border-border/70 bg-background-secondary/82 px-3 py-1.5">
-      <HiOutlineChatBubbleLeftRight
+    <div className="flex min-h-0 items-center gap-1.5 px-3.5 pt-2.5">
+      <MessageSquare
         aria-hidden="true"
-        className="size-3.5 shrink-0 text-muted-foreground"
+        className="size-3 shrink-0 text-muted-foreground"
       />
-      <span className="min-w-0 truncate text-xs font-medium text-foreground/78">
+      <span className="min-w-0 truncate text-[11px] font-medium text-foreground/55">
         {contextLabel}
       </span>
       {referenceCount > 0 ? (
         <span className="shrink-0 text-[11px] text-muted-foreground">
-          {referenceCount} {referenceCount === 1 ? 'reference' : 'references'}
+          · {referenceCount} {referenceCount === 1 ? 'reference' : 'references'}
         </span>
       ) : null}
       {attachmentCount > 0 ? (
         <span className="shrink-0 text-[11px] text-muted-foreground">
-          {attachmentCount} {attachmentCount === 1 ? 'file' : 'files'}
+          · {attachmentCount} {attachmentCount === 1 ? 'file' : 'files'}
         </span>
       ) : null}
     </div>

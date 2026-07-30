@@ -8,10 +8,10 @@ import type {
 import { Handle, type NodeProps, Position } from '@xyflow/react';
 import { clsx } from 'clsx';
 import {
-  AlertCircle,
-  CheckCircle2,
+  CircleAlert,
+  CircleCheck,
   GitBranch,
-  Loader2,
+  LoaderCircle,
   RefreshCw,
 } from 'lucide-react';
 import { memo, useCallback, useEffect, useState } from 'react';
@@ -85,12 +85,12 @@ function WorkflowRefHeader({
       <span className="flex-1 truncate text-sm font-medium text-foreground">
         {label || 'Subworkflow'}
       </span>
-      {isProcessing && <Loader2 className="size-4 animate-spin text-primary" />}
-      {status === 'complete' && (
-        <CheckCircle2 className="size-4 text-chart-2" />
+      {isProcessing && (
+        <LoaderCircle className="size-4 animate-spin text-primary" />
       )}
+      {status === 'complete' && <CircleCheck className="size-4 text-chart-2" />}
       {status === 'error' && (
-        <AlertCircle className="size-4 text-destructive" />
+        <CircleAlert className="size-4 text-destructive" />
       )}
     </div>
   );
@@ -136,7 +136,7 @@ function WorkflowSelectorSection({
 
       {isFetchingWorkflows && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Loader2 className="size-3 animate-spin" />
+          <LoaderCircle className="size-3 animate-spin" />
           Loading…
         </div>
       )}

@@ -44,8 +44,14 @@ export default function ManagedCreditsCheckoutCard() {
       window.location.href = result.url;
     } catch (error) {
       logger.error('Failed to start managed credits checkout', error);
+      const detail =
+        error instanceof Error && error.message.trim()
+          ? error.message.trim()
+          : 'Failed to start managed credits checkout.';
       NotificationsService.getInstance().error(
-        'Failed to start managed credits checkout.',
+        detail.includes('Genfeed Cloud') || detail.includes('self-hosted')
+          ? `${detail} For local Stripe PAYG, set GENFEED_CLOUD=true and NEXT_PUBLIC_GENFEED_CLOUD=true, then use org checkout (not managed).`
+          : detail,
       );
       setIsStartingCheckout(false);
     }
@@ -53,30 +59,25 @@ export default function ManagedCreditsCheckoutCard() {
 
   return (
     <CreditTopUpPanel
+      title="Buy credits"
       helperContent={
-        <section
-          className="max-w-xl space-y-3"
-          aria-labelledby="provisioning-email-heading"
-        >
-          <div className="space-y-1">
-            <h3
-              id="provisioning-email-heading"
-              className="text-2xl font-semibold tracking-normal text-foreground"
-            >
-              Provisioning email
-            </h3>
-            <p className="text-sm leading-6 text-muted-foreground">
-              Checkout and the managed key receipt will be sent here.
-            </p>
-          </div>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <label
+            htmlFor="provisioning-email"
+            className="shrink-0 text-sm font-medium text-foreground"
+          >
+            Receipt email
+          </label>
           <Input
+            id="provisioning-email"
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder="you@example.com"
             aria-label="Provisioning email"
+            className="h-9 max-w-sm flex-1"
           />
-        </section>
+        </div>
       }
       isSubmitDisabled={!email.trim()}
       isStartingCheckout={isStartingCheckout}

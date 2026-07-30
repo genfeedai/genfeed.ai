@@ -1,5 +1,5 @@
+import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 import type { ReactElement } from 'react';
-import type { IconType } from 'react-icons';
 
 type GenerationActionCardHeaderProps = {
   Icon: IconType;

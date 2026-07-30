@@ -3,10 +3,11 @@
 import { MODEL_BRANDS } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
 import type { ModelSelectorProviderSidebarProps } from '@genfeedai/props/ui/model-selector/model-selector.props';
 import { Button } from '@ui/primitives/button';
+import { LayoutGrid, Star } from 'lucide-react';
 import { memo, useCallback } from 'react';
-import { HiSquares2X2, HiStar } from 'react-icons/hi2';
 
 const ModelSelectorProviderSidebar = memo(
   function ModelSelectorProviderSidebar({
@@ -31,7 +32,7 @@ const ModelSelectorProviderSidebar = memo(
             tooltip="Favorites"
             color="hsl(var(--foreground))"
           >
-            <HiStar className="size-4" />
+            <Star className="size-4" />
           </SidebarButton>
         )}
 
@@ -41,14 +42,14 @@ const ModelSelectorProviderSidebar = memo(
           tooltip="All"
           color="hsl(var(--muted-foreground))"
         >
-          <HiSquares2X2 className="size-4" />
+          <LayoutGrid className="size-4" />
         </SidebarButton>
 
         <div className="my-0.5 h-px w-6 bg-border" />
 
         {brands.map((brand) => {
           const config = MODEL_BRANDS[brand.slug];
-          const BrandIcon = config?.icon;
+          const BrandIcon = getModelBrandIcon(config?.iconKey);
 
           return (
             <SidebarButton

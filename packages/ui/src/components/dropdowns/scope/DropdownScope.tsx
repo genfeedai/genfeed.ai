@@ -12,20 +12,14 @@ import { NotificationsService } from '@genfeedai/services/core/notifications.ser
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
 import { SCOPE_OPTIONS } from '@ui-constants/scope.constant';
+import { Building, Check, Globe, Lock, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import {
-  HiBuildingOffice,
-  HiCheck,
-  HiGlobeAlt,
-  HiLockClosed,
-  HiUsers,
-} from 'react-icons/hi2';
 
 const SCOPE_ICONS: Record<AssetScope, React.ReactNode> = {
-  [AssetScope.USER]: <HiLockClosed className="size-4" />,
-  [AssetScope.BRAND]: <HiUsers className="size-4" />,
-  [AssetScope.ORGANIZATION]: <HiBuildingOffice className="size-4" />,
-  [AssetScope.PUBLIC]: <HiGlobeAlt className="size-4" />,
+  [AssetScope.USER]: <Lock className="size-4" />,
+  [AssetScope.BRAND]: <Users className="size-4" />,
+  [AssetScope.ORGANIZATION]: <Building className="size-4" />,
+  [AssetScope.PUBLIC]: <Globe className="size-4" />,
 };
 
 const VARIANT_COLORS: Record<string, string> = {
@@ -214,7 +208,7 @@ export default function DropdownScope({
 
             {/* Active Indicator */}
             {isActive && (
-              <HiCheck
+              <Check
                 size={18}
                 className="flex-shrink-0 text-success"
                 aria-hidden="true"

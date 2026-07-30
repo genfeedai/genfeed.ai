@@ -1,22 +1,22 @@
 import { CredentialPlatform } from '@genfeedai/enums';
-import type { ReactNode } from 'react';
 import {
-  FaFacebook,
-  FaGoogle,
-  FaInstagram,
-  FaLinkedin,
-  FaMastodon,
-  FaPinterest,
-  FaReddit,
-  FaShopify,
-  FaSnapchat,
-  FaStar,
-  FaThreads,
-  FaTiktok,
-  FaWordpress,
-  FaXTwitter,
-  FaYoutube,
-} from 'react-icons/fa6';
+  FacebookIcon,
+  GoogleIcon,
+  InstagramIcon,
+  LinkedinIcon,
+  MastodonIcon,
+  PinterestIcon,
+  RedditIcon,
+  ShopifyIcon,
+  SnapchatIcon,
+  ThreadsIcon,
+  TiktokIcon,
+  WordpressIcon,
+  XTwitterIcon,
+  YoutubeIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
+import { Star } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 export interface OAuthConnectPlatform {
   icon: ReactNode;
@@ -33,78 +33,78 @@ export interface OAuthConnectPlatform {
  */
 export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
   {
-    icon: <FaXTwitter className="mr-1.5 size-3.5" />,
+    icon: <XTwitterIcon className="mr-1.5 size-3.5" />,
     label: 'Twitter',
     platform: CredentialPlatform.TWITTER,
   },
   {
-    icon: <FaTiktok className="mr-1.5 size-3.5" />,
+    icon: <TiktokIcon className="mr-1.5 size-3.5" />,
     label: 'TikTok',
     platform: CredentialPlatform.TIKTOK,
   },
   {
-    icon: <FaYoutube className="mr-1.5 size-3.5" />,
+    icon: <YoutubeIcon className="mr-1.5 size-3.5" />,
     label: 'YouTube',
     platform: CredentialPlatform.YOUTUBE,
   },
   {
-    icon: <FaInstagram className="mr-1.5 size-3.5" />,
+    icon: <InstagramIcon className="mr-1.5 size-3.5" />,
     label: 'Instagram',
     platform: CredentialPlatform.INSTAGRAM,
   },
   {
-    icon: <FaStar className="mr-1.5 size-3.5" />,
+    icon: <Star className="mr-1.5 size-3.5" />,
     label: 'Fanvue',
     platform: CredentialPlatform.FANVUE,
   },
   {
-    icon: <FaFacebook className="mr-1.5 size-3.5" />,
+    icon: <FacebookIcon className="mr-1.5 size-3.5" />,
     label: 'Facebook',
     platform: CredentialPlatform.FACEBOOK,
   },
   {
-    icon: <FaGoogle className="mr-1.5 size-3.5" />,
+    icon: <GoogleIcon className="mr-1.5 size-3.5" />,
     label: 'Google Ads',
     platform: CredentialPlatform.GOOGLE_ADS,
     servicePath: 'google-ads',
   },
   {
-    icon: <FaLinkedin className="mr-1.5 size-3.5" />,
+    icon: <LinkedinIcon className="mr-1.5 size-3.5" />,
     label: 'LinkedIn',
     platform: CredentialPlatform.LINKEDIN,
   },
   {
-    icon: <FaPinterest className="mr-1.5 size-3.5" />,
+    icon: <PinterestIcon className="mr-1.5 size-3.5" />,
     label: 'Pinterest',
     platform: CredentialPlatform.PINTEREST,
   },
   {
-    icon: <FaReddit className="mr-1.5 size-3.5" />,
+    icon: <RedditIcon className="mr-1.5 size-3.5" />,
     label: 'Reddit',
     platform: CredentialPlatform.REDDIT,
   },
   {
-    icon: <FaThreads className="mr-1.5 size-3.5" />,
+    icon: <ThreadsIcon className="mr-1.5 size-3.5" />,
     label: 'Threads',
     platform: CredentialPlatform.THREADS,
   },
   {
-    icon: <FaWordpress className="mr-1.5 size-3.5" />,
+    icon: <WordpressIcon className="mr-1.5 size-3.5" />,
     label: 'WordPress',
     platform: CredentialPlatform.WORDPRESS,
   },
   {
-    icon: <FaSnapchat className="mr-1.5 size-3.5" />,
+    icon: <SnapchatIcon className="mr-1.5 size-3.5" />,
     label: 'Snapchat',
     platform: CredentialPlatform.SNAPCHAT,
   },
   {
-    icon: <FaMastodon className="mr-1.5 size-3.5" />,
+    icon: <MastodonIcon className="mr-1.5 size-3.5" />,
     label: 'Mastodon',
     platform: CredentialPlatform.MASTODON,
   },
   {
-    icon: <FaShopify className="mr-1.5 size-3.5" />,
+    icon: <ShopifyIcon className="mr-1.5 size-3.5" />,
     label: 'Shopify',
     platform: CredentialPlatform.SHOPIFY,
   },

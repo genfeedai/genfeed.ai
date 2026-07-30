@@ -6,14 +6,10 @@ import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Switch } from '@ui/primitives/switch';
-import { Cloud, CloudUpload } from 'lucide-react';
+import { Cloud, CloudUpload, Copy, Plus, Search, Zap } from 'lucide-react';
+
 import Link from 'next/link';
-import {
-  HiOutlineBolt,
-  HiOutlineDocumentDuplicate,
-  HiOutlineMagnifyingGlass,
-  HiOutlinePlus,
-} from 'react-icons/hi2';
+
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { isCanonicalSystemWorkflow } from '@/features/workflows/services/workflow-api';
 import { getLifecycleBadgeClass } from '@/features/workflows/utils/status-helpers';
@@ -48,7 +44,7 @@ export default function WorkflowLibraryPage() {
       <Container
         label="Workflows"
         description="Use workflows for fixed, reusable automation graphs and scheduled pipelines."
-        icon={HiOutlineBolt}
+        icon={Zap}
         right={
           <>
             <div className="h-10 w-28 animate-pulse rounded bg-muted" />
@@ -76,7 +72,7 @@ export default function WorkflowLibraryPage() {
       <Container
         label="Workflows"
         description="Use workflows for fixed, reusable automation graphs and scheduled pipelines."
-        icon={HiOutlineBolt}
+        icon={Zap}
       >
         <div className="flex min-h-[320px] flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-destructive/30 bg-destructive/5 px-6 text-center">
           <p className="text-destructive">{error}</p>
@@ -97,18 +93,18 @@ export default function WorkflowLibraryPage() {
     <Container
       label="Workflows"
       description="Use workflows for fixed, reusable automation graphs and scheduled pipelines."
-      icon={HiOutlineBolt}
+      icon={Zap}
       right={
         <>
           <Button asChild variant={ButtonVariant.SECONDARY} withWrapper={false}>
             <Link href={href('/workflows/templates')}>
-              <HiOutlineDocumentDuplicate className="size-4" />
+              <Copy className="size-4" />
               Templates
             </Link>
           </Button>
           <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
             <Link href={href('/workflows/new')}>
-              <HiOutlinePlus className="size-4" />
+              <Plus className="size-4" />
               New Workflow
             </Link>
           </Button>
@@ -118,7 +114,7 @@ export default function WorkflowLibraryPage() {
       {/* Search bar */}
       <div className="mb-4 flex items-center gap-3">
         <div className="relative flex-1 max-w-md">
-          <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground/40" />
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground/40" />
           <Input
             type="text"
             placeholder="Search workflows..."
@@ -166,7 +162,7 @@ export default function WorkflowLibraryPage() {
             <Link href={href('/workflows/new')}>
               <div className="flex flex-col items-center gap-3 py-8">
                 <div className="flex size-14 items-center justify-center rounded-full bg-foreground/5 transition-[transform,background-color] duration-300 group-hover:scale-110 group-hover:bg-foreground/10">
-                  <HiOutlinePlus className="size-7 text-foreground/50" />
+                  <Plus className="size-7 text-foreground/50" />
                 </div>
                 <span className="text-sm font-medium text-foreground/70">
                   New Workflow

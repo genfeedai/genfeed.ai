@@ -2,9 +2,9 @@
 
 import {
   ChevronUp,
+  CirclePlay,
   Minus,
   Play,
-  PlayCircle,
   Plus,
   RotateCcw,
   Square,
@@ -117,7 +117,7 @@ function RunOptionsDropdown({
           disabled={!hasSelection || isRunning}
           className="w-full justify-start gap-1.5 px-2.5 py-1.5 text-xs text-foreground hover:bg-muted"
         >
-          <PlayCircle className="size-3" />
+          <CirclePlay className="size-3" />
           Run Selected ({selectedCount})
         </Button>
         {showResume && (

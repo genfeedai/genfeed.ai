@@ -2,6 +2,7 @@
 
 import { signIn } from '@genfeedai/auth-client';
 import { ButtonVariant } from '@genfeedai/enums';
+import { GoogleColorIcon } from '@genfeedai/helpers/ui/icons/brands';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
@@ -16,7 +17,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import { FcGoogle } from 'react-icons/fc';
+
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { persistOnboardingHandoffParams } from '@/lib/onboarding/onboarding-access.util';
 import {
@@ -242,7 +243,7 @@ export default function SignUpBetterAuth({
             type="button"
             variant={ButtonVariant.SECONDARY}
             onClick={() => handleSocialSignUp('google')}
-            icon={<FcGoogle className="size-4" aria-hidden="true" />}
+            icon={<GoogleColorIcon className="size-4" aria-hidden="true" />}
             isLoading={isSocialSubmitting}
             className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
             withWrapper={false}

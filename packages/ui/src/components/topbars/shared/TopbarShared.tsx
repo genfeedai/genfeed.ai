@@ -5,13 +5,13 @@ import type { TopbarProps } from '@genfeedai/props/navigation/topbar.props';
 import { Button } from '@ui/primitives/button';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarEnd from '@ui/topbars/end/TopbarEnd';
-import { HiBars3, HiXMark } from 'react-icons/hi2';
+import { Menu, X } from 'lucide-react';
 
 export default function TopbarShared({
   onMenuToggle,
   isMenuOpen,
 }: TopbarProps = {}) {
-  const ToggleIcon = isMenuOpen ? HiXMark : HiBars3;
+  const ToggleIcon = isMenuOpen ? X : Menu;
 
   return (
     <header className="size-full bg-transparent">

@@ -5,8 +5,8 @@ import { useFeatureFlag } from '@genfeedai/hooks/feature-flags/use-feature-flag'
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import { Button } from '@ui/primitives/button';
+import { ArrowUp, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import { HiArrowTopRightOnSquare, HiArrowUp } from 'react-icons/hi2';
 
 type Props = {
   generatedImageId: string | null;
@@ -40,7 +40,7 @@ export default function IllustrationActions({
             target="_blank"
             rel="noopener noreferrer"
           >
-            <HiArrowTopRightOnSquare className="size-4" />
+            <ExternalLink className="size-4" />
             Studio
           </Link>
         </Button>
@@ -79,7 +79,7 @@ export default function IllustrationActions({
 
           <Button
             variant={ButtonVariant.DEFAULT}
-            icon={<HiArrowUp />}
+            icon={<ArrowUp />}
             onClick={onGenerate}
             isLoading={isGenerating}
             isDisabled={!prompt.trim() || isGenerating}

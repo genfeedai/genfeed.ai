@@ -1,6 +1,14 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
+import {
+  InstagramIcon,
+  LinkedinIcon,
+  TiktokIcon,
+  TwitterIcon,
+  YoutubeIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
+import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 import type { Article } from '@models/content/article.model';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
@@ -9,26 +17,18 @@ import Badge from '@ui/display/badge/Badge';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
 import { createMarkup } from '@utils/sanitize-html';
+import {
+  ArrowRight,
+  Calendar,
+  Clock,
+  Share2,
+  TriangleAlert,
+  User,
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
-import type { IconType } from 'react-icons';
-import {
-  FaInstagram,
-  FaLinkedin,
-  FaTiktok,
-  FaTwitter,
-  FaYoutube,
-} from 'react-icons/fa';
-import {
-  HiArrowRight,
-  HiCalendar,
-  HiClock,
-  HiOutlineExclamationTriangle,
-  HiShare,
-  HiUser,
-} from 'react-icons/hi2';
 
 function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString('en-US', {
@@ -131,7 +131,7 @@ export default function ArticleDetail({
             className="border border-edge/[0.08] bg-fill/10 text-surface backdrop-blur-sm transition-all hover:border-edge/20 hover:bg-fill/20"
             onClick={handleShare}
           >
-            <HiShare className="size-4" />
+            <Share2 className="size-4" />
             {copied ? 'Copied!' : 'Share'}
           </Button>
         </div>
@@ -151,7 +151,7 @@ export default function ArticleDetail({
 
         {isPreview && (
           <div className="mb-6 flex items-start gap-3 border border-yellow-500/30 bg-yellow-500/20 p-4 backdrop-blur-sm md:mb-8">
-            <HiOutlineExclamationTriangle className="size-4 flex-shrink-0 text-yellow-300" />
+            <TriangleAlert className="size-4 flex-shrink-0 text-yellow-300" />
             <span className="text-sm text-surface md:text-base">
               You are viewing a preview of this article. This article may not be
               published or publicly visible yet.
@@ -174,14 +174,14 @@ export default function ArticleDetail({
               <div className="flex flex-wrap items-center gap-3 border-b border-edge/20 pb-4 text-xs text-surface/60 md:gap-4 md:pb-6 md:text-sm">
                 {article.author && (
                   <div className="flex items-center gap-2.5">
-                    <HiUser className="size-3.5 flex-shrink-0 md:h-4 md:w-4" />
+                    <User className="size-3.5 flex-shrink-0 md:h-4 md:w-4" />
                     <span className="truncate">{article.author}</span>
                   </div>
                 )}
 
                 {article.publishedAt && (
                   <div className="flex items-center gap-2.5">
-                    <HiCalendar className="size-3.5 flex-shrink-0 md:h-4 md:w-4" />
+                    <Calendar className="size-3.5 flex-shrink-0 md:h-4 md:w-4" />
                     <span className="whitespace-nowrap">
                       {formatDate(article.publishedAt)}
                     </span>
@@ -190,7 +190,7 @@ export default function ArticleDetail({
 
                 {article.readingTime && (
                   <div className="flex items-center gap-2.5">
-                    <HiClock className="size-3.5 flex-shrink-0 md:h-4 md:w-4" />
+                    <Clock className="size-3.5 flex-shrink-0 md:h-4 md:w-4" />
                     <span className="whitespace-nowrap">
                       {article.readingTime} min read
                     </span>
@@ -247,7 +247,7 @@ export default function ArticleDetail({
                           className="flex items-center justify-center gap-2 border border-edge/[0.08] bg-fill/10 px-3 py-2 text-xs text-surface transition-colors hover:border-edge/20 hover:bg-fill/20 hover:text-surface/80 lg:justify-start md:text-sm"
                         >
                           <span>View more content</span>
-                          <HiArrowRight className="size-4 flex-shrink-0" />
+                          <ArrowRight className="size-4 flex-shrink-0" />
                         </Link>
                       </div>
                     )}
@@ -257,35 +257,35 @@ export default function ArticleDetail({
                       {brand.twitterUrl && (
                         <SocialLinkItem
                           url={brand.twitterUrl}
-                          icon={FaTwitter}
+                          icon={TwitterIcon}
                           label="Twitter/X"
                         />
                       )}
                       {brand.linkedinUrl && (
                         <SocialLinkItem
                           url={brand.linkedinUrl}
-                          icon={FaLinkedin}
+                          icon={LinkedinIcon}
                           label="LinkedIn"
                         />
                       )}
                       {brand.youtubeUrl && (
                         <SocialLinkItem
                           url={brand.youtubeUrl}
-                          icon={FaYoutube}
+                          icon={YoutubeIcon}
                           label="YouTube"
                         />
                       )}
                       {brand.instagramUrl && (
                         <SocialLinkItem
                           url={brand.instagramUrl}
-                          icon={FaInstagram}
+                          icon={InstagramIcon}
                           label="Instagram"
                         />
                       )}
                       {brand.tiktokUrl && (
                         <SocialLinkItem
                           url={brand.tiktokUrl}
-                          icon={FaTiktok}
+                          icon={TiktokIcon}
                           label="TikTok"
                         />
                       )}

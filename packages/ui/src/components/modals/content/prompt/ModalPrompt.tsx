@@ -6,7 +6,7 @@ import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
-import { HiDocumentDuplicate, HiSparkles } from 'react-icons/hi2';
+import { Copy, Sparkles } from 'lucide-react';
 
 export default function ModalPrompt({
   originalPrompt,
@@ -85,7 +85,7 @@ export default function ModalPrompt({
             <h4 className="font-semibold">{rows[0].label}</h4>
             {rows[0].copyValue && (
               <Button
-                label={<HiDocumentDuplicate />}
+                label={<Copy />}
                 variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.XS}
                 tooltip="Copy prompt"
@@ -106,7 +106,7 @@ export default function ModalPrompt({
                 <h4 className="font-semibold">{row.label}</h4>
                 {row.copyValue && (
                   <Button
-                    label={<HiDocumentDuplicate />}
+                    label={<Copy />}
                     variant={ButtonVariant.SECONDARY}
                     size={ButtonSize.XS}
                     tooltip="Copy prompt"
@@ -134,7 +134,7 @@ export default function ModalPrompt({
             label="Use Prompt"
             variant={ButtonVariant.DEFAULT}
             onClick={handleUsePrompt}
-            icon={<HiSparkles />}
+            icon={<Sparkles />}
           />
         )}
       </ModalActions>

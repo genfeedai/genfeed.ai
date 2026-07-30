@@ -2,7 +2,7 @@
 
 import type { ImageGenNodeData, ImageModel } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { AlertCircle, Download, ImageIcon } from 'lucide-react';
+import { CircleAlert, Download, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { useAIGenNode } from '../../hooks/useAIGenNode';
@@ -147,7 +147,7 @@ function ImageGenNodeComponent(props: NodeProps) {
         {/* Hint when model doesn't support image input */}
         {!modelSupportsImageInput && nodeData.inputImages.length > 0 && (
           <div className="text-xs text-warning flex items-center gap-1">
-            <AlertCircle className="size-3" />
+            <CircleAlert className="size-3" />
             This model doesn&apos;t use image inputs
           </div>
         )}
@@ -256,7 +256,7 @@ function ImageGenNodeComponent(props: NodeProps) {
         {/* Help text for required inputs */}
         {!canGenerate && nodeData.status !== 'processing' && (
           <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
-            <AlertCircle className="size-3" />
+            <CircleAlert className="size-3" />
             Connect a prompt to generate
           </div>
         )}

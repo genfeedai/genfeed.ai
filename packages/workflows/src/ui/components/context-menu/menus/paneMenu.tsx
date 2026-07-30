@@ -4,11 +4,12 @@ import {
   ArrowRightToLine,
   AudioLines,
   Brain,
-  CheckCircle,
+  Captions,
+  CircleCheckBig,
   Clipboard,
   Crop,
+  FilePlay,
   FileText,
-  FileVideo,
   Film,
   GitBranch,
   Grid3X3,
@@ -25,10 +26,9 @@ import {
   Pencil,
   Scissors,
   Sparkles,
-  Subtitles,
   Video,
   Volume2,
-  Wand2,
+  WandSparkles,
 } from 'lucide-react';
 import {
   type ContextMenuItemConfig,
@@ -41,10 +41,10 @@ const NODE_ICONS: Record<string, LucideIcon> = {
   ArrowRightToLine,
   AudioLines,
   Brain,
-  CheckCircle,
+  CircleCheckBig,
   Crop,
   FileText,
-  FileVideo,
+  FilePlay,
   Film,
   GitBranch,
   Grid3X3,
@@ -58,10 +58,10 @@ const NODE_ICONS: Record<string, LucideIcon> = {
   Pencil,
   Scissors,
   Sparkles,
-  Subtitles,
+  Captions,
   Video,
   Volume2,
-  Wand2,
+  WandSparkles,
 };
 
 const CATEGORY_LABELS: Record<NodeCategory, string> = {
@@ -77,7 +77,7 @@ const CATEGORY_ICONS: Record<NodeCategory, LucideIcon> = {
   composition: GitBranch,
   input: Image,
   output: Monitor,
-  processing: Wand2,
+  processing: WandSparkles,
 };
 
 interface PaneMenuOptions {

@@ -1,11 +1,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { Image, MessageSquare, Sparkles } from 'lucide-react';
 import type { ReactElement } from 'react';
-import {
-  HiOutlineChatBubbleLeftRight,
-  HiOutlinePhoto,
-  HiOutlineSparkles,
-} from 'react-icons/hi2';
 
 type AgentFullPageMobileBarProps = {
   showThreadSidebar: boolean;
@@ -36,7 +32,7 @@ export function AgentFullPageMobileBar({
           onClick={onOpenThreads}
           className={MOBILE_BAR_BUTTON_CLASS}
         >
-          <HiOutlineChatBubbleLeftRight className="size-4" />
+          <MessageSquare className="size-4" />
           Threads
         </Button>
       ) : null}
@@ -47,7 +43,7 @@ export function AgentFullPageMobileBar({
           onClick={onOpenOutputs}
           className={MOBILE_BAR_BUTTON_CLASS}
         >
-          <HiOutlinePhoto className="size-4" />
+          <Image className="size-4" />
           Outputs
         </Button>
       ) : null}
@@ -58,7 +54,7 @@ export function AgentFullPageMobileBar({
           onClick={onOpenSetup}
           className={MOBILE_BAR_BUTTON_CLASS}
         >
-          <HiOutlineSparkles className="size-4" />
+          <Sparkles className="size-4" />
           Setup
         </Button>
       ) : null}

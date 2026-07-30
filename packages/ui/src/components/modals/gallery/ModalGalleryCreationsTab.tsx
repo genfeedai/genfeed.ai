@@ -5,7 +5,7 @@ import type { ModalGalleryCreationsTabProps } from '@genfeedai/props/modals/moda
 import Masonry from '@ui/display/masonry/Masonry';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import ModalGalleryItemImage from '@ui/modals/gallery/items/ModalGalleryItemImage';
-import { HiPhoto } from 'react-icons/hi2';
+import { Image } from 'lucide-react';
 
 export default function ModalGalleryCreationsTab({
   creations,
@@ -27,7 +27,7 @@ export default function ModalGalleryCreationsTab({
   if (creations.length === 0) {
     return (
       <div className="text-center py-12">
-        <HiPhoto className="text-5xl text-foreground/20 mx-auto mb-3" />
+        <Image className="text-5xl text-foreground/20 mx-auto mb-3" />
         <p className="text-foreground/60">No creations yet</p>
         <p className="text-sm text-foreground/40 mt-2">
           Generate some images to see them here

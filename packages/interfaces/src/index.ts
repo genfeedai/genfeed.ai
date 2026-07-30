@@ -250,6 +250,7 @@ export * from './ui/feature-badge.interface';
 export * from './ui/form.interface';
 export * from './ui/form-searchbar.interface';
 export * from './ui/generate-option.interface';
+export * from './ui/icon.interface';
 export * from './ui/media-config.interface';
 export * from './ui/menu-config.interface';
 export * from './ui/module-card.interface';

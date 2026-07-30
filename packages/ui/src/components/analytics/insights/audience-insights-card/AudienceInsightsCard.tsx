@@ -9,15 +9,8 @@ import {
 import { getPlatformIcon } from '@genfeedai/helpers/ui/platform-icon/platform-icon.helper';
 import type { AudienceInsightsCardProps } from '@genfeedai/props/analytics/insights.props';
 import Card from '@ui/card/Card';
+import { Clock, Minus, TrendingDown, TrendingUp, Users } from 'lucide-react';
 import { memo } from 'react';
-import {
-  HiArrowTrendingDown,
-  HiArrowTrendingUp,
-  HiClock,
-  HiMinus,
-  HiUserGroup,
-  HiUsers,
-} from 'react-icons/hi2';
 
 const AudienceInsightsCard = memo(function AudienceInsightsCard({
   segments,
@@ -28,7 +21,7 @@ const AudienceInsightsCard = memo(function AudienceInsightsCard({
     return (
       <Card
         label="Audience Insights"
-        icon={HiUsers}
+        icon={Users}
         iconClassName="text-accent"
         className={className}
       >
@@ -58,12 +51,12 @@ const AudienceInsightsCard = memo(function AudienceInsightsCard({
     return (
       <Card
         label="Audience Insights"
-        icon={HiUsers}
+        icon={Users}
         iconClassName="text-accent"
         className={className}
       >
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <HiUserGroup className="size-12 text-foreground/30 mb-3" />
+          <Users className="size-12 text-foreground/30 mb-3" />
           <p className="text-foreground/70 font-medium">
             No audience data available
           </p>
@@ -78,7 +71,7 @@ const AudienceInsightsCard = memo(function AudienceInsightsCard({
   return (
     <Card
       label="Audience Insights"
-      icon={HiUsers}
+      icon={Users}
       iconClassName="text-accent"
       description="Understand your audience segments"
       className={className}
@@ -87,10 +80,10 @@ const AudienceInsightsCard = memo(function AudienceInsightsCard({
         {segments.map((segment) => {
           const GrowthIcon =
             segment.growth > 0
-              ? HiArrowTrendingUp
+              ? TrendingUp
               : segment.growth < 0
-                ? HiArrowTrendingDown
-                : HiMinus;
+                ? TrendingDown
+                : Minus;
           const growthColor =
             segment.growth > 0
               ? 'text-success'
@@ -132,7 +125,7 @@ const AudienceInsightsCard = memo(function AudienceInsightsCard({
                 </div>
                 <div className="text-center p-2 bg-muted/50 col-span-2 md:col-span-1">
                   <div className="flex items-center justify-center gap-1">
-                    <HiClock className="size-4 text-foreground/50" />
+                    <Clock className="size-4 text-foreground/50" />
                     <p className="text-lg font-bold">
                       {segment.peakHours.slice(0, 2).map(formatHour).join(', ')}
                     </p>

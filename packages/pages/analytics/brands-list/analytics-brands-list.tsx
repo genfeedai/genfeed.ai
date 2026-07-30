@@ -14,6 +14,7 @@ import {
   AnalyticsService,
   type IBrandWithStats,
 } from '@services/analytics/analytics.service';
+import Card from '@ui/card/Card';
 import Table from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Input } from '@ui/primitives/input';
@@ -24,10 +25,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { ArrowRight, Building2 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { HiArrowRight, HiOutlineBuildingOffice2 } from 'react-icons/hi2';
 
 export interface AnalyticsBrandsListProps {
   basePath?: string;
@@ -109,7 +110,7 @@ export default function AnalyticsBrandsList({
     <Container
       label="All Brands"
       description={`${filteredBrands.length} brand${filteredBrands.length !== 1 ? 's' : ''} found`}
-      icon={HiOutlineBuildingOffice2}
+      icon={Building2}
       right={
         <div className="flex items-center gap-2">
           <Input
@@ -146,7 +147,7 @@ export default function AnalyticsBrandsList({
         </div>
       }
     >
-      <div className="bg-background p-6">
+      <Card bodyClassName="gap-0 p-0">
         <div className="overflow-x-auto">
           <Table
             items={filteredBrands}
@@ -264,14 +265,14 @@ export default function AnalyticsBrandsList({
             ]}
             actions={[
               {
-                icon: <HiArrowRight className="size-4" />,
+                icon: <ArrowRight className="size-4" />,
                 onClick: (brand) => router.push(buildDetailHref(brand.id)),
                 tooltip: 'View Brand Details',
               },
             ]}
           />
         </div>
-      </div>
+      </Card>
     </Container>
   );
 }

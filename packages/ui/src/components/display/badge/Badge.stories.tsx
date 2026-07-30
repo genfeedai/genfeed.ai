@@ -1,13 +1,7 @@
 import { ComponentSize } from '@genfeedai/enums';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import Badge from '@ui/display/badge/Badge';
-import {
-  HiCheckCircle,
-  HiClock,
-  HiExclamationCircle,
-  HiFire,
-  HiStar,
-} from 'react-icons/hi2';
+import { CircleAlert, CircleCheck, Clock, Flame, Star } from 'lucide-react';
 
 /**
  * Badge component for displaying status, counts, or labels.
@@ -93,7 +87,7 @@ export const Secondary: Story = {
  */
 export const Success: Story = {
   render: () => (
-    <Badge variant="success" icon={<HiCheckCircle />}>
+    <Badge variant="success" icon={<CircleCheck />}>
       Active
     </Badge>
   ),
@@ -104,7 +98,7 @@ export const Success: Story = {
  */
 export const Warning: Story = {
   render: () => (
-    <Badge variant="warning" icon={<HiClock />}>
+    <Badge variant="warning" icon={<Clock />}>
       Pending
     </Badge>
   ),
@@ -115,7 +109,7 @@ export const Warning: Story = {
  */
 export const Error: Story = {
   render: () => (
-    <Badge variant="error" icon={<HiExclamationCircle />}>
+    <Badge variant="error" icon={<CircleAlert />}>
       Failed
     </Badge>
   ),
@@ -189,7 +183,7 @@ export const Large: Story = {
  */
 export const WithIcon: Story = {
   render: () => (
-    <Badge variant="accent" icon={<HiStar />}>
+    <Badge variant="accent" icon={<Star />}>
       Featured
     </Badge>
   ),
@@ -227,7 +221,7 @@ export const ZeroValue: Story = {
  */
 export const Trending: Story = {
   render: () => (
-    <Badge variant="warning" icon={<HiFire />}>
+    <Badge variant="warning" icon={<Flame />}>
       Trending
     </Badge>
   ),
@@ -287,13 +281,13 @@ export const StatusBadges: Story = {
   },
   render: () => (
     <div className="flex flex-wrap gap-3 p-4">
-      <Badge variant="success" icon={<HiCheckCircle />}>
+      <Badge variant="success" icon={<CircleCheck />}>
         Published
       </Badge>
-      <Badge variant="warning" icon={<HiClock />}>
+      <Badge variant="warning" icon={<Clock />}>
         Draft
       </Badge>
-      <Badge variant="error" icon={<HiExclamationCircle />}>
+      <Badge variant="error" icon={<CircleAlert />}>
         Error
       </Badge>
       <Badge variant="info">Processing</Badge>

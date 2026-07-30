@@ -2,30 +2,24 @@
 
 import type { AINodeProps } from '@genfeedai/props/automation/workflow-builder.props';
 import BaseNode from '@ui/workflow-builder/nodes/BaseNode';
+import { Box, FileText, Image, Sparkles, Video } from 'lucide-react';
 import { memo } from 'react';
-import {
-  HiOutlineCube,
-  HiOutlineDocumentText,
-  HiOutlinePhoto,
-  HiOutlineSparkles,
-  HiOutlineVideoCamera,
-} from 'react-icons/hi2';
 
 function AINode(props: AINodeProps) {
   const getIcon = () => {
     switch (props.data.nodeType) {
       case 'ai-generate-image':
-        return <HiOutlinePhoto />;
+        return <Image />;
       case 'ai-generate-video':
-        return <HiOutlineVideoCamera />;
+        return <Video />;
       case 'ai-generate-text':
-        return <HiOutlineDocumentText />;
+        return <FileText />;
       case 'ai-enhance':
-        return <HiOutlineSparkles />;
+        return <Sparkles />;
       case 'ai-upscale':
-        return <HiOutlineCube />;
+        return <Box />;
       default:
-        return <HiOutlineSparkles />;
+        return <Sparkles />;
     }
   };
 

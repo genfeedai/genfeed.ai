@@ -2,13 +2,8 @@ import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Calendar, Check, Clock, DollarSign } from 'lucide-react';
 import { type ReactElement, useCallback, useState } from 'react';
-import {
-  HiCalendarDays,
-  HiCheck,
-  HiClock,
-  HiCurrencyDollar,
-} from 'react-icons/hi2';
 
 interface SchedulePostCardProps {
   action: AgentUiAction;
@@ -61,7 +56,7 @@ export function SchedulePostCard({
     return (
       <div className="my-2 border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
         <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-          <HiCheck className="size-5" />
+          <Check className="size-5" />
           <span className="text-sm font-medium">
             Post scheduled for {selectedPlatforms.size} platform
             {selectedPlatforms.size !== 1 ? 's' : ''}
@@ -74,7 +69,7 @@ export function SchedulePostCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiCalendarDays className="size-5 text-blue-500" />
+        <Calendar className="size-5 text-blue-500" />
         <h3 className="text-sm font-semibold">
           {action.title || 'Schedule Post'}
         </h3>
@@ -92,7 +87,7 @@ export function SchedulePostCard({
           className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
           htmlFor="schedule-post-date-time"
         >
-          <HiClock className="mr-1 inline size-3" />
+          <Clock className="mr-1 inline size-3" />
           Date & Time
         </label>
         <Input
@@ -135,7 +130,7 @@ export function SchedulePostCard({
       {/* Credit estimate */}
       {action.creditEstimate != null && (
         <div className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-          <HiCurrencyDollar className="size-3.5" />
+          <DollarSign className="size-3.5" />
           <span>Estimated cost: {action.creditEstimate} credits</span>
         </div>
       )}
@@ -145,7 +140,7 @@ export function SchedulePostCard({
         variant={ButtonVariant.DEFAULT}
         onClick={handleSchedule}
         isDisabled={!dateTime || selectedPlatforms.size === 0}
-        icon={<HiCalendarDays className="size-4" />}
+        icon={<Calendar className="size-4" />}
         className="w-full justify-center"
       >
         Schedule

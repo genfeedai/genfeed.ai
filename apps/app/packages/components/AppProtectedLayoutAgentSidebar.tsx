@@ -2,9 +2,9 @@
 
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { type ReactNode, useMemo } from 'react';
-import { HiPlus } from 'react-icons/hi2';
 
 type Props = {
   /**
@@ -32,7 +32,7 @@ export default function AgentSidebarContent({ renderConversations }: Props) {
         aria-label="New agent thread"
         className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background-secondary text-foreground/70 transition-colors hover:bg-foreground/[0.08] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
       >
-        <HiPlus className="size-4" aria-hidden="true" />
+        <Plus className="size-4" aria-hidden="true" />
       </Link>
     ),
     [newThreadHref],

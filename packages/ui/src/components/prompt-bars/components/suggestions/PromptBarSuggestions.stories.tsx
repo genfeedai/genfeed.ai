@@ -1,9 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
-import {
-  HiOutlineClipboardDocumentCheck,
-  HiOutlineSparkles,
-} from 'react-icons/hi2';
+import { ClipboardCheck, Sparkles } from 'lucide-react';
 
 const meta = {
   component: PromptBarSuggestions,
@@ -19,13 +16,13 @@ export const Default: Story = {
     onSuggestionSelect: () => {},
     suggestions: [
       {
-        icon: <HiOutlineClipboardDocumentCheck className="size-4" />,
+        icon: <ClipboardCheck className="size-4" />,
         id: 'create-plan',
         label: 'Create a plan',
         prompt: 'Create a plan for this task',
       },
       {
-        icon: <HiOutlineSparkles className="size-4" />,
+        icon: <Sparkles className="size-4" />,
         id: 'use-plan-mode',
         label: 'Use plan mode',
         prompt: 'Use plan mode for this request',

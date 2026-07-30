@@ -24,8 +24,8 @@ import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import PromptBarPost from '@ui/prompt-bars/post/PromptBarPost';
 import PromptBarSurfaceRenderer from '@ui/prompt-bars/surface/PromptBarSurfaceRenderer';
 import { POSTS_PROMPT_BAR_SURFACE } from '@ui/prompt-bars/surface/prompt-bar-surface.config';
+import { LayoutGrid, Table } from 'lucide-react';
 import { useEffect } from 'react';
-import { HiSquares2X2, HiTableCells } from 'react-icons/hi2';
 
 export interface PostsListProps extends ContentProps {
   initialPostPresets?: IPreset[];
@@ -98,12 +98,12 @@ export default function PostsList({
       <ViewToggle
         options={[
           {
-            icon: <HiSquares2X2 />,
+            icon: <LayoutGrid />,
             label: 'Card View',
             type: VIEW_TYPE_GRID,
           },
           {
-            icon: <HiTableCells />,
+            icon: <Table />,
             label: 'Table View',
             type: VIEW_TYPE_TABLE,
           },

@@ -16,6 +16,7 @@ import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import { format } from 'date-fns';
+import { ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -25,7 +26,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { HiArrowsUpDown, HiChevronLeft, HiChevronRight } from 'react-icons/hi2';
+
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
 export interface AnalyticsOrganizationsListProps {
@@ -201,7 +202,7 @@ export default function AnalyticsOrganizationsList({
         </h2>
         <FormDropdown
           name="sort"
-          icon={<HiArrowsUpDown className="size-4" />}
+          icon={<ArrowUpDown className="size-4" />}
           label="Sort"
           variant={ButtonVariant.SECONDARY}
           className="h-10 px-3 gap-2 text-sm flex-shrink-0"
@@ -237,7 +238,7 @@ export default function AnalyticsOrganizationsList({
               size={ButtonSize.SM}
               isDisabled={page === 1}
               onClick={() => setPage((prev) => prev - 1)}
-              icon={<HiChevronLeft className="size-4" />}
+              icon={<ChevronLeft className="size-4" />}
             />
             <span className="text-sm">
               Page {page} of {pagination.totalPages}
@@ -247,7 +248,7 @@ export default function AnalyticsOrganizationsList({
               size={ButtonSize.SM}
               isDisabled={page === pagination.totalPages}
               onClick={() => setPage((prev) => prev + 1)}
-              icon={<HiChevronRight className="size-4" />}
+              icon={<ChevronRight className="size-4" />}
             />
           </div>
         </div>

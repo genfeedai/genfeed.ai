@@ -12,8 +12,9 @@ import { useQuery } from '@tanstack/react-query';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
 import { THEME_COLORS } from '@ui-constants/theme.constant';
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
-import { HiPlus } from 'react-icons/hi2';
+
 import TagPickerDropdown from './TagPickerDropdown';
 import TagsList from './TagsList';
 
@@ -207,7 +208,7 @@ export default function TagsManager({
         <div className="relative">
           <Button
             label="Add Tag"
-            icon={<HiPlus />}
+            icon={<Plus />}
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
             onClick={() => setShowTagPicker(!showTagPicker)}

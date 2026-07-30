@@ -1,5 +1,5 @@
 import type { ComponentType, ReactNode } from 'react';
-import type { IconType } from 'react-icons';
+import type { IconType } from './icon.interface';
 
 export interface INavigationItem {
   id: string;

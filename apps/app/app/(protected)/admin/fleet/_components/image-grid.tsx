@@ -11,14 +11,9 @@ import {
   DialogOverlay,
   DialogPortal,
 } from '@ui/primitives/dialog';
+import { ChevronLeft, ChevronRight, Trash2, X } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useMemo, useState } from 'react';
-import {
-  HiChevronLeft,
-  HiChevronRight,
-  HiOutlineTrash,
-  HiXMark,
-} from 'react-icons/hi2';
 
 interface ImageGridProps {
   images: IFleetAsset[];
@@ -151,7 +146,7 @@ export default function ImageGrid({
                   className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium"
                   onClick={() => onDelete(Array.from(selectedIds))}
                 >
-                  <HiOutlineTrash className="size-4" />
+                  <Trash2 className="size-4" />
                   Delete
                 </Button>
               )}
@@ -161,7 +156,7 @@ export default function ImageGrid({
                 className="flex items-center gap-1 px-2 py-1.5 text-sm text-foreground/60 hover:text-foreground"
                 onClick={handleClearSelection}
               >
-                <HiXMark className="size-4" />
+                <X className="size-4" />
                 Clear
               </Button>
             </div>
@@ -232,7 +227,7 @@ export default function ImageGrid({
             isDisabled={currentPage <= 1}
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
           >
-            <HiChevronLeft className="size-5" />
+            <ChevronLeft className="size-5" />
           </Button>
 
           <span className="text-sm text-foreground/70">
@@ -245,7 +240,7 @@ export default function ImageGrid({
             isDisabled={currentPage >= totalPages}
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
           >
-            <HiChevronRight className="size-5" />
+            <ChevronRight className="size-5" />
           </Button>
         </div>
       )}
@@ -270,7 +265,7 @@ export default function ImageGrid({
               className="absolute top-4 right-4 p-2 text-white/80 hover:text-white transition-colors"
               onClick={() => setLightboxAsset(null)}
             >
-              <HiXMark className="size-8" />
+              <X className="size-8" />
             </Button>
 
             {lightboxAsset && (

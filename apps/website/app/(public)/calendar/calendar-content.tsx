@@ -10,16 +10,16 @@ import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import PageLayout from '@web-components/PageLayout';
+import {
+  Calendar,
+  CircleCheck,
+  Clock,
+  List,
+  RefreshCw,
+  Sparkles,
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import {
-  HiArrowPath,
-  HiCalendarDays,
-  HiCheckCircle,
-  HiClock,
-  HiQueueList,
-  HiSparkles,
-} from 'react-icons/hi2';
 
 const CALENDLY_URL = EnvironmentService.calendly;
 
@@ -42,41 +42,41 @@ const FEATURES = [
   {
     description:
       'Drag and drop drafts onto any day, across every connected channel, from one shared calendar.',
-    icon: HiCalendarDays,
+    icon: Calendar,
     title: 'Visual Calendar View',
   },
   {
     description:
       'Schedule a week or a quarter of posts at once instead of queuing each platform one by one.',
-    icon: HiClock,
+    icon: Clock,
     title: 'Schedule Every Channel',
   },
   {
     description:
       'Spot gaps and cadence at a glance, then auto-schedule new drafts straight from workflows.',
-    icon: HiArrowPath,
+    icon: RefreshCw,
     title: 'Cadence & Auto-Schedule',
   },
 ];
 
 const STEPS = [
   {
-    icon: HiQueueList,
+    icon: List,
     label: 'Plan',
     sublabel: 'Lay out drafts across the calendar by channel',
   },
   {
-    icon: HiClock,
+    icon: Clock,
     label: 'Schedule',
     sublabel: 'Drag posts into place and set send times',
   },
   {
-    icon: HiCheckCircle,
+    icon: CircleCheck,
     label: 'Approve',
     sublabel: 'Review and sign off before anything goes out',
   },
   {
-    icon: HiSparkles,
+    icon: Sparkles,
     label: 'Publish',
     sublabel: 'Send approved posts out to every platform',
   },
@@ -155,7 +155,7 @@ export default function CalendarContent() {
             <HStack className="flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
                 <div className="size-20 flex items-center justify-center border border-[var(--gen-accent-border)] bg-white/[0.06]">
-                  <HiCalendarDays className="size-10 text-surface" />
+                  <Calendar className="size-10 text-surface" />
                 </div>
               </div>
               <VStack className="gap-3">
@@ -280,7 +280,7 @@ export default function CalendarContent() {
         <section className="max-w-4xl mx-auto pb-16 px-6">
           <div className="text-center p-12 border border-[var(--gen-accent-border)] bg-white/[0.04]">
             <div className="flex justify-center mb-4">
-              <HiCalendarDays className="size-8 text-surface" />
+              <Calendar className="size-8 text-surface" />
             </div>
             <Heading as="h3" className="text-2xl font-bold mb-2 text-surface">
               Start Planning Today

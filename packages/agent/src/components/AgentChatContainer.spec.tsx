@@ -588,15 +588,45 @@ describe('AgentChatContainer', () => {
       </ConversationComposerShellProvider>,
     );
 
-    expect(
-      portalTarget.querySelector(
-        '[data-layout-mode="inflow"][data-max-width="full"]',
-      ),
-    ).not.toBeNull();
+    const portaled = portalTarget.querySelector(
+      '[data-layout-mode="inflow"][data-max-width="full"]',
+    );
+    expect(portaled).not.toBeNull();
+    expect(portaled?.getAttribute('data-show-top-fade')).toBe('false');
     expect(screen.getByTestId('chat-input')).toHaveAttribute(
       'data-density',
       'inspector',
     );
+    portalTarget.remove();
+  });
+
+  it('pads the transcript and fades into a portaled surface composer', () => {
+    const apiService = createApiService();
+    const portalTarget = document.createElement('div');
+    document.body.append(portalTarget);
+
+    storeState.pendingInputRequest = null;
+    storeState.messages = [buildAssistantMessage()];
+
+    const { container } = render(
+      <ConversationComposerShellProvider
+        contextLabel="Workspace"
+        draftScopeKey="acme:thread-1:3"
+        placement="surface"
+        portalTarget={portalTarget}
+        shellState="canvas"
+      >
+        <AgentChatContainer apiService={apiService as never} isStreaming />
+      </ConversationComposerShellProvider>,
+    );
+
+    expect(container.querySelector('.pb-56')).not.toBeNull();
+    expect(
+      portalTarget.querySelector(
+        '[data-layout-mode="inflow"][data-show-top-fade="true"]',
+      ),
+    ).not.toBeNull();
+
     portalTarget.remove();
   });
 
@@ -644,7 +674,7 @@ describe('AgentChatContainer', () => {
     );
 
     const promptBarContainers = container.querySelectorAll(
-      '[data-layout-mode="inflow"][data-max-width="4xl"]',
+      '[data-layout-mode="inflow"][data-max-width="full"]',
     );
 
     expect(promptBarContainers.length).toBe(1);
@@ -667,7 +697,7 @@ describe('AgentChatContainer', () => {
     );
 
     const promptBarContainers = container.querySelectorAll(
-      '[data-layout-mode="inflow"][data-max-width="4xl"]',
+      '[data-layout-mode="inflow"][data-max-width="full"]',
     );
 
     expect(promptBarContainers.length).toBe(1);
@@ -676,7 +706,7 @@ describe('AgentChatContainer', () => {
     );
   });
 
-  it('widens the empty-state composer when the workspace has no outputs rail', () => {
+  it('keeps the empty-state composer full-width inside the centered column', () => {
     const apiService = createApiService();
 
     storeState.pendingInputRequest = null;
@@ -691,7 +721,7 @@ describe('AgentChatContainer', () => {
     );
 
     const promptBarContainers = container.querySelectorAll(
-      '[data-layout-mode="inflow"][data-max-width="2xl"]',
+      '[data-layout-mode="inflow"][data-max-width="full"]',
     );
 
     expect(promptBarContainers.length).toBe(1);
@@ -1129,5 +1159,69 @@ describe('AgentChatContainer', () => {
     expect(
       screen.getByText('Ask for help planning content.'),
     ).toBeInTheDocument();
+  });
+
+  it('keeps the empty-state composer inline instead of portaling into the shell slot', () => {
+    const apiService = createApiService();
+    const portalTarget = document.createElement('div');
+    document.body.append(portalTarget);
+
+    storeState.pendingInputRequest = null;
+    storeState.messages = [];
+
+    const { container } = render(
+      <ConversationComposerShellProvider
+        contextLabel="Workspace"
+        draftScopeKey="acme:thread-1:3"
+        placement="surface"
+        portalTarget={portalTarget}
+        shellState="canvas"
+      >
+        <AgentChatContainer apiService={apiService as never} />
+      </ConversationComposerShellProvider>,
+    );
+
+    expect(
+      container.querySelector(
+        '[data-layout-mode="inflow"][data-max-width="full"]',
+      ),
+    ).not.toBeNull();
+    expect(portalTarget).toBeEmptyDOMElement();
+
+    portalTarget.remove();
+  });
+
+  it('docks the inspector empty-state composer into the shell slot', () => {
+    const apiService = createApiService();
+    const portalTarget = document.createElement('div');
+    document.body.append(portalTarget);
+
+    storeState.pendingInputRequest = null;
+    storeState.messages = [];
+
+    const { container } = render(
+      <ConversationComposerShellProvider
+        contextLabel="Workspace"
+        draftScopeKey="acme:thread-1:3"
+        placement="inspector"
+        portalTarget={portalTarget}
+        shellState="canvas"
+      >
+        <AgentChatContainer
+          apiService={apiService as never}
+          emptyStateTitle="Start a conversation"
+        />
+      </ConversationComposerShellProvider>,
+    );
+
+    expect(screen.getByText('Start a conversation')).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-testid="agent-chat-input-shell"]'),
+    ).toBeNull();
+    expect(
+      portalTarget.querySelector('[data-layout-mode="inflow"]'),
+    ).not.toBeNull();
+
+    portalTarget.remove();
   });
 });

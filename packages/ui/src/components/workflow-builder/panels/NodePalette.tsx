@@ -5,26 +5,26 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { NodeDefinition } from '@genfeedai/interfaces/automation/workflow-builder.interface';
 import type { NodePaletteProps } from '@genfeedai/props/automation/workflow-builder.props';
 import { Button } from '@ui/primitives/button';
-import { useState } from 'react';
 import {
-  HiOutlineArrowUpTray,
-  HiOutlineChevronDown,
-  HiOutlineChevronLeft,
-  HiOutlineChevronRight,
-  HiOutlineClock,
-  HiOutlineCog6Tooth,
-  HiOutlineCpuChip,
-  HiOutlinePhoto,
-  HiOutlineSparkles,
-} from 'react-icons/hi2';
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Cpu,
+  Image,
+  Settings,
+  Sparkles,
+  Upload,
+} from 'lucide-react';
+import { useState } from 'react';
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  ai: <HiOutlineCpuChip className="size-4" />,
-  control: <HiOutlineClock className="size-4" />,
-  effects: <HiOutlineSparkles className="size-4" />,
-  input: <HiOutlinePhoto className="size-4" />,
-  output: <HiOutlineArrowUpTray className="size-4" />,
-  processing: <HiOutlineCog6Tooth className="size-4" />,
+  ai: <Cpu className="size-4" />,
+  control: <Clock className="size-4" />,
+  effects: <Sparkles className="size-4" />,
+  input: <Image className="size-4" />,
+  output: <Upload className="size-4" />,
+  processing: <Settings className="size-4" />,
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -85,9 +85,9 @@ function CategorySection({
         {CATEGORY_ICONS[category]}
         <span className="flex-1 text-left">{CATEGORY_LABELS[category]}</span>
         {isExpanded ? (
-          <HiOutlineChevronDown className="size-4" />
+          <ChevronDown className="size-4" />
         ) : (
-          <HiOutlineChevronRight className="size-4" />
+          <ChevronRight className="size-4" />
         )}
       </Button>
       {isExpanded && (
@@ -127,7 +127,7 @@ export default function NodePalette({
           size={ButtonSize.SM}
           onClick={onToggleCollapse}
           ariaLabel="Expand palette"
-          icon={<HiOutlineChevronRight className="size-4" />}
+          icon={<ChevronRight className="size-4" />}
         />
       </div>
     );
@@ -144,7 +144,7 @@ export default function NodePalette({
           size={ButtonSize.XS}
           onClick={onToggleCollapse}
           ariaLabel="Collapse palette"
-          icon={<HiOutlineChevronLeft className="size-4" />}
+          icon={<ChevronLeft className="size-4" />}
         />
       </div>
 

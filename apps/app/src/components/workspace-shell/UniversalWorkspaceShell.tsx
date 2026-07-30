@@ -31,6 +31,15 @@ import {
   DrawerTitle,
 } from '@ui/primitives/drawer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
+import {
+  ArrowLeft,
+  Columns2,
+  Eye,
+  LayoutGrid,
+  Maximize2,
+  MessageSquare,
+  Zap,
+} from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type KeyboardEvent as ReactKeyboardEvent,
@@ -43,14 +52,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import {
-  HiOutlineArrowLeft,
-  HiOutlineBolt,
-  HiOutlineChatBubbleLeftRight,
-  HiOutlineEye,
-  HiOutlineSquares2X2,
-  HiOutlineViewColumns,
-} from 'react-icons/hi2';
+
 import {
   AnalyticsWorkspaceSurfaceAdapterProvider,
   useActiveAnalyticsWorkspaceSurfaceAdapter,
@@ -68,6 +70,7 @@ import {
   appendSearchParamsToHref,
   normalizeProtectedPathname,
 } from '@/lib/navigation/operator-shell';
+import { WORKSPACE_INSPECTOR_CHROME } from '@/lib/workspace-shell/workspace-inspector-chrome';
 import { resolveWorkspaceOverlayLaunch } from '@/lib/workspace-shell/workspace-overlay-launcher';
 import {
   removeWorkspaceShellOverlayParams,
@@ -185,9 +188,6 @@ function UniversalWorkspaceShellContent({
   // whole point of it no longer being a shell state you navigate away to.
   const [inspectorTab, setInspectorTab] =
     useState<WorkspaceInspectorTab>('conversation');
-  const [failedSurfaceScopeKey, setFailedSurfaceScopeKey] = useState<
-    string | null
-  >(null);
   const [researchSurfaceAdapter, setResearchSurfaceAdapter] = useState<{
     readonly registration: ResearchWorkspaceSurfaceAdapterRegistration;
     readonly token: symbol;
@@ -298,11 +298,6 @@ function UniversalWorkspaceShellContent({
     activeThread && surfaceBrandId && !isSurfaceScopeAligned
       ? `${activeThread.id}:${activeThread.contextVersion}:${surfaceBrandId}`
       : null;
-  const surfaceScopeStatus = !surfaceScopeKey
-    ? 'ready'
-    : failedSurfaceScopeKey === surfaceScopeKey
-      ? 'error'
-      : 'syncing';
   const surfaceReferences = isSurfaceScopeAligned
     ? productSurfaceAdapter?.references
     : undefined;
@@ -407,7 +402,6 @@ function UniversalWorkspaceShellContent({
       })
       .catch(() => {
         if (!abortController.signal.aborted) {
-          setFailedSurfaceScopeKey(surfaceScopeKey);
           captureWorkspaceShellScopeCorrection('failure');
           captureWorkspaceShellError('scope', 'scope_sync_failed');
         }
@@ -908,28 +902,37 @@ function UniversalWorkspaceShellContent({
         }
         value={activeInspectorTab}
       >
-        <div className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
+        {/* h-12 + border-b matches AppLayout topbar and sidebar header shell so
+            the chrome seam is one continuous line across the frame. */}
+        <div className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-3">
           {conversationSlot ? (
             <TabsList className="h-8">
-              <TabsTrigger value="conversation">Conversation</TabsTrigger>
-              <TabsTrigger value="context">Context</TabsTrigger>
+              <TabsTrigger value="conversation">
+                {WORKSPACE_INSPECTOR_CHROME.conversationTab}
+              </TabsTrigger>
+              <TabsTrigger value="context">
+                {WORKSPACE_INSPECTOR_CHROME.contextTab}
+              </TabsTrigger>
             </TabsList>
           ) : (
-            <div>
-              <p className="text-sm font-medium text-foreground">Context</p>
-              <p className="text-xs text-muted-foreground">
-                {surfaceScopeStatus === 'syncing'
-                  ? 'Synchronizing surface brand…'
-                  : surfaceScopeStatus === 'error'
-                    ? 'Surface brand synchronization failed'
-                    : effectiveThreadId
-                      ? 'Conversation connected'
-                      : 'No conversation selected'}
-              </p>
-            </div>
+            <p className="truncate text-sm font-medium text-foreground">
+              {WORKSPACE_INSPECTOR_CHROME.title}
+            </p>
           )}
-          {/* No collapse control here: the rail collapses to nothing, so the one
-            toggle is pinned in the topbar instead of disappearing with it. */}
+          {/* One chrome row only: expand lives here, not a second bar inside the
+            conversation panel. Collapse stays in the app topbar. */}
+          {conversationSlot && !isAgentRoute ? (
+            <Button
+              ariaLabel={WORKSPACE_INSPECTOR_CHROME.openFullConversation}
+              className="size-8 shrink-0"
+              icon={<Maximize2 className="size-3.5" />}
+              onClick={handleReturnToConversation}
+              size={ButtonSize.ICON}
+              tooltip={WORKSPACE_INSPECTOR_CHROME.openFullConversation}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            />
+          ) : null}
         </div>
 
         {/* `forceMount` on both panes: switching tabs must not unmount the
@@ -963,8 +966,7 @@ function UniversalWorkspaceShellContent({
           {agentPanelSlot}
           {isAgentOwned ? null : isAgentRoute ? (
             <p className="px-1 text-xs leading-5 text-muted-foreground">
-              Context from the active conversation appears here as the agent
-              works.
+              {WORKSPACE_INSPECTOR_CHROME.emptyAgentBody}
             </p>
           ) : (
             <>
@@ -1003,13 +1005,13 @@ function UniversalWorkspaceShellContent({
                 <CardEmptyContent
                   className="gen-shell-empty-state rounded-lg py-8"
                   description={`Start a conversation or choose a workflow to build ${inspectorBreadcrumbLabel} context here.`}
-                  icon={HiOutlineSquares2X2}
+                  icon={LayoutGrid}
                   label={`No ${inspectorBreadcrumbLabel} context yet`}
                   size={CardEmptySize.SM}
                 />
               )}
               <Button
-                icon={<HiOutlineBolt className="size-4" />}
+                icon={<Zap className="size-4" />}
                 onClick={handleOpenWorkflowPicker}
                 variant={ButtonVariant.SECONDARY}
                 withWrapper={false}
@@ -1019,7 +1021,7 @@ function UniversalWorkspaceShellContent({
               {effectiveSurfaceAdapter ||
               resolvedSurfacePresentationAdapter ? null : (
                 <Button
-                  icon={<HiOutlineEye className="size-4" />}
+                  icon={<Eye className="size-4" />}
                   onClick={handleOpenOverlay}
                   variant={ButtonVariant.SECONDARY}
                   withWrapper={false}
@@ -1028,7 +1030,7 @@ function UniversalWorkspaceShellContent({
                 </Button>
               )}
               <Button
-                icon={<HiOutlineChatBubbleLeftRight className="size-4" />}
+                icon={<MessageSquare className="size-4" />}
                 onClick={handleReturnToConversation}
                 variant={ButtonVariant.GHOST}
                 withWrapper={false}
@@ -1124,9 +1126,9 @@ function UniversalWorkspaceShellContent({
                 ref={primaryRegionRef}
                 tabIndex={-1}
               >
-                <div className="flex h-11 items-center justify-between border-b border-border px-3 xl:hidden">
+                <div className="flex h-12 items-center justify-between border-b border-border px-3 xl:hidden">
                   <Button
-                    icon={<HiOutlineArrowLeft className="size-4" />}
+                    icon={<ArrowLeft className="size-4" />}
                     onClick={handleReturnToConversation}
                     size={ButtonSize.SM}
                     variant={ButtonVariant.GHOST}
@@ -1135,7 +1137,7 @@ function UniversalWorkspaceShellContent({
                     Conversation
                   </Button>
                   <Button
-                    icon={<HiOutlineViewColumns className="size-4" />}
+                    icon={<Columns2 className="size-4" />}
                     onClick={() => setIsMobileInspectorOpen(true)}
                     size={ButtonSize.SM}
                     variant={ButtonVariant.GHOST}
@@ -1155,17 +1157,16 @@ function UniversalWorkspaceShellContent({
                 </ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider>
               </section>
 
-              {/* The conversation route owns the full canvas. Its composer is a
-                bounded row beneath the transcript, so the canvas itself never
-                scrolls and the prompt bar never covers starter panels or the
-                final message. Product routes never render this slot. */}
+              {/* Conversation composer floats over the canvas (T3/Codex):
+                transcript scrolls underneath a frosted prompt bar. Empty
+                sessions keep the bar inline/centered and leave this slot empty
+                (`empty:hidden`). Product routes never render this slot. */}
               {isCanvasComposerVisible ? (
                 <div
-                  className="z-20 shrink-0 px-3 pb-3 md:px-5 md:pb-5"
+                  className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-3 pb-3 empty:hidden md:px-5 md:pb-5"
                   data-testid="workspace-composer-slot"
-                >
-                  <div ref={setComposerPortalTarget} />
-                </div>
+                  ref={setComposerPortalTarget}
+                />
               ) : null}
             </div>
 
@@ -1239,9 +1240,11 @@ function UniversalWorkspaceShellContent({
           >
             <DrawerContent className="max-h-[85vh] rounded-t-[var(--radius-workspace-overlay)]">
               <DrawerHeader>
-                <DrawerTitle>Workspace inspector</DrawerTitle>
+                <DrawerTitle>
+                  {WORKSPACE_INSPECTOR_CHROME.mobileDrawerTitle}
+                </DrawerTitle>
                 <DrawerDescription>
-                  Conversation and context for the active workspace surface.
+                  {WORKSPACE_INSPECTOR_CHROME.mobileDrawerDescription}
                 </DrawerDescription>
               </DrawerHeader>
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">

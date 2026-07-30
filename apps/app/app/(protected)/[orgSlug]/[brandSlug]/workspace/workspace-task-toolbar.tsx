@@ -2,7 +2,8 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { HiOutlineSparkles } from 'react-icons/hi2';
+import { Sparkles } from 'lucide-react';
+
 import type { WorkspaceTaskMode } from './workspace-task-composer.constants';
 
 interface TaskPreset {
@@ -102,7 +103,7 @@ export function WorkspaceTaskToolbar({
           disabled={isEnhancementBusy || !hasRequest}
           onClick={onEnhance}
         >
-          <HiOutlineSparkles className="size-3.5" />
+          <Sparkles className="size-3.5" />
           {isEnhancementBusy ? 'Enhancing…' : 'Enhance - 1 credit'}
         </Button>
       </div>

@@ -105,6 +105,11 @@ export interface PromptBarProps {
   onSuggestionSelect?: (item: PromptBarSuggestionItem) => void;
   showSuggestionsWhenEmpty?: boolean;
   maxSuggestions?: number;
+  /**
+   * Optional notice rendered inside shared PromptBarShell (model gate, etc.).
+   * Prefer this over floating alerts above the bar.
+   */
+  banner?: ReactNode;
 
   mode?: 'generate' | 'edit';
   form?: UseFormReturn<IEditFormData>;

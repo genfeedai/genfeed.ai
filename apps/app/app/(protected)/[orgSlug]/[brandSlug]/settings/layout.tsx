@@ -2,19 +2,11 @@
 
 import type { LayoutProps } from '@props/layout/layout.props';
 import Container from '@ui/layout/container/Container';
-import { HiOutlineCog6Tooth } from 'react-icons/hi2';
 
-// Brand settings sub-navigation (Overview / Voice / Harness / Interview /
-// Publishing / Agent Defaults) now lives in the Settings sidebar under the
-// Brands group (see buildSettingsMenuItems), not in an in-page tab bar.
+// Brand settings sub-navigation lives in the Settings sidebar under Brands
+// (see buildSettingsMenuItems). Page identity is the topbar breadcrumb — do not
+// stack a second "Brand Settings" heading (it collapses to sr-only and leaves
+// dead top margin under the shell chrome).
 export default function BrandSettingsLayout({ children }: LayoutProps) {
-  return (
-    <Container
-      label="Brand Settings"
-      description="Manage voice, harness, publishing, and agent defaults for this brand"
-      icon={HiOutlineCog6Tooth}
-    >
-      {children}
-    </Container>
-  );
+  return <Container>{children}</Container>;
 }

@@ -1,11 +1,11 @@
 'use client';
 
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import { isEEEnabled } from '@genfeedai/config/license';
+import { hasOrganizationBilling } from '@genfeedai/config/license';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { DollarSign } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { HiCurrencyDollar } from 'react-icons/hi2';
 
 interface CreditsBalanceCardProps {
   action: AgentUiAction;
@@ -16,7 +16,9 @@ export function CreditsBalanceCard({
 }: CreditsBalanceCardProps): ReactElement {
   const { orgHref } = useOrgUrl();
   const billingHref = orgHref(
-    isEEEnabled() ? APP_ROUTES.SETTINGS.BILLING : APP_ROUTES.SETTINGS.CREDITS,
+    hasOrganizationBilling()
+      ? APP_ROUTES.SETTINGS.BILLING
+      : APP_ROUTES.SETTINGS.CREDITS,
   );
   const balance = action.balance ?? 0;
   const usagePercent = action.usagePercent ?? 0;
@@ -32,7 +34,7 @@ export function CreditsBalanceCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiCurrencyDollar className="size-5 text-amber-500" />
+        <DollarSign className="size-5 text-amber-500" />
         <h3 className="text-sm font-semibold">
           {action.title || 'Credits Balance'}
         </h3>
@@ -85,7 +87,7 @@ export function CreditsBalanceCard({
           href={billingHref}
           className="flex w-full items-center justify-center gap-1.5 bg-primary px-4 py-2 text-sm font-black text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          <HiCurrencyDollar className="size-4" />
+          <DollarSign className="size-4" />
           Buy Credits
         </a>
       )}

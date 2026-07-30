@@ -8,7 +8,7 @@ import type {
 import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { Link, Loader2, Type } from 'lucide-react';
+import { Link, LoaderCircle, Type } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 
 export type { TweetInputNodeData, TweetInputNodeProps };
@@ -124,7 +124,7 @@ function TweetInputNodeComponent({ id, data, onUpdate }: TweetInputNodeProps) {
           >
             {isFetching ? (
               <>
-                <Loader2 className="size-3 animate-spin" />
+                <LoaderCircle className="size-3 animate-spin" />
                 Fetching…
               </>
             ) : (

@@ -18,8 +18,8 @@ import Card from '@ui/card/Card';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { RefreshCw, Search, Sparkles } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
-import { HiArrowPath, HiMagnifyingGlass, HiSparkles } from 'react-icons/hi2';
 
 export default function TwitterPipelineEngage() {
   const { organizationId, brandId, isReady } = useBrand();
@@ -229,13 +229,13 @@ export default function TwitterPipelineEngage() {
             onClick={handleSearch}
             isDisabled={!searchQuery.trim() || isLoading}
           >
-            <HiMagnifyingGlass className="size-4" />
+            <Search className="size-4" />
             {status === 'searching' ? 'Scanning...' : 'Scan Trends'}
           </Button>
 
           {(searchResults.length > 0 || opportunities.length > 0) && (
             <Button variant={ButtonVariant.SECONDARY} onClick={handleReset}>
-              <HiArrowPath className="size-4" />
+              <RefreshCw className="size-4" />
               Reset
             </Button>
           )}
@@ -261,7 +261,7 @@ export default function TwitterPipelineEngage() {
               onClick={handleDraft}
               isDisabled={isLoading}
             >
-              <HiSparkles className="size-4" />
+              <Sparkles className="size-4" />
               {status === 'drafting' ? 'Drafting...' : 'Draft with Grok'}
             </Button>
           </div>

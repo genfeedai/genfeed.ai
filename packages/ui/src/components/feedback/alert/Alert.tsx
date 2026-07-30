@@ -4,13 +4,7 @@ import type { AlertProps } from '@genfeedai/props/ui/ui.props';
 import { Alert as PrimitiveAlert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { cva } from 'class-variance-authority';
-import {
-  HiCheckCircle,
-  HiExclamationCircle,
-  HiInformationCircle,
-  HiOutlineXCircle,
-  HiXCircle,
-} from 'react-icons/hi2';
+import { CircleAlert, CircleCheck, CircleX, Info } from 'lucide-react';
 
 /**
  * CVA alert variants with semantic color options
@@ -37,10 +31,10 @@ const alertVariants = cva(
 );
 
 const DEFAULT_ICONS = {
-  error: <HiXCircle />,
-  info: <HiInformationCircle />,
-  success: <HiCheckCircle />,
-  warning: <HiExclamationCircle />,
+  error: <CircleX />,
+  info: <Info />,
+  success: <CircleCheck />,
+  warning: <CircleAlert />,
 };
 
 const TYPE_TO_VARIANT: Record<
@@ -73,7 +67,7 @@ export default function Alert({
 
       {onClose && (
         <Button
-          label={<HiOutlineXCircle />}
+          label={<CircleX />}
           variant={ButtonVariant.GHOST}
           size={ButtonSize.SM}
           onClick={onClose}

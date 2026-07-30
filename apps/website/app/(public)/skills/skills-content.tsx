@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { GithubIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { Code } from '@genfeedai/ui';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import {
@@ -18,15 +19,10 @@ import {
   WebSection,
 } from '@web-components/content/NeuralGrid';
 import PageLayout from '@web-components/PageLayout';
+import { ArrowRight, BrainCircuit, Loader, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useState } from 'react';
-import { FaGithub } from 'react-icons/fa6';
-import {
-  LuArrowRight,
-  LuBrainCircuit,
-  LuLoader,
-  LuSparkles,
-} from 'react-icons/lu';
+
 import InstallCommand from './install-command';
 import SkillsBundleCta from './skills-bundle-cta';
 import SkillsHowItWorks from './skills-how-it-works';
@@ -78,7 +74,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
     <div ref={containerRef}>
       <PageLayout
         badge="Open Source Skills"
-        badgeIcon={LuBrainCircuit}
+        badgeIcon={BrainCircuit}
         compact
         title={<>{FREE_SKILL_COUNT} Skills. One Command.</>}
         description="Content creation, SEO, advertising, GTM, image prompting, platform development, and analysis as Claude Code skills. Works standalone. Works better with Genfeed."
@@ -92,9 +88,9 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <FaGithub className="size-4" />
+                  <GithubIcon className="size-4" />
                   View on GitHub
-                  <LuArrowRight className="size-4" />
+                  <ArrowRight className="size-4" />
                 </Link>
               </Button>
               <Button
@@ -266,10 +262,10 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
               disabled={checkoutLoading}
             >
               {checkoutLoading ? (
-                <LuLoader className="size-4 animate-spin" />
+                <Loader className="size-4 animate-spin" />
               ) : (
                 <>
-                  <LuSparkles className="size-4" />
+                  <Sparkles className="size-4" />
                   Get Pro Skills: ${registry.bundlePrice}
                 </>
               )}
@@ -285,7 +281,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <FaGithub className="size-4" />
+              <GithubIcon className="size-4" />
               Free Skills on GitHub
             </Link>
           </Button>

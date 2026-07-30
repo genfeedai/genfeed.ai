@@ -9,14 +9,9 @@ import {
 import type { TrendAnalysisCardProps } from '@genfeedai/props/analytics/insights.props';
 import Card from '@ui/card/Card';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
+import { ChartColumn, Minus, TrendingDown, TrendingUp } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { memo, useMemo } from 'react';
-import {
-  HiArrowTrendingDown,
-  HiArrowTrendingUp,
-  HiChartBar,
-  HiMinus,
-} from 'react-icons/hi2';
 
 const AreaChart = dynamic(() => import('recharts').then((m) => m.AreaChart), {
   ssr: false,
@@ -69,7 +64,7 @@ const TrendAnalysisCard = memo(function TrendAnalysisCard({
     return (
       <Card
         label="Trend Analysis"
-        icon={HiChartBar}
+        icon={ChartColumn}
         iconClassName="text-primary"
         className={className}
       >
@@ -95,12 +90,12 @@ const TrendAnalysisCard = memo(function TrendAnalysisCard({
     return (
       <Card
         label="Trend Analysis"
-        icon={HiChartBar}
+        icon={ChartColumn}
         iconClassName="text-primary"
         className={className}
       >
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <HiChartBar className="size-12 text-foreground/30 mb-3" />
+          <ChartColumn className="size-12 text-foreground/30 mb-3" />
           <p className="text-foreground/70 font-medium">
             No trend data available
           </p>
@@ -115,7 +110,7 @@ const TrendAnalysisCard = memo(function TrendAnalysisCard({
   return (
     <Card
       label="Trend Analysis"
-      icon={HiChartBar}
+      icon={ChartColumn}
       iconClassName="text-primary"
       description="Performance trends and forecasts"
       className={className}
@@ -145,10 +140,10 @@ const TrendItem = memo(function TrendItem({ trend }: TrendItemProps) {
 
   const DirectionIcon =
     trend.direction === TrendDirection.UP
-      ? HiArrowTrendingUp
+      ? TrendingUp
       : trend.direction === TrendDirection.DOWN
-        ? HiArrowTrendingDown
-        : HiMinus;
+        ? TrendingDown
+        : Minus;
 
   return (
     <div className="p-4 bg-background hover:bg-background/80 transition-colors">

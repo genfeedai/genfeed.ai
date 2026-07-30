@@ -1,17 +1,22 @@
 'use client';
 
 import { CredentialPlatform, IngredientCategory } from '@genfeedai/enums';
-import { FaInstagram, FaTiktok, FaXTwitter, FaYoutube } from 'react-icons/fa6';
+import {
+  InstagramIcon,
+  TiktokIcon,
+  XTwitterIcon,
+  YoutubeIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
 
 export const SCHEDULER_ALLOWED_MINUTES: readonly number[] = [0, 15, 30, 45];
 export const SCHEDULER_ALLOWED_MINUTES_SET = new Set(SCHEDULER_ALLOWED_MINUTES);
 
 // Platform icon mapping
 export const PLATFORM_ICONS = {
-  [CredentialPlatform.YOUTUBE]: FaYoutube,
-  [CredentialPlatform.INSTAGRAM]: FaInstagram,
-  [CredentialPlatform.TWITTER]: FaXTwitter,
-  [CredentialPlatform.TIKTOK]: FaTiktok,
+  [CredentialPlatform.YOUTUBE]: YoutubeIcon,
+  [CredentialPlatform.INSTAGRAM]: InstagramIcon,
+  [CredentialPlatform.TWITTER]: XTwitterIcon,
+  [CredentialPlatform.TIKTOK]: TiktokIcon,
 };
 
 // All supported platforms

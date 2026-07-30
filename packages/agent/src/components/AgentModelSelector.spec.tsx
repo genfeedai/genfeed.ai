@@ -1,43 +1,62 @@
 import { AGENT_MODELS } from '@genfeedai/agent/constants/agent-models.constant';
 import { render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-
-vi.mock('@ui/primitives/button', () => ({
-  Button: function MockButton(props: {
-    ariaLabel?: string;
-    children?: ReactNode;
-    isDisabled?: boolean;
-    onClick?: () => void;
-  }) {
-    return (
-      <button
-        type="button"
-        aria-label={props.ariaLabel}
-        disabled={props.isDisabled}
-        onClick={props.onClick}
-      >
-        {props.children}
-      </button>
-    );
-  },
-}));
-
-vi.mock('@ui/primitives/popover', () => ({
-  // Only render content when open so tests mirror closed-popover reality.
-  Popover: ({ children, open }: { children: ReactNode; open?: boolean }) => (
-    <div data-popover-open={open ? 'true' : 'false'}>{children}</div>
-  ),
-  PopoverContent: ({ children }: { children: ReactNode }) => (
-    <div data-testid="model-selector-menu">{children}</div>
-  ),
-  PopoverTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
-}));
-
 import { AgentModelSelector } from './AgentModelSelector';
 
 describe('AgentModelSelector', () => {
-  it('disables the trigger when the composer is disabled', () => {
+  it('opens with search, caps list height, and shows $ cost tiers', async () => {
+    const user = userEvent.setup();
+    const onModelChange = vi.fn();
+
+    render(
+      <AgentModelSelector
+        selectedModel={AGENT_MODELS[0]?.key ?? 'openrouter/auto'}
+        onModelChange={onModelChange}
+        creditsAvailable={100}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Select model' }));
+
+    expect(screen.getByLabelText('Search models')).toBeInTheDocument();
+    const modelGroup = screen.getByRole('group', { name: 'Models' });
+    expect(modelGroup).toHaveClass('max-h-72');
+    expect(screen.queryByText(/^\d+cr$/)).not.toBeInTheDocument();
+    expect(screen.getAllByTitle(/^Cost tier \$+$/).length).toBeGreaterThan(0);
+
+    await user.type(screen.getByLabelText('Search models'), 'opus');
+    expect(screen.getByRole('button', { name: /claude opus/i })).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: /^auto$/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('clears search when Buy Credits closes the popover', async () => {
+    const user = userEvent.setup();
+    const onBuyCredits = vi.fn();
+    // Force locked models so Buy Credits is visible.
+    render(
+      <AgentModelSelector
+        selectedModel={AGENT_MODELS[0]?.key ?? 'openrouter/auto'}
+        onModelChange={vi.fn()}
+        creditsAvailable={0}
+        onBuyCredits={onBuyCredits}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Select model' }));
+    await user.type(screen.getByLabelText('Search models'), 'opus');
+    expect(screen.getByLabelText('Search models')).toHaveValue('opus');
+
+    await user.click(screen.getByRole('button', { name: /buy credits/i }));
+    expect(onBuyCredits).toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Select model' }));
+    expect(screen.getByLabelText('Search models')).toHaveValue('');
+  });
+
+  it('disables the trigger when isDisabled is set', () => {
     render(
       <AgentModelSelector
         creditsAvailable={null}
@@ -47,12 +66,12 @@ describe('AgentModelSelector', () => {
       />,
     );
 
-    const trigger = screen.getByRole('button', { name: 'Select model' });
-    expect(trigger).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Select model' })).toBeDisabled();
   });
 
-  it('keeps the trigger enabled when the composer is active', () => {
-    render(
+  it('clears open state when the selector becomes disabled', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
       <AgentModelSelector
         creditsAvailable={null}
         onModelChange={vi.fn()}
@@ -60,21 +79,9 @@ describe('AgentModelSelector', () => {
       />,
     );
 
-    expect(
-      screen.getByRole('button', { name: 'Select model' }),
-    ).not.toBeDisabled();
-  });
+    await user.click(screen.getByRole('button', { name: 'Select model' }));
+    expect(screen.getByLabelText('Search models')).toBeInTheDocument();
 
-  it('clears open state when the selector becomes disabled', () => {
-    const { container, rerender } = render(
-      <AgentModelSelector
-        creditsAvailable={null}
-        onModelChange={vi.fn()}
-        selectedModel={AGENT_MODELS[0]?.key ?? 'auto'}
-      />,
-    );
-
-    // Disable while open would latch open=true without the reset effect.
     rerender(
       <AgentModelSelector
         creditsAvailable={null}
@@ -85,21 +92,6 @@ describe('AgentModelSelector', () => {
     );
 
     expect(screen.getByRole('button', { name: 'Select model' })).toBeDisabled();
-    expect(container.querySelector('[data-popover-open="true"]')).toBeNull();
-
-    rerender(
-      <AgentModelSelector
-        creditsAvailable={null}
-        onModelChange={vi.fn()}
-        selectedModel={AGENT_MODELS[0]?.key ?? 'auto'}
-      />,
-    );
-
-    expect(
-      screen.getByRole('button', { name: 'Select model' }),
-    ).not.toBeDisabled();
-    // Re-enable must stay closed — not restore a previous open latch.
-    expect(container.querySelector('[data-popover-open="true"]')).toBeNull();
-    expect(container.querySelector('[data-popover-open="false"]')).toBeTruthy();
+    expect(screen.queryByLabelText('Search models')).not.toBeInTheDocument();
   });
 });

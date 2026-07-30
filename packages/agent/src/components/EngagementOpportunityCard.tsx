@@ -2,13 +2,8 @@ import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
+import { Check, FastForward, MessageSquare, Pencil } from 'lucide-react';
 import { type ReactElement, useCallback, useState } from 'react';
-import {
-  HiChatBubbleLeftRight,
-  HiCheck,
-  HiForward,
-  HiPencil,
-} from 'react-icons/hi2';
 
 interface EngagementOpportunityCardProps {
   action: AgentUiAction;
@@ -51,7 +46,7 @@ export function EngagementOpportunityCard({
     return (
       <div className="my-2 border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
         <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-          <HiCheck className="size-5" />
+          <Check className="size-5" />
           <span className="text-sm font-medium">Response handled</span>
         </div>
       </div>
@@ -61,7 +56,7 @@ export function EngagementOpportunityCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiChatBubbleLeftRight className="size-5 text-emerald-500" />
+        <MessageSquare className="size-5 text-emerald-500" />
         <h3 className="text-sm font-semibold">
           {action.title || 'Engagement Opportunity'}
         </h3>
@@ -124,7 +119,7 @@ export function EngagementOpportunityCard({
           isDisabled={!reply.trim()}
           className="flex-1 bg-green-500 text-white hover:bg-green-600"
         >
-          <HiCheck className="size-3.5" />
+          <Check className="size-3.5" />
           Approve
         </Button>
         <Button
@@ -133,7 +128,7 @@ export function EngagementOpportunityCard({
           onClick={handleEdit}
           className="flex-1"
         >
-          <HiPencil className="size-3.5" />
+          <Pencil className="size-3.5" />
           {isEditing ? 'Save' : 'Edit'}
         </Button>
         <Button
@@ -142,7 +137,7 @@ export function EngagementOpportunityCard({
           onClick={handleSkip}
           className="flex-1 bg-muted text-muted-foreground hover:bg-muted/80"
         >
-          <HiForward className="size-3.5" />
+          <FastForward className="size-3.5" />
           Skip
         </Button>
       </div>

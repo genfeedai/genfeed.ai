@@ -4,7 +4,7 @@ import type {
 } from '@genfeedai/desktop-contracts';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { HiFolderOpen } from 'react-icons/hi2';
+import { FolderOpen } from 'lucide-react';
 
 function timeAgo(dateStr: string): string {
   const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -56,7 +56,7 @@ function SidebarThreadList({
         return (
           <div className="thread-group" key={ws.id}>
             <span className="thread-group-label">
-              <HiFolderOpen className="nav-icon-svg" /> {ws.name}
+              <FolderOpen className="nav-icon-svg" /> {ws.name}
             </span>
             {wsThreads.map((thread) => (
               <Button

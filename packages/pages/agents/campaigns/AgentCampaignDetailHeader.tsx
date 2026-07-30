@@ -6,7 +6,7 @@ import type { AgentCampaign } from '@services/automation/agent-campaigns.service
 import Badge from '@ui/display/badge/Badge';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import { Button } from '@ui/primitives/button';
-import { HiArrowLeft } from 'react-icons/hi2';
+import { ArrowLeft } from 'lucide-react';
 
 type CampaignStatus = 'draft' | 'active' | 'paused' | 'completed';
 
@@ -37,7 +37,7 @@ export default function AgentCampaignDetailHeader({
     <>
       <div className="flex items-center gap-4">
         <Button
-          label={<HiArrowLeft />}
+          label={<ArrowLeft />}
           variant={ButtonVariant.SECONDARY}
           onClick={onBack}
           size={ButtonSize.SM}

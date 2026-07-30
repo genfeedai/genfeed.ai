@@ -1,5 +1,5 @@
 import { Brand as BaseBrand } from '@genfeedai/client/models';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { type AssetScope, CredentialPlatform } from '@genfeedai/enums';
 import {
   getDeepLink,
   isMobileDevice,
@@ -13,6 +13,12 @@ import { Link } from '@models/social/link.model';
 export class Brand extends BaseBrand {
   constructor(partial: Partial<IBrand>) {
     super(partial);
+
+    // Prisma wire format is UPPERCASE (PUBLIC); app AssetScope is lowercase
+    // (public). Normalize so UI checks like scope === AssetScope.PUBLIC work.
+    if (typeof this.scope === 'string') {
+      this.scope = this.scope.toLowerCase() as AssetScope;
+    }
 
     if (
       partial?.user &&

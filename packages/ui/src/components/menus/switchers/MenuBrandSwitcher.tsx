@@ -11,11 +11,21 @@ import type { BrandSwitcherProps } from '@genfeedai/props/social/brand-switcher.
 import { logger } from '@genfeedai/services/core/logger.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
+import {
+  SWITCHER_AVATAR_CLASSNAME,
+  SWITCHER_CHEVRON_CLASSNAME,
+  SWITCHER_COMPOSITE_CLEAR_CLASSNAME,
+  SWITCHER_COMPOSITE_SHELL_CLASSNAME,
+  SWITCHER_COMPOSITE_TRIGGER_CLASSNAME,
+  SWITCHER_LABEL_CLASSNAME,
+  SWITCHER_TRIGGER_CLASSNAME,
+  SWITCHER_TRIGGER_OPEN_CLASSNAME,
+} from '@ui/menus/switchers/switcher-trigger.classes';
 import { Button } from '@ui/primitives/button';
+import { ChevronDown, Settings, X } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { type MouseEvent, useCallback, useState } from 'react';
-import { HiChevronDown, HiOutlineCog6Tooth, HiXMark } from 'react-icons/hi2';
 
 export default function MenuBrandSwitcher({
   brands,
@@ -37,7 +47,6 @@ export default function MenuBrandSwitcher({
   const isUpdating = externalIsUpdating ?? isUpdatingBrand;
   const selectedBrand = brands.find((b) => b.id === brandId);
   const selectedBrandLabel = selectedBrand?.label || 'Select Brand';
-  const avatarSizeClassName = variant === 'labeled' ? 'size-6' : 'size-8';
   const shouldShowClearSelection =
     variant === 'labeled' && Boolean(clearSelectionAction) && Boolean(brandId);
 
@@ -117,7 +126,7 @@ export default function MenuBrandSwitcher({
           orgSlug && b.slug
             ? {
                 ariaLabel: `Open ${b.label ?? 'brand'} settings`,
-                icon: HiOutlineCog6Tooth,
+                icon: Settings,
                 onAction: () =>
                   push(createBrandAppRoute(orgSlug, b.slug, '/settings')),
               }
@@ -126,22 +135,55 @@ export default function MenuBrandSwitcher({
     }),
   ];
 
-  return (
-    <div
+  const brandAvatar =
+    selectedBrand?.logoUrl && selectedBrand.logoUrl !== '' ? (
+      <div className={SWITCHER_AVATAR_CLASSNAME}>
+        <Image
+          src={selectedBrand.logoUrl}
+          alt={selectedBrand.label ?? 'Brand'}
+          width={24}
+          height={24}
+          className="size-full object-cover object-center"
+          sizes="24px"
+        />
+      </div>
+    ) : (
+      <div className={SWITCHER_AVATAR_CLASSNAME}>
+        {selectedBrandLabel.charAt(0).toUpperCase()}
+      </div>
+    );
+
+  const labeledTrigger = (isOpen: boolean) => (
+    <Button
+      type="button"
+      data-testid="brand-switcher-trigger"
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
       className={cn(
-        'flex w-full min-w-0 items-center',
-        variant === 'labeled' ? 'gap-1' : 'justify-end',
+        shouldShowClearSelection
+          ? SWITCHER_COMPOSITE_TRIGGER_CLASSNAME
+          : SWITCHER_TRIGGER_CLASSNAME,
+        isUpdating && 'cursor-not-allowed opacity-50',
+        !shouldShowClearSelection && isOpen && SWITCHER_TRIGGER_OPEN_CLASSNAME,
       )}
+      ariaLabel="Switch brand"
+      title={selectedBrandLabel}
     >
-      <div
-        className={cn(
-          variant === 'labeled' ? 'min-w-0 flex-1' : 'flex w-full justify-end',
-        )}
-      >
+      {brandAvatar}
+      <span className={SWITCHER_LABEL_CLASSNAME}>
+        {isUpdating ? 'Switching…' : selectedBrandLabel}
+      </span>
+      <ChevronDown
+        className={cn(SWITCHER_CHEVRON_CLASSNAME, isOpen && 'rotate-180')}
+      />
+    </Button>
+  );
+
+  if (variant !== 'labeled') {
+    return (
+      <div className="flex w-full min-w-0 items-center justify-end">
         <SwitcherDropdown
-          className={
-            variant === 'labeled' ? 'w-full' : 'w-full flex justify-end'
-          }
+          className="flex w-full justify-end"
           items={items}
           renderTrigger={({ isOpen }) => (
             <Button
@@ -150,62 +192,20 @@ export default function MenuBrandSwitcher({
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
               className={cn(
-                'transition-all',
-                'hover:bg-foreground/10 transition-colors duration-200',
-                variant === 'labeled'
-                  ? 'flex h-8 w-full min-w-0 items-center gap-2 rounded-md px-2 text-left'
-                  : 'flex items-center justify-center p-1',
-                isUpdating && 'opacity-50 cursor-not-allowed',
-                isOpen && 'bg-foreground/10',
+                'flex items-center justify-center rounded-md p-1 transition-colors duration-150 hover:bg-foreground/[0.06]',
+                isUpdating && 'cursor-not-allowed opacity-50',
+                isOpen && SWITCHER_TRIGGER_OPEN_CLASSNAME,
               )}
               ariaLabel="Switch brand"
               title={selectedBrandLabel}
             >
-              {selectedBrand?.logoUrl && selectedBrand.logoUrl !== '' ? (
-                <div
-                  className={cn(
-                    'flex flex-shrink-0 items-center justify-center overflow-hidden rounded-md bg-background',
-                    avatarSizeClassName,
-                  )}
-                >
-                  <Image
-                    src={selectedBrand.logoUrl}
-                    alt={selectedBrand.label ?? 'Brand'}
-                    width={variant === 'labeled' ? 24 : 32}
-                    height={variant === 'labeled' ? 24 : 32}
-                    className="size-full object-cover object-center"
-                    sizes={variant === 'labeled' ? '24px' : '32px'}
-                  />
-                </div>
-              ) : (
-                <div
-                  className={cn(
-                    'flex flex-shrink-0 items-center justify-center rounded-md bg-foreground/20 font-semibold text-foreground',
-                    variant === 'labeled' ? 'size-6 text-xs' : 'size-8 text-sm',
-                  )}
-                >
-                  {selectedBrandLabel.charAt(0).toUpperCase()}
-                </div>
-              )}
-              {variant === 'labeled' ? (
-                <>
-                  <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-foreground">
-                    {isUpdating ? 'Switching…' : selectedBrandLabel}
-                  </span>
-                  <HiChevronDown
-                    className={cn(
-                      'size-3.5 flex-shrink-0 text-foreground/45 transition-transform duration-200',
-                      isOpen && 'rotate-180',
-                    )}
-                  />
-                </>
-              ) : null}
+              {brandAvatar}
             </Button>
           )}
           onSelect={(id) => void handleSelect(id)}
           isDisabled={isUpdating}
           hasSearch={items.length >= 5}
-          minWidth={variant === 'labeled' ? 224 : 220}
+          minWidth={220}
           searchPlaceholder="Search brands…"
           footerActions={[
             {
@@ -215,24 +215,56 @@ export default function MenuBrandSwitcher({
           ]}
         />
       </div>
+    );
+  }
 
-      {shouldShowClearSelection ? (
-        <Button
-          type="button"
-          ariaLabel={clearSelectionAction?.ariaLabel ?? 'Clear brand selection'}
-          title={clearSelectionAction?.ariaLabel ?? 'Clear brand selection'}
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-          isDisabled={isUpdating}
-          onClick={handleClearButtonClick}
-          className={cn(
-            'flex size-8 flex-shrink-0 items-center justify-center rounded-md border border-border/60 bg-background/30 text-foreground/45 transition-colors duration-150',
-            'hover:border-foreground/20 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-0',
-          )}
-        >
-          <HiXMark className="size-3.5" />
-        </Button>
-      ) : null}
-    </div>
+  // Labeled: one chip — trigger (+ optional clear) share one shell so the X
+  // is not a second bordered box.
+  return (
+    <SwitcherDropdown
+      className="w-full"
+      items={items}
+      renderTrigger={({ isOpen }) =>
+        shouldShowClearSelection ? (
+          <div
+            className={cn(
+              SWITCHER_COMPOSITE_SHELL_CLASSNAME,
+              isOpen && SWITCHER_TRIGGER_OPEN_CLASSNAME,
+              isUpdating && 'opacity-50',
+            )}
+          >
+            {labeledTrigger(isOpen)}
+            <Button
+              type="button"
+              data-testid="clear-brand-selection"
+              ariaLabel={
+                clearSelectionAction?.ariaLabel ?? 'Clear brand selection'
+              }
+              title={clearSelectionAction?.ariaLabel ?? 'Clear brand selection'}
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+              isDisabled={isUpdating}
+              onClick={handleClearButtonClick}
+              className={SWITCHER_COMPOSITE_CLEAR_CLASSNAME}
+            >
+              <X className="size-3.5" />
+            </Button>
+          </div>
+        ) : (
+          labeledTrigger(isOpen)
+        )
+      }
+      onSelect={(id) => void handleSelect(id)}
+      isDisabled={isUpdating}
+      hasSearch={items.length >= 5}
+      minWidth={224}
+      searchPlaceholder="Search brands…"
+      footerActions={[
+        {
+          label: 'New Brand',
+          onAction: () => openBrandOverlay(null),
+        },
+      ]}
+    />
   );
 }

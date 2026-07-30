@@ -149,9 +149,24 @@ export function useAssetActions({
   );
 
   const handleConvertImageToVideo = useCallback(
-    (ingredient: IIngredient) =>
-      navigateWithImageReference(ingredient, 'video'),
-    [navigateWithImageReference],
+    (ingredient: IIngredient) => {
+      if (!ingredient) {
+        return;
+      }
+      if (ingredient.status === IngredientStatus.PROCESSING) {
+        return notificationsService.info(
+          'Please wait until the image has finished processing',
+        );
+      }
+      const format = ingredient.ingredientFormat || IngredientFormat.PORTRAIT;
+      // Storyboard owns image→video sequences and multi-frame scripts.
+      router.push(
+        href(
+          `/studio/storyboard?mode=scenes&referenceImageId=${ingredient.id}&format=${format}`,
+        ),
+      );
+    },
+    [href, notificationsService, router],
   );
 
   const handleCreateVariation = useCallback(

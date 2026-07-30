@@ -8,13 +8,7 @@ import {
 } from '@genfeedai/enums';
 import type { IPost } from '@genfeedai/interfaces';
 import type { TableAction } from '@props/ui/display/table.props';
-import {
-  HiArrowTopRightOnSquare,
-  HiDocumentDuplicate,
-  HiEye,
-  HiPencil,
-  HiTrash,
-} from 'react-icons/hi2';
+import { Copy, ExternalLink, Eye, Pencil, Trash2 } from 'lucide-react';
 
 export type BuildPostsTableActionsParams = {
   scope: PageScope | undefined;
@@ -36,7 +30,7 @@ export function buildPostsTableActions({
   if (scope === PageScope.SUPERADMIN) {
     return [
       {
-        icon: () => <HiArrowTopRightOnSquare />,
+        icon: () => <ExternalLink />,
         isVisible: (post: IPost) => !!post.platformUrl,
         onClick: onOpenPlatformUrl,
         tooltip: 'View',
@@ -47,7 +41,7 @@ export function buildPostsTableActions({
 
   return [
     {
-      icon: () => <HiEye />,
+      icon: () => <Eye />,
       isVisible: (post: IPost) => {
         const hasIngredient = post.ingredients && post.ingredients.length > 0;
         return hasIngredient && post.status !== PostStatus.PUBLIC;
@@ -58,7 +52,7 @@ export function buildPostsTableActions({
       variant: ButtonVariant.SECONDARY,
     },
     {
-      icon: () => <HiPencil />,
+      icon: () => <Pencil />,
       isVisible: (post: IPost) => {
         const editableStatuses = [
           PostStatus.SCHEDULED,
@@ -75,7 +69,7 @@ export function buildPostsTableActions({
       variant: ButtonVariant.DEFAULT,
     },
     {
-      icon: () => <HiTrash />,
+      icon: () => <Trash2 />,
       isVisible: (post: IPost) => {
         // Show delete for draft posts (not published)
         return post.status !== PostStatus.PUBLIC;
@@ -86,7 +80,7 @@ export function buildPostsTableActions({
       variant: ButtonVariant.DESTRUCTIVE,
     },
     {
-      icon: () => <HiDocumentDuplicate />,
+      icon: () => <Copy />,
       isVisible: (post: IPost) => post.status === PostStatus.PUBLIC,
       onClick: onRemix,
       size: ButtonSize.SM,
@@ -94,7 +88,7 @@ export function buildPostsTableActions({
       variant: ButtonVariant.DEFAULT,
     },
     {
-      icon: () => <HiArrowTopRightOnSquare />,
+      icon: () => <ExternalLink />,
       isVisible: (post: IPost) => !!post.platformUrl,
       onClick: onOpenPlatformUrl,
       tooltip: 'View',

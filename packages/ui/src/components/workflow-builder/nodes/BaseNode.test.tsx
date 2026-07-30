@@ -1,8 +1,9 @@
 import '@testing-library/jest-dom/vitest';
 import { render } from '@testing-library/react';
 import BaseNode from '@ui/workflow-builder/nodes/BaseNode';
+import { Image } from 'lucide-react';
 import type { ComponentProps, ComponentPropsWithoutRef } from 'react';
-import { HiOutlinePhoto } from 'react-icons/hi2';
+
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@xyflow/react', () => ({
@@ -34,7 +35,7 @@ describe('BaseNode', () => {
     bgColor: 'bg-green-50',
     borderColor: 'border-green-500',
     data: mockData,
-    icon: <HiOutlinePhoto />,
+    icon: <Image />,
     id: 'node-1',
     isConnectable: true,
     selected: false,

@@ -13,7 +13,8 @@ import {
   toTrendSoundFinding,
   toTrendVideoFinding,
 } from '@pages/research/work-surface/research-work-surface.types';
-import { HiHashtag, HiMusicalNote, HiOutlineFilm } from 'react-icons/hi2';
+import { Film, Hash, Music } from 'lucide-react';
+
 import RelatedMetricCard from './related-metric-card';
 
 type TrendsPlatformRelatedSectionsProps = {
@@ -50,7 +51,7 @@ export default function TrendsPlatformRelatedSections({
       {showVideos ? (
         <section className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
-            <HiOutlineFilm className="size-5 text-foreground/70" />
+            <Film className="size-5 text-foreground/70" />
             <h2 className="text-lg font-semibold text-foreground">
               Related viral videos
             </h2>
@@ -92,7 +93,7 @@ export default function TrendsPlatformRelatedSections({
       {showHashtags ? (
         <section className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
-            <HiHashtag className="size-5 text-foreground/70" />
+            <Hash className="size-5 text-foreground/70" />
             <h2 className="text-lg font-semibold text-foreground">
               Trending hashtags
             </h2>
@@ -134,7 +135,7 @@ export default function TrendsPlatformRelatedSections({
       {showSounds ? (
         <section className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
-            <HiMusicalNote className="size-5 text-foreground/70" />
+            <Music className="size-5 text-foreground/70" />
             <h2 className="text-lg font-semibold text-foreground">
               Trending sounds
             </h2>

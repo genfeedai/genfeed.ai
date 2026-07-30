@@ -1,11 +1,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { CircleAlert, CircleCheck, Zap } from 'lucide-react';
 import type { ReactElement } from 'react';
-import {
-  HiCheckCircle,
-  HiExclamationCircle,
-  HiOutlineBolt,
-} from 'react-icons/hi2';
 
 type CardStatus = 'idle' | 'executing' | 'done' | 'error';
 
@@ -39,7 +35,7 @@ export function WorkflowExecuteCardStatusPanel({
         isDisabled={!workflowId || isLoadingInterface}
         className="flex w-full items-center justify-center gap-2 px-4 py-2 text-sm font-black"
       >
-        <HiOutlineBolt className="size-4" />
+        <Zap className="size-4" />
         Execute
       </Button>
     );
@@ -60,7 +56,7 @@ export function WorkflowExecuteCardStatusPanel({
     return (
       <div className="space-y-2">
         <div className="flex items-center gap-2 border border-green-200 bg-green-50 px-3 py-2 dark:border-green-800 dark:bg-green-950">
-          <HiCheckCircle className="size-4 text-green-600 dark:text-green-400" />
+          <CircleCheck className="size-4 text-green-600 dark:text-green-400" />
           <span className="text-sm text-green-700 dark:text-green-300">
             Workflow executed successfully
           </span>
@@ -81,7 +77,7 @@ export function WorkflowExecuteCardStatusPanel({
     return (
       <div className="space-y-2">
         <div className="flex items-center gap-2 border border-red-200 bg-red-50 px-3 py-2 dark:border-red-800 dark:bg-red-950">
-          <HiExclamationCircle className="size-4 text-red-600 dark:text-red-400" />
+          <CircleAlert className="size-4 text-red-600 dark:text-red-400" />
           <span className="text-sm text-red-700 dark:text-red-300">
             {error}
           </span>

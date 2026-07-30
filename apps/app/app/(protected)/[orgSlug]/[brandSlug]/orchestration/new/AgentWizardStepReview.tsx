@@ -4,7 +4,7 @@ import { AgentAutonomyMode, ButtonVariant } from '@genfeedai/enums';
 import type { IAgentWizardFormData } from '@genfeedai/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
-import { HiArrowLeft, HiCheck } from 'react-icons/hi2';
+import { ArrowLeft, Check } from 'lucide-react';
 
 type AgentTypeConfig = {
   label: string;
@@ -99,7 +99,7 @@ export default function AgentWizardStepReview({
         <Button
           label={
             <>
-              <HiArrowLeft /> Back
+              <ArrowLeft /> Back
             </>
           }
           variant={ButtonVariant.SECONDARY}
@@ -108,7 +108,7 @@ export default function AgentWizardStepReview({
         <Button
           label={
             <>
-              <HiCheck /> Create Agent
+              <Check /> Create Agent
             </>
           }
           variant={ButtonVariant.DEFAULT}

@@ -5,8 +5,8 @@ import type { ModalConfirmProps } from '@genfeedai/props/modals/modal.props';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
+import { TriangleAlert } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { HiOutlineExclamationTriangle } from 'react-icons/hi2';
 
 export default function ModalConfirm({
   label = 'Confirm',
@@ -71,7 +71,7 @@ export default function ModalConfirm({
       <div className="text-center">
         {isError && (
           <div className="mx-auto flex items-center justify-center size-12 mb-4 bg-error/10 rounded-full">
-            <HiOutlineExclamationTriangle className="size-6 text-error" />
+            <TriangleAlert className="size-6 text-error" />
           </div>
         )}
 

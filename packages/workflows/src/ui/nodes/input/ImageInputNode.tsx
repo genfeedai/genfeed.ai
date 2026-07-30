@@ -2,7 +2,7 @@
 
 import type { ImageInputNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { Expand, ImageIcon, Link, Loader2, Upload, X } from 'lucide-react';
+import { Expand, ImageIcon, Link, LoaderCircle, Upload, X } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useMemo } from 'react';
 import { useMediaUpload } from '../../hooks/useMediaUpload';
@@ -165,7 +165,7 @@ function ImageInputNodeComponent(props: NodeProps) {
         >
           {isUploading ? (
             <>
-              <Loader2 className="size-5 text-muted-foreground/50 animate-spin" />
+              <LoaderCircle className="size-5 text-muted-foreground/50 animate-spin" />
               <span className="text-[10px] text-muted-foreground/70">
                 Uploading…
               </span>

@@ -211,6 +211,7 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   __esModule: true,
   useBrand: () => ({
     organizationId: 'org-1',
+    refreshBrands: vi.fn().mockResolvedValue(undefined),
   }),
 }));
 
@@ -280,6 +281,9 @@ vi.mock('react-hook-form', () => ({
     register: vi.fn(),
     reset: vi.fn(),
     setValue: vi.fn(),
+    watch: vi.fn((name?: string) =>
+      name ? (formValues.current[name] ?? '') : formValues.current,
+    ),
   }),
 }));
 
@@ -311,7 +315,17 @@ describe('ModalBrand', () => {
     ).toBeInTheDocument();
   });
 
+  it('disables Create brand until label and slug are filled', () => {
+    render(<ModalBrand {...defaultProps} />);
+
+    expect(screen.getByRole('button', { name: 'Create brand' })).toBeDisabled();
+  });
+
   it('routes newly created brands to the canonical brand settings page', async () => {
+    formValues.current = {
+      label: 'Acme',
+      slug: 'acme',
+    };
     render(<ModalBrand {...defaultProps} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Create brand' }));

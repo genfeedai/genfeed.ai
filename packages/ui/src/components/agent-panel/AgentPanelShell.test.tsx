@@ -21,11 +21,9 @@ vi.mock('@ui/buttons/base/Button', () => ({
   ),
 }));
 
-// Mock icons — avoid SVG processing in jsdom
-vi.mock('react-icons/hi2', () => ({
-  HiArrowsPointingOut: () => <span data-testid="icon-expand" />,
-  HiOutlineSparkles: () => <span data-testid="icon-sparkles-outline" />,
-  HiSparkles: () => <span data-testid="icon-sparkles" />,
+vi.mock('lucide-react', () => ({
+  Maximize2: () => <span data-testid="icon-expand" />,
+  Sparkles: () => <span data-testid="icon-sparkles" />,
 }));
 
 // Mock enums used by Button

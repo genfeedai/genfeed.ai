@@ -3,7 +3,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
-import { CircleHelp, Send } from 'lucide-react';
+import { CircleQuestionMark, Send } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import type { Question } from '../types';
 
@@ -42,7 +42,7 @@ function QuestionCardInner({
       )}
     >
       <div className="flex items-start gap-3 mb-3">
-        <CircleHelp
+        <CircleQuestionMark
           className={cn(
             'size-5 shrink-0 mt-0.5',
             isAnswered ? 'text-emerald-400' : 'text-blue-400',

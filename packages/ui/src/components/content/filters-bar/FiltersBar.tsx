@@ -12,14 +12,14 @@ import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown'
 import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
+import {
+  RectangleHorizontal,
+  RectangleVertical,
+  Square,
+  X,
+} from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { HiXMark } from 'react-icons/hi2';
-import {
-  MdOutlineCropLandscape,
-  MdOutlineCropPortrait,
-  MdOutlineCropSquare,
-} from 'react-icons/md';
 
 // Default filter options
 const DEFAULT_STATUS_OPTIONS = [
@@ -35,17 +35,17 @@ const DEFAULT_STATUS_OPTIONS = [
 const DEFAULT_FORMAT_OPTIONS = [
   { label: 'All Formats', value: '' },
   {
-    icon: <MdOutlineCropSquare size={16} />,
+    icon: <Square size={16} />,
     label: '1:1',
     value: IngredientFormat.SQUARE,
   },
   {
-    icon: <MdOutlineCropLandscape size={16} />,
+    icon: <RectangleHorizontal size={16} />,
     label: '16:9',
     value: IngredientFormat.LANDSCAPE,
   },
   {
-    icon: <MdOutlineCropPortrait size={16} />,
+    icon: <RectangleVertical size={16} />,
     label: '9:16',
     value: IngredientFormat.PORTRAIT,
   },
@@ -331,7 +331,7 @@ export default function FiltersBar({
         <Button
           label={
             <>
-              <HiXMark className="text-lg" /> Clear
+              <X className="text-lg" /> Clear
             </>
           }
           onClick={handleClearFilters}

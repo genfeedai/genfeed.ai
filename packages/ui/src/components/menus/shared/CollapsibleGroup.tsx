@@ -2,11 +2,10 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-
 import { Button } from '@ui/primitives/button';
+import { ChevronDown } from 'lucide-react';
 
 import { useCallback, useSyncExternalStore } from 'react';
-import { HiChevronDown } from 'react-icons/hi2';
 
 const COLLAPSED_GROUPS_KEY = 'genfeed:sidebar:collapsed';
 const COLLAPSED_GROUPS_CHANGED_EVENT = 'genfeed:sidebar:collapsed-changed';
@@ -141,7 +140,7 @@ export default function CollapsibleGroup({
           onClick={toggleMenuShared}
           className="flex items-center gap-1.5 hover:text-foreground/50 transition-colors duration-150 cursor-pointer"
         >
-          <HiChevronDown
+          <ChevronDown
             className={cn(
               'size-3 transition-transform duration-200',
               isCollapsed && '-rotate-90',

@@ -6,8 +6,8 @@ import type { CredentialsGuardProps } from '@genfeedai/props/guards/credentials-
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Loading from '@ui/loading/default/Loading';
+import { Link } from 'lucide-react';
 import { useMemo } from 'react';
-import { HiLink } from 'react-icons/hi2';
 
 /**
  * CredentialsGuard - Guards content that requires connected social credentials
@@ -39,7 +39,7 @@ export default function CredentialsGuard({ children }: CredentialsGuardProps) {
     return (
       <div className="min-h-fit flex flex-col justify-center items-center">
         <CardEmpty
-          icon={HiLink}
+          icon={Link}
           iconClassName="size-12"
           label="No Social Accounts Connected"
           description="Connect a social media account to start creating and scheduling posts."

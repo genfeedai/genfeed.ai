@@ -88,13 +88,13 @@ vi.mock('@services/management/api-keys.service', () => ({
   },
 }));
 
-vi.mock('react-icons/hi2', () => ({
-  HiArrowPath: () => <span data-testid="hi-arrow-path" />,
-  HiChevronDown: () => <span data-testid="hi-chevron-down" />,
-  HiChevronRight: () => <span data-testid="hi-chevron-right" />,
-  HiClipboardDocument: () => <span data-testid="hi-clipboard-document" />,
-  HiPlus: () => <span data-testid="hi-plus" />,
-  HiTrash: () => <span data-testid="hi-trash" />,
+vi.mock('lucide-react', () => ({
+  ChevronDown: () => <span data-testid="hi-chevron-down" />,
+  ChevronRight: () => <span data-testid="hi-chevron-right" />,
+  Clipboard: () => <span data-testid="hi-clipboard-document" />,
+  Plus: () => <span data-testid="hi-plus" />,
+  RefreshCw: () => <span data-testid="hi-arrow-path" />,
+  Trash2: () => <span data-testid="hi-trash" />,
 }));
 
 vi.mock('@ui/card/Card', () => ({

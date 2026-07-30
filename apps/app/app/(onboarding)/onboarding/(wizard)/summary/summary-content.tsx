@@ -15,10 +15,11 @@ import type { InstallReadinessResponse } from '@services/onboarding/onboarding.s
 import { OnboardingService } from '@services/onboarding/onboarding.service';
 import { UsersService } from '@services/organization/users.service';
 import { Button } from '@ui/primitives/button';
+import { ArrowLeft, ArrowUpRight, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type MouseEvent, useEffect, useMemo, useState } from 'react';
-import { HiArrowLeft, HiArrowUpRight, HiSparkles } from 'react-icons/hi2';
+
 import {
   buildGenfeedCloudSignupUrl,
   buildOnboardingAccessSettingsPatch,
@@ -445,7 +446,7 @@ export default function SummaryContent() {
                   ? 'Opening Genfeed Cloud...'
                   : 'Continue to Genfeed Cloud'
               }
-              icon={<HiArrowUpRight className="size-4" />}
+              icon={<ArrowUpRight className="size-4" />}
               disabled={loading || pendingMode !== null}
               className={`w-full rounded-full border border-white/10 bg-white/[0.03] text-white/75 hover:border-white/15 hover:bg-white/[0.06] hover:text-white md:w-auto ${
                 readiness.access.selectedMode === 'cloud' ? CURRENT_RING : ''
@@ -460,14 +461,14 @@ export default function SummaryContent() {
             size={ButtonSize.SM}
             withWrapper={false}
             onClick={() => push(APP_ROUTES.ONBOARDING.PROVIDERS)}
-            icon={<HiArrowLeft className="size-4" />}
+            icon={<ArrowLeft className="size-4" />}
             className="h-8 rounded-full border border-white/10 bg-white/[0.03] px-4 text-white/45 hover:border-white/15 hover:bg-white/[0.06] hover:text-white/75"
           >
             Back
           </Button>
 
           <div className="step-badge inline-flex h-8 shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[10px] font-black uppercase tracking-[0.2em] text-white/60">
-            <HiSparkles className="size-3" />
+            <Sparkles className="size-3" />
             Step 3 of 3
           </div>
         </div>

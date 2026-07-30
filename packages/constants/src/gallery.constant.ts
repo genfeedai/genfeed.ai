@@ -33,12 +33,12 @@ export const GALLERY_DEFAULT_STATUSES = [
  * Gallery sidebar menu configuration
  */
 export const GALLERY_MENU_ITEMS = [
-  { href: '/gallery/videos', iconName: 'HiVideoCamera', label: 'Videos' },
-  { href: '/gallery/images', iconName: 'HiPhoto', label: 'Images' },
-  { href: '/gallery/musics', iconName: 'HiMusicalNote', label: 'Music' },
-  { href: '/gallery/posts', iconName: 'HiDocumentText', label: 'Posts' },
-  { href: '/gallery/leaderboard', iconName: 'HiTrophy', label: 'Leaderboard' },
-  { href: '/prompts', iconName: 'HiLightBulb', label: 'Prompts' },
+  { href: '/gallery/videos', iconName: 'Video', label: 'Videos' },
+  { href: '/gallery/images', iconName: 'Image', label: 'Images' },
+  { href: '/gallery/musics', iconName: 'Music', label: 'Music' },
+  { href: '/gallery/posts', iconName: 'FileText', label: 'Posts' },
+  { href: '/gallery/leaderboard', iconName: 'Trophy', label: 'Leaderboard' },
+  { href: '/prompts', iconName: 'Lightbulb', label: 'Prompts' },
 ] as const;
 
 /**

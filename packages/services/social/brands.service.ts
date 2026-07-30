@@ -16,6 +16,7 @@ import type {
   IBrandKitManualInput,
   IBrandSetupRequest,
   IBrandSetupResponse,
+  IGeneratedBrandProfile,
   IImage,
   IPaginatedResponse,
   IPost,
@@ -293,6 +294,33 @@ export class BrandsService extends BaseService<Brand> {
     },
   ): Promise<void> {
     await this.instance.patch(`/${id}/agent-config`, data);
+  }
+
+  /**
+   * AI brand voice / profile generation. Scans website when `url` is set, or
+   * uses brandId context (and brand.website scrape server-side).
+   * Endpoint returns `{ data: IGeneratedBrandProfile }` (not JSON:API resource).
+   */
+  public async generateBrandVoice(
+    id: string,
+    data: {
+      brandId?: string;
+      examplesToAvoid?: string[];
+      examplesToEmulate?: string[];
+      industry?: string;
+      offering?: string;
+      targetAudience?: string;
+      url?: string;
+    } = {},
+  ): Promise<IGeneratedBrandProfile> {
+    const response = await this.instance.post<{ data: IGeneratedBrandProfile }>(
+      `/${id}/agent-config/generate-voice`,
+      {
+        brandId: data.brandId ?? id,
+        ...data,
+      },
+    );
+    return response.data.data;
   }
 
   public async crawlBrandKitWebsite(

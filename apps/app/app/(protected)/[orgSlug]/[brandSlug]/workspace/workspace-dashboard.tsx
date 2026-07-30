@@ -26,9 +26,10 @@ import {
   TableHeader,
   TableRow,
 } from '@ui/primitives/table';
+import { ArrowRight, Cpu } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
-import { HiOutlineArrowRight, HiOutlineCpuChip } from 'react-icons/hi2';
+
 import { WorkspaceTaskRowsSkeleton } from './workspace-task-loading';
 
 interface ReviewInboxSummary {
@@ -110,7 +111,7 @@ function AgentRunCard({ run }: { run: IAgentRun }) {
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
           <div className="flex size-6 items-center justify-center rounded border border-border bg-muted">
-            <HiOutlineCpuChip className="size-3.5 text-foreground/60" />
+            <Cpu className="size-3.5 text-foreground/60" />
           </div>
           <div>
             <p className="text-xs font-semibold text-foreground">
@@ -139,7 +140,7 @@ function AgentRunCard({ run }: { run: IAgentRun }) {
             href={`${APP_ROUTES.ORCHESTRATION.RUNS}/${run.id}`}
             aria-label={`Open ${run.label}`}
           >
-            <HiOutlineArrowRight className="size-3.5" />
+            <ArrowRight className="size-3.5" />
           </Link>
         </Button>
       </div>

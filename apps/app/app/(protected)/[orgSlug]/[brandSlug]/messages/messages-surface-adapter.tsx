@@ -7,9 +7,10 @@ import type {
   SocialInboxReference,
 } from '@genfeedai/interfaces';
 import { Button } from '@ui/primitives/button';
+import { Link, ShieldCheck } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { type ReactNode, useEffect, useMemo } from 'react';
-import { HiOutlineLink, HiOutlineShieldCheck } from 'react-icons/hi2';
+
 import { useRegisterWorkspaceSurfacePresentationAdapter } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
 import { getSocialInboxReferenceKey } from './messages-surface.helpers';
 
@@ -34,7 +35,7 @@ function MessagesSurfaceInspector({
     <div className="space-y-4" data-testid="messages-surface-inspector">
       <div className="rounded-lg border border-border bg-background p-3">
         <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-          <HiOutlineShieldCheck aria-hidden="true" className="size-4" />
+          <ShieldCheck aria-hidden="true" className="size-4" />
           Social inbox context
         </div>
         <p className="mt-2 text-xs leading-5 text-muted-foreground">
@@ -60,7 +61,7 @@ function MessagesSurfaceInspector({
             </p>
           </div>
           <Button
-            icon={<HiOutlineLink className="size-4" />}
+            icon={<Link className="size-4" />}
             isDisabled={!canAttachReferences}
             onClick={onToggleConversationReference}
             size={ButtonSize.SM}

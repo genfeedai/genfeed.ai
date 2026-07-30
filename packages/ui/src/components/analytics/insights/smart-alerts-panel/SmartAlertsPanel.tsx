@@ -7,17 +7,17 @@ import Card from '@ui/card/Card';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import { Button } from '@ui/primitives/button';
 import { formatDistanceToNow } from 'date-fns';
-import { memo, useMemo } from 'react';
 import {
-  HiArrowRight,
-  HiBell,
-  HiCheckCircle,
-  HiExclamationTriangle,
-  HiInformationCircle,
-  HiSparkles,
-  HiTrophy,
-  HiXMark,
-} from 'react-icons/hi2';
+  ArrowRight,
+  Bell,
+  CircleCheck,
+  Info,
+  Sparkles,
+  TriangleAlert,
+  Trophy,
+  X,
+} from 'lucide-react';
+import { memo, useMemo } from 'react';
 
 const getSeverityStyles = (
   severity: 'critical' | 'warning' | 'info' | 'success',
@@ -27,28 +27,28 @@ const getSeverityStyles = (
       return {
         bg: 'bg-error/10',
         border: 'border-error/30',
-        icon: HiExclamationTriangle,
+        icon: TriangleAlert,
         text: 'text-error',
       };
     case 'warning':
       return {
         bg: 'bg-warning/10',
         border: 'border-warning/30',
-        icon: HiExclamationTriangle,
+        icon: TriangleAlert,
         text: 'text-warning',
       };
     case 'success':
       return {
         bg: 'bg-success/10',
         border: 'border-success/30',
-        icon: HiCheckCircle,
+        icon: CircleCheck,
         text: 'text-success',
       };
     default:
       return {
         bg: 'bg-info/10',
         border: 'border-info/30',
-        icon: HiInformationCircle,
+        icon: Info,
         text: 'text-info',
       };
   }
@@ -57,15 +57,15 @@ const getSeverityStyles = (
 const getTypeIcon = (type: string) => {
   switch (type) {
     case 'anomaly':
-      return HiExclamationTriangle;
+      return TriangleAlert;
     case 'milestone':
-      return HiTrophy;
+      return Trophy;
     case 'trend':
-      return HiSparkles;
+      return Sparkles;
     case 'opportunity':
-      return HiSparkles;
+      return Sparkles;
     default:
-      return HiBell;
+      return Bell;
   }
 };
 
@@ -89,7 +89,7 @@ const SmartAlertsPanel = memo(function SmartAlertsPanel({
     return (
       <Card
         label="Smart Alerts"
-        icon={HiBell}
+        icon={Bell}
         iconClassName="text-primary"
         className={className}
       >
@@ -115,12 +115,12 @@ const SmartAlertsPanel = memo(function SmartAlertsPanel({
     return (
       <Card
         label="Smart Alerts"
-        icon={HiBell}
+        icon={Bell}
         iconClassName="text-primary"
         className={className}
       >
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <HiCheckCircle className="size-12 text-success mb-3" />
+          <CircleCheck className="size-12 text-success mb-3" />
           <p className="text-foreground/70 font-medium">All caught up!</p>
           <p className="text-sm text-foreground/50">
             No alerts require your attention
@@ -133,7 +133,7 @@ const SmartAlertsPanel = memo(function SmartAlertsPanel({
   return (
     <Card
       label="Smart Alerts"
-      icon={HiBell}
+      icon={Bell}
       iconClassName="text-primary"
       description={
         unreadCount > 0
@@ -221,7 +221,7 @@ const SmartAlertsPanel = memo(function SmartAlertsPanel({
                       )}
                     >
                       {alert.actionLabel}
-                      <HiArrowRight className="size-3" />
+                      <ArrowRight className="size-3" />
                     </Button>
                   )}
                 </div>
@@ -238,7 +238,7 @@ const SmartAlertsPanel = memo(function SmartAlertsPanel({
                   className="p-1 rounded-full hover:bg-muted/50 transition-colors"
                   ariaLabel="Dismiss alert"
                 >
-                  <HiXMark className="size-4 text-foreground/40" />
+                  <X className="size-4 text-foreground/40" />
                 </Button>
               )}
             </Button>

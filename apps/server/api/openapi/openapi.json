@@ -9819,10 +9819,6 @@
         ],
         "type": "object"
       },
-      "StartBrandInterviewDto": {
-        "properties": {},
-        "type": "object"
-      },
       "StartTrainingDto": {
         "properties": {
           "baseModel": {
@@ -23398,16 +23394,6 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StartBrandInterviewDto"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": ""

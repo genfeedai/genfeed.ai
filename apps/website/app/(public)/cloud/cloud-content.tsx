@@ -11,40 +11,35 @@ import {
   WebSection,
 } from '@web-components/content/NeuralGrid';
 import PageLayout from '@web-components/PageLayout';
+import { Layers, LayoutDashboard, LifeBuoy, Users } from 'lucide-react';
 import Image from 'next/image';
-import {
-  HiLifebuoy,
-  HiRectangleGroup,
-  HiRectangleStack,
-  HiUserGroup,
-} from 'react-icons/hi2';
 
 const BENEFITS = [
   {
     description:
       'One shared library of brand kits, assets, and every generated output your team can reuse.',
-    icon: HiRectangleStack,
+    icon: Layers,
     shortLabel: 'Library',
     title: 'Shared brand library',
   },
   {
     description:
       'Roles, approval flows, and organization boundaries so the right people ship the right work.',
-    icon: HiUserGroup,
+    icon: Users,
     shortLabel: 'Roles',
     title: 'Roles and approvals',
   },
   {
     description:
       'Run separate brands, clients, and organizations from one place, without one-off setups.',
-    icon: HiRectangleGroup,
+    icon: LayoutDashboard,
     shortLabel: 'Brands',
     title: 'Multi-brand operations',
   },
   {
     description:
       'A shared credit pool, managed billing, and priority support for teams in production.',
-    icon: HiLifebuoy,
+    icon: LifeBuoy,
     shortLabel: 'Support',
     title: 'Managed billing and support',
   },
@@ -151,7 +146,7 @@ export default function CloudContent() {
         <WebSection maxWidth="xl" className="gsap-section">
           <div className="text-center mb-16">
             <div className="flex items-center justify-center gap-3 mb-6">
-              <HiUserGroup className="size-5 text-surface/60" />
+              <Users className="size-5 text-surface/60" />
               <span className="text-xs font-black uppercase tracking-widest text-surface/45">
                 Built for Growing Teams
               </span>

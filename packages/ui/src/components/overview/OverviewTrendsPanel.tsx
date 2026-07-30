@@ -2,9 +2,10 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { TrendItem } from '@genfeedai/props/trends/trends-page.props';
 import { Button } from '@ui/primitives/button';
+import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
-import { HiOutlineArrowRight } from 'react-icons/hi2';
+
 import {
   WorkspaceSurface,
   type WorkspaceSurfaceTone,
@@ -64,7 +65,7 @@ export function OverviewTrendsPanel({
       actions={
         <Button asChild variant={ButtonVariant.SECONDARY}>
           <Link href={viewAllHref}>
-            <HiOutlineArrowRight className="size-4" />
+            <ArrowRight className="size-4" />
             View All
           </Link>
         </Button>

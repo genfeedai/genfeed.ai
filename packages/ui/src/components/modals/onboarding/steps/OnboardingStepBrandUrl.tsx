@@ -4,7 +4,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
-import { HiOutlineGlobeAlt } from 'react-icons/hi2';
+import { Globe } from 'lucide-react';
 
 export interface OnboardingStepBrandUrlProps {
   value: string;
@@ -36,7 +36,7 @@ export default function OnboardingStepBrandUrl({
       <div className="max-w-md mx-auto">
         <FormControl label="Website URL">
           <div className="relative">
-            <HiOutlineGlobeAlt className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
+            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
             <Input
               type="url"
               value={value}

@@ -8,6 +8,7 @@ import {
   isAssetGateSectionPath,
   normalizeProtectedPathname,
   pickOperatorTaskContextSearchParams,
+  resolveOrganizationScopePath,
 } from './operator-shell';
 
 describe('operator-shell helpers', () => {
@@ -37,6 +38,35 @@ describe('operator-shell helpers', () => {
     expect(getCurrentBrandScopedPath('/acme/~/overview')).toBe(
       '/workspace/overview',
     );
+    expect(getCurrentBrandScopedPath('/acme/~/agent/new')).toBe('/agent/new');
+    expect(getCurrentBrandScopedPath('/acme/moonrise/agent/thread-1')).toBe(
+      '/agent/thread-1',
+    );
+  });
+
+  it('maps brand-only settings to the org brands hub when leaving brand scope', () => {
+    expect(resolveOrganizationScopePath('/settings/publishing')).toBe(
+      '/settings/brands',
+    );
+    expect(resolveOrganizationScopePath('/settings/voice')).toBe(
+      '/settings/brands',
+    );
+    expect(resolveOrganizationScopePath('/settings/interview')).toBe(
+      '/settings/brands',
+    );
+    expect(resolveOrganizationScopePath('/settings/harness')).toBe(
+      '/settings/brands',
+    );
+    expect(resolveOrganizationScopePath('/settings/agent-defaults')).toBe(
+      '/settings/brands',
+    );
+    // Shared surfaces keep their path under org scope.
+    expect(resolveOrganizationScopePath('/settings')).toBe('/settings');
+    expect(resolveOrganizationScopePath('/settings/brands')).toBe(
+      '/settings/brands',
+    );
+    expect(resolveOrganizationScopePath('/agent/new')).toBe('/agent/new');
+    expect(resolveOrganizationScopePath('/studio/image')).toBe('/studio/image');
   });
 
   it('gates the first-asset unlock sections (and their aliases) only', () => {

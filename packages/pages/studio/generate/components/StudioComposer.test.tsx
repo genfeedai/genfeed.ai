@@ -13,7 +13,7 @@ const lowCreditsBannerSpy = vi.fn();
 const mockUseSubscription = vi.fn();
 
 vi.mock('@genfeedai/config/license', () => ({
-  isEEEnabled: () => false,
+  hasOrganizationBilling: () => false,
 }));
 
 vi.mock(

@@ -6,8 +6,8 @@ import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Badge from '@ui/display/badge/Badge';
 import ListRowSound from '@ui/lists/row-sound/ListRowSound';
 import { Button } from '@ui/primitives/button';
+import { Trash2 } from 'lucide-react';
 import { useMemo } from 'react';
-import { HiTrash } from 'react-icons/hi2';
 
 function getProviderLabel(provider?: string): string {
   switch (provider) {
@@ -173,7 +173,7 @@ export default function VoiceCatalogRow({
               variant={ButtonVariant.GHOST}
               withWrapper={false}
             >
-              <HiTrash className="size-4" />
+              <Trash2 className="size-4" />
             </Button>
           ) : null}
         </>

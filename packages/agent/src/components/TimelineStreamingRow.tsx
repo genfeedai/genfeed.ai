@@ -8,8 +8,8 @@ import {
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { TimelineStreaming } from '@genfeedai/agent/utils/derive-timeline';
 import { summarizeStreamingProgress } from '@genfeedai/agent/utils/summarize-streaming-progress';
+import { Clock, Sparkles } from 'lucide-react';
 import { type ReactElement, useMemo } from 'react';
-import { HiClock, HiSparkles } from 'react-icons/hi2';
 
 interface TimelineStreamingRowProps {
   entry: TimelineStreaming;
@@ -98,7 +98,7 @@ export function TimelineStreamingRow({
       <div className="w-full max-w-none space-y-2 border-0 bg-transparent px-0.5 py-1">
         {!hasContent ? (
           <div className="flex items-center gap-1.5 text-[11px] text-foreground/50">
-            <HiSparkles className="size-3.5 text-primary/70" />
+            <Sparkles className="size-3.5 text-primary/70" />
             <AnimatedStatusText
               text={progressSummary.label}
               className="font-medium tracking-[0.01em]"
@@ -133,7 +133,7 @@ export function TimelineStreamingRow({
 
         {durationFooter ? (
           <div className="flex items-center gap-1.5 pt-1 text-xs text-foreground/50">
-            <HiClock className="size-3.5 shrink-0 text-foreground/40" />
+            <Clock className="size-3.5 shrink-0 text-foreground/40" />
             <span className="font-medium text-foreground/65">
               {durationFooter}
             </span>

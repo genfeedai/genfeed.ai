@@ -19,9 +19,9 @@ import Card from '@ui/card/Card';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { type ReactNode, useEffect, useState } from 'react';
-import { HiChevronDown, HiChevronRight } from 'react-icons/hi2';
 
 interface ErrorSectionProps {
   children?: ReactNode;
@@ -54,9 +54,9 @@ function ErrorSection({
           className="flex w-full items-center gap-2 text-left text-destructive-foreground"
         >
           {isExpanded ? (
-            <HiChevronDown className="size-4 shrink-0" />
+            <ChevronDown className="size-4 shrink-0" />
           ) : (
-            <HiChevronRight className="size-4 shrink-0" />
+            <ChevronRight className="size-4 shrink-0" />
           )}
           <h3 className="font-semibold">{title}</h3>
         </Button>

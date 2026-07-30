@@ -1,10 +1,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { MessageSquare, TriangleAlert } from 'lucide-react';
 import type { ReactElement } from 'react';
-import {
-  HiOutlineChatBubbleLeftRight,
-  HiOutlineExclamationTriangle,
-} from 'react-icons/hi2';
 
 interface AgentThreadListEmptyStateProps {
   isLoading: boolean;
@@ -31,7 +28,7 @@ export function AgentThreadListEmptyState({
     return (
       <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
         <div className="flex size-10 items-center justify-center rounded-xl bg-orange-500/10 ring-1 ring-inset ring-orange-500/20">
-          <HiOutlineExclamationTriangle className="size-5 text-orange-200/80" />
+          <TriangleAlert className="size-5 text-orange-200/80" />
         </div>
         <div className="space-y-1">
           <p className="text-sm font-medium text-foreground/70">
@@ -57,7 +54,7 @@ export function AgentThreadListEmptyState({
     return (
       <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
         <div className="flex size-10 items-center justify-center rounded-md bg-foreground/[0.05] ring-1 ring-inset ring-border">
-          <HiOutlineChatBubbleLeftRight className="size-5 text-foreground/30" />
+          <MessageSquare className="size-5 text-foreground/30" />
         </div>
         <div>
           <p className="text-sm font-medium text-foreground/50">No threads</p>

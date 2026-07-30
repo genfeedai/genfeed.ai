@@ -6,8 +6,8 @@ import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { Button } from '@ui/primitives/button';
 import { CtaSection, WebSection } from '@web-components/content/NeuralGrid';
 import PageLayout from '@web-components/PageLayout';
+import { Check, Copy, Terminal } from 'lucide-react';
 import Link from 'next/link';
-import { LuCheck, LuCopy, LuTerminal } from 'react-icons/lu';
 
 const INSTALL_COMMAND = 'npx @genfeedai/skills-pro install sk_rcpt_xxx';
 
@@ -26,7 +26,7 @@ export default function SkillsSuccessContent() {
     <div ref={containerRef}>
       <PageLayout
         badge="Complete"
-        badgeIcon={LuCheck}
+        badgeIcon={Check}
         compact
         title={<>Purchase Complete</>}
         description="Check your email for your receipt ID, then install your skills."
@@ -35,7 +35,7 @@ export default function SkillsSuccessContent() {
         <WebSection maxWidth="md" className="gsap-hero">
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-fill/5 border border-edge/10 mb-8">
-              <LuCheck className="size-4 text-emerald-400" />
+              <Check className="size-4 text-emerald-400" />
               <span className="text-surface/60 text-sm">Payment confirmed</span>
             </div>
           </div>
@@ -67,7 +67,7 @@ export default function SkillsSuccessContent() {
                   title="Copy install command"
                   className="shrink-0 p-2 text-surface/30 hover:text-surface transition-colors"
                 >
-                  <LuCopy className="size-4" />
+                  <Copy className="size-4" />
                 </Button>
               </div>
             </div>
@@ -75,7 +75,7 @@ export default function SkillsSuccessContent() {
 
           <div className="mt-8 space-y-4 text-sm text-surface/65">
             <div className="flex items-start gap-3">
-              <LuTerminal className="size-4 mt-0.5 shrink-0 text-surface/65" />
+              <Terminal className="size-4 mt-0.5 shrink-0 text-surface/65" />
               <span>
                 Replace{' '}
                 <Code className="text-surface/60 bg-fill/5">sk_rcpt_xxx</Code>{' '}
@@ -83,7 +83,7 @@ export default function SkillsSuccessContent() {
               </span>
             </div>
             <div className="flex items-start gap-3">
-              <LuTerminal className="size-4 mt-0.5 shrink-0 text-surface/65" />
+              <Terminal className="size-4 mt-0.5 shrink-0 text-surface/65" />
               <span>
                 Skills are installed to{' '}
                 <Code className="text-surface/60 bg-fill/5">skills/</Code> in

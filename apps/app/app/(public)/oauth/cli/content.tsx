@@ -9,16 +9,17 @@ import { EnvironmentService } from '@services/core/environment.service';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
+import {
+  CircleCheck,
+  CircleX,
+  Clipboard,
+  ClipboardCheck,
+  Terminal,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import {
-  HiCheckCircle,
-  HiClipboard,
-  HiClipboardDocumentCheck,
-  HiCommandLine,
-  HiXCircle,
-} from 'react-icons/hi2';
+
 import { Card, CardContent } from '@/components/ui/card';
 import { redirectToCallback } from './callback-redirect';
 
@@ -585,7 +586,7 @@ function CliAuthPageContent() {
       <div className="w-full max-w-md mx-auto">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center size-12 rounded-xl bg-white/5 border border-white/10 mb-5">
-            <HiCommandLine className="size-5 text-white/60" />
+            <Terminal className="size-5 text-white/60" />
           </div>
           <h1 className="text-xl font-semibold tracking-tight mb-1.5">
             {isDesktopMode ? 'Desktop Authentication' : 'CLI Authentication'}
@@ -610,9 +611,7 @@ function CliAuthPageContent() {
             {isLoaded && flowState.step === 'signing-in' && (
               <div className="space-y-4">
                 <StepDisplay
-                  icon={
-                    <HiCommandLine className="size-8 text-muted-foreground" />
-                  }
+                  icon={<Terminal className="size-8 text-muted-foreground" />}
                   title="Sign in required"
                   description="Sign in to authorize this device."
                 />
@@ -672,7 +671,7 @@ function CliAuthPageContent() {
             {flowState.step === 'success' && (
               <div className="space-y-6">
                 <StepDisplay
-                  icon={<HiCheckCircle className="size-8 text-success" />}
+                  icon={<CircleCheck className="size-8 text-success" />}
                   title="Authentication complete"
                   description={
                     isDesktopMode
@@ -694,7 +693,7 @@ function CliAuthPageContent() {
             {flowState.step === 'error' && (
               <div className="space-y-6">
                 <StepDisplay
-                  icon={<HiXCircle className="size-8 text-destructive" />}
+                  icon={<CircleX className="size-8 text-destructive" />}
                   title="Authentication failed"
                   description={flowState.error || 'An unknown error occurred.'}
                 />
@@ -769,9 +768,9 @@ function CopyKeyFallback({
           onClick={onCopy}
         >
           {copied ? (
-            <HiClipboardDocumentCheck className="size-4 text-success" />
+            <ClipboardCheck className="size-4 text-success" />
           ) : (
-            <HiClipboard className="size-4" />
+            <Clipboard className="size-4" />
           )}
           {copied ? 'Copied' : 'Copy'}
         </Button>

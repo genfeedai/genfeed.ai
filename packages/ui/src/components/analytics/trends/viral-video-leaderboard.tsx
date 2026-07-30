@@ -9,8 +9,8 @@ import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
 import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
+import { Flame, Play } from 'lucide-react';
 import Image from 'next/image';
-import { HiOutlineFire, HiOutlinePlay } from 'react-icons/hi2';
 
 const TIMEFRAME_OPTIONS = [
   { label: '24 hours', value: Timeframe.H24 },
@@ -45,7 +45,7 @@ export function ViralVideoLeaderboard({
   if (videos.length === 0) {
     return (
       <div className={`text-center py-12 ${className}`}>
-        <HiOutlineFire className="size-12 mx-auto mb-3 opacity-30" />
+        <Flame className="size-12 mx-auto mb-3 opacity-30" />
         <p className="text-foreground/60">No viral videos found</p>
         <p className="text-sm text-foreground/40 mt-1">
           Check back later for trending content
@@ -61,7 +61,7 @@ export function ViralVideoLeaderboard({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="space-y-1">
           <h3 className="text-lg font-semibold flex items-center gap-2">
-            <HiOutlineFire className="text-muted-foreground" />
+            <Flame className="text-muted-foreground" />
             Viral Video Leaderboard
           </h3>
           <p className="text-sm text-foreground/60">
@@ -121,7 +121,7 @@ export function ViralVideoLeaderboard({
                   />
                 ) : (
                   <div className="size-full flex items-center justify-center">
-                    <HiOutlinePlay className="size-6 text-foreground/30" />
+                    <Play className="size-6 text-foreground/30" />
                   </div>
                 )}
               </div>

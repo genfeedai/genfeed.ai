@@ -8,7 +8,7 @@ import type {
 } from '@genfeedai/types';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { AlertTriangle, ExternalLink, Search, Sparkles, X } from 'lucide-react';
+import { ExternalLink, Search, Sparkles, TriangleAlert, X } from 'lucide-react';
 import { memo } from 'react';
 import { createPortal } from 'react-dom';
 import { ModelCard } from './ModelCard';
@@ -174,7 +174,7 @@ function ModelBrowserModalComponent({
           {/* Warning when no providers configured */}
           {!isLoading && hasFetched && configuredProviders.length === 0 && (
             <div className="mb-6 flex items-start gap-3 rounded-lg border border-warning/20 bg-warning/10 p-4">
-              <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warning" />
+              <TriangleAlert className="mt-0.5 size-5 shrink-0 text-warning" />
               <div>
                 <p className="text-sm font-medium text-warning">
                   No AI providers configured

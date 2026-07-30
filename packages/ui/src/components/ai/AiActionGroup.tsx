@@ -10,8 +10,8 @@ import {
 import type { AiActionGroupProps } from '@genfeedai/props/ai/ai-action.props';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
+import { Sparkles } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import { HiSparkles } from 'react-icons/hi2';
 
 interface AiActionGroupWithHookProps extends AiActionGroupProps {
   orgId: string;
@@ -64,7 +64,7 @@ export default function AiActionGroup({
               isThisActive ? (
                 <Spinner size={ComponentSize.XS} />
               ) : (
-                <HiSparkles className="size-3.5" />
+                <Sparkles className="size-3.5" />
               )
             }
             variant={ButtonVariant.GHOST}

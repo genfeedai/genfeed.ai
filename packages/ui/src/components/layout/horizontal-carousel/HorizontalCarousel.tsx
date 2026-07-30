@@ -4,8 +4,8 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { HorizontalCarouselProps } from '@genfeedai/props/ui/ui.props';
 import { Button } from '@ui/primitives/button';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { memo, useCallback, useRef } from 'react';
-import { HiChevronLeft, HiChevronRight } from 'react-icons/hi2';
 
 const GAP_CLASSES = {
   lg: 'gap-6',
@@ -61,7 +61,7 @@ const HorizontalCarousel = memo(function HorizontalCarousel({
             )}
             ariaLabel="Scroll left"
           >
-            <HiChevronLeft className="size-5" />
+            <ChevronLeft className="size-5" />
           </Button>
 
           <Button
@@ -79,7 +79,7 @@ const HorizontalCarousel = memo(function HorizontalCarousel({
             )}
             ariaLabel="Scroll right"
           >
-            <HiChevronRight className="size-5" />
+            <ChevronRight className="size-5" />
           </Button>
         </>
       )}

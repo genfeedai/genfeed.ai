@@ -8,22 +8,17 @@ import type {
 import { ButtonVariant } from '@genfeedai/enums';
 import type { NavView } from '@renderer/nav-view';
 import { Button } from '@ui/primitives/button';
-import type { ComponentType } from 'react';
 import {
-  HiBolt,
-  HiChartBar,
-  HiCpuChip,
-  HiFolderOpen,
-  HiOutlineBolt,
-  HiOutlineChartBar,
-  HiOutlineCpuChip,
-  HiOutlineFolderOpen,
-  HiOutlinePlusCircle,
-  HiOutlineRocketLaunch,
-  HiOutlineSquares2X2,
-  HiRocketLaunch,
-  HiSquares2X2,
-} from 'react-icons/hi2';
+  ChartColumn,
+  CirclePlus,
+  Cpu,
+  FolderOpen,
+  LayoutGrid,
+  Rocket,
+  Zap,
+} from 'lucide-react';
+import type { ComponentType } from 'react';
+
 import SidebarFooter from './SidebarFooter';
 import SidebarThreadList from './SidebarThreadList';
 import SidebarWorkspaceList from './SidebarWorkspaceList';
@@ -39,38 +34,38 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: 'workflows',
     label: 'Automations',
-    outline: HiOutlineBolt,
-    solid: HiBolt,
+    outline: Zap,
+    solid: Zap,
   },
   {
     id: 'agents',
     label: 'Agents',
-    outline: HiOutlineCpuChip,
-    solid: HiCpuChip,
+    outline: Cpu,
+    solid: Cpu,
   },
   {
     id: 'mission-control',
     label: 'Mission Control',
-    outline: HiOutlineRocketLaunch,
-    solid: HiRocketLaunch,
+    outline: Rocket,
+    solid: Rocket,
   },
   {
     id: 'analytics',
     label: 'Analytics',
-    outline: HiOutlineChartBar,
-    solid: HiChartBar,
+    outline: ChartColumn,
+    solid: ChartColumn,
   },
   {
     id: 'library',
     label: 'Library',
-    outline: HiOutlineFolderOpen,
-    solid: HiFolderOpen,
+    outline: FolderOpen,
+    solid: FolderOpen,
   },
   {
     id: 'trends',
     label: 'Trends',
-    outline: HiOutlineSquares2X2,
-    solid: HiSquares2X2,
+    outline: LayoutGrid,
+    solid: LayoutGrid,
   },
 ];
 
@@ -141,7 +136,7 @@ export function Sidebar({
             type="button"
             variant={ButtonVariant.UNSTYLED}
           >
-            <HiOutlinePlusCircle className="nav-icon-svg" /> New thread
+            <CirclePlus className="nav-icon-svg" /> New thread
           </Button>
           <Button
             className="sidebar-action-button"
@@ -149,7 +144,7 @@ export function Sidebar({
             type="button"
             variant={ButtonVariant.GHOST}
           >
-            <HiOutlineFolderOpen className="nav-icon-svg" />
+            <FolderOpen className="nav-icon-svg" />
             <span>Open workspace</span>
           </Button>
         </>
@@ -161,7 +156,7 @@ export function Sidebar({
           variant={ButtonVariant.UNSTYLED}
           ariaLabel="New thread"
         >
-          <HiOutlinePlusCircle className="nav-icon-svg" />
+          <CirclePlus className="nav-icon-svg" />
         </Button>
       )}
 

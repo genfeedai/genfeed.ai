@@ -7,7 +7,7 @@ import { sanitizeHtml } from '@genfeedai/utils/sanitize-html';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import parse from 'html-react-parser';
-import { HiClipboard } from 'react-icons/hi2';
+import { Clipboard } from 'lucide-react';
 
 export default function XArticleSectionCard({
   section,
@@ -21,7 +21,7 @@ export default function XArticleSectionCard({
             label="Copy"
             variant={ButtonVariant.GHOST}
             size={ButtonSize.SM}
-            icon={<HiClipboard className="size-4" />}
+            icon={<Clipboard className="size-4" />}
             onClick={() => onCopy(section.id)}
           />
         </div>

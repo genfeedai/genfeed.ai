@@ -13,6 +13,7 @@ import {
   getBrandOrganizationSlug,
 } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IBrand } from '@genfeedai/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TopbarProps } from '@props/navigation/topbar.props';
@@ -21,18 +22,18 @@ import { Button } from '@ui/primitives/button';
 import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
-import TopbarEnd from '@ui/topbars/end/TopbarEnd';
+import { Menu, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback } from 'react';
-import { HiBars3, HiXMark } from 'react-icons/hi2';
-import { LuPanelRightClose, LuPanelRightOpen } from 'react-icons/lu';
+
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
 import { useWorkspaceInspector } from '@/components/workspace-shell/WorkspaceInspectorContext';
 import {
   appendSearchParamsToHref,
-  getBrandSwitchHref,
+  getCurrentBrandScopedPath,
   pickOperatorTaskContextSearchParams,
+  resolveOrganizationScopePath,
 } from '@/lib/navigation/operator-shell';
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
 
@@ -169,39 +170,35 @@ function AppProtectedTopbarContent({
       }
 
       if (nextOrgSlug && nextBrand?.slug) {
+        // Always enter (or stay in) brand scope and keep the current surface
+        // (e.g. /agent/new → /:org/:brand/agent/new). Never bounce to overview.
         push(
-          isOrganizationScopeRoute
-            ? createBrandAppRoute(
-                nextOrgSlug,
-                nextBrand.slug,
-                APP_ROUTES.WORKSPACE.OVERVIEW,
-              )
-            : getBrandSwitchHref({
-                nextBrandSlug: nextBrand.slug,
-                nextOrgSlug,
-                pathname,
-              }),
+          createBrandAppRoute(
+            nextOrgSlug,
+            nextBrand.slug,
+            getCurrentBrandScopedPath(pathname),
+          ),
         );
       }
     },
-    [
-      brands,
-      effectiveOrgSlug,
-      isOrganizationScopeRoute,
-      pathname,
-      push,
-      setBrandId,
-      setOrganizationId,
-    ],
+    [brands, effectiveOrgSlug, pathname, push, setBrandId, setOrganizationId],
   );
 
   const handleClearBrandSelection = useCallback(() => {
     setBrandId('');
 
     if (effectiveOrgSlug) {
-      push(createOrganizationAppRoute(effectiveOrgSlug, '/overview'));
+      // Drop brand scope. Shared surfaces keep the same path under `~`;
+      // brand-only settings (publishing, voice, …) fall back to org brands
+      // instead of a 404 on /:org/~/settings/publishing.
+      push(
+        createOrganizationAppRoute(
+          effectiveOrgSlug,
+          resolveOrganizationScopePath(getCurrentBrandScopedPath(pathname)),
+        ),
+      );
     }
-  }, [effectiveOrgSlug, push, setBrandId]);
+  }, [effectiveOrgSlug, pathname, push, setBrandId]);
 
   const taskId = searchParams.get('taskId');
   const taskTitle = searchParams.get('taskTitle');
@@ -227,7 +224,7 @@ function AppProtectedTopbarContent({
     },
     [currentHref, searchParams],
   );
-  const ToggleIcon = isMenuOpen ? HiXMark : HiBars3;
+  const ToggleIcon = isMenuOpen ? X : Menu;
   const isAdminChrome = chrome === 'admin';
   const effectiveCurrentApp = isAdminChrome
     ? 'admin'
@@ -243,34 +240,35 @@ function AppProtectedTopbarContent({
 
   return (
     <header className="ship-ui h-full w-full bg-transparent">
-      {/* Brand trigger has px-2 internally; collapsed sidebar leaves room for the fixed logo toggle. */}
+      {/* Match sidebar header: h-12 content band, px-3 horizontal, gap-1.5 between controls. */}
       <div
         data-testid="app-protected-topbar-inner"
-        className={`grid h-full w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 pr-6 ${
-          isSidebarCollapsed ? 'pl-14' : 'pl-4'
-        }`}
+        className={cn(
+          'grid h-full w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-3',
+          isSidebarCollapsed && 'pl-14',
+        )}
       >
-        <div className="flex min-w-0 items-center gap-2 justify-self-start">
+        <div className="flex min-w-0 items-center gap-1.5 justify-self-start">
           {onMenuToggle ? (
             <Button
               type="button"
               variant={ButtonVariant.GHOST}
               size={ButtonSize.ICON}
-              className="size-7 md:hidden"
+              className="size-8 md:hidden"
               data-active={isMenuOpen ? 'true' : 'false'}
               ariaLabel={
                 isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'
               }
               onClick={onMenuToggle}
             >
-              <ToggleIcon className="size-5" />
+              <ToggleIcon className="size-4" />
             </Button>
           ) : null}
 
           {!isAdminChrome &&
           brands.length > 0 &&
           !isOrganizationSettingsRoute ? (
-            <div className="w-36 min-w-0 sm:w-44 md:w-48">
+            <div className="w-40 min-w-0 sm:w-44 md:w-48">
               <MenuBrandSwitcher
                 variant="labeled"
                 brands={brands}
@@ -298,7 +296,7 @@ function AppProtectedTopbarContent({
           />
         </div>
 
-        <div className="flex min-w-0 items-center justify-end gap-2">
+        <div className="flex min-w-0 items-center justify-end gap-1.5">
           {taskId ? (
             <div className="hidden items-center gap-2 rounded border border-border bg-background-secondary px-2 py-1 text-[11px] lg:flex">
               <span className="font-semibold uppercase tracking-[0.14em] text-muted-foreground">
@@ -350,7 +348,7 @@ function AppProtectedTopbarContent({
               type="button"
               variant={ButtonVariant.GHOST}
               size={ButtonSize.ICON}
-              className="hidden size-7 xl:inline-flex"
+              className="hidden size-8 xl:inline-flex"
               data-active={workspaceInspector.isOpen ? 'true' : 'false'}
               data-testid="topbar-inspector-toggle"
               ariaLabel={
@@ -361,14 +359,12 @@ function AppProtectedTopbarContent({
               onClick={workspaceInspector.toggle}
             >
               {workspaceInspector.isOpen ? (
-                <LuPanelRightClose className="size-5" />
+                <PanelRightClose className="size-4" />
               ) : (
-                <LuPanelRightOpen className="size-5" />
+                <PanelRightOpen className="size-4" />
               )}
             </Button>
           ) : null}
-
-          {!isAdminChrome && isSidebarCollapsed ? <TopbarEnd /> : null}
         </div>
       </div>
     </header>

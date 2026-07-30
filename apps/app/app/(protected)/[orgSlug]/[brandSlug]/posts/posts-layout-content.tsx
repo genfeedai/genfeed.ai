@@ -9,12 +9,12 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import { Plus } from 'lucide-react';
+import { Newspaper, Plus } from 'lucide-react';
+
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Suspense, useCallback, useMemo, useReducer } from 'react';
-import { HiOutlineNewspaper } from 'react-icons/hi2';
 
 // Named sub-route segments that exist under /posts/ (not post-detail pages)
 const KNOWN_SUB_ROUTES = [
@@ -194,7 +194,7 @@ function PostsLayoutContentContent({ children }: { children: ReactNode }) {
       <Container
         label="Posts"
         description="Manage and publish across platforms."
-        icon={HiOutlineNewspaper}
+        icon={Newspaper}
         titleVisibility="sr-only"
         right={
           <div className="flex items-center gap-2">

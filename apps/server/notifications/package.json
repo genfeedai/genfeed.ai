@@ -4,7 +4,7 @@
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
     "@slack/web-api": "8.0.0",
-    "jose": "^6.2.4",
+    "jose": "^6.2.5",
     "node-pty": "1.1.0"
   },
   "description": "Genfeed Notifications Service",
@@ -16,8 +16,8 @@
     "build": "cd .. && nest build notifications",
     "build:prod": "cd .. && nest build notifications && cd notifications && (bun run sentry:sourcemaps || true)",
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
-    "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start notifications --watch",
-    "dev:direct": "NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" bun run ../../../scripts/dev/run-direct.ts notifications -- bash -lc 'cd .. && nest start notifications --watch'",
+    "dev": "bun run ../../../scripts/dev/nest-fast-dev.ts notifications",
+    "dev:direct": "NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" bun run ../../../scripts/dev/run-direct.ts notifications -- bun run ../../../scripts/dev/nest-fast-dev.ts notifications",
     "dev:portless": "bun run ../../../scripts/dev/run-portless.ts notifications -- bun run dev:direct",
     "dev:bun": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start notifications --watch",
     "dev:nest": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start notifications --watch",
@@ -33,7 +33,8 @@
     "test:cov": "vitest run --coverage --config vitest.config.ts",
     "test:e2e": "vitest run --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts",
-    "type-check": "tsc --noEmit -p tsconfig.typecheck.json"
+    "type-check": "tsc --noEmit -p tsconfig.typecheck.json",
+    "dev:webpack": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start notifications --watch"
   },
   "version": "1.0.0",
   "type": "module"

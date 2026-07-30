@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 describe('app/(protected)/[orgSlug]/[brandSlug]/library/layout.tsx', () => {
-  it('portals Library-owned navigation into the permanent shell column', () => {
+  it('gates library pages and leaves shell nav ownership to the protected layout', () => {
     const source = readFileSync(
       join(
         process.cwd(),
@@ -13,8 +13,8 @@ describe('app/(protected)/[orgSlug]/[brandSlug]/library/layout.tsx', () => {
     );
 
     expect(source).toContain('FeatureGate');
-    expect(source).toContain('LibrarySidebarNav');
-    expect(source).toContain('createPortal');
-    expect(source).toContain('workspaceNavPanel.portalTarget');
+    expect(source).toContain('flagKey="library"');
+    expect(source).not.toContain('createPortal');
+    expect(source).not.toContain('LibrarySidebarNav');
   });
 });

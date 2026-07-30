@@ -36,8 +36,8 @@ describe('AssetControlsHeader', () => {
     ).toHaveClass('sr-only');
   });
 
-  it('renders a grouped utility toolbar with refresh accessibly labeled', () => {
-    const { container } = render(
+  it('renders filters, view toggle, and refresh without nested control shells', () => {
+    render(
       <AssetControlsHeader
         filters={{ ...baseFilters, status: [IngredientStatus.PROCESSING] }}
         onFiltersChange={vi.fn()}
@@ -52,13 +52,22 @@ describe('AssetControlsHeader', () => {
     );
 
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
-    expect(container.querySelector('.rounded-xl.border')).toBeInTheDocument();
     expect(screen.getByTestId('asset-controls-toolbar')).toBeInTheDocument();
     expect(
       screen.getByTestId('asset-controls-view-toggle'),
     ).toBeInTheDocument();
     expect(screen.getByTestId('asset-controls-refresh')).toBeInTheDocument();
-    expect(screen.getAllByTestId('asset-controls-separator')).toHaveLength(2);
+
+    // ViewToggle owns gen-shell-segmented chrome — no outer rounded-xl shell.
+    const viewToggle = screen.getByTestId('asset-controls-view-toggle');
+    expect(viewToggle.querySelector('.rounded-xl')).toBeNull();
+    expect(viewToggle.querySelector('.shadow-border')).toBeNull();
+    expect(viewToggle.querySelector('.gen-shell-segmented')).toBeTruthy();
+
+    // Refresh is a lone icon control, not wrapped in a second bordered pill.
+    const refresh = screen.getByTestId('asset-controls-refresh');
+    expect(refresh.querySelector('.rounded-xl')).toBeNull();
+    expect(refresh.querySelector('.shadow-border')).toBeNull();
   });
 
   it('uses the shared Studio divider token on the header shell', () => {

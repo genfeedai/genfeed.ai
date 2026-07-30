@@ -6,15 +6,19 @@ import {
   CampaignPlatform,
   CampaignStatus,
 } from '@genfeedai/enums';
+import {
+  InstagramIcon,
+  RedditIcon,
+  XTwitterIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
-import { FaInstagram, FaReddit, FaXTwitter } from 'react-icons/fa6';
-import { HiArrowLeft } from 'react-icons/hi2';
+import { ArrowLeft } from 'lucide-react';
 
 const platformIcons: Record<CampaignPlatform, React.ReactNode> = {
-  [CampaignPlatform.TWITTER]: <FaXTwitter className="text-slate-300" />,
-  [CampaignPlatform.REDDIT]: <FaReddit className="text-orange-500" />,
-  [CampaignPlatform.INSTAGRAM]: <FaInstagram className="text-pink-500" />,
+  [CampaignPlatform.TWITTER]: <XTwitterIcon className="text-slate-300" />,
+  [CampaignPlatform.REDDIT]: <RedditIcon className="text-orange-500" />,
+  [CampaignPlatform.INSTAGRAM]: <InstagramIcon className="text-pink-500" />,
 };
 
 function getCampaignStatusVariant(
@@ -46,7 +50,7 @@ export default function OutreachCampaignDetailHeader({
   return (
     <div className="flex items-center gap-4">
       <Button
-        label={<HiArrowLeft />}
+        label={<ArrowLeft />}
         variant={ButtonVariant.SECONDARY}
         onClick={onBack}
         size={ButtonSize.SM}

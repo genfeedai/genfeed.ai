@@ -17,9 +17,9 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
+import { EllipsisVertical, Sparkles, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import { HiEllipsisVertical, HiSparkles, HiTrash } from 'react-icons/hi2';
 
 const PROMPT_SKELETON_KEYS = [
   'prompt-skeleton-1',
@@ -197,7 +197,7 @@ function PromptsPageContent() {
                           variant={ButtonVariant.GHOST}
                           size={ButtonSize.ICON}
                         >
-                          <HiEllipsisVertical className="size-4" />
+                          <EllipsisVertical className="size-4" />
                         </Button>
                       }
                       usePortal
@@ -212,7 +212,7 @@ function PromptsPageContent() {
                                 prompt.id && handleEnhance(prompt.id)
                               }
                             >
-                              <HiSparkles className="size-4" />
+                              <Sparkles className="size-4" />
                               Enhance
                             </Button>
                           </li>
@@ -222,7 +222,7 @@ function PromptsPageContent() {
                             variant={ButtonVariant.GHOST}
                             onClick={() => prompt.id && handleDelete(prompt)}
                           >
-                            <HiTrash className="size-4" />
+                            <Trash2 className="size-4" />
                             Delete
                           </Button>
                         </li>

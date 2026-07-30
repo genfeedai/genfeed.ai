@@ -38,10 +38,10 @@ const CONTRACTS: PageContextContract[] = [
     sectionLabel: 'Studio',
   },
   {
-    route: `${BRAND_BASE}/posts/scheduled`,
+    route: `${BRAND_BASE}/posts`,
     currentApp: 'posts',
     sectionLabel: 'Workspace',
-    pageLabels: ['Drafts', 'Scheduled', 'Published'],
+    pageLabels: ['Not posted', 'New release'],
   },
   {
     route: `${BRAND_BASE}/orchestration/library`,

@@ -85,7 +85,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     },
     description:
       'Generate a talking-head avatar video using saved identity defaults or runtime overrides',
-    icon: 'HiVideoCamera',
+    icon: 'Video',
     inputs: {
       audioUrl: { label: 'Audio URL', required: false, type: 'audio' },
       clonedVoiceId: {
@@ -120,7 +120,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Enhance media quality using AI',
-    icon: 'HiSparkles',
+    icon: 'Sparkles',
     inputs: {
       media: { label: 'Media', type: 'any' },
     },
@@ -183,7 +183,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Generate image from prompt using AI',
-    icon: 'HiSparkles',
+    icon: 'Sparkles',
     inputs: {
       image: { label: 'Source Image', required: false, type: 'image' },
       prompt: { label: 'Prompt', type: 'text' },
@@ -227,7 +227,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Generate a review-ready newsletter draft for a brand',
-    icon: 'HiEnvelope',
+    icon: 'Mail',
     inputs: {},
     label: 'Generate Newsletter',
     outputs: {
@@ -273,7 +273,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Generate a review-ready social post draft for a brand',
-    icon: 'HiChatBubbleBottomCenterText',
+    icon: 'MessageSquare',
     inputs: {},
     label: 'Generate Post',
     outputs: {
@@ -306,7 +306,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Collect recent posts from followed brand sources',
-    icon: 'HiInboxStack',
+    icon: 'Inbox',
     inputs: {},
     label: 'Source Corpus',
     outputs: {
@@ -327,7 +327,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Attach a generated ingredient to an existing post draft',
-    icon: 'HiPaperClip',
+    icon: 'Paperclip',
     inputs: {
       ingredientId: { label: 'Ingredient ID', required: true, type: 'text' },
       postId: { label: 'Post ID', required: true, type: 'text' },
@@ -363,7 +363,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Read performance analytics to guide content strategy',
-    icon: 'HiChartBar',
+    icon: 'ChartColumn',
     inputs: {},
     isPremium: true,
     label: 'Analytics Feedback',
@@ -405,7 +405,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Generate video from prompt or image using AI',
-    icon: 'HiVideoCamera',
+    icon: 'Video',
     inputs: {
       image: { label: 'Reference Image', required: false, type: 'image' },
       prompt: { label: 'Prompt', type: 'text' },
@@ -433,7 +433,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Generate lip-synced video from image/video and audio',
-    icon: 'HiVideoCamera',
+    icon: 'Video',
     inputs: {
       audio: { label: 'Audio', required: true, type: 'audio' },
       image: { label: 'Image', required: false, type: 'image' },
@@ -486,7 +486,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     },
     description:
       'Call a language model with a text prompt and get a text response',
-    icon: 'HiSparkles',
+    icon: 'Sparkles',
     inputs: {
       prompt: { label: 'Prompt', type: 'text' },
     },
@@ -513,7 +513,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Compose prompts from templates with variable substitution',
-    icon: 'HiDocumentText',
+    icon: 'FileText',
     inputs: {
       listingTier: { label: 'Listing Tier', required: false, type: 'text' },
       propertyType: { label: 'Property Type', required: false, type: 'text' },
@@ -544,7 +544,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Reframe image or video to a different aspect ratio using AI',
-    icon: 'HiArrowsPointingOut',
+    icon: 'Maximize2',
     inputs: {
       media: { label: 'Media', type: 'any' },
     },
@@ -571,7 +571,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Convert text to speech audio using AI',
-    icon: 'HiSpeakerWave',
+    icon: 'Volume2',
     inputs: {
       text: { label: 'Text', required: false, type: 'text' },
     },
@@ -593,7 +593,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Transcribe audio to text using AI',
-    icon: 'HiMicrophone',
+    icon: 'Mic',
     inputs: {
       audio: { label: 'Audio', type: 'audio' },
     },
@@ -620,7 +620,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Upscale media resolution using AI',
-    icon: 'HiArrowsPointingOut',
+    icon: 'Maximize2',
     inputs: {
       media: { label: 'Media', type: 'any' },
     },
@@ -659,7 +659,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Change the voice of an audio file',
-    icon: 'HiMicrophone',
+    icon: 'Mic',
     inputs: {
       audio: { label: 'Audio', type: 'audio' },
     },
@@ -733,7 +733,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     },
     description:
       'Branch based on condition (engagement, followers, time, etc.)',
-    icon: 'HiAdjustmentsHorizontal',
+    icon: 'SlidersHorizontal',
     inputs: {
       value: { label: 'Value', type: 'any' },
     },
@@ -789,7 +789,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     },
     description:
       'Pause the workflow for human review/approval of upstream media and caption before continuing',
-    icon: 'HiOutlineClipboardDocumentCheck',
+    icon: 'ClipboardCheck',
     inputs: {
       caption: { label: 'Caption', type: 'text' },
       media: { label: 'Media', type: 'any' },
@@ -843,7 +843,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     },
     description:
       'Wait for duration, until specific time, or optimal posting time',
-    icon: 'HiClock',
+    icon: 'Clock',
     inputs: {
       trigger: { label: 'Trigger', type: 'any' },
     },
@@ -858,7 +858,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     category: 'control',
     configSchema: {},
     description: 'Iterate over array of items',
-    icon: 'HiArrowPath',
+    icon: 'RefreshCw',
     inputs: {
       items: { label: 'Items', multiple: true, type: 'any' },
     },
@@ -897,7 +897,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Burn captions/subtitles into video',
-    icon: 'HiLanguage',
+    icon: 'Languages',
     inputs: {
       video: { label: 'Video', type: 'video' },
     },
@@ -988,7 +988,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Apply Instagram-style color grading to images',
-    icon: 'HiSwatch',
+    icon: 'Palette',
     inputs: {
       image: { label: 'Image', type: 'image' },
     },
@@ -1025,7 +1025,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Apply zoom/pan animation to image',
-    icon: 'HiSparkles',
+    icon: 'Sparkles',
     inputs: {
       image: { label: 'Image', type: 'image' },
     },
@@ -1047,7 +1047,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Convert landscape to portrait with blurred background',
-    icon: 'HiSparkles',
+    icon: 'Sparkles',
     inputs: {
       video: { label: 'Video', type: 'video' },
     },
@@ -1068,7 +1068,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Create split screen layout with two videos',
-    icon: 'HiViewColumns',
+    icon: 'Columns2',
     inputs: {
       left: { label: 'Left Video', type: 'video' },
       right: { label: 'Right Video', type: 'video' },
@@ -1105,7 +1105,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Add text overlay to video',
-    icon: 'HiPencil',
+    icon: 'Pencil',
     inputs: {
       video: { label: 'Video', type: 'video' },
     },
@@ -1137,7 +1137,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Add watermark image or text to video',
-    icon: 'HiShieldCheck',
+    icon: 'ShieldCheck',
     inputs: {
       video: { label: 'Video', type: 'video' },
     },
@@ -1176,7 +1176,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Load an image from upload, asset library, or URL',
-    icon: 'HiPhoto',
+    icon: 'Image',
     inputs: {},
     label: 'Image Input',
     outputs: {
@@ -1199,7 +1199,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Text prompt for AI generation',
-    icon: 'HiChatBubbleLeft',
+    icon: 'MessageSquare',
     inputs: {},
     label: 'Prompt Input',
     outputs: {
@@ -1217,7 +1217,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Load a prompt template',
-    icon: 'HiTemplate',
+    icon: 'LayoutTemplate',
     inputs: {},
     label: 'Template Input',
     outputs: {
@@ -1251,7 +1251,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Load a video from upload, asset library, or URL',
-    icon: 'HiVideoCamera',
+    icon: 'Video',
     inputs: {},
     label: 'Video Input',
     outputs: {
@@ -1299,7 +1299,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Start workflow when a new trend matches criteria',
-    icon: 'HiTrendingUp',
+    icon: 'TrendingUp',
     inputs: {
       keywords: {
         label: 'Keywords',
@@ -1325,7 +1325,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     category: 'output',
     configSchema: {},
     description: 'Send a single email (subject + HTML body) to a recipient',
-    icon: 'HiMail',
+    icon: 'Mail',
     inputs: {
       html: { label: 'HTML Body', type: 'text' },
       subject: { label: 'Subject', type: 'text' },
@@ -1355,7 +1355,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     },
     description:
       'Assemble a curated daily trends digest email from the global trend corpus',
-    icon: 'HiTrendingUp',
+    icon: 'TrendingUp',
     inputs: {},
     isPremium: true,
     label: 'Trend Digest',
@@ -1378,7 +1378,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     },
     description:
       'Send trend summary notifications using the organization owner notification settings',
-    icon: 'HiTrendingUp',
+    icon: 'TrendingUp',
     inputs: {},
     isPremium: true,
     label: 'Trend Summary Notifications',
@@ -1406,7 +1406,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Export to downloadable file',
-    icon: 'HiArrowDownTray',
+    icon: 'Download',
     inputs: {
       media: { label: 'Media', type: 'any' },
     },
@@ -1434,7 +1434,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Send notification when workflow completes',
-    icon: 'HiBell',
+    icon: 'Bell',
     inputs: {
       data: { label: 'Data', type: 'any' },
     },
@@ -1462,7 +1462,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Publish content to social media platforms',
-    icon: 'HiShare',
+    icon: 'Share2',
     inputs: {
       media: { label: 'Media', type: 'any' },
     },
@@ -1490,7 +1490,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Save output to asset library',
-    icon: 'HiFolder',
+    icon: 'Folder',
     inputs: {
       media: { label: 'Media', type: 'any' },
     },
@@ -1514,7 +1514,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Send data to external webhook',
-    icon: 'HiLink',
+    icon: 'Link2',
     inputs: {
       data: { label: 'Data', type: 'any' },
     },
@@ -1542,7 +1542,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Reduce video file size',
-    icon: 'HiArchiveBox',
+    icon: 'Archive',
     inputs: {
       video: { label: 'Video', type: 'video' },
     },
@@ -1563,7 +1563,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Extract audio track from video',
-    icon: 'HiMusicalNote',
+    icon: 'Music',
     inputs: {
       video: { label: 'Video', type: 'video' },
     },
@@ -1590,7 +1590,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Concatenate multiple videos into one',
-    icon: 'HiSquare2Stack',
+    icon: 'Copy',
     inputs: {
       videos: { label: 'Videos', multiple: true, type: 'video' },
     },
@@ -1611,7 +1611,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Flip video horizontally',
-    icon: 'HiArrowsRightLeft',
+    icon: 'ArrowLeftRight',
     inputs: {
       video: { label: 'Video', type: 'video' },
     },
@@ -1647,7 +1647,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Resize media to specific dimensions',
-    icon: 'HiArrowsRightLeft',
+    icon: 'ArrowLeftRight',
     inputs: {
       media: { label: 'Media', type: 'any' },
     },
@@ -1662,7 +1662,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     category: 'processing',
     configSchema: {},
     description: 'Reverse video playback',
-    icon: 'HiArrowPath',
+    icon: 'RefreshCw',
     inputs: {
       video: { label: 'Video', type: 'video' },
     },
@@ -1693,7 +1693,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Transform media aspect ratio or orientation',
-    icon: 'HiArrowsPointingOut',
+    icon: 'Maximize2',
     inputs: {
       media: { label: 'Media', type: 'any' },
     },
@@ -1720,7 +1720,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Trim video to specific start and end times',
-    icon: 'HiScissors',
+    icon: 'Scissors',
     inputs: {
       video: { label: 'Video', type: 'video' },
     },
@@ -1754,7 +1754,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     },
     description:
       'Define an input parameter for this workflow when used as a sub-workflow',
-    icon: 'HiArrowDownOnSquare',
+    icon: 'Download',
     inputs: {},
     isEnabled: true,
     isPremium: false,
@@ -1776,7 +1776,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     },
     description:
       'Define an output parameter for this workflow when used as a sub-workflow',
-    icon: 'HiArrowUpOnSquare',
+    icon: 'Upload',
     inputs: {
       value: { label: 'Output Value', type: 'any' },
     },
@@ -1809,7 +1809,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     },
     description:
       'Executes a migrated legacy automation row through the workflow scheduler',
-    icon: 'HiArrowPath',
+    icon: 'RefreshCw',
     inputs: {},
     isEnabled: false,
     isPremium: false,
@@ -1831,7 +1831,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     },
     description:
       'Execute another workflow as a sub-workflow and use its outputs',
-    icon: 'HiArrowPath',
+    icon: 'RefreshCw',
     inputs: {
       inputs: { label: 'Sub-workflow Inputs', type: 'any' },
     },

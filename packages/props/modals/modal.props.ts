@@ -45,7 +45,6 @@ import type {
 } from '@genfeedai/interfaces';
 import type { Training } from '@genfeedai/models/ai/training.model';
 import type { ElementBlacklist } from '@genfeedai/models/elements/blacklist.model';
-import type { Music } from '@genfeedai/models/ingredients/music.model';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 import type { ContentProps } from '@props/layout/content.props';
 import type React from 'react';
@@ -142,7 +141,7 @@ export interface ModalTypeBadgeProps {
 export interface ModalMusicProps {
   brandId: string;
   selectedMusicId: string;
-  onConfirm: (music: Music | null) => void;
+  onConfirm: (music: IMusic | null) => void;
 }
 
 export interface ModalMemberProps {
@@ -468,7 +467,10 @@ export interface ModalGenerateIllustrationProps extends ModalVisibilityProps {
  */
 export interface BrandOverlayProps extends ModalVisibilityProps {
   brand: BrandModalEntity | null;
-  onConfirm: (isRefreshing?: boolean, createdBrandId?: string) => void;
+  onConfirm: (
+    isRefreshing?: boolean,
+    createdBrandId?: string,
+  ) => void | Promise<void>;
   onClose?: () => void;
   initialView?: 'edit' | 'overview';
 }

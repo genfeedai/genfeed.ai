@@ -1,27 +1,24 @@
 import { render, screen } from '@testing-library/react';
 import CardIcon from '@ui/card/icon/CardIcon';
-import { HiSparkles } from 'react-icons/hi2';
+import { Sparkles } from 'lucide-react';
+
 import { describe, expect, it } from 'vitest';
 
 describe('CardIcon', () => {
   it('should render without crashing', () => {
-    const { container } = render(
-      <CardIcon icon={HiSparkles} label="Sparkles" />,
-    );
+    const { container } = render(<CardIcon icon={Sparkles} label="Sparkles" />);
     expect(container.firstChild).toBeInTheDocument();
     expect(screen.getByText('Sparkles')).toBeInTheDocument();
   });
 
   it('should handle user interactions correctly', () => {
-    const { container } = render(
-      <CardIcon icon={HiSparkles} label="Sparkles" />,
-    );
+    const { container } = render(<CardIcon icon={Sparkles} label="Sparkles" />);
     expect(container.firstChild).toBeInTheDocument();
   });
 
   it('should apply correct styles and classes', () => {
     const { container } = render(
-      <CardIcon icon={HiSparkles} label="Sparkles" className="text-primary" />,
+      <CardIcon icon={Sparkles} label="Sparkles" className="text-primary" />,
     );
     const rootElement = container.firstChild as HTMLElement;
     expect(rootElement).toBeInTheDocument();
@@ -30,7 +27,7 @@ describe('CardIcon', () => {
   it('inherits wrapper color when iconClassName only changes size', () => {
     const { container } = render(
       <CardIcon
-        icon={HiSparkles}
+        icon={Sparkles}
         label="Sparkles"
         className="text-cyan-300"
         iconClassName="size-5"

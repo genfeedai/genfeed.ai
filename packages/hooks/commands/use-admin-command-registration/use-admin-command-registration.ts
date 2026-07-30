@@ -3,8 +3,8 @@
 import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
+import { Settings } from 'lucide-react';
 import { useEffect } from 'react';
-import { HiOutlineCog6Tooth } from 'react-icons/hi2';
 
 export interface UseAdminCommandRegistrationOptions {
   isLoaded: boolean;
@@ -32,7 +32,7 @@ export function useAdminCommandRegistration({
         category: 'navigation',
         condition: () => EnvironmentService.currentApp !== 'admin',
         description: 'Govern accounts',
-        icon: HiOutlineCog6Tooth,
+        icon: Settings,
         id: 'nav-admin',
         keywords: ['admin', 'govern', 'accounts', 'management'],
         label: 'Go to Admin',

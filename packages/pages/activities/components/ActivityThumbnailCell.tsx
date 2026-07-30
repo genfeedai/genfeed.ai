@@ -3,8 +3,8 @@
 import { ButtonVariant, IngredientCategory } from '@genfeedai/enums';
 import type { IActivity } from '@genfeedai/interfaces';
 import { Button } from '@ui/primitives/button';
+import { Eye, Film, Play } from 'lucide-react';
 import Image from 'next/image';
-import { HiEye, HiFilm, HiPlay } from 'react-icons/hi2';
 
 type Props = {
   activity: IActivity;
@@ -53,8 +53,8 @@ export default function ActivityThumbnailCell({
               />
               {resultType === IngredientCategory.VIDEO && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/50 transition-colors">
-                  <HiPlay className="size-4 text-white group-hover:hidden" />
-                  <HiEye className="size-5 text-white hidden group-hover:block" />
+                  <Play className="size-4 text-white group-hover:hidden" />
+                  <Eye className="size-5 text-white hidden group-hover:block" />
                 </div>
               )}
               {resultType !== IngredientCategory.VIDEO && (
@@ -67,7 +67,7 @@ export default function ActivityThumbnailCell({
                   }}
                   className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                  <HiEye className="size-5 text-white" />
+                  <Eye className="size-5 text-white" />
                 </Button>
               )}
               {resultType === IngredientCategory.VIDEO && (
@@ -133,7 +133,7 @@ export default function ActivityThumbnailCell({
           />
           {assetInfo.type === 'video' && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-              <HiPlay className="size-4 text-white" />
+              <Play className="size-4 text-white" />
             </div>
           )}
         </div>
@@ -143,7 +143,7 @@ export default function ActivityThumbnailCell({
 
   return (
     <div className="size-8 shrink-0 bg-background flex items-center justify-center">
-      <HiFilm className="size-4 text-foreground/40" />
+      <Film className="size-4 text-foreground/40" />
     </div>
   );
 }

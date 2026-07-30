@@ -13,7 +13,7 @@ const {
   currentUserState,
   getTokenMock,
   getMyOrganizationsMock,
-  isEEEnabledMock,
+  hasOrganizationBillingMock,
   isSaaSMock,
   isSelfHostedMock,
   managedCreateCheckoutSessionMock,
@@ -34,7 +34,7 @@ const {
   },
   getTokenMock: vi.fn(),
   getMyOrganizationsMock: vi.fn(),
-  isEEEnabledMock: vi.fn(),
+  hasOrganizationBillingMock: vi.fn(),
   isSaaSMock: vi.fn(),
   isSelfHostedMock: vi.fn(),
   managedCreateCheckoutSessionMock: vi.fn(),
@@ -154,7 +154,7 @@ vi.mock('@ui/primitives/button', () => ({
 }));
 
 vi.mock('@genfeedai/config/license', () => ({
-  isEEEnabled: () => isEEEnabledMock(),
+  hasOrganizationBilling: () => hasOrganizationBillingMock(),
 }));
 
 vi.mock('@genfeedai/config/deployment', () => ({
@@ -188,7 +188,7 @@ describe('PostSignupPage behavior', () => {
     managedCreateCheckoutSessionMock.mockReset();
     getTokenMock.mockReset();
     getMyOrganizationsMock.mockReset();
-    isEEEnabledMock.mockReset();
+    hasOrganizationBillingMock.mockReset();
     isSaaSMock.mockReset();
     isSelfHostedMock.mockReset();
     resolveAuthTokenMock.mockReset();
@@ -202,7 +202,7 @@ describe('PostSignupPage behavior', () => {
       onboardingStepsCompleted: [],
     };
     currentUserState.isLoading = false;
-    isEEEnabledMock.mockReturnValue(false);
+    hasOrganizationBillingMock.mockReturnValue(false);
     isSaaSMock.mockReturnValue(false);
     isSelfHostedMock.mockReturnValue(true);
     resolveAuthTokenMock.mockResolvedValue('api-token');
@@ -274,7 +274,7 @@ describe('PostSignupPage behavior', () => {
   });
 
   it('starts an EE plan checkout from a post-signup plan query', async () => {
-    isEEEnabledMock.mockReturnValue(true);
+    hasOrganizationBillingMock.mockReturnValue(true);
     isSelfHostedMock.mockReturnValue(false);
     searchParamsState.value = new URLSearchParams('plan=price_123');
 
@@ -308,7 +308,7 @@ describe('PostSignupPage behavior', () => {
   });
 
   it('starts an EE credits checkout from a desktop post-signup credits query', async () => {
-    isEEEnabledMock.mockReturnValue(true);
+    hasOrganizationBillingMock.mockReturnValue(true);
     isSelfHostedMock.mockReturnValue(false);
     searchParamsState.value = new URLSearchParams(
       'credits=1000&source=desktop',
@@ -346,7 +346,7 @@ describe('PostSignupPage behavior', () => {
   });
 
   it('starts a managed cloud credits checkout for self-hosted credit handoff', async () => {
-    isEEEnabledMock.mockReturnValue(false);
+    hasOrganizationBillingMock.mockReturnValue(false);
     isSelfHostedMock.mockReturnValue(true);
     searchParamsState.value = new URLSearchParams('credits=1000');
 
@@ -412,7 +412,7 @@ describe('PostSignupPage behavior', () => {
 
   it('returns SaaS plan checkout to agent-first onboarding', async () => {
     isSaaSMock.mockReturnValue(true);
-    isEEEnabledMock.mockReturnValue(true);
+    hasOrganizationBillingMock.mockReturnValue(true);
     isSelfHostedMock.mockReturnValue(false);
     getMyOrganizationsMock.mockResolvedValue([
       {

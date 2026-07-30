@@ -17,14 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { ChevronDown, ChevronUp, Plus, Trash2, Variable } from 'lucide-react';
 import { useCallback, useId, useState } from 'react';
-import {
-  HiOutlineChevronDown,
-  HiOutlineChevronUp,
-  HiOutlinePlus,
-  HiOutlineTrash,
-  HiOutlineVariable,
-} from 'react-icons/hi2';
 
 const VARIABLE_TYPES: Array<{ value: InputVariableType; label: string }> = [
   { label: 'Text', value: 'text' },
@@ -60,15 +54,15 @@ function VariableItem({ variable, onUpdate, onDelete }: VariableItemProps) {
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
       >
-        <HiOutlineVariable className="size-4 text-primary" />
+        <Variable className="size-4 text-primary" />
         <span className="flex-1 font-medium text-sm">{variable.label}</span>
         <Badge variant="ghost" size={ComponentSize.SM}>
           {variable.type}
         </Badge>
         {isExpanded ? (
-          <HiOutlineChevronUp className="size-4" />
+          <ChevronUp className="size-4" />
         ) : (
-          <HiOutlineChevronDown className="size-4" />
+          <ChevronDown className="size-4" />
         )}
       </Button>
 
@@ -159,7 +153,7 @@ function VariableItem({ variable, onUpdate, onDelete }: VariableItemProps) {
             size={ButtonSize.SM}
             className="w-full"
             onClick={onDelete}
-            icon={<HiOutlineTrash className="size-4" />}
+            icon={<Trash2 className="size-4" />}
             label="Delete Variable"
           />
         </div>
@@ -202,9 +196,9 @@ export default function VariablesPanel({
             {variables.length}
           </Badge>
           {isCollapsed ? (
-            <HiOutlineChevronDown className="size-4" />
+            <ChevronDown className="size-4" />
           ) : (
-            <HiOutlineChevronUp className="size-4" />
+            <ChevronUp className="size-4" />
           )}
         </div>
       </Button>
@@ -234,7 +228,7 @@ export default function VariablesPanel({
             size={ButtonSize.SM}
             className="w-full"
             onClick={handleAddVariable}
-            icon={<HiOutlinePlus className="size-4" />}
+            icon={<Plus className="size-4" />}
             label="Add Variable"
           />
         </div>

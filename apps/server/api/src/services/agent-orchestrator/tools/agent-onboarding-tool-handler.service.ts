@@ -10,7 +10,7 @@ import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentToolInternalApiService } from '@api/services/agent-orchestrator/tools/agent-tool-internal-api.service';
-import { isEEEnabled } from '@genfeedai/config';
+import { hasOrganizationBilling } from '@genfeedai/config';
 import { PostStatus, Status } from '@genfeedai/enums';
 import type { AgentToolResult, AgentUiAction } from '@genfeedai/interfaces';
 import {
@@ -676,10 +676,10 @@ export class AgentOnboardingToolHandler {
    * Includes a free tier skip path for users not ready to pay.
    */
   presentPaymentOptions(_ctx: ToolExecutionContext): AgentToolResult {
-    const billingHref = isEEEnabled()
+    const billingHref = hasOrganizationBilling()
       ? '/settings/billing'
       : '/settings/api-keys';
-    const billingLabel = isEEEnabled()
+    const billingLabel = hasOrganizationBilling()
       ? 'View all plans'
       : 'Configure providers';
 
@@ -687,7 +687,7 @@ export class AgentOnboardingToolHandler {
       creditsUsed: 0,
       data: {
         canSkip: true,
-        message: isEEEnabled()
+        message: hasOrganizationBilling()
           ? 'Choose a credit pack to unlock video generation, monthly content calendars, and more.'
           : 'Configure provider API keys to unlock generation, workflows, and publishing in your local install.',
       },

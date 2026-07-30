@@ -2,8 +2,7 @@
 
 import type { IViralHookAnalysis } from '@genfeedai/interfaces/analytics/viral-hooks.interface';
 import StatCard from '@ui/cards/stat-card/StatCard';
-import { HiTrendingUp } from 'react-icons/hi';
-import { HiClock, HiEye, HiHeart } from 'react-icons/hi2';
+import { Clock, Eye, Heart, TrendingUp } from 'lucide-react';
 
 type Props = {
   analysisData: IViralHookAnalysis;
@@ -17,22 +16,22 @@ export default function HookStatCards({
   return (
     <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <StatCard
-        icon={HiEye}
+        icon={Eye}
         label="Total Videos Analyzed"
         value={analysisData.totalVideos}
       />
       <StatCard
-        icon={HiClock}
+        icon={Clock}
         label="Total Time Tracked"
         value={formatTimeSpent(analysisData.totalTime)}
       />
       <StatCard
-        icon={HiTrendingUp}
+        icon={TrendingUp}
         label="Avg Time per Video"
         value={formatTimeSpent(analysisData.avgTimePerVideo)}
       />
       <StatCard
-        icon={HiHeart}
+        icon={Heart}
         label="Top Platform"
         value={
           analysisData.topPlatforms[0]

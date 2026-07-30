@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import MenuItem from '@ui/menus/item/MenuItem';
-import { FiBell, FiHome, FiSettings, FiUser } from 'react-icons/fi';
-import { HiBell, HiCog6Tooth, HiHome, HiUser } from 'react-icons/hi2';
+import { Bell, House as Home, Settings, User } from 'lucide-react';
 
 /**
  * MenuItem component displays a navigation menu item with icon and label.
@@ -56,8 +55,8 @@ export const Default: Story = {
     href: '/dashboard',
     isActive: false,
     label: 'Dashboard',
-    outline: FiHome,
-    solid: HiHome,
+    outline: Home,
+    solid: Home,
     variant: 'default',
   },
 };
@@ -70,8 +69,8 @@ export const Active: Story = {
     href: '/dashboard',
     isActive: true,
     label: 'Dashboard',
-    outline: FiHome,
-    solid: HiHome,
+    outline: Home,
+    solid: Home,
     variant: 'default',
   },
 };
@@ -86,8 +85,8 @@ export const WithOnClick: Story = {
     onClick: () => {
       // Menu item clicked
     },
-    outline: FiBell,
-    solid: HiBell,
+    outline: Bell,
+    solid: Bell,
     variant: 'default',
   },
 };
@@ -100,8 +99,8 @@ export const IconVariant: Story = {
     href: '/profile',
     isActive: false,
     label: 'Profile',
-    outline: FiUser,
-    solid: HiUser,
+    outline: User,
+    solid: User,
     variant: 'icon',
   },
 };
@@ -114,8 +113,8 @@ export const IconVariantActive: Story = {
     href: '/profile',
     isActive: true,
     label: 'Profile',
-    outline: FiUser,
-    solid: HiUser,
+    outline: User,
+    solid: User,
     variant: 'icon',
   },
 };
@@ -136,29 +135,29 @@ export const NavigationMenu: Story = {
       <MenuItem
         href="/dashboard"
         label="Dashboard"
-        outline={FiHome}
-        solid={HiHome}
+        outline={Home}
+        solid={Home}
         isActive={true}
       />
       <MenuItem
         href="/notifications"
         label="Notifications"
-        outline={FiBell}
-        solid={HiBell}
+        outline={Bell}
+        solid={Bell}
         isActive={false}
       />
       <MenuItem
         href="/profile"
         label="Profile"
-        outline={FiUser}
-        solid={HiUser}
+        outline={User}
+        solid={User}
         isActive={false}
       />
       <MenuItem
         href="/settings"
         label="Settings"
-        outline={FiSettings}
-        solid={HiCog6Tooth}
+        outline={Settings}
+        solid={Settings}
         isActive={false}
       />
     </ul>
@@ -181,32 +180,32 @@ export const IconMenu: Story = {
       <MenuItem
         href="/dashboard"
         label="Dashboard"
-        outline={FiHome}
-        solid={HiHome}
+        outline={Home}
+        solid={Home}
         isActive={true}
         variant="icon"
       />
       <MenuItem
         href="/notifications"
         label="Notifications"
-        outline={FiBell}
-        solid={HiBell}
+        outline={Bell}
+        solid={Bell}
         isActive={false}
         variant="icon"
       />
       <MenuItem
         href="/profile"
         label="Profile"
-        outline={FiUser}
-        solid={HiUser}
+        outline={User}
+        solid={User}
         isActive={false}
         variant="icon"
       />
       <MenuItem
         href="/settings"
         label="Settings"
-        outline={FiSettings}
-        solid={HiCog6Tooth}
+        outline={Settings}
+        solid={Settings}
         isActive={false}
         variant="icon"
       />

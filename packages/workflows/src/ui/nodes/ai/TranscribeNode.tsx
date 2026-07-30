@@ -4,10 +4,10 @@ import type { TranscribeLanguage, TranscribeNodeData } from '@genfeedai/types';
 import { NodeStatusEnum } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import {
-  AlertCircle,
+  CircleAlert,
   Expand,
   FileText,
-  Loader2,
+  LoaderCircle,
   RefreshCw,
 } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
@@ -171,7 +171,7 @@ function TranscribeNodeComponent(props: NodeProps) {
             className="w-full"
           >
             {nodeData.status === 'processing' ? (
-              <Loader2 className="size-4 animate-spin" />
+              <LoaderCircle className="size-4 animate-spin" />
             ) : (
               <FileText className="size-4" />
             )}
@@ -184,7 +184,7 @@ function TranscribeNodeComponent(props: NodeProps) {
         {/* Help text for required inputs */}
         {!canGenerate && nodeData.status !== 'processing' && (
           <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
-            <AlertCircle className="size-3" />
+            <CircleAlert className="size-3" />
             Connect video or audio to transcribe
           </div>
         )}

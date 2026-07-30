@@ -8,6 +8,7 @@ import type {
   PublishingReadinessState,
   PublishingSetupCheckStatus,
 } from '@genfeedai/interfaces';
+import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import { ClipboardService } from '@services/core/clipboard.service';
@@ -20,8 +21,74 @@ import Loading from '@ui/loading/default/Loading';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import { Switch } from '@ui/primitives/switch';
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
+import {
+  type ChangeEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useState,
+} from 'react';
+
+const CUSTOM_SCHEDULE_VALUE = 'custom';
+
+/** Human cadence presets — still stored as cron on the brand config. */
+const SCHEDULE_PRESETS = [
+  { cron: '0 9 * * 1-5', label: 'Weekdays at 9:00 AM' },
+  { cron: '0 9 * * *', label: 'Every day at 9:00 AM' },
+  { cron: '0 12 * * *', label: 'Every day at noon' },
+  { cron: '0 18 * * *', label: 'Every day at 6:00 PM' },
+  { cron: '0 9 * * 1', label: 'Mondays at 9:00 AM' },
+  { cron: '0 9,18 * * *', label: 'Twice daily (9:00 AM and 6:00 PM)' },
+] as const;
+
+function resolveSchedulePresetValue(cronExpression: string): string {
+  const match = SCHEDULE_PRESETS.find(
+    (preset) => preset.cron === cronExpression.trim(),
+  );
+  return match?.cron ?? (cronExpression.trim() ? CUSTOM_SCHEDULE_VALUE : '');
+}
+
+function SettingsToggleRow({
+  description,
+  isChecked,
+  isDisabled,
+  label,
+  onCheckedChange,
+}: {
+  description: string;
+  isChecked: boolean;
+  isDisabled?: boolean;
+  label: string;
+  onCheckedChange: (checked: boolean) => void;
+}): ReactNode {
+  return (
+    <div className="flex items-start justify-between gap-4 rounded-card bg-background-secondary/40 px-4 py-3 shadow-border">
+      <div className="min-w-0 space-y-1">
+        <p className="text-sm font-medium text-foreground">{label}</p>
+        <p className="text-xs leading-5 text-muted-foreground">{description}</p>
+      </div>
+      <Switch
+        aria-label={label}
+        className="mt-0.5 shrink-0"
+        isChecked={isChecked}
+        isDisabled={isDisabled}
+        onChange={(event: ChangeEvent<HTMLInputElement>) => {
+          onCheckedChange(event.target.checked);
+        }}
+      />
+    </div>
+  );
+}
 
 type PublishingConfig = {
   autoPublish?: {
@@ -345,260 +412,352 @@ export default function BrandSettingsPublishingPage() {
     [clipboardService],
   );
 
+  const [isCustomSchedule, setIsCustomSchedule] = useState(
+    () =>
+      resolveSchedulePresetValue(
+        publishingConfig?.schedule?.cronExpression ?? '',
+      ) === CUSTOM_SCHEDULE_VALUE,
+  );
+
+  useEffect(() => {
+    setIsCustomSchedule(
+      resolveSchedulePresetValue(
+        publishingConfig?.schedule?.cronExpression ?? '',
+      ) === CUSTOM_SCHEDULE_VALUE,
+    );
+  }, [publishingConfig]);
+
+  const scheduleSelectValue = isCustomSchedule
+    ? CUSTOM_SCHEDULE_VALUE
+    : resolveSchedulePresetValue(cronExpression) || undefined;
+
+  const timezoneOptions = useMemo(() => {
+    if (!timezone || TIMEZONES.some((entry) => entry.value === timezone)) {
+      return TIMEZONES;
+    }
+    return [{ label: timezone, offset: 0, value: timezone }, ...TIMEZONES];
+  }, [timezone]);
+
   if (!hasBrandId || isLoading) {
     return <Loading isFullSize={false} />;
   }
 
   if (!brand) {
     return (
-      <Card className="p-6">
+      <Card className="p-5 sm:p-6">
         <p className="text-sm text-muted-foreground">Brand not found.</p>
       </Card>
     );
   }
 
   return (
-    <Card className="p-6">
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-lg font-semibold">Publishing Defaults</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Configure recurring execution and auto-publish behavior for this
-            brand.
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          <Switch
-            label="Enable Recurring Schedule"
-            description="Run this brand on a recurring cadence using the cron expression below."
-            isChecked={isScheduleEnabled}
-            isDisabled={isSaving}
-            onChange={(event) =>
-              dispatch({
-                type: 'SET_SCHEDULE_ENABLED',
-                value: event.target.checked,
-              })
-            }
-          />
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-sm font-medium" htmlFor="cron">
-                Cron Expression
-              </label>
-              <Input
-                id="cron"
-                placeholder="0 9 * * 1-5"
-                value={cronExpression}
-                disabled={isSaving}
-                onChange={(event) =>
-                  dispatch({ type: 'SET_CRON', value: event.target.value })
-                }
-              />
-            </div>
-            <div>
-              <label
-                className="mb-1 block text-sm font-medium"
-                htmlFor="timezone"
-              >
-                Timezone
-              </label>
-              <Input
-                id="timezone"
-                placeholder="Europe/Malta"
-                value={timezone}
-                disabled={isSaving}
-                onChange={(event) =>
-                  dispatch({ type: 'SET_TIMEZONE', value: event.target.value })
-                }
-              />
-            </div>
+    <div className="space-y-5 sm:space-y-6">
+      <Card className="p-5 sm:p-6">
+        <div className="space-y-5">
+          <div>
+            <h2 className="text-base font-semibold tracking-[-0.02em] text-foreground sm:text-lg">
+              Publishing defaults
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Recurring cadence and auto-publish rules for this brand.
+            </p>
           </div>
 
-          <Switch
-            label="Enable Auto-Publish"
-            description="Allow approved outputs for this brand to publish automatically when confidence is high enough."
-            isChecked={isAutoPublishEnabled}
-            isDisabled={isSaving}
-            onChange={(event) =>
-              dispatch({
-                type: 'SET_AUTO_PUBLISH_ENABLED',
-                value: event.target.checked,
-              })
-            }
-          />
+          <div className="space-y-4">
+            <SettingsToggleRow
+              description="Run this brand on a repeating cadence in the timezone below."
+              isChecked={isScheduleEnabled}
+              isDisabled={isSaving}
+              label="Recurring schedule"
+              onCheckedChange={(checked) =>
+                dispatch({ type: 'SET_SCHEDULE_ENABLED', value: checked })
+              }
+            />
 
-          <div>
-            <label
-              className="mb-1 block text-sm font-medium"
-              htmlFor="confidence-threshold"
-            >
-              Auto-Publish Confidence Threshold
-            </label>
-            <Input
-              id="confidence-threshold"
-              inputMode="decimal"
-              placeholder="0.8"
-              value={confidenceThreshold}
-              disabled={isSaving}
-              onChange={(event) =>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <label
+                  className="block text-sm font-medium text-foreground"
+                  htmlFor="publishing-cadence"
+                >
+                  Cadence
+                </label>
+                <Select
+                  disabled={isSaving || !isScheduleEnabled}
+                  value={scheduleSelectValue}
+                  onValueChange={(value) => {
+                    if (value === CUSTOM_SCHEDULE_VALUE) {
+                      setIsCustomSchedule(true);
+                      if (!cronExpression.trim()) {
+                        dispatch({
+                          type: 'SET_CRON',
+                          value: '0 9 * * 1-5',
+                        });
+                      }
+                      return;
+                    }
+                    setIsCustomSchedule(false);
+                    dispatch({ type: 'SET_CRON', value });
+                  }}
+                >
+                  <SelectTrigger aria-label="Cadence" id="publishing-cadence">
+                    <SelectValue placeholder="Choose when to run" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SCHEDULE_PRESETS.map((preset) => (
+                      <SelectItem key={preset.cron} value={preset.cron}>
+                        {preset.label}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value={CUSTOM_SCHEDULE_VALUE}>
+                      Custom…
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                {isCustomSchedule ? (
+                  <div className="space-y-1.5 pt-2">
+                    <label
+                      className="block text-xs font-medium text-muted-foreground"
+                      htmlFor="publishing-custom-schedule"
+                    >
+                      Custom schedule
+                    </label>
+                    <Input
+                      aria-label="Custom schedule"
+                      disabled={isSaving || !isScheduleEnabled}
+                      id="publishing-custom-schedule"
+                      placeholder="e.g. weekdays at 9am → 0 9 * * 1-5"
+                      value={cronExpression}
+                      onChange={(event) =>
+                        dispatch({
+                          type: 'SET_CRON',
+                          value: event.target.value,
+                        })
+                      }
+                    />
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      Advanced schedule format. Prefer a preset unless you need
+                      something specific.
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="space-y-1.5">
+                <label
+                  className="block text-sm font-medium text-foreground"
+                  htmlFor="publishing-timezone"
+                >
+                  Timezone
+                </label>
+                <Select
+                  disabled={isSaving || !isScheduleEnabled}
+                  value={timezone || 'UTC'}
+                  onValueChange={(value) =>
+                    dispatch({ type: 'SET_TIMEZONE', value })
+                  }
+                >
+                  <SelectTrigger aria-label="Timezone" id="publishing-timezone">
+                    <SelectValue placeholder="Select timezone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timezoneOptions.map((entry) => (
+                      <SelectItem key={entry.value} value={entry.value}>
+                        {entry.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <SettingsToggleRow
+              description="Publish approved outputs automatically when confidence clears the threshold."
+              isChecked={isAutoPublishEnabled}
+              isDisabled={isSaving}
+              label="Auto-publish"
+              onCheckedChange={(checked) =>
                 dispatch({
-                  type: 'SET_CONFIDENCE_THRESHOLD',
-                  value: event.target.value,
+                  type: 'SET_AUTO_PUBLISH_ENABLED',
+                  value: checked,
                 })
               }
             />
+
+            <div className="space-y-1.5">
+              <label
+                className="block text-sm font-medium text-foreground"
+                htmlFor="confidence-threshold"
+              >
+                Confidence threshold
+              </label>
+              <Input
+                aria-label="Confidence threshold"
+                disabled={isSaving || !isAutoPublishEnabled}
+                id="confidence-threshold"
+                inputMode="decimal"
+                placeholder="0.8"
+                value={confidenceThreshold}
+                onChange={(event) =>
+                  dispatch({
+                    type: 'SET_CONFIDENCE_THRESHOLD',
+                    value: event.target.value,
+                  })
+                }
+              />
+              <p className="text-xs leading-5 text-muted-foreground">
+                0–1 scale. Higher means only higher-confidence outputs publish
+                without review.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-end border-t border-border pt-4">
+            <Button
+              isDisabled={isSaving}
+              withWrapper={false}
+              onClick={handleSave}
+            >
+              {isSaving ? 'Saving…' : 'Save defaults'}
+            </Button>
           </div>
         </div>
+      </Card>
 
-        <div className="border-t border-border pt-6">
-          <div>
-            <h2 className="text-lg font-semibold">
-              Connected Account Readiness
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Check provider credentials and setup before enabling automated
-              publishing.
-            </p>
-          </div>
+      <Card className="p-5 sm:p-6">
+        <div>
+          <h2 className="text-base font-semibold tracking-[-0.02em] text-foreground sm:text-lg">
+            Connected account readiness
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Check provider credentials and setup before enabling automated
+            publishing.
+          </p>
+        </div>
 
-          {connectedCredentials.length === 0 ? (
-            <p className="mt-4 text-sm text-muted-foreground">
-              No connected accounts are available for this brand.
-            </p>
-          ) : (
-            <div className="mt-4 space-y-3">
-              {connectedCredentials.map((credential) => {
-                const context = publishingContexts.find(
-                  (candidate) => candidate.account.id === credential.id,
-                );
-                const hasFailed = failedCredentialIds.includes(credential.id);
+        {connectedCredentials.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">
+            No connected accounts are available for this brand.
+          </p>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {connectedCredentials.map((credential) => {
+              const context = publishingContexts.find(
+                (candidate) => candidate.account.id === credential.id,
+              );
+              const hasFailed = failedCredentialIds.includes(credential.id);
 
-                if (!context) {
-                  return (
-                    <div
-                      key={credential.id}
-                      className="rounded-md bg-background-secondary p-4 shadow-border"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-medium">
-                            {getCredentialLabel(credential)}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {credential.platform}
-                          </p>
-                        </div>
-                        <Badge variant={hasFailed ? 'destructive' : 'outline'}>
-                          {hasFailed
-                            ? 'Unavailable'
-                            : isReadinessLoading
-                              ? 'Checking'
-                              : 'Unknown'}
-                        </Badge>
-                      </div>
-                      {hasFailed ? (
-                        <p className="mt-3 text-sm text-destructive">
-                          Publishing readiness could not be loaded for this
-                          account. Retry by refreshing this page.
-                        </p>
-                      ) : null}
-                    </div>
-                  );
-                }
-
+              if (!context) {
                 return (
                   <div
                     key={credential.id}
-                    className="rounded-md bg-background-secondary p-4 shadow-border"
+                    className="rounded-card bg-background-secondary p-4 shadow-border"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-medium">
-                          {context.account.label}
+                          {getCredentialLabel(credential)}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {context.account.platform}
-                          {context.account.handle
-                            ? ` · @${context.account.handle.replace(/^@/, '')}`
-                            : ''}
+                          {credential.platform}
                         </p>
                       </div>
-                      <Badge
-                        variant={getReadinessBadgeVariant(
-                          context.readiness.state,
-                        )}
-                      >
-                        {formatReadinessState(context.readiness.state)}
+                      <Badge variant={hasFailed ? 'destructive' : 'outline'}>
+                        {hasFailed
+                          ? 'Unavailable'
+                          : isReadinessLoading
+                            ? 'Checking'
+                            : 'Unknown'}
                       </Badge>
                     </div>
-
-                    <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                      {READINESS_CHECKS.map(([key, label]) => (
-                        <div key={key}>
-                          <dt className="text-xs text-muted-foreground">
-                            {label}
-                          </dt>
-                          <dd className="mt-1 text-sm font-medium">
-                            {formatCheckStatus(context.readiness[key])}
-                          </dd>
-                        </div>
-                      ))}
-                    </dl>
-
-                    {context.readiness.requiredAction ? (
-                      <p className="mt-4 text-sm text-foreground">
-                        {redactSensitiveString(
-                          context.readiness.requiredAction,
-                        )}
+                    {hasFailed ? (
+                      <p className="mt-3 text-sm text-destructive">
+                        Publishing readiness could not be loaded for this
+                        account. Retry by refreshing this page.
                       </p>
                     ) : null}
-
-                    {context.readiness.diagnostics.length > 0 ? (
-                      <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
-                        {context.readiness.diagnostics.map((diagnostic) => (
-                          <li key={`${diagnostic.code}-${diagnostic.message}`}>
-                            {redactSensitiveString(diagnostic.message)}
-                            {diagnostic.correctiveAction
-                              ? ` Next: ${redactSensitiveString(
-                                  diagnostic.correctiveAction,
-                                )}`
-                              : ''}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="mt-3 text-sm text-muted-foreground">
-                        This account is ready to publish.
-                      </p>
-                    )}
-
-                    <div className="mt-4 flex justify-end">
-                      <Button
-                        label="Copy diagnostics"
-                        variant={ButtonVariant.SECONDARY}
-                        withWrapper={false}
-                        onClick={() => handleCopyReadiness(context)}
-                      />
-                    </div>
                   </div>
                 );
-              })}
-            </div>
-          )}
-        </div>
+              }
 
-        <div className="flex justify-end">
-          <Button
-            withWrapper={false}
-            onClick={handleSave}
-            isDisabled={isSaving}
-          >
-            {isSaving ? 'Saving…' : 'Save'}
-          </Button>
-        </div>
-      </div>
-    </Card>
+              return (
+                <div
+                  key={credential.id}
+                  className="rounded-card bg-background-secondary p-4 shadow-border"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium">
+                        {context.account.label}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {context.account.platform}
+                        {context.account.handle
+                          ? ` · @${context.account.handle.replace(/^@/, '')}`
+                          : ''}
+                      </p>
+                    </div>
+                    <Badge
+                      variant={getReadinessBadgeVariant(
+                        context.readiness.state,
+                      )}
+                    >
+                      {formatReadinessState(context.readiness.state)}
+                    </Badge>
+                  </div>
+
+                  <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                    {READINESS_CHECKS.map(([key, label]) => (
+                      <div key={key}>
+                        <dt className="text-xs text-muted-foreground">
+                          {label}
+                        </dt>
+                        <dd className="mt-1 text-sm font-medium">
+                          {formatCheckStatus(context.readiness[key])}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+
+                  {context.readiness.requiredAction ? (
+                    <p className="mt-4 text-sm text-foreground">
+                      {redactSensitiveString(context.readiness.requiredAction)}
+                    </p>
+                  ) : null}
+
+                  {context.readiness.diagnostics.length > 0 ? (
+                    <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+                      {context.readiness.diagnostics.map((diagnostic) => (
+                        <li key={`${diagnostic.code}-${diagnostic.message}`}>
+                          {redactSensitiveString(diagnostic.message)}
+                          {diagnostic.correctiveAction
+                            ? ` Next: ${redactSensitiveString(
+                                diagnostic.correctiveAction,
+                              )}`
+                            : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-3 text-sm text-muted-foreground">
+                      This account is ready to publish.
+                    </p>
+                  )}
+
+                  <div className="mt-4 flex justify-end">
+                    <Button
+                      label="Copy diagnostics"
+                      variant={ButtonVariant.SECONDARY}
+                      withWrapper={false}
+                      onClick={() => handleCopyReadiness(context)}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
+    </div>
   );
 }

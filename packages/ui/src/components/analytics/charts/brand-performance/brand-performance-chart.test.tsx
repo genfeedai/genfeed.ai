@@ -132,9 +132,7 @@ describe('BrandPerformanceChart', () => {
   describe('Empty State', () => {
     it('shows empty message when data is empty array', () => {
       render(<BrandPerformanceChart data={[]} />);
-      expect(
-        screen.getByText('No data available for the selected period'),
-      ).toBeInTheDocument();
+      expect(screen.getByText('No brand performance yet')).toBeInTheDocument();
     });
 
     it('disables metric buttons when empty', () => {
@@ -148,7 +146,7 @@ describe('BrandPerformanceChart', () => {
     it('does not show empty message when loading', () => {
       render(<BrandPerformanceChart data={[]} isLoading />);
       expect(
-        screen.queryByText('No data available for the selected period'),
+        screen.queryByText('No brand performance yet'),
       ).not.toBeInTheDocument();
     });
   });

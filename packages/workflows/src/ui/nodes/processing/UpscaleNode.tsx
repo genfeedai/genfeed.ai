@@ -11,9 +11,9 @@ import { NodeStatusEnum } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import {
   Expand,
-  Loader2,
+  LoaderCircle,
   RefreshCw,
-  SplitSquareHorizontal,
+  SquareSplitHorizontal,
 } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
@@ -336,7 +336,7 @@ function UpscaleImageOutput({
                 : 'Compare before/after'
             }
           >
-            <SplitSquareHorizontal className="size-3.5" />
+            <SquareSplitHorizontal className="size-3.5" />
           </Button>
         )}
       </div>
@@ -407,7 +407,7 @@ function UpscaleVideoOutput({
             onClick={onComparisonToggle}
             title={nodeData.showComparison ? 'Show video' : 'Compare frames'}
           >
-            <SplitSquareHorizontal className="size-3.5" />
+            <SquareSplitHorizontal className="size-3.5" />
           </Button>
         )}
       </div>
@@ -487,7 +487,9 @@ function UpscaleProcessButton({
       disabled={!hasInput || status === 'processing'}
       className="mt-1 w-full"
     >
-      {status === 'processing' && <Loader2 className="size-4 animate-spin" />}
+      {status === 'processing' && (
+        <LoaderCircle className="size-4 animate-spin" />
+      )}
       {label}
     </Button>
   );

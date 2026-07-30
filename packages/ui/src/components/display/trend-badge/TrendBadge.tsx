@@ -2,12 +2,8 @@
 
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { TrendBadgeProps } from '@genfeedai/props/ui/display/trend-badge.props';
+import { Minus, TrendingDown, TrendingUp } from 'lucide-react';
 import { memo } from 'react';
-import {
-  HiArrowTrendingDown,
-  HiArrowTrendingUp,
-  HiMinus,
-} from 'react-icons/hi2';
 
 const SIZE_CLASSES = {
   lg: 'text-base px-2.5 py-1.5',
@@ -44,11 +40,7 @@ const TrendBadge = memo(function TrendBadge({
 
   const formattedValue = isPositive ? `+${value}%` : `${value}%`;
 
-  const TrendIcon = isPositive
-    ? HiArrowTrendingUp
-    : isNegative
-      ? HiArrowTrendingDown
-      : HiMinus;
+  const TrendIcon = isPositive ? TrendingUp : isNegative ? TrendingDown : Minus;
 
   return (
     <span

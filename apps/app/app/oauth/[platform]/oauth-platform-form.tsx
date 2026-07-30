@@ -3,9 +3,9 @@
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import { ServicesService } from '@services/external/services.service';
+import { CircleCheck, CircleX } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { HiCheckCircle, HiXCircle } from 'react-icons/hi2';
 
 interface OAuthPlatformFormProps {
   platform: string;
@@ -109,7 +109,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
 
         {result.status === 'success' && (
           <div className="space-y-4">
-            <HiCheckCircle className="mx-auto text-5xl text-success" />
+            <CircleCheck className="mx-auto text-5xl text-success" />
             <h2 className="text-lg font-semibold">{platformLabel} Connected</h2>
             <p className="text-sm text-muted-foreground">
               Redirecting you back…
@@ -119,7 +119,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
 
         {result.status === 'error' && (
           <div className="space-y-4">
-            <HiXCircle className="mx-auto text-5xl text-destructive" />
+            <CircleX className="mx-auto text-5xl text-destructive" />
             <h2 className="text-lg font-semibold">Connection Failed</h2>
             <p className="text-sm text-muted-foreground">
               {result.errorMessage}

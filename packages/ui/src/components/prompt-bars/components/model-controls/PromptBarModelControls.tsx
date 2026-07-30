@@ -14,8 +14,8 @@ import {
   getAutoModelLabel,
 } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { useModelFavorites } from '@ui/dropdowns/model-selector/useModelFavorites';
+import { Cpu } from 'lucide-react';
 import { memo } from 'react';
-import { HiCpuChip } from 'react-icons/hi2';
 
 const PromptBarModelControls = memo(function PromptBarModelControls({
   isAdvancedMode,
@@ -54,7 +54,7 @@ const PromptBarModelControls = memo(function PromptBarModelControls({
   if (visibleModels.length === 0) {
     return (
       <span className="inline-flex items-center gap-1.5 h-10 px-3 text-sm text-foreground/50 bg-white/5 border border-white/10">
-        <HiCpuChip className="size-4" />
+        <Cpu className="size-4" />
         No models for this format
       </span>
     );

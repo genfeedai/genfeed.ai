@@ -2,27 +2,22 @@
 
 import type { OutputNodeProps } from '@genfeedai/props/automation/workflow-builder.props';
 import BaseNode from '@ui/workflow-builder/nodes/BaseNode';
+import { Download, Globe, Send, Upload } from 'lucide-react';
 import { memo } from 'react';
-import {
-  HiOutlineArrowDownTray,
-  HiOutlineArrowUpTray,
-  HiOutlineGlobeAlt,
-  HiOutlinePaperAirplane,
-} from 'react-icons/hi2';
 
 function OutputNode(props: OutputNodeProps) {
   const getIcon = () => {
     switch (props.data.nodeType) {
       case 'output-save':
-        return <HiOutlineArrowDownTray />;
+        return <Download />;
       case 'output-publish':
-        return <HiOutlineArrowUpTray />;
+        return <Upload />;
       case 'output-webhook':
-        return <HiOutlineGlobeAlt />;
+        return <Globe />;
       case 'output-notify':
-        return <HiOutlinePaperAirplane />;
+        return <Send />;
       default:
-        return <HiOutlineArrowDownTray />;
+        return <Download />;
     }
   };
 

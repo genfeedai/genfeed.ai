@@ -3,8 +3,8 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
+import { Check, Sparkles } from 'lucide-react';
 import { type ReactElement, useCallback, useState } from 'react';
-import { HiCheck, HiSparkles } from 'react-icons/hi2';
 
 interface BrandCreateCardProps {
   action: AgentUiAction;
@@ -46,7 +46,7 @@ export function BrandCreateCard({
     return (
       <div className="my-2 border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
         <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-          <HiCheck className="size-5" />
+          <Check className="size-5" />
           <span className="text-sm font-medium">
             Brand &quot;{name}&quot; created
           </span>
@@ -58,7 +58,7 @@ export function BrandCreateCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiSparkles className="size-5 text-pink-500" />
+        <Sparkles className="size-5 text-pink-500" />
         <h3 className="text-sm font-semibold">
           {action.title || 'Create Brand'}
         </h3>
@@ -117,7 +117,7 @@ export function BrandCreateCard({
         onClick={handleCreate}
         isDisabled={!name.trim() || isCreating}
         isLoading={isCreating}
-        icon={<HiSparkles className="size-4" />}
+        icon={<Sparkles className="size-4" />}
         className="w-full justify-center"
       >
         {isCreating ? 'Creating…' : 'Create Brand'}

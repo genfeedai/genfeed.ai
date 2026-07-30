@@ -3,9 +3,10 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Kbd } from '@genfeedai/ui';
 import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
+import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { HiPlus } from 'react-icons/hi2';
+
 import CollapsibleGroup from './CollapsibleGroup';
 
 interface MenuSharedConversationsProps {
@@ -55,7 +56,7 @@ export default function MenuSharedConversations({
             onMouseEnter={prefetchNewAgentThreadHref}
             className="group flex h-8 w-full items-center gap-3 rounded px-3 py-1.5 text-left text-foreground/72 transition-colors duration-150 cursor-pointer hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
           >
-            <HiPlus className="size-4 text-foreground/42 group-hover:text-foreground/78" />
+            <Plus className="size-4 text-foreground/42 group-hover:text-foreground/78" />
             <span className="text-[13px] font-medium tracking-[-0.01em] text-foreground/88">
               New Thread
             </span>

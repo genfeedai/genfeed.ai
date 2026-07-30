@@ -4,18 +4,19 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
+import {
+  Check,
+  Clock,
+  ExternalLink,
+  RefreshCw,
+  ShieldCheck,
+  TriangleAlert,
+  X,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  HiOutlineArrowPath,
-  HiOutlineArrowTopRightOnSquare,
-  HiOutlineCheck,
-  HiOutlineClock,
-  HiOutlineExclamationTriangle,
-  HiOutlineShieldCheck,
-  HiOutlineXMark,
-} from 'react-icons/hi2';
+
 import {
   type CloudWorkflowData,
   createWorkflowApiService,
@@ -343,12 +344,12 @@ export function WorkflowSurfaceInspector({
       {error ? (
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
           <div className="flex items-start gap-2">
-            <HiOutlineExclamationTriangle className="mt-0.5 size-4 shrink-0" />
+            <TriangleAlert className="mt-0.5 size-4 shrink-0" />
             <p>{error}</p>
           </div>
           <Button
             className="mt-3"
-            icon={<HiOutlineArrowPath className="size-4" />}
+            icon={<RefreshCw className="size-4" />}
             onClick={() => setReloadKey((current) => current + 1)}
             size={ButtonSize.SM}
             variant={ButtonVariant.SECONDARY}
@@ -453,7 +454,7 @@ export function WorkflowSurfaceInspector({
 
       <section className="rounded-lg border border-border bg-background p-3">
         <div className="flex items-center gap-2">
-          <HiOutlineShieldCheck className="size-4 text-muted-foreground" />
+          <ShieldCheck className="size-4 text-muted-foreground" />
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Approvals
           </p>
@@ -472,7 +473,7 @@ export function WorkflowSurfaceInspector({
             <div className="grid grid-cols-2 gap-2">
               <Button
                 disabled={isSubmittingApproval}
-                icon={<HiOutlineCheck className="size-4" />}
+                icon={<Check className="size-4" />}
                 onClick={() => void submitApproval(true)}
                 size={ButtonSize.SM}
                 variant={ButtonVariant.DEFAULT}
@@ -482,7 +483,7 @@ export function WorkflowSurfaceInspector({
               </Button>
               <Button
                 disabled={isSubmittingApproval}
-                icon={<HiOutlineXMark className="size-4" />}
+                icon={<X className="size-4" />}
                 onClick={() => void submitApproval(false)}
                 size={ButtonSize.SM}
                 variant={ButtonVariant.SECONDARY}
@@ -510,7 +511,7 @@ export function WorkflowSurfaceInspector({
       {workflow?.schedule ? (
         <section className="rounded-lg border border-border bg-background p-3">
           <div className="flex items-center gap-2">
-            <HiOutlineClock className="size-4 text-muted-foreground" />
+            <Clock className="size-4 text-muted-foreground" />
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Schedule
             </p>
@@ -526,7 +527,7 @@ export function WorkflowSurfaceInspector({
         {execution?.status === 'failed' ? (
           <Button
             disabled={isResuming}
-            icon={<HiOutlineArrowPath className="size-4" />}
+            icon={<RefreshCw className="size-4" />}
             onClick={() => void resumeExecution()}
             variant={ButtonVariant.DEFAULT}
             withWrapper={false}
@@ -537,7 +538,7 @@ export function WorkflowSurfaceInspector({
         {workflowHref ? (
           <Button asChild variant={ButtonVariant.SECONDARY} withWrapper={false}>
             <Link href={workflowHref}>
-              <HiOutlineArrowTopRightOnSquare className="size-4" />
+              <ExternalLink className="size-4" />
               Open workflow editor
             </Link>
           </Button>

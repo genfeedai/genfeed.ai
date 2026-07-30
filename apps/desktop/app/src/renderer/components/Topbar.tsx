@@ -1,7 +1,6 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { HiOutlineCog6Tooth, HiOutlineCommandLine } from 'react-icons/hi2';
-import { PiSidebarSimple, PiSidebarSimpleFill } from 'react-icons/pi';
+import { PanelLeft, Settings, Terminal } from 'lucide-react';
 
 interface TopbarProps {
   isSidebarCollapsed: boolean;
@@ -27,9 +26,9 @@ export function Topbar({
           ariaLabel={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isSidebarCollapsed ? (
-            <PiSidebarSimple className="desktop-topbar-icon" />
+            <PanelLeft className="desktop-topbar-icon" />
           ) : (
-            <PiSidebarSimpleFill className="desktop-topbar-icon" />
+            <PanelLeft className="desktop-topbar-icon" />
           )}
         </Button>
       </div>
@@ -42,7 +41,7 @@ export function Topbar({
           variant={ButtonVariant.UNSTYLED}
           ariaLabel="Open terminal"
         >
-          <HiOutlineCommandLine className="desktop-topbar-icon" />
+          <Terminal className="desktop-topbar-icon" />
         </Button>
 
         <Button
@@ -52,7 +51,7 @@ export function Topbar({
           variant={ButtonVariant.UNSTYLED}
           ariaLabel="Settings"
         >
-          <HiOutlineCog6Tooth className="desktop-topbar-icon" />
+          <Settings className="desktop-topbar-icon" />
         </Button>
       </div>
     </div>

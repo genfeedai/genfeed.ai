@@ -33,9 +33,9 @@ import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Switch } from '@ui/primitives/switch';
 import { Textarea } from '@ui/primitives/textarea';
+import { Sparkles } from 'lucide-react';
 import { type ChangeEvent, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { HiSparkles } from 'react-icons/hi2';
 
 export default function ModalArticle({
   onConfirm,
@@ -306,7 +306,7 @@ export default function ModalArticle({
                 </span>
               ) : useAI ? (
                 <span className="inline-flex items-center gap-2">
-                  <HiSparkles className="size-4" />
+                  <Sparkles className="size-4" />
                   <span>
                     Generate {countNumber} Article{countNumber > 1 ? 's' : ''}
                   </span>

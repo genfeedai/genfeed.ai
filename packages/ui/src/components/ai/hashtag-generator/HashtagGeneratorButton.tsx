@@ -10,8 +10,8 @@ import { NotificationsService } from '@genfeedai/services/core/notifications.ser
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
+import { Hash } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import { HiHashtag } from 'react-icons/hi2';
 
 export default function HashtagGeneratorButton({
   content,
@@ -88,7 +88,7 @@ export default function HashtagGeneratorButton({
       maxWidth="360px"
       trigger={
         <Button
-          icon={<HiHashtag className="size-4" />}
+          icon={<Hash className="size-4" />}
           variant={ButtonVariant.SECONDARY}
           size={ButtonSize.ICON}
           className={`size-9 min-h-0 p-0 ${className}`}

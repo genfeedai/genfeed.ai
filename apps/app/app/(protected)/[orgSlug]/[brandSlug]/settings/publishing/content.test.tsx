@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
+// ReactNode used by Select mock
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandSettingsPublishingPage from './content';
 
@@ -120,21 +121,57 @@ vi.mock('@ui/primitives/input', () => ({
   ),
 }));
 
+vi.mock('@ui/primitives/select', () => ({
+  Select: ({
+    children,
+    value,
+  }: {
+    children?: ReactNode;
+    onValueChange?: (value: string) => void;
+    value?: string;
+  }) => (
+    <div data-testid="select" data-value={value}>
+      {children}
+    </div>
+  ),
+  SelectContent: ({ children }: { children?: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  SelectItem: ({
+    children,
+    value,
+  }: {
+    children?: ReactNode;
+    value: string;
+  }) => <div data-value={value}>{children}</div>,
+  SelectTrigger: ({ children, id }: { children?: ReactNode; id?: string }) => (
+    <div id={id}>{children}</div>
+  ),
+  SelectValue: ({ placeholder }: { placeholder?: string }) => (
+    <span>{placeholder}</span>
+  ),
+}));
+
 vi.mock('@ui/primitives/switch', () => ({
   Switch: ({
+    'aria-label': ariaLabel,
     isChecked,
     isDisabled,
     label,
     onChange,
   }: {
+    'aria-label'?: string;
     isChecked?: boolean;
     isDisabled?: boolean;
-    label: string;
+    label?: string;
     onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
   }) => (
     <label>
-      {label}
+      {label ?? ariaLabel}
       <input
+        aria-label={
+          ariaLabel ?? (typeof label === 'string' ? label : undefined)
+        }
         checked={Boolean(isChecked)}
         disabled={isDisabled}
         type="checkbox"
@@ -180,29 +217,20 @@ describe('BrandSettingsPublishingPage', () => {
   it('loads publishing defaults and saves schedule/autopublish settings', async () => {
     render(<BrandSettingsPublishingPage />);
 
-    expect(screen.getByText('Publishing Defaults')).toBeVisible();
-    expect(screen.getByLabelText('Enable Recurring Schedule')).toBeChecked();
-    expect(screen.getByDisplayValue('0 9 * * 1-5')).toBeVisible();
-    expect(screen.getByDisplayValue('Europe/Malta')).toBeVisible();
-    expect(screen.getByLabelText('Enable Auto-Publish')).toBeChecked();
+    expect(screen.getByText('Publishing defaults')).toBeVisible();
+    expect(screen.getByLabelText('Recurring schedule')).toBeChecked();
+    expect(screen.getByText('Weekdays at 9:00 AM')).toBeVisible();
+    expect(screen.getByText('Europe/Malta')).toBeVisible();
+    expect(screen.getByLabelText('Auto-publish')).toBeChecked();
     expect(screen.getByDisplayValue('0.92')).toBeVisible();
 
-    fireEvent.click(screen.getByLabelText('Enable Recurring Schedule'));
-    fireEvent.change(screen.getByLabelText('Cron Expression'), {
-      target: { value: '0 12 * * *' },
+    fireEvent.click(screen.getByLabelText('Recurring schedule'));
+    fireEvent.click(screen.getByLabelText('Auto-publish'));
+    fireEvent.change(screen.getByLabelText('Confidence threshold'), {
+      target: { value: '' },
     });
-    fireEvent.change(screen.getByLabelText('Timezone'), {
-      target: { value: 'UTC' },
-    });
-    fireEvent.click(screen.getByLabelText('Enable Auto-Publish'));
-    fireEvent.change(
-      screen.getByLabelText('Auto-Publish Confidence Threshold'),
-      {
-        target: { value: '' },
-      },
-    );
 
-    fireEvent.click(screen.getByText('Save'));
+    fireEvent.click(screen.getByText('Save defaults'));
 
     await waitFor(() => {
       expect(mocks.updateAgentConfig).toHaveBeenCalledWith('brand-1', {
@@ -211,9 +239,9 @@ describe('BrandSettingsPublishingPage', () => {
           enabled: false,
         },
         schedule: {
-          cronExpression: '0 12 * * *',
+          cronExpression: '0 9 * * 1-5',
           enabled: false,
-          timezone: 'UTC',
+          timezone: 'Europe/Malta',
         },
       });
     });
@@ -249,7 +277,7 @@ describe('BrandSettingsPublishingPage', () => {
     mocks.updateAgentConfig.mockRejectedValueOnce(new Error('save failed'));
     rerender(<BrandSettingsPublishingPage />);
 
-    fireEvent.click(screen.getByText('Save'));
+    fireEvent.click(screen.getByText('Save defaults'));
     await waitFor(() => {
       expect(mocks.loggerError).toHaveBeenCalledWith(
         'Failed to save brand publishing defaults',

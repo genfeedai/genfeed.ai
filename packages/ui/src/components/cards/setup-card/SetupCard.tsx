@@ -3,8 +3,8 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useSetupCard } from '@genfeedai/hooks/utils/use-setup-card/use-setup-card';
 import Card from '@ui/card/Card';
+import { Check, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import { HiCheck, HiChevronRight } from 'react-icons/hi2';
 
 export default function SetupCard() {
   const { isVisible, steps, completedCount, totalCount } = useSetupCard();
@@ -52,9 +52,9 @@ export default function SetupCard() {
             )}
           >
             {step.isCompleted ? (
-              <HiCheck className="size-3.5 text-green-400/60 flex-shrink-0" />
+              <Check className="size-3.5 text-green-400/60 flex-shrink-0" />
             ) : (
-              <HiChevronRight className="size-3.5 text-white/20 flex-shrink-0" />
+              <ChevronRight className="size-3.5 text-white/20 flex-shrink-0" />
             )}
             <span className={cn(step.isCompleted && 'line-through')}>
               {step.label}

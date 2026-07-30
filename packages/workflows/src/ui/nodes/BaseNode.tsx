@@ -19,49 +19,69 @@ import {
 } from '@xyflow/react';
 import { clsx } from 'clsx';
 import {
-  AlertCircle,
+  Archive,
   ArrowLeftFromLine,
+  ArrowLeftRight,
   ArrowRightToLine,
   AtSign,
   AudioLines,
+  Bell,
   Brain,
-  CheckCircle,
-  CheckCircle2,
+  Captions,
+  ChartColumn,
+  CircleAlert,
+  CircleCheck,
+  CircleCheckBig,
+  ClipboardCheck,
+  Clock,
   Columns2,
   Copy,
   Crop,
   Download,
   Eye,
+  FilePlay,
   FileText,
-  FileVideo,
   Film,
+  Folder,
   GitBranch,
   Grid3X3,
   Hash,
   Image,
+  Inbox,
+  Languages,
   Layers,
   LayoutGrid,
-  Loader2,
+  LayoutTemplate,
+  Lightbulb,
+  Link2,
+  LoaderCircle,
   Lock,
+  LockOpen,
+  Mail,
   Maximize,
   Maximize2,
   MessageSquare,
   Mic,
   Music,
   Navigation,
+  Palette,
+  Paperclip,
   Pencil,
   Puzzle,
   RefreshCw,
   RotateCcw,
   Scissors,
   Share2,
+  ShieldCheck,
+  SlidersHorizontal,
   Sparkles,
   Square,
-  Subtitles,
-  Unlock,
+  TrendingUp,
+  Trophy,
+  Upload,
   Video,
   Volume2,
-  Wand2,
+  WandSparkles,
 } from 'lucide-react';
 import {
   Children,
@@ -89,13 +109,13 @@ const ICON_MAP: Record<string, typeof Image> = {
   AtSign,
   AudioLines,
   Brain,
-  CheckCircle,
+  CircleCheckBig,
   Columns2,
   Crop,
   Download,
   Eye,
   FileText,
-  FileVideo,
+  FilePlay,
   Film,
   GitBranch,
   Grid3X3,
@@ -115,10 +135,31 @@ const ICON_MAP: Record<string, typeof Image> = {
   Scissors,
   Share2,
   Sparkles,
-  Subtitles,
+  Captions,
   Video,
   Volume2,
-  Wand2,
+  WandSparkles,
+  Archive,
+  ArrowLeftRight,
+  ChartColumn,
+  Bell,
+  ClipboardCheck,
+  Clock,
+  Copy,
+  Folder,
+  Inbox,
+  Languages,
+  LayoutTemplate,
+  Lightbulb,
+  Link2,
+  Mail,
+  Palette,
+  Paperclip,
+  ShieldCheck,
+  SlidersHorizontal,
+  TrendingUp,
+  Trophy,
+  Upload,
 };
 
 // Handle color CSS variables (used inline for guaranteed override)
@@ -135,11 +176,11 @@ const HANDLE_COLORS: Record<string, string> = {
 function StatusIndicator({ status }: { status: NodeStatus }) {
   switch (status) {
     case 'processing':
-      return <Loader2 className="size-4 animate-spin text-primary" />;
+      return <LoaderCircle className="size-4 animate-spin text-primary" />;
     case 'complete':
-      return <CheckCircle2 className="size-4 text-chart-2" />;
+      return <CircleCheck className="size-4 text-chart-2" />;
     case 'error':
-      return <AlertCircle className="size-4 text-destructive" />;
+      return <CircleAlert className="size-4 text-destructive" />;
     default:
       return null;
   }
@@ -298,12 +339,12 @@ function BaseNodeHeader({
         size="icon-sm"
         onClick={onLockToggle}
         className={state.isLocked ? 'text-chart-3' : 'text-muted-foreground'}
-        title={state.isLocked ? 'Unlock node (L)' : 'Lock node (L)'}
+        title={state.isLocked ? 'LockOpen node (L)' : 'Lock node (L)'}
       >
         {state.isLocked ? (
           <Lock className="size-4" />
         ) : (
-          <Unlock className="size-4" />
+          <LockOpen className="size-4" />
         )}
       </Button>
       {headerActions}

@@ -5,8 +5,8 @@ import { useAnimatedCounter } from '@genfeedai/hooks/ui/use-animated-counter/use
 import type { StatCardProps } from '@genfeedai/props/cards/stat-card.props';
 import { Card, CardContent } from '@shipshitdev/ui';
 import { Skeleton } from '@ui/primitives/skeleton';
+import { TrendingDown, TrendingUp } from 'lucide-react';
 import { memo } from 'react';
-import { HiArrowTrendingDown, HiArrowTrendingUp } from 'react-icons/hi2';
 
 const VARIANT_CLASSES = {
   black: 'ship-ui border-white/10 bg-black text-white',
@@ -184,10 +184,8 @@ const StatCard = memo(function StatCard({
                   !isPositiveTrend && !isNegativeTrend && 'gen-trend-neutral',
                 )}
               >
-                {isPositiveTrend && <HiArrowTrendingUp className="size-3.5" />}
-                {isNegativeTrend && (
-                  <HiArrowTrendingDown className="size-3.5" />
-                )}
+                {isPositiveTrend && <TrendingUp className="size-3.5" />}
+                {isNegativeTrend && <TrendingDown className="size-3.5" />}
                 {isPositiveTrend ? '+' : ''}
                 {trend}%
               </span>

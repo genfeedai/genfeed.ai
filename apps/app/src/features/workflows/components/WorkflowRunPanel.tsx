@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { Loader2, Play, X } from 'lucide-react';
+import { LoaderCircle, Play, X } from 'lucide-react';
 import { type ChangeEvent, type FormEvent, useMemo, useState } from 'react';
 import type { WorkflowInputVariable } from '@/features/workflows/services/workflow-api';
 
@@ -312,7 +312,7 @@ export function WorkflowRunPanel({
             className="w-full"
             icon={
               isRunning ? (
-                <Loader2 className="size-4 animate-spin" />
+                <LoaderCircle className="size-4 animate-spin" />
               ) : (
                 <Play className="size-4" />
               )

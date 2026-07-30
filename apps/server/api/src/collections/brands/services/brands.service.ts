@@ -28,6 +28,7 @@ import {
   CACHE_PATTERNS,
   CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
+import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { CacheService } from '@api/services/cache/services/cache.service';
@@ -66,6 +67,7 @@ export class BrandsService extends BaseService<
     public readonly logger: LoggerService,
     cacheService: CacheService,
     private readonly cacheInvalidationService: CacheInvalidationService,
+    private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
     private readonly brandRelocationService: BrandRelocationService,
     private readonly brandGenerationService: BrandGenerationService,
     private readonly brandKitAssetsService: BrandKitAssetsService,
@@ -76,14 +78,27 @@ export class BrandsService extends BaseService<
 
   async create(
     createBrandDto: CreateBrandDto & {
+      /** Legacy session/controller alias — never a Brand column. */
+      brand?: unknown;
+      brandId?: unknown;
       organization?: unknown;
       organizationId?: string;
       user?: unknown;
       userId?: string;
     },
   ): Promise<BrandDocument> {
-    const { organization, organizationId, user, userId, ...brandFields } =
-      createBrandDto;
+    // BaseCRUD.enrichCreateDto always stamps session `brand` / `organization` /
+    // `user` onto create payloads. Brand has no `brand` column — only
+    // organizationId/userId FKs. Strip relation aliases before Prisma create.
+    const {
+      brand: _sessionBrand,
+      brandId: _sessionBrandId,
+      organization,
+      organizationId,
+      user,
+      userId,
+      ...brandFields
+    } = createBrandDto;
     const resolvedOrganizationId =
       organizationId ??
       (typeof organization === 'string' ? organization : undefined);
@@ -167,6 +182,11 @@ export class BrandsService extends BaseService<
       await this.cacheInvalidationService.invalidate(
         CACHE_PATTERNS.BRANDS_LIST(resolvedOrganizationId),
       );
+      // Access bootstrap embeds the full org brand list for the switcher;
+      // leave it warm and create/list/switcher stay stale until TTL (~30s).
+      await this.accessBootstrapCacheService.invalidateForOrganization(
+        resolvedOrganizationId,
+      );
     }
     // Also bust the shared brands tag (covers user-scoped list keys from @Cache decorator)
     await this.cacheInvalidationService.invalidatePattern(
@@ -203,7 +223,15 @@ export class BrandsService extends BaseService<
 
   async patch(
     id: string,
-    updateBrandDto: Partial<UpdateBrandDto>,
+    updateBrandDto: Partial<UpdateBrandDto> & {
+      /** Legacy session/controller alias — never a Brand column. */
+      brand?: unknown;
+      brandId?: unknown;
+      organization?: unknown;
+      organizationId?: string;
+      user?: unknown;
+      userId?: string;
+    },
   ): Promise<BrandDocument> {
     this.logger.debug('Updating brand', {
       brandId: id,
@@ -211,7 +239,17 @@ export class BrandsService extends BaseService<
       service: this.constructorName,
     });
 
-    const brand = await super.patch(id, updateBrandDto);
+    // BaseCRUD.enrichUpdateDto stamps session `brand` / `organization` / `user`
+    // onto every PATCH. Brand has no `brand` column — same trap as create.
+    const {
+      brand: _sessionBrand,
+      brandId: _sessionBrandId,
+      organization: _sessionOrganization,
+      user: _sessionUser,
+      ...brandFields
+    } = updateBrandDto;
+
+    const brand = await super.patch(id, brandFields);
 
     if (!brand) {
       throw new NotFoundException('Brand', id);
@@ -221,6 +259,12 @@ export class BrandsService extends BaseService<
     await this.cacheInvalidationService.invalidate(
       CACHE_PATTERNS.BRANDS_SINGLE(id),
     );
+
+    if (typeof brand.organizationId === 'string' && brand.organizationId) {
+      await this.accessBootstrapCacheService.invalidateForOrganization(
+        brand.organizationId,
+      );
+    }
 
     return brand;
   }
@@ -416,6 +460,12 @@ export class BrandsService extends BaseService<
     await this.cacheInvalidationService.invalidate(
       CACHE_PATTERNS.BRANDS_SINGLE(id),
     );
+
+    if (typeof brand.organizationId === 'string' && brand.organizationId) {
+      await this.accessBootstrapCacheService.invalidateForOrganization(
+        brand.organizationId,
+      );
+    }
 
     return brand;
   }

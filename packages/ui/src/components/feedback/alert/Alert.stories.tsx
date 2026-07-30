@@ -2,8 +2,8 @@
 import { AlertCategory } from '@genfeedai/enums';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import Alert from '@ui/feedback/alert/Alert';
+import { Lightbulb } from 'lucide-react';
 import { useState } from 'react';
-import { HiLightBulb } from 'react-icons/hi2';
 
 /**
  * Alert component for displaying important messages to users.
@@ -101,7 +101,7 @@ export const CustomIcon: Story = {
     children: 'Alert content',
   },
   render: () => (
-    <Alert type={AlertCategory.INFO} icon={<HiLightBulb />}>
+    <Alert type={AlertCategory.INFO} icon={<Lightbulb />}>
       Pro tip: You can customize the icon!
     </Alert>
   ),

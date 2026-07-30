@@ -26,15 +26,10 @@ import Card from '@ui/card/Card';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import { CircleCheck, Lightbulb, RefreshCw, Sparkles } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { memo, useCallback, useState } from 'react';
-import {
-  HiArrowPath,
-  HiCheckCircle,
-  HiLightBulb,
-  HiSparkles,
-} from 'react-icons/hi2';
 
 const _TrendAnalysisCard = dynamic(
   () => import('@ui/analytics/insights/trend-analysis-card/TrendAnalysisCard'),
@@ -142,7 +137,7 @@ const InsightsOverview = memo(function InsightsOverview({
     <Container
       label="AI Insights"
       description="AI-driven analytics and recommendations."
-      icon={HiSparkles}
+      icon={Sparkles}
       right={
         <Button
           onClick={refresh}
@@ -151,7 +146,7 @@ const InsightsOverview = memo(function InsightsOverview({
           size={ButtonSize.SM}
           className="gap-2"
           icon={
-            <HiArrowPath
+            <RefreshCw
               className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}
             />
           }
@@ -243,14 +238,14 @@ const InsightsOverview = memo(function InsightsOverview({
         {!isLoading && (
           <Card
             label="AI Analysis Summary"
-            icon={HiLightBulb}
+            icon={Lightbulb}
             iconClassName="text-warning"
             className="bg-secondary"
           >
             <div className="prose prose-sm max-w-none">
               {criticalAlerts === 0 && warningAlerts === 0 ? (
                 <div className="flex items-center gap-3 text-success">
-                  <HiCheckCircle className="size-6 flex-shrink-0" />
+                  <CircleCheck className="size-6 flex-shrink-0" />
                   <p className="m-0">
                     <strong>Great news!</strong> Your content is performing well
                     with no critical issues detected. Keep up the good work!
@@ -304,7 +299,7 @@ const InsightsOverview = memo(function InsightsOverview({
                       activeInsightAction === AiActionType.CONTENT_SUGGEST ? (
                         <Spinner size={ComponentSize.XS} />
                       ) : (
-                        <HiSparkles className="size-3.5" />
+                        <Sparkles className="size-3.5" />
                       )
                     }
                     variant={ButtonVariant.GHOST}
@@ -327,7 +322,7 @@ const InsightsOverview = memo(function InsightsOverview({
                       activeInsightAction === AiActionType.ANALYTICS_INSIGHT ? (
                         <Spinner size={ComponentSize.XS} />
                       ) : (
-                        <HiSparkles className="size-3.5" />
+                        <Sparkles className="size-3.5" />
                       )
                     }
                     variant={ButtonVariant.GHOST}

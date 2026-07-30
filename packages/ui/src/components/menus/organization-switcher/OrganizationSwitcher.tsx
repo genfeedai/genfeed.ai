@@ -8,13 +8,21 @@ import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscrip
 import { getOrganizationLimitForTier } from '@genfeedai/pricing';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
+import {
+  SWITCHER_AVATAR_CLASSNAME,
+  SWITCHER_CHEVRON_CLASSNAME,
+  SWITCHER_LABEL_CLASSNAME,
+  SWITCHER_TRIGGER_CLASSNAME,
+  SWITCHER_TRIGGER_OPEN_CLASSNAME,
+} from '@ui/menus/switchers/switcher-trigger.classes';
 import { Modal } from '@ui/modals/compound/modal.compound';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
+import { ChevronDown, Settings } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useReducer } from 'react';
-import { HiChevronDown, HiOutlineCog6Tooth } from 'react-icons/hi2';
+
 import { useCreateOrganizationModal } from './use-create-organization-modal';
 
 interface OrgEntry {
@@ -188,35 +196,31 @@ export default function OrganizationSwitcher({
           label: o.label,
           trailingAction: {
             ariaLabel: `Open ${o.label} settings`,
-            icon: HiOutlineCog6Tooth,
+            icon: Settings,
             onAction: () => handleOpenOrganizationSettings(o.slug),
           },
         }))}
         renderTrigger={({ isOpen }) => (
           <div
             className={cn(
-              'flex h-8 w-full cursor-pointer items-center gap-2 rounded-md px-3 transition-colors duration-150',
-              'hover:bg-foreground/[0.06]',
-              isSwitching && 'opacity-50 cursor-not-allowed',
-              isOpen && 'bg-foreground/[0.06]',
+              SWITCHER_TRIGGER_CLASSNAME,
+              isSwitching && 'cursor-not-allowed opacity-50',
+              isOpen && SWITCHER_TRIGGER_OPEN_CLASSNAME,
             )}
           >
-            <div className="flex size-6 flex-shrink-0 items-center justify-center rounded-md bg-foreground/20 text-xs font-semibold text-foreground">
+            <div className={SWITCHER_AVATAR_CLASSNAME}>
               {displayLabel.charAt(0).toUpperCase()}
             </div>
             <span
               className={cn(
-                'flex-1 truncate text-left text-[13px] font-medium',
-                error ? 'text-destructive' : 'text-foreground/90',
+                SWITCHER_LABEL_CLASSNAME,
+                error && 'text-destructive',
               )}
             >
               {isSwitching ? 'Switching\u2026' : displayLabel}
             </span>
-            <HiChevronDown
-              className={cn(
-                'size-3.5 flex-shrink-0 text-foreground/40 transition-transform duration-200',
-                isOpen && 'rotate-180',
-              )}
+            <ChevronDown
+              className={cn(SWITCHER_CHEVRON_CLASSNAME, isOpen && 'rotate-180')}
             />
           </div>
         )}

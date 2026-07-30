@@ -133,9 +133,20 @@ export class StripeSubscriptionWebhookHandler {
   /** Build the DB patch for a newly created Stripe subscription. */
   private buildSubscriptionCreatePatch(subscription: StripeSubscription) {
     // Determine subscription type based on price ID
+    // Stripe's Interval includes an open `OtherString` brand; re-check via
+    // plain string so TS narrows to our closed StripeRecurringInterval union.
+    const rawInterval: string | undefined =
+      subscription.items.data[0].price.recurring?.interval;
+    const recurringInterval =
+      rawInterval === 'day' ||
+      rawInterval === 'week' ||
+      rawInterval === 'month' ||
+      rawInterval === 'year'
+        ? rawInterval
+        : undefined;
     const subscriptionType = this.supportService.resolveSubscriptionPlan(
       subscription.items.data[0].price.id,
-      subscription.items.data[0].price.recurring?.interval,
+      recurringInterval,
     );
 
     // Stripe API: cancel_at_period_end is on Subscription,

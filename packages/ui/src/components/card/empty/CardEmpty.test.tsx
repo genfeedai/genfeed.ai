@@ -19,7 +19,7 @@ describe('CardEmpty', () => {
       <CardEmpty label="No tasks" description="Tasks will appear here." />,
     );
 
-    expect(screen.getByText('Tasks will appear here.')).not.toHaveClass('mb-6');
+    expect(screen.getByText('Tasks will appear here.')).not.toHaveClass('mb-3');
 
     rerender(
       <CardEmpty
@@ -33,6 +33,6 @@ describe('CardEmpty', () => {
       />,
     );
 
-    expect(screen.getByText('Tasks will appear here.')).toHaveClass('mb-6');
+    expect(screen.getByText('Tasks will appear here.')).toHaveClass('mb-3');
   });
 });

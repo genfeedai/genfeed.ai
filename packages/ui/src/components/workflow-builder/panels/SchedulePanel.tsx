@@ -17,13 +17,8 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Switch } from '@ui/primitives/switch';
+import { Calendar, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import { useCallback, useId, useState } from 'react';
-import {
-  HiOutlineCalendar,
-  HiOutlineChevronDown,
-  HiOutlineChevronUp,
-  HiOutlineClock,
-} from 'react-icons/hi2';
 
 interface SchedulePanelProps {
   workflowId: string;
@@ -155,7 +150,7 @@ export default function SchedulePanel({
         withWrapper={false}
       >
         <div className="flex items-center gap-2">
-          <HiOutlineClock className="size-4" />
+          <Clock className="size-4" />
           <span className="font-semibold text-sm">Schedule</span>
         </div>
         <div className="flex items-center gap-2">
@@ -165,9 +160,9 @@ export default function SchedulePanel({
             </Badge>
           )}
           {isCollapsed ? (
-            <HiOutlineChevronDown className="size-4" />
+            <ChevronDown className="size-4" />
           ) : (
-            <HiOutlineChevronUp className="size-4" />
+            <ChevronUp className="size-4" />
           )}
         </div>
       </Button>
@@ -177,7 +172,7 @@ export default function SchedulePanel({
           {/* Current schedule info */}
           {schedule && (
             <div className="flex items-center gap-2 p-2 bg-background">
-              <HiOutlineCalendar className="size-4" />
+              <Calendar className="size-4" />
               <span className="text-sm">
                 {formatRecurringSchedule(schedule, timezone)}
               </span>

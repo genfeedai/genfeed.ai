@@ -7,7 +7,7 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { ScopeSelector } from '@ui/assets/ScopeSelector';
 import { Button } from '@ui/primitives/button';
-import { HiDocumentDuplicate } from 'react-icons/hi2';
+import { Copy } from 'lucide-react';
 
 export default function IngredientTabsSharing({
   ingredient,
@@ -59,7 +59,7 @@ export default function IngredientTabsSharing({
           <Button
             label={
               <>
-                <HiDocumentDuplicate className="size-4" />
+                <Copy className="size-4" />
                 Copy Link
               </>
             }

@@ -4,7 +4,8 @@ import { ButtonVariant } from '@genfeedai/enums';
 import type { IBatchItem, IBatchSummary } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
-import { HiCheck, HiOutlineSparkles, HiXMark } from 'react-icons/hi2';
+import { Check, Sparkles, X } from 'lucide-react';
+
 import ReviewDetailPanel from './ReviewDetailPanel';
 import ReviewItemCard from './ReviewItemCard';
 import type { ReviewFilter, ReviewFilterCounts } from './review-grid.helpers';
@@ -133,7 +134,7 @@ export default function ReviewGrid({
                     onClick={onBulkApprove}
                     className="flex items-center gap-1.5 rounded-lg bg-emerald-500/15 px-3 py-2 text-xs font-medium text-emerald-400 transition-colors hover:bg-emerald-500/25 disabled:opacity-50"
                   >
-                    <HiCheck className="size-3.5" />
+                    <Check className="size-3.5" />
                     Approve
                   </Button>
                   <Button
@@ -143,7 +144,7 @@ export default function ReviewGrid({
                     onClick={onBulkReject}
                     className="flex items-center gap-1.5 rounded-lg bg-rose-500/15 px-3 py-2 text-xs font-medium text-rose-400 transition-colors hover:bg-rose-500/25 disabled:opacity-50"
                   >
-                    <HiXMark className="size-3.5" />
+                    <X className="size-3.5" />
                     Reject
                   </Button>
                 </div>
@@ -155,7 +156,7 @@ export default function ReviewGrid({
         {items.length === 0 ? (
           <div className="flex min-h-[440px] flex-col items-center justify-center p-8 text-center">
             <div className="rounded-full border border-white/10 bg-card p-4">
-              <HiOutlineSparkles className="size-6 text-foreground/50" />
+              <Sparkles className="size-6 text-foreground/50" />
             </div>
             <p className="mt-4 text-sm font-medium text-foreground">
               No items in this view

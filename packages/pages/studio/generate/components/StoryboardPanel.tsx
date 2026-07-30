@@ -10,7 +10,7 @@ import type { CameraMovementPreset } from '@genfeedai/interfaces/studio/camera-m
 import { Button } from '@ui/primitives/button';
 import CameraMovementPromptBar from '@ui/studio/frame-sequence/CameraMovementPromptBar';
 import FrameSequenceSelector from '@ui/studio/frame-sequence/FrameSequenceSelector';
-import { HiSparkles, HiXMark } from 'react-icons/hi2';
+import { Sparkles, X } from 'lucide-react';
 
 interface StoryboardPanelProps {
   cameraMovementPreset: CameraMovementPreset;
@@ -77,7 +77,7 @@ export function StoryboardPanel({
             size={ButtonSize.SM}
             onClick={onClear}
             isDisabled={isGenerating || frames.length === 0}
-            icon={<HiXMark />}
+            icon={<X />}
             label="Clear"
           />
           <Button
@@ -88,7 +88,7 @@ export function StoryboardPanel({
               isGenerating || transitionCount === 0 || !hasInterpolationModel
             }
             isLoading={isGenerating}
-            icon={<HiSparkles />}
+            icon={<Sparkles />}
             label="Generate transitions"
             tooltip={generateTooltip}
           />

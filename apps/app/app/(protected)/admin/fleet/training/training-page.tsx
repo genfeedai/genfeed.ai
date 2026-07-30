@@ -13,8 +13,9 @@ import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import { Cpu } from 'lucide-react';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
-import { HiOutlineCpuChip } from 'react-icons/hi2';
+
 import TrainingConfigForm from './training-config-form';
 import TrainingProgressPanel from './training-progress-panel';
 import TrainingResultPanel from './training-result-panel';
@@ -265,7 +266,7 @@ export default function TrainingPage() {
     <Container
       label="LoRA Training"
       description="Manage LoRA training jobs for fleet characters"
-      icon={HiOutlineCpuChip}
+      icon={Cpu}
       right={
         <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
       }

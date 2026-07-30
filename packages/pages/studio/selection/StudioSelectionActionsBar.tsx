@@ -3,14 +3,8 @@
 import { ButtonSize, ButtonVariant, IngredientStatus } from '@genfeedai/enums';
 import type { StudioSelectionActionsBarProps } from '@props/studio/studio.props';
 import { Button } from '@ui/primitives/button';
+import { Archive, Ban, Check, Trash2, X } from 'lucide-react';
 import type { ReactNode } from 'react';
-import {
-  HiArchiveBox,
-  HiCheck,
-  HiNoSymbol,
-  HiTrash,
-  HiXMark,
-} from 'react-icons/hi2';
 
 interface StatusAction {
   icon: ReactNode;
@@ -21,19 +15,19 @@ interface StatusAction {
 
 const STATUS_ACTIONS: StatusAction[] = [
   {
-    icon: <HiCheck />,
+    icon: <Check />,
     status: IngredientStatus.VALIDATED,
     tooltip: 'Mark as Validated',
     variant: ButtonVariant.DEFAULT,
   },
   {
-    icon: <HiArchiveBox />,
+    icon: <Archive />,
     status: IngredientStatus.ARCHIVED,
     tooltip: 'Archive Selected',
     variant: ButtonVariant.DESTRUCTIVE,
   },
   {
-    icon: <HiNoSymbol />,
+    icon: <Ban />,
     status: IngredientStatus.REJECTED,
     tooltip: 'Reject Selected',
     variant: ButtonVariant.DESTRUCTIVE,
@@ -56,7 +50,7 @@ export default function StudioSelectionActionsBar({
       <span className="text-sm font-medium">{count} selected</span>
 
       <Button
-        label={<HiXMark />}
+        label={<X />}
         variant={ButtonVariant.SECONDARY}
         size={ButtonSize.SM}
         onClick={onClear}
@@ -81,7 +75,7 @@ export default function StudioSelectionActionsBar({
         onClick={onBulkDelete}
         isDisabled={count === 0}
         tooltip={`Delete ${count} selected`}
-        label={<HiTrash />}
+        label={<Trash2 />}
       />
     </div>
   );

@@ -9,7 +9,7 @@ import VideoTrimTimeline from '@ui/display/video-trim-timeline/VideoTrimTimeline
 import Alert from '@ui/feedback/alert/Alert';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
-import { HiPlay, HiXMark } from 'react-icons/hi2';
+import { Play, X } from 'lucide-react';
 
 export default function ModalTrim({
   videoUrl,
@@ -96,7 +96,7 @@ export default function ModalTrim({
             <div className="flex items-center gap-2">
               <Button
                 label="Preview Clip"
-                icon={<HiPlay />}
+                icon={<Play />}
                 onClick={playTrimmedPortion}
                 variant={ButtonVariant.SECONDARY}
                 isDisabled={!isValid}
@@ -107,7 +107,7 @@ export default function ModalTrim({
             <div className="flex items-center gap-2">
               <Button
                 label="Cancel"
-                icon={<HiXMark />}
+                icon={<X />}
                 onClick={handleClose}
                 variant={ButtonVariant.SECONDARY}
               />

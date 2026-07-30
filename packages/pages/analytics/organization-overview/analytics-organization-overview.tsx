@@ -22,11 +22,11 @@ import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
 import { EmptyStateCard } from '@ui/feedback';
+import { ArrowRight, Building2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { HiArrowRight, HiBuildingOffice2 } from 'react-icons/hi2';
 
 const BrandPerformanceChart = dynamic(
   () =>
@@ -113,50 +113,47 @@ function OrganizationMetricStrip({
     !analytics?.totalViews &&
     !analytics?.totalUsers;
 
-  return (
-    <section aria-labelledby="organization-metrics-heading">
-      <h2
-        id="organization-metrics-heading"
-        className="mb-4 text-xl font-semibold tracking-[-0.02em] text-foreground"
-      >
-        Organization Metrics
-      </h2>
+  // Breadcrumb already owns page identity (Workspace / Overview) — no extra
+  // "Organization Metrics" page title.
+  if (hasNoData) {
+    return (
+      <EmptyStateCard
+        icon={Building2}
+        title="No organization activity yet"
+        description="Create your first brand to start publishing content and tracking performance across your organization."
+        action={{
+          label: 'Create your first brand',
+          onClick: () => router.push(APP_ROUTES.ONBOARDING.BRAND),
+        }}
+      />
+    );
+  }
 
-      {hasNoData ? (
-        <EmptyStateCard
-          icon={HiBuildingOffice2}
-          title="No organization activity yet"
-          description="Create your first brand to start publishing content and tracking performance across your organization."
-          action={{
-            label: 'Create your first brand',
-            onClick: () => router.push(APP_ROUTES.ONBOARDING.BRAND),
-          }}
-        />
-      ) : (
-        <DashboardGrid>
-          {metrics.map((metric) => (
-            <Card key={metric.label} bodyClassName="p-4">
-              {isLoading ? (
-                <Skeleton variant="text" height={32} className="w-16" />
-              ) : (
-                <div className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
-                  {metric.value}
-                </div>
-              )}
-              <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-foreground/55">
-                {metric.label}
+  return (
+    <section aria-label="Organization metrics">
+      <DashboardGrid>
+        {metrics.map((metric) => (
+          <Card key={metric.label} bodyClassName="p-4">
+            {isLoading ? (
+              <Skeleton variant="text" height={32} className="w-16" />
+            ) : (
+              <div className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
+                {metric.value}
+              </div>
+            )}
+            <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-foreground/55">
+              {metric.label}
+            </p>
+            {isLoading ? (
+              <Skeleton variant="text" height={12} className="mt-2 w-28" />
+            ) : (
+              <p className="mt-1.5 text-[11px] text-foreground/45">
+                {metric.accent}
               </p>
-              {isLoading ? (
-                <Skeleton variant="text" height={12} className="mt-2 w-28" />
-              ) : (
-                <p className="mt-1.5 text-[11px] text-foreground/45">
-                  {metric.accent}
-                </p>
-              )}
-            </Card>
-          ))}
-        </DashboardGrid>
-      )}
+            )}
+          </Card>
+        ))}
+      </DashboardGrid>
     </section>
   );
 }
@@ -289,14 +286,11 @@ export default function AnalyticsOrganizationOverview({
         />
       </div>
 
-      <div className="bg-background p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">
-            All Brands ({formatCompactNumberIntl(analytics?.totalBrands)})
-          </h3>
-        </div>
-
-        <div className="overflow-x-auto">
+      <Card
+        label={`All Brands (${formatCompactNumberIntl(analytics?.totalBrands)})`}
+        bodyClassName="gap-3 p-4 pb-0"
+      >
+        <div className="-mx-4 overflow-x-auto">
           <Table
             items={brandsData}
             isLoading={loadingBrands}
@@ -381,7 +375,7 @@ export default function AnalyticsOrganizationOverview({
             ]}
             actions={[
               {
-                icon: <HiArrowRight className="size-4" />,
+                icon: <ArrowRight className="size-4" />,
                 onClick: (brand) =>
                   router.push(`${basePath}/brands/${brand.id}`),
                 tooltip: 'View Details',
@@ -389,7 +383,7 @@ export default function AnalyticsOrganizationOverview({
             ]}
           />
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

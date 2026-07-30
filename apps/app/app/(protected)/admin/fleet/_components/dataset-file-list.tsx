@@ -4,12 +4,9 @@ import { ButtonVariant } from '@genfeedai/enums';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
+import { FileText, ImageIcon, Trash2 } from 'lucide-react';
 import Image from 'next/image';
-import {
-  HiOutlineDocumentText,
-  HiOutlinePhoto,
-  HiOutlineTrash,
-} from 'react-icons/hi2';
+
 import type { PairedFile } from './dataset-uploader.types';
 
 type DatasetFileListProps = {
@@ -74,14 +71,14 @@ export default function DatasetFileList({
               {/* File info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <HiOutlinePhoto className="size-3.5 text-foreground/40 flex-shrink-0" />
+                  <ImageIcon className="size-3.5 text-foreground/40 flex-shrink-0" />
                   <span className="text-sm truncate" title={pair.image.name}>
                     {pair.image.name}
                   </span>
                 </div>
                 {pair.caption && (
                   <div className="flex items-center gap-2 mt-0.5">
-                    <HiOutlineDocumentText className="size-3.5 text-success/60 flex-shrink-0" />
+                    <FileText className="size-3.5 text-success/60 flex-shrink-0" />
                     <span
                       className="text-xs text-foreground/50 truncate"
                       title={pair.caption}
@@ -103,7 +100,7 @@ export default function DatasetFileList({
                 className="opacity-0 group-hover:opacity-100 transition-opacity p-1"
                 onClick={() => onRemoveFile(index)}
               >
-                <HiOutlineTrash className="size-4 text-foreground/40 hover:text-error" />
+                <Trash2 className="size-4 text-foreground/40 hover:text-error" />
               </Button>
             </div>
           ))}

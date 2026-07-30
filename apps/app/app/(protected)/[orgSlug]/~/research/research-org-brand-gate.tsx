@@ -8,10 +8,10 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Button } from '@ui/primitives/button';
+import { TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { type ReactNode, useEffect, useMemo } from 'react';
-import { HiOutlineArrowTrendingUp } from 'react-icons/hi2';
 
 function getResearchScopedPath(pathname: string, orgSlug: string): string {
   const marker = `/${orgSlug}/~/research`;
@@ -84,7 +84,7 @@ export function ResearchOrgBrandGate({ children }: { children: ReactNode }) {
   if (brandChoices.length === 0) {
     return (
       <div className="flex min-h-[24rem] flex-col items-center justify-center gap-3 px-6 text-center">
-        <HiOutlineArrowTrendingUp className="size-10 text-foreground/20" />
+        <TrendingUp className="size-10 text-foreground/20" />
         <h1 className="text-lg font-semibold text-foreground">
           Research needs a brand
         </h1>

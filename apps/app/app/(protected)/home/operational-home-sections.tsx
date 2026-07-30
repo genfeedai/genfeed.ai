@@ -20,13 +20,10 @@ import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { ArrowRight, RefreshCw, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import {
-  HiArrowPath,
-  HiArrowRight,
-  HiOutlineExclamationTriangle,
-} from 'react-icons/hi2';
+
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import {
   getActivityBadge,
@@ -71,8 +68,25 @@ function Metric({ label, value }: MetricProps) {
   );
 }
 
-function MetricGrid({ children }: { children: ReactNode }) {
-  return <dl className="grid grid-cols-2 gap-3">{children}</dl>;
+function MetricGrid({
+  children,
+  columns = 2,
+}: {
+  children: ReactNode;
+  columns?: 2 | 3 | 4;
+}) {
+  return (
+    <dl
+      className={cn(
+        'grid gap-3',
+        columns === 2 && 'grid-cols-2',
+        columns === 3 && 'grid-cols-3',
+        columns === 4 && 'grid-cols-2 sm:grid-cols-4',
+      )}
+    >
+      {children}
+    </dl>
+  );
 }
 
 function LoadingPanel({ label }: { label: string }) {
@@ -100,7 +114,7 @@ function ErrorPanel({
       role="alert"
     >
       <div className="flex items-start gap-3">
-        <HiOutlineExclamationTriangle
+        <TriangleAlert
           aria-hidden="true"
           className="mt-0.5 size-5 shrink-0 text-destructive"
         />
@@ -113,7 +127,7 @@ function ErrorPanel({
             variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >
-            <HiArrowPath aria-hidden="true" className="size-4" />
+            <RefreshCw aria-hidden="true" className="size-4" />
             Retry
           </Button>
         </div>
@@ -137,7 +151,7 @@ function EmptyPanel({
       <Button asChild className="mt-4" variant={ButtonVariant.SECONDARY}>
         <Link href={actionHref}>
           {actionLabel}
-          <HiArrowRight aria-hidden="true" className="size-4" />
+          <ArrowRight aria-hidden="true" className="size-4" />
         </Link>
       </Button>
     </div>
@@ -181,7 +195,7 @@ function ApprovalsSurface({
         <Button asChild variant={ButtonVariant.SECONDARY}>
           <Link href={reviewHref}>
             Open queue
-            <HiArrowRight aria-hidden="true" className="size-4" />
+            <ArrowRight aria-hidden="true" className="size-4" />
           </Link>
         </Button>
       }
@@ -241,7 +255,7 @@ function ApprovalsSurface({
                         {item.platform ? ` · ${item.platform}` : ''}
                       </span>
                     </span>
-                    <HiArrowRight
+                    <ArrowRight
                       aria-hidden="true"
                       className="size-4 shrink-0 text-foreground/45"
                     />
@@ -306,7 +320,7 @@ function PublishingSurface({
         <Button asChild variant={ButtonVariant.SECONDARY}>
           <Link href={postsHref}>
             Open publishing
-            <HiArrowRight aria-hidden="true" className="size-4" />
+            <ArrowRight aria-hidden="true" className="size-4" />
           </Link>
         </Button>
       }
@@ -331,7 +345,7 @@ function PublishingSurface({
         />
       ) : (
         <>
-          <MetricGrid>
+          <MetricGrid columns={3}>
             <Metric label="Active runs" value={String(activeRuns.length)} />
             <Metric
               label="Pending posts"
@@ -421,12 +435,12 @@ function CredentialHealthSurface({
             variant={ButtonVariant.GHOST}
             withWrapper={false}
           >
-            <HiArrowPath aria-hidden="true" className="size-4" />
+            <RefreshCw aria-hidden="true" className="size-4" />
           </Button>
           <Button asChild variant={ButtonVariant.SECONDARY}>
             <Link href={settingsHref}>
               Manage accounts
-              <HiArrowRight aria-hidden="true" className="size-4" />
+              <ArrowRight aria-hidden="true" className="size-4" />
             </Link>
           </Button>
         </>
@@ -446,7 +460,7 @@ function CredentialHealthSurface({
         />
       ) : (
         <>
-          <MetricGrid>
+          <MetricGrid columns={4}>
             <Metric label="Total accounts" value={String(summary.total)} />
             <Metric label="Needs attention" value={String(summary.attention)} />
             <Metric label="Healthy" value={String(summary.healthy)} />
@@ -503,7 +517,7 @@ function ActivitySurface({ activityHref }: { activityHref: string }) {
         <Button asChild variant={ButtonVariant.SECONDARY}>
           <Link href={activityHref}>
             View activity
-            <HiArrowRight aria-hidden="true" className="size-4" />
+            <ArrowRight aria-hidden="true" className="size-4" />
           </Link>
         </Button>
       }

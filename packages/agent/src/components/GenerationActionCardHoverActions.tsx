@@ -1,7 +1,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { Clipboard, RefreshCw } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { HiArrowPath, HiOutlineClipboard } from 'react-icons/hi2';
 
 type GenerationActionCardHoverActionsProps = {
   canCopy: boolean;
@@ -24,7 +24,7 @@ export function GenerationActionCardHoverActions({
         ariaLabel="Copy prompt"
         className="p-1 text-muted-foreground hover:text-foreground"
       >
-        <HiOutlineClipboard className="size-3.5" />
+        <Clipboard className="size-3.5" />
       </Button>
       <Button
         variant={ButtonVariant.GHOST}
@@ -33,7 +33,7 @@ export function GenerationActionCardHoverActions({
         ariaLabel="Retry"
         className="p-1 text-muted-foreground hover:text-foreground"
       >
-        <HiArrowPath className="size-3.5" />
+        <RefreshCw className="size-3.5" />
       </Button>
     </div>
   );

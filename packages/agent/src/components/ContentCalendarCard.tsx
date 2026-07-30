@@ -1,8 +1,8 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { Calendar, Plus } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { HiCalendar, HiPlus } from 'react-icons/hi2';
 
 interface ContentCalendarCardProps {
   action: AgentUiAction;
@@ -25,7 +25,7 @@ export function ContentCalendarCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiCalendar className="size-5 text-teal-500" />
+        <Calendar className="size-5 text-teal-500" />
         <h3 className="text-sm font-semibold">
           {action.title || 'Content Calendar'}
         </h3>
@@ -70,7 +70,7 @@ export function ContentCalendarCard({
                     className="mt-1 flex size-5 items-center justify-center rounded-full bg-teal-50 text-teal-600 transition-colors hover:bg-teal-100 dark:bg-teal-900/30 dark:text-teal-400"
                     tooltip="Fill Gap"
                   >
-                    <HiPlus className="size-3" />
+                    <Plus className="size-3" />
                   </Button>
                 ) : (
                   <span className="mt-1 flex size-5 items-center justify-center rounded-full bg-teal-500/10 text-[10px] font-medium text-teal-600 dark:text-teal-400">

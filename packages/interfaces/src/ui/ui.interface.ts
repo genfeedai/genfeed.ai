@@ -4,7 +4,7 @@ import type {
   MouseEvent,
   ReactNode,
 } from 'react';
-import type { IconType } from 'react-icons';
+import type { IconType } from './icon.interface';
 
 export interface IBaseComponentProps {
   className?: string;

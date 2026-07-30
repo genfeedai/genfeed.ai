@@ -63,6 +63,7 @@ These are already in context every request — do not re-read them to "check".
 
 ## Project state
 
+- [project_qa_session_leftovers_2026-07-30](project_qa_session_leftovers_2026-07-30.md) — post-#2204 boil-the-ocean leftovers; keep QA together on master
 - [project_overview](project_overview.md) — monorepo structure and key context
 - [project_one_api_epic](project_one_api_epic.md) — epic #95, one NestJS API
 - [project_migration](project_migration.md) — cloud + core → genfeed.ai, complete

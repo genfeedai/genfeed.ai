@@ -7,12 +7,12 @@
     "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/storage": "workspace:*",
     "@genfeedai/utils": "workspace:*",
-    "@remotion/bundler": "4.0.500",
-    "@remotion/renderer": "4.0.500",
-    "bullmq": "5.81.2",
+    "@remotion/bundler": "4.0.502",
+    "@remotion/renderer": "4.0.502",
+    "bullmq": "5.81.3",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "remotion": "4.0.500"
+    "remotion": "4.0.502"
   },
   "description": "Genfeed Files Service",
   "devDependencies": {

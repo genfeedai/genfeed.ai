@@ -102,21 +102,21 @@ describe('PlatformBreakdownChart', () => {
     it('shows empty message when data is null', () => {
       render(<PlatformBreakdownChart data={null} />);
       expect(
-        screen.getByText('No platform data available'),
+        screen.getByText('No platform distribution yet'),
       ).toBeInTheDocument();
     });
 
     it('shows empty message when data is empty array', () => {
       render(<PlatformBreakdownChart data={[]} />);
       expect(
-        screen.getByText('No platform data available'),
+        screen.getByText('No platform distribution yet'),
       ).toBeInTheDocument();
     });
 
     it('does not show empty message when loading', () => {
       render(<PlatformBreakdownChart data={[]} isLoading />);
       expect(
-        screen.queryByText('No platform data available'),
+        screen.queryByText('No platform distribution yet'),
       ).not.toBeInTheDocument();
     });
   });

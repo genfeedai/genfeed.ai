@@ -20,8 +20,8 @@ import {
   serviceLandingConfigBySlug,
 } from '@web-components/landing/service-landings.data';
 import PageLayout from '@web-components/PageLayout';
+import { BadgeCheck, CalendarRange, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { LuBadgeCheck, LuCalendarRange, LuSparkles } from 'react-icons/lu';
 
 export interface ServiceLandingPageProps {
   // Server pages pass the slug, not the config: the config carries icon
@@ -41,7 +41,7 @@ export default function ServiceLandingPage({
     <div ref={containerRef}>
       <PageLayout
         badge={config.badge}
-        badgeIcon={LuSparkles}
+        badgeIcon={Sparkles}
         title={
           <>
             {config.heroTitle} <span>{config.heroAccent}</span>.
@@ -74,7 +74,7 @@ export default function ServiceLandingPage({
 
             <div className="bg-background/60 p-6">
               <div className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-surface/50">
-                <LuCalendarRange className="size-4" />
+                <CalendarRange className="size-4" />
                 {config.fitLabel}
               </div>
               <ul className="space-y-4">
@@ -83,7 +83,7 @@ export default function ServiceLandingPage({
                     key={signal}
                     className="flex gap-3 text-sm text-surface/65"
                   >
-                    <LuBadgeCheck className="mt-0.5 size-4 shrink-0 text-surface/50" />
+                    <BadgeCheck className="mt-0.5 size-4 shrink-0 text-surface/50" />
                     <span>{signal}</span>
                   </li>
                 ))}

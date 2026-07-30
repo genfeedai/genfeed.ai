@@ -4,7 +4,7 @@ import { ButtonVariant, VoiceProvider } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
-import { HiMicrophone, HiStop } from 'react-icons/hi2';
+import { Mic, Square } from 'lucide-react';
 
 type Props = {
   voiceCloneName: string;
@@ -80,7 +80,7 @@ export default function UploadVoiceCloneSection({
 
       <div className="flex flex-wrap items-center gap-3">
         <Button
-          icon={isRecording ? <HiStop /> : <HiMicrophone />}
+          icon={isRecording ? <Square /> : <Mic />}
           onClick={() => {
             if (isRecording) {
               onStopRecording();

@@ -5,7 +5,7 @@ import type { IPost } from '@genfeedai/interfaces';
 import { useEvaluation } from '@hooks/ui/evaluation/use-evaluation/use-evaluation';
 import EvaluationBadge from '@ui/evaluation/badge/EvaluationBadge';
 import { Button } from '@ui/primitives/button';
-import { HiArrowUp } from 'react-icons/hi2';
+import { ArrowUp } from 'lucide-react';
 
 export type EvalCellProps = {
   post: IPost;
@@ -41,7 +41,7 @@ export default function EvalCell({ post, onEvaluated }: EvalCellProps) {
   return (
     <Button
       variant={ButtonVariant.DEFAULT}
-      icon={<HiArrowUp />}
+      icon={<ArrowUp />}
       tooltip="Evaluate"
       isLoading={isEvaluating}
       onClick={handleEvaluate}

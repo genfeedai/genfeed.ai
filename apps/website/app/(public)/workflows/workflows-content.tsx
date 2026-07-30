@@ -10,18 +10,18 @@ import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import PageLayout from '@web-components/PageLayout';
-import Link from 'next/link';
 import {
-  HiArrowPath,
-  HiBolt,
-  HiCog6Tooth,
-  HiCube,
-  HiRocketLaunch,
-  HiShieldCheck,
-  HiSquaresPlus,
-  HiViewfinderCircle,
-} from 'react-icons/hi2';
-import { LuArrowRight } from 'react-icons/lu';
+  ArrowRight,
+  Box,
+  LayoutGrid,
+  RefreshCw,
+  Rocket,
+  Scan,
+  Settings,
+  ShieldCheck,
+  Zap,
+} from 'lucide-react';
+import Link from 'next/link';
 
 const STATS = [
   { label: '44+ Nodes' },
@@ -88,19 +88,19 @@ const FEATURES = [
   {
     description:
       'Define every generation, review, approval, and publishing step explicitly instead of relying on hidden agent behavior.',
-    icon: HiSquaresPlus,
+    icon: LayoutGrid,
     title: 'Deterministic Steps',
   },
   {
     description:
       'Inspect every handoff, trigger, and output on the canvas so you can understand exactly why the workflow ran.',
-    icon: HiViewfinderCircle,
+    icon: Scan,
     title: 'Inspectable Execution',
   },
   {
     description:
       'Let agents trigger workflows while you keep control of the steps, conditions, quality gates, and schedules.',
-    icon: HiShieldCheck,
+    icon: ShieldCheck,
     title: 'User-Controlled Automation',
   },
 ];
@@ -108,25 +108,25 @@ const FEATURES = [
 const HOW_IT_WORKS = [
   {
     description: 'Define every node, branch, and quality gate on the canvas',
-    icon: HiCube,
+    icon: Box,
     label: 'Author',
   },
   {
     description:
       'Connect outputs, inputs, and conditions so execution stays deterministic',
-    icon: HiArrowPath,
+    icon: RefreshCw,
     label: 'Wire',
   },
   {
     description:
       'Choose manual starts, schedules, or events, then let agents trigger the workflow when appropriate',
-    icon: HiCog6Tooth,
+    icon: Settings,
     label: 'Trigger',
   },
   {
     description:
       'Run autonomous systems with explicit execution control, retries, and inspectable outputs',
-    icon: HiRocketLaunch,
+    icon: Rocket,
     label: 'Operate',
   },
 ];
@@ -189,7 +189,7 @@ export default function WorkflowsContent() {
             >
               <Link href="/pricing">
                 Open Core
-                <LuArrowRight className="size-4" />
+                <ArrowRight className="size-4" />
               </Link>
             </ButtonTracked>
             <ButtonTracked
@@ -215,7 +215,7 @@ export default function WorkflowsContent() {
             <HStack className="flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
                 <div className="size-20 flex items-center justify-center border border-[var(--gen-accent-border)] bg-white/[0.06]">
-                  <HiSquaresPlus className="size-10 text-surface" />
+                  <LayoutGrid className="size-10 text-surface" />
                 </div>
               </div>
               <VStack className="gap-3">
@@ -353,7 +353,7 @@ export default function WorkflowsContent() {
         <section className="max-w-4xl mx-auto pb-16 px-6">
           <div className="text-center p-12 border border-[var(--gen-accent-border)] bg-white/[0.04]">
             <div className="flex justify-center mb-4">
-              <HiSquaresPlus className="size-8 text-surface" />
+              <LayoutGrid className="size-8 text-surface" />
             </div>
             <Heading as="h3" className="text-2xl font-bold mb-2 text-surface">
               Use Agents for Simplicity. Use Workflows for Control.
@@ -373,7 +373,7 @@ export default function WorkflowsContent() {
               >
                 <Link href="/pricing">
                   View Plans
-                  <LuArrowRight className="size-4" />
+                  <ArrowRight className="size-4" />
                 </Link>
               </ButtonTracked>
               <ButtonTracked
@@ -384,7 +384,7 @@ export default function WorkflowsContent() {
                 trackingData={{ action: 'book_demo' }}
               >
                 <Link href="/demo">
-                  <HiBolt className="size-4" />
+                  <Zap className="size-4" />
                   Book a Demo
                 </Link>
               </ButtonTracked>

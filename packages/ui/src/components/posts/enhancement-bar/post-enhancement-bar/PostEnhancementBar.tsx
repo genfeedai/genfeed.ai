@@ -17,18 +17,19 @@ import type {
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
+import {
+  ArrowUp,
+  Check,
+  ChevronDown,
+  CircleAlert,
+  ImageIcon,
+  Plus,
+  Sparkles,
+  Trash2,
+} from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import {
-  HiArrowUp,
-  HiCheck,
-  HiChevronDown,
-  HiExclamationCircle,
-  HiPhoto,
-  HiPlus,
-  HiSparkles,
-  HiTrash,
-} from 'react-icons/hi2';
+
 import { QUICK_ACTIONS, TONE_OPTIONS } from './post-enhancement-bar.helpers';
 
 const EMPTY_ARRAY: never[] = [];
@@ -177,7 +178,7 @@ export default function PostEnhancementBar({
           className="inline-flex items-center justify-center border border-input bg-secondary/50 text-secondary-foreground text-sm h-9 min-h-0 gap-1 px-2 hover:bg-secondary/70"
         >
           <span className="text-xs capitalize">{currentTone}</span>
-          <HiChevronDown size={14} />
+          <ChevronDown size={14} />
         </Button>
 
         <ul className="absolute bottom-full mb-2 left-0 hidden group-hover:block bg-secondary z-50 w-36 p-2 shadow-dropdown">
@@ -212,7 +213,7 @@ export default function PostEnhancementBar({
 
         <Button
           variant={ButtonVariant.DEFAULT}
-          icon={<HiArrowUp />}
+          icon={<ArrowUp />}
           isLoading={isEnhancing && !enhancingAction}
           isDisabled={!prompt.trim() || isEnhancing}
           onClick={handleSubmit}
@@ -233,7 +234,7 @@ export default function PostEnhancementBar({
             {showDelete && onDelete && (
               <>
                 <Button
-                  icon={<HiTrash className="size-4" />}
+                  icon={<Trash2 className="size-4" />}
                   variant={ButtonVariant.DESTRUCTIVE}
                   size={ButtonSize.ICON}
                   className={BTN_ICON_CLASS}
@@ -249,7 +250,7 @@ export default function PostEnhancementBar({
             {showAddPost && onAddPost && (
               <Button
                 label="Add"
-                icon={<HiPlus className="size-3.5" />}
+                icon={<Plus className="size-3.5" />}
                 variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.SM}
                 className="h-9 min-h-0 px-2 gap-1"
@@ -293,7 +294,7 @@ export default function PostEnhancementBar({
                       )}
                     </div>
                   ) : (
-                    <HiPhoto className="size-4" />
+                    <ImageIcon className="size-4" />
                   )
                 }
               />
@@ -308,7 +309,7 @@ export default function PostEnhancementBar({
                 className={BTN_ICON_CLASS}
                 onClick={onGenerateIllustration}
                 tooltip="Generate illustration"
-                icon={<HiSparkles className="size-4" />}
+                icon={<Sparkles className="size-4" />}
               />
             )}
 
@@ -317,9 +318,9 @@ export default function PostEnhancementBar({
               <Button
                 icon={
                   isDirty ? (
-                    <HiExclamationCircle className="size-4" />
+                    <CircleAlert className="size-4" />
                   ) : (
-                    <HiCheck className="size-4" />
+                    <Check className="size-4" />
                   )
                 }
                 variant={

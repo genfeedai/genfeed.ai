@@ -7,20 +7,16 @@ import {
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { GrowthTrendsCardProps } from '@genfeedai/props/analytics/analytics.props';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
-import {
-  HiArrowTrendingDown,
-  HiArrowTrendingUp,
-  HiMinus,
-} from 'react-icons/hi2';
+import { Minus, TrendingDown, TrendingUp } from 'lucide-react';
 
 function getTrendIcon(direction: TrendDirection) {
   switch (direction) {
     case TrendDirection.UP:
-      return <HiArrowTrendingUp className="size-4 text-green-500" />;
+      return <TrendingUp className="size-4 text-green-500" />;
     case TrendDirection.DOWN:
-      return <HiArrowTrendingDown className="size-4 text-red-500" />;
+      return <TrendingDown className="size-4 text-red-500" />;
     default:
-      return <HiMinus className="size-4 text-muted-foreground" />;
+      return <Minus className="size-4 text-muted-foreground" />;
   }
 }
 

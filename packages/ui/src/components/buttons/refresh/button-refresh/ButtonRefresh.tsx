@@ -4,7 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ButtonRefreshProps } from '@genfeedai/props/ui/forms/button.props';
 import { Button } from '@ui/primitives/button';
-import { HiArrowPath } from 'react-icons/hi2';
+import { RefreshCw } from 'lucide-react';
 
 export default function ButtonRefresh({
   onClick,
@@ -22,7 +22,7 @@ export default function ButtonRefresh({
       className={className}
       tooltip="Refresh"
       label={
-        <HiArrowPath className={cn('size-4', isRefreshing && 'animate-spin')} />
+        <RefreshCw className={cn('size-4', isRefreshing && 'animate-spin')} />
       }
     />
   );

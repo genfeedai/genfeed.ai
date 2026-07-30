@@ -170,7 +170,7 @@ describe('MenuBrandSwitcher', () => {
     const trigger = screen.getByTestId('brand-switcher-trigger');
     const avatar = trigger.querySelector('div');
 
-    expect(trigger).toHaveClass('h-8', 'gap-2', 'px-2', 'rounded-md');
+    expect(trigger).toHaveClass('h-8', 'gap-2', 'px-2.5', 'rounded-md');
     expect(avatar).toHaveClass('size-6', 'rounded-md');
     expect(avatar).not.toHaveClass('rounded-full');
   });

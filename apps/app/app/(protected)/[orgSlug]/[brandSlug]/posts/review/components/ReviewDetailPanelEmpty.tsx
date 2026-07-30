@@ -1,13 +1,13 @@
 'use client';
 
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
-import { HiCursorArrowRays } from 'react-icons/hi2';
+import { MousePointerClick } from 'lucide-react';
 
 export default function ReviewDetailPanelEmpty() {
   return (
     <InsetSurface className="flex min-h-[720px] flex-col items-center justify-center p-8 text-center">
       <div className="rounded-full border border-white/10 bg-card p-5">
-        <HiCursorArrowRays className="size-8 text-foreground/50" />
+        <MousePointerClick className="size-8 text-foreground/50" />
       </div>
       <h2 className="mt-5 text-xl font-semibold text-foreground">
         Select an item to review

@@ -3,12 +3,7 @@
 import { CardVariant } from '@genfeedai/enums';
 import type { ITwitterSearchResult } from '@genfeedai/interfaces';
 import Card from '@ui/card/Card';
-import {
-  HiArrowPath,
-  HiChatBubbleLeft,
-  HiCheckBadge,
-  HiHeart,
-} from 'react-icons/hi2';
+import { BadgeCheck, Heart, MessageCircle, RefreshCw } from 'lucide-react';
 
 interface TweetCardProps {
   tweet: ITwitterSearchResult;
@@ -26,7 +21,7 @@ export default function TweetCard({ tweet }: TweetCardProps) {
             <span className="text-sm font-medium text-foreground truncate">
               {tweet.authorName}
             </span>
-            <HiCheckBadge className="size-4 text-primary shrink-0" />
+            <BadgeCheck className="size-4 text-primary shrink-0" />
           </div>
           <span className="text-xs text-muted-foreground">
             @{tweet.authorUsername}
@@ -40,15 +35,15 @@ export default function TweetCard({ tweet }: TweetCardProps) {
 
       <div className="flex items-center gap-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
-          <HiHeart className="size-3.5" />
+          <Heart className="size-3.5" />
           {tweet.likes.toLocaleString()}
         </span>
         <span className="flex items-center gap-1">
-          <HiArrowPath className="size-3.5" />
+          <RefreshCw className="size-3.5" />
           {tweet.retweets.toLocaleString()}
         </span>
         <span className="flex items-center gap-1">
-          <HiChatBubbleLeft className="size-3.5" />
+          <MessageCircle className="size-3.5" />
           {tweet.replies.toLocaleString()}
         </span>
       </div>

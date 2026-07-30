@@ -5,7 +5,7 @@ import type { ModalCreateThreadPostsListProps } from '@genfeedai/props/modals/mo
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Textarea } from '@ui/primitives/textarea';
-import { HiPlus, HiTrash } from 'react-icons/hi2';
+import { Plus, Trash2 } from 'lucide-react';
 
 export default function ModalCreateThreadPostsList({
   form,
@@ -22,7 +22,7 @@ export default function ModalCreateThreadPostsList({
         <Button
           type="button"
           label="Add Post"
-          icon={<HiPlus className="size-4" />}
+          icon={<Plus className="size-4" />}
           variant={ButtonVariant.DEFAULT}
           size={ButtonSize.SM}
           onClick={onAddPost}
@@ -45,7 +45,7 @@ export default function ModalCreateThreadPostsList({
                 <Button
                   type="button"
                   label="Remove"
-                  icon={<HiTrash className="size-4" />}
+                  icon={<Trash2 className="size-4" />}
                   variant={ButtonVariant.GHOST}
                   size={ButtonSize.XS}
                   className="text-error"

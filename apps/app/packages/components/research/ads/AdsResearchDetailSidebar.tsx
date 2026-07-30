@@ -12,15 +12,16 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
-import Link from 'next/link';
 import {
-  HiOutlineArrowTopRightOnSquare,
-  HiOutlineChartBar,
-  HiOutlineRocketLaunch,
-  HiOutlineSparkles,
-  HiOutlineWrenchScrewdriver,
-  HiOutlineXMark,
-} from 'react-icons/hi2';
+  ChartColumn,
+  ExternalLink,
+  Rocket,
+  Sparkles,
+  Wrench,
+  X,
+} from 'lucide-react';
+import Link from 'next/link';
+
 import { formatMetric } from './ads-metric.helpers';
 
 type SelectedAdRef = {
@@ -209,7 +210,7 @@ function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
           className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
         >
           Open linked workflow
-          <HiOutlineArrowTopRightOnSquare className="size-4" />
+          <ExternalLink className="size-4" />
         </Link>
       )}
     </div>
@@ -260,13 +261,13 @@ export function DetailSidebar({
       <aside className="fixed inset-y-0 right-0 z-50 w-full max-w-[480px] overflow-y-auto border-l border-white/[0.06] bg-background shadow-2xl">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.06] bg-background px-5 py-4">
           <div className="flex items-center gap-2">
-            <HiOutlineChartBar className="size-5 text-primary" />
+            <ChartColumn className="size-5 text-primary" />
             <h2 className="text-lg font-semibold text-foreground">Ad Detail</h2>
           </div>
           <Button
             variant={ButtonVariant.GHOST}
             size={ButtonSize.SM}
-            icon={<HiOutlineXMark className="size-4" />}
+            icon={<X className="size-4" />}
             onClick={onClose}
             ariaLabel="Close detail"
           />
@@ -376,7 +377,7 @@ export function DetailSidebar({
                     className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
                   >
                     Open landing page
-                    <HiOutlineArrowTopRightOnSquare className="size-4" />
+                    <ExternalLink className="size-4" />
                   </a>
                 )}
               </div>
@@ -393,7 +394,7 @@ export function DetailSidebar({
                   size={ButtonSize.SM}
                   isLoading={busyAction === 'ad_pack'}
                   onClick={() => onRunAction('ad_pack')}
-                  icon={<HiOutlineSparkles className="size-4" />}
+                  icon={<Sparkles className="size-4" />}
                 >
                   Remix for my brand
                 </Button>
@@ -402,7 +403,7 @@ export function DetailSidebar({
                   size={ButtonSize.SM}
                   isLoading={busyAction === 'workflow'}
                   onClick={() => onRunAction('workflow')}
-                  icon={<HiOutlineWrenchScrewdriver className="size-4" />}
+                  icon={<Wrench className="size-4" />}
                 >
                   Create workflow
                 </Button>
@@ -411,7 +412,7 @@ export function DetailSidebar({
                   size={ButtonSize.SM}
                   isLoading={busyAction === 'launch_prep'}
                   onClick={() => onRunAction('launch_prep')}
-                  icon={<HiOutlineRocketLaunch className="size-4" />}
+                  icon={<Rocket className="size-4" />}
                 >
                   Prepare campaign
                 </Button>
@@ -435,7 +436,7 @@ export function DetailSidebar({
                     className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
                   >
                     Open workflow editor
-                    <HiOutlineArrowTopRightOnSquare className="size-4" />
+                    <ExternalLink className="size-4" />
                   </Link>
                 </div>
               )}

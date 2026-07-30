@@ -15,19 +15,19 @@ import PromptBarModelControls from '@ui/prompt-bars/components/model-controls/Pr
 import PromptBarQualityControls from '@ui/prompt-bars/components/quality-controls/PromptBarQualityControls';
 import PromptBarShell from '@ui/prompt-bars/components/shell/PromptBarShell';
 import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
+import {
+  ArrowUp,
+  ChevronUp,
+  Clipboard,
+  Clock,
+  Mic,
+  SlidersHorizontal,
+  Sparkles,
+  Undo2,
+} from 'lucide-react';
 import Image from 'next/image';
 import { type ChangeEvent, memo } from 'react';
 import type { UseFormRegisterReturn } from 'react-hook-form';
-import {
-  HiAdjustmentsHorizontal,
-  HiArrowUp,
-  HiArrowUturnLeft,
-  HiChevronUp,
-  HiClipboard,
-  HiClock,
-  HiMicrophone,
-  HiSparkles,
-} from 'react-icons/hi2';
 
 function getVoiceTooltip(isRecording: boolean, isProcessing: boolean): string {
   if (isRecording) {
@@ -187,7 +187,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
             tooltipPosition="left"
             variant={ButtonVariant.GHOST}
             className="absolute right-2 top-2 size-8 rounded-full border border-white/10 bg-black/20 p-0 text-white/70 backdrop-blur-sm hover:bg-black/30 hover:text-white"
-            icon={<HiChevronUp className="size-4" />}
+            icon={<ChevronUp className="size-4" />}
             data-testid="collapse-button"
           />
         )}
@@ -327,7 +327,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 <FormDropdown
                   key="duration"
                   name="duration"
-                  icon={<HiClock />}
+                  icon={<Clock />}
                   label="Duration"
                   value={form.getValues('duration')?.toString()}
                   isNoneEnabled={false}
@@ -398,7 +398,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               tooltip={isQuickOptionsOpen ? 'Hide settings' : 'Show settings'}
               tooltipPosition="top"
               ariaLabel={isQuickOptionsOpen ? 'Hide settings' : 'Show settings'}
-              icon={<HiAdjustmentsHorizontal className="size-4" />}
+              icon={<SlidersHorizontal className="size-4" />}
             />
 
             {watchedTextTrimmed && (
@@ -409,7 +409,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 tooltipPosition="top"
                 variant={ButtonVariant.GHOST}
                 className={iconButtonClass}
-                icon={<HiClipboard className="size-4" />}
+                icon={<Clipboard className="size-4" />}
               />
             )}
 
@@ -421,7 +421,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 tooltipPosition="top"
                 variant={ButtonVariant.GHOST}
                 className={cn(iconButtonClass, isEnhancing && 'animate-pulse')}
-                icon={<HiSparkles className="size-4" />}
+                icon={<Sparkles className="size-4" />}
               />
             )}
 
@@ -433,7 +433,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 tooltipPosition="top"
                 variant={ButtonVariant.GHOST}
                 className={iconButtonClass}
-                icon={<HiArrowUturnLeft className="size-4" />}
+                icon={<Undo2 className="size-4" />}
               />
             )}
           </div>
@@ -476,7 +476,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 isDisabled={isGenerateBlocked || isProcessing}
                 tooltip={getVoiceTooltip(isRecording, isProcessing)}
                 tooltipPosition="top"
-                icon={<HiMicrophone className="size-4" />}
+                icon={<Mic className="size-4" />}
               >
                 {isCollapsible ? 'Voice' : null}
               </Button>
@@ -484,7 +484,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
 
             <Button
               variant={ButtonVariant.DEFAULT}
-              icon={<HiArrowUp />}
+              icon={<ArrowUp />}
               isDisabled={
                 isGenerateBlocked ||
                 isGenerateDisabled ||

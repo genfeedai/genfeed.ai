@@ -2,13 +2,8 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { buttonVariants } from '@ui/primitives/button.variants';
+import { CircleCheck, Info, LayoutGrid, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
-import {
-  HiMiniArrowTrendingUp,
-  HiOutlineCheckCircle,
-  HiOutlineInformationCircle,
-  HiOutlineSquares2X2,
-} from 'react-icons/hi2';
 
 type DashboardState = 'empty' | 'warming_up' | 'active';
 
@@ -47,11 +42,11 @@ export default function AnalyticsOverviewHero({
       <div className="space-y-5">
         <div className="inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-foreground/60 shadow-border">
           {dashboardState === 'active' ? (
-            <HiOutlineCheckCircle className="size-4 text-success" />
+            <CircleCheck className="size-4 text-success" />
           ) : dashboardState === 'warming_up' ? (
-            <HiMiniArrowTrendingUp className="size-4 text-warning" />
+            <TrendingUp className="size-4 text-warning" />
           ) : (
-            <HiOutlineInformationCircle className="size-4 text-info" />
+            <Info className="size-4 text-info" />
           )}
           {heroContent.badge}
         </div>
@@ -90,7 +85,7 @@ export default function AnalyticsOverviewHero({
               What this date range can currently support
             </div>
           </div>
-          <HiOutlineSquares2X2 className="size-5 text-foreground/45" />
+          <LayoutGrid className="size-5 text-foreground/45" />
         </div>
 
         <div className="mt-4 divide-y divide-white/[0.08]">

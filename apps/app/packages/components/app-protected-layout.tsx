@@ -1,9 +1,10 @@
 'use client';
 
+import LibrarySidebarNav from '@app/(protected)/[orgSlug]/[brandSlug]/library/library-sidebar-nav';
 import StreakNotificationsBridge from '@app-components/streaks/StreakNotificationsBridge';
 import { CommandPaletteProvider } from '@contexts/features/command-palette.provider';
-import type { AgentThreadListProps } from '@genfeedai/agent';
-import { isEEEnabled } from '@genfeedai/config/license';
+import type { AgentApiService } from '@genfeedai/agent';
+import { hasOrganizationBilling } from '@genfeedai/config/license';
 import type { SidebarNavPanel } from '@genfeedai/props/navigation/menu.props';
 import { useAgentThreadCommands } from '@hooks/commands/use-agent-thread-commands/use-agent-thread-commands';
 import type { LayoutProps } from '@props/layout/layout.props';
@@ -47,6 +48,14 @@ import {
   isProtectedWorkspaceRoute,
   useAppProtectedLayout,
 } from './useAppProtectedLayout';
+
+type AgentThreadListProps = {
+  apiService: AgentApiService;
+  isActive?: boolean;
+  onNavigate?: (path: string) => void;
+  searchAction?: ReactNode;
+  showTitle?: boolean;
+};
 
 const LazyAgentThreadList = dynamic<AgentThreadListProps>(
   () => import('@genfeedai/agent').then((mod) => mod.AgentThreadList),
@@ -135,6 +144,7 @@ function AppLayoutWithDynamicMenu({
     currentApp,
     orgSlug,
     brandSlug,
+    settingsScope,
     agentApiService,
     threads,
     agentMenuItems,
@@ -144,11 +154,13 @@ function AppLayoutWithDynamicMenu({
     libraryMenuItems,
     menuItems,
     orgMenuItems,
+    postsMenuItems,
     researchMenuItems,
     secondaryMenuItems,
     settingsMenuItems,
     studioMenuItems,
     workflowsMenuItems,
+    isPostsRoute,
     taskContextSearchParams,
     handleNavigate,
     handleOpenCommandPalette,
@@ -250,6 +262,9 @@ function AppLayoutWithDynamicMenu({
         : null,
     [isMessagesRoute, workspaceNavPortalRef],
   );
+  // Render Library nav in-shell (not via portal). The empty-portal pattern left
+  // the column blank when portalTarget never attached (refresh, race, layout
+  // order). LibrarySidebarNav is self-contained and does not need the page tree.
   const libraryNavPanel = useMemo<SidebarNavPanel | null>(
     () =>
       isLibraryRoute
@@ -258,13 +273,14 @@ function AppLayoutWithDynamicMenu({
               <div
                 className="flex h-full min-h-0 flex-col"
                 data-testid="library-nav-panel"
-                ref={workspaceNavPortalRef}
-              />
+              >
+                <LibrarySidebarNav />
+              </div>
             ),
             sectionLabel: 'Library',
           }
         : null,
-    [isLibraryRoute, workspaceNavPortalRef],
+    [isLibraryRoute],
   );
   const activeNavPanel =
     conversationNavPanel ?? messagesNavPanel ?? libraryNavPanel;
@@ -291,16 +307,19 @@ function AppLayoutWithDynamicMenu({
         isLibraryRoute={isLibraryRoute}
         isMessagesRoute={isMessagesRoute}
         isOrgRoute={isOrgRoute}
+        isPostsRoute={isPostsRoute}
         isResearchRoute={isResearchRoute}
         isSettingsRoute={isSettingsRoute}
         isStudioRoute={isStudioRoute}
         isWorkflowsRoute={isWorkflowsRoute}
+        settingsScope={settingsScope}
         adminMenuItems={adminMenuItems}
         analyticsMenuItems={analyticsMenuItems}
         composeMenuItems={composeMenuItems}
         libraryMenuItems={libraryMenuItems}
         menuItems={menuItems}
         orgMenuItems={orgMenuItems}
+        postsMenuItems={postsMenuItems}
         researchMenuItems={researchMenuItems}
         secondaryMenuItems={secondaryMenuItems}
         settingsMenuItems={settingsMenuItems}
@@ -326,6 +345,7 @@ function AppLayoutWithDynamicMenu({
     isLibraryRoute,
     isMessagesRoute,
     isOrgRoute,
+    isPostsRoute,
     isResearchRoute,
     isSettingsRoute,
     isStudioRoute,
@@ -333,9 +353,11 @@ function AppLayoutWithDynamicMenu({
     libraryMenuItems,
     menuItems,
     orgMenuItems,
+    postsMenuItems,
     researchMenuItems,
     secondaryMenuItems,
     settingsMenuItems,
+    settingsScope,
     shellChromeVariant,
     studioMenuItems,
     taskContextSearchParams,
@@ -370,7 +392,7 @@ function AppLayoutWithDynamicMenu({
                       ? orgMenuItems
                       : menuItems;
   const lowCreditsBanner =
-    isEEEnabled() &&
+    hasOrganizationBilling() &&
     isLowCreditsBannerEnabled &&
     !isFocusedOnboardingRoute &&
     !isPromptBarRoute &&

@@ -2,7 +2,7 @@
 
 import type { IAnalytics } from '@genfeedai/interfaces';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
-import { HiEye, HiUserCircle, HiVideoCamera } from 'react-icons/hi2';
+import { CircleUser, Eye, Video } from 'lucide-react';
 
 type Props = {
   isLoading: boolean;
@@ -16,7 +16,7 @@ export default function AnalyticsKPISection({ isLoading, stats }: Props) {
         stats.monthlyGrowth !== undefined
           ? `${stats.monthlyGrowth > 0 ? '+' : ''}${stats.monthlyGrowth}% from last month`
           : 'No growth data',
-      icon: <HiVideoCamera className="text-2xl text-primary" />,
+      icon: <Video className="text-2xl text-primary" />,
       label: 'Total Posts',
       value: stats.totalPosts,
     },
@@ -25,13 +25,13 @@ export default function AnalyticsKPISection({ isLoading, stats }: Props) {
         stats.viewsGrowth !== undefined
           ? `${stats.viewsGrowth > 0 ? '+' : ''}${stats.viewsGrowth}% from last month`
           : 'No growth data',
-      icon: <HiEye className="text-2xl" />,
+      icon: <Eye className="text-2xl" />,
       label: 'Total Views',
       value: stats.totalViews,
     },
     {
       description: 'YouTube, TikTok, Instagram',
-      icon: <HiUserCircle className="text-2xl text-white" />,
+      icon: <CircleUser className="text-2xl text-white" />,
       label: 'Connected Accounts',
       value: stats.totalCredentialsConnected,
     },
@@ -46,21 +46,21 @@ export default function AnalyticsKPISection({ isLoading, stats }: Props) {
       items={[
         {
           description: boxes[0].description,
-          icon: HiVideoCamera,
+          icon: Video,
           iconClassName: 'bg-white/10 text-foreground',
           label: boxes[0].label,
           value: boxes[0].value,
         },
         {
           description: boxes[1].description,
-          icon: HiEye,
+          icon: Eye,
           iconClassName: 'bg-white/10 text-foreground',
           label: boxes[1].label,
           value: boxes[1].value,
         },
         {
           description: boxes[2].description,
-          icon: HiUserCircle,
+          icon: CircleUser,
           iconClassName: 'bg-white/10 text-foreground',
           label: boxes[2].label,
           value: boxes[2].value,

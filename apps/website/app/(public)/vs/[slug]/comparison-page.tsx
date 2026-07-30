@@ -10,9 +10,8 @@ import {
 } from '@ui/primitives/table';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
 import PageLayout from '@web-components/PageLayout';
+import { Check, X } from 'lucide-react';
 import Link from 'next/link';
-import { FaCheck } from 'react-icons/fa6';
-import { HiXMark } from 'react-icons/hi2';
 
 interface ComparisonCellProps {
   value: boolean | string;
@@ -25,9 +24,9 @@ function ComparisonCell({
 }: ComparisonCellProps): React.ReactElement {
   if (typeof value === 'boolean') {
     return value ? (
-      <FaCheck className="size-4 text-success mx-auto" />
+      <Check className="size-4 text-success mx-auto" />
     ) : (
-      <HiXMark className="size-4 text-error mx-auto" />
+      <X className="size-4 text-error mx-auto" />
     );
   }
   return (
@@ -88,7 +87,7 @@ export default function ComparisonPage({
           <ul className="space-y-2 mb-6 text-left max-w-md mx-auto">
             {competitor.genfeedAdvantages.map((advantage: string) => (
               <li key={advantage} className="flex items-start gap-2">
-                <FaCheck className="size-4 text-success mt-1 flex-shrink-0" />
+                <Check className="size-4 text-success mt-1 flex-shrink-0" />
                 <span className="text-sm">{advantage}</span>
               </li>
             ))}

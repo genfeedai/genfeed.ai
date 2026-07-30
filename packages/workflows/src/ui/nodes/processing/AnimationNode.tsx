@@ -3,7 +3,13 @@
 import type { AnimationNodeData, EasingPreset } from '@genfeedai/types';
 import { NodeStatusEnum } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { AlertCircle, Expand, Loader2, RefreshCw, Wand2 } from 'lucide-react';
+import {
+  CircleAlert,
+  Expand,
+  LoaderCircle,
+  RefreshCw,
+  WandSparkles,
+} from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { useRequiredInputs } from '../../hooks/useRequiredInputs';
 import { CubicBezierEditor } from '../../lib/CubicBezierEditor';
@@ -248,9 +254,9 @@ function AnimationNodeComponent(props: NodeProps) {
             className="w-full"
           >
             {nodeData.status === 'processing' ? (
-              <Loader2 className="size-4 animate-spin" />
+              <LoaderCircle className="size-4 animate-spin" />
             ) : (
-              <Wand2 className="size-4" />
+              <WandSparkles className="size-4" />
             )}
             {nodeData.status === 'processing'
               ? 'Applying...'
@@ -261,7 +267,7 @@ function AnimationNodeComponent(props: NodeProps) {
         {/* Help text for required inputs */}
         {!hasRequiredInputs && nodeData.status !== 'processing' && (
           <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
-            <AlertCircle className="size-3" />
+            <CircleAlert className="size-3" />
             Connect a video to animate
           </div>
         )}

@@ -9,8 +9,8 @@ import { Input } from '@ui/primitives/input';
 import FormRange from '@ui/primitives/range-field';
 import { SelectField } from '@ui/primitives/select';
 import { Switch } from '@ui/primitives/switch';
+import { Bell, Info } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import { HiBell, HiInformationCircle } from 'react-icons/hi2';
 
 export type { TrendNotificationSettingsProps };
 
@@ -75,7 +75,7 @@ export default function TrendNotificationSettings({
       {/* Header */}
       <div className="flex items-start gap-3">
         <div className="p-2 bg-primary/10">
-          <HiBell className="size-5 text-primary" />
+          <Bell className="size-5 text-primary" />
         </div>
         <div>
           <h3 className="text-lg font-semibold">Trend Notifications</h3>
@@ -133,7 +133,7 @@ export default function TrendNotificationSettings({
                   isDisabled={isDisabled}
                 />
                 <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
-                  <HiInformationCircle className="size-3" />
+                  <Info className="size-3" />
                   Message @userinfobot on Telegram to get your chat ID
                 </p>
               </div>

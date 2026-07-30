@@ -11,14 +11,9 @@ import Badge from '@ui/display/badge/Badge';
 import KeyMetric from '@ui/display/key-metric/KeyMetric';
 import StreakCelebrationBurst from '@ui/feedback/streak-celebration/StreakCelebrationBurst';
 import { Button } from '@ui/primitives/button';
+import { Flame, Gift, ShieldCheck, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  HiOutlineFire,
-  HiOutlineGift,
-  HiOutlineShieldCheck,
-  HiOutlineSparkles,
-} from 'react-icons/hi2';
 
 function formatDayKey(offsetFromEnd: number): string {
   const date = new Date();
@@ -100,7 +95,7 @@ export default function StreaksPage() {
                 isStudioEnabled ? APP_ROUTES.STUDIO.IMAGE : APP_ROUTES.AGENT.NEW
               }
             >
-              <HiOutlineSparkles className="size-4" />
+              <Sparkles className="size-4" />
               Create content now
             </Link>
           </Button>
@@ -180,7 +175,7 @@ export default function StreaksPage() {
                   key={milestone}
                   variant="success"
                 >
-                  <HiOutlineGift className="size-3.5" />
+                  <Gift className="size-3.5" />
                   {milestone}-day badge
                 </Badge>
               ))
@@ -211,11 +206,11 @@ export default function StreaksPage() {
                         {milestone.days} days
                       </span>
                       {milestone.days === 7 ? (
-                        <HiOutlineShieldCheck className="size-4 text-muted-foreground" />
+                        <ShieldCheck className="size-4 text-muted-foreground" />
                       ) : milestone.rewardCredits > 0 ? (
-                        <HiOutlineGift className="size-4 text-muted-foreground" />
+                        <Gift className="size-4 text-muted-foreground" />
                       ) : (
-                        <HiOutlineFire className="size-4 text-muted-foreground" />
+                        <Flame className="size-4 text-muted-foreground" />
                       )}
                     </div>
                     <p className="mt-1 text-sm text-foreground/65">

@@ -7,9 +7,10 @@ import {
   getBrowserTimezone,
 } from '@helpers/formatting/timezone/timezone.helper';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
+import { Clock, ImageIcon, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import { useMemo } from 'react';
-import { HiOutlineClock, HiPhoto, HiSparkles } from 'react-icons/hi2';
+
 import ReviewDetailPanelAside from './ReviewDetailPanelAside';
 import ReviewDetailPanelEmpty from './ReviewDetailPanelEmpty';
 import ReviewDetailPanelHeader from './ReviewDetailPanelHeader';
@@ -116,7 +117,7 @@ export default function ReviewDetailPanel({
             ) : (
               <div className="flex h-full flex-col items-center justify-center gap-3 text-foreground/45">
                 <div className="rounded-full border border-white/10 bg-card p-4">
-                  <HiPhoto className="size-8" />
+                  <ImageIcon className="size-8" />
                 </div>
                 <p className="text-sm">No media preview generated yet</p>
               </div>
@@ -125,7 +126,7 @@ export default function ReviewDetailPanel({
 
           <InsetSurface className="p-5" tone="contrast">
             <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <HiSparkles className="size-4 text-foreground/55" />
+              <Sparkles className="size-4 text-foreground/55" />
               Caption
             </div>
             <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-foreground/85">
@@ -135,7 +136,7 @@ export default function ReviewDetailPanel({
 
           <InsetSurface className="p-5" tone="contrast">
             <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <HiOutlineClock className="size-4 text-foreground/55" />
+              <Clock className="size-4 text-foreground/55" />
               Prompt
             </div>
             <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-foreground/70">

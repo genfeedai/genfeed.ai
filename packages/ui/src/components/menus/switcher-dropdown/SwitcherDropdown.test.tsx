@@ -2,7 +2,8 @@
 import type { SwitcherDropdownItem } from '@genfeedai/props/ui/menus/switcher-dropdown.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
-import { HiOutlineCog6Tooth } from 'react-icons/hi2';
+import { Settings } from 'lucide-react';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const items: SwitcherDropdownItem[] = [
@@ -155,7 +156,7 @@ describe('SwitcherDropdown', () => {
     renderDropdown({
       footerActions: [
         {
-          icon: HiOutlineCog6Tooth,
+          icon: Settings,
           label: 'Settings',
           onAction: vi.fn(),
         },
@@ -180,7 +181,7 @@ describe('SwitcherDropdown', () => {
           label: 'Alpha',
           trailingAction: {
             ariaLabel: 'Open Alpha settings',
-            icon: HiOutlineCog6Tooth,
+            icon: Settings,
             onAction,
           },
         },
@@ -197,7 +198,7 @@ describe('SwitcherDropdown', () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
-  it('applies hover treatment to the full row when a trailing action is present', () => {
+  it('gives the active item the selected wash; inactive rows get a lighter hover wash', () => {
     renderDropdown({
       items: [
         {
@@ -206,7 +207,17 @@ describe('SwitcherDropdown', () => {
           label: 'Alpha',
           trailingAction: {
             ariaLabel: 'Open Alpha settings',
-            icon: HiOutlineCog6Tooth,
+            icon: Settings,
+            onAction: vi.fn(),
+          },
+        },
+        {
+          id: '2',
+          isActive: false,
+          label: 'Beta',
+          trailingAction: {
+            ariaLabel: 'Open Beta settings',
+            icon: Settings,
             onAction: vi.fn(),
           },
         },
@@ -215,14 +226,28 @@ describe('SwitcherDropdown', () => {
 
     fireEvent.click(screen.getByText('Open'));
 
-    const settingsButton = screen.getByRole('button', {
+    const alphaSettings = screen.getByRole('button', {
       name: 'Open Alpha settings',
     });
-    const row = settingsButton.parentElement;
+    const betaSettings = screen.getByRole('button', {
+      name: 'Open Beta settings',
+    });
+    const alphaRow = alphaSettings.parentElement;
+    const betaRow = betaSettings.parentElement;
 
-    expect(row).toHaveClass('hover:bg-foreground/[0.06]');
-    expect(row).toHaveClass('bg-foreground/[0.06]');
-    expect(settingsButton).not.toHaveClass('hover:bg-foreground/[0.08]');
+    // Active row: persistent selected wash + check
+    expect(alphaRow).toHaveClass('bg-foreground/[0.08]');
+    expect(alphaRow).not.toHaveClass('hover:bg-foreground/[0.05]');
+    expect(
+      screen.getByTestId('switcher-item-active-check'),
+    ).toBeInTheDocument();
+
+    // Inactive row: lighter hover / keyboard highlight only
+    expect(betaRow).toHaveClass('hover:bg-foreground/[0.05]');
+    expect(betaRow).not.toHaveClass('bg-foreground/[0.08]');
+    expect(screen.queryAllByTestId('switcher-item-active-check')).toHaveLength(
+      1,
+    );
   });
 
   it('shows search when hasSearch is true', () => {

@@ -2,8 +2,8 @@
 
 import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
 import { useCommandPalette } from '@hooks/ui/use-command-palette/use-command-palette';
+import { MessageSquare } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
-import { HiOutlineChatBubbleLeftRight } from 'react-icons/hi2';
 
 export interface AgentThreadCommandItem {
   id: string;
@@ -45,7 +45,7 @@ export function useAgentThreadCommands({
           action: () => onNavigate(`/agent/${thread.id}`),
           category: 'navigation' as const,
           description: thread.lastMessage,
-          icon: HiOutlineChatBubbleLeftRight,
+          icon: MessageSquare,
           id: `agent-thread-${thread.id}`,
           keywords: ['thread', 'chat', 'agent', ...titleWords],
           label: title,

@@ -13,9 +13,9 @@ import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
+import { UserPlus } from 'lucide-react';
 import type { RefObject } from 'react';
 import type { Control, FormState } from 'react-hook-form';
-import { HiUserPlus } from 'react-icons/hi2';
 
 export type InviteFormProps = {
   formRef: RefObject<HTMLFormElement | null>;
@@ -97,7 +97,7 @@ export default function InviteForm({
           type="submit"
           label={
             <>
-              <HiUserPlus /> Send Invitation
+              <UserPlus /> Send Invitation
             </>
           }
           variant={ButtonVariant.DEFAULT}

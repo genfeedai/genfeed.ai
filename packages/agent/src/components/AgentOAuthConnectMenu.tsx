@@ -9,8 +9,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
+import { ChevronDown, Link } from 'lucide-react';
 import { type ReactElement, useCallback, useState } from 'react';
-import { HiChevronDown, HiOutlineLink } from 'react-icons/hi2';
 
 interface AgentOAuthConnectMenuProps {
   onOAuthConnect?: (platform: string) => void | Promise<void>;
@@ -65,11 +65,11 @@ export function AgentOAuthConnectMenu({
           data-active={open ? 'true' : 'false'}
           ariaLabel="Connect a social channel"
         >
-          <HiOutlineLink className="size-3.5 text-foreground/55" />
+          <Link className="size-3.5 text-foreground/55" />
           <span className="text-[11px] font-medium text-foreground">
             Connect
           </span>
-          <HiChevronDown
+          <ChevronDown
             className={cn(
               'size-3 text-foreground/42 transition-transform',
               open && 'rotate-180',

@@ -12,24 +12,24 @@ import {
 import { Button } from '@ui/primitives/button';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
 import PageLayout from '@web-components/PageLayout';
-import type { ReactNode } from 'react';
 import {
-  HiOutlineBookOpen,
-  HiOutlineChatBubbleLeftRight,
-  HiOutlineCog6Tooth,
-  HiOutlineCreditCard,
-  HiOutlineCubeTransparent,
-  HiOutlineEnvelope,
-  HiOutlineSparkles,
-} from 'react-icons/hi2';
+  BookOpen,
+  Box,
+  CreditCard,
+  Mail,
+  MessageSquare,
+  Settings,
+  Sparkles,
+} from 'lucide-react';
+import type { ReactNode } from 'react';
 
 // Map category names to icons
 const CATEGORY_ICONS: Record<string, ReactNode> = {
-  'Content Creation': <HiOutlineSparkles className="size-5" />,
-  'Features & Access': <HiOutlineCubeTransparent className="size-5" />,
-  General: <HiOutlineBookOpen className="size-5" />,
-  Pricing: <HiOutlineCreditCard className="size-5" />,
-  Technical: <HiOutlineCog6Tooth className="size-5" />,
+  'Content Creation': <Sparkles className="size-5" />,
+  'Features & Access': <Box className="size-5" />,
+  General: <BookOpen className="size-5" />,
+  Pricing: <CreditCard className="size-5" />,
+  Technical: <Settings className="size-5" />,
 };
 
 // Combine shared data with icons
@@ -140,7 +140,7 @@ export default function FAQContent() {
                 <div className="bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="p-2 bg-primary/20 text-primary">
-                      <HiOutlineChatBubbleLeftRight className="size-5" />
+                      <MessageSquare className="size-5" />
                     </div>
                     <h3 className="font-semibold">Still have questions?</h3>
                   </div>
@@ -159,7 +159,7 @@ export default function FAQContent() {
                     href="mailto:hello@genfeed.ai"
                     className="flex items-center gap-3 text-sm text-muted-foreground hover:text-surface transition-colors"
                   >
-                    <HiOutlineEnvelope className="size-5" />
+                    <Mail className="size-5" />
                     hello@genfeed.ai
                   </a>
                 </div>
@@ -173,7 +173,7 @@ export default function FAQContent() {
           <div className="bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 p-6 text-center">
             <div className="flex items-center justify-center gap-3 mb-4">
               <div className="p-2 bg-primary/20 text-primary">
-                <HiOutlineChatBubbleLeftRight className="size-5" />
+                <MessageSquare className="size-5" />
               </div>
               <h3 className="font-semibold">Still have questions?</h3>
             </div>

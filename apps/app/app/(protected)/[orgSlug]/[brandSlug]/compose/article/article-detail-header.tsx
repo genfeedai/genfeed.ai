@@ -5,15 +5,15 @@ import type { GlobalModalsContextValue } from '@providers/global-modals/global-m
 import type { ClipboardService } from '@services/core/clipboard.service';
 import { Button } from '@ui/primitives/button';
 import {
-  HiArchiveBox,
-  HiCheck,
-  HiClipboardDocument,
-  HiExclamationCircle,
-  HiEye,
-  HiPencil,
-  HiRocketLaunch,
-  HiTrash,
-} from 'react-icons/hi2';
+  Archive,
+  Check,
+  CircleAlert,
+  Clipboard,
+  Eye,
+  Pencil,
+  Rocket,
+  Trash2,
+} from 'lucide-react';
 
 type ViewMode = 'edit' | 'preview';
 
@@ -84,9 +84,9 @@ export default function ArticleDetailHeader({
             }
             icon={
               viewMode === 'edit' ? (
-                <HiEye className="size-4" />
+                <Eye className="size-4" />
               ) : (
-                <HiPencil className="size-4" />
+                <Pencil className="size-4" />
               )
             }
           />
@@ -97,7 +97,7 @@ export default function ArticleDetailHeader({
           <Button
             label="Publish"
             variant={ButtonVariant.DEFAULT}
-            icon={<HiRocketLaunch className="size-4" />}
+            icon={<Rocket className="size-4" />}
             onClick={() =>
               openConfirm({
                 cancelLabel: 'Cancel',
@@ -116,7 +116,7 @@ export default function ArticleDetailHeader({
           <Button
             label="Archive"
             variant={ButtonVariant.SECONDARY}
-            icon={<HiArchiveBox className="size-4" />}
+            icon={<Archive className="size-4" />}
             onClick={() =>
               openConfirm({
                 cancelLabel: 'Cancel',
@@ -134,7 +134,7 @@ export default function ArticleDetailHeader({
           label="Copy Article"
           variant={ButtonVariant.SECONDARY}
           size={ButtonSize.SM}
-          icon={<HiClipboardDocument className="size-4" />}
+          icon={<Clipboard className="size-4" />}
           onClick={() =>
             void clipboardService.copyToClipboard(
               [formLabel.trim(), plainTextContent].filter(Boolean).join('\n\n'),
@@ -148,7 +148,7 @@ export default function ArticleDetailHeader({
             label="Copy for X Article"
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
-            icon={<HiClipboardDocument className="size-4" />}
+            icon={<Clipboard className="size-4" />}
             onClick={onCopyFullArticle}
           />
         )}
@@ -157,9 +157,9 @@ export default function ArticleDetailHeader({
         <Button
           icon={
             isDirty ? (
-              <HiExclamationCircle className="size-4" />
+              <CircleAlert className="size-4" />
             ) : (
-              <HiCheck className="size-4" />
+              <Check className="size-4" />
             )
           }
           label={isSaving ? 'Saving...' : isDirty ? 'Save' : 'Saved'}
@@ -180,7 +180,7 @@ export default function ArticleDetailHeader({
           <Button
             label="Delete"
             variant={ButtonVariant.DESTRUCTIVE}
-            icon={<HiTrash className="size-4" />}
+            icon={<Trash2 className="size-4" />}
             onClick={() =>
               openConfirm({
                 cancelLabel: 'Cancel',

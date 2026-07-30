@@ -2,8 +2,8 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { Check, Copy, Terminal } from 'lucide-react';
 import { useState } from 'react';
-import { LuCheck, LuCopy, LuTerminal } from 'react-icons/lu';
 
 export default function InstallCommand(): React.ReactElement {
   const [copied, setCopied] = useState(false);
@@ -25,12 +25,12 @@ export default function InstallCommand(): React.ReactElement {
       onClick={handleCopy}
       className="group inline-flex items-center gap-3 px-6 py-3 bg-fill/5 border border-edge/10 hover:border-edge/20 transition-all font-mono text-sm cursor-pointer"
     >
-      <LuTerminal className="size-4 text-surface/30" />
+      <Terminal className="size-4 text-surface/30" />
       <span className="text-surface/70">bunx skills add genfeedai/skills</span>
       {copied ? (
-        <LuCheck className="size-4 text-emerald-400" />
+        <Check className="size-4 text-emerald-400" />
       ) : (
-        <LuCopy className="size-4 text-surface/30 group-hover:text-surface/60 transition-colors" />
+        <Copy className="size-4 text-surface/30 group-hover:text-surface/60 transition-colors" />
       )}
     </Button>
   );

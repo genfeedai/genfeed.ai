@@ -14,13 +14,9 @@ import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { Banknote, CircleCheck, RefreshCw } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  HiArrowPath,
-  HiOutlineBanknotes,
-  HiOutlineCheckCircle,
-} from 'react-icons/hi2';
 
 /** Effective margin percentage the configured multiplier resolves to. */
 function effectiveMarginPercent(multiplier: number): number {
@@ -121,7 +117,7 @@ export default function PlatformSettingsPage() {
     <Container
       label="Platform settings"
       description="Platform-wide business and infrastructure controls for operators"
-      icon={HiOutlineBanknotes}
+      icon={Banknote}
     >
       {isLoading ? (
         <SkeletonCard showImage={false} />
@@ -150,9 +146,9 @@ export default function PlatformSettingsPage() {
             className="inline-flex items-center gap-2"
           >
             {isSaving ? (
-              <HiArrowPath className="size-4 animate-spin" />
+              <RefreshCw className="size-4 animate-spin" />
             ) : (
-              <HiOutlineCheckCircle className="size-4" />
+              <CircleCheck className="size-4" />
             )}
             {isSaving ? 'Saving' : 'Save settings'}
           </Button>

@@ -41,12 +41,7 @@ describe('Table', () => {
     );
 
     const action = screen.getByTestId('action-button');
-    expect(action).toHaveClass(
-      'min-h-11',
-      'min-w-11',
-      'lg:min-h-0',
-      'lg:min-w-0',
-    );
+    expect(action).toHaveClass('size-11', 'lg:size-8', '[&_svg]:size-3.5');
     expect(action.closest('td')?.firstElementChild).toHaveClass(
       'group-focus-within:opacity-100',
       'group-focus-within:translate-x-0',

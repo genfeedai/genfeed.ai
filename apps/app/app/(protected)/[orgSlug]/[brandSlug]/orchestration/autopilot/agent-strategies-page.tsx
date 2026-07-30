@@ -5,7 +5,8 @@ import type { AgentStrategy } from '@services/automation/agent-strategies.servic
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import { HiOutlineCpuChip, HiPlus } from 'react-icons/hi2';
+import { Cpu, Plus } from 'lucide-react';
+
 import AgentStrategiesEmptyState from './AgentStrategiesEmptyState';
 import AgentStrategiesInfoBanner from './AgentStrategiesInfoBanner';
 import AgentStrategyDialog from './AgentStrategyDialog';
@@ -40,12 +41,12 @@ export default function AgentStrategiesPage() {
       <Container
         label="Autopilot"
         description="Use autopilot policies to schedule adaptive agent runs."
-        icon={HiOutlineCpuChip}
+        icon={Cpu}
         right={
           <Button
             label={
               <>
-                <HiPlus /> Add Autopilot
+                <Plus /> Add Autopilot
               </>
             }
             variant={ButtonVariant.DEFAULT}

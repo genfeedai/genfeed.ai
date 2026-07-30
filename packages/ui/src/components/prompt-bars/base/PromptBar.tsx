@@ -6,6 +6,9 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarProps } from '@genfeedai/props/studio/prompt-bar.props';
 import PromptBarCollapsedView from '@ui/prompt-bars/components/collapsed-view/PromptBarCollapsedView';
 import PromptBarExpandedView from '@ui/prompt-bars/components/expanded-view/PromptBarExpandedView';
+import PromptBarShell, {
+  PROMPT_BAR_SURFACE_CLASS,
+} from '@ui/prompt-bars/components/shell/PromptBarShell';
 import { memo } from 'react';
 import { EMPTY_ARRAY, getAspectRatioFromFormat } from './prompt-bar.helpers';
 import { usePromptBarState } from './use-prompt-bar-state';
@@ -49,6 +52,7 @@ function PromptBar({
   onSuggestionSelect,
   showSuggestionsWhenEmpty = true,
   maxSuggestions = 3,
+  banner,
 }: PromptBarProps) {
   const {
     internalContextValue,
@@ -123,90 +127,100 @@ function PromptBar({
 
   return (
     <PromptBarInternalContext.Provider value={internalContextValue}>
-      <div className="size-full flex flex-col min-h-0 relative">
+      <div className="relative flex size-full min-h-0 flex-col">
         <form
           onSubmit={handleSubmitForm}
-          className="flex-1 flex flex-col min-h-0"
+          className="flex min-h-0 flex-1 flex-col"
         >
           <div
             ref={promptBarRef}
             className={cn(
-              'sticky bottom-0 flex-shrink-0 z-50 flex flex-col transition-all duration-300',
+              'sticky bottom-0 z-50 flex-shrink-0 transition-all duration-300',
               isCollapsed ? 'overflow-hidden' : 'overflow-visible',
             )}
           >
-            {isCollapsed && isCollapsible ? (
-              <PromptBarCollapsedView
-                collapsedInputRef={collapsedInputRef}
-                form={form}
-                placeholder={currentConfig.placeholder}
-                isDisabled={isDisabledState}
-                isGenerateBlocked={isGenerateBlocked}
-                isGenerateDisabled={isGenerateDisabled}
-                isGenerating={isGenerating}
-                selectedModelCost={selectedModelCost}
-                onSubmit={handleSubmitForm}
-                generateLabel={generateLabel}
-                activeGenerationsCount={activeGenerations.length}
-                onExpand={() => setIsCollapsed(false)}
-                isFormValid={form.formState.isValid}
-                isInternalUpdateRef={isInternalUpdateRef}
-                onTextChange={handleTextChange}
-                watchedModel={watchedModel}
-                formatIcon={formatIcon}
-                references={references}
-                referenceSource={referenceSource}
-                outputs={form.watch('outputs') || 1}
-                onOutputsChange={(count) => {
-                  form.setValue('outputs', count, { shouldValidate: true });
-                  triggerConfigChange();
-                }}
-                categoryType={categoryType}
-                currentModelCategory={currentModelCategory}
-                onCreateVariation={
-                  categoryType === IngredientCategory.IMAGE
-                    ? (reference) => {
-                        if (!reference) {
-                          return;
-                        }
-                        const format =
-                          watchedFormat || IngredientFormat.PORTRAIT;
-                        push(
-                          buildHref(
-                            `/studio/image?referenceImageId=${reference.id}&format=${format}`,
-                          ),
-                        );
-                      }
-                    : undefined
-                }
-                onFormatChange={
-                  categoryType === IngredientCategory.IMAGE ||
-                  categoryType === IngredientCategory.VIDEO
-                    ? (nextFormat) => {
-                        if (categoryType === IngredientCategory.IMAGE) {
-                          push(buildHref(`/studio/image?format=${nextFormat}`));
-                        } else if (categoryType === IngredientCategory.VIDEO) {
-                          const aspectRatio =
-                            getAspectRatioFromFormat(nextFormat);
+            <PromptBarShell
+              banner={banner}
+              className={PROMPT_BAR_SURFACE_CLASS}
+              data-testid="studio-prompt-bar-shell"
+            >
+              {isCollapsed && isCollapsible ? (
+                <PromptBarCollapsedView
+                  collapsedInputRef={collapsedInputRef}
+                  form={form}
+                  placeholder={currentConfig.placeholder}
+                  isDisabled={isDisabledState}
+                  isGenerateBlocked={isGenerateBlocked}
+                  isGenerateDisabled={isGenerateDisabled}
+                  isGenerating={isGenerating}
+                  selectedModelCost={selectedModelCost}
+                  onSubmit={handleSubmitForm}
+                  generateLabel={generateLabel}
+                  activeGenerationsCount={activeGenerations.length}
+                  onExpand={() => setIsCollapsed(false)}
+                  isFormValid={form.formState.isValid}
+                  isInternalUpdateRef={isInternalUpdateRef}
+                  onTextChange={handleTextChange}
+                  watchedModel={watchedModel}
+                  formatIcon={formatIcon}
+                  references={references}
+                  referenceSource={referenceSource}
+                  outputs={form.watch('outputs') || 1}
+                  onOutputsChange={(count) => {
+                    form.setValue('outputs', count, { shouldValidate: true });
+                    triggerConfigChange();
+                  }}
+                  categoryType={categoryType}
+                  currentModelCategory={currentModelCategory}
+                  onCreateVariation={
+                    categoryType === IngredientCategory.IMAGE
+                      ? (reference) => {
+                          if (!reference) {
+                            return;
+                          }
+                          const format =
+                            watchedFormat || IngredientFormat.PORTRAIT;
                           push(
                             buildHref(
-                              `/studio/video?aspectRatio=${aspectRatio}`,
+                              `/studio/image?referenceImageId=${reference.id}&format=${format}`,
                             ),
                           );
                         }
-                      }
-                    : undefined
-                }
-                isSupported={
-                  isSupported && settings?.isVoiceControlEnabled !== false
-                }
-                toggleVoice={toggleVoice}
-                isRecording={isRecording}
-                isProcessing={isProcessing}
-              />
-            ) : (
-              <PromptBarExpandedView />
-            )}
+                      : undefined
+                  }
+                  onFormatChange={
+                    categoryType === IngredientCategory.IMAGE ||
+                    categoryType === IngredientCategory.VIDEO
+                      ? (nextFormat) => {
+                          if (categoryType === IngredientCategory.IMAGE) {
+                            push(
+                              buildHref(`/studio/image?format=${nextFormat}`),
+                            );
+                          } else if (
+                            categoryType === IngredientCategory.VIDEO
+                          ) {
+                            const aspectRatio =
+                              getAspectRatioFromFormat(nextFormat);
+                            push(
+                              buildHref(
+                                `/studio/video?aspectRatio=${aspectRatio}`,
+                              ),
+                            );
+                          }
+                        }
+                      : undefined
+                  }
+                  isSupported={
+                    isSupported && settings?.isVoiceControlEnabled !== false
+                  }
+                  toggleVoice={toggleVoice}
+                  isRecording={isRecording}
+                  isProcessing={isProcessing}
+                />
+              ) : (
+                <PromptBarExpandedView />
+              )}
+            </PromptBarShell>
           </div>
         </form>
       </div>

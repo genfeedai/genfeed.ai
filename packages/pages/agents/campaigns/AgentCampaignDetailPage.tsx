@@ -12,15 +12,10 @@ import { NotificationsService } from '@services/core/notifications.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import { ArrowLeft, Check, LayoutDashboard, Pause, Play } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  HiArrowLeft,
-  HiCheck,
-  HiOutlineRectangleGroup,
-  HiPause,
-  HiPlay,
-} from 'react-icons/hi2';
+
 import AgentCampaignAgentsList from './AgentCampaignAgentsList';
 import AgentCampaignContentQuota from './AgentCampaignContentQuota';
 import AgentCampaignDetailHeader from './AgentCampaignDetailHeader';
@@ -144,7 +139,7 @@ export default function AgentCampaignDetailPage() {
       <Container
         label="Loading..."
         description="Loading campaign details"
-        icon={HiOutlineRectangleGroup}
+        icon={LayoutDashboard}
       >
         <div className="flex items-center justify-center py-20">
           <div className="animate-pulse text-foreground/50">Loading…</div>
@@ -158,12 +153,12 @@ export default function AgentCampaignDetailPage() {
       <Container
         label="Campaign Not Found"
         description="The requested campaign could not be found"
-        icon={HiOutlineRectangleGroup}
+        icon={LayoutDashboard}
       >
         <Button
           label={
             <>
-              <HiArrowLeft /> Back to Campaigns
+              <ArrowLeft /> Back to Campaigns
             </>
           }
           variant={ButtonVariant.SECONDARY}
@@ -182,7 +177,7 @@ export default function AgentCampaignDetailPage() {
     <Container
       label={campaign.label}
       description={campaign.brief || 'Campaign details and execution status'}
-      icon={HiOutlineRectangleGroup}
+      icon={LayoutDashboard}
       right={
         <>
           <ButtonRefresh
@@ -194,7 +189,7 @@ export default function AgentCampaignDetailPage() {
             <Button
               label={
                 <>
-                  <HiPause /> Pause
+                  <Pause /> Pause
                 </>
               }
               variant={ButtonVariant.DESTRUCTIVE}
@@ -204,7 +199,7 @@ export default function AgentCampaignDetailPage() {
             <Button
               label={
                 <>
-                  <HiPlay /> Start
+                  <Play /> Start
                 </>
               }
               variant={ButtonVariant.DEFAULT}
@@ -217,7 +212,7 @@ export default function AgentCampaignDetailPage() {
             <Button
               label={
                 <>
-                  <HiCheck /> Complete
+                  <Check /> Complete
                 </>
               }
               variant={ButtonVariant.SECONDARY}

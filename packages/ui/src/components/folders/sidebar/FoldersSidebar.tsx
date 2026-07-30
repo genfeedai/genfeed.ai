@@ -7,8 +7,8 @@ import type { FoldersSidebarProps } from '@genfeedai/props/content/folders-sideb
 import DropZoneFolder from '@ui/drag-drop/zone-folder/DropZoneFolder';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
+import { Folder, Plus } from 'lucide-react';
 import { memo } from 'react';
-import { HiFolder, HiPlus } from 'react-icons/hi2';
 
 function FoldersSidebar({
   folders,
@@ -30,7 +30,7 @@ function FoldersSidebar({
             <Button
               ariaLabel="New folder"
               className="ml-auto size-6 p-0 text-foreground/42 hover:text-foreground"
-              icon={<HiPlus className="size-3.5" />}
+              icon={<Plus className="size-3.5" />}
               onClick={onCreateFolder}
               size={ButtonSize.SM}
               tooltip="New folder"
@@ -54,7 +54,7 @@ function FoldersSidebar({
             isSelected={!selectedFolderId}
           >
             <div className="flex min-w-0 items-center gap-2.5">
-              <HiFolder className="size-5 shrink-0 text-foreground/42" />
+              <Folder className="size-5 shrink-0 text-foreground/42" />
               <span className="truncate text-[13px] font-medium tracking-[-0.01em]">
                 All assets
               </span>
@@ -82,7 +82,7 @@ function FoldersSidebar({
                 isSelected={selectedFolderId === folder.id}
               >
                 <div className="flex min-w-0 items-center gap-2.5">
-                  <HiFolder className="size-5 shrink-0 text-foreground/42" />
+                  <Folder className="size-5 shrink-0 text-foreground/42" />
                   <span className="truncate text-[13px] font-medium tracking-[-0.01em]">
                     {folder.label}
                   </span>
@@ -112,7 +112,7 @@ function FoldersSidebar({
         <Button
           label={
             <>
-              <HiPlus /> New Folder
+              <Plus /> New Folder
             </>
           }
           variant={ButtonVariant.SECONDARY}

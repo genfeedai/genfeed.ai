@@ -19,8 +19,9 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
+import { Trash2 } from 'lucide-react';
 import type { ChangeEvent } from 'react';
-import { HiTrash } from 'react-icons/hi2';
+
 import ModalBotChatSettings from './ModalBotChatSettings';
 import ModalBotEngagementSettings from './ModalBotEngagementSettings';
 import ModalBotMonitoringSettings from './ModalBotMonitoringSettings';
@@ -213,7 +214,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
 
           {bot && deleteModalBot && (
             <Button
-              label={<HiTrash />}
+              label={<Trash2 />}
               variant={ButtonVariant.DESTRUCTIVE}
               onClick={deleteModalBot}
               isLoading={isSubmitting}

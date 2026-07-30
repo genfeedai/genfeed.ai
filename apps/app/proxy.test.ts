@@ -41,6 +41,7 @@ function makeSignedInRequest(
     .map(([k, v]) => `${k}=${v}`)
     .join('; ');
 
+  const search = opts.search ?? '';
   return {
     cookies: {
       get: vi.fn((name: string) => {
@@ -55,9 +56,13 @@ function makeSignedInRequest(
     },
     nextUrl: {
       pathname,
-      search: opts.search ?? '',
+      search,
+      // proxy reads callbackUrl via nextUrl.searchParams.get(...)
+      searchParams: new URLSearchParams(
+        search.startsWith('?') ? search.slice(1) : search,
+      ),
     },
-    url: `http://localhost:3000${pathname}${opts.search ?? ''}`,
+    url: `http://localhost:3000${pathname}${search}`,
   } as never;
 }
 
@@ -65,6 +70,7 @@ function makeSignedInRequest(
  * Build a signed-out NextRequest-like mock (no session cookie present).
  */
 function makeSignedOutRequest(pathname: string, search?: string) {
+  const resolvedSearch = search ?? '';
   return {
     cookies: {
       get: vi.fn(() => undefined),
@@ -74,9 +80,14 @@ function makeSignedOutRequest(pathname: string, search?: string) {
     },
     nextUrl: {
       pathname,
-      search: search ?? '',
+      search: resolvedSearch,
+      searchParams: new URLSearchParams(
+        resolvedSearch.startsWith('?')
+          ? resolvedSearch.slice(1)
+          : resolvedSearch,
+      ),
     },
-    url: `http://localhost:3000${pathname}${search ?? ''}`,
+    url: `http://localhost:3000${pathname}${resolvedSearch}`,
   } as never;
 }
 
@@ -150,7 +161,7 @@ describe('proxy', () => {
   // ─── Signed-in redirect away from root / public entry points ──────────────
 
   it.each(['/login', '/login/password', '/login/magic-link'])(
-    'redirects a signed-in user away from %s to default workspace routing',
+    'redirects a signed-in user away from %s honoring callbackUrl',
     async (pathname) => {
       const { default: proxy } = await import('./proxy');
 
@@ -163,10 +174,37 @@ describe('proxy', () => {
 
       expect(response.status).toBe(307);
       expect(response.headers.get('location')).toBe(
-        'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+        'http://localhost:3000/oauth/cli?port=4321',
       );
     },
   );
+
+  it('redirects a signed-in user on /login without callbackUrl to default workspace routing', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(makeSignedInRequest('/login'), {} as never);
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+    );
+  });
+
+  it('honors org settings callbackUrl after session restore through /login', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/login', {
+        search: '?callbackUrl=%2Fdefault%2F%7E%2Fsettings%2Fcredits',
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/default/~/settings/credits',
+    );
+  });
 
   it('keeps logout reachable for a signed-in user', async () => {
     const { default: proxy } = await import('./proxy');

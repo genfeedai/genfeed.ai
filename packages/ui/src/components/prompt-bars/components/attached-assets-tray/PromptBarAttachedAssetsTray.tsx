@@ -3,15 +3,9 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import { Button } from '@ui/primitives/button';
+import { FolderOpen, ImageIcon, Music, Tv, X } from 'lucide-react';
 import Image from 'next/image';
 import { memo } from 'react';
-import {
-  HiMusicalNote,
-  HiOutlineFolderOpen,
-  HiPhoto,
-  HiTv,
-  HiXMark,
-} from 'react-icons/hi2';
 
 interface PromptBarAttachedAssetsTrayProps {
   assets: PromptBarAttachedAsset[];
@@ -38,11 +32,11 @@ function getAssetRoleLabel(asset: PromptBarAttachedAsset): string {
 function getFallbackIcon(asset: PromptBarAttachedAsset) {
   switch (asset.kind) {
     case 'video':
-      return <HiTv className="size-4 text-white/70" />;
+      return <Tv className="size-4 text-white/70" />;
     case 'audio':
-      return <HiMusicalNote className="size-4 text-white/70" />;
+      return <Music className="size-4 text-white/70" />;
     default:
-      return <HiPhoto className="size-4 text-white/70" />;
+      return <ImageIcon className="size-4 text-white/70" />;
   }
 }
 
@@ -112,7 +106,7 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
               type="button"
               variant={undefined}
               className="size-7 shrink-0 bg-transparent p-0 text-white/55 shadow-border hover:bg-white/5 hover:text-white"
-              icon={<HiXMark className="size-3.5" />}
+              icon={<X className="size-3.5" />}
               onClick={() => onRemoveAttachedAsset(asset.id)}
               isDisabled={isDisabled}
               ariaLabel={`Remove ${asset.name || getAssetRoleLabel(asset)}`}
@@ -127,7 +121,7 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
             'bg-transparent font-medium text-white/70 shadow-border hover:bg-white/5 hover:text-white',
             isCompact ? 'h-9 px-2.5 text-[11px]' : 'h-10 px-3 text-[12px]',
           )}
-          icon={<HiOutlineFolderOpen className="size-3.5" />}
+          icon={<FolderOpen className="size-3.5" />}
           onClick={onBrowseAssets}
           isDisabled={isDisabled}
         >

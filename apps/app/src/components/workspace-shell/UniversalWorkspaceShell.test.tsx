@@ -194,23 +194,11 @@ vi.mock('@genfeedai/agent', () => ({
     }
     return null;
   },
-  ConversationInspectorPanel: ({
-    onOpenConversation,
-  }: {
-    onOpenConversation?: () => void;
-  }) => {
+  ConversationInspectorPanel: () => {
     useEffect(() => {
       inspectorConversationMount();
     }, []);
-    return (
-      <div data-testid="inspector-conversation">
-        <button
-          aria-label="Open full conversation"
-          onClick={onOpenConversation}
-          type="button"
-        />
-      </div>
-    );
+    return <div data-testid="inspector-conversation" />;
   },
   runAgentApiEffect: (effect: Promise<unknown>) => effect,
   useAgentChatStore: Object.assign(
@@ -588,7 +576,7 @@ describe('UniversalWorkspaceShell', () => {
       screen.getByTestId('conversation-inspector-provider'),
     ).toHaveAttribute('data-active', 'true');
     expect(screen.getByTestId('workspace-composer-slot')).toBeInTheDocument();
-    expect(screen.getByTestId('workspace-composer-slot')).not.toHaveClass(
+    expect(screen.getByTestId('workspace-composer-slot')).toHaveClass(
       'absolute',
     );
     expect(screen.getByTestId('workspace-canvas-layout')).toHaveClass(
@@ -695,7 +683,8 @@ describe('UniversalWorkspaceShell', () => {
     expect(
       screen.getAllByTestId('workspace-inspector-composer-slot'),
     ).toHaveLength(1);
-    expect(screen.getByText('Workspace inspector')).toBeInTheDocument();
+    // Desktop + mobile inspector hosts can both expose the Context tab label.
+    expect(screen.getAllByText('Context').length).toBeGreaterThan(0);
   });
 
   it('keeps the inspector conversation and composer mounted when collapsed', () => {

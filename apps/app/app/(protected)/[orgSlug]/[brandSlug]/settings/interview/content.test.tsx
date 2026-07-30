@@ -12,21 +12,24 @@ const mocks = vi.hoisted(() => ({
     hasBrandId: true,
     isLoading: false,
   },
-  getCompletenessService: vi.fn(),
   getInterviewService: vi.fn(),
   loggerError: vi.fn(),
   useBrandInterview: {
     completenessScore: 0,
-    currentQuestion: null,
-    error: null,
-    interviewId: null,
+    currentQuestion: null as null | Record<string, unknown>,
+    error: null as string | null,
+    interviewId: null as string | null,
     isLoading: false,
-    progress: null,
+    progress: null as null | Record<string, number>,
     skipQuestion: vi.fn(),
     startInterview: vi.fn(),
     status: 'idle' as 'idle' | 'in_progress' | 'complete',
     submitAnswer: vi.fn(),
   },
+  draftGet: vi.fn(() => ''),
+  draftSet: vi.fn(),
+  draftClearAnswer: vi.fn(),
+  draftClearBrand: vi.fn(),
 }));
 
 vi.mock('@hooks/pages/use-brand-detail/use-brand-detail', () => ({
@@ -54,14 +57,67 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
+vi.mock('@/store/brand-interview-draft.store', () => {
+  const answers = new Map<string, string>();
+  const keyOf = (brandId: string, fieldKey: string) => `${brandId}:${fieldKey}`;
+
+  return {
+    useBrandInterviewDraftStore: (
+      selector: (state: {
+        byBrandId: Record<string, { answerByFieldKey: Record<string, string> }>;
+        clearAnswer: (brandId: string, fieldKey: string) => void;
+        clearBrand: (brandId: string) => void;
+        getAnswer: (brandId: string, fieldKey: string) => string;
+        setAnswer: (brandId: string, fieldKey: string, value: string) => void;
+      }) => unknown,
+    ) =>
+      selector({
+        byBrandId: {},
+        clearAnswer: (brandId, fieldKey) => {
+          answers.delete(keyOf(brandId, fieldKey));
+          mocks.draftClearAnswer(brandId, fieldKey);
+        },
+        clearBrand: (brandId) => {
+          for (const key of answers.keys()) {
+            if (key.startsWith(`${brandId}:`)) {
+              answers.delete(key);
+            }
+          }
+          mocks.draftClearBrand(brandId);
+        },
+        getAnswer: (brandId, fieldKey) =>
+          answers.get(keyOf(brandId, fieldKey)) ?? mocks.draftGet(),
+        setAnswer: (brandId, fieldKey, value) => {
+          answers.set(keyOf(brandId, fieldKey), value);
+          mocks.draftSet(brandId, fieldKey, value);
+        },
+      }),
+  };
+});
+
 vi.mock('@ui/card/Card', () => ({
   default: ({
     children,
-    className,
+    description,
+    headerAction,
+    label,
   }: {
     children?: ReactNode;
-    className?: string;
-  }) => <section className={className}>{children}</section>,
+    description?: string;
+    headerAction?: ReactNode;
+    label?: string;
+  }) => (
+    <section>
+      {label ? <h2>{label}</h2> : null}
+      {description ? <p>{description}</p> : null}
+      {headerAction}
+      {children}
+    </section>
+  ),
+}));
+
+vi.mock('@ui/layout/container/Container', () => ({
+  default: ({ children }: { children?: ReactNode }) => <main>{children}</main>,
 }));
 
 vi.mock('@ui/loading/default/Loading', () => ({
@@ -73,12 +129,14 @@ vi.mock('@ui/primitives/button', () => ({
     children,
     isDisabled,
     onClick,
+    type = 'button',
   }: {
     children?: ReactNode;
     isDisabled?: boolean;
     onClick?: () => void;
+    type?: 'button' | 'submit';
   }) => (
-    <button disabled={isDisabled} type="button" onClick={onClick}>
+    <button disabled={isDisabled} type={type} onClick={onClick}>
       {children}
     </button>
   ),
@@ -119,6 +177,7 @@ vi.mock('@ui/primitives/select', () => ({
 describe('BrandSettingsInterviewPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.draftGet.mockReturnValue('');
 
     mocks.brandDetail = {
       brand: { id: 'brand-1', label: 'Test Brand' },
@@ -150,35 +209,28 @@ describe('BrandSettingsInterviewPage', () => {
     });
   });
 
-  it('renders "Start interview" button in idle state', () => {
+  it('renders Start in idle state with credit note', () => {
     render(<BrandSettingsInterviewPage />);
 
-    expect(screen.getByText('Start interview')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Start' })).toBeVisible();
+    expect(screen.getByText(/10 credits/i)).toBeVisible();
   });
 
-  it('shows credit disclosure in idle state', () => {
+  it('calls startInterview when Start is clicked', async () => {
     render(<BrandSettingsInterviewPage />);
 
-    expect(screen.getByText(/10 credits/)).toBeVisible();
-  });
-
-  it('calls startInterview when "Start interview" button is clicked', async () => {
-    render(<BrandSettingsInterviewPage />);
-
-    fireEvent.click(screen.getByText('Start interview'));
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
 
     await waitFor(() => {
       expect(mocks.useBrandInterview.startInterview).toHaveBeenCalled();
     });
   });
 
-  it('shows question after start (in_progress state)', () => {
+  it('shows the current question inline without a Manage modal', () => {
     mocks.useBrandInterview = {
       ...mocks.useBrandInterview,
       currentQuestion: {
         answerType: 'text',
-        enumOptions: undefined,
-        examples: undefined,
         fieldKey: 'label',
         group: 'identity',
         hint: 'The name of your brand',
@@ -194,11 +246,14 @@ describe('BrandSettingsInterviewPage', () => {
     render(<BrandSettingsInterviewPage />);
 
     expect(screen.getByText('What is the name of your brand?')).toBeVisible();
-    expect(screen.getByText('Submit')).toBeVisible();
-    expect(screen.getByText('Skip')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Skip' })).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: 'Manage' }),
+    ).not.toBeInTheDocument();
   });
 
-  it('calls submitAnswer with typed text when Submit is clicked', async () => {
+  it('writes drafts to the zustand store and submits from persisted value', async () => {
     mocks.useBrandInterview = {
       ...mocks.useBrandInterview,
       currentQuestion: {
@@ -214,19 +269,63 @@ describe('BrandSettingsInterviewPage', () => {
       status: 'in_progress',
     };
 
-    render(<BrandSettingsInterviewPage />);
+    const { rerender } = render(<BrandSettingsInterviewPage />);
 
-    fireEvent.change(screen.getByPlaceholderText('Type your answer…'), {
+    const answerField = screen.getByLabelText('Interview answer');
+    fireEvent.change(answerField, {
       target: { value: 'Acme Corp' },
     });
+    expect(mocks.draftSet).toHaveBeenCalledWith(
+      'brand-1',
+      'label',
+      'Acme Corp',
+    );
 
-    fireEvent.click(screen.getByText('Submit'));
+    // Mock store does not notify React; re-render so getAnswer reads the Map.
+    rerender(<BrandSettingsInterviewPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
     await waitFor(() => {
       expect(mocks.useBrandInterview.submitAnswer).toHaveBeenCalledWith(
         'Acme Corp',
       );
+      expect(mocks.draftClearAnswer).toHaveBeenCalledWith('brand-1', 'label');
     });
+  });
+
+  it('renders list answers as chip entry instead of a huge textarea first', () => {
+    mocks.useBrandInterview = {
+      ...mocks.useBrandInterview,
+      currentQuestion: {
+        answerType: 'list',
+        examples: ['We believe AI should be a co-creator'],
+        fieldKey: 'messagingPillars',
+        group: 'voice',
+        isRequired: true,
+        questionText: 'What are your key messaging pillars?',
+        weight: 10,
+      },
+      interviewId: 'iv-123',
+      progress: { answeredFields: 0, percentComplete: 0, totalFields: 5 },
+      status: 'in_progress',
+    };
+
+    render(<BrandSettingsInterviewPage />);
+
+    expect(
+      screen.getByPlaceholderText('Type a pillar, press Enter to add…'),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('button', {
+        name: 'We believe AI should be a co-creator',
+      }),
+    ).toBeVisible();
+    expect(
+      screen.queryByPlaceholderText(
+        'Enter values separated by commas or new lines…',
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it('calls skipQuestion when Skip is clicked', async () => {
@@ -247,7 +346,7 @@ describe('BrandSettingsInterviewPage', () => {
 
     render(<BrandSettingsInterviewPage />);
 
-    fireEvent.click(screen.getByText('Skip'));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
 
     await waitFor(() => {
       expect(mocks.useBrandInterview.skipQuestion).toHaveBeenCalled();
@@ -264,10 +363,11 @@ describe('BrandSettingsInterviewPage', () => {
     render(<BrandSettingsInterviewPage />);
 
     expect(screen.getByText('Interview complete')).toBeVisible();
-    expect(screen.getByText(/85%/)).toBeVisible();
+    // Score appears in the description and the progress label.
+    expect(screen.getAllByText(/85%/).length).toBeGreaterThan(0);
   });
 
-  it('calls handleRefreshBrand when interview completes', async () => {
+  it('clears drafts and refreshes brand when interview completes', async () => {
     mocks.useBrandInterview = {
       ...mocks.useBrandInterview,
       completenessScore: 85,
@@ -278,6 +378,7 @@ describe('BrandSettingsInterviewPage', () => {
 
     await waitFor(() => {
       expect(mocks.brandDetail.handleRefreshBrand).toHaveBeenCalledWith(true);
+      expect(mocks.draftClearBrand).toHaveBeenCalledWith('brand-1');
     });
   });
 

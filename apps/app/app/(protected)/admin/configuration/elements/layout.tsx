@@ -11,9 +11,9 @@ import FiltersButton from '@ui/content/filters-button/FiltersButton';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { ELEMENT_LABELS } from '@ui-constants/element.constant';
+import { Plus, Tag } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
-import { HiOutlineTag, HiPlus } from 'react-icons/hi2';
 
 export default function ElementsLayout({ children }: LayoutProps) {
   const pathname = usePathname();
@@ -137,7 +137,7 @@ export default function ElementsLayout({ children }: LayoutProps) {
       <Container
         label={currentElement.label}
         description={currentElement.description}
-        icon={HiOutlineTag}
+        icon={Tag}
         tabs={Object.keys(ELEMENT_LABELS).reduce<
           Array<{ href: string; label: string }>
         >((tabs, type) => {
@@ -172,7 +172,7 @@ export default function ElementsLayout({ children }: LayoutProps) {
                   openModal(filterConfig.modalId);
                 }}
               >
-                <HiPlus />
+                <Plus />
                 {filterConfig.addButtonLabel}
               </Button>
             )}

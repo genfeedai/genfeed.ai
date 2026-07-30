@@ -9,8 +9,8 @@ import { NotificationsService } from '@genfeedai/services/core/notifications.ser
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
+import { Check, RefreshCw, Sparkles } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import { HiArrowPath, HiCheck, HiSparkles } from 'react-icons/hi2';
 
 interface OptimizeResult {
   original: string;
@@ -102,7 +102,7 @@ export default function CaptionGeneratorButton({
       maxWidth="420px"
       trigger={
         <Button
-          icon={<HiSparkles className="size-4" />}
+          icon={<Sparkles className="size-4" />}
           variant={ButtonVariant.SECONDARY}
           size={ButtonSize.ICON}
           className={`size-9 min-h-0 p-0 ${className}`}
@@ -166,7 +166,7 @@ export default function CaptionGeneratorButton({
             <div className="flex items-center gap-2 border-t border-white/[0.08] pt-3">
               <Button
                 label="Accept"
-                icon={<HiCheck className="size-3.5" />}
+                icon={<Check className="size-3.5" />}
                 variant={ButtonVariant.DEFAULT}
                 size={ButtonSize.SM}
                 className="flex-1"
@@ -174,7 +174,7 @@ export default function CaptionGeneratorButton({
               />
               <Button
                 label="Regenerate"
-                icon={<HiArrowPath className="size-3.5" />}
+                icon={<RefreshCw className="size-3.5" />}
                 variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.SM}
                 className="flex-1"

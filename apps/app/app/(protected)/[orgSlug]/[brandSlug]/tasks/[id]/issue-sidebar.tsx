@@ -17,12 +17,8 @@ import type {
 } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import { FileText, Image, LinkIcon } from 'lucide-react';
 import Link from 'next/link';
-import {
-  HiOutlineDocumentText,
-  HiOutlineLink,
-  HiOutlinePhoto,
-} from 'react-icons/hi2';
 
 type IssueSidebarProps = {
   issue: Task;
@@ -134,7 +130,7 @@ export default function IssueSidebar({
         <Card>
           <div className="p-4">
             <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white/40">
-              <HiOutlineLink className="size-3.5" />
+              <LinkIcon className="size-3.5" />
               Linked ({issue.linkedEntities.length})
             </h3>
             <div className="space-y-2">
@@ -150,9 +146,9 @@ export default function IssueSidebar({
                     )}
                   >
                     {entity.entityModel === 'Ingredient' ? (
-                      <HiOutlinePhoto className="size-3" />
+                      <Image className="size-3" />
                     ) : (
-                      <HiOutlineDocumentText className="size-3" />
+                      <FileText className="size-3" />
                     )}
                   </span>
                   <div className="min-w-0 flex-1">

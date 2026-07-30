@@ -1,8 +1,8 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { CircleCheck, Sparkles } from 'lucide-react';
 import { type ReactElement, useCallback, useState } from 'react';
-import { HiCheckCircle, HiSparkles } from 'react-icons/hi2';
 
 interface BrandInterviewOfferCardProps {
   action: AgentUiAction;
@@ -50,7 +50,7 @@ export function BrandInterviewOfferCard({
     return (
       <div className="my-2 border border-emerald-500/20 bg-background p-4">
         <div className="flex items-center gap-2 text-emerald-600">
-          <HiCheckCircle className="size-5" />
+          <CircleCheck className="size-5" />
           <span className="text-sm font-medium">Interview started.</span>
         </div>
       </div>
@@ -60,7 +60,7 @@ export function BrandInterviewOfferCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiSparkles className="size-5 text-amber-500" />
+        <Sparkles className="size-5 text-amber-500" />
         <h3 className="text-sm font-semibold text-foreground">
           {action.title || 'Brand Context Interview'}
         </h3>
@@ -102,7 +102,7 @@ export function BrandInterviewOfferCard({
           onClick={() => {
             void handleStart();
           }}
-          icon={<HiSparkles className="size-4" />}
+          icon={<Sparkles className="size-4" />}
           className="mt-4 w-full justify-center"
         >
           {isStarting ? 'Starting...' : (startCta.label ?? 'Start interview')}

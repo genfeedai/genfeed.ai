@@ -11,12 +11,9 @@ import { EnvironmentService } from '@services/core/environment.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
+import { ExternalLink, LayoutGrid, Upload } from 'lucide-react';
 import Link from 'next/link';
-import {
-  HiArrowTopRightOnSquare,
-  HiArrowUpTray,
-  HiOutlineSquares2X2,
-} from 'react-icons/hi2';
+
 import type { IngredientsLayoutConfig } from './ingredients-layout.config';
 import LibraryAssetTypeFilter from './library-asset-type-filter';
 
@@ -44,54 +41,58 @@ export default function IngredientsLayoutToolbar({
   const isStudioEnabled = useFeatureFlag('studio');
 
   return (
-    <div className="flex items-center gap-2">
-      {scope === PageScope.BRAND ? <LibraryAssetTypeFilter /> : null}
+    <div className="flex w-full min-w-0 items-center justify-between gap-3">
+      <div className="flex min-w-0 items-center gap-2">
+        {scope === PageScope.BRAND ? <LibraryAssetTypeFilter /> : null}
+      </div>
 
-      <ButtonRefresh onClick={onRefresh} isRefreshing={isRefreshing} />
+      <div className="flex shrink-0 items-center gap-2">
+        <ButtonRefresh onClick={onRefresh} isRefreshing={isRefreshing} />
 
-      <FiltersButton
-        filters={filters}
-        visibleFilters={config.visibleFilters}
-        filterOptions={config.filterOptions}
-        onFiltersChange={onFiltersChange}
-      />
-
-      {scope !== PageScope.SUPERADMIN && config.showUpload && (
-        <Button
-          tooltip="Upload"
-          icon={<HiArrowUpTray />}
-          variant={ButtonVariant.SECONDARY}
-          onClick={onUpload}
+        <FiltersButton
+          filters={filters}
+          visibleFilters={config.visibleFilters}
+          filterOptions={config.filterOptions}
+          onFiltersChange={onFiltersChange}
         />
-      )}
 
-      {scope === PageScope.BRAND && (
-        <PrimitiveButton
-          asChild
-          tooltip="Mood board"
-          variant={ButtonVariant.SECONDARY}
-        >
-          <Link href={APP_ROUTES.LIBRARY.MOODBOARD}>
-            <HiOutlineSquares2X2 />
-            Mood board
-          </Link>
-        </PrimitiveButton>
-      )}
+        {scope !== PageScope.SUPERADMIN && config.showUpload && (
+          <Button
+            tooltip="Upload"
+            icon={<Upload />}
+            variant={ButtonVariant.SECONDARY}
+            onClick={onUpload}
+          />
+        )}
 
-      {isStudioEnabled &&
-        scope !== PageScope.SUPERADMIN &&
-        config.showStudioLink && (
-          <PrimitiveButton asChild variant={ButtonVariant.DEFAULT}>
-            <Link
-              href={`${EnvironmentService.apps.app}/studio/${ingredientCategory?.replace('s', '')?.toLowerCase()}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <HiArrowTopRightOnSquare />
-              Studio
+        {scope === PageScope.BRAND && (
+          <PrimitiveButton
+            asChild
+            tooltip="Mood board"
+            variant={ButtonVariant.SECONDARY}
+          >
+            <Link href={APP_ROUTES.LIBRARY.MOODBOARD}>
+              <LayoutGrid />
+              Mood board
             </Link>
           </PrimitiveButton>
         )}
+
+        {isStudioEnabled &&
+          scope !== PageScope.SUPERADMIN &&
+          config.showStudioLink && (
+            <PrimitiveButton asChild variant={ButtonVariant.DEFAULT}>
+              <Link
+                href={`${EnvironmentService.apps.app}/studio/${ingredientCategory?.replace('s', '')?.toLowerCase()}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink />
+                Studio
+              </Link>
+            </PrimitiveButton>
+          )}
+      </div>
     </div>
   );
 }

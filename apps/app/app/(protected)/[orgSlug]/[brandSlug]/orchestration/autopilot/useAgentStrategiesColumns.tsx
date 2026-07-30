@@ -3,24 +3,28 @@ import {
   AgentRunFrequency,
   AgentType,
 } from '@genfeedai/enums';
+import {
+  LinkedinIcon,
+  XTwitterIcon,
+  YoutubeIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
 import type { TableColumn } from '@props/ui/display/table.props';
 import type { AgentStrategy } from '@services/automation/agent-strategies.service';
 import Badge from '@ui/display/badge/Badge';
 import { formatDistanceToNow } from 'date-fns';
-import { useMemo } from 'react';
-import { FaLinkedin, FaXTwitter, FaYoutube } from 'react-icons/fa6';
 import {
-  HiOutlineBolt,
-  HiOutlineCpuChip,
-  HiOutlineDocumentText,
-  HiOutlineMegaphone,
-  HiOutlinePencilSquare,
-  HiOutlinePhoto,
-  HiOutlinePlayCircle,
-  HiOutlineSparkles,
-  HiOutlineUser,
-  HiOutlineVideoCamera,
-} from 'react-icons/hi2';
+  CirclePlay,
+  Cpu,
+  FileText,
+  Image,
+  Megaphone,
+  Sparkles,
+  SquarePen,
+  User,
+  Video,
+  Zap,
+} from 'lucide-react';
+import { useMemo } from 'react';
 
 const AGENT_TYPE_LABELS: Record<AgentType, string> = {
   [AgentType.GENERAL]: 'General',
@@ -38,18 +42,18 @@ const AGENT_TYPE_LABELS: Record<AgentType, string> = {
 };
 
 const AGENT_TYPE_ICONS: Record<AgentType, React.ReactNode> = {
-  [AgentType.GENERAL]: <HiOutlineCpuChip className="size-4" />,
-  [AgentType.X_CONTENT]: <FaXTwitter className="size-4" />,
-  [AgentType.IMAGE_CREATOR]: <HiOutlinePhoto className="size-4" />,
-  [AgentType.VIDEO_CREATOR]: <HiOutlineVideoCamera className="size-4" />,
-  [AgentType.AI_AVATAR]: <HiOutlineUser className="size-4" />,
-  [AgentType.ARTICLE_WRITER]: <HiOutlineDocumentText className="size-4" />,
-  [AgentType.LINKEDIN_CONTENT]: <FaLinkedin className="size-4" />,
-  [AgentType.ADS_SCRIPT_WRITER]: <HiOutlineMegaphone className="size-4" />,
-  [AgentType.SHORT_FORM_WRITER]: <HiOutlineBolt className="size-4" />,
-  [AgentType.CTA_CONTENT]: <HiOutlineSparkles className="size-4" />,
-  [AgentType.YOUTUBE_SCRIPT]: <FaYoutube className="size-4" />,
-  [AgentType.BRAND_INTERVIEW]: <HiOutlineSparkles className="size-4" />,
+  [AgentType.GENERAL]: <Cpu className="size-4" />,
+  [AgentType.X_CONTENT]: <XTwitterIcon className="size-4" />,
+  [AgentType.IMAGE_CREATOR]: <Image className="size-4" />,
+  [AgentType.VIDEO_CREATOR]: <Video className="size-4" />,
+  [AgentType.AI_AVATAR]: <User className="size-4" />,
+  [AgentType.ARTICLE_WRITER]: <FileText className="size-4" />,
+  [AgentType.LINKEDIN_CONTENT]: <LinkedinIcon className="size-4" />,
+  [AgentType.ADS_SCRIPT_WRITER]: <Megaphone className="size-4" />,
+  [AgentType.SHORT_FORM_WRITER]: <Zap className="size-4" />,
+  [AgentType.CTA_CONTENT]: <Sparkles className="size-4" />,
+  [AgentType.YOUTUBE_SCRIPT]: <YoutubeIcon className="size-4" />,
+  [AgentType.BRAND_INTERVIEW]: <Sparkles className="size-4" />,
 };
 
 const AUTONOMY_MODE_LABELS: Record<AgentAutonomyMode, string> = {
@@ -210,12 +214,12 @@ export function useAgentStrategiesColumns(
   const actions = useMemo(
     () => [
       {
-        icon: <HiOutlinePencilSquare />,
+        icon: <SquarePen />,
         onClick: (strategy: AgentStrategy) => openEditDialog(strategy),
         tooltip: 'Edit strategy',
       },
       {
-        icon: <HiOutlinePlayCircle />,
+        icon: <CirclePlay />,
         isDisabled: (strategy: AgentStrategy) =>
           !strategy.isActive || !strategy.isEnabled,
         onClick: (strategy: AgentStrategy) => {

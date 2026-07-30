@@ -11,8 +11,8 @@ describe('WorkspaceSurface', () => {
     expect(container.querySelector('section')).toHaveClass('shadow-border');
   });
 
-  it('renders eyebrow, title, description, and actions', () => {
-    render(
+  it('renders eyebrow, title, description, and actions on a title row', () => {
+    const { container } = render(
       <WorkspaceSurface
         eyebrow="Operations"
         title="Recent Runs"
@@ -33,6 +33,10 @@ describe('WorkspaceSurface', () => {
     expect(
       screen.getByRole('button', { name: 'View all' }),
     ).toBeInTheDocument();
+    // Actions share a one-line title row (items-start + flex-nowrap), not a
+    // stacked/centered column under the description.
+    expect(container.querySelector('.flex-nowrap')).toBeInTheDocument();
+    expect(container.querySelector('.items-start')).toBeInTheDocument();
   });
 
   it('supports muted tone and compact density', () => {

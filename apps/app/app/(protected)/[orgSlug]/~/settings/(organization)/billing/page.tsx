@@ -1,4 +1,4 @@
-import { isEEEnabled } from '@genfeedai/config/license';
+import { hasOrganizationBilling } from '@genfeedai/config/license';
 import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import { redirect } from 'next/navigation';
@@ -14,7 +14,7 @@ interface SettingsOrganizationBillingRouteProps {
 export default async function SettingsOrganizationBillingRoute({
   params,
 }: SettingsOrganizationBillingRouteProps) {
-  if (!isEEEnabled()) {
+  if (!hasOrganizationBilling()) {
     const { orgSlug } = await params;
     redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.SETTINGS.CREDITS));
   }

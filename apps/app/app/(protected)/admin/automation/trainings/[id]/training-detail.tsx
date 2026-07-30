@@ -25,8 +25,8 @@ import { LazyModalTraining } from '@ui/lazy/modal/LazyModal';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
 import { getErrorMessage } from '@utils/error/error-handler.util';
+import { Database, Image, Pencil } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { HiCircleStack, HiPencil, HiPhoto } from 'react-icons/hi2';
 
 export default function TrainingDetail({
   children,
@@ -154,7 +154,7 @@ export default function TrainingDetail({
                   {training.label}
                 </h2>
                 <Button
-                  icon={<HiPencil />}
+                  icon={<Pencil />}
                   onClick={() => openModal(ModalEnum.TRAINING_EDIT)}
                   variant={ButtonVariant.GHOST}
                   size={ButtonSize.SM}
@@ -230,7 +230,7 @@ export default function TrainingDetail({
                 />
               ) : undefined,
             href: `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/${trainingId}/images`,
-            icon: HiPhoto,
+            icon: Image,
             label: 'Images',
           },
           {
@@ -243,7 +243,7 @@ export default function TrainingDetail({
                 />
               ) : undefined,
             href: `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/${trainingId}/sources`,
-            icon: HiCircleStack,
+            icon: Database,
             label: 'Sources',
           },
         ]}

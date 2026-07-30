@@ -13,18 +13,18 @@ import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { format, formatDistanceToNow } from 'date-fns';
+import {
+  ArrowRight,
+  CirclePlay,
+  Clock,
+  Cpu,
+  DollarSign,
+  LayoutDashboard,
+  Plus,
+  Zap,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
-import {
-  HiOutlineArrowRight,
-  HiOutlineBolt,
-  HiOutlineClock,
-  HiOutlineCpuChip,
-  HiOutlineCurrencyDollar,
-  HiOutlinePlayCircle,
-  HiOutlineRectangleGroup,
-  HiPlus,
-} from 'react-icons/hi2';
 
 type CampaignStatus = 'draft' | 'active' | 'paused' | 'completed';
 
@@ -88,21 +88,19 @@ function CampaignStatsStrip({ campaigns }: { campaigns: AgentCampaign[] }) {
     return [
       {
         accent: `${campaigns.length} total`,
-        icon: <HiOutlinePlayCircle className="size-4 text-muted-foreground" />,
+        icon: <CirclePlay className="size-4 text-muted-foreground" />,
         label: 'Active Campaigns',
         value: String(activeCampaigns.length),
       },
       {
         accent: `of ${totalCreditsAllocated.toLocaleString()} allocated`,
-        icon: (
-          <HiOutlineCurrencyDollar className="size-4 text-muted-foreground" />
-        ),
+        icon: <DollarSign className="size-4 text-muted-foreground" />,
         label: 'Total Credits Used',
         value: totalCreditsUsed.toLocaleString(),
       },
       {
         accent: `${Math.round(totalCreditsAllocated > 0 ? (totalCreditsUsed / totalCreditsAllocated) * 100 : 0)}% utilization`,
-        icon: <HiOutlineBolt className="size-4 text-muted-foreground" />,
+        icon: <Zap className="size-4 text-muted-foreground" />,
         label: 'Credits Allocated',
         value: totalCreditsAllocated.toLocaleString(),
       },
@@ -110,7 +108,7 @@ function CampaignStatsStrip({ campaigns }: { campaigns: AgentCampaign[] }) {
         accent: nextOrchestration
           ? formatRelativeTime(nextOrchestration)
           : 'no scheduled runs',
-        icon: <HiOutlineClock className="size-4 text-muted-foreground" />,
+        icon: <Clock className="size-4 text-muted-foreground" />,
         label: 'Next Orchestration',
         value: nextOrchestration ? formatDate(nextOrchestration) : '—',
       },
@@ -138,7 +136,7 @@ function CampaignCard({ campaign }: { campaign: AgentCampaign }) {
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2.5">
           <div className="flex size-8 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.06]">
-            <HiOutlineCpuChip className="size-4 text-foreground/60" />
+            <Cpu className="size-4 text-foreground/60" />
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">
@@ -167,7 +165,7 @@ function CampaignCard({ campaign }: { campaign: AgentCampaign }) {
             href={`/orchestration/campaigns/${campaign.id}`}
             aria-label={`Open ${campaign.label}`}
           >
-            <HiOutlineArrowRight className="size-3.5" />
+            <ArrowRight className="size-3.5" />
           </Link>
         </Button>
       </div>
@@ -350,11 +348,11 @@ export default function AgentCampaignsPage() {
     <Container
       label="Agent Campaigns"
       description="Coordinated multi-agent content production."
-      icon={HiOutlineRectangleGroup}
+      icon={LayoutDashboard}
       right={
         <Button asChild variant={ButtonVariant.DEFAULT} size={ButtonSize.SM}>
           <Link href={APP_ROUTES.ORCHESTRATION.CAMPAIGNS_NEW}>
-            <HiPlus /> New Campaign
+            <Plus /> New Campaign
           </Link>
         </Button>
       }
@@ -385,7 +383,7 @@ export default function AgentCampaignsPage() {
       ) : (
         <div className="flex flex-col items-center justify-center gap-4 py-20">
           <div className="flex size-12 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.02]">
-            <HiOutlineRectangleGroup className="size-6 text-foreground/30" />
+            <LayoutDashboard className="size-6 text-foreground/30" />
           </div>
           <div className="text-center">
             <p className="text-sm font-medium text-foreground/60">
@@ -398,7 +396,7 @@ export default function AgentCampaignsPage() {
           </div>
           <Button asChild variant={ButtonVariant.DEFAULT} size={ButtonSize.SM}>
             <Link href={APP_ROUTES.ORCHESTRATION.CAMPAIGNS_NEW}>
-              <HiPlus /> New Campaign
+              <Plus /> New Campaign
             </Link>
           </Button>
         </div>

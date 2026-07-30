@@ -6,9 +6,9 @@ import { OrganizationSettingsTable } from '@protected/organization/components/or
 import { useOrganizationSettings } from '@protected/organization/hooks/use-organization-settings';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
+import { Settings } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-import { HiOutlineCog6Tooth } from 'react-icons/hi2';
 
 function OrganizationConfigPageContent() {
   const searchParams = useSearchParams();
@@ -22,7 +22,7 @@ function OrganizationConfigPageContent() {
       <Container
         label="Organization Configuration"
         description="Configure organization settings and preferences"
-        icon={HiOutlineCog6Tooth}
+        icon={Settings}
       >
         <Alert type={AlertCategory.WARNING}>
           Organization ID is required. Please provide an organization ID in the
@@ -37,7 +37,7 @@ function OrganizationConfigPageContent() {
       <Container
         label="Organization Configuration"
         description="Configure organization settings and preferences"
-        icon={HiOutlineCog6Tooth}
+        icon={Settings}
       >
         <Alert type={AlertCategory.ERROR}>
           Failed to load organization settings. Please try again.
@@ -50,7 +50,7 @@ function OrganizationConfigPageContent() {
     <Container
       label="Organization Configuration"
       description="Configure organization settings and preferences"
-      icon={HiOutlineCog6Tooth}
+      icon={Settings}
       right={
         <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
       }

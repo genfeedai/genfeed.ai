@@ -18,7 +18,7 @@ export {
 // Interfaces
 export type { IEnvConfig } from './interfaces/env-config.interface';
 // License & Edition
-export { isEEEnabled } from './license';
+export { hasOrganizationBilling, isEEEnabled } from './license';
 export type { PricingConfig } from './pricing';
 // Pricing
 export { getPricingConfig } from './pricing';

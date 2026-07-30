@@ -10,16 +10,19 @@ import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import PageLayout from '@web-components/PageLayout';
+import {
+  FolderInput,
+  FolderOpen,
+  Layers,
+  LayoutGrid,
+  LibraryBig,
+  Palette,
+  Save,
+  Sparkles,
+  Wand,
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import {
-  HiFolderOpen,
-  HiRectangleStack,
-  HiSparkles,
-  HiSquares2X2,
-  HiSwatch,
-} from 'react-icons/hi2';
-import { LuFolderInput, LuLibraryBig, LuSave, LuWand } from 'react-icons/lu';
 
 const CALENDLY_URL = EnvironmentService.calendly;
 
@@ -53,47 +56,47 @@ const FEATURES = [
   {
     description:
       'Store logos, colors, fonts, and voice references once, then reuse them across every generation.',
-    icon: HiSwatch,
+    icon: Palette,
     title: 'Reusable Brand Kits',
   },
   {
     description:
       'Every image, video, and voice you generate is auto-saved and searchable, nothing gets lost.',
-    icon: HiRectangleStack,
+    icon: Layers,
     title: 'Auto-Saved Outputs',
   },
   {
     description:
       'Collect references into moodboards to art-direct new generations toward a consistent look.',
-    icon: HiSquares2X2,
+    icon: LayoutGrid,
     title: 'Moodboards',
   },
   {
     description:
       'Every asset is shared and versioned across your team, so the whole org works from one source.',
-    icon: HiFolderOpen,
+    icon: FolderOpen,
     title: 'Team-Shared & Versioned',
   },
 ];
 
 const STEPS = [
   {
-    icon: LuWand,
+    icon: Wand,
     label: 'Generate',
     sublabel: 'Create images, video, voice, and more in the studio',
   },
   {
-    icon: LuSave,
+    icon: Save,
     label: 'Save',
     sublabel: 'Every output lands in your library automatically',
   },
   {
-    icon: LuFolderInput,
+    icon: FolderInput,
     label: 'Organize',
     sublabel: 'Group assets into brand kits and moodboards',
   },
   {
-    icon: LuLibraryBig,
+    icon: LibraryBig,
     label: 'Reuse',
     sublabel: 'Pull saved assets into any future generation',
   },
@@ -175,7 +178,7 @@ export default function LibraryContent() {
             <HStack className="flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
                 <div className="size-20 flex items-center justify-center border border-[var(--gen-accent-border)] bg-white/[0.06]">
-                  <HiRectangleStack className="size-10 text-surface" />
+                  <Layers className="size-10 text-surface" />
                 </div>
               </div>
               <VStack className="gap-3">
@@ -290,7 +293,7 @@ export default function LibraryContent() {
         <section className="max-w-4xl mx-auto pb-16 px-6">
           <div className="text-center p-12 border border-[var(--gen-accent-border)] bg-white/[0.04]">
             <div className="flex justify-center mb-4">
-              <HiSparkles className="size-8 text-surface" />
+              <Sparkles className="size-8 text-surface" />
             </div>
             <Heading as="h3" className="text-2xl font-bold mb-2 text-surface">
               Build Your Library Today

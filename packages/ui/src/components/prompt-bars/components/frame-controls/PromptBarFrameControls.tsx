@@ -6,9 +6,9 @@ import type { IAsset, IImage } from '@genfeedai/interfaces';
 import type { PromptBarFrameControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';
+import { ImageIcon, Tv, Upload, X } from 'lucide-react';
 import Image from 'next/image';
 import { type MouseEvent, memo } from 'react';
-import { HiArrowUpTray, HiPhoto, HiTv, HiXMark } from 'react-icons/hi2';
 
 function getImageUrl(
   asset: IAsset | IImage,
@@ -87,7 +87,7 @@ function ClearButton({
       ariaLabel={title}
       className="absolute top-0 right-0 size-4 bg-black/70 hover:bg-error rounded-bl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
       tooltip={title}
-      icon={<HiXMark className="size-3 text-white" />}
+      icon={<X className="size-3 text-white" />}
     />
   );
 }
@@ -298,7 +298,7 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
               />
             </div>
           ) : (
-            <HiPhoto className="size-4" />
+            <ImageIcon className="size-4" />
           )
         }
       />
@@ -326,7 +326,7 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
                 <ClearButton onClick={clearEndFrame} title="Clear end frame" />
               </div>
             ) : (
-              <HiTv className="size-4" />
+              <Tv className="size-4" />
             )
           }
         />
@@ -341,7 +341,7 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
         }
         tooltipPosition="top"
         className={cn(iconButtonClass, 'opacity-80')}
-        icon={<HiArrowUpTray className="size-4" />}
+        icon={<Upload className="size-4" />}
         onClick={() => {
           openUpload({
             category: IngredientCategory.IMAGE,

@@ -7,11 +7,12 @@ import {
   PAYG_MIN_PURCHASE_USD,
 } from '@helpers/business/pricing/pricing.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { CreditCard } from 'lucide-react';
 import type { ReactElement, ReactNode } from 'react';
 import { useMemo, useState } from 'react';
-import { HiOutlineCreditCard } from 'react-icons/hi2';
 
 export const CREDITS_PER_USD = 100;
 
@@ -34,6 +35,7 @@ type CreditTopUpPanelProps = {
   isSubmitDisabled?: boolean;
   isStartingCheckout: boolean;
   submitLabel?: string;
+  title?: string;
   onSubmit: (selection: {
     credits: number;
     usd: number;
@@ -45,6 +47,7 @@ export default function CreditTopUpPanel({
   isSubmitDisabled = false,
   isStartingCheckout,
   submitLabel = 'Add credit',
+  title = 'Add credits',
   onSubmit,
 }: CreditTopUpPanelProps): ReactElement {
   const [selectedUsd, setSelectedUsd] = useState<number | null>(null);
@@ -66,10 +69,10 @@ export default function CreditTopUpPanel({
       return 'Enter a whole-dollar amount.';
     }
     if (isBelowMin) {
-      return `The minimum amount is ${formatUsd(PAYG_MIN_PURCHASE_USD)}.`;
+      return `Minimum ${formatUsd(PAYG_MIN_PURCHASE_USD)}.`;
     }
     if (isAboveMax) {
-      return `The maximum amount is ${formatUsd(PAYG_MAX_PURCHASE_USD)}. For a larger top-up, contact support.`;
+      return `Maximum ${formatUsd(PAYG_MAX_PURCHASE_USD)}. Contact support for more.`;
     }
     return null;
   })();
@@ -82,110 +85,110 @@ export default function CreditTopUpPanel({
     void onSubmit({ credits, usd });
   };
 
+  const packClass = (selected: boolean) =>
+    cn(
+      'inline-flex h-9 items-center gap-2 rounded border px-3 text-left transition-colors',
+      selected
+        ? 'border-foreground bg-foreground/[0.06] text-foreground'
+        : 'border-border bg-muted/40 text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+    );
+
   return (
-    <div className="max-w-5xl space-y-8">
+    <Card className="p-4">
       <div className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {PAYG_CREDIT_PACKS.map((pack) => {
-            const amountUsd = pack.credits / CREDITS_PER_USD;
-            const isSelected = !isCustom && selectedUsd === amountUsd;
-
-            return (
-              <Button
-                key={pack.label}
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                onClick={() => {
-                  setIsCustom(false);
-                  setSelectedUsd(amountUsd);
-                }}
-                ariaLabel={`Select ${pack.label} credit pack`}
-                className={cn(
-                  'flex h-56 w-full flex-col items-center justify-center rounded-none border bg-card text-center transition-colors hover:border-foreground/70 hover:text-foreground md:h-60',
-                  isSelected
-                    ? 'border-2 border-foreground text-foreground'
-                    : 'border-border text-muted-foreground',
-                )}
-              >
-                <span className="text-4xl font-semibold tracking-normal md:text-5xl">
-                  {pack.label}
-                </span>
-                <span className="mt-3 text-xs text-muted-foreground">
-                  {pack.credits.toLocaleString()} credits
-                </span>
-              </Button>
-            );
-          })}
-
-          <Button
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
-            onClick={() => setIsCustom(true)}
-            ariaLabel="Select custom credit amount"
-            className={cn(
-              'flex h-56 w-full items-center justify-center rounded-none border bg-card text-center text-4xl font-medium tracking-normal transition-colors hover:border-foreground/70 hover:text-foreground md:h-60 md:text-5xl',
-              isCustom
-                ? 'border-2 border-foreground text-foreground'
-                : 'border-border text-muted-foreground',
-            )}
-          >
-            Custom
-          </Button>
+        <div>
+          <h2 className="text-base font-semibold text-foreground">{title}</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Credits land within a few minutes and expire after one year.
+          </p>
         </div>
 
-        {isCustom ? (
-          <div className="max-w-sm space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-lg text-muted-foreground">$</span>
-              <Input
-                type="number"
-                inputMode="numeric"
-                min={PAYG_MIN_PURCHASE_USD}
-                max={PAYG_MAX_PURCHASE_USD}
-                step={1}
-                value={customValue}
-                hasError={Boolean(customError)}
-                onChange={(event) => setCustomValue(event.target.value)}
-                placeholder={String(PAYG_MIN_PURCHASE_USD)}
-                aria-label="Custom credit top-up amount in dollars"
-              />
-            </div>
-            <p
-              className={cn(
-                'text-xs leading-5',
-                customError ? 'text-destructive' : 'text-muted-foreground',
-              )}
-            >
-              {customError ??
-                `Enter an amount between ${formatUsd(PAYG_MIN_PURCHASE_USD)} and ${formatUsd(PAYG_MAX_PURCHASE_USD)}.`}
-            </p>
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-foreground">Amount</p>
+          <div className="flex flex-wrap gap-2">
+            {PAYG_CREDIT_PACKS.map((pack) => {
+              const amountUsd = pack.credits / CREDITS_PER_USD;
+              const isSelected = !isCustom && selectedUsd === amountUsd;
+
+              return (
+                <Button
+                  key={pack.label}
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                  onClick={() => {
+                    setIsCustom(false);
+                    setSelectedUsd(amountUsd);
+                  }}
+                  ariaLabel={`Select ${pack.label} credit pack`}
+                  aria-pressed={isSelected}
+                  className={packClass(isSelected)}
+                >
+                  <span className="text-sm font-semibold tabular-nums text-foreground">
+                    {pack.label}
+                  </span>
+                  <span className="text-xs tabular-nums text-muted-foreground">
+                    {pack.credits.toLocaleString()} credits
+                  </span>
+                </Button>
+              );
+            })}
           </div>
-        ) : null}
-      </div>
 
-      {helperContent}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+              onClick={() => setIsCustom(true)}
+              ariaLabel="Select custom credit amount"
+              aria-pressed={isCustom}
+              className={packClass(isCustom)}
+            >
+              <span className="text-sm font-semibold text-foreground">
+                Custom
+              </span>
+            </Button>
 
-      <section className="space-y-4" aria-labelledby="payment-method-heading">
-        <h3
-          id="payment-method-heading"
-          className="text-2xl font-semibold tracking-normal text-primary"
-        >
-          Payment method
-        </h3>
-        <div className="border border-primary/50 bg-primary/10 px-5 py-4 text-sm leading-6 text-primary">
-          This will use your default payment method. Manage payment methods from
-          your billing portal.
+            {isCustom ? (
+              <>
+                <span className="text-sm text-muted-foreground">$</span>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={PAYG_MIN_PURCHASE_USD}
+                  max={PAYG_MAX_PURCHASE_USD}
+                  step={1}
+                  value={customValue}
+                  hasError={Boolean(customError)}
+                  onChange={(event) => setCustomValue(event.target.value)}
+                  placeholder={String(PAYG_MIN_PURCHASE_USD)}
+                  aria-label="Custom credit top-up amount in dollars"
+                  className="h-9 w-28"
+                />
+                <p
+                  className={cn(
+                    'text-xs',
+                    customError ? 'text-destructive' : 'text-muted-foreground',
+                  )}
+                >
+                  {customError ??
+                    `${formatUsd(PAYG_MIN_PURCHASE_USD)}–${formatUsd(PAYG_MAX_PURCHASE_USD)}`}
+                </p>
+              </>
+            ) : null}
+          </div>
         </div>
-      </section>
 
-      <div className="space-y-5">
-        <p className="text-lg leading-8 text-muted-foreground">
-          <span className="font-semibold text-foreground">Please note:</span>{' '}
-          Credit may take up to 5 minutes to become available after purchase.
-          Credit expires after 1 year.
-        </p>
+        {helperContent}
 
-        <div className="flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-foreground">Payment</p>
+          <p className="text-xs leading-5 text-muted-foreground">
+            Checkout opens Stripe securely. Card details are collected there —
+            not stored in Genfeed.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
             {isValid ? (
               <>
@@ -204,12 +207,12 @@ export default function CreditTopUpPanel({
             onClick={handleSubmit}
             isDisabled={!isValid || isSubmitDisabled || isStartingCheckout}
             isLoading={isStartingCheckout}
-            icon={<HiOutlineCreditCard className="size-4" />}
+            icon={<CreditCard className="size-4" />}
           >
             {isStartingCheckout ? 'Opening checkout...' : submitLabel}
           </Button>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

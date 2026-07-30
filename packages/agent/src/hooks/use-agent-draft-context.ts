@@ -2,13 +2,9 @@
 
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { ClipboardCheck, Sparkles, SquarePen } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
-import {
-  HiOutlineClipboardDocumentCheck,
-  HiOutlinePencilSquare,
-  HiOutlineSparkles,
-} from 'react-icons/hi2';
+import { createElement, useEffect, useMemo, useState } from 'react';
 
 interface AgentDraftContextInput {
   body?: string;
@@ -48,17 +44,19 @@ function clampContextText(value?: string): string | undefined {
 function createDraftActions(draftType: string): SuggestedAction[] {
   return [
     {
-      icon: HiOutlinePencilSquare({ className: 'size-5 text-foreground/50' }),
+      icon: createElement(SquarePen, {
+        className: 'size-5 text-foreground/50',
+      }),
       label: 'Improve',
       prompt: `Review the current ${draftType} draft and suggest concrete improvements.`,
     },
     {
-      icon: HiOutlineSparkles({ className: 'size-5 text-foreground/50' }),
+      icon: createElement(Sparkles, { className: 'size-5 text-foreground/50' }),
       label: 'Rewrite',
       prompt: `Rewrite the current ${draftType} draft in a sharper brand voice.`,
     },
     {
-      icon: HiOutlineClipboardDocumentCheck({
+      icon: createElement(ClipboardCheck, {
         className: 'size-5 text-foreground/50',
       }),
       label: 'Checklist',

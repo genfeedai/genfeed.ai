@@ -12,16 +12,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
+import { Building2, CircleQuestionMark, LogOut, Tag, User } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { ComponentType } from 'react';
-import {
-  HiOutlineArrowRightOnRectangle,
-  HiOutlineBuildingOffice2,
-  HiOutlineQuestionMarkCircle,
-  HiOutlineTag,
-  HiOutlineUser,
-} from 'react-icons/hi2';
 
 interface DropdownItem {
   label: string;
@@ -50,20 +44,20 @@ export default function UserDropdown({
   // enters a settings scope, whose sidebar then shows only that scope's pages
   // (see buildSettingsMenuItems). Help is part of the personal scope. See #1231.
   const allDropdownItems: DropdownItem[] = [
-    { href: APP_ROUTES.SETTINGS.ROOT, icon: HiOutlineUser, label: 'Personal' },
+    { href: APP_ROUTES.SETTINGS.ROOT, icon: User, label: 'Personal' },
     {
       href: orgHref(APP_ROUTES.SETTINGS.ROOT),
-      icon: HiOutlineBuildingOffice2,
+      icon: Building2,
       label: 'Organization',
     },
     {
       href: orgHref(APP_ROUTES.SETTINGS.BRANDS),
-      icon: HiOutlineTag,
+      icon: Tag,
       label: 'Brands',
     },
     {
       href: APP_ROUTES.SETTINGS.HELP,
-      icon: HiOutlineQuestionMarkCircle,
+      icon: CircleQuestionMark,
       label: 'Help',
     },
   ];
@@ -120,7 +114,7 @@ export default function UserDropdown({
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href={APP_ROUTES.LOGOUT} className="cursor-pointer">
-            <HiOutlineArrowRightOnRectangle className="size-4" />
+            <LogOut className="size-4" />
             Sign out
           </Link>
         </DropdownMenuItem>

@@ -4,9 +4,9 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
+import { Sparkles, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { type ReactElement, useCallback, useState } from 'react';
-import { HiOutlineSparkles, HiOutlineXMark } from 'react-icons/hi2';
 
 interface AgentOverlayProps {
   apiService: AgentApiService;
@@ -59,11 +59,7 @@ export function AgentOverlay({
         )}
         aria-label={isOpen ? 'Close agent' : 'Open agent'}
       >
-        {isOpen ? (
-          <HiOutlineXMark className="size-5" />
-        ) : (
-          <HiOutlineSparkles className="size-5" />
-        )}
+        {isOpen ? <X className="size-5" /> : <Sparkles className="size-5" />}
       </Button>
 
       {/* Backdrop */}

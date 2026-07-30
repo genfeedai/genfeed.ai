@@ -9,6 +9,7 @@ export * from './feature-badge.interface';
 export * from './form.interface';
 export * from './form-searchbar.interface';
 export * from './generate-option.interface';
+export * from './icon.interface';
 export * from './media-config.interface';
 export * from './menu-config.interface';
 export * from './module-card.interface';

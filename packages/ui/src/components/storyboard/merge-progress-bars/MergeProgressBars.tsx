@@ -2,7 +2,7 @@ import { ComponentSize } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { MergeProgressBarsProps } from '@genfeedai/props/studio/merge.props';
 import Spinner from '@ui/feedback/spinner/Spinner';
-import { HiCheckCircle, HiXCircle } from 'react-icons/hi2';
+import { CircleCheck, CircleX } from 'lucide-react';
 
 export default function MergeProgressBars({
   steps,
@@ -44,8 +44,8 @@ export default function MergeProgressBars({
           <div key={step.id} className="flex items-center gap-4">
             {/* Status Icon - Larger */}
             <div className="flex-shrink-0 size-8 flex items-center justify-center">
-              {isCompleted && <HiCheckCircle className="size-8 text-success" />}
-              {isFailed && <HiXCircle className="size-8 text-error" />}
+              {isCompleted && <CircleCheck className="size-8 text-success" />}
+              {isFailed && <CircleX className="size-8 text-error" />}
               {isActive && <Spinner size={ComponentSize.MD} />}
               {isPending && (
                 <div className="size-6 rounded-full border-2 border-white/[0.08]" />

@@ -13,8 +13,9 @@ import {
   TableHeader,
   TableRow,
 } from '@ui/primitives/table';
+import { Megaphone } from 'lucide-react';
 import Image from 'next/image';
-import { HiOutlineMegaphone } from 'react-icons/hi2';
+
 import {
   formatMetric,
   getMetricLabel,
@@ -52,7 +53,7 @@ export function AdGridCard({
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
           <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-card text-white/70">
-            <HiOutlineMegaphone className="size-4" />
+            <Megaphone className="size-4" />
           </div>
 
           <div className="min-w-0">

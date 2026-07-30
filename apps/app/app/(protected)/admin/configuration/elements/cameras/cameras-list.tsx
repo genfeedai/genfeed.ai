@@ -18,6 +18,7 @@ import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalCamera } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Pencil, Trash2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Suspense,
@@ -27,7 +28,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import { HiPencil, HiTrash } from 'react-icons/hi2';
 
 function CamerasListContent({
   scope = PageScope.BRAND,
@@ -172,13 +172,13 @@ function CamerasListContent({
     scope === PageScope.SUPERADMIN
       ? [
           {
-            icon: <HiPencil />,
+            icon: <Pencil />,
             onClick: (camera: ElementCamera) =>
               openCameraModal(ModalEnum.CAMERA, camera),
             tooltip: 'Edit',
           },
           {
-            icon: <HiTrash />,
+            icon: <Trash2 />,
             onClick: (camera: ElementCamera) => {
               setSelectedCamera(camera);
               openConfirm({

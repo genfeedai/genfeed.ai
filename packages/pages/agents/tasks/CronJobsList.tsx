@@ -6,9 +6,10 @@ import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import { Clock } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
-import { HiOutlineClock } from 'react-icons/hi2';
+
 import CronJobRunHistory from './CronJobRunHistory';
 import type { CronJob } from './cron-jobs-list.types';
 import { statusColorMap } from './cron-jobs-list.types';
@@ -137,7 +138,7 @@ export default function CronJobsList() {
     <Container
       label="Scheduled Tasks"
       description="Monitor cron jobs and agent runs."
-      icon={HiOutlineClock}
+      icon={Clock}
       right={
         <div className="flex items-center gap-2">
           <Button

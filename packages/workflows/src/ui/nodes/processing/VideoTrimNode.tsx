@@ -4,9 +4,9 @@ import type { VideoTrimNodeData } from '@genfeedai/types';
 import { NodeStatusEnum } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import {
-  AlertCircle,
+  CircleAlert,
   Expand,
-  Loader2,
+  LoaderCircle,
   RefreshCw,
   Scissors,
 } from 'lucide-react';
@@ -199,7 +199,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
             className="w-full"
           >
             {nodeData.status === 'processing' ? (
-              <Loader2 className="size-4 animate-spin" />
+              <LoaderCircle className="size-4 animate-spin" />
             ) : (
               <Scissors className="size-4" />
             )}
@@ -210,7 +210,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
         {/* Help text for required inputs */}
         {!hasRequiredInputs && nodeData.status !== 'processing' && (
           <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
-            <AlertCircle className="size-3" />
+            <CircleAlert className="size-3" />
             Connect a video to trim
           </div>
         )}

@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
+import { ChevronDown } from 'lucide-react';
 import {
   type ChangeEvent,
   type RefObject,
@@ -20,7 +21,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { HiChevronDown } from 'react-icons/hi2';
+
 import MultiSelectOptionsList from './MultiSelectOptionsList';
 import MultiSelectSearchBar from './MultiSelectSearchBar';
 import MultiSelectTabBar from './MultiSelectTabBar';
@@ -217,7 +218,7 @@ export default function MultiSelectDropdown({
         >
           {icon && <span className="flex items-center">{icon}</span>}
           <span className="text-xs font-medium">{displayLabel}</span>
-          <HiChevronDown className="size-3 text-foreground/50 transition-transform" />
+          <ChevronDown className="size-3 text-foreground/50 transition-transform" />
         </PrimitiveButton>
       </DropdownMenuTrigger>
 

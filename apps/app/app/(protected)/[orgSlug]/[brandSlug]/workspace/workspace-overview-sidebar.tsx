@@ -9,12 +9,9 @@ import type { Task, TasksService } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
+import { CircleCheck, ClipboardCheck, Inbox } from 'lucide-react';
 import Link from 'next/link';
-import {
-  HiOutlineCheckCircle,
-  HiOutlineClipboardDocumentCheck,
-  HiOutlineInboxStack,
-} from 'react-icons/hi2';
+
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { ReviewInboxSummary } from './workspace-task.helpers';
 import {
@@ -162,11 +159,11 @@ export function WorkspaceOverviewSidebar({
                     </p>
                   </div>
                   {item.reviewDecision === 'approved' ? (
-                    <HiOutlineCheckCircle className="size-5 text-emerald-300" />
+                    <CircleCheck className="size-5 text-emerald-300" />
                   ) : item.reviewDecision === 'request_changes' ? (
-                    <HiOutlineClipboardDocumentCheck className="size-5 text-amber-300" />
+                    <ClipboardCheck className="size-5 text-amber-300" />
                   ) : (
-                    <HiOutlineInboxStack className="size-5 text-foreground/40" />
+                    <Inbox className="size-5 text-foreground/40" />
                   )}
                 </div>
               ))}

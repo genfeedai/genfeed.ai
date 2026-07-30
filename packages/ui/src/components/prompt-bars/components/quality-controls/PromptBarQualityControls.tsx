@@ -13,8 +13,8 @@ import {
 import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import type { PromptBarQualityControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
 import FormDropdown from '@ui/primitives/dropdown-field';
+import { Lock, Sparkles } from 'lucide-react';
 import { type ChangeEvent, memo, useCallback } from 'react';
-import { HiLockClosed, HiSparkles } from 'react-icons/hi2';
 
 type FormWithSetValue = {
   setValue: (
@@ -34,7 +34,7 @@ function buildQualityOptions(subscriptionTier?: SubscriptionTier) {
       badgeVariant: isLocked ? ('warning' as const) : undefined,
       description: isLocked ? 'Requires a higher plan' : option.description,
       icon: isLocked ? (
-        <HiLockClosed className="size-4 text-foreground/30" />
+        <Lock className="size-4 text-foreground/30" />
       ) : undefined,
       key: option.value,
       label: option.label,
@@ -74,7 +74,7 @@ const PromptBarQualityControls = memo(function PromptBarQualityControls({
   return (
     <FormDropdown
       name="quality"
-      icon={<HiSparkles className="size-4" />}
+      icon={<Sparkles className="size-4" />}
       label="Quality"
       triggerDisplay="icon-only"
       value={watchedQuality ?? DEFAULT_QUALITY_TIER}

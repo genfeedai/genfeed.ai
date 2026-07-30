@@ -4,22 +4,22 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { Button } from '@ui/primitives/button';
 import PageLayout from '@web-components/PageLayout';
+import {
+  ArrowRight,
+  Cpu,
+  Database,
+  Layers,
+  MonitorPlay,
+  ShieldCheck,
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import {
-  LuArrowRight,
-  LuCpu,
-  LuDatabase,
-  LuLayers,
-  LuMonitorPlay,
-  LuShieldCheck,
-} from 'react-icons/lu';
 
 const FEATURES = [
   {
     description:
       'Every photo, video, and file organized and searchable. Find what you need in seconds, not minutes.',
-    icon: LuDatabase,
+    icon: Database,
     label: 'Asset Library',
     number: '01',
     title: 'Find Any Asset Instantly',
@@ -27,7 +27,7 @@ const FEATURES = [
   {
     description:
       'Access the best AI models for video, image, voice, and text, automatically selected for each task.',
-    icon: LuCpu,
+    icon: Cpu,
     label: 'AI Engine',
     number: '02',
     title: '50+ Models, One Prompt',
@@ -35,7 +35,7 @@ const FEATURES = [
   {
     description:
       'Enterprise-grade security. Your brand assets, custom models, and content stay private and protected.',
-    icon: LuShieldCheck,
+    icon: ShieldCheck,
     label: 'Security',
     number: '03',
     title: 'Your Brand, Your Data',
@@ -43,7 +43,7 @@ const FEATURES = [
   {
     description:
       'Professional-quality videos and images ready to publish. No editing, no post-production needed.',
-    icon: LuMonitorPlay,
+    icon: MonitorPlay,
     label: 'Quality',
     number: '04',
     title: '4K Output, Zero Post-Processing',
@@ -57,7 +57,7 @@ export default function FeaturesPage(): React.ReactElement {
     <div ref={containerRef}>
       <PageLayout
         badge="Platform Capabilities"
-        badgeIcon={LuLayers}
+        badgeIcon={Layers}
         compact
         title={<>What Genfeed Does For You</>}
         description="Every feature saves you time and eliminates busywork. Here is exactly what you get."
@@ -84,7 +84,7 @@ export default function FeaturesPage(): React.ReactElement {
                       {feature.description}
                     </p>
                     <span className="mt-auto text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:gap-4 transition-all cursor-pointer">
-                      Learn More <LuArrowRight className="size-3" />
+                      Learn More <ArrowRight className="size-3" />
                     </span>
                   </div>
                 );

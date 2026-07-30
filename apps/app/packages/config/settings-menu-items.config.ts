@@ -1,39 +1,25 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import {
-  HiBuildingOffice2,
-  HiChatBubbleLeftRight,
-  HiCpuChip,
-  HiCreditCard,
-  HiCube,
-  HiKey,
-  HiLink,
-  HiMicrophone,
-  HiOutlineBuildingOffice2,
-  HiOutlineChatBubbleLeftRight,
-  HiOutlineCpuChip,
-  HiOutlineCreditCard,
-  HiOutlineCube,
-  HiOutlineKey,
-  HiOutlineLink,
-  HiOutlineMicrophone,
-  HiOutlinePaperAirplane,
-  HiOutlineQuestionMarkCircle,
-  HiOutlineShieldCheck,
-  HiOutlineSparkles,
-  HiOutlineSquares2X2,
-  HiOutlineTag,
-  HiOutlineUser,
-  HiOutlineUsers,
-  HiPaperAirplane,
-  HiQuestionMarkCircle,
-  HiShieldCheck,
-  HiSparkles,
-  HiSquares2X2,
-  HiTag,
-  HiUser,
-  HiUsers,
-} from 'react-icons/hi2';
+  Box,
+  Building2,
+  CircleQuestionMark,
+  Cpu,
+  CreditCard,
+  Key,
+  LayoutGrid,
+  Link,
+  MessageSquare,
+  Mic,
+  Palette,
+  Send,
+  Share2,
+  ShieldCheck,
+  Sparkles,
+  Tag,
+  User,
+  Users,
+} from 'lucide-react';
 
 // Brand settings live at brand-scoped `/settings/*` paths (no route constants —
 // they resolve against the current brandSlug via the sidebar's `prefixHref`).
@@ -41,7 +27,9 @@ const BRAND_SETTINGS = {
   AGENT_DEFAULTS: '/settings/agent-defaults',
   HARNESS: '/settings/harness',
   INTERVIEW: '/settings/interview',
+  KIT: '/settings/kit',
   PUBLISHING: '/settings/publishing',
+  SOCIAL: '/settings/social',
   VOICE: '/settings/voice',
 } as const;
 
@@ -55,9 +43,17 @@ export interface BuildSettingsMenuItemsParams {
    * handled by the gear dropdown / org + brand switchers, not the sidebar.
    */
   scope: SettingsScope;
-  /** EE build — gates the organization Billing entry. */
+  /** SaaS or self-host EE — gates the organization Billing (subscription) entry. */
   isEnterprise?: boolean;
 }
+
+/**
+ * Menu grouping rules (keep to 1–2 meaningful headers per scope):
+ * - Never add a top-level "Settings" shell label — the route/scope already says that.
+ * - Org: Organization (who/what) · Access (money, keys, policy)
+ * - Brand: Brand (public + identity) · Automation (how content runs)
+ * - Personal: Account · Support
+ */
 
 function buildPersonalMenuItems(): MenuItemConfig[] {
   return [
@@ -67,16 +63,16 @@ function buildPersonalMenuItems(): MenuItemConfig[] {
       hrefScope: 'personal',
       isExactMatch: true,
       label: 'Personal',
-      outline: HiOutlineUser,
-      solid: HiUser,
+      outline: User,
+      solid: User,
     },
     {
       group: 'Support',
       href: APP_ROUTES.SETTINGS.HELP,
       hrefScope: 'personal',
       label: 'Help',
-      outline: HiOutlineQuestionMarkCircle,
-      solid: HiQuestionMarkCircle,
+      outline: CircleQuestionMark,
+      solid: CircleQuestionMark,
     },
   ];
 }
@@ -89,82 +85,78 @@ function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
       hrefScope: 'organization',
       isExactMatch: true,
       label: 'General',
-      outline: HiOutlineBuildingOffice2,
-      solid: HiBuildingOffice2,
+      outline: Building2,
+      solid: Building2,
     },
     {
       group: 'Organization',
       href: APP_ROUTES.SETTINGS.MEMBERS,
       hrefScope: 'organization',
       label: 'Members',
-      outline: HiOutlineUsers,
-      solid: HiUsers,
+      outline: Users,
+      solid: Users,
+    },
+    {
+      // Hub to the all-brands list; each brand's own settings open in brand scope.
+      group: 'Organization',
+      href: APP_ROUTES.SETTINGS.BRANDS,
+      hrefScope: 'organization',
+      label: 'Brands',
+      outline: Tag,
+      solid: Tag,
+    },
+    {
+      // Org model catalog + defaults for the studio prompt bar.
+      group: 'Organization',
+      href: APP_ROUTES.SETTINGS.MODELS,
+      hrefScope: 'organization',
+      label: 'Models',
+      outline: Box,
+      solid: Box,
     },
     ...(isEnterprise
       ? [
           {
-            group: 'Billing',
+            group: 'Access',
             href: APP_ROUTES.SETTINGS.BILLING,
             hrefScope: 'organization' as const,
             label: 'Billing',
-            outline: HiOutlineCreditCard,
-            solid: HiCreditCard,
+            outline: CreditCard,
+            solid: CreditCard,
           },
         ]
       : []),
     {
-      group: 'Billing',
+      group: 'Access',
       href: APP_ROUTES.SETTINGS.CREDITS,
       hrefScope: 'organization',
       label: 'Credits',
-      outline: HiOutlineCreditCard,
-      solid: HiCreditCard,
+      outline: CreditCard,
+      solid: CreditCard,
     },
     {
-      group: 'Developer',
+      group: 'Access',
       href: APP_ROUTES.SETTINGS.API_KEYS,
       hrefScope: 'organization',
       label: 'API Keys',
-      outline: HiOutlineKey,
-      solid: HiKey,
+      outline: Key,
+      solid: Key,
     },
     {
-      group: 'Developer',
+      group: 'Access',
       href: APP_ROUTES.SETTINGS.WEBHOOKS,
       hrefScope: 'organization',
       label: 'Webhooks',
-      outline: HiOutlineLink,
-      solid: HiLink,
+      outline: Link,
+      solid: Link,
     },
     {
-      group: 'Governance',
+      group: 'Access',
       href: APP_ROUTES.SETTINGS.POLICY,
       hrefScope: 'organization',
       label: 'Policy',
-      outline: HiOutlineShieldCheck,
-      solid: HiShieldCheck,
-    },
-    {
-      // Hub to the all-brands list; each brand's own settings open in the
-      // brand scope from there.
-      group: 'Resources',
-      href: APP_ROUTES.SETTINGS.BRANDS,
-      hrefScope: 'organization',
-      label: 'Brands',
-      outline: HiOutlineTag,
-      solid: HiTag,
-    },
-    {
-      // Org model settings: enable/disable the models the admin app publishes
-      // and pick the org default (used by the studio prompt bar). `/settings/
-      // models` redirects to the first tab; the prefix keeps this row active
-      // across every model type.
-      group: 'Resources',
-      href: APP_ROUTES.SETTINGS.MODELS,
-      hrefScope: 'organization',
-      label: 'Models',
-      outline: HiOutlineCube,
-      solid: HiCube,
+      outline: ShieldCheck,
+      solid: ShieldCheck,
     },
   ];
 }
@@ -172,63 +164,77 @@ function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
 function buildBrandMenuItems(): MenuItemConfig[] {
   return [
     {
-      group: 'Identity',
+      group: 'Brand',
       href: APP_ROUTES.SETTINGS.ROOT,
       hrefScope: 'brand',
       isExactMatch: true,
-      label: 'Overview',
-      outline: HiOutlineSquares2X2,
-      solid: HiSquares2X2,
+      label: 'Profile',
+      outline: LayoutGrid,
+      solid: LayoutGrid,
     },
     {
-      group: 'Identity',
+      group: 'Brand',
+      href: BRAND_SETTINGS.SOCIAL,
+      hrefScope: 'brand',
+      label: 'Social',
+      outline: Share2,
+      solid: Share2,
+    },
+    {
+      group: 'Brand',
+      href: BRAND_SETTINGS.KIT,
+      hrefScope: 'brand',
+      label: 'Brand Kit',
+      outline: Palette,
+      solid: Palette,
+    },
+    {
+      group: 'Brand',
       href: BRAND_SETTINGS.VOICE,
       hrefScope: 'brand',
       label: 'Voice',
-      outline: HiOutlineMicrophone,
-      solid: HiMicrophone,
+      outline: Mic,
+      solid: Mic,
     },
     {
-      group: 'Identity',
-      href: BRAND_SETTINGS.HARNESS,
-      hrefScope: 'brand',
-      label: 'Harness',
-      outline: HiOutlineSparkles,
-      solid: HiSparkles,
-    },
-    {
-      group: 'Identity',
+      group: 'Brand',
       href: BRAND_SETTINGS.INTERVIEW,
       hrefScope: 'brand',
       label: 'Interview',
-      outline: HiOutlineChatBubbleLeftRight,
-      solid: HiChatBubbleLeftRight,
+      outline: MessageSquare,
+      solid: MessageSquare,
     },
     {
-      group: 'Operations',
+      group: 'Automation',
+      href: BRAND_SETTINGS.HARNESS,
+      hrefScope: 'brand',
+      label: 'Harness',
+      outline: Sparkles,
+      solid: Sparkles,
+    },
+    {
+      group: 'Automation',
       href: BRAND_SETTINGS.PUBLISHING,
       hrefScope: 'brand',
       label: 'Publishing',
-      outline: HiOutlinePaperAirplane,
-      solid: HiPaperAirplane,
+      outline: Send,
+      solid: Send,
     },
     {
-      group: 'Operations',
+      group: 'Automation',
       href: BRAND_SETTINGS.AGENT_DEFAULTS,
       hrefScope: 'brand',
       label: 'Agent Defaults',
-      outline: HiOutlineCpuChip,
-      solid: HiCpuChip,
+      outline: Cpu,
+      solid: Cpu,
     },
   ];
 }
 
 /**
  * Builds the Settings sidebar menu for a single scope. The sidebar is
- * scope-specific: loading organization settings shows only organization pages,
- * personal settings shows only personal pages (+ Help), and a brand's settings
- * show only that brand's pages. Keep the gear dropdown
- * (`packages/ui/.../user-dropdown/UserDropdown.tsx`) as the cross-scope switcher.
+ * scope-specific: brand → brand pages, org → org pages, personal → personal.
+ * Scope switching is the gear dropdown / org + brand switchers, not this list.
  */
 export function buildSettingsMenuItems({
   scope,

@@ -5,7 +5,7 @@ import type { IByokProviderStatus } from '@genfeedai/interfaces';
 import Card from '@ui/card/Card';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { HiChevronDown, HiChevronRight, HiTrash } from 'react-icons/hi2';
+import { ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
 
 type ByokProviderCardState = {
   isExpanded: boolean;
@@ -61,9 +61,9 @@ export default function ByokProviderCard({
           variant={ButtonVariant.GHOST}
         >
           {isExpanded ? (
-            <HiChevronDown className="size-4" />
+            <ChevronDown className="size-4" />
           ) : (
-            <HiChevronRight className="size-4" />
+            <ChevronRight className="size-4" />
           )}
         </Button>
         <div className="min-w-0 flex-1 sm:flex sm:items-center sm:gap-3">
@@ -95,7 +95,7 @@ export default function ByokProviderCard({
                 isDisabled={isRemoving}
                 aria-label={`Remove ${providerStatus.label} key`}
               >
-                <HiTrash className="size-4" />
+                <Trash2 className="size-4" />
               </Button>
             </>
           ) : (

@@ -45,7 +45,7 @@ export function AgentChatSuggestionsBar({
       }}
       isDisabled={isBusy || isReadOnly}
       maxSuggestions={3}
-      className="justify-center"
+      variant="cards"
     />
   );
 }

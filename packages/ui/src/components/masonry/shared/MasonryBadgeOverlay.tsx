@@ -7,19 +7,13 @@ import Badge from '@ui/display/badge/Badge';
 import EvaluationBadge from '@ui/evaluation/badge/EvaluationBadge';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { SCOPE_OPTIONS } from '@ui-constants/scope.constant';
-import {
-  HiBuildingOffice,
-  HiGlobeAlt,
-  HiLockClosed,
-  HiOutlineDocumentDuplicate,
-  HiUsers,
-} from 'react-icons/hi2';
+import { Building, Copy, Globe, Lock, Users } from 'lucide-react';
 
 const SCOPE_ICONS: Record<AssetScope, React.ReactNode> = {
-  [AssetScope.USER]: <HiLockClosed className="size-3" />,
-  [AssetScope.BRAND]: <HiUsers className="size-3" />,
-  [AssetScope.ORGANIZATION]: <HiBuildingOffice className="size-3" />,
-  [AssetScope.PUBLIC]: <HiGlobeAlt className="size-3" />,
+  [AssetScope.USER]: <Lock className="size-3" />,
+  [AssetScope.BRAND]: <Users className="size-3" />,
+  [AssetScope.ORGANIZATION]: <Building className="size-3" />,
+  [AssetScope.PUBLIC]: <Globe className="size-3" />,
 };
 
 /**
@@ -115,7 +109,7 @@ export default function MasonryBadgeOverlay({
         {ingredient.totalChildren > 0 && !isPublicGallery && (
           <Badge
             className="text-xs px-2 py-0.5 flex items-center gap-2 bg-muted/80 text-foreground backdrop-blur-sm shadow-sm"
-            icon={<HiOutlineDocumentDuplicate className="size-3" />}
+            icon={<Copy className="size-3" />}
             value={`${ingredient.totalChildren} version${ingredient.totalChildren > 1 ? 's' : ''}`}
           />
         )}

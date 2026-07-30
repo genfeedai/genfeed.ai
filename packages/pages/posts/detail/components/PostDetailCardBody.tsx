@@ -8,8 +8,8 @@ import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { createMarkup } from '@utils/sanitize-html';
+import { Eye, Heart, MessageSquare } from 'lucide-react';
 import type { MutableRefObject } from 'react';
-import { HiChatBubbleLeftRight, HiEye, HiHeart } from 'react-icons/hi2';
 
 export interface PostDetailCardBodyProps {
   post: IPost;
@@ -144,18 +144,18 @@ export default function PostDetailCardBody({
             {hasAnalytics && (
               <div className="flex flex-wrap items-center gap-4 border-t border-white/[0.08] pt-3">
                 <div className="flex items-center gap-1.5 text-xs text-foreground/60">
-                  <HiEye className="size-3.5" />
+                  <Eye className="size-3.5" />
                   <span>{formatCompactNumber(post.totalViews ?? 0)}</span>
                 </div>
                 {post.totalLikes !== undefined && (
                   <div className="flex items-center gap-1.5 text-xs text-foreground/60">
-                    <HiHeart className="size-3.5 text-muted-foreground" />
+                    <Heart className="size-3.5 text-muted-foreground" />
                     <span>{formatCompactNumber(post.totalLikes)}</span>
                   </div>
                 )}
                 {post.totalComments !== undefined && (
                   <div className="flex items-center gap-1.5 text-xs text-foreground/60">
-                    <HiChatBubbleLeftRight className="size-3.5 text-secondary" />
+                    <MessageSquare className="size-3.5 text-secondary" />
                     <span>{formatCompactNumber(post.totalComments)}</span>
                   </div>
                 )}

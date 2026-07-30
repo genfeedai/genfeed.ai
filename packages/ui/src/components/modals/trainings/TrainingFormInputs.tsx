@@ -6,14 +6,9 @@ import { Button } from '@ui/primitives/button';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { Image, RefreshCw, SlidersHorizontal, Tag } from 'lucide-react';
 import type { DropzoneInputProps, DropzoneRootProps } from 'react-dropzone';
 import type { Control, FieldErrors, UseFormWatch } from 'react-hook-form';
-import {
-  HiAdjustmentsHorizontal,
-  HiArrowPath,
-  HiPhoto,
-  HiTag,
-} from 'react-icons/hi2';
 
 type TrainingFormInputsProps = {
   control: Control<TrainingSchema>;
@@ -93,7 +88,7 @@ export default function TrainingFormInputs({
           />
 
           <Button
-            icon={<HiArrowPath />}
+            icon={<RefreshCw />}
             onClick={onGenerateRandomTrigger}
             isDisabled={isSubmitting}
             tooltip="Generate Random Trigger"
@@ -113,7 +108,7 @@ export default function TrainingFormInputs({
         >
           <FormDropdown
             name="category"
-            icon={<HiTag className="size-4" />}
+            icon={<Tag className="size-4" />}
             label="Category"
             value={watch('category')}
             className="h-10 px-3 gap-2 text-sm flex-shrink-0 bg-secondary text-secondary-foreground"
@@ -135,7 +130,7 @@ export default function TrainingFormInputs({
         >
           <FormDropdown
             name="steps"
-            icon={<HiAdjustmentsHorizontal className="size-4" />}
+            icon={<SlidersHorizontal className="size-4" />}
             label="Steps"
             value={watch('steps')}
             className="h-10 px-3 gap-2 text-sm flex-shrink-0 bg-secondary text-secondary-foreground"
@@ -169,7 +164,7 @@ export default function TrainingFormInputs({
         >
           <Input type="file" {...getInputProps({ name: 'file' })} />
           <div className="flex flex-col items-center gap-2">
-            <HiPhoto className="text-4xl opacity-50" />
+            <Image className="text-4xl opacity-50" />
             {isDragActive ? (
               <p className="text-sm">Drop the images here…</p>
             ) : (

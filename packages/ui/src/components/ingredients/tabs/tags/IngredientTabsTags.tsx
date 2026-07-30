@@ -16,8 +16,8 @@ import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import TagsManager from '@ui/tags/manager/TagsManager';
+import { Plus, Tag, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { HiPlus, HiTag, HiXMark } from 'react-icons/hi2';
 
 export default function IngredientTabsTags({
   ingredient,
@@ -153,7 +153,7 @@ export default function IngredientTabsTags({
                 backgroundColor={tag.backgroundColor || 'hsl(var(--muted))'}
                 textColor={tag.textColor || 'hsl(var(--muted-foreground))'}
               >
-                <HiTag className="text-sm" />
+                <Tag className="text-sm" />
                 <span>{tag.label}</span>
                 <Button
                   withWrapper={false}
@@ -163,7 +163,7 @@ export default function IngredientTabsTags({
                   className="ml-1 hover:opacity-70 transition-opacity"
                   ariaLabel={`Remove tag ${tag.label}`}
                 >
-                  <HiXMark className="text-sm" />
+                  <X className="text-sm" />
                 </Button>
               </Badge>
             ))}
@@ -215,7 +215,7 @@ export default function IngredientTabsTags({
               isLoading={isCreatingTag}
               isDisabled={!newTagName.trim()}
               variant={ButtonVariant.DEFAULT}
-              icon={<HiPlus className="text-lg" />}
+              icon={<Plus className="text-lg" />}
             />
           </div>
         </div>
@@ -268,9 +268,9 @@ export default function IngredientTabsTags({
                     }}
                     ariaLabel={`Add tag ${tag.label}`}
                   >
-                    <HiTag className="text-sm" />
+                    <Tag className="text-sm" />
                     <span className="truncate">{tag.label}</span>
-                    <HiPlus className="text-sm ml-auto" />
+                    <Plus className="text-sm ml-auto" />
                   </Button>
                 ))}
               </div>

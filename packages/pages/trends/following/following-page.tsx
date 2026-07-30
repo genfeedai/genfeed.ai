@@ -60,6 +60,18 @@ import {
   buildTrendSourceAgentHref,
   buildTrendSourceTwitterDraftHref,
 } from '@utils/url/desktop-loop-url.util';
+import {
+  AtSign,
+  ExternalLink,
+  Inbox,
+  MessageSquare,
+  Plus,
+  RefreshCw,
+  Send,
+  Sparkles,
+  Trash2,
+  Zap,
+} from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
@@ -69,18 +81,6 @@ import {
   useMemo,
   useState,
 } from 'react';
-import {
-  HiArrowPath,
-  HiArrowTopRightOnSquare,
-  HiAtSymbol,
-  HiOutlineBolt,
-  HiOutlineChatBubbleLeftRight,
-  HiOutlineInboxStack,
-  HiOutlinePaperAirplane,
-  HiOutlineSparkles,
-  HiPlus,
-  HiTrash,
-} from 'react-icons/hi2';
 
 const EMPTY_FEED: SocialSourcesResponse = {
   posts: [],
@@ -326,7 +326,7 @@ export default function FollowingPage() {
             <Card bodyClassName="p-4">
               <form className="space-y-3" onSubmit={handleAddSource}>
                 <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                  <HiAtSymbol className="size-4 text-foreground/60" />
+                  <AtSign className="size-4 text-foreground/60" />
                   Follow source
                 </div>
                 <Select
@@ -353,7 +353,7 @@ export default function FollowingPage() {
                 />
                 <Button
                   className="w-full"
-                  icon={<HiPlus className="size-4" />}
+                  icon={<Plus className="size-4" />}
                   isLoading={isAdding}
                   label="Follow"
                   size={ButtonSize.SM}
@@ -376,7 +376,7 @@ export default function FollowingPage() {
                     </div>
                   </div>
                   <Button
-                    icon={<HiArrowPath className="size-4" />}
+                    icon={<RefreshCw className="size-4" />}
                     isLoading={busyId === 'sync-all'}
                     label="Sync"
                     size={ButtonSize.SM}
@@ -481,7 +481,7 @@ export default function FollowingPage() {
               <Card bodyClassName="p-10">
                 <div className="mx-auto flex max-w-md flex-col items-center text-center">
                   <div className="flex size-11 items-center justify-center rounded-full border border-border bg-background-secondary text-foreground/60">
-                    <HiOutlineInboxStack className="size-5" />
+                    <Inbox className="size-5" />
                   </div>
                   <div className="mt-4 text-base font-semibold text-foreground">
                     No collected posts
@@ -529,7 +529,7 @@ function SourceRow({
       <div className="flex items-center gap-1">
         <Button
           ariaLabel="Sync source"
-          icon={<HiArrowPath className="size-4" />}
+          icon={<RefreshCw className="size-4" />}
           isLoading={busyId === source.id}
           label=""
           onClick={() => {
@@ -541,7 +541,7 @@ function SourceRow({
         />
         <Button
           ariaLabel="Remove source"
-          icon={<HiTrash className="size-4" />}
+          icon={<Trash2 className="size-4" />}
           label=""
           onClick={() => {
             onRemove(source.id).catch(() => undefined);
@@ -635,7 +635,7 @@ function SourcePostCard({
           {post.platform === SocialSourcePlatform.TWITTER ? (
             <>
               <Button
-                icon={<HiOutlineChatBubbleLeftRight className="size-3.5" />}
+                icon={<MessageSquare className="size-3.5" />}
                 isLoading={
                   busyId === `${post.id}-${SourcePostActionType.REPLY}`
                 }
@@ -648,7 +648,7 @@ function SourcePostCard({
                 variant={ButtonVariant.SECONDARY}
               />
               <Button
-                icon={<HiOutlineBolt className="size-3.5" />}
+                icon={<Zap className="size-3.5" />}
                 isLoading={
                   busyId === `${post.id}-${SourcePostActionType.QUOTE}`
                 }
@@ -663,13 +663,13 @@ function SourcePostCard({
             </>
           ) : null}
           <Button
-            icon={<HiOutlineSparkles className="size-3.5" />}
+            icon={<Sparkles className="size-3.5" />}
             label="Remix"
             onClick={() => onOpenRemix(post)}
             variant={ButtonVariant.SECONDARY}
           />
           <Button
-            icon={<HiOutlinePaperAirplane className="size-3.5" />}
+            icon={<Send className="size-3.5" />}
             label="Draft"
             isLoading={busyId === `${post.id}-${SourcePostActionType.DRAFT}`}
             onClick={() => {
@@ -680,14 +680,14 @@ function SourcePostCard({
             variant={ButtonVariant.GHOST}
           />
           <Button
-            icon={<HiOutlineBolt className="size-3.5" />}
+            icon={<Zap className="size-3.5" />}
             label="Agent"
             onClick={() => onOpenAgent(post)}
             variant={ButtonVariant.GHOST}
           />
           {sourceUrl ? (
             <Button
-              icon={<HiArrowTopRightOnSquare className="size-3.5" />}
+              icon={<ExternalLink className="size-3.5" />}
               label="Open"
               onClick={() =>
                 window.open(sourceUrl, '_blank', 'noopener,noreferrer')

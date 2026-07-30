@@ -4,9 +4,9 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { TagInputProps } from '@genfeedai/props/tags/tag-input.props';
 import { Input } from '@ui/primitives/input';
 import TagBadge from '@ui/tags/badge/TagBadge';
+import { Plus } from 'lucide-react';
 import type { KeyboardEvent } from 'react';
 import { useState } from 'react';
-import { HiPlus } from 'react-icons/hi2';
 
 export default function TagInput({
   tags,
@@ -60,7 +60,7 @@ export default function TagInput({
           className="pl-9"
         />
 
-        <HiPlus
+        <Plus
           size={16}
           className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/60"
         />

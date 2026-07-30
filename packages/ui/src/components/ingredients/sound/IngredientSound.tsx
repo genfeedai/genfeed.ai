@@ -6,7 +6,7 @@ import type { IngredientSoundProps } from '@genfeedai/props/content/ingredient.p
 import { logger } from '@genfeedai/services/core/logger.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
-import { HiPause, HiPlay } from 'react-icons/hi2';
+import { Pause, Play } from 'lucide-react';
 
 export default function IngredientSound({
   ingredients,
@@ -61,9 +61,9 @@ export default function IngredientSound({
             <Button
               label={
                 sound.isPlaying ? (
-                  <HiPause className="text-2xl" />
+                  <Pause className="text-2xl" />
                 ) : (
-                  <HiPlay className="text-2xl" />
+                  <Play className="text-2xl" />
                 )
               }
               variant={ButtonVariant.DEFAULT}

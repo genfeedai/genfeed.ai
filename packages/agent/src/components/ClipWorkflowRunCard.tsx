@@ -2,8 +2,9 @@ import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { CircleAlert, Film } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { HiExclamationCircle, HiOutlineFilm } from 'react-icons/hi2';
+
 import { ClipWorkflowSettingsPanel } from './ClipWorkflowSettingsPanel';
 import { ClipWorkflowStatusFooter } from './ClipWorkflowStatusFooter';
 import { ClipWorkflowStepsList } from './ClipWorkflowStepsList';
@@ -59,7 +60,7 @@ export function ClipWorkflowRunCard({
   return (
     <div className="mt-2 overflow-hidden border border-border bg-background">
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-        <HiOutlineFilm className="size-4 text-primary" />
+        <Film className="size-4 text-primary" />
         <span className="text-sm font-medium text-foreground">
           {action.title}
         </span>
@@ -119,7 +120,7 @@ export function ClipWorkflowRunCard({
 
         {error && (
           <div className="flex items-center gap-2 border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-            <HiExclamationCircle className="size-4" />
+            <CircleAlert className="size-4" />
             {error}
           </div>
         )}

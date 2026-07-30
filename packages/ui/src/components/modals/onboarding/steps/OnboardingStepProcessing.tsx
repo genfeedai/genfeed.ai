@@ -1,7 +1,7 @@
 'use client';
 
+import { Check, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { HiCheck, HiOutlineSparkles } from 'react-icons/hi2';
 
 export interface OnboardingStepProcessingProps {
   url: string;
@@ -54,7 +54,7 @@ export default function OnboardingStepProcessing({
     <div className="py-8">
       <div className="text-center mb-8">
         <div className="size-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
-          <HiOutlineSparkles className="size-8 text-primary" />
+          <Sparkles className="size-8 text-primary" />
         </div>
         <h2 className="text-2xl font-semibold mb-2">Analyzing your brand</h2>
         <p className="text-muted-foreground text-sm truncate max-w-xs mx-auto">
@@ -102,7 +102,7 @@ export default function OnboardingStepProcessing({
                 }`}
               >
                 {isComplete ? (
-                  <HiCheck className="size-4" />
+                  <Check className="size-4" />
                 ) : isCurrent ? (
                   <span className="size-2 bg-current rounded-full animate-pulse" />
                 ) : (

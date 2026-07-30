@@ -20,9 +20,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { LayoutDashboard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
-import { HiOutlineRectangleGroup } from 'react-icons/hi2';
 
 interface FormState {
   label: string;
@@ -121,7 +121,7 @@ export default function AgentCampaignNewPage() {
     <Container
       label="New Campaign"
       description="Coordinate agents for content production."
-      icon={HiOutlineRectangleGroup}
+      icon={LayoutDashboard}
     >
       <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
         <div className="space-y-1.5">

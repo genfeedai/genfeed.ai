@@ -6,7 +6,7 @@ import type {
   LipSyncNodeData,
 } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { Expand, Loader2, Mic, RefreshCw, Video } from 'lucide-react';
+import { Expand, LoaderCircle, Mic, RefreshCw, Video } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { useCanGenerate } from '../../hooks/useCanGenerate';
 import { useNodeExecution } from '../../hooks/useNodeExecution';
@@ -214,7 +214,7 @@ function LipSyncNodeComponent(props: NodeProps) {
             className="w-full"
           >
             {nodeData.status === 'processing' ? (
-              <Loader2 className="size-4 animate-spin" />
+              <LoaderCircle className="size-4 animate-spin" />
             ) : (
               <Video className="size-4" />
             )}

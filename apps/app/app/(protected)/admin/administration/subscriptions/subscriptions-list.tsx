@@ -16,13 +16,8 @@ import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import { Copy, CreditCard, ExternalLink, Pencil } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import {
-  HiArrowTopRightOnSquare,
-  HiDocumentDuplicate,
-  HiOutlineCreditCard,
-  HiPencil,
-} from 'react-icons/hi2';
 
 export default function SubscriptionsList() {
   const getSubscriptionsService = useAuthedService((token: string) =>
@@ -98,7 +93,7 @@ export default function SubscriptionsList() {
           onClick={() => handleCopy(subscription.stripeCustomerId)}
           label={
             <span className="flex items-center gap-2">
-              <HiDocumentDuplicate />
+              <Copy />
               {subscription.stripeCustomerId}
             </span>
           }
@@ -134,7 +129,7 @@ export default function SubscriptionsList() {
     <Container
       label="Subscriptions"
       description="View subscription plans, billing history, and payment status"
-      icon={HiOutlineCreditCard}
+      icon={CreditCard}
       right={
         <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
       }
@@ -147,7 +142,7 @@ export default function SubscriptionsList() {
         emptyLabel="No subscriptions found"
         actions={[
           {
-            icon: <HiArrowTopRightOnSquare />,
+            icon: <ExternalLink />,
             onClick: (subscription: Subscription) => {
               window.open(
                 `https://dashboard.stripe.com/customers/${subscription.stripeCustomerId}?prefilled_email=${(subscription.user as IUser)?.email}`,
@@ -159,7 +154,7 @@ export default function SubscriptionsList() {
             variant: ButtonVariant.SECONDARY,
           },
           {
-            icon: <HiPencil />,
+            icon: <Pencil />,
             onClick: (subscription: Subscription) =>
               openSubscriptionModal(subscription?.organization.id),
             size: ButtonSize.SM,

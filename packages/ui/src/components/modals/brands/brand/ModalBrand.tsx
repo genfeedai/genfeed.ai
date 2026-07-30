@@ -118,6 +118,34 @@ export default function BrandOverlay({
     }
   };
 
+  const watchedCreateLabel = form.watch('label');
+  const watchedCreateSlug = form.watch('slug');
+  const watchedCreateWebsite = form.watch('websiteUrl');
+  const canSubmitCreateBrand = (() => {
+    const label = (watchedCreateLabel ?? '').trim();
+    const slug = (watchedCreateSlug ?? '').trim();
+    if (!label || !slug) {
+      return false;
+    }
+    // URL-safe slug: lowercase alphanumerics with optional single hyphens.
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+      return false;
+    }
+    const website = (watchedCreateWebsite ?? '').trim();
+    if (website) {
+      try {
+        // Require absolute http(s) URL when provided.
+        const parsed = new URL(website);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          return false;
+        }
+      } catch {
+        return false;
+      }
+    }
+    return true;
+  })();
+
   if (!brand && !activeBrand) {
     return (
       <Modal.Root
@@ -140,7 +168,15 @@ export default function BrandOverlay({
             </Modal.Description>
           </Modal.Header>
 
-          <form onSubmit={onSubmit}>
+          <form
+            onSubmit={(event) => {
+              if (!canSubmitCreateBrand || isSubmitting) {
+                event.preventDefault();
+                return;
+              }
+              void onSubmit(event);
+            }}
+          >
             <Modal.Body className="space-y-4">
               {error ? (
                 <Alert type={AlertCategory.ERROR}>
@@ -207,7 +243,7 @@ export default function BrandOverlay({
               <Button
                 type="submit"
                 variant={ButtonVariant.DEFAULT}
-                disabled={isSubmitting}
+                disabled={isSubmitting || !canSubmitCreateBrand}
               >
                 {isSubmitting ? 'Creating…' : 'Create brand'}
               </Button>

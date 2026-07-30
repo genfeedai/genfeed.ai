@@ -2,8 +2,8 @@ import { AgentGeneratedTextCard } from '@genfeedai/agent/components/AgentGenerat
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { Check, FileText } from 'lucide-react';
 import { type ReactElement, useCallback, useState } from 'react';
-import { HiCheck, HiDocumentText } from 'react-icons/hi2';
 
 interface AiTextActionCardProps {
   action: AgentUiAction;
@@ -50,7 +50,7 @@ export function AiTextActionCard({
     return (
       <div className="my-2 border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
         <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-          <HiCheck className="size-5" />
+          <Check className="size-5" />
           <span className="text-sm font-medium">
             &quot;{selectedAction}&quot; applied
           </span>
@@ -62,7 +62,7 @@ export function AiTextActionCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiDocumentText className="size-5 text-sky-500" />
+        <FileText className="size-5 text-sky-500" />
         <h3 className="text-sm font-semibold">
           {action.title || 'Text Actions'}
         </h3>

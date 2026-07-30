@@ -3,17 +3,13 @@
 import { extractBrandFromKey, getBrandConfig } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
 import type { ModelSelectorTriggerProps } from '@genfeedai/props/ui/model-selector/model-selector.props';
 import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCostBadge';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
+import { ChevronDown, ChevronUp, Cpu, Sparkles } from 'lucide-react';
 import type { ButtonHTMLAttributes, Ref } from 'react';
-import {
-  HiChevronDown,
-  HiChevronUp,
-  HiCpuChip,
-  HiSparkles,
-} from 'react-icons/hi2';
 
 function ModelSelectorTrigger({
   ref,
@@ -25,7 +21,7 @@ function ModelSelectorTrigger({
   ...buttonProps
 }: ModelSelectorTriggerProps &
   ButtonHTMLAttributes<HTMLButtonElement> & { ref?: Ref<HTMLButtonElement> }) {
-  const ChevronIcon = isOpen ? HiChevronUp : HiChevronDown;
+  const ChevronIcon = isOpen ? ChevronUp : ChevronDown;
   const triggerClassName = cn(
     buttonVariants({
       size: ButtonSize.SM,
@@ -48,7 +44,7 @@ function ModelSelectorTrigger({
         )}
         {...buttonProps}
       >
-        <HiCpuChip className="size-4" />
+        <Cpu className="size-4" />
         <span className="text-xs font-medium">Select models…</span>
         <ChevronIcon className="size-3 text-foreground/50" />
       </Button>
@@ -67,7 +63,7 @@ function ModelSelectorTrigger({
           className={cn(triggerClassName, 'text-foreground')}
           {...buttonProps}
         >
-          <HiSparkles className="size-4 shrink-0 text-primary" />
+          <Sparkles className="size-4 shrink-0 text-primary" />
           <span className="text-xs font-medium truncate max-w-[148px]">
             {autoLabel ?? model.label}
           </span>
@@ -78,7 +74,7 @@ function ModelSelectorTrigger({
 
     const brandSlug = extractBrandFromKey(model.key);
     const brandConfig = getBrandConfig(brandSlug);
-    const BrandIcon = brandConfig.icon;
+    const BrandIcon = getModelBrandIcon(brandConfig.iconKey);
 
     return (
       <Button
@@ -119,7 +115,7 @@ function ModelSelectorTrigger({
       className={cn(triggerClassName, 'text-foreground')}
       {...buttonProps}
     >
-      <HiCpuChip className="size-4" />
+      <Cpu className="size-4" />
       <span className="text-xs font-medium">
         {selectedModels.length} models
       </span>

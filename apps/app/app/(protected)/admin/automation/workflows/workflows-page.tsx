@@ -16,12 +16,9 @@ import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
+import { ClipboardList, EllipsisVertical, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  HiEllipsisVertical,
-  HiOutlineClipboardDocumentList,
-  HiTrash,
-} from 'react-icons/hi2';
+
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
 const WORKFLOW_SKELETON_KEYS = [
@@ -123,7 +120,7 @@ export default function WorkflowsPage() {
     <Container
       label="Workflows"
       description="Create multi-step automation pipelines for content generation and publishing"
-      icon={HiOutlineClipboardDocumentList}
+      icon={ClipboardList}
       right={
         <ButtonRefresh
           onClick={() => loadWorkflows(true)}
@@ -191,7 +188,7 @@ export default function WorkflowsPage() {
                             variant={ButtonVariant.GHOST}
                             size={ButtonSize.ICON}
                           >
-                            <HiEllipsisVertical className="size-4" />
+                            <EllipsisVertical className="size-4" />
                           </Button>
                         }
                         usePortal
@@ -202,7 +199,7 @@ export default function WorkflowsPage() {
                               variant={ButtonVariant.GHOST}
                               onClick={() => handleDelete(workflow)}
                             >
-                              <HiTrash className="size-4" />
+                              <Trash2 className="size-4" />
                               Delete
                             </Button>
                           </li>

@@ -17,15 +17,9 @@ import { validateCarouselCount } from '@genfeedai/utils/carousel-validation';
 import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { Eye, Heart, MessageSquare, TrendingUp, Zap } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  HiArrowTrendingUp,
-  HiBolt,
-  HiChatBubbleLeftRight,
-  HiEye,
-  HiHeart,
-} from 'react-icons/hi2';
 
 export const GROK_FEEDBACK_QUESTIONS = [
   '@grok What are your thoughts on this thread?',
@@ -281,7 +275,7 @@ export function usePostDetailState({
     const stats: Array<AnalyticsStat | null> = [
       {
         accent: 'text-primary',
-        icon: HiEye,
+        icon: Eye,
         label: 'Views',
         value: formatCompactNumber(baseViews),
       },
@@ -289,7 +283,7 @@ export function usePostDetailState({
         ? null
         : {
             accent: 'text-rose-500',
-            icon: HiHeart,
+            icon: Heart,
             label: 'Likes',
             value: formatCompactNumber(likes),
           },
@@ -297,7 +291,7 @@ export function usePostDetailState({
         ? null
         : {
             accent: 'text-secondary',
-            icon: HiChatBubbleLeftRight,
+            icon: MessageSquare,
             label: 'Comments',
             value: formatCompactNumber(comments),
           },
@@ -305,7 +299,7 @@ export function usePostDetailState({
         ? null
         : {
             accent: 'text-warning',
-            icon: HiBolt,
+            icon: Zap,
             label: 'Shares',
             value: formatCompactNumber(shares),
           },
@@ -313,7 +307,7 @@ export function usePostDetailState({
         ? null
         : {
             accent: 'text-success',
-            icon: HiArrowTrendingUp,
+            icon: TrendingUp,
             label: 'Engagement',
             value: `${(engagementRate * 100).toFixed(1)}%`,
           },

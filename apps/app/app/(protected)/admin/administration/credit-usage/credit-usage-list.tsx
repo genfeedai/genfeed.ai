@@ -11,8 +11,8 @@ import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Progress } from '@ui/primitives/progress';
+import { ChartColumn } from 'lucide-react';
 import { useEffect } from 'react';
-import { HiOutlineChartBar } from 'react-icons/hi2';
 
 export default function CreditUsageList() {
   const getSubscriptionsService = useAuthedService((token: string) =>
@@ -116,7 +116,7 @@ export default function CreditUsageList() {
     <Container
       label="Credit Usage"
       description="Monitor per-organization credit balance and plan allotment usage"
-      icon={HiOutlineChartBar}
+      icon={ChartColumn}
       right={
         <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
       }

@@ -39,8 +39,9 @@ import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { Button } from '@ui/primitives/button';
+import { TrendingUp } from 'lucide-react';
 import { useMemo } from 'react';
-import { HiOutlineArrowTrendingUp } from 'react-icons/hi2';
+
 import TrendsPlatformRelatedSections from './components/trends-platform-related-sections';
 import TrendsPlatformStatBar from './components/trends-platform-stat-bar';
 
@@ -176,7 +177,7 @@ export default function TrendsPlatformDetail({
       <SectionTopbar
         title={`${label} Trends`}
         subtitle="Platform-specific trending posts and videos, with related signal sets below."
-        icon={HiOutlineArrowTrendingUp}
+        icon={TrendingUp}
         actions={
           <ButtonRefresh isRefreshing={isRefreshing} onClick={handleRefresh} />
         }
@@ -225,7 +226,7 @@ export default function TrendsPlatformDetail({
           <div className="space-y-6">
             <section className="space-y-4">
               <div className="flex flex-wrap items-center gap-2">
-                <HiOutlineArrowTrendingUp className="size-5 text-foreground/70" />
+                <TrendingUp className="size-5 text-foreground/70" />
                 <h2 className="text-lg font-semibold text-foreground">
                   {label} content feed
                 </h2>

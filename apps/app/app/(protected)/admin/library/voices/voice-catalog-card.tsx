@@ -7,7 +7,7 @@ import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { Button } from '@ui/primitives/button';
-import { HiSparkles, HiStar } from 'react-icons/hi2';
+import { Sparkles, Star } from 'lucide-react';
 
 function getVoiceName(voice: ExternalVoice): string {
   return voice.name || voice.externalVoiceId || voice.id;
@@ -88,7 +88,7 @@ export default function VoiceCatalogCard({
             }
             withWrapper={false}
           >
-            <HiSparkles className="mr-2 size-4" />
+            <Sparkles className="mr-2 size-4" />
             {voice.isActive === false ? 'Activate' : 'Active'}
           </Button>
 
@@ -123,7 +123,7 @@ export default function VoiceCatalogCard({
             }
             withWrapper={false}
           >
-            <HiStar className="mr-2 size-4" />
+            <Star className="mr-2 size-4" />
             {voice.isFeatured ? 'Featured' : 'Mark featured'}
           </Button>
         </div>

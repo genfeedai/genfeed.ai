@@ -2,12 +2,8 @@ import { AGENT_REFRESH_CONVERSATIONS_EVENT } from '@genfeedai/agent/components/a
 import { AgentThreadStatus, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
+import { Archive, ArchiveX, RefreshCw } from 'lucide-react';
 import type { ReactElement } from 'react';
-import {
-  HiArchiveBox,
-  HiArrowPath,
-  HiOutlineArchiveBoxXMark,
-} from 'react-icons/hi2';
 
 interface AgentThreadListHeaderActionsProps {
   viewStatus: AgentThreadStatus;
@@ -44,7 +40,7 @@ export function AgentThreadListHeaderActions({
               );
             }}
           >
-            <HiArrowPath className="size-3.5" />
+            <RefreshCw className="size-3.5" />
           </Button>
         </SimpleTooltip>
       )}
@@ -59,7 +55,7 @@ export function AgentThreadListHeaderActions({
             className="size-7 rounded-md text-foreground/45 hover:bg-foreground/[0.06] hover:text-foreground/80"
             onClick={onArchiveAll}
           >
-            <HiOutlineArchiveBoxXMark className="size-3.5" />
+            <ArchiveX className="size-3.5" />
           </Button>
         </SimpleTooltip>
       )}
@@ -73,7 +69,7 @@ export function AgentThreadListHeaderActions({
           className="size-7 rounded-md text-foreground/45 hover:bg-foreground/[0.06] hover:text-foreground/80"
           onClick={onToggleView}
         >
-          <HiArchiveBox className="size-3.5" />
+          <Archive className="size-3.5" />
         </Button>
       </SimpleTooltip>
     </div>

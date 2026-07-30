@@ -1,5 +1,6 @@
 import type { Product } from '@data/products.data';
 import { ButtonVariant } from '@genfeedai/enums';
+import { GithubIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { EnvironmentService } from '@services/core/environment.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
@@ -7,7 +8,7 @@ import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
 import Link from 'next/link';
-import { FaGithub } from 'react-icons/fa6';
+
 import { GitHubLink } from './github-link';
 
 type Props = {
@@ -50,7 +51,7 @@ export default function ProductFinalCTA({
           ) : githubUrl ? (
             <Button asChild className="h-12 px-6 text-lg uppercase font-bold">
               <Link href={githubUrl} target="_blank" rel="noopener noreferrer">
-                <FaGithub className="size-5" />
+                <GithubIcon className="size-5" />
                 View on GitHub →
               </Link>
             </Button>

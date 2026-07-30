@@ -1,13 +1,13 @@
 import type { ServiceLandingConfig } from '@web-components/landing/service-landings.data';
 import {
-  LuBot,
-  LuClapperboard,
-  LuCpu,
-  LuFileText,
-  LuGauge,
-  LuRepeat,
-  LuServer,
-} from 'react-icons/lu';
+  Bot,
+  Clapperboard,
+  Cpu,
+  FileText,
+  Gauge,
+  Repeat,
+  Server,
+} from 'lucide-react';
 
 /**
  * High-ticket pitch pages — direct-send sales collateral, NOT the self-serve
@@ -119,19 +119,19 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       {
         description:
           'Turn founder insight, product updates, and customer conversations into a reliable weekly publishing system.',
-        icon: LuFileText,
+        icon: FileText,
         title: 'Strategy Into Output',
       },
       {
         description:
           'Ship video, images, scripts, and publishing-ready assets across channels without hiring.',
-        icon: LuClapperboard,
+        icon: Clapperboard,
         title: 'Multi-Format At Volume',
       },
       {
         description:
           'Keep one consistent voice while moving fast enough to support launches and ongoing demand.',
-        icon: LuRepeat,
+        icon: Repeat,
         title: 'Consistent Presence',
       },
     ],
@@ -266,19 +266,19 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       {
         description:
           'Ship video, images, and posts on your core channels without hiring or managing freelancers.',
-        icon: LuClapperboard,
+        icon: Clapperboard,
         title: 'Content, Handled',
       },
       {
         description:
           'A commitment sized to where you are now: real output without full-operation overhead.',
-        icon: LuGauge,
+        icon: Gauge,
         title: 'Right-Sized Commitment',
       },
       {
         description:
           'Keep a consistent voice and cadence so your brand shows up week after week.',
-        icon: LuRepeat,
+        icon: Repeat,
         title: 'Consistent Presence',
       },
     ],
@@ -411,19 +411,19 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       {
         description:
           'Train models on your subjects, styles, and brand so identity stays consistent across every asset.',
-        icon: LuCpu,
+        icon: Cpu,
         title: 'Owned Custom Models',
       },
       {
         description:
           'Create and run AI influencers with consistent faces, voices, and personas at production volume.',
-        icon: LuBot,
+        icon: Bot,
         title: 'AI Influencers At Scale',
       },
       {
         description:
           'Dedicated GPU capacity and a managed delivery pipeline: output at volume without running infrastructure.',
-        icon: LuServer,
+        icon: Server,
         title: 'Dedicated, Managed Inference',
       },
     ],

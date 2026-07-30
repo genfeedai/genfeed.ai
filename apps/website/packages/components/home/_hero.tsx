@@ -7,8 +7,8 @@ import { HStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { HOME_OUTPUT_WALL_ASSETS } from '@web-components/home/_assets';
+import { ArrowRight } from 'lucide-react';
 import Image from 'next/image';
-import { LuArrowRight } from 'react-icons/lu';
 
 const HERO_WALL_ITEMS = [
   {
@@ -102,7 +102,7 @@ export default function HomeHero(): React.ReactElement {
               >
                 <a href={`${EnvironmentService.apps.app}/sign-up`}>
                   Start for free
-                  <LuArrowRight className="size-4" />
+                  <ArrowRight className="size-4" />
                 </a>
               </ButtonTracked>
 

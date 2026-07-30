@@ -13,9 +13,10 @@ import { NotificationsService } from '@services/core/notifications.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import { Plus, Rocket } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { HiPlus, HiRocketLaunch } from 'react-icons/hi2';
+
 import OutreachCampaignsKPI from './OutreachCampaignsKPI';
 import OutreachCampaignsTable from './OutreachCampaignsTable';
 
@@ -198,7 +199,7 @@ export default function OutreachCampaignsList() {
     <Container
       label="Marketing Campaigns"
       description="Outreach for launches and distribution."
-      icon={HiRocketLaunch}
+      icon={Rocket}
       right={
         <>
           <ButtonRefresh
@@ -209,7 +210,7 @@ export default function OutreachCampaignsList() {
           <Button
             label={
               <>
-                <HiPlus /> New Campaign
+                <Plus /> New Campaign
               </>
             }
             variant={ButtonVariant.DEFAULT}

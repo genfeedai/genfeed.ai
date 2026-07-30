@@ -11,16 +11,16 @@ import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import { formatDistanceToNow } from 'date-fns';
-import { useCallback, useEffect, useState } from 'react';
 import {
-  HiOutlineArrowPath,
-  HiOutlineCheck,
-  HiOutlineChevronDown,
-  HiOutlineChevronUp,
-  HiOutlineClock,
-  HiOutlinePlay,
-  HiOutlineXMark,
-} from 'react-icons/hi2';
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Play,
+  RefreshCw,
+  X,
+} from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface ExecutionNodeResult {
   nodeId: string;
@@ -51,11 +51,11 @@ interface ExecutionHistoryPanelProps {
 }
 
 const STATUS_ICONS: Record<string, React.ReactNode> = {
-  cancelled: <HiOutlineXMark className="size-4 text-muted-foreground" />,
-  completed: <HiOutlineCheck className="size-4 text-green-500" />,
-  failed: <HiOutlineXMark className="size-4 text-red-500" />,
-  pending: <HiOutlineClock className="size-4 text-muted-foreground" />,
-  running: <HiOutlineArrowPath className="size-4 text-blue-500 animate-spin" />,
+  cancelled: <X className="size-4 text-muted-foreground" />,
+  completed: <Check className="size-4 text-green-500" />,
+  failed: <X className="size-4 text-red-500" />,
+  pending: <Clock className="size-4 text-muted-foreground" />,
+  running: <RefreshCw className="size-4 text-blue-500 animate-spin" />,
 };
 
 const STATUS_VARIANTS: Record<string, 'ghost' | 'success' | 'error' | 'info'> =
@@ -130,9 +130,9 @@ function ExecutionItem({
           />
         )}
         {isExpanded ? (
-          <HiOutlineChevronUp className="size-4" />
+          <ChevronUp className="size-4" />
         ) : (
-          <HiOutlineChevronDown className="size-4" />
+          <ChevronDown className="size-4" />
         )}
       </Button>
 
@@ -252,7 +252,7 @@ export default function ExecutionHistoryPanel({
         onClick={onToggleCollapse}
       >
         <div className="flex items-center gap-2">
-          <HiOutlinePlay className="size-4" />
+          <Play className="size-4" />
           <span className="font-semibold text-sm">Execution History</span>
         </div>
         <div className="flex items-center gap-2">
@@ -260,9 +260,9 @@ export default function ExecutionHistoryPanel({
             {executions.length}
           </Badge>
           {isCollapsed ? (
-            <HiOutlineChevronDown className="size-4" />
+            <ChevronDown className="size-4" />
           ) : (
-            <HiOutlineChevronUp className="size-4" />
+            <ChevronUp className="size-4" />
           )}
         </div>
       </Button>

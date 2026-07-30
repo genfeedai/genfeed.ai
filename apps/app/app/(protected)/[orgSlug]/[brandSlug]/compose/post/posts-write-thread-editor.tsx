@@ -3,7 +3,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
-import { HiPlus, HiTrash } from 'react-icons/hi2';
+import { Plus, Trash2 } from 'lucide-react';
 
 interface PostsWriteThreadEditorProps {
   characterLimit: number | null;
@@ -30,7 +30,7 @@ export default function PostsWriteThreadEditor({
           onClick={onAddSegment}
           className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-white/[0.05]"
         >
-          <HiPlus className="size-3.5" />
+          <Plus className="size-3.5" />
           Add post
         </Button>
       </div>
@@ -68,7 +68,7 @@ export default function PostsWriteThreadEditor({
                       onClick={() => onRemoveSegment(index)}
                       className="inline-flex size-7 items-center justify-center rounded-lg text-foreground/45 transition hover:bg-white/[0.06] hover:text-foreground"
                     >
-                      <HiTrash className="size-3.5" />
+                      <Trash2 className="size-3.5" />
                     </Button>
                   ) : null}
                 </div>

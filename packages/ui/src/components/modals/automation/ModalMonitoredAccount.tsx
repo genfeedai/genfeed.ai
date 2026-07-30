@@ -12,6 +12,13 @@ import {
   hasFormErrors,
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
+import {
+  InstagramIcon,
+  RedditIcon,
+  TiktokIcon,
+  XTwitterIcon,
+  YoutubeIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
 import type { IMonitoredAccount } from '@genfeedai/interfaces';
 import type { ModalMonitoredAccountProps } from '@genfeedai/props/modals/modal.props';
@@ -24,44 +31,37 @@ import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
+import { Trash2 } from 'lucide-react';
 import { type ChangeEvent, useEffect } from 'react';
-import {
-  FaInstagram,
-  FaReddit,
-  FaTiktok,
-  FaXTwitter,
-  FaYoutube,
-} from 'react-icons/fa6';
-import { HiTrash } from 'react-icons/hi2';
 
 const PLATFORMS = [
   {
     color: 'text-slate-300',
-    icon: FaXTwitter,
+    icon: XTwitterIcon,
     label: 'Twitter/X',
     platform: ReplyBotPlatform.TWITTER,
   },
   {
     color: 'text-pink-500',
-    icon: FaInstagram,
+    icon: InstagramIcon,
     label: 'Instagram',
     platform: ReplyBotPlatform.INSTAGRAM,
   },
   {
     color: 'text-slate-300',
-    icon: FaTiktok,
+    icon: TiktokIcon,
     label: 'TikTok',
     platform: ReplyBotPlatform.TIKTOK,
   },
   {
     color: 'text-red-500',
-    icon: FaYoutube,
+    icon: YoutubeIcon,
     label: 'YouTube',
     platform: ReplyBotPlatform.YOUTUBE,
   },
   {
     color: 'text-orange-500',
-    icon: FaReddit,
+    icon: RedditIcon,
     label: 'Reddit',
     platform: ReplyBotPlatform.REDDIT,
   },
@@ -265,7 +265,7 @@ export default function ModalMonitoredAccount({
 
           {account && deleteModalMonitoredAccount && (
             <Button
-              label={<HiTrash />}
+              label={<Trash2 />}
               variant={ButtonVariant.DESTRUCTIVE}
               onClick={deleteModalMonitoredAccount}
               isLoading={isSubmitting}

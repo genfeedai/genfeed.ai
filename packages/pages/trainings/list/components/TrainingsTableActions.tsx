@@ -2,7 +2,7 @@
 
 import type { ITraining } from '@genfeedai/interfaces';
 import type { TableAction } from '@props/ui/display/table.props';
-import { HiEye, HiPencil, HiTrash } from 'react-icons/hi2';
+import { Eye, Pencil, Trash2 } from 'lucide-react';
 
 export type BuildTrainingsTableActionsParams = {
   onEdit: (training: ITraining) => void;
@@ -17,20 +17,20 @@ export function buildTrainingsTableActions({
 }: BuildTrainingsTableActionsParams): TableAction<ITraining>[] {
   return [
     {
-      icon: () => <HiPencil />,
+      icon: () => <Pencil />,
       onClick: (training: ITraining) => {
         onEdit(training);
       },
       tooltip: 'Edit',
     },
     {
-      icon: () => <HiEye />,
+      icon: () => <Eye />,
       onClick: (training: ITraining) => onView(training),
       tooltip: 'Details',
     },
     {
       className: 'text-error hover:text-error',
-      icon: () => <HiTrash />,
+      icon: () => <Trash2 />,
       onClick: (training: ITraining) => {
         onDelete(training);
       },

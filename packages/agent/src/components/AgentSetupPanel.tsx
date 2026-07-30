@@ -10,9 +10,9 @@ import { OAUTH_CONNECT_PLATFORMS } from '@ui/constants/oauth-connect-platforms';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
+import { LayoutGrid } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { useMemo, useState } from 'react';
-import { HiOutlineSquares2X2 } from 'react-icons/hi2';
 
 interface AgentSetupPanelProps {
   brand: Brand | undefined | null;
@@ -188,7 +188,7 @@ export function AgentSetupPanel({
             </div>
           ) : (
             <div className="mb-3 flex items-center gap-2 rounded-md bg-background-secondary px-3 py-2.5 text-[11px] text-muted-foreground shadow-border">
-              <HiOutlineSquares2X2 className="size-4 shrink-0 text-foreground/40" />
+              <LayoutGrid className="size-4 shrink-0 text-foreground/40" />
               No channels connected yet.
             </div>
           )}

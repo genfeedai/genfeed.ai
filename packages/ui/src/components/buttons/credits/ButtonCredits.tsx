@@ -29,11 +29,11 @@ import {
   PopoverPanelContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
+import { Plus, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { HiArrowPath, HiPlus } from 'react-icons/hi2';
 
 export default function ButtonCredits({
   isCompact = false,
@@ -283,7 +283,7 @@ export default function ButtonCredits({
               title="Refresh Balance"
               ariaLabel="Refresh balance"
             >
-              <HiArrowPath
+              <RefreshCw
                 className={cn(
                   'size-4 flex-shrink-0',
                   isLoading && 'animate-spin',
@@ -304,7 +304,7 @@ export default function ButtonCredits({
               onClick={() => setIsOpen(false)}
               title="Top Up Credits"
             >
-              <HiPlus className="size-4 flex-shrink-0" />
+              <Plus className="size-4 flex-shrink-0" />
               <span className="text-sm font-black">Top Up</span>
             </Link>
           </div>

@@ -230,6 +230,15 @@ describe('Brand', () => {
       expect(brand.label).toBe('Test Brand');
     });
 
+    it('normalizes Prisma UPPERCASE scope to app lowercase AssetScope', () => {
+      const brand = createBrand({
+        id: 'brand-123',
+        scope: 'PUBLIC' as unknown as AssetScope,
+      });
+
+      expect(brand.scope).toBe(AssetScope.PUBLIC);
+    });
+
     it('should handle populated user', () => {
       const brand = createBrand({
         id: 'brand-123',

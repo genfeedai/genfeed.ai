@@ -14,9 +14,10 @@ import { AgentStrategiesService } from '@services/automation/agent-strategies.se
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Container from '@ui/layout/container/Container';
+import { Cpu } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
-import { HiOutlineCpuChip } from 'react-icons/hi2';
+
 import { StepIndicator } from './AgentWizardHelpers';
 import AgentWizardStepBrand from './AgentWizardStepBrand';
 import AgentWizardStepConfigure from './AgentWizardStepConfigure';
@@ -245,7 +246,7 @@ export default function AgentWizardPage() {
     <Container
       label="New Agent"
       description="Configure a new content agent."
-      icon={HiOutlineCpuChip}
+      icon={Cpu}
     >
       <div className="max-w-2xl">
         <StepIndicator current={step} />

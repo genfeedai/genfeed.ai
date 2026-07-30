@@ -5,7 +5,7 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
-import { HiOutlineGlobeAlt } from 'react-icons/hi2';
+import { Globe } from 'lucide-react';
 
 const TWEET_MAX_CHARS = 280;
 
@@ -139,7 +139,7 @@ export default function AnnouncementComposeForm({
         isDisabled={isSubmitting || tweetOverLimit}
         className="flex items-center gap-2"
       >
-        <HiOutlineGlobeAlt className="size-4" />
+        <Globe className="size-4" />
         {isSubmitting ? 'Publishing…' : 'Publish'}
       </Button>
     </form>

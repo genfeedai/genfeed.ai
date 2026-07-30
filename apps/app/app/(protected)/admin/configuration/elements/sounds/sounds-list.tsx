@@ -14,6 +14,7 @@ import { SoundsService } from '@services/elements/sounds.service';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import AppTable from '@ui/display/table/Table';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Pencil, Trash2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Suspense,
@@ -23,7 +24,7 @@ import {
   useReducer,
   useRef,
 } from 'react';
-import { HiPencil, HiTrash } from 'react-icons/hi2';
+
 import { buildSoundsColumns } from './sounds-list-columns.helpers';
 import SoundsListModals from './sounds-list-modals';
 
@@ -293,12 +294,12 @@ function SoundsListContent({
     scope === PageScope.SUPERADMIN
       ? [
           {
-            icon: <HiPencil />,
+            icon: <Pencil />,
             onClick: (sound: Sound) => openSoundModal(ModalEnum.SOUND, sound),
             tooltip: 'Edit',
           },
           {
-            icon: <HiTrash />,
+            icon: <Trash2 />,
             onClick: (sound: Sound) => {
               dispatch({ type: 'SET_SELECTED_SOUND', sound });
               openConfirm({

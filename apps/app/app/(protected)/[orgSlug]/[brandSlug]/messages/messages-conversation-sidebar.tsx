@@ -25,14 +25,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import type { ReactNode } from 'react';
 import {
-  HiOutlineAdjustmentsHorizontal,
-  HiOutlineArrowPath,
-  HiOutlineChatBubbleLeftRight,
-  HiOutlineChevronLeft,
-  HiOutlineChevronRight,
-} from 'react-icons/hi2';
+  ChevronLeft,
+  ChevronRight,
+  MessageSquare,
+  RefreshCw,
+  SlidersHorizontal,
+} from 'lucide-react';
+import Link from 'next/link';
+import type { ReactNode } from 'react';
 
 export type MessagesInboxView =
   | 'all'
@@ -215,6 +216,7 @@ export type MessagesBrandFilterOption = {
 };
 
 interface MessagesConversationSidebarProps {
+  accountsHref: string;
   advancedFilters: ReactNode;
   brandFilter: string;
   brandOptions: readonly MessagesBrandFilterOption[];
@@ -238,6 +240,7 @@ interface MessagesConversationSidebarProps {
 }
 
 export function MessagesConversationSidebar({
+  accountsHref,
   advancedFilters,
   brandFilter,
   brandOptions,
@@ -284,7 +287,7 @@ export function MessagesConversationSidebar({
     <Button
       ariaLabel="Sync social messages"
       className="size-8 shrink-0 rounded-md border border-border bg-foreground/[0.025] text-foreground/48 hover:bg-foreground/[0.07] hover:text-foreground"
-      icon={<HiOutlineArrowPath className="size-4" />}
+      icon={<RefreshCw className="size-4" />}
       isDisabled={Boolean(busyAction) && busyAction !== 'sync'}
       isLoading={busyAction === 'sync'}
       size={ButtonSize.ICON}
@@ -368,7 +371,7 @@ export function MessagesConversationSidebar({
               <Button
                 ariaLabel="Open advanced message filters"
                 className="size-7 shrink-0 rounded-md border border-border bg-foreground/[0.025] text-foreground/42 hover:bg-foreground/[0.07] hover:text-foreground"
-                icon={<HiOutlineAdjustmentsHorizontal className="size-3.5" />}
+                icon={<SlidersHorizontal className="size-3.5" />}
                 size={ButtonSize.ICON}
                 variant={ButtonVariant.UNSTYLED}
                 withWrapper={false}
@@ -390,14 +393,44 @@ export function MessagesConversationSidebar({
             <LazyLoadingFallback variant="minimal" />
           </div>
         ) : conversations.length === 0 ? (
-          <div className="flex h-64 flex-col items-center justify-center px-6 text-center">
-            <HiOutlineChatBubbleLeftRight className="mb-3 size-8 text-foreground/20" />
-            <p className="text-sm text-foreground/50">No messages found</p>
-            <p className="mt-1 text-xs text-foreground/30">
-              {brandFilter === 'all'
-                ? 'New social conversations will appear here after sync. Filter by brand anytime.'
-                : 'No conversations for this brand yet. Try another brand or sync accounts.'}
-            </p>
+          <div
+            className="flex flex-col items-center justify-center gap-3 px-5 py-10 text-center"
+            data-testid="messages-sidebar-empty"
+          >
+            <MessageSquare
+              aria-hidden="true"
+              className="size-8 text-foreground/20"
+            />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground/60">
+                No conversations yet
+              </p>
+              <p className="text-xs leading-5 text-foreground/38">
+                {brandFilter === 'all'
+                  ? 'Connect a social account, then sync to pull comments and DMs into this inbox.'
+                  : 'No conversations for this brand yet. Connect accounts, sync, or switch brands.'}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+              <Button
+                asChild
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
+              >
+                <Link href={accountsHref}>Connect accounts</Link>
+              </Button>
+              <Button
+                isDisabled={Boolean(busyAction) && busyAction !== 'sync'}
+                isLoading={busyAction === 'sync'}
+                onClick={onSync}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              >
+                <RefreshCw aria-hidden="true" className="size-3.5" />
+                Sync
+              </Button>
+            </div>
           </div>
         ) : singleSectionLabel ? (
           <ConversationSidebarSection
@@ -457,7 +490,7 @@ export function MessagesConversationSidebar({
           <>
             <Button
               ariaLabel="Previous conversations page"
-              icon={<HiOutlineChevronLeft className="size-4" />}
+              icon={<ChevronLeft className="size-4" />}
               isDisabled={!pagination.hasPrevious}
               onClick={onPreviousPage}
               size={ButtonSize.ICON}
@@ -469,7 +502,7 @@ export function MessagesConversationSidebar({
             </span>
             <Button
               ariaLabel="Next conversations page"
-              icon={<HiOutlineChevronRight className="size-4" />}
+              icon={<ChevronRight className="size-4" />}
               isDisabled={!pagination.hasNext}
               onClick={onNextPage}
               size={ButtonSize.ICON}

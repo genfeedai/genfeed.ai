@@ -13,14 +13,9 @@ import FormDropdown from '@ui/primitives/dropdown-field';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
+import { ArrowUp, Bookmark, ChevronUp, Sparkles } from 'lucide-react';
 import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react';
 import { useMemo, useState } from 'react';
-import {
-  HiArrowUp,
-  HiBookmark,
-  HiChevronUp,
-  HiSparkles,
-} from 'react-icons/hi2';
 
 const EMPTY_ARRAY: never[] = [];
 
@@ -79,7 +74,7 @@ export default function PromptBarArticle({
     presetOptions.length > 0 ? (
       <FormDropdown
         name="preset"
-        icon={<HiBookmark />}
+        icon={<Bookmark />}
         label="Preset"
         value={selectedPresetKey}
         isFullWidth={false}
@@ -125,7 +120,7 @@ export default function PromptBarArticle({
           <div className="flex items-center gap-2">
             <Button
               variant={ButtonVariant.DEFAULT}
-              icon={<HiArrowUp />}
+              icon={<ArrowUp />}
               isLoading={isEnhancing}
               isDisabled={isEnhancing || !prompt.trim()}
               onClick={handleSubmit}
@@ -141,7 +136,7 @@ export default function PromptBarArticle({
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
               className="size-10 p-0 flex-shrink-0"
-              icon={<HiChevronUp className="transition-transform size-4" />}
+              icon={<ChevronUp className="transition-transform size-4" />}
             />
           </div>
         </div>
@@ -159,7 +154,7 @@ export default function PromptBarArticle({
               variant={ButtonVariant.SECONDARY}
               className="size-10 p-0"
               icon={
-                <HiChevronUp
+                <ChevronUp
                   className="transition-transform rotate-180"
                   size={16}
                 />
@@ -189,7 +184,7 @@ export default function PromptBarArticle({
                       </>
                     ) : (
                       <>
-                        <HiSparkles className="size-4" />
+                        <Sparkles className="size-4" />
                         <span>Enhance</span>
                       </>
                     )}

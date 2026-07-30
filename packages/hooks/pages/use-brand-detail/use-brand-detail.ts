@@ -35,7 +35,14 @@ import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { useParams, usePathname, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 
 interface BrandMediaState {
   brand: IBrand | null;
@@ -322,14 +329,28 @@ export function useBrandDetail(): UseBrandDetailReturn {
     findOneBrand(true);
   }, [findOneBrand]);
 
+  const isUpdatingRef = useRef(false);
+
   const handleUpdateAccount = useCallback(
     async (field: string, value: boolean | string) => {
-      if (!state.brand || isUpdating) {
+      if (!state.brand || isUpdatingRef.current) {
         return;
       }
 
       const url = `PATCH /brands/${state.brand.id}`;
+      const previousBrand = state.brand;
+      const previousLinks = state.links;
+      isUpdatingRef.current = true;
       setIsUpdating(true);
+
+      // Optimistic: flip public-profile switch immediately (scope is the field).
+      if (field === 'scope') {
+        dispatch({
+          brand: { ...state.brand, [field]: value } as IBrand,
+          links: state.links,
+          type: 'SET_BRAND',
+        });
+      }
 
       try {
         const service = await getBrandsService();
@@ -341,23 +362,23 @@ export function useBrandDetail(): UseBrandDetailReturn {
         logger.info(`${url} success`, updatedAccount);
         dispatch({
           brand: updatedAccount as IBrand,
-          links: (updatedAccount as IBrand).links || state.links,
+          links: (updatedAccount as IBrand).links || previousLinks,
           type: 'SET_BRAND',
         });
       } catch (error) {
         logger.error(`${url} failed`, error);
         notificationsService.error(`${url} failed`);
+        dispatch({
+          brand: previousBrand,
+          links: previousLinks,
+          type: 'SET_BRAND',
+        });
       } finally {
+        isUpdatingRef.current = false;
         setIsUpdating(false);
       }
     },
-    [
-      state.brand,
-      state.links,
-      getBrandsService,
-      isUpdating,
-      notificationsService,
-    ],
+    [state.brand, state.links, getBrandsService, notificationsService],
   );
 
   const _confirmGenerateAsset = useCallback(
@@ -557,6 +578,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
     isGeneratingBanner,
     isGeneratingLogo,
     isLoading,
+    isUpdating,
     links: state.links,
     selectedLink: state.selectedLink,
     selectLink,

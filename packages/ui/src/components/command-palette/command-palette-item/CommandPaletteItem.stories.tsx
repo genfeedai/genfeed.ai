@@ -2,13 +2,13 @@ import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interfac
 // @ts-expect-error storybook types not available
 import type { Meta, StoryObj } from '@storybook/react';
 import { CommandPaletteItem } from '@ui/command-palette/command-palette-item/CommandPaletteItem';
-import { HiOutlineCommandLine } from 'react-icons/hi2';
+import { Terminal } from 'lucide-react';
 
 const sampleCommand: ICommand = {
   action: () => undefined,
   category: 'navigation',
   description: 'Jump to the Studio workspace',
-  icon: HiOutlineCommandLine,
+  icon: Terminal,
   id: 'cmd-sample',
   label: 'Open Studio',
   shortcut: ['⌘', 'K'],

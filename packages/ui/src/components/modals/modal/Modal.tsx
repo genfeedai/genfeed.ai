@@ -9,8 +9,8 @@ import {
 } from '@genfeedai/helpers/ui/modal/modal.helper';
 import type { ModalProps } from '@genfeedai/props/modals/modal.props';
 import { Modal as CompoundModal } from '@ui/modals/compound/modal.compound';
+import { TriangleAlert } from 'lucide-react';
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
-import { HiExclamationTriangle } from 'react-icons/hi2';
 
 /**
  * Backward-compatible modal wrapper built on top of the compound modal system.
@@ -86,7 +86,7 @@ export default function Modal({
 
             {error && (
               <div className="flex items-center gap-3 rounded border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive mt-4">
-                <HiExclamationTriangle className="size-5 shrink-0" />
+                <TriangleAlert className="size-5 shrink-0" />
                 <span>{error}</span>
               </div>
             )}

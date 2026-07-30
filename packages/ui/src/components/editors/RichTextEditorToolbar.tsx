@@ -18,14 +18,13 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import {
-  HiBold,
-  HiCodeBracket,
-  HiItalic,
-  HiListBullet,
-  HiQueueList,
-  HiSparkles,
-  HiStrikethrough,
-} from 'react-icons/hi2';
+  Bold,
+  Code,
+  Italic,
+  List,
+  Sparkles,
+  Strikethrough,
+} from 'lucide-react';
 
 const AI_EDITOR_ACTIONS = [
   AiActionType.GRAMMAR_CHECK,
@@ -109,7 +108,7 @@ export default function RichTextEditorToolbar({
         title="Bold"
         ariaLabel="Bold"
       >
-        <HiBold className="size-4" />
+        <Bold className="size-4" />
       </Button>
 
       <Button
@@ -120,7 +119,7 @@ export default function RichTextEditorToolbar({
         title="Italic"
         ariaLabel="Italic"
       >
-        <HiItalic className="size-4" />
+        <Italic className="size-4" />
       </Button>
 
       {shouldShowAdvancedFormatting && (
@@ -133,7 +132,7 @@ export default function RichTextEditorToolbar({
             title="Strikethrough"
             ariaLabel="Strikethrough"
           >
-            <HiStrikethrough className="size-4" />
+            <Strikethrough className="size-4" />
           </Button>
 
           <Button
@@ -144,7 +143,7 @@ export default function RichTextEditorToolbar({
             title="Code"
             ariaLabel="Code"
           >
-            <HiCodeBracket className="size-4" />
+            <Code className="size-4" />
           </Button>
         </>
       )}
@@ -162,7 +161,7 @@ export default function RichTextEditorToolbar({
             title="Bullet List"
             ariaLabel="Bullet List"
           >
-            <HiListBullet className="size-4" />
+            <List className="size-4" />
           </Button>
 
           <Button
@@ -173,7 +172,7 @@ export default function RichTextEditorToolbar({
             title="Numbered List"
             ariaLabel="Numbered List"
           >
-            <HiQueueList className="size-4" />
+            <List className="size-4" />
           </Button>
         </>
       )}
@@ -230,7 +229,7 @@ export default function RichTextEditorToolbar({
                   <Spinner size={ComponentSize.XS} />
                 ) : (
                   <span className="flex items-center gap-1 text-xs">
-                    <HiSparkles className="size-3.5" />
+                    <Sparkles className="size-3.5" />
                     {AI_ACTION_LABELS[action]}
                   </span>
                 )}

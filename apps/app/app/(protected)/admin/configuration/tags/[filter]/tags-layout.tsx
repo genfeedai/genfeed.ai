@@ -4,8 +4,8 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import { PageScope } from '@genfeedai/enums';
 import type { ContentProps } from '@props/layout/content.props';
 import Container from '@ui/layout/container/Container';
+import { Tag } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { HiOutlineTag } from 'react-icons/hi2';
 
 export interface ITagsLayoutProps {
   children: ReactNode;
@@ -42,7 +42,7 @@ export default function TagsLayout({
     <Container
       label="Tags"
       description="Organize content with tags."
-      icon={HiOutlineTag}
+      icon={Tag}
       tabs={tabs}
       right={rightActions}
     >

@@ -6,7 +6,7 @@ import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
-import { HiOutlineGlobeAlt } from 'react-icons/hi2';
+import { Globe } from 'lucide-react';
 
 type TrendDetailRelatedTableProps = {
   relatedTrends: TrendItem[];
@@ -23,7 +23,7 @@ export default function TrendDetailRelatedTable({
 
   return (
     <div className="mt-6">
-      <Card label="Cross-Platform Trends" icon={HiOutlineGlobeAlt}>
+      <Card label="Cross-Platform Trends" icon={Globe}>
         <p className="text-sm text-foreground/60 mb-4">
           Similar trends on other platforms
         </p>

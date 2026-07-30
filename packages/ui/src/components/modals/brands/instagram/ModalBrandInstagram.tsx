@@ -1,6 +1,7 @@
 'use client';
 
 import { AlertCategory, ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import { InstagramIcon } from '@genfeedai/helpers/ui/icons/brands';
 import {
   closeModal,
   isModalOpen,
@@ -15,10 +16,9 @@ import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
+import { CircleCheck } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FaInstagram } from 'react-icons/fa6';
-import { HiCheckCircle } from 'react-icons/hi2';
 
 function closeAccountInstagramModal(): void {
   closeModal(ModalEnum.BRAND_INSTAGRAM);
@@ -171,7 +171,7 @@ export default function ModalBrandInstagram({
       <div className="w-full max-w-2xl">
         <div className="flex items-center gap-2 mb-6">
           <div className="flex size-10 items-center justify-center rounded-full bg-platform-instagram">
-            <FaInstagram className="text-white text-lg" />
+            <InstagramIcon className="text-white text-lg" />
           </div>
 
           <div>
@@ -213,7 +213,7 @@ export default function ModalBrandInstagram({
         {!isLoading && availableHandles.length === 0 && (
           <div className="text-center py-8">
             <div className="size-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
-              <FaInstagram className="text-muted-foreground text-xl" />
+              <InstagramIcon className="text-muted-foreground text-xl" />
             </div>
             <h4 className="font-semibold mb-2">
               No Instagram Business Brands Found
@@ -266,7 +266,7 @@ export default function ModalBrandInstagram({
                   </div>
 
                   {selectedHandle?.id === handle.id && (
-                    <HiCheckCircle className="text-primary text-xl" />
+                    <CircleCheck className="text-primary text-xl" />
                   )}
                 </div>
               </Button>

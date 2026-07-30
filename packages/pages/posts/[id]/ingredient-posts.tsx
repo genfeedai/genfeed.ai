@@ -9,14 +9,9 @@ import HtmlContent from '@ui/display/html-content/HtmlContent';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
+import { ArrowLeft, Eye, FileText, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import {
-  HiArrowLeft,
-  HiDocumentText,
-  HiEye,
-  HiOutlinePhoto,
-} from 'react-icons/hi2';
 
 export interface IngredientPostsProps {
   id: string;
@@ -50,7 +45,7 @@ export default function IngredientPosts({
       <div className="mb-6">
         <Button asChild variant={ButtonVariant.GHOST}>
           <Link href={getPublisherPostsHref()}>
-            <HiArrowLeft />
+            <ArrowLeft />
             Back to ingredients
           </Link>
         </Button>
@@ -70,7 +65,7 @@ export default function IngredientPosts({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <HiOutlinePhoto className="text-4xl text-foreground/20" />
+              <ImageIcon className="text-4xl text-foreground/20" />
             </div>
           )}
         </div>
@@ -90,14 +85,14 @@ export default function IngredientPosts({
           {/* Metrics */}
           <div className="flex flex-wrap items-center gap-6 text-sm">
             <div className="flex items-center gap-2">
-              <HiDocumentText className="text-xl text-primary" />
+              <FileText className="text-xl text-primary" />
               <span className="font-medium">
                 {ingredientMetrics.totalPosts || 0} posts
               </span>
             </div>
 
             <div className="flex items-center gap-2">
-              <HiEye className="text-xl text-primary" />
+              <Eye className="text-xl text-primary" />
               <span className="font-medium">
                 {ingredientMetrics.totalViews || 0} views
               </span>

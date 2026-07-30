@@ -7,8 +7,8 @@ import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCo
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { CommandItem } from '@ui/primitives/command';
+import { Star } from 'lucide-react';
 import { memo, useCallback } from 'react';
-import { HiStar } from 'react-icons/hi2';
 
 const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
   option,
@@ -103,7 +103,7 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
             : 'text-foreground/20 hover:text-foreground/40',
         )}
       >
-        <HiStar className={cn('size-3.5', isFavorite && 'fill-current')} />
+        <Star className={cn('size-3.5', isFavorite && 'fill-current')} />
       </Button>
     </CommandItem>
   );

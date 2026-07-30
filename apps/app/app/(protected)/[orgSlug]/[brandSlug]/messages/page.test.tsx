@@ -46,6 +46,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
     brandSlug: 'demo',
     href: mocks.href,
+    orgSlug: 'acme',
   }),
 }));
 
@@ -362,7 +363,11 @@ describe('SocialMessagesPage', () => {
 
     render(<SocialMessagesPage />);
 
-    expect(await screen.findByText('No messages found')).toBeInTheDocument();
+    expect(await screen.findByText('No conversations yet')).toBeInTheDocument();
+    expect(screen.getByText('Social inbox is empty')).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('link', { name: /Connect accounts/i }).length,
+    ).toBeGreaterThan(0);
     expect(
       screen.getByRole('navigation', { name: 'Social conversations' }),
     ).toBeInTheDocument();

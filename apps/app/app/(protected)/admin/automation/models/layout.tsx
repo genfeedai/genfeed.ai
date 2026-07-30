@@ -7,9 +7,9 @@ import { openModal } from '@helpers/ui/modal/modal.helper';
 import type { LayoutProps } from '@props/layout/layout.props';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import { Cpu, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { HiOutlineCpuChip, HiPlus } from 'react-icons/hi2';
 
 export default function ModelsLayout({ children }: LayoutProps) {
   const { refresh } = useRouter();
@@ -25,7 +25,7 @@ export default function ModelsLayout({ children }: LayoutProps) {
     <Container
       label="Models"
       description="Manage AI models, their configurations, and availability settings"
-      icon={HiOutlineCpuChip}
+      icon={Cpu}
       tabs={[
         { href: `${APP_ROUTES.ADMIN.AUTOMATION.MODELS}/all`, label: 'All' },
         { href: `${APP_ROUTES.ADMIN.AUTOMATION.MODELS}/image`, label: 'Image' },
@@ -41,7 +41,7 @@ export default function ModelsLayout({ children }: LayoutProps) {
             variant={ButtonVariant.DEFAULT}
             onClick={() => openModal(ModalEnum.MODEL)}
           >
-            <HiPlus />
+            <Plus />
             Model
           </Button>
         </>

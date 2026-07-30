@@ -26,6 +26,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@ui/primitives/sheet';
+import { ExternalLink } from 'lucide-react';
 import {
   type PropsWithChildren,
   type ReactNode,
@@ -36,7 +37,6 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import { HiArrowTopRightOnSquare } from 'react-icons/hi2';
 
 type EntityOverlayWidth = 'lg' | 'xl' | '2xl' | 'full';
 type EntityOverlaySurface = 'gradient' | 'flat';
@@ -207,7 +207,7 @@ export default function EntityOverlayShell({
                       <Button
                         label={openDetailLabel}
                         variant={ButtonVariant.SECONDARY}
-                        icon={<HiArrowTopRightOnSquare className="size-4" />}
+                        icon={<ExternalLink className="size-4" />}
                         onClick={onOpenDetail}
                       />
                     ) : null}

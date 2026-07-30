@@ -9,8 +9,8 @@ import type { MasonryImageProps } from '@genfeedai/props/content/masonry.props';
 import type { createDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
 import { Button } from '@ui/primitives/button';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
+import { ThumbsUp } from 'lucide-react';
 import type { MouseEvent } from 'react';
-import { HiHandThumbUp } from 'react-icons/hi2';
 
 type ImageActionHandlers = ReturnType<typeof useIngredientActions>['handlers'];
 
@@ -56,7 +56,7 @@ function VoteButton({ image, onVote }: VoteButtonProps): React.ReactElement {
       onClick={() => onVote(image)}
       label={
         <>
-          <HiHandThumbUp /> {image.totalVotes || 0}
+          <ThumbsUp /> {image.totalVotes || 0}
         </>
       }
       variant={image.hasVoted ? ButtonVariant.DEFAULT : ButtonVariant.DEFAULT}

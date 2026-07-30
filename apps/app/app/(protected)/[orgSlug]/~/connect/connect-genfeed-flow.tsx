@@ -24,17 +24,18 @@ import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
+import {
+  ArrowRight,
+  CircleCheck,
+  Clipboard,
+  Key,
+  LinkIcon,
+  Plus,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  HiArrowRight,
-  HiCheckCircle,
-  HiClipboardDocument,
-  HiKey,
-  HiLink,
-  HiPlus,
-} from 'react-icons/hi2';
+
 import {
   ANALYTICS_EVENTS,
   type ConnectGenfeedStep,
@@ -404,9 +405,9 @@ export default function ConnectGenfeedFlow() {
                         </span>
                       </span>
                       {isSelected ? (
-                        <HiCheckCircle aria-hidden="true" className="size-5" />
+                        <CircleCheck aria-hidden="true" className="size-5" />
                       ) : (
-                        <HiKey aria-hidden="true" className="size-5" />
+                        <Key aria-hidden="true" className="size-5" />
                       )}
                     </Button>
                   );
@@ -419,7 +420,7 @@ export default function ConnectGenfeedFlow() {
             )}
 
             <Button
-              icon={<HiPlus aria-hidden="true" className="size-4" />}
+              icon={<Plus aria-hidden="true" className="size-4" />}
               isDisabled={!hasProductApiAccess}
               isLoading={isCreatingKey}
               onClick={() => void handleCreateKey()}
@@ -438,7 +439,7 @@ export default function ConnectGenfeedFlow() {
 
             {createdPlainKey ? (
               <Alert variant="warning">
-                <HiKey aria-hidden="true" className="size-4" />
+                <Key aria-hidden="true" className="size-4" />
                 <AlertTitle>Copy this key now</AlertTitle>
                 <AlertDescription>
                   <p className="break-all font-mono text-xs">
@@ -446,12 +447,7 @@ export default function ConnectGenfeedFlow() {
                   </p>
                   <Button
                     className="mt-3"
-                    icon={
-                      <HiClipboardDocument
-                        aria-hidden="true"
-                        className="size-4"
-                      />
-                    }
+                    icon={<Clipboard aria-hidden="true" className="size-4" />}
                     onClick={() => void copyText('API key', createdPlainKey)}
                     variant={ButtonVariant.SECONDARY}
                     withWrapper={false}
@@ -481,9 +477,7 @@ export default function ConnectGenfeedFlow() {
               </h2>
               <Button
                 ariaLabel="Copy environment variable command"
-                icon={
-                  <HiClipboardDocument aria-hidden="true" className="size-4" />
-                }
+                icon={<Clipboard aria-hidden="true" className="size-4" />}
                 onClick={() =>
                   void copyText(
                     'Environment command',
@@ -504,12 +498,7 @@ export default function ConnectGenfeedFlow() {
                 <h2 className="text-xs font-medium">Add Genfeed</h2>
                 <Button
                   ariaLabel="Copy client setup command"
-                  icon={
-                    <HiClipboardDocument
-                      aria-hidden="true"
-                      className="size-4"
-                    />
-                  }
+                  icon={<Clipboard aria-hidden="true" className="size-4" />}
                   onClick={() =>
                     void copyText(
                       'Client setup command',
@@ -534,9 +523,7 @@ export default function ConnectGenfeedFlow() {
               </h2>
               <Button
                 ariaLabel="Copy MCP configuration"
-                icon={
-                  <HiClipboardDocument aria-hidden="true" className="size-4" />
-                }
+                icon={<Clipboard aria-hidden="true" className="size-4" />}
                 onClick={() =>
                   void copyText('MCP configuration', instructions.configuration)
                 }
@@ -584,7 +571,7 @@ export default function ConnectGenfeedFlow() {
           ) : null}
 
           <Button
-            icon={<HiLink aria-hidden="true" className="size-4" />}
+            icon={<LinkIcon aria-hidden="true" className="size-4" />}
             isDisabled={!selectedKeyId || !verificationSecret.trim()}
             isLoading={isVerifying}
             onClick={() => void handleVerify()}
@@ -636,7 +623,7 @@ export default function ConnectGenfeedFlow() {
 
             {verification?.status === 'connected' ? (
               <Alert variant="success">
-                <HiCheckCircle aria-hidden="true" className="size-4" />
+                <CircleCheck aria-hidden="true" className="size-4" />
                 <AlertTitle>Connection verified</AlertTitle>
                 <AlertDescription>
                   Genfeed authenticated the selected key and completed MCP tool
@@ -668,12 +655,7 @@ export default function ConnectGenfeedFlow() {
                   <code>{FIRST_ACTION_PROMPT}</code>
                 </pre>
                 <Button
-                  icon={
-                    <HiClipboardDocument
-                      aria-hidden="true"
-                      className="size-4"
-                    />
-                  }
+                  icon={<Clipboard aria-hidden="true" className="size-4" />}
                   onClick={() =>
                     void copyText('First action prompt', FIRST_ACTION_PROMPT)
                   }
@@ -701,7 +683,7 @@ export default function ConnectGenfeedFlow() {
                 {verification.publishing.isReady
                   ? 'Open draft composer'
                   : 'Connect publishing integration'}
-                <HiArrowRight aria-hidden="true" className="size-4" />
+                <ArrowRight aria-hidden="true" className="size-4" />
               </Link>
             </Button>
           </div>

@@ -1,11 +1,11 @@
 'use client';
 
 import {
-  FaDiscord,
-  FaInstagram,
-  FaTelegram,
-  FaXTwitter,
-} from 'react-icons/fa6';
+  DiscordIcon,
+  InstagramIcon,
+  TelegramIcon,
+  XTwitterIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
 
 interface SocialLinksProps {
   twitterHandle?: string;
@@ -25,25 +25,25 @@ export default function SocialLinks({
   const links = [
     {
       handle: twitterHandle,
-      icon: FaXTwitter,
+      icon: XTwitterIcon,
       label: 'X/Twitter',
       url: `https://x.com/${twitterHandle}`,
     },
     {
       handle: instagramHandle,
-      icon: FaInstagram,
+      icon: InstagramIcon,
       label: 'Instagram',
       url: `https://instagram.com/${instagramHandle}`,
     },
     {
       handle: discordHandle,
-      icon: FaDiscord,
+      icon: DiscordIcon,
       label: 'Discord',
       url: `https://discord.com/users/${discordHandle}`,
     },
     {
       handle: telegramHandle,
-      icon: FaTelegram,
+      icon: TelegramIcon,
       label: 'Telegram',
       url: `https://t.me/${telegramHandle}`,
     },

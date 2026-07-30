@@ -11,8 +11,8 @@ import {
 import { useAiAction } from '@genfeedai/hooks/ai/use-ai-action';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
+import { Sparkles, Undo2 } from 'lucide-react';
 import { useCallback } from 'react';
-import { HiArrowUturnLeft, HiSparkles } from 'react-icons/hi2';
 
 interface AiActionButtonProps {
   action: AiActionType;
@@ -77,7 +77,7 @@ export default function AiActionButton({
           isLoading ? (
             <Spinner size={ComponentSize.XS} />
           ) : (
-            <HiSparkles className="size-3.5" />
+            <Sparkles className="size-3.5" />
           )
         }
         variant={variant}
@@ -91,7 +91,7 @@ export default function AiActionButton({
 
       {showUndo && previousValue !== null && !isLoading && (
         <Button
-          icon={<HiArrowUturnLeft className="size-3" />}
+          icon={<Undo2 className="size-3" />}
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
           tooltip="Undo"

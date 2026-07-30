@@ -14,20 +14,20 @@ import type {
 } from '@genfeedai/interfaces';
 import type { PromptBarMetadataSelectorsProps } from '@genfeedai/props/prompt-bars/prompt-bar-metadata-selectors.props';
 import FormDropdown from '@ui/primitives/dropdown-field';
+import {
+  ArrowLeftRight,
+  Bookmark,
+  Camera,
+  CircleUser,
+  Globe,
+  Languages,
+  Lightbulb,
+  Palette,
+  Scan,
+  Smile,
+} from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { memo } from 'react';
-import {
-  HiArrowsRightLeft,
-  HiBookmark,
-  HiCamera,
-  HiFaceSmile,
-  HiGlobeAlt,
-  HiLanguage,
-  HiLightBulb,
-  HiSwatch,
-  HiUserCircle,
-  HiViewfinderCircle,
-} from 'react-icons/hi2';
 
 const presetTabs = [
   { id: 'all', label: 'All' },
@@ -96,7 +96,7 @@ const PromptBarMetadataSelectors = memo(function PromptBarMetadataSelectors({
         <FormDropdown
           key="preset"
           name="preset"
-          icon={<HiBookmark />}
+          icon={<Bookmark />}
           label="Preset"
           triggerDisplay={triggerDisplay}
           value={selectedPreset}
@@ -182,7 +182,7 @@ const PromptBarMetadataSelectors = memo(function PromptBarMetadataSelectors({
         <FormDropdown
           key="profile"
           name="profile"
-          icon={<HiUserCircle />}
+          icon={<CircleUser />}
           label="Brand Voice"
           triggerDisplay={triggerDisplay}
           value={selectedProfile}
@@ -206,7 +206,7 @@ const PromptBarMetadataSelectors = memo(function PromptBarMetadataSelectors({
         <FormDropdown
           key="scene"
           name="scene"
-          icon={<HiGlobeAlt />}
+          icon={<Globe />}
           label="Scene"
           triggerDisplay={triggerDisplay}
           value={form.watch('scene')}
@@ -232,7 +232,7 @@ const PromptBarMetadataSelectors = memo(function PromptBarMetadataSelectors({
           <FormDropdown
             key="fontFamily"
             name="fontFamily"
-            icon={<HiLanguage />}
+            icon={<Languages />}
             label="Font"
             triggerDisplay={triggerDisplay}
             value={form.getValues('fontFamily')}
@@ -257,7 +257,7 @@ const PromptBarMetadataSelectors = memo(function PromptBarMetadataSelectors({
         <FormDropdown
           key="style"
           name="style"
-          icon={<HiSwatch />}
+          icon={<Palette />}
           label="Style"
           triggerDisplay={triggerDisplay}
           value={form.watch('style')}
@@ -282,7 +282,7 @@ const PromptBarMetadataSelectors = memo(function PromptBarMetadataSelectors({
         <FormDropdown
           key="camera"
           name="camera"
-          icon={<HiCamera />}
+          icon={<Camera />}
           label="Camera"
           triggerDisplay={triggerDisplay}
           value={form.watch('camera')}
@@ -308,7 +308,7 @@ const PromptBarMetadataSelectors = memo(function PromptBarMetadataSelectors({
         <FormDropdown
           key="lighting"
           name="lighting"
-          icon={<HiLightBulb />}
+          icon={<Lightbulb />}
           label="Lighting"
           triggerDisplay={triggerDisplay}
           value={form.watch('lighting')}
@@ -334,7 +334,7 @@ const PromptBarMetadataSelectors = memo(function PromptBarMetadataSelectors({
         <FormDropdown
           key="lens"
           name="lens"
-          icon={<HiViewfinderCircle />}
+          icon={<Scan />}
           label="Lens"
           triggerDisplay={triggerDisplay}
           value={form.watch('lens')}
@@ -360,7 +360,7 @@ const PromptBarMetadataSelectors = memo(function PromptBarMetadataSelectors({
         <FormDropdown
           key="cameraMovement"
           name="cameraMovement"
-          icon={<HiArrowsRightLeft />}
+          icon={<ArrowLeftRight />}
           label="Movement"
           triggerDisplay={triggerDisplay}
           value={form.watch('cameraMovement')}
@@ -390,7 +390,7 @@ const PromptBarMetadataSelectors = memo(function PromptBarMetadataSelectors({
         <FormDropdown
           key="mood"
           name="mood"
-          icon={<HiFaceSmile />}
+          icon={<Smile />}
           label="Mood"
           triggerDisplay={triggerDisplay}
           value={form.watch('mood')}

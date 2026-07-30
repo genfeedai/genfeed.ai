@@ -75,7 +75,7 @@ describe('AgentChatInput', () => {
 
     const shell = screen.getByTestId('agent-chat-input-shell');
 
-    expect(shell.className).toMatch(/bg-background-secondary|bg-card/);
+    expect(shell.className).toMatch(/bg-background\/55|backdrop-blur/);
     expect(shell).not.toHaveClass('opacity-50');
   });
 
@@ -107,7 +107,7 @@ describe('AgentChatInput', () => {
     );
 
     expect(screen.getByTestId('agent-chat-input-shell')).toHaveClass(
-      'rounded-lg',
+      'rounded-2xl',
     );
     expect(
       screen.queryByText('Default Workspace · Default Brand'),
@@ -119,7 +119,7 @@ describe('AgentChatInput', () => {
     );
   });
 
-  it('keeps topbar-owned scope controls out of the prompt bar', () => {
+  it('keeps topbar-owned scope controls and shell context labels out of the prompt bar', () => {
     render(
       <ConversationComposerShellProvider
         contextLabel="Default Workspace · Default Brand"
@@ -133,8 +133,8 @@ describe('AgentChatInput', () => {
     );
 
     expect(
-      screen.getByText('Default Workspace · Default Brand'),
-    ).toBeInTheDocument();
+      screen.queryByText('Default Workspace · Default Brand'),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Change workspace scope' }),
     ).not.toBeInTheDocument();
@@ -345,7 +345,7 @@ describe('AgentChatInput', () => {
       </ConversationComposerShellProvider>,
     );
 
-    expect(screen.getByText('1 reference')).toBeInTheDocument();
+    // Tray shows the typed reference chip label (no separate "N reference" count).
     expect(screen.getByText('^post:post-1')).toBeInTheDocument();
   });
 
@@ -398,7 +398,7 @@ describe('AgentChatInput', () => {
     const tray = screen.getByRole('group', {
       name: 'Composer attachments and references',
     });
-    expect(screen.getByText('1 reference')).toBeInTheDocument();
+    // Overlapping mention + workspace selection collapses to one chip.
     expect(within(tray).getAllByText('^Launch post')).toHaveLength(1);
   });
 

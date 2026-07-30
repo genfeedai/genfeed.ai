@@ -1,7 +1,8 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { Image, Video } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { HiOutlinePhoto, HiOutlineVideoCamera } from 'react-icons/hi2';
+
 import { GenerationActionCardControls } from './GenerationActionCardControls';
 import { GenerationActionCardHeader } from './GenerationActionCardHeader';
 import { GenerationActionCardHoverActions } from './GenerationActionCardHoverActions';
@@ -54,7 +55,7 @@ export function GenerationActionCard({
   } = useGenerationActionCard({ action, apiService, onRegenerate });
 
   const isImage = generationType === 'image';
-  const Icon = isImage ? HiOutlinePhoto : HiOutlineVideoCamera;
+  const Icon = isImage ? Image : Video;
 
   return (
     <div className="group/card relative mt-2 overflow-hidden border border-border bg-background">

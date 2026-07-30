@@ -1,7 +1,11 @@
 'use client';
 
 import { useAgentChatStore } from '@genfeedai/agent';
-import { APP_ROUTES } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  createBrandAppRoute,
+  createOrganizationAppRoute,
+} from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
@@ -31,6 +35,16 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
+import {
+  ChevronLeft,
+  ChevronRight,
+  CircleCheck,
+  LinkIcon,
+  MessageSquare,
+  RefreshCw,
+  Send,
+  Zap,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -43,15 +57,7 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  HiOutlineBolt,
-  HiOutlineChatBubbleLeftRight,
-  HiOutlineCheckCircle,
-  HiOutlineChevronLeft,
-  HiOutlineChevronRight,
-  HiOutlineLink,
-  HiOutlinePaperAirplane,
-} from 'react-icons/hi2';
+
 import { useWorkspaceNavPanel } from '@/components/workspace-shell/WorkspaceNavPanelContext';
 import {
   getParticipantLabel,
@@ -350,7 +356,7 @@ function MessageBubble({
                 ? 'Remove message from agent context'
                 : 'Attach message to agent context'
             }
-            icon={<HiOutlineLink className="size-3.5" />}
+            icon={<LinkIcon className="size-3.5" />}
             isDisabled={!canAttachReference}
             onClick={() => onToggleReference(message)}
             size={ButtonSize.SM}
@@ -368,7 +374,7 @@ function MessageBubble({
 const ALL_BRANDS_FILTER = 'all' as const;
 
 export default function MessagesPage() {
-  const { brandSlug, href } = useOrgUrl();
+  const { brandSlug, href, orgSlug } = useOrgUrl();
   const { brands, organizationId: scopedOrganizationId } = useBrand();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -1156,8 +1162,13 @@ export default function MessagesPage() {
       />
     </div>
   );
+  const accountsHref = brandSlug
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.SETTINGS.PUBLISHING)
+    : createOrganizationAppRoute(orgSlug, APP_ROUTES.SETTINGS.BRANDS);
+
   const conversationNavPanel = (
     <MessagesConversationSidebar
+      accountsHref={accountsHref}
       advancedFilters={advancedFilters}
       brandFilter={brandFilter}
       brandOptions={brandOptions}
@@ -1269,14 +1280,14 @@ export default function MessagesPage() {
                       size={ButtonSize.SM}
                     >
                       <Link href={automationHref}>
-                        <HiOutlineBolt className="size-4" />
+                        <Zap className="size-4" />
                         Automation
                       </Link>
                     </Button>
                     <Button
                       variant={ButtonVariant.GHOST}
                       size={ButtonSize.SM}
-                      icon={<HiOutlineCheckCircle className="size-4" />}
+                      icon={<CircleCheck className="size-4" />}
                       isDisabled={Boolean(busyAction)}
                       isLoading={busyAction === 'status'}
                       onClick={() => handleStatusChange('resolved')}
@@ -1330,7 +1341,7 @@ export default function MessagesPage() {
                   <div className="flex items-center justify-center gap-3 pt-3">
                     <Button
                       ariaLabel="Previous messages page"
-                      icon={<HiOutlineChevronLeft className="size-4" />}
+                      icon={<ChevronLeft className="size-4" />}
                       isDisabled={!messagePagination.hasPrevious}
                       onClick={() =>
                         setMessagePage((page) => Math.max(1, page - 1))
@@ -1345,7 +1356,7 @@ export default function MessagesPage() {
                     </span>
                     <Button
                       ariaLabel="Next messages page"
-                      icon={<HiOutlineChevronRight className="size-4" />}
+                      icon={<ChevronRight className="size-4" />}
                       isDisabled={!messagePagination.hasNext}
                       onClick={() => setMessagePage((page) => page + 1)}
                       size={ButtonSize.ICON}
@@ -1393,7 +1404,7 @@ export default function MessagesPage() {
                     <Button
                       variant={ButtonVariant.DEFAULT}
                       size={ButtonSize.SM}
-                      icon={<HiOutlinePaperAirplane className="size-4" />}
+                      icon={<Send className="size-4" />}
                       isDisabled={
                         Boolean(busyAction) ||
                         !draft.trim() ||
@@ -1425,11 +1436,50 @@ export default function MessagesPage() {
             </>
           ) : (
             <div
-              className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 text-center"
+              className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
               data-testid="messages-empty-state"
             >
-              <HiOutlineChatBubbleLeftRight className="mb-3 size-10 text-white/20" />
-              <p className="text-sm text-white/50">Select a conversation</p>
+              <MessageSquare
+                aria-hidden="true"
+                className="size-10 text-white/20"
+              />
+              {!isLoadingConversations && conversations.length === 0 ? (
+                <>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-white/60">
+                      Social inbox is empty
+                    </p>
+                    <p className="max-w-sm text-xs leading-5 text-white/38">
+                      Connect a channel and sync to pull comments and DMs. Pick
+                      a conversation here once threads appear in the list.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                    <Button
+                      asChild
+                      size={ButtonSize.SM}
+                      variant={ButtonVariant.SECONDARY}
+                    >
+                      <Link href={accountsHref}>Connect accounts</Link>
+                    </Button>
+                    <Button
+                      isDisabled={Boolean(busyAction) && busyAction !== 'sync'}
+                      isLoading={busyAction === 'sync'}
+                      onClick={() => {
+                        void handleSyncYoutube();
+                      }}
+                      size={ButtonSize.SM}
+                      variant={ButtonVariant.GHOST}
+                      withWrapper={false}
+                    >
+                      <RefreshCw aria-hidden="true" className="size-3.5" />
+                      Sync messages
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-white/50">Select a conversation</p>
+              )}
             </div>
           )}
         </div>

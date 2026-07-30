@@ -8,8 +8,9 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Container from '@ui/layout/container/Container';
+import { Video } from 'lucide-react';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
-import { HiOutlineVideoCamera } from 'react-icons/hi2';
+
 import LipSyncConfigForm from './lip-sync-config-form';
 import LipSyncProcessingStatus from './lip-sync-processing-status';
 import LipSyncResultVideo from './lip-sync-result-video';
@@ -219,7 +220,7 @@ export default function LipSyncPage() {
     <Container
       label="Lip Sync"
       description="Generate lip-synced videos from character images and audio"
-      icon={HiOutlineVideoCamera}
+      icon={Video}
     >
       {charactersError ? (
         <CardEmpty

@@ -18,9 +18,9 @@ import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
+import { Settings } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { type ReactElement, useCallback, useMemo } from 'react';
-import { HiOutlineCog6Tooth } from 'react-icons/hi2';
 
 const DEFAULT_GENERATION_PRIORITY: AgentGenerationPriority = 'balanced';
 
@@ -164,7 +164,7 @@ export default function AgentConfigurationPage(): ReactElement {
   }
 
   return (
-    <Container label="Agent Configuration" icon={<HiOutlineCog6Tooth />}>
+    <Container label="Agent Configuration" icon={<Settings />}>
       {content}
     </Container>
   );

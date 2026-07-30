@@ -18,13 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@ui/primitives/table';
-import {
-  HiOutlineBanknotes,
-  HiOutlineCreditCard,
-  HiOutlineCube,
-  HiOutlinePhoto,
-  HiOutlineSparkles,
-} from 'react-icons/hi2';
+import { Banknote, Box, CreditCard, Image, Sparkles } from 'lucide-react';
 
 const _currencyFormatter = new Intl.NumberFormat('en-US', {
   currency: 'USD',
@@ -297,24 +291,24 @@ export default function BusinessDashboard() {
         title="Revenue"
         items={[
           {
-            icon: HiOutlineBanknotes,
+            icon: Banknote,
             label: 'Today',
             trend: data.revenue.wowGrowth,
             trendLabel: 'WoW',
             value: formatCurrency(data.revenue.today),
           },
           {
-            icon: HiOutlineBanknotes,
+            icon: Banknote,
             label: 'Last 7 Days',
             value: formatCurrency(data.revenue.last7d),
           },
           {
-            icon: HiOutlineBanknotes,
+            icon: Banknote,
             label: 'Last 30 Days',
             value: formatCurrency(data.revenue.last30d),
           },
           {
-            icon: HiOutlineBanknotes,
+            icon: Banknote,
             label: 'Month to Date',
             value: formatCurrency(data.revenue.mtd),
           },
@@ -328,14 +322,14 @@ export default function BusinessDashboard() {
         title="Credits"
         items={[
           {
-            icon: HiOutlineCreditCard,
+            icon: CreditCard,
             label: 'Credits Sold',
             trend: data.credits.wowGrowth,
             trendLabel: 'WoW',
             value: formatCompactNumberIntl(data.credits.sold),
           },
           {
-            icon: HiOutlineSparkles,
+            icon: Sparkles,
             label: 'Credits Consumed',
             value: formatCompactNumberIntl(data.credits.consumed),
           },
@@ -349,19 +343,19 @@ export default function BusinessDashboard() {
         title="Ingredients Generated"
         items={[
           {
-            icon: HiOutlineCube,
+            icon: Box,
             label: 'Today',
             trend: data.ingredients.wowGrowth,
             trendLabel: 'WoW',
             value: formatCompactNumberIntl(data.ingredients.today),
           },
           {
-            icon: HiOutlineCube,
+            icon: Box,
             label: 'Last 7 Days',
             value: formatCompactNumberIntl(data.ingredients.last7d),
           },
           {
-            icon: HiOutlineCube,
+            icon: Box,
             label: 'Last 30 Days',
             value: formatCompactNumberIntl(data.ingredients.last30d),
           },
@@ -382,7 +376,7 @@ export default function BusinessDashboard() {
                 key={item.category}
                 className="flex items-center gap-2 rounded bg-muted px-3 py-2"
               >
-                <HiOutlinePhoto className="size-4 text-muted-foreground" />
+                <Image className="size-4 text-muted-foreground" />
                 <span className="text-sm font-medium capitalize text-foreground">
                   {item.category.toLowerCase()}
                 </span>

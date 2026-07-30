@@ -12,8 +12,8 @@ import type { EvaluationCardProps } from '@genfeedai/props/components/evaluation
 import Card from '@ui/card/Card';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import { Button } from '@ui/primitives/button';
+import { ArrowUp, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
-import { HiArrowUp, HiChevronDown } from 'react-icons/hi2';
 
 // Score thresholds with corresponding color classes
 const SCORE_THRESHOLDS = [
@@ -198,7 +198,7 @@ export default function EvaluationCard({
           >
             {overallScore ?? 0}/100
           </div>
-          <HiChevronDown
+          <ChevronDown
             className={cn(
               'size-4 text-foreground/50 transition-transform',
               isCardCollapsed && '-rotate-90',
@@ -222,7 +222,7 @@ export default function EvaluationCard({
 
         <Button
           variant={ButtonVariant.DEFAULT}
-          icon={<HiArrowUp />}
+          icon={<ArrowUp />}
           label="Run"
           onClick={onEvaluate}
           size={ButtonSize.SM}
@@ -305,7 +305,7 @@ function EvaluationCardContent({
         {!isPublished && (
           <Button
             variant={ButtonVariant.DEFAULT}
-            icon={<HiArrowUp />}
+            icon={<ArrowUp />}
             label={isEvaluating ? 'Running…' : 'Run'}
             onClick={onEvaluate}
             isLoading={isEvaluating}
@@ -346,7 +346,7 @@ function EvaluationCardContent({
         {!isPublished && (
           <Button
             variant={ButtonVariant.DEFAULT}
-            icon={<HiArrowUp />}
+            icon={<ArrowUp />}
             label={isEvaluating ? 'Running…' : 'Run'}
             onClick={onEvaluate}
             isLoading={isEvaluating}
@@ -425,7 +425,7 @@ function EvaluationCardContent({
           <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide">
             Category Scores
           </h4>
-          <HiChevronDown
+          <ChevronDown
             className={cn(
               'size-4 text-foreground/50 transition-transform',
               isScoresCollapsed && '-rotate-90',
@@ -465,7 +465,7 @@ function EvaluationCardContent({
           <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide">
             Strengths & Weaknesses
           </h4>
-          <HiChevronDown
+          <ChevronDown
             className={cn(
               'size-4 text-foreground/50 transition-transform',
               isAnalysisCollapsed && '-rotate-90',
@@ -525,7 +525,7 @@ function EvaluationCardContent({
             <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide">
               AI Suggestions
             </h4>
-            <HiChevronDown
+            <ChevronDown
               className={cn(
                 'size-4 text-foreground/50 transition-transform',
                 isSuggestionsCollapsed && '-rotate-90',

@@ -1,7 +1,6 @@
 import { AgentChatInputAttachmentTray } from '@genfeedai/agent/components/AgentChatInputAttachmentTray';
 import { AgentChatInputStyles } from '@genfeedai/agent/components/AgentChatInputStyles';
 import { AgentChatInputToolbar } from '@genfeedai/agent/components/AgentChatInputToolbar';
-import { AgentComposerContextRail } from '@genfeedai/agent/components/AgentComposerContextRail';
 import { useAgentChatInput } from '@genfeedai/agent/components/useAgentChatInput';
 import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
@@ -14,7 +13,9 @@ import type {
 } from '@genfeedai/props/ui/attachments.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { EditorContent } from '@tiptap/react';
-import PromptBarShell from '@ui/prompt-bars/components/shell/PromptBarShell';
+import PromptBarShell, {
+  PROMPT_BAR_SURFACE_CLASS,
+} from '@ui/prompt-bars/components/shell/PromptBarShell';
 import { type ReactElement, useMemo } from 'react';
 
 export type ExtractedMention =
@@ -165,22 +166,12 @@ export function AgentChatInput({
 
       <PromptBarShell
         className={cn(
-          // Elevated composer surface so it reads as a product control, not a
-          // floating outline over the transcript.
-          'overflow-hidden border border-border/80 bg-background-secondary shadow-composer transition-[border-color,box-shadow,background-color] focus-within:border-foreground/20 focus-within:bg-background-secondary focus-within:shadow-composer-strong',
-          isCompact || isInspector ? 'rounded-lg' : 'rounded-xl',
+          PROMPT_BAR_SURFACE_CLASS,
           isDragActive && 'ring-1 ring-primary/40',
         )}
         data-testid="agent-chat-input-shell"
         onPointerDown={handleShellPointerDown}
       >
-        {isCompact || isInspector ? null : (
-          <AgentComposerContextRail
-            attachmentCount={attachments.length}
-            referenceCount={references.length}
-          />
-        )}
-
         {(hasAttachments || references.length > 0) && (
           <AgentChatInputAttachmentTray
             assets={trayAssets}
@@ -192,7 +183,7 @@ export function AgentChatInput({
         )}
 
         <div
-          className={cn(isCompact ? 'px-2 pb-0.5 pt-1.5' : 'px-3 pb-1 pt-2')}
+          className={cn(isCompact ? 'px-2.5 pb-1 pt-2' : 'px-3.5 pb-1.5 pt-3')}
         >
           <EditorContent editor={editor} className="flex-1" />
 
@@ -219,7 +210,8 @@ export function AgentChatInput({
             shouldShowSendButton={shouldShowSendButton}
             shouldShowVoiceInput={shouldShowVoiceInput}
             showStop={showStop}
-            density={isCompact ? 'compact' : 'default'}
+            // Inspector rail is narrow — use compact icon-only toolbar density.
+            density={isCompact || isInspector ? 'compact' : 'default'}
           />
         </div>
       </PromptBarShell>

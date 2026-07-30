@@ -16,16 +16,9 @@ import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
 import PromptBarShell from '@ui/prompt-bars/components/shell/PromptBarShell';
+import { ArrowUp, Bookmark, ChevronUp, LayoutGrid, List } from 'lucide-react';
 import type { ChangeEvent, FormEvent, KeyboardEvent, ReactNode } from 'react';
 import { memo, useMemo, useState } from 'react';
-import {
-  HiArrowUp,
-  HiBookmark,
-  HiChevronUp,
-  HiQueueList,
-  HiSquares2X2,
-  HiSquaresPlus,
-} from 'react-icons/hi2';
 
 const EMPTY_ARRAY: never[] = [];
 const POST_COUNT_OPTIONS = [
@@ -287,7 +280,7 @@ function PromptBarPostCollapsedView({
       {presetOptions.length > 0 && (
         <FormDropdown
           name="preset"
-          icon={<HiBookmark />}
+          icon={<Bookmark />}
           label="Preset"
           value={selectedPresetKey}
           isFullWidth={false}
@@ -325,7 +318,7 @@ function PromptBarPostCollapsedView({
                 className="h-9 px-3"
                 tooltip="Outputs"
                 tooltipPosition="left"
-                icon={<HiSquaresPlus className="size-4" />}
+                icon={<LayoutGrid className="size-4" />}
                 onClick={() => onCountChange(POST_COUNT_CYCLE[count] ?? 1)}
                 isDisabled={isEnhancing}
               />
@@ -339,7 +332,7 @@ function PromptBarPostCollapsedView({
                   isThread ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
                 }
                 className="size-9 p-0"
-                icon={<HiQueueList className="size-4" />}
+                icon={<List className="size-4" />}
                 isDisabled={isEnhancing}
               />
             )}
@@ -352,7 +345,7 @@ function PromptBarPostCollapsedView({
       <div className="flex items-center gap-2">
         <Button
           variant={ButtonVariant.DEFAULT}
-          icon={<HiArrowUp />}
+          icon={<ArrowUp />}
           label={buttonLabel}
           tooltip={buttonLabel}
           isLoading={isEnhancing}
@@ -366,7 +359,7 @@ function PromptBarPostCollapsedView({
           tooltipPosition="top"
           variant={ButtonVariant.GHOST}
           className={COLLAPSE_BUTTON_CLASS}
-          icon={<HiChevronUp className="size-4" />}
+          icon={<ChevronUp className="size-4" />}
         />
       </div>
     </div>
@@ -404,7 +397,7 @@ function PromptBarPostExpandedView({
               name="platform"
               icon={
                 platform === 'all' ? (
-                  <HiSquares2X2 />
+                  <LayoutGrid />
                 ) : (
                   getPlatformIcon(platform as Platform)
                 )
@@ -426,7 +419,7 @@ function PromptBarPostExpandedView({
           {presetOptions.length > 0 && (
             <FormDropdown
               name="preset"
-              icon={<HiBookmark />}
+              icon={<Bookmark />}
               label="Preset"
               value={selectedPresetKey}
               isFullWidth={false}
@@ -449,10 +442,7 @@ function PromptBarPostExpandedView({
           variant={ButtonVariant.GHOST}
           className={COLLAPSE_BUTTON_CLASS}
           icon={
-            <HiChevronUp
-              className="rotate-180 transition-transform"
-              size={16}
-            />
+            <ChevronUp className="rotate-180 transition-transform" size={16} />
           }
         />
       </div>
@@ -472,7 +462,7 @@ function PromptBarPostExpandedView({
           {showCountDropdown && (
             <FormDropdown
               name="count"
-              icon={<HiSquaresPlus />}
+              icon={<LayoutGrid />}
               label="Posts"
               isFullWidth={false}
               dropdownDirection="up"
@@ -497,7 +487,7 @@ function PromptBarPostExpandedView({
                 isThread ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
               }
               className="h-9 px-3 text-sm"
-              icon={<HiQueueList className="size-4" />}
+              icon={<List className="size-4" />}
               isDisabled={isEnhancing}
             >
               Thread
@@ -505,7 +495,7 @@ function PromptBarPostExpandedView({
           )}
           <Button
             variant={ButtonVariant.DEFAULT}
-            icon={<HiArrowUp />}
+            icon={<ArrowUp />}
             label={buttonLabel}
             tooltip={buttonLabel}
             isLoading={isEnhancing}

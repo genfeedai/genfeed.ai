@@ -16,10 +16,10 @@ import { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
+import { List } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { HiListBullet } from 'react-icons/hi2';
 
 const DEFAULT_COLOR = '#8b5cf6';
 
@@ -134,7 +134,7 @@ export default function PostsCalendarPage({
       href={getPublisherPostsHref()}
       className="inline-flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-secondary/80 size-9 transition-colors"
     >
-      <HiListBullet />
+      <List />
     </Link>
   );
 

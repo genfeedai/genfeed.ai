@@ -6,9 +6,8 @@ import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
 import PageLayout from '@web-components/PageLayout';
+import { Check, X } from 'lucide-react';
 import Link from 'next/link';
-import { FaCheck } from 'react-icons/fa6';
-import { HiXMark } from 'react-icons/hi2';
 
 export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
   const recommendedPlan = getPlanLabel(useCase.pricing.recommended);
@@ -66,7 +65,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
             <ul className="space-y-4">
               {useCase.painPoints.map((pain: string) => (
                 <li key={pain} className="flex items-start gap-3">
-                  <HiXMark className="size-4 text-error mt-0.5 shrink-0" />
+                  <X className="size-4 text-error mt-0.5 shrink-0" />
                   <Text className="text-sm text-surface/65">{pain}</Text>
                 </li>
               ))}
@@ -79,7 +78,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
             <ul className="space-y-4">
               {useCase.solutions.map((solution: string) => (
                 <li key={solution} className="flex items-start gap-3">
-                  <FaCheck className="size-4 text-success mt-0.5 shrink-0" />
+                  <Check className="size-4 text-success mt-0.5 shrink-0" />
                   <Text className="text-sm text-surface/65">{solution}</Text>
                 </li>
               ))}
@@ -128,7 +127,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
                 key={result}
                 className="flex items-start gap-3 bg-background p-5"
               >
-                <FaCheck className="size-4 text-success mt-0.5 shrink-0" />
+                <Check className="size-4 text-success mt-0.5 shrink-0" />
                 <Text className="text-sm text-surface/65">{result}</Text>
               </div>
             ))}

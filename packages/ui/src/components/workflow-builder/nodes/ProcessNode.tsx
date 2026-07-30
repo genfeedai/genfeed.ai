@@ -2,24 +2,24 @@
 
 import type { ProcessNodeProps } from '@genfeedai/props/automation/workflow-builder.props';
 import BaseNode from '@ui/workflow-builder/nodes/BaseNode';
-import { memo } from 'react';
 import {
-  HiOutlineArrowsPointingOut,
-  HiOutlineArrowsRightLeft,
-  HiOutlineRectangleGroup,
-  HiOutlineScissors,
-  HiOutlineSquare2Stack,
-} from 'react-icons/hi2';
+  ArrowLeftRight,
+  Copy,
+  LayoutDashboard,
+  Maximize2,
+  Scissors,
+} from 'lucide-react';
+import { memo } from 'react';
 
 const PROCESS_NODE_ICONS: Record<string, React.ReactNode> = {
-  'process-clip': <HiOutlineScissors />,
-  'process-merge': <HiOutlineRectangleGroup />,
-  'process-resize': <HiOutlineArrowsRightLeft />,
-  'process-split': <HiOutlineSquare2Stack />,
-  'process-transform': <HiOutlineArrowsPointingOut />,
+  'process-clip': <Scissors />,
+  'process-merge': <LayoutDashboard />,
+  'process-resize': <ArrowLeftRight />,
+  'process-split': <Copy />,
+  'process-transform': <Maximize2 />,
 };
 
-const DEFAULT_PROCESS_ICON = <HiOutlineArrowsPointingOut />;
+const DEFAULT_PROCESS_ICON = <Maximize2 />;
 
 function ProcessNode(props: ProcessNodeProps): React.ReactElement {
   const icon = PROCESS_NODE_ICONS[props.data.nodeType] ?? DEFAULT_PROCESS_ICON;

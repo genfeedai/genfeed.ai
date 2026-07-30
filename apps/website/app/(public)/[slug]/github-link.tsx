@@ -1,7 +1,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
+import { GithubIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
-import { FaGithub } from 'react-icons/fa6';
 
 export function GitHubLink({
   href,
@@ -17,7 +17,7 @@ export function GitHubLink({
   return (
     <Button variant={variant} asChild className={className}>
       <Link href={href} target="_blank" rel="noopener noreferrer">
-        <FaGithub className="size-5" />
+        <GithubIcon className="size-5" />
         {children}
       </Link>
     </Button>

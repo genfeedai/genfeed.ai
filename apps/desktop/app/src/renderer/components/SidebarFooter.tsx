@@ -5,10 +5,7 @@ import type {
 } from '@genfeedai/desktop-contracts';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import {
-  HiArrowRightOnRectangle,
-  HiOutlineCloudArrowUp,
-} from 'react-icons/hi2';
+import { CloudUpload, LogOut } from 'lucide-react';
 
 function timeAgo(dateStr: string): string {
   const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -136,7 +133,7 @@ function SidebarFooter({
           variant={ButtonVariant.UNSTYLED}
           ariaLabel={isCollapsed ? 'Sign Out' : undefined}
         >
-          <HiArrowRightOnRectangle className="nav-icon-svg" />
+          <LogOut className="nav-icon-svg" />
           {!isCollapsed && <span className="nav-label">Sign Out</span>}
         </Button>
       ) : (
@@ -147,7 +144,7 @@ function SidebarFooter({
           variant={ButtonVariant.UNSTYLED}
           ariaLabel={isCollapsed ? 'Connect Genfeed Cloud' : undefined}
         >
-          <HiOutlineCloudArrowUp className="nav-icon-svg" />
+          <CloudUpload className="nav-icon-svg" />
           {!isCollapsed && (
             <span className="nav-label">Connect Genfeed Cloud</span>
           )}

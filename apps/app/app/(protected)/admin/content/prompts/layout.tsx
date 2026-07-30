@@ -4,9 +4,9 @@ import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefr
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { LayoutProps } from '@props/layout/layout.props';
 import Container from '@ui/layout/container/Container';
+import { Terminal } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { HiCommandLine } from 'react-icons/hi2';
 
 export default function PromptsLayout({ children }: LayoutProps) {
   const { refresh } = useRouter();
@@ -22,7 +22,7 @@ export default function PromptsLayout({ children }: LayoutProps) {
     <Container
       label="Prompts"
       description="Manage AI prompts and reusable templates"
-      icon={HiCommandLine}
+      icon={Terminal}
       tabs={[
         { href: APP_ROUTES.ADMIN.CONTENT.PROMPTS_LIST, label: 'Prompts' },
         { href: APP_ROUTES.ADMIN.CONTENT.TEMPLATES, label: 'Templates' },

@@ -225,6 +225,7 @@ export const APP_ROUTES = {
     IMAGES: '/studio/images',
     MUSIC: '/studio/music',
     ROOT: '/studio',
+    STORYBOARD: '/studio/storyboard',
     VIDEO: '/studio/video',
   },
   WORKFLOWS: {

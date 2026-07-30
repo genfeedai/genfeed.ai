@@ -14,9 +14,10 @@ import {
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Button } from '@ui/primitives/button';
+import { Check, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useMemo } from 'react';
-import { HiCheck, HiPhoto } from 'react-icons/hi2';
+
 import {
   getReviewPerformanceLabel,
   getReviewPerformanceSignal,
@@ -85,7 +86,7 @@ export default function ReviewItemCard({
             />
           ) : (
             <div className="flex h-full items-center justify-center text-muted-foreground">
-              <HiPhoto className="size-6" />
+              <ImageIcon className="size-6" />
             </div>
           )}
         </Button>
@@ -135,7 +136,7 @@ export default function ReviewItemCard({
                     : 'border-border bg-card text-foreground/50 hover:border-border-strong hover:text-foreground/75',
                 )}
               >
-                {isSelected && <HiCheck className="size-3" />}
+                {isSelected && <Check className="size-3" />}
               </Button>
             )}
           </div>

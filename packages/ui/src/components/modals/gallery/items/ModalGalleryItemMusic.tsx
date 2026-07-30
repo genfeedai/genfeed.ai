@@ -6,7 +6,7 @@ import type { IMetadata } from '@genfeedai/interfaces';
 import type { ModalGalleryItemMusicProps } from '@genfeedai/props/modals/modal-gallery.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';
-import { HiMusicalNote, HiPause, HiPlay } from 'react-icons/hi2';
+import { Music, Pause, Play } from 'lucide-react';
 
 export default function ModalGalleryItemMusic({
   music,
@@ -42,7 +42,7 @@ export default function ModalGalleryItemMusic({
               isSelected ? 'bg-primary/20' : 'bg-muted'
             }`}
           >
-            <HiMusicalNote
+            <Music
               className={`text-xl ${
                 isSelected ? 'text-primary' : 'text-foreground/50'
               }`}
@@ -63,7 +63,7 @@ export default function ModalGalleryItemMusic({
         </Button>
 
         <Button
-          label={isPlaying ? <HiPause /> : <HiPlay />}
+          label={isPlaying ? <Pause /> : <Play />}
           onClick={(e) => {
             e.stopPropagation();
 

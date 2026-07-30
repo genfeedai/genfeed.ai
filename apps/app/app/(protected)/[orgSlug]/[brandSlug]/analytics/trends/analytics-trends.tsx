@@ -7,12 +7,9 @@ import {
   ViralVideoLeaderboard,
 } from '@ui/analytics/trends';
 import Card from '@ui/card/Card';
+import { Flame, Hash, Music } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import {
-  HiOutlineFire,
-  HiOutlineHashtag,
-  HiOutlineMusicalNote,
-} from 'react-icons/hi2';
+
 import CrossPlatformLeaderboardSection from './CrossPlatformLeaderboardSection';
 import PlaybookSection from './PlaybookSection';
 import TrendingTopicsSection from './TrendingTopicsSection';
@@ -65,7 +62,7 @@ export default function AnalyticsTrends() {
           className="backdrop-blur"
           bodyClassName="space-y-6"
           label="Trending Topics"
-          icon={HiOutlineFire}
+          icon={Flame}
         >
           <TrendingTopicsSection
             isLoadingTrends={isLoadingTrends}
@@ -95,7 +92,7 @@ export default function AnalyticsTrends() {
           className="backdrop-blur"
           bodyClassName="space-y-6"
           label="Trending Hashtags"
-          icon={HiOutlineHashtag}
+          icon={Hash}
         >
           <TrendingHashtags
             hashtags={trendingHashtags}
@@ -113,7 +110,7 @@ export default function AnalyticsTrends() {
           className="backdrop-blur"
           bodyClassName="space-y-6"
           label="Trending Sounds"
-          icon={HiOutlineMusicalNote}
+          icon={Music}
         >
           <TrendingSounds
             sounds={trendingSounds}

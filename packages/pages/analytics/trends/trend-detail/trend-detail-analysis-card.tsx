@@ -3,11 +3,7 @@
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import type { TrendDetailData } from '@props/trends/trends-page.props';
 import Card from '@ui/card/Card';
-import {
-  HiArrowTrendingDown,
-  HiArrowTrendingUp,
-  HiOutlineChartBar,
-} from 'react-icons/hi2';
+import { ChartColumn, TrendingDown, TrendingUp } from 'lucide-react';
 
 type TrendDetailAnalysisCardProps = {
   analysis: TrendDetailData['analysis'];
@@ -18,11 +14,11 @@ function getTrendDirectionIcon(
 ) {
   switch (direction) {
     case 'rising':
-      return <HiArrowTrendingUp className="size-5 text-success" />;
+      return <TrendingUp className="size-5 text-success" />;
     case 'falling':
-      return <HiArrowTrendingDown className="size-5 text-error" />;
+      return <TrendingDown className="size-5 text-error" />;
     default:
-      return <HiOutlineChartBar className="size-5 text-warning" />;
+      return <ChartColumn className="size-5 text-warning" />;
   }
 }
 
@@ -40,7 +36,7 @@ export default function TrendDetailAnalysisCard({
   analysis,
 }: TrendDetailAnalysisCardProps) {
   return (
-    <Card label="Trend Analysis" icon={HiOutlineChartBar}>
+    <Card label="Trend Analysis" icon={ChartColumn}>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="space-y-2">
           <span className="text-sm text-foreground/60">Direction</span>

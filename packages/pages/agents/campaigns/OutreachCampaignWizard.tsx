@@ -4,12 +4,8 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import {
-  HiArrowLeft,
-  HiArrowRight,
-  HiCheck,
-  HiRocketLaunch,
-} from 'react-icons/hi2';
+import { ArrowLeft, ArrowRight, Check, Rocket } from 'lucide-react';
+
 import OutreachCampaignWizardStep1 from './OutreachCampaignWizardStep1';
 import OutreachCampaignWizardStep2 from './OutreachCampaignWizardStep2';
 import OutreachCampaignWizardStep3 from './OutreachCampaignWizardStep3';
@@ -153,7 +149,7 @@ export default function OutreachCampaignWizard() {
     <Container
       label="Create Campaign"
       description="Set up a new marketing campaign"
-      icon={HiRocketLaunch}
+      icon={Rocket}
     >
       <div className="mx-auto max-w-2xl space-y-8">
         <div className="flex items-center justify-between">
@@ -166,7 +162,7 @@ export default function OutreachCampaignWizard() {
                     : 'bg-foreground/10 text-foreground/60'
                 }`}
               >
-                {step.id < currentStep ? <HiCheck /> : step.id}
+                {step.id < currentStep ? <Check /> : step.id}
               </div>
               {index < STEPS.length - 1 && (
                 <div
@@ -191,7 +187,7 @@ export default function OutreachCampaignWizard() {
           <Button
             label={
               <>
-                <HiArrowLeft /> Back
+                <ArrowLeft /> Back
               </>
             }
             variant={ButtonVariant.SECONDARY}
@@ -206,7 +202,7 @@ export default function OutreachCampaignWizard() {
             <Button
               label={
                 <>
-                  Next <HiArrowRight />
+                  Next <ArrowRight />
                 </>
               }
               variant={ButtonVariant.DEFAULT}
@@ -217,7 +213,7 @@ export default function OutreachCampaignWizard() {
             <Button
               label={
                 <>
-                  <HiRocketLaunch /> Create Campaign
+                  <Rocket /> Create Campaign
                 </>
               }
               variant={ButtonVariant.DEFAULT}

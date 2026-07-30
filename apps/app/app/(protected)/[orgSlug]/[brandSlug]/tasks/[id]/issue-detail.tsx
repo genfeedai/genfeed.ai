@@ -16,9 +16,10 @@ import {
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import { ArrowLeft, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
-import { HiArrowLeft, HiOutlineExclamationTriangle } from 'react-icons/hi2';
+
 import IssueCommentsCard from './issue-comments-card';
 import IssueHeader from './issue-header';
 import IssueSidebar from './issue-sidebar';
@@ -310,7 +311,7 @@ export default function IssueDetail({
       <Container>
         <Card>
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <HiOutlineExclamationTriangle className="mb-3 size-8 text-white/20" />
+            <TriangleAlert className="mb-3 size-8 text-white/20" />
             <p className="text-sm text-white/50">Issue not found</p>
             <Link
               href={APP_ROUTES.WORKSPACE.TASKS}
@@ -331,7 +332,7 @@ export default function IssueDetail({
           href={APP_ROUTES.WORKSPACE.TASKS}
           className="inline-flex items-center gap-1 text-xs text-white/40 transition-colors hover:text-white/60"
         >
-          <HiArrowLeft className="size-3" />
+          <ArrowLeft className="size-3" />
           Back to issues
         </Link>
       </div>

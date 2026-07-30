@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2, Square } from 'lucide-react';
+import { LoaderCircle, Square } from 'lucide-react';
 import { memo } from 'react';
 import { Button } from '../ui/button';
 
@@ -18,7 +18,7 @@ function ProcessingOverlayComponent({
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="flex flex-col items-center gap-2">
-        <Loader2 className="size-8 animate-spin text-primary" />
+        <LoaderCircle className="size-8 animate-spin text-primary" />
         <span className="text-xs text-white/80">{label}</span>
         {onStop && (
           <Button variant="destructive" size="sm" onClick={onStop}>

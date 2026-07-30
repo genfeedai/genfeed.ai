@@ -22,7 +22,7 @@ export const integrations: Integration[] = [
       'Automatic caption and subtitle generation for accessibility and engagement',
       'YouTube Analytics integration to track views, watch time, and subscriber growth',
     ],
-    icon: 'FaYoutube',
+    icon: 'YoutubeIcon',
     keywords: [
       'ai video generator for youtube',
       'youtube shorts maker ai',
@@ -79,7 +79,7 @@ export const integrations: Integration[] = [
       'Best-time-to-post scheduling powered by audience activity analysis',
       'Performance tracking to identify which hooks and formats drive the most views',
     ],
-    icon: 'FaTiktok',
+    icon: 'TiktokIcon',
     keywords: [
       'tiktok content creator tool',
       'ai tiktok video maker',
@@ -135,7 +135,7 @@ export const integrations: Integration[] = [
       'Hashtag strategy recommendations based on niche analysis and reach potential',
       'Visual content calendar to plan and preview your Instagram grid layout',
     ],
-    icon: 'FaInstagram',
+    icon: 'InstagramIcon',
     keywords: [
       'ai instagram content creator',
       'instagram reels maker ai',
@@ -192,7 +192,7 @@ export const integrations: Integration[] = [
       'Engagement analytics tracking impressions, reactions, comments, and profile visits',
       'Optimal posting schedule based on your professional network activity patterns',
     ],
-    icon: 'FaLinkedin',
+    icon: 'LinkedinIcon',
     keywords: [
       'linkedin post generator ai',
       'ai linkedin content creator',
@@ -248,7 +248,7 @@ export const integrations: Integration[] = [
       'Audience-targeted content suggestions based on page insights and demographics',
       'Cross-posting to Facebook Pages, Groups, and personal profiles from one dashboard',
     ],
-    icon: 'FaFacebook',
+    icon: 'FacebookIcon',
     keywords: [
       'ai facebook content creator',
       'facebook post generator ai',
@@ -305,7 +305,7 @@ export const integrations: Integration[] = [
       'Engagement tracking across impressions, retweets, replies, and profile clicks',
       'Automated reply and quote-tweet drafts for community engagement',
     ],
-    icon: 'FaXTwitter',
+    icon: 'XTwitterIcon',
     keywords: [
       'ai twitter content creator',
       'x twitter post generator ai',
@@ -360,7 +360,7 @@ export const integrations: Integration[] = [
       'Pinterest SEO optimization with keyword-rich titles, descriptions, and alt text',
       'Board strategy recommendations based on niche trends and search volume',
     ],
-    icon: 'FaPinterest',
+    icon: 'PinterestIcon',
     keywords: [
       'ai pinterest pin generator',
       'pinterest content creator ai',
@@ -416,7 +416,7 @@ export const integrations: Integration[] = [
       'Best posting time recommendations based on subreddit activity patterns',
       'Karma and engagement tracking across multiple subreddit communities',
     ],
-    icon: 'FaReddit',
+    icon: 'RedditIcon',
     keywords: [
       'ai reddit content creator',
       'reddit post generator ai',
@@ -471,7 +471,7 @@ export const integrations: Integration[] = [
       'Community engagement content like polls, discussion prompts, and themed challenges',
       'Visual content creation sized for Discord embeds and channel banners',
     ],
-    icon: 'FaDiscord',
+    icon: 'DiscordIcon',
     keywords: [
       'ai discord content creator',
       'discord server growth tool ai',
@@ -521,7 +521,7 @@ export const integrations: Integration[] = [
       'Clip-to-short conversion for repurposing Twitch highlights to TikTok and YouTube Shorts',
       'Viewer engagement analytics tracking concurrent viewers, followers, and subscriber growth',
     ],
-    icon: 'FaTwitch',
+    icon: 'TwitchIcon',
     keywords: [
       'ai twitch content creator',
       'twitch clip maker ai',
@@ -577,7 +577,7 @@ export const integrations: Integration[] = [
       'Category and tag suggestions based on content analysis and site taxonomy',
       'Direct publishing to WordPress.com via OAuth with scheduling support',
     ],
-    icon: 'FaWordpress',
+    icon: 'WordpressIcon',
     keywords: [
       'ai wordpress blog writer',
       'wordpress content generator ai',
@@ -626,7 +626,7 @@ export const integrations: Integration[] = [
       'Story sequence creation with multi-slide narratives and AR-style filters',
       'Audience targeting recommendations based on Snapchat demographics',
     ],
-    icon: 'FaSnapchat',
+    icon: 'SnapchatIcon',
     keywords: [
       'ai snapchat content creator',
       'snapchat ad maker ai',
@@ -676,7 +676,7 @@ export const integrations: Integration[] = [
       'Message status tracking for delivery, read receipts, and engagement rates',
       'Twilio-powered reliable delivery with enterprise-grade infrastructure',
     ],
-    icon: 'FaWhatsapp',
+    icon: 'WhatsappIcon',
     keywords: [
       'whatsapp business marketing ai',
       'ai whatsapp message generator',
@@ -726,7 +726,7 @@ export const integrations: Integration[] = [
       'Media attachment generation with AI images and alt-text descriptions',
       'Hashtag strategy for Fediverse discovery and cross-instance reach',
     ],
-    icon: 'FaMastodon',
+    icon: 'MastodonIcon',
     keywords: [
       'mastodon content creator ai',
       'fediverse social media tool',
@@ -776,7 +776,7 @@ export const integrations: Integration[] = [
       'Featured image generation with AI for posts and newsletters',
       'Tag and author management for organized content taxonomy',
     ],
-    icon: 'FaGhost',
+    icon: 'GhostIcon',
     keywords: [
       'ghost cms ai writer',
       'ai blog generator ghost',
@@ -825,7 +825,7 @@ export const integrations: Integration[] = [
       'Collection page content with thematic descriptions and category copy',
       'GraphQL API integration for seamless content publishing to Shopify',
     ],
-    icon: 'FaShopify',
+    icon: 'ShopifyIcon',
     keywords: [
       'shopify product description ai',
       'ai content for shopify store',
@@ -875,7 +875,7 @@ export const integrations: Integration[] = [
       'Publication scheduling with audience timezone optimization',
       'Analytics integration for tracking opens, clicks, and subscriber growth',
     ],
-    icon: 'HiNewspaper',
+    icon: 'Newspaper',
     keywords: [
       'beehiiv newsletter ai',
       'ai newsletter generator',
@@ -925,7 +925,7 @@ export const integrations: Integration[] = [
       'Reading time optimization to match Medium audience preferences',
       'Cross-posting from your blog with platform-specific reformatting',
     ],
-    icon: 'FaMedium',
+    icon: 'MediumIcon',
     keywords: [
       'medium article generator ai',
       'ai writer for medium',
@@ -975,7 +975,7 @@ export const integrations: Integration[] = [
       'Cross-platform content adaptation from Instagram and Twitter',
       'Engagement-optimized posting with conversation-starting hooks',
     ],
-    icon: 'FaThreads',
+    icon: 'ThreadsIcon',
     keywords: [
       'threads content creator ai',
       'ai threads post generator',
@@ -1023,7 +1023,7 @@ export const integrations: Integration[] = [
       'Media content generation with images and videos sized for Telegram',
       'Scheduled posting for consistent channel content delivery',
     ],
-    icon: 'FaTelegram',
+    icon: 'TelegramIcon',
     keywords: [
       'telegram channel content ai',
       'ai telegram bot content',
@@ -1072,7 +1072,7 @@ export const integrations: Integration[] = [
       'Community engagement content with polls, questions, and discussion starters',
       'Media attachment support with AI-generated images and documents',
     ],
-    icon: 'FaSlack',
+    icon: 'SlackIcon',
     keywords: [
       'slack content automation ai',
       'ai slack announcements',
@@ -1121,7 +1121,7 @@ export const integrations: Integration[] = [
       'Content scheduling with drip-feed strategies for subscriber retention',
       'Pricing strategy recommendations based on content type and audience',
     ],
-    icon: 'FaStar',
+    icon: 'Star',
     keywords: [
       'fanvue content creator ai',
       'ai content for fanvue',

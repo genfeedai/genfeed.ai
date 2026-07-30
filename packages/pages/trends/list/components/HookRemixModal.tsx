@@ -16,9 +16,9 @@ import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { SelectField } from '@ui/primitives/select';
 import { Slider } from '@ui/primitives/slider';
+import { Film, Sparkles } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { HiOutlineFilm, HiOutlineSparkles } from 'react-icons/hi2';
 
 const HOOK_REMIX_MODAL_ID = 'modal-hook-remix';
 
@@ -152,7 +152,7 @@ export default function HookRemixModal({
     >
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm text-foreground/70 bg-background/50 p-3">
-          <HiOutlineFilm className="size-5 text-primary shrink-0" />
+          <Film className="size-5 text-primary shrink-0" />
           <span>
             Extract the viral hook from this video and combine it with your CTA
             clip to create a new remix.
@@ -261,7 +261,7 @@ export default function HookRemixModal({
             onClick={handleSubmit}
             isLoading={isSubmitting}
             isDisabled={!isFormValid || isSubmitting}
-            icon={<HiOutlineSparkles className="size-3.5" />}
+            icon={<Sparkles className="size-3.5" />}
           />
         </ModalActions>
       </div>

@@ -27,6 +27,7 @@ export default function AppTable<T>({
   getRowKey,
   getRowClassName,
   emptyLabel = EMPTY_STATES.DEFAULT,
+  emptyDescription,
   emptyState,
 
   selectable = false,
@@ -116,8 +117,12 @@ export default function AppTable<T>({
       return <>{emptyState}</>;
     }
     return (
-      <div className="rounded bg-card shadow-border">
-        <CardEmptyContent label={emptyLabel} />
+      <div className="w-full min-h-[12rem]">
+        <CardEmptyContent
+          className="min-h-[12rem] w-full py-12"
+          label={emptyLabel}
+          description={emptyDescription}
+        />
       </div>
     );
   }
@@ -234,7 +239,12 @@ export default function AppTable<T>({
                               acc.push(
                                 <Button
                                   key={actionIndex}
-                                  label={iconContent}
+                                  icon={iconContent}
+                                  ariaLabel={
+                                    typeof tooltipText === 'string'
+                                      ? tooltipText
+                                      : 'Row action'
+                                  }
                                   onClick={() =>
                                     handleActionClick(action, item)
                                   }
@@ -245,9 +255,12 @@ export default function AppTable<T>({
                                   }
                                   data-testid="action-button"
                                   variant={ButtonVariant.GHOST}
-                                  size={ButtonSize.SM}
+                                  size={ButtonSize.ICON}
                                   className={cn(
-                                    'min-h-11 min-w-11 lg:min-h-0 lg:min-w-0',
+                                    // 44px touch target on small screens; compact
+                                    // icon control on desktop. Cap glyph size so
+                                    // bare lucide icons don't render at 24px.
+                                    'size-11 p-0 lg:size-8 [&_svg]:size-3.5',
                                     action.className,
                                     action.getClassName?.(item),
                                   )}

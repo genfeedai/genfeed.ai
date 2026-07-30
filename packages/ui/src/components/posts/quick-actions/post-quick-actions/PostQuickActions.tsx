@@ -14,8 +14,8 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
+import { Sparkles } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import { HiSparkles } from 'react-icons/hi2';
 
 const AI_QUICK_ACTIONS: Array<{ key: string; action: AiActionType }> = [
   { action: AiActionType.ADD_HASHTAGS, key: 'add-hashtags' },
@@ -103,7 +103,7 @@ export default function PostQuickActions({
                   isThisActive ? (
                     <Spinner size={ComponentSize.XS} />
                   ) : (
-                    <HiSparkles className="size-3.5" />
+                    <Sparkles className="size-3.5" />
                   )
                 }
                 variant={ButtonVariant.GHOST}

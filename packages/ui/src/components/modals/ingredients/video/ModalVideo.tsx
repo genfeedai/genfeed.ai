@@ -12,7 +12,7 @@ import Masonry from '@ui/display/masonry/Masonry';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
-import { HiVideoCamera, HiXMark } from 'react-icons/hi2';
+import { Video, X } from 'lucide-react';
 
 export default function ModalVideo({
   isOpen,
@@ -67,7 +67,7 @@ export default function ModalVideo({
               </p>
             </div>
             <Button
-              label={<HiXMark className="text-lg" />}
+              label={<X className="text-lg" />}
               onClick={onClose}
               variant={ButtonVariant.GHOST}
               size={ButtonSize.ICON}
@@ -83,7 +83,7 @@ export default function ModalVideo({
             </div>
           ) : availableVideos.length === 0 ? (
             <div className="text-center py-12">
-              <HiVideoCamera className="text-5xl text-foreground/20 mx-auto mb-3" />
+              <Video className="text-5xl text-foreground/20 mx-auto mb-3" />
               <p className="text-foreground/60">No {format} videos available</p>
               <p className="text-sm text-foreground/40 mt-2">
                 Generate some videos in this format first

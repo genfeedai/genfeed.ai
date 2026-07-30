@@ -13,8 +13,9 @@ import { useQuery } from '@tanstack/react-query';
 import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import { Play, Server, Square } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { HiOutlineServerStack, HiPlay, HiStop } from 'react-icons/hi2';
+
 import CloudFrontSection from './CloudFrontSection';
 import EC2InstancesSection from './EC2InstancesSection';
 import FleetServicesSection from './FleetServicesSection';
@@ -238,7 +239,7 @@ export default function InfrastructurePage() {
               isDisabled={!canStart || isActioning}
               onClick={() => handleEC2Action(instance.instanceId, 'start')}
             >
-              <HiPlay className="size-3.5" />
+              <Play className="size-3.5" />
               Start
             </Button>
 
@@ -249,7 +250,7 @@ export default function InfrastructurePage() {
               isDisabled={!canStop || isActioning}
               onClick={() => handleEC2Action(instance.instanceId, 'stop')}
             >
-              <HiStop className="size-3.5" />
+              <Square className="size-3.5" />
               Stop
             </Button>
           </div>
@@ -270,7 +271,7 @@ export default function InfrastructurePage() {
     <Container
       label="Infrastructure"
       description="GPU fleet management — images, voices, and video instances"
-      icon={HiOutlineServerStack}
+      icon={Server}
       right={
         <ButtonRefresh
           onClick={handleRefreshAll}

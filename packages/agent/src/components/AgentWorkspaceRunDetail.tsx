@@ -2,12 +2,9 @@ import type { AgentRunSummary } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
+import { Ban, CirclePlay, RefreshCw } from 'lucide-react';
 import type { ReactElement, ReactNode } from 'react';
-import {
-  HiOutlineArrowPath,
-  HiOutlineNoSymbol,
-  HiOutlinePlayCircle,
-} from 'react-icons/hi2';
+
 import {
   formatRunDuration,
   formatRunStatus,
@@ -66,7 +63,7 @@ function AgentRunThreadAction({
       withWrapper={false}
       onClick={() => onOpenThread(threadId)}
     >
-      <HiOutlinePlayCircle aria-hidden="true" className="size-4" />
+      <CirclePlay aria-hidden="true" className="size-4" />
       Open thread
     </Button>
   );
@@ -92,7 +89,7 @@ function AgentRunCancelAction({
       withWrapper={false}
       onClick={() => onCancel(run.id)}
     >
-      <HiOutlineNoSymbol aria-hidden="true" className="size-4" />
+      <Ban aria-hidden="true" className="size-4" />
       Cancel
     </Button>
   );
@@ -118,7 +115,7 @@ function AgentRunRetryAction({
       withWrapper={false}
       onClick={() => onRetry(run.id)}
     >
-      <HiOutlineArrowPath aria-hidden="true" className="size-4" />
+      <RefreshCw aria-hidden="true" className="size-4" />
       Retry
     </Button>
   );
@@ -414,7 +411,7 @@ export function AgentWorkspaceRunDetail({
   if (isLoading) {
     return (
       <div className="flex min-h-48 items-center justify-center" role="status">
-        <HiOutlineArrowPath
+        <RefreshCw
           aria-hidden="true"
           className="size-5 animate-spin text-primary"
         />

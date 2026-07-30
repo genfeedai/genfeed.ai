@@ -19,7 +19,7 @@ describe('buildSettingsMenuItems', () => {
       );
     });
 
-    it('separates account settings from support', () => {
+    it('uses two meaningful groups: Account and Support', () => {
       expect(items.map((item) => item.group)).toEqual(['Account', 'Support']);
     });
 
@@ -40,16 +40,16 @@ describe('buildSettingsMenuItems', () => {
       ).toEqual([
         'General',
         'Members',
+        'Brands',
+        'Models',
         'Credits',
         'API Keys',
         'Webhooks',
         'Policy',
-        'Brands',
-        'Models',
       ]);
     });
 
-    it('adds Billing only on the enterprise edition', () => {
+    it('adds Billing when organization billing is available (SaaS or EE)', () => {
       expect(
         buildSettingsMenuItems({
           scope: 'organization',
@@ -58,17 +58,17 @@ describe('buildSettingsMenuItems', () => {
       ).toEqual([
         'General',
         'Members',
+        'Brands',
+        'Models',
         'Billing',
         'Credits',
         'API Keys',
         'Webhooks',
         'Policy',
-        'Brands',
-        'Models',
       ]);
     });
 
-    it('groups organization settings by responsibility', () => {
+    it('uses two meaningful groups: Organization and Access', () => {
       expect(
         buildSettingsMenuItems({ scope: 'organization' }).map((item) => [
           item.label,
@@ -77,12 +77,12 @@ describe('buildSettingsMenuItems', () => {
       ).toEqual([
         ['General', 'Organization'],
         ['Members', 'Organization'],
-        ['Credits', 'Billing'],
-        ['API Keys', 'Developer'],
-        ['Webhooks', 'Developer'],
-        ['Policy', 'Governance'],
-        ['Brands', 'Resources'],
-        ['Models', 'Resources'],
+        ['Brands', 'Organization'],
+        ['Models', 'Organization'],
+        ['Credits', 'Access'],
+        ['API Keys', 'Access'],
+        ['Webhooks', 'Access'],
+        ['Policy', 'Access'],
       ]);
     });
 
@@ -115,36 +115,44 @@ describe('buildSettingsMenuItems', () => {
   describe('brand scope', () => {
     const items = buildSettingsMenuItems({ scope: 'brand' });
 
-    it('shows only the brand pages', () => {
+    it('shows brand profile + automation pages including Social and Brand Kit', () => {
       expect(items.map((item) => item.label)).toEqual([
-        'Overview',
+        'Profile',
+        'Social',
+        'Brand Kit',
         'Voice',
-        'Harness',
         'Interview',
+        'Harness',
         'Publishing',
         'Agent Defaults',
       ]);
     });
 
-    it('scopes every entry to the brand and marks Overview exact', () => {
+    it('scopes every entry to the brand and marks Profile exact', () => {
       expect(items.every((item) => item.hrefScope === 'brand')).toBe(true);
-      expect(items.find((i) => i.label === 'Overview')?.isExactMatch).toBe(
-        true,
+      expect(items.find((i) => i.label === 'Profile')?.isExactMatch).toBe(true);
+      expect(items.find((i) => i.label === 'Profile')?.href).toBe('/settings');
+      expect(items.find((i) => i.label === 'Social')?.href).toBe(
+        '/settings/social',
       );
-      expect(items.find((i) => i.label === 'Overview')?.href).toBe('/settings');
+      expect(items.find((i) => i.label === 'Brand Kit')?.href).toBe(
+        '/settings/kit',
+      );
       expect(items.find((i) => i.label === 'Voice')?.href).toBe(
         '/settings/voice',
       );
     });
 
-    it('separates brand identity from operational defaults', () => {
+    it('uses two meaningful groups: Brand and Automation', () => {
       expect(items.map((item) => [item.label, item.group])).toEqual([
-        ['Overview', 'Identity'],
-        ['Voice', 'Identity'],
-        ['Harness', 'Identity'],
-        ['Interview', 'Identity'],
-        ['Publishing', 'Operations'],
-        ['Agent Defaults', 'Operations'],
+        ['Profile', 'Brand'],
+        ['Social', 'Brand'],
+        ['Brand Kit', 'Brand'],
+        ['Voice', 'Brand'],
+        ['Interview', 'Brand'],
+        ['Harness', 'Automation'],
+        ['Publishing', 'Automation'],
+        ['Agent Defaults', 'Automation'],
       ]);
     });
   });

@@ -6,10 +6,8 @@ import { formatDate } from '@helpers/formatting/date/date.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
+import { Calendar, CalendarCheck, ExternalLink, Play } from 'lucide-react';
 import Image from 'next/image';
-import { FaCalendarAlt } from 'react-icons/fa';
-import { FaCalendarCheck, FaPlay } from 'react-icons/fa6';
-import { HiArrowTopRightOnSquare } from 'react-icons/hi2';
 
 export default function PostCard({ post, className = '' }: PostCardProps) {
   const ingredients = (post.ingredients || []) as IIngredient[];
@@ -18,26 +16,26 @@ export default function PostCard({ post, className = '' }: PostCardProps) {
   const postDates = [
     {
       date: post.uploadedAt,
-      icon: FaCalendarAlt,
+      icon: Calendar,
       iconColor: 'text-muted-foreground',
       label: 'Uploaded',
     },
     {
       date: post.scheduledDate,
-      icon: FaCalendarAlt,
+      icon: Calendar,
       iconColor: 'text-muted-foreground',
       label: 'Scheduled',
     },
     {
       date: post.publicationDate,
-      icon: FaCalendarCheck,
+      icon: CalendarCheck,
       iconColor: 'text-green-500',
       label: 'Published',
     },
   ].reduce<
     Array<{
       date: string;
-      icon: typeof FaCalendarAlt;
+      icon: typeof Calendar;
       iconColor: string;
       label: string;
     }>
@@ -68,7 +66,7 @@ export default function PostCard({ post, className = '' }: PostCardProps) {
             className="inline-flex items-center justify-center border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 text-sm font-medium transition-colors gap-2"
             title="View"
           >
-            <HiArrowTopRightOnSquare />
+            <ExternalLink />
             View
           </a>
         ) : undefined
@@ -85,7 +83,7 @@ export default function PostCard({ post, className = '' }: PostCardProps) {
           />
         ) : (
           <div className="flex items-center justify-center w-full h-full">
-            <FaPlay className="text-muted-foreground text-4xl" />
+            <Play className="text-muted-foreground text-4xl" />
           </div>
         )}
 

@@ -705,6 +705,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/studio/batch',
       '/:orgSlug/:brandSlug/studio/clips',
       '/:orgSlug/:brandSlug/studio/fastlane',
+      '/:orgSlug/:brandSlug/studio/storyboard',
     ],
     {
       fallback: '/:orgSlug/:brandSlug/studio/image',
@@ -925,6 +926,8 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/:orgSlug/:brandSlug/settings',
+      '/:orgSlug/:brandSlug/settings/kit',
+      '/:orgSlug/:brandSlug/settings/social',
       '/:orgSlug/:brandSlug/settings/voice',
       '/:orgSlug/:brandSlug/settings/harness',
       '/:orgSlug/:brandSlug/settings/interview',

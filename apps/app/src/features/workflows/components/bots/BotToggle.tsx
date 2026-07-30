@@ -5,10 +5,11 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import { ArrowLeft, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type ReactNode, useState } from 'react';
-import { HiArrowLeft, HiCog6Tooth } from 'react-icons/hi2';
+
 import Toggle from '@/features/workflows/components/ui/toggle/Toggle';
 
 interface ConfigItem {
@@ -85,7 +86,7 @@ export default function BotToggle({
           href={href('/bots')}
           className="p-2 hover:bg-muted transition-colors"
         >
-          <HiArrowLeft className="size-5" />
+          <ArrowLeft className="size-5" />
         </Link>
         <div className="flex items-center gap-3">
           <div className={cn('p-3', iconBgColor)}>{icon}</div>
@@ -144,7 +145,7 @@ export default function BotToggle({
             href={editorPath}
             className="flex items-center gap-2 text-sm text-primary hover:underline"
           >
-            <HiCog6Tooth className="size-4" />
+            <Settings className="size-4" />
             Advanced Settings
           </Link>
         </div>

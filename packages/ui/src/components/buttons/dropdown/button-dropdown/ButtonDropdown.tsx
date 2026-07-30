@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
-import { HiChevronDown } from 'react-icons/hi2';
+import { ChevronDown } from 'lucide-react';
 
 export default function ButtonDropdown({
   name,
@@ -56,7 +56,7 @@ export default function ButtonDropdown({
       ) : (
         <>
           <span className="text-xs font-medium">{displayLabel}</span>
-          <HiChevronDown className="size-3 text-foreground/50 transition-transform data-[state=open]:rotate-180" />
+          <ChevronDown className="size-3 text-foreground/50 transition-transform data-[state=open]:rotate-180" />
         </>
       )}
     </PrimitiveButton>

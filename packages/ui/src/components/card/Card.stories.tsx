@@ -4,7 +4,7 @@ import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
-import { FiHeart, FiSettings, FiStar, FiTrendingUp } from 'react-icons/fi';
+import { Heart, Settings, Star, TrendingUp } from 'lucide-react';
 
 /**
  * The Card component is a flexible container for grouping related content.
@@ -75,7 +75,7 @@ export const WithIcon: Story = {
       </div>
     ),
     description: 'Configure your account settings',
-    icon: FiSettings,
+    icon: Settings,
     label: 'Settings',
   },
 };
@@ -105,7 +105,7 @@ export const WithActions: Story = {
       </p>
     ),
     description: 'Add this to your favorites',
-    icon: FiHeart,
+    icon: Heart,
     label: 'Favorite Item',
   },
 };
@@ -116,7 +116,7 @@ export const WithActions: Story = {
 export const WithColoredIcon: Story = {
   render: () => (
     <Card
-      icon={FiStar}
+      icon={Star}
       iconClassName="text-warning"
       label="Premium Feature"
       description="Upgrade to unlock this feature"
@@ -159,7 +159,7 @@ export const WithOverlay: Story = {
 export const Compact: Story = {
   args: {
     description: 'View your performance metrics',
-    icon: FiTrendingUp,
+    icon: TrendingUp,
     label: 'Analytics Dashboard',
   },
 };
@@ -192,7 +192,7 @@ export const WithAnimation: Story = {
       </p>
     ),
     description: 'Ordering metadata passed through to the card surface',
-    icon: FiSettings,
+    icon: Settings,
     index: 1,
     label: 'Ordered Card',
   },
@@ -249,7 +249,7 @@ export const RichContent: Story = {
     ),
     className: 'w-96',
     description: 'Manage your content and analytics',
-    icon: FiHeart,
+    icon: Heart,
     label: 'Content Creator Dashboard',
   },
 };
@@ -264,10 +264,10 @@ export const MultipleCards: Story = {
   render: () => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 w-full max-w-4xl">
       {[
-        { color: 'text-primary', icon: FiSettings, label: 'Settings' },
-        { color: 'text-error', icon: FiHeart, label: 'Favorites' },
-        { color: 'text-warning', icon: FiStar, label: 'Premium' },
-        { color: 'text-success', icon: FiTrendingUp, label: 'Analytics' },
+        { color: 'text-primary', icon: Settings, label: 'Settings' },
+        { color: 'text-error', icon: Heart, label: 'Favorites' },
+        { color: 'text-warning', icon: Star, label: 'Premium' },
+        { color: 'text-success', icon: TrendingUp, label: 'Analytics' },
       ].map((item, index) => (
         <Card
           key={item.label}
@@ -321,7 +321,7 @@ export const Interactive: Story = {
 
     return (
       <Card
-        icon={FiSettings}
+        icon={Settings}
         label="User Profile"
         description="Manage your account settings"
         className="w-96"

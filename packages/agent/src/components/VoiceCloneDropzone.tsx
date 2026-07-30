@@ -1,8 +1,8 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { CloudUpload, Mic, Music } from 'lucide-react';
 import type { ReactElement, RefObject } from 'react';
-import { HiCloudArrowUp, HiMicrophone, HiMusicalNote } from 'react-icons/hi2';
 
 type CardStatus = 'idle' | 'uploading' | 'cloning' | 'done' | 'error';
 
@@ -41,10 +41,10 @@ export function VoiceCloneDropzone({
         }}
         className="mb-3 flex cursor-pointer flex-col items-center justify-center border-2 border-dashed border-border p-6 transition-colors hover:border-primary/50 hover:bg-muted/50"
       >
-        <HiCloudArrowUp className="mb-2 size-8 text-muted-foreground" />
+        <CloudUpload className="mb-2 size-8 text-muted-foreground" />
         {file ? (
           <div className="flex items-center gap-2">
-            <HiMusicalNote className="size-4 text-rose-500" />
+            <Music className="size-4 text-rose-500" />
             <span className="text-xs font-medium text-foreground">
               {file.name}
             </span>
@@ -76,7 +76,7 @@ export function VoiceCloneDropzone({
         isLoading={status === 'uploading'}
         className="w-full"
       >
-        <HiMicrophone className="size-4" />
+        <Mic className="size-4" />
         {status === 'uploading' ? 'Uploading…' : 'Clone New Voice'}
       </Button>
     </>

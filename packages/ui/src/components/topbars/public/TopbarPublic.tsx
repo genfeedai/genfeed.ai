@@ -4,6 +4,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import TopbarLogo from '@ui/topbars/logo/TopbarLogo';
+import { ChevronDown, Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ComponentType, ReactNode, SVGProps } from 'react';
@@ -14,7 +15,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import { HiBars3, HiChevronDown, HiXMark } from 'react-icons/hi2';
+
 import { useMounted } from '../../../lib/hooks';
 import TopbarPublicDesktopDropdown from './TopbarPublicDesktopDropdown';
 import TopbarPublicMobileMenu from './TopbarPublicMobileMenu';
@@ -197,7 +198,7 @@ export default function TopbarPublic({
                         }
                       >
                         {dropdown.label}
-                        <HiChevronDown
+                        <ChevronDown
                           className={cn(
                             'size-4 transition-transform duration-200',
                             isOpen && 'rotate-180',
@@ -246,9 +247,9 @@ export default function TopbarPublic({
                 ariaLabel={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
               >
                 {isMobileMenuOpen ? (
-                  <HiXMark className="size-6" />
+                  <X className="size-6" />
                 ) : (
-                  <HiBars3 className="size-6" />
+                  <Menu className="size-6" />
                 )}
               </Button>
             </div>

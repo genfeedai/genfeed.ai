@@ -1,22 +1,16 @@
 import { AGENT_MODELS } from '@genfeedai/agent/constants/agent-models.constant';
-import { ButtonSize, ButtonVariant, CostTier } from '@genfeedai/enums';
+import { COST_TIER_DISPLAY } from '@genfeedai/constants';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
+import { Check, DollarSign, Scale, Sparkles, Trophy, Zap } from 'lucide-react';
 import {
   type ChangeEvent,
   type ReactElement,
   useCallback,
   useState,
 } from 'react';
-import {
-  HiOutlineBolt,
-  HiOutlineCheck,
-  HiOutlineCurrencyDollar,
-  HiOutlineScale,
-  HiOutlineSparkles,
-  HiOutlineTrophy,
-} from 'react-icons/hi2';
 
 export type AgentGenerationPriority = 'quality' | 'balanced' | 'speed' | 'cost';
 
@@ -42,35 +36,29 @@ interface PriorityOption {
 const GENERATION_PRIORITY_OPTIONS: PriorityOption[] = [
   {
     description: 'Premium models, highest quality output',
-    icon: <HiOutlineTrophy className="size-4" />,
+    icon: <Trophy className="size-4" />,
     key: 'quality',
     label: 'Best Quality',
   },
   {
     description: 'Smart balance of quality, speed, and cost',
-    icon: <HiOutlineScale className="size-4" />,
+    icon: <Scale className="size-4" />,
     key: 'balanced',
     label: 'Balanced',
   },
   {
     description: 'Fastest generation, may use lighter models',
-    icon: <HiOutlineBolt className="size-4" />,
+    icon: <Zap className="size-4" />,
     key: 'speed',
     label: 'Fast',
   },
   {
     description: 'Cheapest models, saves credits',
-    icon: <HiOutlineCurrencyDollar className="size-4" />,
+    icon: <DollarSign className="size-4" />,
     key: 'cost',
     label: 'Budget',
   },
 ];
-
-const COST_TIER_COLORS: Record<CostTier, string> = {
-  [CostTier.LOW]: 'text-green-400 bg-green-400/10',
-  [CostTier.MEDIUM]: 'text-yellow-400 bg-yellow-400/10',
-  [CostTier.HIGH]: 'text-orange-400 bg-orange-400/10',
-};
 
 export function AgentSettings({
   initialSettings,
@@ -184,7 +172,7 @@ export function AgentSettings({
                 </span>
               </div>
               {generationPriority === option.key && (
-                <HiOutlineCheck className="size-4 shrink-0 text-primary" />
+                <Check className="size-4 shrink-0 text-primary" />
               )}
             </Button>
           ))}
@@ -218,7 +206,7 @@ export function AgentSettings({
               <div className="flex flex-1 flex-col gap-0.5">
                 <div className="flex items-center gap-1.5">
                   {model.isReasoning && (
-                    <HiOutlineSparkles className="size-3.5 text-purple-400" />
+                    <Sparkles className="size-3.5 text-purple-400" />
                   )}
                   <span className="text-sm font-medium text-foreground">
                     {model.label}
@@ -228,18 +216,19 @@ export function AgentSettings({
                   {model.description}
                 </span>
               </div>
-              {model.creditCost != null && model.costTier && (
+              {model.costTier && COST_TIER_DISPLAY[model.costTier] ? (
                 <span
                   className={cn(
                     'rounded-full px-2 py-0.5 text-[10px] font-bold',
-                    COST_TIER_COLORS[model.costTier],
+                    COST_TIER_DISPLAY[model.costTier].colorClass,
                   )}
+                  title={`Cost tier ${COST_TIER_DISPLAY[model.costTier].symbol}`}
                 >
-                  {model.creditCost}cr
+                  {COST_TIER_DISPLAY[model.costTier].symbol}
                 </span>
-              )}
+              ) : null}
               {selectedModel === model.key && (
-                <HiOutlineCheck className="size-4 text-primary" />
+                <Check className="size-4 text-primary" />
               )}
             </Button>
           ))}

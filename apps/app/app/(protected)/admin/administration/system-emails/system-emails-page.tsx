@@ -16,8 +16,8 @@ import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import { Mail } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { HiOutlineEnvelope } from 'react-icons/hi2';
 
 const SYSTEM_EMAIL_SKELETON_KEYS = [
   'system-email-skeleton-1',
@@ -88,7 +88,7 @@ export default function SystemEmailsPage() {
     <Container
       label="System emails"
       description="Platform-owned lifecycle emails, triggers, and copy"
-      icon={HiOutlineEnvelope}
+      icon={Mail}
     >
       {isLoading ? (
         <div className="grid gap-4">

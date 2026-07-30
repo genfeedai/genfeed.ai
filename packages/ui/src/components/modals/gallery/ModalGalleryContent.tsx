@@ -12,8 +12,8 @@ import ModalGalleryItemVideo from '@ui/modals/gallery/items/ModalGalleryItemVide
 import ModalGalleryCreationsTab from '@ui/modals/gallery/ModalGalleryCreationsTab';
 import ModalGalleryReferencesTab from '@ui/modals/gallery/ModalGalleryReferencesTab';
 import ModalGalleryUploadsTab from '@ui/modals/gallery/ModalGalleryUploadsTab';
+import { Image, Music, Video } from 'lucide-react';
 import { createElement } from 'react';
-import { HiMusicalNote, HiPhoto, HiVideoCamera } from 'react-icons/hi2';
 
 const EMPTY_ARRAY: never[] = [];
 
@@ -54,10 +54,10 @@ export default function ModalGalleryContent({
 
   const emptyIcon =
     category === IngredientCategory.VIDEO
-      ? HiVideoCamera
+      ? Video
       : category === IngredientCategory.MUSIC
-        ? HiMusicalNote
-        : HiPhoto;
+        ? Music
+        : Image;
 
   const emptyMessage =
     category === IngredientCategory.VIDEO

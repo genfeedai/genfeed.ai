@@ -127,6 +127,9 @@ describe('BrandDetailManualKitCard', () => {
     fireEvent.change(screen.getByLabelText('Manual brand guidance'), {
       target: { value: 'Write with practical proof.' },
     });
+    fireEvent.change(screen.getByLabelText('Manual primary color'), {
+      target: { value: '#112233' },
+    });
     fireEvent.click(
       screen.getByRole('button', { name: /create manual draft/i }),
     );
@@ -142,11 +145,41 @@ describe('BrandDetailManualKitCard', () => {
           ]),
           description: 'Manual description',
           guidanceText: 'Write with practical proof.',
+          primaryColor: '#112233',
         }),
       );
     });
     expect(screen.getByTestId('manual-kit-draft-review')).toBeInTheDocument();
     expect(successMock).toHaveBeenCalledWith('Manual brand kit draft ready');
+  });
+
+  it('renders color pickers and a font dropdown instead of plain text fields', () => {
+    render(
+      <BrandDetailManualKitCard
+        {...props}
+        brand={{
+          ...props.brand,
+          backgroundColor: '#000000',
+          fontFamily: 'MONTSERRAT_REGULAR',
+          primaryColor: '#111111',
+          secondaryColor: '#FFFFFF',
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByLabelText('Manual primary color picker'),
+    ).toHaveAttribute('type', 'color');
+    expect(
+      screen.getByLabelText('Manual secondary color picker'),
+    ).toHaveAttribute('type', 'color');
+    expect(
+      screen.getByLabelText('Manual background color picker'),
+    ).toHaveAttribute('type', 'color');
+    expect(screen.getByLabelText('Manual font family')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', { name: 'Manual font family' }),
+    ).not.toBeInTheDocument();
   });
 
   it('rejects unsupported guidance files before creating a draft', () => {

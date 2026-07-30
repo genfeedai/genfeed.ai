@@ -2,7 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { HiPencil } from 'react-icons/hi2';
+import { Pencil } from 'lucide-react';
 
 interface SettingRowProps {
   label: string;
@@ -46,7 +46,7 @@ export function SettingRow({ label, value, type, onEdit }: SettingRowProps) {
           aria-label={`Edit ${label}`}
           title="Edit"
         >
-          <HiPencil className="size-4" />
+          <Pencil className="size-4" />
         </Button>
       </td>
     </tr>

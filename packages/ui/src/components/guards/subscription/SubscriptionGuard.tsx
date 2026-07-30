@@ -1,6 +1,6 @@
 'use client';
 
-import { isEEEnabled } from '@genfeedai/config/license';
+import { hasOrganizationBilling } from '@genfeedai/config/license';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import type { SubscriptionGuardProps } from '@genfeedai/props/guards/subscription-guard.props';
@@ -19,7 +19,7 @@ import { useEffect, useState } from 'react';
 export default function SubscriptionGuard({
   children,
 }: SubscriptionGuardProps) {
-  const isBillingEnabled = isEEEnabled();
+  const isBillingEnabled = hasOrganizationBilling();
   const { isLoading, isSubscribed, isSuperAdmin } = useAccessState();
   const { replace } = useRouter();
   const [checked, setChecked] = useState(false);

@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Cloud, CloudOff, Loader2 } from 'lucide-react';
+import { Check, Cloud, CloudOff, LoaderCircle } from 'lucide-react';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useWorkflowStore } from '../stores/workflow';
 import { Button } from '../ui/button';
@@ -46,7 +46,7 @@ export function SaveIndicator({
             : 'flex items-center gap-1.5 text-xs text-info'
         }
       >
-        <Loader2 className="size-3.5 animate-spin" />
+        <LoaderCircle className="size-3.5 animate-spin" />
         <span>Saving…</span>
       </div>
     );

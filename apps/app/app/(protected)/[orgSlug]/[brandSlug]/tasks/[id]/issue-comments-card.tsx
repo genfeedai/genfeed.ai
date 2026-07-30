@@ -5,12 +5,9 @@ import type { IssueComment } from '@services/management/issue-comments.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
+import { ChevronDown, ChevronsDown, MessageCircle } from 'lucide-react';
 import type { RefObject } from 'react';
-import {
-  HiChevronDown,
-  HiOutlineChatBubbleLeft,
-  HiOutlineChevronDoubleDown,
-} from 'react-icons/hi2';
+
 import { CommentItem } from './comment-item';
 
 type IssueCommentsCardProps = {
@@ -46,7 +43,7 @@ export default function IssueCommentsCard({
     <Card>
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-2">
         <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white/40">
-          <HiOutlineChatBubbleLeft className="size-3.5" />
+          <MessageCircle className="size-3.5" />
           Comments ({comments.length})
         </h3>
         {comments.length > visibleCommentCount && (
@@ -57,7 +54,7 @@ export default function IssueCommentsCard({
             className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
             onClick={onScrollToLatest}
           >
-            <HiOutlineChevronDoubleDown className="size-3" />
+            <ChevronsDown className="size-3" />
             Jump to latest
           </Button>
         )}
@@ -72,7 +69,7 @@ export default function IssueCommentsCard({
               className="flex w-full items-center justify-center gap-1.5 border-b border-white/5 py-2 text-[11px] text-white/40 hover:bg-muted/40 hover:text-white/60"
               onClick={onShowAllComments}
             >
-              <HiChevronDown className="size-3" />
+              <ChevronDown className="size-3" />
               Show {hiddenCommentCount} earlier{' '}
               {hiddenCommentCount === 1 ? 'comment' : 'comments'}
             </Button>

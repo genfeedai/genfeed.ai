@@ -10,15 +10,18 @@ import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import PageLayout from '@web-components/PageLayout';
+import {
+  ArrowRight,
+  ImageIcon,
+  Music,
+  PencilLine,
+  Rocket,
+  Sparkles,
+  Video,
+  Wand,
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import {
-  HiMusicalNote,
-  HiPhoto,
-  HiSparkles,
-  HiVideoCamera,
-} from 'react-icons/hi2';
-import { LuArrowRight, LuPencilLine, LuRocket, LuWand } from 'react-icons/lu';
 
 const AI_MODELS = [
   'Google Veo 3',
@@ -67,41 +70,41 @@ const FEATURES = [
   {
     description:
       'Create videos in 2 minutes with Google Veo 3, OpenAI Sora 2, and more.',
-    icon: HiVideoCamera,
+    icon: Video,
     title: 'Video Generation',
   },
   {
     description:
       'Generate images with Google Imagen 4, DALL-E, and GPT Image models.',
-    icon: HiPhoto,
+    icon: ImageIcon,
     title: 'Image Generation',
   },
   {
     description:
       'AI voice cloning with ElevenLabs and music generation for complete audio.',
-    icon: HiMusicalNote,
+    icon: Music,
     title: 'Voice & Music',
   },
 ];
 
 const STEPS = [
   {
-    icon: LuPencilLine,
+    icon: PencilLine,
     label: 'Describe',
     sublabel: 'Write a prompt or upload a reference',
   },
   {
-    icon: LuWand,
+    icon: Wand,
     label: 'Generate',
     sublabel: 'AI creates your content in seconds',
   },
   {
-    icon: HiSparkles,
+    icon: Sparkles,
     label: 'Enhance',
     sublabel: 'Upscale, edit, and refine the output',
   },
   {
-    icon: LuRocket,
+    icon: Rocket,
     label: 'Publish',
     sublabel: 'Export or post directly to platforms',
   },
@@ -170,7 +173,7 @@ export default function StudioContent() {
             >
               <Link href="/pricing">
                 View Plans
-                <LuArrowRight className="size-4" />
+                <ArrowRight className="size-4" />
               </Link>
             </ButtonTracked>
             <ButtonTracked
@@ -196,7 +199,7 @@ export default function StudioContent() {
             <HStack className="flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
                 <div className="size-20 flex items-center justify-center border border-[var(--gen-accent-border)] bg-white/[0.06]">
-                  <HiSparkles className="size-10 text-surface" />
+                  <Sparkles className="size-10 text-surface" />
                 </div>
               </div>
               <VStack className="gap-3">
@@ -311,7 +314,7 @@ export default function StudioContent() {
         <section className="max-w-4xl mx-auto pb-16 px-6">
           <div className="text-center p-12 border border-[var(--gen-accent-border)] bg-white/[0.04]">
             <div className="flex justify-center mb-4">
-              <HiSparkles className="size-8 text-surface" />
+              <Sparkles className="size-8 text-surface" />
             </div>
             <Heading as="h3" className="text-2xl font-bold mb-2 text-surface">
               Start Creating Today
@@ -330,7 +333,7 @@ export default function StudioContent() {
               >
                 <Link href="/pricing">
                   View Plans
-                  <LuArrowRight className="size-4" />
+                  <ArrowRight className="size-4" />
                 </Link>
               </ButtonTracked>
               <ButtonTracked
@@ -341,7 +344,7 @@ export default function StudioContent() {
                 trackingData={{ action: 'explore_studio' }}
               >
                 <Link href="/demo">
-                  <LuArrowRight className="size-4" />
+                  <ArrowRight className="size-4" />
                   Explore Studio
                 </Link>
               </ButtonTracked>

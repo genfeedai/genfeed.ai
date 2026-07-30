@@ -19,8 +19,8 @@ import FormDateTimePicker from '@ui/primitives/date-time-picker';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
+import { Sparkles } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import { HiSparkles } from 'react-icons/hi2';
 
 export default function ModalPostSetupTab({
   form,
@@ -131,7 +131,7 @@ export default function ModalPostSetupTab({
               label="Generate from Prompt"
               variant={ButtonVariant.DEFAULT}
               size={ButtonSize.SM}
-              icon={<HiSparkles />}
+              icon={<Sparkles />}
               onClick={handleGenerateFromPrompt}
               isDisabled={isLoading || isGenerating}
               isLoading={isGenerating}

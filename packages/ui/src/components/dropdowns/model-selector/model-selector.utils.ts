@@ -4,6 +4,7 @@ import {
   getBrandConfig,
 } from '@genfeedai/constants';
 import type { CostTier } from '@genfeedai/enums';
+import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
 import type { IModel } from '@genfeedai/interfaces';
 import type { ModelSelectorOption } from '@genfeedai/props/ui/model-selector/model-selector.props';
 
@@ -128,7 +129,7 @@ export function transformModelsToOptions(
 
     return {
       brandColor: brandConfig.color,
-      brandIcon: brandConfig.icon,
+      brandIcon: getModelBrandIcon(brandConfig.iconKey),
       brandLabel: brandConfig.label,
       brandSlug,
       costTier: model.costTier as CostTier | undefined,

@@ -22,26 +22,26 @@ import { VideosService } from '@genfeedai/services/ingredients/videos.service';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
 import { getStatusMeta } from '@ui-constants/status.constant';
+import { Archive, Check, Clock, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { HiArchiveBox, HiCheck, HiClock, HiXMark } from 'react-icons/hi2';
 
 const ICON_CLASS = 'size-4';
 
 // Status icon mapping by normalized status string
 const STATUS_ICONS: Record<string, React.ReactNode> = {
-  ARCHIVED: <HiArchiveBox className={ICON_CLASS} />,
-  COMPLETED: <HiCheck className={ICON_CLASS} />,
-  DRAFT: <HiClock className={ICON_CLASS} />,
-  FAILED: <HiXMark className={ICON_CLASS} />,
-  GENERATED: <HiCheck className={ICON_CLASS} />,
-  PRIVATE: <HiClock className={ICON_CLASS} />,
-  PROCESSING: <HiClock className={ICON_CLASS} />,
-  PUBLIC: <HiCheck className={ICON_CLASS} />,
-  PUBLISHED: <HiCheck className={ICON_CLASS} />,
-  REJECTED: <HiXMark className={ICON_CLASS} />,
-  SCHEDULED: <HiClock className={ICON_CLASS} />,
-  UNLISTED: <HiClock className={ICON_CLASS} />,
-  VALIDATED: <HiCheck className={ICON_CLASS} />,
+  ARCHIVED: <Archive className={ICON_CLASS} />,
+  COMPLETED: <Check className={ICON_CLASS} />,
+  DRAFT: <Clock className={ICON_CLASS} />,
+  FAILED: <X className={ICON_CLASS} />,
+  GENERATED: <Check className={ICON_CLASS} />,
+  PRIVATE: <Clock className={ICON_CLASS} />,
+  PROCESSING: <Clock className={ICON_CLASS} />,
+  PUBLIC: <Check className={ICON_CLASS} />,
+  PUBLISHED: <Check className={ICON_CLASS} />,
+  REJECTED: <X className={ICON_CLASS} />,
+  SCHEDULED: <Clock className={ICON_CLASS} />,
+  UNLISTED: <Clock className={ICON_CLASS} />,
+  VALIDATED: <Check className={ICON_CLASS} />,
 };
 
 const VARIANT_COLORS: Record<string, string> = {
@@ -79,7 +79,7 @@ const INGREDIENT_PROCESSING_OPTIONS = [IngredientStatus.FAILED];
 
 function getStatusIcon(statusValue: string): React.ReactNode {
   const statusStr = statusValue.toString().toUpperCase();
-  return STATUS_ICONS[statusStr] ?? <HiCheck className={ICON_CLASS} />;
+  return STATUS_ICONS[statusStr] ?? <Check className={ICON_CLASS} />;
 }
 
 function getVariantColorClass(variant: string): string {
@@ -371,7 +371,7 @@ export default function DropdownStatus({
 
             {/* Active Indicator */}
             {isActive && (
-              <HiCheck
+              <Check
                 size={18}
                 className="flex-shrink-0 text-success"
                 aria-hidden="true"

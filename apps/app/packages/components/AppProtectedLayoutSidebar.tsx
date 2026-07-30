@@ -6,8 +6,12 @@ import { COMPOSE_LOGO_HREF } from '@app-config/compose-menu-items.config';
 import { LIBRARY_LOGO_HREF } from '@app-config/library-menu-items.config';
 import { APP_LOGO_HREF } from '@app-config/menu-items.config';
 import { ORG_LOGO_HREF } from '@app-config/org-menu-items.config';
+import { POSTS_LOGO_HREF } from '@app-config/posts-menu-items.config';
 import { RESEARCH_LOGO_HREF } from '@app-config/research-menu-items.config';
-import { SETTINGS_LOGO_HREF } from '@app-config/settings-menu-items.config';
+import {
+  SETTINGS_LOGO_HREF,
+  type SettingsScope,
+} from '@app-config/settings-menu-items.config';
 import { STUDIO_LOGO_HREF } from '@app-config/studio-menu-items.config';
 import { WORKFLOWS_LOGO_HREF } from '@app-config/workflows-menu-items.config';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
@@ -22,7 +26,8 @@ import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSw
 import SidebarActionTrigger from '@ui/menus/sidebar-action-trigger/SidebarActionTrigger';
 import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearchTrigger';
 import AppSidebar from '@ui/shell/menus/AppSidebar';
-import { HiPlus } from 'react-icons/hi2';
+import { Plus } from 'lucide-react';
+
 import { withTaskContextHref } from '@/lib/navigation/operator-shell';
 import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
 
@@ -55,16 +60,20 @@ type Props = {
   isLibraryRoute: boolean;
   isMessagesRoute?: boolean;
   isOrgRoute: boolean;
+  isPostsRoute: boolean;
   isResearchRoute: boolean;
   isSettingsRoute: boolean;
   isStudioRoute: boolean;
   isWorkflowsRoute: boolean;
+  /** Settings sidebar scope — brand routes omit the redundant "Settings" header. */
+  settingsScope?: SettingsScope;
   adminMenuItems: MenuItemConfig[];
   analyticsMenuItems: MenuItemConfig[];
   composeMenuItems: MenuItemConfig[];
   libraryMenuItems: MenuItemConfig[];
   menuItems: MenuItemConfig[];
   orgMenuItems: MenuItemConfig[];
+  postsMenuItems: MenuItemConfig[];
   researchMenuItems: MenuItemConfig[];
   secondaryMenuItems: MenuItemConfig[];
   settingsMenuItems: MenuItemConfig[];
@@ -94,16 +103,19 @@ export default function AppProtectedLayoutSidebar({
   isLibraryRoute,
   isMessagesRoute = false,
   isOrgRoute,
+  isPostsRoute,
   isResearchRoute,
   isSettingsRoute,
   isStudioRoute,
   isWorkflowsRoute,
+  settingsScope: _settingsScope = 'personal',
   adminMenuItems,
   analyticsMenuItems,
   composeMenuItems,
   libraryMenuItems,
   menuItems,
   orgMenuItems,
+  postsMenuItems,
   researchMenuItems,
   secondaryMenuItems,
   settingsMenuItems,
@@ -188,6 +200,14 @@ export default function AppProtectedLayoutSidebar({
         showOrgSwitcher: true,
       },
       {
+        active: isPostsRoute,
+        currentApp,
+        items: postsMenuItems,
+        logoHref: buildHref(POSTS_LOGO_HREF),
+        sectionLabel: 'Publish',
+        showOrgSwitcher: true,
+      },
+      {
         active: isWorkflowsRoute,
         currentApp,
         items: workflowsMenuItems,
@@ -240,7 +260,9 @@ export default function AppProtectedLayoutSidebar({
         currentApp,
         items: settingsMenuItems,
         logoHref: buildHref(SETTINGS_LOGO_HREF),
-        sectionLabel: 'Settings',
+        // No top-level "Settings" shell header — org/brand switcher + group
+        // labels (Organization / Access, Brand / Automation) are enough.
+        sectionLabel: undefined,
         showOrgSwitcher: true,
       },
     ] satisfies AppSidebarSurface[]
@@ -282,7 +304,7 @@ export default function AppProtectedLayoutSidebar({
         <>
           <SidebarActionTrigger
             ariaLabel="Open new task modal"
-            icon={<HiPlus className="size-4 flex-shrink-0" />}
+            icon={<Plus className="size-4 flex-shrink-0" />}
             label="New Task"
             onClick={dispatchOpenTaskComposer}
             shortcut="⌘⇧N"

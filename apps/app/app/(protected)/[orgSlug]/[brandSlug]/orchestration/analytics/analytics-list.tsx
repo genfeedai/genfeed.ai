@@ -16,8 +16,9 @@ import { OrganizationsService } from '@services/organization/organizations.servi
 import { BrandsService } from '@services/social/brands.service';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import { ChartColumn, Download } from 'lucide-react';
 import { useCallback, useEffect, useReducer } from 'react';
-import { HiArrowDownTray, HiOutlineChartBar } from 'react-icons/hi2';
+
 import AnalyticsKPISection from './analytics-kpi-section';
 import AnalyticsRecentVideos from './analytics-recent-videos';
 import AnalyticsViewsChart from './analytics-views-chart';
@@ -315,11 +316,11 @@ export default function AnalyticsList(_props: ContentProps) {
     <Container
       label="Analytics"
       description="Performance, engagement, and growth metrics."
-      icon={HiOutlineChartBar}
+      icon={ChartColumn}
       right={
         <Button
           tooltip="Export"
-          icon={<HiArrowDownTray />}
+          icon={<Download />}
           onClick={() => openExport({ onExport: handleExport })}
           variant={ButtonVariant.SECONDARY}
         />

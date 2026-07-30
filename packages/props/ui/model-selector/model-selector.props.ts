@@ -1,8 +1,7 @@
 import type { CostTier, ModelCategory, RouterPriority } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
+import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 import type { ReactNode, RefObject } from 'react';
-import type { IconType } from 'react-icons';
-
 export interface ModelSelectorOption {
   model: IModel;
   brandSlug: string;

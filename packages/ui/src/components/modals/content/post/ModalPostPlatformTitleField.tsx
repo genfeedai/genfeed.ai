@@ -4,7 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IPostPlatformConfig } from '@genfeedai/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { HiSparkles } from 'react-icons/hi2';
+import { Sparkles } from 'lucide-react';
 
 type Props = {
   config: IPostPlatformConfig;
@@ -52,7 +52,7 @@ export default function ModalPostPlatformTitleField({
           }
           isDisabled={!isEnabled || isLoading || isGenerating}
           isLoading={isGenerating}
-          icon={<HiSparkles className="size-3" />}
+          icon={<Sparkles className="size-3" />}
           label={isGenerating ? 'Generating…' : 'Generate'}
         />
       </div>

@@ -8,8 +8,9 @@ import {
   DefinitionTerm,
 } from '@genfeedai/ui';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
+import { Lightbulb } from 'lucide-react';
 import { useState } from 'react';
-import { HiOutlineLightBulb } from 'react-icons/hi2';
+
 import ReviewDecisionPanel from './ReviewDecisionPanel';
 import ReviewHistoryPanel from './ReviewHistoryPanel';
 import ReviewLineagePanel from './ReviewLineagePanel';
@@ -173,7 +174,7 @@ export default function ReviewDetailPanelAside({
         (item.gateReasons?.length ?? 0) > 0) && (
         <InsetSurface className="p-5" tone="contrast">
           <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-            <HiOutlineLightBulb className="size-4 text-foreground/55" />
+            <Lightbulb className="size-4 text-foreground/55" />
             Publish Gate
           </div>
           <DefinitionList className="mt-4 text-sm">

@@ -86,6 +86,13 @@ vi.mock(
   }),
 );
 
+vi.mock(
+  '@app/(protected)/[orgSlug]/[brandSlug]/library/library-sidebar-nav',
+  () => ({
+    default: () => <div data-testid="library-sidebar-nav">Library nav</div>,
+  }),
+);
+
 vi.mock('@ui/layouts/app/AppLayout', () => ({
   default: ({
     bannerComponent,
@@ -436,7 +443,7 @@ vi.mock('@providers/protected-providers/protected-providers', () => ({
 }));
 
 vi.mock('@genfeedai/config/license', () => ({
-  isEEEnabled: () => true,
+  hasOrganizationBilling: () => true,
 }));
 
 vi.mock('@genfeedai/config/deployment', () => ({
@@ -1101,6 +1108,8 @@ describe('AppProtectedLayout', () => {
     );
 
     expect(screen.getByTestId('library-nav-panel')).toBeInTheDocument();
+    expect(screen.getByTestId('library-sidebar-nav')).toBeInTheDocument();
+    expect(screen.getByText('Library nav')).toBeInTheDocument();
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         currentApp: 'library',
@@ -1159,7 +1168,7 @@ describe('AppProtectedLayout', () => {
     ['/org-123/brand-123/library/overview', 'library', 'Library'],
     ['/org-123/brand-123/analytics/overview', 'analytics', 'Analytics'],
     ['/org-123/brand-123/workflows', 'workflows', 'Workflows'],
-    ['/org-123/brand-123/posts/remix', 'posts', 'Workspace'],
+    ['/org-123/brand-123/posts/remix', 'posts', 'Publish'],
   ])(
     'keeps the %s app-switcher surface on its own module nav',
     (pathname, currentApp, sectionLabel) => {
@@ -1232,6 +1241,7 @@ describe('AppProtectedLayout', () => {
         isFocusedOnboardingRoute={false}
         isLibraryRoute
         isOrgRoute={false}
+        isPostsRoute={false}
         isResearchRoute={false}
         isSettingsRoute={false}
         isStudioRoute={false}
@@ -1242,6 +1252,7 @@ describe('AppProtectedLayout', () => {
         libraryMenuItems={[{ href: '/library/images', label: 'Images' }]}
         menuItems={[]}
         orgMenuItems={[]}
+        postsMenuItems={[]}
         researchMenuItems={[]}
         secondaryMenuItems={[]}
         settingsMenuItems={[]}
@@ -1275,6 +1286,7 @@ describe('AppProtectedLayout', () => {
         isFocusedOnboardingRoute={false}
         isLibraryRoute
         isOrgRoute={false}
+        isPostsRoute={false}
         isResearchRoute={false}
         isSettingsRoute={false}
         isStudioRoute={false}
@@ -1285,6 +1297,7 @@ describe('AppProtectedLayout', () => {
         libraryMenuItems={[{ href: '/library/images', label: 'Images' }]}
         menuItems={[]}
         orgMenuItems={[]}
+        postsMenuItems={[]}
         researchMenuItems={[]}
         secondaryMenuItems={[]}
         settingsMenuItems={[]}

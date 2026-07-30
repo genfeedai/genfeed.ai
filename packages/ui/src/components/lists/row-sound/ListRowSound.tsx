@@ -3,8 +3,8 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IMetadata } from '@genfeedai/interfaces';
 import type { ListRowSoundProps } from '@genfeedai/props/content/list.props';
 import { Button } from '@ui/primitives/button';
+import { Pause, Play } from 'lucide-react';
 import type { MouseEvent } from 'react';
-import { HiPause, HiPlay } from 'react-icons/hi2';
 
 function renderLegacyPlaybackControl({
   ingredient,
@@ -19,9 +19,9 @@ function renderLegacyPlaybackControl({
     <Button
       label={
         ingredient.isPlaying ? (
-          <HiPause className="text-lg" />
+          <Pause className="text-lg" />
         ) : (
-          <HiPlay className="text-lg" />
+          <Play className="text-lg" />
         )
       }
       variant={isActive ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT}
@@ -87,7 +87,7 @@ export default function ListRowSound({
               {typeof index === 'number' ? (
                 index + 1
               ) : (
-                <HiPlay className="size-4" />
+                <Play className="size-4" />
               )}
             </div>
           )}

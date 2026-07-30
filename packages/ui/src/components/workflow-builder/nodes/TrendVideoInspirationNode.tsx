@@ -11,7 +11,7 @@ import type {
   TrendPlatform,
   TrendVideoInspirationNodeData,
 } from '@ui/workflow-builder/types/workflow-saas.types';
-import { ExternalLink, Loader2, Sparkles, Video } from 'lucide-react';
+import { ExternalLink, LoaderCircle, Sparkles, Video } from 'lucide-react';
 import { memo, useCallback, useId } from 'react';
 
 export type {
@@ -203,7 +203,7 @@ function TrendVideoInspirationNodeComponent({
       >
         {isProcessing ? (
           <>
-            <Loader2 className="size-4 animate-spin" />
+            <LoaderCircle className="size-4 animate-spin" />
             Analyzing…
           </>
         ) : (

@@ -2,8 +2,8 @@
 import { DropdownDirection } from '@genfeedai/enums';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
+import { Funnel as Filter } from 'lucide-react';
 import { useState } from 'react';
-import { FaFilter } from 'react-icons/fa';
 
 /**
  * DropdownMultiSelect component provides a multi-select dropdown
@@ -118,7 +118,7 @@ export const WithIcon: Story = {
         // Values changed
       }}
       placeholder="Filter"
-      icon={<FaFilter size={16} />}
+      icon={<Filter size={16} />}
       direction={DropdownDirection.DOWN}
     />
   ),

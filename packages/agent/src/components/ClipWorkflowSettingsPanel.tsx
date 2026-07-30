@@ -10,13 +10,8 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
+import { Play, RefreshCcw, Sparkles, Zap } from 'lucide-react';
 import type { ReactElement } from 'react';
-import {
-  HiOutlineArrowPathRoundedSquare,
-  HiOutlineBolt,
-  HiOutlinePlay,
-  HiOutlineSparkles,
-} from 'react-icons/hi2';
 
 type StepKey =
   | 'trigger_workflow'
@@ -165,7 +160,7 @@ export function ClipWorkflowSettingsPanel({
           onClick={onRunNext}
           isDisabled={!nextNonPublishStep}
         >
-          <HiOutlinePlay className="size-3.5" />
+          <Play className="size-3.5" />
           {nextNonPublishStep ? 'Run Next Step' : 'Pipeline Ready'}
         </Button>
 
@@ -174,7 +169,7 @@ export function ClipWorkflowSettingsPanel({
           size={ButtonSize.SM}
           onClick={onAddAnotherClip}
         >
-          <HiOutlineBolt className="size-3.5" />
+          <Zap className="size-3.5" />
           Generate Another Clip
         </Button>
 
@@ -184,7 +179,7 @@ export function ClipWorkflowSettingsPanel({
             size={ButtonSize.SM}
             onClick={onMergeNow}
           >
-            <HiOutlineArrowPathRoundedSquare className="size-3.5" />
+            <RefreshCcw className="size-3.5" />
             Merge Now
           </Button>
         )}
@@ -198,7 +193,7 @@ export function ClipWorkflowSettingsPanel({
             steps.supervised_review === 'completed'
           }
         >
-          <HiOutlineSparkles className="size-3.5" />
+          <Sparkles className="size-3.5" />
           Open Supervised Review
         </Button>
       </div>

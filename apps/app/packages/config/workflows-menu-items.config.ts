@@ -1,17 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
-import {
-  HiCog6Tooth,
-  HiOutlineCog6Tooth,
-  HiOutlinePlayCircle,
-  HiOutlineRocketLaunch,
-  HiOutlineSparkles,
-  HiOutlineWrenchScrewdriver,
-  HiPlayCircle,
-  HiRocketLaunch,
-  HiSparkles,
-  HiWrenchScrewdriver,
-} from 'react-icons/hi2';
+import { CirclePlay, Rocket, Settings, Sparkles, Wrench } from 'lucide-react';
 
 export const WORKFLOWS_MENU_ITEMS: MenuItemConfig[] = [
   {
@@ -22,24 +11,24 @@ export const WORKFLOWS_MENU_ITEMS: MenuItemConfig[] = [
       APP_ROUTES.WORKFLOWS.EXECUTIONS,
       APP_ROUTES.ORCHESTRATION.RUNS,
     ],
-    outline: HiOutlinePlayCircle,
-    solid: HiPlayCircle,
+    outline: CirclePlay,
+    solid: CirclePlay,
   },
   {
     group: '',
     href: APP_ROUTES.WORKFLOWS.ROOT,
     label: 'Workflows',
     matchPaths: [APP_ROUTES.ORCHESTRATION.WORKFLOWS, APP_ROUTES.WORKFLOWS.ROOT],
-    outline: HiOutlineWrenchScrewdriver,
-    solid: HiWrenchScrewdriver,
+    outline: Wrench,
+    solid: Wrench,
   },
   {
     group: '',
     href: APP_ROUTES.ORCHESTRATION.SKILLS,
     label: 'Skills',
     matchPaths: [APP_ROUTES.ORCHESTRATION.SKILLS],
-    outline: HiOutlineSparkles,
-    solid: HiSparkles,
+    outline: Sparkles,
+    solid: Sparkles,
   },
   {
     group: '',
@@ -50,8 +39,8 @@ export const WORKFLOWS_MENU_ITEMS: MenuItemConfig[] = [
       APP_ROUTES.ORCHESTRATION.AUTOPILOT,
       '/orchestration/strategies',
     ],
-    outline: HiOutlineRocketLaunch,
-    solid: HiRocketLaunch,
+    outline: Rocket,
+    solid: Rocket,
   },
   {
     group: '',
@@ -61,8 +50,8 @@ export const WORKFLOWS_MENU_ITEMS: MenuItemConfig[] = [
       APP_ROUTES.WORKFLOWS.CONFIGURATION,
       APP_ROUTES.ORCHESTRATION.CONFIGURATION,
     ],
-    outline: HiOutlineCog6Tooth,
-    solid: HiCog6Tooth,
+    outline: Settings,
+    solid: Settings,
   },
 ];
 

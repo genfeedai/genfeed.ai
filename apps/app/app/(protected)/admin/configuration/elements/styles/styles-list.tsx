@@ -17,6 +17,7 @@ import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalStyle } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Pencil, Trash2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Suspense,
@@ -26,7 +27,6 @@ import {
   useReducer,
   useRef,
 } from 'react';
-import { HiPencil, HiTrash } from 'react-icons/hi2';
 
 type StylesListState = {
   styles: ElementStyle[];
@@ -184,13 +184,13 @@ function StylesListContent({
     scope === PageScope.SUPERADMIN
       ? [
           {
-            icon: <HiPencil />,
+            icon: <Pencil />,
             onClick: (style: IElementStyle) =>
               openStyleModal(ModalEnum.STYLE, style),
             tooltip: 'Edit',
           },
           {
-            icon: <HiTrash />,
+            icon: <Trash2 />,
             onClick: (style: IElementStyle) =>
               openStyleModal(ModalEnum.CONFIRM, style),
             tooltip: 'Delete',

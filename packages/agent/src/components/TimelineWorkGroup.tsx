@@ -9,13 +9,8 @@ import { formatAgentErrorDetail } from '@genfeedai/agent/utils/format-agent-erro
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
+import { ChevronDown, CircleAlert, CircleCheck, Clock } from 'lucide-react';
 import { type ReactElement, useEffect, useMemo, useState } from 'react';
-import {
-  HiCheckCircle,
-  HiChevronDown,
-  HiClock,
-  HiExclamationCircle,
-} from 'react-icons/hi2';
 
 interface TimelineWorkGroupProps {
   entry: TimelineWorkGroupEntry;
@@ -115,7 +110,7 @@ export function TimelineWorkGroup({
       )}
     >
       <div className="flex min-w-0 items-center gap-1.5 text-xs text-foreground/55">
-        <HiClock className="size-3.5 shrink-0 text-foreground/40" />
+        <Clock className="size-3.5 shrink-0 text-foreground/40" />
         <span className="font-medium text-foreground/70">{durationPhrase}</span>
         {isTerminal ? (
           <>
@@ -124,9 +119,9 @@ export function TimelineWorkGroup({
             </span>
             <span className="inline-flex items-center gap-1 text-[11px] text-foreground/45">
               {terminalStatus === 'failed' ? (
-                <HiExclamationCircle className="size-3.5 text-destructive" />
+                <CircleAlert className="size-3.5 text-destructive" />
               ) : (
-                <HiCheckCircle className="size-3.5 text-emerald-500" />
+                <CircleCheck className="size-3.5 text-emerald-500" />
               )}
               {statusLabel}
             </span>
@@ -163,7 +158,7 @@ export function TimelineWorkGroup({
         ) : null}
       </div>
       {isCollapsible && stepCount > 0 ? (
-        <HiChevronDown
+        <ChevronDown
           className={cn(
             'size-3.5 shrink-0 text-foreground/40 transition-transform',
             isExpanded ? 'rotate-180' : '',

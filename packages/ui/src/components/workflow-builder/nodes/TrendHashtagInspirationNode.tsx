@@ -10,7 +10,7 @@ import type {
   TrendHashtagInspirationNodeData,
   TrendPlatform,
 } from '@ui/workflow-builder/types/workflow-saas.types';
-import { Hash, Loader2, Sparkles } from 'lucide-react';
+import { Hash, LoaderCircle, Sparkles } from 'lucide-react';
 import { memo, useCallback, useId } from 'react';
 
 export type {
@@ -181,7 +181,7 @@ function TrendHashtagInspirationNodeComponent({
       >
         {isProcessing ? (
           <>
-            <Loader2 className="size-4 animate-spin" />
+            <LoaderCircle className="size-4 animate-spin" />
             Generating…
           </>
         ) : (

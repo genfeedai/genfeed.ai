@@ -5,13 +5,9 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import { Button as PrimitiveButton } from '@ui/primitives/button';
+import { Columns2, LayoutDashboard, Plus, Users } from 'lucide-react';
 import Link from 'next/link';
-import {
-  HiOutlineRectangleGroup,
-  HiOutlineUserGroup,
-  HiOutlineViewColumns,
-  HiPlus,
-} from 'react-icons/hi2';
+
 import ContentTeamCampaignsSection from './ContentTeamCampaignsSection';
 import ContentTeamMemberCard from './ContentTeamMemberCard';
 import ContentTeamSummaryCard from './ContentTeamSummaryCard';
@@ -34,7 +30,7 @@ export default function ContentTeamPage() {
   return (
     <Container
       description="Operate specialist content agents, orchestrated campaigns, and repeatable automations from one role-first control plane."
-      icon={HiOutlineViewColumns}
+      icon={Columns2}
       label="Content Team"
       right={
         <div className="flex flex-wrap gap-2">
@@ -44,7 +40,7 @@ export default function ContentTeamPage() {
             size={ButtonSize.SM}
           >
             <Link href={APP_ROUTES.ORCHESTRATION.HIRE}>
-              <HiPlus /> Hire Agent
+              <Plus /> Hire Agent
             </Link>
           </PrimitiveButton>
           <PrimitiveButton
@@ -53,7 +49,7 @@ export default function ContentTeamPage() {
             size={ButtonSize.SM}
           >
             <Link href={APP_ROUTES.ORCHESTRATION.ORCHESTRATOR}>
-              <HiOutlineRectangleGroup /> Launch Orchestrator
+              <LayoutDashboard /> Launch Orchestrator
             </Link>
           </PrimitiveButton>
         </div>
@@ -110,7 +106,7 @@ export default function ContentTeamPage() {
           <Card
             bodyClassName="flex flex-col items-start gap-4 p-6"
             description="Use the hire flow to spin up specialist agents for short-form, X, image, script, and avatar work."
-            icon={HiOutlineUserGroup}
+            icon={Users}
             iconWrapperClassName="bg-tertiary text-muted-foreground"
             label="No team members yet"
           >

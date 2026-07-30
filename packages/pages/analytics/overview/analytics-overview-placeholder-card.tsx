@@ -1,10 +1,10 @@
 'use client';
 
 import { ButtonSize, type ButtonVariant, CardVariant } from '@genfeedai/enums';
+import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 import Card from '@ui/card/Card';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import Link from 'next/link';
-import type { IconType } from 'react-icons';
 
 interface HeroAction {
   href: string;

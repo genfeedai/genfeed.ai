@@ -9,8 +9,8 @@ import { UsersService } from '@services/organization/users.service';
 import { useQuery } from '@tanstack/react-query';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
+import { Users } from 'lucide-react';
 import { useEffect } from 'react';
-import { HiOutlineUserGroup } from 'react-icons/hi2';
 
 export default function UsersList() {
   const getUsersService = useAuthedService((token: string) =>
@@ -61,7 +61,7 @@ export default function UsersList() {
     <Container
       label="Users"
       description="Manage user accounts, roles, and permissions across the platform"
-      icon={HiOutlineUserGroup}
+      icon={Users}
       right={
         <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
       }

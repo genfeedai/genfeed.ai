@@ -1,9 +1,11 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { createBrandAppRoute } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import type { IQueryParams } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Brand } from '@models/organization/brand.model';
 import {
   useBrandOverlay,
@@ -17,15 +19,11 @@ import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
+import { Building2, ExternalLink, Plus, Trash2 } from 'lucide-react';
 import Image from 'next/image';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo } from 'react';
-import {
-  HiOutlineBuildingOffice2,
-  HiPencil,
-  HiPlus,
-  HiTrash,
-} from 'react-icons/hi2';
+
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
@@ -35,6 +33,8 @@ function BrandsListContent() {
   const { organizationId } = useBrand();
   const { openBrandOverlay } = useBrandOverlay();
   const { openConfirm } = useConfirmModal();
+  const { orgSlug } = useOrgUrl();
+  const { push } = useRouter();
   const notificationsService = NotificationsService.getInstance();
 
   const searchParams = useSearchParams();
@@ -44,6 +44,21 @@ function BrandsListContent() {
     [searchParamsString],
   );
   const currentPage = Number(parsedSearchParams.get('page')) || 1;
+
+  // Edit / row open go to the brand settings page — the real home for brand
+  // identity, voice, interview, publishing, and agent defaults. Overlay stays
+  // create-only so the list can spin up a brand without a full navigation.
+  const openBrandSettings = useCallback(
+    (brand: Brand) => {
+      if (!orgSlug || !brand.slug) {
+        notificationsService.error('Brand settings are unavailable');
+        return;
+      }
+
+      push(createBrandAppRoute(orgSlug, brand.slug, '/settings'));
+    },
+    [notificationsService, orgSlug, push],
+  );
 
   const getBrandsService = useAuthedService((token: string) =>
     BrandsService.getInstance(token),
@@ -108,20 +123,20 @@ function BrandsListContent() {
         header: 'Brand',
         key: 'label',
         render: (brand: Brand) => (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             {brand.logoUrl ? (
               <Image
                 alt={brand.label}
-                className="size-8 rounded-lg object-cover"
+                className="size-6 rounded-md object-cover"
                 src={brand.logoUrl}
-                sizes="32px"
+                sizes="24px"
                 unoptimized={!canOptimizeImageSource(brand.logoUrl)}
-                width={32}
-                height={32}
+                width={24}
+                height={24}
               />
             ) : (
-              <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10">
-                <HiOutlineBuildingOffice2 className="size-4 text-primary" />
+              <div className="flex size-6 items-center justify-center rounded-md bg-primary/10">
+                <Building2 className="size-3.5 text-primary" />
               </div>
             )}
             <span className="font-medium">{brand.label}</span>
@@ -166,14 +181,12 @@ function BrandsListContent() {
   const actions = useMemo(
     () => [
       {
-        icon: <HiPencil />,
-        onClick: (brand: Brand) => {
-          openBrandOverlay(brand, () => refresh(), 'edit');
-        },
-        tooltip: 'Edit',
+        icon: <ExternalLink className="size-3.5" />,
+        onClick: openBrandSettings,
+        tooltip: 'Open settings',
       },
       {
-        icon: <HiTrash />,
+        icon: <Trash2 className="size-3.5" />,
         onClick: (brand: Brand) => {
           openConfirm({
             confirmLabel: 'Delete',
@@ -186,18 +199,18 @@ function BrandsListContent() {
         tooltip: 'Delete',
       },
     ],
-    [openBrandOverlay, openConfirm, handleDelete, refresh],
+    [handleDelete, openBrandSettings, openConfirm],
   );
 
   return (
     <Container
       label="Brands"
       description="Manage brands and settings."
-      icon={HiOutlineBuildingOffice2}
+      icon={Building2}
       right={
         <Button
           variant={ButtonVariant.DEFAULT}
-          icon={<HiPlus />}
+          icon={<Plus />}
           label="Add Brand"
           onClick={() => openBrandOverlay(null, () => refresh())}
         />
@@ -210,9 +223,7 @@ function BrandsListContent() {
         getRowKey={(brand) => brand.id}
         isLoading={isLoading}
         items={brands || []}
-        onRowClick={(brand) =>
-          openBrandOverlay(brand, () => refresh(), 'overview')
-        }
+        onRowClick={openBrandSettings}
       />
 
       <AutoPagination showTotal totalLabel="brands" />

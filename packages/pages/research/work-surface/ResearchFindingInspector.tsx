@@ -3,8 +3,9 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import { X } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { HiOutlineXMark } from 'react-icons/hi2';
+
 import { useOptionalResearchWorkSurface } from './ResearchWorkSurfaceProvider';
 
 export default function ResearchFindingInspector(): ReactElement {
@@ -30,7 +31,7 @@ export default function ResearchFindingInspector(): ReactElement {
             <Button
               ariaLabel="Remove selected research finding"
               className="shrink-0"
-              icon={<HiOutlineXMark className="size-4" />}
+              icon={<X className="size-4" />}
               onClick={() => surface?.clearFinding()}
               size={ButtonSize.ICON}
               variant={ButtonVariant.GHOST}

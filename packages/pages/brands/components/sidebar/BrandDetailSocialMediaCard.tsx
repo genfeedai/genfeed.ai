@@ -292,95 +292,93 @@ export default function BrandDetailSocialMediaCard({
     );
   };
 
+  const socialDescription =
+    connectedPlatformsCount > 0
+      ? `${connectedPlatformsCount} connected · ${unconnectedPlatforms.length} available to add`
+      : 'Connect accounts to display them here.';
+
   return (
     <>
-      <Card className="p-6">
-        <div className="space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold">Social Media</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {connectedPlatformsCount > 0
-                  ? `${connectedPlatformsCount} connected account${connectedPlatformsCount === 1 ? '' : 's'} with ${unconnectedPlatforms.length} platform${unconnectedPlatforms.length === 1 ? '' : 's'} available to add.`
-                  : 'Connect your social media accounts to display them here.'}
-              </p>
-            </div>
-
-            <Button
-              variant={ButtonVariant.SECONDARY}
-              size={ButtonSize.SM}
-              onClick={() => setIsDialogOpen(true)}
-            >
-              {connectedPlatformsCount > 0 ? 'Manage' : 'Connect'}
-            </Button>
+      <Card
+        label="Social Media"
+        description={socialDescription}
+        headerAction={
+          <Button
+            variant={ButtonVariant.SECONDARY}
+            size={ButtonSize.SM}
+            className="h-8 shrink-0 px-2.5 text-xs"
+            onClick={() => setIsDialogOpen(true)}
+          >
+            {connectedPlatformsCount > 0 ? 'Manage' : 'Connect'}
+          </Button>
+        }
+      >
+        {connectedConnections.length > 0 ? (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {connectedConnections.map((connection) => (
+              <ConnectedAccount
+                key={connection.credentialId}
+                connection={connection}
+              />
+            ))}
           </div>
+        ) : (
+          <div className="rounded-md bg-background-secondary/50 px-3 py-3 text-xs text-muted-foreground">
+            No social accounts connected yet.
+          </div>
+        )}
 
-          {connectedConnections.length > 0 ? (
-            <div className="grid gap-2 sm:grid-cols-2">
-              {connectedConnections.map((connection) => (
-                <ConnectedAccount
-                  key={connection.credentialId}
-                  connection={connection}
-                />
+        {healthRows.length > 0 ? (
+          <div className="space-y-2 border-t border-border pt-3">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                Account health
+              </h3>
+              {isHealthLoading ? (
+                <span className="text-xs text-muted-foreground">Checking</span>
+              ) : null}
+            </div>
+            <div className="space-y-2">
+              {healthRows.map((summary) => (
+                <div
+                  className="space-y-2 border-t border-border/70 pt-3 first:border-t-0 first:pt-0"
+                  key={summary.credentialId}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">
+                        {summary.label}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {summary.platform} · score {summary.score}
+                      </p>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-sm border px-2 py-1 text-[10px] font-semibold uppercase ${getHealthToneClass(summary)}`}
+                    >
+                      {STATE_LABELS[summary.state]}
+                    </span>
+                  </div>
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    {formatHealthDetail(summary)}
+                  </p>
+                  {summary.holdPublishing ? (
+                    <Button
+                      size={ButtonSize.SM}
+                      variant={ButtonVariant.SECONDARY}
+                      className="h-8 text-xs"
+                      onClick={() =>
+                        setOverrideCredentialId(summary.credentialId)
+                      }
+                    >
+                      Override 24h
+                    </Button>
+                  ) : null}
+                </div>
               ))}
             </div>
-          ) : (
-            <div className="rounded-lg bg-background-secondary px-4 py-5 text-sm text-muted-foreground shadow-border">
-              No social accounts connected yet.
-            </div>
-          )}
-
-          {healthRows.length > 0 ? (
-            <div className="space-y-3 border-t border-border pt-4">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-sm font-semibold">Account health</h3>
-                {isHealthLoading ? (
-                  <span className="text-xs text-muted-foreground">
-                    Checking
-                  </span>
-                ) : null}
-              </div>
-              <div className="space-y-2">
-                {healthRows.map((summary) => (
-                  <div
-                    className="space-y-2 border-t border-border/70 pt-3 first:border-t-0 first:pt-0"
-                    key={summary.credentialId}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">
-                          {summary.label}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {summary.platform} · score {summary.score}
-                        </p>
-                      </div>
-                      <span
-                        className={`shrink-0 rounded-sm border px-2 py-1 text-[10px] font-semibold uppercase ${getHealthToneClass(summary)}`}
-                      >
-                        {STATE_LABELS[summary.state]}
-                      </span>
-                    </div>
-                    <p className="text-xs leading-5 text-muted-foreground">
-                      {formatHealthDetail(summary)}
-                    </p>
-                    {summary.holdPublishing ? (
-                      <Button
-                        size={ButtonSize.SM}
-                        variant={ButtonVariant.SECONDARY}
-                        onClick={() =>
-                          setOverrideCredentialId(summary.credentialId)
-                        }
-                      >
-                        Override 24h
-                      </Button>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

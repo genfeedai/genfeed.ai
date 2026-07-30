@@ -1,12 +1,8 @@
 'use client';
 
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
+import { RectangleHorizontal, RectangleVertical, Square } from 'lucide-react';
 import type { ReactNode } from 'react';
-import {
-  MdOutlineCropLandscape,
-  MdOutlineCropPortrait,
-  MdOutlineCropSquare,
-} from 'react-icons/md';
 
 interface AspectRatioDropdownProps {
   name: string;
@@ -25,12 +21,12 @@ function getAspectRatioIcon(ratio: string): ReactNode | undefined {
   switch (ratio) {
     case '16:9':
     case '4:3':
-      return <MdOutlineCropLandscape size={16} />;
+      return <RectangleHorizontal size={16} />;
     case '9:16':
     case '3:4':
-      return <MdOutlineCropPortrait size={16} />;
+      return <RectangleVertical size={16} />;
     case '1:1':
-      return <MdOutlineCropSquare size={16} />;
+      return <Square size={16} />;
     default:
       return undefined;
   }

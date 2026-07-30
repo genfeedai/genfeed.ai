@@ -6,7 +6,7 @@ import type { CameraMovementPromptBarProps } from '@genfeedai/props/studio/camer
 import Card from '@ui/card/Card';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import { Input } from '@ui/primitives/input';
-import { HiVideoCamera } from 'react-icons/hi2';
+import { Video } from 'lucide-react';
 
 const CAMERA_PRESETS = [
   { key: 'static', label: 'Static (No Movement)' },
@@ -56,7 +56,7 @@ export default function CameraMovementPromptBar({
     preset === 'custom' ? customPrompt : PRESET_PROMPTS[preset];
 
   return (
-    <Card label="Camera" icon={HiVideoCamera} bodyClassName="p-4">
+    <Card label="Camera" icon={Video} bodyClassName="p-4">
       <div className="space-y-3">
         <FormDropdown
           name="camera-preset"

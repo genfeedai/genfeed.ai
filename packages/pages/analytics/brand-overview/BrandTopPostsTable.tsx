@@ -11,9 +11,9 @@ import type { Post } from '@models/content/post.model';
 import Card from '@ui/card/Card';
 import HtmlContent from '@ui/display/html-content/HtmlContent';
 import Table from '@ui/display/table/Table';
+import { ArrowRight, Video } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { HiArrowRight, HiVideoCamera } from 'react-icons/hi2';
 
 type PostWithAnalytics = Post & {
   totalViews?: number;
@@ -38,7 +38,7 @@ export default function BrandTopPostsTable({
   return (
     <Card
       label="Recent Posts (Top 5)"
-      className="bg-background"
+      bodyClassName="gap-3 p-4 pb-0"
       headerAction={
         <Link
           href={getPublisherPostsHref({ status: PostStatus.PUBLIC })}
@@ -48,7 +48,7 @@ export default function BrandTopPostsTable({
         </Link>
       }
     >
-      <div className="overflow-x-auto">
+      <div className="-mx-4 overflow-x-auto">
         <Table
           items={topPosts}
           isLoading={isLoadingPosts}
@@ -75,7 +75,7 @@ export default function BrandTopPostsTable({
                       />
                     ) : (
                       <div className="size-16 bg-muted flex items-center justify-center">
-                        <HiVideoCamera className="size-6 text-foreground/30" />
+                        <Video className="size-6 text-foreground/30" />
                       </div>
                     )}
                     <div className="max-w-xs">
@@ -168,7 +168,7 @@ export default function BrandTopPostsTable({
           ]}
           actions={[
             {
-              icon: <HiArrowRight className="size-4" />,
+              icon: <ArrowRight className="size-4" />,
               onClick: (post) => onSelectPost(post.id),
               tooltip: 'View Post Details',
             },

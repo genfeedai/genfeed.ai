@@ -6,7 +6,7 @@ import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import { HStack, VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import { LuArrowRight } from 'react-icons/lu';
+import { ArrowRight } from 'lucide-react';
 
 export default function HomeCTA(): React.ReactElement {
   return (
@@ -37,7 +37,7 @@ export default function HomeCTA(): React.ReactElement {
             >
               <a href={`${EnvironmentService.apps.app}/sign-up`}>
                 Start for free
-                <LuArrowRight className="size-4" />
+                <ArrowRight className="size-4" />
               </a>
             </ButtonTracked>
 

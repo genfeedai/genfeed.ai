@@ -1,12 +1,8 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
+import { Clipboard, Download, RefreshCw } from 'lucide-react';
 import type { ReactElement } from 'react';
-import {
-  HiOutlineArrowDownTray,
-  HiOutlineArrowPath,
-  HiOutlineClipboard,
-} from 'react-icons/hi2';
 
 interface AgentGeneratedTextCardProps {
   content: string;
@@ -55,7 +51,7 @@ export function AgentGeneratedTextCard({
                   ariaLabel="Copy generated content"
                   onClick={() => onCopy(content)}
                 >
-                  <HiOutlineClipboard className="size-3.5" />
+                  <Clipboard className="size-3.5" />
                 </Button>
               )}
               {onInsert && (
@@ -68,7 +64,7 @@ export function AgentGeneratedTextCard({
                   ariaLabel="Use generated content in draft"
                   onClick={() => onInsert(content)}
                 >
-                  <HiOutlineArrowDownTray className="size-3.5" />
+                  <Download className="size-3.5" />
                 </Button>
               )}
               {onRegenerate && (
@@ -81,7 +77,7 @@ export function AgentGeneratedTextCard({
                   ariaLabel="Regenerate content"
                   onClick={() => onRegenerate()}
                 >
-                  <HiOutlineArrowPath className="size-3.5" />
+                  <RefreshCw className="size-3.5" />
                 </Button>
               )}
             </div>

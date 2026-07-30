@@ -3,6 +3,7 @@ import type {
   IBrandAgentPlatformOverride,
   IBrandAgentStrategy,
   IBrandAgentVoice,
+  IGeneratedBrandProfile,
 } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
@@ -224,14 +225,101 @@ function hasPlatformOverrideContent(
   );
 }
 
-function summarizeValue(value: string, fallback: string): string {
-  const trimmed = value.trim();
+function applyGeneratedProfileToForm(
+  current: AgentProfileFormState,
+  profile: IGeneratedBrandProfile,
+  brandLabel?: string,
+): AgentProfileFormState {
+  const audience = joinList(profile.audience);
+  const tone = profile.tone?.trim() ?? '';
+  const style = profile.style?.trim() ?? '';
+  const personaSeed = [
+    brandLabel ? `Agents for ${brandLabel}` : 'Brand agents',
+    tone && `sound ${tone}`,
+    style && `write in a ${style} style`,
+    audience && `for ${audience}`,
+  ]
+    .filter(Boolean)
+    .join(' that ');
 
-  if (!trimmed) {
-    return fallback;
-  }
+  return {
+    ...current,
+    persona: current.persona.trim() || personaSeed,
+    strategyContentTypes:
+      joinList(profile.strategy?.topics) || current.strategyContentTypes,
+    strategyGoals: joinList(profile.strategy?.goals) || current.strategyGoals,
+    voiceAudience: audience || current.voiceAudience,
+    voiceDoNotSoundLike:
+      joinList(profile.doNotSoundLike) || current.voiceDoNotSoundLike,
+    voiceMessagingPillars:
+      joinList(profile.messagingPillars) || current.voiceMessagingPillars,
+    voiceSampleOutput:
+      profile.sampleOutput?.trim() || current.voiceSampleOutput,
+    voiceStyle: style || current.voiceStyle,
+    voiceTone: tone || current.voiceTone,
+    voiceValues: joinList(profile.values) || current.voiceValues,
+    // Prefer generated taglines as approved hooks when none are set yet.
+    voiceApprovedHooks:
+      current.voiceApprovedHooks.trim() || joinList(profile.taglines),
+  };
+}
 
-  return trimmed.length > 96 ? `${trimmed.slice(0, 93)}...` : trimmed;
+function buildAgentConfigPayload(form: AgentProfileFormState) {
+  return {
+    defaultModel: form.defaultModel || undefined,
+    persona: form.persona,
+    platformOverrides: Object.fromEntries(
+      Object.entries(form.platformOverrides)
+        .filter(([, override]) => hasPlatformOverrideContent(override))
+        .map(([platform, override]) => [
+          platform,
+          {
+            defaultModel: override.defaultModel || undefined,
+            persona: override.persona,
+            strategy: {
+              contentTypes: parseList(override.contentTypes),
+              frequency: override.frequency.trim(),
+              goals: parseList(override.goals),
+              platforms: [platform],
+            },
+            voice: {
+              approvedHooks: parseList(override.approvedHooks),
+              audience: parseList(override.audience),
+              bannedPhrases: parseList(override.bannedPhrases),
+              canonicalSource: override.canonicalSource || undefined,
+              doNotSoundLike: parseList(override.doNotSoundLike),
+              exemplarTexts: parseList(override.exemplarTexts),
+              messagingPillars: parseList(override.messagingPillars),
+              sampleOutput: override.sampleOutput.trim(),
+              style: override.style.trim(),
+              tone: override.tone.trim(),
+              values: parseList(override.values),
+              writingRules: parseList(override.writingRules),
+            },
+          },
+        ]),
+    ),
+    strategy: buildStrategy(
+      form.strategyContentTypes,
+      form.strategyPlatforms,
+      form.frequency,
+      form.strategyGoals,
+    ),
+    voice: buildVoice(
+      form.voiceCanonicalSource,
+      form.voiceTone,
+      form.voiceStyle,
+      form.voiceAudience,
+      form.voiceValues,
+      form.voiceMessagingPillars,
+      form.voiceDoNotSoundLike,
+      form.voiceSampleOutput,
+      form.voiceApprovedHooks,
+      form.voiceBannedPhrases,
+      form.voiceWritingRules,
+      form.voiceExemplarTexts,
+    ),
+  };
 }
 
 export function useBrandDetailAgentProfileCard({
@@ -242,10 +330,10 @@ export function useBrandDetailAgentProfileCard({
   const notifications = NotificationsService.getInstance();
   const { refreshBrands } = useBrand();
   const { settings } = useOrganization();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [form, setForm] = useState<AgentProfileFormState>(() =>
     toFormState(brand),
   );
+  const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const getBrandsService = useAuthedService((token: string) =>
@@ -284,68 +372,13 @@ export function useBrandDetailAgentProfileCard({
     setIsSaving(true);
     try {
       const service = await getBrandsService();
-      await service.updateAgentConfig(brandId, {
-        defaultModel: form.defaultModel || undefined,
-        persona: form.persona,
-        platformOverrides: Object.fromEntries(
-          Object.entries(form.platformOverrides)
-            .filter(([, override]) => hasPlatformOverrideContent(override))
-            .map(([platform, override]) => [
-              platform,
-              {
-                defaultModel: override.defaultModel || undefined,
-                persona: override.persona,
-                strategy: {
-                  contentTypes: parseList(override.contentTypes),
-                  frequency: override.frequency.trim(),
-                  goals: parseList(override.goals),
-                  platforms: [platform],
-                },
-                voice: {
-                  approvedHooks: parseList(override.approvedHooks),
-                  audience: parseList(override.audience),
-                  bannedPhrases: parseList(override.bannedPhrases),
-                  canonicalSource: override.canonicalSource || undefined,
-                  doNotSoundLike: parseList(override.doNotSoundLike),
-                  exemplarTexts: parseList(override.exemplarTexts),
-                  messagingPillars: parseList(override.messagingPillars),
-                  sampleOutput: override.sampleOutput.trim(),
-                  style: override.style.trim(),
-                  tone: override.tone.trim(),
-                  values: parseList(override.values),
-                  writingRules: parseList(override.writingRules),
-                },
-              },
-            ]),
-        ),
-        strategy: buildStrategy(
-          form.strategyContentTypes,
-          form.strategyPlatforms,
-          form.frequency,
-          form.strategyGoals,
-        ),
-        voice: buildVoice(
-          form.voiceCanonicalSource,
-          form.voiceTone,
-          form.voiceStyle,
-          form.voiceAudience,
-          form.voiceValues,
-          form.voiceMessagingPillars,
-          form.voiceDoNotSoundLike,
-          form.voiceSampleOutput,
-          form.voiceApprovedHooks,
-          form.voiceBannedPhrases,
-          form.voiceWritingRules,
-          form.voiceExemplarTexts,
-        ),
-      });
+      await service.updateAgentConfig(brandId, buildAgentConfigPayload(form));
       await refreshBrands();
       await onRefreshBrand();
-      setIsDialogOpen(false);
-      notifications.success('Brand agent profile saved');
+      notifications.success('Brand voice saved');
     } catch (error) {
       logger.error('Failed to save brand agent profile', error);
-      notifications.error('Failed to save brand agent profile');
+      notifications.error('Failed to save brand voice');
     } finally {
       setIsSaving(false);
     }
@@ -358,61 +391,65 @@ export function useBrandDetailAgentProfileCard({
     refreshBrands,
   ]);
 
-  const summaryItems = useMemo(
-    () => [
-      {
-        label: 'Persona',
-        value: summarizeValue(
-          form.persona,
-          'No brand-level persona configured yet.',
-        ),
-      },
-      {
-        label: 'Voice',
-        value: summarizeValue(
-          [form.voiceTone, form.voiceStyle].filter(Boolean).join(' • '),
-          'Tone and style inherit from the default workspace voice.',
-        ),
-      },
-      {
-        label: 'Content Strategy',
-        value: summarizeValue(
-          [form.strategyContentTypes, form.strategyGoals]
-            .filter(Boolean)
-            .join(' • '),
-          'No content types or goals configured yet.',
-        ),
-      },
-      {
-        label: 'Platform Overrides',
-        value:
-          populatedPlatformCount > 0
-            ? `${populatedPlatformCount} platform override${populatedPlatformCount === 1 ? '' : 's'} configured.`
-            : 'No platform-specific overrides configured.',
-      },
-    ],
-    [
-      form.persona,
-      form.strategyContentTypes,
-      form.strategyGoals,
-      form.voiceStyle,
-      form.voiceTone,
-      populatedPlatformCount,
-    ],
-  );
+  /**
+   * One-click AI generation: scan brand website (server) + LLM profile,
+   * fill the page form, and save so agents can use it immediately.
+   */
+  const handleGenerate = useCallback(async () => {
+    setIsGenerating(true);
+    try {
+      const service = await getBrandsService();
+      const websiteFromLinks = brand.links?.find((link) => {
+        const category = String(link.category ?? '').toLowerCase();
+        return category === 'website' || category === 'other';
+      })?.url;
+      const websiteCandidate =
+        websiteFromLinks ||
+        (typeof (brand as { website?: string }).website === 'string'
+          ? (brand as { website?: string }).website
+          : undefined);
+      const website =
+        typeof websiteCandidate === 'string' ? websiteCandidate.trim() : '';
+      const profile = await service.generateBrandVoice(brandId, {
+        brandId,
+        ...(website ? { url: website } : {}),
+      });
+      const nextForm = applyGeneratedProfileToForm(form, profile, brand.label);
+      setForm(nextForm);
+      await service.updateAgentConfig(
+        brandId,
+        buildAgentConfigPayload(nextForm),
+      );
+      await refreshBrands();
+      await onRefreshBrand();
+      notifications.success('Brand voice generated and saved');
+    } catch (error) {
+      logger.error('Failed to generate brand voice', error);
+      notifications.error('Failed to generate brand voice');
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [
+    brand,
+    brandId,
+    form,
+    getBrandsService,
+    notifications,
+    onRefreshBrand,
+    refreshBrands,
+  ]);
 
   return {
     AUTO_MODEL_SELECT_VALUE,
     enabledModels,
     form,
+    handleGenerate,
     handlePlatformOverrideChange,
     handleSave,
-    isDialogOpen,
+    isGenerating,
     isSaving,
     PLATFORM_OPTIONS,
     populatedPlatformCount,
     setForm,
-    setIsDialogOpen,
-    summaryItems,
   };
 }

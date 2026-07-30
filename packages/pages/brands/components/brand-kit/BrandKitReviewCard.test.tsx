@@ -249,7 +249,7 @@ describe('BrandKitReviewCard', () => {
     fireEvent.change(screen.getByLabelText('Social URLs'), {
       target: { value: 'https://linkedin.com/company/acme' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Scan Website' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Scan' }));
 
     await waitFor(() => {
       expect(mocks.crawlBrandKitWebsite).toHaveBeenCalledWith('brand-1', {
@@ -299,7 +299,7 @@ describe('BrandKitReviewCard', () => {
     fireEvent.change(screen.getByLabelText('Website URL'), {
       target: { value: 'https://acme.test' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Scan Website' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Scan' }));
 
     await screen.findByText('Logo');
 

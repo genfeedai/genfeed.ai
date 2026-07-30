@@ -1,7 +1,7 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { ImageIcon, Maximize2, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import type { ReactElement } from 'react';
-import { HiArrowsPointingOut, HiPhoto, HiSparkles } from 'react-icons/hi2';
 
 interface ImageTransformCardProps {
   action: AgentUiAction;
@@ -15,7 +15,7 @@ export function ImageTransformCard({
   return (
     <div className="border border-border bg-background p-4 my-2">
       <div className="flex items-center gap-2 mb-3">
-        <HiPhoto className="size-5 text-purple-500" />
+        <ImageIcon className="size-5 text-purple-500" />
         <h3 className="font-semibold text-sm">
           {action.title || 'Image Transform'}
         </h3>
@@ -45,9 +45,9 @@ export function ImageTransformCard({
               className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-100 transition-colors"
             >
               {cta.label.toLowerCase().includes('upscale') ? (
-                <HiArrowsPointingOut className="size-3" />
+                <Maximize2 className="size-3" />
               ) : (
-                <HiSparkles className="size-3" />
+                <Sparkles className="size-3" />
               )}
               {cta.label}
             </a>

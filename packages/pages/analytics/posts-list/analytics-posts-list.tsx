@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { buildAgentPromptHref } from '@utils/url/desktop-loop-url.util';
+import { ChartColumn, LayoutGrid } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type ReactNode,
@@ -26,7 +27,6 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { HiOutlineChartBar, HiSquares2X2 } from 'react-icons/hi2';
 
 interface PostsListItem {
   postId: string;
@@ -146,7 +146,7 @@ export default function AnalyticsPostsList() {
   ): ReactNode => {
     const icon =
       option.value === 'all' ? (
-        <HiSquares2X2 className="size-4 shrink-0 text-foreground/70" />
+        <LayoutGrid className="size-4 shrink-0 text-foreground/70" />
       ) : (
         getPlatformIcon(option.value, 'h-4 w-4 shrink-0')
       );
@@ -207,7 +207,7 @@ export default function AnalyticsPostsList() {
     <Container
       label="Top Posts"
       description="Post performance in the selected period"
-      icon={HiOutlineChartBar}
+      icon={ChartColumn}
       right={
         <div className="flex items-center gap-2">
           {focusedPostId ? (

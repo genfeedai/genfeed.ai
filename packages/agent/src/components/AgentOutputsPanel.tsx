@@ -8,17 +8,17 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { Pre } from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
+import {
+  Download,
+  ExternalLink,
+  FileText,
+  Image,
+  MessageSquare,
+  Music,
+  Video,
+} from 'lucide-react';
 import type { ReactElement } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  HiOutlineArrowDownTray,
-  HiOutlineArrowTopRightOnSquare,
-  HiOutlineChatBubbleLeftRight,
-  HiOutlineDocumentText,
-  HiOutlineMusicalNote,
-  HiOutlinePhoto,
-  HiOutlineVideoCamera,
-} from 'react-icons/hi2';
 
 interface AgentOutputsPanelProps {
   className?: string;
@@ -72,7 +72,7 @@ function renderVariantPreview(
     return (
       <div className="gen-shell-surface rounded-[1.25rem] p-4">
         <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
-          <HiOutlineMusicalNote className="size-4 text-primary/80" />
+          <Music className="size-4 text-primary/80" />
           {variant.title ?? group.title}
         </div>
         <audio
@@ -91,7 +91,7 @@ function renderVariantPreview(
     return (
       <div className="gen-shell-surface rounded-[1.25rem] p-4">
         <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
-          <HiOutlineDocumentText className="size-4 text-primary/80" />
+          <FileText className="size-4 text-primary/80" />
           {variant.title ?? group.title}
         </div>
         <Pre
@@ -128,18 +128,18 @@ function VariantIcon({
   kind: ThreadOutputVariant['kind'];
 }): ReactElement {
   if (kind === 'video') {
-    return <HiOutlineVideoCamera className="size-4 text-primary/80" />;
+    return <Video className="size-4 text-primary/80" />;
   }
 
   if (kind === 'audio') {
-    return <HiOutlineMusicalNote className="size-4 text-primary/80" />;
+    return <Music className="size-4 text-primary/80" />;
   }
 
   if (kind === 'text') {
-    return <HiOutlineDocumentText className="size-4 text-primary/80" />;
+    return <FileText className="size-4 text-primary/80" />;
   }
 
-  return <HiOutlinePhoto className="size-4 text-primary/80" />;
+  return <Image className="size-4 text-primary/80" />;
 }
 
 export function AgentOutputsPanel({
@@ -194,7 +194,7 @@ export function AgentOutputsPanel({
       >
         <div className="gen-shell-empty-state w-full max-w-sm rounded-[1.75rem] px-6 py-7">
           <div className="gen-shell-surface mx-auto flex size-14 items-center justify-center rounded-2xl">
-            <HiOutlinePhoto className="size-6 text-foreground/38" />
+            <Image className="size-6 text-foreground/38" />
           </div>
           <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-foreground/38">
             Outputs
@@ -279,7 +279,7 @@ export function AgentOutputsPanel({
                 )
               }
             >
-              <HiOutlineChatBubbleLeftRight className="mr-1.5 size-4" />
+              <MessageSquare className="mr-1.5 size-4" />
               Use in chat
             </Button>
 
@@ -290,7 +290,7 @@ export function AgentOutputsPanel({
                   download
                   className="gen-shell-control inline-flex h-9 items-center rounded-xl px-3 text-xs font-semibold"
                 >
-                  <HiOutlineArrowDownTray className="mr-1.5 size-4" />
+                  <Download className="mr-1.5 size-4" />
                   Download
                 </a>
                 <a
@@ -299,7 +299,7 @@ export function AgentOutputsPanel({
                   rel="noreferrer"
                   className="gen-shell-control inline-flex h-9 items-center rounded-xl px-3 text-xs font-semibold"
                 >
-                  <HiOutlineArrowTopRightOnSquare className="mr-1.5 size-4" />
+                  <ExternalLink className="mr-1.5 size-4" />
                   Open asset
                 </a>
               </>
@@ -316,7 +316,7 @@ export function AgentOutputsPanel({
                   rel="noreferrer"
                   className="gen-shell-control inline-flex h-9 items-center rounded-xl px-3 text-xs font-semibold"
                 >
-                  <HiOutlineArrowTopRightOnSquare className="mr-1.5 size-4" />
+                  <ExternalLink className="mr-1.5 size-4" />
                   {cta.label}
                 </a>
               ))}

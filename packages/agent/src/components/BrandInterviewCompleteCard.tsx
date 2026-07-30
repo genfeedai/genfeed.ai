@@ -1,6 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { CircleCheck } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { HiCheckCircle } from 'react-icons/hi2';
 
 interface BrandInterviewCompleteCardProps {
   action: AgentUiAction;
@@ -16,7 +16,7 @@ export function BrandInterviewCompleteCard({
   return (
     <div className="my-2 border border-emerald-500/20 bg-background p-4">
       <div className="mb-2 flex items-center gap-2">
-        <HiCheckCircle className="size-5 text-emerald-600" />
+        <CircleCheck className="size-5 text-emerald-600" />
         <h3 className="text-sm font-semibold text-foreground">
           {action.title || 'Brand Context Complete'}
         </h3>

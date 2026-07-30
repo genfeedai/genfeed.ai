@@ -2,13 +2,8 @@ import type { AgentChatMessage } from '@genfeedai/agent/models/agent-chat.model'
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
+import { Clipboard, Clock, RefreshCw, Sparkles } from 'lucide-react';
 import type { ReactElement } from 'react';
-import {
-  HiOutlineArrowPath,
-  HiOutlineClipboard,
-  HiOutlineClock,
-  HiSparkles,
-} from 'react-icons/hi2';
 
 type AgentChatMessageFooterProps = {
   isUser: boolean;
@@ -46,7 +41,7 @@ export function AgentChatMessageFooter({
           isUser ? 'text-foreground/38' : 'text-foreground/40',
         )}
       >
-        {!isUser && <HiOutlineClock className="size-3 opacity-70" />}
+        {!isUser && <Clock className="size-3 opacity-70" />}
         {metaItems.map((item, index) => (
           <span key={`${item}-${index}`} className="inline-flex items-center">
             {index > 0 ? (
@@ -68,7 +63,7 @@ export function AgentChatMessageFooter({
               ariaLabel="Copy message"
               onClick={() => onCopy(copyContent)}
             >
-              <HiOutlineClipboard className="size-3.5" />
+              <Clipboard className="size-3.5" />
             </Button>
           ) : null}
           {shouldShowAssistantActions && onRetry ? (
@@ -81,7 +76,7 @@ export function AgentChatMessageFooter({
               ariaLabel="Retry message"
               onClick={() => onRetry(message)}
             >
-              <HiOutlineArrowPath className="size-3.5" />
+              <RefreshCw className="size-3.5" />
             </Button>
           ) : null}
           {shouldShowAssistantActions && onRemember ? (
@@ -94,7 +89,7 @@ export function AgentChatMessageFooter({
               ariaLabel="Remember message"
               onClick={() => onRemember(message)}
             >
-              <HiSparkles className="size-3.5 text-purple-300" />
+              <Sparkles className="size-3.5 text-purple-300" />
             </Button>
           ) : null}
         </div>

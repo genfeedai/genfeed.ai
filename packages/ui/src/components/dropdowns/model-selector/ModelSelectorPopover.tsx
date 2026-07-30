@@ -3,6 +3,7 @@
 import { getBrandConfig } from '@genfeedai/constants';
 import { ButtonVariant, RouterPriority } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
 import type { IModel } from '@genfeedai/interfaces';
 import type { ModelSelectorPopoverProps } from '@genfeedai/props/ui/model-selector/model-selector.props';
 import ModelSelectorFamilyItem from '@ui/dropdowns/model-selector/ModelSelectorFamilyItem';
@@ -38,8 +39,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { Check, Sparkles } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
-import { HiCheck, HiSparkles } from 'react-icons/hi2';
 
 const AUTO_MODEL = {
   key: AUTO_MODEL_OPTION_VALUE,
@@ -489,10 +490,10 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                                 : 'border-border bg-transparent text-transparent',
                             )}
                           >
-                            <HiCheck className="size-3" />
+                            <Check className="size-3" />
                           </div>
                           <div className="mt-0.5 flex size-4 shrink-0 items-center justify-center text-primary">
-                            <HiSparkles className="size-4" />
+                            <Sparkles className="size-4" />
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="text-sm font-medium text-foreground">
@@ -576,7 +577,9 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                                 >
                                   <ModelSelectorFamilyItem
                                     brandColor={brandConfig.color}
-                                    brandIcon={brandConfig.icon}
+                                    brandIcon={getModelBrandIcon(
+                                      brandConfig.iconKey,
+                                    )}
                                     brandLabel={brandConfig.label}
                                     count={family.options.length}
                                     familyLabel={family.familyLabel}

@@ -4,8 +4,9 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import { RefreshCw, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { HiOutlineArrowPath, HiOutlineSparkles } from 'react-icons/hi2';
+
 import { SOURCE_FILTERS, type SourceFilterValue } from './skill-filter-options';
 
 type Props = {
@@ -34,7 +35,7 @@ export default function SkillsPageHeader({
             onClick={onRefresh}
             variant={ButtonVariant.SECONDARY}
           >
-            <HiOutlineArrowPath className="size-4" />
+            <RefreshCw className="size-4" />
             Refresh
           </Button>
           <Button
@@ -43,7 +44,7 @@ export default function SkillsPageHeader({
             variant={ButtonVariant.SECONDARY}
           >
             <Link href={APP_ROUTES.AGENT.ROOT}>
-              <HiOutlineSparkles className="size-4" />
+              <Sparkles className="size-4" />
               Open Agent
             </Link>
           </Button>

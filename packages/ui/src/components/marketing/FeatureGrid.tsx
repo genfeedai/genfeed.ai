@@ -1,14 +1,13 @@
 'use client';
 
+import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
-import type { ComponentType } from 'react';
-import type { IconBaseProps } from 'react-icons';
-import { LuArrowRight } from 'react-icons/lu';
+import type { ComponentType, SVGProps } from 'react';
 
 export interface FeatureGridItem {
   number: string;
   label: string;
-  icon: ComponentType<IconBaseProps>;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
   title: string;
   description: string;
   href?: string;
@@ -51,7 +50,7 @@ export default function FeatureGrid({
                 </p>
                 {feature.href ? (
                   <span className="mt-auto flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest transition-all hover:gap-4">
-                    View Spec <LuArrowRight className="size-3" />
+                    View Spec <ArrowRight className="size-3" />
                   </span>
                 ) : null}
               </>

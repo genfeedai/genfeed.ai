@@ -5,7 +5,8 @@ import type { IBatchItem } from '@genfeedai/interfaces';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
-import { HiCheck, HiSparkles, HiXMark } from 'react-icons/hi2';
+import { Check, Sparkles, X } from 'lucide-react';
+
 import {
   isApproved,
   isChangesRequested,
@@ -113,7 +114,7 @@ export default function ReviewDecisionPanel({
               onClick={() => onApprove(item.id)}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
             >
-              <HiCheck className="size-4" />
+              <Check className="size-4" />
               {getApproveLabel(item)}
             </Button>
             <Button
@@ -123,7 +124,7 @@ export default function ReviewDecisionPanel({
               onClick={() => onRequestChanges(item.id, feedback)}
               className="flex w-full items-center justify-center gap-2 rounded-xl border border-warning/25 bg-warning/10 px-4 py-3 text-sm font-medium text-warning transition-colors hover:bg-warning/20 disabled:opacity-50"
             >
-              <HiSparkles className="size-4" />
+              <Sparkles className="size-4" />
               Request changes
             </Button>
             <Button
@@ -133,7 +134,7 @@ export default function ReviewDecisionPanel({
               onClick={() => onReject(item.id, feedback)}
               className="flex w-full items-center justify-center gap-2 rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
             >
-              <HiXMark className="size-4" />
+              <X className="size-4" />
               Reject and remove
             </Button>
           </>

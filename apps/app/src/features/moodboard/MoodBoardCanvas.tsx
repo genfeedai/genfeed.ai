@@ -15,8 +15,9 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { Maximize2, X } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
-import { HiArrowsPointingOut, HiXMark } from 'react-icons/hi2';
+
 import { MediaAssetNode } from '@/features/moodboard/MediaAssetNode';
 import type {
   MediaAssetFlowNode,
@@ -67,13 +68,13 @@ function MoodBoardCanvasInner({
           <>
             <Button
               variant={ButtonVariant.GHOST}
-              icon={<HiArrowsPointingOut className="text-lg" />}
+              icon={<Maximize2 className="text-lg" />}
               label="Fit"
               onClick={() => fitView({ duration: 300 })}
             />
             <Button
               variant={ButtonVariant.GHOST}
-              icon={<HiXMark className="text-lg" />}
+              icon={<X className="text-lg" />}
               label="Close"
               onClick={onClose}
             />

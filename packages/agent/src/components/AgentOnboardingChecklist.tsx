@@ -6,14 +6,14 @@ import type {
   OnboardingChecklistStatus,
 } from '@genfeedai/props/ui/agent/agent-onboarding.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Check } from 'lucide-react';
 import Link from 'next/link';
-import { HiCheck } from 'react-icons/hi2';
 
 function StatusIcon({ status }: { status: OnboardingChecklistStatus }) {
   if (status === 'complete') {
     return (
       <div className="flex size-6 items-center justify-center rounded-full bg-green-500/20 text-green-400">
-        <HiCheck className="size-3.5" />
+        <Check className="size-3.5" />
       </div>
     );
   }

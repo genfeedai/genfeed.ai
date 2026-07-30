@@ -14,8 +14,8 @@ import {
   WebSection,
 } from '@web-components/content/NeuralGrid';
 import PageLayout from '@web-components/PageLayout';
+import { Check, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { LuCheck, LuSparkles } from 'react-icons/lu';
 
 const SERVICE_CARDS = [
   {
@@ -71,7 +71,7 @@ export default function ServicesContent() {
     <div ref={containerRef}>
       <PageLayout
         badge="Services"
-        badgeIcon={LuSparkles}
+        badgeIcon={Sparkles}
         compact
         title={<>Professional services.</>}
         description="Let us create for you, get your team up to speed, or plan your content strategy."
@@ -124,7 +124,7 @@ export default function ServicesContent() {
                   <ul className="space-y-4 mb-auto">
                     {service.features.map((feature) => (
                       <li key={feature} className="flex items-start gap-3">
-                        <LuCheck className="size-4 mt-0.5 shrink-0 text-surface/55" />
+                        <Check className="size-4 mt-0.5 shrink-0 text-surface/55" />
                         <span className="text-sm text-surface/65">
                           {feature}
                         </span>

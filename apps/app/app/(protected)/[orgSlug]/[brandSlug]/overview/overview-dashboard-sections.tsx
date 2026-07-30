@@ -14,10 +14,10 @@ import AppTable from '@ui/display/table/Table';
 import { OverviewTrendsPanel } from '@ui/overview/OverviewTrendsPanel';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
+import { ArrowRight } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useMemo } from 'react';
-import { HiOutlineArrowRight } from 'react-icons/hi2';
 
 export { OverviewTrendsPanel };
 
@@ -211,7 +211,7 @@ export function OverviewOperationsSection({
       actions={
         <Button asChild variant={ButtonVariant.SECONDARY}>
           <Link href={runsHref}>
-            <HiOutlineArrowRight className="size-4" />
+            <ArrowRight className="size-4" />
             View All
           </Link>
         </Button>
@@ -263,7 +263,7 @@ export function OverviewPerformanceChartSection({
       actions={
         <Button asChild variant={ButtonVariant.SECONDARY}>
           <Link href={analyticsHref}>
-            <HiOutlineArrowRight className="size-4" />
+            <ArrowRight className="size-4" />
             View All
           </Link>
         </Button>
@@ -312,7 +312,7 @@ export function OverviewPublishingInboxSection({
       actions={
         <Button asChild variant={ButtonVariant.SECONDARY}>
           <Link href={inboxHref}>
-            <HiOutlineArrowRight className="size-4" />
+            <ArrowRight className="size-4" />
             Open Queue
           </Link>
         </Button>

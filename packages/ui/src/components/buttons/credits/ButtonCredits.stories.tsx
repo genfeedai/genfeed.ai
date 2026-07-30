@@ -10,8 +10,8 @@ import {
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import Portal from '@ui/layout/portal/Portal';
+import { RefreshCw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { HiArrowPath } from 'react-icons/hi2';
 
 /**
  * ButtonCredits component displays user's credit balance with dropdown.
@@ -130,7 +130,7 @@ function ButtonCreditsMock({ balance = 1000 }: { balance?: number }) {
                 )}
                 title="Refresh Balance"
               >
-                <HiArrowPath
+                <RefreshCw
                   className={cn(
                     'size-4 flex-shrink-0',
                     isLoading && 'animate-spin',

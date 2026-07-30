@@ -18,8 +18,8 @@ import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
+import { ArrowDown } from 'lucide-react';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
-import { HiOutlineArrowDown } from 'react-icons/hi2';
 
 interface AgentChatContainerProps {
   apiService: AgentApiService;
@@ -254,10 +254,15 @@ export function AgentChatContainer({
           getCompletedAttachments={getCompletedAttachments}
           isAttachmentUploading={isAttachmentUploading}
           isBusy={isBusy}
-          isComposerVisible={!composerShell}
+          // Inspector docks the composer in the shell slot; full-page empty
+          // keeps it inline and centered under the hero.
+          isComposerVisible={composerShell?.placement !== 'inspector'}
           isReadOnly={isReadOnly}
           isRunActive={isRunActive}
           isWideLayout={isWideLayout}
+          variant={
+            composerShell?.placement === 'inspector' ? 'inspector' : 'default'
+          }
           onSend={handleSend}
           onStop={handleStopRun}
           placeholder={placeholder}
@@ -286,11 +291,9 @@ export function AgentChatContainer({
             <div
               className={cn(
                 'mx-auto space-y-1 p-4 md:px-6',
-                // The prompt bar floats over the transcript and has to be
-                // scrolled clear of — unless the shell hosts it in its own
-                // composer slot, where the canvas already reserves the room.
-                composerShell?.portalTarget ||
-                  composerShell?.isComposerVisible === false
+                // Floating/portaled composer overlays the transcript — pad so
+                // the last turns can scroll clear of the frosted bar.
+                composerShell?.isComposerVisible === false
                   ? 'pb-6'
                   : 'pb-56 md:pb-72',
                 conversationColumnMaxWidthClass,
@@ -362,7 +365,7 @@ export function AgentChatContainer({
               <Button
                 variant={ButtonVariant.GHOST}
                 size={ButtonSize.ICON}
-                icon={<HiOutlineArrowDown className="size-4" />}
+                icon={<ArrowDown className="size-4" />}
                 ariaLabel="Scroll to latest message"
                 className="rounded-full border border-border/70 bg-background/88 text-foreground/72 shadow-[0_16px_36px_-24px_rgba(0,0,0,0.85)] backdrop-blur-sm hover:text-foreground"
                 withWrapper={false}
@@ -374,7 +377,9 @@ export function AgentChatContainer({
       )}
 
       {(composerShell?.isComposerVisible ?? true) &&
-      (composerShell || !isEmpty || onboardingMode) ? (
+      (!isEmpty ||
+        onboardingMode ||
+        composerShell?.placement === 'inspector') ? (
         <AgentChatPromptBar
           activeWorkEvent={activeWorkEvent}
           addFiles={addFiles}

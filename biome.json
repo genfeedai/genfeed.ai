@@ -28,7 +28,9 @@
       "!.agents",
       "!.worktrees",
       "!.shipcode",
-      "!.clawpatch"
+      "!.clawpatch",
+      "!**/openapi/openapi.json",
+      "!**/openapi.json"
     ]
   },
   "vcs": {

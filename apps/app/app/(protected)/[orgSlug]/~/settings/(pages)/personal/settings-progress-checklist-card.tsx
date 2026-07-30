@@ -4,8 +4,8 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import type { SetupCardStep } from '@hooks/utils/use-setup-card/use-setup-card';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
+import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
-import { HiMiniArrowUpRight } from 'react-icons/hi2';
 
 type Props = {
   completedCount: number;
@@ -73,7 +73,7 @@ export default function SettingsProgressChecklistCard({
               )}
             >
               {step.isCompleted ? 'Review' : 'Complete'}
-              <HiMiniArrowUpRight className="size-3.5" />
+              <ArrowUpRight className="size-3.5" />
             </Link>
           </div>
         ))}

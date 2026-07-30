@@ -45,6 +45,9 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
     // during `next build` / `next dev`, so two levels up is the repo root.
     outputFileTracingRoot: path.resolve(process.cwd(), '..', '..'),
     experimental: {
+      // Do NOT add lucide-react here. Turbopack rewrites multi-alias default
+      // re-exports (ChartColumn / BarChart3 → chart-column.mjs) into a broken
+      // binding that crashes client render as "X is not a function".
       optimizePackageImports: [
         '@genfeedai/agent',
         '@genfeedai/client',
@@ -56,10 +59,7 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
         '@genfeedai/types',
         '@genfeedai/ui',
         '@genfeedai/workflows',
-        '@radix-ui/react-icons',
         'date-fns',
-        'lucide-react',
-        'react-icons',
         'recharts',
       ],
     },

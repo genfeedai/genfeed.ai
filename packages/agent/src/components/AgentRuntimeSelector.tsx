@@ -9,15 +9,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
-import { type ReactElement, useMemo, useState } from 'react';
 import {
-  HiChevronDown,
-  HiCommandLine,
-  HiComputerDesktop,
-  HiOutlineBolt,
-  HiOutlineSparkles,
-  HiServerStack,
-} from 'react-icons/hi2';
+  ChevronDown,
+  Monitor,
+  Server,
+  Sparkles,
+  Terminal,
+  Zap,
+} from 'lucide-react';
+import { type ReactElement, useMemo, useState } from 'react';
 
 interface AgentRuntimeSelectorProps {
   environmentLabel: 'cloud' | 'local';
@@ -33,22 +33,22 @@ function RuntimeIcon({
   provider,
 }: Pick<AgentRuntimeOption, 'category' | 'provider'>): ReactElement {
   if (category === 'local') {
-    return <HiCommandLine className="size-3.5 text-emerald-300" />;
+    return <Terminal className="size-3.5 text-emerald-300" />;
   }
 
   if (provider === 'replicate') {
-    return <HiComputerDesktop className="size-3.5 text-sky-300" />;
+    return <Monitor className="size-3.5 text-sky-300" />;
   }
 
   if (provider === 'openrouter') {
-    return <HiServerStack className="size-3.5 text-amber-300" />;
+    return <Server className="size-3.5 text-amber-300" />;
   }
 
   if (category === 'auto') {
-    return <HiOutlineBolt className="size-3.5 text-primary" />;
+    return <Zap className="size-3.5 text-primary" />;
   }
 
-  return <HiOutlineSparkles className="size-3.5 text-violet-300" />;
+  return <Sparkles className="size-3.5 text-violet-300" />;
 }
 
 export function AgentRuntimeSelector({
@@ -87,7 +87,7 @@ export function AgentRuntimeSelector({
           <span className="text-[11px] font-medium text-foreground">
             {selectedRuntime.label}
           </span>
-          <HiChevronDown
+          <ChevronDown
             className={cn(
               'size-3.5 text-foreground/42 transition-transform',
               open && 'rotate-180',

@@ -6,17 +6,13 @@ import {
   formatCompactNumberIntl,
   formatPercentage,
 } from '@genfeedai/helpers/formatting/format/format.helper';
-import type { IconType } from 'react-icons';
-import {
-  HiArrowTrendingDown,
-  HiArrowTrendingUp,
-  HiMinus,
-} from 'react-icons/hi2';
+import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
+import { Minus, TrendingDown, TrendingUp } from 'lucide-react';
 
 const TREND_ICONS = {
-  [TrendDirection.DOWN]: HiArrowTrendingDown,
-  [TrendDirection.STABLE]: HiMinus,
-  [TrendDirection.UP]: HiArrowTrendingUp,
+  [TrendDirection.DOWN]: TrendingDown,
+  [TrendDirection.STABLE]: Minus,
+  [TrendDirection.UP]: TrendingUp,
 } as const;
 
 export interface MetricCardProps {

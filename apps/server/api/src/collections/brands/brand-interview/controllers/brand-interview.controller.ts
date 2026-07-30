@@ -1,5 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { StartBrandInterviewDto } from '@api/collections/brands/brand-interview/dto/start-brand-interview.dto';
 import { SubmitBrandInterviewAnswerDto } from '@api/collections/brands/brand-interview/dto/submit-brand-interview-answer.dto';
 import { BrandInterviewService } from '@api/collections/brands/brand-interview/services/brand-interview.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -54,12 +53,12 @@ export class BrandInterviewController {
   /**
    * POST /brands/:brandId/interview
    * Start (or resume) a brand context interview.
+   * No request body — brand is in the path; org/user come from the session.
    */
   @Post(':brandId/interview')
   async start(
     @Param('brandId') brandId: string,
     @CurrentUser() user: User,
-    @Body() dto: StartBrandInterviewDto,
   ): Promise<IBrandInterviewStartResult> {
     const organizationId = this.requireOrganizationId(user);
     const publicMetadata = getPublicMetadata(user);

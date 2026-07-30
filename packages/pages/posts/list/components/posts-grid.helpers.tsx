@@ -1,15 +1,9 @@
-import {
-  HiArrowTopRightOnSquare,
-  HiDocumentDuplicate,
-  HiEye,
-  HiPencil,
-  HiTrash,
-} from 'react-icons/hi2';
+import { Copy, ExternalLink, Eye, Pencil, Trash2 } from 'lucide-react';
 
 export const postCardIcons = {
-  delete: <HiTrash className="size-4" />,
-  edit: <HiPencil className="size-4" />,
-  remix: <HiDocumentDuplicate className="size-4" />,
-  viewIngredient: <HiEye className="size-4" />,
-  viewPlatform: <HiArrowTopRightOnSquare className="size-4" />,
+  delete: <Trash2 className="size-4" />,
+  edit: <Pencil className="size-4" />,
+  remix: <Copy className="size-4" />,
+  viewIngredient: <Eye className="size-4" />,
+  viewPlatform: <ExternalLink className="size-4" />,
 };

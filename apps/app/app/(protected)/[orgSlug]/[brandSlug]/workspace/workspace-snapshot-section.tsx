@@ -14,14 +14,11 @@ export default function WorkspaceSnapshotSection({
       data-testid="workspace-snapshot"
       className="space-y-3 mb-5"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-foreground">
-          Workspace at a glance
-        </h2>
-        {actions ? (
-          <div className="flex flex-wrap items-center gap-2.5">{actions}</div>
-        ) : null}
-      </div>
+      {actions ? (
+        <div className="flex flex-wrap items-center justify-end gap-2.5">
+          {actions}
+        </div>
+      ) : null}
       <div className={WORKSPACE_CARD_GRID_GAP_CLASS}>
         {summaryItems.map((item) => (
           <Card

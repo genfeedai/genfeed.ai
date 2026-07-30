@@ -10,10 +10,11 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { EnvironmentService } from '@services/core/environment.service';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
+import { Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { HiLockClosed } from 'react-icons/hi2';
+
 import { Card, CardContent } from '@/components/ui/card';
 import { redirectToOAuthClient } from './redirect';
 
@@ -150,7 +151,7 @@ export default function OAuthConsentContent() {
       <div className="mx-auto w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mb-5 inline-flex size-12 items-center justify-center rounded-xl border border-white/10 bg-white/5">
-            <HiLockClosed className="size-5 text-white/60" />
+            <Lock className="size-5 text-white/60" />
           </div>
           <h1 className="mb-1.5 text-xl font-semibold tracking-tight">
             Authorize Genfeed access
