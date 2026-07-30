@@ -717,11 +717,67 @@ async function getBetterAuthBearerToken(
   }
 }
 
+/**
+ * Same-origin post-login destination from `callbackUrl` / `return_to` /
+ * `redirect_url`. Rejects protocol-relative and off-origin targets.
+ */
+function getSafeSignedInCallbackPath(req: NextRequest): string | null {
+  const raw =
+    req.nextUrl.searchParams.get('callbackUrl') ||
+    req.nextUrl.searchParams.get('return_to') ||
+    req.nextUrl.searchParams.get('redirect_url');
+
+  if (!raw) {
+    return null;
+  }
+
+  // Relative app path only — absolute URLs are validated via createSafeRedirectUrl.
+  if (raw.startsWith('/') && !raw.startsWith('//')) {
+    const pathOnly = raw.split('?')[0] ?? raw;
+    if (
+      pathOnly === '/' ||
+      pathOnly.startsWith('/login') ||
+      pathOnly.startsWith('/logout') ||
+      pathOnly.startsWith('/sign-up')
+    ) {
+      return null;
+    }
+    return raw;
+  }
+
+  try {
+    const parsed = new URL(raw);
+    if (parsed.origin !== req.nextUrl.origin) {
+      return null;
+    }
+    const pathWithSearch = `${parsed.pathname}${parsed.search}`;
+    if (
+      parsed.pathname === '/' ||
+      parsed.pathname.startsWith('/login') ||
+      parsed.pathname.startsWith('/logout') ||
+      parsed.pathname.startsWith('/sign-up')
+    ) {
+      return null;
+    }
+    return pathWithSearch;
+  } catch {
+    return null;
+  }
+}
+
 async function redirectSignedInUserToDefaultRoute(
   req: NextRequest,
   token: string,
   cacheKey?: string | null,
 ): Promise<NextResponse | null> {
+  // Prefer an explicit post-auth destination (session restore / API bounce
+  // back through /login?callbackUrl=…). Do this before onboarding defaulting
+  // so deep links like /settings/credits survive a cold reload.
+  const callbackPath = getSafeSignedInCallbackPath(req);
+  if (callbackPath) {
+    return NextResponse.redirect(createSafeRedirectUrl(req, callbackPath));
+  }
+
   if (await shouldRedirectSignedInUserToOnboarding(token)) {
     if (isSaaS()) {
       const agentOnboarding = await resolveAgentOnboardingRedirect(

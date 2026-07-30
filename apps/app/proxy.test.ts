@@ -150,7 +150,7 @@ describe('proxy', () => {
   // ─── Signed-in redirect away from root / public entry points ──────────────
 
   it.each(['/login', '/login/password', '/login/magic-link'])(
-    'redirects a signed-in user away from %s to default workspace routing',
+    'redirects a signed-in user away from %s honoring callbackUrl',
     async (pathname) => {
       const { default: proxy } = await import('./proxy');
 
@@ -163,10 +163,37 @@ describe('proxy', () => {
 
       expect(response.status).toBe(307);
       expect(response.headers.get('location')).toBe(
-        'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+        'http://localhost:3000/oauth/cli?port=4321',
       );
     },
   );
+
+  it('redirects a signed-in user on /login without callbackUrl to default workspace routing', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(makeSignedInRequest('/login'), {} as never);
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+    );
+  });
+
+  it('honors org settings callbackUrl after session restore through /login', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/login', {
+        search: '?callbackUrl=%2Fdefault%2F%7E%2Fsettings%2Fcredits',
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/default/~/settings/credits',
+    );
+  });
 
   it('keeps logout reachable for a signed-in user', async () => {
     const { default: proxy } = await import('./proxy');

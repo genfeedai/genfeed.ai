@@ -117,7 +117,12 @@ export default function LoginBetterAuth({
           result.error.message ??
             'Failed to sign in with email and password. Please try again.',
         );
+        return;
       }
+
+      // Better Auth may not navigate when the session is already warm after an
+      // API bounce. Always land on the requested post-auth destination.
+      window.location.assign(authCallbackURL);
     } catch {
       setPasswordErrorMessage(
         'Failed to sign in with email and password. Please try again.',
