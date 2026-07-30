@@ -211,7 +211,7 @@ export function AgentThreadListRow({
               {conv.isPinned ? (
                 <Pin
                   className="size-3 shrink-0 -rotate-45 text-foreground/42"
-                  title="Pinned conversation"
+                  aria-label="Pinned conversation"
                 />
               ) : null}
               <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground/90">

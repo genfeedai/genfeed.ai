@@ -28,6 +28,9 @@ vi.mock('@genfeedai/enums', () => ({
 
 vi.mock('@genfeedai/constants', () => ({
   APP_ROUTES: {
+    SETTINGS: {
+      PUBLISHING: '/settings/publishing',
+    },
     WORKSPACE: {
       OVERVIEW: '/workspace/overview',
     },

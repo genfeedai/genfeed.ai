@@ -85,10 +85,17 @@ vi.mock('@ui/card/Card', () => ({
   default: ({
     children,
     className,
+    label,
   }: {
     children: ReactNode;
     className?: string;
-  }) => <section className={className}>{children}</section>,
+    label?: string;
+  }) => (
+    <section className={className}>
+      {label ? <h2>{label}</h2> : null}
+      {children}
+    </section>
+  ),
 }));
 
 vi.mock('@ui/primitives/button', () => ({

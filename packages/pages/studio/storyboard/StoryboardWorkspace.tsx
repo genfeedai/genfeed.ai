@@ -354,12 +354,15 @@ export default function StoryboardWorkspace() {
                           {index + 1}
                         </span>
                         <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-                          {video.label || video.id}
+                          {video.metadataLabel ||
+                            video.promptText ||
+                            video.text ||
+                            video.id}
                         </span>
                         <Button
                           size={ButtonSize.ICON}
                           variant={ButtonVariant.GHOST}
-                          ariaLabel={`Remove ${video.label || video.id}`}
+                          ariaLabel={`Remove ${video.metadataLabel || video.id}`}
                           icon={<Trash2 className="size-3.5" />}
                           onClick={() => removeMergeVideo(video.id)}
                         />

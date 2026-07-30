@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandsList from './brands-list';
 import '@testing-library/jest-dom/vitest';
@@ -113,11 +113,10 @@ describe('BrandsList', () => {
     expect(screen.getByText('3 connected')).toBeInTheDocument();
   });
 
-  it('opens brand settings on row click instead of the edit overlay', async () => {
-    const { default: userEvent } = await import('@testing-library/user-event');
+  it('opens brand settings on row click instead of the edit overlay', () => {
     render(<BrandsList />);
 
-    await userEvent.click(screen.getByText('Test Brand'));
+    fireEvent.click(screen.getByText('Test Brand'));
 
     expect(pushMock).toHaveBeenCalledWith('/default/testbrand/settings');
   });

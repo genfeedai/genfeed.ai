@@ -9,8 +9,7 @@ import {
 } from '@genfeedai/enums';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import type { IMetadata } from '@genfeedai/interfaces';
-import type { MusicIcon } from '@genfeedai/models/ingredients/music.model';
+import type { IMetadata, IMusic } from '@genfeedai/interfaces';
 import type { ModalMusicProps } from '@genfeedai/props/modals/modal.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { MusicsService } from '@genfeedai/services/ingredients/musics.service';
@@ -18,7 +17,7 @@ import Loading from '@ui/loading/default/Loading';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
-import { Music, Pause, Play, X } from 'lucide-react';
+import { Music as MusicIcon, Pause, Play, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface MusicSelectionOverride {
@@ -33,7 +32,7 @@ export default function ModalMusic({
 }: ModalMusicProps) {
   const [selectionOverride, setSelectionOverride] =
     useState<MusicSelectionOverride | null>(null);
-  const [availableMusic, setAvailableMusic] = useState<Music[]>([]);
+  const [availableMusic, setAvailableMusic] = useState<IMusic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [playingId, setPlayingId] = useState<string>('');
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
@@ -148,7 +147,7 @@ export default function ModalMusic({
           </div>
         ) : availableMusic.length === 0 ? (
           <div className="text-center py-12">
-            <Music className="text-5xl text-foreground/20 mx-auto mb-3" />
+            <MusicIcon className="text-5xl text-foreground/20 mx-auto mb-3" />
             <p className="text-foreground/60">
               No music tracks available. Generate some music first.
             </p>
@@ -194,7 +193,7 @@ export default function ModalMusic({
                               : 'bg-muted'
                           }`}
                         >
-                          <Music
+                          <MusicIcon
                             className={`text-xl ${
                               selectedMusic === music.id
                                 ? 'text-primary'

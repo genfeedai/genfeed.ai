@@ -277,7 +277,7 @@ describe('BrandSettingsPublishingPage', () => {
     mocks.updateAgentConfig.mockRejectedValueOnce(new Error('save failed'));
     rerender(<BrandSettingsPublishingPage />);
 
-    fireEvent.click(screen.getByText('Save'));
+    fireEvent.click(screen.getByText('Save defaults'));
     await waitFor(() => {
       expect(mocks.loggerError).toHaveBeenCalledWith(
         'Failed to save brand publishing defaults',

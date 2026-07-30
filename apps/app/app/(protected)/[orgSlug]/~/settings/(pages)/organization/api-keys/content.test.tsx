@@ -89,6 +89,7 @@ vi.mock('@services/management/api-keys.service', () => ({
 }));
 
 vi.mock('lucide-react', () => ({
+  ChevronRight: () => <span data-testid="hi-chevron-right" />,
   Clipboard: () => <span data-testid="hi-clipboard-document" />,
   Plus: () => <span data-testid="hi-plus" />,
   RefreshCw: () => <span data-testid="hi-arrow-path" />,

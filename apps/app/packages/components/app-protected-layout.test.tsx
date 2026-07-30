@@ -1168,7 +1168,7 @@ describe('AppProtectedLayout', () => {
     ['/org-123/brand-123/library/overview', 'library', 'Library'],
     ['/org-123/brand-123/analytics/overview', 'analytics', 'Analytics'],
     ['/org-123/brand-123/workflows', 'workflows', 'Workflows'],
-    ['/org-123/brand-123/posts/remix', 'posts', 'Workspace'],
+    ['/org-123/brand-123/posts/remix', 'posts', 'Publish'],
   ])(
     'keeps the %s app-switcher surface on its own module nav',
     (pathname, currentApp, sectionLabel) => {
