@@ -301,11 +301,11 @@
   },
   "dependencies": {
     "@genfeedai/ui": "workspace:*",
-    "@sentry/node": "10.68.0"
+    "@sentry/node": "10.69.0"
   },
   "description": "Content copilot for Genfeed.ai campaigns in VS Code/Cursor",
   "devDependencies": {
-    "@biomejs/biome": "2.5.5",
+    "@biomejs/biome": "2.5.6",
     "@types/node": "26.1.2",
     "@types/vscode": "1.125.0",
     "@vscode/vsce": "3.9.2",
