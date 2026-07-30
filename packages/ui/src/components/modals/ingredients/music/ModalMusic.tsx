@@ -116,8 +116,7 @@ export default function ModalMusic({
     }
 
     const music = selectedMusic
-      ? availableMusic.find((music: MusicIcon) => music.id === selectedMusic) ||
-        null
+      ? availableMusic.find((track) => track.id === selectedMusic) || null
       : null;
 
     onConfirm(music);
@@ -156,7 +155,7 @@ export default function ModalMusic({
           <>
             {/* Music Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto p-1">
-              {availableMusic.map((music: MusicIcon) => {
+              {availableMusic.map((music) => {
                 const metadata =
                   typeof music.metadata === 'object' && music.metadata
                     ? (music.metadata as IMetadata)

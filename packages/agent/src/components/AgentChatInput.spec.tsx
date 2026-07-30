@@ -107,7 +107,7 @@ describe('AgentChatInput', () => {
     );
 
     expect(screen.getByTestId('agent-chat-input-shell')).toHaveClass(
-      'rounded-lg',
+      'rounded-2xl',
     );
     expect(
       screen.queryByText('Default Workspace · Default Brand'),
@@ -345,7 +345,7 @@ describe('AgentChatInput', () => {
       </ConversationComposerShellProvider>,
     );
 
-    expect(screen.getByText('1 reference')).toBeInTheDocument();
+    // Tray shows the typed reference chip label (no separate "N reference" count).
     expect(screen.getByText('^post:post-1')).toBeInTheDocument();
   });
 
@@ -398,7 +398,7 @@ describe('AgentChatInput', () => {
     const tray = screen.getByRole('group', {
       name: 'Composer attachments and references',
     });
-    expect(screen.getByText('1 reference')).toBeInTheDocument();
+    // Overlapping mention + workspace selection collapses to one chip.
     expect(within(tray).getAllByText('^Launch post')).toHaveLength(1);
   });
 

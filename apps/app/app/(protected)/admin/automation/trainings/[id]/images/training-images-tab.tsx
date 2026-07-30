@@ -4,6 +4,7 @@ import { useTraining } from '@contexts/content/training-context/training-context
 import { PageScope, TrainingStatus } from '@genfeedai/enums';
 import { Code } from '@genfeedai/ui';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type { Image } from '@models/ingredients/image.model';
 import { TrainingsService } from '@services/ai/trainings.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -31,7 +32,7 @@ export default function TrainingImagesTab({
     data: generatedAssets = [],
     isLoading,
     error,
-  } = useQuery<ImageIcon[]>({
+  } = useQuery<Image[]>({
     queryKey: ['training-images', training?.id, scope, training?.brand],
     queryFn: async () => {
       const url = `GET /trainings/${training.id}/images`;
