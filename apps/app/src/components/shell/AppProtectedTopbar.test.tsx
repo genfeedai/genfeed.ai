@@ -224,7 +224,13 @@ describe('AppProtectedTopbar', () => {
     const credits = screen.getByTestId('topbar-credits-bar');
     const topbarInner = screen.getByTestId('app-protected-topbar-inner');
 
-    expect(topbarInner).toHaveClass('gap-2', 'pl-4', 'pr-6');
+    expect(topbarInner).toHaveClass(
+      'gap-2',
+      'pl-5',
+      'sm:pl-6',
+      'pr-5',
+      'sm:pr-6',
+    );
     expect(brandSwitcher).toHaveTextContent('labeled');
     expect(breadcrumbs).toHaveTextContent('Studio');
     expect(switcher).toHaveTextContent('icon');

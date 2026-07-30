@@ -43,10 +43,10 @@ describe('Container', () => {
     const header = screen.getByRole('heading', { name: 'Dashboard' })
       .parentElement?.parentElement;
 
+    expect(rootElement).toHaveClass('py-5', 'sm:py-6');
     expect(rootElement).not.toHaveClass('px-5');
     expect(header).toHaveClass('px-5');
     expect(header).toHaveClass('sm:px-6');
-    expect(header).toHaveClass('lg:px-6');
     expect(header).not.toHaveClass('border-b');
   });
 
@@ -61,7 +61,6 @@ describe('Container', () => {
 
     expect(bodyWrapper).toHaveClass('px-5');
     expect(bodyWrapper).toHaveClass('sm:px-6');
-    expect(bodyWrapper).toHaveClass('lg:px-6');
   });
 
   it('supports full-height page body layouts', () => {
@@ -90,7 +89,6 @@ describe('Container', () => {
 
     expect(bodyWrapper).not.toHaveClass('px-5');
     expect(bodyWrapper).not.toHaveClass('sm:px-6');
-    expect(bodyWrapper).not.toHaveClass('lg:px-6');
   });
 
   it('can keep the h1 for assistive tech without rendering the visible header row', () => {
