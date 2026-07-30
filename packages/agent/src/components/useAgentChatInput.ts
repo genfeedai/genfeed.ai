@@ -370,8 +370,10 @@ export function useAgentChatInput({
             file.type.startsWith('audio/'),
         );
         if (hasFiles) {
-          // Image paste is handled on the shell; leave default for files.
-          return false;
+          // File paste is handled by the outer shell; suppress ProseMirror's
+          // default path so fallback text/HTML does not also insert.
+          event.preventDefault();
+          return true;
         }
 
         const plain = clipboard.getData('text/plain');

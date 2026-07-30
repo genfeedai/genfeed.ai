@@ -143,3 +143,50 @@ describe('useAgentChatInput references', () => {
     );
   });
 });
+
+describe('useAgentChatInput media paste', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionStorage.clear();
+  });
+
+  it('suppresses the editor default paste path when clipboard has media files', async () => {
+    const onSend = vi.fn();
+    const { result } = renderHook(() => useAgentChatInput({ onSend }), {
+      wrapper: Wrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.editor).not.toBeNull();
+    });
+
+    const editor = result.current.editor;
+    expect(editor).not.toBeNull();
+    if (!editor) {
+      return;
+    }
+
+    const preventDefault = vi.fn();
+    const image = new File(['fake'], 'shot.png', { type: 'image/png' });
+    const clipboardData = {
+      files: [image],
+      getData: () => 'fallback text from image paste',
+      items: [],
+      types: ['Files', 'text/plain'],
+    } as unknown as DataTransfer;
+
+    const handled = editor.view.someProp('handlePaste', (handler) =>
+      handler(
+        editor.view,
+        {
+          clipboardData,
+          preventDefault,
+        } as unknown as ClipboardEvent,
+        null,
+      ),
+    );
+
+    expect(handled).toBe(true);
+    expect(preventDefault).toHaveBeenCalled();
+  });
+});

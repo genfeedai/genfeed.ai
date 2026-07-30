@@ -64,27 +64,24 @@ export function AgentChatTimeline({
   onSelectIngredient,
   onUiAction,
 }: AgentChatTimelineProps): ReactElement {
-  const lastFailedWorkGroup = [...timeline]
-    .reverse()
-    .find(
-      (entry) =>
-        entry.kind === 'work-group' &&
-        entry.events.some(
-          (event) => event.status === AgentWorkEventStatus.FAILED,
-        ),
-    );
-  const lastFailedDetail =
-    lastFailedWorkGroup && lastFailedWorkGroup.kind === 'work-group'
-      ? [...lastFailedWorkGroup.events]
-          .reverse()
-          .find((event) => event.status === AgentWorkEventStatus.FAILED)?.detail
+  // Only the terminal timeline entry may own the failure card / retry context.
+  // An older failed work-group must not surface when a later group succeeded
+  // or when the terminal entry is a message / stream row.
+  const terminalEntry = timeline.at(-1);
+  const terminalFailedWorkGroup =
+    terminalEntry?.kind === 'work-group' &&
+    terminalEntry.events.some(
+      (event) => event.status === AgentWorkEventStatus.FAILED,
+    )
+      ? terminalEntry
       : null;
-  const endsWithFailedRunWithoutAssistant =
-    timeline.length > 0 &&
-    timeline[timeline.length - 1]?.kind === 'work-group' &&
-    Boolean(lastFailedWorkGroup) &&
-    !isGenerating &&
-    !isStreamingActive;
+  const lastFailedDetail = terminalFailedWorkGroup
+    ? [...terminalFailedWorkGroup.events]
+        .reverse()
+        .find((event) => event.status === AgentWorkEventStatus.FAILED)?.detail
+    : null;
+  const isTerminalFailedRunWithoutAssistant =
+    Boolean(terminalFailedWorkGroup) && !isGenerating && !isStreamingActive;
 
   return (
     <>
@@ -120,7 +117,7 @@ export function AgentChatTimeline({
         }
       })}
 
-      {endsWithFailedRunWithoutAssistant ? (
+      {isTerminalFailedRunWithoutAssistant ? (
         <AgentRunFailureCard
           error={lastFailedDetail}
           isRetrying={isBusy}

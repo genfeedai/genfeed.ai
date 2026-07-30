@@ -28,6 +28,8 @@ interface AgentModelSelectorProps {
   onBuyCredits?: () => void;
   /** Match composer toolbar control height (send / icons). */
   density?: 'compact' | 'default';
+  /** When true, block model switching (read-only / busy / blocked composer). */
+  isDisabled?: boolean;
 }
 
 export function AgentModelSelector({
@@ -36,6 +38,7 @@ export function AgentModelSelector({
   creditsAvailable,
   onBuyCredits,
   density = 'default',
+  isDisabled = false,
 }: AgentModelSelectorProps): ReactElement {
   const [open, setOpen] = useState(false);
   const current = AGENT_MODELS.find((m) => m.key === selectedModel);
@@ -47,12 +50,20 @@ export function AgentModelSelector({
   const isCompact = density === 'compact';
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={isDisabled ? false : open}
+      onOpenChange={(nextOpen) => {
+        if (!isDisabled) {
+          setOpen(nextOpen);
+        }
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           variant={ButtonVariant.GHOST}
           withWrapper={false}
           textTransform="none"
+          isDisabled={isDisabled}
           className={cn(
             // Same height as send (size-8 / size-9) — trailing toolbar cluster
             'inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border/60 bg-background-secondary/40 px-2.5 text-xs text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground',

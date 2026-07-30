@@ -1,0 +1,56 @@
+import { AGENT_MODELS } from '@genfeedai/agent/constants/agent-models.constant';
+import { render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@ui/primitives/button', () => ({
+  Button: function MockButton(props: {
+    children?: ReactNode;
+    isDisabled?: boolean;
+    onClick?: () => void;
+  }) {
+    return (
+      <button type="button" disabled={props.isDisabled} onClick={props.onClick}>
+        {props.children}
+      </button>
+    );
+  },
+}));
+
+vi.mock('@ui/primitives/popover', () => ({
+  Popover: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  PopoverContent: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  PopoverTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
+
+import { AgentModelSelector } from './AgentModelSelector';
+
+describe('AgentModelSelector', () => {
+  it('disables the trigger when the composer is disabled', () => {
+    render(
+      <AgentModelSelector
+        creditsAvailable={null}
+        isDisabled
+        onModelChange={vi.fn()}
+        selectedModel={AGENT_MODELS[0]?.key ?? 'auto'}
+      />,
+    );
+
+    const trigger = screen.getByRole('button');
+    expect(trigger).toBeDisabled();
+  });
+
+  it('keeps the trigger enabled when the composer is active', () => {
+    render(
+      <AgentModelSelector
+        creditsAvailable={null}
+        onModelChange={vi.fn()}
+        selectedModel={AGENT_MODELS[0]?.key ?? 'auto'}
+      />,
+    );
+
+    expect(screen.getByRole('button')).not.toBeDisabled();
+  });
+});
