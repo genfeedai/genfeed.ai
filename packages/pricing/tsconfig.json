@@ -23,5 +23,8 @@
   },
   "exclude": ["node_modules", "dist", "src/**/*.spec.ts", "src/**/*.test.ts"],
   "include": ["src/**/*"],
-  "references": [{ "path": "../enums" }, { "path": "../interfaces" }]
+  "references": [
+    { "path": "../enums/tsconfig.json" },
+    { "path": "../interfaces/tsconfig.json" }
+  ]
 }

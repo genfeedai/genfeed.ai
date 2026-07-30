@@ -41,16 +41,16 @@
   "include": ["src/**/*"],
   "references": [
     {
-      "path": "../interfaces"
+      "path": "../interfaces/tsconfig.json"
     },
     {
-      "path": "../constants"
+      "path": "../constants/tsconfig.json"
     },
     {
-      "path": "../enums"
+      "path": "../enums/tsconfig.json"
     },
     {
-      "path": "../helpers"
+      "path": "../helpers/tsconfig.json"
     }
   ]
 }

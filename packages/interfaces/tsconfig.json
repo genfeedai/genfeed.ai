@@ -24,10 +24,10 @@
   "include": ["src/**/*"],
   "references": [
     {
-      "path": "../constants"
+      "path": "../constants/tsconfig.json"
     },
     {
-      "path": "../enums"
+      "path": "../enums/tsconfig.json"
     }
   ]
 }
