@@ -12,7 +12,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
-import { type ReactElement, useState } from 'react';
+import { type ReactElement, useEffect, useState } from 'react';
 import { HiChevronUp, HiLockClosed, HiSparkles } from 'react-icons/hi2';
 
 const COST_TIER_COLORS: Record<CostTier, string> = {
@@ -41,6 +41,13 @@ export function AgentModelSelector({
   isDisabled = false,
 }: AgentModelSelectorProps): ReactElement {
   const [open, setOpen] = useState(false);
+  // Drop leftover open state when the selector is disabled so re-enable cannot
+  // immediately reopen a menu that was open when the busy state began.
+  useEffect(() => {
+    if (isDisabled) {
+      setOpen(false);
+    }
+  }, [isDisabled]);
   const current = AGENT_MODELS.find((m) => m.key === selectedModel);
   const hasLockedModels =
     creditsAvailable != null &&

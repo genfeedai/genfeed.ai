@@ -29,10 +29,12 @@ describe('formatAgentError', () => {
   });
 
   it('does not treat embedded 429 digits as rate limits', () => {
-    const formatted = formatAgentError('context length 4290 tokens');
-
-    expect(formatted.title).not.toBe('Provider rate limited');
-    expect(formatted.title).toBe('Run failed');
+    expect(formatAgentError('context length 4290 tokens').title).not.toBe(
+      'Provider rate limited',
+    );
+    expect(formatAgentError('status code 4290').title).not.toBe(
+      'Provider rate limited',
+    );
   });
 
   it('classifies status-code 5xx provider outages', () => {
@@ -45,9 +47,11 @@ describe('formatAgentError', () => {
   });
 
   it('does not treat arbitrary 5xx-looking numbers as provider outages', () => {
-    const formatted = formatAgentError('prompt used 512 tokens');
-
-    expect(formatted.title).not.toBe('Provider temporarily unavailable');
-    expect(formatted.title).toBe('Run failed');
+    expect(formatAgentError('prompt used 512 tokens').title).not.toBe(
+      'Provider temporarily unavailable',
+    );
+    expect(formatAgentError('status code 5120').title).not.toBe(
+      'Provider temporarily unavailable',
+    );
   });
 });

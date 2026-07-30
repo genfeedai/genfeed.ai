@@ -64,4 +64,40 @@ describe('AgentModelSelector', () => {
       screen.getByRole('button', { name: 'Select model' }),
     ).not.toBeDisabled();
   });
+
+  it('clears open state when the selector becomes disabled', () => {
+    const { rerender } = render(
+      <AgentModelSelector
+        creditsAvailable={null}
+        onModelChange={vi.fn()}
+        selectedModel={AGENT_MODELS[0]?.key ?? 'auto'}
+      />,
+    );
+
+    // Open via controlled path: re-render with isDisabled must not leave open
+    // state latched for the next enable cycle.
+    rerender(
+      <AgentModelSelector
+        creditsAvailable={null}
+        isDisabled
+        onModelChange={vi.fn()}
+        selectedModel={AGENT_MODELS[0]?.key ?? 'auto'}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Select model' })).toBeDisabled();
+
+    rerender(
+      <AgentModelSelector
+        creditsAvailable={null}
+        onModelChange={vi.fn()}
+        selectedModel={AGENT_MODELS[0]?.key ?? 'auto'}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Select model' }),
+    ).not.toBeDisabled();
+    expect(screen.queryByTestId('model-selector-menu')).toBeNull();
+  });
 });

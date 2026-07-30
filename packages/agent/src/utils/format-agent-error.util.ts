@@ -39,8 +39,9 @@ const CONFIG_PATTERNS: Array<{
   },
   {
     // Anchor bare 429 to status-code context — token counts / ids must not match.
+    // Trailing \b rejects "status code 4290".
     match:
-      /rate limit|too many requests|status code 429|\bHTTP\s*429\b|\b429\b\s*(too many|rate)/i,
+      /rate limit|too many requests|status code 429\b|\bHTTP\s*429\b|\b429\b\s*(too many|rate)/i,
     title: 'Provider rate limited',
     summary: 'The model provider asked us to slow down.',
     recovery: 'Wait a moment, then retry the message.',
@@ -64,9 +65,9 @@ const CONFIG_PATTERNS: Array<{
     recovery: 'Check model availability and account permissions, then retry.',
   },
   {
-    // Anchor 5xx codes the same way — "512 tokens" must not match.
+    // Anchor 5xx codes the same way — "512 tokens" / "status code 5120" must not match.
     match:
-      /status code 5\d{2}|\bHTTP\s*5\d{2}\b|server error|bad gateway|service unavailable/i,
+      /status code 5\d{2}\b|\bHTTP\s*5\d{2}\b|server error|bad gateway|service unavailable/i,
     title: 'Provider temporarily unavailable',
     summary: 'The model provider returned a server error.',
     recovery:
