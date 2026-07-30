@@ -76,13 +76,21 @@ export function AgentChatEmptyState({
   if (isInspector) {
     return (
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="flex min-h-0 flex-1 flex-col justify-center px-3 py-4">
-          <h2 className="text-sm font-semibold tracking-[-0.01em] text-foreground">
-            {emptyStateTitle}
-          </h2>
-          <p className="mt-1 text-xs leading-5 text-foreground/48">
-            {emptyStateDescription}
-          </p>
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 overflow-y-auto px-4 py-6">
+          <div className="w-full max-w-sm px-1 text-center">
+            <h2 className="text-sm font-semibold tracking-[-0.01em] text-foreground">
+              {emptyStateTitle}
+            </h2>
+            <p className="mt-1 truncate text-xs leading-5 text-foreground/48">
+              {emptyStateDescription}
+            </p>
+          </div>
+          {/* Page-contextual action cards (route-aware via pageContext store). */}
+          {promptBarSuggestions ? (
+            <div className="w-full max-w-sm [&_[role=toolbar]]:!grid-cols-1">
+              {promptBarSuggestions}
+            </div>
+          ) : null}
         </div>
       </div>
     );

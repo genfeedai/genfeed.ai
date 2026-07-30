@@ -13,7 +13,9 @@ import type {
 } from '@genfeedai/props/ui/attachments.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { EditorContent } from '@tiptap/react';
-import PromptBarShell from '@ui/prompt-bars/components/shell/PromptBarShell';
+import PromptBarShell, {
+  PROMPT_BAR_SURFACE_CLASS,
+} from '@ui/prompt-bars/components/shell/PromptBarShell';
 import { type ReactElement, useMemo } from 'react';
 
 export type ExtractedMention =
@@ -164,9 +166,7 @@ export function AgentChatInput({
 
       <PromptBarShell
         className={cn(
-          // Frosted floating control — transcript scrolls behind (T3/Codex).
-          'overflow-hidden border border-white/[0.08] bg-background/55 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.55)] backdrop-blur-xl backdrop-saturate-150 transition-[border-color,background-color,box-shadow] focus-within:border-white/[0.14] focus-within:bg-background/65',
-          'rounded-2xl',
+          PROMPT_BAR_SURFACE_CLASS,
           isDragActive && 'ring-1 ring-primary/40',
         )}
         data-testid="agent-chat-input-shell"
@@ -210,7 +210,8 @@ export function AgentChatInput({
             shouldShowSendButton={shouldShowSendButton}
             shouldShowVoiceInput={shouldShowVoiceInput}
             showStop={showStop}
-            density={isCompact ? 'compact' : 'default'}
+            // Inspector rail is narrow — use compact icon-only toolbar density.
+            density={isCompact || isInspector ? 'compact' : 'default'}
           />
         </div>
       </PromptBarShell>

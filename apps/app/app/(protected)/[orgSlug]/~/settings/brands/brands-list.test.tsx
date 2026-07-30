@@ -45,16 +45,35 @@ vi.mock('@providers/global-modals/global-modals.provider', () => ({
   })),
 }));
 
+const pushMock = vi.fn();
+
 vi.mock('next/navigation', () => ({
   usePathname: vi.fn(() => '/brands'),
   useRouter: vi.fn(() => ({
-    push: vi.fn(),
+    push: pushMock,
   })),
   useSearchParams: vi.fn(() => ({
     get: vi.fn(() => null),
     toString: vi.fn(() => ''),
   })),
 }));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: vi.fn(() => ({
+    orgSlug: 'default',
+  })),
+}));
+
+vi.mock('@genfeedai/constants', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/constants')>();
+  return {
+    ...actual,
+    createBrandAppRoute: vi.fn(
+      (orgSlug: string, brandSlug: string, path = '') =>
+        `/${orgSlug}/${brandSlug}${path}`,
+    ),
+  };
+});
 
 describe('BrandsList', () => {
   beforeEach(() => {
@@ -92,5 +111,14 @@ describe('BrandsList', () => {
     expect(screen.getByText('Test Brand')).toBeInTheDocument();
     expect(screen.getByText('@testbrand')).toBeInTheDocument();
     expect(screen.getByText('3 connected')).toBeInTheDocument();
+  });
+
+  it('opens brand settings on row click instead of the edit overlay', async () => {
+    const { default: userEvent } = await import('@testing-library/user-event');
+    render(<BrandsList />);
+
+    await userEvent.click(screen.getByText('Test Brand'));
+
+    expect(pushMock).toHaveBeenCalledWith('/default/testbrand/settings');
   });
 });

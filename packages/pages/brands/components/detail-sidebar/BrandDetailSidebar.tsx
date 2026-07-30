@@ -3,80 +3,58 @@
 import { AssetScope } from '@genfeedai/enums';
 
 import BrandDetailAccountSettingsCard from '@pages/brands/components/sidebar/BrandDetailAccountSettingsCard';
-import BrandDetailAgentProfileCard from '@pages/brands/components/sidebar/BrandDetailAgentProfileCard';
-import BrandDetailDefaultModelsCard from '@pages/brands/components/sidebar/BrandDetailDefaultModelsCard';
 import BrandDetailExternalLinksCard from '@pages/brands/components/sidebar/BrandDetailExternalLinksCard';
-import BrandDetailIdentityCard from '@pages/brands/components/sidebar/BrandDetailIdentityCard';
-import BrandDetailManualKitCard from '@pages/brands/components/sidebar/BrandDetailManualKitCard';
-import BrandDetailReferencesCard from '@pages/brands/components/sidebar/BrandDetailReferencesCard';
 import BrandDetailSocialMediaCard from '@pages/brands/components/sidebar/BrandDetailSocialMediaCard';
+import BrandDetailSocialSummaryCard from '@pages/brands/components/sidebar/BrandDetailSocialSummaryCard';
 import type { BrandDetailSidebarProps } from '@props/pages/brand-detail.props';
-import BrandCompletenessCard from '@ui/cards/brand-completeness-card/BrandCompletenessCard';
 
+/**
+ * Public-profile column: visibility + social/links.
+ * Settings Profile passes `manageSocialHref` → summary only.
+ * Modal/overlay leaves it unset → full Social + Links editors.
+ */
 export default function BrandDetailSidebar({
   brand,
-  brandId,
   links,
   socialConnections,
   connectedPlatformsCount,
-  deletingRefId,
+  isUpdatingPublicProfile = false,
+  manageSocialHref,
   onTogglePublicProfile,
-  onRefreshBrand,
   onOpenLinkModal,
-  onUploadBanner,
-  onUploadLogo,
-  onUploadReference,
-  onDeleteReference,
 }: BrandDetailSidebarProps) {
-  return (
-    <div className="flex flex-col gap-6 lg:sticky lg:top-4 lg:self-start">
-      <BrandCompletenessCard brand={brand} />
+  const isPublic =
+    typeof brand.scope === 'string' &&
+    brand.scope.toLowerCase() === AssetScope.PUBLIC;
 
+  return (
+    <div className="flex flex-col gap-3 lg:sticky lg:top-4 lg:self-start">
       <BrandDetailAccountSettingsCard
-        isPublic={brand.scope === AssetScope.PUBLIC}
+        isPublic={isPublic}
+        isUpdating={isUpdatingPublicProfile}
         onToggle={onTogglePublicProfile}
       />
 
-      <BrandDetailSocialMediaCard
-        brandId={brand.id}
-        connections={socialConnections}
-        connectedPlatformsCount={connectedPlatformsCount}
-      />
+      {manageSocialHref ? (
+        <BrandDetailSocialSummaryCard
+          connectedPlatformsCount={connectedPlatformsCount}
+          linksCount={links?.length ?? 0}
+          manageHref={manageSocialHref}
+        />
+      ) : (
+        <>
+          <BrandDetailSocialMediaCard
+            brandId={brand.id}
+            connections={socialConnections}
+            connectedPlatformsCount={connectedPlatformsCount}
+          />
 
-      <BrandDetailExternalLinksCard
-        links={links}
-        onOpenLinkModal={onOpenLinkModal}
-      />
-
-      <BrandDetailManualKitCard
-        brand={brand}
-        brandId={brandId}
-        onRefreshBrand={onRefreshBrand}
-        onUploadBanner={onUploadBanner}
-        onUploadLogo={onUploadLogo}
-        onUploadReference={onUploadReference}
-      />
-
-      <BrandDetailDefaultModelsCard brand={brand} />
-
-      <BrandDetailAgentProfileCard
-        brand={brand}
-        brandId={brandId}
-        onRefreshBrand={onRefreshBrand}
-      />
-
-      <BrandDetailIdentityCard
-        brand={brand}
-        brandId={brandId}
-        onRefreshBrand={onRefreshBrand}
-      />
-
-      <BrandDetailReferencesCard
-        brand={brand}
-        deletingRefId={deletingRefId}
-        onUploadReference={onUploadReference}
-        onDeleteReference={onDeleteReference}
-      />
+          <BrandDetailExternalLinksCard
+            links={links}
+            onOpenLinkModal={onOpenLinkModal}
+          />
+        </>
+      )}
     </div>
   );
 }

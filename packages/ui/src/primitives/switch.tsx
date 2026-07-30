@@ -24,6 +24,30 @@ export interface SwitchProps extends SwitchBaseProps {
   switchClassName?: string;
 }
 
+/**
+ * Ship Switch defaults use `bg-accent` for the ON track and
+ * `bg-[var(--text-primary)]` for the OFF thumb. In Genfeed studio, `--accent`
+ * is remapped to a hover *surface*, so stock colors collapse. Worse: if the
+ * thumb’s `translate-x-*` utilities don’t land, the track is `items-center`
+ * and the knob sits dead-center for both states — looks “stuck”.
+ *
+ * Force track color + thumb travel off parent `data-state` so on/off always
+ * slides left ↔ right.
+ */
+const SWITCH_CONTRAST_CLASSNAME = cn(
+  // Track — left-align the thumb so translate (not flex centering) owns position
+  'justify-start',
+  'data-[state=unchecked]:!bg-white/15 data-[state=checked]:!bg-white',
+  // Thumb motion (Ship renders one direct span child with its own data-state)
+  'data-[state=unchecked]:[&>span]:!translate-x-0.5',
+  'data-[state=checked]:[&>span]:!translate-x-4',
+  'data-[state=unchecked]:[&>span]:!bg-white',
+  'data-[state=checked]:[&>span]:!bg-black',
+  '[&>span]:!transition-transform [&>span]:!duration-200 [&>span]:!ease-out',
+  // Focus
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+);
+
 function Switch({
   ref,
   checked,
@@ -40,7 +64,12 @@ function Switch({
   const resolvedChecked = checked ?? isChecked ?? false;
   const switchElement = (
     <ShipSwitch
-      className={cn('ship-ui', switchClassName, className)}
+      className={cn(
+        'ship-ui',
+        SWITCH_CONTRAST_CLASSNAME,
+        switchClassName,
+        className,
+      )}
       {...props}
       checked={resolvedChecked}
       disabled={isDisabled}
@@ -58,24 +87,26 @@ function Switch({
     return switchElement;
   }
 
+  // Never wrap a role=switch button in <label>/<fieldset>: the browser
+  // re-activates the control and Radix fires onCheckedChange twice (true then
+  // false) — controlled toggles look stuck. Text is non-interactive; switch
+  // owns the click.
   return (
-    <fieldset>
-      <label className="flex cursor-pointer items-start gap-3">
-        {switchElement}
-        <div className="flex flex-col gap-1">
-          {label ? (
-            <span className={cn('text-sm font-medium text-foreground')}>
-              {label}
-            </span>
-          ) : null}
-          {description ? (
-            <span className={cn('text-xs text-muted-foreground')}>
-              {description}
-            </span>
-          ) : null}
-        </div>
-      </label>
-    </fieldset>
+    <div className="flex items-start gap-3">
+      {switchElement}
+      <div className="flex min-w-0 flex-col gap-1">
+        {label ? (
+          <span className={cn('text-sm font-medium text-foreground')}>
+            {label}
+          </span>
+        ) : null}
+        {description ? (
+          <span className={cn('text-xs text-muted-foreground')}>
+            {description}
+          </span>
+        ) : null}
+      </div>
+    </div>
   );
 }
 Switch.displayName = ShipSwitch.displayName ?? 'Switch';

@@ -1,6 +1,6 @@
-import { Sparkles } from 'lucide-react';
+'use client';
 
-('use client');
+import { Sparkles } from 'lucide-react';
 
 type Props = {
   accessStatusLabel: string;

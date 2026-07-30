@@ -1,5 +1,6 @@
 'use client';
 
+import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-context';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ContainerProps } from '@genfeedai/props/ui/ui.props';
 import ContainerTitle from '@ui/layout/container-title/ContainerTitle';
@@ -24,14 +25,20 @@ export default function Container({
 }: ContainerProps) {
   const [internalActiveTab, setInternalActiveTab] = useState<string>('');
   const hasLeft = Boolean(left);
+  const { hasCanonicalBreadcrumb } = useSidebarNavigation();
 
   // Use controlled props if provided, otherwise use internal state
   const activeTab = controlledActiveTab ?? internalActiveTab;
   const onTabChange = controlledOnTabChange ?? setInternalActiveTab;
 
   const hasHeaderRight = Boolean(right);
-  const hasVisibleTitle = Boolean(label && titleVisibility !== 'sr-only');
-  const hasScreenReaderTitle = Boolean(label && titleVisibility === 'sr-only');
+  // Topbar breadcrumb owns page identity when present — ContainerTitle becomes
+  // sr-only. Do not keep an empty header row (mb-4 pb-3) that looks like broken
+  // top padding under the shell topbar.
+  const isTitleChromeSuppressed =
+    titleVisibility === 'sr-only' || Boolean(label && hasCanonicalBreadcrumb);
+  const hasVisibleTitle = Boolean(label && !isTitleChromeSuppressed);
+  const hasScreenReaderTitle = Boolean(label && isTitleChromeSuppressed);
   // Equal page inset on every axis so content sits the same distance from
   // the topbar, sidebar, and inspector — pages must not invent their own.
   const insetClassName = fullWidth ? 'px-5 sm:px-6' : '';
@@ -53,7 +60,10 @@ export default function Container({
         <div
           className={cn(
             'mb-4 flex items-center gap-4 pb-3',
-            hasVisibleTitle ? 'justify-between' : 'justify-end',
+            // When the topbar breadcrumb owns the title, stretch the toolbar
+            // full width so type filter sits left and actions sit right —
+            // not a lonely right-aligned cluster over empty black.
+            hasVisibleTitle ? 'justify-between' : 'w-full',
             insetClassName,
           )}
         >
@@ -66,7 +76,12 @@ export default function Container({
           )}
 
           {(headerTabs || hasHeaderRight) && (
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div
+              className={cn(
+                'flex flex-wrap items-center gap-2.5',
+                !hasVisibleTitle && 'w-full min-w-0',
+              )}
+            >
               {headerTabs && (
                 <Tabs {...headerTabs} className={cn(headerTabs.className)} />
               )}

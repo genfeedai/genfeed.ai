@@ -1,6 +1,6 @@
-import { CircleCheck, Key } from 'lucide-react';
+'use client';
 
-('use client');
+import { CircleCheck, Key } from 'lucide-react';
 
 type Props = {
   description: string;

@@ -37,39 +37,32 @@ export default function BrandDetailDefaultModelsCard({
   }
 
   return (
-    <Card className="p-6">
-      <div className="space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold">Default Models</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Brand overrides take priority. Empty brand values inherit the
-            organization baseline.
-          </p>
-        </div>
+    <Card
+      label="Default Models"
+      description="Brand overrides take priority. Empty values inherit the organization baseline."
+    >
+      <div className="flex flex-col gap-2">
+        {rows.map((row) => {
+          const value = row.brandValue || row.orgValue;
+          const source = row.brandValue
+            ? 'Brand override'
+            : 'Organization default';
 
-        <div className="space-y-3">
-          {rows.map((row) => {
-            const value = row.brandValue || row.orgValue;
-            const source = row.brandValue
-              ? 'Brand override'
-              : 'Organization default';
-
-            return (
-              <div
-                key={row.label}
-                className="flex items-start justify-between gap-4"
-              >
-                <div>
-                  <span className="text-sm text-muted-foreground">
-                    {row.label}
-                  </span>
-                  <p className="text-xs text-muted-foreground">{source}</p>
-                </div>
-                <span className="text-right text-sm font-medium">{value}</span>
+          return (
+            <div
+              key={row.label}
+              className="flex items-start justify-between gap-3"
+            >
+              <div className="min-w-0">
+                <span className="text-sm font-medium">{row.label}</span>
+                <p className="text-xs text-muted-foreground">{source}</p>
               </div>
-            );
-          })}
-        </div>
+              <span className="max-w-[50%] truncate text-right text-xs text-muted-foreground">
+                {value}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </Card>
   );

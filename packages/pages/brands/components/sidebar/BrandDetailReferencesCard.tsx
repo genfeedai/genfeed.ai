@@ -17,27 +17,30 @@ export default function BrandDetailReferencesCard({
   const hasReferences = brand?.references && brand.references.length > 0;
 
   return (
-    <Card>
-      <h2 className="text-lg font-semibold mb-4">Branding References</h2>
+    <Card
+      label="Branding References"
+      description="Assets referenced when generating content in Studio."
+    >
       {hasReferences ? (
-        <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-4">
+        <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
             {brand.references?.map((ref) => (
-              <div key={ref.id} className="relative w-full aspect-square group">
+              <div key={ref.id} className="group relative aspect-square w-full">
                 <Image
                   src={`${EnvironmentService.cdnUrl}/references/${ref.id}`}
                   alt={`Reference ${ref.id}`}
-                  className="w-full h-full object-cover"
+                  className="size-full object-cover"
                   width={300}
                   height={300}
                 />
 
-                <div className="absolute inset-0 flex items-start justify-end p-2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/0 group-hover:bg-black/20">
+                <div className="absolute inset-0 flex items-start justify-end bg-black/0 p-1.5 opacity-0 transition-opacity group-hover:bg-black/20 group-hover:opacity-100">
                   <Button
-                    label={<Trash2 />}
+                    icon={<Trash2 className="size-3.5" />}
                     ariaLabel="Delete reference"
                     variant={ButtonVariant.DESTRUCTIVE}
-                    size={ButtonSize.XS}
+                    size={ButtonSize.ICON}
+                    className="size-8 p-0 [&_svg]:size-3.5"
                     isDisabled={deletingRefId === ref.id}
                     onClick={() => onDeleteReference(ref.id)}
                   />
@@ -47,34 +50,27 @@ export default function BrandDetailReferencesCard({
           </div>
           <Button
             variant={ButtonVariant.SECONDARY}
-            className="w-full gap-2"
+            className="w-full gap-1.5 text-xs [&_svg]:size-3.5"
+            size={ButtonSize.SM}
             wrapperClassName="w-full"
             onClick={onUploadReference}
-            label={
-              <>
-                <Upload />
-                Upload Reference
-              </>
-            }
+            icon={<Upload className="size-3.5" />}
+            label="Upload reference"
           />
-        </>
+        </div>
       ) : (
         <div className="flex flex-col gap-2">
-          <p className="text-sm text-muted-foreground mb-2">
-            Add branding assets to reference when generating content in Studio.
-          </p>
-
+          <div className="rounded-md bg-background-secondary/50 px-3 py-3 text-xs text-muted-foreground">
+            No reference assets yet.
+          </div>
           <Button
             variant={ButtonVariant.DEFAULT}
-            className="w-full gap-2"
+            className="w-full gap-1.5 text-xs [&_svg]:size-3.5"
+            size={ButtonSize.SM}
             wrapperClassName="w-full"
             onClick={onUploadReference}
-            label={
-              <>
-                <Upload />
-                Upload Reference
-              </>
-            }
+            icon={<Upload className="size-3.5" />}
+            label="Upload reference"
           />
         </div>
       )}

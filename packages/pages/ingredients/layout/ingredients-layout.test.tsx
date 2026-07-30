@@ -99,7 +99,7 @@ describe('IngredientsLayout', () => {
     window.history.replaceState({}, '', '/library/videos');
   });
 
-  it('writes default video statuses as repeated query keys', async () => {
+  it('keeps default video statuses out of the URL on mount', async () => {
     render(
       <IngredientsLayout
         defaultType="videos"
@@ -109,10 +109,7 @@ describe('IngredientsLayout', () => {
     );
 
     await waitFor(() => {
-      expect(replaceSpy).toHaveBeenCalledWith(
-        `/library/videos?status=${IngredientStatus.GENERATED}&status=${IngredientStatus.PROCESSING}&status=${IngredientStatus.VALIDATED}`,
-        { scroll: false },
-      );
+      expect(replaceSpy).not.toHaveBeenCalled();
     });
   });
 

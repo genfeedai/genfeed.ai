@@ -78,9 +78,12 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
   },
 }));
 
+const clearClientProtectedBootstrapCacheMock = vi.hoisted(() => vi.fn());
+
 vi.mock(
   '../../providers/protected-bootstrap/client-protected-bootstrap',
   () => ({
+    clearClientProtectedBootstrapCache: clearClientProtectedBootstrapCacheMock,
     loadClientProtectedBootstrap: loadClientProtectedBootstrapMock,
   }),
 );

@@ -1,11 +1,11 @@
+'use client';
+
 import {
   DiscordIcon,
   InstagramIcon,
   TelegramIcon,
   XTwitterIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
-
-('use client');
 
 interface SocialLinksProps {
   twitterHandle?: string;

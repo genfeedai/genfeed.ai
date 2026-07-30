@@ -8,7 +8,10 @@ import { APP_LOGO_HREF } from '@app-config/menu-items.config';
 import { ORG_LOGO_HREF } from '@app-config/org-menu-items.config';
 import { POSTS_LOGO_HREF } from '@app-config/posts-menu-items.config';
 import { RESEARCH_LOGO_HREF } from '@app-config/research-menu-items.config';
-import { SETTINGS_LOGO_HREF } from '@app-config/settings-menu-items.config';
+import {
+  SETTINGS_LOGO_HREF,
+  type SettingsScope,
+} from '@app-config/settings-menu-items.config';
 import { STUDIO_LOGO_HREF } from '@app-config/studio-menu-items.config';
 import { WORKFLOWS_LOGO_HREF } from '@app-config/workflows-menu-items.config';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
@@ -62,6 +65,8 @@ type Props = {
   isSettingsRoute: boolean;
   isStudioRoute: boolean;
   isWorkflowsRoute: boolean;
+  /** Settings sidebar scope — brand routes omit the redundant "Settings" header. */
+  settingsScope?: SettingsScope;
   adminMenuItems: MenuItemConfig[];
   analyticsMenuItems: MenuItemConfig[];
   composeMenuItems: MenuItemConfig[];
@@ -103,6 +108,7 @@ export default function AppProtectedLayoutSidebar({
   isSettingsRoute,
   isStudioRoute,
   isWorkflowsRoute,
+  settingsScope: _settingsScope = 'personal',
   adminMenuItems,
   analyticsMenuItems,
   composeMenuItems,
@@ -254,7 +260,9 @@ export default function AppProtectedLayoutSidebar({
         currentApp,
         items: settingsMenuItems,
         logoHref: buildHref(SETTINGS_LOGO_HREF),
-        sectionLabel: 'Settings',
+        // No top-level "Settings" shell header — org/brand switcher + group
+        // labels (Organization / Access, Brand / Automation) are enough.
+        sectionLabel: undefined,
         showOrgSwitcher: true,
       },
     ] satisfies AppSidebarSurface[]

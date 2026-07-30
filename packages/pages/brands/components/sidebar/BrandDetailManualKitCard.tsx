@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, FontFamily } from '@genfeedai/enums';
 import type {
   BrandKitFieldKey,
   IBrandKitDraft,
@@ -14,7 +14,15 @@ import { BrandsService } from '@services/social/brands.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
+import { ColorInput } from '@ui/primitives/color-input';
 import { Input } from '@ui/primitives/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { CircleCheck, FileText, Upload } from 'lucide-react';
 import { type ChangeEvent, useCallback, useMemo, useState } from 'react';
@@ -50,6 +58,15 @@ type ManualApplyFieldConfig = {
 
 const GUIDANCE_EXTENSIONS = ['.csv', '.json', '.md', '.markdown', '.txt'];
 
+const FONT_FAMILY_OPTIONS: ReadonlyArray<{
+  label: string;
+  value: FontFamily;
+}> = [
+  { label: 'Montserrat Black', value: FontFamily.MONTSERRAT_BLACK },
+  { label: 'Montserrat Bold', value: FontFamily.MONTSERRAT_BOLD },
+  { label: 'Montserrat Regular', value: FontFamily.MONTSERRAT_REGULAR },
+];
+
 const APPLY_FIELD_CONFIGS: ManualApplyFieldConfig[] = [
   { key: 'description', label: 'Description' },
   { key: 'primaryColor', label: 'Primary color' },
@@ -61,13 +78,42 @@ const APPLY_FIELD_CONFIGS: ManualApplyFieldConfig[] = [
   { key: 'voiceStyle', label: 'Voice style' },
 ];
 
+/** Prisma wire is UPPERCASE; app FontFamily is lowercase-hyphen. */
+function normalizeFontFamily(value: string | undefined | null): string {
+  if (!value) {
+    return '';
+  }
+
+  const normalized = value.trim().toLowerCase().replaceAll('_', '-');
+  const match = FONT_FAMILY_OPTIONS.find(
+    (option) => option.value === normalized,
+  );
+  return match?.value ?? normalized;
+}
+
+/** Native `<input type="color">` requires `#rrggbb`. */
+function toColorPickerValue(value: string): string {
+  const trimmed = value.trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(trimmed)) {
+    return trimmed.toLowerCase();
+  }
+  if (/^#[0-9a-fA-F]{3}$/.test(trimmed)) {
+    const [, r, g, b] = trimmed;
+    return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
+  }
+  if (/^[0-9a-fA-F]{6}$/.test(trimmed)) {
+    return `#${trimmed.toLowerCase()}`;
+  }
+  return '#000000';
+}
+
 function toFormState(
   brand: BrandDetailManualKitCardProps['brand'],
 ): ManualKitFormState {
   return {
     backgroundColor: brand.backgroundColor ?? '',
     description: brand.description ?? '',
-    fontFamily: brand.fontFamily ?? '',
+    fontFamily: normalizeFontFamily(brand.fontFamily),
     guidanceDocumentName: '',
     guidanceText: brand.text ?? '',
     primaryColor: brand.primaryColor ?? '',
@@ -75,6 +121,43 @@ function toFormState(
     voiceStyle: brand.agentConfig?.voice?.style ?? '',
     voiceTone: brand.agentConfig?.voice?.tone ?? '',
   };
+}
+
+type ColorFieldProps = {
+  ariaLabel: string;
+  name: 'backgroundColor' | 'primaryColor' | 'secondaryColor';
+  placeholder: string;
+  value: string;
+  onHexChange: (name: ColorFieldProps['name'], value: string) => void;
+};
+
+function ColorField({
+  ariaLabel,
+  name,
+  placeholder,
+  value,
+  onHexChange,
+}: ColorFieldProps) {
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <ColorInput
+        aria-label={`${ariaLabel} picker`}
+        className="size-10 shrink-0 rounded-md border-white/[0.08] p-1"
+        value={toColorPickerValue(value)}
+        onChange={(event) =>
+          onHexChange(name, event.target.value.toUpperCase())
+        }
+      />
+      <Input
+        aria-label={ariaLabel}
+        className="min-w-0 flex-1 font-mono uppercase"
+        name={name}
+        placeholder={placeholder}
+        value={value}
+        onChange={(event) => onHexChange(name, event.target.value)}
+      />
+    </div>
+  );
 }
 
 function hasText(value: string): boolean {
@@ -226,6 +309,20 @@ export default function BrandDetailManualKitCard({
     },
     [],
   );
+
+  const handleColorChange = useCallback(
+    (name: ColorFieldProps['name'], value: string): void => {
+      setForm((current) => ({ ...current, [name]: value }));
+    },
+    [],
+  );
+
+  const handleFontFamilyChange = useCallback((value: string): void => {
+    setForm((current) => ({
+      ...current,
+      fontFamily: normalizeFontFamily(value),
+    }));
+  }, []);
 
   const handleGuidanceFileChange = useCallback(
     async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
@@ -380,17 +477,13 @@ export default function BrandDetailManualKitCard({
   ]);
 
   return (
-    <Card className="p-6" data-testid="brand-manual-kit-card">
-      <div className="space-y-5">
-        <div>
-          <h2 className="text-lg font-semibold">Manual Brand Kit</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Draft brand kit fields from uploaded assets, typed values, and
-            pasted guidance.
-          </p>
-        </div>
-
-        <div className="space-y-3">
+    <Card
+      data-testid="brand-manual-kit-card"
+      label="Manual Brand Kit"
+      description="Draft fields from uploaded assets, typed values, and pasted guidance."
+    >
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           <Textarea
             aria-label="Manual brand description"
             className="min-h-[88px]"
@@ -401,34 +494,45 @@ export default function BrandDetailManualKitCard({
           />
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Input
-              aria-label="Manual primary color"
+            <ColorField
+              ariaLabel="Manual primary color"
               name="primaryColor"
-              placeholder="Primary color"
+              placeholder="#000000"
               value={form.primaryColor}
-              onChange={handleFieldChange}
+              onHexChange={handleColorChange}
             />
-            <Input
-              aria-label="Manual secondary color"
+            <ColorField
+              ariaLabel="Manual secondary color"
               name="secondaryColor"
-              placeholder="Secondary color"
+              placeholder="#FFFFFF"
               value={form.secondaryColor}
-              onChange={handleFieldChange}
+              onHexChange={handleColorChange}
             />
-            <Input
-              aria-label="Manual background color"
+            <ColorField
+              ariaLabel="Manual background color"
               name="backgroundColor"
-              placeholder="Background color"
+              placeholder="#000000"
               value={form.backgroundColor}
-              onChange={handleFieldChange}
+              onHexChange={handleColorChange}
             />
-            <Input
-              aria-label="Manual font family"
-              name="fontFamily"
-              placeholder="Font"
-              value={form.fontFamily}
-              onChange={handleFieldChange}
-            />
+            <Select
+              value={form.fontFamily || undefined}
+              onValueChange={handleFontFamilyChange}
+            >
+              <SelectTrigger
+                aria-label="Manual font family"
+                className="w-full"
+              >
+                <SelectValue placeholder="Font" />
+              </SelectTrigger>
+              <SelectContent>
+                {FONT_FAMILY_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Input
               aria-label="Manual voice tone"
               name="voiceTone"
@@ -471,29 +575,32 @@ export default function BrandDetailManualKitCard({
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <Button
-            className="w-full gap-2"
-            icon={<Upload />}
-            label={brand.logo || brand.logoUrl ? 'Replace Logo' : 'Upload Logo'}
+            className="w-full gap-1.5 text-xs [&_svg]:size-3.5"
+            icon={<Upload className="size-3.5" />}
+            label={brand.logo || brand.logoUrl ? 'Replace logo' : 'Upload logo'}
+            size={ButtonSize.SM}
             variant={ButtonVariant.SECONDARY}
             wrapperClassName="w-full"
             onClick={onUploadLogo}
           />
           <Button
-            className="w-full gap-2"
-            icon={<Upload />}
+            className="w-full gap-1.5 text-xs [&_svg]:size-3.5"
+            icon={<Upload className="size-3.5" />}
             label={
               brand.banner || brand.bannerUrl
-                ? 'Replace Banner'
-                : 'Upload Banner'
+                ? 'Replace banner'
+                : 'Upload banner'
             }
+            size={ButtonSize.SM}
             variant={ButtonVariant.SECONDARY}
             wrapperClassName="w-full"
             onClick={onUploadBanner}
           />
           <Button
-            className="w-full gap-2"
-            icon={<Upload />}
-            label="Upload Reference"
+            className="w-full gap-1.5 text-xs [&_svg]:size-3.5"
+            icon={<Upload className="size-3.5" />}
+            label="Upload reference"
+            size={ButtonSize.SM}
             variant={ButtonVariant.SECONDARY}
             wrapperClassName="w-full"
             onClick={onUploadReference}

@@ -104,6 +104,38 @@ export function getCurrentBrandScopedPath(pathname: string): string {
   return APP_ROUTES.WORKSPACE.OVERVIEW;
 }
 
+/**
+ * Brand settings that only exist under `/:org/:brand/settings/*` — there is no
+ * org-level `/:org/~/settings/...` page. Clearing brand selection must not
+ * rewrite those to a 404.
+ */
+const BRAND_ONLY_SETTINGS_PREFIXES = [
+  APP_ROUTES.SETTINGS.PUBLISHING,
+  '/settings/voice',
+  '/settings/interview',
+  '/settings/harness',
+  '/settings/agent-defaults',
+] as const;
+
+/**
+ * Map a brand-scoped app path to a valid org-scoped (`~`) destination.
+ * Shared surfaces (agent, studio, workspace) keep the same path; brand-only
+ * settings fall back to the org brands hub.
+ */
+export function resolveOrganizationScopePath(brandScopedPath: string): string {
+  const path = brandScopedPath.startsWith('/')
+    ? brandScopedPath
+    : `/${brandScopedPath}`;
+
+  for (const prefix of BRAND_ONLY_SETTINGS_PREFIXES) {
+    if (path === prefix || path.startsWith(`${prefix}/`)) {
+      return APP_ROUTES.SETTINGS.BRANDS;
+    }
+  }
+
+  return path;
+}
+
 export function getBrandSwitchHref({
   nextBrandSlug,
   nextOrgSlug,

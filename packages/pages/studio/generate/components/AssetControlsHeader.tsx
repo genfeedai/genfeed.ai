@@ -27,6 +27,14 @@ interface AssetControlsHeaderProps {
   categoryType?: IngredientCategory;
 }
 
+/**
+ * Studio asset toolbar: filters + view mode + refresh.
+ *
+ * Do not wrap ViewToggle / ButtonRefresh in another bordered pill — ViewToggle
+ * already owns `gen-shell-segmented` chrome, and refresh is a single ghost icon
+ * control (same as ListPageLayout / ads research). Extra outer shells produce
+ * the double-border look.
+ */
 export function AssetControlsHeader({
   filters,
   onFiltersChange,
@@ -42,8 +50,6 @@ export function AssetControlsHeader({
     ? (CATEGORY_HEADER_LABELS[categoryType] ?? 'Generation')
     : 'Generation';
   const showViewToggle = supportsMasonry;
-  const controlGroupClassName =
-    'flex items-center rounded-xl bg-secondary p-1 shadow-border';
 
   return (
     <div className="w-full border-b border-white/[0.08] px-6 py-2">
@@ -54,10 +60,7 @@ export function AssetControlsHeader({
           data-testid="asset-controls-toolbar"
           className="flex flex-wrap items-center justify-end gap-2"
         >
-          <div
-            data-testid="asset-controls-filters"
-            className={controlGroupClassName}
-          >
+          <div data-testid="asset-controls-filters">
             <FiltersBar
               filters={filters}
               className="flex-shrink-0 !w-auto justify-end gap-1.5"
@@ -93,20 +96,17 @@ export function AssetControlsHeader({
             />
           </div>
 
-          {showViewToggle && (
-            <div
-              data-testid="asset-controls-view-toggle"
-              className={controlGroupClassName}
-            >
+          {showViewToggle ? (
+            <div data-testid="asset-controls-view-toggle">
               <ViewToggle
                 options={[
                   {
-                    icon: <LayoutGrid className="size-4" />,
+                    icon: <LayoutGrid className="size-3.5" />,
                     label: 'Masonry view',
                     type: ViewType.MASONRY,
                   },
                   {
-                    icon: <Table className="size-4" />,
+                    icon: <Table className="size-3.5" />,
                     label: 'Table view',
                     type: ViewType.TABLE,
                   },
@@ -115,13 +115,14 @@ export function AssetControlsHeader({
                 onChange={onViewModeChange}
               />
             </div>
-          )}
+          ) : null}
 
-          <div
-            data-testid="asset-controls-refresh"
-            className={controlGroupClassName}
-          >
-            <ButtonRefresh onClick={onRefresh} isRefreshing={isRefreshing} />
+          <div data-testid="asset-controls-refresh">
+            <ButtonRefresh
+              onClick={onRefresh}
+              isRefreshing={isRefreshing}
+              className="gen-shell-control size-8 rounded-md [&_svg]:size-3.5"
+            />
           </div>
         </div>
       </div>

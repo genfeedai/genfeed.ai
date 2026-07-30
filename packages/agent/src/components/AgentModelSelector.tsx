@@ -108,18 +108,22 @@ export function AgentModelSelector({
           withWrapper={false}
           textTransform="none"
           className={cn(
-            'inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 text-xs text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground',
-            isCompact ? 'h-8' : 'h-9',
+            'inline-flex min-w-0 max-w-full items-center gap-1 rounded-lg text-xs text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground',
+            isCompact
+              ? 'h-8 max-w-[7.5rem] px-1.5'
+              : 'h-9 shrink-0 gap-1.5 px-2',
           )}
         >
           {current?.isReasoning && (
-            <Sparkles className="size-3 text-purple-400" />
+            <Sparkles className="size-3 shrink-0 text-purple-400" />
           )}
-          <span>{current?.label ?? 'Select model'}</span>
+          <span className="min-w-0 truncate">
+            {current?.label ?? 'Select model'}
+          </span>
           {currentCost ? (
             <span
               className={cn(
-                'text-[10px] font-bold tabular-nums',
+                'shrink-0 text-[10px] font-bold tabular-nums',
                 currentCost.colorClass.split(' ')[0],
               )}
               title={`Cost tier ${currentCost.symbol}`}
@@ -128,7 +132,10 @@ export function AgentModelSelector({
             </span>
           ) : null}
           <ChevronUp
-            className={cn('size-3 transition-transform', open && 'rotate-180')}
+            className={cn(
+              'size-3 shrink-0 transition-transform',
+              open && 'rotate-180',
+            )}
           />
         </Button>
       </PopoverTrigger>

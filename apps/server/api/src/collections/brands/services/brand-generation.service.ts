@@ -80,12 +80,75 @@ export class BrandGenerationService {
       if (!brand) {
         throw new BadRequestException('Brand not found');
       }
-      const parts = [
-        brand.label && `Brand name: ${brand.label}`,
-        brand.description && `Description: ${brand.description}`,
-        brand.text && `System prompt: ${brand.text}`,
-      ].filter(Boolean);
-      contextText = parts.join('\n');
+
+      // Prefer a live website scrape when we can resolve a URL (client may pass
+      // `url`; otherwise try websiteUrl alias or a website link on the brand).
+      const brandWithLinks = brand as BrandDocument & {
+        links?: Array<{ category?: string; url?: string }>;
+        website?: string;
+        websiteUrl?: string;
+      };
+      const websiteFromLinks = brandWithLinks.links?.find((link) => {
+        const category = (link.category ?? '').toLowerCase();
+        return category === 'website' || category === 'other';
+      })?.url;
+      const websiteUrl = (
+        (typeof brandWithLinks.websiteUrl === 'string' &&
+          brandWithLinks.websiteUrl) ||
+        (typeof brandWithLinks.website === 'string' && brandWithLinks.website) ||
+        websiteFromLinks ||
+        ''
+      ).trim();
+      if (websiteUrl) {
+        const validation = this.brandScraperService.validateUrl(websiteUrl);
+        if (validation.isValid) {
+          try {
+            const scraped =
+              await this.brandScraperService.scrapeWebsite(websiteUrl);
+            const scrapedParts = [
+              scraped.companyName && `Company: ${scraped.companyName}`,
+              scraped.description && `Description: ${scraped.description}`,
+              scraped.tagline && `Tagline: ${scraped.tagline}`,
+              scraped.aboutText && `About: ${scraped.aboutText}`,
+              scraped.valuePropositions?.length &&
+                `Value propositions: ${scraped.valuePropositions.join(', ')}`,
+            ].filter(Boolean);
+            if (scrapedParts.length > 0) {
+              contextText = scrapedParts.join('\n');
+            }
+          } catch (scrapeError: unknown) {
+            this.logger.warn(
+              'Brand website scrape failed; falling back to stored brand fields',
+              {
+                brandId: dto.brandId,
+                error: scrapeError,
+                service: this.constructorName,
+                websiteUrl,
+              },
+            );
+          }
+        }
+      }
+
+      if (!contextText) {
+        const parts = [
+          brand.label && `Brand name: ${brand.label}`,
+          brand.description && `Description: ${brand.description}`,
+          brand.text && `System prompt: ${brand.text}`,
+          websiteUrl && `Website: ${websiteUrl}`,
+        ].filter(Boolean);
+        contextText = parts.join('\n');
+      } else {
+        // Always keep stored identity as grounding even when scrape succeeds.
+        const identityParts = [
+          brand.label && `Brand name: ${brand.label}`,
+          brand.description && `Stored description: ${brand.description}`,
+          brand.text && `System prompt: ${brand.text}`,
+        ].filter(Boolean);
+        if (identityParts.length > 0) {
+          contextText = `${identityParts.join('\n')}\n${contextText}`;
+        }
+      }
     } else {
       throw new BadRequestException('Either url or brandId must be provided');
     }

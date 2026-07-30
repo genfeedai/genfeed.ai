@@ -21,7 +21,6 @@ export interface BrandDetailOverviewProps {
   onUploadLogo: () => void;
   onGenerateLogo: () => void;
   onCopyPublicProfile?: () => void;
-  onEditBrand: () => void;
 }
 
 export interface BrandDetailSystemPromptProps {
@@ -59,6 +58,9 @@ export interface BrandDetailSidebarProps {
   socialConnections: BrandDetailSocialConnection[];
   connectedPlatformsCount: number;
   deletingRefId: string | null;
+  isUpdatingPublicProfile?: boolean;
+  /** When set, sidebar shows a Social summary that links to full settings page. */
+  manageSocialHref?: string;
   onTogglePublicProfile: (isPublic: boolean) => void;
   onRefreshBrand: () => Promise<void>;
   onOpenLinkModal: (link?: ILink) => void;
@@ -70,7 +72,14 @@ export interface BrandDetailSidebarProps {
 
 export interface BrandDetailAccountSettingsCardProps {
   isPublic: boolean;
+  isUpdating?: boolean;
   onToggle: (isPublic: boolean) => void;
+}
+
+export interface BrandDetailSocialSummaryCardProps {
+  connectedPlatformsCount: number;
+  linksCount: number;
+  manageHref: string;
 }
 
 export interface BrandDetailSocialMediaCardProps {
@@ -140,6 +149,7 @@ export interface UseBrandDetailReturn {
   handleGenerateBanner: () => void;
   handleGenerateLogo: () => void;
   handleUpdateAccount: (field: string, value: boolean | string) => void;
+  isUpdating: boolean;
   handleOpenUploadModal: (category: AssetCategory) => void;
   handleRequestDeleteReference: (assetId: string) => void;
   handleCopy: (text?: string) => void;

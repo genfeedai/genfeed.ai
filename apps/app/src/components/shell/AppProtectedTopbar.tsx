@@ -13,6 +13,7 @@ import {
   getBrandOrganizationSlug,
 } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IBrand } from '@genfeedai/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TopbarProps } from '@props/navigation/topbar.props';
@@ -32,6 +33,7 @@ import {
   appendSearchParamsToHref,
   getCurrentBrandScopedPath,
   pickOperatorTaskContextSearchParams,
+  resolveOrganizationScopePath,
 } from '@/lib/navigation/operator-shell';
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
 
@@ -186,11 +188,13 @@ function AppProtectedTopbarContent({
     setBrandId('');
 
     if (effectiveOrgSlug) {
-      // Drop brand scope but stay on the same app surface.
+      // Drop brand scope. Shared surfaces keep the same path under `~`;
+      // brand-only settings (publishing, voice, …) fall back to org brands
+      // instead of a 404 on /:org/~/settings/publishing.
       push(
         createOrganizationAppRoute(
           effectiveOrgSlug,
-          getCurrentBrandScopedPath(pathname),
+          resolveOrganizationScopePath(getCurrentBrandScopedPath(pathname)),
         ),
       );
     }
@@ -236,34 +240,35 @@ function AppProtectedTopbarContent({
 
   return (
     <header className="ship-ui h-full w-full bg-transparent">
-      {/* Brand trigger has px-2 internally; collapsed sidebar leaves room for the fixed logo toggle. */}
+      {/* Match sidebar header: h-12 content band, px-3 horizontal, gap-1.5 between controls. */}
       <div
         data-testid="app-protected-topbar-inner"
-        className={`grid h-full w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 pr-5 sm:pr-6 ${
-          isSidebarCollapsed ? 'pl-14' : 'pl-5 sm:pl-6'
-        }`}
+        className={cn(
+          'grid h-full w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-3',
+          isSidebarCollapsed && 'pl-14',
+        )}
       >
-        <div className="flex min-w-0 items-center gap-2 justify-self-start">
+        <div className="flex min-w-0 items-center gap-1.5 justify-self-start">
           {onMenuToggle ? (
             <Button
               type="button"
               variant={ButtonVariant.GHOST}
               size={ButtonSize.ICON}
-              className="size-7 md:hidden"
+              className="size-8 md:hidden"
               data-active={isMenuOpen ? 'true' : 'false'}
               ariaLabel={
                 isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'
               }
               onClick={onMenuToggle}
             >
-              <ToggleIcon className="size-5" />
+              <ToggleIcon className="size-4" />
             </Button>
           ) : null}
 
           {!isAdminChrome &&
           brands.length > 0 &&
           !isOrganizationSettingsRoute ? (
-            <div className="w-36 min-w-0 sm:w-44 md:w-48">
+            <div className="w-40 min-w-0 sm:w-44 md:w-48">
               <MenuBrandSwitcher
                 variant="labeled"
                 brands={brands}
@@ -291,7 +296,7 @@ function AppProtectedTopbarContent({
           />
         </div>
 
-        <div className="flex min-w-0 items-center justify-end gap-2">
+        <div className="flex min-w-0 items-center justify-end gap-1.5">
           {taskId ? (
             <div className="hidden items-center gap-2 rounded border border-border bg-background-secondary px-2 py-1 text-[11px] lg:flex">
               <span className="font-semibold uppercase tracking-[0.14em] text-muted-foreground">
@@ -343,7 +348,7 @@ function AppProtectedTopbarContent({
               type="button"
               variant={ButtonVariant.GHOST}
               size={ButtonSize.ICON}
-              className="hidden size-7 xl:inline-flex"
+              className="hidden size-8 xl:inline-flex"
               data-active={workspaceInspector.isOpen ? 'true' : 'false'}
               data-testid="topbar-inspector-toggle"
               ariaLabel={
@@ -354,9 +359,9 @@ function AppProtectedTopbarContent({
               onClick={workspaceInspector.toggle}
             >
               {workspaceInspector.isOpen ? (
-                <PanelRightClose className="size-5" />
+                <PanelRightClose className="size-4" />
               ) : (
-                <PanelRightOpen className="size-5" />
+                <PanelRightOpen className="size-4" />
               )}
             </Button>
           ) : null}

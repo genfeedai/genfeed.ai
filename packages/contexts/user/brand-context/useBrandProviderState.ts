@@ -24,7 +24,10 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { loadClientProtectedBootstrap } from '../../providers/protected-bootstrap/client-protected-bootstrap';
+import {
+  clearClientProtectedBootstrapCache,
+  loadClientProtectedBootstrap,
+} from '../../providers/protected-bootstrap/client-protected-bootstrap';
 import { useContextAuthedService } from '../internal/context-authed-service';
 import {
   BRAND_CONTEXT_CACHE_TTL_MS,
@@ -201,6 +204,9 @@ export function useBrandProviderState({
   });
 
   const refreshBrands = useCallback(async () => {
+    // Brand create/update/delete must not re-serve the 60s client bootstrap
+    // snapshot — that is what made the switcher need a hard page refresh.
+    clearClientProtectedBootstrapCache();
     await refetchBrands();
   }, [refetchBrands]);
 

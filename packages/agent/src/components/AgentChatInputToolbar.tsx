@@ -80,11 +80,12 @@ export function AgentChatInputToolbar({
   return (
     <div
       className={cn(
-        'mt-1 flex items-center justify-between gap-1',
-        isCompact ? 'min-h-9 pt-1' : 'min-h-10 pt-1.5',
+        // min-w-0 + wrap: narrow inspector rails must not stack labels on icons.
+        'mt-1 flex min-w-0 items-center justify-between gap-x-1 gap-y-1',
+        isCompact ? 'min-h-9 flex-wrap pt-1' : 'min-h-10 pt-1.5',
       )}
     >
-      <div className="flex min-w-0 items-center gap-0.5">
+      <div className="flex min-w-0 shrink items-center gap-0.5">
         {onAddFiles ? (
           <>
             <Input
@@ -127,17 +128,17 @@ export function AgentChatInputToolbar({
             <Button
               ariaLabel="Open composer actions"
               className={cn(
-                'shrink-0 gap-1.5',
-                isCompact ? 'size-8 px-0' : 'h-9 px-2.5',
+                'shrink-0',
+                // Compact / inspector: icon only — never "Actions" label in a rail.
+                isCompact ? controlSize : 'h-9 gap-1.5 px-2.5',
               )}
               icon={<Zap className="size-4" />}
               isDisabled={disabled || !hasEditor}
+              tooltip={isCompact ? 'Actions' : undefined}
               variant={ButtonVariant.GHOST}
               withWrapper={false}
             >
-              {isCompact ? null : (
-                <span className="hidden text-xs sm:inline">Actions</span>
-              )}
+              {isCompact ? null : <span className="text-xs">Actions</span>}
             </Button>
           </PopoverTrigger>
           <PopoverContent
@@ -171,7 +172,7 @@ export function AgentChatInputToolbar({
         </Popover>
       </div>
 
-      <div className="flex shrink-0 items-center gap-1.5">
+      <div className="flex min-w-0 shrink items-center justify-end gap-1">
         {showModelSelector && selectedModel && onModelChange ? (
           <AgentModelSelector
             selectedModel={selectedModel}

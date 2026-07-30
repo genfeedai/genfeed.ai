@@ -1,6 +1,6 @@
-import { FileText, Globe, Paintbrush, Sparkles } from 'lucide-react';
+'use client';
 
-('use client');
+import { FileText, Globe, Paintbrush, Sparkles } from 'lucide-react';
 
 const features = [
   {

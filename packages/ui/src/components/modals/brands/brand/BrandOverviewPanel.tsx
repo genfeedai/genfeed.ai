@@ -59,7 +59,7 @@ export default function BrandOverviewPanel({
   socialConnections,
   onCopy,
   onDeleteReference,
-  onEditBrand,
+  onEditBrand: _onEditBrand,
   onGenerateBanner,
   onGenerateLogo,
   onLinkCancel,
@@ -96,9 +96,9 @@ export default function BrandOverviewPanel({
               isGeneratingLogo={false}
               onUploadLogo={onUploadLogo}
               onGenerateLogo={onGenerateLogo}
-              onEditBrand={onEditBrand}
               onCopyPublicProfile={
-                activeBrand.scope === AssetScope.PUBLIC
+                typeof activeBrand.scope === 'string' &&
+                activeBrand.scope.toLowerCase() === AssetScope.PUBLIC
                   ? () =>
                       onCopy(
                         `${EnvironmentService.apps.website}/u/${activeBrand.slug}`,

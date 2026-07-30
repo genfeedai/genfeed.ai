@@ -193,9 +193,14 @@ export function GenerateContentArea({
 
           {isEmptyStudioState ? (
             <div className="flex min-h-full flex-col items-center justify-center py-8">
-              <GenerateEmptyState />
+              {/* Match agent empty: title → cards → prompt (composer owns cards). */}
+              <div className="mb-5 flex w-full max-w-2xl flex-col items-center md:max-w-3xl">
+                <GenerateEmptyState />
+              </div>
               {emptyComposer ? (
-                <div className="w-full max-w-4xl">{emptyComposer}</div>
+                <div className="w-full max-w-2xl md:max-w-3xl">
+                  {emptyComposer}
+                </div>
               ) : null}
             </div>
           ) : (

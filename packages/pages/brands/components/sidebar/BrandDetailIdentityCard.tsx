@@ -252,43 +252,37 @@ export default function BrandDetailIdentityCard({
   }, [handleSaveIdentity]);
 
   return (
-    <Card className="p-6" data-testid="brand-identity-card">
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-lg font-semibold">Brand Identity</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Set brand-specific avatar and voice defaults. If left blank,
-            organization defaults are used automatically.
-          </p>
-        </div>
+    <Card
+      data-testid="brand-identity-card"
+      label="Brand Identity"
+      description="Avatar and voice defaults. Empty values inherit organization defaults."
+    >
+      <div className="flex flex-col gap-3">
+        <BrandIdentityAvatarField
+          avatars={avatars}
+          selectedAvatarId={selectedAvatarId}
+          selectedAvatar={selectedAvatar}
+          isLoadingAvatars={isLoadingAvatars}
+          onAvatarChange={setSelectedAvatarId}
+        />
 
-        <div className="space-y-4">
-          <BrandIdentityAvatarField
-            avatars={avatars}
-            selectedAvatarId={selectedAvatarId}
-            selectedAvatar={selectedAvatar}
-            isLoadingAvatars={isLoadingAvatars}
-            onAvatarChange={setSelectedAvatarId}
-          />
+        <BrandIdentityVoiceField
+          catalogOptions={catalogOptions}
+          selectedVoiceId={selectedVoiceId}
+          isLoadingCatalog={isLoadingCatalog}
+          previewVoice={previewVoice}
+          onVoiceChange={setSelectedVoiceId}
+        />
 
-          <BrandIdentityVoiceField
-            catalogOptions={catalogOptions}
-            selectedVoiceId={selectedVoiceId}
-            isLoadingCatalog={isLoadingCatalog}
-            previewVoice={previewVoice}
-            onVoiceChange={setSelectedVoiceId}
-          />
-
-          <BrandIdentityActions
-            isSavingIdentity={isSavingIdentity}
-            isUsingOrgFallback={isUsingOrgFallback}
-            currentAvatarSummary={currentAvatarSummary}
-            currentVoiceSummary={currentVoiceSummary}
-            onSave={handleSave}
-            onBrowseAvatars={() => router.push(APP_ROUTES.LIBRARY.AVATARS)}
-            onBrowseVoices={() => router.push(APP_ROUTES.LIBRARY.VOICES)}
-          />
-        </div>
+        <BrandIdentityActions
+          isSavingIdentity={isSavingIdentity}
+          isUsingOrgFallback={isUsingOrgFallback}
+          currentAvatarSummary={currentAvatarSummary}
+          currentVoiceSummary={currentVoiceSummary}
+          onSave={handleSave}
+          onBrowseAvatars={() => router.push(APP_ROUTES.LIBRARY.AVATARS)}
+          onBrowseVoices={() => router.push(APP_ROUTES.LIBRARY.VOICES)}
+        />
       </div>
     </Card>
   );

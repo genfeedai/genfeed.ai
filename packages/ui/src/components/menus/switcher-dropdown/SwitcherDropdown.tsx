@@ -214,8 +214,11 @@ function SwitcherItem({
     <div
       className={cn(
         'group mx-1 flex min-h-9 w-[calc(100%-0.5rem)] items-center rounded-sm transition-colors duration-150',
-        'hover:bg-foreground/[0.06] focus-within:bg-foreground/[0.06] has-[[data-selected=true]]:bg-foreground/[0.06]',
-        item.isActive && 'bg-foreground/[0.06]',
+        // Active = persistent selected wash + check. Inactive keyboard/hover
+        // uses a lighter wash so cmdk's auto-highlight never outranks active.
+        item.isActive
+          ? 'bg-foreground/[0.08]'
+          : 'hover:bg-foreground/[0.05] focus-within:bg-foreground/[0.05] has-[[data-selected=true]]:bg-foreground/[0.05]',
       )}
     >
       {/* cmdk Item = the selectable row. The active row is `disabled` so cmdk
@@ -225,17 +228,23 @@ function SwitcherItem({
         value={item.id}
         disabled={item.isActive}
         onSelect={() => onSelect(item.id)}
+        aria-current={item.isActive ? 'true' : undefined}
         className={cn(
           'flex min-w-0 flex-1 items-center gap-2.5 rounded-sm bg-transparent py-2 pl-2 text-sm transition-colors duration-150 data-[selected=true]:bg-transparent',
           item.trailingAction ? 'pr-1' : 'pr-3',
           item.isActive
-            ? 'cursor-default text-foreground data-[disabled=true]:opacity-100'
-            : 'cursor-pointer text-foreground/70 data-[selected=true]:text-foreground group-hover:text-foreground',
+            ? 'cursor-default font-medium text-foreground data-[disabled=true]:opacity-100'
+            : 'cursor-pointer font-normal text-foreground/55 data-[selected=true]:text-foreground group-hover:text-foreground',
         )}
       >
         {/* Avatar */}
         {item.imageUrl ? (
-          <div className="flex size-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-md bg-background">
+          <div
+            className={cn(
+              'flex size-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-md bg-background',
+              item.isActive && 'ring-1 ring-primary/40',
+            )}
+          >
             <Image
               src={item.imageUrl}
               alt={item.label}
@@ -251,7 +260,7 @@ function SwitcherItem({
               'flex size-5 flex-shrink-0 items-center justify-center rounded-md text-[10px] font-bold',
               item.isActive
                 ? 'bg-primary/30 text-primary'
-                : 'bg-foreground/10 text-foreground/60',
+                : 'bg-foreground/10 text-foreground/50',
             )}
           >
             {item.label.charAt(0).toUpperCase()}
@@ -260,9 +269,16 @@ function SwitcherItem({
 
         <span className="flex-1 truncate text-left">{item.label}</span>
 
-        {item.isActive && (
-          <Check className="size-3.5 text-primary flex-shrink-0" />
-        )}
+        {/* Reserve check width so inactive rows don't jump when active has ✓ */}
+        <span className="flex size-3.5 flex-shrink-0 items-center justify-center">
+          {item.isActive ? (
+            <Check
+              className="size-3.5 text-primary"
+              aria-hidden
+              data-testid="switcher-item-active-check"
+            />
+          ) : null}
+        </span>
       </CommandItem>
 
       {item.trailingAction && TrailingIcon ? (

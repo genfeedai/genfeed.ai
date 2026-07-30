@@ -6,18 +6,19 @@ import { Switch } from '@ui/primitives/switch';
 
 export default function BrandDetailAccountSettingsCard({
   isPublic,
+  isUpdating = false,
   onToggle,
 }: BrandDetailAccountSettingsCardProps) {
   return (
     <Card>
-      <div className="space-y-4">
-        <Switch
-          label="Public Profile"
-          description="Make your profile visible to everyone"
-          isChecked={isPublic}
-          onChange={(event) => onToggle(event.target.checked)}
-        />
-      </div>
+      <Switch
+        aria-label="Public Profile"
+        label="Public Profile"
+        description="Make your profile visible to everyone"
+        isChecked={isPublic}
+        isDisabled={isUpdating}
+        onCheckedChange={onToggle}
+      />
     </Card>
   );
 }

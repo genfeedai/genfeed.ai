@@ -16,7 +16,7 @@ describe('BrandDetailAccountSettingsCard', () => {
     render(
       <BrandDetailAccountSettingsCard isPublic={false} onToggle={onToggle} />,
     );
-    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('switch'));
     expect(onToggle).toHaveBeenCalledWith(true);
   });
 

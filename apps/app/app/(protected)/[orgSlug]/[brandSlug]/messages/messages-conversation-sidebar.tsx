@@ -32,6 +32,7 @@ import {
   RefreshCw,
   SlidersHorizontal,
 } from 'lucide-react';
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 export type MessagesInboxView =
@@ -215,6 +216,7 @@ export type MessagesBrandFilterOption = {
 };
 
 interface MessagesConversationSidebarProps {
+  accountsHref: string;
   advancedFilters: ReactNode;
   brandFilter: string;
   brandOptions: readonly MessagesBrandFilterOption[];
@@ -238,6 +240,7 @@ interface MessagesConversationSidebarProps {
 }
 
 export function MessagesConversationSidebar({
+  accountsHref,
   advancedFilters,
   brandFilter,
   brandOptions,
@@ -390,14 +393,44 @@ export function MessagesConversationSidebar({
             <LazyLoadingFallback variant="minimal" />
           </div>
         ) : conversations.length === 0 ? (
-          <div className="flex h-64 flex-col items-center justify-center px-6 text-center">
-            <MessageSquare className="mb-3 size-8 text-foreground/20" />
-            <p className="text-sm text-foreground/50">No messages found</p>
-            <p className="mt-1 text-xs text-foreground/30">
-              {brandFilter === 'all'
-                ? 'New social conversations will appear here after sync. Filter by brand anytime.'
-                : 'No conversations for this brand yet. Try another brand or sync accounts.'}
-            </p>
+          <div
+            className="flex flex-col items-center justify-center gap-3 px-5 py-10 text-center"
+            data-testid="messages-sidebar-empty"
+          >
+            <MessageSquare
+              aria-hidden="true"
+              className="size-8 text-foreground/20"
+            />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground/60">
+                No conversations yet
+              </p>
+              <p className="text-xs leading-5 text-foreground/38">
+                {brandFilter === 'all'
+                  ? 'Connect a social account, then sync to pull comments and DMs into this inbox.'
+                  : 'No conversations for this brand yet. Connect accounts, sync, or switch brands.'}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+              <Button
+                asChild
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
+              >
+                <Link href={accountsHref}>Connect accounts</Link>
+              </Button>
+              <Button
+                isDisabled={Boolean(busyAction) && busyAction !== 'sync'}
+                isLoading={busyAction === 'sync'}
+                onClick={onSync}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              >
+                <RefreshCw aria-hidden="true" className="size-3.5" />
+                Sync
+              </Button>
+            </div>
           </div>
         ) : singleSectionLabel ? (
           <ConversationSidebarSection

@@ -3,11 +3,7 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { hasOrganizationBilling } from '@genfeedai/config/license';
 import { APP_ROUTES } from '@genfeedai/constants';
-import {
-  ButtonVariant,
-  IngredientCategory,
-  ModelProvider,
-} from '@genfeedai/enums';
+import { IngredientCategory, ModelProvider } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscription/use-subscription';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
@@ -27,14 +23,14 @@ import type {
 } from '@genfeedai/interfaces';
 import type { AvatarVoiceOption } from '@genfeedai/interfaces/studio/studio-generate.interface';
 import type { PromptBarSurfaceConfig } from '@genfeedai/props/prompt-bars/prompt-bar-surface.props';
+import type { PromptBarSuggestionItem } from '@props/prompt-bars/prompt-bar-suggestion-item.props';
 import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
-import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
-import { Button } from '@ui/primitives/button';
 import PromptBar from '@ui/prompt-bars/base/PromptBar';
+import PromptBarNotice from '@ui/prompt-bars/components/notice/PromptBarNotice';
+import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
 import PromptBarSurfaceRenderer from '@ui/prompt-bars/surface/PromptBarSurfaceRenderer';
 import { STUDIO_PROMPT_BAR_SURFACE } from '@ui/prompt-bars/surface/prompt-bar-surface.config';
-import { TriangleAlert } from 'lucide-react';
-import Link from 'next/link';
+import { useMemo } from 'react';
 
 interface StudioComposerProps {
   promptText: string;
@@ -139,7 +135,15 @@ export function StudioComposer({
 }: StudioComposerProps) {
   const { creditsBreakdown } = useSubscription();
   const { orgHref } = useOrgUrl();
-  const suggestions = CATEGORY_SUGGESTIONS[categoryType] ?? [];
+  const suggestionItems = useMemo<PromptBarSuggestionItem[]>(
+    () =>
+      (CATEGORY_SUGGESTIONS[categoryType] ?? []).map((prompt, index) => ({
+        id: `studio-${categoryType}-${index}`,
+        label: prompt,
+        prompt,
+      })),
+    [categoryType],
+  );
   const surface = isEmptyState
     ? EMPTY_STUDIO_PROMPT_BAR_SURFACE
     : STUDIO_PROMPT_BAR_SURFACE;
@@ -193,82 +197,63 @@ export function StudioComposer({
   const avatarsHref = orgHref(APP_ROUTES.LIBRARY.AVATARS);
   const voicesHref = orgHref(APP_ROUTES.LIBRARY.VOICES);
 
+  const generationGateBanner =
+    generationGate === 'model' ? (
+      <PromptBarNotice
+        ctaHref={modelsHref}
+        ctaLabel="Configure models"
+        description="Enable a model for this Studio format before generating."
+        title="No compatible model configured"
+      />
+    ) : generationGate === 'avatar' ? (
+      <PromptBarNotice
+        ctaHref={(avatars?.length ?? 0) === 0 ? avatarsHref : voicesHref}
+        ctaLabel={
+          (avatars?.length ?? 0) === 0 && (voices?.length ?? 0) === 0
+            ? 'Set up avatars'
+            : (avatars?.length ?? 0) === 0
+              ? 'Add avatars'
+              : 'Add voices'
+        }
+        description={
+          (avatars?.length ?? 0) === 0 && (voices?.length ?? 0) === 0
+            ? 'Add at least one avatar and one voice before generating.'
+            : (avatars?.length ?? 0) === 0
+              ? 'Add an avatar before generating.'
+              : 'Add a voice before generating.'
+        }
+        title="Avatar setup incomplete"
+      />
+    ) : generationGate === 'credits' ? (
+      <PromptBarNotice
+        ctaHref={creditsHref}
+        ctaLabel={isBillingEnabled ? 'Top up credits' : 'Review credits'}
+        description="Add provider capacity before starting another generation."
+        title="No credits available"
+      />
+    ) : null;
+
   return (
     <PromptBarSurfaceRenderer
       surface={surface}
-      topContent={
-        <>
-          {!isGenerationBlocked && <LowCreditsBanner />}
-          {generationGate === 'model' && (
-            <Alert className="mx-4 mt-3" variant="warning">
-              <TriangleAlert className="size-4" />
-              <AlertTitle>No compatible model configured</AlertTitle>
-              <AlertDescription>
-                Enable a model for this Studio format before generating.{' '}
-                <Link
-                  className="font-medium text-foreground underline underline-offset-4"
-                  href={modelsHref}
-                >
-                  Configure models
-                </Link>
-              </AlertDescription>
-            </Alert>
-          )}
-          {generationGate === 'avatar' && (
-            <Alert className="mx-4 mt-3" variant="warning">
-              <TriangleAlert className="size-4" />
-              <AlertTitle>Avatar setup incomplete</AlertTitle>
-              <AlertDescription>
-                Add the missing resources before generating:{' '}
-                {(avatars?.length ?? 0) === 0 && (
-                  <Link
-                    className="font-medium text-foreground underline underline-offset-4"
-                    href={avatarsHref}
-                  >
-                    avatars
-                  </Link>
-                )}
-                {(avatars?.length ?? 0) === 0 &&
-                  (voices?.length ?? 0) === 0 &&
-                  ' and '}
-                {(voices?.length ?? 0) === 0 && (
-                  <Link
-                    className="font-medium text-foreground underline underline-offset-4"
-                    href={voicesHref}
-                  >
-                    voices
-                  </Link>
-                )}
-                .
-              </AlertDescription>
-            </Alert>
-          )}
-          {generationGate === 'credits' && (
-            <Alert className="mx-4 mt-3" variant="warning">
-              <TriangleAlert className="size-4" />
-              <AlertTitle>No credits available</AlertTitle>
-              <AlertDescription>
-                Add provider capacity before starting another generation.{' '}
-                <Link
-                  className="font-medium text-foreground underline underline-offset-4"
-                  href={creditsHref}
-                >
-                  {isBillingEnabled ? 'Top up credits' : 'Review credits'}
-                </Link>
-              </AlertDescription>
-            </Alert>
-          )}
-        </>
-      }
+      topContent={!isGenerationBlocked ? <LowCreditsBanner /> : null}
     >
-      <div className={cn('flex flex-col', isEmptyState ? 'gap-4' : 'gap-3')}>
-        <div
-          className={cn(
-            isEmptyState &&
-              'rounded-md border border-border bg-card shadow-border',
-          )}
-        >
+      <div className={cn('flex flex-col', isEmptyState ? 'gap-5' : 'gap-3')}>
+        {/* Agent empty-state order: suggestion cards, then the prompt bar. */}
+        {isEmptyState && suggestionItems.length > 0 ? (
+          <PromptBarSuggestions
+            className="w-full"
+            isDisabled={isGenerating}
+            maxSuggestions={3}
+            onSuggestionSelect={(item) => onTextChange(item.prompt)}
+            suggestions={suggestionItems}
+            variant="cards"
+          />
+        ) : null}
+
+        <div className="w-full">
           <PromptBar
+            banner={generationGateBanner}
             features={{ collapsible: false, dragDrop: false }}
             promptText={promptText}
             onTextChange={onTextChange}
@@ -298,24 +283,6 @@ export function StudioComposer({
             blacklists={blacklists}
           />
         </div>
-
-        {isEmptyState && suggestions.length > 0 && (
-          <div className="flex flex-wrap items-center justify-center gap-2 px-2">
-            {suggestions.map((suggestion) => (
-              <Button
-                key={suggestion}
-                type="button"
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                className="rounded-full bg-secondary px-3 py-1.5 text-xs text-foreground/70 shadow-border transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
-                isDisabled={isGenerating}
-                onClick={() => onTextChange(suggestion)}
-              >
-                {suggestion}
-              </Button>
-            ))}
-          </div>
-        )}
       </div>
     </PromptBarSurfaceRenderer>
   );

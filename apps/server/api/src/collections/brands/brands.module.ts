@@ -29,6 +29,7 @@ import { OrganizationsModule } from '@api/collections/organizations/organization
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { CommonModule } from '@api/common/common.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.module';
@@ -50,6 +51,7 @@ import { forwardRef, Module } from '@nestjs/common';
   // single canonical mapper without re-registering it.
   exports: [BrandsService, DefaultRecurringContentService, BrandDataMapper],
   imports: [
+    CommonModule,
     forwardRef(() => ActivitiesModule),
     forwardRef(() => ArticlesModule),
     forwardRef(() => BrandScraperModule),

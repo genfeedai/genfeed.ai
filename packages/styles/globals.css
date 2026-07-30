@@ -99,6 +99,20 @@
   --ship-info: #3b82f6;
   --ship-agent: #38bdf8;
   --ship-done: #a855f7;
+
+  /*
+   * Ship primitives also reference unprefixed theme vars
+   * (e.g. Switch thumb: bg-[var(--text-primary)]). Alias them so
+   * those components don't paint with unresolved/transparent colors.
+   */
+  --bg-hover: var(--ship-bg-hover);
+  --text-primary: var(--ship-text-primary);
+  --text-secondary: var(--ship-text-secondary);
+  --text-muted: var(--ship-text-muted);
+  --bg-primary: var(--ship-bg-primary);
+  --bg-secondary: var(--ship-bg-secondary);
+  --bg-tertiary: var(--ship-bg-tertiary);
+  --bg-elevated: var(--ship-bg-elevated);
 }
 
 [data-theme="light"] .ship-ui {
@@ -121,6 +135,15 @@
   --ship-info: #2563eb;
   --ship-agent: #0284c7;
   --ship-done: #7c3aed;
+
+  --bg-hover: var(--ship-bg-hover);
+  --text-primary: var(--ship-text-primary);
+  --text-secondary: var(--ship-text-secondary);
+  --text-muted: var(--ship-text-muted);
+  --bg-primary: var(--ship-bg-primary);
+  --bg-secondary: var(--ship-bg-secondary);
+  --bg-tertiary: var(--ship-bg-tertiary);
+  --bg-elevated: var(--ship-bg-elevated);
 }
 
 /* ──────────────────────────────────────────────────────────────────────────

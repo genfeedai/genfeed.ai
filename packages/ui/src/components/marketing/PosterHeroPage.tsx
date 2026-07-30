@@ -1,7 +1,8 @@
-import type { ComponentType, ReactNode } from 'react';
+import type { ComponentType, ReactNode, SVGProps } from 'react';
+
 export interface PosterHeroPageProps {
   badge?: string;
-  badgeIcon?: ComponentType<IconBaseProps>;
+  badgeIcon?: ComponentType<SVGProps<SVGSVGElement>>;
   children: ReactNode;
   compact?: boolean;
   description?: ReactNode;

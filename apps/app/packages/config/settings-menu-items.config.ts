@@ -11,7 +11,9 @@ import {
   Link,
   MessageSquare,
   Mic,
+  Palette,
   Send,
+  Share2,
   ShieldCheck,
   Sparkles,
   Tag,
@@ -25,7 +27,9 @@ const BRAND_SETTINGS = {
   AGENT_DEFAULTS: '/settings/agent-defaults',
   HARNESS: '/settings/harness',
   INTERVIEW: '/settings/interview',
+  KIT: '/settings/kit',
   PUBLISHING: '/settings/publishing',
+  SOCIAL: '/settings/social',
   VOICE: '/settings/voice',
 } as const;
 
@@ -42,6 +46,14 @@ export interface BuildSettingsMenuItemsParams {
   /** SaaS or self-host EE — gates the organization Billing (subscription) entry. */
   isEnterprise?: boolean;
 }
+
+/**
+ * Menu grouping rules (keep to 1–2 meaningful headers per scope):
+ * - Never add a top-level "Settings" shell label — the route/scope already says that.
+ * - Org: Organization (who/what) · Access (money, keys, policy)
+ * - Brand: Brand (public + identity) · Automation (how content runs)
+ * - Personal: Account · Support
+ */
 
 function buildPersonalMenuItems(): MenuItemConfig[] {
   return [
@@ -84,10 +96,28 @@ function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
       outline: Users,
       solid: Users,
     },
+    {
+      // Hub to the all-brands list; each brand's own settings open in brand scope.
+      group: 'Organization',
+      href: APP_ROUTES.SETTINGS.BRANDS,
+      hrefScope: 'organization',
+      label: 'Brands',
+      outline: Tag,
+      solid: Tag,
+    },
+    {
+      // Org model catalog + defaults for the studio prompt bar.
+      group: 'Organization',
+      href: APP_ROUTES.SETTINGS.MODELS,
+      hrefScope: 'organization',
+      label: 'Models',
+      outline: Box,
+      solid: Box,
+    },
     ...(isEnterprise
       ? [
           {
-            group: 'Billing',
+            group: 'Access',
             href: APP_ROUTES.SETTINGS.BILLING,
             hrefScope: 'organization' as const,
             label: 'Billing',
@@ -97,7 +127,7 @@ function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
         ]
       : []),
     {
-      group: 'Billing',
+      group: 'Access',
       href: APP_ROUTES.SETTINGS.CREDITS,
       hrefScope: 'organization',
       label: 'Credits',
@@ -105,7 +135,7 @@ function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
       solid: CreditCard,
     },
     {
-      group: 'Developer',
+      group: 'Access',
       href: APP_ROUTES.SETTINGS.API_KEYS,
       hrefScope: 'organization',
       label: 'API Keys',
@@ -113,7 +143,7 @@ function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
       solid: Key,
     },
     {
-      group: 'Developer',
+      group: 'Access',
       href: APP_ROUTES.SETTINGS.WEBHOOKS,
       hrefScope: 'organization',
       label: 'Webhooks',
@@ -121,34 +151,12 @@ function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
       solid: Link,
     },
     {
-      group: 'Governance',
+      group: 'Access',
       href: APP_ROUTES.SETTINGS.POLICY,
       hrefScope: 'organization',
       label: 'Policy',
       outline: ShieldCheck,
       solid: ShieldCheck,
-    },
-    {
-      // Hub to the all-brands list; each brand's own settings open in the
-      // brand scope from there.
-      group: 'Resources',
-      href: APP_ROUTES.SETTINGS.BRANDS,
-      hrefScope: 'organization',
-      label: 'Brands',
-      outline: Tag,
-      solid: Tag,
-    },
-    {
-      // Org model settings: enable/disable the models the admin app publishes
-      // and pick the org default (used by the studio prompt bar). `/settings/
-      // models` redirects to the first tab; the prefix keeps this row active
-      // across every model type.
-      group: 'Resources',
-      href: APP_ROUTES.SETTINGS.MODELS,
-      hrefScope: 'organization',
-      label: 'Models',
-      outline: Box,
-      solid: Box,
     },
   ];
 }
@@ -156,16 +164,32 @@ function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
 function buildBrandMenuItems(): MenuItemConfig[] {
   return [
     {
-      group: 'Identity',
+      group: 'Brand',
       href: APP_ROUTES.SETTINGS.ROOT,
       hrefScope: 'brand',
       isExactMatch: true,
-      label: 'Overview',
+      label: 'Profile',
       outline: LayoutGrid,
       solid: LayoutGrid,
     },
     {
-      group: 'Identity',
+      group: 'Brand',
+      href: BRAND_SETTINGS.SOCIAL,
+      hrefScope: 'brand',
+      label: 'Social',
+      outline: Share2,
+      solid: Share2,
+    },
+    {
+      group: 'Brand',
+      href: BRAND_SETTINGS.KIT,
+      hrefScope: 'brand',
+      label: 'Brand Kit',
+      outline: Palette,
+      solid: Palette,
+    },
+    {
+      group: 'Brand',
       href: BRAND_SETTINGS.VOICE,
       hrefScope: 'brand',
       label: 'Voice',
@@ -173,15 +197,7 @@ function buildBrandMenuItems(): MenuItemConfig[] {
       solid: Mic,
     },
     {
-      group: 'Identity',
-      href: BRAND_SETTINGS.HARNESS,
-      hrefScope: 'brand',
-      label: 'Harness',
-      outline: Sparkles,
-      solid: Sparkles,
-    },
-    {
-      group: 'Identity',
+      group: 'Brand',
       href: BRAND_SETTINGS.INTERVIEW,
       hrefScope: 'brand',
       label: 'Interview',
@@ -189,7 +205,15 @@ function buildBrandMenuItems(): MenuItemConfig[] {
       solid: MessageSquare,
     },
     {
-      group: 'Operations',
+      group: 'Automation',
+      href: BRAND_SETTINGS.HARNESS,
+      hrefScope: 'brand',
+      label: 'Harness',
+      outline: Sparkles,
+      solid: Sparkles,
+    },
+    {
+      group: 'Automation',
       href: BRAND_SETTINGS.PUBLISHING,
       hrefScope: 'brand',
       label: 'Publishing',
@@ -197,7 +221,7 @@ function buildBrandMenuItems(): MenuItemConfig[] {
       solid: Send,
     },
     {
-      group: 'Operations',
+      group: 'Automation',
       href: BRAND_SETTINGS.AGENT_DEFAULTS,
       hrefScope: 'brand',
       label: 'Agent Defaults',
@@ -209,10 +233,8 @@ function buildBrandMenuItems(): MenuItemConfig[] {
 
 /**
  * Builds the Settings sidebar menu for a single scope. The sidebar is
- * scope-specific: loading organization settings shows only organization pages,
- * personal settings shows only personal pages (+ Help), and a brand's settings
- * show only that brand's pages. Keep the gear dropdown
- * (`packages/ui/.../user-dropdown/UserDropdown.tsx`) as the cross-scope switcher.
+ * scope-specific: brand → brand pages, org → org pages, personal → personal.
+ * Scope switching is the gear dropdown / org + brand switchers, not this list.
  */
 export function buildSettingsMenuItems({
   scope,

@@ -1,5 +1,6 @@
 import { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import type { ReactElement } from 'react';
 
 /**
@@ -15,6 +16,10 @@ import type { ReactElement } from 'react';
  *
  * Expand-to-full lives in the shell inspector header (one chrome row), not a
  * second bar stacked above the transcript.
+ *
+ * Route-aware suggested actions come from `pageContext` (set by
+ * `useAgentPageContext` on each app surface) so the empty rail shows
+ * contextual cards, not only generic copy.
  */
 interface ConversationInspectorPanelProps {
   apiService: AgentApiService;
@@ -27,15 +32,21 @@ interface ConversationInspectorPanelProps {
 export function ConversationInspectorPanel({
   apiService,
 }: ConversationInspectorPanelProps): ReactElement {
+  const pageContext = useAgentChatStore((state) => state.pageContext);
+  const suggestedActions = pageContext?.suggestedActions ?? [];
+  const placeholder =
+    pageContext?.placeholder?.trim() || 'Ask about this page...';
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <AgentChatContainer
         apiService={apiService}
+        emptyStateDescription="Ask about this page."
         emptyStateTitle="Start a conversation"
-        emptyStateDescription="Ask about this page — the thread follows you."
         isStreaming
         isWideLayout={false}
-        placeholder="Ask about this page..."
+        placeholder={placeholder}
+        suggestedActions={suggestedActions}
       />
     </div>
   );

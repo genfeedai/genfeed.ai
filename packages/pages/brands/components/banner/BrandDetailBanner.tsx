@@ -7,6 +7,8 @@ import { Button } from '@ui/primitives/button';
 import { Sparkles, Upload } from 'lucide-react';
 import Image from 'next/image';
 
+const ICON_BUTTON_CLASS = 'size-8 shrink-0 p-0 [&_svg]:size-3.5';
+
 export default function BrandDetailBanner({
   brand,
   isGeneratingBanner,
@@ -14,7 +16,7 @@ export default function BrandDetailBanner({
   onGenerateBanner,
 }: BrandDetailBannerProps) {
   return (
-    <div className="relative h-48 bg-muted mb-8 group">
+    <div className="group relative mb-8 h-48 bg-muted">
       <Image
         src={
           brand.bannerUrl
@@ -22,27 +24,28 @@ export default function BrandDetailBanner({
             : `${EnvironmentService.assetsEndpoint}/placeholders/landscape.jpg`
         }
         alt={`${brand.label} banner`}
-        className="w-full h-full object-cover object-center"
+        className="size-full object-cover object-center"
         width={1500}
         height={500}
         priority
       />
 
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-black/50">
-        <div className="absolute top-2 right-2 flex gap-2">
+      <div className="absolute inset-0 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="absolute top-2 right-2 flex gap-1.5">
           <Button
-            label={<Upload />}
+            icon={<Upload className="size-3.5" />}
             ariaLabel="Upload banner"
             variant={ButtonVariant.DEFAULT}
-            size={ButtonSize.XS}
+            size={ButtonSize.ICON}
+            className={ICON_BUTTON_CLASS}
             onClick={onUploadBanner}
           />
-
           <Button
-            label={<Sparkles />}
+            icon={<Sparkles className="size-3.5" />}
             ariaLabel="Generate banner"
             variant={ButtonVariant.SECONDARY}
-            size={ButtonSize.XS}
+            size={ButtonSize.ICON}
+            className={ICON_BUTTON_CLASS}
             onClick={onGenerateBanner}
             isLoading={isGeneratingBanner}
           />

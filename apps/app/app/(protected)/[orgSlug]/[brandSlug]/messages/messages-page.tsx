@@ -1,7 +1,11 @@
 'use client';
 
 import { useAgentChatStore } from '@genfeedai/agent';
-import { APP_ROUTES } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  createBrandAppRoute,
+  createOrganizationAppRoute,
+} from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
@@ -37,6 +41,7 @@ import {
   CircleCheck,
   LinkIcon,
   MessageSquare,
+  RefreshCw,
   Send,
   Zap,
 } from 'lucide-react';
@@ -369,7 +374,7 @@ function MessageBubble({
 const ALL_BRANDS_FILTER = 'all' as const;
 
 export default function MessagesPage() {
-  const { brandSlug, href } = useOrgUrl();
+  const { brandSlug, href, orgSlug } = useOrgUrl();
   const { brands, organizationId: scopedOrganizationId } = useBrand();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -1157,8 +1162,13 @@ export default function MessagesPage() {
       />
     </div>
   );
+  const accountsHref = brandSlug
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.SETTINGS.PUBLISHING)
+    : createOrganizationAppRoute(orgSlug, APP_ROUTES.SETTINGS.BRANDS);
+
   const conversationNavPanel = (
     <MessagesConversationSidebar
+      accountsHref={accountsHref}
       advancedFilters={advancedFilters}
       brandFilter={brandFilter}
       brandOptions={brandOptions}
@@ -1426,11 +1436,50 @@ export default function MessagesPage() {
             </>
           ) : (
             <div
-              className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 text-center"
+              className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
               data-testid="messages-empty-state"
             >
-              <MessageSquare className="mb-3 size-10 text-white/20" />
-              <p className="text-sm text-white/50">Select a conversation</p>
+              <MessageSquare
+                aria-hidden="true"
+                className="size-10 text-white/20"
+              />
+              {!isLoadingConversations && conversations.length === 0 ? (
+                <>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-white/60">
+                      Social inbox is empty
+                    </p>
+                    <p className="max-w-sm text-xs leading-5 text-white/38">
+                      Connect a channel and sync to pull comments and DMs. Pick
+                      a conversation here once threads appear in the list.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                    <Button
+                      asChild
+                      size={ButtonSize.SM}
+                      variant={ButtonVariant.SECONDARY}
+                    >
+                      <Link href={accountsHref}>Connect accounts</Link>
+                    </Button>
+                    <Button
+                      isDisabled={Boolean(busyAction) && busyAction !== 'sync'}
+                      isLoading={busyAction === 'sync'}
+                      onClick={() => {
+                        void handleSyncYoutube();
+                      }}
+                      size={ButtonSize.SM}
+                      variant={ButtonVariant.GHOST}
+                      withWrapper={false}
+                    >
+                      <RefreshCw aria-hidden="true" className="size-3.5" />
+                      Sync messages
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-white/50">Select a conversation</p>
+              )}
             </div>
           )}
         </div>

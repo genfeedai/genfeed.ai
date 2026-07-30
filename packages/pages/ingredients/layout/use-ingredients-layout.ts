@@ -10,11 +10,40 @@ import type { IngredientsLayoutProps } from '@props/content/ingredients-layout.p
 import { useUploadModal } from '@providers/global-modals/global-modals.provider';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   INGREDIENT_CONFIGS,
   INGREDIENT_LABELS,
 } from './ingredients-layout.config';
+
+/** Implicit library defaults — used for API queries, not written to the URL. */
+const DEFAULT_LIBRARY_ASSET_STATUSES = [
+  IngredientStatus.GENERATED,
+  IngredientStatus.PROCESSING,
+  IngredientStatus.VALIDATED,
+] as const;
+
+function getDefaultStatusesForType(ingredientType: string): string[] {
+  if (ingredientType === 'voices') {
+    return [];
+  }
+  return [...DEFAULT_LIBRARY_ASSET_STATUSES];
+}
+
+function isDefaultLibraryStatusFilter(
+  status: string[] | string | undefined,
+  ingredientType: string,
+): boolean {
+  const defaults = getDefaultStatusesForType(ingredientType);
+  if (!Array.isArray(status)) {
+    return defaults.length === 0 && !status;
+  }
+  if (status.length !== defaults.length) {
+    return false;
+  }
+  const values = new Set(status);
+  return defaults.every((entry) => values.has(entry));
+}
 
 export function useIngredientsLayout({
   scope = PageScope.BRAND,
@@ -53,17 +82,11 @@ export function useIngredientsLayout({
     const initialIngredientType =
       defaultType ?? _ingredientCategory ?? 'videos';
 
-    // Default status to completed, processing, validated for videos if not in URL.
-    // Voices should load without implicit status narrowing.
+    // Default statuses live in state only (not URL) so clean library links
+    // stay clean. Voices load without implicit status narrowing.
     const defaultStatus =
       statusParams.length === 0
-        ? initialIngredientType === 'voices'
-          ? []
-          : [
-              IngredientStatus.GENERATED,
-              IngredientStatus.PROCESSING,
-              IngredientStatus.VALIDATED,
-            ]
+        ? getDefaultStatusesForType(initialIngredientType)
         : statusParams;
 
     const initialFilters: IFiltersState = {
@@ -105,12 +128,22 @@ export function useIngredientsLayout({
   const updateURLFromFilters = useCallback(
     (newFilters: IFiltersState) => {
       const params = new URLSearchParams();
+      // Prefer route defaultType (videos/images/…) — filters.type is often empty.
+      const typeForDefaults =
+        defaultType ||
+        (typeof newFilters.type === 'string' && newFilters.type
+          ? newFilters.type
+          : 'videos');
 
       // Add filter params to URL
       if (newFilters.search) {
         params.set('search', newFilters.search);
       }
-      if (newFilters.status) {
+      // Omit default status from the address bar — only user-chosen filters.
+      if (
+        newFilters.status &&
+        !isDefaultLibraryStatusFilter(newFilters.status, typeForDefaults)
+      ) {
         if (Array.isArray(newFilters.status)) {
           for (const status of newFilters.status) {
             if (!status) {
@@ -160,20 +193,8 @@ export function useIngredientsLayout({
         router.replace(newUrl, { scroll: false });
       }
     },
-    [pathname, router, searchParams],
+    [defaultType, pathname, router, searchParams],
   );
-
-  useEffect(() => {
-    const hasStatusInUrl = (searchParams?.getAll('status')?.length ?? 0) > 0;
-    const statusDefaultApplied =
-      !hasStatusInUrl &&
-      Array.isArray(filters.status) &&
-      filters.status.length > 0;
-
-    if (statusDefaultApplied) {
-      updateURLFromFilters(filters);
-    }
-  }, [filters, updateURLFromFilters, searchParams?.getAll]); // Only run on mount
 
   // Register refresh callback from child components
   const registerRefresh = useCallback((callback: () => void) => {

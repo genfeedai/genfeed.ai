@@ -240,7 +240,7 @@ describe('OrganizationSwitcher', () => {
     const trigger = screen.getByText('Acme Org').closest('div');
     const avatar = trigger?.querySelector('.size-6');
 
-    expect(trigger).toHaveClass('h-8', 'gap-2', 'px-3', 'rounded-md');
+    expect(trigger).toHaveClass('h-8', 'gap-2', 'px-2.5', 'rounded-md');
     expect(avatar).toHaveClass('rounded-md');
     expect(avatar).not.toHaveClass('rounded-full');
   });

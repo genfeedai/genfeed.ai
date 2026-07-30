@@ -23,23 +23,25 @@ import {
   Paintbrush,
   Rocket,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { createElement, useEffect, useMemo, useRef, useState } from 'react';
 
 const DEFAULT_AGENT_ACTIONS: SuggestedAction[] = [
   {
-    icon: Calendar({ className: 'size-5 text-foreground/50' }),
+    icon: createElement(Calendar, { className: 'size-5 text-foreground/50' }),
     label: 'Plan this week',
     prompt: 'Help me plan this week of content',
   },
   {
-    icon: ClipboardCheck({
+    icon: createElement(ClipboardCheck, {
       className: 'size-5 text-foreground/50',
     }),
     label: 'Review queue',
     prompt: 'Show me what needs review',
   },
   {
-    icon: ChartColumn({ className: 'size-5 text-foreground/50' }),
+    icon: createElement(ChartColumn, {
+      className: 'size-5 text-foreground/50',
+    }),
     label: 'Check performance',
     prompt: 'Summarize my recent content performance',
   },
@@ -47,22 +49,22 @@ const DEFAULT_AGENT_ACTIONS: SuggestedAction[] = [
 
 const ONBOARDING_SUGGESTED_ACTIONS: SuggestedAction[] = [
   {
-    icon: Rocket({ className: 'size-5 text-foreground/50' }),
+    icon: createElement(Rocket, { className: 'size-5 text-foreground/50' }),
     label: "Let's go",
     prompt: "I'm ready to set up my account",
   },
   {
-    icon: Heart({ className: 'size-5 text-foreground/50' }),
+    icon: createElement(Heart, { className: 'size-5 text-foreground/50' }),
     label: 'Fitness creator',
     prompt: "I'm a fitness content creator",
   },
   {
-    icon: Paintbrush({ className: 'size-5 text-foreground/50' }),
+    icon: createElement(Paintbrush, { className: 'size-5 text-foreground/50' }),
     label: 'Art and design',
     prompt: 'I create art and design content',
   },
   {
-    icon: Briefcase({ className: 'size-5 text-foreground/50' }),
+    icon: createElement(Briefcase, { className: 'size-5 text-foreground/50' }),
     label: 'Business content',
     prompt: 'I create business and entrepreneurship content',
   },

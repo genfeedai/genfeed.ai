@@ -698,8 +698,27 @@ export function useModalBrand(
       try {
         const service = await getBrandsService();
         const { websiteUrl = '', ...brandFormValues } = form.getValues();
+        const label = brandFormValues.label?.trim() ?? '';
+        const slug = brandFormValues.slug?.trim() ?? '';
+
+        // Create path: never hit the API with empty required identity fields.
+        if (!overlayBrandId) {
+          if (!label || !slug) {
+            setError('Label and slug are required.');
+            return;
+          }
+          if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+            setError(
+              'Slug must be lowercase letters, numbers, and hyphens only.',
+            );
+            return;
+          }
+        }
+
         const formData = {
           ...brandFormValues,
+          label: label || brandFormValues.label,
+          slug: slug || brandFormValues.slug,
           isDeleted: false,
           isSelected: false,
         };
@@ -765,7 +784,11 @@ export function useModalBrand(
           const createdBrandSlug =
             createdBrandDetail.slug || createdBrand.slug || '';
 
-          onConfirm?.(true, createdBrand.id);
+          // Refresh switcher/bootstrap brands before navigating. Confirm
+          // handler also refreshes, but awaiting here avoids a race where the
+          // dropdown still shows the pre-create list after create.
+          await refreshBrands();
+          await onConfirm?.(true, createdBrand.id);
           onClose?.();
           closeModal(ModalEnum.BRAND);
 

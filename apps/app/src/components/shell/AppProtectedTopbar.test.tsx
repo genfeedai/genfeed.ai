@@ -224,13 +224,7 @@ describe('AppProtectedTopbar', () => {
     const credits = screen.getByTestId('topbar-credits-bar');
     const topbarInner = screen.getByTestId('app-protected-topbar-inner');
 
-    expect(topbarInner).toHaveClass(
-      'gap-2',
-      'pl-5',
-      'sm:pl-6',
-      'pr-5',
-      'sm:pr-6',
-    );
+    expect(topbarInner).toHaveClass('gap-3', 'px-3');
     expect(brandSwitcher).toHaveTextContent('labeled');
     expect(breadcrumbs).toHaveTextContent('Studio');
     expect(switcher).toHaveTextContent('icon');
@@ -535,6 +529,23 @@ describe('AppProtectedTopbar', () => {
     fireEvent.click(screen.getByTestId('clear-brand-selection'));
 
     expect(mockPush).toHaveBeenCalledWith('/acme/~/agent/new');
+  });
+
+  it('routes clear-brand from brand-only settings to the org brands hub', () => {
+    mockPathname.value = '/acme/brand/settings/publishing';
+
+    render(
+      <AppProtectedTopbar
+        orgSlug="acme"
+        brandSlug="brand"
+        currentApp="workspace"
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('clear-brand-selection'));
+
+    // No /:org/~/settings/publishing page — land on org brand management.
+    expect(mockPush).toHaveBeenCalledWith('/acme/~/settings/brands');
   });
 
   it('keeps the agent surface when selecting a brand from an org-scoped route', () => {

@@ -39,6 +39,7 @@ import {
   captureWorkspaceShellError,
   captureWorkspaceShellPerformance,
 } from '@/lib/workspace-shell/workspace-shell-telemetry';
+import LibrarySidebarNav from '@app/(protected)/[orgSlug]/[brandSlug]/library/library-sidebar-nav';
 import AgentSidebarContent from './AppProtectedLayoutAgentSidebar';
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
 import AssetGateGuard from './asset-gate-guard';
@@ -143,6 +144,7 @@ function AppLayoutWithDynamicMenu({
     currentApp,
     orgSlug,
     brandSlug,
+    settingsScope,
     agentApiService,
     threads,
     agentMenuItems,
@@ -260,6 +262,9 @@ function AppLayoutWithDynamicMenu({
         : null,
     [isMessagesRoute, workspaceNavPortalRef],
   );
+  // Render Library nav in-shell (not via portal). The empty-portal pattern left
+  // the column blank when portalTarget never attached (refresh, race, layout
+  // order). LibrarySidebarNav is self-contained and does not need the page tree.
   const libraryNavPanel = useMemo<SidebarNavPanel | null>(
     () =>
       isLibraryRoute
@@ -268,13 +273,14 @@ function AppLayoutWithDynamicMenu({
               <div
                 className="flex h-full min-h-0 flex-col"
                 data-testid="library-nav-panel"
-                ref={workspaceNavPortalRef}
-              />
+              >
+                <LibrarySidebarNav />
+              </div>
             ),
             sectionLabel: 'Library',
           }
         : null,
-    [isLibraryRoute, workspaceNavPortalRef],
+    [isLibraryRoute],
   );
   const activeNavPanel =
     conversationNavPanel ?? messagesNavPanel ?? libraryNavPanel;
@@ -306,6 +312,7 @@ function AppLayoutWithDynamicMenu({
         isSettingsRoute={isSettingsRoute}
         isStudioRoute={isStudioRoute}
         isWorkflowsRoute={isWorkflowsRoute}
+        settingsScope={settingsScope}
         adminMenuItems={adminMenuItems}
         analyticsMenuItems={analyticsMenuItems}
         composeMenuItems={composeMenuItems}
@@ -350,6 +357,7 @@ function AppLayoutWithDynamicMenu({
     researchMenuItems,
     secondaryMenuItems,
     settingsMenuItems,
+    settingsScope,
     shellChromeVariant,
     studioMenuItems,
     taskContextSearchParams,

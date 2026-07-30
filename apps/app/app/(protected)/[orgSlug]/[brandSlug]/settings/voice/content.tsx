@@ -3,8 +3,13 @@
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import BrandDetailAgentProfileCard from '@pages/brands/components/sidebar/BrandDetailAgentProfileCard';
 import Card from '@ui/card/Card';
+import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 
+/**
+ * Brand voice settings — full page form (no modal). Generate with AI or edit
+ * fields directly; same surface as Agent Profile.
+ */
 export default function BrandSettingsVoicePage() {
   const { brand, brandId, hasBrandId, isLoading, handleRefreshBrand } =
     useBrandDetail();
@@ -15,9 +20,11 @@ export default function BrandSettingsVoicePage() {
 
   if (!brand) {
     return (
-      <Card className="p-6">
-        <p className="text-sm text-muted-foreground">Brand not found.</p>
-      </Card>
+      <Container>
+        <Card>
+          <p className="text-sm text-muted-foreground">Brand not found.</p>
+        </Card>
+      </Container>
     );
   }
 

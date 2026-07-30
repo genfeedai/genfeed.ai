@@ -5,40 +5,28 @@ import {
   AlertCategory,
   AssetCategory,
   AssetScope,
-  LinkCategory,
 } from '@genfeedai/enums';
-import type { ILink } from '@genfeedai/interfaces';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
-import type { Link } from '@models/social/link.model';
 import BrandDetailBanner from '@pages/brands/components/banner/BrandDetailBanner';
-import BrandKitReviewCard from '@pages/brands/components/brand-kit/BrandKitReviewCard';
 import BrandDetailSidebar from '@pages/brands/components/detail-sidebar/BrandDetailSidebar';
 import BrandDetailOverview from '@pages/brands/components/overview/BrandDetailOverview';
-import BrandDetailLinkEditor, {
-  type BrandLinkEditorValues,
-} from '@pages/brands/components/sidebar/BrandDetailLinkEditor';
-import BrandDetailSystemPrompt from '@pages/brands/components/system-prompt/BrandDetailSystemPrompt';
-import { useBrandOverlay } from '@providers/global-modals/global-modals.provider';
 import { EnvironmentService } from '@services/core/environment.service';
-import { logger } from '@services/core/logger.service';
-import { LinksService } from '@services/social/links.service';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
 import { LazyModalBrandGenerate } from '@ui/lazy/modal/LazyModal';
 import Loading from '@ui/loading/default/Loading';
-import { type ChangeEvent, useCallback, useMemo, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { useMemo } from 'react';
 import BrandDetailLatestArticles from './BrandDetailLatestArticles';
 import BrandDetailLatestImages from './BrandDetailLatestImages';
 import BrandDetailLatestVideos from './BrandDetailLatestVideos';
 
-const DEFAULT_BRAND_LINK_FORM_VALUES: BrandLinkEditorValues = {
-  category: LinkCategory.WEBSITE,
-  label: '',
-  url: '',
-};
-
+/**
+ * Brand public profile surface — banner, logo, name/description, visibility,
+ * social summary, and latest public content. Full Social & Links management
+ * lives at /settings/social. Kit / voice / publishing / agent config in nav.
+ */
 export default function BrandDetail() {
   const {
     brand,
@@ -49,35 +37,31 @@ export default function BrandDetail() {
     images,
     articles,
     links,
-    selectedLink,
     isGeneratingBanner,
     isGeneratingLogo,
-    deletingRefId,
+    isUpdating,
     socialConnections,
     connectedPlatformsCount,
     handleGenerateBanner,
     handleGenerateLogo,
     handleUpdateAccount,
     handleOpenUploadModal,
-    handleRequestDeleteReference,
     handleCopy,
     handleRefreshBrand,
-    selectLink,
     generateModalType,
     setGenerateModalType,
   } = useBrandDetail();
 
-  const { openBrandOverlay } = useBrandOverlay();
-  const getLinksService = useAuthedService((token: string) =>
-    LinksService.getInstance(token),
-  );
+  const params = useParams();
+  const orgSlug = typeof params?.orgSlug === 'string' ? params.orgSlug : '';
+  const brandSlug =
+    typeof params?.brandSlug === 'string' ? params.brandSlug : '';
+  const manageSocialHref =
+    orgSlug && brandSlug
+      ? `/${orgSlug}/${brandSlug}/settings/social`
+      : '/settings/social';
+
   const { imageModels } = useElements();
-  const [isLinkEditorOpen, setIsLinkEditorOpen] = useState(false);
-  const [linkFormValues, setLinkFormValues] = useState<BrandLinkEditorValues>(
-    DEFAULT_BRAND_LINK_FORM_VALUES,
-  );
-  const [linkEditorError, setLinkEditorError] = useState<string | null>(null);
-  const [isSubmittingLink, setIsSubmittingLink] = useState(false);
 
   const generateCost = useMemo(() => {
     if (!brand || !generateModalType) {
@@ -89,120 +73,10 @@ export default function BrandDetail() {
     return model?.cost || 5;
   }, [brand, generateModalType, imageModels]);
 
-  const handleOpenBrandModal = () => {
-    openBrandOverlay(brand, () => handleRefreshBrand(true), 'edit');
-  };
-
   const handleGenerateConfirm = () => {
     setGenerateModalType(null);
     void handleRefreshBrand(true);
   };
-
-  const handleOpenLinkModal = (link?: ILink) => {
-    selectLink(link ?? null);
-    setLinkFormValues({
-      category: link?.category ?? LinkCategory.WEBSITE,
-      label: link?.label ?? '',
-      url: link?.url ?? '',
-    });
-    setLinkEditorError(null);
-    setIsLinkEditorOpen(true);
-  };
-
-  const closeLinkEditor = useCallback(() => {
-    selectLink(null);
-    setLinkFormValues(DEFAULT_BRAND_LINK_FORM_VALUES);
-    setLinkEditorError(null);
-    setIsLinkEditorOpen(false);
-  }, [selectLink]);
-
-  const handleLinkFieldChange = useCallback(
-    (
-      event: ChangeEvent<
-        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-      >,
-    ) => {
-      const { name, value } = event.target;
-      setLinkFormValues((current) => ({
-        ...current,
-        [name]: value,
-      }));
-    },
-    [],
-  );
-
-  const handleLinkSubmit = useCallback(async () => {
-    if (!brandId) {
-      return;
-    }
-
-    if (!linkFormValues.label.trim() || !linkFormValues.url.trim()) {
-      setLinkEditorError('Label and URL are required.');
-      return;
-    }
-
-    try {
-      new URL(linkFormValues.url);
-    } catch {
-      setLinkEditorError('Enter a valid URL, including http:// or https://.');
-      return;
-    }
-
-    setIsSubmittingLink(true);
-    setLinkEditorError(null);
-
-    try {
-      const service = await getLinksService();
-      const payload = {
-        brand: brandId,
-        category: linkFormValues.category,
-        label: linkFormValues.label.trim(),
-        url: linkFormValues.url.trim(),
-      } as unknown as Partial<Link>;
-
-      if (selectedLink?.id) {
-        await service.patch(selectedLink.id, payload);
-      } else {
-        await service.post(payload);
-      }
-
-      await handleRefreshBrand(true);
-      closeLinkEditor();
-    } catch (linkError) {
-      logger.error('Failed to save brand link', linkError);
-      setLinkEditorError('Failed to save link');
-    } finally {
-      setIsSubmittingLink(false);
-    }
-  }, [
-    brandId,
-    closeLinkEditor,
-    getLinksService,
-    handleRefreshBrand,
-    linkFormValues,
-    selectedLink?.id,
-  ]);
-
-  const handleLinkDelete = useCallback(async () => {
-    if (!selectedLink?.id) {
-      return;
-    }
-
-    setIsSubmittingLink(true);
-    setLinkEditorError(null);
-
-    try {
-      const service = await getLinksService();
-      await service.delete(selectedLink.id);
-      await handleRefreshBrand(true);
-      closeLinkEditor();
-    } catch (linkError) {
-      logger.error('Failed to delete brand link', linkError);
-      setLinkEditorError('Failed to delete link');
-    } finally {
-      setIsSubmittingLink(false);
-    }
-  }, [closeLinkEditor, getLinksService, handleRefreshBrand, selectedLink?.id]);
 
   const handleCopyPublicProfile = () => {
     if (!brand?.slug) {
@@ -211,6 +85,10 @@ export default function BrandDetail() {
 
     handleCopy(`${EnvironmentService.apps.website}/u/${brand.slug}`);
   };
+
+  const isPublicProfile =
+    typeof brand?.scope === 'string' &&
+    brand.scope.toLowerCase() === AssetScope.PUBLIC;
 
   if (!hasBrandId) {
     return (
@@ -241,29 +119,16 @@ export default function BrandDetail() {
         onGenerateBanner={handleGenerateBanner}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-        <div className="md:col-span-8 flex flex-col gap-6">
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-12">
+        <div className="flex flex-col gap-6 md:col-span-8">
           <BrandDetailOverview
             brand={brand}
             isGeneratingLogo={isGeneratingLogo}
             onUploadLogo={() => handleOpenUploadModal(AssetCategory.LOGO)}
             onGenerateLogo={handleGenerateLogo}
-            onEditBrand={handleOpenBrandModal}
             onCopyPublicProfile={
-              brand.scope === AssetScope.PUBLIC
-                ? handleCopyPublicProfile
-                : undefined
+              isPublicProfile ? handleCopyPublicProfile : undefined
             }
-          />
-
-          {brand.text && (
-            <BrandDetailSystemPrompt text={brand.text} onCopy={handleCopy} />
-          )}
-
-          <BrandKitReviewCard
-            brand={brand}
-            brandId={brandId}
-            onRefreshBrand={() => handleRefreshBrand(true)}
           />
 
           <BrandDetailLatestVideos videos={videos} />
@@ -278,37 +143,26 @@ export default function BrandDetail() {
             links={links}
             socialConnections={socialConnections}
             connectedPlatformsCount={connectedPlatformsCount}
-            deletingRefId={deletingRefId}
+            deletingRefId={null}
+            isUpdatingPublicProfile={isUpdating}
+            manageSocialHref={manageSocialHref}
             onTogglePublicProfile={(isPublic) =>
               handleUpdateAccount(
                 'scope',
                 isPublic ? AssetScope.PUBLIC : AssetScope.BRAND,
               )
             }
-            onRefreshBrand={() => handleRefreshBrand(true)}
-            onOpenLinkModal={handleOpenLinkModal}
+            onRefreshBrand={async () => {
+              await handleRefreshBrand(true);
+            }}
+            onOpenLinkModal={() => undefined}
             onUploadBanner={() => handleOpenUploadModal(AssetCategory.BANNER)}
             onUploadLogo={() => handleOpenUploadModal(AssetCategory.LOGO)}
             onUploadReference={() =>
               handleOpenUploadModal(AssetCategory.REFERENCE)
             }
-            onDeleteReference={handleRequestDeleteReference}
+            onDeleteReference={() => undefined}
           />
-
-          {isLinkEditorOpen ? (
-            <div className="mt-6">
-              <BrandDetailLinkEditor
-                error={linkEditorError}
-                isSubmitting={isSubmittingLink}
-                isEditing={Boolean(selectedLink)}
-                values={linkFormValues}
-                onChange={handleLinkFieldChange}
-                onCancel={closeLinkEditor}
-                onDelete={handleLinkDelete}
-                onSubmit={handleLinkSubmit}
-              />
-            </div>
-          ) : null}
         </div>
       </div>
 

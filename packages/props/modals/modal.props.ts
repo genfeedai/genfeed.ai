@@ -468,7 +468,10 @@ export interface ModalGenerateIllustrationProps extends ModalVisibilityProps {
  */
 export interface BrandOverlayProps extends ModalVisibilityProps {
   brand: BrandModalEntity | null;
-  onConfirm: (isRefreshing?: boolean, createdBrandId?: string) => void;
+  onConfirm: (
+    isRefreshing?: boolean,
+    createdBrandId?: string,
+  ) => void | Promise<void>;
   onClose?: () => void;
   initialView?: 'edit' | 'overview';
 }

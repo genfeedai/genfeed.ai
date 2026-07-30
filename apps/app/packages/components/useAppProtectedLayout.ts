@@ -507,6 +507,7 @@ export function useAppProtectedLayout(
     currentApp,
     orgSlug,
     brandSlug,
+    settingsScope,
     // agent
     agentApiService,
     threads,

@@ -68,8 +68,25 @@ function Metric({ label, value }: MetricProps) {
   );
 }
 
-function MetricGrid({ children }: { children: ReactNode }) {
-  return <dl className="grid grid-cols-2 gap-3">{children}</dl>;
+function MetricGrid({
+  children,
+  columns = 2,
+}: {
+  children: ReactNode;
+  columns?: 2 | 3 | 4;
+}) {
+  return (
+    <dl
+      className={cn(
+        'grid gap-3',
+        columns === 2 && 'grid-cols-2',
+        columns === 3 && 'grid-cols-3',
+        columns === 4 && 'grid-cols-2 sm:grid-cols-4',
+      )}
+    >
+      {children}
+    </dl>
+  );
 }
 
 function LoadingPanel({ label }: { label: string }) {
@@ -328,7 +345,7 @@ function PublishingSurface({
         />
       ) : (
         <>
-          <MetricGrid>
+          <MetricGrid columns={3}>
             <Metric label="Active runs" value={String(activeRuns.length)} />
             <Metric
               label="Pending posts"
@@ -443,7 +460,7 @@ function CredentialHealthSurface({
         />
       ) : (
         <>
-          <MetricGrid>
+          <MetricGrid columns={4}>
             <Metric label="Total accounts" value={String(summary.total)} />
             <Metric label="Needs attention" value={String(summary.attention)} />
             <Metric label="Healthy" value={String(summary.healthy)} />

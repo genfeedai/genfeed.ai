@@ -67,31 +67,31 @@ export function WorkspaceSurface({
         )}
       >
         {eyebrow || title || description || actions ? (
-          <div
-            className={cn(
-              'flex flex-col lg:flex-row lg:items-center lg:justify-between',
-              HEADER_GAP_CLASSES[density],
-            )}
-          >
-            <div className="space-y-1">
-              {eyebrow ? (
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/35">
-                  {eyebrow}
-                </p>
-              ) : null}
-              {title ? (
-                <h2 className="text-lg font-semibold tracking-[-0.02em] text-foreground sm:text-xl">
-                  {title}
-                </h2>
-              ) : null}
-              {description ? (
-                <p className="text-sm leading-6 text-foreground/55">
-                  {description}
-                </p>
+          <div className={cn('flex flex-col', HEADER_GAP_CLASSES[density])}>
+            {/* Title row: actions always sit on one line with the title block. */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 space-y-1">
+                {eyebrow ? (
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/35">
+                    {eyebrow}
+                  </p>
+                ) : null}
+                {title ? (
+                  <h2 className="text-lg font-semibold tracking-[-0.02em] text-foreground sm:text-xl">
+                    {title}
+                  </h2>
+                ) : null}
+              </div>
+              {actions ? (
+                <div className="flex shrink-0 flex-nowrap items-center gap-2">
+                  {actions}
+                </div>
               ) : null}
             </div>
-            {actions ? (
-              <div className="flex flex-wrap gap-2">{actions}</div>
+            {description ? (
+              <p className="text-sm leading-6 text-foreground/55">
+                {description}
+              </p>
             ) : null}
           </div>
         ) : null}

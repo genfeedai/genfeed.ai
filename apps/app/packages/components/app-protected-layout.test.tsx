@@ -86,6 +86,13 @@ vi.mock(
   }),
 );
 
+vi.mock(
+  '@app/(protected)/[orgSlug]/[brandSlug]/library/library-sidebar-nav',
+  () => ({
+    default: () => <div data-testid="library-sidebar-nav">Library nav</div>,
+  }),
+);
+
 vi.mock('@ui/layouts/app/AppLayout', () => ({
   default: ({
     bannerComponent,
@@ -1101,6 +1108,8 @@ describe('AppProtectedLayout', () => {
     );
 
     expect(screen.getByTestId('library-nav-panel')).toBeInTheDocument();
+    expect(screen.getByTestId('library-sidebar-nav')).toBeInTheDocument();
+    expect(screen.getByText('Library nav')).toBeInTheDocument();
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         currentApp: 'library',

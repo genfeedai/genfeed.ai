@@ -103,6 +103,8 @@ describe('Container', () => {
       'sr-only',
     );
     expect(rootElement.querySelector('.border-b')).toBeNull();
+    // No empty header chrome (mb-4 pb-3) when the title is assistive-only.
+    expect(rootElement.querySelector('.mb-4.pb-3')).toBeNull();
   });
 
   it('keeps header controls visible when the title is screen-reader only', () => {

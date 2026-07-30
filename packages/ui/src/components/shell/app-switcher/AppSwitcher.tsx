@@ -432,7 +432,7 @@ function AppSwitcherGridItem({
             isActive
               ? 'text-foreground'
               : 'text-foreground/58 group-hover:text-foreground group-focus-visible:text-foreground',
-            'group-focus-visible:underline group-focus-visible:underline-offset-4',
+            // No label underline — active state is the filled icon tile only.
             isLocked && 'text-foreground/45',
           )}
         >

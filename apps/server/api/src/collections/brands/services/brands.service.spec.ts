@@ -16,6 +16,7 @@ import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit
 import type { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CACHE_PATTERNS } from '@api/common/constants/cache-patterns.constants';
+import type { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
@@ -38,6 +39,9 @@ describe('BrandsService', () => {
     invalidate: ReturnType<typeof vi.fn>;
     invalidateByTags: ReturnType<typeof vi.fn>;
     invalidatePattern: ReturnType<typeof vi.fn>;
+  };
+  let accessBootstrapCacheService: {
+    invalidateForOrganization: ReturnType<typeof vi.fn>;
   };
   let filesClientService: { uploadToS3: ReturnType<typeof vi.fn> };
   let llmDispatcher: { chatCompletion: ReturnType<typeof vi.fn> };
@@ -70,6 +74,9 @@ describe('BrandsService', () => {
       invalidateByTags: vi.fn(),
       invalidatePattern: vi.fn(),
     };
+    accessBootstrapCacheService = {
+      invalidateForOrganization: vi.fn().mockResolvedValue(undefined),
+    };
     filesClientService = {
       uploadToS3: vi.fn(),
     };
@@ -90,6 +97,7 @@ describe('BrandsService', () => {
       loggerService,
       { invalidateByTags: vi.fn() } as unknown as CacheService,
       cacheInvalidationService as unknown as CacheInvalidationService,
+      accessBootstrapCacheService as unknown as AccessBootstrapCacheService,
       {} as unknown as BrandRelocationService,
       new BrandGenerationService(
         brandScraperService as unknown as BrandScraperService,
@@ -163,6 +171,9 @@ describe('BrandsService', () => {
 
       await service.create({
         ...createBrandDto,
+        // Session stamp from BaseCRUD.enrichCreateDto (current brand) must not
+        // reach prisma.brand.create — Brand has no `brand` argument.
+        brand: 'session-brand-id',
         organization: 'org-1',
         user: 'user-1',
       });
@@ -176,9 +187,14 @@ describe('BrandsService', () => {
       });
       expect(createInput.data).not.toHaveProperty('organization');
       expect(createInput.data).not.toHaveProperty('user');
+      expect(createInput.data).not.toHaveProperty('brand');
+      expect(createInput.data).not.toHaveProperty('brandId');
       expect(cacheInvalidationService.invalidate).toHaveBeenCalledWith(
         CACHE_PATTERNS.BRANDS_LIST('org-1'),
       );
+      expect(
+        accessBootstrapCacheService.invalidateForOrganization,
+      ).toHaveBeenCalledWith('org-1');
     });
 
     it('prefers canonical foreign keys over legacy metadata aliases', async () => {
@@ -206,6 +222,45 @@ describe('BrandsService', () => {
       });
       expect(createInput.data).not.toHaveProperty('organization');
       expect(createInput.data).not.toHaveProperty('user');
+    });
+  });
+
+  describe('patch', () => {
+    it('strips session brand alias so Prisma update does not receive brand', async () => {
+      const existing = {
+        id: 'brand-1',
+        label: 'Default Brand',
+        organizationId: 'org-1',
+        slug: 'default',
+      };
+      delegate.findFirst.mockResolvedValue(existing);
+      delegate.update.mockResolvedValue({
+        ...existing,
+        label: 'Renamed',
+      });
+
+      // BrandsService extends BaseService — super.patch looks up then updates.
+      // Spy the parent path via delegate methods the base service uses.
+      const result = await service.patch('brand-1', {
+        brand: 'session-brand-id',
+        brandId: 'session-brand-id',
+        label: 'Renamed',
+        organization: 'org-1',
+        user: 'user-1',
+      } as never);
+
+      expect(result.label).toBe('Renamed');
+      const updateCall = delegate.update.mock.calls.at(-1)?.[0] as
+        | { data: Record<string, unknown> }
+        | undefined;
+      expect(updateCall?.data).toMatchObject({ label: 'Renamed' });
+      expect(updateCall?.data).not.toHaveProperty('brand');
+      expect(updateCall?.data).not.toHaveProperty('brandId');
+      expect(updateCall?.data).not.toHaveProperty('organization');
+      expect(updateCall?.data).not.toHaveProperty('user');
+      expect(
+        accessBootstrapCacheService.invalidateForOrganization,
+      ).toHaveBeenCalledWith('org-1');
     });
   });
 
