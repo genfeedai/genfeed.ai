@@ -15307,720 +15307,9 @@
         ]
       }
     },
-    "/admin/darkroom/assets": {
-      "get": {
-        "operationId": "AdminFleetController.listAssets[1]",
-        "parameters": [
-          {
-            "description": "Filter by persona slug",
-            "in": "query",
-            "name": "personaSlug",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by review status",
-            "in": "query",
-            "name": "reviewStatus",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/FleetReviewStatus"
-            }
-          },
-          {
-            "description": "Filter by asset label",
-            "in": "query",
-            "name": "assetLabel",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/FleetAssetLabel"
-            }
-          },
-          {
-            "description": "Filter by content rating",
-            "in": "query",
-            "name": "contentRating",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/ContentRating"
-            }
-          },
-          {
-            "description": "Filter by campaign",
-            "in": "query",
-            "name": "campaign",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "type": "number"
-            }
-          },
-          {
-            "description": "Items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "List fleet assets with filters",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/assets/{id}/publish": {
-      "post": {
-        "operationId": "AdminFleetController.publishAsset[1]",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PublishAssetDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Publish an approved asset to platforms",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/assets/{id}/review": {
-      "patch": {
-        "operationId": "AdminFleetController.reviewAsset[1]",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReviewAssetDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Review an asset (approve/reject)",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/characters": {
-      "get": {
-        "operationId": "AdminFleetController.listCharacters[1]",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "List all fleet characters",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      },
-      "post": {
-        "operationId": "AdminFleetController.createCharacter[1]",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateCharacterDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Create a new fleet character",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/characters/{slug}": {
-      "delete": {
-        "operationId": "AdminFleetController.deleteCharacter[1]",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "slug",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Soft-delete a fleet character",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      },
-      "get": {
-        "operationId": "AdminFleetController.getCharacter[1]",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "slug",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get character by slug",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      },
-      "patch": {
-        "operationId": "AdminFleetController.updateCharacter[1]",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "slug",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateCharacterDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Update a fleet character",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/characters/{slug}/dataset": {
-      "post": {
-        "operationId": "AdminFleetController.uploadDataset[1]",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "slug",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UploadDatasetDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Upload a training dataset and sync it to the GPU images service",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/characters/{slug}/training-data": {
-      "post": {
-        "operationId": "AdminFleetController.generateCharacterTrainingData[1]",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "slug",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Generate persona training data from enabled fleet sources",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/generate": {
-      "post": {
-        "operationId": "AdminFleetController.generateImage[1]",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GenerateImageDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Generate an image for a character",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/generate/jobs": {
-      "post": {
-        "operationId": "AdminFleetController.createGenerateJob[1]",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GenerateImageDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Queue an image generation job for a character",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/generate/jobs/{jobId}": {
-      "get": {
-        "operationId": "AdminFleetController.getGenerateJob[1]",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "jobId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get image generation job status",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/infrastructure/cloudfront/invalidate": {
-      "post": {
-        "operationId": "AdminFleetController.invalidateCloudFront[1]",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CloudFrontInvalidateDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Invalidate CloudFront cache",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/infrastructure/ec2/action": {
-      "post": {
-        "operationId": "AdminFleetController.ec2Action[1]",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Ec2ActionDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Start or stop an EC2 instance",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/infrastructure/ec2/action-all": {
-      "post": {
-        "operationId": "AdminFleetController.ec2ActionAll[1]",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BulkEc2ActionDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Start or stop all matching EC2 instances",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/infrastructure/ec2/status": {
-      "get": {
-        "operationId": "AdminFleetController.getEC2Status[1]",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "List EC2 instances with status",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/infrastructure/fleet/health": {
-      "get": {
-        "operationId": "AdminFleetController.getFleetHealth[1]",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get detailed GPU fleet health",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/infrastructure/services": {
-      "get": {
-        "operationId": "AdminFleetController.getServiceHealth[1]",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Check ComfyUI and Ollama health",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/lip-sync": {
-      "post": {
-        "operationId": "AdminFleetController.generateLipSync[1]",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GenerateLipSyncDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Generate lip sync video for a character",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/lip-sync/{jobId}": {
-      "get": {
-        "operationId": "AdminFleetController.getLipSyncStatus[1]",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "jobId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get lip sync job status",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/pipeline/campaigns": {
-      "get": {
-        "operationId": "AdminFleetController.listCampaigns[1]",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "List campaigns with stats",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/pipeline/stats": {
-      "get": {
-        "operationId": "AdminFleetController.getPipelineStats[1]",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get pipeline statistics",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/training-data": {
-      "post": {
-        "operationId": "AdminFleetController.generateAllTrainingData[1]",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Generate training data for all enabled fleet personas in enabled brands",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/trainings": {
-      "get": {
-        "operationId": "AdminFleetController.listTrainings[1]",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "List trainings (optionally filtered by persona)",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      },
-      "post": {
-        "operationId": "AdminFleetController.startTraining[1]",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StartTrainingDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Start LoRA training for a character",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/trainings/{id}": {
-      "get": {
-        "operationId": "AdminFleetController.getTraining[1]",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get training details",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/voices": {
-      "get": {
-        "operationId": "AdminFleetController.listVoices[1]",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "List available TTS voices",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/voices/generate": {
-      "post": {
-        "operationId": "AdminFleetController.generateVoice[1]",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AdminFleetGenerateVoiceDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Generate TTS audio",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
     "/admin/fleet/assets": {
       "get": {
-        "operationId": "AdminFleetController.listAssets[0]",
+        "operationId": "AdminFleetController.listAssets",
         "parameters": [
           {
             "description": "Filter by persona slug",
@@ -16099,7 +15388,7 @@
     },
     "/admin/fleet/assets/{id}/publish": {
       "post": {
-        "operationId": "AdminFleetController.publishAsset[0]",
+        "operationId": "AdminFleetController.publishAsset",
         "parameters": [
           {
             "in": "path",
@@ -16133,7 +15422,7 @@
     },
     "/admin/fleet/assets/{id}/review": {
       "patch": {
-        "operationId": "AdminFleetController.reviewAsset[0]",
+        "operationId": "AdminFleetController.reviewAsset",
         "parameters": [
           {
             "in": "path",
@@ -16167,7 +15456,7 @@
     },
     "/admin/fleet/characters": {
       "get": {
-        "operationId": "AdminFleetController.listCharacters[0]",
+        "operationId": "AdminFleetController.listCharacters",
         "parameters": [],
         "responses": {
           "200": {
@@ -16180,7 +15469,7 @@
         ]
       },
       "post": {
-        "operationId": "AdminFleetController.createCharacter[0]",
+        "operationId": "AdminFleetController.createCharacter",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -16205,7 +15494,7 @@
     },
     "/admin/fleet/characters/{slug}": {
       "delete": {
-        "operationId": "AdminFleetController.deleteCharacter[0]",
+        "operationId": "AdminFleetController.deleteCharacter",
         "parameters": [
           {
             "in": "path",
@@ -16227,7 +15516,7 @@
         ]
       },
       "get": {
-        "operationId": "AdminFleetController.getCharacter[0]",
+        "operationId": "AdminFleetController.getCharacter",
         "parameters": [
           {
             "in": "path",
@@ -16249,7 +15538,7 @@
         ]
       },
       "patch": {
-        "operationId": "AdminFleetController.updateCharacter[0]",
+        "operationId": "AdminFleetController.updateCharacter",
         "parameters": [
           {
             "in": "path",
@@ -16283,7 +15572,7 @@
     },
     "/admin/fleet/characters/{slug}/dataset": {
       "post": {
-        "operationId": "AdminFleetController.uploadDataset[0]",
+        "operationId": "AdminFleetController.uploadDataset",
         "parameters": [
           {
             "in": "path",
@@ -16317,7 +15606,7 @@
     },
     "/admin/fleet/characters/{slug}/training-data": {
       "post": {
-        "operationId": "AdminFleetController.generateCharacterTrainingData[0]",
+        "operationId": "AdminFleetController.generateCharacterTrainingData",
         "parameters": [
           {
             "in": "path",
@@ -16341,7 +15630,7 @@
     },
     "/admin/fleet/generate": {
       "post": {
-        "operationId": "AdminFleetController.generateImage[0]",
+        "operationId": "AdminFleetController.generateImage",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -16366,7 +15655,7 @@
     },
     "/admin/fleet/generate/jobs": {
       "post": {
-        "operationId": "AdminFleetController.createGenerateJob[0]",
+        "operationId": "AdminFleetController.createGenerateJob",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -16391,7 +15680,7 @@
     },
     "/admin/fleet/generate/jobs/{jobId}": {
       "get": {
-        "operationId": "AdminFleetController.getGenerateJob[0]",
+        "operationId": "AdminFleetController.getGenerateJob",
         "parameters": [
           {
             "in": "path",
@@ -16415,7 +15704,7 @@
     },
     "/admin/fleet/infrastructure/cloudfront/invalidate": {
       "post": {
-        "operationId": "AdminFleetController.invalidateCloudFront[0]",
+        "operationId": "AdminFleetController.invalidateCloudFront",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -16440,7 +15729,7 @@
     },
     "/admin/fleet/infrastructure/ec2/action": {
       "post": {
-        "operationId": "AdminFleetController.ec2Action[0]",
+        "operationId": "AdminFleetController.ec2Action",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -16465,7 +15754,7 @@
     },
     "/admin/fleet/infrastructure/ec2/action-all": {
       "post": {
-        "operationId": "AdminFleetController.ec2ActionAll[0]",
+        "operationId": "AdminFleetController.ec2ActionAll",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -16490,7 +15779,7 @@
     },
     "/admin/fleet/infrastructure/ec2/status": {
       "get": {
-        "operationId": "AdminFleetController.getEC2Status[0]",
+        "operationId": "AdminFleetController.getEC2Status",
         "parameters": [],
         "responses": {
           "200": {
@@ -16505,7 +15794,7 @@
     },
     "/admin/fleet/infrastructure/fleet/health": {
       "get": {
-        "operationId": "AdminFleetController.getFleetHealth[0]",
+        "operationId": "AdminFleetController.getFleetHealth",
         "parameters": [],
         "responses": {
           "200": {
@@ -16520,7 +15809,7 @@
     },
     "/admin/fleet/infrastructure/services": {
       "get": {
-        "operationId": "AdminFleetController.getServiceHealth[0]",
+        "operationId": "AdminFleetController.getServiceHealth",
         "parameters": [],
         "responses": {
           "200": {
@@ -16535,7 +15824,7 @@
     },
     "/admin/fleet/lip-sync": {
       "post": {
-        "operationId": "AdminFleetController.generateLipSync[0]",
+        "operationId": "AdminFleetController.generateLipSync",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -16560,7 +15849,7 @@
     },
     "/admin/fleet/lip-sync/{jobId}": {
       "get": {
-        "operationId": "AdminFleetController.getLipSyncStatus[0]",
+        "operationId": "AdminFleetController.getLipSyncStatus",
         "parameters": [
           {
             "in": "path",
@@ -16584,7 +15873,7 @@
     },
     "/admin/fleet/pipeline/campaigns": {
       "get": {
-        "operationId": "AdminFleetController.listCampaigns[0]",
+        "operationId": "AdminFleetController.listCampaigns",
         "parameters": [],
         "responses": {
           "200": {
@@ -16599,7 +15888,7 @@
     },
     "/admin/fleet/pipeline/stats": {
       "get": {
-        "operationId": "AdminFleetController.getPipelineStats[0]",
+        "operationId": "AdminFleetController.getPipelineStats",
         "parameters": [],
         "responses": {
           "200": {
@@ -16614,7 +15903,7 @@
     },
     "/admin/fleet/training-data": {
       "post": {
-        "operationId": "AdminFleetController.generateAllTrainingData[0]",
+        "operationId": "AdminFleetController.generateAllTrainingData",
         "parameters": [],
         "responses": {
           "201": {
@@ -16629,7 +15918,7 @@
     },
     "/admin/fleet/trainings": {
       "get": {
-        "operationId": "AdminFleetController.listTrainings[0]",
+        "operationId": "AdminFleetController.listTrainings",
         "parameters": [],
         "responses": {
           "200": {
@@ -16642,7 +15931,7 @@
         ]
       },
       "post": {
-        "operationId": "AdminFleetController.startTraining[0]",
+        "operationId": "AdminFleetController.startTraining",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -16667,7 +15956,7 @@
     },
     "/admin/fleet/trainings/{id}": {
       "get": {
-        "operationId": "AdminFleetController.getTraining[0]",
+        "operationId": "AdminFleetController.getTraining",
         "parameters": [
           {
             "in": "path",
@@ -16691,7 +15980,7 @@
     },
     "/admin/fleet/voices": {
       "get": {
-        "operationId": "AdminFleetController.listVoices[0]",
+        "operationId": "AdminFleetController.listVoices",
         "parameters": [],
         "responses": {
           "200": {
@@ -16706,7 +15995,7 @@
     },
     "/admin/fleet/voices/generate": {
       "post": {
-        "operationId": "AdminFleetController.generateVoice[0]",
+        "operationId": "AdminFleetController.generateVoice",
         "parameters": [],
         "requestBody": {
           "content": {

@@ -5,7 +5,7 @@ import type { SourceTool } from '../../../interfaces/source-tool.interface.js';
  *
  * The darkroom/LoRA/GPU/training fleet-control tools were removed from the OSS
  * MCP surface in PR 5/6: they are `requiredRole: 'superadmin'` and the only
- * matching OSS API lives on the `['admin/fleet','admin/darkroom']` controller
+ * matching OSS API lives on the `['admin/fleet']` controller
  * behind `SuperAdminGuard` + `IpWhitelistGuard`, which an org-scoped `gf_` MCP
  * API key can never satisfy — so they 404/403 by construction on the public
  * MCP. Managed inference/fleet control is a private-console concern (kept out of
