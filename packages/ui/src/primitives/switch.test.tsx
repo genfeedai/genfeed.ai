@@ -31,9 +31,7 @@ describe('Switch', () => {
       'data-[state=checked]:[&>span]:!translate-x-4',
     );
     expect(root.className).toContain('data-[state=checked]:!bg-white');
-    expect(root.className).toContain(
-      'data-[state=checked]:[&>span]:!bg-black',
-    );
+    expect(root.className).toContain('data-[state=checked]:[&>span]:!bg-black');
   });
 
   it('toggles aria-checked when clicked', async () => {

@@ -164,9 +164,7 @@ export default function MenuBrandSwitcher({
           ? SWITCHER_COMPOSITE_TRIGGER_CLASSNAME
           : SWITCHER_TRIGGER_CLASSNAME,
         isUpdating && 'cursor-not-allowed opacity-50',
-        !shouldShowClearSelection &&
-          isOpen &&
-          SWITCHER_TRIGGER_OPEN_CLASSNAME,
+        !shouldShowClearSelection && isOpen && SWITCHER_TRIGGER_OPEN_CLASSNAME,
       )}
       ariaLabel="Switch brand"
       title={selectedBrandLabel}

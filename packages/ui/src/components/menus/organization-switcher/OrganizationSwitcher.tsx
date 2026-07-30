@@ -220,10 +220,7 @@ export default function OrganizationSwitcher({
               {isSwitching ? 'Switching\u2026' : displayLabel}
             </span>
             <ChevronDown
-              className={cn(
-                SWITCHER_CHEVRON_CLASSNAME,
-                isOpen && 'rotate-180',
-              )}
+              className={cn(SWITCHER_CHEVRON_CLASSNAME, isOpen && 'rotate-180')}
             />
           </div>
         )}

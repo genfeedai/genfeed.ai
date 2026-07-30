@@ -238,14 +238,16 @@ describe('SwitcherDropdown', () => {
     // Active row: persistent selected wash + check
     expect(alphaRow).toHaveClass('bg-foreground/[0.08]');
     expect(alphaRow).not.toHaveClass('hover:bg-foreground/[0.05]');
-    expect(screen.getByTestId('switcher-item-active-check')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('switcher-item-active-check'),
+    ).toBeInTheDocument();
 
     // Inactive row: lighter hover / keyboard highlight only
     expect(betaRow).toHaveClass('hover:bg-foreground/[0.05]');
     expect(betaRow).not.toHaveClass('bg-foreground/[0.08]');
-    expect(
-      screen.queryAllByTestId('switcher-item-active-check'),
-    ).toHaveLength(1);
+    expect(screen.queryAllByTestId('switcher-item-active-check')).toHaveLength(
+      1,
+    );
   });
 
   it('shows search when hasSearch is true', () => {

@@ -1,13 +1,13 @@
 'use client';
 
 import type { StoryboardFrame } from '@genfeedai/client/schemas';
+import { useGalleryModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import {
   ButtonSize,
   ButtonVariant,
   IngredientCategory,
   IngredientFormat,
 } from '@genfeedai/enums';
-import { useGalleryModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import type { IImage, IVideo } from '@genfeedai/interfaces';
 import { StoryboardPanel } from '@pages/studio/generate/components/StoryboardPanel';
 import {
@@ -156,9 +156,11 @@ export default function StoryboardWorkspace() {
       format,
       maxSelectableItems: 20,
       onSelect: (selected) => {
-        const items = (
-          Array.isArray(selected) ? selected : selected ? [selected] : []
-        ) as unknown as IImage[];
+        const items = (Array.isArray(selected)
+          ? selected
+          : selected
+            ? [selected]
+            : []) as unknown as IImage[];
         addSceneImages(items);
       },
       title: 'Add images to storyboard',
@@ -171,9 +173,11 @@ export default function StoryboardWorkspace() {
       format,
       maxSelectableItems: 10,
       onSelect: (selected) => {
-        const items = (
-          Array.isArray(selected) ? selected : selected ? [selected] : []
-        ) as unknown as IVideo[];
+        const items = (Array.isArray(selected)
+          ? selected
+          : selected
+            ? [selected]
+            : []) as unknown as IVideo[];
         addMergeVideos(items);
       },
       title: 'Select videos to merge',

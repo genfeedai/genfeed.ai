@@ -254,7 +254,6 @@ describe('BrandSettingsInterviewPage', () => {
   });
 
   it('writes drafts to the zustand store and submits from persisted value', async () => {
-    mocks.draftGet.mockReturnValue('Acme Corp');
     mocks.useBrandInterview = {
       ...mocks.useBrandInterview,
       currentQuestion: {
@@ -272,7 +271,8 @@ describe('BrandSettingsInterviewPage', () => {
 
     render(<BrandSettingsInterviewPage />);
 
-    fireEvent.change(screen.getByLabelText('Interview answer'), {
+    const answerField = screen.getByLabelText('Interview answer');
+    fireEvent.change(answerField, {
       target: { value: 'Acme Corp' },
     });
     expect(mocks.draftSet).toHaveBeenCalledWith(
@@ -280,6 +280,12 @@ describe('BrandSettingsInterviewPage', () => {
       'label',
       'Acme Corp',
     );
+
+    // Re-render so selector reads the Map-backed draft after setAnswer.
+    mocks.draftGet.mockReturnValue('Acme Corp');
+    fireEvent.change(answerField, {
+      target: { value: 'Acme Corp' },
+    });
 
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
@@ -360,7 +366,8 @@ describe('BrandSettingsInterviewPage', () => {
     render(<BrandSettingsInterviewPage />);
 
     expect(screen.getByText('Interview complete')).toBeVisible();
-    expect(screen.getByText(/85%/)).toBeVisible();
+    // Score appears in the description and the progress label.
+    expect(screen.getAllByText(/85%/).length).toBeGreaterThan(0);
   });
 
   it('clears drafts and refreshes brand when interview completes', async () => {

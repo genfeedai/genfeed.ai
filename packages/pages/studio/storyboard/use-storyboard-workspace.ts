@@ -306,17 +306,14 @@ export function useStoryboardWorkspace() {
     } finally {
       setIsMerging(false);
     }
-  }, [
-    getVideosService,
-    notificationsService,
-    setGeneratedAssetId,
-    storyboard,
-  ]);
+  }, [getVideosService, notificationsService, setGeneratedAssetId, storyboard]);
 
   const addMergeVideos = useCallback((videos: IVideo[]) => {
     setMergeVideoIds((current) => {
       const existing = new Set(current.map((video) => video.id));
-      const next = videos.filter((video) => video.id && !existing.has(video.id));
+      const next = videos.filter(
+        (video) => video.id && !existing.has(video.id),
+      );
       return next.length > 0 ? [...current, ...next] : current;
     });
   }, []);

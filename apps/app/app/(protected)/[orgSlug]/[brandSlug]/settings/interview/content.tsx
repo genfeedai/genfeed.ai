@@ -6,7 +6,6 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import { useBrandInterview } from '@hooks/utils/use-brand-interview/use-brand-interview';
 import { BrandInterviewService } from '@services/social/brand-interview.service';
-import { useBrandInterviewDraftStore } from '@/store/brand-interview-draft.store';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
@@ -29,6 +28,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { useBrandInterviewDraftStore } from '@/store/brand-interview-draft.store';
 
 const INTERVIEW_CREDIT_COST = 10;
 
@@ -43,13 +43,7 @@ function serializeListDraft(items: string[]): string {
   return items.join('\n');
 }
 
-function ProgressBar({
-  label,
-  percent,
-}: {
-  label: string;
-  percent: number;
-}) {
+function ProgressBar({ label, percent }: { label: string; percent: number }) {
   return (
     <div className="flex items-center gap-3">
       <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
@@ -296,7 +290,9 @@ export default function BrandSettingsInterviewPage() {
   const answerValue = useBrandInterviewDraftStore((state) =>
     brandId && fieldKey ? state.getAnswer(brandId, fieldKey) : '',
   );
-  const setDraftAnswer = useBrandInterviewDraftStore((state) => state.setAnswer);
+  const setDraftAnswer = useBrandInterviewDraftStore(
+    (state) => state.setAnswer,
+  );
   const clearDraftAnswer = useBrandInterviewDraftStore(
     (state) => state.clearAnswer,
   );
@@ -372,13 +368,7 @@ export default function BrandSettingsInterviewPage() {
     }
     await submitAnswer(trimmed);
     clearDraftAnswer(brandId, currentQuestion.fieldKey);
-  }, [
-    answerValue,
-    brandId,
-    clearDraftAnswer,
-    currentQuestion,
-    submitAnswer,
-  ]);
+  }, [answerValue, brandId, clearDraftAnswer, currentQuestion, submitAnswer]);
 
   const handleSkip = useCallback(async () => {
     if (!brandId || !currentQuestion) {
