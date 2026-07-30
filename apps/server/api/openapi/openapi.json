@@ -362,6 +362,7 @@
         "type": "object"
       },
       "ArticleCategory": {
+        "description": "Article category",
         "enum": [
           "post",
           "tutorial",
@@ -380,6 +381,7 @@
         "type": "string"
       },
       "ArticleStatus": {
+        "description": "Article status",
         "enum": [
           "draft",
           "processing",
@@ -1116,15 +1118,6 @@
         "required": [
           "name"
         ],
-        "type": "object"
-      },
-      "CloneWorkflowDto": {
-        "properties": {
-          "brandId": {
-            "description": "Target brand ID for the duplicated workflow. Defaults to the current selected brand.",
-            "type": "string"
-          }
-        },
         "type": "object"
       },
       "CloudFrontInvalidateDto": {
@@ -3836,6 +3829,75 @@
         ],
         "type": "object"
       },
+      "CreateOrganizationDto": {
+        "properties": {
+          "accountType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrganizationCategory"
+              }
+            ],
+            "description": "Account type selected during onboarding (creator, business, or agency)"
+          },
+          "authProviderOrganizationId": {
+            "description": "legacy auth provider organization ID used to synchronize organization state",
+            "type": "object"
+          },
+          "category": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrganizationCategory"
+              }
+            ],
+            "default": "business",
+            "description": "The category of the organization (creator, business, or agency)"
+          },
+          "isProactiveOnboarding": {
+            "default": false,
+            "description": "Whether this organization is a proactive onboarding shadow workspace",
+            "type": "boolean"
+          },
+          "isSelected": {
+            "default": false,
+            "description": "Whether this organization is currently selected",
+            "type": "boolean"
+          },
+          "label": {
+            "description": "The display name of the organization",
+            "type": "string"
+          },
+          "onboardingCompleted": {
+            "default": false,
+            "description": "Whether onboarding has been completed for this organization",
+            "type": "boolean"
+          },
+          "prefix": {
+            "description": "Unique 3-letter uppercase prefix for issue identifiers (e.g., GEN)",
+            "example": "GEN",
+            "maxLength": 3,
+            "minLength": 3,
+            "pattern": "^[A-Z]{3}$",
+            "type": "string"
+          },
+          "slug": {
+            "description": "URL-friendly slug for the organization (auto-generated from label if not provided)",
+            "example": "genfeed-ai",
+            "maxLength": 48,
+            "minLength": 2,
+            "type": "string"
+          },
+          "user": {
+            "description": "The user ID who owns this organization",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user",
+          "label",
+          "isSelected"
+        ],
+        "type": "object"
+      },
       "CreateOutreachCampaignDto": {
         "properties": {
           "aiConfig": {
@@ -5588,7 +5650,7 @@
             "type": "string"
           },
           "sourceWorkflowId": {
-            "description": "When set, create is a clone of this workflow (preferred over POST /workflows/:id/clone).",
+            "description": "When set, create is a clone of this workflow (POST /workflows body clone).",
             "type": "string"
           },
           "startedAt": {
@@ -8262,6 +8324,15 @@
         },
         "type": "object"
       },
+      "OrganizationCategory": {
+        "description": "The category of the organization (creator, business, or agency)",
+        "enum": [
+          "creator",
+          "business",
+          "agency"
+        ],
+        "type": "string"
+      },
       "OutreachCampaignAiConfigDto": {
         "properties": {
           "context": {
@@ -8681,6 +8752,7 @@
         "type": "string"
       },
       "PostStatus": {
+        "description": "The current status of the post",
         "enum": [
           "public",
           "private",
@@ -14317,7 +14389,7 @@
             "type": "string"
           },
           "sourceWorkflowId": {
-            "description": "When set, create is a clone of this workflow (preferred over POST /workflows/:id/clone).",
+            "description": "When set, create is a clone of this workflow (POST /workflows body clone).",
             "type": "string"
           },
           "startedAt": {
@@ -21530,110 +21602,6 @@
         ]
       }
     },
-    "/brands/{brandId}/activities": {
-      "get": {
-        "operationId": "BrandsRelationshipsController.findAllActivities",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "brandId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findAllActivities",
-        "tags": [
-          "brands"
-        ]
-      }
-    },
     "/brands/{brandId}/analytics": {
       "get": {
         "operationId": "BrandsRelationshipsController.findBrandAnalytics",
@@ -21749,180 +21717,6 @@
           }
         },
         "summary": "findBrandAnalyticsTimeSeries",
-        "tags": [
-          "brands"
-        ]
-      }
-    },
-    "/brands/{brandId}/articles": {
-      "get": {
-        "operationId": "BrandsRelationshipsController.findBrandArticles",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "brandId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Search articles by title or content",
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter articles by status using repeated query keys (e.g., ?status=draft&status=published).",
-            "in": "query",
-            "name": "status",
-            "required": false,
-            "schema": {
-              "items": {
-                "$ref": "#/components/schemas/ArticleStatus"
-              },
-              "type": "array"
-            }
-          },
-          {
-            "description": "Filter articles by category",
-            "in": "query",
-            "name": "category",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/ArticleCategory"
-            }
-          },
-          {
-            "description": "Filter articles by tag ID",
-            "in": "query",
-            "name": "tag",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter articles by access scope",
-            "in": "query",
-            "name": "scope",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/AssetScope"
-            }
-          },
-          {
-            "description": "Field to sort by",
-            "in": "query",
-            "name": "sortBy",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Sort order (ascending or descending)",
-            "in": "query",
-            "name": "sortOrder",
-            "required": false,
-            "schema": {
-              "enum": [
-                "asc",
-                "desc"
-              ],
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findBrandArticles",
         "tags": [
           "brands"
         ]
@@ -22487,332 +22281,6 @@
         ]
       }
     },
-    "/brands/{brandId}/credentials": {
-      "get": {
-        "operationId": "BrandsRelationshipsController.findBrandCredentials",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "brandId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findBrandCredentials",
-        "tags": [
-          "brands"
-        ]
-      }
-    },
-    "/brands/{brandId}/images": {
-      "get": {
-        "operationId": "BrandsRelationshipsController.findBrandImages",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "brandId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by parent image ID",
-            "in": "query",
-            "name": "parent",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by status using repeated query keys (e.g., ?status=completed&status=failed). Defaults to [\"draft\", \"uploaded\", \"completed\"] when not specified.",
-            "in": "query",
-            "name": "status",
-            "required": false,
-            "schema": {
-              "example": [
-                "completed",
-                "failed"
-              ],
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          },
-          {
-            "description": "Filter by scope/visibility level",
-            "in": "query",
-            "name": "scope",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/AssetScope"
-            }
-          },
-          {
-            "description": "Filter by reference image ID",
-            "in": "query",
-            "name": "references",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by image format",
-            "in": "query",
-            "name": "format",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by provider",
-            "in": "query",
-            "name": "provider",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Search images by text",
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by folder ID",
-            "in": "query",
-            "name": "folder",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by training ID",
-            "in": "query",
-            "name": "training",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Use lightweight mode (skip expensive lookups for gallery views)",
-            "in": "query",
-            "name": "lightweight",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by public gallery visibility (for getshareable.app)",
-            "in": "query",
-            "name": "isPublic",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded, plus brand-default images), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
-            "in": "query",
-            "name": "latest",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findBrandImages",
-        "tags": [
-          "brands"
-        ]
-      }
-    },
     "/brands/{brandId}/interview": {
       "post": {
         "operationId": "BrandInterviewController.start",
@@ -22856,110 +22324,6 @@
           }
         },
         "summary": "getActiveForBrand",
-        "tags": [
-          "brands"
-        ]
-      }
-    },
-    "/brands/{brandId}/links": {
-      "get": {
-        "operationId": "BrandsRelationshipsController.findBrandLinks",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "brandId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findBrandLinks",
         "tags": [
           "brands"
         ]
@@ -23055,110 +22419,6 @@
         },
         "tags": [
           "BrandMemory"
-        ]
-      }
-    },
-    "/brands/{brandId}/musics": {
-      "get": {
-        "operationId": "BrandsRelationshipsController.findBrandMusics",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "brandId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findBrandMusics",
-        "tags": [
-          "brands"
         ]
       }
     },
@@ -23395,179 +22655,6 @@
         ]
       }
     },
-    "/brands/{brandId}/posts": {
-      "get": {
-        "operationId": "BrandsRelationshipsController.findAllPosts",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "brandId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Separate posts that have been published from work in progress",
-            "in": "query",
-            "name": "publicationState",
-            "required": false,
-            "schema": {
-              "enum": [
-                "posted",
-                "not-posted"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Search post labels and descriptions",
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter posts scheduled after this date (ISO 8601 format)",
-            "in": "query",
-            "name": "startDate",
-            "required": false,
-            "schema": {
-              "example": "2024-01-01T00:00:00.000Z",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter posts scheduled before this date (ISO 8601 format)",
-            "in": "query",
-            "name": "endDate",
-            "required": false,
-            "schema": {
-              "example": "2024-01-31T23:59:59.999Z",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter posts by platform",
-            "in": "query",
-            "name": "platform",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/CredentialPlatform"
-            }
-          },
-          {
-            "description": "Filter posts by status",
-            "in": "query",
-            "name": "status",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/PostStatus"
-            }
-          },
-          {
-            "description": "Filter posts by credential ID",
-            "in": "query",
-            "name": "credential",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findAllPosts",
-        "tags": [
-          "brands"
-        ]
-      }
-    },
     "/brands/{brandId}/schedules": {
       "get": {
         "operationId": "ContentSchedulesController.list",
@@ -23798,218 +22885,6 @@
         },
         "tags": [
           "ContentSchedules"
-        ]
-      }
-    },
-    "/brands/{brandId}/videos": {
-      "get": {
-        "operationId": "BrandsRelationshipsController.findBrandVideos",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "brandId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by status using repeated query keys (e.g., ?status=completed&status=failed). Defaults to [\"draft\", \"uploaded\", \"completed\"] when not specified.",
-            "in": "query",
-            "name": "status",
-            "required": false,
-            "schema": {
-              "example": [
-                "completed",
-                "failed"
-              ],
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          },
-          {
-            "description": "Filter by training ID",
-            "in": "query",
-            "name": "training",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by scope/visibility level",
-            "in": "query",
-            "name": "scope",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/AssetScope"
-            }
-          },
-          {
-            "description": "Filter by reference video ID",
-            "in": "query",
-            "name": "reference",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by video format",
-            "in": "query",
-            "name": "format",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by parent video ID",
-            "in": "query",
-            "name": "parent",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by folder ID",
-            "in": "query",
-            "name": "folder",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by provider",
-            "in": "query",
-            "name": "provider",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Search videos by text",
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Use lightweight mode (skip expensive lookups for masonry/gallery views)",
-            "in": "query",
-            "name": "lightweight",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
-            "in": "query",
-            "name": "latest",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findBrandVideos",
-        "tags": [
-          "brands"
         ]
       }
     },
@@ -35151,7 +34026,7 @@
             }
           },
           {
-            "description": "When true, return membership summaries for the current user (cross-org). Replaces GET /organizations/mine.",
+            "description": "When true, return membership summaries for the current user (cross-org).",
             "in": "query",
             "name": "mine",
             "required": false,
@@ -35178,6 +34053,16 @@
       "post": {
         "operationId": "OrganizationsController.create",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrganizationDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
@@ -35218,46 +34103,6 @@
           }
         ],
         "summary": "findBySlug",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
-    "/organizations/create": {
-      "post": {
-        "operationId": "OrganizationsController.createOrganization",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "createOrganization",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
-    "/organizations/mine": {
-      "get": {
-        "operationId": "OrganizationsController.findMine",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "findMine",
         "tags": [
           "organizations"
         ]
@@ -35370,115 +34215,6 @@
           }
         ],
         "summary": "patch",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
-    "/organizations/{organizationId}/activities": {
-      "get": {
-        "operationId": "OrganizationsRelationshipsController.findAllActivities",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "organizationId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "findAllActivities",
         "tags": [
           "organizations"
         ]
@@ -35784,124 +34520,6 @@
           }
         ],
         "summary": "findAnalyticsTopContent",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
-    "/organizations/{organizationId}/brands": {
-      "get": {
-        "operationId": "OrganizationsRelationshipsController.findAllBrands",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "organizationId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "When true, return membership summaries for the current user (cross-org). Replaces GET /organizations/mine.",
-            "in": "query",
-            "name": "mine",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "findAllBrands",
         "tags": [
           "organizations"
         ]
@@ -36526,184 +35144,6 @@
         ]
       }
     },
-    "/organizations/{organizationId}/posts": {
-      "get": {
-        "operationId": "OrganizationsRelationshipsController.findAllPosts",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "organizationId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Separate posts that have been published from work in progress",
-            "in": "query",
-            "name": "publicationState",
-            "required": false,
-            "schema": {
-              "enum": [
-                "posted",
-                "not-posted"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Search post labels and descriptions",
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter posts scheduled after this date (ISO 8601 format)",
-            "in": "query",
-            "name": "startDate",
-            "required": false,
-            "schema": {
-              "example": "2024-01-01T00:00:00.000Z",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter posts scheduled before this date (ISO 8601 format)",
-            "in": "query",
-            "name": "endDate",
-            "required": false,
-            "schema": {
-              "example": "2024-01-31T23:59:59.999Z",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter posts by platform",
-            "in": "query",
-            "name": "platform",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/CredentialPlatform"
-            }
-          },
-          {
-            "description": "Filter posts by status",
-            "in": "query",
-            "name": "status",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/PostStatus"
-            }
-          },
-          {
-            "description": "Filter posts by credential ID",
-            "in": "query",
-            "name": "credential",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "findAllPosts",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
     "/organizations/{organizationId}/settings": {
       "get": {
         "operationId": "OrganizationsSettingsController.getSettings",
@@ -37147,115 +35587,6 @@
         ]
       }
     },
-    "/organizations/{organizationId}/tags": {
-      "get": {
-        "operationId": "OrganizationsRelationshipsController.findAllTags",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "organizationId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "findAllTags",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
     "/organizations/{organizationId}/twitter-pipeline/draft": {
       "post": {
         "operationId": "TwitterPipelineController.draft",
@@ -37352,223 +35683,6 @@
         },
         "tags": [
           "TwitterPipeline"
-        ]
-      }
-    },
-    "/organizations/{organizationId}/videos": {
-      "get": {
-        "operationId": "OrganizationsRelationshipsController.findAllVideos",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "organizationId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by status using repeated query keys (e.g., ?status=completed&status=failed). Defaults to [\"draft\", \"uploaded\", \"completed\"] when not specified.",
-            "in": "query",
-            "name": "status",
-            "required": false,
-            "schema": {
-              "example": [
-                "completed",
-                "failed"
-              ],
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          },
-          {
-            "description": "Filter by training ID",
-            "in": "query",
-            "name": "training",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by scope/visibility level",
-            "in": "query",
-            "name": "scope",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/AssetScope"
-            }
-          },
-          {
-            "description": "Filter by reference video ID",
-            "in": "query",
-            "name": "reference",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by video format",
-            "in": "query",
-            "name": "format",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by parent video ID",
-            "in": "query",
-            "name": "parent",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by folder ID",
-            "in": "query",
-            "name": "folder",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by provider",
-            "in": "query",
-            "name": "provider",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Search videos by text",
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Use lightweight mode (skip expensive lookups for masonry/gallery views)",
-            "in": "query",
-            "name": "lightweight",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
-            "in": "query",
-            "name": "latest",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "findAllVideos",
-        "tags": [
-          "organizations"
         ]
       }
     },
@@ -42124,43 +40238,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update run status/output/progress",
-        "tags": [
-          "Runs"
-        ]
-      }
-    },
-    "/runs/{runId}/cancel": {
-      "post": {
-        "operationId": "RunsController.cancel",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "runId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RunEntity"
-                }
-              }
-            },
-            "description": "Run cancelled"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Cancel a run",
+        "summary": "Update run status/output/progress (cancel via { status: cancelled })",
         "tags": [
           "Runs"
         ]
@@ -52190,7 +50268,7 @@
             }
           },
           {
-            "description": "When `statistics`, return aggregated workflow stats for the org instead of the list. Preferred over GET /workflows/statistics.",
+            "description": "When `statistics`, return aggregated workflow stats for the org instead of the list.",
             "in": "query",
             "name": "view",
             "required": false,
@@ -52477,21 +50555,6 @@
         ]
       }
     },
-    "/workflows/statistics": {
-      "get": {
-        "operationId": "WorkflowCrudController.getStatistics",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "getStatistics",
-        "tags": [
-          "workflows"
-        ]
-      }
-    },
     "/workflows/templates": {
       "get": {
         "operationId": "WorkflowMarketplaceController.getTemplates",
@@ -52619,40 +50682,6 @@
           }
         },
         "summary": "runBatch",
-        "tags": [
-          "workflows"
-        ]
-      }
-    },
-    "/workflows/{workflowId}/clone": {
-      "post": {
-        "operationId": "WorkflowCrudController.cloneWorkflow",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "workflowId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CloneWorkflowDto"
-              }
-            }
-          },
-          "required": false
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "cloneWorkflow",
         "tags": [
           "workflows"
         ]

@@ -132,8 +132,8 @@ describe('PostGroupsController', () => {
     );
   });
 
-  it('routes publish-now through the service', async () => {
-    await controller.publishNow(req, user, 'group-1');
+  it('routes publish-now through PATCH action body', async () => {
+    await controller.update(req, user, 'group-1', { action: 'publish-now' });
 
     expect(service.publishNow).toHaveBeenCalledWith(
       'org-1',
@@ -142,7 +142,7 @@ describe('PostGroupsController', () => {
     );
   });
 
-  it('routes recurrence preview and series lifecycle through the scoped service', async () => {
+  it('routes recurrence preview and series lifecycle through PATCH actions', async () => {
     const previewBody = {
       recurrence: { frequency: 'weekly', interval: 1 },
       startAt: '2026-08-03T09:00:00.000Z',
@@ -150,9 +150,11 @@ describe('PostGroupsController', () => {
     };
 
     await controller.previewRecurrence(previewBody);
-    await controller.pauseSeries(req, user, 'group-1');
-    await controller.resumeSeries(req, user, 'group-1');
-    await controller.cancelFutureSeries(req, user, 'group-1');
+    await controller.update(req, user, 'group-1', { action: 'series-pause' });
+    await controller.update(req, user, 'group-1', { action: 'series-resume' });
+    await controller.update(req, user, 'group-1', {
+      action: 'series-cancel-future',
+    });
     await controller.editFutureSeries(req, user, 'group-1', {
       scheduledDate: '2026-08-12T09:00:00.000Z',
     });
@@ -209,25 +211,17 @@ describe('PostGroupsController', () => {
         PostGroupsController.prototype.updateTarget,
       ),
     ).toEqual([ApiKeyScope.POSTS_SCHEDULE, ApiKeyScope.POSTS_PUBLISH]);
-    for (const handler of [
-      PostGroupsController.prototype.cancel,
-      PostGroupsController.prototype.cancelFutureSeries,
-      PostGroupsController.prototype.editFutureSeries,
-      PostGroupsController.prototype.pause,
-      PostGroupsController.prototype.pauseSeries,
-      PostGroupsController.prototype.previewRecurrence,
-      PostGroupsController.prototype.resume,
-      PostGroupsController.prototype.resumeSeries,
-    ]) {
-      expect(Reflect.getMetadata(API_KEY_SCOPES_KEY, handler)).toEqual([
-        ApiKeyScope.POSTS_SCHEDULE,
-      ]);
-    }
     expect(
       Reflect.getMetadata(
         API_KEY_SCOPES_KEY,
-        PostGroupsController.prototype.publishNow,
+        PostGroupsController.prototype.editFutureSeries,
       ),
-    ).toEqual([ApiKeyScope.POSTS_PUBLISH]);
+    ).toEqual([ApiKeyScope.POSTS_SCHEDULE]);
+    expect(
+      Reflect.getMetadata(
+        API_KEY_SCOPES_KEY,
+        PostGroupsController.prototype.previewRecurrence,
+      ),
+    ).toEqual([ApiKeyScope.POSTS_SCHEDULE]);
   });
 });

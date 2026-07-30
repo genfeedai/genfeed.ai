@@ -7,7 +7,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandsRelationshipsController } from '@api/collections/brands/controllers/relationships/brands-relationships.controller';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { MusicsService } from '@api/collections/musics/services/musics.service';
+
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -50,9 +50,6 @@ describe('BrandsRelationshipsController', () => {
       findAll: vi.fn().mockResolvedValue({ docs: [] }),
     },
     loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
-    musicsService: {
-      findAll: vi.fn().mockResolvedValue({ docs: [], total: 0 }),
-    },
     request: {
       params: {},
       query: {},
@@ -78,7 +75,6 @@ describe('BrandsRelationshipsController', () => {
           useValue: mockServices.credentialsService,
         },
         { provide: LoggerService, useValue: mockServices.loggerService },
-        { provide: MusicsService, useValue: mockServices.musicsService },
       ],
     })
       .overrideGuard(RolesGuard)
@@ -97,20 +93,6 @@ describe('BrandsRelationshipsController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
-  });
-
-  describe('findBrandMusics', () => {
-    it('should return musics for brand', async () => {
-      const result = await controller.findBrandMusics(
-        {} as unknown as Request,
-        '507f1f77bcf86cd799439013',
-        mockUser,
-        {},
-      );
-
-      expect(mockServices.musicsService.findAll).toHaveBeenCalled();
-      expect(result).toBeDefined();
-    });
   });
 
   describe('findBrandAnalytics', () => {

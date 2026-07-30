@@ -112,7 +112,8 @@ describe('AgentChatInput', () => {
     expect(
       screen.queryByText('Default Workspace · Default Brand'),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Actions')).toBeInTheDocument();
+    // Inspector density is compact: actions control is icon-only (no "Actions" label).
+    expect(screen.queryByText('Actions')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Open composer actions')).toBeInTheDocument();
     expect(getComputedStyle(screen.getByRole('textbox')).minHeight).toBe(
       '56px',

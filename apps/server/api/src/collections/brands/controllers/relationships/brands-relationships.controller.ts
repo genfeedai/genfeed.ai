@@ -1,24 +1,17 @@
 /**
  * Brands Relationships Controller
- * Handles brand relationship routes that are not yet available as flat
- * collection filters (musics) and brand analytics aggregates.
+ * Brand analytics aggregates (no flat dual yet).
  *
- * Prefer flat lists for media and related collections:
- * - GET /videos?brand=
- * - GET /images?brand=
- * - GET /articles?brand=
- * - GET /credentials?brand=
- * - GET /links?brand=
- * - GET /posts?brand=
- * - GET /activities?brand=
+ * Media lists use flat collections:
+ * - GET /videos?brand= · /images?brand= · /articles?brand=
+ * - GET /credentials?brand= · /links?brand= · /posts?brand=
+ * - GET /activities?brand= · /musics?brand=
  */
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
-import { MusicsService } from '@api/collections/musics/services/musics.service';
 import {
   AnalyticsQueryDto,
   TimeSeriesQueryDto,
@@ -27,29 +20,16 @@ import { AnalyticsAggregationService } from '@api/collections/posts/services/ana
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
 } from '@api/helpers/utils/auth/auth.util';
-import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
-import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
-import {
-  serializeCollection,
-  serializeSingle,
-} from '@api/helpers/utils/response/response.util';
-import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { IngredientCategory } from '@genfeedai/enums';
-import type {
-  JsonApiCollectionResponse,
-  JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import {
   AnalyticSerializer,
   AnalyticsTimeseriesWithPlatformsSerializer,
-  MusicSerializer,
 } from '@genfeedai/serializers';
 import {
   Controller,
@@ -71,7 +51,6 @@ export class BrandsRelationshipsController {
     private readonly analyticsAggregationService: AnalyticsAggregationService,
     private readonly brandsService: BrandsService,
     private readonly credentialsService: CredentialsService,
-    private readonly musicsService: MusicsService,
   ) {}
 
   /**
@@ -114,39 +93,6 @@ export class BrandsRelationshipsController {
     }
 
     return brand;
-  }
-
-  @Get(':brandId/musics')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findBrandMusics(
-    @Req() request: Request,
-    @Param('brandId') brandId: string,
-    @CurrentUser() user: User,
-    @Query() query: BaseQueryDto,
-  ): Promise<JsonApiCollectionResponse> {
-    const options = {
-      customLabels,
-      ...QueryDefaultsUtil.getPaginationDefaults(query),
-    };
-
-    const publicMetadata = getPublicMetadata(user);
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-
-    const aggregate = {
-      where: {
-        brand: brandId,
-        category: IngredientCategory.MUSIC,
-        isDeleted,
-        user: publicMetadata.user,
-      },
-      orderBy: handleQuerySort(query.sort),
-    };
-
-    const data = (await this.musicsService.findAll(
-      aggregate,
-      options,
-    )) as unknown as AggregatePaginateResult<IngredientDocument>;
-    return serializeCollection(request, MusicSerializer, data);
   }
 
   @Get(':brandId/analytics')
