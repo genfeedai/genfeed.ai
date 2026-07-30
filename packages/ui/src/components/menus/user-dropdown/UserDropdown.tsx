@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
-import { Building2, HelpCircle, LogOut, Tag, User } from 'lucide-react';
+import { Building2, CircleQuestionMark, LogOut, Tag, User } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { ComponentType } from 'react';
@@ -57,7 +57,7 @@ export default function UserDropdown({
     },
     {
       href: APP_ROUTES.SETTINGS.HELP,
-      icon: HelpCircle,
+      icon: CircleQuestionMark,
       label: 'Help',
     },
   ];

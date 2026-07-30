@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { RefreshCw, TriangleAlert } from 'lucide-react';
 import { Component, type ReactNode } from 'react';
 import { getWorkflowLogger } from '../stores/executionLogger';
 import { Button } from '../ui/button';
@@ -48,7 +48,7 @@ export class NodeErrorBoundary extends Component<
     if (this.state.hasError) {
       return (
         <div className="flex flex-col items-center justify-center gap-3 p-4 text-center min-h-[100px]">
-          <AlertTriangle className="size-8 text-destructive" />
+          <TriangleAlert className="size-8 text-destructive" />
           <div className="space-y-1">
             <p className="text-sm font-medium text-destructive">Node Error</p>
             <p className="text-xs text-muted-foreground max-w-[200px] truncate">

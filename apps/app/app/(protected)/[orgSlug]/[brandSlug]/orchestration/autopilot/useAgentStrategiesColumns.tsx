@@ -13,13 +13,13 @@ import type { AgentStrategy } from '@services/automation/agent-strategies.servic
 import Badge from '@ui/display/badge/Badge';
 import { formatDistanceToNow } from 'date-fns';
 import {
+  CirclePlay,
   Cpu,
   FileText,
   Image,
   Megaphone,
-  PenSquare,
-  PlayCircle,
   Sparkles,
+  SquarePen,
   User,
   Video,
   Zap,
@@ -214,12 +214,12 @@ export function useAgentStrategiesColumns(
   const actions = useMemo(
     () => [
       {
-        icon: <PenSquare />,
+        icon: <SquarePen />,
         onClick: (strategy: AgentStrategy) => openEditDialog(strategy),
         tooltip: 'Edit strategy',
       },
       {
-        icon: <PlayCircle />,
+        icon: <CirclePlay />,
         isDisabled: (strategy: AgentStrategy) =>
           !strategy.isActive || !strategy.isEnabled,
         onClick: (strategy: AgentStrategy) => {

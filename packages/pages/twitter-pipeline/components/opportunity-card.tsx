@@ -11,8 +11,8 @@ import { Textarea } from '@ui/primitives/textarea';
 import {
   ExternalLink,
   MessageCircle,
-  PenSquare,
   RefreshCw,
+  SquarePen,
 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 
@@ -138,7 +138,7 @@ export default function OpportunityCard({
         />
         <div className="flex items-center justify-between mt-1">
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <PenSquare className="size-3" />
+            <SquarePen className="size-3" />
             Edit before publishing
           </span>
           <span

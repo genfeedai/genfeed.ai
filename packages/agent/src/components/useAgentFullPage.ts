@@ -15,9 +15,9 @@ import { filterActionsByRole } from '@genfeedai/agent/utils/filter-actions-by-ro
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 import type { AgentThreadStatus, MemberRole } from '@genfeedai/enums';
 import {
-  BarChart3,
   Briefcase,
   Calendar,
+  ChartColumn,
   ClipboardCheck,
   Heart,
   Paintbrush,
@@ -39,7 +39,7 @@ const DEFAULT_AGENT_ACTIONS: SuggestedAction[] = [
     prompt: 'Show me what needs review',
   },
   {
-    icon: BarChart3({ className: 'size-5 text-foreground/50' }),
+    icon: ChartColumn({ className: 'size-5 text-foreground/50' }),
     label: 'Check performance',
     prompt: 'Summarize my recent content performance',
   },

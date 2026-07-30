@@ -5,7 +5,7 @@ import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
-import { AlertCircle, CheckCircle2, Zap } from 'lucide-react';
+import { CircleAlert, CircleCheck, Zap } from 'lucide-react';
 import { type ReactElement, useCallback, useRef, useState } from 'react';
 
 interface WorkflowTriggerCardProps {
@@ -176,7 +176,7 @@ export function WorkflowTriggerCard({
         {status === 'done' && (
           <div className="space-y-2">
             <div className="flex items-center gap-2 border border-green-200 bg-green-50 px-3 py-2 dark:border-green-800 dark:bg-green-950">
-              <CheckCircle2 className="size-4 text-green-600 dark:text-green-400" />
+              <CircleCheck className="size-4 text-green-600 dark:text-green-400" />
               <span className="text-sm text-green-700 dark:text-green-300">
                 Workflow started successfully
               </span>
@@ -196,7 +196,7 @@ export function WorkflowTriggerCard({
         {status === 'error' && (
           <div className="space-y-2">
             <div className="flex items-center gap-2 border border-red-200 bg-red-50 px-3 py-2 dark:border-red-800 dark:bg-red-950">
-              <AlertCircle className="size-4 text-red-600 dark:text-red-400" />
+              <CircleAlert className="size-4 text-red-600 dark:text-red-400" />
               <span className="text-sm text-red-700 dark:text-red-300">
                 {error}
               </span>

@@ -20,9 +20,9 @@ import { SimpleTooltip } from '@ui/primitives/tooltip';
 import {
   ArchiveX,
   CornerDownRight,
-  MoreHorizontal,
-  PenSquare,
+  Ellipsis,
   Pin,
+  SquarePen,
   Undo2,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -272,7 +272,7 @@ export function AgentThreadListRow({
                 event.stopPropagation();
               }}
             >
-              <MoreHorizontal className="size-4" />
+              <Ellipsis className="size-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
@@ -297,7 +297,7 @@ export function AgentThreadListRow({
                 onStartRename(conv);
               }}
             >
-              <PenSquare className="size-4" />
+              <SquarePen className="size-4" />
               Rename
             </DropdownMenuItem>
             <DropdownMenuItem

@@ -5,9 +5,9 @@ import type { GlobalModalsContextValue } from '@providers/global-modals/global-m
 import type { ClipboardService } from '@services/core/clipboard.service';
 import { Button } from '@ui/primitives/button';
 import {
-  AlertCircle,
   Archive,
   Check,
+  CircleAlert,
   Clipboard,
   Eye,
   Pencil,
@@ -157,7 +157,7 @@ export default function ArticleDetailHeader({
         <Button
           icon={
             isDirty ? (
-              <AlertCircle className="size-4" />
+              <CircleAlert className="size-4" />
             ) : (
               <Check className="size-4" />
             )

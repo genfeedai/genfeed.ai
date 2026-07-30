@@ -2,7 +2,7 @@
 
 import type { IBatchSummary } from '@genfeedai/interfaces';
 import StatsCards from '@ui/card/stats/StatsCards';
-import { AlertTriangle, CheckCircle2, Clock, Layers } from 'lucide-react';
+import { CircleCheck, Clock, Layers, TriangleAlert } from 'lucide-react';
 
 interface ReviewStatsHeaderProps {
   batch: IBatchSummary | null;
@@ -25,14 +25,14 @@ export default function ReviewStatsHeader({
         {
           colorClass: 'bg-emerald-500/20 text-emerald-400',
           count: batch.completedCount,
-          icon: CheckCircle2,
+          icon: CircleCheck,
           label: 'Completed',
           singularLabel: 'item',
         },
         {
           colorClass: 'bg-rose-500/20 text-rose-400',
           count: batch.failedCount,
-          icon: AlertTriangle,
+          icon: TriangleAlert,
           label: 'Failed',
           singularLabel: 'item',
         },

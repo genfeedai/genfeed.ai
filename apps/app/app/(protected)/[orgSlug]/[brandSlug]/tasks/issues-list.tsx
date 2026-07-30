@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { Columns2, List, PlusCircle } from 'lucide-react';
+import { CirclePlus, Columns2, List } from 'lucide-react';
 import { type JSX, useCallback, useEffect, useReducer, useRef } from 'react';
 
 import IssueOverlay from './issue-overlay';
@@ -385,7 +385,7 @@ export default function IssuesList() {
               dispatch({ type: 'SET_SHOW_CREATE_DIALOG', payload: true })
             }
           >
-            <PlusCircle className="size-3.5" />
+            <CirclePlus className="size-3.5" />
             New Task
           </Button>
           <Select

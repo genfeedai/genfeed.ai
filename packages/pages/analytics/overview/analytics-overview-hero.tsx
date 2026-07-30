@@ -2,7 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { buttonVariants } from '@ui/primitives/button.variants';
-import { CheckCircle2, Info, LayoutGrid, TrendingUp } from 'lucide-react';
+import { CircleCheck, Info, LayoutGrid, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 
 type DashboardState = 'empty' | 'warming_up' | 'active';
@@ -42,7 +42,7 @@ export default function AnalyticsOverviewHero({
       <div className="space-y-5">
         <div className="inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-foreground/60 shadow-border">
           {dashboardState === 'active' ? (
-            <CheckCircle2 className="size-4 text-success" />
+            <CircleCheck className="size-4 text-success" />
           ) : dashboardState === 'warming_up' ? (
             <TrendingUp className="size-4 text-warning" />
           ) : (

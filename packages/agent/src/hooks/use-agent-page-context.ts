@@ -6,8 +6,8 @@ import { APP_ROUTE_PREFIXES, APP_ROUTES } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { MemberRole } from '@genfeedai/enums';
 import {
-  BarChart3,
   Calendar,
+  ChartColumn,
   ClipboardCheck,
   FileText,
   Film,
@@ -15,11 +15,11 @@ import {
   Image,
   Paintbrush,
   Pause,
-  PenSquare,
   Rocket,
   Search,
   Settings,
   Sparkles,
+  SquarePen,
   Trophy,
   Users,
   Wrench,
@@ -37,7 +37,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     placeholder: 'Ask about your analytics...',
     suggestedActions: [
       {
-        icon: BarChart3({ className: 'size-5 text-foreground/50' }),
+        icon: ChartColumn({ className: 'size-5 text-foreground/50' }),
         label: 'Compare',
         prompt: 'Compare my content performance across platforms',
       },
@@ -59,7 +59,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     placeholder: 'Ask about your AI insights...',
     suggestedActions: [
       {
-        icon: BarChart3({ className: 'size-5 text-foreground/50' }),
+        icon: ChartColumn({ className: 'size-5 text-foreground/50' }),
         label: 'Summarize',
         prompt:
           'Summarize my AI insights and tell me the highest-priority next step.',
@@ -84,7 +84,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
           'Show me the strongest creative patterns and explain how I should reuse them.',
       },
       {
-        icon: PenSquare({
+        icon: SquarePen({
           className: 'size-5 text-foreground/50',
         }),
         label: 'Remix',
@@ -104,7 +104,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
         prompt: 'Help me write a new long-form article',
       },
       {
-        icon: PenSquare({
+        icon: SquarePen({
           className: 'size-5 text-foreground/50',
         }),
         label: 'Edit',
@@ -179,7 +179,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
         prompt: 'Show me pending content in the review queue',
       },
       {
-        icon: BarChart3({ className: 'size-5 text-emerald-400' }),
+        icon: ChartColumn({ className: 'size-5 text-emerald-400' }),
         label: "Check this week's analytics",
         prompt: 'How did my content perform this week? Show me the analytics',
       },
@@ -207,7 +207,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     placeholder: 'Ask the co-pilot to improve this draft...',
     suggestedActions: [
       {
-        icon: PenSquare({
+        icon: SquarePen({
           className: 'size-5 text-foreground/50',
         }),
         label: 'Improve',
@@ -306,7 +306,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
         prompt: 'Show me pending content in the review queue',
       },
       {
-        icon: BarChart3({ className: 'size-5 text-foreground/50' }),
+        icon: ChartColumn({ className: 'size-5 text-foreground/50' }),
         label: 'Analytics',
         prompt: 'How did my content perform this week? Show me the analytics',
       },
@@ -316,7 +316,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     placeholder: 'Ask about recent activity...',
     suggestedActions: [
       {
-        icon: BarChart3({ className: 'size-5 text-foreground/50' }),
+        icon: ChartColumn({ className: 'size-5 text-foreground/50' }),
         label: 'Summary',
         prompt: 'Give me a summary of recent content activity',
       },
@@ -340,7 +340,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
         prompt: 'Help me schedule my pending posts for this week',
       },
       {
-        icon: PenSquare({
+        icon: SquarePen({
           className: 'size-5 text-foreground/50',
         }),
         label: 'Captions',
@@ -359,13 +359,13 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     placeholder: 'Ask about this post...',
     suggestedActions: [
       {
-        icon: BarChart3({ className: 'size-5 text-foreground/50' }),
+        icon: ChartColumn({ className: 'size-5 text-foreground/50' }),
         label: 'Performance',
         prompt:
           'Review this post and tell me whether I should analyze, remix, or leave it alone.',
       },
       {
-        icon: PenSquare({
+        icon: SquarePen({
           className: 'size-5 text-foreground/50',
         }),
         label: 'Remix',
@@ -390,7 +390,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
         prompt: 'Review and approve all posts that are ready to publish',
       },
       {
-        icon: PenSquare({
+        icon: SquarePen({
           className: 'size-5 text-foreground/50',
         }),
         label: 'Captions',
@@ -425,7 +425,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
           'List the best-performing ads in my niche and explain why they work.',
       },
       {
-        icon: BarChart3({ className: 'size-5 text-foreground/50' }),
+        icon: ChartColumn({ className: 'size-5 text-foreground/50' }),
         label: 'Compare',
         prompt:
           'Compare Meta Ads versus Google Ads winners for my current niche.',
@@ -469,7 +469,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
           'Show me the best-performing Meta ads for this niche and summarize the reusable angles.',
       },
       {
-        icon: PenSquare({
+        icon: SquarePen({
           className: 'size-5 text-foreground/50',
         }),
         label: 'Remix',
@@ -504,7 +504,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
         prompt: 'Help me start a new AI model training',
       },
       {
-        icon: BarChart3({ className: 'size-5 text-foreground/50' }),
+        icon: ChartColumn({ className: 'size-5 text-foreground/50' }),
         label: 'Status',
         prompt: 'Show me the status of my model trainings',
       },
@@ -544,7 +544,7 @@ const DEFAULT_CONTEXT: PageContextConfig = {
       prompt: 'Show me pending content in the review queue',
     },
     {
-      icon: BarChart3({ className: 'size-5 text-emerald-400' }),
+      icon: ChartColumn({ className: 'size-5 text-emerald-400' }),
       label: "Check this week's analytics",
       prompt: 'How did my content perform this week? Show me the analytics',
     },
@@ -607,7 +607,7 @@ export function useAgentPageContext(role?: MemberRole): PageContextConfig {
           ? Sparkles({ className: 'size-5 text-foreground/50' })
           : suggestion.intent === 'plan'
             ? Calendar({ className: 'size-5 text-foreground/50' })
-            : BarChart3({ className: 'size-5 text-foreground/50' }),
+            : ChartColumn({ className: 'size-5 text-foreground/50' }),
       label: suggestion.label,
       prompt: suggestion.prompt,
     }));

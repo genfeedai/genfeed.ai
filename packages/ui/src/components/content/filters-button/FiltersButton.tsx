@@ -4,7 +4,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import type { IFilters } from '@genfeedai/interfaces/utils/filters.interface';
 import type { FiltersBarProps } from '@genfeedai/props/ui/forms/filters.props';
 import { Button } from '@ui/primitives/button';
-import { Filter } from 'lucide-react';
+import { Funnel as Filter } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';

@@ -1,7 +1,12 @@
 /* eslint-disable react-hooks/rules-of-hooks -- Storybook render functions are invoked as story components. */
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import MenuLabel from '@ui/menus/label/MenuLabel';
-import { ChevronDown, ChevronRight, Home, Settings } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronRight,
+  House as Home,
+  Settings,
+} from 'lucide-react';
 import { useState } from 'react';
 
 /**

@@ -20,11 +20,11 @@ import CardIcon from '@ui/card/icon/CardIcon';
 import OverviewLayout from '@ui/overview/OverviewLayout';
 import { Button } from '@ui/primitives/button';
 import {
-  BarChart3,
   Calendar,
+  ChartColumn,
   ClipboardCheck,
   FileText,
-  Home,
+  House as Home,
   Image,
   MessageSquare,
   Settings,
@@ -195,7 +195,7 @@ function buildSectionSummaries(
     {
       color: 'text-muted-foreground',
       href: APP_ROUTES.ANALYTICS.OVERVIEW,
-      icon: BarChart3,
+      icon: ChartColumn,
       kicker: 'Measure',
       label: 'Analytics',
       stats: [
@@ -395,7 +395,7 @@ export default function OverviewPageContent({
         cta: 'View Analytics',
         description: 'Track cross-platform performance',
         href: APP_ROUTES.ANALYTICS.OVERVIEW,
-        icon: BarChart3,
+        icon: ChartColumn,
         id: 'analytics',
         label: 'Analytics',
       },

@@ -2,7 +2,7 @@
 import { DropdownDirection } from '@genfeedai/enums';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
-import { Filter } from 'lucide-react';
+import { Funnel as Filter } from 'lucide-react';
 import { useState } from 'react';
 
 /**

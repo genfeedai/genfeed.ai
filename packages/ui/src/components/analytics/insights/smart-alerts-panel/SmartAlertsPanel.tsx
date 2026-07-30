@@ -8,12 +8,12 @@ import ClientDateTime from '@ui/components/time/ClientDateTime';
 import { Button } from '@ui/primitives/button';
 import { formatDistanceToNow } from 'date-fns';
 import {
-  AlertTriangle,
   ArrowRight,
   Bell,
-  CheckCircle2,
+  CircleCheck,
   Info,
   Sparkles,
+  TriangleAlert,
   Trophy,
   X,
 } from 'lucide-react';
@@ -27,21 +27,21 @@ const getSeverityStyles = (
       return {
         bg: 'bg-error/10',
         border: 'border-error/30',
-        icon: AlertTriangle,
+        icon: TriangleAlert,
         text: 'text-error',
       };
     case 'warning':
       return {
         bg: 'bg-warning/10',
         border: 'border-warning/30',
-        icon: AlertTriangle,
+        icon: TriangleAlert,
         text: 'text-warning',
       };
     case 'success':
       return {
         bg: 'bg-success/10',
         border: 'border-success/30',
-        icon: CheckCircle2,
+        icon: CircleCheck,
         text: 'text-success',
       };
     default:
@@ -57,7 +57,7 @@ const getSeverityStyles = (
 const getTypeIcon = (type: string) => {
   switch (type) {
     case 'anomaly':
-      return AlertTriangle;
+      return TriangleAlert;
     case 'milestone':
       return Trophy;
     case 'trend':
@@ -120,7 +120,7 @@ const SmartAlertsPanel = memo(function SmartAlertsPanel({
         className={className}
       >
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <CheckCircle2 className="size-12 text-success mb-3" />
+          <CircleCheck className="size-12 text-success mb-3" />
           <p className="text-foreground/70 font-medium">All caught up!</p>
           <p className="text-sm text-foreground/50">
             No alerts require your attention

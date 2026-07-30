@@ -17,7 +17,7 @@ import { VStack } from '@ui/layout/stack';
 import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import { AlertTriangle, ExternalLink } from 'lucide-react';
+import { ExternalLink, TriangleAlert } from 'lucide-react';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import AddCreditsCard from './add-credits-card';
@@ -83,7 +83,7 @@ function ByokUsageSection({
       <VStack gap={4}>
         {(isPastDue || isSuspended) && (
           <div className="flex items-start gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded">
-            <AlertTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
+            <TriangleAlert className="size-5 text-destructive shrink-0 mt-0.5" />
             <VStack gap={2}>
               <Text size="sm" weight="medium" color="destructive">
                 {isPastDue
@@ -301,7 +301,7 @@ export default function SettingsBillingPage() {
             </Text>
             {isLowCredits && (
               <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded">
-                <AlertTriangle className="size-4 text-amber-500 shrink-0 mt-0.5" />
+                <TriangleAlert className="size-4 text-amber-500 shrink-0 mt-0.5" />
                 <Text size="sm" color="muted">
                   Low credits warning: your organization is below 1,000 credits.
                 </Text>

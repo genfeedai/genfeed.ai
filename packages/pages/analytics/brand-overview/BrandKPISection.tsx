@@ -3,7 +3,7 @@
 import type { IAnalytics } from '@genfeedai/interfaces';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
-import { BarChart3, Eye, Flame, Globe, Heart, Video } from 'lucide-react';
+import { ChartColumn, Eye, Flame, Globe, Heart, Video } from 'lucide-react';
 
 type BrandKPISectionProps = {
   analytics: IAnalytics | null;
@@ -66,7 +66,7 @@ export default function BrandKPISection({
         },
         {
           description: 'Per content piece',
-          icon: BarChart3,
+          icon: ChartColumn,
           iconClassName: 'bg-white/10 text-foreground',
           label: 'Avg Views/Post',
           value:

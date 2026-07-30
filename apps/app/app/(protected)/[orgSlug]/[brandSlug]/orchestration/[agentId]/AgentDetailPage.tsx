@@ -24,11 +24,11 @@ import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import {
   ArrowLeft,
+  CirclePlay,
   Cpu,
   FileText,
   Image,
   Megaphone,
-  PlayCircle,
   Sparkles,
   User,
   Video,
@@ -200,7 +200,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
           />
           <Button
             label="Run Now"
-            icon={<PlayCircle />}
+            icon={<CirclePlay />}
             size={ButtonSize.SM}
             variant={ButtonVariant.DEFAULT}
             onClick={handleRunNow}

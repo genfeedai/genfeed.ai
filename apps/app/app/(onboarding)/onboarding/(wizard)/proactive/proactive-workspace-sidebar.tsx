@@ -3,7 +3,7 @@
 import type { ProactiveWorkspaceResponse } from '@services/onboarding/onboarding.service';
 import Card from '@ui/card/Card';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
-import { Briefcase, CheckCircle2 } from 'lucide-react';
+import { Briefcase, CircleCheck } from 'lucide-react';
 
 const LIVE_UPDATES = [
   {
@@ -96,7 +96,7 @@ export default function ProactiveWorkspaceSidebar({ workspace }: Props) {
               >
                 <div className="flex size-5 items-center justify-center">
                   {isComplete ? (
-                    <CheckCircle2 className="size-5 text-success" />
+                    <CircleCheck className="size-5 text-success" />
                   ) : (
                     <div
                       className={`size-3 rounded-full ${

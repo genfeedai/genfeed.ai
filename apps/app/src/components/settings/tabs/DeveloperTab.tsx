@@ -1,7 +1,7 @@
 'use client';
 
 import { useSettingsStore } from '@genfeedai/workflows/ui/stores';
-import { AlertTriangle, Bug, Code } from 'lucide-react';
+import { Bug, Code, TriangleAlert } from 'lucide-react';
 import { InfoBox, SettingsField } from '@/components/ui/settings-section';
 import { ToggleSwitch } from '@/components/ui/toggle-switch';
 
@@ -27,7 +27,7 @@ export function DeveloperTab() {
         {debugMode && (
           <InfoBox
             variant="warning"
-            icon={AlertTriangle}
+            icon={TriangleAlert}
             title="Debug mode is active"
           >
             Use <strong>&quot;Run Selected&quot;</strong> to test nodes with

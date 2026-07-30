@@ -1,7 +1,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { Filter, Search, Terminal } from 'lucide-react';
+import { Funnel as Filter, Search, Terminal } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 import type { AgentLabStatus } from './MissionControlView';

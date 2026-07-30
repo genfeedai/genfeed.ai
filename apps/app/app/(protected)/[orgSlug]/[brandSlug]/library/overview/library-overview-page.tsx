@@ -8,11 +8,11 @@ import Container from '@ui/layout/container/Container';
 import { PageSection } from '@ui/layout/page-section';
 import {
   ArrowRight,
+  CirclePlay,
   Folder,
   Image,
   Mic,
   Music,
-  PlayCircle,
   Sparkles,
   Video,
 } from 'lucide-react';
@@ -53,7 +53,7 @@ const VISUAL_CATEGORY_CARDS: LibraryCategoryCardConfig[] = [
   {
     description: 'Short-form loops and reaction-ready motion snippets.',
     href: APP_ROUTES.LIBRARY.GIFS,
-    icon: PlayCircle,
+    icon: CirclePlay,
     id: 'gifs',
     kicker: 'Loop',
     label: 'GIFs',

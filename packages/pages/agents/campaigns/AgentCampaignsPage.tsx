@@ -15,11 +15,11 @@ import { Button } from '@ui/primitives/button';
 import { format, formatDistanceToNow } from 'date-fns';
 import {
   ArrowRight,
+  CirclePlay,
   Clock,
   Cpu,
   DollarSign,
   LayoutDashboard,
-  PlayCircle,
   Plus,
   Zap,
 } from 'lucide-react';
@@ -88,7 +88,7 @@ function CampaignStatsStrip({ campaigns }: { campaigns: AgentCampaign[] }) {
     return [
       {
         accent: `${campaigns.length} total`,
-        icon: <PlayCircle className="size-4 text-muted-foreground" />,
+        icon: <CirclePlay className="size-4 text-muted-foreground" />,
         label: 'Active Campaigns',
         value: String(activeCampaigns.length),
       },

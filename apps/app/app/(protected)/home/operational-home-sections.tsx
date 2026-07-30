@@ -20,7 +20,7 @@ import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { AlertTriangle, ArrowRight, RefreshCw } from 'lucide-react';
+import { ArrowRight, RefreshCw, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
@@ -97,7 +97,7 @@ function ErrorPanel({
       role="alert"
     >
       <div className="flex items-start gap-3">
-        <AlertTriangle
+        <TriangleAlert
           aria-hidden="true"
           className="mt-0.5 size-5 shrink-0 text-destructive"
         />

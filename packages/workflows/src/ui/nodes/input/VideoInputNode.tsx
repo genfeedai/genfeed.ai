@@ -2,7 +2,7 @@
 
 import type { VideoInputNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { Expand, Link, Loader2, Upload, Video, X } from 'lucide-react';
+import { Expand, Link, LoaderCircle, Upload, Video, X } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { useMediaUpload } from '../../hooks/useMediaUpload';
 import { getVideoMetadata } from '../../lib/media';
@@ -195,7 +195,7 @@ function VideoInputNodeComponent(props: NodeProps) {
         >
           {isUploading ? (
             <>
-              <Loader2 className="size-5 text-muted-foreground/50 animate-spin" />
+              <LoaderCircle className="size-5 text-muted-foreground/50 animate-spin" />
               <span className="text-[10px] text-muted-foreground/70">
                 Uploading…
               </span>

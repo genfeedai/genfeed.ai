@@ -3,8 +3,8 @@ import { Pre } from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
-  AlertCircle,
-  CheckCircle2,
+  CircleAlert,
+  CircleCheck,
   Code,
   FileText,
   Image,
@@ -44,9 +44,9 @@ function EvidenceItem({ evidence }: { evidence: Evidence }) {
           {evidence.title}
         </span>
         {evidence.passed ? (
-          <CheckCircle2 className="size-4 text-emerald-400 ml-auto" />
+          <CircleCheck className="size-4 text-emerald-400 ml-auto" />
         ) : (
-          <AlertCircle className="size-4 text-red-400 ml-auto" />
+          <CircleAlert className="size-4 text-red-400 ml-auto" />
         )}
       </div>
       <Pre
@@ -70,7 +70,7 @@ function VerificationPanelInner() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <CheckCircle2
+          <CircleCheck
             className={cn(
               'size-5',
               allPassed ? 'text-emerald-400' : 'text-white/40',

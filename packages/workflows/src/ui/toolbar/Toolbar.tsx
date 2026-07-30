@@ -2,10 +2,10 @@
 
 import type { WorkflowFile } from '@genfeedai/types';
 import {
-  AlertCircle,
   Bug,
+  CircleAlert,
+  CircleQuestionMark,
   FolderOpen,
-  HelpCircle,
   LayoutGrid,
   Redo2,
   Save,
@@ -169,7 +169,7 @@ function ValidationErrorsToast({
   return (
     <div className="fixed right-4 top-20 z-50 max-w-sm border border-destructive/30 bg-destructive/10 p-4 shadow-xl">
       <div className="flex items-start gap-3">
-        <AlertCircle className="mt-0.5 size-5 shrink-0 text-destructive" />
+        <CircleAlert className="mt-0.5 size-5 shrink-0 text-destructive" />
         <div className="min-w-0 flex-1">
           <h4 className="mb-2 text-sm font-medium text-destructive">
             Cannot run workflow
@@ -413,7 +413,7 @@ export function Toolbar({
           onClick={() => openModal('shortcutHelp')}
           title="Keyboard shortcuts"
         >
-          <HelpCircle className="size-4" />
+          <CircleQuestionMark className="size-4" />
         </Button>
       )}
 

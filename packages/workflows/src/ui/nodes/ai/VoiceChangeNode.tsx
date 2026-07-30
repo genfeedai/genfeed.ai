@@ -3,7 +3,13 @@
 import type { VoiceChangeNodeData } from '@genfeedai/types';
 import { NodeStatusEnum } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { AudioLines, Expand, Loader2, RefreshCw, Video } from 'lucide-react';
+import {
+  AudioLines,
+  Expand,
+  LoaderCircle,
+  RefreshCw,
+  Video,
+} from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { useCanGenerate } from '../../hooks/useCanGenerate';
 import { useExecutionStore } from '../../stores/execution';
@@ -137,7 +143,7 @@ function VoiceChangeNodeComponent(props: NodeProps) {
             className="w-full"
           >
             {nodeData.status === 'processing' ? (
-              <Loader2 className="size-4 animate-spin" />
+              <LoaderCircle className="size-4 animate-spin" />
             ) : (
               <Video className="size-4" />
             )}

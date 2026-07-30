@@ -2,7 +2,7 @@
 
 import type { IAnalytics } from '@genfeedai/interfaces';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
-import { Eye, UserCircle, Video } from 'lucide-react';
+import { CircleUser, Eye, Video } from 'lucide-react';
 
 type Props = {
   isLoading: boolean;
@@ -31,7 +31,7 @@ export default function AnalyticsKPISection({ isLoading, stats }: Props) {
     },
     {
       description: 'YouTube, TikTok, Instagram',
-      icon: <UserCircle className="text-2xl text-white" />,
+      icon: <CircleUser className="text-2xl text-white" />,
       label: 'Connected Accounts',
       value: stats.totalCredentialsConnected,
     },
@@ -60,7 +60,7 @@ export default function AnalyticsKPISection({ isLoading, stats }: Props) {
         },
         {
           description: boxes[2].description,
-          icon: UserCircle,
+          icon: CircleUser,
           iconClassName: 'bg-white/10 text-foreground',
           label: boxes[2].label,
           value: boxes[2].value,

@@ -16,7 +16,7 @@ import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { Download, PenSquare, Rocket } from 'lucide-react';
+import { Download, Rocket, SquarePen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 
@@ -248,7 +248,7 @@ export default function ClipResultCard({
               onClick={handleEdit}
               title="Edit in video editor"
             >
-              <PenSquare className="size-3.5" />
+              <SquarePen className="size-3.5" />
               <span>Edit</span>
             </Button>
           )}

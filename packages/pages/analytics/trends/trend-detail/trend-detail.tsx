@@ -18,7 +18,7 @@ import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { buildTrendAgentHref } from '@utils/url/desktop-loop-url.util';
 import {
-  BarChart3,
+  ChartColumn,
   Flame,
   Globe,
   Hash,
@@ -151,7 +151,7 @@ export default function TrendDetail({
     },
     {
       description: 'Total impressions',
-      icon: BarChart3,
+      icon: ChartColumn,
       iconClassName: 'bg-warning/10 text-warning',
       label: 'Impressions',
       value: trend.metadata?.impressions

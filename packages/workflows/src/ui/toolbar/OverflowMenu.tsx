@@ -1,6 +1,6 @@
 'use client';
 
-import { MoreVertical } from 'lucide-react';
+import { EllipsisVertical } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '../ui/button';
 import type { OverflowMenuProps } from './types';
@@ -46,7 +46,7 @@ export function OverflowMenu({ items }: OverflowMenuProps) {
         onClick={() => setIsOpen(!isOpen)}
         title="More options"
       >
-        <MoreVertical className="size-4" />
+        <EllipsisVertical className="size-4" />
       </Button>
 
       {isOpen && (

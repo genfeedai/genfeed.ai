@@ -13,7 +13,7 @@ import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
 import {
-  BarChart3,
+  ChartColumn,
   ExternalLink,
   Rocket,
   Sparkles,
@@ -261,7 +261,7 @@ export function DetailSidebar({
       <aside className="fixed inset-y-0 right-0 z-50 w-full max-w-[480px] overflow-y-auto border-l border-white/[0.06] bg-background shadow-2xl">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.06] bg-background px-5 py-4">
           <div className="flex items-center gap-2">
-            <BarChart3 className="size-5 text-primary" />
+            <ChartColumn className="size-5 text-primary" />
             <h2 className="text-lg font-semibold text-foreground">Ad Detail</h2>
           </div>
           <Button

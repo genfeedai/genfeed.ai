@@ -6,10 +6,11 @@ import type {
 } from '@genfeedai/interfaces/ui/quick-actions.interface';
 import {
   ArrowLeftRight,
-  CheckCircle2,
+  CircleCheck,
   Clipboard,
   Copy,
   Download,
+  Ellipsis,
   ExternalLink,
   Film,
   Hash,
@@ -17,7 +18,6 @@ import {
   Maximize2,
   MessageSquareText,
   Minus,
-  MoreHorizontal,
   Pencil,
   Plus,
   RectangleHorizontal,
@@ -565,7 +565,7 @@ export const createMoreOptionsAction = (
     ingredient,
     handler,
     {
-      icon: <MoreHorizontal className={ICON_CLASS} />,
+      icon: <Ellipsis className={ICON_CLASS} />,
       id: 'more-options',
       label: 'More',
       tooltip: 'More',
@@ -600,7 +600,7 @@ export const createMarkValidatedAction = (
 
   return {
     icon: (
-      <CheckCircle2
+      <CircleCheck
         className={`size-4 ${isValidated ? 'text-success' : 'text-white'}`}
       />
     ),
@@ -650,7 +650,7 @@ export const createConvertToPresetAction = (
     ingredient,
     handler,
     {
-      icon: <CheckCircle2 className={ICON_CLASS} />,
+      icon: <CircleCheck className={ICON_CLASS} />,
       id: 'convert-to-preset',
       label: 'Convert to Preset',
       showInMenu: true,

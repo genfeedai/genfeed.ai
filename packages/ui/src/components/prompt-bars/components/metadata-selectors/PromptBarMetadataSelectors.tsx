@@ -18,13 +18,13 @@ import {
   ArrowLeftRight,
   Bookmark,
   Camera,
+  CircleUser,
   Globe,
   Languages,
   Lightbulb,
   Palette,
   Scan,
   Smile,
-  UserCircle,
 } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { memo } from 'react';
@@ -182,7 +182,7 @@ const PromptBarMetadataSelectors = memo(function PromptBarMetadataSelectors({
         <FormDropdown
           key="profile"
           name="profile"
-          icon={<UserCircle />}
+          icon={<CircleUser />}
           label="Brand Voice"
           triggerDisplay={triggerDisplay}
           value={selectedProfile}

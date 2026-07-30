@@ -1,5 +1,5 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import { CheckCircle2, Megaphone, Pause, Play } from 'lucide-react';
+import { CircleCheck, Megaphone, Pause, Play } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 interface CampaignCardProps {
@@ -55,7 +55,7 @@ export function CampaignControlCard({
     },
     completed: {
       color: 'text-blue-500',
-      icon: <CheckCircle2 className="size-4" />,
+      icon: <CircleCheck className="size-4" />,
       label: 'Completed',
     },
     paused: {

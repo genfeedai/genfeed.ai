@@ -2,13 +2,13 @@
 
 import { ButtonVariant, OrganizationCategory } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { Briefcase, UserCircle, Users } from 'lucide-react';
+import { Briefcase, CircleUser, Users } from 'lucide-react';
 
 const ACCOUNT_TYPES = [
   {
     category: OrganizationCategory.CREATOR,
     description: 'Individual content creator or influencer',
-    icon: UserCircle,
+    icon: CircleUser,
     label: 'Creator',
   },
   {

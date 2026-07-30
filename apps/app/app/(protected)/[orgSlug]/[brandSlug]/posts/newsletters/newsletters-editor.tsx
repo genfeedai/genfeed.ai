@@ -4,7 +4,7 @@ import Badge from '@ui/display/badge/Badge';
 import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { Archive, CheckCircle2, Sparkles } from 'lucide-react';
+import { Archive, CircleCheck, Sparkles } from 'lucide-react';
 
 type NewsletterEditorState = {
   angle: string;
@@ -90,7 +90,7 @@ export default function NewsletterEditor({
           <Button
             label="Approve"
             variant={ButtonVariant.SECONDARY}
-            icon={<CheckCircle2 />}
+            icon={<CircleCheck />}
             isLoading={loadingAction === 'approving'}
             isDisabled={selectedNewsletter.status === 'published'}
             onClick={() => onApprove(selectedNewsletter.id)}

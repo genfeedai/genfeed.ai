@@ -19,11 +19,11 @@ import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { formatDistanceToNow } from 'date-fns';
 import {
+  CirclePlay,
   Cpu,
   FileText,
   Image,
   Megaphone,
-  PlayCircle,
   Plus,
   Sparkles,
   User,
@@ -120,7 +120,7 @@ function AgentCard({
       <div className="flex items-center gap-2 pt-1">
         <Button
           label="Run Now"
-          icon={<PlayCircle />}
+          icon={<CirclePlay />}
           size={ButtonSize.SM}
           variant={ButtonVariant.SECONDARY}
           onClick={() => onRunNow(strategy.id)}

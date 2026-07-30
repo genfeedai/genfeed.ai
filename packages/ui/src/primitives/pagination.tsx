@@ -1,5 +1,5 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Ellipsis } from 'lucide-react';
 import type { ComponentProps } from 'react';
 import { cn } from '../lib/utils';
 import type { ButtonProps } from './button';
@@ -93,7 +93,7 @@ const PaginationEllipsis = ({
     className={cn('flex size-9 items-center justify-center', className)}
     {...props}
   >
-    <MoreHorizontal className="size-4" />
+    <Ellipsis className="size-4" />
     <span className="sr-only">More pages</span>
   </span>
 );

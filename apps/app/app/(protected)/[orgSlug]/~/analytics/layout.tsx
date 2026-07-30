@@ -11,7 +11,7 @@ import { ErrorBoundary } from '@ui/error';
 import FeatureGate from '@ui/guards/feature/FeatureGate';
 import Container from '@ui/layout/container/Container';
 import FormDateRangePicker from '@ui/primitives/date-range-picker';
-import { BarChart3 } from 'lucide-react';
+import { ChartColumn } from 'lucide-react';
 
 function OrgAnalyticsLayoutContent({ children }: LayoutProps) {
   const { setDateRange, triggerRefresh, isRefreshing } = useAnalyticsContext();
@@ -20,7 +20,7 @@ function OrgAnalyticsLayoutContent({ children }: LayoutProps) {
     <Container
       label="Organization Analytics"
       description="Aggregate analytics across all brands"
-      icon={BarChart3}
+      icon={ChartColumn}
       right={
         <div className="flex items-center gap-2">
           <FormDateRangePicker

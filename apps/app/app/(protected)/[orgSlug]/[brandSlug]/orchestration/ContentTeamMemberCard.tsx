@@ -6,7 +6,7 @@ import type { AgentStrategy } from '@services/automation/agent-strategies.servic
 import Card from '@ui/card/Card';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import { formatDistanceToNow } from 'date-fns';
-import { PlayCircle } from 'lucide-react';
+import { CirclePlay } from 'lucide-react';
 import Link from 'next/link';
 
 type Props = {
@@ -72,7 +72,7 @@ export default function ContentTeamMemberCard({
 
       <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.08] pt-4">
         <Button
-          icon={<PlayCircle />}
+          icon={<CirclePlay />}
           label="Run Now"
           onClick={() => onRunNow(strategy.id)}
           size={ButtonSize.SM}

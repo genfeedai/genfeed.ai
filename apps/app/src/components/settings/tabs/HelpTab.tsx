@@ -4,7 +4,12 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { XTwitterIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { useUIStore } from '@genfeedai/workflows/ui/stores';
 import { Button } from '@ui/primitives/button';
-import { BookOpen, HelpCircle, MessageCircle, Store } from 'lucide-react';
+import {
+  BookOpen,
+  CircleQuestionMark,
+  MessageCircle,
+  Store,
+} from 'lucide-react';
 
 import { InfoBox, LinkCard } from '@/components/ui/settings-section';
 
@@ -28,7 +33,7 @@ export function HelpTab() {
           className="flex w-full items-center gap-3 rounded-lg border border-border p-4 text-left transition hover:border-primary/50 hover:bg-secondary/30"
         >
           <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-            <HelpCircle className="size-5 text-primary" />
+            <CircleQuestionMark className="size-5 text-primary" />
           </div>
           <div>
             <div className="font-medium text-foreground">

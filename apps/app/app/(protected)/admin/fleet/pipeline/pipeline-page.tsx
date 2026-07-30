@@ -13,7 +13,7 @@ import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
-import { BarChart3, Clock, Cpu, FileCheck, Image } from 'lucide-react';
+import { ChartColumn, Clock, Cpu, FileCheck, Image } from 'lucide-react';
 import { useEffect } from 'react';
 
 const CAMPAIGN_STATUS_COLORS = {
@@ -104,7 +104,7 @@ export default function PipelinePage() {
     <Container
       label="Pipeline"
       description="Content generation pipeline and campaign management"
-      icon={BarChart3}
+      icon={ChartColumn}
       right={
         <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
       }

@@ -2,7 +2,7 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import {
   Banknote,
-  BarChart3,
+  ChartColumn,
   ClipboardList,
   Cpu,
   CreditCard,
@@ -27,16 +27,16 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     href: APP_ROUTES.ADMIN.ROOT,
     label: 'Dashboard',
     matchPaths: [APP_ROUTES.ADMIN.ROOT, APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD],
-    outline: BarChart3,
-    solid: BarChart3,
+    outline: ChartColumn,
+    solid: ChartColumn,
   },
   {
     group: 'Overview',
     href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ALL,
     label: 'Analytics',
     matchPaths: [APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS],
-    outline: BarChart3,
-    solid: BarChart3,
+    outline: ChartColumn,
+    solid: ChartColumn,
   },
   {
     group: 'Overview',
@@ -195,8 +195,8 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     href: APP_ROUTES.ADMIN.ADMINISTRATION.CREDIT_USAGE,
     label: 'Credit Usage',
     matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.CREDIT_USAGE],
-    outline: BarChart3,
-    solid: BarChart3,
+    outline: ChartColumn,
+    solid: ChartColumn,
   },
   {
     group: 'Administration',

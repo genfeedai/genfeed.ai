@@ -10,7 +10,7 @@ import { Timeframe } from '@genfeedai/enums';
 import type { LayoutProps } from '@props/layout/layout.props';
 import Container from '@ui/layout/container/Container';
 import DateRangePicker from '@ui/primitives/date-range-picker';
-import { BarChart3 } from 'lucide-react';
+import { ChartColumn } from 'lucide-react';
 
 function AnalyticsLayoutContent({ children }: LayoutProps) {
   const { setDateRange, triggerRefresh, isRefreshing } = useAnalyticsContext();
@@ -19,7 +19,7 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
     <Container
       label="Analytics"
       description="Track platform performance, usage statistics, and growth metrics"
-      icon={BarChart3}
+      icon={ChartColumn}
       tabs={[
         { href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ALL, label: 'Overview' },
         {

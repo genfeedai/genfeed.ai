@@ -15,8 +15,8 @@ import type {
   AppSwitcherProps,
 } from '@genfeedai/props/ui/app-switcher.props';
 import {
-  BarChart2,
   Briefcase,
+  ChartNoAxesColumn,
   ChevronDown,
   Grip,
   Layers,
@@ -167,7 +167,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
     apps: [
       {
         description: 'Measure results.',
-        icon: BarChart2,
+        icon: ChartNoAxesColumn,
         id: 'analytics',
         itemKey: 'analytics-overview',
         label: 'Analytics',

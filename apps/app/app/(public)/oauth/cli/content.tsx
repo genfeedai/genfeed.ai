@@ -10,11 +10,11 @@ import Spinner from '@ui/feedback/spinner/Spinner';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import {
-  CheckCircle2,
+  CircleCheck,
+  CircleX,
   Clipboard,
   ClipboardCheck,
   Terminal,
-  XCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -671,7 +671,7 @@ function CliAuthPageContent() {
             {flowState.step === 'success' && (
               <div className="space-y-6">
                 <StepDisplay
-                  icon={<CheckCircle2 className="size-8 text-success" />}
+                  icon={<CircleCheck className="size-8 text-success" />}
                   title="Authentication complete"
                   description={
                     isDesktopMode
@@ -693,7 +693,7 @@ function CliAuthPageContent() {
             {flowState.step === 'error' && (
               <div className="space-y-6">
                 <StepDisplay
-                  icon={<XCircle className="size-8 text-destructive" />}
+                  icon={<CircleX className="size-8 text-destructive" />}
                   title="Authentication failed"
                   description={flowState.error || 'An unknown error occurred.'}
                 />

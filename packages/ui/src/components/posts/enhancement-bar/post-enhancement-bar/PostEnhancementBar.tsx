@@ -18,10 +18,10 @@ import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
 import {
-  AlertCircle,
   ArrowUp,
   Check,
   ChevronDown,
+  CircleAlert,
   ImageIcon,
   Plus,
   Sparkles,
@@ -318,7 +318,7 @@ export default function PostEnhancementBar({
               <Button
                 icon={
                   isDirty ? (
-                    <AlertCircle className="size-4" />
+                    <CircleAlert className="size-4" />
                   ) : (
                     <Check className="size-4" />
                   )

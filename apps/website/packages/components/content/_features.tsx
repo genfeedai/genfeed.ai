@@ -1,7 +1,7 @@
 import Card from '@ui/card/Card';
 import {
-  BarChart3,
   Calendar,
+  ChartColumn,
   Globe,
   Palette,
   Sparkles,
@@ -29,7 +29,7 @@ const features = [
   {
     description:
       'Measure performance across all accounts in a single dashboard.',
-    icon: <BarChart3 />,
+    icon: <ChartColumn />,
     label: 'Unified Analytics',
   },
   {

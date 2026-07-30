@@ -1,6 +1,6 @@
 import { COMPOSE_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
-import { FileText, Mail, PenSquare } from 'lucide-react';
+import { FileText, Mail, SquarePen } from 'lucide-react';
 
 export const COMPOSE_MENU_ITEMS: MenuItemConfig[] = [
   {
@@ -16,8 +16,8 @@ export const COMPOSE_MENU_ITEMS: MenuItemConfig[] = [
     href: COMPOSE_ROUTES.POST,
     label: 'Social Post',
     matchPaths: [COMPOSE_ROUTES.POST],
-    outline: PenSquare,
-    solid: PenSquare,
+    outline: SquarePen,
+    solid: SquarePen,
   },
   {
     group: '',

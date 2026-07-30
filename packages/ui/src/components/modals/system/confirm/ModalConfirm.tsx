@@ -5,7 +5,7 @@ import type { ModalConfirmProps } from '@genfeedai/props/modals/modal.props';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
-import { AlertTriangle } from 'lucide-react';
+import { TriangleAlert } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export default function ModalConfirm({
@@ -71,7 +71,7 @@ export default function ModalConfirm({
       <div className="text-center">
         {isError && (
           <div className="mx-auto flex items-center justify-center size-12 mb-4 bg-error/10 rounded-full">
-            <AlertTriangle className="size-6 text-error" />
+            <TriangleAlert className="size-6 text-error" />
           </div>
         )}
 

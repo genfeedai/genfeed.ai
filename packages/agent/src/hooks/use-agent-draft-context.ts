@@ -2,7 +2,7 @@
 
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { ClipboardCheck, PenSquare, Sparkles } from 'lucide-react';
+import { ClipboardCheck, Sparkles, SquarePen } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -44,7 +44,7 @@ function clampContextText(value?: string): string | undefined {
 function createDraftActions(draftType: string): SuggestedAction[] {
   return [
     {
-      icon: PenSquare({ className: 'size-5 text-foreground/50' }),
+      icon: SquarePen({ className: 'size-5 text-foreground/50' }),
       label: 'Improve',
       prompt: `Review the current ${draftType} draft and suggest concrete improvements.`,
     },

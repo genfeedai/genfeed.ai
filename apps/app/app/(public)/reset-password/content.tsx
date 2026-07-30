@@ -6,7 +6,7 @@ import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
-import { CheckCircle2, RotateCcw } from 'lucide-react';
+import { CircleCheck, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -110,7 +110,7 @@ export default function ResetPasswordContent() {
         title="Password updated"
       >
         <div className="w-full space-y-4 text-center">
-          <CheckCircle2
+          <CircleCheck
             className="mx-auto size-8 text-muted-foreground"
             aria-hidden="true"
           />

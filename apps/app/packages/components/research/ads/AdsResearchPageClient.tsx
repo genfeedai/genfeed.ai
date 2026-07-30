@@ -16,7 +16,7 @@ import Container from '@ui/layout/container/Container';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
-import { Columns2, Filter, Megaphone, Table } from 'lucide-react';
+import { Columns2, Funnel as Filter, Megaphone, Table } from 'lucide-react';
 import Link from 'next/link';
 import type { ChangeEvent } from 'react';
 

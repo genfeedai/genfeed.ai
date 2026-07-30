@@ -3,7 +3,7 @@
 import type { LLMNodeData, TextModel } from '@genfeedai/types';
 import { Textarea } from '@genfeedai/ui';
 import type { NodeProps } from '@xyflow/react';
-import { AlertCircle, Expand, RefreshCw } from 'lucide-react';
+import { CircleAlert, Expand, RefreshCw } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { useAIGenNodeHeader } from '../../hooks/useAIGenNodeHeader';
 import { useAutoLoadModelSchema } from '../../hooks/useAutoLoadModelSchema';
@@ -126,7 +126,7 @@ function LLMNodeComponent(props: NodeProps) {
         ) : (
           !isProcessing && (
             <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
-              <AlertCircle className="size-3" />
+              <CircleAlert className="size-3" />
               Connect a prompt to generate
             </div>
           )

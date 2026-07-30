@@ -10,7 +10,13 @@ import ClientDateTime from '@ui/components/time/ClientDateTime';
 import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { ChevronLeft, ChevronRight, Link, Loader2, Type } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Link,
+  LoaderCircle,
+  Type,
+} from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 
 export type { RssFeedItem, RssInputNodeData, RssInputNodeProps };
@@ -146,7 +152,7 @@ function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
           >
             {isFetching ? (
               <>
-                <Loader2 className="size-3 animate-spin" />
+                <LoaderCircle className="size-3 animate-spin" />
                 Fetching…
               </>
             ) : (
@@ -174,7 +180,7 @@ function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
           >
             {isFetching ? (
               <>
-                <Loader2 className="size-3 animate-spin" />
+                <LoaderCircle className="size-3 animate-spin" />
                 Parsing…
               </>
             ) : (

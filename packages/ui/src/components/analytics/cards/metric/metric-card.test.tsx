@@ -1,7 +1,7 @@
 import { TrendDirection } from '@genfeedai/enums';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MetricCard } from '@ui/analytics/cards/metric/metric-card';
-import { BarChart3 } from 'lucide-react';
+import { ChartColumn } from 'lucide-react';
 
 import { describe, expect, it, vi } from 'vitest';
 
@@ -60,7 +60,7 @@ describe('MetricCard', () => {
 
   describe('Icon Rendering', () => {
     it('renders icon when provided', () => {
-      render(<MetricCard title="Test" value={100} icon={BarChart3} />);
+      render(<MetricCard title="Test" value={100} icon={ChartColumn} />);
       const iconContainer = document.querySelector('.bg-muted');
       expect(iconContainer).toBeInTheDocument();
     });
@@ -70,7 +70,7 @@ describe('MetricCard', () => {
         <MetricCard
           title="Test"
           value={100}
-          icon={BarChart3}
+          icon={ChartColumn}
           iconColor="text-blue-600"
         />,
       );
@@ -79,7 +79,7 @@ describe('MetricCard', () => {
     });
 
     it('uses default icon color when not specified', () => {
-      render(<MetricCard title="Test" value={100} icon={BarChart3} />);
+      render(<MetricCard title="Test" value={100} icon={ChartColumn} />);
       const iconContainer = document.querySelector('.text-muted-foreground');
       expect(iconContainer).toBeInTheDocument();
     });

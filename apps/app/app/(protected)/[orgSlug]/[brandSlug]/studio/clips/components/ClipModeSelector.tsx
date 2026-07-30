@@ -6,7 +6,7 @@ import type {
   ClipResultMode,
 } from '@props/studio/clips.props';
 import { Button } from '@ui/primitives/button';
-import { Film, UserCircle } from 'lucide-react';
+import { CircleUser, Film } from 'lucide-react';
 
 const MODE_OPTIONS: Array<{
   description: string;
@@ -24,7 +24,7 @@ const MODE_OPTIONS: Array<{
   {
     description:
       'Regenerate each highlight with your saved HeyGen avatar and voice.',
-    icon: UserCircle,
+    icon: CircleUser,
     label: 'AI avatar',
     value: 'avatar',
   },

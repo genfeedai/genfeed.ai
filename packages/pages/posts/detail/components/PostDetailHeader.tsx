@@ -16,7 +16,7 @@ import {
   buildPostAnalyticsHref,
 } from '@utils/url/desktop-loop-url.util';
 import {
-  BarChart3,
+  ChartColumn,
   Copy,
   ExternalLink,
   Eye,
@@ -151,7 +151,7 @@ export default function PostDetailHeader({
         {canCreateRemix && (
           <PrimitiveButton asChild variant={ButtonVariant.SECONDARY}>
             <Link href={buildPostAnalyticsHref(post.id)}>
-              <BarChart3 className="size-4" />
+              <ChartColumn className="size-4" />
               Performance
             </Link>
           </PrimitiveButton>

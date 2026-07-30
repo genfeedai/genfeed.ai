@@ -12,8 +12,8 @@ import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import {
-  BarChart3,
   Building2,
+  ChartColumn,
   Clock,
   Cpu,
   CreditCard,
@@ -211,7 +211,7 @@ function StatsGrid({ stats, isLoading }: StatsGridProps) {
       value: formatNumber(stats.pendingPosts || 0),
     },
     {
-      icon: BarChart3,
+      icon: ChartColumn,
       label: 'Active Workflows',
       value: formatNumber(stats.activeWorkflows || 0),
     },
@@ -349,7 +349,7 @@ export default function OverviewPage() {
     <Container
       label="Admin Dashboard"
       description="Control platform operations and user management"
-      icon={BarChart3}
+      icon={ChartColumn}
       className="bg-dots-subtle"
     >
       {/* KPI Section */}

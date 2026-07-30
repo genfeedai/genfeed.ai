@@ -1,5 +1,5 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import { BarChart3, ExternalLink, Megaphone, Rocket } from 'lucide-react';
+import { ChartColumn, ExternalLink, Megaphone, Rocket } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactElement } from 'react';
 
@@ -67,7 +67,7 @@ export function AdDetailSummaryCard({ action }: AgentCardProps): ReactElement {
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <BarChart3 className="size-5 text-blue-500" />
+        <ChartColumn className="size-5 text-blue-500" />
         <h3 className="text-sm font-semibold text-foreground">
           {action.title || 'Ad detail summary'}
         </h3>

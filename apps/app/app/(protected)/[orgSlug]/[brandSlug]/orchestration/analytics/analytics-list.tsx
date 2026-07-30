@@ -16,7 +16,7 @@ import { OrganizationsService } from '@services/organization/organizations.servi
 import { BrandsService } from '@services/social/brands.service';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import { BarChart3, Download } from 'lucide-react';
+import { ChartColumn, Download } from 'lucide-react';
 import { useCallback, useEffect, useReducer } from 'react';
 
 import AnalyticsKPISection from './analytics-kpi-section';
@@ -316,7 +316,7 @@ export default function AnalyticsList(_props: ContentProps) {
     <Container
       label="Analytics"
       description="Performance, engagement, and growth metrics."
-      icon={BarChart3}
+      icon={ChartColumn}
       right={
         <Button
           tooltip="Export"

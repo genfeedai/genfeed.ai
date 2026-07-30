@@ -10,10 +10,10 @@ import CardIcon from '@ui/card/icon/CardIcon';
 import OverviewLayout from '@ui/overview/OverviewLayout';
 import { Button } from '@ui/primitives/button';
 import {
+  ChartLine,
   ClipboardList,
   Cpu,
-  Home,
-  LineChart,
+  House as Home,
   List,
   Megaphone,
   MessageSquare,
@@ -80,7 +80,7 @@ export default function AutomationOverviewPage() {
       cta: 'View Analytics',
       description: 'Performance metrics and insights',
       href: APP_ROUTES.ORCHESTRATION.ANALYTICS,
-      icon: LineChart,
+      icon: ChartLine,
       id: 'analytics',
       label: 'Analytics',
     },

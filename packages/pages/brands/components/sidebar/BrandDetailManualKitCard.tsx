@@ -16,7 +16,7 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
-import { CheckCircle2, FileText, Upload } from 'lucide-react';
+import { CircleCheck, FileText, Upload } from 'lucide-react';
 import { type ChangeEvent, useCallback, useMemo, useState } from 'react';
 
 type ManualKitFormState = {
@@ -581,7 +581,7 @@ export default function BrandDetailManualKitCard({
 
             {draft.assetCandidates.length > 0 ? (
               <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-                <CheckCircle2 className="size-4" />
+                <CircleCheck className="size-4" />
                 {draft.assetCandidates.length} asset source
                 {draft.assetCandidates.length === 1 ? '' : 's'} included
               </div>
@@ -599,7 +599,7 @@ export default function BrandDetailManualKitCard({
 
             <Button
               className="w-full"
-              icon={<CheckCircle2 />}
+              icon={<CircleCheck />}
               isDisabled={selectedFields.length === 0 || isApplying}
               isLoading={isApplying}
               label="Apply Selected"

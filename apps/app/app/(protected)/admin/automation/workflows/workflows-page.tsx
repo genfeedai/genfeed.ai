@@ -16,7 +16,7 @@ import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
-import { ClipboardList, MoreVertical, Trash2 } from 'lucide-react';
+import { ClipboardList, EllipsisVertical, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
@@ -188,7 +188,7 @@ export default function WorkflowsPage() {
                             variant={ButtonVariant.GHOST}
                             size={ButtonSize.ICON}
                           >
-                            <MoreVertical className="size-4" />
+                            <EllipsisVertical className="size-4" />
                           </Button>
                         }
                         usePortal

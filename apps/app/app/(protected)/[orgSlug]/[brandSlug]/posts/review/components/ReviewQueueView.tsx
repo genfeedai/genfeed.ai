@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { AlertTriangle, ClipboardCheck } from 'lucide-react';
+import { ClipboardCheck, TriangleAlert } from 'lucide-react';
 
 import ReviewGrid from './ReviewGrid';
 import ReviewStatsHeader from './ReviewStatsHeader';
@@ -99,7 +99,7 @@ export default function ReviewQueueView({
     >
       {batchesError || hasInvalidBatchPayload ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-rose-500/20 bg-rose-500/5 py-16 text-center">
-          <AlertTriangle className="mb-3 size-10 text-rose-400" />
+          <TriangleAlert className="mb-3 size-10 text-rose-400" />
           <p className="text-sm font-medium text-rose-100">
             Unable to load the review queue
           </p>
@@ -124,7 +124,7 @@ export default function ReviewQueueView({
             <Loading />
           ) : activeBatchError ? (
             <div className="flex flex-col items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/5 py-16 text-center">
-              <AlertTriangle className="mb-3 size-10 text-amber-400" />
+              <TriangleAlert className="mb-3 size-10 text-amber-400" />
               <p className="text-sm font-medium text-amber-100">
                 Unable to load the selected batch
               </p>
@@ -153,7 +153,7 @@ export default function ReviewQueueView({
             />
           ) : (
             <div className="flex flex-col items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/5 py-16 text-center">
-              <AlertTriangle className="mb-3 size-10 text-amber-400" />
+              <TriangleAlert className="mb-3 size-10 text-amber-400" />
               <p className="text-sm font-medium text-amber-100">
                 No batch details are available
               </p>

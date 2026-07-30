@@ -6,7 +6,7 @@ import type {
 } from '@genfeedai/types';
 import { NodeStatusEnum } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { Download, Grid3X3, Loader2, RefreshCw } from 'lucide-react';
+import { Download, Grid3X3, LoaderCircle, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useState } from 'react';
 import { useExecutionStore } from '../../stores/execution';
@@ -338,7 +338,7 @@ function SplitButton({
       {variant === 'resplit' ? (
         <RefreshCw className="size-3" />
       ) : isProcessing ? (
-        <Loader2 className="size-4 animate-spin" />
+        <LoaderCircle className="size-4 animate-spin" />
       ) : (
         <Grid3X3 className="size-4" />
       )}

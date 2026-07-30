@@ -26,7 +26,7 @@ import { Input } from '@ui/primitives/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
 import {
   ArrowRight,
-  CheckCircle2,
+  CircleCheck,
   Clipboard,
   Key,
   LinkIcon,
@@ -405,7 +405,7 @@ export default function ConnectGenfeedFlow() {
                         </span>
                       </span>
                       {isSelected ? (
-                        <CheckCircle2 aria-hidden="true" className="size-5" />
+                        <CircleCheck aria-hidden="true" className="size-5" />
                       ) : (
                         <Key aria-hidden="true" className="size-5" />
                       )}
@@ -623,7 +623,7 @@ export default function ConnectGenfeedFlow() {
 
             {verification?.status === 'connected' ? (
               <Alert variant="success">
-                <CheckCircle2 aria-hidden="true" className="size-4" />
+                <CircleCheck aria-hidden="true" className="size-4" />
                 <AlertTitle>Connection verified</AlertTitle>
                 <AlertDescription>
                   Genfeed authenticated the selected key and completed MCP tool

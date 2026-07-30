@@ -2,7 +2,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import Button from '@ui/buttons/base/Button';
 import Container from '@ui/layout/container/Container';
-import { Home, Settings } from 'lucide-react';
+import { House as Home, Settings } from 'lucide-react';
 
 /**
  * Container component provides a consistent layout wrapper with title, description,

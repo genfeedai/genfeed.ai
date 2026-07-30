@@ -3,15 +3,15 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
-  BarChart3,
   Calendar,
+  ChartColumn,
+  ChartLine,
   Copy,
   FileText,
   FlaskConical,
   Hash,
   Image,
   Lightbulb,
-  LineChart,
   MessageSquareText,
   Rocket,
   Send,
@@ -28,7 +28,7 @@ import {
 } from 'react';
 
 const COMMAND_ICONS: Record<string, ReactElement> = {
-  analyze: <BarChart3 className="size-4" />,
+  analyze: <ChartColumn className="size-4" />,
   batch: <Copy className="size-4" />,
   caption: <MessageSquareText className="size-4" />,
   'create-post': <FileText className="size-4" />,
@@ -42,7 +42,7 @@ const COMMAND_ICONS: Record<string, ReactElement> = {
   research: <FlaskConical className="size-4" />,
   schedule: <Calendar className="size-4" />,
   trends: <Zap className="size-4" />,
-  workflow: <LineChart className="size-4" />,
+  workflow: <ChartLine className="size-4" />,
 };
 
 interface AgentCommandListHandle {

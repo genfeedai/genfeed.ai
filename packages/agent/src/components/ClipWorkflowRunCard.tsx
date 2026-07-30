@@ -2,7 +2,7 @@ import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { AlertCircle, Film } from 'lucide-react';
+import { CircleAlert, Film } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 import { ClipWorkflowSettingsPanel } from './ClipWorkflowSettingsPanel';
@@ -120,7 +120,7 @@ export function ClipWorkflowRunCard({
 
         {error && (
           <div className="flex items-center gap-2 border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-            <AlertCircle className="size-4" />
+            <CircleAlert className="size-4" />
             {error}
           </div>
         )}

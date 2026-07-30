@@ -7,7 +7,7 @@ import type {
 } from '@genfeedai/types';
 import { NodeStatusEnum } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { Loader2, RefreshCw, Subtitles } from 'lucide-react';
+import { Captions, LoaderCircle, RefreshCw } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { useExecutionStore } from '../../stores/execution';
 import { useWorkflowStore } from '../../stores/workflow';
@@ -211,11 +211,11 @@ function SubtitleNodeComponent(props: NodeProps) {
             className="w-full"
           >
             {nodeData.status === 'processing' ? (
-              <Loader2 className="size-4 animate-spin" />
+              <LoaderCircle className="size-4 animate-spin" />
             ) : (
-              <Subtitles className="size-4" />
+              <Captions className="size-4" />
             )}
-            {nodeData.status === 'processing' ? 'Burning...' : 'Burn Subtitles'}
+            {nodeData.status === 'processing' ? 'Burning...' : 'Burn Captions'}
           </Button>
         )}
       </div>

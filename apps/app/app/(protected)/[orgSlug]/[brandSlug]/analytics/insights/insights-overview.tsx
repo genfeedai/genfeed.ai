@@ -26,7 +26,7 @@ import Card from '@ui/card/Card';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import { CheckCircle2, Lightbulb, RefreshCw, Sparkles } from 'lucide-react';
+import { CircleCheck, Lightbulb, RefreshCw, Sparkles } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { memo, useCallback, useState } from 'react';
@@ -245,7 +245,7 @@ const InsightsOverview = memo(function InsightsOverview({
             <div className="prose prose-sm max-w-none">
               {criticalAlerts === 0 && warningAlerts === 0 ? (
                 <div className="flex items-center gap-3 text-success">
-                  <CheckCircle2 className="size-6 flex-shrink-0" />
+                  <CircleCheck className="size-6 flex-shrink-0" />
                   <p className="m-0">
                     <strong>Great news!</strong> Your content is performing well
                     with no critical issues detected. Keep up the good work!

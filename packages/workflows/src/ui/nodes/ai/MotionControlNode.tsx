@@ -8,7 +8,7 @@ import type {
 } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import {
-  AlertCircle,
+  CircleAlert,
   Expand,
   Play,
   RefreshCw,
@@ -339,7 +339,7 @@ function MotionRequirementHint({
     <>
       {!canGenerate && !isProcessing && (
         <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
-          <AlertCircle className="size-3" />
+          <CircleAlert className="size-3" />
           {isVideoTransferMode
             ? 'Connect an image and motion video'
             : 'Connect an image to generate'}

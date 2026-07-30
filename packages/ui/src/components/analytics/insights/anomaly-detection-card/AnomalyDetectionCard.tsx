@@ -9,7 +9,7 @@ import {
 import type { AnomalyDetectionCardProps } from '@genfeedai/props/analytics/insights.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
-import { AlertTriangle, Info, TrendingDown, TrendingUp, X } from 'lucide-react';
+import { Info, TrendingDown, TrendingUp, TriangleAlert, X } from 'lucide-react';
 import { memo } from 'react';
 
 const getSeverityStyles = (severity: 'critical' | 'warning' | 'info') => {
@@ -48,7 +48,7 @@ const AnomalyDetectionCard = memo(function AnomalyDetectionCard({
     return (
       <Card
         label="Anomaly Detection"
-        icon={AlertTriangle}
+        icon={TriangleAlert}
         iconClassName="text-warning"
         className={className}
       >
@@ -74,7 +74,7 @@ const AnomalyDetectionCard = memo(function AnomalyDetectionCard({
     return (
       <Card
         label="Anomaly Detection"
-        icon={AlertTriangle}
+        icon={TriangleAlert}
         iconClassName="text-warning"
         className={className}
       >
@@ -94,7 +94,7 @@ const AnomalyDetectionCard = memo(function AnomalyDetectionCard({
   return (
     <Card
       label="Anomaly Detection"
-      icon={AlertTriangle}
+      icon={TriangleAlert}
       iconClassName="text-warning"
       description={`${anomalies.length} anomal${anomalies.length === 1 ? 'y' : 'ies'} detected`}
       className={className}

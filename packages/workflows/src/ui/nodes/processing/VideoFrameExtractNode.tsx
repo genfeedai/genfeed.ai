@@ -6,7 +6,7 @@ import type {
 } from '@genfeedai/types';
 import { NodeStatusEnum } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { Film, Loader2, RefreshCw } from 'lucide-react';
+import { Film, LoaderCircle, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback } from 'react';
 import { useExecutionStore } from '../../stores/execution';
@@ -122,7 +122,7 @@ function VideoFrameExtractNodeComponent(props: NodeProps) {
             className="w-full"
           >
             {nodeData.status === 'processing' ? (
-              <Loader2 className="size-4 animate-spin" />
+              <LoaderCircle className="size-4 animate-spin" />
             ) : (
               <Film className="size-4" />
             )}

@@ -13,7 +13,7 @@ import { logger } from '@services/core/logger.service';
 import { UsersService } from '@services/organization/users.service';
 import { Button } from '@ui/primitives/button';
 import {
-  CheckCircle2,
+  CircleCheck,
   ImageIcon,
   Music,
   ScanFace,
@@ -156,7 +156,7 @@ export default function SuccessContent() {
       {/* Success icon */}
       <div className="success-icon opacity-0 flex justify-center mb-8">
         <div className="size-20 bg-secondary shadow-border rounded-full flex items-center justify-center">
-          <CheckCircle2 className="size-10 text-success" />
+          <CircleCheck className="size-10 text-success" />
         </div>
       </div>
 

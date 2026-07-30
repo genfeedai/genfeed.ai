@@ -5,12 +5,12 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
 import {
-  AlertTriangle,
   Check,
   Clock,
   ExternalLink,
   RefreshCw,
   ShieldCheck,
+  TriangleAlert,
   X,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -344,7 +344,7 @@ export function WorkflowSurfaceInspector({
       {error ? (
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
           <div className="flex items-start gap-2">
-            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+            <TriangleAlert className="mt-0.5 size-4 shrink-0" />
             <p>{error}</p>
           </div>
           <Button

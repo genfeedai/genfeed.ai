@@ -13,8 +13,8 @@ import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import { Separator } from '@ui/primitives/separator';
 import {
-  AlertCircle,
-  CheckCircle2,
+  CircleAlert,
+  CircleCheck,
   CircleDot,
   Gauge,
   RefreshCw,
@@ -111,11 +111,11 @@ function getCheckState(check: SeoCheck): CheckState {
 function getCheckIcon(state: CheckState) {
   switch (state) {
     case 'pass':
-      return <CheckCircle2 className="size-3.5" />;
+      return <CircleCheck className="size-3.5" />;
     case 'partial':
       return <CircleDot className="size-3.5" />;
     case 'fix':
-      return <AlertCircle className="size-3.5" />;
+      return <CircleAlert className="size-3.5" />;
     case 'unavailable':
       return <CircleDot className="size-3.5" />;
   }

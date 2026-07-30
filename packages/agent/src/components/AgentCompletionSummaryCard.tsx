@@ -7,7 +7,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
-  CheckCircle2,
+  CircleCheck,
   Clipboard,
   Frown,
   Image,
@@ -137,7 +137,7 @@ export function AgentCompletionSummaryCard({
   return (
     <div className="mt-3 border border-border/70 bg-card/70 p-4 text-left shadow-sm backdrop-blur-sm">
       <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-        <CheckCircle2 className="size-4.5 text-emerald-500" />
+        <CircleCheck className="size-4.5 text-emerald-500" />
         <span>{action.title || 'Done'}</span>
       </div>
 
@@ -250,7 +250,7 @@ export function AgentCompletionSummaryCard({
         {feedbackState ? (
           <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/80">
             {feedbackState === 'positive' ? (
-              <CheckCircle2 className="size-3.5 text-emerald-500" />
+              <CircleCheck className="size-3.5 text-emerald-500" />
             ) : (
               <Frown className="size-3.5 text-amber-500" />
             )}

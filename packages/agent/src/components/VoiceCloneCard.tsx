@@ -3,7 +3,7 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { VoiceCloneStatus, VoiceProvider } from '@genfeedai/enums';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import { AlertCircle, Mic } from 'lucide-react';
+import { CircleAlert, Mic } from 'lucide-react';
 import {
   type ReactElement,
   useCallback,
@@ -289,7 +289,7 @@ export function VoiceCloneCard({
       {/* Error */}
       {error && (
         <p className="mt-3 flex items-center gap-1 text-xs text-red-500">
-          <AlertCircle className="size-4" />
+          <CircleAlert className="size-4" />
           {error}
         </p>
       )}

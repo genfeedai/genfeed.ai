@@ -9,7 +9,7 @@ import { formatAgentErrorDetail } from '@genfeedai/agent/utils/format-agent-erro
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
-import { AlertCircle, CheckCircle2, ChevronDown, Clock } from 'lucide-react';
+import { ChevronDown, CircleAlert, CircleCheck, Clock } from 'lucide-react';
 import { type ReactElement, useEffect, useMemo, useState } from 'react';
 
 interface TimelineWorkGroupProps {
@@ -119,9 +119,9 @@ export function TimelineWorkGroup({
             </span>
             <span className="inline-flex items-center gap-1 text-[11px] text-foreground/45">
               {terminalStatus === 'failed' ? (
-                <AlertCircle className="size-3.5 text-destructive" />
+                <CircleAlert className="size-3.5 text-destructive" />
               ) : (
-                <CheckCircle2 className="size-3.5 text-emerald-500" />
+                <CircleCheck className="size-3.5 text-emerald-500" />
               )}
               {statusLabel}
             </span>

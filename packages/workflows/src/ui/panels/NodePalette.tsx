@@ -10,15 +10,16 @@ import {
   ArrowRightToLine,
   AudioLines,
   Brain,
-  CheckCircle,
+  Captions,
   ChevronDown,
   ChevronRight,
+  CircleCheckBig,
   Columns2,
   Crop,
   Download,
   Eye,
+  FilePlay,
   FileText,
-  FileVideo,
   Film,
   GitBranch,
   Grid3X3,
@@ -36,10 +37,9 @@ import {
   Scissors,
   Search,
   Sparkles,
-  Subtitles,
   Video,
   Volume2,
-  Wand2,
+  WandSparkles,
 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useUIStore } from '../stores/uiStore';
@@ -53,13 +53,13 @@ const ICONS: Record<string, typeof Image> = {
   AudioLines,
   Brain,
   // Output
-  CheckCircle,
+  CircleCheckBig,
   Columns2,
   Crop,
   Download,
   Eye,
   FileText,
-  FileVideo,
+  FilePlay,
   Film,
   GitBranch,
   Grid3X3,
@@ -78,10 +78,10 @@ const ICONS: Record<string, typeof Image> = {
   Scissors,
   // AI
   Sparkles,
-  Subtitles,
+  Captions,
   Video,
   Volume2,
-  Wand2,
+  WandSparkles,
 };
 
 const CATEGORY_LABELS: Record<NodeCategory, string> = {

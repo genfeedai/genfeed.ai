@@ -1,4 +1,4 @@
-import { CheckCircle2, Key } from 'lucide-react';
+import { CircleCheck, Key } from 'lucide-react';
 
 ('use client');
 
@@ -29,7 +29,7 @@ export default function ProvidersRowItem({
         }`}
       >
         {enabled ? (
-          <CheckCircle2 className="size-4" />
+          <CircleCheck className="size-4" />
         ) : (
           <Key className="size-4" />
         )}

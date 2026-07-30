@@ -1,13 +1,13 @@
 'use client';
 
 import {
-  AlertTriangle,
   Check,
-  CheckCircle,
+  CircleCheckBig,
+  CircleX,
   Copy,
   Info,
+  TriangleAlert,
   X,
-  XCircle,
 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useUIStore } from '../stores/uiStore';
@@ -21,10 +21,10 @@ const typeStyles = {
 } as const;
 
 const typeIcons = {
-  error: XCircle,
+  error: CircleX,
   info: Info,
-  success: CheckCircle,
-  warning: AlertTriangle,
+  success: CircleCheckBig,
+  warning: TriangleAlert,
 } as const;
 
 function NotificationItem({

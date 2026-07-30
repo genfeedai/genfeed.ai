@@ -20,7 +20,7 @@ import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
-import { CheckCircle2, RefreshCw, Rocket } from 'lucide-react';
+import { CircleCheck, RefreshCw, Rocket } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useReducer } from 'react';
 
 const TABS = [
@@ -375,7 +375,7 @@ export default function WarmupAccountsPage({
             {isSubmitting ? (
               <RefreshCw className="size-4 animate-spin" />
             ) : (
-              <CheckCircle2 className="size-4" />
+              <CircleCheck className="size-4" />
             )}
             {isSubmitting ? 'Provisioning' : 'Provision warm-up account'}
           </Button>

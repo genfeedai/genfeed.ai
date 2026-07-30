@@ -1,7 +1,7 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { CheckCircle2, Clock, ExternalLink } from 'lucide-react';
+import { CircleCheck, Clock, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { type ReactElement, useCallback, useState } from 'react';
 
@@ -43,7 +43,7 @@ export function WorkflowCreatedCard({
   return (
     <div className="my-2 overflow-hidden border border-emerald-500/20 bg-background">
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-        <CheckCircle2 className="size-5 text-emerald-500" />
+        <CircleCheck className="size-5 text-emerald-500" />
         <div>
           <h3 className="text-sm font-semibold text-foreground">
             {action.title || 'Automation created'}

@@ -11,10 +11,10 @@ import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import PageLayout from '@web-components/PageLayout';
 import {
-  BarChart2,
-  BarChart3,
+  ChartColumn,
+  ChartLine,
+  ChartNoAxesColumn,
   Flame,
-  LineChart,
   Sparkles,
   TrendingUp,
   Zap,
@@ -34,12 +34,12 @@ const SURFACES = [
 
 const METRICS = [
   {
-    icon: BarChart3,
+    icon: ChartColumn,
     label: 'Overview Dashboard',
     value: 'Revenue and output at a glance',
   },
   {
-    icon: BarChart2,
+    icon: ChartNoAxesColumn,
     label: 'Post Analytics',
     value: 'Every post scored against revenue',
   },
@@ -54,7 +54,7 @@ const FEATURES = [
   {
     description:
       'See which posts drive revenue, not just likes, with attribution tied to every publish.',
-    icon: BarChart3,
+    icon: ChartColumn,
     title: 'Revenue Attribution',
   },
   {
@@ -66,7 +66,7 @@ const FEATURES = [
   {
     description:
       'Run A/B tests in the performance lab to prove what actually moves the number.',
-    icon: LineChart,
+    icon: ChartLine,
     title: 'Performance Lab',
   },
   {
@@ -85,17 +85,17 @@ const FEATURES = [
 
 const STEPS = [
   {
-    icon: BarChart2,
+    icon: ChartNoAxesColumn,
     label: 'Publish',
     sublabel: 'Ship content across every connected platform',
   },
   {
-    icon: BarChart3,
+    icon: ChartColumn,
     label: 'Measure',
     sublabel: 'Attribute revenue and engagement to each post',
   },
   {
-    icon: LineChart,
+    icon: ChartLine,
     label: 'Learn',
     sublabel: 'Spot the hooks and trends that convert',
   },
@@ -179,7 +179,7 @@ export default function AnalyticsContent() {
             <HStack className="flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
                 <div className="size-20 flex items-center justify-center border border-[var(--gen-accent-border)] bg-white/[0.06]">
-                  <BarChart3 className="size-10 text-surface" />
+                  <ChartColumn className="size-10 text-surface" />
                 </div>
               </div>
               <VStack className="gap-3">

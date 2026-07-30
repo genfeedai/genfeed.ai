@@ -7,7 +7,7 @@ import type {
 } from '@genfeedai/types';
 import { NodeStatusEnum } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { Layers, Loader2, RefreshCw, Zap } from 'lucide-react';
+import { Layers, LoaderCircle, RefreshCw, Zap } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { useExecutionStore } from '../../stores/execution';
 import { useWorkflowStore } from '../../stores/workflow';
@@ -265,7 +265,7 @@ function VideoStitchNodeComponent(props: NodeProps) {
             className="w-full"
           >
             {nodeData.status === 'processing' ? (
-              <Loader2 className="size-4 animate-spin" />
+              <LoaderCircle className="size-4 animate-spin" />
             ) : (
               <Layers className="size-4" />
             )}

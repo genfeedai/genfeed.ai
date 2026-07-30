@@ -1,7 +1,7 @@
 'use client';
 
 import Card from '@ui/card/Card';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { CircleAlert, CircleCheck } from 'lucide-react';
 
 import type { UploadResult } from './dataset-uploader.types';
 
@@ -17,14 +17,14 @@ export default function DatasetUploadResult({
       <div className="p-4 space-y-2">
         {uploadResult.uploadedCount > 0 && (
           <div className="flex items-center gap-2 text-sm text-success">
-            <CheckCircle2 className="size-4" />
+            <CircleCheck className="size-4" />
             {uploadResult.uploadedCount} image(s) uploaded successfully
           </div>
         )}
         {uploadResult.failedCount > 0 && (
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-sm text-error">
-              <AlertCircle className="size-4" />
+              <CircleAlert className="size-4" />
               {uploadResult.failedCount} image(s) failed
             </div>
             {uploadResult.failed.map((f) => (

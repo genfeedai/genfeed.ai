@@ -16,7 +16,7 @@ import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
-import { CheckCircle2 } from 'lucide-react';
+import { CircleCheck } from 'lucide-react';
 import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -266,7 +266,7 @@ export default function ModalBrandInstagram({
                   </div>
 
                   {selectedHandle?.id === handle.id && (
-                    <CheckCircle2 className="text-primary text-xl" />
+                    <CircleCheck className="text-primary text-xl" />
                   )}
                 </div>
               </Button>

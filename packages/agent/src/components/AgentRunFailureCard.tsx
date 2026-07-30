@@ -4,7 +4,7 @@ import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { RefreshCw, TriangleAlert } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 interface AgentRunFailureCardProps {
@@ -32,7 +32,7 @@ export function AgentRunFailureCard({
     >
       <div className="flex items-start gap-3">
         <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-destructive/30 bg-destructive/10 text-destructive">
-          <AlertTriangle className="size-3.5" aria-hidden />
+          <TriangleAlert className="size-3.5" aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-foreground">

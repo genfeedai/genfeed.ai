@@ -8,7 +8,7 @@ import { ErrorBoundary } from '@ui/error';
 import FeatureGate from '@ui/guards/feature/FeatureGate';
 import Container from '@ui/layout/container/Container';
 import FormDateRangePicker from '@ui/primitives/date-range-picker';
-import { BarChart3 } from 'lucide-react';
+import { ChartColumn } from 'lucide-react';
 
 import AnalyticsWorkSurfaceAdapter from './_surface/analytics-work-surface-adapter';
 
@@ -20,7 +20,7 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
     <Container
       label="Analytics"
       description="Track your brand performance, content analytics, and growth metrics"
-      icon={BarChart3}
+      icon={ChartColumn}
       right={
         <div className="flex items-center gap-2">
           <FormDateRangePicker

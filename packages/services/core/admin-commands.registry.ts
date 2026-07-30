@@ -6,12 +6,12 @@
 import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import {
-  BarChart3,
+  ChartColumn,
   ClipboardList,
   Cpu,
   CreditCard,
   FileText,
-  Home,
+  House as Home,
   Image,
   MessageSquare,
   Newspaper,
@@ -66,7 +66,7 @@ export const adminNavigationCommands: ICommand[] = [
     category: 'navigation',
     condition: adminCondition,
     description: 'Platform analytics',
-    icon: BarChart3,
+    icon: ChartColumn,
     id: 'admin-nav-analytics',
     keywords: ['analytics', 'stats', 'metrics'],
     label: 'Analytics',

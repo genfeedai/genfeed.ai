@@ -1,7 +1,7 @@
 'use client';
 
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
-import { AlertTriangle } from 'lucide-react';
+import { TriangleAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 function isLocalhost(): boolean {
@@ -60,7 +60,7 @@ export default function ProductionDataBanner() {
       data-testid="production-data-banner"
       className="flex w-full items-center justify-center gap-2 bg-destructive px-4 py-2 text-sm font-bold text-destructive-foreground"
     >
-      <AlertTriangle className="size-5 shrink-0" />
+      <TriangleAlert className="size-5 shrink-0" />
       <span>PRODUCTION DATA: Read carefully before making changes</span>
     </div>
   );

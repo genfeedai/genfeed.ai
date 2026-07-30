@@ -9,7 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import {
   ArrowRight,
-  CheckCircle2,
+  CircleCheck,
   Key,
   RefreshCw,
   ShieldCheck,
@@ -85,7 +85,7 @@ function ConnectionState({
             'Human approval controls',
           ].map((label) => (
             <li className="flex items-center gap-2" key={label}>
-              <CheckCircle2
+              <CircleCheck
                 aria-hidden="true"
                 className="size-3.5 shrink-0 text-success"
               />

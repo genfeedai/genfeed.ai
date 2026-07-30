@@ -8,7 +8,7 @@ import {
   DrawerTitle,
 } from '@ui/primitives';
 import { Button } from '@ui/primitives/button';
-import { CheckCircle2 } from 'lucide-react';
+import { CircleCheck } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 type AgentFullPageOnboardingChromeProps = {
@@ -57,7 +57,7 @@ export function AgentFullPageOnboardingChrome({
         onClick={() => onMobileChecklistOpenChange(true)}
       >
         <div className="flex items-center gap-2">
-          <CheckCircle2 className="size-5 text-primary" />
+          <CircleCheck className="size-5 text-primary" />
           <span className="text-sm font-medium text-foreground">
             Activation Journey
           </span>

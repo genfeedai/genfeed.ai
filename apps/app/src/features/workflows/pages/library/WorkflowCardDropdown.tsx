@@ -2,7 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { Copy, MoreVertical, Trash2 } from 'lucide-react';
+import { Copy, EllipsisVertical, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 type WorkflowCardDropdownProps = {
@@ -46,7 +46,7 @@ export default function WorkflowCardDropdown({
         }}
         className="rounded p-1 text-foreground/40 transition-colors hover:bg-muted hover:text-foreground"
       >
-        <MoreVertical className="size-4" />
+        <EllipsisVertical className="size-4" />
       </Button>
 
       {isOpen && (

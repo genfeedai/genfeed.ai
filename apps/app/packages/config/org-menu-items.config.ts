@@ -1,6 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
-import { BarChart3, LayoutGrid, MessageSquare } from 'lucide-react';
+import { ChartColumn, LayoutGrid, MessageSquare } from 'lucide-react';
 
 export const ORG_MENU_ITEMS: MenuItemConfig[] = [
   {
@@ -16,8 +16,8 @@ export const ORG_MENU_ITEMS: MenuItemConfig[] = [
     href: APP_ROUTES.ANALYTICS.OVERVIEW,
     label: 'Analytics',
     matchPaths: [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
-    outline: BarChart3,
-    solid: BarChart3,
+    outline: ChartColumn,
+    solid: ChartColumn,
   },
   {
     group: '',

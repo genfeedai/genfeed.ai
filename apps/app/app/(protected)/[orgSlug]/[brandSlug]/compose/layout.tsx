@@ -3,7 +3,7 @@
 import type { LayoutProps } from '@props/layout/layout.props';
 import FeatureGate from '@ui/guards/feature/FeatureGate';
 import Container from '@ui/layout/container/Container';
-import { PenSquare } from 'lucide-react';
+import { SquarePen } from 'lucide-react';
 
 export default function ComposeLayout({ children }: LayoutProps) {
   return (
@@ -11,7 +11,7 @@ export default function ComposeLayout({ children }: LayoutProps) {
       <Container
         label="Write"
         description="Draft, refine, and prepare durable text content."
-        icon={PenSquare}
+        icon={SquarePen}
       >
         {children}
       </Container>

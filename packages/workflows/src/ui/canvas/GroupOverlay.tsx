@@ -8,7 +8,7 @@ import {
   ViewportPortal,
 } from '@xyflow/react';
 import { clsx } from 'clsx';
-import { Lock, Palette, Trash2, Unlock } from 'lucide-react';
+import { Lock, LockOpen, Palette, Trash2 } from 'lucide-react';
 import {
   memo,
   useCallback,
@@ -361,12 +361,12 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
               toggleGroupLock(group.id);
             }}
             className={clsx('p-1 size-auto hover:bg-white/10', colors.text)}
-            title={group.isLocked ? 'Unlock group' : 'Lock group'}
+            title={group.isLocked ? 'LockOpen group' : 'Lock group'}
           >
             {group.isLocked ? (
               <Lock className="size-4" />
             ) : (
-              <Unlock className="size-4" />
+              <LockOpen className="size-4" />
             )}
           </Button>
           <Button

@@ -9,7 +9,7 @@ import {
 import type { TrendAnalysisCardProps } from '@genfeedai/props/analytics/insights.props';
 import Card from '@ui/card/Card';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
-import { BarChart3, Minus, TrendingDown, TrendingUp } from 'lucide-react';
+import { ChartColumn, Minus, TrendingDown, TrendingUp } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { memo, useMemo } from 'react';
 
@@ -64,7 +64,7 @@ const TrendAnalysisCard = memo(function TrendAnalysisCard({
     return (
       <Card
         label="Trend Analysis"
-        icon={BarChart3}
+        icon={ChartColumn}
         iconClassName="text-primary"
         className={className}
       >
@@ -90,12 +90,12 @@ const TrendAnalysisCard = memo(function TrendAnalysisCard({
     return (
       <Card
         label="Trend Analysis"
-        icon={BarChart3}
+        icon={ChartColumn}
         iconClassName="text-primary"
         className={className}
       >
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <BarChart3 className="size-12 text-foreground/30 mb-3" />
+          <ChartColumn className="size-12 text-foreground/30 mb-3" />
           <p className="text-foreground/70 font-medium">
             No trend data available
           </p>
@@ -110,7 +110,7 @@ const TrendAnalysisCard = memo(function TrendAnalysisCard({
   return (
     <Card
       label="Trend Analysis"
-      icon={BarChart3}
+      icon={ChartColumn}
       iconClassName="text-primary"
       description="Performance trends and forecasts"
       className={className}

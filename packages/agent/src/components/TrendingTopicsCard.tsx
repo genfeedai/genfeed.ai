@@ -1,7 +1,7 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { Flame, PenSquare, TrendingUp } from 'lucide-react';
+import { Flame, SquarePen, TrendingUp } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 interface TrendingTopicsCardProps {
@@ -69,7 +69,7 @@ export function TrendingTopicsCard({
                 }
                 className="ml-2 flex shrink-0 items-center gap-1 rounded bg-orange-50 px-2 py-1 text-[10px] font-medium text-orange-600 transition-colors hover:bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400 dark:hover:bg-orange-900/50"
               >
-                <PenSquare className="size-3" />
+                <SquarePen className="size-3" />
                 Create Post
               </Button>
             </div>

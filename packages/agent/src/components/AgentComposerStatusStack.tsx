@@ -11,7 +11,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
-import { AlertTriangle, SignalZero, X } from 'lucide-react';
+import { SignalZero, TriangleAlert, X } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 interface AgentComposerStatusStackProps {
@@ -113,7 +113,7 @@ export function AgentComposerStatusStack({
           )}
           role="alert"
         >
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
+          <TriangleAlert className="mt-0.5 size-4 shrink-0 text-destructive" />
           <div className="min-w-0 flex-1 space-y-1">
             <p className="font-medium text-foreground text-sm leading-5">
               {composerError.summary}

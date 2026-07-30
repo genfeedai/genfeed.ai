@@ -363,7 +363,7 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
       },
     },
     description: 'Read performance analytics to guide content strategy',
-    icon: 'BarChart3',
+    icon: 'ChartColumn',
     inputs: {},
     isPremium: true,
     label: 'Analytics Feedback',

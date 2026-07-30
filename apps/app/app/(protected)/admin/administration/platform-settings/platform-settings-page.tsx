@@ -14,7 +14,7 @@ import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
-import { Banknote, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Banknote, CircleCheck, RefreshCw } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -148,7 +148,7 @@ export default function PlatformSettingsPage() {
             {isSaving ? (
               <RefreshCw className="size-4 animate-spin" />
             ) : (
-              <CheckCircle2 className="size-4" />
+              <CircleCheck className="size-4" />
             )}
             {isSaving ? 'Saving' : 'Save settings'}
           </Button>

@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { buildAgentPromptHref } from '@utils/url/desktop-loop-url.util';
-import { BarChart3, LayoutGrid } from 'lucide-react';
+import { ChartColumn, LayoutGrid } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type ReactNode,
@@ -207,7 +207,7 @@ export default function AnalyticsPostsList() {
     <Container
       label="Top Posts"
       description="Post performance in the selected period"
-      icon={BarChart3}
+      icon={ChartColumn}
       right={
         <div className="flex items-center gap-2">
           {focusedPostId ? (

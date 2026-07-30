@@ -9,11 +9,11 @@ import { ButtonVariant } from '@genfeedai/enums';
 import type { NavView } from '@renderer/nav-view';
 import { Button } from '@ui/primitives/button';
 import {
-  BarChart3,
+  ChartColumn,
+  CirclePlus,
   Cpu,
   FolderOpen,
   LayoutGrid,
-  PlusCircle,
   Rocket,
   Zap,
 } from 'lucide-react';
@@ -52,8 +52,8 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: 'analytics',
     label: 'Analytics',
-    outline: BarChart3,
-    solid: BarChart3,
+    outline: ChartColumn,
+    solid: ChartColumn,
   },
   {
     id: 'library',
@@ -136,7 +136,7 @@ export function Sidebar({
             type="button"
             variant={ButtonVariant.UNSTYLED}
           >
-            <PlusCircle className="nav-icon-svg" /> New thread
+            <CirclePlus className="nav-icon-svg" /> New thread
           </Button>
           <Button
             className="sidebar-action-button"
@@ -156,7 +156,7 @@ export function Sidebar({
           variant={ButtonVariant.UNSTYLED}
           ariaLabel="New thread"
         >
-          <PlusCircle className="nav-icon-svg" />
+          <CirclePlus className="nav-icon-svg" />
         </Button>
       )}
 

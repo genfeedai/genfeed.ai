@@ -153,7 +153,7 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
     defaultData: DEFAULT_ENGAGEMENT_TRIGGER_DATA as Record<string, unknown>,
     description:
       'Start workflow when engagement metrics (likes, comments, shares, views) hit a threshold',
-    icon: 'BarChart2',
+    icon: 'ChartNoAxesColumn',
     inputs: [],
     label: 'Engagement Trigger',
     outputs: [
@@ -281,7 +281,7 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
     category: 'input',
     defaultData: DEFAULT_ANALYTICS_FEEDBACK_DATA as Record<string, unknown>,
     description: 'Read performance analytics to guide content strategy',
-    icon: 'BarChart3',
+    icon: 'ChartColumn',
     inputs: [],
     label: 'Analytics Feedback',
     outputs: [

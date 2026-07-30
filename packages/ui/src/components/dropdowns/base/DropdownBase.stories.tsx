@@ -2,7 +2,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import Button from '@ui/buttons/base/Button';
 import DropdownBase from '@ui/dropdowns/base/DropdownBase';
-import { Copy, Download, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { Copy, Download, EllipsisVertical, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 /**
@@ -133,7 +133,7 @@ export const IconTrigger: Story = {
     <DropdownBase
       trigger={
         <button className="h-8 px-3 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground">
-          <MoreVertical size={16} />
+          <EllipsisVertical size={16} />
         </button>
       }
     >
@@ -284,7 +284,7 @@ export const Multiple: Story = {
       <DropdownBase
         trigger={
           <button className="h-8 px-3 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground">
-            <MoreVertical size={16} />
+            <EllipsisVertical size={16} />
           </button>
         }
       >

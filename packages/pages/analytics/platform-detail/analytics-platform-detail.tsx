@@ -18,7 +18,7 @@ import { Button } from '@ui/primitives/button';
 import {
   ArrowLeft,
   ArrowRight,
-  BarChart3,
+  ChartColumn,
   Eye,
   Flame,
   Heart,
@@ -131,7 +131,7 @@ export default function AnalyticsPlatformDetail({
     <Container
       label={`${platformLabel} Performance`}
       description={`${brandName} - ${posts.length} posts on ${platformLabel}`}
-      icon={BarChart3}
+      icon={ChartColumn}
       left={
         <Button
           onClick={() => router.push(`${basePath}/brands/${brandId}`)}
@@ -165,7 +165,7 @@ export default function AnalyticsPlatformDetail({
           },
           {
             description: 'Per content piece',
-            icon: BarChart3,
+            icon: ChartColumn,
             iconClassName: 'bg-white/10 text-foreground',
             label: 'Avg Views/Post',
             value: formatCompactNumberIntl(avgViewsPerPost),

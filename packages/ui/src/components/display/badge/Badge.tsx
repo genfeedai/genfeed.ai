@@ -4,13 +4,7 @@ import type { IBadgeStatusConfig } from '@genfeedai/interfaces/ui/badge-status-c
 import type { BadgeProps } from '@genfeedai/props/ui/display/badge.props';
 import { Badge as PrimitiveBadge } from '@ui/primitives/badge';
 import type { VariantProps } from 'class-variance-authority';
-import {
-  Calendar,
-  CheckCircle2,
-  Clock,
-  RefreshCw,
-  XCircle,
-} from 'lucide-react';
+import { Calendar, CircleCheck, CircleX, Clock, RefreshCw } from 'lucide-react';
 
 import { badgeVariants } from './badge.variants';
 
@@ -61,7 +55,7 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
     case 'active':
     case 'success':
       return {
-        icon: <CheckCircle2 className="size-3" />,
+        icon: <CircleCheck className="size-3" />,
         label: 'Completed',
         variant: 'success',
       };
@@ -99,7 +93,7 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
     case 'cancelled':
     case 'canceled':
       return {
-        icon: <XCircle className="size-3" />,
+        icon: <CircleX className="size-3" />,
         label: 'Failed',
         variant: 'error',
       };
@@ -145,7 +139,7 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
     case 'validated':
     case 'operational':
       return {
-        icon: <CheckCircle2 className="size-3" />,
+        icon: <CircleCheck className="size-3" />,
         label: 'Operational',
         variant: 'validated',
       };

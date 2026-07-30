@@ -1,6 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
-import { PlayCircle, Rocket, Settings, Sparkles, Wrench } from 'lucide-react';
+import { CirclePlay, Rocket, Settings, Sparkles, Wrench } from 'lucide-react';
 
 export const WORKFLOWS_MENU_ITEMS: MenuItemConfig[] = [
   {
@@ -11,8 +11,8 @@ export const WORKFLOWS_MENU_ITEMS: MenuItemConfig[] = [
       APP_ROUTES.WORKFLOWS.EXECUTIONS,
       APP_ROUTES.ORCHESTRATION.RUNS,
     ],
-    outline: PlayCircle,
-    solid: PlayCircle,
+    outline: CirclePlay,
+    solid: CirclePlay,
   },
   {
     group: '',

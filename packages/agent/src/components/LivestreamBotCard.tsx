@@ -1,7 +1,7 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { CheckCircle2, ExternalLink, MessageSquare } from 'lucide-react';
+import { CircleCheck, ExternalLink, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { type ReactElement, useCallback, useState } from 'react';
 
@@ -66,7 +66,7 @@ export function LivestreamBotCard({
           ) : null}
           {action.sessionStatus ? (
             <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-1 text-[11px] font-medium text-muted-foreground">
-              <CheckCircle2 className="size-3.5" />
+              <CircleCheck className="size-3.5" />
               <span>{action.sessionStatus}</span>
             </div>
           ) : null}

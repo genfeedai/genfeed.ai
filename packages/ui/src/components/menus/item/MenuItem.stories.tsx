@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import MenuItem from '@ui/menus/item/MenuItem';
-import { Bell, Home, Settings, User } from 'lucide-react';
+import { Bell, House as Home, Settings, User } from 'lucide-react';
 
 /**
  * MenuItem component displays a navigation menu item with icon and label.

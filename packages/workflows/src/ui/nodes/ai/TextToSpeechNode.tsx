@@ -8,10 +8,10 @@ import type {
 import { Code } from '@genfeedai/ui';
 import type { NodeProps } from '@xyflow/react';
 import {
-  AlertTriangle,
   AudioLines,
-  Loader2,
+  LoaderCircle,
   RefreshCw,
+  TriangleAlert,
   Volume2,
 } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
@@ -133,7 +133,7 @@ function TextToSpeechNodeComponent(props: NodeProps) {
         {/* API Key Warning */}
         {!TTS_ENABLED && (
           <div className="flex items-start gap-2 p-2 bg-warning/10 border border-warning/30 rounded text-xs">
-            <AlertTriangle className="size-4 text-warning flex-shrink-0 mt-0.5" />
+            <TriangleAlert className="size-4 text-warning flex-shrink-0 mt-0.5" />
             <div className="text-warning">
               <p className="font-medium">ElevenLabs not configured</p>
               <p className="text-warning/80 mt-0.5">
@@ -285,7 +285,7 @@ function TextToSpeechNodeComponent(props: NodeProps) {
             className="w-full"
           >
             {nodeData.status === 'processing' ? (
-              <Loader2 className="size-4 animate-spin" />
+              <LoaderCircle className="size-4 animate-spin" />
             ) : (
               <Volume2 className="size-4" />
             )}

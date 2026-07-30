@@ -2,7 +2,7 @@ import type { AgentRunSummary } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
-import { Ban, PlayCircle, RefreshCw } from 'lucide-react';
+import { Ban, CirclePlay, RefreshCw } from 'lucide-react';
 import type { ReactElement, ReactNode } from 'react';
 
 import {
@@ -63,7 +63,7 @@ function AgentRunThreadAction({
       withWrapper={false}
       onClick={() => onOpenThread(threadId)}
     >
-      <PlayCircle aria-hidden="true" className="size-4" />
+      <CirclePlay aria-hidden="true" className="size-4" />
       Open thread
     </Button>
   );

@@ -28,7 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
-import { ArrowUp, Copy, ExternalLink, MoreHorizontal } from 'lucide-react';
+import { ArrowUp, Copy, Ellipsis, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
@@ -271,7 +271,7 @@ const PostsGrid = memo(
                         aria-label="More post actions"
                         onClick={(event) => event.stopPropagation()}
                       >
-                        <MoreHorizontal className="size-4" />
+                        <Ellipsis className="size-4" />
                       </PrimitiveButton>
                     </DropdownMenuTrigger>
 

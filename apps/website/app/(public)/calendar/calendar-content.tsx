@@ -12,7 +12,7 @@ import { Text } from '@ui/typography/text';
 import PageLayout from '@web-components/PageLayout';
 import {
   Calendar,
-  CheckCircle2,
+  CircleCheck,
   Clock,
   List,
   RefreshCw,
@@ -71,7 +71,7 @@ const STEPS = [
     sublabel: 'Drag posts into place and set send times',
   },
   {
-    icon: CheckCircle2,
+    icon: CircleCheck,
     label: 'Approve',
     sublabel: 'Review and sign off before anything goes out',
   },

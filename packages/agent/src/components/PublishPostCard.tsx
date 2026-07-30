@@ -3,7 +3,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
-import { Calendar, CheckCircle2, Send } from 'lucide-react';
+import { Calendar, CircleCheck, Send } from 'lucide-react';
 import {
   type ChangeEvent,
   type ReactElement,
@@ -127,7 +127,7 @@ export function PublishPostCard({
     return (
       <div className="my-2 border border-emerald-500/20 bg-background p-4">
         <div className="flex items-center gap-2 text-emerald-600">
-          <CheckCircle2 className="size-5" />
+          <CircleCheck className="size-5" />
           <span className="text-sm font-medium">
             {scheduledAt
               ? 'Publish scheduled from chat.'

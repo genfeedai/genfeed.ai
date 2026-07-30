@@ -2,7 +2,7 @@
 
 import type { DownloadNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { Clock, Download, Loader2 } from 'lucide-react';
+import { Clock, Download, LoaderCircle } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useState } from 'react';
 import { useExecutionStore } from '../../stores/execution';
@@ -111,7 +111,7 @@ function DownloadNodeComponent(props: NodeProps) {
                 {nodeData.status === 'processing' && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
                     <div className="flex flex-col items-center gap-2">
-                      <Loader2 className="size-8 animate-spin text-primary" />
+                      <LoaderCircle className="size-8 animate-spin text-primary" />
                       <span className="text-xs text-white/80">Processing…</span>
                     </div>
                   </div>
@@ -130,7 +130,7 @@ function DownloadNodeComponent(props: NodeProps) {
                 {nodeData.status === 'processing' && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
                     <div className="flex flex-col items-center gap-2">
-                      <Loader2 className="size-8 animate-spin text-primary" />
+                      <LoaderCircle className="size-8 animate-spin text-primary" />
                       <span className="text-xs text-white/80">Processing…</span>
                     </div>
                   </div>
@@ -162,7 +162,7 @@ function DownloadNodeComponent(props: NodeProps) {
               disabled={isDownloading}
             >
               {isDownloading ? (
-                <Loader2 className="size-4 animate-spin" />
+                <LoaderCircle className="size-4 animate-spin" />
               ) : (
                 <Download className="size-4" />
               )}
@@ -172,7 +172,7 @@ function DownloadNodeComponent(props: NodeProps) {
         ) : isConnected && isRunning ? (
           <div className="relative flex h-20 flex-col items-center justify-center bg-black/20">
             <div className="flex flex-col items-center gap-2">
-              <Loader2 className="size-8 animate-spin text-primary" />
+              <LoaderCircle className="size-8 animate-spin text-primary" />
               <span className="text-xs text-white/80">Generating…</span>
             </div>
           </div>

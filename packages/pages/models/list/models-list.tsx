@@ -10,7 +10,7 @@ import type { TableAction } from '@props/ui/display/table.props';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalModel } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { Archive, CheckCircle2, Info, Trash2, XCircle } from 'lucide-react';
+import { Archive, CircleCheck, CircleX, Info, Trash2 } from 'lucide-react';
 import { useMemo } from 'react';
 
 import ModelsAdminHeader from './components/ModelsAdminHeader';
@@ -69,7 +69,7 @@ export default function ModelsList({
       ...(isAdminScope
         ? [
             {
-              icon: <CheckCircle2 />,
+              icon: <CircleCheck />,
               isVisible: (model: IModel) =>
                 !!model.isDiscovered &&
                 !model.isActive &&
@@ -85,7 +85,7 @@ export default function ModelsList({
               tooltip: 'Approve',
             },
             {
-              icon: <XCircle />,
+              icon: <CircleX />,
               isVisible: (model: IModel) =>
                 !!model.isDiscovered &&
                 !model.isActive &&

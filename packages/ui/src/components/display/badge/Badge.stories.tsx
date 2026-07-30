@@ -1,7 +1,7 @@
 import { ComponentSize } from '@genfeedai/enums';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import Badge from '@ui/display/badge/Badge';
-import { AlertCircle, CheckCircle2, Clock, Flame, Star } from 'lucide-react';
+import { CircleAlert, CircleCheck, Clock, Flame, Star } from 'lucide-react';
 
 /**
  * Badge component for displaying status, counts, or labels.
@@ -87,7 +87,7 @@ export const Secondary: Story = {
  */
 export const Success: Story = {
   render: () => (
-    <Badge variant="success" icon={<CheckCircle2 />}>
+    <Badge variant="success" icon={<CircleCheck />}>
       Active
     </Badge>
   ),
@@ -109,7 +109,7 @@ export const Warning: Story = {
  */
 export const Error: Story = {
   render: () => (
-    <Badge variant="error" icon={<AlertCircle />}>
+    <Badge variant="error" icon={<CircleAlert />}>
       Failed
     </Badge>
   ),
@@ -281,13 +281,13 @@ export const StatusBadges: Story = {
   },
   render: () => (
     <div className="flex flex-wrap gap-3 p-4">
-      <Badge variant="success" icon={<CheckCircle2 />}>
+      <Badge variant="success" icon={<CircleCheck />}>
         Published
       </Badge>
       <Badge variant="warning" icon={<Clock />}>
         Draft
       </Badge>
-      <Badge variant="error" icon={<AlertCircle />}>
+      <Badge variant="error" icon={<CircleAlert />}>
         Error
       </Badge>
       <Badge variant="info">Processing</Badge>

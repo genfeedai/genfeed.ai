@@ -8,7 +8,7 @@ import type {
 } from '@genfeedai/types';
 import { NodeStatusEnum } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { ImageIcon, Loader2, RefreshCw, Video } from 'lucide-react';
+import { ImageIcon, LoaderCircle, RefreshCw, Video } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback } from 'react';
 import { useExecutionStore } from '../../stores/execution';
@@ -203,7 +203,7 @@ function ResizeNodeComponent(props: NodeProps) {
             className="mt-1 w-full"
           >
             {nodeData.status === 'processing' && (
-              <Loader2 className="size-4 animate-spin" />
+              <LoaderCircle className="size-4 animate-spin" />
             )}
             {nodeData.status === 'processing'
               ? 'Resizing...'

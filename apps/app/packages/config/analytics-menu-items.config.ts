@@ -1,8 +1,8 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import {
-  BarChart3,
   Building2,
+  ChartColumn,
   FileText,
   Flame,
   Sparkles,
@@ -15,8 +15,8 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     href: APP_ROUTES.ANALYTICS.OVERVIEW,
     label: 'Overview',
     matchPaths: [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
-    outline: BarChart3,
-    solid: BarChart3,
+    outline: ChartColumn,
+    solid: ChartColumn,
   },
   {
     group: '',
@@ -55,8 +55,8 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     href: APP_ROUTES.ANALYTICS.PERFORMANCE_LAB,
     label: 'Performance Lab',
     matchPaths: [APP_ROUTES.ANALYTICS.PERFORMANCE_LAB],
-    outline: BarChart3,
-    solid: BarChart3,
+    outline: ChartColumn,
+    solid: ChartColumn,
   },
   {
     group: '',

@@ -8,7 +8,7 @@ import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/for
 import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscription/use-subscription';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
-import { AlertTriangle, X } from 'lucide-react';
+import { TriangleAlert, X } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -155,7 +155,7 @@ export default function LowCreditsBanner({
                   : 'border-amber-400/25 bg-amber-500/[0.12] text-amber-300',
               )}
             >
-              <AlertTriangle className="size-5" />
+              <TriangleAlert className="size-5" />
             </div>
 
             <div className="min-w-0">

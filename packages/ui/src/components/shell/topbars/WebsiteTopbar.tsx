@@ -7,7 +7,13 @@ import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-aut
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import TopbarPublic from '@ui/topbars/public/TopbarPublic';
-import { BarChart3, Send, ShieldCheck, Sparkles, Terminal } from 'lucide-react';
+import {
+  ChartColumn,
+  Send,
+  ShieldCheck,
+  Sparkles,
+  Terminal,
+} from 'lucide-react';
 
 const PRODUCT_LINKS = [
   {
@@ -25,7 +31,7 @@ const PRODUCT_LINKS = [
   {
     description: 'Track revenue, not vanity metrics',
     href: '/analytics',
-    icon: BarChart3,
+    icon: ChartColumn,
     label: 'Analytics',
   },
   {

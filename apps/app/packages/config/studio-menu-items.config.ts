@@ -1,6 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
-import { Image, Layers, Music, PlayCircle, Users, Zap } from 'lucide-react';
+import { CirclePlay, Image, Layers, Music, Users, Zap } from 'lucide-react';
 
 export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
   {
@@ -16,8 +16,8 @@ export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
     href: APP_ROUTES.STUDIO.VIDEO,
     label: 'Video',
     matchPaths: [APP_ROUTES.STUDIO.VIDEO],
-    outline: PlayCircle,
-    solid: PlayCircle,
+    outline: CirclePlay,
+    solid: CirclePlay,
   },
   {
     group: '',

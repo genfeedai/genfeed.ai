@@ -28,7 +28,7 @@ import type {
 import { UsersService } from '@services/organization/users.service';
 import { format } from 'date-fns';
 import {
-  BarChart3,
+  ChartColumn,
   CreditCard,
   Eye,
   Film,
@@ -298,7 +298,7 @@ export function useAnalyticsOverview({
       },
       {
         description: 'Average engagement rate across tracked posts',
-        icon: BarChart3,
+        icon: ChartColumn,
         label: 'Avg Engagement Rate',
         value: `${(analytics?.avgEngagementRate || 0).toFixed(2)}%`,
         valueClassName: 'text-4xl',

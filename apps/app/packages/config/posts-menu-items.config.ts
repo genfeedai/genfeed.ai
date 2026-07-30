@@ -1,8 +1,8 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import {
-  BarChart3,
   Calendar,
+  ChartColumn,
   ClipboardCheck,
   FileText,
   List,
@@ -66,8 +66,8 @@ export const POSTS_MENU_ITEMS: MenuItemConfig[] = [
     href: APP_ROUTES.POSTS.ANALYTICS,
     label: 'Analytics',
     matchPaths: [APP_ROUTES.POSTS.ANALYTICS],
-    outline: BarChart3,
-    solid: BarChart3,
+    outline: ChartColumn,
+    solid: ChartColumn,
   },
   {
     group: '',

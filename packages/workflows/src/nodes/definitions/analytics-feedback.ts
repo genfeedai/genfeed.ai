@@ -26,7 +26,7 @@ export const analyticsFeedbackNodeDefinition = {
   category: 'trigger' as const,
   defaultData: DEFAULT_ANALYTICS_FEEDBACK_DATA,
   description: 'Read performance analytics to guide content strategy',
-  icon: 'BarChart3',
+  icon: 'ChartColumn',
   inputs: [
     {
       id: 'releaseAnalytics',

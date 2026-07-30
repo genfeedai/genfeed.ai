@@ -8,7 +8,7 @@ import type {
   MixMode,
   SoundOverlayNodeData,
 } from '@ui/workflow-builder/types/workflow-saas.types';
-import { Loader2, Music, Video, Volume2 } from 'lucide-react';
+import { LoaderCircle, Music, Video, Volume2 } from 'lucide-react';
 import { memo, useCallback, useId } from 'react';
 
 export type { MixMode, SoundOverlayNodeData };
@@ -203,7 +203,7 @@ function SoundOverlayNodeComponent({
       >
         {isProcessing ? (
           <>
-            <Loader2 className="size-4 animate-spin" />
+            <LoaderCircle className="size-4 animate-spin" />
             Processing…
             {data.processingProgress !== null && (
               <span>({data.processingProgress}%)</span>

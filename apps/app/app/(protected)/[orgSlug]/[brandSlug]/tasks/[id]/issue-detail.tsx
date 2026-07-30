@@ -16,7 +16,7 @@ import {
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
-import { AlertTriangle, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 
@@ -311,7 +311,7 @@ export default function IssueDetail({
       <Container>
         <Card>
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <AlertTriangle className="mb-3 size-8 text-white/20" />
+            <TriangleAlert className="mb-3 size-8 text-white/20" />
             <p className="text-sm text-white/50">Issue not found</p>
             <Link
               href={APP_ROUTES.WORKSPACE.TASKS}

@@ -4,8 +4,8 @@ import { Button } from '@ui/primitives/button';
 import {
   BookOpen,
   ChevronRight,
-  Code2,
-  Loader2,
+  CodeXml,
+  LoaderCircle,
   MessageCircle,
   Sparkles,
 } from 'lucide-react';
@@ -24,7 +24,7 @@ function ExploringView() {
     <div className="flex flex-col items-center justify-center py-8 gap-3">
       <div className="relative">
         <BookOpen className="size-8 text-violet-400" />
-        <Loader2 className="size-4 text-violet-400 animate-spin absolute -top-1 -right-1" />
+        <LoaderCircle className="size-4 text-violet-400 animate-spin absolute -top-1 -right-1" />
       </div>
       <p className="text-sm text-white/60 text-center max-w-xs">
         Agent is exploring context and reading relevant files…
@@ -111,8 +111,8 @@ function ImplementingView() {
   return (
     <div className="flex flex-col items-center justify-center py-8 gap-3">
       <div className="relative">
-        <Code2 className="size-8 text-blue-400" />
-        <Loader2 className="size-4 text-blue-400 animate-spin absolute -top-1 -right-1" />
+        <CodeXml className="size-8 text-blue-400" />
+        <LoaderCircle className="size-4 text-blue-400 animate-spin absolute -top-1 -right-1" />
       </div>
       <p className="text-sm text-white/60 text-center max-w-xs">
         Agent is implementing the approved approach…

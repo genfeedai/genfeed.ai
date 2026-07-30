@@ -1,7 +1,7 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { CheckCircle2, Sparkles } from 'lucide-react';
+import { CircleCheck, Sparkles } from 'lucide-react';
 import { type ReactElement, useCallback, useState } from 'react';
 
 interface BrandInterviewOfferCardProps {
@@ -50,7 +50,7 @@ export function BrandInterviewOfferCard({
     return (
       <div className="my-2 border border-emerald-500/20 bg-background p-4">
         <div className="flex items-center gap-2 text-emerald-600">
-          <CheckCircle2 className="size-5" />
+          <CircleCheck className="size-5" />
           <span className="text-sm font-medium">Interview started.</span>
         </div>
       </div>

@@ -6,7 +6,7 @@ import {
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { IAnalytics } from '@genfeedai/interfaces';
 import { ChartContainer } from '@ui/charts';
-import { ArrowRight, BarChart2, Eye, Heart } from 'lucide-react';
+import { ArrowRight, ChartNoAxesColumn, Eye, Heart } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 
@@ -75,7 +75,7 @@ export function QuickAnalyticsPreview({
     return (
       <div className={cardClassName}>
         <div className="flex items-center gap-2 mb-6">
-          <BarChart2 className="size-4 text-muted-foreground" />
+          <ChartNoAxesColumn className="size-4 text-muted-foreground" />
           <h3 className="text-lg font-semibold text-foreground">{title}</h3>
         </div>
         <div className="text-center py-8">
@@ -97,7 +97,7 @@ export function QuickAnalyticsPreview({
   const quickStats = [
     {
       color: 'text-muted-foreground',
-      icon: BarChart2,
+      icon: ChartNoAxesColumn,
       label: 'Total Posts',
       value: data.totalPosts,
     },
@@ -122,7 +122,7 @@ export function QuickAnalyticsPreview({
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <BarChart2 className="size-4 text-muted-foreground" />
+          <ChartNoAxesColumn className="size-4 text-muted-foreground" />
           <h3 className="text-lg font-semibold text-foreground">{title}</h3>
         </div>
         <span className="text-sm text-muted-foreground">Last 7 days</span>

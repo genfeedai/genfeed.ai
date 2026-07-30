@@ -1,5 +1,5 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import { CheckCircle2, ChevronRight, Rocket } from 'lucide-react';
+import { ChevronRight, CircleCheck, Rocket } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 interface OnboardingChecklistCardProps {
@@ -86,7 +86,7 @@ export function OnboardingChecklistCard({
             }`}
           >
             <div className="flex items-center gap-2">
-              <CheckCircle2
+              <CircleCheck
                 className={`size-4 shrink-0 ${
                   item.isCompleted
                     ? 'text-green-500'

@@ -3,9 +3,9 @@ import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interf
 import {
   Box,
   Building2,
+  CircleQuestionMark,
   Cpu,
   CreditCard,
-  HelpCircle,
   Key,
   LayoutGrid,
   Link,
@@ -59,8 +59,8 @@ function buildPersonalMenuItems(): MenuItemConfig[] {
       href: APP_ROUTES.SETTINGS.HELP,
       hrefScope: 'personal',
       label: 'Help',
-      outline: HelpCircle,
-      solid: HelpCircle,
+      outline: CircleQuestionMark,
+      solid: CircleQuestionMark,
     },
   ];
 }

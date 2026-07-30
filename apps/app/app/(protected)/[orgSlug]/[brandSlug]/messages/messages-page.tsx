@@ -32,9 +32,9 @@ import {
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import {
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  CircleCheck,
   LinkIcon,
   MessageSquare,
   Send,
@@ -1277,7 +1277,7 @@ export default function MessagesPage() {
                     <Button
                       variant={ButtonVariant.GHOST}
                       size={ButtonSize.SM}
-                      icon={<CheckCircle2 className="size-4" />}
+                      icon={<CircleCheck className="size-4" />}
                       isDisabled={Boolean(busyAction)}
                       isLoading={busyAction === 'status'}
                       onClick={() => handleStatusChange('resolved')}

@@ -17,7 +17,7 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
-import { MoreVertical, Sparkles, Trash2 } from 'lucide-react';
+import { EllipsisVertical, Sparkles, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -197,7 +197,7 @@ function PromptsPageContent() {
                           variant={ButtonVariant.GHOST}
                           size={ButtonSize.ICON}
                         >
-                          <MoreVertical className="size-4" />
+                          <EllipsisVertical className="size-4" />
                         </Button>
                       }
                       usePortal

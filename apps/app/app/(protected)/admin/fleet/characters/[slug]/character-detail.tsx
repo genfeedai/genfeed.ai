@@ -15,7 +15,7 @@ import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
-import { ArrowLeft, UserCircle } from 'lucide-react';
+import { ArrowLeft, CircleUser } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useMemo, useState } from 'react';
@@ -178,7 +178,7 @@ export default function CharacterDetail({ slug }: CharacterDetailProps) {
         character?.niche ||
         'Character profile, LoRA status, and generated content'
       }
-      icon={UserCircle}
+      icon={CircleUser}
       right={
         <ButtonRefresh
           onClick={() => refreshAssets()}

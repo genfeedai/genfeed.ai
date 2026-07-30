@@ -11,7 +11,7 @@ import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Progress } from '@ui/primitives/progress';
-import { BarChart3 } from 'lucide-react';
+import { ChartColumn } from 'lucide-react';
 import { useEffect } from 'react';
 
 export default function CreditUsageList() {
@@ -116,7 +116,7 @@ export default function CreditUsageList() {
     <Container
       label="Credit Usage"
       description="Monitor per-organization credit balance and plan allotment usage"
-      icon={BarChart3}
+      icon={ChartColumn}
       right={
         <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
       }

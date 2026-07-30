@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/rules-of-hooks -- Storybook render functions are invoked as story components. */
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
-import { Calendar, Clock, Filter, TrendingUp } from 'lucide-react';
+import { Calendar, Clock, Funnel as Filter, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 
 /**

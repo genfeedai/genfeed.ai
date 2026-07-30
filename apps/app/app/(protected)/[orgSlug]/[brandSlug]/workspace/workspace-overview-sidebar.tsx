@@ -9,7 +9,7 @@ import type { Task, TasksService } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
-import { CheckCircle2, ClipboardCheck, Inbox } from 'lucide-react';
+import { CircleCheck, ClipboardCheck, Inbox } from 'lucide-react';
 import Link from 'next/link';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
@@ -159,7 +159,7 @@ export function WorkspaceOverviewSidebar({
                     </p>
                   </div>
                   {item.reviewDecision === 'approved' ? (
-                    <CheckCircle2 className="size-5 text-emerald-300" />
+                    <CircleCheck className="size-5 text-emerald-300" />
                   ) : item.reviewDecision === 'request_changes' ? (
                     <ClipboardCheck className="size-5 text-amber-300" />
                   ) : (

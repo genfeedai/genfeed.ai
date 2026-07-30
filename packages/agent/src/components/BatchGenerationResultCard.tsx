@@ -6,10 +6,10 @@ import { isTwitterPlatform } from '@genfeedai/enums';
 import Badge from '@ui/display/badge/Badge';
 import {
   Calendar,
-  CheckCircle2,
+  CircleCheck,
+  CircleX,
   DollarSign,
   Layers,
-  XCircle,
 } from 'lucide-react';
 import type { ReactElement } from 'react';
 
@@ -94,7 +94,7 @@ export function BatchGenerationResultCard({
         {completedCount != null ? (
           <div className="border border-border/60 bg-background/70 p-3">
             <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-              <CheckCircle2 className="size-3.5 text-emerald-400" />
+              <CircleCheck className="size-3.5 text-emerald-400" />
               Ready
             </div>
             <div className="mt-2 text-2xl font-semibold text-foreground">
@@ -106,7 +106,7 @@ export function BatchGenerationResultCard({
         {failedCount != null && failedCount > 0 ? (
           <div className="border border-border/60 bg-background/70 p-3">
             <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-              <XCircle className="size-3.5 text-rose-400" />
+              <CircleX className="size-3.5 text-rose-400" />
               Failed
             </div>
             <div className="mt-2 text-2xl font-semibold text-foreground">

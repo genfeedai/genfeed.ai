@@ -15,14 +15,14 @@ import { ContentRunsService } from '@services/content/content-runs.service';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import {
-  AlertTriangle,
-  BarChart3,
-  CheckCircle2,
+  ChartColumn,
+  CircleCheck,
   Clock,
   FileText,
   RefreshCw,
   Send,
   Sparkles,
+  TriangleAlert,
 } from 'lucide-react';
 import Link from 'next/link';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
@@ -455,9 +455,9 @@ function TimelinePanel({ run }: { run: ContentRunRecord }) {
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm font-medium">{step.label}</span>
               {step.state === 'complete' ? (
-                <CheckCircle2 className="size-4" />
+                <CircleCheck className="size-4" />
               ) : step.state === 'error' ? (
-                <AlertTriangle className="size-4" />
+                <TriangleAlert className="size-4" />
               ) : (
                 <Clock className="size-4" />
               )}
@@ -480,7 +480,7 @@ function NavigationPanel({
   const { href } = useOrgUrl();
   const links = [
     { href: href('/posts'), label: 'Publish', icon: Send },
-    { href: href('/analytics/posts'), label: 'Analytics', icon: BarChart3 },
+    { href: href('/analytics/posts'), label: 'Analytics', icon: ChartColumn },
   ];
 
   return (
@@ -657,7 +657,7 @@ export default function ContentRunDetailPage({
 
             <Section
               title="Analytics Summary"
-              icon={<BarChart3 className="size-4" />}
+              icon={<ChartColumn className="size-4" />}
             >
               <AnalyticsSection analytics={run.analyticsSummary} />
             </Section>

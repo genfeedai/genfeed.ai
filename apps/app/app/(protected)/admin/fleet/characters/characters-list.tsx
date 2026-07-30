@@ -11,7 +11,7 @@ import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
-import { UserCircle } from 'lucide-react';
+import { CircleUser } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect } from 'react';
@@ -57,7 +57,7 @@ export default function CharactersList() {
       <Container
         label="Characters"
         description="Manage AI personas for fleet content generation"
-        icon={UserCircle}
+        icon={CircleUser}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from(
@@ -75,7 +75,7 @@ export default function CharactersList() {
     <Container
       label="Characters"
       description="Manage AI personas for fleet content generation"
-      icon={UserCircle}
+      icon={CircleUser}
       right={
         <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
       }

@@ -1,6 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import {
-  BarChart3,
+  ChartColumn,
   Eye,
   Heart,
   MessageCircle,
@@ -65,7 +65,7 @@ export function AnalyticsSnapshotCard({
           },
           {
             change: data?.engagementChange as number | undefined,
-            icon: <BarChart3 className="size-4" />,
+            icon: <ChartColumn className="size-4" />,
             label: 'Engagement',
             value: `${((data?.engagementRate as number) ?? 0).toFixed(1)}%`,
           },
@@ -74,7 +74,7 @@ export function AnalyticsSnapshotCard({
   return (
     <div className="border border-border bg-background p-4 my-2">
       <div className="flex items-center gap-2 mb-3">
-        <BarChart3 className="size-5 text-blue-500" />
+        <ChartColumn className="size-5 text-blue-500" />
         <h3 className="font-semibold text-sm">
           {action.title || 'Analytics Snapshot'}
         </h3>
@@ -156,5 +156,5 @@ function getMetricIcon(label: string): ReactElement {
     return <MessageCircle className="size-4" />;
   }
 
-  return <BarChart3 className="size-4" />;
+  return <ChartColumn className="size-4" />;
 }

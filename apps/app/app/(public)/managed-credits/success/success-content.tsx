@@ -11,11 +11,11 @@ import Spinner from '@ui/feedback/spinner/Spinner';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import {
-  AlertTriangle,
-  CheckCircle2,
+  CircleCheck,
   Clipboard,
   ClipboardCheck,
   Key,
+  TriangleAlert,
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
@@ -224,7 +224,7 @@ function ManagedCreditsSuccessContentInner() {
 
             {!state.isLoading && state.error ? (
               <StepDisplay
-                icon={<AlertTriangle className="size-8 text-warning" />}
+                icon={<TriangleAlert className="size-8 text-warning" />}
                 title="Provisioning result not ready"
                 description={state.error}
               />
@@ -232,7 +232,7 @@ function ManagedCreditsSuccessContentInner() {
 
             {!state.isLoading && hasRecoverableExistingKey ? (
               <StepDisplay
-                icon={<CheckCircle2 className="size-8 text-success" />}
+                icon={<CircleCheck className="size-8 text-success" />}
                 title="Credits added"
                 description="This account already has a managed API key, so the secret cannot be shown again. Use your existing key or create a new one in Genfeed Cloud."
               />
@@ -241,7 +241,7 @@ function ManagedCreditsSuccessContentInner() {
             {!state.isLoading && apiKey ? (
               <div className="space-y-6">
                 <StepDisplay
-                  icon={<CheckCircle2 className="size-8 text-success" />}
+                  icon={<CircleCheck className="size-8 text-success" />}
                   title="Credits added"
                   description={`Provisioned for ${state.result?.email ?? 'your account'}. Copy this key now and store it in your local environment.`}
                 />
