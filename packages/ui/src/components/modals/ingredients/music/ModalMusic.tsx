@@ -226,6 +226,9 @@ export default function ModalMusic({
                         label={playingId === music.id ? <Pause /> : <Play />}
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (!music.ingredientUrl) {
+                            return;
+                          }
                           handlePlayPause(music.id, music.ingredientUrl);
                         }}
                       />
