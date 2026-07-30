@@ -54,29 +54,23 @@ export default function ManagedCreditsCheckoutCard() {
   return (
     <CreditTopUpPanel
       helperContent={
-        <section
-          className="max-w-xl space-y-3"
-          aria-labelledby="provisioning-email-heading"
-        >
-          <div className="space-y-1">
-            <h3
-              id="provisioning-email-heading"
-              className="text-2xl font-semibold tracking-normal text-foreground"
-            >
-              Provisioning email
-            </h3>
-            <p className="text-sm leading-6 text-muted-foreground">
-              Checkout and the managed key receipt will be sent here.
-            </p>
-          </div>
+        <div className="flex max-w-xl flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+          <label
+            htmlFor="provisioning-email"
+            className="shrink-0 text-xs font-medium text-foreground"
+          >
+            Receipt email
+          </label>
           <Input
+            id="provisioning-email"
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder="you@example.com"
             aria-label="Provisioning email"
+            className="h-9"
           />
-        </section>
+        </div>
       }
       isSubmitDisabled={!email.trim()}
       isStartingCheckout={isStartingCheckout}
