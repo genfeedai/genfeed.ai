@@ -181,9 +181,10 @@ export default function CreditTopUpPanel({
         {helperContent}
 
         <div className="space-y-1">
-          <p className="text-sm font-medium text-foreground">Payment method</p>
+          <p className="text-sm font-medium text-foreground">Payment</p>
           <p className="text-xs leading-5 text-muted-foreground">
-            Uses your default card. Manage methods in the billing portal.
+            Checkout opens Stripe securely. Card details are collected there —
+            not stored in Genfeed.
           </p>
         </div>
 
