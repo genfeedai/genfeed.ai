@@ -8,7 +8,10 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import {
+  getIsSuperAdmin,
+  getPublicMetadata,
+} from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -71,7 +74,7 @@ export class ActivitiesController {
       where.brand = String(query.brand);
     } else if (query.organization) {
       where.organization = String(query.organization);
-    } else if (!publicMetadata.isSuperAdmin) {
+    } else if (!getIsSuperAdmin(user, request)) {
       // Default member scope: active brand, else org ownership OR.
       if (publicMetadata.brand) {
         where.brand = publicMetadata.brand;

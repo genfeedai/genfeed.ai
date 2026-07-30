@@ -4,7 +4,7 @@ import { DefaultRecurringContentService } from '@api/collections/brands/services
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { DEFAULT_FREE_SEATS } from '@api/collections/organization-settings/utils/seat-policy.util';
-import type { CreateOrganizationDto } from '@api/collections/organizations/dto/create-organization.dto';
+import { CreateOrganizationDto } from '@api/collections/organizations/dto/create-organization.dto';
 import { OrganizationQueryDto } from '@api/collections/organizations/dto/organization-query.dto';
 import type { UpdateOrganizationDto } from '@api/collections/organizations/dto/update-organization.dto';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
@@ -36,7 +36,10 @@ import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { isCloudDeployment } from '@genfeedai/config';
-import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
+import type {
+  JsonApiCollectionResponse,
+  JsonApiSingleResponse,
+} from '@genfeedai/interfaces';
 import {
   getOrganizationLimitForTier,
   getUpgradeTierForLimit,
@@ -216,15 +219,26 @@ export class OrganizationsController extends BaseCRUDController<
   /**
    * Create a new organization (collection POST).
    * Seeds settings, brand, member; switches active org.
+   * Overrides BaseCRUD create: response is `{ organization, brand }`, not a
+   * serialized Organization document alone.
    */
   @Post()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async create(
+  override async create(
     @Req() _request: Request,
     @CurrentUser() user: User,
-    @Body() body: { label: string; description?: string },
-  ): Promise<unknown> {
-    return this.createOrganization(body, user);
+    @Body() createDto: CreateOrganizationDto,
+  ): Promise<JsonApiSingleResponse> {
+    const result = await this.createOrganization(
+      {
+        description: (createDto as { description?: string }).description,
+        label: createDto.label,
+      },
+      user,
+    );
+    // Seeded create returns a custom payload (org + brand), not a single
+    // Organization JSON:API document. Cast keeps the BaseCRUD signature.
+    return result as JsonApiSingleResponse;
   }
 
   /**
