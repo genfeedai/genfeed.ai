@@ -1,32 +1,32 @@
-import type { IconType } from 'react-icons';
 import {
-  FaInstagram,
-  FaLinkedin,
-  FaXTwitter,
-  FaYoutube,
-} from 'react-icons/fa6';
+  InstagramIcon,
+  LinkedinIcon,
+  XTwitterIcon,
+  YoutubeIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
+import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 import {
-  LuBrainCircuit,
-  LuCode,
-  LuGitBranch,
-  LuImage,
-  LuLayoutTemplate,
-  LuMegaphone,
-  LuNewspaper,
-  LuPackage,
-  LuPalette,
-  LuPenTool,
-  LuRocket,
-  LuSearch,
-  LuShuffle,
-  LuSparkles,
-  LuTarget,
-  LuTerminal,
-  LuTrendingUp,
-  LuUsers,
-  LuWand,
-  LuZap,
-} from 'react-icons/lu';
+  BrainCircuit,
+  Code,
+  GitBranch,
+  Image,
+  LayoutTemplate,
+  Megaphone,
+  Newspaper,
+  Package,
+  Palette,
+  PenTool,
+  Rocket,
+  Search,
+  Shuffle,
+  Sparkles,
+  Target,
+  Terminal,
+  TrendingUp,
+  Users,
+  Wand,
+  Zap,
+} from 'lucide-react';
 
 /* ─── Skill category ─── */
 
@@ -53,49 +53,49 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
       {
         description:
           'Posts, threads, and replies with viral hook formulas and algorithm optimization.',
-        icon: FaXTwitter,
+        icon: XTwitterIcon,
         name: 'X Content Creator',
         slug: 'x-content-creator',
       },
       {
         description:
           'Captions, carousels, Reels scripts, and Story sequences with hashtag strategy.',
-        icon: FaInstagram,
+        icon: InstagramIcon,
         name: 'Instagram Creator',
         slug: 'instagram-content-creator',
       },
       {
         description:
           'Professional posts, articles, carousels, and newsletter editions.',
-        icon: FaLinkedin,
+        icon: LinkedinIcon,
         name: 'LinkedIn Creator',
         slug: 'linkedin-content-creator',
       },
       {
         description:
           'Titles, descriptions, tags, chapters, thumbnail briefs, and Shorts scripts.',
-        icon: FaYoutube,
+        icon: YoutubeIcon,
         name: 'YouTube Creator',
         slug: 'youtube-content-creator',
       },
       {
         description:
           'Newsletter editions with subject-line variants, editorial structure, and growth tactics.',
-        icon: LuNewspaper,
+        icon: Newspaper,
         name: 'Newsletter Creator',
         slug: 'newsletter-creator',
       },
       {
         description:
           'SEO-optimized blog posts, guides, case studies, and pillar pages.',
-        icon: LuPenTool,
+        icon: PenTool,
         name: 'Blog Creator',
         slug: 'blog-content-creator',
       },
       {
         description:
           'Landing pages, CTAs, value propositions, onboarding copy, and product microcopy.',
-        icon: LuPenTool,
+        icon: PenTool,
         name: 'Copywriter',
         slug: 'copywriter',
       },
@@ -111,49 +111,49 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
       {
         description:
           'SEO score (0-100) with keyword placement, readability, meta optimization, and schema markup.',
-        icon: LuSearch,
+        icon: Search,
         name: 'SEO Optimizer',
         slug: 'content-seo-optimizer',
       },
       {
         description:
           'GEO scorecard, citation-ready rewrites, source attribution, and answer-engine schema guidance.',
-        icon: LuBrainCircuit,
+        icon: BrainCircuit,
         name: 'GEO Optimizer',
         slug: 'content-geo-optimizer',
       },
       {
         description:
           'Operate content intake, briefs, production queues, review gates, and analytics loops.',
-        icon: LuPackage,
+        icon: Package,
         name: 'Factory Operator',
         slug: 'content-factory-operator',
       },
       {
         description:
           'Repurpose one source asset into platform-native derivatives across every channel.',
-        icon: LuShuffle,
+        icon: Shuffle,
         name: 'Content Atomizer',
         slug: 'content-atomizer',
       },
       {
         description:
           '6-dimension quality scoring: clarity, voice, hook, CTA, platform fit, accuracy.',
-        icon: LuSparkles,
+        icon: Sparkles,
         name: 'Content Reviewer',
         slug: 'content-reviewer',
       },
       {
         description:
           'Editorial strategy, content pillars, platform roles, cadence, calendars, and KPIs.',
-        icon: LuTarget,
+        icon: Target,
         name: 'Content Strategist',
         slug: 'content-strategist',
       },
       {
         description:
           'Rewrite AI drafts to sound natural while preserving meaning, structure, and voice.',
-        icon: LuSparkles,
+        icon: Sparkles,
         name: 'Humanizer',
         slug: 'humanizer',
       },
@@ -169,28 +169,28 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
       {
         description:
           'Pull and score trend signals for the Genfeed content loop.',
-        icon: LuTrendingUp,
+        icon: TrendingUp,
         name: 'Trend Scout',
         slug: 'trend-scout',
       },
       {
         description:
           'Collect post-performance metrics and feed them back into content-loop learning.',
-        icon: LuTarget,
+        icon: Target,
         name: 'Analytics Collector',
         slug: 'analytics-collector',
       },
       {
         description:
           'Audit competitor content strategy, channels, formats, topics, and engagement gaps.',
-        icon: LuUsers,
+        icon: Users,
         name: 'Competitor Analyzer',
         slug: 'competitor-analyzer',
       },
       {
         description:
           'Deconstruct YouTube videos into hooks, retention mechanics, and reusable blueprints.',
-        icon: FaYoutube,
+        icon: YoutubeIcon,
         name: 'YouTube Video Analyst',
         slug: 'youtube-video-analyst',
       },
@@ -206,7 +206,7 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
       {
         description:
           'Status reports, 3P updates, leadership updates, newsletters, FAQs, and incident reports.',
-        icon: LuNewspaper,
+        icon: Newspaper,
         name: 'Internal Comms',
         slug: 'internal-comms',
       },
@@ -222,28 +222,28 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
       {
         description:
           'Optimized prompts with model-specific tips for Flux, DALL-E, Midjourney, and Imagen.',
-        icon: LuImage,
+        icon: Image,
         name: 'Image Prompt Engineer',
         slug: 'image-prompt-engineer',
       },
       {
         description:
           'Pick the right model for the job: face consistency, speed, quality, and cost tiers.',
-        icon: LuZap,
+        icon: Zap,
         name: 'Model Selector',
         slug: 'model-selector',
       },
       {
         description:
           'Visual brand systems: colors, typography feel, composition rules, and prompt presets.',
-        icon: LuPalette,
+        icon: Palette,
         name: 'Visual Brand Kit',
         slug: 'visual-brand-kit',
       },
       {
         description:
           'Generate image, video, and audio artifacts through Replicate or fal.ai workers.',
-        icon: LuWand,
+        icon: Wand,
         name: 'Media Forge',
         slug: 'media-forge',
       },
@@ -259,14 +259,14 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
       {
         description:
           'Ad copy with PAS, AIDA, BAB, StoryBrand frameworks: variants for every platform.',
-        icon: LuMegaphone,
+        icon: Megaphone,
         name: 'Ad Copy Creator',
         slug: 'ad-copy-creator',
       },
       {
         description:
           'KPI benchmarks, creative fatigue detection, budget allocation, scaling criteria.',
-        icon: LuTrendingUp,
+        icon: TrendingUp,
         name: 'Ad Performance Analyzer',
         slug: 'ad-performance-analyzer',
       },
@@ -282,161 +282,161 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
       {
         description:
           'Brand foundations: name, positioning, voice, and strategic identity.',
-        icon: LuPalette,
+        icon: Palette,
         name: 'Brand Architect',
         slug: 'brand-architect',
       },
       {
         description:
           'Differentiated market angles, mechanisms, narratives, and positioning tests.',
-        icon: LuTarget,
+        icon: Target,
         name: 'Positioning Angles',
         slug: 'positioning-angles',
       },
       {
         description:
           'ICP, buyer personas, buying centers, pains, triggers, and targeting focus.',
-        icon: LuUsers,
+        icon: Users,
         name: 'Startup ICP Definer',
         slug: 'startup-icp-definer',
       },
       {
         description:
           'Premium and value-based pricing strategy, tiers, price-rise plans, and confidence.',
-        icon: LuTrendingUp,
+        icon: TrendingUp,
         name: 'Pricing Strategist',
         slug: 'pricing-strategist',
       },
       {
         description:
           'High-converting offers, bundles, guarantees, packages, and value stacks.',
-        icon: LuSparkles,
+        icon: Sparkles,
         name: 'Offer Architect',
         slug: 'offer-architect',
       },
       {
         description:
           'Existing offer scoring and fixes against the Value Equation.',
-        icon: LuSparkles,
+        icon: Sparkles,
         name: 'Offer Validator',
         slug: 'offer-validator',
       },
       {
         description:
           'Sales funnels, value ladders, customer journeys, and landing-page sequences.',
-        icon: LuLayoutTemplate,
+        icon: LayoutTemplate,
         name: 'Funnel Architect',
         slug: 'funnel-architect',
       },
       {
         description:
           'Funnel audits for hook, story, offer, value ladder fit, traffic match, and conversion path.',
-        icon: LuLayoutTemplate,
+        icon: LayoutTemplate,
         name: 'Funnel Validator',
         slug: 'funnel-validator',
       },
       {
         description:
           'Audience acquisition strategy using Dream 100, organic, paid, and owned audience paths.',
-        icon: LuMegaphone,
+        icon: Megaphone,
         name: 'Traffic Architect',
         slug: 'traffic-architect',
       },
       {
         description:
           'Traffic strategy scoring across channel clarity, hook strategy, funnel alignment, and conversion path.',
-        icon: LuMegaphone,
+        icon: Megaphone,
         name: 'Traffic Validator',
         slug: 'traffic-validator',
       },
       {
         description:
           'Channel focus and expansion-readiness validation against the One Channel Rule.',
-        icon: LuShuffle,
+        icon: Shuffle,
         name: 'Channel Validator',
         slug: 'channel-validator',
       },
       {
         description:
           'Lead generation channel prioritization by ROI, cost, close rate, effort, and system potential.',
-        icon: LuTarget,
+        icon: Target,
         name: 'Lead Channel Optimizer',
         slug: 'lead-channel-optimizer',
       },
       {
         description:
           'Cold email, DM, prospecting, personalization, and outbound sequence optimization.',
-        icon: LuMegaphone,
+        icon: Megaphone,
         name: 'Outbound Optimizer',
         slug: 'outbound-optimizer',
       },
       {
         description:
           'Prospect accounts, decision makers, contact details, company data, and buyer intent signals.',
-        icon: LuSearch,
+        icon: Search,
         name: 'Leads Researcher',
         slug: 'leads-researcher',
       },
       {
         description:
           'Contact email discovery, domain patterns, and verification guidance.',
-        icon: LuSearch,
+        icon: Search,
         name: 'Email Finder',
         slug: 'email-finder',
       },
       {
         description:
           'GTM competitors, market positioning, feature gaps, pricing, and win/loss patterns.',
-        icon: LuUsers,
+        icon: Users,
         name: 'Competitive Intelligence',
         slug: 'competitive-intelligence-analyst',
       },
       {
         description:
           'Affiliate, integration, reseller, co-marketing, embedded distribution, and partner outreach strategy.',
-        icon: LuGitBranch,
+        icon: GitBranch,
         name: 'Partnership Builder',
         slug: 'partnership-builder',
       },
       {
         description:
           'Activation, ascension, upsell, subscription, churn reduction, and LTV systems.',
-        icon: LuTrendingUp,
+        icon: TrendingUp,
         name: 'Retention Engine',
         slug: 'retention-engine',
       },
       {
         description:
           'Scalable support systems, docs, FAQs, ticketing, self-service, automation, and response templates.',
-        icon: LuUsers,
+        icon: Users,
         name: 'Support Systems Architect',
         slug: 'support-systems-architect',
       },
       {
         description:
           'Customer friction, buying objections, implementation blockers, refund causes, and success obstacles.',
-        icon: LuTarget,
+        icon: Target,
         name: 'Constraint Eliminator',
         slug: 'constraint-eliminator',
       },
       {
         description:
           'Personal expert positioning, authority, origin story, Big Domino, and new opportunity framing.',
-        icon: LuBrainCircuit,
+        icon: BrainCircuit,
         name: 'Expert Architect',
         slug: 'expert-architect',
       },
       {
         description:
           'Existing expert positioning and authority narrative scoring.',
-        icon: LuBrainCircuit,
+        icon: BrainCircuit,
         name: 'Expert Validator',
         slug: 'expert-validator',
       },
       {
         description:
           'Domain syntax validation, availability-oriented checks, and brandable domain options.',
-        icon: LuSearch,
+        icon: Search,
         name: 'Search Domain Validator',
         slug: 'search-domain-validator',
       },
@@ -452,54 +452,54 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
       {
         description:
           'Create Genfeed Studio workflows from natural language descriptions.',
-        icon: LuGitBranch,
+        icon: GitBranch,
         name: 'Workflow Creator',
         slug: 'workflow-creator',
       },
       {
         description: 'Custom nodes using the Genfeed SDK fluent builder API.',
-        icon: LuCode,
+        icon: Code,
         name: 'Node Creator',
         slug: 'node-creator',
       },
       {
         description:
           'Operate the executable Genfeed content loop and route each stage to the right skill.',
-        icon: LuShuffle,
+        icon: Shuffle,
         name: 'Content Loop Orchestrator',
         slug: 'content-loop-orchestrator',
       },
       {
         description:
           'Detect Genfeed connectivity and provide content-loop state, token, manifest, and feedback handoff.',
-        icon: LuBrainCircuit,
+        icon: BrainCircuit,
         name: 'Genfeed Connector',
         slug: 'genfeed-connector',
       },
       {
         description:
           'Publish approved derivatives to X or LinkedIn with a dry-run-by-default approval gate.',
-        icon: LuPackage,
+        icon: Package,
         name: 'Social Poster',
         slug: 'social-poster',
       },
       {
         description:
           'Get started with Genfeed through first content creation in under 10 minutes.',
-        icon: LuRocket,
+        icon: Rocket,
         name: 'Onboarding',
         slug: 'onboarding',
       },
       {
         description:
           'Classify Genfeed feature requests as OSS Core or Cloud SaaS scope.',
-        icon: LuLayoutTemplate,
+        icon: LayoutTemplate,
         name: 'Scope Validator',
         slug: 'scope-validator',
       },
       {
         description: 'Connect AI agents to Genfeed via MCP.',
-        icon: LuBrainCircuit,
+        icon: BrainCircuit,
         name: 'OpenClaw Integration',
         slug: 'openclaw-integration',
       },
@@ -571,28 +571,28 @@ export interface HowItWorksStep {
 export const HOW_IT_WORKS: HowItWorksStep[] = [
   {
     description: `One command installs all ${FREE_SKILL_COUNT} free skills into your Claude Code workspace.`,
-    icon: LuTerminal,
+    icon: Terminal,
     number: '01',
     title: 'Install',
   },
   {
     description:
       'Your agent reads each skill, its rules, patterns, and domain knowledge, and internalizes them.',
-    icon: LuBrainCircuit,
+    icon: BrainCircuit,
     number: '02',
     title: 'Agent Learns',
   },
   {
     description:
       'Skills activate at exactly the right moment. Say "write a tweet" and the X skill takes over.',
-    icon: LuZap,
+    icon: Zap,
     number: '03',
     title: 'Create Content',
   },
   {
     description:
       'Inside Genfeed, skills use platform tools like create_post, generate_image, and rate_content for even better output.',
-    icon: LuPackage,
+    icon: Package,
     number: '04',
     title: 'Better with Genfeed',
   },

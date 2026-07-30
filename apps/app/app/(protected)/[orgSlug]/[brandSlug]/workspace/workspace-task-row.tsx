@@ -4,7 +4,8 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { Task } from '@services/management/tasks.service';
 import { Button as BaseButton } from '@ui/primitives/button';
-import { HiArrowTopRightOnSquare } from 'react-icons/hi2';
+import { ExternalLink } from 'lucide-react';
+
 import {
   formatTaskStatus,
   formatTaskTimestamp,
@@ -71,7 +72,7 @@ export function WorkspaceTaskRow({ onOpen, task }: WorkspaceTaskRowProps) {
           </div>
         </div>
 
-        <HiArrowTopRightOnSquare className="mt-1 size-4 shrink-0 text-foreground/30" />
+        <ExternalLink className="mt-1 size-4 shrink-0 text-foreground/30" />
       </div>
     </BaseButton>
   );

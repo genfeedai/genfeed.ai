@@ -3,17 +3,16 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
-
 import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { Button } from '@ui/primitives/button';
+import { ChevronRight, FileText } from 'lucide-react';
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { MouseEvent } from 'react';
-import { HiChevronRight, HiOutlineDocumentText } from 'react-icons/hi2';
 
 const DRILL_DOWN_GROUP_ICON_OVERRIDES = {
-  Posts: HiOutlineDocumentText,
+  Posts: FileText,
 } as const;
 
 /** A single row representing a drill-down group with > chevron */
@@ -85,7 +84,7 @@ export default function DrillDownGroupRow({
       >
         {group.group}
       </span>
-      <HiChevronRight className="size-4 text-foreground/30" />
+      <ChevronRight className="size-4 text-foreground/30" />
     </>
   );
 

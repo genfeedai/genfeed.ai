@@ -14,9 +14,10 @@ import {
   LazyModalTrainingNew,
 } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
+import { Cpu, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
-import { HiOutlineCpuChip, HiPlus } from 'react-icons/hi2';
+
 import TrainingsErrorState from './components/TrainingsErrorState';
 import { buildTrainingsTableActions } from './components/TrainingsTableActions';
 import { buildTrainingsTableColumns } from './components/TrainingsTableColumns';
@@ -101,7 +102,7 @@ export default function TrainingsList({
         emptyState={
           scope !== PageScope.SUPERADMIN ? (
             <CardEmpty
-              icon={HiOutlineCpuChip}
+              icon={Cpu}
               label="No trainings yet"
               description="Train a custom AI model on your brand assets to generate on-brand content."
               action={{
@@ -135,7 +136,7 @@ export default function TrainingsList({
     <Container
       label="Trainings"
       description="Create and manage model trainings."
-      icon={HiOutlineCpuChip}
+      icon={Cpu}
       right={
         <>
           <ButtonRefresh
@@ -147,7 +148,7 @@ export default function TrainingsList({
             <div className="flex items-center gap-4">
               <Button
                 label="Training"
-                icon={<HiPlus />}
+                icon={<Plus />}
                 variant={ButtonVariant.DEFAULT}
                 onClick={() => openModal(ModalEnum.TRAINING_UPLOAD)}
               />

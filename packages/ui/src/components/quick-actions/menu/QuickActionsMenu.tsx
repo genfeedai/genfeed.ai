@@ -9,13 +9,13 @@ import {
 import type { QuickActionsMenuProps } from '@genfeedai/props/content/quick-actions.props';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
+import { MoreVertical } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 const useIsomorphicLayoutEffect =
   typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 import { createPortal } from 'react-dom';
-import { HiEllipsisVertical } from 'react-icons/hi2';
 
 interface MenuPosition {
   top: number;
@@ -249,7 +249,7 @@ export default function QuickActionsMenu({
         )}
         ariaLabel="More"
       >
-        <HiEllipsisVertical className="size-4" />
+        <MoreVertical className="size-4" />
       </Button>
 
       {isMenuOpen &&

@@ -6,8 +6,8 @@ import type { PlatformTabBarProps } from '@props/content/platform-tab-bar.props'
 import type { TabItem } from '@props/ui/navigation/tabs.props';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
+import { Plus } from 'lucide-react';
 import { useMemo } from 'react';
-import { HiPlus } from 'react-icons/hi2';
 
 const STATUS_COLORS: Record<PostStatus, string> = {
   [PostStatus.DRAFT]: 'bg-muted-foreground',
@@ -62,7 +62,7 @@ export default function PlatformTabBar({
           aria-label="Add platform variant"
         >
           <span className="flex items-center gap-2">
-            <HiPlus className="size-4" />
+            <Plus className="size-4" />
             Add Platform
           </span>
         </Button>

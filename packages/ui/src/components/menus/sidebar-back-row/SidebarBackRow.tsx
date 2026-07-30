@@ -2,8 +2,8 @@
 
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { HiArrowLeft } from 'react-icons/hi2';
 
 interface SidebarBackRowProps {
   label: string;
@@ -26,7 +26,7 @@ export default function SidebarBackRow({ label, href }: SidebarBackRowProps) {
         )}
         aria-label={`Back to ${label}`}
       >
-        <HiArrowLeft className="size-4 text-foreground/60 group-hover:text-foreground transition-colors duration-200" />
+        <ArrowLeft className="size-4 text-foreground/60 group-hover:text-foreground transition-colors duration-200" />
         <span className="font-medium text-foreground/90">{label}</span>
       </Link>
     </div>

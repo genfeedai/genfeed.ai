@@ -17,10 +17,8 @@ import { VStack } from '@ui/layout/stack';
 import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import {
-  HiArrowTopRightOnSquare,
-  HiExclamationTriangle,
-} from 'react-icons/hi2';
+import { AlertTriangle, ExternalLink } from 'lucide-react';
+
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import AddCreditsCard from './add-credits-card';
 
@@ -85,7 +83,7 @@ function ByokUsageSection({
       <VStack gap={4}>
         {(isPastDue || isSuspended) && (
           <div className="flex items-start gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded">
-            <HiExclamationTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
+            <AlertTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
             <VStack gap={2}>
               <Text size="sm" weight="medium" color="destructive">
                 {isPastDue
@@ -303,7 +301,7 @@ export default function SettingsBillingPage() {
             </Text>
             {isLowCredits && (
               <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded">
-                <HiExclamationTriangle className="size-4 text-amber-500 shrink-0 mt-0.5" />
+                <AlertTriangle className="size-4 text-amber-500 shrink-0 mt-0.5" />
                 <Text size="sm" color="muted">
                   Low credits warning: your organization is below 1,000 credits.
                 </Text>
@@ -323,7 +321,7 @@ export default function SettingsBillingPage() {
           through the Stripe billing portal.
         </Text>
         <Button variant={ButtonVariant.DEFAULT} onClick={openBillingPortal}>
-          <HiArrowTopRightOnSquare className="mr-2 size-4" />
+          <ExternalLink className="mr-2 size-4" />
           Open Billing Portal
         </Button>
       </BillingCard>

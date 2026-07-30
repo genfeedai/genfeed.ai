@@ -6,7 +6,7 @@ import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interfac
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FiltersBar from '@ui/content/filters-bar/FiltersBar';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
-import { HiSquares2X2, HiTableCells } from 'react-icons/hi2';
+import { LayoutGrid, Table } from 'lucide-react';
 
 const CATEGORY_HEADER_LABELS: Record<string, string> = {
   avatar: 'Avatar Generation',
@@ -101,12 +101,12 @@ export function AssetControlsHeader({
               <ViewToggle
                 options={[
                   {
-                    icon: <HiSquares2X2 className="size-4" />,
+                    icon: <LayoutGrid className="size-4" />,
                     label: 'Masonry view',
                     type: ViewType.MASONRY,
                   },
                   {
-                    icon: <HiTableCells className="size-4" />,
+                    icon: <Table className="size-4" />,
                     label: 'Table view',
                     type: ViewType.TABLE,
                   },

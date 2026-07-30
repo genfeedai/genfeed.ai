@@ -2,15 +2,15 @@ import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interfac
 // @ts-expect-error storybook types not available
 import type { Meta, StoryObj } from '@storybook/react';
 import { CommandPaletteView } from '@ui/command-palette/command-palette/CommandPaletteView';
+import { Sparkles } from 'lucide-react';
 import type { RefObject } from 'react';
-import { HiOutlineSparkles } from 'react-icons/hi2';
 
 const sampleCommands: ICommand[] = [
   {
     action: () => undefined,
     category: 'navigation',
     description: 'Navigate to dashboard',
-    icon: HiOutlineSparkles,
+    icon: Sparkles,
     id: 'cmd-open',
     label: 'Open Dashboard',
     shortcut: ['⌘', '1'],

@@ -8,8 +8,8 @@ import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import HomeFooter from '@web-components/home/_footer';
+import { Layers } from 'lucide-react';
 import Link from 'next/link';
-import { LuLayers } from 'react-icons/lu';
 
 interface Swatch {
   hex: string;
@@ -199,7 +199,7 @@ export default function BrandOSContent(): React.ReactElement {
           <div className="container mx-auto px-6">
             <VStack className="max-w-4xl gap-6">
               <HStack className="w-fit items-center gap-2 border border-edge/10 bg-fill/[0.02] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-surface/45">
-                <LuLayers className="size-3.5" />
+                <Layers className="size-3.5" />
                 <Text>Brand OS</Text>
                 <span className="text-surface/45">/</span>
                 <Text className="text-surface/55">version alpha</Text>

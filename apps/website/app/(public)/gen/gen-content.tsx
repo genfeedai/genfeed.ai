@@ -1,12 +1,12 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
+import { XTwitterIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { FaXTwitter } from 'react-icons/fa6';
-import { HiSparkles } from 'react-icons/hi2';
 
 const TWITTER_INTENT_URL =
   'https://twitter.com/intent/tweet?text=@genfeedai%20I%20want%20$GEN!';
@@ -20,7 +20,7 @@ export default function GenContent() {
         <div className="max-w-lg w-full text-center">
           <div className="mb-8 gsap-hero">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 mb-6">
-              <HiSparkles className="size-5 text-primary" />
+              <Sparkles className="size-5 text-primary" />
               <span className="text-sm font-medium">$GEN Token</span>
             </div>
 
@@ -37,7 +37,7 @@ export default function GenContent() {
           <Card className="bg-gradient-to-r from-primary/5 to-secondary/5 gsap-section">
             <div className="flex flex-col items-center gap-6 py-4">
               <div className="p-4 rounded-full bg-zinc-950">
-                <FaXTwitter className="size-8 text-surface" />
+                <XTwitterIcon className="size-8 text-surface" />
               </div>
 
               <div>
@@ -55,7 +55,7 @@ export default function GenContent() {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <FaXTwitter className="size-5" />
+                  <XTwitterIcon className="size-5" />
                   Tweet @genfeedai
                 </Link>
               </Button>

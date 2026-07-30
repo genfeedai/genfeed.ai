@@ -4,11 +4,7 @@ import type { IStreakMilestoneState } from '@genfeedai/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
-import {
-  HiOutlineFire,
-  HiOutlineGift,
-  HiOutlineShieldCheck,
-} from 'react-icons/hi2';
+import { Flame, Gift, ShieldCheck } from 'lucide-react';
 
 function rewardLabel(milestone: IStreakMilestoneState): string {
   if (milestone.days === 7) {
@@ -48,7 +44,7 @@ export default function SettingsProgressRewardsCard({
               key={milestone}
               variant="success"
             >
-              <HiOutlineGift className="size-3.5" />
+              <Gift className="size-3.5" />
               {milestone}-day badge
             </Badge>
           ))
@@ -76,11 +72,11 @@ export default function SettingsProgressRewardsCard({
                     {milestone.days} days
                   </span>
                   {milestone.days === 7 ? (
-                    <HiOutlineShieldCheck className="size-4 text-sky-300" />
+                    <ShieldCheck className="size-4 text-sky-300" />
                   ) : milestone.rewardCredits > 0 ? (
-                    <HiOutlineGift className="size-4 text-emerald-300" />
+                    <Gift className="size-4 text-emerald-300" />
                   ) : (
-                    <HiOutlineFire className="size-4 text-orange-300" />
+                    <Flame className="size-4 text-orange-300" />
                   )}
                 </div>
                 <p className="mt-1 text-sm text-foreground/65">

@@ -1,31 +1,26 @@
-'use client';
+import { FileText, Globe, Paintbrush, Sparkles } from 'lucide-react';
 
-import {
-  HiOutlineDocumentText,
-  HiOutlineGlobeAlt,
-  HiOutlinePaintBrush,
-  HiOutlineSparkles,
-} from 'react-icons/hi2';
+('use client');
 
 const features = [
   {
     description: 'Extract your brand colors, logo, and visual identity',
-    icon: HiOutlinePaintBrush,
+    icon: Paintbrush,
     title: 'Brand Colors & Logo',
   },
   {
     description: 'Understand your messaging and value propositions',
-    icon: HiOutlineDocumentText,
+    icon: FileText,
     title: 'Tone of Voice',
   },
   {
     description: 'Identify who your content should speak to',
-    icon: HiOutlineGlobeAlt,
+    icon: Globe,
     title: 'Target Audience',
   },
   {
     description: 'Create AI prompts that match your brand perfectly',
-    icon: HiOutlineSparkles,
+    icon: Sparkles,
     title: 'AI-Ready Prompts',
   },
 ];

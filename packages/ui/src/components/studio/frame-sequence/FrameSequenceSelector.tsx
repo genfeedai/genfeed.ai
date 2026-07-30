@@ -12,14 +12,14 @@ import type { IImage } from '@genfeedai/interfaces';
 import type { FrameSequenceSelectorProps } from '@genfeedai/props/studio/frame-sequence.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
-import Image from 'next/image';
 import {
-  HiChevronLeft,
-  HiChevronRight,
-  HiPhoto,
-  HiPlus,
-  HiTrash,
-} from 'react-icons/hi2';
+  ChevronLeft,
+  ChevronRight,
+  ImageIcon,
+  Plus,
+  Trash2,
+} from 'lucide-react';
+import Image from 'next/image';
 
 const FORMAT_ASPECT_CLASSES: Record<IngredientFormat, string> = {
   [IngredientFormat.LANDSCAPE]: 'aspect-[16/9]',
@@ -108,7 +108,7 @@ export default function FrameSequenceSelector({
   return (
     <Card
       label="Frame Sequence"
-      icon={HiPhoto}
+      icon={ImageIcon}
       description="Select images in order. Each frame will be used as start and end frame for interpolation."
     >
       <div className="space-y-4">
@@ -135,7 +135,7 @@ export default function FrameSequenceSelector({
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
                   <Button
                     ariaLabel={`Move frame ${frameIndex + 1} earlier`}
-                    label={<HiChevronLeft />}
+                    label={<ChevronLeft />}
                     onClick={() => handleMoveFrame(frameIndex, frameIndex - 1)}
                     variant={ButtonVariant.SECONDARY}
                     size={ButtonSize.XS}
@@ -144,7 +144,7 @@ export default function FrameSequenceSelector({
                   />
                   <Button
                     ariaLabel={`Move frame ${frameIndex + 1} later`}
-                    label={<HiChevronRight />}
+                    label={<ChevronRight />}
                     onClick={() => handleMoveFrame(frameIndex, frameIndex + 1)}
                     variant={ButtonVariant.SECONDARY}
                     size={ButtonSize.XS}
@@ -153,7 +153,7 @@ export default function FrameSequenceSelector({
                   />
                   <Button
                     ariaLabel={`Remove frame ${frameIndex + 1}`}
-                    label={<HiTrash />}
+                    label={<Trash2 />}
                     onClick={() => handleRemoveFrame(frameIndex)}
                     variant={ButtonVariant.DESTRUCTIVE}
                     size={ButtonSize.XS}
@@ -173,7 +173,7 @@ export default function FrameSequenceSelector({
               'bg-background border-2 border-dashed border-white/[0.08] flex flex-col items-center justify-center gap-2 hover:border-primary transition-colors cursor-pointer',
             )}
           >
-            <HiPlus className="text-2xl text-foreground/40" />
+            <Plus className="text-2xl text-foreground/40" />
             <span className="text-xs text-foreground/60">Add Frame</span>
           </Button>
         </div>

@@ -16,6 +16,7 @@ import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalScene } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Pencil, Trash2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type ReactNode,
@@ -26,7 +27,6 @@ import {
   useReducer,
   useRef,
 } from 'react';
-import { HiPencil, HiTrash } from 'react-icons/hi2';
 
 type FetchStatus = 'loading' | 'refreshing' | 'idle';
 
@@ -249,13 +249,13 @@ function ScenesListContent({
     scope === PageScope.SUPERADMIN
       ? [
           {
-            icon: <HiPencil />,
+            icon: <Pencil />,
             onClick: (scene: ElementScene) =>
               openSceneModal(ModalEnum.SCENE, scene),
             tooltip: 'Edit',
           },
           {
-            icon: <HiTrash />,
+            icon: <Trash2 />,
             onClick: handleConfirmDelete,
             tooltip: 'Delete',
           },

@@ -3,9 +3,10 @@
 import { ButtonVariant, Timeframe } from '@genfeedai/enums';
 import type { DateRange as AnalyticsDateRange } from '@genfeedai/interfaces/utils/date.interface';
 import { format, subDays } from 'date-fns';
+import { Calendar as CalendarIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { DateRange as CalendarDateRange } from 'react-day-picker';
-import { HiCalendarDays } from 'react-icons/hi2';
+
 import { cn } from '../lib/utils';
 import { Button } from './button';
 import { Calendar } from './calendar';
@@ -165,7 +166,7 @@ export default function DateRangePicker({
               !dateRange && 'text-muted-foreground',
             )}
           >
-            <HiCalendarDays className="mr-2 size-4" />
+            <CalendarIcon className="mr-2 size-4" />
             {formatSelectedDateRange(dateRange)}
           </Button>
         </PopoverTrigger>

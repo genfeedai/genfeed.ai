@@ -1,12 +1,7 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { BarChart3, ExternalLink, Megaphone, Rocket } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactElement } from 'react';
-import {
-  HiArrowTopRightOnSquare,
-  HiChartBar,
-  HiMegaphone,
-  HiRocketLaunch,
-} from 'react-icons/hi2';
 
 interface AgentCardProps {
   action: AgentUiAction;
@@ -27,7 +22,7 @@ function CardCtas({ action }: AgentCardProps): ReactElement | null {
             className="inline-flex items-center gap-1.5 border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
           >
             {cta.label}
-            <HiArrowTopRightOnSquare className="size-3.5" />
+            <ExternalLink className="size-3.5" />
           </Link>
         ) : null,
       )}
@@ -39,7 +34,7 @@ export function AdsSearchResultsCard({ action }: AgentCardProps): ReactElement {
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiMegaphone className="size-5 text-primary" />
+        <Megaphone className="size-5 text-primary" />
         <h3 className="text-sm font-semibold text-foreground">
           {action.title || 'Ads search results'}
         </h3>
@@ -72,7 +67,7 @@ export function AdDetailSummaryCard({ action }: AgentCardProps): ReactElement {
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiChartBar className="size-5 text-blue-500" />
+        <BarChart3 className="size-5 text-blue-500" />
         <h3 className="text-sm font-semibold text-foreground">
           {action.title || 'Ad detail summary'}
         </h3>
@@ -103,7 +98,7 @@ export function CampaignLaunchPrepCard({
   return (
     <div className="my-2 border border-amber-500/20 bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiRocketLaunch className="size-5 text-amber-500" />
+        <Rocket className="size-5 text-amber-500" />
         <h3 className="text-sm font-semibold text-foreground">
           {action.title || 'Campaign launch prep'}
         </h3>

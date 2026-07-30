@@ -2,8 +2,9 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import { format } from 'date-fns';
+import { Calendar as CalendarIcon } from 'lucide-react';
 import { useState } from 'react';
-import { HiCalendarDays } from 'react-icons/hi2';
+
 import { cn } from '../lib/utils';
 import { Button } from './button';
 import { Calendar } from './calendar';
@@ -77,7 +78,7 @@ export default function Datepicker({
               className,
             )}
           >
-            <HiCalendarDays className="mr-2 size-4" />
+            <CalendarIcon className="mr-2 size-4" />
             {selectedDate ? format(selectedDate, dateFormat) : placeholderText}
           </Button>
         </PopoverTrigger>

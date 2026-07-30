@@ -15,17 +15,17 @@ import {
   buildPostAgentHref,
   buildPostAnalyticsHref,
 } from '@utils/url/desktop-loop-url.util';
-import Link from 'next/link';
 import {
-  HiArrowTopRightOnSquare,
-  HiChartBar,
-  HiDocumentDuplicate,
-  HiEye,
-  HiPencil,
-  HiQueueList,
-  HiSparkles,
-  HiTrash,
-} from 'react-icons/hi2';
+  BarChart3,
+  Copy,
+  ExternalLink,
+  Eye,
+  List,
+  Pencil,
+  Sparkles,
+  Trash2,
+} from 'lucide-react';
+import Link from 'next/link';
 
 export interface PostDetailHeaderProps {
   post: IPost;
@@ -94,7 +94,7 @@ export default function PostDetailHeader({
               rel="noopener noreferrer"
               aria-label="Open published post"
             >
-              <HiArrowTopRightOnSquare />
+              <ExternalLink />
               View live post
             </a>
           </PrimitiveButton>
@@ -110,7 +110,7 @@ export default function PostDetailHeader({
                   isExpandingToThread ? 'Expanding...' : 'Expand to Thread'
                 }
                 variant={ButtonVariant.SECONDARY}
-                icon={<HiQueueList className="size-4" />}
+                icon={<List className="size-4" />}
                 isDisabled={isExpandingToThread}
               />
             }
@@ -144,14 +144,14 @@ export default function PostDetailHeader({
             tooltipPosition="left"
             variant={ButtonVariant.SECONDARY}
             onClick={onCreateRemix}
-            icon={<HiDocumentDuplicate className="size-4" />}
+            icon={<Copy className="size-4" />}
           />
         )}
 
         {canCreateRemix && (
           <PrimitiveButton asChild variant={ButtonVariant.SECONDARY}>
             <Link href={buildPostAnalyticsHref(post.id)}>
-              <HiChartBar className="size-4" />
+              <BarChart3 className="size-4" />
               Performance
             </Link>
           </PrimitiveButton>
@@ -160,7 +160,7 @@ export default function PostDetailHeader({
         {canCreateRemix && (
           <PrimitiveButton asChild variant={ButtonVariant.SECONDARY}>
             <Link href={buildPostAgentHref(getPostLabel(post))}>
-              <HiSparkles className="size-4" />
+              <Sparkles className="size-4" />
               Ask Agent
             </Link>
           </PrimitiveButton>
@@ -177,9 +177,9 @@ export default function PostDetailHeader({
               }
               icon={
                 viewMode === 'edit' ? (
-                  <HiEye className="size-4" />
+                  <Eye className="size-4" />
                 ) : (
-                  <HiPencil className="size-4" />
+                  <Pencil className="size-4" />
                 )
               }
             />
@@ -189,7 +189,7 @@ export default function PostDetailHeader({
               label="Delete"
               variant={ButtonVariant.DESTRUCTIVE}
               onClick={onDelete}
-              icon={<HiTrash className="size-4" />}
+              icon={<Trash2 className="size-4" />}
             />
           </>
         )}

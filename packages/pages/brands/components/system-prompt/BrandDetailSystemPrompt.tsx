@@ -3,7 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { BrandDetailSystemPromptProps } from '@props/pages/brand-detail.props';
 import { Button } from '@ui/primitives/button';
-import { HiDocumentDuplicate } from 'react-icons/hi2';
+import { Copy } from 'lucide-react';
 
 export default function BrandDetailSystemPrompt({
   text,
@@ -14,7 +14,7 @@ export default function BrandDetailSystemPrompt({
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-sm font-semibold">System Prompt</h3>
         <Button
-          label={<HiDocumentDuplicate />}
+          label={<Copy />}
           variant={ButtonVariant.SECONDARY}
           size={ButtonSize.SM}
           onClick={() => onCopy(text)}

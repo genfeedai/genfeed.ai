@@ -7,8 +7,9 @@ import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
 import { Button } from '@ui/primitives/button';
 import PromptBarSurfaceRenderer from '@ui/prompt-bars/surface/PromptBarSurfaceRenderer';
 import { MISSION_CONTROL_PROMPT_BAR_SURFACE } from '@ui/prompt-bars/surface/prompt-bar-surface.config';
+import { Sparkles, X } from 'lucide-react';
 import { type ReactElement, useEffect, useRef } from 'react';
-import { HiOutlineSparkles, HiOutlineXMark } from 'react-icons/hi2';
+
 import type { AgentLabContext, AgentLabMode } from './MissionControlView';
 
 type AgentLabSurfaceProps = {
@@ -80,7 +81,7 @@ export function AgentLabSurface({
           ariaLabel="Close agent lab surface"
           className="text-foreground/60 hover:text-foreground"
         >
-          <HiOutlineXMark className="size-4" />
+          <X className="size-4" />
         </Button>
       </div>
 
@@ -108,7 +109,7 @@ export function AgentLabSurface({
         {messages.length === 0 ? (
           <div className="mx-auto mt-20 max-w-sm text-center">
             <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <HiOutlineSparkles className="size-6" />
+              <Sparkles className="size-6" />
             </div>
             <h3 className="mt-5 text-xl font-semibold text-foreground">
               Open the conversation from the page

@@ -15,8 +15,8 @@ import { VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { HOME_ASSETS } from '@web-components/home/_assets';
+import { ArrowRight } from 'lucide-react';
 import Image from 'next/image';
-import { LuArrowRight } from 'react-icons/lu';
 
 function formatCreditsPrice(credits: number): string {
   return `$${(credits * BYOK_CREDIT_VALUE_DOLLARS).toFixed(2)}`;
@@ -95,7 +95,7 @@ export default function HomeFormats(): React.ReactElement {
             >
               <a href={signUpHref} rel="noopener noreferrer" target="_blank">
                 Generate an asset
-                <LuArrowRight className="size-3" />
+                <ArrowRight className="size-3" />
               </a>
             </ButtonTracked>
           </div>

@@ -5,12 +5,8 @@ import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
+import { AlertCircle, CheckCircle2, Zap } from 'lucide-react';
 import { type ReactElement, useCallback, useRef, useState } from 'react';
-import {
-  HiCheckCircle,
-  HiExclamationCircle,
-  HiOutlineBolt,
-} from 'react-icons/hi2';
 
 interface WorkflowTriggerCardProps {
   action: AgentUiAction;
@@ -86,7 +82,7 @@ export function WorkflowTriggerCard({
     return (
       <div className="mt-2 overflow-hidden border border-border bg-background">
         <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-          <HiOutlineBolt className="size-4 text-primary" />
+          <Zap className="size-4 text-primary" />
           <span className="text-sm font-medium text-foreground">
             {action.title}
           </span>
@@ -110,7 +106,7 @@ export function WorkflowTriggerCard({
     <div className="mt-2 overflow-hidden border border-border bg-background">
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-        <HiOutlineBolt className="size-4 text-primary" />
+        <Zap className="size-4 text-primary" />
         <span className="text-sm font-medium text-foreground">
           {action.title}
         </span>
@@ -161,7 +157,7 @@ export function WorkflowTriggerCard({
             isDisabled={!selectedId}
             className="w-full"
           >
-            <HiOutlineBolt className="size-4" />
+            <Zap className="size-4" />
             Run Workflow
           </Button>
         )}
@@ -180,7 +176,7 @@ export function WorkflowTriggerCard({
         {status === 'done' && (
           <div className="space-y-2">
             <div className="flex items-center gap-2 border border-green-200 bg-green-50 px-3 py-2 dark:border-green-800 dark:bg-green-950">
-              <HiCheckCircle className="size-4 text-green-600 dark:text-green-400" />
+              <CheckCircle2 className="size-4 text-green-600 dark:text-green-400" />
               <span className="text-sm text-green-700 dark:text-green-300">
                 Workflow started successfully
               </span>
@@ -200,7 +196,7 @@ export function WorkflowTriggerCard({
         {status === 'error' && (
           <div className="space-y-2">
             <div className="flex items-center gap-2 border border-red-200 bg-red-50 px-3 py-2 dark:border-red-800 dark:bg-red-950">
-              <HiExclamationCircle className="size-4 text-red-600 dark:text-red-400" />
+              <AlertCircle className="size-4 text-red-600 dark:text-red-400" />
               <span className="text-sm text-red-700 dark:text-red-300">
                 {error}
               </span>

@@ -3,15 +3,15 @@
 import type { ReferralProps } from '@genfeedai/props/content/referral.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Card from '@ui/card/Card';
+import { Share2, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { HiShare, HiSparkles } from 'react-icons/hi2';
 
 export default function Referral({ referralCode }: ReferralProps) {
   return (
     <Card>
       <div className="flex justify-center mb-4">
         <div className="p-3 bg-primary/10 rounded-full">
-          <HiSparkles className="size-8 text-primary" />
+          <Sparkles className="size-8 text-primary" />
         </div>
       </div>
 
@@ -30,7 +30,7 @@ export default function Referral({ referralCode }: ReferralProps) {
           href={`${EnvironmentService.apps.app}/sign-up?source=referral`}
           className="inline-flex items-center justify-center gap-2 h-9 px-4 py-2 text-sm font-medium bg-primary text-primary-foreground shadow hover:bg-primary/90"
         >
-          <HiShare className="size-4" />
+          <Share2 className="size-4" />
           Create free account
         </Link>
       </div>

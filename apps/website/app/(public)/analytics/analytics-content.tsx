@@ -11,14 +11,14 @@ import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import PageLayout from '@web-components/PageLayout';
 import {
-  HiArrowTrendingUp,
-  HiBolt,
-  HiChartBar,
-  HiChartBarSquare,
-  HiFire,
-  HiPresentationChartLine,
-  HiSparkles,
-} from 'react-icons/hi2';
+  BarChart2,
+  BarChart3,
+  Flame,
+  LineChart,
+  Sparkles,
+  TrendingUp,
+  Zap,
+} from 'lucide-react';
 
 const CALENDLY_URL = EnvironmentService.calendly;
 
@@ -34,17 +34,17 @@ const SURFACES = [
 
 const METRICS = [
   {
-    icon: HiChartBar,
+    icon: BarChart3,
     label: 'Overview Dashboard',
     value: 'Revenue and output at a glance',
   },
   {
-    icon: HiChartBarSquare,
+    icon: BarChart2,
     label: 'Post Analytics',
     value: 'Every post scored against revenue',
   },
   {
-    icon: HiFire,
+    icon: Flame,
     label: 'Streaks',
     value: 'Consistency tracked and rewarded',
   },
@@ -54,53 +54,53 @@ const FEATURES = [
   {
     description:
       'See which posts drive revenue, not just likes, with attribution tied to every publish.',
-    icon: HiChartBar,
+    icon: BarChart3,
     title: 'Revenue Attribution',
   },
   {
     description:
       'Track hooks and trends that convert, so the next post starts from what already works.',
-    icon: HiArrowTrendingUp,
+    icon: TrendingUp,
     title: 'Hook & Trend Analysis',
   },
   {
     description:
       'Run A/B tests in the performance lab to prove what actually moves the number.',
-    icon: HiPresentationChartLine,
+    icon: LineChart,
     title: 'Performance Lab',
   },
   {
     description:
       'Keep the streak alive with consistency tracking across every brand and channel.',
-    icon: HiFire,
+    icon: Flame,
     title: 'Streaks & Consistency',
   },
   {
     description:
       'Roll up performance per brand to see what is working across your whole portfolio.',
-    icon: HiBolt,
+    icon: Zap,
     title: 'Per-Brand Rollups',
   },
 ];
 
 const STEPS = [
   {
-    icon: HiChartBarSquare,
+    icon: BarChart2,
     label: 'Publish',
     sublabel: 'Ship content across every connected platform',
   },
   {
-    icon: HiChartBar,
+    icon: BarChart3,
     label: 'Measure',
     sublabel: 'Attribute revenue and engagement to each post',
   },
   {
-    icon: HiPresentationChartLine,
+    icon: LineChart,
     label: 'Learn',
     sublabel: 'Spot the hooks and trends that convert',
   },
   {
-    icon: HiArrowTrendingUp,
+    icon: TrendingUp,
     label: 'Double Down',
     sublabel: 'Repeat what works and cut what does not',
   },
@@ -179,7 +179,7 @@ export default function AnalyticsContent() {
             <HStack className="flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
                 <div className="size-20 flex items-center justify-center border border-[var(--gen-accent-border)] bg-white/[0.06]">
-                  <HiChartBar className="size-10 text-surface" />
+                  <BarChart3 className="size-10 text-surface" />
                 </div>
               </div>
               <VStack className="gap-3">
@@ -299,7 +299,7 @@ export default function AnalyticsContent() {
         <section className="max-w-4xl mx-auto pb-16 px-6">
           <div className="text-center p-12 border border-[var(--gen-accent-border)] bg-white/[0.04]">
             <div className="flex justify-center mb-4">
-              <HiSparkles className="size-8 text-surface" />
+              <Sparkles className="size-8 text-surface" />
             </div>
             <Heading as="h3" className="text-2xl font-bold mb-2 text-surface">
               Know What Works. Do More.

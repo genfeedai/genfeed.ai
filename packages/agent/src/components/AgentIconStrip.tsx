@@ -3,8 +3,8 @@
 import { AGENT_PANEL_ICON_STRIP_WIDTH } from '@genfeedai/agent/constants/agent-panel.constant';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { Sparkles } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { HiOutlineSparkles } from 'react-icons/hi2';
 
 interface AgentIconStripProps {
   onExpand: () => void;
@@ -26,7 +26,7 @@ export function AgentIconStrip({
           className="size-8 bg-transparent text-primary hover:bg-primary/10"
           ariaLabel="Expand agent sidebar"
         >
-          <HiOutlineSparkles className="size-4" />
+          <Sparkles className="size-4" />
         </Button>
       </div>
       <div className="flex-1" />

@@ -9,8 +9,9 @@ import type {
 } from '@genfeedai/interfaces/utils/filters.interface';
 import type { IngredientsLayoutProps } from '@props/content/ingredients-layout.props';
 import Container from '@ui/layout/container/Container';
+import { Image } from 'lucide-react';
 import { useMemo } from 'react';
-import { HiOutlinePhoto } from 'react-icons/hi2';
+
 import IngredientsLayoutToolbar from './ingredients-layout-toolbar';
 import { useIngredientsLayout } from './use-ingredients-layout';
 
@@ -62,7 +63,7 @@ export default function IngredientsLayout({
         <Container
           label={currentIngredient.label}
           description={description}
-          icon={HiOutlinePhoto}
+          icon={Image}
           {...(hideTypeTabs
             ? {}
             : {

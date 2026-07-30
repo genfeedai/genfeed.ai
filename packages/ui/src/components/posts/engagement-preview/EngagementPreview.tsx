@@ -3,7 +3,7 @@
 import { CredentialPlatform } from '@genfeedai/enums';
 import type { IPost } from '@genfeedai/interfaces';
 import Card from '@ui/card/Card';
-import { HiChartBar } from 'react-icons/hi2';
+import { BarChart3 } from 'lucide-react';
 
 const PLATFORM_BENCHMARKS: Record<
   string,
@@ -53,7 +53,7 @@ export default function EngagementPreview({
   return (
     <Card>
       <div className="flex items-center gap-2 mb-3">
-        <HiChartBar className="size-4 text-primary" />
+        <BarChart3 className="size-4 text-primary" />
         <h3 className="font-semibold text-sm">Estimated Engagement</h3>
       </div>
       <div className="grid grid-cols-3 gap-3 text-center">

@@ -1,7 +1,6 @@
 {
   "dependencies": {
-    "@genfeedai/enums": "workspace:*",
-    "react-icons": "5.7.0"
+    "@genfeedai/enums": "workspace:*"
   },
   "devDependencies": {
     "@typescript/native": "npm:typescript@7.0.2"

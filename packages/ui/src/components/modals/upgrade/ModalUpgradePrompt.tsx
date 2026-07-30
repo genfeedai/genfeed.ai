@@ -11,13 +11,8 @@ import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
+import { ArrowRight, Check, Lock, Sparkles } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import {
-  HiArrowRight,
-  HiCheck,
-  HiLockClosed,
-  HiSparkles,
-} from 'react-icons/hi2';
 
 interface ModalUpgradePromptProps {
   currentTier?: SubscriptionTier;
@@ -107,7 +102,7 @@ export default function ModalUpgradePrompt({
       <div className="space-y-6 py-2">
         {/* Lock message */}
         <div className="flex items-start gap-3 p-4 bg-primary/5 shadow-border">
-          <HiLockClosed className="size-5 text-primary flex-shrink-0 mt-0.5" />
+          <Lock className="size-5 text-primary flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-medium text-foreground">
               {lockedLabel
@@ -137,7 +132,7 @@ export default function ModalUpgradePrompt({
                 <span className="text-sm font-semibold">
                   {TIER_LABELS[tier]}
                 </span>
-                {highlight && <HiSparkles className="size-4 text-primary" />}
+                {highlight && <Sparkles className="size-4 text-primary" />}
               </div>
               <div className="text-2xl font-bold mb-3">
                 {TIER_PRICES[tier]}
@@ -155,7 +150,7 @@ export default function ModalUpgradePrompt({
                       key={q}
                       className="flex items-center gap-2 text-xs text-foreground/60"
                     >
-                      <HiCheck className="size-3 text-foreground/30" />
+                      <Check className="size-3 text-foreground/30" />
                       {label} quality
                     </li>
                   );
@@ -178,7 +173,7 @@ export default function ModalUpgradePrompt({
           ) : (
             <>
               Upgrade Now
-              <HiArrowRight className="size-4" />
+              <ArrowRight className="size-4" />
             </>
           )}
         </Button>

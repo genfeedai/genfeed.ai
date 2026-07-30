@@ -15,8 +15,8 @@ import Spinner from '@ui/feedback/spinner/Spinner';
 import FormControl from '@ui/forms/base/form-control/FormControl';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Trash2 } from 'lucide-react';
 import type { ChangeEvent } from 'react';
-import { HiTrash } from 'react-icons/hi2';
 
 export default function ModalRole({ role, onConfirm }: ModalRoleProps) {
   const { form, formRef, isSubmitting, onSubmit, closeModal, handleDelete } =
@@ -126,7 +126,7 @@ export default function ModalRole({ role, onConfirm }: ModalRoleProps) {
               disabled={isSubmitting}
               aria-label="Delete role"
             >
-              {isSubmitting ? <Spinner /> : <HiTrash />}
+              {isSubmitting ? <Spinner /> : <Trash2 />}
             </Button>
           )}
 

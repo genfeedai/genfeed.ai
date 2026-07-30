@@ -2,8 +2,8 @@
 
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PricingStripProps } from '@genfeedai/props/website/pricing-strip.props';
+import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
-import { LuArrowRight } from 'react-icons/lu';
 
 const PILLAR_COLUMNS = [
   {
@@ -106,7 +106,7 @@ export default function PricingStrip({
               : 'text-surface/40 hover:text-surface/60',
           )}
         >
-          View all plans <LuArrowRight className="size-3" />
+          View all plans <ArrowRight className="size-3" />
         </Link>
       </div>
     </div>

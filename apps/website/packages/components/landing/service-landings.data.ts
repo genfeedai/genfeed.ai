@@ -1,17 +1,17 @@
 import { contentServiceOffering } from '@helpers/business/pricing/pricing.helper';
-import type { ComponentType, SVGProps } from 'react';
 import {
-  LuBadgeCheck,
-  LuCalendarRange,
-  LuClapperboard,
-  LuFileText,
-  LuMegaphone,
-  LuMic,
-  LuRadio,
-  LuRocket,
-  LuSparkles,
-  LuUsers,
-} from 'react-icons/lu';
+  BadgeCheck,
+  CalendarRange,
+  Clapperboard,
+  FileText,
+  Megaphone,
+  Mic,
+  Radio,
+  Rocket,
+  Sparkles,
+  Users,
+} from 'lucide-react';
+import type { ComponentType, SVGProps } from 'react';
 
 type LandingIcon = ComponentType<
   SVGProps<SVGSVGElement> & { className?: string }
@@ -166,19 +166,19 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
       {
         description:
           'Turn founder insights, sales calls, customer questions, and product updates into a weekly publishing system.',
-        icon: LuFileText,
+        icon: FileText,
         title: 'Strategy Into Output',
       },
       {
         description:
           'Ship short-form video, images, scripts, hooks, captions, and publishing-ready assets without building an in-house team.',
-        icon: LuClapperboard,
+        icon: Clapperboard,
         title: 'Multi-Format Production',
       },
       {
         description:
           'Keep a consistent voice across channels while moving fast enough to support launches, campaigns, and ongoing demand.',
-        icon: LuMic,
+        icon: Mic,
         title: 'Consistent Brand Presence',
       },
     ],
@@ -292,19 +292,19 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
       {
         description:
           'Extract strong content angles from calls, product updates, and rough founder notes.',
-        icon: LuSparkles,
+        icon: Sparkles,
         title: 'Capture The Signal',
       },
       {
         description:
           'Turn those inputs into posts, videos, hooks, and content systems that feel founder-led instead of agency-written.',
-        icon: LuUsers,
+        icon: Users,
         title: 'Keep The Founder Voice',
       },
       {
         description:
           'Publish consistently enough to build demand without the founder manually pushing every piece across the line.',
-        icon: LuCalendarRange,
+        icon: CalendarRange,
         title: 'Remove The Bottleneck',
       },
     ],
@@ -419,19 +419,19 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
       {
         description:
           'Build a repeatable publishing rhythm that supports trust, category presence, and commercial conversations.',
-        icon: LuMegaphone,
+        icon: Megaphone,
         title: 'Consistent Market Presence',
       },
       {
         description:
           'Turn existing expertise into platform-native posts instead of generic ghostwritten content.',
-        icon: LuFileText,
+        icon: FileText,
         title: 'Stronger Positioning',
       },
       {
         description:
           'Reduce the internal burden of planning, drafting, and shipping content every week.',
-        icon: LuBadgeCheck,
+        icon: BadgeCheck,
         title: 'Lower Execution Friction',
       },
     ],
@@ -545,19 +545,19 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
       {
         description:
           'Extract multiple high-signal content angles from one long-form recording.',
-        icon: LuRadio,
+        icon: Radio,
         title: 'More Signal Per Recording',
       },
       {
         description:
           'Publish across channels without rebuilding the message from scratch every time.',
-        icon: LuClapperboard,
+        icon: Clapperboard,
         title: 'Multi-Channel Repurposing',
       },
       {
         description:
           'Build a content engine around material you are already producing anyway.',
-        icon: LuCalendarRange,
+        icon: CalendarRange,
         title: 'Compounding Output',
       },
     ],
@@ -671,19 +671,19 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
       {
         description:
           'Move from vague launch ambition to a clear message-and-content system before the window opens.',
-        icon: LuRocket,
+        icon: Rocket,
         title: 'Clear Launch Narrative',
       },
       {
         description:
           'Produce the assets required to support the release across channels without scrambling at the last minute.',
-        icon: LuMegaphone,
+        icon: Megaphone,
         title: 'Coordinated Execution',
       },
       {
         description:
           'Keep internal stakeholders focused on launch-critical work instead of becoming the content production team.',
-        icon: LuBadgeCheck,
+        icon: BadgeCheck,
         title: 'Less Internal Drag',
       },
     ],

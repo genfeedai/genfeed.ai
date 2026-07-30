@@ -3,8 +3,8 @@ import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Calendar, Clock } from 'lucide-react';
 import Link from 'next/link';
-import { HiCalendar, HiClock } from 'react-icons/hi2';
 
 interface ArticlesListProps {
   articles: Article[];
@@ -72,13 +72,13 @@ export default function ArticlesList({ articles }: ArticlesListProps) {
                 <div className="flex flex-wrap items-center gap-4 border-t border-edge/[0.08] pt-4 text-sm text-foreground/60">
                   {article.publishedAt && (
                     <div className="flex items-center gap-2">
-                      <HiCalendar className="size-4" />
+                      <Calendar className="size-4" />
                       <span>{formatArticleDate(article.publishedAt)}</span>
                     </div>
                   )}
                   {article.readingTime && (
                     <div className="flex items-center gap-2">
-                      <HiClock className="size-4" />
+                      <Clock className="size-4" />
                       <span>{article.readingTime} min read</span>
                     </div>
                   )}

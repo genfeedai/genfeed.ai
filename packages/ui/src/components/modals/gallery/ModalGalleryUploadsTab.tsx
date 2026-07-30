@@ -6,7 +6,7 @@ import Masonry from '@ui/display/masonry/Masonry';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import ModalGalleryItemImage from '@ui/modals/gallery/items/ModalGalleryItemImage';
 import { Button } from '@ui/primitives/button';
-import { HiArrowUpTray } from 'react-icons/hi2';
+import { Upload } from 'lucide-react';
 
 export default function ModalGalleryUploadsTab({
   uploads,
@@ -46,7 +46,7 @@ export default function ModalGalleryUploadsTab({
       className="group relative aspect-square w-full border-2 border-dashed border-foreground/20 hover:border-primary hover:bg-primary/5 transition-all duration-200 flex flex-col items-center justify-center gap-2 cursor-pointer"
       ariaLabel="Upload image"
     >
-      <HiArrowUpTray className="size-8 text-foreground/40 group-hover:text-primary transition-colors" />
+      <Upload className="size-8 text-foreground/40 group-hover:text-primary transition-colors" />
       <span className="text-sm text-foreground/60 group-hover:text-primary transition-colors">
         Upload
       </span>

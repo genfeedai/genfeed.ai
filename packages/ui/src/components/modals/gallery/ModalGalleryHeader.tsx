@@ -13,8 +13,8 @@ import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
+import { Upload } from 'lucide-react';
 import Image from 'next/image';
-import { HiArrowUpTray } from 'react-icons/hi2';
 
 export default function ModalGalleryHeader({
   category,
@@ -80,7 +80,7 @@ export default function ModalGalleryHeader({
               {/* Upload Button */}
               <Button
                 label="Upload"
-                icon={<HiArrowUpTray className="size-4" />}
+                icon={<Upload className="size-4" />}
                 variant={ButtonVariant.DEFAULT}
                 size={ButtonSize.SM}
                 onClick={handleUploadClick}

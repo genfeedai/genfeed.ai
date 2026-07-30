@@ -4,15 +4,9 @@ import { AssetScope, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { BrandDetailOverviewProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
+import { Copy, Pencil, Share2, Sparkles, Upload } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import {
-  HiArrowUpTray,
-  HiDocumentDuplicate,
-  HiPencil,
-  HiShare,
-  HiSparkles,
-} from 'react-icons/hi2';
 
 export default function BrandDetailOverview({
   brand,
@@ -42,7 +36,7 @@ export default function BrandDetailOverview({
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50">
           <div className="flex gap-2">
             <Button
-              label={<HiArrowUpTray />}
+              label={<Upload />}
               ariaLabel="Upload profile picture"
               variant={ButtonVariant.DEFAULT}
               size={ButtonSize.SM}
@@ -50,7 +44,7 @@ export default function BrandDetailOverview({
             />
 
             <Button
-              label={<HiSparkles />}
+              label={<Sparkles />}
               ariaLabel="Generate profile picture"
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
@@ -73,7 +67,7 @@ export default function BrandDetailOverview({
             {brand.scope === AssetScope.PUBLIC && (
               <div className="flex">
                 <Button
-                  label={<HiDocumentDuplicate />}
+                  label={<Copy />}
                   variant={ButtonVariant.SECONDARY}
                   className=" border-r-0"
                   tooltip="Copy public profile link"
@@ -86,7 +80,7 @@ export default function BrandDetailOverview({
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <HiShare />
+                    <Share2 />
                     Profile
                   </Link>
                 </PrimitiveButton>
@@ -94,7 +88,7 @@ export default function BrandDetailOverview({
             )}
 
             <Button
-              icon={<HiPencil />}
+              icon={<Pencil />}
               tooltip="Edit brand"
               variant={ButtonVariant.SECONDARY}
               onClick={onEditBrand}

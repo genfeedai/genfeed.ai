@@ -1,5 +1,6 @@
 import type { Product } from '@data/products.data';
 import { ButtonVariant } from '@genfeedai/enums';
+import { GithubIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { getPlanLabel } from '@helpers/business/pricing/pricing.helper';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
@@ -7,7 +8,6 @@ import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
 import Link from 'next/link';
-import { FaGithub } from 'react-icons/fa6';
 
 type Props = {
   cta: Product['cta'];
@@ -55,7 +55,7 @@ export default function ProductPricingCTA({
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <FaGithub className="size-5" />
+                  <GithubIcon className="size-5" />
                   View Source
                 </Link>
               </Button>
@@ -67,7 +67,7 @@ export default function ProductPricingCTA({
               className="border-[var(--gen-accent-border)] hover:border-[var(--gen-accent-hover)] hover:bg-white/[0.04] h-12 px-6 text-lg uppercase"
             >
               <Link href={githubUrl} target="_blank" rel="noopener noreferrer">
-                <FaGithub className="size-5" />
+                <GithubIcon className="size-5" />
                 View on GitHub
               </Link>
             </Button>

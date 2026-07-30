@@ -3,7 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import { LuArrowRight } from 'react-icons/lu';
+import { ArrowRight } from 'lucide-react';
 
 interface ButtonRequestAccessProps {
   label?: string;
@@ -39,7 +39,7 @@ export default function ButtonRequestAccess({
     >
       <a href={href} target="_blank" rel="noopener noreferrer">
         {displayLabel}
-        <LuArrowRight className="size-4" />
+        <ArrowRight className="size-4" />
       </a>
     </ButtonTracked>
   );

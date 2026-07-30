@@ -16,8 +16,8 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
+import { CheckCircle2, FileText, Upload } from 'lucide-react';
 import { type ChangeEvent, useCallback, useMemo, useState } from 'react';
-import { HiArrowUpTray, HiCheckCircle, HiDocumentText } from 'react-icons/hi2';
 
 type ManualKitFormState = {
   backgroundColor: string;
@@ -455,7 +455,7 @@ export default function BrandDetailManualKitCard({
           />
 
           <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground hover:border-foreground/30">
-            <HiDocumentText className="size-4" />
+            <FileText className="size-4" />
             <span>{form.guidanceDocumentName || 'Upload guidance file'}</span>
             <Input
               aria-label="Upload guidance file"
@@ -472,7 +472,7 @@ export default function BrandDetailManualKitCard({
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <Button
             className="w-full gap-2"
-            icon={<HiArrowUpTray />}
+            icon={<Upload />}
             label={brand.logo || brand.logoUrl ? 'Replace Logo' : 'Upload Logo'}
             variant={ButtonVariant.SECONDARY}
             wrapperClassName="w-full"
@@ -480,7 +480,7 @@ export default function BrandDetailManualKitCard({
           />
           <Button
             className="w-full gap-2"
-            icon={<HiArrowUpTray />}
+            icon={<Upload />}
             label={
               brand.banner || brand.bannerUrl
                 ? 'Replace Banner'
@@ -492,7 +492,7 @@ export default function BrandDetailManualKitCard({
           />
           <Button
             className="w-full gap-2"
-            icon={<HiArrowUpTray />}
+            icon={<Upload />}
             label="Upload Reference"
             variant={ButtonVariant.SECONDARY}
             wrapperClassName="w-full"
@@ -523,7 +523,7 @@ export default function BrandDetailManualKitCard({
 
         <Button
           className="w-full"
-          icon={<HiDocumentText />}
+          icon={<FileText />}
           isDisabled={isDrafting || isApplying}
           isLoading={isDrafting}
           label="Create Manual Draft"
@@ -581,7 +581,7 @@ export default function BrandDetailManualKitCard({
 
             {draft.assetCandidates.length > 0 ? (
               <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-                <HiCheckCircle className="size-4" />
+                <CheckCircle2 className="size-4" />
                 {draft.assetCandidates.length} asset source
                 {draft.assetCandidates.length === 1 ? '' : 's'} included
               </div>
@@ -599,7 +599,7 @@ export default function BrandDetailManualKitCard({
 
             <Button
               className="w-full"
-              icon={<HiCheckCircle />}
+              icon={<CheckCircle2 />}
               isDisabled={selectedFields.length === 0 || isApplying}
               isLoading={isApplying}
               label="Apply Selected"

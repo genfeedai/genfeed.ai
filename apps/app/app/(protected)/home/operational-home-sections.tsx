@@ -20,13 +20,10 @@ import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { AlertTriangle, ArrowRight, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import {
-  HiArrowPath,
-  HiArrowRight,
-  HiOutlineExclamationTriangle,
-} from 'react-icons/hi2';
+
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import {
   getActivityBadge,
@@ -100,7 +97,7 @@ function ErrorPanel({
       role="alert"
     >
       <div className="flex items-start gap-3">
-        <HiOutlineExclamationTriangle
+        <AlertTriangle
           aria-hidden="true"
           className="mt-0.5 size-5 shrink-0 text-destructive"
         />
@@ -113,7 +110,7 @@ function ErrorPanel({
             variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >
-            <HiArrowPath aria-hidden="true" className="size-4" />
+            <RefreshCw aria-hidden="true" className="size-4" />
             Retry
           </Button>
         </div>
@@ -137,7 +134,7 @@ function EmptyPanel({
       <Button asChild className="mt-4" variant={ButtonVariant.SECONDARY}>
         <Link href={actionHref}>
           {actionLabel}
-          <HiArrowRight aria-hidden="true" className="size-4" />
+          <ArrowRight aria-hidden="true" className="size-4" />
         </Link>
       </Button>
     </div>
@@ -181,7 +178,7 @@ function ApprovalsSurface({
         <Button asChild variant={ButtonVariant.SECONDARY}>
           <Link href={reviewHref}>
             Open queue
-            <HiArrowRight aria-hidden="true" className="size-4" />
+            <ArrowRight aria-hidden="true" className="size-4" />
           </Link>
         </Button>
       }
@@ -241,7 +238,7 @@ function ApprovalsSurface({
                         {item.platform ? ` · ${item.platform}` : ''}
                       </span>
                     </span>
-                    <HiArrowRight
+                    <ArrowRight
                       aria-hidden="true"
                       className="size-4 shrink-0 text-foreground/45"
                     />
@@ -306,7 +303,7 @@ function PublishingSurface({
         <Button asChild variant={ButtonVariant.SECONDARY}>
           <Link href={postsHref}>
             Open publishing
-            <HiArrowRight aria-hidden="true" className="size-4" />
+            <ArrowRight aria-hidden="true" className="size-4" />
           </Link>
         </Button>
       }
@@ -421,12 +418,12 @@ function CredentialHealthSurface({
             variant={ButtonVariant.GHOST}
             withWrapper={false}
           >
-            <HiArrowPath aria-hidden="true" className="size-4" />
+            <RefreshCw aria-hidden="true" className="size-4" />
           </Button>
           <Button asChild variant={ButtonVariant.SECONDARY}>
             <Link href={settingsHref}>
               Manage accounts
-              <HiArrowRight aria-hidden="true" className="size-4" />
+              <ArrowRight aria-hidden="true" className="size-4" />
             </Link>
           </Button>
         </>
@@ -503,7 +500,7 @@ function ActivitySurface({ activityHref }: { activityHref: string }) {
         <Button asChild variant={ButtonVariant.SECONDARY}>
           <Link href={activityHref}>
             View activity
-            <HiArrowRight aria-hidden="true" className="size-4" />
+            <ArrowRight aria-hidden="true" className="size-4" />
           </Link>
         </Button>
       }

@@ -13,8 +13,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@ui/primitives/sheet';
+import { ExternalLink } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { HiArrowTopRightOnSquare } from 'react-icons/hi2';
 
 export interface PostDetailOverlayProps {
   postId: string | null;
@@ -68,7 +68,7 @@ export default function PostDetailOverlay({
               <Button
                 label="Open page"
                 variant={ButtonVariant.SECONDARY}
-                icon={<HiArrowTopRightOnSquare className="size-4" />}
+                icon={<ExternalLink className="size-4" />}
                 onClick={() => router.push(href(`/posts/${postId}`))}
               />
             ) : null}

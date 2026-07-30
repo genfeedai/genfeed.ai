@@ -1,19 +1,24 @@
 'use client';
 
 import { AgentType, ButtonVariant } from '@genfeedai/enums';
-import { Button } from '@ui/primitives/button';
-import { FaLinkedin, FaXTwitter, FaYoutube } from 'react-icons/fa6';
 import {
-  HiArrowRight,
-  HiOutlineBolt,
-  HiOutlineCpuChip,
-  HiOutlineDocumentText,
-  HiOutlineMegaphone,
-  HiOutlinePhoto,
-  HiOutlineSparkles,
-  HiOutlineUser,
-  HiOutlineVideoCamera,
-} from 'react-icons/hi2';
+  LinkedinIcon,
+  XTwitterIcon,
+  YoutubeIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
+import { Button } from '@ui/primitives/button';
+import {
+  ArrowRight,
+  Cpu,
+  FileText,
+  Image,
+  Megaphone,
+  Sparkles,
+  User,
+  Video,
+  Zap,
+} from 'lucide-react';
+
 import { SelectCardButton } from './AgentWizardHelpers';
 
 const AGENT_TYPES: {
@@ -27,7 +32,7 @@ const AGENT_TYPES: {
   {
     defaultBudget: 100,
     description: 'Versatile agent for any content type',
-    icon: <HiOutlineCpuChip className="size-6" />,
+    icon: <Cpu className="size-6" />,
     label: 'General',
     platforms: ['twitter', 'instagram', 'linkedin'],
     type: AgentType.GENERAL,
@@ -35,7 +40,7 @@ const AGENT_TYPES: {
   {
     defaultBudget: 50,
     description: 'Optimized for Twitter/X threads and posts',
-    icon: <FaXTwitter className="size-5" />,
+    icon: <XTwitterIcon className="size-5" />,
     label: 'X Content',
     platforms: ['twitter'],
     type: AgentType.X_CONTENT,
@@ -43,7 +48,7 @@ const AGENT_TYPES: {
   {
     defaultBudget: 200,
     description: 'Generates images for social media content',
-    icon: <HiOutlinePhoto className="size-6" />,
+    icon: <Image className="size-6" />,
     label: 'Image Creator',
     platforms: ['instagram', 'twitter'],
     type: AgentType.IMAGE_CREATOR,
@@ -51,7 +56,7 @@ const AGENT_TYPES: {
   {
     defaultBudget: 500,
     description: 'Creates short-form video content',
-    icon: <HiOutlineVideoCamera className="size-6" />,
+    icon: <Video className="size-6" />,
     label: 'Video Creator',
     platforms: ['tiktok', 'youtube', 'instagram'],
     type: AgentType.VIDEO_CREATOR,
@@ -59,7 +64,7 @@ const AGENT_TYPES: {
   {
     defaultBudget: 300,
     description: 'AI-powered avatar for creator content',
-    icon: <HiOutlineUser className="size-6" />,
+    icon: <User className="size-6" />,
     label: 'AI Avatar',
     platforms: ['tiktok', 'youtube'],
     type: AgentType.AI_AVATAR,
@@ -67,7 +72,7 @@ const AGENT_TYPES: {
   {
     defaultBudget: 500,
     description: 'Expert long-form articles and blog content writer',
-    icon: <HiOutlineDocumentText className="size-6" />,
+    icon: <FileText className="size-6" />,
     label: 'Article Writer',
     platforms: ['linkedin', 'wordpress'],
     type: AgentType.ARTICLE_WRITER,
@@ -75,7 +80,7 @@ const AGENT_TYPES: {
   {
     defaultBudget: 200,
     description: 'LinkedIn thought leadership and professional posts',
-    icon: <FaLinkedin className="size-5" />,
+    icon: <LinkedinIcon className="size-5" />,
     label: 'LinkedIn Copywriter',
     platforms: ['linkedin'],
     type: AgentType.LINKEDIN_CONTENT,
@@ -83,7 +88,7 @@ const AGENT_TYPES: {
   {
     defaultBudget: 300,
     description: 'Video ad scripts and performance marketing copy',
-    icon: <HiOutlineMegaphone className="size-6" />,
+    icon: <Megaphone className="size-6" />,
     label: 'Ads Script Writer',
     platforms: ['instagram', 'tiktok', 'youtube', 'facebook'],
     type: AgentType.ADS_SCRIPT_WRITER,
@@ -91,7 +96,7 @@ const AGENT_TYPES: {
   {
     defaultBudget: 200,
     description: 'TikTok/IG hooks, captions, and text overlays',
-    icon: <HiOutlineBolt className="size-6" />,
+    icon: <Zap className="size-6" />,
     label: 'Short-Form Writer',
     platforms: ['tiktok', 'instagram'],
     type: AgentType.SHORT_FORM_WRITER,
@@ -99,7 +104,7 @@ const AGENT_TYPES: {
   {
     defaultBudget: 150,
     description: 'CTAs, conversion copy, and action-driving content',
-    icon: <HiOutlineSparkles className="size-6" />,
+    icon: <Sparkles className="size-6" />,
     label: 'CTA / Conversion',
     platforms: ['instagram', 'linkedin', 'twitter', 'youtube'],
     type: AgentType.CTA_CONTENT,
@@ -107,7 +112,7 @@ const AGENT_TYPES: {
   {
     defaultBudget: 400,
     description: 'YouTube scripts, titles, descriptions, and Shorts',
-    icon: <FaYoutube className="size-5" />,
+    icon: <YoutubeIcon className="size-5" />,
     label: 'YouTube Script',
     platforms: ['youtube'],
     type: AgentType.YOUTUBE_SCRIPT,
@@ -152,7 +157,7 @@ export default function AgentWizardStepType({
         <Button
           label={
             <>
-              Pick Brand <HiArrowRight />
+              Pick Brand <ArrowRight />
             </>
           }
           variant={ButtonVariant.DEFAULT}

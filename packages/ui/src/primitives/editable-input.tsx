@@ -4,10 +4,11 @@ import {
 } from '@genfeedai/client/schemas';
 import { ButtonVariant } from '@genfeedai/enums';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
+import { Check, Pencil, X } from 'lucide-react';
 import type { KeyboardEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { HiCheck, HiPencil, HiXMark } from 'react-icons/hi2';
+
 import { Button } from './button';
 import { Input } from './input';
 
@@ -158,7 +159,7 @@ export default function EditableInput({
             />
 
             <Button
-              label={<HiCheck />}
+              label={<Check />}
               onClick={() => void handleSave()}
               variant={ButtonVariant.DEFAULT}
               className=" first: last: border-l-0 first:border-l"
@@ -167,7 +168,7 @@ export default function EditableInput({
             />
 
             <Button
-              label={<HiXMark />}
+              label={<X />}
               onClick={handleCancel}
               variant={ButtonVariant.DESTRUCTIVE}
               className=" first: last: border-l-0 first:border-l"
@@ -190,7 +191,7 @@ export default function EditableInput({
 
           {!isDisabled && (
             <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-              <HiPencil className="size-4 text-foreground/60" />
+              <Pencil className="size-4 text-foreground/60" />
             </div>
           )}
         </button>

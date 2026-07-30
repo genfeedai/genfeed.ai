@@ -9,14 +9,8 @@ import {
 import type { AnomalyDetectionCardProps } from '@genfeedai/props/analytics/insights.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import { AlertTriangle, Info, TrendingDown, TrendingUp, X } from 'lucide-react';
 import { memo } from 'react';
-import {
-  HiArrowTrendingDown,
-  HiArrowTrendingUp,
-  HiExclamationTriangle,
-  HiInformationCircle,
-  HiXMark,
-} from 'react-icons/hi2';
 
 const getSeverityStyles = (severity: 'critical' | 'warning' | 'info') => {
   switch (severity) {
@@ -54,7 +48,7 @@ const AnomalyDetectionCard = memo(function AnomalyDetectionCard({
     return (
       <Card
         label="Anomaly Detection"
-        icon={HiExclamationTriangle}
+        icon={AlertTriangle}
         iconClassName="text-warning"
         className={className}
       >
@@ -80,12 +74,12 @@ const AnomalyDetectionCard = memo(function AnomalyDetectionCard({
     return (
       <Card
         label="Anomaly Detection"
-        icon={HiExclamationTriangle}
+        icon={AlertTriangle}
         iconClassName="text-warning"
         className={className}
       >
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <HiInformationCircle className="size-12 text-success mb-3" />
+          <Info className="size-12 text-success mb-3" />
           <p className="text-foreground/70 font-medium">
             No anomalies detected
           </p>
@@ -100,7 +94,7 @@ const AnomalyDetectionCard = memo(function AnomalyDetectionCard({
   return (
     <Card
       label="Anomaly Detection"
-      icon={HiExclamationTriangle}
+      icon={AlertTriangle}
       iconClassName="text-warning"
       description={`${anomalies.length} anomal${anomalies.length === 1 ? 'y' : 'ies'} detected`}
       className={className}
@@ -121,9 +115,9 @@ const AnomalyDetectionCard = memo(function AnomalyDetectionCard({
             >
               <div className={cn('mt-0.5', styles.icon)}>
                 {isNegative ? (
-                  <HiArrowTrendingDown className="size-6" />
+                  <TrendingDown className="size-6" />
                 ) : (
-                  <HiArrowTrendingUp className="size-6" />
+                  <TrendingUp className="size-6" />
                 )}
               </div>
 
@@ -179,7 +173,7 @@ const AnomalyDetectionCard = memo(function AnomalyDetectionCard({
                   className="absolute top-2 right-2 p-1 rounded-full hover:bg-muted/50 transition-colors"
                   ariaLabel="Dismiss anomaly"
                 >
-                  <HiXMark className="size-4 text-foreground/50" />
+                  <X className="size-4 text-foreground/50" />
                 </Button>
               )}
             </div>

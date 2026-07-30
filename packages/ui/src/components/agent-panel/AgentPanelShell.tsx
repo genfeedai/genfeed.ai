@@ -3,17 +3,13 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
+import { Maximize2, Sparkles } from 'lucide-react';
 import {
   type ReactElement,
   type ReactNode,
   useCallback,
   useState,
 } from 'react';
-import {
-  HiArrowsPointingOut,
-  HiOutlineSparkles,
-  HiSparkles,
-} from 'react-icons/hi2';
 
 export interface AgentPanelShellProps {
   isOpen: boolean;
@@ -104,7 +100,7 @@ function AgentPanelShell({
               className="gen-shell-control flex items-center justify-center size-7 rounded-md"
               ariaLabel="Open full agent workspace"
             >
-              <HiArrowsPointingOut className="size-3.5" />
+              <Maximize2 className="size-3.5" />
             </Button>
           )}
 
@@ -117,9 +113,9 @@ function AgentPanelShell({
             ariaLabel={isOpen ? 'Collapse terminal' : 'Expand terminal'}
           >
             {isOpen ? (
-              <HiSparkles className="size-3.5" />
+              <Sparkles className="size-3.5" />
             ) : (
-              <HiOutlineSparkles className="size-3.5" />
+              <Sparkles className="size-3.5" />
             )}
           </Button>
         </div>

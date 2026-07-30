@@ -8,13 +8,13 @@ import type {
 import Card from '@ui/card/Card';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
-import { useCallback, useState } from 'react';
 import {
-  HiArrowPath,
-  HiArrowTopRightOnSquare,
-  HiChatBubbleLeft,
-  HiPencilSquare,
-} from 'react-icons/hi2';
+  ExternalLink,
+  MessageCircle,
+  PenSquare,
+  RefreshCw,
+} from 'lucide-react';
+import { useCallback, useState } from 'react';
 
 const TYPE_LABELS: Record<ITwitterOpportunity['type'], string> = {
   original: 'Original',
@@ -91,7 +91,7 @@ export default function OpportunityCard({
               target="_blank"
               rel="noopener noreferrer"
             >
-              <HiArrowTopRightOnSquare className="size-4" />
+              <ExternalLink className="size-4" />
               View tweet
             </a>
           </PrimitiveButton>
@@ -110,13 +110,13 @@ export default function OpportunityCard({
         </span>
         {opportunity.type === 'reply' && (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <HiChatBubbleLeft className="size-3" />
+            <MessageCircle className="size-3" />
             Reply
           </span>
         )}
         {opportunity.type === 'quote' && (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <HiArrowPath className="size-3" />
+            <RefreshCw className="size-3" />
             Quote
           </span>
         )}
@@ -138,7 +138,7 @@ export default function OpportunityCard({
         />
         <div className="flex items-center justify-between mt-1">
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <HiPencilSquare className="size-3" />
+            <PenSquare className="size-3" />
             Edit before publishing
           </span>
           <span

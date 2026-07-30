@@ -31,6 +31,15 @@ import {
   DrawerTitle,
 } from '@ui/primitives/drawer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
+import {
+  ArrowLeft,
+  Columns2,
+  Eye,
+  LayoutGrid,
+  Maximize2,
+  MessageSquare,
+  Zap,
+} from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type KeyboardEvent as ReactKeyboardEvent,
@@ -43,15 +52,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import {
-  HiOutlineArrowLeft,
-  HiOutlineArrowsPointingOut,
-  HiOutlineBolt,
-  HiOutlineChatBubbleLeftRight,
-  HiOutlineEye,
-  HiOutlineSquares2X2,
-  HiOutlineViewColumns,
-} from 'react-icons/hi2';
+
 import {
   AnalyticsWorkspaceSurfaceAdapterProvider,
   useActiveAnalyticsWorkspaceSurfaceAdapter,
@@ -933,7 +934,7 @@ function UniversalWorkspaceShellContent({
             <Button
               ariaLabel={WORKSPACE_INSPECTOR_CHROME.openFullConversation}
               className="size-8 shrink-0"
-              icon={<HiOutlineArrowsPointingOut className="size-3.5" />}
+              icon={<Maximize2 className="size-3.5" />}
               onClick={handleReturnToConversation}
               size={ButtonSize.ICON}
               tooltip={WORKSPACE_INSPECTOR_CHROME.openFullConversation}
@@ -1013,13 +1014,13 @@ function UniversalWorkspaceShellContent({
                 <CardEmptyContent
                   className="gen-shell-empty-state rounded-lg py-8"
                   description={`Start a conversation or choose a workflow to build ${inspectorBreadcrumbLabel} context here.`}
-                  icon={HiOutlineSquares2X2}
+                  icon={LayoutGrid}
                   label={`No ${inspectorBreadcrumbLabel} context yet`}
                   size={CardEmptySize.SM}
                 />
               )}
               <Button
-                icon={<HiOutlineBolt className="size-4" />}
+                icon={<Zap className="size-4" />}
                 onClick={handleOpenWorkflowPicker}
                 variant={ButtonVariant.SECONDARY}
                 withWrapper={false}
@@ -1029,7 +1030,7 @@ function UniversalWorkspaceShellContent({
               {effectiveSurfaceAdapter ||
               resolvedSurfacePresentationAdapter ? null : (
                 <Button
-                  icon={<HiOutlineEye className="size-4" />}
+                  icon={<Eye className="size-4" />}
                   onClick={handleOpenOverlay}
                   variant={ButtonVariant.SECONDARY}
                   withWrapper={false}
@@ -1038,7 +1039,7 @@ function UniversalWorkspaceShellContent({
                 </Button>
               )}
               <Button
-                icon={<HiOutlineChatBubbleLeftRight className="size-4" />}
+                icon={<MessageSquare className="size-4" />}
                 onClick={handleReturnToConversation}
                 variant={ButtonVariant.GHOST}
                 withWrapper={false}
@@ -1136,7 +1137,7 @@ function UniversalWorkspaceShellContent({
               >
                 <div className="flex h-12 items-center justify-between border-b border-border px-3 xl:hidden">
                   <Button
-                    icon={<HiOutlineArrowLeft className="size-4" />}
+                    icon={<ArrowLeft className="size-4" />}
                     onClick={handleReturnToConversation}
                     size={ButtonSize.SM}
                     variant={ButtonVariant.GHOST}
@@ -1145,7 +1146,7 @@ function UniversalWorkspaceShellContent({
                     Conversation
                   </Button>
                   <Button
-                    icon={<HiOutlineViewColumns className="size-4" />}
+                    icon={<Columns2 className="size-4" />}
                     onClick={() => setIsMobileInspectorOpen(true)}
                     size={ButtonSize.SM}
                     variant={ButtonVariant.GHOST}

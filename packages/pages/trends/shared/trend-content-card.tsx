@@ -23,17 +23,17 @@ import {
   buildTrendSourcePrompt,
   buildTrendSourceTwitterDraftHref,
 } from '@utils/url/desktop-loop-url.util';
+import {
+  ClipboardList,
+  Copy,
+  ExternalLink,
+  Film,
+  Sparkles,
+  Zap,
+} from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
-import {
-  HiArrowTopRightOnSquare,
-  HiBolt,
-  HiOutlineClipboardDocumentList,
-  HiOutlineDocumentDuplicate,
-  HiOutlineFilm,
-  HiOutlineSparkles,
-} from 'react-icons/hi2';
 
 function getViralityVariant(
   score: number,
@@ -207,7 +207,7 @@ export default function TrendContentCard({
           />
           <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-3">
             <Badge variant={getViralityVariant(item.trendViralityScore)}>
-              <HiBolt className="size-3" />
+              <Zap className="size-3" />
               {item.trendViralityScore}
             </Badge>
             <Badge variant="ghost">
@@ -277,13 +277,13 @@ export default function TrendContentCard({
             />
           ) : null}
           <Button
-            icon={<HiOutlineSparkles className="size-3.5" />}
+            icon={<Sparkles className="size-3.5" />}
             label="Remix"
             onClick={handleRemix}
             variant={ButtonVariant.SECONDARY}
           />
           <Button
-            icon={<HiOutlineClipboardDocumentList className="size-3.5" />}
+            icon={<ClipboardList className="size-3.5" />}
             isLoading={isSavingBrief}
             label="Save Brief"
             onClick={() => {
@@ -294,13 +294,13 @@ export default function TrendContentCard({
             variant={ButtonVariant.GHOST}
           />
           <Button
-            icon={<HiArrowTopRightOnSquare className="size-3.5" />}
+            icon={<ExternalLink className="size-3.5" />}
             label="Open Source"
             onClick={handleOpenSource}
             variant={ButtonVariant.GHOST}
           />
           <Button
-            icon={<HiOutlineDocumentDuplicate className="size-3.5" />}
+            icon={<Copy className="size-3.5" />}
             label="Get Prompt"
             onClick={() => {
               handleCopyPrompt().catch(() => {
@@ -310,7 +310,7 @@ export default function TrendContentCard({
             variant={ButtonVariant.GHOST}
           />
           <Button
-            icon={<HiOutlineFilm className="size-3.5" />}
+            icon={<Film className="size-3.5" />}
             label="Send to Agent"
             onClick={handleSendToAgent}
             variant={ButtonVariant.GHOST}

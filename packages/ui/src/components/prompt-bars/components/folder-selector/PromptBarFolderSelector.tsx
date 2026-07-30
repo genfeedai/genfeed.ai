@@ -2,8 +2,8 @@
 
 import type { PromptBarFolderSelectorProps } from '@genfeedai/props/studio/prompt-bar.props';
 import FormDropdown from '@ui/primitives/dropdown-field';
+import { Folder } from 'lucide-react';
 import { type ChangeEvent, memo } from 'react';
-import { HiFolder } from 'react-icons/hi2';
 
 const PromptBarFolderSelector = memo(function PromptBarFolderSelector({
   folders,
@@ -20,7 +20,7 @@ const PromptBarFolderSelector = memo(function PromptBarFolderSelector({
     <FormDropdown
       key="folder"
       name="folder"
-      icon={<HiFolder />}
+      icon={<Folder />}
       label="Folder"
       triggerDisplay={triggerDisplay}
       value={form.watch('folder') || ''}

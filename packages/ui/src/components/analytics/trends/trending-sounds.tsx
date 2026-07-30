@@ -2,17 +2,13 @@
 
 import { ButtonVariant, CardVariant } from '@genfeedai/enums';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
+import { TiktokIcon } from '@genfeedai/helpers/ui/icons/brands';
 import type { TrendingSoundsProps } from '@genfeedai/props/analytics/trends.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
+import { Music, Play, TrendingUp } from 'lucide-react';
 import Image from 'next/image';
-import { FaTiktok } from 'react-icons/fa6';
-import {
-  HiArrowTrendingUp,
-  HiOutlineMusicalNote,
-  HiOutlinePlay,
-} from 'react-icons/hi2';
 
 function formatDuration(seconds?: number): string {
   if (!seconds) {
@@ -49,7 +45,7 @@ export function TrendingSounds({
   if (sounds.length === 0) {
     return (
       <div className={`text-center py-12 ${className}`}>
-        <HiOutlineMusicalNote className="size-12 mx-auto mb-3 opacity-30" />
+        <Music className="size-12 mx-auto mb-3 opacity-30" />
         <p className="text-foreground/60">No trending sounds found</p>
         <p className="text-sm text-foreground/40 mt-1">
           Check back later for viral TikTok sounds
@@ -64,10 +60,10 @@ export function TrendingSounds({
     <div className={`space-y-4 ${className}`}>
       <div className="space-y-1">
         <h3 className="text-lg font-semibold flex items-center gap-2">
-          <HiOutlineMusicalNote className="text-muted-foreground" />
+          <Music className="text-muted-foreground" />
           Trending Sounds
           <Badge className="text-xs bg-transparent">
-            <FaTiktok className="size-3 mr-1" />
+            <TiktokIcon className="size-3 mr-1" />
             TikTok
           </Badge>
         </h3>
@@ -120,11 +116,11 @@ export function TrendingSounds({
                         unoptimized
                       />
                     ) : (
-                      <HiOutlineMusicalNote className="size-8 text-muted-foreground" />
+                      <Music className="size-8 text-muted-foreground" />
                     )}
                     {onPlaySound && (
                       <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                        <HiOutlinePlay className="size-8 text-white" />
+                        <Play className="size-8 text-white" />
                       </div>
                     )}
                   </Button>
@@ -147,7 +143,7 @@ export function TrendingSounds({
                   )}
                   <div className="flex items-center gap-3 mt-2 text-xs text-foreground/60">
                     <span className="flex items-center gap-1">
-                      <HiOutlinePlay className="size-3.5" />
+                      <Play className="size-3.5" />
                       {formatCompactNumber(sound.usageCount)} uses
                     </span>
                     {sound.duration && (
@@ -159,7 +155,7 @@ export function TrendingSounds({
 
               <div className="relative z-10 flex items-center justify-between mt-3 pt-3 border-t border-white/[0.08] pointer-events-none">
                 <div className="flex items-center gap-1 text-sm">
-                  <HiArrowTrendingUp
+                  <TrendingUp
                     className={`size-4 ${
                       sound.growthRate > 0
                         ? 'text-success'

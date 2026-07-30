@@ -9,7 +9,7 @@ import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
-import { HiPlay, HiStop } from 'react-icons/hi2';
+import { Play, Square } from 'lucide-react';
 
 const EC2_SKELETON_KEYS = [
   'ec2-skeleton-1',
@@ -63,7 +63,7 @@ export default function EC2InstancesSection({
             isDisabled={isActioningAll}
             onClick={() => onEC2ActionAll('start')}
           >
-            <HiPlay className="size-4" />
+            <Play className="size-4" />
             Start All
           </Button>
 
@@ -79,7 +79,7 @@ export default function EC2InstancesSection({
             isDisabled={isActioningAll}
             onClick={() => onEC2ActionAll('stop')}
           >
-            <HiStop className="size-4" />
+            <Square className="size-4" />
             Stop All
           </Button>
         </div>

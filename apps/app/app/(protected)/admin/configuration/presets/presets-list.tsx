@@ -20,9 +20,10 @@ import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import { HiPencil, HiPlus, HiTrash } from 'react-icons/hi2';
+
 import {
   PresetCategoryCell,
   PresetDefaultsCell,
@@ -243,13 +244,13 @@ function PresetsListContent({
     scope === PageScope.SUPERADMIN
       ? [
           {
-            icon: <HiPencil />,
+            icon: <Pencil />,
             onClick: (preset: Preset) =>
               openPresetModal(ModalEnum.PRESET, preset),
             tooltip: 'Edit',
           },
           {
-            icon: <HiTrash />,
+            icon: <Trash2 />,
             onClick: (preset: Preset) => {
               setSelectedPreset(preset);
               openConfirm({
@@ -277,7 +278,7 @@ function PresetsListContent({
           {scope === PageScope.SUPERADMIN && (
             <Button
               label="Preset"
-              icon={<HiPlus />}
+              icon={<Plus />}
               variant={ButtonVariant.DEFAULT}
               onClick={() => openPresetModal(ModalEnum.PRESET)}
             />

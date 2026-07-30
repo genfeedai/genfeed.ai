@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { HiArrowLeft, HiArrowRight } from 'react-icons/hi2';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 type BrandOption = {
   id: string;
@@ -65,7 +65,7 @@ export default function AgentWizardStepBrand({
         <Button
           label={
             <>
-              <HiArrowLeft /> Back
+              <ArrowLeft /> Back
             </>
           }
           variant={ButtonVariant.SECONDARY}
@@ -74,7 +74,7 @@ export default function AgentWizardStepBrand({
         <Button
           label={
             <>
-              Configure <HiArrowRight />
+              Configure <ArrowRight />
             </>
           }
           variant={ButtonVariant.DEFAULT}

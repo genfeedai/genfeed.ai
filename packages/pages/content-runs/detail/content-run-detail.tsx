@@ -14,18 +14,18 @@ import type { ContentRunRecord } from '@services/content/content-runs.service';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import {
+  AlertTriangle,
+  BarChart3,
+  CheckCircle2,
+  Clock,
+  FileText,
+  RefreshCw,
+  Send,
+  Sparkles,
+} from 'lucide-react';
 import Link from 'next/link';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
-import {
-  HiArrowPath,
-  HiChartBar,
-  HiCheckCircle,
-  HiClock,
-  HiDocumentText,
-  HiExclamationTriangle,
-  HiPaperAirplane,
-  HiSparkles,
-} from 'react-icons/hi2';
 
 export interface ContentRunDetailPageProps {
   runId: string;
@@ -455,11 +455,11 @@ function TimelinePanel({ run }: { run: ContentRunRecord }) {
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm font-medium">{step.label}</span>
               {step.state === 'complete' ? (
-                <HiCheckCircle className="size-4" />
+                <CheckCircle2 className="size-4" />
               ) : step.state === 'error' ? (
-                <HiExclamationTriangle className="size-4" />
+                <AlertTriangle className="size-4" />
               ) : (
-                <HiClock className="size-4" />
+                <Clock className="size-4" />
               )}
             </div>
             <p className="mt-1 text-xs opacity-75">{step.description}</p>
@@ -479,8 +479,8 @@ function NavigationPanel({
 }) {
   const { href } = useOrgUrl();
   const links = [
-    { href: href('/posts'), label: 'Publish', icon: HiPaperAirplane },
-    { href: href('/analytics/posts'), label: 'Analytics', icon: HiChartBar },
+    { href: href('/posts'), label: 'Publish', icon: Send },
+    { href: href('/analytics/posts'), label: 'Analytics', icon: BarChart3 },
   ];
 
   return (
@@ -496,7 +496,7 @@ function NavigationPanel({
           withWrapper={false}
         >
           <span className="flex items-center gap-2">
-            <HiSparkles className="size-4" />
+            <Sparkles className="size-4" />
             Create Remix Pack
           </span>
         </Button>
@@ -639,35 +639,32 @@ export default function ContentRunDetailPage({
           <main className="grid gap-5">
             <Section
               title="Source Brief"
-              icon={<HiDocumentText className="size-4" />}
+              icon={<FileText className="size-4" />}
             >
               <BriefSection brief={run.brief} />
             </Section>
 
             <Section
               title="Remix Variants"
-              icon={<HiSparkles className="size-4" />}
+              icon={<Sparkles className="size-4" />}
             >
               <VariantsSection variants={run.variants} />
             </Section>
 
-            <Section
-              title="Publish Events"
-              icon={<HiPaperAirplane className="size-4" />}
-            >
+            <Section title="Publish Events" icon={<Send className="size-4" />}>
               <PublishSection publish={run.publish} />
             </Section>
 
             <Section
               title="Analytics Summary"
-              icon={<HiChartBar className="size-4" />}
+              icon={<BarChart3 className="size-4" />}
             >
               <AnalyticsSection analytics={run.analyticsSummary} />
             </Section>
 
             <Section
               title="Recommended Next Actions"
-              icon={<HiArrowPath className="size-4" />}
+              icon={<RefreshCw className="size-4" />}
             >
               <RecommendationsSection recommendations={run.recommendations} />
             </Section>

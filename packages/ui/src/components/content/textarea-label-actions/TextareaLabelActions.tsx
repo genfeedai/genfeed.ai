@@ -2,11 +2,7 @@ import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import type { TextareaLabelActionsProps } from '@genfeedai/props/ui/forms/textarea-label-actions.props';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
-import {
-  HiArrowUturnLeft,
-  HiDocumentDuplicate,
-  HiSparkles,
-} from 'react-icons/hi2';
+import { Copy, Sparkles, Undo2 } from 'lucide-react';
 
 export default function TextareaLabelActions({
   label,
@@ -31,7 +27,7 @@ export default function TextareaLabelActions({
 
       <div className="flex items-center gap-2">
         <Button
-          icon={<HiDocumentDuplicate className="size-3.5" />}
+          icon={<Copy className="size-3.5" />}
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
           className="h-6 min-h-6 px-1.5"
@@ -46,7 +42,7 @@ export default function TextareaLabelActions({
             isEnhancing ? (
               <Spinner size={ComponentSize.XS} />
             ) : (
-              <HiSparkles className="size-3.5" />
+              <Sparkles className="size-3.5" />
             )
           }
           variant={ButtonVariant.GHOST}
@@ -60,7 +56,7 @@ export default function TextareaLabelActions({
 
         {showUndo && onUndo && (
           <Button
-            icon={<HiArrowUturnLeft className="size-3.5" />}
+            icon={<Undo2 className="size-3.5" />}
             variant={ButtonVariant.GHOST}
             size={ButtonSize.XS}
             className="h-6 min-h-6 px-1.5 text-muted-foreground"

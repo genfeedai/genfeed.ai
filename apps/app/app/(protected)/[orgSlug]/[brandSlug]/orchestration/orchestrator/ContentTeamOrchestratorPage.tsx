@@ -13,7 +13,8 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { HiOutlineRectangleGroup } from 'react-icons/hi2';
+import { LayoutDashboard } from 'lucide-react';
+
 import OrchestratorBlueprintPreview from './OrchestratorBlueprintPreview';
 import OrchestratorGoalSection from './OrchestratorGoalSection';
 import OrchestratorSpecialistsSection from './OrchestratorSpecialistsSection';
@@ -38,7 +39,7 @@ export default function ContentTeamOrchestratorPage() {
   return (
     <Container
       description="Create a role-first campaign lead on top of the existing campaign and goal system."
-      icon={HiOutlineRectangleGroup}
+      icon={LayoutDashboard}
       label="Launch Orchestrator"
     >
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">

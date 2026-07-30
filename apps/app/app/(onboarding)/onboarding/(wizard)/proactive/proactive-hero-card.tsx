@@ -7,7 +7,7 @@ import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { Button } from '@ui/primitives/button';
-import { HiArrowPath, HiSparkles } from 'react-icons/hi2';
+import { RefreshCw, Sparkles } from 'lucide-react';
 
 type Props = {
   workspace: ProactiveWorkspaceResponse;
@@ -32,7 +32,7 @@ export default function ProactiveHeroCard({
             className="px-4 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-white/55"
             variant="ghost"
           >
-            <HiSparkles className="size-3" />
+            <Sparkles className="size-3" />
             Prepared Before You Arrived
           </Badge>
           <h1 className="mt-5 text-4xl font-semibold leading-none tracking-tight text-white md:text-5xl">
@@ -55,7 +55,7 @@ export default function ProactiveHeroCard({
             />
           </div>
           <div className="mt-4 flex items-center gap-2 text-xs text-white/40">
-            <HiArrowPath
+            <RefreshCw
               className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`}
             />
             {workspace.prepStage.replaceAll('_', ' ')}

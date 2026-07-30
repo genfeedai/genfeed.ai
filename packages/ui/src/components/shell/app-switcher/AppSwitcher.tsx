@@ -14,23 +14,24 @@ import type {
   AppSwitcherNavigationTarget,
   AppSwitcherProps,
 } from '@genfeedai/props/ui/app-switcher.props';
+import {
+  BarChart2,
+  Briefcase,
+  ChevronDown,
+  Grip,
+  Layers,
+  LayoutGrid,
+  Lock,
+  MessageSquare,
+  Send,
+  ShieldCheck,
+  Sparkles,
+  Terminal,
+  TrendingUp,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useRef, useState } from 'react';
-import {
-  HiChevronDown,
-  HiLockClosed,
-  HiOutlineArrowTrendingUp,
-  HiOutlineBriefcase,
-  HiOutlineChartBarSquare,
-  HiOutlineChatBubbleLeftRight,
-  HiOutlineCommandLine,
-  HiOutlinePaperAirplane,
-  HiOutlineRectangleStack,
-  HiOutlineShieldCheck,
-  HiOutlineSparkles,
-  HiOutlineSquares2X2,
-} from 'react-icons/hi2';
-import { TbGridDots } from 'react-icons/tb';
+
 import { Button } from '../../../primitives/button';
 import {
   DropdownMenu,
@@ -72,7 +73,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
     apps: [
       {
         description: 'Command center.',
-        icon: HiOutlineSquares2X2,
+        icon: LayoutGrid,
         id: 'workspace',
         itemKey: 'home-workspace',
         label: 'Workspace',
@@ -84,7 +85,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
       },
       {
         description: 'Ask and execute.',
-        icon: HiOutlineCommandLine,
+        icon: Terminal,
         id: 'agent',
         itemKey: 'home-agent',
         label: 'Agent',
@@ -93,7 +94,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
       },
       {
         description: 'Reply to audience.',
-        icon: HiOutlineChatBubbleLeftRight,
+        icon: MessageSquare,
         id: 'messages',
         itemKey: 'home-messages',
         label: 'Messages',
@@ -108,7 +109,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
     apps: [
       {
         description: 'Find winners.',
-        icon: HiOutlineArrowTrendingUp,
+        icon: TrendingUp,
         id: 'research',
         itemKey: 'trends-research',
         label: 'Research',
@@ -124,7 +125,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
       {
         activeIds: ['studio', 'compose', 'editor'],
         description: 'Generate media.',
-        icon: HiOutlineSquares2X2,
+        icon: LayoutGrid,
         id: 'studio',
         itemKey: 'create-studio',
         label: 'Studio',
@@ -133,7 +134,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
       },
       {
         description: 'Use source assets.',
-        icon: HiOutlineRectangleStack,
+        icon: Layers,
         id: 'library',
         itemKey: 'create-library',
         label: 'Library',
@@ -151,7 +152,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
     apps: [
       {
         description: 'Drafts and posts.',
-        icon: HiOutlinePaperAirplane,
+        icon: Send,
         id: 'posts',
         itemKey: 'publish',
         label: 'Publish',
@@ -166,7 +167,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
     apps: [
       {
         description: 'Measure results.',
-        icon: HiOutlineChartBarSquare,
+        icon: BarChart2,
         id: 'analytics',
         itemKey: 'analytics-overview',
         label: 'Analytics',
@@ -183,7 +184,7 @@ const ADMIN_APP_SWITCHER_SECTION: AppSwitcherSectionConfig = {
   apps: [
     {
       description: 'Platform management.',
-      icon: HiOutlineShieldCheck,
+      icon: ShieldCheck,
       id: 'admin',
       itemKey: 'admin',
       label: 'Admin',
@@ -209,8 +210,8 @@ const PRIMARY_APP_ICONS: Partial<
     LifecycleAppSwitcherItemConfig['icon']
   >
 > = {
-  'create-library': HiOutlineBriefcase,
-  'create-studio': HiOutlineSparkles,
+  'create-library': Briefcase,
+  'create-studio': Sparkles,
 };
 
 function withPreservedSearch(path: string, preservedSearch?: string): string {
@@ -421,7 +422,7 @@ function AppSwitcherGridItem({
           <Icon aria-hidden="true" className="size-[1.125rem]" />
           {isLocked ? (
             <span className="absolute -right-1 -top-1 inline-flex size-4 items-center justify-center rounded-full bg-background text-foreground/70 shadow-border">
-              <HiLockClosed aria-hidden="true" className="size-2.5" />
+              <Lock aria-hidden="true" className="size-2.5" />
             </span>
           ) : null}
         </span>
@@ -539,7 +540,7 @@ export function AppSwitcher({
   const activeApp =
     apps.find((app) => app.itemKey === activeItemKey) ??
     apps.find((app) => isActiveApp(app, currentApp));
-  const ActiveIcon = activeApp?.icon ?? HiOutlineSquares2X2;
+  const ActiveIcon = activeApp?.icon ?? LayoutGrid;
   const activeLabel = activeApp?.label ?? 'Apps';
   const visibleApps = useMemo(() => {
     const primaryApps = getPrimaryApps(apps);
@@ -572,7 +573,7 @@ export function AppSwitcher({
             <span className="max-w-[12rem] truncate text-[13px] font-semibold text-foreground">
               {activeLabel}
             </span>
-            <HiChevronDown className="size-3.5 shrink-0 text-foreground/45" />
+            <ChevronDown className="size-3.5 shrink-0 text-foreground/45" />
           </Button>
         ) : (
           <Button
@@ -582,7 +583,7 @@ export function AppSwitcher({
             className="size-7 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             ariaLabel="Switch app"
           >
-            <TbGridDots className="size-4" />
+            <Grip className="size-4" />
           </Button>
         )}
       </DropdownMenuTrigger>

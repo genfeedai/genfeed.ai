@@ -6,25 +6,25 @@ import type {
   ClipResultMode,
 } from '@props/studio/clips.props';
 import { Button } from '@ui/primitives/button';
-import { HiOutlineFilm, HiOutlineUserCircle } from 'react-icons/hi2';
+import { Film, UserCircle } from 'lucide-react';
 
 const MODE_OPTIONS: Array<{
   description: string;
-  icon: typeof HiOutlineFilm;
+  icon: typeof Film;
   label: string;
   value: ClipResultMode;
 }> = [
   {
     description:
       'Cut the original footage and burn captions. No avatar or voice required.',
-    icon: HiOutlineFilm,
+    icon: Film,
     label: 'Raw cut',
     value: 'raw-cut',
   },
   {
     description:
       'Regenerate each highlight with your saved HeyGen avatar and voice.',
-    icon: HiOutlineUserCircle,
+    icon: UserCircle,
     label: 'AI avatar',
     value: 'avatar',
   },

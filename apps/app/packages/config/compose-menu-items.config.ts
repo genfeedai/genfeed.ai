@@ -1,13 +1,6 @@
 import { COMPOSE_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
-import {
-  HiDocumentText,
-  HiEnvelope,
-  HiOutlineDocumentText,
-  HiOutlineEnvelope,
-  HiOutlinePencilSquare,
-  HiPencilSquare,
-} from 'react-icons/hi2';
+import { FileText, Mail, PenSquare } from 'lucide-react';
 
 export const COMPOSE_MENU_ITEMS: MenuItemConfig[] = [
   {
@@ -15,24 +8,24 @@ export const COMPOSE_MENU_ITEMS: MenuItemConfig[] = [
     href: COMPOSE_ROUTES.ARTICLE,
     label: 'Article',
     matchPaths: [COMPOSE_ROUTES.ROOT, COMPOSE_ROUTES.ARTICLE],
-    outline: HiOutlineDocumentText,
-    solid: HiDocumentText,
+    outline: FileText,
+    solid: FileText,
   },
   {
     group: '',
     href: COMPOSE_ROUTES.POST,
     label: 'Social Post',
     matchPaths: [COMPOSE_ROUTES.POST],
-    outline: HiOutlinePencilSquare,
-    solid: HiPencilSquare,
+    outline: PenSquare,
+    solid: PenSquare,
   },
   {
     group: '',
     href: COMPOSE_ROUTES.NEWSLETTER,
     label: 'Newsletter',
     matchPaths: [COMPOSE_ROUTES.NEWSLETTER],
-    outline: HiOutlineEnvelope,
-    solid: HiEnvelope,
+    outline: Mail,
+    solid: Mail,
   },
 ];
 

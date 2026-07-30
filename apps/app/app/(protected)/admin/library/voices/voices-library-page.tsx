@@ -9,8 +9,9 @@ import { VoicesService } from '@services/ingredients/voices.service';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import { Volume2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useReducer } from 'react';
-import { HiOutlineSpeakerWave } from 'react-icons/hi2';
+
 import VoiceCatalogCard from './voice-catalog-card';
 import VoicesCatalogControls, {
   type ProviderFilter,
@@ -184,7 +185,7 @@ export default function VoicesLibraryPage() {
   return (
     <Container
       description="Superadmin catalog for importing and curating DB-backed provider voices."
-      icon={HiOutlineSpeakerWave}
+      icon={Volume2}
       label="Voice Library"
     >
       <VoicesCatalogControls

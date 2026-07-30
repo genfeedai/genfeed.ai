@@ -20,12 +20,8 @@ import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
+import { CheckCircle2, RefreshCw, Rocket } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useReducer } from 'react';
-import {
-  HiArrowPath,
-  HiOutlineCheckCircle,
-  HiOutlineRocketLaunch,
-} from 'react-icons/hi2';
 
 const TABS = [
   { id: 'create', label: 'Create' },
@@ -266,7 +262,7 @@ export default function WarmupAccountsPage({
     <Container
       label="Warm-up accounts"
       description="Provision lead accounts for operator-prepared customer demos"
-      icon={HiOutlineRocketLaunch}
+      icon={Rocket}
       tabs={TABS}
       activeTab={activeTab}
       onTabChange={(tab) =>
@@ -377,9 +373,9 @@ export default function WarmupAccountsPage({
             className="inline-flex items-center gap-2"
           >
             {isSubmitting ? (
-              <HiArrowPath className="size-4 animate-spin" />
+              <RefreshCw className="size-4 animate-spin" />
             ) : (
-              <HiOutlineCheckCircle className="size-4" />
+              <CheckCircle2 className="size-4" />
             )}
             {isSubmitting ? 'Provisioning' : 'Provision warm-up account'}
           </Button>

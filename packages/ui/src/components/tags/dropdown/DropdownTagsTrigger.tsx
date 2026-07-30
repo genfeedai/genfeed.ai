@@ -3,8 +3,8 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
+import { Hash } from 'lucide-react';
 import type { RefObject } from 'react';
-import { HiHashtag } from 'react-icons/hi2';
 
 type DropdownTagsTriggerProps = {
   buttonRef: RefObject<HTMLButtonElement | null>;
@@ -53,7 +53,7 @@ export default function DropdownTagsTrigger({
         !showLabel && hasSelectedTags && 'relative',
       )}
     >
-      <HiHashtag className="size-4" />
+      <Hash className="size-4" />
       {buttonContent}
     </Button>
   );

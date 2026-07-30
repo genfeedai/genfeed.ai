@@ -5,7 +5,8 @@ import type { ProviderOption } from '@props/studio/clips.props';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { HiOutlineMagnifyingGlass, HiOutlineSparkles } from 'react-icons/hi2';
+import { Search, Sparkles } from 'lucide-react';
+
 import ClipModeSelector from './components/ClipModeSelector';
 import ClipReferenceFrameSelector from './components/ClipReferenceFrameSelector';
 import ClipsInputForm from './components/ClipsInputForm';
@@ -86,7 +87,7 @@ export default function StudioClipsPage() {
         <h1 className="sr-only">Clips</h1>
         <div className="mb-8">
           <div className="flex items-center gap-3">
-            <HiOutlineMagnifyingGlass className="size-6 text-primary" />
+            <Search className="size-6 text-primary" />
             <h2 className="text-2xl font-semibold text-zinc-100">
               Review Highlights
             </h2>
@@ -257,7 +258,7 @@ export default function StudioClipsPage() {
                   isSubmitting ? (
                     <Spinner size={ComponentSize.SM} className="text-white" />
                   ) : (
-                    <HiOutlineSparkles className="size-4" />
+                    <Sparkles className="size-4" />
                   )
                 }
                 label={

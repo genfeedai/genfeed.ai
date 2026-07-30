@@ -15,14 +15,9 @@ import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Clipboard, Mail, RefreshCcw, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useReducer } from 'react';
-import {
-  HiArrowPathRoundedSquare,
-  HiClipboardDocument,
-  HiEnvelope,
-  HiSparkles,
-} from 'react-icons/hi2';
 
 function stripHtml(value?: string): string {
   if (!value) {
@@ -394,7 +389,7 @@ export default function NewsletterComposerPanel() {
         <div className="flex flex-wrap gap-3">
           <Button
             label="Generate draft"
-            icon={<HiSparkles className="size-4" />}
+            icon={<Sparkles className="size-4" />}
             isLoading={isGenerating}
             isDisabled={!topic.trim()}
             onClick={() => void handleGenerateDraft()}
@@ -402,7 +397,7 @@ export default function NewsletterComposerPanel() {
           />
           <Button
             label="Save draft"
-            icon={<HiEnvelope className="size-4" />}
+            icon={<Mail className="size-4" />}
             isLoading={isSaving}
             isDisabled={!newsletterId}
             variant={ButtonVariant.SECONDARY}
@@ -411,14 +406,14 @@ export default function NewsletterComposerPanel() {
           />
           <Button
             label="Copy content"
-            icon={<HiClipboardDocument className="size-4" />}
+            icon={<Clipboard className="size-4" />}
             variant={ButtonVariant.SECONDARY}
             onClick={() => void handleCopy()}
             className="rounded-xl"
           />
           <Button
             label="Open newsletters"
-            icon={<HiArrowPathRoundedSquare className="size-4" />}
+            icon={<RefreshCcw className="size-4" />}
             variant={ButtonVariant.SECONDARY}
             isDisabled={!newsletterId}
             onClick={handleOpenWorkspace}

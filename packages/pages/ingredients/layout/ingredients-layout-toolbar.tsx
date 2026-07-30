@@ -11,12 +11,9 @@ import { EnvironmentService } from '@services/core/environment.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
+import { ExternalLink, LayoutGrid, Upload } from 'lucide-react';
 import Link from 'next/link';
-import {
-  HiArrowTopRightOnSquare,
-  HiArrowUpTray,
-  HiOutlineSquares2X2,
-} from 'react-icons/hi2';
+
 import type { IngredientsLayoutConfig } from './ingredients-layout.config';
 import LibraryAssetTypeFilter from './library-asset-type-filter';
 
@@ -59,7 +56,7 @@ export default function IngredientsLayoutToolbar({
       {scope !== PageScope.SUPERADMIN && config.showUpload && (
         <Button
           tooltip="Upload"
-          icon={<HiArrowUpTray />}
+          icon={<Upload />}
           variant={ButtonVariant.SECONDARY}
           onClick={onUpload}
         />
@@ -72,7 +69,7 @@ export default function IngredientsLayoutToolbar({
           variant={ButtonVariant.SECONDARY}
         >
           <Link href={APP_ROUTES.LIBRARY.MOODBOARD}>
-            <HiOutlineSquares2X2 />
+            <LayoutGrid />
             Mood board
           </Link>
         </PrimitiveButton>
@@ -87,7 +84,7 @@ export default function IngredientsLayoutToolbar({
               target="_blank"
               rel="noopener noreferrer"
             >
-              <HiArrowTopRightOnSquare />
+              <ExternalLink />
               Studio
             </Link>
           </PrimitiveButton>

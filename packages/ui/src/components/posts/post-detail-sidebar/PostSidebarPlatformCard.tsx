@@ -1,30 +1,30 @@
 'use client';
 
 import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  FacebookIcon,
+  InstagramIcon,
+  LinkedinIcon,
+  RedditIcon,
+  TiktokIcon,
+  XTwitterIcon,
+  YoutubeIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
 import type { ICredential, IPost } from '@genfeedai/interfaces';
+import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
+import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import type { IconType } from 'react-icons';
-import {
-  FaFacebook,
-  FaInstagram,
-  FaLinkedin,
-  FaReddit,
-  FaTiktok,
-  FaXTwitter,
-  FaYoutube,
-} from 'react-icons/fa6';
-import { HiArrowTopRightOnSquare } from 'react-icons/hi2';
 
 const platformIconMap: Partial<Record<CredentialPlatform, IconType>> = {
-  [CredentialPlatform.TIKTOK]: FaTiktok,
-  [CredentialPlatform.YOUTUBE]: FaYoutube,
-  [CredentialPlatform.TWITTER]: FaXTwitter,
-  [CredentialPlatform.INSTAGRAM]: FaInstagram,
-  [CredentialPlatform.FACEBOOK]: FaFacebook,
-  [CredentialPlatform.LINKEDIN]: FaLinkedin,
-  [CredentialPlatform.REDDIT]: FaReddit,
+  [CredentialPlatform.TIKTOK]: TiktokIcon,
+  [CredentialPlatform.YOUTUBE]: YoutubeIcon,
+  [CredentialPlatform.TWITTER]: XTwitterIcon,
+  [CredentialPlatform.INSTAGRAM]: InstagramIcon,
+  [CredentialPlatform.FACEBOOK]: FacebookIcon,
+  [CredentialPlatform.LINKEDIN]: LinkedinIcon,
+  [CredentialPlatform.REDDIT]: RedditIcon,
 };
 
 const getPlatformLabel = (platform?: string) =>
@@ -78,7 +78,7 @@ export default function PostSidebarPlatformCard({
           rel="noopener noreferrer"
           className="inline-flex items-center justify-center gap-2 border border-input bg-secondary/50 px-4 py-2 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 w-full"
         >
-          <HiArrowTopRightOnSquare className="size-4" />
+          <ExternalLink className="size-4" />
           <span>Open on platform</span>
         </Link>
       )}

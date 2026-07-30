@@ -4,10 +4,11 @@ import { ButtonVariant } from '@genfeedai/enums';
 import type { IFilters } from '@genfeedai/interfaces/utils/filters.interface';
 import type { FiltersBarProps } from '@genfeedai/props/ui/forms/filters.props';
 import { Button } from '@ui/primitives/button';
+import { Filter } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { HiOutlineFunnel } from 'react-icons/hi2';
+
 import FiltersPanel from './FiltersPanel';
 import {
   DEFAULT_ACCOUNT_OPTIONS,
@@ -190,7 +191,7 @@ export default function FiltersButton({
       <Button
         onClick={() => setIsOpen(!isOpen)}
         variant={ButtonVariant.GHOST}
-        icon={<HiOutlineFunnel className="size-4" />}
+        icon={<Filter className="size-4" />}
         tooltip="Filters"
       />
 

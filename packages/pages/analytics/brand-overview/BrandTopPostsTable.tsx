@@ -11,9 +11,9 @@ import type { Post } from '@models/content/post.model';
 import Card from '@ui/card/Card';
 import HtmlContent from '@ui/display/html-content/HtmlContent';
 import Table from '@ui/display/table/Table';
+import { ArrowRight, Video } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { HiArrowRight, HiVideoCamera } from 'react-icons/hi2';
 
 type PostWithAnalytics = Post & {
   totalViews?: number;
@@ -75,7 +75,7 @@ export default function BrandTopPostsTable({
                       />
                     ) : (
                       <div className="size-16 bg-muted flex items-center justify-center">
-                        <HiVideoCamera className="size-6 text-foreground/30" />
+                        <Video className="size-6 text-foreground/30" />
                       </div>
                     )}
                     <div className="max-w-xs">
@@ -168,7 +168,7 @@ export default function BrandTopPostsTable({
           ]}
           actions={[
             {
-              icon: <HiArrowRight className="size-4" />,
+              icon: <ArrowRight className="size-4" />,
               onClick: (post) => onSelectPost(post.id),
               tooltip: 'View Post Details',
             },

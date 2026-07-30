@@ -1,12 +1,17 @@
 import { PromptCategory, SystemPromptKey } from '@genfeedai/enums';
-import type { IconType } from 'react-icons';
-import { FaInstagram, FaTiktok, FaXTwitter, FaYoutube } from 'react-icons/fa6';
+import {
+  InstagramIcon,
+  TiktokIcon,
+  XTwitterIcon,
+  YoutubeIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
+import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 
 export const platformIcons: Record<string, IconType> = {
-  instagram: FaInstagram,
-  tiktok: FaTiktok,
-  twitter: FaXTwitter,
-  youtube: FaYoutube,
+  instagram: InstagramIcon,
+  tiktok: TiktokIcon,
+  twitter: XTwitterIcon,
+  youtube: YoutubeIcon,
 };
 
 export const platformColors: Record<string, string> = {

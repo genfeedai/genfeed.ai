@@ -14,15 +14,12 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Brand } from '@models/organization/brand.model';
 import { Button } from '@ui/primitives/button';
+import { Building2, Globe, Plus } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import {
-  HiOutlineBuildingOffice2,
-  HiOutlineGlobeAlt,
-  HiPlus,
-} from 'react-icons/hi2';
+
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
@@ -51,7 +48,7 @@ function BrandCard({ brand, orgSlug }: { brand: Brand; orgSlug: string }) {
           />
         ) : (
           <div className="flex size-10 items-center justify-center rounded-lg border border-border bg-foreground/[0.04]">
-            <HiOutlineBuildingOffice2 className="size-5 text-muted-foreground" />
+            <Building2 className="size-5 text-muted-foreground" />
           </div>
         )}
         <div className="min-w-0 flex-1">
@@ -69,7 +66,7 @@ function BrandCard({ brand, orgSlug }: { brand: Brand; orgSlug: string }) {
       <div className="flex items-center gap-4 text-xs text-muted-foreground">
         {brand.totalCredentials > 0 ? (
           <span className="flex items-center gap-1">
-            <HiOutlineGlobeAlt className="size-3.5" />
+            <Globe className="size-3.5" />
             {brand.totalCredentials} platform
             {brand.totalCredentials === 1 ? '' : 's'}
           </span>
@@ -160,7 +157,7 @@ export default function OrgLandingContent() {
           withWrapper={false}
         >
           <Link href={orgHref('/settings/brands')}>
-            <HiPlus className="size-4" />
+            <Plus className="size-4" />
             New Brand
           </Link>
         </Button>

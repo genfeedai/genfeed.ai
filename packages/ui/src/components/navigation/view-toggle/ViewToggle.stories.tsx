@@ -2,13 +2,8 @@
 import { ViewType } from '@genfeedai/enums';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
+import { Calendar, LayoutGrid, List, Table } from 'lucide-react';
 import { useState } from 'react';
-import {
-  HiCalendar,
-  HiListBullet,
-  HiSquares2X2,
-  HiTableCells,
-} from 'react-icons/hi2';
 
 /**
  * ViewToggle component for switching between different view types.
@@ -65,12 +60,12 @@ export const Basic: Story = {
       <ViewToggle
         options={[
           {
-            icon: <HiListBullet />,
+            icon: <List />,
             label: 'List View',
             type: ViewType.LIST,
           },
           {
-            icon: <HiCalendar />,
+            icon: <Calendar />,
             label: 'Calendar View',
             type: ViewType.CALENDAR,
           },
@@ -97,17 +92,17 @@ export const ThreeViews: Story = {
       <ViewToggle
         options={[
           {
-            icon: <HiListBullet />,
+            icon: <List />,
             label: 'List View',
             type: ViewType.LIST,
           },
           {
-            icon: <HiCalendar />,
+            icon: <Calendar />,
             label: 'Calendar View',
             type: ViewType.CALENDAR,
           },
           {
-            icon: <HiSquares2X2 />,
+            icon: <LayoutGrid />,
             label: 'Grid View',
             type: ViewType.GRID,
           },
@@ -134,22 +129,22 @@ export const FourViews: Story = {
       <ViewToggle
         options={[
           {
-            icon: <HiListBullet />,
+            icon: <List />,
             label: 'List View',
             type: ViewType.LIST,
           },
           {
-            icon: <HiCalendar />,
+            icon: <Calendar />,
             label: 'Calendar View',
             type: ViewType.CALENDAR,
           },
           {
-            icon: <HiSquares2X2 />,
+            icon: <LayoutGrid />,
             label: 'Grid View',
             type: ViewType.GRID,
           },
           {
-            icon: <HiTableCells />,
+            icon: <Table />,
             label: 'Table View',
             type: ViewType.TABLE,
           },
@@ -177,13 +172,13 @@ export const WithAriaLabels: Story = {
         options={[
           {
             ariaLabel: 'Switch to list view',
-            icon: <HiListBullet />,
+            icon: <List />,
             label: 'List View',
             type: ViewType.LIST,
           },
           {
             ariaLabel: 'Switch to calendar view',
-            icon: <HiCalendar />,
+            icon: <Calendar />,
             label: 'Calendar View',
             type: ViewType.CALENDAR,
           },
@@ -217,17 +212,17 @@ export const WithContent: Story = {
           <ViewToggle
             options={[
               {
-                icon: <HiListBullet />,
+                icon: <List />,
                 label: 'List View',
                 type: ViewType.LIST,
               },
               {
-                icon: <HiCalendar />,
+                icon: <Calendar />,
                 label: 'Calendar View',
                 type: ViewType.CALENDAR,
               },
               {
-                icon: <HiSquares2X2 />,
+                icon: <LayoutGrid />,
                 label: 'Grid View',
                 type: ViewType.GRID,
               },
@@ -291,12 +286,12 @@ export const Compact: Story = {
       <ViewToggle
         options={[
           {
-            icon: <HiListBullet className="text-sm" />,
+            icon: <List className="text-sm" />,
             label: 'List',
             type: ViewType.LIST,
           },
           {
-            icon: <HiSquares2X2 className="text-sm" />,
+            icon: <LayoutGrid className="text-sm" />,
             label: 'Grid',
             type: ViewType.GRID,
           },

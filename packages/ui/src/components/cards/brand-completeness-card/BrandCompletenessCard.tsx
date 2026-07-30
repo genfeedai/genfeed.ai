@@ -7,9 +7,9 @@ import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useBrandCompleteness } from '@genfeedai/hooks/utils/use-brand-completeness/use-brand-completeness';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import { Check, ChevronDown, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
-import { HiCheck, HiChevronDown, HiChevronRight } from 'react-icons/hi2';
 
 interface BrandCompletenessCardProps {
   brand: {
@@ -61,9 +61,9 @@ function GroupRow({
         className="flex w-full items-center gap-2.5 px-2 py-1.5 text-left transition-colors duration-150 hover:bg-white/[0.04]"
       >
         {isComplete ? (
-          <HiCheck className="size-3.5 text-green-400/60 flex-shrink-0" />
+          <Check className="size-3.5 text-green-400/60 flex-shrink-0" />
         ) : (
-          <HiChevronDown
+          <ChevronDown
             className={cn(
               'size-3.5 text-white/20 flex-shrink-0 transition-transform duration-200',
               !isExpanded && '-rotate-90',
@@ -99,7 +99,7 @@ function GroupRow({
               href={href(field.href)}
               className="flex items-center gap-2 px-2 py-1 rounded text-[11px] text-white/45 transition-colors duration-150 hover:text-white/70 hover:bg-white/[0.04]"
             >
-              <HiChevronRight className="size-3 text-white/15 flex-shrink-0" />
+              <ChevronRight className="size-3 text-white/15 flex-shrink-0" />
               {field.label}
             </Link>
           ))}

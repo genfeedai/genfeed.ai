@@ -18,6 +18,7 @@ import AppTable from '@ui/display/table/Table';
 import { LazyModalBlacklist } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Checkbox } from '@ui/primitives/checkbox';
+import { Pencil, Trash2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Suspense,
@@ -27,7 +28,6 @@ import {
   useReducer,
   useRef,
 } from 'react';
-import { HiPencil, HiTrash } from 'react-icons/hi2';
 
 type BlacklistsState = {
   blacklists: ElementBlacklist[];
@@ -206,13 +206,13 @@ function BlacklistsListContent({
     scope === PageScope.SUPERADMIN
       ? [
           {
-            icon: <HiPencil />,
+            icon: <Pencil />,
             onClick: (blacklist: ElementBlacklist) =>
               openBlacklistModal(ModalEnum.BLACKLIST, blacklist),
             tooltip: 'Edit',
           },
           {
-            icon: <HiTrash />,
+            icon: <Trash2 />,
             onClick: (blacklist: ElementBlacklist) => {
               dispatch({ type: 'SET_SELECTED', blacklist });
               openConfirm({

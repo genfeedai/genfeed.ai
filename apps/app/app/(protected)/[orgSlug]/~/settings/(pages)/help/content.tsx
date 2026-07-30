@@ -1,20 +1,17 @@
 'use client';
 
+import {
+  DiscordIcon,
+  InstagramIcon,
+  LinkedinIcon,
+  SubstackIcon,
+  TiktokIcon,
+  XTwitterIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
 import { EnvironmentService } from '@services/core/environment.service';
+import { Code, ExternalLink, FileText } from 'lucide-react';
 import type { ComponentType } from 'react';
-import {
-  FaDiscord,
-  FaInstagram,
-  FaLinkedin,
-  FaTiktok,
-  FaXTwitter,
-} from 'react-icons/fa6';
-import {
-  HiArrowTopRightOnSquare,
-  HiCodeBracket,
-  HiDocumentText,
-} from 'react-icons/hi2';
-import { SiSubstack } from 'react-icons/si';
+
 import { LinkCard } from '@/components/ui/link-card';
 
 interface LinkItem {
@@ -25,17 +22,17 @@ interface LinkItem {
 
 const RESOURCES: LinkItem[] = [
   {
-    icon: HiDocumentText,
+    icon: FileText,
     label: 'Documentation',
     url: 'https://docs.genfeed.ai',
   },
   {
-    icon: HiCodeBracket,
+    icon: Code,
     label: 'API Reference',
     url: 'https://docs.genfeed.ai/api',
   },
   {
-    icon: SiSubstack,
+    icon: SubstackIcon,
     label: 'Substack',
     url: EnvironmentService.social.substack,
   },
@@ -43,27 +40,27 @@ const RESOURCES: LinkItem[] = [
 
 const COMMUNITY: LinkItem[] = [
   {
-    icon: FaDiscord,
+    icon: DiscordIcon,
     label: 'Discord',
     url: EnvironmentService.social.discord,
   },
   {
-    icon: FaXTwitter,
+    icon: XTwitterIcon,
     label: 'X (Twitter)',
     url: EnvironmentService.social.twitter,
   },
   {
-    icon: FaInstagram,
+    icon: InstagramIcon,
     label: 'Instagram',
     url: EnvironmentService.social.instagram,
   },
   {
-    icon: FaTiktok,
+    icon: TiktokIcon,
     label: 'TikTok',
     url: EnvironmentService.social.tiktok,
   },
   {
-    icon: FaLinkedin,
+    icon: LinkedinIcon,
     label: 'LinkedIn',
     url: EnvironmentService.social.linkedin,
   },
@@ -77,7 +74,7 @@ function HelpLinkCard({ item }: { item: LinkItem }) {
       title={item.label}
       className="p-4 no-underline text-sm"
       trailingIcon={
-        <HiArrowTopRightOnSquare className="size-4 shrink-0 text-muted-foreground" />
+        <ExternalLink className="size-4 shrink-0 text-muted-foreground" />
       }
     />
   );

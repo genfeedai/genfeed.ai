@@ -3,46 +3,46 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
+  BarChart3,
+  Calendar,
+  Copy,
+  FileText,
+  FlaskConical,
+  Hash,
+  Image,
+  Lightbulb,
+  LineChart,
+  MessageSquareText,
+  Rocket,
+  Send,
+  Sparkles,
+  Undo2,
+  Zap,
+} from 'lucide-react';
+import {
   type ReactElement,
   type Ref,
   useEffect,
   useImperativeHandle,
   useState,
 } from 'react';
-import {
-  HiOutlineArrowUturnLeft,
-  HiOutlineBeaker,
-  HiOutlineBolt,
-  HiOutlineCalendarDays,
-  HiOutlineChartBar,
-  HiOutlineChatBubbleBottomCenterText,
-  HiOutlineDocumentText,
-  HiOutlineHashtag,
-  HiOutlineLightBulb,
-  HiOutlinePaperAirplane,
-  HiOutlinePhoto,
-  HiOutlinePresentationChartLine,
-  HiOutlineRocketLaunch,
-  HiOutlineSparkles,
-  HiOutlineSquare2Stack,
-} from 'react-icons/hi2';
 
 const COMMAND_ICONS: Record<string, ReactElement> = {
-  analyze: <HiOutlineChartBar className="size-4" />,
-  batch: <HiOutlineSquare2Stack className="size-4" />,
-  caption: <HiOutlineChatBubbleBottomCenterText className="size-4" />,
-  'create-post': <HiOutlineDocumentText className="size-4" />,
-  create: <HiOutlineSparkles className="size-4" />,
-  'generate-image': <HiOutlinePhoto className="size-4" />,
-  hashtags: <HiOutlineHashtag className="size-4" />,
-  ideas: <HiOutlineLightBulb className="size-4" />,
-  repurpose: <HiOutlineRocketLaunch className="size-4" />,
-  remix: <HiOutlineArrowUturnLeft className="size-4" />,
-  reply: <HiOutlinePaperAirplane className="size-4" />,
-  research: <HiOutlineBeaker className="size-4" />,
-  schedule: <HiOutlineCalendarDays className="size-4" />,
-  trends: <HiOutlineBolt className="size-4" />,
-  workflow: <HiOutlinePresentationChartLine className="size-4" />,
+  analyze: <BarChart3 className="size-4" />,
+  batch: <Copy className="size-4" />,
+  caption: <MessageSquareText className="size-4" />,
+  'create-post': <FileText className="size-4" />,
+  create: <Sparkles className="size-4" />,
+  'generate-image': <Image className="size-4" />,
+  hashtags: <Hash className="size-4" />,
+  ideas: <Lightbulb className="size-4" />,
+  repurpose: <Rocket className="size-4" />,
+  remix: <Undo2 className="size-4" />,
+  reply: <Send className="size-4" />,
+  research: <FlaskConical className="size-4" />,
+  schedule: <Calendar className="size-4" />,
+  trends: <Zap className="size-4" />,
+  workflow: <LineChart className="size-4" />,
 };
 
 interface AgentCommandListHandle {
@@ -111,7 +111,7 @@ export function AgentCommandList({
           )}
         >
           <span className="flex shrink-0 text-muted-foreground">
-            {COMMAND_ICONS[item.name] ?? <HiOutlineBolt className="size-4" />}
+            {COMMAND_ICONS[item.name] ?? <Zap className="size-4" />}
           </span>
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-medium">/{item.name}</span>

@@ -3,8 +3,8 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { Cpu, Plus } from 'lucide-react';
 import Link from 'next/link';
-import { HiOutlineCpuChip, HiPlus } from 'react-icons/hi2';
 
 type AgentStrategiesEmptyStateProps = {
   onAddClick: () => void;
@@ -16,7 +16,7 @@ export default function AgentStrategiesEmptyState({
   return (
     <div className="flex flex-col items-center justify-center gap-4 rounded-lg bg-secondary p-10 text-center shadow-border">
       <span className="flex size-14 items-center justify-center rounded-full bg-white/5 text-white/40">
-        <HiOutlineCpuChip className="size-7" />
+        <Cpu className="size-7" />
       </span>
       <div className="space-y-1">
         <p className="text-lg font-medium">No autopilot policies yet</p>
@@ -27,7 +27,7 @@ export default function AgentStrategiesEmptyState({
       <div className="flex items-center gap-3">
         <Button
           label="Add Autopilot"
-          icon={<HiPlus />}
+          icon={<Plus />}
           variant={ButtonVariant.DEFAULT}
           onClick={onAddClick}
         />

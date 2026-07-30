@@ -4,15 +4,15 @@ import { useTraining } from '@contexts/content/training-context/training-context
 import { PageScope, TrainingStatus } from '@genfeedai/enums';
 import { Code } from '@genfeedai/ui';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { Image } from '@models/ingredients/image.model';
+import type { ImageIcon } from '@models/ingredients/image.model';
 import { TrainingsService } from '@services/ai/trainings.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import MasonryGrid from '@ui/masonry/grid/MasonryGrid';
+import { Image as LucideImage } from 'lucide-react';
 import { useEffect } from 'react';
-import { FaImage } from 'react-icons/fa6';
 
 export default function TrainingImagesTab({
   scope = PageScope.ORGANIZATION,
@@ -32,7 +32,7 @@ export default function TrainingImagesTab({
     data: generatedAssets = [],
     isLoading,
     error,
-  } = useQuery<Image[]>({
+  } = useQuery<ImageIcon[]>({
     queryKey: ['training-images', training?.id, scope, training?.brand],
     queryFn: async () => {
       const url = `GET /trainings/${training.id}/images`;
@@ -56,7 +56,7 @@ export default function TrainingImagesTab({
   if (error) {
     return (
       <CardEmptyContent
-        icon={FaImage}
+        icon={LucideImage}
         label="Generated assets failed to load"
         description="Refresh the page or try again in a moment."
       />
@@ -66,7 +66,7 @@ export default function TrainingImagesTab({
   if (!hasTrainingModel) {
     return (
       <CardEmptyContent
-        icon={FaImage}
+        icon={LucideImage}
         label="Training model unavailable"
         description="Generated assets can load once this training has a model."
       />
@@ -82,7 +82,7 @@ export default function TrainingImagesTab({
     />
   ) : generatedAssets.length === 0 ? (
     <div className="text-center py-12">
-      <FaImage className="mx-auto size-12 text-muted-foreground mb-4" />
+      <LucideImage className="mx-auto size-12 text-muted-foreground mb-4" />
       <p className="text-muted-foreground">
         No assets have been generated with this training model yet.
       </p>

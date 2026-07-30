@@ -3,7 +3,7 @@
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import type { IssueComment } from '@services/management/issue-comments.service';
-import { HiOutlineCpuChip, HiOutlineUser } from 'react-icons/hi2';
+import { Cpu, User } from 'lucide-react';
 
 type CommentItemProps = {
   comment: IssueComment;
@@ -22,9 +22,9 @@ export function CommentItem({ comment }: CommentItemProps) {
           )}
         >
           {isAgent ? (
-            <HiOutlineCpuChip className="size-3.5" />
+            <Cpu className="size-3.5" />
           ) : (
-            <HiOutlineUser className="size-3.5" />
+            <User className="size-3.5" />
           )}
         </div>
         <span

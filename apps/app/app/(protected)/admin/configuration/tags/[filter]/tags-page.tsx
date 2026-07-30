@@ -7,8 +7,9 @@ import type { ContentProps } from '@props/layout/content.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
 import { Button } from '@ui/primitives/button';
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
-import { HiPlus } from 'react-icons/hi2';
+
 import TagsLayout from './tags-layout';
 import TagsList from './tags-list';
 
@@ -66,7 +67,7 @@ export default function TagsPage({ scope, filter }: ITagsPageProps) {
         <Button
           variant={ButtonVariant.DEFAULT}
           onClick={handleAddTag}
-          icon={<HiPlus />}
+          icon={<Plus />}
           label="Tag"
         />
       )}

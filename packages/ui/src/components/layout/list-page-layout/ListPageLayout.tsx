@@ -9,7 +9,7 @@ import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
-import { HiPlus } from 'react-icons/hi2';
+import { Plus } from 'lucide-react';
 
 /**
  * Standardized list page layout component
@@ -71,7 +71,7 @@ export default function ListPageLayout<T extends { id: string }>({
         <Button
           label={
             <>
-              <HiPlus /> {createLabel}
+              <Plus /> {createLabel}
             </>
           }
           variant={ButtonVariant.DEFAULT}

@@ -15,8 +15,8 @@ import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { Copy } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { HiDocumentDuplicate } from 'react-icons/hi2';
 
 export default function ModalPostRemix({
   post,
@@ -81,7 +81,7 @@ export default function ModalPostRemix({
     >
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm text-foreground/70 bg-background/50 p-3">
-          <HiDocumentDuplicate className="size-5 text-primary" />
+          <Copy className="size-5 text-primary" />
           <span>
             Create a variant of this post with different wording. The original
             post&apos;s media, platform, and settings will be copied.

@@ -23,9 +23,10 @@ import FiltersButton from '@ui/content/filters-button/FiltersButton';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import { FolderOpen, Pencil, Plus, Trash2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useReducer } from 'react';
-import { HiFolderOpen, HiPencil, HiPlus, HiTrash } from 'react-icons/hi2';
+
 import { buildFoldersColumns } from './folders-list-columns';
 import FoldersListModals from './folders-list-modals';
 
@@ -264,12 +265,12 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
   const actions = useMemo(
     () => [
       {
-        icon: <HiPencil />,
+        icon: <Pencil />,
         onClick: (folder: Folder) => openFoldersModal(ModalEnum.FOLDER, folder),
         tooltip: 'Edit',
       },
       {
-        icon: <HiTrash />,
+        icon: <Trash2 />,
         onClick: (folder: Folder) => {
           dispatch({ type: 'SET_SELECTED_FOLDER', payload: folder });
           openConfirm({
@@ -290,7 +291,7 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
     <Container
       label="Folders"
       description="Organize content into folders."
-      icon={HiFolderOpen}
+      icon={FolderOpen}
       right={
         <>
           <FiltersButton
@@ -322,7 +323,7 @@ function FoldersListContent({ scope = PageScope.BRAND }: ContentProps) {
           {scope !== PageScope.SUPERADMIN && (
             <Button
               label="Folder"
-              icon={<HiPlus />}
+              icon={<Plus />}
               variant={ButtonVariant.DEFAULT}
               onClick={() => openFoldersModal(ModalEnum.FOLDER)}
             />

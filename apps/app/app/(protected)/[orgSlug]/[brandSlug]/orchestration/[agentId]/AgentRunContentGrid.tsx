@@ -10,9 +10,9 @@ import type { AgentRunContentGridProps } from '@props/automation/agent-strategy.
 import { AgentRunsService } from '@services/ai/agent-runs.service';
 import { logger } from '@services/core/logger.service';
 import Badge from '@ui/display/badge/Badge';
+import { FileText, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
-import { HiOutlineDocumentText, HiOutlinePhoto } from 'react-icons/hi2';
 
 const STATUS_VARIANTS: Record<
   string,
@@ -109,9 +109,9 @@ export default function AgentRunContentGrid({
 function ContentCard({ item }: { item: IAgentRunContentItem }) {
   const icon =
     item.type === 'post' ? (
-      <HiOutlineDocumentText className="size-5" />
+      <FileText className="size-5" />
     ) : (
-      <HiOutlinePhoto className="size-5" />
+      <ImageIcon className="size-5" />
     );
 
   return (

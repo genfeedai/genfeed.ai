@@ -4,7 +4,7 @@ import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import type { TrendItem } from '@props/trends/trends-page.props';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
-import { HiOutlineFire } from 'react-icons/hi2';
+import { Flame } from 'lucide-react';
 
 type PlatformConfigEntry = {
   icon?: React.ComponentType<{
@@ -67,7 +67,7 @@ export default function TrendingTopicsSection({
         </div>
       ) : trendingTopics.length === 0 ? (
         <div className="text-center py-8 text-foreground/60">
-          <HiOutlineFire className="size-12 mx-auto mb-3 opacity-30" />
+          <Flame className="size-12 mx-auto mb-3 opacity-30" />
           <p>No trending topics available.</p>
           <p className="text-sm mt-1">
             Connect your social accounts to see personalized trends.

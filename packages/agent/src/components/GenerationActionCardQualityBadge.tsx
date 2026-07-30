@@ -1,7 +1,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { RefreshCw } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { HiArrowPath } from 'react-icons/hi2';
 
 type GenerationActionCardQualityBadgeProps = {
   score: number;
@@ -38,7 +38,7 @@ export function GenerationActionCardQualityBadge({
             onClick={onRegenerate}
             className="border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200 dark:hover:bg-amber-900"
           >
-            <HiArrowPath className="size-3" />
+            <RefreshCw className="size-3" />
             Regenerate
           </Button>
         )}

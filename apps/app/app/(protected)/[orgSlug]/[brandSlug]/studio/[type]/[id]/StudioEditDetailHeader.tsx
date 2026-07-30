@@ -4,8 +4,8 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import { Button } from '@ui/primitives/button';
 import { buildStudioAgentHref } from '@utils/url/desktop-loop-url.util';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { HiArrowLeft } from 'react-icons/hi2';
 
 type StudioEditDetailHeaderProps = {
   categoryLabel: string;
@@ -24,7 +24,7 @@ export default function StudioEditDetailHeader({
         <div className="flex items-center gap-4">
           <Button asChild variant={ButtonVariant.GHOST} size={ButtonSize.SM}>
             <Link href={backHref}>
-              <HiArrowLeft className="size-4" />
+              <ArrowLeft className="size-4" />
               Back to Generate
             </Link>
           </Button>

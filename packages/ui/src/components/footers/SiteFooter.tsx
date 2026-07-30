@@ -2,21 +2,21 @@
 
 import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import {
+  DiscordIcon,
+  InstagramIcon,
+  TiktokIcon,
+  XTwitterIcon,
+  YoutubeIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Card from '@ui/card/Card';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import { Button } from '@ui/primitives';
+import { Calendar, Mail } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { ComponentType } from 'react';
-import {
-  FaDiscord,
-  FaInstagram,
-  FaTiktok,
-  FaXTwitter,
-  FaYoutube,
-} from 'react-icons/fa6';
-import { HiCalendarDays, HiEnvelope } from 'react-icons/hi2';
 
 interface FooterLink {
   href: string;
@@ -50,23 +50,23 @@ interface SiteFooterProps {
 const DEFAULT_SOCIAL_LINKS: SocialLink[] = [
   {
     href: EnvironmentService.social.youtube,
-    icon: FaYoutube,
+    icon: YoutubeIcon,
     label: 'YouTube',
   },
-  { href: EnvironmentService.social.twitter, icon: FaXTwitter, label: 'X' },
+  { href: EnvironmentService.social.twitter, icon: XTwitterIcon, label: 'X' },
   {
     href: EnvironmentService.social.discord,
-    icon: FaDiscord,
+    icon: DiscordIcon,
     label: 'Discord',
   },
   {
     href: EnvironmentService.social.instagram,
-    icon: FaInstagram,
+    icon: InstagramIcon,
     label: 'Instagram',
   },
   {
     href: EnvironmentService.social.tiktok,
-    icon: FaTiktok,
+    icon: TiktokIcon,
     label: 'TikTok',
   },
 ];
@@ -150,7 +150,7 @@ export default function SiteFooter({
             {showNewsletter && (
               <div>
                 <h4 className="text-[10px] font-semibold uppercase tracking-[0.3em] mb-10 flex items-center gap-2">
-                  <HiEnvelope className="size-4" />
+                  <Mail className="size-4" />
                   Newsletter
                 </h4>
                 <p className="text-sm text-white/30 mb-6 leading-relaxed font-medium">
@@ -180,7 +180,7 @@ export default function SiteFooter({
             <div className="flex flex-col sm:flex-row items-center justify-between gap-8">
               <div className="flex items-center gap-6">
                 <div className="size-16 border border-black/10 flex items-center justify-center">
-                  <HiCalendarDays className="size-7 text-black" />
+                  <Calendar className="size-7 text-black" />
                 </div>
 
                 <div>

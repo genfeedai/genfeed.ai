@@ -15,10 +15,10 @@ import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
+import { ArrowLeft, UserCircle } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useMemo, useState } from 'react';
-import { HiArrowLeft, HiOutlineUserCircle } from 'react-icons/hi2';
 
 type ReviewTab = 'selected' | 'review' | 'trash';
 
@@ -158,7 +158,7 @@ export default function CharacterDetail({ slug }: CharacterDetailProps) {
               href={APP_ROUTES.ADMIN.FLEET.CHARACTERS}
               aria-label="Back to characters"
             >
-              <HiArrowLeft className="size-5 text-foreground/60 transition-colors hover:text-foreground" />
+              <ArrowLeft className="size-5 text-foreground/60 transition-colors hover:text-foreground" />
             </Link>
           </Button>
 
@@ -178,7 +178,7 @@ export default function CharacterDetail({ slug }: CharacterDetailProps) {
         character?.niche ||
         'Character profile, LoRA status, and generated content'
       }
-      icon={HiOutlineUserCircle}
+      icon={UserCircle}
       right={
         <ButtonRefresh
           onClick={() => refreshAssets()}

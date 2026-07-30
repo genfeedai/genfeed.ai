@@ -5,8 +5,8 @@ import type { BrandDetailReferencesCardProps } from '@props/pages/brand-detail.p
 import { EnvironmentService } from '@services/core/environment.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import { Trash2, Upload } from 'lucide-react';
 import Image from 'next/image';
-import { HiArrowUpTray, HiTrash } from 'react-icons/hi2';
 
 export default function BrandDetailReferencesCard({
   brand,
@@ -34,7 +34,7 @@ export default function BrandDetailReferencesCard({
 
                 <div className="absolute inset-0 flex items-start justify-end p-2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/0 group-hover:bg-black/20">
                   <Button
-                    label={<HiTrash />}
+                    label={<Trash2 />}
                     ariaLabel="Delete reference"
                     variant={ButtonVariant.DESTRUCTIVE}
                     size={ButtonSize.XS}
@@ -52,7 +52,7 @@ export default function BrandDetailReferencesCard({
             onClick={onUploadReference}
             label={
               <>
-                <HiArrowUpTray />
+                <Upload />
                 Upload Reference
               </>
             }
@@ -71,7 +71,7 @@ export default function BrandDetailReferencesCard({
             onClick={onUploadReference}
             label={
               <>
-                <HiArrowUpTray />
+                <Upload />
                 Upload Reference
               </>
             }

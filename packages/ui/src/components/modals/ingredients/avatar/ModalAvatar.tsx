@@ -23,10 +23,10 @@ import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Textarea } from '@ui/primitives/textarea';
+import { ArrowUp } from 'lucide-react';
 import Image from 'next/image';
 import { type ChangeEvent, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { HiArrowUp } from 'react-icons/hi2';
 
 export default function ModalAvatar({
   avatarId,
@@ -146,7 +146,7 @@ export default function ModalAvatar({
 
           <Button
             variant={ButtonVariant.DEFAULT}
-            icon={<HiArrowUp />}
+            icon={<ArrowUp />}
             type="submit"
             label="Video"
             isDisabled={isSubmitting || !form.formState.isValid}

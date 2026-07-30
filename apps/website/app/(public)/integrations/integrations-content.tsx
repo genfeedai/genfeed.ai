@@ -2,6 +2,29 @@
 
 import { integrations } from '@data/integrations.data';
 import { ButtonSize } from '@genfeedai/enums';
+import {
+  DiscordIcon,
+  FacebookIcon,
+  GhostIcon,
+  InstagramIcon,
+  LinkedinIcon,
+  MastodonIcon,
+  MediumIcon,
+  PinterestIcon,
+  RedditIcon,
+  ShopifyIcon,
+  SlackIcon,
+  SnapchatIcon,
+  TelegramIcon,
+  ThreadsIcon,
+  TiktokIcon,
+  TwitchIcon,
+  WhatsappIcon,
+  WordpressIcon,
+  XTwitterIcon,
+  YoutubeIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
+import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import { HStack } from '@ui/layout/stack';
@@ -10,57 +33,32 @@ import HeroProofRail from '@ui/marketing/HeroProofRail';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import PageLayout from '@web-components/PageLayout';
+import { ArrowRight, Newspaper, Sparkles, Star } from 'lucide-react';
 import Link from 'next/link';
-import type { IconType } from 'react-icons';
-import {
-  FaDiscord,
-  FaFacebook,
-  FaGhost,
-  FaInstagram,
-  FaLinkedin,
-  FaMastodon,
-  FaMedium,
-  FaPinterest,
-  FaReddit,
-  FaShopify,
-  FaSlack,
-  FaSnapchat,
-  FaStar,
-  FaTelegram,
-  FaThreads,
-  FaTiktok,
-  FaTwitch,
-  FaWhatsapp,
-  FaWordpress,
-  FaXTwitter,
-  FaYoutube,
-} from 'react-icons/fa6';
-import { HiNewspaper, HiSparkles } from 'react-icons/hi2';
-import { LuArrowRight } from 'react-icons/lu';
 
 const ICON_MAP: Record<string, IconType> = {
-  FaDiscord,
-  FaFacebook,
-  FaGhost,
-  FaInstagram,
-  FaLinkedin,
-  FaMastodon,
-  FaMedium,
-  FaPinterest,
-  FaReddit,
-  FaShopify,
-  FaSlack,
-  FaSnapchat,
-  FaStar,
-  FaTelegram,
-  FaThreads,
-  FaTiktok,
-  FaTwitch,
-  FaWhatsapp,
-  FaWordpress,
-  FaXTwitter,
-  FaYoutube,
-  HiNewspaper,
+  DiscordIcon,
+  FacebookIcon,
+  GhostIcon,
+  InstagramIcon,
+  LinkedinIcon,
+  MastodonIcon,
+  MediumIcon,
+  PinterestIcon,
+  RedditIcon,
+  ShopifyIcon,
+  SlackIcon,
+  SnapchatIcon,
+  Star,
+  TelegramIcon,
+  ThreadsIcon,
+  TiktokIcon,
+  TwitchIcon,
+  WhatsappIcon,
+  WordpressIcon,
+  XTwitterIcon,
+  YoutubeIcon,
+  Newspaper,
 };
 
 const featuredIntegrations = integrations.slice(0, 4);
@@ -118,7 +116,7 @@ export default function IntegrationsContent() {
           >
             <Link href="/pricing">
               Get Started Free
-              <LuArrowRight className="size-4" />
+              <ArrowRight className="size-4" />
             </Link>
           </ButtonTracked>
         }
@@ -155,7 +153,7 @@ export default function IntegrationsContent() {
                   </Text>
                   <HStack className="items-center gap-1.5 text-xs font-medium text-surface/25 transition-colors group-hover:text-[color:hsl(var(--gen-accent))]">
                     <Text>Explore</Text>
-                    <LuArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+                    <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
                   </HStack>
                 </Link>
               );
@@ -167,7 +165,7 @@ export default function IntegrationsContent() {
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
           <div className="gen-card-spotlight p-12 text-center">
             <div className="flex justify-center mb-4">
-              <HiSparkles className="size-8 text-surface" />
+              <Sparkles className="size-8 text-surface" />
             </div>
             <Heading as="h3" className="text-2xl font-bold mb-2 text-surface">
               One Platform, Every Channel
@@ -184,7 +182,7 @@ export default function IntegrationsContent() {
             >
               <Link href="/pricing">
                 Get Started Free
-                <LuArrowRight className="size-4" />
+                <ArrowRight className="size-4" />
               </Link>
             </ButtonTracked>
           </div>

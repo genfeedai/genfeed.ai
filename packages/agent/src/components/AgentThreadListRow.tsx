@@ -17,16 +17,17 @@ import {
 } from '@ui/primitives/dropdown-menu';
 import { Input } from '@ui/primitives/input';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
+import {
+  ArchiveX,
+  CornerDownRight,
+  MoreHorizontal,
+  PenSquare,
+  Pin,
+  Undo2,
+} from 'lucide-react';
 import Link from 'next/link';
 import type { ReactElement, RefObject } from 'react';
-import {
-  HiArrowUturnLeft,
-  HiEllipsisHorizontal,
-  HiOutlineArchiveBoxXMark,
-  HiOutlineArrowTurnDownRight,
-  HiOutlinePencilSquare,
-} from 'react-icons/hi2';
-import { PiPushPinSimple } from 'react-icons/pi';
+
 import {
   formatRelativeTime,
   getThreadStatusA11yLabel,
@@ -208,7 +209,7 @@ export function AgentThreadListRow({
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-1.5">
               {conv.isPinned ? (
-                <PiPushPinSimple
+                <Pin
                   className="size-3 shrink-0 -rotate-45 text-foreground/42"
                   title="Pinned conversation"
                 />
@@ -271,7 +272,7 @@ export function AgentThreadListRow({
                 event.stopPropagation();
               }}
             >
-              <HiEllipsisHorizontal className="size-4" />
+              <MoreHorizontal className="size-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
@@ -280,7 +281,7 @@ export function AgentThreadListRow({
                 onTogglePinned(conv);
               }}
             >
-              <PiPushPinSimple className="size-4 -rotate-45" />
+              <Pin className="size-4 -rotate-45" />
               {conv.isPinned ? 'Unpin conversation' : 'Pin conversation'}
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -288,7 +289,7 @@ export function AgentThreadListRow({
                 onForkThread(conv);
               }}
             >
-              <HiOutlineArrowTurnDownRight className="size-4" />
+              <CornerDownRight className="size-4" />
               Fork thread
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -296,7 +297,7 @@ export function AgentThreadListRow({
                 onStartRename(conv);
               }}
             >
-              <HiOutlinePencilSquare className="size-4" />
+              <PenSquare className="size-4" />
               Rename
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -310,9 +311,9 @@ export function AgentThreadListRow({
               }}
             >
               {isArchivedView ? (
-                <HiArrowUturnLeft className="size-4" />
+                <Undo2 className="size-4" />
               ) : (
-                <HiOutlineArchiveBoxXMark className="size-4" />
+                <ArchiveX className="size-4" />
               )}
               {isArchivedView ? 'Restore' : 'Archive'}
             </DropdownMenuItem>

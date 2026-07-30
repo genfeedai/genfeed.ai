@@ -1,24 +1,21 @@
-import type { IconType } from 'react-icons';
-import { SiBytedance, SiGoogle, SiMeta } from 'react-icons/si';
-
 export interface ModelBrandConfig {
   label: string;
   color: string;
-  icon?: IconType;
+  iconKey?: 'bytedance' | 'google' | 'meta';
 }
 
 export const MODEL_BRANDS: Record<string, ModelBrandConfig> = {
   'black-forest-labs': { color: '#8B5CF6', label: 'BFL' },
-  bytedance: { color: '#00F0FF', icon: SiBytedance, label: 'ByteDance' },
+  bytedance: { color: '#00F0FF', iconKey: 'bytedance', label: 'ByteDance' },
   'deepseek-ai': { color: '#4F46E5', label: 'DeepSeek' },
   'fal-ai': { color: '#06B6D4', label: 'Fal' },
   'genfeed-ai': { color: '#3B82F6', label: 'GenFeed' },
-  google: { color: '#4285F4', icon: SiGoogle, label: 'Google' },
+  google: { color: '#4285F4', iconKey: 'google', label: 'Google' },
   heygen: { color: '#00C2FF', label: 'HeyGen' },
   'ideogram-ai': { color: '#FF6B35', label: 'Ideogram' },
   kwaivgi: { color: '#FF2D55', label: 'Kling' },
   luma: { color: '#7C3AED', label: 'Luma' },
-  meta: { color: '#0668E1', icon: SiMeta, label: 'Meta' },
+  meta: { color: '#0668E1', iconKey: 'meta', label: 'Meta' },
   openai: { color: '#10A37F', label: 'OpenAI' },
   prunaai: { color: '#10B981', label: 'Pruna' },
   qwen: { color: '#6366F1', label: 'Qwen' },
@@ -38,14 +35,7 @@ export const COST_TIER_DISPLAY: Record<
   medium: { colorClass: 'text-yellow-400 bg-yellow-400/10', symbol: '$$' },
 };
 
-/**
- * Extract brand slug from a model key.
- * e.g., "google/imagen-3" → "google"
- *       "fal-ai/flux/dev" → "fal-ai"
- *       "genfeed-ai/flux-dev" → "genfeed-ai"
- */
 export function extractBrandFromKey(modelKey: string): string {
-  // Standard prefix extraction: "org/model-name" → "org"
   const slashIndex = modelKey.indexOf('/');
   if (slashIndex > 0) {
     return modelKey.substring(0, slashIndex);

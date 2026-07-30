@@ -3,26 +3,26 @@
 import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo';
 import type { GallerySidebarProps } from '@genfeedai/props/content/gallery.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import {
+  FileText,
+  ImageIcon,
+  Lightbulb,
+  Music,
+  Trophy,
+  Video,
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
-import {
-  HiDocumentText,
-  HiLightBulb,
-  HiMusicalNote,
-  HiPhoto,
-  HiTrophy,
-  HiVideoCamera,
-} from 'react-icons/hi2';
 
 const MENU_CONFIG = [
-  { href: '/gallery/videos', Icon: HiVideoCamera, label: 'Videos' },
-  { href: '/gallery/images', Icon: HiPhoto, label: 'Images' },
-  { href: '/gallery/music', Icon: HiMusicalNote, label: 'Music' },
-  { href: '/gallery/posts', Icon: HiDocumentText, label: 'Posts' },
-  { href: '/gallery/leaderboard', Icon: HiTrophy, label: 'Leaderboard' },
-  { href: '/prompts', Icon: HiLightBulb, label: 'Prompts' },
+  { href: '/gallery/videos', Icon: Video, label: 'Videos' },
+  { href: '/gallery/images', Icon: ImageIcon, label: 'Images' },
+  { href: '/gallery/music', Icon: Music, label: 'Music' },
+  { href: '/gallery/posts', Icon: FileText, label: 'Posts' },
+  { href: '/gallery/leaderboard', Icon: Trophy, label: 'Leaderboard' },
+  { href: '/prompts', Icon: Lightbulb, label: 'Prompts' },
 ] as const;
 
 export default function GallerySidebar({ onLinkClick }: GallerySidebarProps) {

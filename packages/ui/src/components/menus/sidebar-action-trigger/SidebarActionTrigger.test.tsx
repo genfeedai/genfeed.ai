@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
-import { HiPlus } from 'react-icons/hi2';
+import { Plus } from 'lucide-react';
+
 import { describe, expect, it, vi } from 'vitest';
 import SidebarActionTrigger from './SidebarActionTrigger';
 
@@ -7,7 +8,7 @@ describe('SidebarActionTrigger', () => {
   it('renders a menu-style action with a hover-only shortcut badge', () => {
     render(
       <SidebarActionTrigger
-        icon={<HiPlus className="size-4" />}
+        icon={<Plus className="size-4" />}
         label="New Task"
         onClick={vi.fn()}
         shortcut="⌘⇧N"

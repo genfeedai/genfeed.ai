@@ -19,11 +19,11 @@ import IngredientTabsPrompts from '@ui/ingredients/tabs/prompts/IngredientTabsPr
 import IngredientTabsSharing from '@ui/ingredients/tabs/sharing/IngredientTabsSharing';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
+import { Maximize2, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { HiOutlineArrowsPointingOut, HiXMark } from 'react-icons/hi2';
 
 export default function IngredientTabs({
   ingredient,
@@ -133,7 +133,7 @@ export default function IngredientTabs({
       >
         <div className="flex justify-between items-center gap-2">
           <Button
-            label={<HiXMark className="text-2xl" />}
+            label={<X className="text-2xl" />}
             variant={ButtonVariant.LINK}
             size={ButtonSize.SM}
             onClick={onClose}
@@ -143,7 +143,7 @@ export default function IngredientTabs({
             href={`/ingredients/${ingredient.category}s/${ingredient.id}`}
             className="text-primary underline-offset-4 hover:underline"
           >
-            <HiOutlineArrowsPointingOut className="text-2xl" />
+            <Maximize2 className="text-2xl" />
           </Link>
         </div>
 

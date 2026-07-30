@@ -2,11 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import {
-  HiClipboardDocument,
-  HiDocumentText,
-  HiSparkles,
-} from 'react-icons/hi2';
+import { Clipboard, FileText, Sparkles } from 'lucide-react';
 
 type GenerationFormat = 'post' | 'thread' | 'x-article';
 
@@ -45,7 +41,7 @@ export default function PostsWriteActionBar({
         onClick={onCopy}
         className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-white/[0.05]"
       >
-        <HiClipboardDocument className="size-4" />
+        <Clipboard className="size-4" />
         Copy content
       </Button>
       <Button
@@ -55,7 +51,7 @@ export default function PostsWriteActionBar({
         disabled={!canSaveDraft || isSubmitting}
         className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <HiDocumentText className="size-4" />
+        <FileText className="size-4" />
         {isSubmitting ? 'Working...' : 'Save draft in Genfeed'}
       </Button>
       <Button
@@ -65,7 +61,7 @@ export default function PostsWriteActionBar({
         disabled={!canGenerate}
         className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <HiSparkles className="size-4" />
+        <Sparkles className="size-4" />
         {isSubmitting
           ? 'Working...'
           : `${generatePostLabel} (${SOCIAL_FORMAT_LABELS[selectedFormat]})`}

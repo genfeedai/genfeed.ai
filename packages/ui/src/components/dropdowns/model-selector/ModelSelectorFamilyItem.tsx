@@ -4,8 +4,8 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ModelSelectorFamilyItemProps } from '@genfeedai/props/ui/model-selector/model-selector.props';
 import { Button } from '@ui/primitives/button';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { memo } from 'react';
-import { HiChevronDown, HiChevronRight } from 'react-icons/hi2';
 
 function ProviderBadge({
   brandColor,
@@ -43,7 +43,7 @@ const ModelSelectorFamilyItem = memo(function ModelSelectorFamilyItem({
   isExpanded,
   onToggle,
 }: ModelSelectorFamilyItemProps) {
-  const ChevronIcon = isExpanded ? HiChevronDown : HiChevronRight;
+  const ChevronIcon = isExpanded ? ChevronDown : ChevronRight;
 
   return (
     <Button

@@ -6,7 +6,7 @@ import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
-import { HiCalendar } from 'react-icons/hi2';
+import { Calendar } from 'lucide-react';
 
 const ANNOUNCEMENT_HISTORY_SKELETON_KEYS = [
   'announcement-history-skeleton-1',
@@ -69,7 +69,7 @@ export default function AnnouncementHistoryList({
               )}
 
               <span className="flex items-center gap-1 text-xs text-foreground/50 ml-auto">
-                <HiCalendar className="size-3.5" />
+                <Calendar className="size-3.5" />
                 {formatDate(announcement.publishedAt ?? announcement.createdAt)}
               </span>
             </div>

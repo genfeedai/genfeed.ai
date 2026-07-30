@@ -1,7 +1,7 @@
 import type { IDesktopWorkspace } from '@genfeedai/desktop-contracts';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { HiOutlineFolderOpen } from 'react-icons/hi2';
+import { FolderOpen } from 'lucide-react';
 
 interface SidebarWorkspaceListProps {
   activeWorkspaceId: string | null;
@@ -32,7 +32,7 @@ function SidebarWorkspaceList({
               type="button"
               variant={ButtonVariant.UNSTYLED}
             >
-              <HiOutlineFolderOpen className="nav-icon-svg" />
+              <FolderOpen className="nav-icon-svg" />
               <span className="workspace-switch-copy">
                 <strong>{workspace.name}</strong>
                 <span className="muted-text">{workspace.path}</span>

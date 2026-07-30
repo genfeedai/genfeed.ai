@@ -1,6 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { CheckCircle2, ChevronRight, Rocket } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { HiCheckCircle, HiChevronRight, HiRocketLaunch } from 'react-icons/hi2';
 
 interface OnboardingChecklistCardProps {
   action: AgentUiAction;
@@ -25,7 +25,7 @@ export function OnboardingChecklistCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiRocketLaunch className="size-5 text-violet-500" />
+        <Rocket className="size-5 text-violet-500" />
         <h3 className="text-sm font-semibold">
           {action.title || 'Getting Started'}
         </h3>
@@ -86,7 +86,7 @@ export function OnboardingChecklistCard({
             }`}
           >
             <div className="flex items-center gap-2">
-              <HiCheckCircle
+              <CheckCircle2
                 className={`size-4 shrink-0 ${
                   item.isCompleted
                     ? 'text-green-500'
@@ -112,7 +112,7 @@ export function OnboardingChecklistCard({
                 className="flex items-center gap-0.5 text-[10px] font-medium text-primary hover:underline"
               >
                 {item.ctaLabel || 'Start'}
-                <HiChevronRight className="size-3" />
+                <ChevronRight className="size-3" />
               </a>
             )}
           </div>

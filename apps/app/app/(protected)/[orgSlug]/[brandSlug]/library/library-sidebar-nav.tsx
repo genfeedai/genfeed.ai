@@ -21,9 +21,10 @@ import { LazyModalFolder } from '@ui/lazy/modal/LazyModal';
 import MenuItem from '@ui/menus/item/MenuItem';
 import SidebarActionTrigger from '@ui/menus/sidebar-action-trigger/SidebarActionTrigger';
 import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearchTrigger';
+import { Plus } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useMemo } from 'react';
-import { HiPlus } from 'react-icons/hi2';
+
 import {
   normalizeProtectedPathname,
   pickOperatorTaskContextSearchParams,
@@ -163,7 +164,7 @@ export default function LibrarySidebarNav() {
         <div className="px-3 pt-2">
           <SidebarActionTrigger
             ariaLabel="Open new task modal"
-            icon={<HiPlus className="size-4 flex-shrink-0" />}
+            icon={<Plus className="size-4 flex-shrink-0" />}
             label="New Task"
             onClick={dispatchOpenTaskComposer}
             shortcut="⌘⇧N"

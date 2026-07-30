@@ -22,11 +22,11 @@ import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
 import { EmptyStateCard } from '@ui/feedback';
+import { ArrowRight, Building2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { HiArrowRight, HiBuildingOffice2 } from 'react-icons/hi2';
 
 const BrandPerformanceChart = dynamic(
   () =>
@@ -118,7 +118,7 @@ function OrganizationMetricStrip({
   if (hasNoData) {
     return (
       <EmptyStateCard
-        icon={HiBuildingOffice2}
+        icon={Building2}
         title="No organization activity yet"
         description="Create your first brand to start publishing content and tracking performance across your organization."
         action={{
@@ -375,7 +375,7 @@ export default function AnalyticsOrganizationOverview({
             ]}
             actions={[
               {
-                icon: <HiArrowRight className="size-4" />,
+                icon: <ArrowRight className="size-4" />,
                 onClick: (brand) =>
                   router.push(`${basePath}/brands/${brand.id}`),
                 tooltip: 'View Details',

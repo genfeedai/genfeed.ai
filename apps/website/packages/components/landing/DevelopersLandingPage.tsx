@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { GithubIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
@@ -12,19 +13,18 @@ import { Text } from '@ui/typography/text';
 import FaqGrid from '@web-components/content/FaqGrid';
 import LandingFooter from '@web-components/landing/LandingFooter';
 import PageLayout from '@web-components/PageLayout';
-import Link from 'next/link';
-import { FaGithub } from 'react-icons/fa6';
 import {
-  LuArrowRight,
-  LuBadgeCheck,
-  LuFileText,
-  LuGitBranch,
-  LuLayers,
-  LuSend,
-  LuServer,
-  LuSparkles,
-  LuTerminal,
-} from 'react-icons/lu';
+  ArrowRight,
+  BadgeCheck,
+  FileText,
+  GitBranch,
+  Layers,
+  Send,
+  Server,
+  Sparkles,
+  Terminal,
+} from 'lucide-react';
+import Link from 'next/link';
 
 // Marketing copy: always the hosted endpoint, never the build's own MCP config
 // (matches app/.well-known/api-catalog/route.ts).
@@ -40,47 +40,47 @@ const FEATURES = [
   {
     description:
       'Connect Claude, Cursor, or any MCP client to a curated catalog of content actions. Your agent drafts, schedules, and publishes. Every risky action is gated behind human review.',
-    icon: LuTerminal,
+    icon: Terminal,
     title: 'MCP Server Built In',
   },
   {
     description:
       'The whole platform is AGPL open source. Run it with Docker on your own infrastructure, with your own provider keys. No black box between your agent and your channels.',
-    icon: LuGitBranch,
+    icon: GitBranch,
     title: 'Open Source, Self-Hostable',
   },
   {
     description:
       'X, LinkedIn, Instagram, TikTok, YouTube, Discord, Slack, Telegram, and dozens more. One connected surface instead of a pile of platform SDKs and OAuth dances.',
-    icon: LuLayers,
+    icon: Layers,
     title: 'Every Channel, One Surface',
   },
   {
     description:
       'Recurring publishing runs on a real workflow engine with triggers, schedules, and approval gates. Automation you can inspect, not a cron job you have to trust.',
-    icon: LuServer,
+    icon: Server,
     title: 'Workflow Engine Underneath',
   },
 ];
 
 const STEPS = [
   {
-    icon: LuFileText,
+    icon: FileText,
     label: 'Brief',
     sublabel: 'Send a brief from your agent, workflow, or the studio',
   },
   {
-    icon: LuSparkles,
+    icon: Sparkles,
     label: 'Generate',
     sublabel: 'Platform-native posts, images, and video from one brief',
   },
   {
-    icon: LuBadgeCheck,
+    icon: BadgeCheck,
     label: 'Review',
     sublabel: 'Human approval gates before anything goes live',
   },
   {
-    icon: LuSend,
+    icon: Send,
     label: 'Publish',
     sublabel: 'Scheduled delivery to every connected channel',
   },
@@ -118,7 +118,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
     <div ref={containerRef}>
       <PageLayout
         badge="Genfeed for Developers"
-        badgeIcon={LuTerminal}
+        badgeIcon={Terminal}
         title="Content infrastructure for developers"
         description="One open-source surface to generate, review, and publish brand-native content on every channel, driven by your agents, your workflows, or your own self-hosted stack."
         heroActions={
@@ -131,7 +131,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
             >
               <Link href={signUpHref} target="_blank" rel="noopener noreferrer">
                 Start for free
-                <LuArrowRight className="size-4" />
+                <ArrowRight className="size-4" />
               </Link>
             </ButtonTracked>
             <ButtonTracked
@@ -142,7 +142,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
               trackingData={{ action: 'view_github' }}
             >
               <Link href={githubHref} target="_blank" rel="noopener noreferrer">
-                <FaGithub className="size-4" />
+                <GithubIcon className="size-4" />
                 Star on GitHub
               </Link>
             </ButtonTracked>
@@ -269,7 +269,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
         <section className="max-w-4xl mx-auto pb-16 px-6">
           <div className="gen-card-spotlight p-12 text-center">
             <div className="flex justify-center mb-4">
-              <LuTerminal className="size-8 text-surface" />
+              <Terminal className="size-8 text-surface" />
             </div>
             <Heading as="h3" className="text-2xl font-bold mb-2 text-surface">
               Ship Content Like You Ship Code
@@ -305,7 +305,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <FaGithub className="size-4" />
+                  <GithubIcon className="size-4" />
                   View on GitHub
                 </Link>
               </ButtonTracked>

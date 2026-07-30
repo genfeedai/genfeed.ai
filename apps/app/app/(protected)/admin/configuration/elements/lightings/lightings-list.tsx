@@ -18,6 +18,7 @@ import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalLighting } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Pencil, Trash2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type ReactNode,
@@ -28,7 +29,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import { HiPencil, HiTrash } from 'react-icons/hi2';
 
 function LightingsListContent({
   scope = PageScope.BRAND,
@@ -216,13 +216,13 @@ function LightingsListContent({
     scope === PageScope.SUPERADMIN
       ? [
           {
-            icon: <HiPencil />,
+            icon: <Pencil />,
             onClick: (lighting: ElementLighting) =>
               openLightingModal(ModalEnum.LIGHTING, lighting),
             tooltip: 'Edit',
           },
           {
-            icon: <HiTrash />,
+            icon: <Trash2 />,
             onClick: handleConfirmDelete,
             tooltip: 'Delete',
           },

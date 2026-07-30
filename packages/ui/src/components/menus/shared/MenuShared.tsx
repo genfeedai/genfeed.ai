@@ -7,9 +7,10 @@ import MenuItem from '@ui/menus/item/MenuItem';
 import SidebarLogoToggleButton from '@ui/menus/sidebar-logo-toggle/SidebarLogoToggleButton';
 import SidebarNested from '@ui/menus/sidebar-nested/SidebarNested';
 import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { HiOutlineArrowLeft } from 'react-icons/hi2';
+
 import CollapsibleGroup from './CollapsibleGroup';
 import MenuSharedConversations from './MenuSharedConversations';
 import MenuSharedGroupedItems from './MenuSharedGroupedItems';
@@ -125,7 +126,7 @@ export default function MenuShared({
             )}
             aria-label={`Back to ${backLabel ?? 'previous page'}`}
           >
-            <HiOutlineArrowLeft className="size-4 text-foreground/42 transition-colors duration-200 group-hover:text-foreground/78" />
+            <ArrowLeft className="size-4 text-foreground/42 transition-colors duration-200 group-hover:text-foreground/78" />
             <span className="text-[13px] font-medium tracking-[-0.01em] text-foreground/88">
               {backLabel ?? 'Back'}
             </span>

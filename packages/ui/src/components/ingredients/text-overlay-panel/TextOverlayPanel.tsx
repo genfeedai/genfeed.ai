@@ -16,8 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { X } from 'lucide-react';
 import { useState } from 'react';
-import { HiXMark } from 'react-icons/hi2';
 
 export default function TextOverlayPanel({
   video,
@@ -90,7 +90,7 @@ export default function TextOverlayPanel({
           <div className="flex items-center justify-between p-6 border-b border-white/[0.08]">
             <h3 className="text-xl font-semibold">Add Text Overlay</h3>
             <Button
-              label={<HiXMark className="text-xl" />}
+              label={<X className="text-xl" />}
               variant={ButtonVariant.GHOST}
               size={ButtonSize.ICON}
               className="rounded-full"

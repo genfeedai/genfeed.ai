@@ -13,8 +13,9 @@ import type {
 import Card from '@ui/card/Card';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import { BarChart3 } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import { HiOutlineChartBar } from 'react-icons/hi2';
+
 import AnalyticsOverviewAlerts from './analytics-overview-alerts';
 import AnalyticsOverviewHero from './analytics-overview-hero';
 import AnalyticsOverviewLeaderboards from './analytics-overview-leaderboards';
@@ -194,7 +195,7 @@ export default function AnalyticsOverview({
           <OverviewPlaceholderCard
             title="Trend lines will appear here once performance data lands"
             description="After connected accounts publish content and analytics sync back, this chart will show which platforms are growing, flat, or underperforming."
-            icon={HiOutlineChartBar}
+            icon={BarChart3}
             primaryAction={{
               href: APP_ROUTES.POSTS.ROOT,
               label: 'Create a post',

@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { Search, X } from 'lucide-react';
 import type {
   ChangeEvent,
   KeyboardEvent,
@@ -8,7 +9,7 @@ import type {
   ReactElement,
   RefObject,
 } from 'react';
-import { HiMagnifyingGlass, HiXMark } from 'react-icons/hi2';
+
 import { cn } from '../lib/utils';
 import { Button } from './button';
 
@@ -83,7 +84,7 @@ export default function Searchbar({
   return (
     <div className={cn('relative', className)}>
       {showIcon && (
-        <HiMagnifyingGlass
+        <Search
           className={cn(
             'absolute left-3 top-1/2 z-10 -translate-y-1/2 transform pointer-events-none text-foreground/60',
             iconSize,
@@ -116,7 +117,7 @@ export default function Searchbar({
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
           className="absolute right-1 top-1/2 -translate-y-1/2 transform p-1"
-          icon={<HiXMark className={iconSize} />}
+          icon={<X className={iconSize} />}
         />
       )}
     </div>

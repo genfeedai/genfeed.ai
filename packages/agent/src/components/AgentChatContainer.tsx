@@ -18,8 +18,8 @@ import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
+import { ArrowDown } from 'lucide-react';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
-import { HiOutlineArrowDown } from 'react-icons/hi2';
 
 interface AgentChatContainerProps {
   apiService: AgentApiService;
@@ -365,7 +365,7 @@ export function AgentChatContainer({
               <Button
                 variant={ButtonVariant.GHOST}
                 size={ButtonSize.ICON}
-                icon={<HiOutlineArrowDown className="size-4" />}
+                icon={<ArrowDown className="size-4" />}
                 ariaLabel="Scroll to latest message"
                 className="rounded-full border border-border/70 bg-background/88 text-foreground/72 shadow-[0_16px_36px_-24px_rgba(0,0,0,0.85)] backdrop-blur-sm hover:text-foreground"
                 withWrapper={false}

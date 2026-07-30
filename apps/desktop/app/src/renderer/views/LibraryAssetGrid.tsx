@@ -1,8 +1,9 @@
 import type { IDesktopAsset } from '@genfeedai/desktop-contracts';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { FolderOpen } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { HiOutlineFolderOpen } from 'react-icons/hi2';
+
 import { hasLocalAssetCopy } from '../asset-url.util';
 import { LibraryAssetPreview } from './LibraryAssetPreview';
 
@@ -41,7 +42,7 @@ export function LibraryAssetGrid({
                 type="button"
                 variant={ButtonVariant.GHOST}
               >
-                <HiOutlineFolderOpen className="nav-icon-svg" />
+                <FolderOpen className="nav-icon-svg" />
               </Button>
             )}
           </div>

@@ -1,12 +1,9 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Filter, Search, Terminal } from 'lucide-react';
 import type { ReactElement } from 'react';
-import {
-  HiOutlineCommandLine,
-  HiOutlineFunnel,
-  HiOutlineMagnifyingGlass,
-} from 'react-icons/hi2';
+
 import type { AgentLabStatus } from './MissionControlView';
 
 type StatusOption = { label: string; value: AgentLabStatus | 'all' };
@@ -35,7 +32,7 @@ export function MissionControlToolbar({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center">
           <label className="relative flex-1" htmlFor="mission-control-search">
-            <HiOutlineMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground/35" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground/35" />
             <Input
               id="mission-control-search"
               value={search}
@@ -57,7 +54,7 @@ export function MissionControlToolbar({
                 onClick={() => onStatusFilterChange(option.value)}
               >
                 <span className="inline-flex items-center gap-2">
-                  <HiOutlineFunnel className="size-4" />
+                  <Filter className="size-4" />
                   {option.label}
                 </span>
               </Button>
@@ -74,7 +71,7 @@ export function MissionControlToolbar({
             onClick={onOpenEmptySurface}
           >
             <span className="inline-flex items-center gap-2">
-              <HiOutlineCommandLine className="size-4" />
+              <Terminal className="size-4" />
               Open Empty Surface
             </span>
           </Button>

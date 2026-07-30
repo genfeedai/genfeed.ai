@@ -19,6 +19,7 @@ import Container from '@ui/layout/container/Container';
 import { LazyModalFontFamily } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Suspense,
@@ -28,7 +29,6 @@ import {
   useReducer,
   useRef,
 } from 'react';
-import { HiPencil, HiPlus, HiTrash } from 'react-icons/hi2';
 
 type FetchStatus = 'idle' | 'loading' | 'refreshing';
 
@@ -173,13 +173,13 @@ function FontFamiliesListContent({
     scope === PageScope.SUPERADMIN
       ? [
           {
-            icon: <HiPencil />,
+            icon: <Pencil />,
             onClick: (fontFamily: FontFamily) =>
               openFontFamilyModal(ModalEnum.FONT_FAMILY, fontFamily),
             tooltip: 'Edit',
           },
           {
-            icon: <HiTrash />,
+            icon: <Trash2 />,
             onClick: (fontFamily: FontFamily) => {
               dispatch({ type: 'SET_SELECTED', fontFamily });
               openConfirm({
@@ -302,7 +302,7 @@ function FontFamiliesListContent({
           {scope === PageScope.SUPERADMIN && (
             <Button
               label="Font Family"
-              icon={<HiPlus />}
+              icon={<Plus />}
               variant={ButtonVariant.DEFAULT}
               onClick={() => openFontFamilyModal(ModalEnum.FONT_FAMILY)}
             />

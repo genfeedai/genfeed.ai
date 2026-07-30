@@ -5,22 +5,26 @@ import {
   CampaignPlatform,
   CampaignType,
 } from '@genfeedai/enums';
+import {
+  InstagramIcon,
+  RedditIcon,
+  XTwitterIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
 import { Button } from '@ui/primitives/button';
-import { FaInstagram, FaReddit, FaXTwitter } from 'react-icons/fa6';
 
 const platformOptions = [
   {
-    icon: <FaXTwitter />,
+    icon: <XTwitterIcon />,
     label: 'Twitter / X',
     value: CampaignPlatform.TWITTER,
   },
   {
-    icon: <FaReddit />,
+    icon: <RedditIcon />,
     label: 'Reddit',
     value: CampaignPlatform.REDDIT,
   },
   {
-    icon: <FaInstagram className="text-pink-500" />,
+    icon: <InstagramIcon className="text-pink-500" />,
     label: 'Instagram',
     value: CampaignPlatform.INSTAGRAM,
   },

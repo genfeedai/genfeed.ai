@@ -6,9 +6,9 @@ import type { PlatformComparisonData } from '@props/analytics/analytics.props';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import { ArrowRight } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { HiArrowRight } from 'react-icons/hi2';
 
 const PlatformComparisonChart = dynamic(
   () =>
@@ -74,7 +74,7 @@ export default function BrandChartsGrid({
                 >
                   {getPlatformIcon(platform, 'size-4')}
                   <span className="capitalize">{platform}</span>
-                  <HiArrowRight className="size-3" />
+                  <ArrowRight className="size-3" />
                 </Link>
               </Button>
             ))}

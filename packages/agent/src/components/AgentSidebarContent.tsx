@@ -2,9 +2,9 @@ import { AgentThreadList } from '@genfeedai/agent/components/AgentThreadList';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { ArrowLeft, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { type ReactElement, useMemo } from 'react';
-import { HiArrowLeft, HiPlus } from 'react-icons/hi2';
 
 interface AgentSidebarContentProps {
   apiService: AgentApiService;
@@ -24,7 +24,7 @@ export function AgentSidebarContent({
         aria-label="New agent thread"
         className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background-secondary text-foreground/70 transition-colors hover:bg-foreground/[0.08] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
       >
-        <HiPlus className="size-4" aria-hidden="true" />
+        <Plus className="size-4" aria-hidden="true" />
       </Link>
     ),
     [newThreadHref],
@@ -38,7 +38,7 @@ export function AgentSidebarContent({
           className="group flex h-8 w-full cursor-pointer items-center gap-2.5 rounded px-2.5 py-1.5 text-foreground/72 transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
           aria-label="Back to overview"
         >
-          <HiArrowLeft className="size-4 text-foreground/42 transition-colors duration-200 group-hover:text-foreground/78" />
+          <ArrowLeft className="size-4 text-foreground/42 transition-colors duration-200 group-hover:text-foreground/78" />
           <span className="text-[13px] font-medium tracking-[-0.01em] text-foreground/88">
             Agent
           </span>

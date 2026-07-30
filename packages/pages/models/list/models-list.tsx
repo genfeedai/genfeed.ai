@@ -10,14 +10,9 @@ import type { TableAction } from '@props/ui/display/table.props';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalModel } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Archive, CheckCircle2, Info, Trash2, XCircle } from 'lucide-react';
 import { useMemo } from 'react';
-import {
-  HiArchiveBox,
-  HiCheckCircle,
-  HiInformationCircle,
-  HiTrash,
-  HiXCircle,
-} from 'react-icons/hi2';
+
 import ModelsAdminHeader from './components/ModelsAdminHeader';
 import { useModelsList } from './useModelsList';
 
@@ -67,14 +62,14 @@ export default function ModelsList({
   const actions: TableAction<IModel>[] = useMemo(
     () => [
       {
-        icon: <HiInformationCircle />,
+        icon: <Info />,
         onClick: handleViewDetails,
         tooltip: 'View Details',
       },
       ...(isAdminScope
         ? [
             {
-              icon: <HiCheckCircle />,
+              icon: <CheckCircle2 />,
               isVisible: (model: IModel) =>
                 !!model.isDiscovered &&
                 !model.isActive &&
@@ -90,7 +85,7 @@ export default function ModelsList({
               tooltip: 'Approve',
             },
             {
-              icon: <HiXCircle />,
+              icon: <XCircle />,
               isVisible: (model: IModel) =>
                 !!model.isDiscovered &&
                 !model.isActive &&
@@ -107,7 +102,7 @@ export default function ModelsList({
               tooltip: 'Reject',
             },
             {
-              icon: <HiArchiveBox />,
+              icon: <Archive />,
               isVisible: (model: IModel) => model.isActive && !model.isLegacy,
               onClick: (model: IModel) => {
                 openConfirm({
@@ -120,7 +115,7 @@ export default function ModelsList({
               tooltip: 'Mark Legacy',
             },
             {
-              icon: <HiTrash />,
+              icon: <Trash2 />,
               onClick: (model: IModel) => {
                 setSelectedModel(model);
                 openConfirm({

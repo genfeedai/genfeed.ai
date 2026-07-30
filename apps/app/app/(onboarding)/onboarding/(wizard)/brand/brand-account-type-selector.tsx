@@ -2,25 +2,25 @@
 
 import { ButtonVariant, OrganizationCategory } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { HiBriefcase, HiUserCircle, HiUserGroup } from 'react-icons/hi2';
+import { Briefcase, UserCircle, Users } from 'lucide-react';
 
 const ACCOUNT_TYPES = [
   {
     category: OrganizationCategory.CREATOR,
     description: 'Individual content creator or influencer',
-    icon: HiUserCircle,
+    icon: UserCircle,
     label: 'Creator',
   },
   {
     category: OrganizationCategory.BUSINESS,
     description: 'Company, brand, or e-commerce store',
-    icon: HiBriefcase,
+    icon: Briefcase,
     label: 'Business',
   },
   {
     category: OrganizationCategory.AGENCY,
     description: 'Managing content for multiple clients',
-    icon: HiUserGroup,
+    icon: Users,
     label: 'Agency',
   },
 ];

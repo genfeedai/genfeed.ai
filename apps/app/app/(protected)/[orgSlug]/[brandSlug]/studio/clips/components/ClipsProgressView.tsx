@@ -4,7 +4,8 @@ import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import type { ProjectState } from '@props/studio/clips.props';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
-import { HiOutlineFilm } from 'react-icons/hi2';
+import { Film } from 'lucide-react';
+
 import type { ClipsApiService } from '../services/clips-api.service';
 import ClipResultCard from './ClipResultCard';
 
@@ -41,7 +42,7 @@ export default function ClipsProgressView({
       <h1 className="sr-only">Clips</h1>
       <div className="mb-8">
         <div className="flex items-center gap-3">
-          <HiOutlineFilm className="size-6 text-primary" />
+          <Film className="size-6 text-primary" />
           <h2 className="text-2xl font-semibold text-zinc-100">
             {statusHeading}
           </h2>

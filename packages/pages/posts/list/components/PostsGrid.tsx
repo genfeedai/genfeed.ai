@@ -28,16 +28,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
+import { ArrowUp, Copy, ExternalLink, MoreHorizontal } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { memo, useMemo } from 'react';
-import {
-  HiArrowTopRightOnSquare,
-  HiArrowUp,
-  HiDocumentDuplicate,
-  HiEllipsisHorizontal,
-} from 'react-icons/hi2';
 
 export interface PostCardAction {
   key: string;
@@ -83,7 +78,7 @@ const EvalGridCell = memo(function EvalGridCell({
   return (
     <Button
       variant={ButtonVariant.GHOST}
-      icon={<HiArrowUp />}
+      icon={<ArrowUp />}
       label="Evaluate"
       tooltip="Evaluate"
       isLoading={isEvaluating}
@@ -209,8 +204,7 @@ const PostsGrid = memo(
     return (
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {posts.map((post) => {
-          const PlatformIcon =
-            getPlatformIconComponent(post.platform) ?? HiDocumentDuplicate;
+          const PlatformIcon = getPlatformIconComponent(post.platform) ?? Copy;
           const title = getPostTitle(post);
           const preview = getPostPreview(post);
           const mediaUrls = getPostMediaUrls(post);
@@ -277,7 +271,7 @@ const PostsGrid = memo(
                         aria-label="More post actions"
                         onClick={(event) => event.stopPropagation()}
                       >
-                        <HiEllipsisHorizontal className="size-4" />
+                        <MoreHorizontal className="size-4" />
                       </PrimitiveButton>
                     </DropdownMenuTrigger>
 
@@ -395,7 +389,7 @@ const PostsGrid = memo(
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      <HiArrowTopRightOnSquare className="size-4" />
+                      <ExternalLink className="size-4" />
                       {post.platform === Platform.TWITTER
                         ? 'View on X'
                         : 'View post'}

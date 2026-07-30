@@ -1,7 +1,8 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { Play, RefreshCw } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { HiArrowPath, HiPlay } from 'react-icons/hi2';
+
 import { GenerationActionCardQualityBadge } from './GenerationActionCardQualityBadge';
 
 type CardStatus = 'idle' | 'generating' | 'done' | 'error';
@@ -43,7 +44,7 @@ export function GenerationActionCardStatusPanel({
         isDisabled={isPromptEmpty}
         className="w-full"
       >
-        <HiPlay className="size-4" />
+        <Play className="size-4" />
         Generate {isImage ? 'Image' : 'Video'}
       </Button>
     );
@@ -69,7 +70,7 @@ export function GenerationActionCardStatusPanel({
           onClick={onRetry}
           className="w-full"
         >
-          <HiArrowPath className="size-4" />
+          <RefreshCw className="size-4" />
           Try Again
         </Button>
       </div>
@@ -112,7 +113,7 @@ export function GenerationActionCardStatusPanel({
             onClick={onRetry}
             className="flex-1"
           >
-            <HiArrowPath className="size-3" />
+            <RefreshCw className="size-3" />
             Regenerate
           </Button>
         </div>

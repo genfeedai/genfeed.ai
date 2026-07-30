@@ -1,4 +1,4 @@
-import type { IconType } from 'react-icons';
+import type { IconType } from '../ui/icon.interface';
 
 export interface IPlatformConfig {
   id: string;

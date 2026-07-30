@@ -14,32 +14,32 @@ import { extractThreadOutputs } from '@genfeedai/agent/utils/extract-thread-outp
 import { filterActionsByRole } from '@genfeedai/agent/utils/filter-actions-by-role';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 import type { AgentThreadStatus, MemberRole } from '@genfeedai/enums';
-import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  HiOutlineBriefcase,
-  HiOutlineCalendarDays,
-  HiOutlineChartBar,
-  HiOutlineClipboardDocumentCheck,
-  HiOutlineHeart,
-  HiOutlinePaintBrush,
-  HiOutlineRocketLaunch,
-} from 'react-icons/hi2';
+  BarChart3,
+  Briefcase,
+  Calendar,
+  ClipboardCheck,
+  Heart,
+  Paintbrush,
+  Rocket,
+} from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 const DEFAULT_AGENT_ACTIONS: SuggestedAction[] = [
   {
-    icon: HiOutlineCalendarDays({ className: 'size-5 text-foreground/50' }),
+    icon: Calendar({ className: 'size-5 text-foreground/50' }),
     label: 'Plan this week',
     prompt: 'Help me plan this week of content',
   },
   {
-    icon: HiOutlineClipboardDocumentCheck({
+    icon: ClipboardCheck({
       className: 'size-5 text-foreground/50',
     }),
     label: 'Review queue',
     prompt: 'Show me what needs review',
   },
   {
-    icon: HiOutlineChartBar({ className: 'size-5 text-foreground/50' }),
+    icon: BarChart3({ className: 'size-5 text-foreground/50' }),
     label: 'Check performance',
     prompt: 'Summarize my recent content performance',
   },
@@ -47,22 +47,22 @@ const DEFAULT_AGENT_ACTIONS: SuggestedAction[] = [
 
 const ONBOARDING_SUGGESTED_ACTIONS: SuggestedAction[] = [
   {
-    icon: HiOutlineRocketLaunch({ className: 'size-5 text-foreground/50' }),
+    icon: Rocket({ className: 'size-5 text-foreground/50' }),
     label: "Let's go",
     prompt: "I'm ready to set up my account",
   },
   {
-    icon: HiOutlineHeart({ className: 'size-5 text-foreground/50' }),
+    icon: Heart({ className: 'size-5 text-foreground/50' }),
     label: 'Fitness creator',
     prompt: "I'm a fitness content creator",
   },
   {
-    icon: HiOutlinePaintBrush({ className: 'size-5 text-foreground/50' }),
+    icon: Paintbrush({ className: 'size-5 text-foreground/50' }),
     label: 'Art and design',
     prompt: 'I create art and design content',
   },
   {
-    icon: HiOutlineBriefcase({ className: 'size-5 text-foreground/50' }),
+    icon: Briefcase({ className: 'size-5 text-foreground/50' }),
     label: 'Business content',
     prompt: 'I create business and entrepreneurship content',
   },

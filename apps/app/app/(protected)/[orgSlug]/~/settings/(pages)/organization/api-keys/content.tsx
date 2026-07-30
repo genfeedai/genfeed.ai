@@ -23,13 +23,9 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
+import { Clipboard, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
-import {
-  HiArrowPath,
-  HiClipboardDocument,
-  HiPlus,
-  HiTrash,
-} from 'react-icons/hi2';
+
 import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProviderSettings';
 import ByokProviderCard from './byok-provider-card';
 
@@ -538,7 +534,7 @@ export default function SettingsApiKeysPage() {
                   isDisabled={isProductLoading}
                   aria-label="Refresh Genfeed API keys"
                 >
-                  <HiArrowPath className="size-4" />
+                  <RefreshCw className="size-4" />
                 </Button>
               </div>
 
@@ -557,7 +553,7 @@ export default function SettingsApiKeysPage() {
                       variant={SECONDARY_BUTTON_VARIANT}
                       onClick={() => handleCopyProductKey(productPlainKey.key)}
                     >
-                      <HiClipboardDocument className="size-4" />
+                      <Clipboard className="size-4" />
                       Copy
                     </Button>
                   </div>
@@ -678,7 +674,7 @@ export default function SettingsApiKeysPage() {
                     productForm.selectedScopes.length === 0
                   }
                 >
-                  <HiPlus className="size-4" />
+                  <Plus className="size-4" />
                   {isCreatingProductKey ? 'Creating...' : 'Create Key'}
                 </Button>
               </div>
@@ -716,7 +712,7 @@ export default function SettingsApiKeysPage() {
                             onClick={() => handleRotateProductKey(apiKey)}
                             isDisabled={mutatingProductKeyId === apiKey.id}
                           >
-                            <HiArrowPath className="size-4" />
+                            <RefreshCw className="size-4" />
                             Rotate
                           </Button>
                           <Button
@@ -724,7 +720,7 @@ export default function SettingsApiKeysPage() {
                             onClick={() => handleRevokeProductKey(apiKey)}
                             isDisabled={mutatingProductKeyId === apiKey.id}
                           >
-                            <HiTrash className="size-4" />
+                            <Trash2 className="size-4" />
                             Revoke
                           </Button>
                         </div>

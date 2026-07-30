@@ -13,14 +13,8 @@ import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
+import { BarChart3, Clock, Cpu, FileCheck, Image } from 'lucide-react';
 import { useEffect } from 'react';
-import {
-  HiOutlineChartBar,
-  HiOutlineClock,
-  HiOutlineCpuChip,
-  HiOutlineDocumentCheck,
-  HiOutlinePhoto,
-} from 'react-icons/hi2';
 
 const CAMPAIGN_STATUS_COLORS = {
   active: 'bg-success/10 text-success',
@@ -110,7 +104,7 @@ export default function PipelinePage() {
     <Container
       label="Pipeline"
       description="Content generation pipeline and campaign management"
-      icon={HiOutlineChartBar}
+      icon={BarChart3}
       right={
         <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
       }
@@ -128,7 +122,7 @@ export default function PipelinePage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           <KpiCard
             description="Total generated"
-            icon={HiOutlinePhoto}
+            icon={Image}
             title="Assets Generated"
             value={stats?.assetsGenerated ?? 0}
           />
@@ -136,7 +130,7 @@ export default function PipelinePage() {
           <KpiCard
             colorClass="text-warning"
             description="Awaiting review"
-            icon={HiOutlineClock}
+            icon={Clock}
             title="Pending Review"
             value={stats?.assetsPendingReview ?? 0}
           />
@@ -144,7 +138,7 @@ export default function PipelinePage() {
           <KpiCard
             colorClass="text-success"
             description="Ready for use"
-            icon={HiOutlineDocumentCheck}
+            icon={FileCheck}
             title="Published"
             value={stats?.assetsPublished ?? 0}
           />
@@ -152,7 +146,7 @@ export default function PipelinePage() {
           <KpiCard
             colorClass="text-info"
             description="Currently running"
-            icon={HiOutlineCpuChip}
+            icon={Cpu}
             title="Active Trainings"
             value={stats?.trainingsActive ?? 0}
           />

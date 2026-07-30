@@ -33,8 +33,8 @@ import { Button } from '@ui/primitives/button';
 import PromptBar from '@ui/prompt-bars/base/PromptBar';
 import PromptBarSurfaceRenderer from '@ui/prompt-bars/surface/PromptBarSurfaceRenderer';
 import { STUDIO_PROMPT_BAR_SURFACE } from '@ui/prompt-bars/surface/prompt-bar-surface.config';
+import { AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
-import { HiExclamationTriangle } from 'react-icons/hi2';
 
 interface StudioComposerProps {
   promptText: string;
@@ -201,7 +201,7 @@ export function StudioComposer({
           {!isGenerationBlocked && <LowCreditsBanner />}
           {generationGate === 'model' && (
             <Alert className="mx-4 mt-3" variant="warning">
-              <HiExclamationTriangle className="size-4" />
+              <AlertTriangle className="size-4" />
               <AlertTitle>No compatible model configured</AlertTitle>
               <AlertDescription>
                 Enable a model for this Studio format before generating.{' '}
@@ -216,7 +216,7 @@ export function StudioComposer({
           )}
           {generationGate === 'avatar' && (
             <Alert className="mx-4 mt-3" variant="warning">
-              <HiExclamationTriangle className="size-4" />
+              <AlertTriangle className="size-4" />
               <AlertTitle>Avatar setup incomplete</AlertTitle>
               <AlertDescription>
                 Add the missing resources before generating:{' '}
@@ -245,7 +245,7 @@ export function StudioComposer({
           )}
           {generationGate === 'credits' && (
             <Alert className="mx-4 mt-3" variant="warning">
-              <HiExclamationTriangle className="size-4" />
+              <AlertTriangle className="size-4" />
               <AlertTitle>No credits available</AlertTitle>
               <AlertDescription>
                 Add provider capacity before starting another generation.{' '}

@@ -4,8 +4,8 @@ import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { TagBadgeProps } from '@genfeedai/props/tags/tag-badge.props';
 import { Button } from '@ui/primitives/button';
+import { X } from 'lucide-react';
 import type { MouseEvent } from 'react';
-import { HiXMark } from 'react-icons/hi2';
 
 const SIZE_CLASSES = {
   [ComponentSize.LG]: 'px-4 py-1.5 text-base',
@@ -50,7 +50,7 @@ export default function TagBadge({
           className="flex-shrink-0 hover:bg-black/10 rounded-full p-0.5 transition-colors"
           ariaLabel={`Remove ${tag.label}`}
         >
-          <HiXMark
+          <X
             className={
               size === ComponentSize.SM
                 ? 'size-3'

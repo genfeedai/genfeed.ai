@@ -13,13 +13,8 @@ import { Checkbox } from '@ui/primitives/checkbox';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import { Input } from '@ui/primitives/input';
 import PromptBarFrameControls from '@ui/prompt-bars/components/frame-controls/PromptBarFrameControls';
+import { ChevronDown, ChevronUp, Music, Tv } from 'lucide-react';
 import { type ChangeEvent, memo, useState } from 'react';
-import {
-  HiChevronDown,
-  HiChevronUp,
-  HiMusicalNote,
-  HiTv,
-} from 'react-icons/hi2';
 
 function buildResolutionOptions(
   normalizedWatchedModels: string[],
@@ -100,9 +95,9 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
           className="flex items-center gap-1.5 text-xs font-medium text-foreground/50 hover:text-foreground/70 self-start"
           icon={
             expanded ? (
-              <HiChevronUp className="size-3.5" />
+              <ChevronUp className="size-3.5" />
             ) : (
-              <HiChevronDown className="size-3.5" />
+              <ChevronDown className="size-3.5" />
             )
           }
         >
@@ -135,7 +130,7 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
                   <FormDropdown
                     key="resolution"
                     name="resolution"
-                    icon={<HiTv />}
+                    icon={<Tv />}
                     label="Resolution"
                     value={form.getValues('resolution')}
                     isDisabled={isDisabledState}
@@ -314,7 +309,7 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
 
             <FormDropdown
               name="musicVolume"
-              icon={<HiMusicalNote className="size-4" />}
+              icon={<Music className="size-4" />}
               label="Volume"
               value={(form.getValues('musicVolume') ?? 30).toString()}
               isNoneEnabled={false}

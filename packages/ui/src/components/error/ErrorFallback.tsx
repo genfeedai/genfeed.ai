@@ -3,7 +3,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Pre } from '@genfeedai/ui';
 import { Button } from '@ui/primitives/button';
-import { HiOutlineExclamationTriangle } from 'react-icons/hi2';
+import { AlertTriangle } from 'lucide-react';
 
 interface ErrorFallbackProps {
   error?: Error;
@@ -24,7 +24,7 @@ export function ErrorFallback({
       className="flex flex-col items-center justify-center min-h-[200px] p-8 text-center"
     >
       <div className="flex items-center justify-center size-12 rounded-full bg-destructive/10 mb-4">
-        <HiOutlineExclamationTriangle className="size-6 text-destructive" />
+        <AlertTriangle className="size-6 text-destructive" />
       </div>
       <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
       <p className="text-sm text-muted-foreground mb-4 max-w-md">

@@ -1,8 +1,8 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { CheckCircle2, Megaphone, Sparkles } from 'lucide-react';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
-import { HiCheckCircle, HiMegaphone, HiSparkles } from 'react-icons/hi2';
 
 interface BrandVoiceProfileCardProps {
   action: AgentUiAction;
@@ -75,7 +75,7 @@ export function BrandVoiceProfileCard({
     return (
       <div className="my-2 border border-emerald-500/20 bg-background p-4">
         <div className="flex items-center gap-2 text-emerald-600">
-          <HiCheckCircle className="size-5" />
+          <CheckCircle2 className="size-5" />
           <span className="text-sm font-medium">
             Brand voice saved to this brand.
           </span>
@@ -87,7 +87,7 @@ export function BrandVoiceProfileCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiMegaphone className="size-5 text-amber-500" />
+        <Megaphone className="size-5 text-amber-500" />
         <h3 className="text-sm font-semibold text-foreground">
           {action.title || 'Brand Voice Draft'}
         </h3>
@@ -217,7 +217,7 @@ export function BrandVoiceProfileCard({
           onClick={() => {
             void handleApprove();
           }}
-          icon={<HiSparkles className="size-4" />}
+          icon={<Sparkles className="size-4" />}
           className="mt-4 w-full justify-center"
         >
           {isSaving ? 'Saving...' : approveCta.label}

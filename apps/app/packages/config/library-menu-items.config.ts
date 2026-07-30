@@ -1,15 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
-import {
-  HiClock,
-  HiFolderOpen,
-  HiOutlineClock,
-  HiOutlineFolderOpen,
-  HiOutlinePhoto,
-  HiOutlineSquares2X2,
-  HiPhoto,
-  HiSquares2X2,
-} from 'react-icons/hi2';
+import { Clock, FolderOpen, Image, LayoutGrid } from 'lucide-react';
 
 export const LIBRARY_ASSET_ROUTES = [
   APP_ROUTES.LIBRARY.VIDEOS,
@@ -28,32 +19,32 @@ export const LIBRARY_MENU_ITEMS: MenuItemConfig[] = [
     isExactMatch: true,
     label: 'Overview',
     matchPaths: [APP_ROUTES.LIBRARY.ROOT, APP_ROUTES.LIBRARY.OVERVIEW],
-    outline: HiOutlineSquares2X2,
-    solid: HiSquares2X2,
+    outline: LayoutGrid,
+    solid: LayoutGrid,
   },
   {
     group: '',
     href: APP_ROUTES.LIBRARY.VIDEOS,
     label: 'Assets',
     matchPaths: [...LIBRARY_ASSET_ROUTES],
-    outline: HiOutlinePhoto,
-    solid: HiPhoto,
+    outline: Image,
+    solid: Image,
   },
   {
     group: '',
     href: APP_ROUTES.LIBRARY.MOODBOARD,
     label: 'Mood board',
     matchPaths: [APP_ROUTES.LIBRARY.MOODBOARD],
-    outline: HiOutlineFolderOpen,
-    solid: HiFolderOpen,
+    outline: FolderOpen,
+    solid: FolderOpen,
   },
   {
     group: '',
     href: APP_ROUTES.WORKSPACE.ACTIVITY,
     label: 'Activity',
     matchPaths: [APP_ROUTES.WORKSPACE.ACTIVITY],
-    outline: HiOutlineClock,
-    solid: HiClock,
+    outline: Clock,
+    solid: Clock,
   },
 ];
 

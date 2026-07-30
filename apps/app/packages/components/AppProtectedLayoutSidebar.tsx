@@ -23,7 +23,8 @@ import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSw
 import SidebarActionTrigger from '@ui/menus/sidebar-action-trigger/SidebarActionTrigger';
 import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearchTrigger';
 import AppSidebar from '@ui/shell/menus/AppSidebar';
-import { HiPlus } from 'react-icons/hi2';
+import { Plus } from 'lucide-react';
+
 import { withTaskContextHref } from '@/lib/navigation/operator-shell';
 import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
 
@@ -295,7 +296,7 @@ export default function AppProtectedLayoutSidebar({
         <>
           <SidebarActionTrigger
             ariaLabel="Open new task modal"
-            icon={<HiPlus className="size-4 flex-shrink-0" />}
+            icon={<Plus className="size-4 flex-shrink-0" />}
             label="New Task"
             onClick={dispatchOpenTaskComposer}
             shortcut="⌘⇧N"

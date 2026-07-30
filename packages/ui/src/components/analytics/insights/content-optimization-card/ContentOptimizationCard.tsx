@@ -5,30 +5,30 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ContentOptimizationCardProps } from '@genfeedai/props/analytics/insights.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
-import { memo } from 'react';
 import {
-  HiClock,
-  HiDocumentText,
-  HiHashtag,
-  HiLightBulb,
-  HiPhoto,
-  HiSparkles,
-} from 'react-icons/hi2';
+  Clock,
+  FileText,
+  Hash,
+  Image,
+  Lightbulb,
+  Sparkles,
+} from 'lucide-react';
+import { memo } from 'react';
 
 const getTypeIcon = (type: string) => {
   switch (type) {
     case 'timing':
-      return HiClock;
+      return Clock;
     case 'format':
-      return HiPhoto;
+      return Image;
     case 'topic':
-      return HiDocumentText;
+      return FileText;
     case 'hashtag':
-      return HiHashtag;
+      return Hash;
     case 'length':
-      return HiDocumentText;
+      return FileText;
     default:
-      return HiLightBulb;
+      return Lightbulb;
   }
 };
 
@@ -44,7 +44,7 @@ const ContentOptimizationCard = memo(function ContentOptimizationCard({
     return (
       <Card
         label="Content Optimization"
-        icon={HiSparkles}
+        icon={Sparkles}
         iconClassName="text-secondary"
         className={className}
       >
@@ -71,12 +71,12 @@ const ContentOptimizationCard = memo(function ContentOptimizationCard({
     return (
       <Card
         label="Content Optimization"
-        icon={HiSparkles}
+        icon={Sparkles}
         iconClassName="text-secondary"
         className={className}
       >
         <div className="flex flex-col items-center justify-center py-8 text-center">
-          <HiLightBulb className="size-12 text-foreground/30 mb-3" />
+          <Lightbulb className="size-12 text-foreground/30 mb-3" />
           <p className="text-foreground/70 font-medium">
             No suggestions available
           </p>
@@ -91,7 +91,7 @@ const ContentOptimizationCard = memo(function ContentOptimizationCard({
   return (
     <Card
       label="Content Optimization"
-      icon={HiSparkles}
+      icon={Sparkles}
       iconClassName="text-secondary"
       description="AI-powered suggestions to improve your content"
       className={className}

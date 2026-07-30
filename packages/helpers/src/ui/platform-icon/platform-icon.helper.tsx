@@ -1,13 +1,13 @@
-import type { ComponentType, ReactElement } from 'react';
 import {
-  FaFacebook,
-  FaInstagram,
-  FaLinkedin,
-  FaStar,
-  FaTiktok,
-  FaXTwitter,
-  FaYoutube,
-} from 'react-icons/fa6';
+  FacebookIcon,
+  InstagramIcon,
+  LinkedinIcon,
+  TiktokIcon,
+  XTwitterIcon,
+  YoutubeIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
+import { Star } from 'lucide-react';
+import type { ComponentType, ReactElement } from 'react';
 
 type IconComponent = ComponentType<{ className?: string }>;
 
@@ -21,42 +21,42 @@ const PLATFORM_ICONS: Record<string, PlatformIconConfig> = {
   facebook: {
     colorClass: 'text-blue-600',
     displayName: 'FacebookIcon',
-    Icon: FaFacebook,
+    Icon: FacebookIcon,
   },
   fanvue: {
     colorClass: 'text-violet-500',
     displayName: 'FanvueIcon',
-    Icon: FaStar,
+    Icon: Star,
   },
   instagram: {
     colorClass: 'text-pink-500',
     displayName: 'InstagramIcon',
-    Icon: FaInstagram,
+    Icon: InstagramIcon,
   },
   linkedin: {
     colorClass: 'text-blue-700',
     displayName: 'LinkedInIcon',
-    Icon: FaLinkedin,
+    Icon: LinkedinIcon,
   },
   tiktok: {
     colorClass: 'text-foreground',
     displayName: 'TikTokIcon',
-    Icon: FaTiktok,
+    Icon: TiktokIcon,
   },
   twitter: {
     colorClass: 'text-foreground',
     displayName: 'TwitterIcon',
-    Icon: FaXTwitter,
+    Icon: XTwitterIcon,
   },
   x: {
     colorClass: 'text-foreground',
     displayName: 'TwitterIcon',
-    Icon: FaXTwitter,
+    Icon: XTwitterIcon,
   },
   youtube: {
     colorClass: 'text-red-500',
     displayName: 'YouTubeIcon',
-    Icon: FaYoutube,
+    Icon: YoutubeIcon,
   },
 };
 

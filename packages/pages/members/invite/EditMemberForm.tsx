@@ -10,12 +10,12 @@ import {
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
+import { Check, X } from 'lucide-react';
 import type {
   FormState,
   UseFormGetValues,
   UseFormSetValue,
 } from 'react-hook-form';
-import { HiCheck, HiXMark } from 'react-icons/hi2';
 
 export type EditMemberFormProps = {
   member: IMember;
@@ -105,7 +105,7 @@ export default function EditMemberForm({
             <Button
               label={
                 <>
-                  <HiXMark /> Cancel
+                  <X /> Cancel
                 </>
               }
               variant={ButtonVariant.GHOST}
@@ -117,7 +117,7 @@ export default function EditMemberForm({
               type="submit"
               label={
                 <>
-                  <HiCheck /> Save
+                  <Check /> Save
                 </>
               }
               variant={ButtonVariant.DEFAULT}

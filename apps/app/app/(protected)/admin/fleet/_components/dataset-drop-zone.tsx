@@ -2,7 +2,7 @@
 
 import Badge from '@ui/display/badge/Badge';
 import { Input } from '@ui/primitives/input';
-import { HiOutlineCloudArrowUp } from 'react-icons/hi2';
+import { CloudUpload } from 'lucide-react';
 
 type DatasetDropZoneProps = {
   getRootProps: (options?: object) => React.HTMLAttributes<HTMLDivElement>;
@@ -26,7 +26,7 @@ export default function DatasetDropZone({
       })}
     >
       <Input {...getInputProps()} />
-      <HiOutlineCloudArrowUp className="size-10 mx-auto mb-3 text-foreground/40" />
+      <CloudUpload className="size-10 mx-auto mb-3 text-foreground/40" />
       <p className="text-sm font-medium text-foreground/70">
         {isDragActive
           ? 'Drop files here...'

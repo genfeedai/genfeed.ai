@@ -4,8 +4,8 @@ import { ButtonVariant } from '@genfeedai/enums';
 import type { BrandDetailExternalLinksCardProps } from '@props/pages/brand-detail.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import { LinkIcon, Pencil, Plus } from 'lucide-react';
 import Link from 'next/link';
-import { HiLink, HiPencil, HiPlus } from 'react-icons/hi2';
 
 export default function BrandDetailExternalLinksCard({
   links,
@@ -26,13 +26,13 @@ export default function BrandDetailExternalLinksCard({
                 wrapperClassName="flex-1"
               >
                 <Link href={link.url} target="_blank">
-                  <HiLink />
+                  <LinkIcon />
                   {link.label}
                 </Link>
               </Button>
 
               <Button
-                label={<HiPencil />}
+                label={<Pencil />}
                 variant={ButtonVariant.SECONDARY}
                 onClick={() => onOpenLinkModal(link)}
               />
@@ -46,8 +46,8 @@ export default function BrandDetailExternalLinksCard({
           onClick={() => onOpenLinkModal()}
           label={
             <>
-              <HiPlus />
-              Add Link
+              <Plus />
+              Add LinkIcon
             </>
           }
         />

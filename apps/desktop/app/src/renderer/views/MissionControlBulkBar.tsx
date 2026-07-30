@@ -1,7 +1,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { Zap } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { HiOutlineBolt } from 'react-icons/hi2';
 
 type MissionControlBulkBarProps = {
   selectedCount: number;
@@ -25,7 +25,7 @@ export function MissionControlBulkBar({
       </div>
       <Button variant={ButtonVariant.DEFAULT} onClick={onAskAgent}>
         <span className="inline-flex items-center gap-2">
-          <HiOutlineBolt className="size-4" />
+          <Zap className="size-4" />
           Ask Agent About Selected Rows
         </span>
       </Button>

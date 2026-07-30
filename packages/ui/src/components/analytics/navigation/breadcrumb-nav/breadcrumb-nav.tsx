@@ -1,7 +1,7 @@
 'use client';
 
+import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import { HiChevronRight } from 'react-icons/hi2';
 
 export interface BreadcrumbItem {
   label: string;
@@ -47,7 +47,7 @@ export function BreadcrumbNav({ items, className = '' }: BreadcrumbNavProps) {
                 </span>
               )}
               {!isLast && (
-                <HiChevronRight className="size-4 text-foreground/40" />
+                <ChevronRight className="size-4 text-foreground/40" />
               )}
             </li>
           );

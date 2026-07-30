@@ -10,16 +10,17 @@ import {
 import Spinner from '@ui/feedback/spinner/Spinner';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clipboard,
+  ClipboardCheck,
+  Key,
+} from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import {
-  HiCheckCircle,
-  HiClipboard,
-  HiClipboardDocumentCheck,
-  HiExclamationTriangle,
-  HiKey,
-} from 'react-icons/hi2';
+
 import { Card, CardContent } from '@/components/ui/card';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 
@@ -201,7 +202,7 @@ function ManagedCreditsSuccessContentInner() {
       <div className="mx-auto w-full max-w-xl">
         <div className="mb-8 text-center">
           <div className="mb-5 inline-flex size-12 items-center justify-center rounded-xl border border-white/10 bg-white/5">
-            <HiKey className="size-5 text-white/60" />
+            <Key className="size-5 text-white/60" />
           </div>
           <h1 className="mb-1.5 text-xl font-semibold tracking-tight">
             Managed credits ready
@@ -223,7 +224,7 @@ function ManagedCreditsSuccessContentInner() {
 
             {!state.isLoading && state.error ? (
               <StepDisplay
-                icon={<HiExclamationTriangle className="size-8 text-warning" />}
+                icon={<AlertTriangle className="size-8 text-warning" />}
                 title="Provisioning result not ready"
                 description={state.error}
               />
@@ -231,7 +232,7 @@ function ManagedCreditsSuccessContentInner() {
 
             {!state.isLoading && hasRecoverableExistingKey ? (
               <StepDisplay
-                icon={<HiCheckCircle className="size-8 text-success" />}
+                icon={<CheckCircle2 className="size-8 text-success" />}
                 title="Credits added"
                 description="This account already has a managed API key, so the secret cannot be shown again. Use your existing key or create a new one in Genfeed Cloud."
               />
@@ -240,7 +241,7 @@ function ManagedCreditsSuccessContentInner() {
             {!state.isLoading && apiKey ? (
               <div className="space-y-6">
                 <StepDisplay
-                  icon={<HiCheckCircle className="size-8 text-success" />}
+                  icon={<CheckCircle2 className="size-8 text-success" />}
                   title="Credits added"
                   description={`Provisioned for ${state.result?.email ?? 'your account'}. Copy this key now and store it in your local environment.`}
                 />
@@ -294,9 +295,9 @@ function KeyBlock({
           onClick={onCopy}
         >
           {copied ? (
-            <HiClipboardDocumentCheck className="size-4 text-success" />
+            <ClipboardCheck className="size-4 text-success" />
           ) : (
-            <HiClipboard className="size-4" />
+            <Clipboard className="size-4" />
           )}
           {copied ? 'Copied' : 'Copy'}
         </Button>

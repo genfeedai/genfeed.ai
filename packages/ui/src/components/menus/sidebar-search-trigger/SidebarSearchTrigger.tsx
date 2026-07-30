@@ -1,7 +1,7 @@
 'use client';
 
 import SidebarActionTrigger from '@ui/menus/sidebar-action-trigger/SidebarActionTrigger';
-import { HiMagnifyingGlass } from 'react-icons/hi2';
+import { Search } from 'lucide-react';
 
 interface SidebarSearchTriggerProps {
   onClick: () => void;
@@ -19,7 +19,7 @@ export default function SidebarSearchTrigger({
       onClick={onClick}
       ariaLabel="Open command palette"
       className={className}
-      icon={<HiMagnifyingGlass className="size-4 flex-shrink-0" />}
+      icon={<Search className="size-4 flex-shrink-0" />}
       label={label}
       shortcut="⌘K"
     />

@@ -17,7 +17,8 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { HiArrowLeft, HiArrowRight } from 'react-icons/hi2';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
+
 import { SelectCardButton } from './AgentWizardHelpers';
 
 const PLATFORM_OPTIONS = [
@@ -300,7 +301,7 @@ export default function AgentWizardStepConfigure({
         <Button
           label={
             <>
-              <HiArrowLeft /> Back
+              <ArrowLeft /> Back
             </>
           }
           variant={ButtonVariant.SECONDARY}
@@ -309,7 +310,7 @@ export default function AgentWizardStepConfigure({
         <Button
           label={
             <>
-              Review <HiArrowRight />
+              Review <ArrowRight />
             </>
           }
           variant={ButtonVariant.DEFAULT}

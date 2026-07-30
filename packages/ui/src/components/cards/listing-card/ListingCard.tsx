@@ -2,10 +2,10 @@
 
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ListingCardProps } from '@genfeedai/props/cards/listing-card.props';
+import { Star } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { memo } from 'react';
-import { HiStar } from 'react-icons/hi2';
 
 const priceFormatterCache = new Map<string, Intl.NumberFormat>();
 
@@ -158,7 +158,7 @@ const ListingCard = memo(function ListingCard({
             <div className="flex items-center gap-1">
               {listing.rating && listing.rating > 0 ? (
                 <>
-                  <HiStar className="size-3.5 text-amber-400" />
+                  <Star className="size-3.5 text-amber-400" />
                   <span className="text-xs text-muted-foreground">
                     {listing.rating.toFixed(1)}
                   </span>

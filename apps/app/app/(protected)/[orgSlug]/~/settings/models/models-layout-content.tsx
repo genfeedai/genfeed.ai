@@ -10,10 +10,10 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import { LazyModalTrainingNew } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
+import { Cpu, Plus } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useCallback, useMemo } from 'react';
-import { HiCpuChip, HiPlus } from 'react-icons/hi2';
 
 export default function ModelsLayoutContent({
   children,
@@ -93,7 +93,7 @@ export default function ModelsLayoutContent({
     <Container
       label="Models"
       description="Manage available AI models."
-      icon={HiCpuChip}
+      icon={Cpu}
       tabs={tabs.map((tab) => ({
         href: tab.href,
         label: tab.label,
@@ -105,7 +105,7 @@ export default function ModelsLayoutContent({
           {isTrainingsTab && (
             <Button
               label="Training"
-              icon={<HiPlus />}
+              icon={<Plus />}
               variant={ButtonVariant.DEFAULT}
               onClick={() => openModal(ModalEnum.TRAINING_UPLOAD)}
             />

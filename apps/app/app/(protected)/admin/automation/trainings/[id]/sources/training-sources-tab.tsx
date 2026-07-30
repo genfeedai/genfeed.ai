@@ -8,8 +8,8 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
 import MasonryGrid from '@ui/masonry/grid/MasonryGrid';
+import { Database } from 'lucide-react';
 import { useEffect } from 'react';
-import { FaDatabase } from 'react-icons/fa6';
 
 export default function TrainingSourcesTab() {
   const { training } = useTraining();
@@ -52,7 +52,7 @@ export default function TrainingSourcesTab() {
     />
   ) : sourceImages.length === 0 ? (
     <div className="text-center py-12">
-      <FaDatabase className="mx-auto size-12 text-muted-foreground mb-4" />
+      <Database className="mx-auto size-12 text-muted-foreground mb-4" />
       <p className="text-muted-foreground">No training sources available.</p>
     </div>
   ) : (

@@ -7,8 +7,8 @@ import type { IIngredient, ITag, IVideo } from '@genfeedai/interfaces';
 import type { MasonryActionStates } from '@genfeedai/interfaces/hooks/hooks.interface';
 import { Button } from '@ui/primitives/button';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
+import { ThumbsUp } from 'lucide-react';
 import type { MouseEvent } from 'react';
-import { HiHandThumbUp } from 'react-icons/hi2';
 
 type VideoActionHandlers = {
   handlePublish: (ingredient: IVideo) => void;
@@ -105,7 +105,7 @@ export default function MasonryVideoActionsBar({
             <Button
               label={
                 <>
-                  <HiHandThumbUp /> {video.totalVotes || 0}
+                  <ThumbsUp /> {video.totalVotes || 0}
                 </>
               }
               variant={ButtonVariant.DEFAULT}

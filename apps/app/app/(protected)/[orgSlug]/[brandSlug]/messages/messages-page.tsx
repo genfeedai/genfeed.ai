@@ -31,6 +31,15 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
+import {
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  LinkIcon,
+  MessageSquare,
+  Send,
+  Zap,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -43,15 +52,7 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  HiOutlineBolt,
-  HiOutlineChatBubbleLeftRight,
-  HiOutlineCheckCircle,
-  HiOutlineChevronLeft,
-  HiOutlineChevronRight,
-  HiOutlineLink,
-  HiOutlinePaperAirplane,
-} from 'react-icons/hi2';
+
 import { useWorkspaceNavPanel } from '@/components/workspace-shell/WorkspaceNavPanelContext';
 import {
   getParticipantLabel,
@@ -350,7 +351,7 @@ function MessageBubble({
                 ? 'Remove message from agent context'
                 : 'Attach message to agent context'
             }
-            icon={<HiOutlineLink className="size-3.5" />}
+            icon={<LinkIcon className="size-3.5" />}
             isDisabled={!canAttachReference}
             onClick={() => onToggleReference(message)}
             size={ButtonSize.SM}
@@ -1269,14 +1270,14 @@ export default function MessagesPage() {
                       size={ButtonSize.SM}
                     >
                       <Link href={automationHref}>
-                        <HiOutlineBolt className="size-4" />
+                        <Zap className="size-4" />
                         Automation
                       </Link>
                     </Button>
                     <Button
                       variant={ButtonVariant.GHOST}
                       size={ButtonSize.SM}
-                      icon={<HiOutlineCheckCircle className="size-4" />}
+                      icon={<CheckCircle2 className="size-4" />}
                       isDisabled={Boolean(busyAction)}
                       isLoading={busyAction === 'status'}
                       onClick={() => handleStatusChange('resolved')}
@@ -1330,7 +1331,7 @@ export default function MessagesPage() {
                   <div className="flex items-center justify-center gap-3 pt-3">
                     <Button
                       ariaLabel="Previous messages page"
-                      icon={<HiOutlineChevronLeft className="size-4" />}
+                      icon={<ChevronLeft className="size-4" />}
                       isDisabled={!messagePagination.hasPrevious}
                       onClick={() =>
                         setMessagePage((page) => Math.max(1, page - 1))
@@ -1345,7 +1346,7 @@ export default function MessagesPage() {
                     </span>
                     <Button
                       ariaLabel="Next messages page"
-                      icon={<HiOutlineChevronRight className="size-4" />}
+                      icon={<ChevronRight className="size-4" />}
                       isDisabled={!messagePagination.hasNext}
                       onClick={() => setMessagePage((page) => page + 1)}
                       size={ButtonSize.ICON}
@@ -1393,7 +1394,7 @@ export default function MessagesPage() {
                     <Button
                       variant={ButtonVariant.DEFAULT}
                       size={ButtonSize.SM}
-                      icon={<HiOutlinePaperAirplane className="size-4" />}
+                      icon={<Send className="size-4" />}
                       isDisabled={
                         Boolean(busyAction) ||
                         !draft.trim() ||
@@ -1428,7 +1429,7 @@ export default function MessagesPage() {
               className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 text-center"
               data-testid="messages-empty-state"
             >
-              <HiOutlineChatBubbleLeftRight className="mb-3 size-10 text-white/20" />
+              <MessageSquare className="mb-3 size-10 text-white/20" />
               <p className="text-sm text-white/50">Select a conversation</p>
             </div>
           )}

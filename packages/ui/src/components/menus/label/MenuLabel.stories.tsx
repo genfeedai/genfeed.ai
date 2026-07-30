@@ -1,14 +1,8 @@
 /* eslint-disable react-hooks/rules-of-hooks -- Storybook render functions are invoked as story components. */
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import MenuLabel from '@ui/menus/label/MenuLabel';
+import { ChevronDown, ChevronRight, Home, Settings } from 'lucide-react';
 import { useState } from 'react';
-import { FiHome, FiSettings } from 'react-icons/fi';
-import {
-  HiChevronDown,
-  HiChevronRight,
-  HiCog6Tooth,
-  HiHome,
-} from 'react-icons/hi2';
 
 /**
  * MenuLabel component displays a menu section label with optional icon and chevron.
@@ -53,8 +47,8 @@ export const Default: Story = {
   args: {
     isActive: false,
     label: 'Navigation',
-    outline: FiHome,
-    solid: HiHome,
+    outline: Home,
+    solid: Home,
   },
 };
 
@@ -65,8 +59,8 @@ export const Active: Story = {
   args: {
     isActive: true,
     label: 'Settings',
-    outline: FiSettings,
-    solid: HiCog6Tooth,
+    outline: Settings,
+    solid: Settings,
   },
 };
 
@@ -80,10 +74,10 @@ export const WithChevronDown: Story = {
   render: () => (
     <MenuLabel
       label="Menu Section"
-      outline={FiHome}
-      solid={HiHome}
+      outline={Home}
+      solid={Home}
       isActive={false}
-      chevronIcon={<HiChevronDown className="size-4" />}
+      chevronIcon={<ChevronDown className="size-4" />}
     />
   ),
 };
@@ -98,10 +92,10 @@ export const WithChevronRight: Story = {
   render: () => (
     <MenuLabel
       label="Collapsed Section"
-      outline={FiSettings}
-      solid={HiCog6Tooth}
+      outline={Settings}
+      solid={Settings}
       isActive={false}
-      chevronIcon={<HiChevronRight className="size-4" />}
+      chevronIcon={<ChevronRight className="size-4" />}
     />
   ),
 };
@@ -130,22 +124,22 @@ export const InMenu: Story = {
     <ul className="list-none bg-background p-2 w-64">
       <MenuLabel
         label="Main Navigation"
-        outline={FiHome}
-        solid={HiHome}
+        outline={Home}
+        solid={Home}
         isActive={true}
-        chevronIcon={<HiChevronDown className="size-4" />}
+        chevronIcon={<ChevronDown className="size-4" />}
       />
       <MenuLabel
         label="Settings"
-        outline={FiSettings}
-        solid={HiCog6Tooth}
+        outline={Settings}
+        solid={Settings}
         isActive={false}
-        chevronIcon={<HiChevronRight className="size-4" />}
+        chevronIcon={<ChevronRight className="size-4" />}
       />
       <MenuLabel
         label="Other"
         isActive={false}
-        chevronIcon={<HiChevronRight className="size-4" />}
+        chevronIcon={<ChevronRight className="size-4" />}
       />
     </ul>
   ),
@@ -168,14 +162,14 @@ export const Interactive: Story = {
       <ul className="list-none bg-background p-2 w-64">
         <MenuLabel
           label="Collapsible Section"
-          outline={FiHome}
-          solid={HiHome}
+          outline={Home}
+          solid={Home}
           isActive={isExpanded}
           chevronIcon={
             isExpanded ? (
-              <HiChevronDown className="size-4" />
+              <ChevronDown className="size-4" />
             ) : (
-              <HiChevronRight className="size-4" />
+              <ChevronRight className="size-4" />
             )
           }
           onClick={() => setIsExpanded(!isExpanded)}

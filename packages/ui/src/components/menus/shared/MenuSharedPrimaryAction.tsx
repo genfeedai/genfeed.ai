@@ -7,8 +7,8 @@ import { Kbd } from '@genfeedai/ui';
 import MenuItem from '@ui/menus/item/MenuItem';
 import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { Button } from '@ui/primitives/button';
+import { Plus } from 'lucide-react';
 import Link from 'next/link';
-import { HiPlus } from 'react-icons/hi2';
 
 interface MenuSharedPrimaryActionProps {
   config: MenuShellConfig;
@@ -54,7 +54,7 @@ export default function MenuSharedPrimaryAction({
             ) : config.primaryAction.outline ? (
               <config.primaryAction.outline className="size-4" />
             ) : (
-              <HiPlus className="size-4" />
+              <Plus className="size-4" />
             )}
             <span className="flex-1">{config.primaryAction.label}</span>
             <Kbd
@@ -84,7 +84,7 @@ export default function MenuSharedPrimaryAction({
             ) : config.primaryAction.outline ? (
               <config.primaryAction.outline className="size-4" />
             ) : (
-              <HiPlus className="size-4" />
+              <Plus className="size-4" />
             )}
             <span className="flex-1">{config.primaryAction.label}</span>
             <Kbd

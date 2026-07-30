@@ -4,15 +4,8 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { Button } from '@ui/primitives/button';
 import PageLayout from '@web-components/PageLayout';
+import { Check, Cookie, Eye, Lock, Mail, Shield } from 'lucide-react';
 import Link from 'next/link';
-import {
-  LuCheck,
-  LuCookie,
-  LuEye,
-  LuLock,
-  LuMail,
-  LuShield,
-} from 'react-icons/lu';
 
 const privacyPolicySections = [
   {
@@ -40,21 +33,21 @@ const privacyRights = [
   {
     description:
       'You have the right to access personal data we hold about you and to request that we correct, update, or delete your information at any time.',
-    icon: LuEye,
+    icon: Eye,
     shortLabel: 'Access',
     title: 'Data Access',
   },
   {
     description:
       'Genfeed.ai is committed to protecting your data using industry-standard security measures. However, no method of transmission over the Internet is 100% secure.',
-    icon: LuLock,
+    icon: Lock,
     shortLabel: 'Security',
     title: 'Data Security',
   },
   {
     description:
       'We use cookies and similar technologies to enhance your experience, analyze usage, and assist in our marketing efforts. You can control cookies through your browser settings.',
-    icon: LuCookie,
+    icon: Cookie,
     shortLabel: 'Cookies',
     title: 'Cookie Policy',
   },
@@ -67,7 +60,7 @@ export default function PrivacyContent() {
     <div ref={containerRef}>
       <PageLayout
         badge="Legal"
-        badgeIcon={LuShield}
+        badgeIcon={Shield}
         compact
         title={<>Privacy Policy</>}
         description="How we protect your data. We don't sell your information."
@@ -105,7 +98,7 @@ export default function PrivacyContent() {
                       <ul className="space-y-3">
                         {section.listItems.map((item) => (
                           <li key={item} className="flex items-start gap-3">
-                            <LuCheck className="size-4 text-surface/65 mt-0.5 shrink-0" />
+                            <Check className="size-4 text-surface/65 mt-0.5 shrink-0" />
                             <span className="text-surface/60 text-sm">
                               {item}
                             </span>
@@ -164,7 +157,7 @@ export default function PrivacyContent() {
         <section className="py-40 gsap-section">
           <div className="container mx-auto px-6">
             <div className="text-center max-w-3xl mx-auto">
-              <LuMail className="size-12 mx-auto text-surface/30 mb-8" />
+              <Mail className="size-12 mx-auto text-surface/30 mb-8" />
               <h2 className="text-5xl font-semibold mb-10">Questions?</h2>
               <p className="text-surface/65 text-xl mb-12 font-medium">
                 If you have any questions about our privacy practices, please

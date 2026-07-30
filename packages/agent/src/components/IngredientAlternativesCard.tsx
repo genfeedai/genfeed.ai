@@ -7,12 +7,8 @@ import {
 } from '@genfeedai/agent/utils/generation-request';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { Image, RefreshCw, Video } from 'lucide-react';
 import { type ReactElement, useCallback, useRef, useState } from 'react';
-import {
-  HiArrowPath,
-  HiOutlinePhoto,
-  HiOutlineVideoCamera,
-} from 'react-icons/hi2';
 
 interface IngredientAlternativesCardProps {
   action: AgentUiAction;
@@ -104,9 +100,9 @@ export function IngredientAlternativesCard({
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         {isImage ? (
-          <HiOutlinePhoto className="size-4 text-primary" />
+          <Image className="size-4 text-primary" />
         ) : (
-          <HiOutlineVideoCamera className="size-4 text-primary" />
+          <Video className="size-4 text-primary" />
         )}
         <span className="text-sm font-medium text-foreground">
           {action.title}
@@ -161,7 +157,7 @@ export function IngredientAlternativesCard({
               onClick={handleRetry}
               className="w-full"
             >
-              <HiArrowPath className="size-4" />
+              <RefreshCw className="size-4" />
               Try Again
             </Button>
           </div>
@@ -201,7 +197,7 @@ export function IngredientAlternativesCard({
                 onClick={handleRetry}
                 className="flex-1"
               >
-                <HiArrowPath className="size-3" />
+                <RefreshCw className="size-3" />
                 Try Another
               </Button>
             </div>

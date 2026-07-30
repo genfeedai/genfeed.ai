@@ -31,7 +31,7 @@ import {
 } from '@web-components/content/NeuralGrid';
 import PageLayout from '@web-components/PageLayout';
 import ProofTestimonials from '@web-components/proof/ProofTestimonials';
-import { HiCheckCircle } from 'react-icons/hi2';
+import { CheckCircle2 } from 'lucide-react';
 
 /** Column order on the pricing table. Names resolve from @genfeedai/pricing. */
 const PLAN_ORDER: PlanTier[] = ['payg', 'pro', 'scale'];
@@ -160,7 +160,7 @@ export default function PricingContent() {
             {PRICING_RULES.map((rule) => (
               <div key={rule} className="bg-background px-5 py-4">
                 <div className="flex items-center gap-2 text-sm text-surface/65">
-                  <HiCheckCircle className="size-4 text-success" />
+                  <CheckCircle2 className="size-4 text-success" />
                   {rule}
                 </div>
               </div>
@@ -254,7 +254,7 @@ export default function PricingContent() {
                   <ul className="mb-auto space-y-4">
                     {plan.features.slice(0, 5).map((feature) => (
                       <li key={feature} className="flex items-start gap-3">
-                        <HiCheckCircle className="mt-0.5 size-4 shrink-0 text-surface/55" />
+                        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-surface/55" />
                         <span className="text-sm text-surface/60">
                           {feature}
                         </span>

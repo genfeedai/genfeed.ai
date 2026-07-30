@@ -12,24 +12,25 @@ import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
 import { logger } from '@services/core/logger.service';
 import { UsersService } from '@services/organization/users.service';
 import { Button } from '@ui/primitives/button';
+import {
+  CheckCircle2,
+  ImageIcon,
+  Music,
+  ScanFace,
+  Sparkles,
+  Video,
+} from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
-import { BsPersonBoundingBox } from 'react-icons/bs';
-import {
-  HiCheckCircle,
-  HiMusicalNote,
-  HiPhoto,
-  HiSparkles,
-  HiVideoCamera,
-} from 'react-icons/hi2';
+
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 
 const CONTENT_TYPES = [
-  { icon: HiPhoto, id: 'image', title: 'Images' },
-  { icon: HiVideoCamera, id: 'video', title: 'Videos' },
-  { icon: BsPersonBoundingBox, id: 'avatar', title: 'Avatars' },
-  { icon: HiMusicalNote, id: 'music', title: 'Music' },
+  { icon: ImageIcon, id: 'image', title: 'Images' },
+  { icon: Video, id: 'video', title: 'Videos' },
+  { icon: ScanFace, id: 'avatar', title: 'Avatars' },
+  { icon: Music, id: 'music', title: 'Music' },
 ] as const;
 
 const TIMELINE_STEPS = [
@@ -155,7 +156,7 @@ export default function SuccessContent() {
       {/* Success icon */}
       <div className="success-icon opacity-0 flex justify-center mb-8">
         <div className="size-20 bg-secondary shadow-border rounded-full flex items-center justify-center">
-          <HiCheckCircle className="size-10 text-success" />
+          <CheckCircle2 className="size-10 text-success" />
         </div>
       </div>
 
@@ -165,7 +166,7 @@ export default function SuccessContent() {
       </h1>
 
       <div className="success-credit-reveal opacity-0 mb-8 inline-flex items-center gap-3 rounded-full bg-secondary shadow-border px-5 py-3 text-left">
-        <HiSparkles className="size-5 text-foreground" />
+        <Sparkles className="size-5 text-foreground" />
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Starter Credits Ready
@@ -240,7 +241,7 @@ export default function SuccessContent() {
         <Button
           variant={ButtonVariant.DEFAULT}
           onClick={handleEnterWorkspace}
-          icon={<HiSparkles className="size-4" />}
+          icon={<Sparkles className="size-4" />}
           label="Enter Workspace"
         />
       </div>

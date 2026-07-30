@@ -3,7 +3,7 @@
 import { ButtonVariant, CampaignType } from '@genfeedai/enums';
 import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
-import { HiPlus } from 'react-icons/hi2';
+import { Plus } from 'lucide-react';
 
 type Props = {
   campaignType: CampaignType;
@@ -38,7 +38,7 @@ export default function OutreachCampaignAddTargets({
           <Button
             label={
               <>
-                <HiPlus /> Add Recipients
+                <Plus /> Add Recipients
               </>
             }
             variant={ButtonVariant.DEFAULT}
@@ -65,7 +65,7 @@ export default function OutreachCampaignAddTargets({
         <Button
           label={
             <>
-              <HiPlus /> Add Targets
+              <Plus /> Add Targets
             </>
           }
           variant={ButtonVariant.DEFAULT}

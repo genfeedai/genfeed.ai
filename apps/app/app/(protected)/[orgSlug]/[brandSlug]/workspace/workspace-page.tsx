@@ -17,9 +17,10 @@ import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
+import { LayoutGrid } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Suspense, startTransition, useEffect, useMemo } from 'react';
-import { HiOutlineSquares2X2 } from 'react-icons/hi2';
+
 import { useWorkspaceSurfaceSelection } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
 import { getWorkspaceOverviewArtifactReferences } from '@/features/workspace-overview/workspace-overview-artifact-references';
 import { useWorkspacePageContent } from './use-workspace-page-content';
@@ -232,7 +233,7 @@ function WorkspacePageContentContent({
     <Container
       label={sectionCopy.title}
       description={sectionCopy.description}
-      icon={HiOutlineSquares2X2}
+      icon={LayoutGrid}
       fullWidth
       titleVisibility="sr-only"
       right={

@@ -6,8 +6,8 @@ import type { ITag } from '@genfeedai/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import TagBadge from '@ui/tags/badge/TagBadge';
+import { Check, Plus } from 'lucide-react';
 import type { RefObject } from 'react';
-import { HiCheck, HiPlus } from 'react-icons/hi2';
 
 type DropdownPosition = {
   left: number;
@@ -133,7 +133,7 @@ export default function DropdownTagsPanel({
                 isDisabled={isCreating}
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-background transition-colors"
               >
-                <HiPlus className="size-4 text-primary" />
+                <Plus className="size-4 text-primary" />
                 <span className="flex-1 text-left">
                   Create <strong>&quot;{searchQuery}&quot;</strong>
                 </span>
@@ -163,7 +163,7 @@ export default function DropdownTagsPanel({
                         : 'border-white/[0.08]',
                     )}
                   >
-                    {selected && <HiCheck className="size-3 text-white" />}
+                    {selected && <Check className="size-3 text-white" />}
                   </div>
 
                   <span className="flex-1 text-left truncate">{tag.label}</span>

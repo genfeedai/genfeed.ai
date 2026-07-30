@@ -9,20 +9,20 @@ import Card from '@ui/card/Card';
 import CardIcon from '@ui/card/icon/CardIcon';
 import OverviewLayout from '@ui/overview/OverviewLayout';
 import { Button } from '@ui/primitives/button';
+import {
+  ClipboardList,
+  Cpu,
+  Home,
+  LineChart,
+  List,
+  Megaphone,
+  MessageSquare,
+  Settings,
+  Sparkles,
+  Zap,
+} from 'lucide-react';
 import Link from 'next/link';
 import type { ComponentType } from 'react';
-import {
-  HiBolt,
-  HiChatBubbleLeftRight,
-  HiClipboardDocumentList,
-  HiMegaphone,
-  HiOutlineCog6Tooth,
-  HiOutlineCpuChip,
-  HiOutlineHome,
-  HiOutlineQueueList,
-  HiPresentationChartLine,
-  HiSparkles,
-} from 'react-icons/hi2';
 
 export default function AutomationOverviewPage() {
   const { href } = useOrgUrl();
@@ -33,7 +33,7 @@ export default function AutomationOverviewPage() {
       cta: 'Inspect Workspace',
       description: 'Start from the unified agents workspace overview',
       href: APP_ROUTES.ORCHESTRATION.LIBRARY,
-      icon: HiOutlineCog6Tooth,
+      icon: Settings,
       id: 'library',
       label: 'Library',
     },
@@ -42,7 +42,7 @@ export default function AutomationOverviewPage() {
       cta: 'Open Runs',
       description: 'Track active, failed, and completed agent runs',
       href: APP_ROUTES.ORCHESTRATION.RUNS,
-      icon: HiOutlineCpuChip,
+      icon: Cpu,
       id: 'runs',
       label: 'Runs',
     },
@@ -52,7 +52,7 @@ export default function AutomationOverviewPage() {
       description:
         'Run fixed automation graphs for repeatable content pipelines',
       href: href('/workflows'),
-      icon: HiMegaphone,
+      icon: Megaphone,
       id: 'workflows',
       label: 'Workflows',
     },
@@ -62,7 +62,7 @@ export default function AutomationOverviewPage() {
       description:
         'Manage agent policies that schedule adaptive autonomous runs',
       href: APP_ROUTES.ORCHESTRATION.AUTOPILOT,
-      icon: HiChatBubbleLeftRight,
+      icon: MessageSquare,
       id: 'strategies',
       label: 'Autopilot',
     },
@@ -71,7 +71,7 @@ export default function AutomationOverviewPage() {
       cta: 'Open Configuration',
       description: 'Tune workspace-wide configuration and operating defaults',
       href: APP_ROUTES.ORCHESTRATION.CONFIGURATION,
-      icon: HiClipboardDocumentList,
+      icon: ClipboardList,
       id: 'configuration',
       label: 'Configuration',
     },
@@ -80,7 +80,7 @@ export default function AutomationOverviewPage() {
       cta: 'View Analytics',
       description: 'Performance metrics and insights',
       href: APP_ROUTES.ORCHESTRATION.ANALYTICS,
-      icon: HiPresentationChartLine,
+      icon: LineChart,
       id: 'analytics',
       label: 'Analytics',
     },
@@ -93,7 +93,7 @@ export default function AutomationOverviewPage() {
       description:
         'Enable or inspect agent roles for content, engagement, and support.',
       href: APP_ROUTES.ORCHESTRATION.LIBRARY,
-      icon: HiOutlineCog6Tooth,
+      icon: Settings,
       kicker: 'Workspace',
       label: 'Agent Library',
     },
@@ -102,7 +102,7 @@ export default function AutomationOverviewPage() {
       cta: 'Open Runs',
       description: 'Review live work, failures, and completed outputs.',
       href: APP_ROUTES.ORCHESTRATION.RUNS,
-      icon: HiOutlineQueueList,
+      icon: List,
       kicker: 'Operations',
       label: 'Run Console',
     },
@@ -112,7 +112,7 @@ export default function AutomationOverviewPage() {
       description:
         'Use workflows for fixed, reusable automation graphs and scheduled pipelines.',
       href: href('/workflows'),
-      icon: HiMegaphone,
+      icon: Megaphone,
       kicker: 'Automation',
       label: 'Workflow Engine',
     },
@@ -122,7 +122,7 @@ export default function AutomationOverviewPage() {
       description:
         'Use autopilot policies when the agent should decide what to do each run.',
       href: APP_ROUTES.ORCHESTRATION.AUTOPILOT,
-      icon: HiChatBubbleLeftRight,
+      icon: MessageSquare,
       kicker: 'Guidance',
       label: 'Autopilot Policies',
     },
@@ -131,7 +131,7 @@ export default function AutomationOverviewPage() {
       cta: 'Open Analytics',
       description: 'Review automation performance and outcome analytics.',
       href: APP_ROUTES.ORCHESTRATION.ANALYTICS,
-      icon: HiSparkles,
+      icon: Sparkles,
       kicker: 'Insight',
       label: 'Automation Metrics',
     },
@@ -140,7 +140,7 @@ export default function AutomationOverviewPage() {
       cta: 'Open Configuration',
       description: 'Tune workspace defaults, policies, and operator settings.',
       href: APP_ROUTES.ORCHESTRATION.CONFIGURATION,
-      icon: HiBolt,
+      icon: Zap,
       kicker: 'Controls',
       label: 'Configuration Center',
     },
@@ -150,7 +150,7 @@ export default function AutomationOverviewPage() {
     <OverviewLayout
       label="Agents Overview"
       description="Operate brand agents, inspect runs, use Workflows for fixed automations, and use Autopilot for adaptive agent policies"
-      icon={HiOutlineHome}
+      icon={Home}
       cards={cards}
     >
       <h2 className="mb-4 text-xl font-semibold tracking-[-0.02em] text-foreground">

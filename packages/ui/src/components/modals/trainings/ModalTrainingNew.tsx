@@ -15,7 +15,8 @@ import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
-import { HiArrowUp } from 'react-icons/hi2';
+import { ArrowUp } from 'lucide-react';
+
 import TrainingFileList from './TrainingFileList';
 import TrainingFormInputs from './TrainingFormInputs';
 import { useModalTrainingNew } from './useModalTrainingNew';
@@ -104,7 +105,7 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
 
           <Button
             variant={ButtonVariant.DEFAULT}
-            icon={<HiArrowUp />}
+            icon={<ArrowUp />}
             label={isSubmitting ? 'Training…' : 'Start Training'}
             tooltipPosition="left"
             type="submit"

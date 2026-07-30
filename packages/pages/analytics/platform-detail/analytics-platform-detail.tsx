@@ -15,19 +15,19 @@ import Table from '@ui/display/table/Table';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import {
+  ArrowLeft,
+  ArrowRight,
+  BarChart3,
+  Eye,
+  Flame,
+  Heart,
+  Trophy,
+  Video,
+} from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import {
-  HiArrowLeft,
-  HiArrowRight,
-  HiChartBar,
-  HiEye,
-  HiFire,
-  HiHeart,
-  HiTrophy,
-  HiVideoCamera,
-} from 'react-icons/hi2';
 
 const PLATFORM_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
@@ -131,14 +131,14 @@ export default function AnalyticsPlatformDetail({
     <Container
       label={`${platformLabel} Performance`}
       description={`${brandName} - ${posts.length} posts on ${platformLabel}`}
-      icon={HiChartBar}
+      icon={BarChart3}
       left={
         <Button
           onClick={() => router.push(`${basePath}/brands/${brandId}`)}
           variant={ButtonVariant.GHOST}
           size={ButtonSize.SM}
           className="gap-2"
-          icon={<HiArrowLeft className="size-4" />}
+          icon={<ArrowLeft className="size-4" />}
           label="Back to Brand"
         />
       }
@@ -151,42 +151,42 @@ export default function AnalyticsPlatformDetail({
         items={[
           {
             description: 'Published content',
-            icon: HiVideoCamera,
+            icon: Video,
             iconClassName: 'bg-white/10 text-foreground',
             label: 'Total Posts',
             value: posts.length,
           },
           {
             description: 'All posts combined',
-            icon: HiEye,
+            icon: Eye,
             iconClassName: 'bg-white/10 text-foreground',
             label: 'Total Views',
             value: formatCompactNumberIntl(totalViews),
           },
           {
             description: 'Per content piece',
-            icon: HiChartBar,
+            icon: BarChart3,
             iconClassName: 'bg-white/10 text-foreground',
             label: 'Avg Views/Post',
             value: formatCompactNumberIntl(avgViewsPerPost),
           },
           {
             description: `${formatCompactNumberIntl(totalLikes)} likes, ${formatCompactNumberIntl(totalComments)} comments`,
-            icon: HiHeart,
+            icon: Heart,
             iconClassName: 'bg-white/10 text-foreground',
             label: 'Total Engagement',
             value: formatCompactNumberIntl(totalEngagement),
           },
           {
             description: 'Average across posts',
-            icon: HiFire,
+            icon: Flame,
             iconClassName: 'bg-white/10 text-foreground',
             label: 'Engagement Rate',
             value: formatPercentageSimple(avgEngagementRate, 2),
           },
           {
             description: bestPost ? 'views on top post' : 'No posts yet',
-            icon: HiTrophy,
+            icon: Trophy,
             iconClassName: 'bg-white/10 text-foreground',
             label: 'Best Performing',
             value: bestPost
@@ -223,7 +223,7 @@ export default function AnalyticsPlatformDetail({
                       />
                     ) : (
                       <div className="size-16 bg-muted flex items-center justify-center">
-                        <HiVideoCamera className="size-6 text-foreground/30" />
+                        <Video className="size-6 text-foreground/30" />
                       </div>
                     )}
                     <div className="max-w-xs">
@@ -291,7 +291,7 @@ export default function AnalyticsPlatformDetail({
             ]}
             actions={[
               {
-                icon: <HiArrowRight className="size-4" />,
+                icon: <ArrowRight className="size-4" />,
                 onClick: (post) => setSelectedPostId(post.id),
                 tooltip: 'View Post Details',
               },

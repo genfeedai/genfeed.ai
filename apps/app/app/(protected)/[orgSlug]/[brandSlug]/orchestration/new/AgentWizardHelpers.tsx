@@ -2,7 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { HiCheck } from 'react-icons/hi2';
+import { Check } from 'lucide-react';
 
 const STEPS = [
   { id: 1, label: 'Choose Type' },
@@ -25,7 +25,7 @@ export function StepIndicator({ current }: { current: number }) {
                   : 'bg-foreground/10 text-foreground/50'
             }`}
           >
-            {current > step.id ? <HiCheck className="size-4" /> : step.id}
+            {current > step.id ? <Check className="size-4" /> : step.id}
           </span>
           <span
             className={`text-sm ${current >= step.id ? 'text-foreground' : 'text-foreground/40'}`}

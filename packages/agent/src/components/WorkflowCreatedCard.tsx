@@ -1,13 +1,9 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { CheckCircle2, Clock, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { type ReactElement, useCallback, useState } from 'react';
-import {
-  HiArrowTopRightOnSquare,
-  HiCheckCircle,
-  HiClock,
-} from 'react-icons/hi2';
 
 interface WorkflowCreatedCardProps {
   action: AgentUiAction;
@@ -47,7 +43,7 @@ export function WorkflowCreatedCard({
   return (
     <div className="my-2 overflow-hidden border border-emerald-500/20 bg-background">
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-        <HiCheckCircle className="size-5 text-emerald-500" />
+        <CheckCircle2 className="size-5 text-emerald-500" />
         <div>
           <h3 className="text-sm font-semibold text-foreground">
             {action.title || 'Automation created'}
@@ -67,7 +63,7 @@ export function WorkflowCreatedCard({
           </div>
           {action.scheduleSummary ? (
             <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <HiClock className="size-3.5" />
+              <Clock className="size-3.5" />
               <span>{action.scheduleSummary}</span>
             </div>
           ) : null}
@@ -89,7 +85,7 @@ export function WorkflowCreatedCard({
                     className="inline-flex items-center gap-1.5 border border-border px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent"
                   >
                     <span>{cta.label}</span>
-                    <HiArrowTopRightOnSquare className="size-3.5" />
+                    <ExternalLink className="size-3.5" />
                   </Link>
                 );
               }

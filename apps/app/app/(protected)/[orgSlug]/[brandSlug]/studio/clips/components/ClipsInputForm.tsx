@@ -5,7 +5,8 @@ import type { ClipsInputFormProps } from '@props/studio/clips.props';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { HiOutlineMagnifyingGlass, HiOutlineSparkles } from 'react-icons/hi2';
+import { Search, Sparkles } from 'lucide-react';
+
 import ClipModeSelector from './ClipModeSelector';
 
 export default function ClipsInputForm({
@@ -115,7 +116,7 @@ export default function ClipsInputForm({
               isSubmitting ? (
                 <Spinner size={ComponentSize.SM} className="text-white" />
               ) : (
-                <HiOutlineSparkles className="size-4" />
+                <Sparkles className="size-4" />
               )
             }
             label={isSubmitting ? 'Starting…' : 'Start Clip Factory'}
@@ -128,7 +129,7 @@ export default function ClipsInputForm({
               onClick={onAnalyze}
               isDisabled={isSubmitting || !youtubeUrl}
               className="text-xs text-zinc-500 hover:text-zinc-300"
-              icon={<HiOutlineMagnifyingGlass className="size-3.5" />}
+              icon={<Search className="size-3.5" />}
               label="Review highlights first"
             />
           </div>

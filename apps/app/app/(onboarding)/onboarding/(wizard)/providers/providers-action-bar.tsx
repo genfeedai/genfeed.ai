@@ -4,9 +4,9 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { OnboardingAccessMode } from '@genfeedai/interfaces';
 import { Button } from '@ui/primitives/button';
+import { ArrowLeft, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import type { MouseEvent } from 'react';
-import { HiArrowLeft, HiSparkles } from 'react-icons/hi2';
 
 type Props = {
   loading: boolean;
@@ -114,14 +114,14 @@ export default function ProvidersActionBar({
           size={ButtonSize.SM}
           withWrapper={false}
           onClick={onBack}
-          icon={<HiArrowLeft className="size-4" />}
+          icon={<ArrowLeft className="size-4" />}
           className="h-8 rounded-full border border-white/10 bg-white/[0.03] px-4 text-white/45 hover:border-white/15 hover:bg-white/[0.06] hover:text-white/75"
         >
           Back
         </Button>
 
         <div className="step-badge inline-flex h-8 shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[10px] font-black uppercase tracking-[0.2em] text-white/60">
-          <HiSparkles className="size-3" />
+          <Sparkles className="size-3" />
           Step 2 of 3
         </div>
       </div>

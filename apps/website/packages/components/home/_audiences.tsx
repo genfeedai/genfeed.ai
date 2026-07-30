@@ -8,9 +8,8 @@ import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import { HStack, VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import { ArrowRight, Building2, Check, User } from 'lucide-react';
 import Link from 'next/link';
-import { HiBuildingOffice2, HiUser } from 'react-icons/hi2';
-import { LuArrowRight, LuCheck } from 'react-icons/lu';
 
 const EYEBROW_CLASS =
   'text-xs font-bold uppercase tracking-widest text-surface/65';
@@ -58,7 +57,7 @@ export default function HomeAudiences(): React.ReactElement {
         <div className="grid grid-cols-1 gap-px bg-edge/5 lg:grid-cols-2">
           <div className="flex flex-col gap-5 bg-background p-8">
             <HStack className="items-center gap-2 text-surface/72">
-              <HiUser className="size-4" />
+              <User className="size-4" />
               <Text className={EYEBROW_CLASS}>
                 Creators &amp; solo marketers
               </Text>
@@ -69,7 +68,7 @@ export default function HomeAudiences(): React.ReactElement {
             <ul className="flex flex-col gap-3">
               {CREATOR_BENEFITS.map((benefit) => (
                 <li key={benefit.label} className="flex items-start gap-3">
-                  <LuCheck className="mt-0.5 size-4 shrink-0 text-surface/70" />
+                  <Check className="mt-0.5 size-4 shrink-0 text-surface/70" />
                   <Text className="text-sm leading-6 text-surface/72">
                     {benefit.label}
                   </Text>
@@ -88,7 +87,7 @@ export default function HomeAudiences(): React.ReactElement {
               >
                 <a href={`${EnvironmentService.apps.app}/sign-up`}>
                   Start for free
-                  <LuArrowRight className="size-4" />
+                  <ArrowRight className="size-4" />
                 </a>
               </ButtonTracked>
               <Link
@@ -103,7 +102,7 @@ export default function HomeAudiences(): React.ReactElement {
           <div className="flex flex-col gap-5 bg-background p-8">
             <HStack className="items-center justify-between">
               <HStack className="items-center gap-2 text-surface/72">
-                <HiBuildingOffice2 className="size-4" />
+                <Building2 className="size-4" />
                 <Text className={EYEBROW_CLASS}>
                   Agencies &amp; paid social
                 </Text>
@@ -120,7 +119,7 @@ export default function HomeAudiences(): React.ReactElement {
             <ul className="flex flex-col gap-3">
               {AGENCY_BENEFITS.map((benefit) => (
                 <li key={benefit.label} className="flex items-start gap-3">
-                  <LuCheck className="mt-0.5 size-4 shrink-0 text-surface/70" />
+                  <Check className="mt-0.5 size-4 shrink-0 text-surface/70" />
                   <Text className="text-sm leading-6 text-surface/72">
                     {benefit.label}
                   </Text>
@@ -143,7 +142,7 @@ export default function HomeAudiences(): React.ReactElement {
                   target="_blank"
                 >
                   Book a Demo
-                  <LuArrowRight className="size-4" />
+                  <ArrowRight className="size-4" />
                 </a>
               </ButtonTracked>
               <Link

@@ -1,13 +1,13 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import type { ReactElement } from 'react';
 import {
-  HiArrowTrendingDown,
-  HiArrowTrendingUp,
-  HiChartBar,
-  HiChatBubbleLeft,
-  HiEye,
-  HiHeart,
-} from 'react-icons/hi2';
+  BarChart3,
+  Eye,
+  Heart,
+  MessageCircle,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react';
+import type { ReactElement } from 'react';
 
 interface AnalyticsSnapshotCardProps {
   action: AgentUiAction;
@@ -47,25 +47,25 @@ export function AnalyticsSnapshotCard({
       : [
           {
             change: data?.viewsChange as number | undefined,
-            icon: <HiEye className="size-4" />,
+            icon: <Eye className="size-4" />,
             label: 'Views',
             value: formatNumber((data?.views as number) ?? 0),
           },
           {
             change: data?.likesChange as number | undefined,
-            icon: <HiHeart className="size-4" />,
+            icon: <Heart className="size-4" />,
             label: 'Likes',
             value: formatNumber((data?.likes as number) ?? 0),
           },
           {
             change: data?.commentsChange as number | undefined,
-            icon: <HiChatBubbleLeft className="size-4" />,
+            icon: <MessageCircle className="size-4" />,
             label: 'Comments',
             value: formatNumber((data?.comments as number) ?? 0),
           },
           {
             change: data?.engagementChange as number | undefined,
-            icon: <HiChartBar className="size-4" />,
+            icon: <BarChart3 className="size-4" />,
             label: 'Engagement',
             value: `${((data?.engagementRate as number) ?? 0).toFixed(1)}%`,
           },
@@ -74,7 +74,7 @@ export function AnalyticsSnapshotCard({
   return (
     <div className="border border-border bg-background p-4 my-2">
       <div className="flex items-center gap-2 mb-3">
-        <HiChartBar className="size-5 text-blue-500" />
+        <BarChart3 className="size-5 text-blue-500" />
         <h3 className="font-semibold text-sm">
           {action.title || 'Analytics Snapshot'}
         </h3>
@@ -100,9 +100,9 @@ export function AnalyticsSnapshotCard({
                   }`}
                 >
                   {metric.change >= 0 ? (
-                    <HiArrowTrendingUp className="size-3 mr-0.5" />
+                    <TrendingUp className="size-3 mr-0.5" />
                   ) : (
-                    <HiArrowTrendingDown className="size-3 mr-0.5" />
+                    <TrendingDown className="size-3 mr-0.5" />
                   )}
                   {Math.abs(metric.change).toFixed(1)}%
                 </span>
@@ -145,16 +145,16 @@ function getMetricIcon(label: string): ReactElement {
   const normalizedLabel = label.toLowerCase();
 
   if (normalizedLabel.includes('view')) {
-    return <HiEye className="size-4" />;
+    return <Eye className="size-4" />;
   }
 
   if (normalizedLabel.includes('like')) {
-    return <HiHeart className="size-4" />;
+    return <Heart className="size-4" />;
   }
 
   if (normalizedLabel.includes('comment')) {
-    return <HiChatBubbleLeft className="size-4" />;
+    return <MessageCircle className="size-4" />;
   }
 
-  return <HiChartBar className="size-4" />;
+  return <BarChart3 className="size-4" />;
 }

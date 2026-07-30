@@ -6,9 +6,9 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PageHeaderProps } from '@genfeedai/props/layout/page-header.props';
 import ContainerTitle from '@ui/layout/container-title/ContainerTitle';
 import { Button } from '@ui/primitives/button';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { HiArrowLeft } from 'react-icons/hi2';
 
 export default function PageHeader({
   backLabel,
@@ -48,14 +48,14 @@ export default function PageHeader({
             <Link href={backRoute}>
               <Button
                 label={backLabel}
-                icon={<HiArrowLeft className="size-4" />}
+                icon={<ArrowLeft className="size-4" />}
                 variant={ButtonVariant.GHOST}
               />
             </Link>
           ) : (
             <Button
               label={backLabel}
-              icon={<HiArrowLeft className="size-4" />}
+              icon={<ArrowLeft className="size-4" />}
               variant={ButtonVariant.GHOST}
               onClick={handleBack}
             />

@@ -8,22 +8,22 @@ import type {
 } from '@genfeedai/props/studio/prompt-generator.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
-import { memo, useCallback } from 'react';
 import {
-  HiOutlineAdjustmentsHorizontal,
-  HiOutlineBolt,
-  HiOutlineCamera,
-  HiOutlineFilm,
-  HiOutlineLightBulb,
-  HiOutlinePaintBrush,
-  HiOutlinePhoto,
-  HiOutlineSun,
-  HiXMark,
-} from 'react-icons/hi2';
+  Camera,
+  Film,
+  Image,
+  Lightbulb,
+  Paintbrush,
+  SlidersHorizontal,
+  Sun,
+  X,
+  Zap,
+} from 'lucide-react';
+import { memo, useCallback } from 'react';
 
 const MEDIA_ICON = {
-  image: HiOutlinePhoto,
-  video: HiOutlineFilm,
+  image: Image,
+  video: Film,
 } as const;
 
 /**
@@ -80,7 +80,7 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
           'opacity-0 group-hover:opacity-100',
         )}
         ariaLabel="Dismiss prompt"
-        icon={<HiXMark className="size-4" />}
+        icon={<X className="size-4" />}
       />
 
       <div className="p-5 space-y-4">
@@ -95,31 +95,31 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
         <div className="flex flex-wrap gap-2">
           {prompt.style && (
             <MetadataTag
-              icon={<HiOutlinePaintBrush className="size-3" />}
+              icon={<Paintbrush className="size-3" />}
               label={prompt.style}
             />
           )}
           {prompt.mood && (
             <MetadataTag
-              icon={<HiOutlineLightBulb className="size-3" />}
+              icon={<Lightbulb className="size-3" />}
               label={prompt.mood}
             />
           )}
           {prompt.camera && (
             <MetadataTag
-              icon={<HiOutlineCamera className="size-3" />}
+              icon={<Camera className="size-3" />}
               label={prompt.camera}
             />
           )}
           {prompt.lighting && (
             <MetadataTag
-              icon={<HiOutlineSun className="size-3" />}
+              icon={<Sun className="size-3" />}
               label={prompt.lighting}
             />
           )}
           {prompt.cameraMovement && (
             <MetadataTag
-              icon={<HiOutlineFilm className="size-3" />}
+              icon={<Film className="size-3" />}
               label={prompt.cameraMovement}
             />
           )}
@@ -130,7 +130,7 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
           <Button
             variant={ButtonVariant.DEFAULT}
             size={ButtonSize.SM}
-            icon={<HiOutlineBolt className="size-4" />}
+            icon={<Zap className="size-4" />}
             onClick={handleQuickGenerate}
             isLoading={isCurrentlyGenerating && generatingType === targetMedia}
             isDisabled={isCurrentlyGenerating}
@@ -142,7 +142,7 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
           <Button
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
-            icon={<HiOutlineAdjustmentsHorizontal className="size-4" />}
+            icon={<SlidersHorizontal className="size-4" />}
             onClick={handleCustomize}
             isDisabled={isCurrentlyGenerating}
             className="flex-1"

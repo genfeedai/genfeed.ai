@@ -1,12 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
-import { HiSparkles } from 'react-icons/hi2';
+import { Sparkles } from 'lucide-react';
+
 import { describe, expect, it } from 'vitest';
 
 describe('KPISection', () => {
   const items = [
     {
-      icon: HiSparkles,
+      icon: Sparkles,
       label: 'Views',
       value: '1.2K',
     },

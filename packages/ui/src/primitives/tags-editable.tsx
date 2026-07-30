@@ -1,6 +1,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
+import { Check, Pencil, Plus, X } from 'lucide-react';
 import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
-import { HiCheck, HiPencil, HiPlus, HiXMark } from 'react-icons/hi2';
+
 import { Badge } from './badge';
 import { Button } from './button';
 import { Input } from './input';
@@ -115,7 +116,7 @@ export default function TagsEditable({
             className="h-6 px-2 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground"
             ariaLabel="Edit tags"
           >
-            <HiPencil className="size-3" />
+            <Pencil className="size-3" />
           </Button>
         )}
       </div>
@@ -133,7 +134,7 @@ export default function TagsEditable({
                   className="hover:text-error"
                   ariaLabel={`Remove ${tag}`}
                 >
-                  <HiXMark className="size-3" />
+                  <X className="size-3" />
                 </Button>
               </Badge>
             ))}
@@ -161,7 +162,7 @@ export default function TagsEditable({
                 isDisabled={!inputValue.trim() || isDisabled}
                 ariaLabel="Add tag"
               >
-                <HiPlus />
+                <Plus />
               </Button>
             </div>
           )}
@@ -185,7 +186,7 @@ export default function TagsEditable({
               isDisabled={isDisabled}
               ariaLabel="Save tags"
             >
-              <HiCheck className="size-3" />
+              <Check className="size-3" />
               Save
             </Button>
           </div>

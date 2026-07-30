@@ -5,8 +5,8 @@ import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
+import { X } from 'lucide-react';
 import Image from 'next/image';
-import { HiXMark } from 'react-icons/hi2';
 
 type ChildrenListProps = {
   items: IIngredient[];
@@ -84,7 +84,7 @@ export default function ChildrenList({
                   className="absolute top-1 right-1 bg-error text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-error-focus disabled:opacity-50"
                   ariaLabel="Remove child"
                 >
-                  <HiXMark className="size-3" />
+                  <X className="size-3" />
                 </Button>
               )}
             </div>

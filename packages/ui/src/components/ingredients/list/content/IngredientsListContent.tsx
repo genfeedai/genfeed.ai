@@ -19,9 +19,9 @@ import AppTable from '@ui/display/table/Table';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientSound from '@ui/ingredients/sound/IngredientSound';
+import { Eye } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useMemo } from 'react';
-import { HiEye } from 'react-icons/hi2';
 
 export default function IngredientsListContent({
   type,
@@ -160,7 +160,7 @@ export default function IngredientsListContent({
   const tableActions = useMemo(
     () => [
       {
-        icon: <HiEye />,
+        icon: <Eye />,
         onClick: handleViewIngredient,
         tooltip: 'View',
       },

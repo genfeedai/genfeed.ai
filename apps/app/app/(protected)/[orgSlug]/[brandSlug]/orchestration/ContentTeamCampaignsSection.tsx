@@ -6,8 +6,8 @@ import type { AgentCampaign } from '@services/automation/agent-campaigns.service
 import type { AgentStrategy } from '@services/automation/agent-strategies.service';
 import Card from '@ui/card/Card';
 import { Button as PrimitiveButton } from '@ui/primitives/button';
+import { LayoutDashboard } from 'lucide-react';
 import Link from 'next/link';
-import { HiOutlineRectangleGroup } from 'react-icons/hi2';
 
 function resolveCampaignLeadLabel(
   campaign: AgentCampaign,
@@ -94,7 +94,7 @@ export default function ContentTeamCampaignsSection({
         <Card
           bodyClassName="flex flex-col items-start gap-4 p-6"
           description="Create a main orchestrator campaign to coordinate goals, budgets, and active specialists."
-          icon={HiOutlineRectangleGroup}
+          icon={LayoutDashboard}
           iconWrapperClassName="bg-tertiary text-muted-foreground"
           label="No orchestrators launched yet"
         >

@@ -2,12 +2,7 @@
 
 import type { IBatchSummary } from '@genfeedai/interfaces';
 import StatsCards from '@ui/card/stats/StatsCards';
-import {
-  HiCheckCircle,
-  HiClock,
-  HiExclamationTriangle,
-  HiSquare3Stack3D,
-} from 'react-icons/hi2';
+import { AlertTriangle, CheckCircle2, Clock, Layers } from 'lucide-react';
 
 interface ReviewStatsHeaderProps {
   batch: IBatchSummary | null;
@@ -23,28 +18,28 @@ export default function ReviewStatsHeader({
         {
           colorClass: 'bg-blue-500/20 text-blue-400',
           count: batch.totalCount,
-          icon: HiSquare3Stack3D,
+          icon: Layers,
           label: 'Total',
           singularLabel: 'item',
         },
         {
           colorClass: 'bg-emerald-500/20 text-emerald-400',
           count: batch.completedCount,
-          icon: HiCheckCircle,
+          icon: CheckCircle2,
           label: 'Completed',
           singularLabel: 'item',
         },
         {
           colorClass: 'bg-rose-500/20 text-rose-400',
           count: batch.failedCount,
-          icon: HiExclamationTriangle,
+          icon: AlertTriangle,
           label: 'Failed',
           singularLabel: 'item',
         },
         {
           colorClass: 'bg-amber-500/20 text-amber-400',
           count: batch.pendingCount,
-          icon: HiClock,
+          icon: Clock,
           label: 'Pending',
           singularLabel: 'item',
         },

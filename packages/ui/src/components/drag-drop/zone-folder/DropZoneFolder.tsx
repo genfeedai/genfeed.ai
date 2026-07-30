@@ -6,9 +6,9 @@ import type { FolderDropZoneProps } from '@genfeedai/props/content/folder-drop-z
 import { logger } from '@genfeedai/services/core/logger.service';
 import { readIngredientTransferData } from '@ui/drag-drop/shared/ingredient-transfer';
 import { Button } from '@ui/primitives/button';
+import { Folder, FolderOpen } from 'lucide-react';
 import type { DragEvent } from 'react';
 import { useState } from 'react';
-import { HiFolder, HiFolderOpen } from 'react-icons/hi2';
 
 export default function DropZoneFolder({
   folder,
@@ -77,9 +77,9 @@ export default function DropZoneFolder({
       {children || (
         <div className="flex items-center gap-2">
           {isDragOver ? (
-            <HiFolderOpen className="text-xl text-primary" />
+            <FolderOpen className="text-xl text-primary" />
           ) : (
-            <HiFolder className="text-xl text-foreground/60" />
+            <Folder className="text-xl text-foreground/60" />
           )}
 
           <span className="font-medium">

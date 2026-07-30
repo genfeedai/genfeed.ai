@@ -2,7 +2,7 @@
 
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
-import { HiXMark } from 'react-icons/hi2';
+import { X } from 'lucide-react';
 
 type TagDisplayItem = {
   id: string;
@@ -41,7 +41,7 @@ export default function TagsList({
           {!isReadOnly && (
             <Button
               label={''}
-              icon={<HiXMark className="size-3" />}
+              icon={<X className="size-3" />}
               onClick={() => onRemoveTag(tagDisplay.id)}
               isDisabled={isSaving}
               className="hover:opacity-70 transition-opacity"

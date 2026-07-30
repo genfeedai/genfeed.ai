@@ -1,8 +1,8 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { Check, Image } from 'lucide-react';
 import { type ReactElement, useCallback, useState } from 'react';
-import { HiCheck, HiPhoto } from 'react-icons/hi2';
 
 type Ingredient = NonNullable<AgentUiAction['ingredients']>[number];
 
@@ -65,7 +65,7 @@ function IngredientThumbnail({
       {/* Selected checkmark */}
       {isSelected && (
         <div className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-primary">
-          <HiCheck className="size-2.5 text-primary-foreground" />
+          <Check className="size-2.5 text-primary-foreground" />
         </div>
       )}
     </Button>
@@ -105,7 +105,7 @@ export function IngredientPickerCard({
     return (
       <div className="mt-2 flex items-center justify-between border border-border bg-background px-3 py-2.5">
         <div className="flex items-center gap-2">
-          <HiCheck className="size-4 text-primary" />
+          <Check className="size-4 text-primary" />
           <span className="text-sm text-foreground">
             Selected:{' '}
             <span className="font-medium">
@@ -129,7 +129,7 @@ export function IngredientPickerCard({
     <div className="mt-2 border border-border bg-background">
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
-        <HiPhoto className="size-4 shrink-0 text-muted-foreground" />
+        <Image className="size-4 shrink-0 text-muted-foreground" />
         <div className="min-w-0">
           <p className="text-sm font-medium text-foreground">{action.title}</p>
           {action.description && (
@@ -169,7 +169,7 @@ export function IngredientPickerCard({
             onClick={handleConfirm}
             className="w-full"
           >
-            <HiCheck className="size-3.5" />
+            <Check className="size-3.5" />
             Use this ingredient
           </Button>
         </div>

@@ -12,8 +12,9 @@ import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props'
 import { logger } from '@services/core/logger.service';
 import { BrandsService } from '@services/social/brands.service';
 import Container from '@ui/layout/container/Container';
+import { BarChart3 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { HiOutlineChartBar } from 'react-icons/hi2';
+
 import BrandChartsGrid from './BrandChartsGrid';
 import BrandKPISection from './BrandKPISection';
 import BrandTopPostsTable from './BrandTopPostsTable';
@@ -219,7 +220,7 @@ export default function AnalyticsBrandOverview({
     <Container
       label={`${brandName || 'Brand'} Analytics`}
       description="Performance metrics and content overview."
-      icon={HiOutlineChartBar}
+      icon={BarChart3}
     >
       <div className="space-y-6">
         <BrandKPISection

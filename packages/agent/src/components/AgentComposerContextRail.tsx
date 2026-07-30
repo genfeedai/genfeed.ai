@@ -1,6 +1,6 @@
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
+import { MessageSquare } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { HiOutlineChatBubbleLeftRight } from 'react-icons/hi2';
 
 interface AgentComposerContextRailProps {
   attachmentCount: number;
@@ -16,7 +16,7 @@ export function AgentComposerContextRail({
 
   return (
     <div className="flex min-h-0 items-center gap-1.5 px-3.5 pt-2.5">
-      <HiOutlineChatBubbleLeftRight
+      <MessageSquare
         aria-hidden="true"
         className="size-3 shrink-0 text-muted-foreground"
       />

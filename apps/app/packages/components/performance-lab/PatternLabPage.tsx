@@ -18,8 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { FlaskConical } from 'lucide-react';
 import { useCallback, useId, useState } from 'react';
-import { HiOutlineBeaker } from 'react-icons/hi2';
 
 const PLATFORM_OPTIONS = [
   { label: 'All Platforms', value: '' },
@@ -191,7 +191,7 @@ export default function PatternLabPage({ className }: PatternLabPageProps) {
     <Container
       label="Performance Lab"
       description="Creative patterns from real performance data."
-      icon={HiOutlineBeaker}
+      icon={FlaskConical}
       className={className}
     >
       {filterBar}
@@ -221,7 +221,7 @@ export default function PatternLabPage({ className }: PatternLabPageProps) {
       {!isLoading && !error && patterns.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="p-4 bg-white/[0.04] mb-4">
-            <HiOutlineBeaker className="size-8 text-foreground/30" />
+            <FlaskConical className="size-8 text-foreground/30" />
           </div>
           <h3 className="font-medium text-foreground/70 mb-1">
             No patterns found

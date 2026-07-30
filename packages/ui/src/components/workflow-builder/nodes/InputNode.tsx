@@ -2,23 +2,18 @@
 
 import type { InputNodeProps } from '@genfeedai/props/automation/workflow-builder.props';
 import BaseNode from '@ui/workflow-builder/nodes/BaseNode';
+import { FileText, FolderOpen, Image, Video } from 'lucide-react';
 import { memo } from 'react';
-import {
-  HiOutlineDocumentText,
-  HiOutlineFolderOpen,
-  HiOutlinePhoto,
-  HiOutlineVideoCamera,
-} from 'react-icons/hi2';
 
 const INPUT_NODE_ICONS: Record<string, React.ReactNode> = {
-  'input-asset': <HiOutlineFolderOpen />,
-  'input-image': <HiOutlinePhoto />,
-  'input-prompt': <HiOutlineDocumentText />,
-  'input-template': <HiOutlineDocumentText />,
-  'input-video': <HiOutlineVideoCamera />,
+  'input-asset': <FolderOpen />,
+  'input-image': <Image />,
+  'input-prompt': <FileText />,
+  'input-template': <FileText />,
+  'input-video': <Video />,
 };
 
-const DEFAULT_INPUT_ICON = <HiOutlinePhoto />;
+const DEFAULT_INPUT_ICON = <Image />;
 
 function InputNode(props: InputNodeProps): React.ReactElement {
   const icon = INPUT_NODE_ICONS[props.data.nodeType] ?? DEFAULT_INPUT_ICON;

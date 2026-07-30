@@ -9,8 +9,9 @@ import {
 } from '@genfeedai/workflows/ui/stores';
 import { BYOK_CREDIT_VALUE_DOLLARS } from '@helpers/business/pricing/pricing.helper';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
+import { CreditCard } from 'lucide-react';
 import { useMemo } from 'react';
-import { HiOutlineCreditCard } from 'react-icons/hi2';
+
 import {
   coerceWorkflowItems,
   getWorkflowNodeConfig,
@@ -63,7 +64,7 @@ export function CloudCreditsIndicator() {
       title="Estimated workflow cost in credits"
       className="flex items-center gap-1.5 rounded border border-[var(--border)] px-2 py-1 text-sm text-[var(--muted-foreground)]"
     >
-      <HiOutlineCreditCard className="size-3.5" />
+      <CreditCard className="size-3.5" />
       <span className="font-mono text-xs">
         {formatNumberWithCommas(displayCredits)} credits
       </span>

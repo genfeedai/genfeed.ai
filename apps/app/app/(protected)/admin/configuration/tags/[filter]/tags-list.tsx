@@ -7,8 +7,9 @@ import type { TagsListProps } from '@props/tags/tags-list.props';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import AppTable from '@ui/display/table/Table';
 import { Switch } from '@ui/primitives/switch';
+import { Pencil, Trash2 } from 'lucide-react';
 import { Suspense, useMemo } from 'react';
-import { HiPencil, HiTrash } from 'react-icons/hi2';
+
 import {
   TagAccountCell,
   TagCategoryCell,
@@ -100,19 +101,19 @@ function TagsListContent(props: TagsListProps) {
       scope === 'superadmin'
         ? [
             {
-              icon: <HiPencil />,
+              icon: <Pencil />,
               onClick: (tag: ITag) => openTagModal(ModalEnum.TAG, tag),
               tooltip: 'Edit',
             },
             {
-              icon: <HiTrash />,
+              icon: <Trash2 />,
               onClick: openDeleteConfirm,
               tooltip: 'Delete',
             },
           ]
         : [
             {
-              icon: <HiPencil />,
+              icon: <Pencil />,
               isVisible: canEditTag,
               onClick: (tag: ITag) => openTagModal(ModalEnum.TAG, tag),
               tooltip: 'Edit',

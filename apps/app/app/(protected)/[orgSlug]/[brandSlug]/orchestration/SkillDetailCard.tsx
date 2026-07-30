@@ -13,7 +13,7 @@ import {
 } from '@ui/primitives/collapsible';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
-import { HiOutlineBeaker, HiOutlineSparkles } from 'react-icons/hi2';
+import { FlaskConical, Sparkles } from 'lucide-react';
 
 type SkillDraft = {
   defaultInstructions: string;
@@ -91,7 +91,7 @@ export default function SkillDetailCard({
               onClick={onOpenTestInChat}
               variant={ButtonVariant.SECONDARY}
             >
-              <HiOutlineBeaker className="size-4" />
+              <FlaskConical className="size-4" />
               Test with Agent
             </Button>
           </div>
@@ -115,7 +115,7 @@ export default function SkillDetailCard({
                   onClick={onCustomize}
                   variant={ButtonVariant.SECONDARY}
                 >
-                  <HiOutlineSparkles className="size-4" />
+                  <Sparkles className="size-4" />
                   {customizing ? 'Customizing…' : 'Customize'}
                 </Button>
               ) : null}

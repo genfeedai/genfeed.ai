@@ -6,14 +6,9 @@ import {
 } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { IAnalytics } from '@genfeedai/interfaces';
 import { ChartContainer } from '@ui/charts';
+import { ArrowRight, BarChart2, Eye, Heart } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import {
-  HiArrowRight,
-  HiChartBarSquare,
-  HiEye,
-  HiHeart,
-} from 'react-icons/hi2';
 
 const AreaChart = dynamic(() => import('recharts').then((m) => m.AreaChart), {
   ssr: false,
@@ -80,7 +75,7 @@ export function QuickAnalyticsPreview({
     return (
       <div className={cardClassName}>
         <div className="flex items-center gap-2 mb-6">
-          <HiChartBarSquare className="size-4 text-muted-foreground" />
+          <BarChart2 className="size-4 text-muted-foreground" />
           <h3 className="text-lg font-semibold text-foreground">{title}</h3>
         </div>
         <div className="text-center py-8">
@@ -92,7 +87,7 @@ export function QuickAnalyticsPreview({
             className="inline-flex items-center gap-2 rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
           >
             Go to Analytics
-            <HiArrowRight className="size-4" />
+            <ArrowRight className="size-4" />
           </Link>
         </div>
       </div>
@@ -102,21 +97,21 @@ export function QuickAnalyticsPreview({
   const quickStats = [
     {
       color: 'text-muted-foreground',
-      icon: HiChartBarSquare,
+      icon: BarChart2,
       label: 'Total Posts',
       value: data.totalPosts,
     },
     {
       color: 'text-muted-foreground',
       growth: data.viewsGrowth,
-      icon: HiEye,
+      icon: Eye,
       label: 'Total Views',
       value: data.totalViews,
     },
     {
       color: 'text-muted-foreground',
       growth: data.engagementGrowth,
-      icon: HiHeart,
+      icon: Heart,
       label: 'Engagement',
       value: data.totalLikes || 0,
     },
@@ -127,7 +122,7 @@ export function QuickAnalyticsPreview({
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <HiChartBarSquare className="size-4 text-muted-foreground" />
+          <BarChart2 className="size-4 text-muted-foreground" />
           <h3 className="text-lg font-semibold text-foreground">{title}</h3>
         </div>
         <span className="text-sm text-muted-foreground">Last 7 days</span>
@@ -240,7 +235,7 @@ export function QuickAnalyticsPreview({
         className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-foreground px-4 py-3 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
       >
         View Detailed Analytics
-        <HiArrowRight className="size-4" />
+        <ArrowRight className="size-4" />
       </Link>
     </div>
   );

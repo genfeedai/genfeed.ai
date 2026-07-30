@@ -3,7 +3,8 @@
 import type { AgentRunRowProps } from '@props/automation/agent-strategy.props';
 import Badge from '@ui/display/badge/Badge';
 import { TableCell, TableRow } from '@ui/primitives/table';
-import { HiChevronDown, HiChevronRight } from 'react-icons/hi2';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import AgentRunContentGrid from './AgentRunContentGrid';
 
@@ -52,9 +53,9 @@ export default function AgentRunRow({
       >
         <TableCell className="px-2 py-4 align-middle">
           {isExpanded ? (
-            <HiChevronDown className="size-4 text-foreground/40" />
+            <ChevronDown className="size-4 text-foreground/40" />
           ) : (
-            <HiChevronRight className="size-4 text-foreground/40" />
+            <ChevronRight className="size-4 text-foreground/40" />
           )}
         </TableCell>
         <TableCell className="p-4 align-middle">

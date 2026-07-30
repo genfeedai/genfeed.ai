@@ -18,9 +18,9 @@ import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalArticle } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Newspaper } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { HiOutlineNewspaper } from 'react-icons/hi2';
 
 interface ArticlesListProps {
   status?: string;
@@ -129,7 +129,7 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
         emptyLabel="No articles found"
         emptyState={
           <CardEmpty
-            icon={HiOutlineNewspaper}
+            icon={Newspaper}
             label="No articles yet"
             description="Create your first article to start building your content library."
             action={{

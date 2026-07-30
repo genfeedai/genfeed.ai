@@ -4,11 +4,8 @@ import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 import type { ReactElement } from 'react';
-import {
-  HiOutlineArrowPath,
-  HiOutlineExclamationTriangle,
-} from 'react-icons/hi2';
 
 interface AgentRunFailureCardProps {
   error: string | null | undefined;
@@ -35,7 +32,7 @@ export function AgentRunFailureCard({
     >
       <div className="flex items-start gap-3">
         <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-destructive/30 bg-destructive/10 text-destructive">
-          <HiOutlineExclamationTriangle className="size-3.5" aria-hidden />
+          <AlertTriangle className="size-3.5" aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-foreground">
@@ -65,7 +62,7 @@ export function AgentRunFailureCard({
                   void onRetry();
                 }}
                 className="h-8 gap-1.5 px-3 text-xs font-medium"
-                icon={<HiOutlineArrowPath className="size-3.5" />}
+                icon={<RefreshCw className="size-3.5" />}
               >
                 Retry
               </Button>

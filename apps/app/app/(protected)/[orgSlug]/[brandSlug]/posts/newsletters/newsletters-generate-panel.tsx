@@ -6,7 +6,7 @@ import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
-import { HiSparkles } from 'react-icons/hi2';
+import { Sparkles } from 'lucide-react';
 
 type TopicProposal = {
   angle: string;
@@ -64,7 +64,7 @@ export default function NewsletterGeneratePanel({
         <Button
           label="Generate Proposals"
           variant={ButtonVariant.SECONDARY}
-          icon={<HiSparkles />}
+          icon={<Sparkles />}
           isLoading={isGeneratingTopics}
           onClick={onGenerateTopics}
         />

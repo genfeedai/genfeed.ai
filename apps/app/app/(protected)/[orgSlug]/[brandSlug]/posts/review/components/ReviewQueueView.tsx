@@ -12,10 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import {
-  HiOutlineClipboardDocumentCheck,
-  HiOutlineExclamationTriangle,
-} from 'react-icons/hi2';
+import { AlertTriangle, ClipboardCheck } from 'lucide-react';
+
 import ReviewGrid from './ReviewGrid';
 import ReviewStatsHeader from './ReviewStatsHeader';
 import type { ReviewFilter, ReviewFilterCounts } from './review-grid.helpers';
@@ -81,7 +79,7 @@ export default function ReviewQueueView({
     <Container
       label="Publishing Inbox"
       description="Review generated assets and drafts before posting."
-      icon={HiOutlineClipboardDocumentCheck}
+      icon={ClipboardCheck}
       right={
         batchList.length > 0 ? (
           <Select value={activeBatchId ?? ''} onValueChange={onBatchChange}>
@@ -101,7 +99,7 @@ export default function ReviewQueueView({
     >
       {batchesError || hasInvalidBatchPayload ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-rose-500/20 bg-rose-500/5 py-16 text-center">
-          <HiOutlineExclamationTriangle className="mb-3 size-10 text-rose-400" />
+          <AlertTriangle className="mb-3 size-10 text-rose-400" />
           <p className="text-sm font-medium text-rose-100">
             Unable to load the review queue
           </p>
@@ -112,7 +110,7 @@ export default function ReviewQueueView({
         </div>
       ) : batchList.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-neutral-800 bg-neutral-900/50 py-16">
-          <HiOutlineClipboardDocumentCheck className="mb-3 size-10 text-neutral-600" />
+          <ClipboardCheck className="mb-3 size-10 text-neutral-600" />
           <p className="text-sm text-neutral-500">No review work waiting</p>
           <p className="mt-1 text-xs text-neutral-600">
             Approved assets will appear here when they are ready to post
@@ -126,7 +124,7 @@ export default function ReviewQueueView({
             <Loading />
           ) : activeBatchError ? (
             <div className="flex flex-col items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/5 py-16 text-center">
-              <HiOutlineExclamationTriangle className="mb-3 size-10 text-amber-400" />
+              <AlertTriangle className="mb-3 size-10 text-amber-400" />
               <p className="text-sm font-medium text-amber-100">
                 Unable to load the selected batch
               </p>
@@ -155,7 +153,7 @@ export default function ReviewQueueView({
             />
           ) : (
             <div className="flex flex-col items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/5 py-16 text-center">
-              <HiOutlineExclamationTriangle className="mb-3 size-10 text-amber-400" />
+              <AlertTriangle className="mb-3 size-10 text-amber-400" />
               <p className="text-sm font-medium text-amber-100">
                 No batch details are available
               </p>

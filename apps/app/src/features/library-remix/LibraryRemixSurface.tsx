@@ -12,8 +12,9 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { HiOutlineArrowRight, HiOutlineSparkles } from 'react-icons/hi2';
+
 import { useWorkspaceShellActions } from '@/components/workspace-shell/WorkspaceShellActionsContext';
 import LibrarySourcePreview, {
   getLibrarySourceLabel,
@@ -69,7 +70,7 @@ export default function LibraryRemixSurface({
         className="mx-auto flex min-h-[55vh] max-w-2xl items-center px-6 py-12"
       >
         <div className="w-full space-y-5 text-center">
-          <HiOutlineSparkles
+          <Sparkles
             aria-hidden="true"
             className="mx-auto size-9 text-muted-foreground"
           />
@@ -96,7 +97,7 @@ export default function LibraryRemixSurface({
               href={fullLibraryHref}
             >
               {shellActions ? 'Manage Library' : 'Choose in Library'}
-              <HiOutlineArrowRight aria-hidden="true" className="size-4" />
+              <ArrowRight aria-hidden="true" className="size-4" />
             </Link>
           </div>
         </div>
@@ -202,7 +203,7 @@ export default function LibraryRemixSurface({
             href={managementHref}
           >
             Open source in Library
-            <HiOutlineArrowRight aria-hidden="true" className="size-4" />
+            <ArrowRight aria-hidden="true" className="size-4" />
           </Link>
         </div>
       </div>

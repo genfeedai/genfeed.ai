@@ -33,6 +33,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import { Building2, ChevronDown, Tag } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
   type ReactNode,
@@ -41,11 +42,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import {
-  HiChevronDown,
-  HiOutlineBuildingOffice2,
-  HiOutlineTag,
-} from 'react-icons/hi2';
+
 import {
   buildConversationScopeHref,
   buildOrganizationNewThreadHref,
@@ -189,7 +186,7 @@ function ScopeTrigger({
       withWrapper={false}
     >
       <span className="truncate">{label}</span>
-      <HiChevronDown
+      <ChevronDown
         aria-hidden="true"
         className={cn('size-3 transition-transform', isOpen && 'rotate-180')}
       />
@@ -593,7 +590,7 @@ export function useConversationScopeControls({
         }}
         renderTrigger={({ isOpen }) => (
           <ScopeTrigger
-            icon={<HiOutlineBuildingOffice2 className="size-3.5" />}
+            icon={<Building2 className="size-3.5" />}
             isOpen={isOpen}
             label={organizationLabel}
           />
@@ -633,7 +630,7 @@ export function useConversationScopeControls({
         }}
         renderTrigger={({ isOpen }) => (
           <ScopeTrigger
-            icon={<HiOutlineTag className="size-3.5" />}
+            icon={<Tag className="size-3.5" />}
             isOpen={isOpen}
             label={brandLabel}
           />

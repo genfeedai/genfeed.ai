@@ -16,14 +16,9 @@ import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
+import { Clock, Flame, TrendingDown, TrendingUp } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
-import {
-  HiOutlineArrowTrendingDown,
-  HiOutlineArrowTrendingUp,
-  HiOutlineClock,
-  HiOutlineFire,
-} from 'react-icons/hi2';
 
 const TrendFlowChart = dynamic(() => import('./TrendFlowChart'), {
   loading: () => <div className="h-72 w-full bg-muted/40 animate-pulse" />,
@@ -107,25 +102,25 @@ export default function AnalyticsTrendTurnover() {
         items={[
           {
             description: `New trends in the last ${period} days`,
-            icon: HiOutlineArrowTrendingUp,
+            icon: TrendingUp,
             label: 'Appeared',
             value: totals?.appeared ?? 0,
           },
           {
             description: `Trends that expired in the last ${period} days`,
-            icon: HiOutlineArrowTrendingDown,
+            icon: TrendingDown,
             label: 'Died',
             value: totals?.died ?? 0,
           },
           {
             description: 'Average time a trend stays active',
-            icon: HiOutlineClock,
+            icon: Clock,
             label: 'Avg Lifespan',
             value: totals ? `${totals.avgLifespanDays.toFixed(1)}d` : ':',
           },
           {
             description: 'Percentage of new trends that expired',
-            icon: HiOutlineFire,
+            icon: Flame,
             label: 'Turnover Rate',
             value: totals ? `${totals.turnoverRate}%` : ':',
           },

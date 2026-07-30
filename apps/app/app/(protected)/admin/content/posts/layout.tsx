@@ -10,10 +10,10 @@ import { Platform } from '@genfeedai/enums';
 import { getPostPlatformTabs } from '@helpers/content/posts.helper';
 import Container from '@ui/layout/container/Container';
 import Tabs from '@ui/navigation/tabs/Tabs';
+import { Newspaper } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Suspense, useCallback, useMemo, useReducer } from 'react';
-import { HiOutlineNewspaper } from 'react-icons/hi2';
 
 const NOOP_POSTS_LAYOUT_CONTEXT_VALUE = {
   setExportNode: () => {},
@@ -194,7 +194,7 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
       <Container
         label="Posts"
         description="View and manage published content across all connected accounts"
-        icon={HiOutlineNewspaper}
+        icon={Newspaper}
         right={
           <div className="flex items-center gap-2">
             {viewToggleNode}

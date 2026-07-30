@@ -1,7 +1,8 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn';
+import { Search } from 'lucide-react';
 import type { ChangeEvent, ReactNode } from 'react';
-import { HiMagnifyingGlass } from 'react-icons/hi2';
+
 import { Button } from '../primitives/button';
 import { Input } from '../primitives/input';
 
@@ -29,7 +30,7 @@ export function ConversationSidebarSearch({
   return (
     <div className="flex items-center gap-1.5 px-3 pb-2">
       <div className="relative min-w-0 flex-1">
-        <HiMagnifyingGlass
+        <Search
           aria-hidden="true"
           className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-foreground/36"
         />

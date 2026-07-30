@@ -2,6 +2,11 @@
 
 import { APP_ROUTES } from '@genfeedai/constants';
 import { AgentType, ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import {
+  LinkedinIcon,
+  XTwitterIcon,
+  YoutubeIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
 import {
@@ -13,35 +18,34 @@ import { NotificationsService } from '@services/core/notifications.service';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { formatDistanceToNow } from 'date-fns';
+import {
+  Cpu,
+  FileText,
+  Image,
+  Megaphone,
+  PlayCircle,
+  Plus,
+  Sparkles,
+  User,
+  Video,
+  Zap,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef } from 'react';
-import { FaLinkedin, FaXTwitter, FaYoutube } from 'react-icons/fa6';
-import {
-  HiOutlineBolt,
-  HiOutlineCpuChip,
-  HiOutlineDocumentText,
-  HiOutlineMegaphone,
-  HiOutlinePhoto,
-  HiOutlinePlayCircle,
-  HiOutlineSparkles,
-  HiOutlineUser,
-  HiOutlineVideoCamera,
-  HiPlus,
-} from 'react-icons/hi2';
 
 const AGENT_TYPE_ICONS: Record<AgentType, React.ReactNode> = {
-  [AgentType.GENERAL]: <HiOutlineCpuChip className="size-5" />,
-  [AgentType.X_CONTENT]: <FaXTwitter className="size-4" />,
-  [AgentType.IMAGE_CREATOR]: <HiOutlinePhoto className="size-5" />,
-  [AgentType.VIDEO_CREATOR]: <HiOutlineVideoCamera className="size-5" />,
-  [AgentType.AI_AVATAR]: <HiOutlineUser className="size-5" />,
-  [AgentType.ARTICLE_WRITER]: <HiOutlineDocumentText className="size-5" />,
-  [AgentType.LINKEDIN_CONTENT]: <FaLinkedin className="size-4" />,
-  [AgentType.ADS_SCRIPT_WRITER]: <HiOutlineMegaphone className="size-5" />,
-  [AgentType.SHORT_FORM_WRITER]: <HiOutlineBolt className="size-5" />,
-  [AgentType.CTA_CONTENT]: <HiOutlineSparkles className="size-5" />,
-  [AgentType.YOUTUBE_SCRIPT]: <FaYoutube className="size-4" />,
-  [AgentType.BRAND_INTERVIEW]: <HiOutlineSparkles className="size-5" />,
+  [AgentType.GENERAL]: <Cpu className="size-5" />,
+  [AgentType.X_CONTENT]: <XTwitterIcon className="size-4" />,
+  [AgentType.IMAGE_CREATOR]: <Image className="size-5" />,
+  [AgentType.VIDEO_CREATOR]: <Video className="size-5" />,
+  [AgentType.AI_AVATAR]: <User className="size-5" />,
+  [AgentType.ARTICLE_WRITER]: <FileText className="size-5" />,
+  [AgentType.LINKEDIN_CONTENT]: <LinkedinIcon className="size-4" />,
+  [AgentType.ADS_SCRIPT_WRITER]: <Megaphone className="size-5" />,
+  [AgentType.SHORT_FORM_WRITER]: <Zap className="size-5" />,
+  [AgentType.CTA_CONTENT]: <Sparkles className="size-5" />,
+  [AgentType.YOUTUBE_SCRIPT]: <YoutubeIcon className="size-4" />,
+  [AgentType.BRAND_INTERVIEW]: <Sparkles className="size-5" />,
 };
 
 const AGENT_TYPE_LABELS: Record<AgentType, string> = {
@@ -69,9 +73,7 @@ function AgentCard({
   onRunNow: (id: string) => Promise<void>;
 }) {
   const agentType = strategy.agentType as AgentType;
-  const icon = AGENT_TYPE_ICONS[agentType] ?? (
-    <HiOutlineCpuChip className="size-5" />
-  );
+  const icon = AGENT_TYPE_ICONS[agentType] ?? <Cpu className="size-5" />;
   const typeLabel = AGENT_TYPE_LABELS[agentType] ?? strategy.agentType;
 
   const lastRunLabel = strategy.lastRunAt
@@ -118,7 +120,7 @@ function AgentCard({
       <div className="flex items-center gap-2 pt-1">
         <Button
           label="Run Now"
-          icon={<HiOutlinePlayCircle />}
+          icon={<PlayCircle />}
           size={ButtonSize.SM}
           variant={ButtonVariant.SECONDARY}
           onClick={() => onRunNow(strategy.id)}
@@ -195,13 +197,13 @@ export default function AgentHubPage() {
     <Container
       label="Agent Hub"
       description="Manage your content agents."
-      icon={HiOutlineCpuChip}
+      icon={Cpu}
       right={
         <Link href={APP_ROUTES.ORCHESTRATION.NEW}>
           <Button
             label={
               <>
-                <HiPlus /> New Agent
+                <Plus /> New Agent
               </>
             }
             variant={ButtonVariant.DEFAULT}
@@ -225,7 +227,7 @@ export default function AgentHubPage() {
       ) : strategies.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
           <span className="flex size-16 items-center justify-center rounded-full bg-foreground/5 text-foreground/30">
-            <HiOutlineCpuChip className="size-8" />
+            <Cpu className="size-8" />
           </span>
           <div>
             <p className="text-lg font-medium">No agents yet</p>
@@ -237,7 +239,7 @@ export default function AgentHubPage() {
             <Button
               label="Create your first agent"
               variant={ButtonVariant.DEFAULT}
-              icon={<HiPlus />}
+              icon={<Plus />}
             />
           </Link>
         </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { SiX } from 'react-icons/si';
+import { XIcon } from '@genfeedai/helpers/ui/icons/brands';
 import BotToggle from '@/features/workflows/components/bots/BotToggle';
 
 const TWITTER_CONFIG_ITEMS = [
@@ -15,7 +15,7 @@ export default function TwitterReplyBot() {
     <BotToggle
       title="Twitter/X Reply Bot"
       description="Automatically reply to mentions and tweets"
-      icon={<SiX className="size-6" />}
+      icon={<XIcon className="size-6" />}
       iconBgColor="bg-foreground/10"
       editorPath="/workflows/twitter-reply"
       enabledMessage="Bot is active and responding to mentions"

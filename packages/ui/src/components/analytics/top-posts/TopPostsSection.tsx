@@ -7,14 +7,9 @@ import { getPlatformIcon } from '@genfeedai/helpers/ui/platform-icon/platform-ic
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Card from '@ui/card/Card';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import { Eye, Heart, ImageIcon, MessageSquare } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import {
-  HiChatBubbleLeftRight,
-  HiEye,
-  HiHeart,
-  HiPhoto,
-} from 'react-icons/hi2';
 
 export interface TopPost {
   postId: string;
@@ -75,7 +70,7 @@ export default function TopPostsSection({
         className={className}
       >
         <div className="flex flex-col items-center justify-center py-8 text-foreground/60">
-          <HiPhoto className="size-12 mb-2 opacity-50" />
+          <ImageIcon className="size-12 mb-2 opacity-50" />
           <p className="text-sm">{EMPTY_STATES.POSTS_PERIOD}</p>
         </div>
       </Card>
@@ -140,15 +135,15 @@ export default function TopPostsSection({
               </h3>
               <div className="flex items-center gap-4 text-white/90 text-sm">
                 <span className="flex items-center gap-1.5">
-                  <HiEye className="size-4" />
+                  <Eye className="size-4" />
                   {formatCompactNumber(featuredPost.totalViews)}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <HiHeart className="size-4" />
+                  <Heart className="size-4" />
                   {formatCompactNumber(featuredPost.totalLikes)}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <HiChatBubbleLeftRight className="size-4" />
+                  <MessageSquare className="size-4" />
                   {formatCompactNumber(featuredPost.totalComments)}
                 </span>
               </div>
@@ -183,7 +178,7 @@ export default function TopPostsSection({
                   </div>
                   {/* Views badge */}
                   <div className="absolute bottom-1.5 right-1.5 bg-black/70 text-white px-2 py-0.5 rounded-full text-xs flex items-center gap-1">
-                    <HiEye className="size-3" />
+                    <Eye className="size-3" />
                     {formatCompactNumber(post.totalViews)}
                   </div>
                 </div>

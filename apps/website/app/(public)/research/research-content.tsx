@@ -10,15 +10,15 @@ import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import PageLayout from '@web-components/PageLayout';
-import Image from 'next/image';
 import {
-  HiArrowTrendingUp,
-  HiEye,
-  HiLightBulb,
-  HiMagnifyingGlass,
-  HiMegaphone,
-  HiSparkles,
-} from 'react-icons/hi2';
+  Eye,
+  Lightbulb,
+  Megaphone,
+  Search,
+  Sparkles,
+  TrendingUp,
+} from 'lucide-react';
+import Image from 'next/image';
 
 const CALENDLY_URL = EnvironmentService.calendly;
 
@@ -41,41 +41,41 @@ const FEATURES = [
   {
     description:
       'See what is trending right now, with the hooks and formats driving engagement.',
-    icon: HiArrowTrendingUp,
+    icon: TrendingUp,
     title: 'Trend Discovery Feed',
   },
   {
     description:
       'Watch competitor social accounts and get notified when their content takes off.',
-    icon: HiEye,
+    icon: Eye,
     title: 'Competitor Social Tracking',
   },
   {
     description:
       'Browse a searchable library of winning ad creative across platforms and niches.',
-    icon: HiMegaphone,
+    icon: Megaphone,
     title: 'Ad Creative Library',
   },
 ];
 
 const STEPS = [
   {
-    icon: HiMagnifyingGlass,
+    icon: Search,
     label: 'Discover',
     sublabel: 'Surface trending content and hooks as they emerge',
   },
   {
-    icon: HiEye,
+    icon: Eye,
     label: 'Track',
     sublabel: 'Follow competitor accounts and winning ad creative',
   },
   {
-    icon: HiArrowTrendingUp,
+    icon: TrendingUp,
     label: 'Analyze',
     sublabel: 'Understand why a trend or ad is working',
   },
   {
-    icon: HiLightBulb,
+    icon: Lightbulb,
     label: 'Brief',
     sublabel: 'Turn the insight into a ready brief in one click',
   },
@@ -154,7 +154,7 @@ export default function ResearchContent() {
             <HStack className="flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
                 <div className="size-20 flex items-center justify-center border border-[var(--gen-accent-border)] bg-white/[0.06]">
-                  <HiSparkles className="size-10 text-surface" />
+                  <Sparkles className="size-10 text-surface" />
                 </div>
               </div>
               <VStack className="gap-3">
@@ -269,7 +269,7 @@ export default function ResearchContent() {
         <section className="max-w-4xl mx-auto pb-16 px-6">
           <div className="text-center p-12 border border-[var(--gen-accent-border)] bg-white/[0.04]">
             <div className="flex justify-center mb-4">
-              <HiSparkles className="size-8 text-surface" />
+              <Sparkles className="size-8 text-surface" />
             </div>
             <Heading as="h3" className="text-2xl font-bold mb-2 text-surface">
               Start Discovering Today

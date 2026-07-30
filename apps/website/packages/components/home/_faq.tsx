@@ -12,8 +12,8 @@ import {
 } from '@ui/primitives/accordion';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
-import { LuArrowRight } from 'react-icons/lu';
 
 const EYEBROW_CLASS =
   'text-xs font-bold uppercase tracking-widest text-surface/65';
@@ -58,7 +58,7 @@ export default function HomeFAQ(): React.ReactElement {
           >
             <Link href="/faq">
               See all FAQs
-              <LuArrowRight className="size-3" />
+              <ArrowRight className="size-3" />
             </Link>
           </ButtonTracked>
         </HStack>

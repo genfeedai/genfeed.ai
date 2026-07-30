@@ -11,12 +11,8 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
+import { AlertTriangle, SignalZero, X } from 'lucide-react';
 import type { ReactElement } from 'react';
-import {
-  HiOutlineExclamationTriangle,
-  HiOutlineSignalSlash,
-  HiXMark,
-} from 'react-icons/hi2';
 
 interface AgentComposerStatusStackProps {
   activeWorkEvent: AgentWorkEvent | null;
@@ -117,7 +113,7 @@ export function AgentComposerStatusStack({
           )}
           role="alert"
         >
-          <HiOutlineExclamationTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
           <div className="min-w-0 flex-1 space-y-1">
             <p className="font-medium text-foreground text-sm leading-5">
               {composerError.summary}
@@ -131,7 +127,7 @@ export function AgentComposerStatusStack({
           <Button
             ariaLabel="Dismiss composer error"
             className="size-7 shrink-0"
-            icon={<HiXMark className="size-4" />}
+            icon={<X className="size-4" />}
             onClick={onClearError}
             variant={ButtonVariant.GHOST}
             withWrapper={false}
@@ -148,7 +144,7 @@ export function AgentComposerStatusStack({
           )}
           role="status"
         >
-          <HiOutlineSignalSlash className="size-4 shrink-0 text-warning" />
+          <SignalZero className="size-4 shrink-0 text-warning" />
           {socketConnectionState === 'offline'
             ? 'Offline. Your draft is safe; sending is paused.'
             : socketConnectionState === 'connecting'

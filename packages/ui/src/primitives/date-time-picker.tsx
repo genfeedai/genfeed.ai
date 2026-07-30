@@ -1,6 +1,6 @@
+import { Calendar, Clock } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useMemo, useState } from 'react';
-import { HiCalendar, HiClock } from 'react-icons/hi2';
 
 interface DateTimeResult {
   date: string;
@@ -406,7 +406,7 @@ export default function DateTimePicker({
             required={isRequired}
             className="h-10 border border-input px-3 w-full pr-10"
           />
-          <HiCalendar className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/50 pointer-events-none" />
+          <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/50 pointer-events-none" />
         </div>
 
         <div className="relative flex-1">
@@ -420,7 +420,7 @@ export default function DateTimePicker({
             <option value="">Select time</option>
             {selectedDate && generateTimeOptions()}
           </select>
-          <HiClock className="absolute right-8 top-1/2 -translate-y-1/2 text-foreground/50 pointer-events-none" />
+          <Clock className="absolute right-8 top-1/2 -translate-y-1/2 text-foreground/50 pointer-events-none" />
         </div>
       </div>
 

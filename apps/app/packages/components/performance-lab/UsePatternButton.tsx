@@ -4,9 +4,9 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { UsePatternButtonProps } from '@props/analytics/performance-lab.props';
 import { Button } from '@ui/primitives/button';
+import { Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
-import { HiOutlineSparkles } from 'react-icons/hi2';
 
 export default function UsePatternButton({ pattern }: UsePatternButtonProps) {
   const { push } = useRouter();
@@ -25,7 +25,7 @@ export default function UsePatternButton({ pattern }: UsePatternButtonProps) {
       variant={ButtonVariant.SECONDARY}
       onClick={createWorkflowFromPattern}
     >
-      <HiOutlineSparkles className="size-3.5" />
+      <Sparkles className="size-3.5" />
       Remix with this
     </Button>
   );

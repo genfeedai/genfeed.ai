@@ -4,9 +4,9 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Pre } from '@genfeedai/ui';
 import type { StructuredProgressDebugPayload } from '@genfeedai/utils/progress/structured-progress-event.util';
 import { Button } from '@ui/primitives/button';
+import { Check, Clipboard } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { useMemo, useState } from 'react';
-import { HiOutlineCheck, HiOutlineClipboardDocument } from 'react-icons/hi2';
 
 interface ToolCallDetailPanelProps {
   debug?: StructuredProgressDebugPayload;
@@ -93,9 +93,9 @@ export function ToolCallDetailPanel({
             onClick={() => void handleCopy()}
           >
             {copied ? (
-              <HiOutlineCheck className="size-3.5 text-emerald-500" />
+              <Check className="size-3.5 text-emerald-500" />
             ) : (
-              <HiOutlineClipboardDocument className="size-3.5" />
+              <Clipboard className="size-3.5" />
             )}
           </Button>
         </div>

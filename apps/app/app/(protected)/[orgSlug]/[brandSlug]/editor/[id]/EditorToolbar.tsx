@@ -12,6 +12,8 @@ import {
 import { Slider } from '@ui/primitives/slider';
 import {
   ArrowLeft,
+  Film,
+  Music,
   Pause,
   Play,
   SkipBack,
@@ -19,7 +21,7 @@ import {
   StepBack,
   StepForward,
 } from 'lucide-react';
-import { HiOutlineFilm, HiOutlineMusicalNote } from 'react-icons/hi2';
+
 import { formatPlaybackFrameTime } from './editor-time-format.util';
 
 export interface EditorToolbarProps {
@@ -183,7 +185,7 @@ function EditorToolbar({
             size={ButtonSize.SM}
             onClick={onAddVideoTrack}
             tooltip="Add Video Track"
-            icon={<HiOutlineFilm className="size-4" />}
+            icon={<Film className="size-4" />}
           >
             <span className="hidden sm:inline">Video</span>
           </Button>
@@ -193,7 +195,7 @@ function EditorToolbar({
             size={ButtonSize.SM}
             onClick={onAddAudioTrack}
             tooltip="Add Audio Track"
-            icon={<HiOutlineMusicalNote className="size-4" />}
+            icon={<Music className="size-4" />}
           >
             <span className="hidden sm:inline">Audio</span>
           </Button>

@@ -2,14 +2,8 @@ import { ButtonVariant } from '@genfeedai/enums';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import Button from '@ui/buttons/base/Button';
 import DropdownBase from '@ui/dropdowns/base/DropdownBase';
+import { Copy, Download, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import {
-  FiCopy,
-  FiDownload,
-  FiEdit,
-  FiMoreVertical,
-  FiTrash2,
-} from 'react-icons/fi';
 
 /**
  * DropdownBase component provides a reusable dropdown menu with consistent styling,
@@ -139,26 +133,26 @@ export const IconTrigger: Story = {
     <DropdownBase
       trigger={
         <button className="h-8 px-3 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground">
-          <FiMoreVertical size={16} />
+          <MoreVertical size={16} />
         </button>
       }
     >
       <div className="space-y-1">
         <button className="w-full flex items-center gap-2 px-3 py-2 hover:bg-background text-sm">
-          <FiEdit size={16} />
+          <Pencil size={16} />
           Edit
         </button>
         <button className="w-full flex items-center gap-2 px-3 py-2 hover:bg-background text-sm">
-          <FiCopy size={16} />
+          <Copy size={16} />
           Copy
         </button>
         <button className="w-full flex items-center gap-2 px-3 py-2 hover:bg-background text-sm">
-          <FiDownload size={16} />
+          <Download size={16} />
           Download
         </button>
         <div className="border-t border-white/[0.08] my-1" />
         <button className="w-full flex items-center gap-2 px-3 py-2 hover:bg-background text-sm text-error">
-          <FiTrash2 size={16} />
+          <Trash2 size={16} />
           Delete
         </button>
       </div>
@@ -290,17 +284,17 @@ export const Multiple: Story = {
       <DropdownBase
         trigger={
           <button className="h-8 px-3 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground">
-            <FiMoreVertical size={16} />
+            <MoreVertical size={16} />
           </button>
         }
       >
         <div className="space-y-1">
           <button className="w-full flex items-center gap-2 px-3 py-2 hover:bg-background text-sm">
-            <FiEdit size={16} />
+            <Pencil size={16} />
             Edit
           </button>
           <button className="w-full flex items-center gap-2 px-3 py-2 hover:bg-background text-sm">
-            <FiTrash2 size={16} />
+            <Trash2 size={16} />
             Delete
           </button>
         </div>

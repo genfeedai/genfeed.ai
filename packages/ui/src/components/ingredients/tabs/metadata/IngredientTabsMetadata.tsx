@@ -10,8 +10,8 @@ import { NotificationsService } from '@genfeedai/services/core/notifications.ser
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
+import { RefreshCw } from 'lucide-react';
 import { useState } from 'react';
-import { HiArrowPath } from 'react-icons/hi2';
 
 function formatValue(
   value: number,
@@ -224,7 +224,7 @@ export default function IngredientTabsMetadata({
 
       <Button
         icon={
-          <HiArrowPath
+          <RefreshCw
             className={`size-4 ${isRefreshing ? 'animate-spin' : ''}`}
           />
         }

@@ -8,8 +8,8 @@ import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown'
 import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
+import { X } from 'lucide-react';
 import type { ChangeEvent } from 'react';
-import { HiXMark } from 'react-icons/hi2';
 
 type FiltersPanelProps = {
   filters: IFiltersState;
@@ -167,7 +167,7 @@ export default function FiltersPanel({
           <Button
             label={
               <>
-                <HiXMark className="text-lg" /> Clear
+                <X className="text-lg" /> Clear
               </>
             }
             onClick={onClearFilters}

@@ -10,10 +10,18 @@ import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import PageLayout from '@web-components/PageLayout';
+import {
+  ArrowRight,
+  Calendar,
+  Clock,
+  Globe,
+  LinkIcon,
+  Rocket,
+  Send,
+  Zap,
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { HiBolt, HiClock, HiGlobeAlt, HiRocketLaunch } from 'react-icons/hi2';
-import { LuArrowRight, LuCalendar, LuLink, LuSend } from 'react-icons/lu';
 
 /* ------------------------------------------------------------------ */
 /*  Data                                                               */
@@ -23,19 +31,19 @@ const METRICS = [
   {
     after: '1 dashboard',
     before: '10 apps',
-    icon: HiGlobeAlt,
+    icon: Globe,
     label: 'Platform Management',
   },
   {
     after: '20 minutes',
     before: '3 hours',
-    icon: HiClock,
+    icon: Clock,
     label: 'Distribution Time',
   },
   {
     after: 'Perfect consistency',
     before: 'Missed posts',
-    icon: HiBolt,
+    icon: Zap,
     label: 'Publishing Reliability',
   },
 ];
@@ -44,19 +52,19 @@ const FEATURES = [
   {
     description:
       'Post to X, LinkedIn, Instagram, TikTok, YouTube, Facebook, Pinterest, Reddit, Discord, and Twitch from one composer.',
-    icon: HiGlobeAlt,
+    icon: Globe,
     title: '10+ Platforms',
   },
   {
     description:
       'Schedule weeks of content in advance. AI recommends best posting times for each platform.',
-    icon: HiClock,
+    icon: Clock,
     title: 'Smart Scheduling',
   },
   {
     description:
       'Auto-format content for each platform with platform-specific captions, hashtags, and formats.',
-    icon: HiBolt,
+    icon: Zap,
     title: 'Platform Optimization',
   },
 ];
@@ -78,22 +86,22 @@ const SHOWCASE_IMAGES = [
 
 const WORKFLOW_STEPS = [
   {
-    icon: LuLink,
+    icon: LinkIcon,
     label: 'Connect',
     sublabel: 'Link your social accounts in one click',
   },
   {
-    icon: LuArrowRight,
+    icon: ArrowRight,
     label: 'Create',
     sublabel: 'Compose once with AI-powered editing',
   },
   {
-    icon: LuCalendar,
+    icon: Calendar,
     label: 'Schedule',
     sublabel: 'Pick times or let AI choose the best',
   },
   {
-    icon: LuSend,
+    icon: Send,
     label: 'Publish',
     sublabel: 'Auto-format and post to every platform',
   },
@@ -168,7 +176,7 @@ export default function PublisherContent() {
             >
               <Link href="/pricing">
                 View Plans
-                <LuArrowRight className="size-4" />
+                <ArrowRight className="size-4" />
               </Link>
             </ButtonTracked>
             <ButtonTracked
@@ -196,7 +204,7 @@ export default function PublisherContent() {
             <HStack className="flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
                 <div className="size-20 flex items-center justify-center border border-[var(--gen-accent-border)] bg-white/[0.06]">
-                  <HiRocketLaunch className="size-10 text-surface" />
+                  <Rocket className="size-10 text-surface" />
                 </div>
               </div>
               <VStack className="gap-3">
@@ -341,7 +349,7 @@ export default function PublisherContent() {
         <section className="max-w-4xl mx-auto pb-16 px-6">
           <div className="text-center p-12 border border-[var(--gen-accent-border)] bg-white/[0.04]">
             <div className="flex justify-center mb-4">
-              <HiRocketLaunch className="size-8 text-surface" />
+              <Rocket className="size-8 text-surface" />
             </div>
             <Heading as="h3" className="text-2xl font-bold mb-2 text-surface">
               Start Publishing Today
@@ -360,7 +368,7 @@ export default function PublisherContent() {
               >
                 <Link href="/pricing">
                   View Plans
-                  <LuArrowRight className="size-4" />
+                  <ArrowRight className="size-4" />
                 </Link>
               </ButtonTracked>
               <ButtonTracked

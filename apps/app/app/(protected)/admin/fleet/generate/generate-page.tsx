@@ -11,8 +11,9 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
 import Container from '@ui/layout/container/Container';
+import { Image } from 'lucide-react';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
-import { HiOutlinePhoto } from 'react-icons/hi2';
+
 import GeneratedImagesGrid from './generated-images-grid';
 import GenerationForm from './generation-form';
 
@@ -300,7 +301,7 @@ export default function GeneratePage() {
     <Container
       label="Image Generation"
       description="Generate images for fleet characters using AI models"
-      icon={HiOutlinePhoto}
+      icon={Image}
       right={
         <ButtonRefresh
           onClick={() => dispatch({ type: 'CLEAR_GENERATED_IMAGES' })}

@@ -1,16 +1,16 @@
 import { ButtonVariant, CardEmptySize } from '@genfeedai/enums';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import { EmptyState, EmptyStateCard } from '@ui/card/EmptyState';
-import { HiInboxStack, HiPlus, HiVideoCamera } from 'react-icons/hi2';
+import { Inbox, Plus, Video } from 'lucide-react';
 
 const InboxIcon = ({ className }: { className?: string }) => (
-  <HiInboxStack className={className} />
+  <Inbox className={className} />
 );
 const PlusIcon = ({ className }: { className?: string }) => (
-  <HiPlus className={className} />
+  <Plus className={className} />
 );
 const VideoIcon = ({ className }: { className?: string }) => (
-  <HiVideoCamera className={className} />
+  <Video className={className} />
 );
 
 const noop = () => {

@@ -1,12 +1,12 @@
-'use client';
+import { Sparkles } from 'lucide-react';
 
-import { HiOutlineSparkles } from 'react-icons/hi2';
+('use client');
 
 export function GenerateEmptyState() {
   return (
     <div className="flex flex-col items-center text-center">
       <div className="mb-3 flex size-9 items-center justify-center rounded-md bg-foreground/[0.05] ring-1 ring-inset ring-foreground/[0.08]">
-        <HiOutlineSparkles className="size-4 text-foreground/68" />
+        <Sparkles className="size-4 text-foreground/68" />
       </div>
 
       <h2 className="mb-1 text-center text-base font-semibold tracking-[-0.02em] text-foreground">

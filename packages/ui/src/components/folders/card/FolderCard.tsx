@@ -2,7 +2,7 @@
 
 import type { FolderCardProps } from '@genfeedai/props/ui/content/folder.props';
 import Card from '@ui/card/Card';
-import { HiFolder } from 'react-icons/hi2';
+import { Folder } from 'lucide-react';
 
 export default function FolderCard({ folder, onClick }: FolderCardProps) {
   const activateFolder = () => onClick?.(folder);
@@ -14,7 +14,7 @@ export default function FolderCard({ folder, onClick }: FolderCardProps) {
       bodyClassName="gap-0 p-4"
     >
       <div className="flex flex-col items-center gap-3">
-        <HiFolder className="text-6xl text-primary/60 group-hover:text-primary transition-colors" />
+        <Folder className="text-6xl text-primary/60 group-hover:text-primary transition-colors" />
         <div className="text-center">
           <h3 className="font-medium truncate max-w-40">{folder.label}</h3>
           {folder.description && (

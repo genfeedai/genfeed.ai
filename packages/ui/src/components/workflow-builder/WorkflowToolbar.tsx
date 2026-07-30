@@ -4,14 +4,7 @@ import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import type { WorkflowToolbarProps } from '@genfeedai/props/automation/workflow-builder.props';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
-import {
-  HiOutlineArrowDownTray,
-  HiOutlineCheck,
-  HiOutlineClock,
-  HiOutlineCloudArrowUp,
-  HiOutlineListBullet,
-  HiOutlinePlay,
-} from 'react-icons/hi2';
+import { Check, Clock, CloudUpload, Download, List, Play } from 'lucide-react';
 
 export default function WorkflowToolbar({
   _workflowId,
@@ -49,7 +42,7 @@ export default function WorkflowToolbar({
               size={ButtonSize.SM}
               onClick={onValidate}
               ariaLabel="Validate workflow"
-              icon={<HiOutlineCheck className="size-4" />}
+              icon={<Check className="size-4" />}
               label="Validate"
             />
             <Button
@@ -58,7 +51,7 @@ export default function WorkflowToolbar({
               size={ButtonSize.SM}
               onClick={onSchedule}
               ariaLabel="Schedule workflow"
-              icon={<HiOutlineClock className="size-4" />}
+              icon={<Clock className="size-4" />}
               label="Schedule"
             />
             <Button
@@ -67,7 +60,7 @@ export default function WorkflowToolbar({
               size={ButtonSize.SM}
               onClick={onHistory}
               ariaLabel="Execution history"
-              icon={<HiOutlineListBullet className="size-4" />}
+              icon={<List className="size-4" />}
               label="History"
             />
             <Button
@@ -77,11 +70,7 @@ export default function WorkflowToolbar({
               onClick={onSave}
               isDisabled={isSaving || !isDirty}
               isLoading={isSaving}
-              icon={
-                !isSaving ? (
-                  <HiOutlineCloudArrowUp className="size-4" />
-                ) : undefined
-              }
+              icon={!isSaving ? <CloudUpload className="size-4" /> : undefined}
               label="Save"
             />
           </>
@@ -93,7 +82,7 @@ export default function WorkflowToolbar({
             size={ButtonSize.SM}
             onClick={onExportComfyUI}
             ariaLabel="Export ComfyUI template"
-            icon={<HiOutlineArrowDownTray className="size-4" />}
+            icon={<Download className="size-4" />}
             label="ComfyUI"
           />
         )}
@@ -103,7 +92,7 @@ export default function WorkflowToolbar({
           size={ButtonSize.SM}
           onClick={onRun}
           ariaLabel="Run workflow"
-          icon={<HiOutlinePlay className="size-4" />}
+          icon={<Play className="size-4" />}
           label="Run"
         />
       </div>

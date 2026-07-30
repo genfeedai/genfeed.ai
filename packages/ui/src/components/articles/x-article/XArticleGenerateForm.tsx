@@ -9,9 +9,9 @@ import FormDropdown from '@ui/primitives/dropdown-field';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
+import { Sparkles } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useState } from 'react';
-import { HiSparkles } from 'react-icons/hi2';
 
 const TONE_OPTIONS = [
   { key: 'authoritative', label: 'Authoritative' },
@@ -125,7 +125,7 @@ export default function XArticleGenerateForm({
           label={isGenerating ? 'Generating…' : 'Generate X Article'}
           variant={ButtonVariant.DEFAULT}
           size={ButtonSize.DEFAULT}
-          icon={<HiSparkles className="size-4" />}
+          icon={<Sparkles className="size-4" />}
           isLoading={isGenerating}
           isDisabled={!prompt.trim() || isGenerating}
           onClick={handleSubmit}

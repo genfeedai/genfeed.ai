@@ -16,17 +16,18 @@ import type {
 } from '@services/management/tasks.service';
 import EntityOverlayShell from '@ui/overlays/entity/EntityOverlayShell';
 import { Button } from '@ui/primitives/button';
+import {
+  ChevronDown,
+  Cpu,
+  FileText,
+  Image,
+  Link,
+  MessageCircle,
+  User,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  HiChevronDown,
-  HiOutlineChatBubbleLeft,
-  HiOutlineCpuChip,
-  HiOutlineDocumentText,
-  HiOutlineLink,
-  HiOutlinePhoto,
-  HiOutlineUser,
-} from 'react-icons/hi2';
+
 import { closeIssueOverlay, ISSUE_OVERLAY_ID } from './issue-overlay-controls';
 
 const VISIBLE_COMMENT_COUNT = 3;
@@ -201,7 +202,7 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
         {issue.linkedEntities?.length > 0 && (
           <div>
             <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white/40">
-              <HiOutlineLink className="size-3.5" />
+              <Link className="size-3.5" />
               Linked ({issue.linkedEntities.length})
             </h3>
             <div className="flex flex-wrap gap-1.5">
@@ -214,9 +215,9 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
                   )}
                 >
                   {entity.entityModel === 'Ingredient' ? (
-                    <HiOutlinePhoto className="size-3" />
+                    <Image className="size-3" />
                   ) : (
-                    <HiOutlineDocumentText className="size-3" />
+                    <FileText className="size-3" />
                   )}
                   <span className="text-[10px] font-medium">
                     {ENTITY_MODEL_LABELS[entity.entityModel]}
@@ -229,7 +230,7 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
 
         <div>
           <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white/40">
-            <HiOutlineChatBubbleLeft className="size-3.5" />
+            <MessageCircle className="size-3.5" />
             Comments ({comments.length})
           </h3>
 
@@ -244,7 +245,7 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
                     setCommentVisibility({ issueId, showAll: true })
                   }
                 >
-                  <HiChevronDown className="size-3" />
+                  <ChevronDown className="size-3" />
                   Show {hiddenCommentCount} earlier{' '}
                   {hiddenCommentCount === 1 ? 'comment' : 'comments'}
                 </Button>
@@ -266,9 +267,9 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
                         )}
                       >
                         {isAgent ? (
-                          <HiOutlineCpuChip className="size-3" />
+                          <Cpu className="size-3" />
                         ) : (
-                          <HiOutlineUser className="size-3" />
+                          <User className="size-3" />
                         )}
                       </div>
                       <span

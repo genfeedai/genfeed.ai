@@ -1,12 +1,7 @@
 import { ModelCategory } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
-import type { IconType } from 'react-icons';
-import {
-  HiDocumentText,
-  HiFilm,
-  HiMusicalNote,
-  HiPhoto,
-} from 'react-icons/hi2';
+import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
+import { FileText, Film, Image, Music } from 'lucide-react';
 
 export type DefaultModelMap = {
   image?: IModel;
@@ -52,7 +47,7 @@ export function buildDefaultModelCards(
       colorClass: 'bg-muted-foreground/20 text-muted-foreground',
       count: 0,
       description: defaultModels.image?.label || 'Not set',
-      icon: HiPhoto as IconType,
+      icon: Image as IconType,
       label: 'Image',
     },
     {
@@ -60,7 +55,7 @@ export function buildDefaultModelCards(
       colorClass: 'bg-muted-foreground/20 text-muted-foreground',
       count: 0,
       description: defaultModels.video?.label || 'Not set',
-      icon: HiFilm as IconType,
+      icon: Film as IconType,
       label: 'Video',
     },
     {
@@ -68,7 +63,7 @@ export function buildDefaultModelCards(
       colorClass: 'bg-muted-foreground/20 text-muted-foreground',
       count: 0,
       description: defaultModels.music?.label || 'Not set',
-      icon: HiMusicalNote as IconType,
+      icon: Music as IconType,
       label: 'Music',
     },
     {
@@ -76,7 +71,7 @@ export function buildDefaultModelCards(
       colorClass: 'bg-muted-foreground/20 text-muted-foreground',
       count: 0,
       description: defaultModels.text?.label || 'Not set',
-      icon: HiDocumentText as IconType,
+      icon: FileText as IconType,
       label: 'Text',
     },
   ];

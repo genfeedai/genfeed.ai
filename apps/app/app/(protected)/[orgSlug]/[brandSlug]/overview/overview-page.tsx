@@ -19,21 +19,22 @@ import Card from '@ui/card/Card';
 import CardIcon from '@ui/card/icon/CardIcon';
 import OverviewLayout from '@ui/overview/OverviewLayout';
 import { Button } from '@ui/primitives/button';
+import {
+  BarChart3,
+  Calendar,
+  ClipboardCheck,
+  FileText,
+  Home,
+  Image,
+  MessageSquare,
+  Settings,
+  Sparkles,
+  TrendingUp,
+} from 'lucide-react';
 import Link from 'next/link';
 import type { ComponentType } from 'react';
 import { useMemo } from 'react';
-import {
-  HiOutlineArrowTrendingUp,
-  HiOutlineCalendar,
-  HiOutlineChartBar,
-  HiOutlineChatBubbleLeftRight,
-  HiOutlineClipboardDocumentCheck,
-  HiOutlineCog6Tooth,
-  HiOutlineDocumentText,
-  HiOutlineHome,
-  HiOutlinePhoto,
-  HiOutlineSparkles,
-} from 'react-icons/hi2';
+
 import {
   OverviewOperationsSection,
   OverviewPerformanceChartSection,
@@ -173,7 +174,7 @@ function buildSectionSummaries(
     {
       color: 'text-muted-foreground',
       href: hrefFn(getPublisherPostsHref()),
-      icon: HiOutlineDocumentText,
+      icon: FileText,
       kicker: 'Create',
       label: 'Content',
       stats: [
@@ -194,7 +195,7 @@ function buildSectionSummaries(
     {
       color: 'text-muted-foreground',
       href: APP_ROUTES.ANALYTICS.OVERVIEW,
-      icon: HiOutlineChartBar,
+      icon: BarChart3,
       kicker: 'Measure',
       label: 'Analytics',
       stats: [
@@ -215,7 +216,7 @@ function buildSectionSummaries(
     {
       color: 'text-muted-foreground',
       href: APP_ROUTES.ORCHESTRATION.OVERVIEW,
-      icon: HiOutlineCog6Tooth,
+      icon: Settings,
       kicker: 'Automate',
       label: 'Automation',
       stats: [
@@ -236,7 +237,7 @@ function buildSectionSummaries(
     {
       color: 'text-muted-foreground',
       href: APP_ROUTES.LIBRARY.IMAGES,
-      icon: HiOutlinePhoto,
+      icon: Image,
       kicker: 'Reuse',
       label: 'Library',
       stats: [
@@ -355,7 +356,7 @@ export default function OverviewPageContent({
         cta: 'Open Research',
         description: 'Start with the strongest live signals',
         href: APP_ROUTES.RESEARCH.DISCOVERY,
-        icon: HiOutlineArrowTrendingUp,
+        icon: TrendingUp,
         id: 'trends',
         label: 'Research',
       },
@@ -364,7 +365,7 @@ export default function OverviewPageContent({
         cta: 'Create Posts',
         description: 'Draft new posts, articles, and campaign assets',
         href: COMPOSE_ROUTES.ROOT,
-        icon: HiOutlineChatBubbleLeftRight,
+        icon: MessageSquare,
         id: 'create',
         label: 'Posts',
       },
@@ -376,7 +377,7 @@ export default function OverviewPageContent({
             ? `${reviewInbox.readyCount} items are ready to review before posting`
             : 'No assets are waiting for review right now',
         href: APP_ROUTES.POSTS.REVIEW,
-        icon: HiOutlineClipboardDocumentCheck,
+        icon: ClipboardCheck,
         id: 'review',
         label: 'Publishing Inbox',
       },
@@ -385,7 +386,7 @@ export default function OverviewPageContent({
         cta: 'Open Schedule',
         description: 'Manage drafts, scheduled posts, and publishing windows',
         href: APP_ROUTES.POSTS.SCHEDULED,
-        icon: HiOutlineCalendar,
+        icon: Calendar,
         id: 'schedule',
         label: 'Schedule',
       },
@@ -394,7 +395,7 @@ export default function OverviewPageContent({
         cta: 'View Analytics',
         description: 'Track cross-platform performance',
         href: APP_ROUTES.ANALYTICS.OVERVIEW,
-        icon: HiOutlineChartBar,
+        icon: BarChart3,
         id: 'analytics',
         label: 'Analytics',
       },
@@ -403,7 +404,7 @@ export default function OverviewPageContent({
         cta: 'Open Agents',
         description: 'Monitor agent runs, workflows, and brand operations',
         href: APP_ROUTES.ORCHESTRATION.RUNS,
-        icon: HiOutlineSparkles,
+        icon: Sparkles,
         id: 'automations',
         label: 'Agents',
       },
@@ -472,7 +473,7 @@ export default function OverviewPageContent({
       label="Overview"
       description="Live workspace across research, production, publishing, and automation."
       actionsTitle="Operator Shortcuts"
-      icon={HiOutlineHome}
+      icon={Home}
       cards={cards}
       header={header}
     />

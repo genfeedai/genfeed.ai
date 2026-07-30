@@ -5,13 +5,8 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import {
-  HiArrowLeft,
-  HiCheck,
-  HiPause,
-  HiPlay,
-  HiRocketLaunch,
-} from 'react-icons/hi2';
+import { ArrowLeft, Check, Pause, Play, Rocket } from 'lucide-react';
+
 import OutreachCampaignAddTargets from './OutreachCampaignAddTargets';
 import OutreachCampaignDetailHeader from './OutreachCampaignDetailHeader';
 import OutreachCampaignTargetsTable from './OutreachCampaignTargetsTable';
@@ -41,7 +36,7 @@ export default function OutreachCampaignDetail() {
       <Container
         label="Loading..."
         description="Loading campaign details"
-        icon={HiRocketLaunch}
+        icon={Rocket}
       >
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin text-4xl text-primary">⏳</div>
@@ -55,12 +50,12 @@ export default function OutreachCampaignDetail() {
       <Container
         label="Campaign Not Found"
         description="The requested campaign could not be found"
-        icon={HiRocketLaunch}
+        icon={Rocket}
       >
         <Button
           label={
             <>
-              <HiArrowLeft /> Back to Campaigns
+              <ArrowLeft /> Back to Campaigns
             </>
           }
           variant={ButtonVariant.SECONDARY}
@@ -74,7 +69,7 @@ export default function OutreachCampaignDetail() {
     <Container
       label={campaign.label}
       description={campaign.description || 'Campaign details and targets'}
-      icon={HiRocketLaunch}
+      icon={Rocket}
       right={
         <>
           <ButtonRefresh
@@ -86,7 +81,7 @@ export default function OutreachCampaignDetail() {
             <Button
               label={
                 <>
-                  <HiPause /> Pause
+                  <Pause /> Pause
                 </>
               }
               variant={ButtonVariant.DESTRUCTIVE}
@@ -96,7 +91,7 @@ export default function OutreachCampaignDetail() {
             <Button
               label={
                 <>
-                  <HiPlay /> Start
+                  <Play /> Start
                 </>
               }
               variant={ButtonVariant.DEFAULT}
@@ -108,7 +103,7 @@ export default function OutreachCampaignDetail() {
             <Button
               label={
                 <>
-                  <HiCheck /> Complete
+                  <Check /> Complete
                 </>
               }
               variant={ButtonVariant.SECONDARY}

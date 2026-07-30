@@ -1,15 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
-import {
-  HiClipboardDocumentList,
-  HiClock,
-  HiInboxStack,
-  HiOutlineClipboardDocumentList,
-  HiOutlineClock,
-  HiOutlineInboxStack,
-  HiOutlineSquares2X2,
-  HiSquares2X2,
-} from 'react-icons/hi2';
+import { ClipboardList, Clock, Inbox, LayoutGrid } from 'lucide-react';
 
 /** Label after which dynamic credential items are inserted */
 export const POSTS_INSERT_AFTER_LABEL = 'Review';
@@ -24,8 +15,8 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     href: APP_ROUTES.WORKSPACE.OVERVIEW,
     label: 'Dashboard',
     matchPaths: [APP_ROUTES.WORKSPACE.ROOT, APP_ROUTES.WORKSPACE.OVERVIEW],
-    outline: HiOutlineSquares2X2,
-    solid: HiSquares2X2,
+    outline: LayoutGrid,
+    solid: LayoutGrid,
   },
   {
     group: AppMenuGroup.Root,
@@ -37,24 +28,24 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
       APP_ROUTES.WORKSPACE.INBOX_RECENT,
       APP_ROUTES.WORKSPACE.INBOX_ALL,
     ],
-    outline: HiOutlineInboxStack,
-    solid: HiInboxStack,
+    outline: Inbox,
+    solid: Inbox,
   },
   {
     group: AppMenuGroup.Root,
     href: APP_ROUTES.WORKSPACE.TASKS,
     label: 'Tasks',
     matchPaths: [APP_ROUTES.WORKSPACE.TASKS],
-    outline: HiOutlineClipboardDocumentList,
-    solid: HiClipboardDocumentList,
+    outline: ClipboardList,
+    solid: ClipboardList,
   },
   {
     group: AppMenuGroup.Root,
     href: APP_ROUTES.WORKSPACE.ACTIVITY,
     label: 'Activity',
     matchPaths: [APP_ROUTES.WORKSPACE.ACTIVITY],
-    outline: HiOutlineClock,
-    solid: HiClock,
+    outline: Clock,
+    solid: Clock,
   },
 ];
 

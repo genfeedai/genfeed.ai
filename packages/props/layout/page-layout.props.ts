@@ -1,6 +1,4 @@
 import type { ComponentType, ReactNode } from 'react';
-import type { IconBaseProps } from 'react-icons';
-
 export interface PageLayoutProps {
   children: ReactNode;
   badge?: string;

@@ -39,12 +39,12 @@ vi.mock('next/navigation', () => ({
   useRouter: vi.fn(() => ({ push: vi.fn(), replace: vi.fn() })),
 }));
 
-vi.mock('react-icons/hi2', () => ({
-  HiArrowTrendingUp: {},
-  HiBolt: {},
-  HiChatBubbleLeftRight: {},
-  HiEye: {},
-  HiHeart: {},
+vi.mock('lucide-react', () => ({
+  Eye: {},
+  Heart: {},
+  MessageSquare: {},
+  TrendingUp: {},
+  Zap: {},
 }));
 
 describe('constants', () => {

@@ -9,8 +9,8 @@ import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
+import { ImageIcon, Video } from 'lucide-react';
 import Image from 'next/image';
-import { HiPhoto, HiVideoCamera } from 'react-icons/hi2';
 
 type ChildrenPickerDropdownProps = {
   parentIngredientCategory: IngredientCategory;
@@ -41,7 +41,7 @@ export default function ChildrenPickerDropdown({
         label={`Add child ${parentIngredientCategory}s`}
         onClick={onToggleDropdown}
         isDisabled={isDisabled || isSearching || isSaving}
-        icon={isVideo ? <HiVideoCamera /> : <HiPhoto />}
+        icon={isVideo ? <Video /> : <ImageIcon />}
         variant={ButtonVariant.SECONDARY}
         size={ButtonSize.SM}
       />

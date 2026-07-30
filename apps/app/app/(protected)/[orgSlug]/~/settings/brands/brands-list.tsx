@@ -17,15 +17,11 @@ import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
+import { Building2, Pencil, Plus, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo } from 'react';
-import {
-  HiOutlineBuildingOffice2,
-  HiPencil,
-  HiPlus,
-  HiTrash,
-} from 'react-icons/hi2';
+
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
@@ -121,7 +117,7 @@ function BrandsListContent() {
               />
             ) : (
               <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10">
-                <HiOutlineBuildingOffice2 className="size-4 text-primary" />
+                <Building2 className="size-4 text-primary" />
               </div>
             )}
             <span className="font-medium">{brand.label}</span>
@@ -166,14 +162,14 @@ function BrandsListContent() {
   const actions = useMemo(
     () => [
       {
-        icon: <HiPencil />,
+        icon: <Pencil />,
         onClick: (brand: Brand) => {
           openBrandOverlay(brand, () => refresh(), 'edit');
         },
         tooltip: 'Edit',
       },
       {
-        icon: <HiTrash />,
+        icon: <Trash2 />,
         onClick: (brand: Brand) => {
           openConfirm({
             confirmLabel: 'Delete',
@@ -193,11 +189,11 @@ function BrandsListContent() {
     <Container
       label="Brands"
       description="Manage brands and settings."
-      icon={HiOutlineBuildingOffice2}
+      icon={Building2}
       right={
         <Button
           variant={ButtonVariant.DEFAULT}
-          icon={<HiPlus />}
+          icon={<Plus />}
           label="Add Brand"
           onClick={() => openBrandOverlay(null, () => refresh())}
         />

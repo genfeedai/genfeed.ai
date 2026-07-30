@@ -22,10 +22,10 @@ import AppTable from '@ui/display/table/Table';
 import { LazyModalMember } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
+import { Lock, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useState } from 'react';
-import { HiOutlineLockClosed, HiUserPlus } from 'react-icons/hi2';
 
 function formatTierLabel(tier: string | null): string {
   if (!tier) {
@@ -122,7 +122,7 @@ function MembersListContent() {
         <div className="flex justify-end">
           <Button
             onClick={() => openModal(ModalEnum.MEMBER)}
-            icon={<HiUserPlus className="size-4" />}
+            icon={<UserPlus className="size-4" />}
             label="Invite Member"
           />
         </div>
@@ -138,7 +138,7 @@ function MembersListContent() {
             </Button>
           }
           description={`Your current plan is a solo workspace. Upgrade to ${upgradeTierLabel} to invite members and collaborate with your team.`}
-          icon={HiOutlineLockClosed}
+          icon={Lock}
           label={`Unlock team members with ${upgradeTierLabel}`}
         />
       ) : (

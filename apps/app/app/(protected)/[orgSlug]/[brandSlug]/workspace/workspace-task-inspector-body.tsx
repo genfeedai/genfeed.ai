@@ -5,8 +5,9 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import { Clock } from 'lucide-react';
 import Link from 'next/link';
-import { HiOutlineClock } from 'react-icons/hi2';
+
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { formatTaskTimestamp } from './workspace-task.helpers';
 import type {
@@ -65,7 +66,7 @@ export function WorkspaceTaskInspectorBody({
             </p>
             {task.progress?.message ? <p>{task.progress.message}</p> : null}
             <p className="flex items-center gap-2">
-              <HiOutlineClock className="size-4" />
+              <Clock className="size-4" />
               Updated {formatTaskTimestamp(task)}
             </p>
             {task.createdAt ? (

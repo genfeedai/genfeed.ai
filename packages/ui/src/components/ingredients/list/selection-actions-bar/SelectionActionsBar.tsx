@@ -3,7 +3,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import type { SelectionActionsBarProps } from '@genfeedai/props/content/ingredient.props';
 import { Button } from '@ui/primitives/button';
-import { HiFilm, HiTrash, HiXMark } from 'react-icons/hi2';
+import { Film, Trash2, X } from 'lucide-react';
 
 export default function SelectionActionsBar({
   count,
@@ -24,7 +24,7 @@ export default function SelectionActionsBar({
       <span className="text-sm font-medium">{count} selected</span>
 
       <Button
-        label={<HiXMark />}
+        label={<X />}
         variant={ButtonVariant.SECONDARY}
         onClick={onClear}
         tooltip="Clear"
@@ -35,7 +35,7 @@ export default function SelectionActionsBar({
         onClick={onBulkDelete}
         isDisabled={count === 0}
         tooltip={`Delete ${count} selected`}
-        label={<HiTrash />}
+        label={<Trash2 />}
       />
 
       {canPublishCampaign && onPublishCampaign && (
@@ -56,7 +56,7 @@ export default function SelectionActionsBar({
         <Button
           label={
             <>
-              <HiFilm /> Merge
+              <Film /> Merge
             </>
           }
           variant={ButtonVariant.DEFAULT}

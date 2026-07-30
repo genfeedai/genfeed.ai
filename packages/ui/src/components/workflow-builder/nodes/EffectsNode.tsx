@@ -2,33 +2,33 @@
 
 import type { EffectsNodeProps } from '@genfeedai/props/automation/workflow-builder.props';
 import BaseNode from '@ui/workflow-builder/nodes/BaseNode';
-import { memo } from 'react';
 import {
-  HiOutlineAdjustmentsHorizontal,
-  HiOutlineChatBubbleBottomCenter,
-  HiOutlineEyeDropper,
-  HiOutlineMusicalNote,
-  HiOutlineSparkles,
-  HiOutlineSpeakerWave,
-} from 'react-icons/hi2';
+  MessageSquare,
+  Music,
+  Pipette,
+  SlidersHorizontal,
+  Sparkles,
+  Volume2,
+} from 'lucide-react';
+import { memo } from 'react';
 
 function EffectsNode(props: EffectsNodeProps) {
   const getIcon = () => {
     switch (props.data.nodeType) {
       case 'effect-captions':
-        return <HiOutlineChatBubbleBottomCenter />;
+        return <MessageSquare />;
       case 'effect-ken-burns':
-        return <HiOutlineSparkles />;
+        return <Sparkles />;
       case 'effect-color-grade':
-        return <HiOutlineEyeDropper />;
+        return <Pipette />;
       case 'effect-overlay':
-        return <HiOutlineAdjustmentsHorizontal />;
+        return <SlidersHorizontal />;
       case 'effect-audio':
-        return <HiOutlineSpeakerWave />;
+        return <Volume2 />;
       case 'effect-music':
-        return <HiOutlineMusicalNote />;
+        return <Music />;
       default:
-        return <HiOutlineSparkles />;
+        return <Sparkles />;
     }
   };
 

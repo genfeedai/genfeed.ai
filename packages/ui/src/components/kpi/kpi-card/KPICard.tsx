@@ -5,10 +5,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAnimatedCounter } from '@genfeedai/hooks/ui/use-animated-counter/use-animated-counter';
 import type { KPICardProps } from '@genfeedai/props/ui/kpi/kpi-card.props';
 import Card from '@ui/card/Card';
-import {
-  HiOutlineArrowTrendingDown,
-  HiOutlineArrowTrendingUp,
-} from 'react-icons/hi2';
+import { TrendingDown, TrendingUp } from 'lucide-react';
 
 interface AnimatedValueProps {
   value: string;
@@ -52,9 +49,7 @@ export default function KPICard({
 }: KPICardProps): React.ReactElement {
   const hasTrend = trend !== undefined && trend !== 0;
   const isPositiveTrend = trend !== undefined && trend > 0;
-  const TrendIcon = isPositiveTrend
-    ? HiOutlineArrowTrendingUp
-    : HiOutlineArrowTrendingDown;
+  const TrendIcon = isPositiveTrend ? TrendingUp : TrendingDown;
 
   let valueContent: React.ReactNode;
   if (isLoading) {

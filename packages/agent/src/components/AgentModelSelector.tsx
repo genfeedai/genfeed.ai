@@ -14,6 +14,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
+import { ChevronUp, Lock, Search, Sparkles } from 'lucide-react';
 import {
   type ChangeEvent,
   type ReactElement,
@@ -21,12 +22,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import {
-  HiChevronUp,
-  HiLockClosed,
-  HiMagnifyingGlass,
-  HiSparkles,
-} from 'react-icons/hi2';
 
 interface AgentModelSelectorProps {
   selectedModel: string;
@@ -98,7 +93,7 @@ export function AgentModelSelector({
           )}
         >
           {current?.isReasoning && (
-            <HiSparkles className="size-3 text-purple-400" />
+            <Sparkles className="size-3 text-purple-400" />
           )}
           <span>{current?.label ?? 'Select model'}</span>
           {currentCost ? (
@@ -112,7 +107,7 @@ export function AgentModelSelector({
               {currentCost.symbol}
             </span>
           ) : null}
-          <HiChevronUp
+          <ChevronUp
             className={cn('size-3 transition-transform', open && 'rotate-180')}
           />
         </Button>
@@ -129,7 +124,7 @@ export function AgentModelSelector({
       >
         <div className="border-b border-border p-2">
           <div className="relative">
-            <HiMagnifyingGlass className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={searchTerm}
               onChange={(event: ChangeEvent<HTMLInputElement>) => {
@@ -234,7 +229,7 @@ function ModelRow({
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex items-center gap-1.5">
           {model.isReasoning && (
-            <HiSparkles className="size-3 shrink-0 text-purple-400" />
+            <Sparkles className="size-3 shrink-0 text-purple-400" />
           )}
           <span className="font-medium text-foreground">{model.label}</span>
         </div>
@@ -244,9 +239,7 @@ function ModelRow({
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
         <CostBadge costTier={model.costTier} />
-        {isLocked ? (
-          <HiLockClosed className="size-3 text-muted-foreground" />
-        ) : null}
+        {isLocked ? <Lock className="size-3 text-muted-foreground" /> : null}
       </div>
     </Button>
   );

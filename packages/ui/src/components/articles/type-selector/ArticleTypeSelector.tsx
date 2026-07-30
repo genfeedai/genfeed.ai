@@ -2,7 +2,7 @@
 
 import type { XArticleTypeSelectorProps } from '@genfeedai/props/content/x-article.props';
 import Card from '@ui/card/Card';
-import { HiDocumentText, HiNewspaper } from 'react-icons/hi2';
+import { FileText, Newspaper } from 'lucide-react';
 
 export default function ArticleTypeSelector({
   onSelect,
@@ -18,14 +18,14 @@ export default function ArticleTypeSelector({
 
       <div className="grid gap-6 sm:grid-cols-2">
         <Card
-          icon={HiDocumentText}
+          icon={FileText}
           label="Quick Article"
           description="Write a standard article with a rich text editor. Best for short posts, announcements, and general content."
           onClick={() => onSelect('quick')}
         />
 
         <Card
-          icon={HiNewspaper}
+          icon={Newspaper}
           label="X Article"
           description="Generate a long-form, structured article with AI. Includes sections, pull quotes, and a header image."
           onClick={() => onSelect('x-article')}

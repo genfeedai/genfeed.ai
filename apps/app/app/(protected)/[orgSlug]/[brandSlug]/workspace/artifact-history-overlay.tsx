@@ -16,7 +16,7 @@ import {
   DialogPortal,
   DialogTitle,
 } from '@ui/primitives/dialog';
-import { HiArrowUpRight, HiCheck, HiLockClosed } from 'react-icons/hi2';
+import { ArrowUpRight, Check, Lock } from 'lucide-react';
 
 function isCurrentPin(version: ArtifactVersionPin, currentId: string): boolean {
   return version.isCurrent || version.id === currentId;
@@ -71,7 +71,7 @@ export default function ArtifactHistoryOverlay({
                       </span>
                     </div>
                     <span className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider text-info">
-                      <HiLockClosed className="size-3" aria-hidden />
+                      <Lock className="size-3" aria-hidden />
                       {version.isImmutable ? 'Current · immutable' : 'Current'}
                     </span>
                   </div>
@@ -99,7 +99,7 @@ export default function ArtifactHistoryOverlay({
                   </div>
                   <span className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                     Open
-                    <HiArrowUpRight className="size-3" aria-hidden />
+                    <ArrowUpRight className="size-3" aria-hidden />
                   </span>
                 </Button>
               );
@@ -125,7 +125,7 @@ export default function ArtifactHistoryOverlay({
               disabled={isApproving || !currentVersion}
               onClick={() => onApprove(currentVersionId)}
             >
-              <HiCheck className="size-4" />
+              <Check className="size-4" />
               {isApproving ? 'Approving…' : `Approve ${approveTargetLabel}`}
             </Button>
           </DialogFooter>

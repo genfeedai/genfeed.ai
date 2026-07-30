@@ -4,7 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { TrendItem } from '@props/trends/trends-page.props';
 import { Button } from '@ui/primitives/button';
 import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
-import { HiArrowLeft } from 'react-icons/hi2';
+import { ArrowLeft } from 'lucide-react';
 
 type TrendDetailHeaderProps = {
   backHref: string;
@@ -25,7 +25,7 @@ export default function TrendDetailHeader({
         label="Back to Trends"
         variant={ButtonVariant.GHOST}
         size={ButtonSize.SM}
-        icon={<HiArrowLeft className="size-4" />}
+        icon={<ArrowLeft className="size-4" />}
         onClick={onBack}
       />
       <div className="flex items-center gap-3">

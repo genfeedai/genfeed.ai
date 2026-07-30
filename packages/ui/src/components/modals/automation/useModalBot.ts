@@ -16,35 +16,34 @@ import {
   Platform,
   PublishingFrequency,
 } from '@genfeedai/enums';
+import {
+  TwitchIcon,
+  XTwitterIcon,
+  YoutubeIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
 import type { IBot } from '@genfeedai/interfaces';
 import type { ModalBotProps } from '@genfeedai/props/modals/modal.props';
 import { BotsService } from '@genfeedai/services/automation/bots.service';
+import { Bell, Heart, Megaphone, MessageSquare } from 'lucide-react';
 import { type ChangeEvent, useEffect, useMemo } from 'react';
-import { FaTwitch, FaXTwitter, FaYoutube } from 'react-icons/fa6';
-import {
-  HiBell,
-  HiChatBubbleLeftRight,
-  HiHeart,
-  HiMegaphone,
-} from 'react-icons/hi2';
 
 export const BOT_PLATFORMS_LIST = [
   {
     color: 'text-blue-400',
-    icon: FaXTwitter,
+    icon: XTwitterIcon,
     label: 'X (Twitter)',
     platform: Platform.TWITTER,
   },
   {
     color: 'text-red-500',
-    icon: FaYoutube,
+    icon: YoutubeIcon,
     label: 'YouTube',
     platform: Platform.YOUTUBE,
   },
   {
     color: 'text-purple-500',
-    icon: FaTwitch,
+    icon: TwitchIcon,
     label: 'Twitch',
     platform: Platform.TWITCH,
   },
@@ -53,31 +52,31 @@ export const BOT_PLATFORMS_LIST = [
 export const BOT_CATEGORIES = [
   {
     description: 'Respond to chat messages',
-    icon: HiChatBubbleLeftRight,
+    icon: MessageSquare,
     label: 'Chat Bot',
     value: BotCategory.CHAT,
   },
   {
     description: 'Auto-reply to comments',
-    icon: HiChatBubbleLeftRight,
+    icon: MessageSquare,
     label: 'Comment Bot',
     value: BotCategory.COMMENT,
   },
   {
     description: 'Auto-like, follow, and engage',
-    icon: HiHeart,
+    icon: Heart,
     label: 'Engagement Bot',
     value: BotCategory.ENGAGEMENT,
   },
   {
     description: 'Alert on keywords',
-    icon: HiBell,
+    icon: Bell,
     label: 'Monitoring Bot',
     value: BotCategory.MONITORING,
   },
   {
     description: 'Automated content publishing',
-    icon: HiMegaphone,
+    icon: Megaphone,
     label: 'Publishing Bot',
     value: BotCategory.PUBLISHING,
   },

@@ -23,8 +23,8 @@ import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import { Switch } from '@ui/primitives/switch';
 import { Text } from '@ui/typography/text';
+import { RefreshCw, Send } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { HiArrowPath, HiPaperAirplane } from 'react-icons/hi2';
 
 type WebhookFormState = {
   isWebhookEnabled: boolean;
@@ -346,14 +346,14 @@ export default function SettingsWebhooksPage() {
 
           <div className="flex flex-wrap items-center gap-2">
             <Button
-              icon={<HiArrowPath />}
+              icon={<RefreshCw />}
               isLoading={isSaving}
               onClick={saveSettings}
             >
               Save
             </Button>
             <Button
-              icon={<HiPaperAirplane />}
+              icon={<Send />}
               isDisabled={!isWebhookConfigured}
               isLoading={isTesting}
               onClick={testDelivery}

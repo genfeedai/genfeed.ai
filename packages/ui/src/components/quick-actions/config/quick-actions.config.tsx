@@ -5,38 +5,36 @@ import type {
   IQuickAction,
 } from '@genfeedai/interfaces/ui/quick-actions.interface';
 import {
-  HiArrowDownTray,
-  HiArrowPath,
-  HiArrowsPointingOut,
-  HiArrowsRightLeft,
-  HiArrowTopRightOnSquare,
-  HiArrowUpTray,
-  HiCheckCircle,
-  HiClipboardDocument,
-  HiCommandLine,
-  HiDocumentDuplicate,
-  HiEllipsisHorizontal,
-  HiFilm,
-  HiHandThumbUp,
-  HiHashtag,
-  HiOutlineChatBubbleBottomCenterText,
-  HiOutlineMinus,
-  HiPencil,
-  HiPlus,
-  HiScissors,
-  HiShare,
-  HiSparkles,
-  HiSquaresPlus,
-  HiStar,
-  HiTrash,
-  HiVideoCamera,
-  HiXMark,
-} from 'react-icons/hi2';
-import {
-  MdOutlineCropLandscape,
-  MdOutlineCropPortrait,
-  MdOutlineCropSquare,
-} from 'react-icons/md';
+  ArrowLeftRight,
+  CheckCircle2,
+  Clipboard,
+  Copy,
+  Download,
+  ExternalLink,
+  Film,
+  Hash,
+  LayoutGrid,
+  Maximize2,
+  MessageSquareText,
+  Minus,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  RectangleHorizontal,
+  RectangleVertical,
+  RefreshCw,
+  Scissors,
+  Share2,
+  Sparkles,
+  Square,
+  Star,
+  Terminal,
+  ThumbsUp,
+  Trash2,
+  Upload,
+  Video,
+  X,
+} from 'lucide-react';
 
 const ICON_CLASS = 'size-4';
 
@@ -85,7 +83,7 @@ export const createPublishAction = (
   }
 
   return {
-    icon: <HiArrowUpTray className="size-4" />,
+    icon: <Upload className="size-4" />,
     id: 'publish',
     isLoading,
     label: 'Publish',
@@ -108,7 +106,7 @@ export const createMergeAction = (
   }
 
   return {
-    icon: isSelected ? <HiOutlineMinus className="size-4" /> : <HiPlus />,
+    icon: isSelected ? <Minus className="size-4" /> : <Plus />,
     id: 'merge',
     isLoading,
     label: isSelected ? 'Remove' : 'Add',
@@ -128,7 +126,7 @@ export const createUpscaleAction = (
     handler,
     {
       dividerBefore: true,
-      icon: <HiArrowsPointingOut className={ICON_CLASS} />,
+      icon: <Maximize2 className={ICON_CLASS} />,
       id: 'upscale',
       label: 'Upscale',
       sectionLabel: 'Enhance',
@@ -148,7 +146,7 @@ export const createCloneAction = (
     ingredient,
     handler,
     {
-      icon: <HiDocumentDuplicate className={ICON_CLASS} />,
+      icon: <Copy className={ICON_CLASS} />,
       id: 'clone',
       label: 'Clone',
       showInMenu: true,
@@ -169,7 +167,7 @@ export const createFavoriteAction = (
 
   return {
     icon: (
-      <HiStar
+      <Star
         className={`size-4 ${ingredient.isFavorite ? 'fill-foreground' : ''}`}
       />
     ),
@@ -196,7 +194,7 @@ export const createVoteAction = (
   }
 
   return {
-    icon: <HiHandThumbUp className="size-4" />,
+    icon: <ThumbsUp className="size-4" />,
     id: 'vote',
     isLoading,
     label: `Vote ${ingredient.totalVotes || 0}`,
@@ -217,7 +215,7 @@ export const createDownloadAction = (
     ingredient,
     handler,
     {
-      icon: <HiArrowDownTray className={ICON_CLASS} />,
+      icon: <Download className={ICON_CLASS} />,
       id: 'download',
       label: 'Download',
       showInMenu: true,
@@ -236,7 +234,7 @@ export const createCaptionsAction = (
     ingredient,
     handler,
     {
-      icon: <HiOutlineChatBubbleBottomCenterText className={ICON_CLASS} />,
+      icon: <MessageSquareText className={ICON_CLASS} />,
       id: 'captions',
       label: 'Add Captions',
       showInMenu: true,
@@ -255,7 +253,7 @@ export const createTextOverlayAction = (
     ingredient,
     handler,
     {
-      icon: <HiPencil className={ICON_CLASS} />,
+      icon: <Pencil className={ICON_CLASS} />,
       id: 'text-overlay',
       label: 'Add Text Overlay',
       showInMenu: true,
@@ -274,7 +272,7 @@ export const createReverseAction = (
     ingredient,
     handler,
     {
-      icon: <HiArrowPath className={ICON_CLASS} />,
+      icon: <RefreshCw className={ICON_CLASS} />,
       id: 'reverse',
       label: 'Reverse Video',
       sectionLabel: 'Enhance',
@@ -294,7 +292,7 @@ export const createMirrorAction = (
     ingredient,
     handler,
     {
-      icon: <HiArrowsRightLeft className={ICON_CLASS} />,
+      icon: <ArrowLeftRight className={ICON_CLASS} />,
       id: 'mirror',
       label: 'Mirror Flip',
       sectionLabel: 'Enhance',
@@ -314,7 +312,7 @@ export const createTrimAction = (
     ingredient,
     handler,
     {
-      icon: <HiScissors className={ICON_CLASS} />,
+      icon: <Scissors className={ICON_CLASS} />,
       id: 'trim',
       label: 'Trim Video',
       showInMenu: true,
@@ -333,7 +331,7 @@ export const createPortraitAction = (
     ingredient,
     handler,
     {
-      icon: <MdOutlineCropPortrait className={ICON_CLASS} />,
+      icon: <RectangleVertical className={ICON_CLASS} />,
       id: 'portrait',
       label: 'Reframe to Portrait',
       showInMenu: true,
@@ -352,7 +350,7 @@ export const createSquareAction = (
     ingredient,
     handler,
     {
-      icon: <MdOutlineCropSquare className={ICON_CLASS} />,
+      icon: <Square className={ICON_CLASS} />,
       id: 'square',
       label: 'Reframe to Square',
       showInMenu: true,
@@ -371,7 +369,7 @@ export const createLandscapeAction = (
     ingredient,
     handler,
     {
-      icon: <MdOutlineCropLandscape className={ICON_CLASS} />,
+      icon: <RectangleHorizontal className={ICON_CLASS} />,
       id: 'landscape',
       label: 'Reframe to Landscape',
       showInMenu: true,
@@ -390,7 +388,7 @@ export const createGifAction = (
     ingredient,
     handler,
     {
-      icon: <HiFilm className={ICON_CLASS} />,
+      icon: <Film className={ICON_CLASS} />,
       id: 'gif',
       label: 'Transform to GIF',
       showInMenu: true,
@@ -409,7 +407,7 @@ export const createVideoAction = (
     ingredient,
     handler,
     {
-      icon: <HiVideoCamera className={ICON_CLASS} />,
+      icon: <Video className={ICON_CLASS} />,
       id: 'convert-to-video',
       label: 'Convert to Video',
       showInMenu: true,
@@ -428,7 +426,7 @@ export const createUseAsVideoReferenceAction = (
     ingredient,
     handler,
     {
-      icon: <HiSparkles className={ICON_CLASS} />,
+      icon: <Sparkles className={ICON_CLASS} />,
       id: 'use-as-video-reference',
       label: 'Add to Storyboard',
       showInMenu: true,
@@ -447,7 +445,7 @@ export const createVariationAction = (
     ingredient,
     handler,
     {
-      icon: <HiSquaresPlus className={ICON_CLASS} />,
+      icon: <LayoutGrid className={ICON_CLASS} />,
       id: 'remix',
       label: 'Remix',
       showInMenu: true,
@@ -467,7 +465,7 @@ export const createDeleteAction = (
     handler,
     {
       dividerBefore: true,
-      icon: <HiTrash className={`${ICON_CLASS} text-white`} />,
+      icon: <Trash2 className={`${ICON_CLASS} text-white`} />,
       id: 'delete',
       label: 'Delete',
       showInMenu: true,
@@ -489,7 +487,7 @@ export const createPromptAction = (
   }
 
   return {
-    icon: <HiClipboardDocument className="size-4" />,
+    icon: <Clipboard className="size-4" />,
     id: 'prompt',
     label: 'Prompt',
     onClick: () => handler(ingredient),
@@ -509,7 +507,7 @@ export const createUsePromptAction = (
   }
 
   return {
-    icon: <HiCommandLine className="size-4" />,
+    icon: <Terminal className="size-4" />,
     id: 'use-prompt',
     isLoading,
     label: 'Use Prompt',
@@ -529,7 +527,7 @@ export const createShareAction = (
     ingredient,
     handler,
     {
-      icon: <HiShare className={ICON_CLASS} />,
+      icon: <Share2 className={ICON_CLASS} />,
       id: 'share',
       label: 'Share',
       showInMenu: true,
@@ -548,7 +546,7 @@ export const createEditAction = (
     ingredient,
     handler,
     {
-      icon: <HiPencil className={ICON_CLASS} />,
+      icon: <Pencil className={ICON_CLASS} />,
       id: 'edit',
       label: 'Edit',
       showInMenu: true,
@@ -567,7 +565,7 @@ export const createMoreOptionsAction = (
     ingredient,
     handler,
     {
-      icon: <HiEllipsisHorizontal className={ICON_CLASS} />,
+      icon: <MoreHorizontal className={ICON_CLASS} />,
       id: 'more-options',
       label: 'More',
       tooltip: 'More',
@@ -581,7 +579,7 @@ export const createSeeDetailsAction = (
   handler?: IActionHandlers['onSeeDetails'],
 ): IQuickAction | null =>
   createStandardAction(ingredient, handler, {
-    icon: <HiArrowTopRightOnSquare className={ICON_CLASS} />,
+    icon: <ExternalLink className={ICON_CLASS} />,
     id: 'see-details',
     label: 'See Details',
     showInMenu: true,
@@ -602,7 +600,7 @@ export const createMarkValidatedAction = (
 
   return {
     icon: (
-      <HiCheckCircle
+      <CheckCircle2
         className={`size-4 ${isValidated ? 'text-success' : 'text-white'}`}
       />
     ),
@@ -629,7 +627,7 @@ export const createMarkRejectedAction = (
 
   return {
     icon: (
-      <HiXMark
+      <X
         className={`size-4 ${isRejected ? 'text-destructive' : 'text-white'}`}
       />
     ),
@@ -652,7 +650,7 @@ export const createConvertToPresetAction = (
     ingredient,
     handler,
     {
-      icon: <HiCheckCircle className={ICON_CLASS} />,
+      icon: <CheckCircle2 className={ICON_CLASS} />,
       id: 'convert-to-preset',
       label: 'Convert to Preset',
       showInMenu: true,
@@ -673,7 +671,7 @@ export const createSetAsLogoAction = (
     handler,
     {
       dividerBefore: true,
-      icon: <MdOutlineCropLandscape className={ICON_CLASS} />,
+      icon: <RectangleHorizontal className={ICON_CLASS} />,
       id: 'set-as-logo',
       label: 'Set as Logo',
       sectionLabel: 'Branding',
@@ -693,7 +691,7 @@ export const createSetAsBannerAction = (
     ingredient,
     handler,
     {
-      icon: <MdOutlineCropLandscape className={ICON_CLASS} />,
+      icon: <RectangleHorizontal className={ICON_CLASS} />,
       id: 'set-as-banner',
       label: 'Set as Banner',
       showInMenu: true,
@@ -709,7 +707,7 @@ export const createTagsAction = (
 ): IQuickAction | null =>
   createStandardAction(ingredient, handler, {
     dividerBefore: true,
-    icon: <HiHashtag className={ICON_CLASS} />,
+    icon: <Hash className={ICON_CLASS} />,
     id: 'manage-tags',
     label: 'Tags',
     showInMenu: true,

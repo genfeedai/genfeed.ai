@@ -8,9 +8,9 @@ import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/for
 import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscription/use-subscription';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
+import { AlertTriangle, X } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { HiExclamationTriangle, HiXMark } from 'react-icons/hi2';
 
 const LOW_CREDITS_THRESHOLD = 1000;
 const DISMISS_KEY = 'genfeed:low-credits-dismissed:v1';
@@ -155,7 +155,7 @@ export default function LowCreditsBanner({
                   : 'border-amber-400/25 bg-amber-500/[0.12] text-amber-300',
               )}
             >
-              <HiExclamationTriangle className="size-5" />
+              <AlertTriangle className="size-5" />
             </div>
 
             <div className="min-w-0">
@@ -217,7 +217,7 @@ export default function LowCreditsBanner({
                   : 'border-amber-400/15 text-amber-200 hover:bg-amber-500/[0.12]',
               )}
               ariaLabel="Dismiss low credits banner"
-              icon={<HiXMark className="size-4" />}
+              icon={<X className="size-4" />}
             />
           </div>
         </div>

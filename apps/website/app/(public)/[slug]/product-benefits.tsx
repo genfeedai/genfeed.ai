@@ -3,8 +3,7 @@ import Card from '@ui/card/Card';
 import { VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import { FaCheck } from 'react-icons/fa6';
-import { HiXMark } from 'react-icons/hi2';
+import { Check, X } from 'lucide-react';
 
 type Props = {
   benefits: Product['benefits'];
@@ -22,7 +21,7 @@ export default function ProductBenefits({ benefits }: Props) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <div className="flex items-start gap-2 mb-2">
-                  <HiXMark className="size-6 text-error mt-1 flex-shrink-0" />
+                  <X className="size-6 text-error mt-1 flex-shrink-0" />
                   <Text weight="bold" className="text-error">
                     Problem
                   </Text>
@@ -33,7 +32,7 @@ export default function ProductBenefits({ benefits }: Props) {
               </div>
               <div>
                 <div className="flex items-start gap-2 mb-2">
-                  <FaCheck className="size-6 text-success mt-1 flex-shrink-0" />
+                  <Check className="size-6 text-success mt-1 flex-shrink-0" />
                   <Text weight="bold" className="text-success">
                     Solution
                   </Text>

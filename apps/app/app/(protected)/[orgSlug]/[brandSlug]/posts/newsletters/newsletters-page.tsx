@@ -7,8 +7,9 @@ import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Mail, Search } from 'lucide-react';
 import { Suspense } from 'react';
-import { HiEnvelope, HiMagnifyingGlass } from 'react-icons/hi2';
+
 import NewsletterContextReview from './newsletters-context-review';
 import NewsletterEditor from './newsletters-editor';
 import NewsletterGeneratePanel from './newsletters-generate-panel';
@@ -123,7 +124,7 @@ function NewslettersPageContent() {
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative">
-              <HiMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 className="pl-9"
                 placeholder="Search newsletters"
@@ -156,7 +157,7 @@ function NewslettersPageContent() {
 
         {filteredNewsletters.length === 0 && !isLoading ? (
           <CardEmpty
-            icon={HiEnvelope}
+            icon={Mail}
             label="No newsletters found"
             description="Create or schedule newsletter workflows from Workflows, then review generated issues here."
             action={{

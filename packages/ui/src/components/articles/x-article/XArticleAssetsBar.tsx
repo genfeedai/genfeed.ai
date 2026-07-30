@@ -4,14 +4,8 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { XArticleAssetsBarProps } from '@genfeedai/props/content/x-article.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import { Clipboard, Clock, Download, ImageIcon, Sparkles } from 'lucide-react';
 import Image from 'next/image';
-import {
-  HiArrowDownTray,
-  HiClipboardDocument,
-  HiClock,
-  HiPhoto,
-  HiSparkles,
-} from 'react-icons/hi2';
 
 export default function XArticleAssetsBar({
   article,
@@ -33,7 +27,7 @@ export default function XArticleAssetsBar({
         <div className="flex items-center gap-4 text-sm text-foreground/60">
           <span>{metadata.wordCount.toLocaleString()} words</span>
           <span className="flex items-center gap-1">
-            <HiClock className="size-4" />
+            <Clock className="size-4" />
             {metadata.estimatedReadTime} min read
           </span>
         </div>
@@ -44,7 +38,7 @@ export default function XArticleAssetsBar({
             label="Copy for X Article"
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
-            icon={<HiClipboardDocument className="size-4" />}
+            icon={<Clipboard className="size-4" />}
             onClick={onCopyFullArticle}
           />
 
@@ -53,7 +47,7 @@ export default function XArticleAssetsBar({
               label="Create X Post"
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
-              icon={<HiSparkles className="size-4" />}
+              icon={<Sparkles className="size-4" />}
               isLoading={isGeneratingTeaser}
               isDisabled={isGeneratingTeaser}
               onClick={onGenerateTeaserPost}
@@ -65,14 +59,14 @@ export default function XArticleAssetsBar({
               label="Create X Thread"
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
-              icon={<HiSparkles className="size-4" />}
+              icon={<Sparkles className="size-4" />}
               isLoading={isGeneratingTeaser}
               isDisabled={isGeneratingTeaser}
               onClick={onGenerateTeaserThread}
             />
           )}
 
-          {/* Header Image */}
+          {/* Header ImageIcon */}
           {hasHeaderImage ? (
             <div className="flex items-center gap-2">
               <div className="relative h-10 w-16 overflow-hidden rounded border border-white/[0.08]">
@@ -88,7 +82,7 @@ export default function XArticleAssetsBar({
                 label="Download"
                 variant={ButtonVariant.GHOST}
                 size={ButtonSize.SM}
-                icon={<HiArrowDownTray className="size-4" />}
+                icon={<Download className="size-4" />}
                 onClick={() =>
                   onDownloadImage(
                     metadata.headerImageUrl as string,
@@ -104,7 +98,7 @@ export default function XArticleAssetsBar({
               }
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
-              icon={<HiPhoto className="size-4" />}
+              icon={<ImageIcon className="size-4" />}
               isLoading={isGeneratingImage}
               isDisabled={isGeneratingImage}
               onClick={onGenerateHeaderImage}

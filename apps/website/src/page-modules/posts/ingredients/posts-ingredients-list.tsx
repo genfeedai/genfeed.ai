@@ -9,10 +9,10 @@ import CardEmpty from '@ui/card/empty/CardEmpty';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Eye, FileText, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { HiDocumentText, HiEye, HiOutlinePhoto } from 'react-icons/hi2';
 
 // ingredients list with posts to load in the public gallery
 
@@ -78,7 +78,7 @@ export default function PostsIngredientsList({
     <Container
       label="Posts by Ingredient"
       description="Content organized by ingredient."
-      icon={HiOutlinePhoto}
+      icon={ImageIcon}
     >
       {ingredients.length === 0 ? (
         <CardEmpty label="No ingredients available" />
@@ -109,7 +109,7 @@ export default function PostsIngredientsList({
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <HiOutlinePhoto className="text-6xl text-foreground/20" />
+                        <ImageIcon className="text-6xl text-foreground/20" />
                       </div>
                     )}
                   </div>
@@ -123,11 +123,11 @@ export default function PostsIngredientsList({
                     {/* Metrics */}
                     <div className="flex items-center gap-4 text-sm text-foreground/60">
                       <div className="flex items-center gap-2">
-                        <HiDocumentText className="text-base" />
+                        <FileText className="text-base" />
                         <span>{ingredientMetrics.totalPosts || 0} posts</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <HiEye className="text-base" />
+                        <Eye className="text-base" />
                         <span>{ingredientMetrics.totalViews || 0} views</span>
                       </div>
                     </div>

@@ -1,6 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { DollarSign } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { HiCurrencyDollar } from 'react-icons/hi2';
 
 type WorkflowExecuteCardWorkflowInfoProps = {
   action: AgentUiAction;
@@ -30,7 +30,7 @@ export function WorkflowExecuteCardWorkflowInfo({
 
       {action.creditEstimate != null && (
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <HiCurrencyDollar className="size-3.5" />
+          <DollarSign className="size-3.5" />
           <span>Estimated cost: {action.creditEstimate} credits</span>
         </div>
       )}

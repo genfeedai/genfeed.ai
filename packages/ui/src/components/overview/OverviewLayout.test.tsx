@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
-import { HiSparkles } from 'react-icons/hi2';
+import { Sparkles } from 'lucide-react';
+
 import { describe, expect, it } from 'vitest';
 import OverviewLayout from './OverviewLayout';
 
@@ -10,7 +11,7 @@ describe('OverviewLayout', () => {
       cta: 'Go',
       description: 'Start something new',
       href: '#',
-      icon: HiSparkles,
+      icon: Sparkles,
       label: 'Create',
     },
   ];

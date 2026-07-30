@@ -1,5 +1,5 @@
 import type { AnalyticsMetric } from '@genfeedai/enums';
-import type { IconType } from 'react-icons';
+import type { IconType } from '../ui/icon.interface';
 
 export interface AnalyticsStat {
   label: string;

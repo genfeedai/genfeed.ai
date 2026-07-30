@@ -1,10 +1,8 @@
 'use client';
 
 import Card from '@ui/card/Card';
-import {
-  HiOutlineCheckCircle,
-  HiOutlineExclamationCircle,
-} from 'react-icons/hi2';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
+
 import type { UploadResult } from './dataset-uploader.types';
 
 type DatasetUploadResultProps = {
@@ -19,14 +17,14 @@ export default function DatasetUploadResult({
       <div className="p-4 space-y-2">
         {uploadResult.uploadedCount > 0 && (
           <div className="flex items-center gap-2 text-sm text-success">
-            <HiOutlineCheckCircle className="size-4" />
+            <CheckCircle2 className="size-4" />
             {uploadResult.uploadedCount} image(s) uploaded successfully
           </div>
         )}
         {uploadResult.failedCount > 0 && (
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-sm text-error">
-              <HiOutlineExclamationCircle className="size-4" />
+              <AlertCircle className="size-4" />
               {uploadResult.failedCount} image(s) failed
             </div>
             {uploadResult.failed.map((f) => (

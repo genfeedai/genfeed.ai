@@ -18,14 +18,11 @@ import TopPostsSection from '@ui/analytics/top-posts/TopPostsSection';
 import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
 import { buttonVariants } from '@ui/primitives/button.variants';
+import { Newspaper, Sparkles, Users } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useMemo } from 'react';
-import {
-  HiOutlineNewspaper,
-  HiOutlineSparkles,
-  HiOutlineUsers,
-} from 'react-icons/hi2';
+
 import OverviewPlaceholderCard from './analytics-overview-placeholder-card';
 
 type AnalyticsOverviewLeaderboardsProps = {
@@ -185,7 +182,7 @@ export default function AnalyticsOverviewLeaderboards({
         <OverviewPlaceholderCard
           title="Top posts will surface here"
           description="As soon as posts start collecting views and engagement, this module will highlight the strongest creative in the selected range."
-          icon={HiOutlineNewspaper}
+          icon={Newspaper}
           primaryAction={{
             href: APP_ROUTES.POSTS.ROOT,
             label: 'Draft content',
@@ -240,7 +237,7 @@ export default function AnalyticsOverviewLeaderboards({
             <OverviewPlaceholderCard
               title="Organization rankings need more tracked activity"
               description="Once organizations start producing enough measurable performance, this leaderboard will rank them by output and engagement."
-              icon={HiOutlineUsers}
+              icon={Users}
               primaryAction={{
                 href: `${basePath}/organizations`,
                 label: 'Review organizations',
@@ -281,7 +278,7 @@ export default function AnalyticsOverviewLeaderboards({
           <OverviewPlaceholderCard
             title="Brand rankings will unlock after the first measurable wins"
             description="This section compares brands once posts begin generating enough views and engagement to rank meaningfully."
-            icon={HiOutlineSparkles}
+            icon={Sparkles}
             primaryAction={{
               href: `${basePath}/brands`,
               label: 'Review brands',

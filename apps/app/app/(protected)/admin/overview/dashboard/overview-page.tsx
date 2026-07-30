@@ -11,19 +11,19 @@ import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
+import {
+  BarChart3,
+  Building2,
+  Clock,
+  Cpu,
+  CreditCard,
+  Newspaper,
+  Sparkles,
+  Tag,
+  Users,
+} from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import {
-  HiOutlineBuildingOffice2,
-  HiOutlineChartBar,
-  HiOutlineClock,
-  HiOutlineCpuChip,
-  HiOutlineCreditCard,
-  HiOutlineNewspaper,
-  HiOutlineSparkles,
-  HiOutlineTag,
-  HiOutlineUserGroup,
-} from 'react-icons/hi2';
 
 // Lazy-load the chart component to avoid bundling recharts in the initial chunk
 const ActivityChart = dynamic(
@@ -48,7 +48,7 @@ const quickActionCards: OverviewCard[] = [
     cta: 'Manage Users',
     description: 'Accounts, roles, and permissions',
     href: APP_ROUTES.ADMIN.ADMINISTRATION.USERS,
-    icon: HiOutlineUserGroup,
+    icon: Users,
     id: 'users',
     label: 'Users',
   },
@@ -57,7 +57,7 @@ const quickActionCards: OverviewCard[] = [
     cta: 'View Elements',
     description: 'Presets, blacklists, and settings',
     href: APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS_BLACKLISTS,
-    icon: HiOutlineTag,
+    icon: Tag,
     id: 'elements',
     label: 'Elements',
   },
@@ -66,7 +66,7 @@ const quickActionCards: OverviewCard[] = [
     cta: 'View Posts',
     description: 'Posts, performance, and metrics',
     href: APP_ROUTES.ADMIN.CONTENT.POSTS,
-    icon: HiOutlineNewspaper,
+    icon: Newspaper,
     id: 'posts',
     label: 'Posts',
   },
@@ -139,7 +139,7 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
                 </span>
                 {/* Icon circle */}
                 <div className="size-10 rounded-full bg-muted flex items-center justify-center">
-                  <HiOutlineBuildingOffice2 className="size-5 text-white/60" />
+                  <Building2 className="size-5 text-white/60" />
                 </div>
                 {/* Name and metadata */}
                 <div>
@@ -201,32 +201,32 @@ interface StatsGridProps {
 function StatsGrid({ stats, isLoading }: StatsGridProps) {
   const statsItems = [
     {
-      icon: HiOutlineSparkles,
+      icon: Sparkles,
       label: 'Active Brands',
       value: formatNumber(stats.totalBrands || 0),
     },
     {
-      icon: HiOutlineClock,
+      icon: Clock,
       label: 'Pending Posts',
       value: formatNumber(stats.pendingPosts || 0),
     },
     {
-      icon: HiOutlineChartBar,
+      icon: BarChart3,
       label: 'Active Workflows',
       value: formatNumber(stats.activeWorkflows || 0),
     },
     {
-      icon: HiOutlineCpuChip,
+      icon: Cpu,
       label: 'Running Bots',
       value: formatNumber(stats.activeBots || 0),
     },
     {
-      icon: HiOutlineCpuChip,
+      icon: Cpu,
       label: 'AI Models',
       value: formatNumber(stats.totalModels || 0),
     },
     {
-      icon: HiOutlineClock,
+      icon: Clock,
       label: 'Recent Activities',
       value: formatNumber(stats.recentActivities || 0),
     },
@@ -320,25 +320,25 @@ export default function OverviewPage() {
   const monthlyGrowth = stats?.monthlyGrowth || 0;
   const kpiItems: KPICardProps[] = [
     {
-      icon: HiOutlineUserGroup,
+      icon: Users,
       label: 'Total Users',
       trend: monthlyGrowth > 0 ? 12 : -5,
       value: formatNumber(stats?.totalUsers || 0),
     },
     {
-      icon: HiOutlineBuildingOffice2,
+      icon: Building2,
       label: 'Organizations',
       trend: monthlyGrowth > 0 ? 8 : -3,
       value: formatNumber(stats?.totalOrganizations || 0),
     },
     {
-      icon: HiOutlineNewspaper,
+      icon: Newspaper,
       label: 'Total Posts',
       trend: monthlyGrowth > 0 ? 24 : monthlyGrowth,
       value: formatNumber(stats?.totalPosts || 0),
     },
     {
-      icon: HiOutlineCreditCard,
+      icon: CreditCard,
       label: 'Subscriptions',
       trend: monthlyGrowth > 0 ? 15 : -2,
       value: formatNumber(stats?.totalSubscriptions || 0),
@@ -349,7 +349,7 @@ export default function OverviewPage() {
     <Container
       label="Admin Dashboard"
       description="Control platform operations and user management"
-      icon={HiOutlineChartBar}
+      icon={BarChart3}
       className="bg-dots-subtle"
     >
       {/* KPI Section */}

@@ -10,14 +10,7 @@ import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import PageLayout from '@web-components/PageLayout';
-import {
-  HiArrowPath,
-  HiBolt,
-  HiCpuChip,
-  HiRocketLaunch,
-  HiSparkles,
-  HiUserGroup,
-} from 'react-icons/hi2';
+import { Cpu, RefreshCw, Rocket, Sparkles, Users, Zap } from 'lucide-react';
 
 const CALENDLY_URL = EnvironmentService.calendly;
 
@@ -27,41 +20,41 @@ const FEATURES = [
   {
     description:
       'Hire specialized agents for research, creative, and publishing so every stage of content has an owner.',
-    icon: HiUserGroup,
+    icon: Users,
     title: 'Specialized Agents',
   },
   {
     description:
       'Set goals and guardrails once, then let agents execute the work inside the boundaries you define.',
-    icon: HiCpuChip,
+    icon: Cpu,
     title: 'Goals and Guardrails',
   },
   {
     description:
       'Run full campaigns on autopilot while agents research, generate, and publish on schedule.',
-    icon: HiBolt,
+    icon: Zap,
     title: 'Campaign Autopilot',
   },
 ];
 
 const STEPS = [
   {
-    icon: HiUserGroup,
+    icon: Users,
     label: 'Hire',
     sublabel: 'Choose research, creative, and publishing agents',
   },
   {
-    icon: HiSparkles,
+    icon: Sparkles,
     label: 'Brief',
     sublabel: 'Set goals, guardrails, and brand direction',
   },
   {
-    icon: HiArrowPath,
+    icon: RefreshCw,
     label: 'Autopilot',
     sublabel: 'Agents research, generate, and publish on schedule',
   },
   {
-    icon: HiRocketLaunch,
+    icon: Rocket,
     label: 'Review',
     sublabel: 'Approve output before it goes live',
   },
@@ -140,7 +133,7 @@ export default function AgentsContent() {
             <HStack className="flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
                 <div className="flex size-20 items-center justify-center bg-card shadow-border">
-                  <HiUserGroup className="size-10 text-surface" />
+                  <Users className="size-10 text-surface" />
                 </div>
               </div>
               <VStack className="gap-3">
@@ -251,7 +244,7 @@ export default function AgentsContent() {
         <section className="max-w-4xl mx-auto pb-16 px-6">
           <div className="gen-card-spotlight p-12 text-center">
             <div className="flex justify-center mb-4">
-              <HiUserGroup className="size-8 text-surface" />
+              <Users className="size-8 text-surface" />
             </div>
             <Heading as="h3" className="text-2xl font-bold mb-2 text-surface">
               Hire Your Content Team Today

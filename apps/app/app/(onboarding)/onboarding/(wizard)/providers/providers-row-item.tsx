@@ -1,6 +1,6 @@
-'use client';
+import { CheckCircle2, Key } from 'lucide-react';
 
-import { HiCheckCircle, HiKey } from 'react-icons/hi2';
+('use client');
 
 type Props = {
   description: string;
@@ -29,9 +29,9 @@ export default function ProvidersRowItem({
         }`}
       >
         {enabled ? (
-          <HiCheckCircle className="size-4" />
+          <CheckCircle2 className="size-4" />
         ) : (
-          <HiKey className="size-4" />
+          <Key className="size-4" />
         )}
         {enabled ? enabledLabel : disabledLabel}
       </div>

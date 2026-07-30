@@ -10,8 +10,9 @@ import { AdminAnnouncementsService } from '@services/admin/announcements.service
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Container from '@ui/layout/container/Container';
+import { Megaphone } from 'lucide-react';
 import { useCallback, useEffect, useReducer } from 'react';
-import { HiOutlineMegaphone } from 'react-icons/hi2';
+
 import AnnouncementComposeForm from './announcement-compose-form';
 import AnnouncementHistoryList from './announcement-history-list';
 
@@ -207,7 +208,7 @@ export default function AnnouncementsPage({
     <Container
       label="Announcements"
       description="Broadcast changelogs, updates, and news to Discord and Twitter/X"
-      icon={HiOutlineMegaphone}
+      icon={Megaphone}
       tabs={TABS}
       activeTab={activeTab}
       onTabChange={handleTabChange}

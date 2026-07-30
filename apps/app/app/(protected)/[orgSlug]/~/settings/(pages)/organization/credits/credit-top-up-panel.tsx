@@ -10,9 +10,9 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { CreditCard } from 'lucide-react';
 import type { ReactElement, ReactNode } from 'react';
 import { useMemo, useState } from 'react';
-import { HiOutlineCreditCard } from 'react-icons/hi2';
 
 export const CREDITS_PER_USD = 100;
 
@@ -207,7 +207,7 @@ export default function CreditTopUpPanel({
             onClick={handleSubmit}
             isDisabled={!isValid || isSubmitDisabled || isStartingCheckout}
             isLoading={isStartingCheckout}
-            icon={<HiOutlineCreditCard className="size-4" />}
+            icon={<CreditCard className="size-4" />}
           >
             {isStartingCheckout ? 'Opening checkout...' : submitLabel}
           </Button>

@@ -2,12 +2,8 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { Copy, MoreVertical, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import {
-  HiOutlineDocumentDuplicate,
-  HiOutlineEllipsisVertical,
-  HiOutlineTrash,
-} from 'react-icons/hi2';
 
 type WorkflowCardDropdownProps = {
   canDelete?: boolean;
@@ -50,7 +46,7 @@ export default function WorkflowCardDropdown({
         }}
         className="rounded p-1 text-foreground/40 transition-colors hover:bg-muted hover:text-foreground"
       >
-        <HiOutlineEllipsisVertical className="size-4" />
+        <MoreVertical className="size-4" />
       </Button>
 
       {isOpen && (
@@ -66,7 +62,7 @@ export default function WorkflowCardDropdown({
             }}
             className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
           >
-            <HiOutlineDocumentDuplicate className="size-4" />
+            <Copy className="size-4" />
             Duplicate
           </Button>
           {canDelete ? (
@@ -81,7 +77,7 @@ export default function WorkflowCardDropdown({
               }}
               className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 transition-colors hover:bg-muted"
             >
-              <HiOutlineTrash className="size-4" />
+              <Trash2 className="size-4" />
               Delete
             </Button>
           ) : null}

@@ -15,13 +15,13 @@ import {
 } from '@web-components/content/NeuralGrid';
 import PageLayout from '@web-components/PageLayout';
 import {
-  LuCloud,
-  LuCpu,
-  LuGitBranch,
-  LuServer,
-  LuShieldCheck,
-  LuTerminal,
-} from 'react-icons/lu';
+  Cloud,
+  Cpu,
+  GitBranch,
+  Server,
+  ShieldCheck,
+  Terminal,
+} from 'lucide-react';
 
 const DOCS_URL = 'https://docs.genfeed.ai';
 
@@ -29,19 +29,19 @@ const WHY_SELF_HOST = [
   {
     description:
       'Deploy the full content OS on your own servers with Docker. Your models, your storage, your network. No vendor lock-in.',
-    icon: LuServer,
+    icon: Server,
     title: 'Own Your Infrastructure',
   },
   {
     description:
       'Everything runs inside your environment. Nothing leaves your infrastructure unless you decide it does.',
-    icon: LuShieldCheck,
+    icon: ShieldCheck,
     title: 'Own Your Data',
   },
   {
     description:
       'Bring your own keys or run open-source models locally. Route generation however you want, with no per-credit meter.',
-    icon: LuCpu,
+    icon: Cpu,
     title: 'Run Your Own Models',
   },
 ] as const;
@@ -103,7 +103,7 @@ export default function SelfHostedContent() {
     <div ref={containerRef}>
       <PageLayout
         badge="Open Source"
-        badgeIcon={LuGitBranch}
+        badgeIcon={GitBranch}
         title={
           <>
             Open source. Self-host on{' '}
@@ -204,7 +204,7 @@ export default function SelfHostedContent() {
 
           <NeuralGrid columns={2}>
             <NeuralGridItem
-              icon={LuTerminal}
+              icon={Terminal}
               title="Self-host"
               tierLabel="Free / open source"
               padding="lg"
@@ -228,7 +228,7 @@ export default function SelfHostedContent() {
             </NeuralGridItem>
 
             <NeuralGridItem
-              icon={LuCloud}
+              icon={Cloud}
               title="Managed cloud"
               tierLabel="Free to start"
               padding="lg"

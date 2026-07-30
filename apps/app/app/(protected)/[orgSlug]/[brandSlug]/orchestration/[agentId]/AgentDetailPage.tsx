@@ -2,6 +2,11 @@
 
 import { APP_ROUTES } from '@genfeedai/constants';
 import { AgentType, ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import {
+  LinkedinIcon,
+  XTwitterIcon,
+  YoutubeIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentRuns } from '@hooks/data/agent-runs/use-agent-runs';
 import { useAgentStrategy } from '@hooks/data/agent-strategies/use-agent-strategy';
@@ -17,22 +22,22 @@ import Badge from '@ui/display/badge/Badge';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import {
+  ArrowLeft,
+  Cpu,
+  FileText,
+  Image,
+  Megaphone,
+  PlayCircle,
+  Sparkles,
+  User,
+  Video,
+  Zap,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useMemo, useState } from 'react';
-import { FaLinkedin, FaXTwitter, FaYoutube } from 'react-icons/fa6';
-import {
-  HiArrowLeft,
-  HiOutlineBolt,
-  HiOutlineCpuChip,
-  HiOutlineDocumentText,
-  HiOutlineMegaphone,
-  HiOutlinePhoto,
-  HiOutlinePlayCircle,
-  HiOutlineSparkles,
-  HiOutlineUser,
-  HiOutlineVideoCamera,
-} from 'react-icons/hi2';
+
 import AgentOpportunityPanel from './AgentOpportunityPanel';
 import AgentRunHistorySection from './AgentRunHistorySection';
 
@@ -52,18 +57,18 @@ const AGENT_TYPE_LABELS: Record<AgentType, string> = {
 };
 
 const AGENT_TYPE_ICONS: Record<AgentType, React.ReactNode> = {
-  [AgentType.GENERAL]: <HiOutlineCpuChip className="size-5" />,
-  [AgentType.X_CONTENT]: <FaXTwitter className="size-4" />,
-  [AgentType.IMAGE_CREATOR]: <HiOutlinePhoto className="size-5" />,
-  [AgentType.VIDEO_CREATOR]: <HiOutlineVideoCamera className="size-5" />,
-  [AgentType.AI_AVATAR]: <HiOutlineUser className="size-5" />,
-  [AgentType.ARTICLE_WRITER]: <HiOutlineDocumentText className="size-5" />,
-  [AgentType.LINKEDIN_CONTENT]: <FaLinkedin className="size-4" />,
-  [AgentType.ADS_SCRIPT_WRITER]: <HiOutlineMegaphone className="size-5" />,
-  [AgentType.SHORT_FORM_WRITER]: <HiOutlineBolt className="size-5" />,
-  [AgentType.CTA_CONTENT]: <HiOutlineSparkles className="size-5" />,
-  [AgentType.YOUTUBE_SCRIPT]: <FaYoutube className="size-4" />,
-  [AgentType.BRAND_INTERVIEW]: <HiOutlineSparkles className="size-5" />,
+  [AgentType.GENERAL]: <Cpu className="size-5" />,
+  [AgentType.X_CONTENT]: <XTwitterIcon className="size-4" />,
+  [AgentType.IMAGE_CREATOR]: <Image className="size-5" />,
+  [AgentType.VIDEO_CREATOR]: <Video className="size-5" />,
+  [AgentType.AI_AVATAR]: <User className="size-5" />,
+  [AgentType.ARTICLE_WRITER]: <FileText className="size-5" />,
+  [AgentType.LINKEDIN_CONTENT]: <LinkedinIcon className="size-4" />,
+  [AgentType.ADS_SCRIPT_WRITER]: <Megaphone className="size-5" />,
+  [AgentType.SHORT_FORM_WRITER]: <Zap className="size-5" />,
+  [AgentType.CTA_CONTENT]: <Sparkles className="size-5" />,
+  [AgentType.YOUTUBE_SCRIPT]: <YoutubeIcon className="size-4" />,
+  [AgentType.BRAND_INTERVIEW]: <Sparkles className="size-5" />,
 };
 
 function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
@@ -135,9 +140,9 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
 
   const agentType = strategy?.agentType as AgentType | undefined;
   const icon = agentType ? (
-    (AGENT_TYPE_ICONS[agentType] ?? <HiOutlineCpuChip className="size-5" />)
+    (AGENT_TYPE_ICONS[agentType] ?? <Cpu className="size-5" />)
   ) : (
-    <HiOutlineCpuChip className="size-5" />
+    <Cpu className="size-5" />
   );
   const typeLabel = agentType
     ? (AGENT_TYPE_LABELS[agentType] ?? strategy?.agentType)
@@ -145,7 +150,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
 
   if (isStrategyLoading) {
     return (
-      <Container label="Agent Detail" icon={HiOutlineCpuChip}>
+      <Container label="Agent Detail" icon={Cpu}>
         <div className="h-64 animate-pulse rounded bg-foreground/5" />
       </Container>
     );
@@ -153,7 +158,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
 
   if (!strategy) {
     return (
-      <Container label="Agent Detail" icon={HiOutlineCpuChip}>
+      <Container label="Agent Detail" icon={Cpu}>
         <div className="py-16 text-center text-foreground/50">
           Agent not found.{' '}
           <Link href={APP_ROUTES.ORCHESTRATION.ROOT} className="underline">
@@ -168,13 +173,13 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
     <Container
       label={strategy.label}
       description={`${typeLabel} agent`}
-      icon={HiOutlineCpuChip}
+      icon={Cpu}
       left={
         <Link href={APP_ROUTES.ORCHESTRATION.ROOT}>
           <Button
             label={
               <>
-                <HiArrowLeft /> Agents
+                <ArrowLeft /> Agents
               </>
             }
             size={ButtonSize.SM}
@@ -195,7 +200,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
           />
           <Button
             label="Run Now"
-            icon={<HiOutlinePlayCircle />}
+            icon={<PlayCircle />}
             size={ButtonSize.SM}
             variant={ButtonVariant.DEFAULT}
             onClick={handleRunNow}

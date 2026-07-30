@@ -7,16 +7,17 @@ import { useAccessState } from '@providers/access-state/access-state.provider';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
-import Link from 'next/link';
 import {
-  HiArrowPath,
-  HiArrowRight,
-  HiOutlineBolt,
-  HiOutlineCheckCircle,
-  HiOutlineCommandLine,
-  HiOutlineKey,
-  HiOutlineShieldCheck,
-} from 'react-icons/hi2';
+  ArrowRight,
+  CheckCircle2,
+  Key,
+  RefreshCw,
+  ShieldCheck,
+  Terminal,
+  Zap,
+} from 'lucide-react';
+import Link from 'next/link';
+
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { resolveOperationalHomeScope } from './operational-home.helpers';
 import OperationalHomeSections from './operational-home-sections';
@@ -39,7 +40,7 @@ function ConnectionState({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 flex-1 items-start gap-3">
           <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-info/10 text-info shadow-border">
-            <HiOutlineCommandLine aria-hidden="true" className="size-4" />
+            <Terminal aria-hidden="true" className="size-4" />
           </div>
           <div className="min-w-0 space-y-1.5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/40">
@@ -60,7 +61,7 @@ function ConnectionState({
               >
                 <Link href={connectHref}>
                   Connect Genfeed
-                  <HiArrowRight aria-hidden="true" className="size-3.5" />
+                  <ArrowRight aria-hidden="true" className="size-3.5" />
                 </Link>
               </Button>
               <Button
@@ -69,7 +70,7 @@ function ConnectionState({
                 variant={ButtonVariant.GHOST}
               >
                 <Link href={apiKeysHref}>
-                  <HiOutlineKey aria-hidden="true" className="size-3.5" />
+                  <Key aria-hidden="true" className="size-3.5" />
                   Manage API keys
                 </Link>
               </Button>
@@ -84,7 +85,7 @@ function ConnectionState({
             'Human approval controls',
           ].map((label) => (
             <li className="flex items-center gap-2" key={label}>
-              <HiOutlineCheckCircle
+              <CheckCircle2
                 aria-hidden="true"
                 className="size-3.5 shrink-0 text-success"
               />
@@ -149,10 +150,7 @@ export default function OperationalHomeContent() {
             className="flex items-center gap-3 rounded-card bg-success/5 px-4 py-3 shadow-border"
             data-testid="operational-home-connected"
           >
-            <HiOutlineShieldCheck
-              aria-hidden="true"
-              className="size-5 text-success"
-            />
+            <ShieldCheck aria-hidden="true" className="size-5 text-success" />
             <div>
               <p className="text-sm font-medium text-foreground">
                 MCP verified
@@ -180,7 +178,7 @@ export default function OperationalHomeContent() {
 
       {connection.status === 'error' ? (
         <Alert variant="destructive">
-          <HiOutlineBolt aria-hidden="true" className="size-4" />
+          <Zap aria-hidden="true" className="size-4" />
           <AlertTitle aria-level={2} role="heading">
             Connection status unavailable
           </AlertTitle>
@@ -197,7 +195,7 @@ export default function OperationalHomeContent() {
                 variant={ButtonVariant.SECONDARY}
                 withWrapper={false}
               >
-                <HiArrowPath aria-hidden="true" className="size-4" />
+                <RefreshCw aria-hidden="true" className="size-4" />
                 Retry status
               </Button>
               <Button asChild variant={ButtonVariant.GHOST}>

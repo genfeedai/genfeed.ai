@@ -3,6 +3,7 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { VoiceCloneStatus, VoiceProvider } from '@genfeedai/enums';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
+import { AlertCircle, Mic } from 'lucide-react';
 import {
   type ReactElement,
   useCallback,
@@ -11,7 +12,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { HiExclamationCircle, HiMicrophone } from 'react-icons/hi2';
+
 import { VoiceCloneDoneState } from './VoiceCloneDoneState';
 import { VoiceCloneDropzone } from './VoiceCloneDropzone';
 import { VoiceCloneExistingVoiceSelector } from './VoiceCloneExistingVoiceSelector';
@@ -232,7 +233,7 @@ export function VoiceCloneCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiMicrophone className="size-5 text-rose-500" />
+        <Mic className="size-5 text-rose-500" />
         <h3 className="text-sm font-semibold">
           {action.title || 'Clone Voice'}
         </h3>
@@ -288,7 +289,7 @@ export function VoiceCloneCard({
       {/* Error */}
       {error && (
         <p className="mt-3 flex items-center gap-1 text-xs text-red-500">
-          <HiExclamationCircle className="size-4" />
+          <AlertCircle className="size-4" />
           {error}
         </p>
       )}

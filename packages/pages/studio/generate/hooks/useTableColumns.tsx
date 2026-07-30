@@ -27,19 +27,19 @@ import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import { Button } from '@ui/primitives/button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { resolveIngredientReferenceUrl } from '@utils/media/reference.util';
+import {
+  Clipboard,
+  Eye,
+  Info,
+  Pause,
+  Pencil,
+  Play,
+  Star,
+  Video,
+} from 'lucide-react';
 import Image from 'next/image';
 import type { MouseEvent } from 'react';
 import { useCallback, useMemo } from 'react';
-import {
-  HiClipboardDocument,
-  HiEye,
-  HiInformationCircle,
-  HiPause,
-  HiPencil,
-  HiPlay,
-  HiStar,
-  HiVideoCamera,
-} from 'react-icons/hi2';
 
 export function useTableColumns({
   categoryType,
@@ -75,9 +75,9 @@ export function useTableColumns({
           <Button
             label={
               item.isPlaying ? (
-                <HiPause className="text-lg" />
+                <Pause className="text-lg" />
               ) : (
-                <HiPlay className="text-lg" />
+                <Play className="text-lg" />
               )
             }
             size={ButtonSize.ICON}
@@ -192,7 +192,7 @@ export function useTableColumns({
           )}
           {hasMedia && !isProcessing && (
             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <HiEye className="size-6 text-white" />
+              <Eye className="size-6 text-white" />
             </div>
           )}
         </Button>
@@ -280,7 +280,7 @@ export function useTableColumns({
                 size={ButtonSize.XS}
                 className="opacity-0 group-hover:opacity-100 transition-opacity"
                 ariaLabel="Copy prompt to clipboard"
-                icon={<HiClipboardDocument className="size-4" />}
+                icon={<Clipboard className="size-4" />}
               />
             </div>
           );
@@ -407,7 +407,7 @@ export function useTableActions({
     const baseActions: TableAction<IIngredient>[] = [
       {
         icon: (item: IIngredient) => (
-          <HiStar
+          <Star
             size={16}
             className={item.isFavorite ? 'fill-foreground text-foreground' : ''}
           />
@@ -418,14 +418,14 @@ export function useTableActions({
         variant: ButtonVariant.GHOST,
       },
       {
-        icon: <HiClipboardDocument className="size-4" />,
+        icon: <Clipboard className="size-4" />,
         isDisabled: (item: IIngredient) => !item.promptText,
         onClick: handleCopy,
         tooltip: 'Copy Prompt',
         variant: ButtonVariant.GHOST,
       },
       {
-        icon: <HiPencil className="size-4" />,
+        icon: <Pencil className="size-4" />,
         onClick: handleEditIngredient,
         tooltip: 'Edit',
         variant: ButtonVariant.DEFAULT,
@@ -434,7 +434,7 @@ export function useTableActions({
 
     if (categoryType !== IngredientCategory.MUSIC) {
       baseActions.splice(1, 0, {
-        icon: <HiInformationCircle className="size-4" />,
+        icon: <Info className="size-4" />,
         onClick: handleSeeDetails,
         tooltip: 'View Ingredient',
         variant: ButtonVariant.GHOST,
@@ -443,7 +443,7 @@ export function useTableActions({
 
     if (categoryType === IngredientCategory.IMAGE) {
       baseActions.splice(3, 0, {
-        icon: <HiVideoCamera className="size-4" />,
+        icon: <Video className="size-4" />,
         isDisabled: (item: IIngredient) =>
           item.status === IngredientStatus.PROCESSING,
         onClick: handleConvertImageToVideo,

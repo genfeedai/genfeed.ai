@@ -6,7 +6,7 @@
 import type { IBrand } from '@genfeedai/interfaces';
 import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
-import { HiOutlineUserCircle } from 'react-icons/hi2';
+import { UserCircle } from 'lucide-react';
 
 export class BrandCommandsService {
   /**
@@ -34,7 +34,7 @@ export class BrandCommandsService {
       },
       description:
         currentBrandId === brand.id ? 'Current brand' : 'Switch brand',
-      icon: HiOutlineUserCircle,
+      icon: UserCircle,
       id: `switch-brand-${brand.id}`,
       keywords: ['switch', 'brand', brand.label.toLowerCase()],
       label: `Switch to ${brand.label}`,

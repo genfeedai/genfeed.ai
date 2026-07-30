@@ -12,8 +12,8 @@ import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import { Cpu } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { HiOutlineCpuChip } from 'react-icons/hi2';
 
 const BOT_SKELETON_KEYS = [
   'bot-skeleton-1',
@@ -80,7 +80,7 @@ export default function BotsPage() {
       <Container
         label="Bots"
         description="Manage automation bots for X/Twitter, Twitch, and YouTube"
-        icon={HiOutlineCpuChip}
+        icon={Cpu}
       >
         <div className="grid gap-4">
           {BOT_SKELETON_KEYS.map((key) => (
@@ -95,7 +95,7 @@ export default function BotsPage() {
     <Container
       label="Bots"
       description="Manage automation bots for X/Twitter, Twitch, and YouTube"
-      icon={HiOutlineCpuChip}
+      icon={Cpu}
       right=<ButtonRefresh
         onClick={() => loadBots(true)}
         isRefreshing={isRefreshing}

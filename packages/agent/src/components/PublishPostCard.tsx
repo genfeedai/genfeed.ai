@@ -3,17 +3,13 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
+import { Calendar, CheckCircle2, Send } from 'lucide-react';
 import {
   type ChangeEvent,
   type ReactElement,
   useCallback,
   useState,
 } from 'react';
-import {
-  HiCalendarDays,
-  HiCheckCircle,
-  HiPaperAirplane,
-} from 'react-icons/hi2';
 
 interface PublishPostCardProps {
   action: AgentUiAction;
@@ -131,7 +127,7 @@ export function PublishPostCard({
     return (
       <div className="my-2 border border-emerald-500/20 bg-background p-4">
         <div className="flex items-center gap-2 text-emerald-600">
-          <HiCheckCircle className="size-5" />
+          <CheckCircle2 className="size-5" />
           <span className="text-sm font-medium">
             {scheduledAt
               ? 'Publish scheduled from chat.'
@@ -145,7 +141,7 @@ export function PublishPostCard({
   return (
     <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
-        <HiPaperAirplane className="size-5 text-emerald-500" />
+        <Send className="size-5 text-emerald-500" />
         <h3 className="text-sm font-semibold text-foreground">
           {action.title || 'Publish selected content'}
         </h3>
@@ -205,7 +201,7 @@ export function PublishPostCard({
           htmlFor="publish-schedule"
           className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
         >
-          <HiCalendarDays className="mr-1 inline size-3" />
+          <Calendar className="mr-1 inline size-3" />
           Schedule for later
         </label>
         <Input
@@ -227,7 +223,7 @@ export function PublishPostCard({
         }
         className="flex w-full items-center justify-center gap-2 rounded bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600"
       >
-        <HiPaperAirplane className="size-4" />
+        <Send className="size-4" />
         {isSubmitting
           ? 'Publishing...'
           : scheduledAt

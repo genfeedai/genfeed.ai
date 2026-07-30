@@ -2,7 +2,7 @@
 
 import type { OnboardingProgressProps } from '@props/onboarding/onboarding-progress.props';
 import { Progress } from '@ui/primitives';
-import { HiCheck } from 'react-icons/hi2';
+import { Check } from 'lucide-react';
 
 export default function OnboardingProgress({
   currentStep,
@@ -42,7 +42,7 @@ export default function OnboardingProgress({
                       : 'bg-white/[0.06] text-white/30 border border-white/[0.08]'
                 }`}
               >
-                {isCompleted ? <HiCheck className="size-3.5" /> : index + 1}
+                {isCompleted ? <Check className="size-3.5" /> : index + 1}
               </div>
 
               {/* Label — hidden on mobile for non-current steps */}

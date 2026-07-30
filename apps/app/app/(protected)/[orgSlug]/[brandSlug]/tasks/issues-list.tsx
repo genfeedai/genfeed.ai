@@ -32,12 +32,9 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
+import { Columns2, List, PlusCircle } from 'lucide-react';
 import { type JSX, useCallback, useEffect, useReducer, useRef } from 'react';
-import {
-  HiOutlineListBullet,
-  HiOutlinePlusCircle,
-  HiOutlineViewColumns,
-} from 'react-icons/hi2';
+
 import IssueOverlay from './issue-overlay';
 import { openIssueOverlay } from './issue-overlay-controls';
 
@@ -388,7 +385,7 @@ export default function IssuesList() {
               dispatch({ type: 'SET_SHOW_CREATE_DIALOG', payload: true })
             }
           >
-            <HiOutlinePlusCircle className="size-3.5" />
+            <PlusCircle className="size-3.5" />
             New Task
           </Button>
           <Select
@@ -420,17 +417,13 @@ export default function IssuesList() {
             options={[
               {
                 ariaLabel: 'List view',
-                icon: (
-                  <HiOutlineListBullet aria-hidden="true" className="size-4" />
-                ),
+                icon: <List aria-hidden="true" className="size-4" />,
                 label: 'List view',
                 type: ViewType.LIST,
               },
               {
                 ariaLabel: 'Kanban view',
-                icon: (
-                  <HiOutlineViewColumns aria-hidden="true" className="size-4" />
-                ),
+                icon: <Columns2 aria-hidden="true" className="size-4" />,
                 label: 'Kanban view',
                 type: ViewType.KANBAN,
               },

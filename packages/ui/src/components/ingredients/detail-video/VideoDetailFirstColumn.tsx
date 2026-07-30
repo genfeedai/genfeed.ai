@@ -12,9 +12,9 @@ import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import LoadingOverlay from '@ui/loading/overlay/LoadingOverlay';
 import { Button } from '@ui/primitives/button';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
+import { Film } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode, RefObject } from 'react';
-import { HiOutlineFilm } from 'react-icons/hi2';
 
 type VideoDetailFirstColumnProps = {
   currentVideo: IVideo;
@@ -186,7 +186,7 @@ export default function VideoDetailFirstColumn({
         href={`/editor/new?video=${currentVideo.id}`}
         className="inline-flex items-center gap-2 px-4 py-2 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm font-medium"
       >
-        <HiOutlineFilm className="size-4" />
+        <Film className="size-4" />
         Edit in Video Editor
       </Link>
 

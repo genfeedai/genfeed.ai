@@ -5,7 +5,7 @@ import type { ModalTwitterThreadProps } from '@genfeedai/props/modals/modal-twit
 import Badge from '@ui/display/badge/Badge';
 import { Modal } from '@ui/modals/compound/modal.compound';
 import { Button } from '@ui/primitives/button';
-import { HiXMark } from 'react-icons/hi2';
+import { X } from 'lucide-react';
 
 export default function ModalTwitterThread({
   thread,
@@ -72,7 +72,7 @@ export default function ModalTwitterThread({
           <Button
             label="Close"
             variant={ButtonVariant.GHOST}
-            icon={<HiXMark />}
+            icon={<X />}
             onClick={onClose}
           />
 

@@ -3,14 +3,7 @@
 import type { IAnalytics } from '@genfeedai/interfaces';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
-import {
-  HiChartBar,
-  HiEye,
-  HiFire,
-  HiGlobeAlt,
-  HiHeart,
-  HiVideoCamera,
-} from 'react-icons/hi2';
+import { BarChart3, Eye, Flame, Globe, Heart, Video } from 'lucide-react';
 
 type BrandKPISectionProps = {
   analytics: IAnalytics | null;
@@ -32,7 +25,7 @@ export default function BrandKPISection({
       items={[
         {
           description: 'Published content',
-          icon: HiVideoCamera,
+          icon: Video,
           iconClassName: 'bg-white/10 text-foreground',
           label: 'Total Posts',
           value: analytics?.totalPosts || 0,
@@ -41,7 +34,7 @@ export default function BrandKPISection({
           description: analytics?.viewsGrowth
             ? `${analytics.viewsGrowth > 0 ? '+' : ''}${analytics.viewsGrowth}% from last period`
             : 'Total views',
-          icon: HiEye,
+          icon: Eye,
           iconClassName: 'bg-white/10 text-foreground',
           label: 'Total Views',
           value: analytics?.totalViews || 0,
@@ -50,14 +43,14 @@ export default function BrandKPISection({
           description: analytics?.engagementGrowth
             ? `${analytics.engagementGrowth > 0 ? '+' : ''}${analytics.engagementGrowth}% from last period`
             : 'Total engagement',
-          icon: HiHeart,
+          icon: Heart,
           iconClassName: 'bg-white/10 text-foreground',
           label: 'Total Engagement',
           value: analytics?.totalEngagement || analytics?.totalLikes || 0,
         },
         {
           description: 'Average engagement rate',
-          icon: HiFire,
+          icon: Flame,
           iconClassName: 'bg-white/10 text-foreground',
           label: 'Engagement Rate',
           value: analytics?.avgEngagementRate
@@ -66,14 +59,14 @@ export default function BrandKPISection({
         },
         {
           description: 'Publishing channels',
-          icon: HiGlobeAlt,
+          icon: Globe,
           iconClassName: 'bg-white/10 text-foreground',
           label: 'Active Platforms',
           value: platformCount,
         },
         {
           description: 'Per content piece',
-          icon: HiChartBar,
+          icon: BarChart3,
           iconClassName: 'bg-white/10 text-foreground',
           label: 'Avg Views/Post',
           value:

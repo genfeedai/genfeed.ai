@@ -10,7 +10,7 @@ import {
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { IMetadata } from '@genfeedai/interfaces';
-import type { Music } from '@genfeedai/models/ingredients/music.model';
+import type { MusicIcon } from '@genfeedai/models/ingredients/music.model';
 import type { ModalMusicProps } from '@genfeedai/props/modals/modal.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { MusicsService } from '@genfeedai/services/ingredients/musics.service';
@@ -18,8 +18,8 @@ import Loading from '@ui/loading/default/Loading';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
+import { Music, Pause, Play, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { HiMusicalNote, HiPause, HiPlay, HiXMark } from 'react-icons/hi2';
 
 interface MusicSelectionOverride {
   sourceId: string;
@@ -117,7 +117,7 @@ export default function ModalMusic({
     }
 
     const music = selectedMusic
-      ? availableMusic.find((music: Music) => music.id === selectedMusic) ||
+      ? availableMusic.find((music: MusicIcon) => music.id === selectedMusic) ||
         null
       : null;
 
@@ -134,7 +134,7 @@ export default function ModalMusic({
       <div className="max-w-5xl">
         <div className="flex items-center justify-between mb-4">
           <Button
-            label={<HiXMark className="text-lg" />}
+            label={<X className="text-lg" />}
             onClick={closeModalMusic}
             variant={ButtonVariant.GHOST}
             size={ButtonSize.ICON}
@@ -148,7 +148,7 @@ export default function ModalMusic({
           </div>
         ) : availableMusic.length === 0 ? (
           <div className="text-center py-12">
-            <HiMusicalNote className="text-5xl text-foreground/20 mx-auto mb-3" />
+            <Music className="text-5xl text-foreground/20 mx-auto mb-3" />
             <p className="text-foreground/60">
               No music tracks available. Generate some music first.
             </p>
@@ -157,7 +157,7 @@ export default function ModalMusic({
           <>
             {/* Music Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto p-1">
-              {availableMusic.map((music: Music) => {
+              {availableMusic.map((music: MusicIcon) => {
                 const metadata =
                   typeof music.metadata === 'object' && music.metadata
                     ? (music.metadata as IMetadata)
@@ -194,7 +194,7 @@ export default function ModalMusic({
                               : 'bg-muted'
                           }`}
                         >
-                          <HiMusicalNote
+                          <Music
                             className={`text-xl ${
                               selectedMusic === music.id
                                 ? 'text-primary'
@@ -225,9 +225,7 @@ export default function ModalMusic({
                         variant={ButtonVariant.GHOST}
                         size={ButtonSize.ICON}
                         className="rounded-full"
-                        label={
-                          playingId === music.id ? <HiPause /> : <HiPlay />
-                        }
+                        label={playingId === music.id ? <Pause /> : <Play />}
                         onClick={(e) => {
                           e.stopPropagation();
                           handlePlayPause(music.id, music.ingredientUrl);
@@ -261,7 +259,7 @@ export default function ModalMusic({
               >
                 <div className="flex items-center gap-3">
                   <div className="size-10 rounded-full bg-muted flex items-center justify-center">
-                    <HiXMark className="text-foreground/50" />
+                    <X className="text-foreground/50" />
                   </div>
                   <div>
                     <p className="font-medium">No Background Music</p>

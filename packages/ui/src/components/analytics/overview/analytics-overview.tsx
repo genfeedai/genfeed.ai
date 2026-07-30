@@ -4,13 +4,13 @@ import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format
 import type { AnalyticsOverviewProps } from '@genfeedai/props/analytics/analytics.props';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import {
-  FiEye,
-  FiHeart,
-  FiMessageCircle,
-  FiShare2,
-  FiTrendingUp,
-  FiVideo,
-} from 'react-icons/fi';
+  Eye,
+  Heart,
+  MessageCircle,
+  Share2,
+  TrendingUp,
+  Video,
+} from 'lucide-react';
 
 export default function AnalyticsOverview({
   analytics,
@@ -48,7 +48,7 @@ export default function AnalyticsOverview({
     ...(showPostsCount
       ? [
           {
-            icon: FiVideo,
+            icon: Video,
             iconClassName: 'bg-muted text-muted-foreground',
             label: 'Posts',
             value: totals.totalPosts,
@@ -56,31 +56,31 @@ export default function AnalyticsOverview({
         ]
       : []),
     {
-      icon: FiEye,
+      icon: Eye,
       iconClassName: 'bg-muted text-muted-foreground',
       label: 'Total Views',
       value: formatCompactNumber(totals.totalViews),
     },
     {
-      icon: FiHeart,
+      icon: Heart,
       iconClassName: 'bg-muted text-muted-foreground',
       label: 'Total Likes',
       value: formatCompactNumber(totals.totalLikes),
     },
     {
-      icon: FiMessageCircle,
+      icon: MessageCircle,
       iconClassName: 'bg-muted text-muted-foreground',
       label: 'Comments',
       value: formatCompactNumber(totals.totalComments),
     },
     {
-      icon: FiShare2,
+      icon: Share2,
       iconClassName: 'bg-muted text-muted-foreground',
       label: 'Shares',
       value: formatCompactNumber(totals.totalShares),
     },
     {
-      icon: FiTrendingUp,
+      icon: TrendingUp,
       iconClassName: 'bg-muted text-muted-foreground',
       label: 'Avg Engagement',
       value: `${totals.avgEngagementRate.toFixed(2)}%`,

@@ -4,7 +4,7 @@ import Badge from '@ui/display/badge/Badge';
 import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { HiArchiveBox, HiCheckCircle, HiSparkles } from 'react-icons/hi2';
+import { Archive, CheckCircle2, Sparkles } from 'lucide-react';
 
 type NewsletterEditorState = {
   angle: string;
@@ -90,7 +90,7 @@ export default function NewsletterEditor({
           <Button
             label="Approve"
             variant={ButtonVariant.SECONDARY}
-            icon={<HiCheckCircle />}
+            icon={<CheckCircle2 />}
             isLoading={loadingAction === 'approving'}
             isDisabled={selectedNewsletter.status === 'published'}
             onClick={() => onApprove(selectedNewsletter.id)}
@@ -98,7 +98,7 @@ export default function NewsletterEditor({
           <Button
             label="Publish"
             variant={ButtonVariant.SECONDARY}
-            icon={<HiSparkles />}
+            icon={<Sparkles />}
             isLoading={loadingAction === 'publishing'}
             isDisabled={selectedNewsletter.status === 'published'}
             onClick={() => onPublish(selectedNewsletter.id)}
@@ -106,7 +106,7 @@ export default function NewsletterEditor({
           <Button
             label="Archive"
             variant={ButtonVariant.UNSTYLED}
-            icon={<HiArchiveBox />}
+            icon={<Archive />}
             className="rounded-lg border border-border px-3 py-2 text-sm"
             isLoading={loadingAction === 'archiving'}
             onClick={() => onArchive(selectedNewsletter.id)}

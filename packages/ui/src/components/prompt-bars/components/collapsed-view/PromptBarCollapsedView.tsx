@@ -12,15 +12,10 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
+import { ArrowUp, ChevronUp, LayoutGrid, Mic } from 'lucide-react';
 import Image from 'next/image';
 import { type ChangeEvent, memo, useCallback, useMemo } from 'react';
 import { useWatch } from 'react-hook-form';
-import {
-  HiArrowUp,
-  HiChevronUp,
-  HiMicrophone,
-  HiSquaresPlus,
-} from 'react-icons/hi2';
 
 function getVoiceTooltip(isRecording: boolean, isProcessing: boolean): string {
   if (isRecording) {
@@ -163,7 +158,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
           />
           <Button
             variant={ButtonVariant.DEFAULT}
-            icon={<HiArrowUp />}
+            icon={<ArrowUp />}
             isDisabled={
               isGenerateBlocked ||
               isGenerateDisabled ||
@@ -232,7 +227,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
               className="h-10 px-2 gap-1"
               tooltip="Outputs"
               tooltipPosition="left"
-              icon={<HiSquaresPlus className="size-4" />}
+              icon={<LayoutGrid className="size-4" />}
               onClick={() => {
                 const next = outputs >= 4 ? 1 : outputs + 1;
                 onOutputsChange(next);
@@ -259,7 +254,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
             )}
             tooltipPosition="top"
             icon={
-              <HiMicrophone
+              <Mic
                 className={cn('size-4', isRecording && 'text-destructive')}
                 color={isRecording ? 'currentColor' : undefined}
               />
@@ -277,7 +272,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
           tooltipPosition="top"
           variant={ButtonVariant.GHOST}
           className="size-10 p-0"
-          icon={<HiChevronUp className="transition-transform size-4" />}
+          icon={<ChevronUp className="transition-transform size-4" />}
           data-testid="expand-button"
         />
       </div>

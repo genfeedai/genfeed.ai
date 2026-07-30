@@ -21,9 +21,10 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import PromptBar from '@ui/prompt-bars/base/PromptBar';
+import { Check, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { type ReactNode, useMemo } from 'react';
-import { HiCheck, HiClock } from 'react-icons/hi2';
+
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import StudioWorkspaceSurfaceAdapter from '../../studio-workspace-surface-adapter';
 import StudioEditDetailAssetPreview from './StudioEditDetailAssetPreview';
@@ -50,13 +51,13 @@ const STATUS_BADGE_CONFIG: Partial<
 > = {
   [IngredientStatus.VALIDATED]: {
     bgClass: 'bg-success/20',
-    icon: <HiCheck className="size-3.5" />,
+    icon: <Check className="size-3.5" />,
     label: 'Validated',
     textClass: 'text-success',
   },
   [IngredientStatus.PROCESSING]: {
     bgClass: 'bg-warning/20',
-    icon: <HiClock className="size-3.5" />,
+    icon: <Clock className="size-3.5" />,
     label: 'Processing',
     textClass: 'text-warning',
   },

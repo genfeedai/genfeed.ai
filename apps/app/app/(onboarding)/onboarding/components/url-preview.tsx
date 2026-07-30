@@ -1,8 +1,8 @@
 'use client';
 
+import { Globe } from 'lucide-react';
 import Image from 'next/image';
 import { useRef, useState } from 'react';
-import { HiGlobeAlt } from 'react-icons/hi2';
 
 interface UrlPreviewProps {
   url: string;
@@ -59,7 +59,7 @@ export default function UrlPreview({ url }: UrlPreviewProps) {
           height={600}
         />
       ) : (
-        <HiGlobeAlt className="size-4 text-white/40" />
+        <Globe className="size-4 text-white/40" />
       )}
       <span className="text-xs text-white/50 truncate">{domain}</span>
       <span className="text-[10px] text-white/20 ml-auto">

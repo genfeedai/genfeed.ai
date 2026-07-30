@@ -6,9 +6,9 @@ import type { PricingPlanProps } from '@genfeedai/props/content/subscription.pro
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
+import { Check } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
-import { FaCheck } from 'react-icons/fa6';
 
 export default function PricingCard({
   plan,
@@ -98,7 +98,7 @@ export default function PricingCard({
 
                 return (
                   <li key={feature} className="flex items-start">
-                    <FaCheck className="size-4 text-muted-foreground mr-2 mt-0.5 flex-shrink-0" />
+                    <Check className="size-4 text-muted-foreground mr-2 mt-0.5 flex-shrink-0" />
                     <span>{feature}</span>
                   </li>
                 );

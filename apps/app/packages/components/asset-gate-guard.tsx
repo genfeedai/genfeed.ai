@@ -7,10 +7,11 @@ import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import { ArrowRight, Lock, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMemo, useState } from 'react';
-import { HiArrowRight, HiLockClosed, HiSparkles } from 'react-icons/hi2';
+
 import {
   isAssetGateSectionPath,
   normalizeProtectedPathname,
@@ -60,7 +61,7 @@ export default function AssetGateGuard({ children }: LayoutProps) {
         bodyClassName="items-center gap-5 p-8 text-center"
       >
         <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <HiLockClosed className="h-6 w-6" aria-hidden="true" />
+          <Lock className="h-6 w-6" aria-hidden="true" />
         </span>
 
         <div className="flex flex-col gap-2">
@@ -80,9 +81,9 @@ export default function AssetGateGuard({ children }: LayoutProps) {
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
             aria-label="Go to the agent to generate your first asset"
           >
-            <HiSparkles className="h-4 w-4" aria-hidden="true" />
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
             Generate your first asset
-            <HiArrowRight className="h-4 w-4" aria-hidden="true" />
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
 
           <Button

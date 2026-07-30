@@ -5,8 +5,8 @@ import Badge from '@ui/display/badge/Badge';
 import { HStack, VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import { Globe, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { HiOutlineGlobeAlt, HiOutlineSparkles } from 'react-icons/hi2';
 
 export interface OnboardingStepReviewProps {
   data: IExtractedBrandData | null;
@@ -137,10 +137,7 @@ export default function OnboardingStepReview({
 
         {/* Brand Voice */}
         {data.brandVoice && (
-          <ReviewSection
-            icon={HiOutlineSparkles}
-            title="Brand Voice (AI Generated)"
-          >
+          <ReviewSection icon={Sparkles} title="Brand Voice (AI Generated)">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {data.brandVoice.tone && (
                 <DataField label="Tone">
@@ -197,7 +194,7 @@ export default function OnboardingStepReview({
           Object.keys(data.socialLinks).some(
             (k) => data.socialLinks?.[k as keyof typeof data.socialLinks],
           ) && (
-            <ReviewSection icon={HiOutlineGlobeAlt} title="Social Links Found">
+            <ReviewSection icon={Globe} title="Social Links Found">
               <div className="flex flex-wrap gap-2">
                 {Object.entries(data.socialLinks).map(([platform, url]) => {
                   if (!url) {

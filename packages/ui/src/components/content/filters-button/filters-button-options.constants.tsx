@@ -1,9 +1,5 @@
 import { IngredientFormat, IngredientStatus } from '@genfeedai/enums';
-import {
-  MdOutlineCropLandscape,
-  MdOutlineCropPortrait,
-  MdOutlineCropSquare,
-} from 'react-icons/md';
+import { RectangleHorizontal, RectangleVertical, Square } from 'lucide-react';
 
 export const DEFAULT_STATUS_OPTIONS = [
   { label: 'Uploaded', value: IngredientStatus.UPLOADED },
@@ -18,17 +14,17 @@ export const DEFAULT_STATUS_OPTIONS = [
 export const DEFAULT_FORMAT_OPTIONS = [
   { label: 'All', value: '' },
   {
-    icon: <MdOutlineCropSquare size={16} />,
+    icon: <Square size={16} />,
     label: '1:1',
     value: IngredientFormat.SQUARE,
   },
   {
-    icon: <MdOutlineCropLandscape size={16} />,
+    icon: <RectangleHorizontal size={16} />,
     label: '16:9',
     value: IngredientFormat.LANDSCAPE,
   },
   {
-    icon: <MdOutlineCropPortrait size={16} />,
+    icon: <RectangleVertical size={16} />,
     label: '9:16',
     value: IngredientFormat.PORTRAIT,
   },

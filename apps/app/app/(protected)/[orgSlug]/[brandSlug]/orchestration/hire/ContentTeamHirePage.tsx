@@ -11,9 +11,10 @@ import { AgentStrategiesService } from '@services/automation/agent-strategies.se
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Container from '@ui/layout/container/Container';
+import { UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
-import { HiOutlineUserPlus } from 'react-icons/hi2';
+
 import { HireForm } from './HireForm';
 import { RolePreviewCard } from './RolePreviewCard';
 
@@ -124,7 +125,7 @@ export default function ContentTeamHirePage() {
   return (
     <Container
       description="Create a specialist content role on top of the existing strategy system."
-      icon={HiOutlineUserPlus}
+      icon={UserPlus}
       label="Hire Agent"
     >
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">

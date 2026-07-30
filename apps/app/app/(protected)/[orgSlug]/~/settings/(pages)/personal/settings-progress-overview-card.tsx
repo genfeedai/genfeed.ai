@@ -6,8 +6,8 @@ import type { SetupCardStep } from '@hooks/utils/use-setup-card/use-setup-card';
 import Card from '@ui/card/Card';
 import KeyMetric from '@ui/display/key-metric/KeyMetric';
 import { Button } from '@ui/primitives/button';
+import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { HiOutlineSparkles } from 'react-icons/hi2';
 
 type NextMilestone = {
   days: number;
@@ -60,7 +60,7 @@ export default function SettingsProgressOverviewCard({
             withWrapper={false}
           >
             <Link href={orgHref(nextSetupStep.href)}>
-              <HiOutlineSparkles className="size-4" />
+              <Sparkles className="size-4" />
               Finish {nextSetupStep.label}
             </Link>
           </Button>
@@ -72,7 +72,7 @@ export default function SettingsProgressOverviewCard({
             withWrapper={false}
           >
             <Link href={APP_ROUTES.COMPOSE.ROOT}>
-              <HiOutlineSparkles className="size-4" />
+              <Sparkles className="size-4" />
               Create something new
             </Link>
           </Button>

@@ -13,8 +13,8 @@ import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import { HStack, VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import { ArrowRight, Check } from 'lucide-react';
 import Link from 'next/link';
-import { LuArrowRight, LuCheck } from 'react-icons/lu';
 
 const CREDIT_EXPLAINERS = [
   'Credits buy output: images, reels, ads, articles, voice',
@@ -50,7 +50,7 @@ export default function HomeCredits(): React.ReactElement {
             <VStack className="gap-4">
               {CREDIT_EXPLAINERS.map((item) => (
                 <HStack key={item} className="items-start gap-3">
-                  <LuCheck className="mt-0.5 size-4 shrink-0 text-surface/70" />
+                  <Check className="mt-0.5 size-4 shrink-0 text-surface/70" />
                   <Text className="text-sm leading-6 text-surface/60">
                     {item}
                   </Text>
@@ -91,7 +91,7 @@ export default function HomeCredits(): React.ReactElement {
           >
             <Link href="/pricing">
               Compare Plans
-              <LuArrowRight className="size-3" />
+              <ArrowRight className="size-3" />
             </Link>
           </ButtonTracked>
           <ButtonTracked

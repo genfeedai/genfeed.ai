@@ -22,9 +22,9 @@ import Alert from '@ui/feedback/alert/Alert';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
 import { SelectField } from '@ui/primitives/select';
+import { Download, Plus, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { type ChangeEvent, useEffect, useMemo, useState } from 'react';
-import { HiArrowDownTray, HiPlus, HiSparkles } from 'react-icons/hi2';
 
 const languageOptions: IFieldOption[] = [
   { label: 'English', value: 'en' },
@@ -201,7 +201,7 @@ export default function IngredientTabsCaptions({
 
         <Button
           label="Generate Caption"
-          icon={<HiPlus className="text-xl" />}
+          icon={<Plus className="text-xl" />}
           onClick={handleGenerateCaption}
           isLoading={isGenerating}
           variant={ButtonVariant.DEFAULT}
@@ -243,7 +243,7 @@ export default function IngredientTabsCaptions({
                     </p>
                   </div>
                   <Button
-                    icon={<HiArrowDownTray className="text-xl" />}
+                    icon={<Download className="text-xl" />}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDownloadCaption(caption);
@@ -268,7 +268,7 @@ export default function IngredientTabsCaptions({
 
               <Button
                 label="Generate Video"
-                icon={<HiSparkles className="text-xl" />}
+                icon={<Sparkles className="text-xl" />}
                 onClick={handleGenerateVideoWithCaption}
                 isLoading={isGeneratingVideo}
                 variant={ButtonVariant.DEFAULT}

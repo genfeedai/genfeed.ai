@@ -23,10 +23,11 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
 import { EmptyState } from '@ui/feedback';
+import { Calendar, FileText, List } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { HiCalendarDays, HiDocumentText, HiListBullet } from 'react-icons/hi2';
+
 import EvergreenSeriesControls from './evergreen-series-controls';
 import ReleaseAnalyticsOverlay from './release-analytics-overlay';
 
@@ -288,13 +289,13 @@ export default function ContentCalendarPage(): React.JSX.Element {
         href={href(getPublisherPostsHref())}
         className="inline-flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-secondary/80 size-9 transition-colors"
       >
-        <HiListBullet />
+        <List />
       </Link>
       <Link
         href={COMPOSE_ROUTES.ARTICLE}
         className="inline-flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-secondary/80 size-9 transition-colors"
       >
-        <HiDocumentText />
+        <FileText />
       </Link>
     </div>
   );
@@ -319,7 +320,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
   const emptyState =
     !isLoading && calendarItems.length === 0 ? (
       <EmptyState
-        icon={HiCalendarDays}
+        icon={Calendar}
         title="Nothing scheduled yet"
         description="Plan and schedule your first post to see it on the calendar."
         action={{

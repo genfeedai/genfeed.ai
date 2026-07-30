@@ -16,14 +16,10 @@ import Container from '@ui/layout/container/Container';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
+import { Columns2, Filter, Megaphone, Table } from 'lucide-react';
 import Link from 'next/link';
 import type { ChangeEvent } from 'react';
-import {
-  HiOutlineFunnel,
-  HiOutlineMegaphone,
-  HiTableCells,
-  HiViewColumns,
-} from 'react-icons/hi2';
+
 import { AdsResearchAdGrid, AdsResearchAdTable } from './AdsResearchAdCards';
 import { DetailSidebar } from './AdsResearchDetailSidebar';
 import { AdsResearchFilterPanel } from './AdsResearchFilterPanel';
@@ -118,18 +114,18 @@ export default function AdsResearchPageClient({
         ],
         variant: 'default',
       }}
-      icon={HiOutlineMegaphone}
+      icon={Megaphone}
       right={
         <div className="flex items-center gap-2">
           <ViewToggle
             options={[
               {
-                icon: <HiViewColumns className="size-4" />,
+                icon: <Columns2 className="size-4" />,
                 label: 'Grid view',
                 type: ViewType.GRID,
               },
               {
-                icon: <HiTableCells className="size-4" />,
+                icon: <Table className="size-4" />,
                 label: 'Table view',
                 type: ViewType.TABLE,
               },
@@ -202,7 +198,7 @@ export default function AdsResearchPageClient({
               showFilters ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
             }
             size={ButtonSize.SM}
-            icon={<HiOutlineFunnel className="size-4" />}
+            icon={<Filter className="size-4" />}
             onClick={() => setShowFilters(!showFilters)}
             className="rounded-lg border border-white/[0.06]"
           >

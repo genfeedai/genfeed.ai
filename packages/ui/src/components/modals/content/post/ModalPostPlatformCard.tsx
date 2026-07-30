@@ -8,7 +8,8 @@ import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { HiSparkles } from 'react-icons/hi2';
+import { Sparkles } from 'lucide-react';
+
 import ModalPostPlatformInstagram from './ModalPostPlatformInstagram';
 import ModalPostPlatformTitleField from './ModalPostPlatformTitleField';
 import { platformColors, platformIcons } from './platform-map.constants';
@@ -156,7 +157,7 @@ export default function ModalPostPlatformCard({
             }
             isDisabled={!isEnabled || isLoading || isGeneratingDesc}
             isLoading={isGeneratingDesc}
-            icon={<HiSparkles className="size-3" />}
+            icon={<Sparkles className="size-3" />}
             label={isGeneratingDesc ? 'Generating…' : 'Generate'}
           />
         </div>

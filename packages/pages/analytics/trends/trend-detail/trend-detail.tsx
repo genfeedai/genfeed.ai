@@ -17,16 +17,17 @@ import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { buildTrendAgentHref } from '@utils/url/desktop-loop-url.util';
+import {
+  BarChart3,
+  Flame,
+  Globe,
+  Hash,
+  Sparkles,
+  TrendingUp,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import {
-  HiOutlineArrowTrendingUp,
-  HiOutlineChartBar,
-  HiOutlineFire,
-  HiOutlineGlobeAlt,
-  HiOutlineHashtag,
-  HiOutlineSparkles,
-} from 'react-icons/hi2';
+
 import TrendDetailAnalysisCard from './trend-detail-analysis-card';
 import TrendDetailHeader from './trend-detail-header';
 import TrendDetailRelatedTable from './trend-detail-related-table';
@@ -74,7 +75,7 @@ export default function TrendDetail({
 
   if (isLoading) {
     return (
-      <Container label="Loading..." icon={HiOutlineFire}>
+      <Container label="Loading..." icon={Flame}>
         <div className="animate-pulse space-y-6">
           <div className="h-32 bg-background" />
           <div className="h-64 bg-background" />
@@ -85,7 +86,7 @@ export default function TrendDetail({
 
   if (error || !data) {
     return (
-      <Container label="Error" icon={HiOutlineFire}>
+      <Container label="Error" icon={Flame}>
         <Alert type={AlertCategory.ERROR}>
           {error || 'Trend not found'}
           <Button
@@ -103,7 +104,7 @@ export default function TrendDetail({
   const kpiItems = [
     {
       description: 'Total mentions',
-      icon: HiOutlineHashtag,
+      icon: Hash,
       iconClassName: 'bg-primary/10 text-primary',
       label: 'Mentions',
       value: formatCompactNumber(trend.mentions),
@@ -111,7 +112,7 @@ export default function TrendDetail({
     },
     {
       description: 'Week-over-week',
-      icon: HiOutlineArrowTrendingUp,
+      icon: TrendingUp,
       iconClassName:
         trend.growthRate > 0
           ? 'bg-success/10 text-success'
@@ -122,7 +123,7 @@ export default function TrendDetail({
     },
     {
       description: 'Calculated score',
-      icon: HiOutlineSparkles,
+      icon: Sparkles,
       iconClassName: 'bg-secondary/10 text-secondary',
       label: 'Virality Score',
       value: `${trend.viralityScore}/100`,
@@ -130,7 +131,7 @@ export default function TrendDetail({
     },
     {
       description: 'Average engagement',
-      icon: HiOutlineFire,
+      icon: Flame,
       iconClassName: 'bg-accent/10 text-accent',
       label: 'Engagement Rate',
       value: trend.metadata?.engagementRate
@@ -140,7 +141,7 @@ export default function TrendDetail({
     },
     {
       description: 'Total reach',
-      icon: HiOutlineGlobeAlt,
+      icon: Globe,
       iconClassName: 'bg-info/10 text-info',
       label: 'Reach',
       value: trend.metadata?.reach
@@ -150,7 +151,7 @@ export default function TrendDetail({
     },
     {
       description: 'Total impressions',
-      icon: HiOutlineChartBar,
+      icon: BarChart3,
       iconClassName: 'bg-warning/10 text-warning',
       label: 'Impressions',
       value: trend.metadata?.impressions
@@ -184,7 +185,7 @@ export default function TrendDetail({
           label="Remix in Agent"
           variant={ButtonVariant.DEFAULT}
           size={ButtonSize.SM}
-          icon={<HiOutlineSparkles className="size-4" />}
+          icon={<Sparkles className="size-4" />}
           onClick={() => router.push(buildTrendAgentHref(trend))}
         />
       </div>
@@ -197,7 +198,7 @@ export default function TrendDetail({
       {/* Hashtags */}
       {trend.metadata?.hashtags && trend.metadata.hashtags.length > 0 && (
         <div className="mt-6">
-          <Card label="Related Hashtags" icon={HiOutlineHashtag}>
+          <Card label="Related Hashtags" icon={Hash}>
             <div className="flex flex-wrap gap-2">
               {trend.metadata.hashtags.map((hashtag) => (
                 <Badge
@@ -214,7 +215,7 @@ export default function TrendDetail({
       {/* Sample Content */}
       {trend.metadata?.sampleContent && (
         <div className="mt-6">
-          <Card label="Sample Content" icon={HiOutlineSparkles}>
+          <Card label="Sample Content" icon={Sparkles}>
             <p className="text-foreground/80 whitespace-pre-wrap">
               {trend.metadata.sampleContent}
             </p>

@@ -1,11 +1,8 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { Layers, MessageSquareText, Table } from 'lucide-react';
 import type { ReactElement } from 'react';
-import {
-  HiOutlineChatBubbleBottomCenterText,
-  HiOutlineRectangleStack,
-  HiOutlineTableCells,
-} from 'react-icons/hi2';
+
 import type { AgentLabMode } from './MissionControlView';
 
 type MissionControlLabBannerProps = {
@@ -45,7 +42,7 @@ export function MissionControlLabBanner({
             onClick={() => onModeChange('rail')}
           >
             <span className="inline-flex items-center gap-2">
-              <HiOutlineRectangleStack className="size-4" />
+              <Layers className="size-4" />
               Right Rail
             </span>
           </Button>
@@ -58,13 +55,13 @@ export function MissionControlLabBanner({
             onClick={() => onModeChange('overlay')}
           >
             <span className="inline-flex items-center gap-2">
-              <HiOutlineTableCells className="size-4" />
+              <Table className="size-4" />
               Overlay Sheet
             </span>
           </Button>
           <Button variant={ButtonVariant.SECONDARY} onClick={onAskAboutTable}>
             <span className="inline-flex items-center gap-2">
-              <HiOutlineChatBubbleBottomCenterText className="size-4" />
+              <MessageSquareText className="size-4" />
               Ask About This Table
             </span>
           </Button>

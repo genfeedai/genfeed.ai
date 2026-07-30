@@ -16,13 +16,10 @@ import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
+import { ClipboardList, Mail, MailOpen } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
-import {
-  HiEnvelope,
-  HiEnvelopeOpen,
-  HiOutlineClipboardDocumentList,
-} from 'react-icons/hi2';
+
 import {
   getActivityDescription,
   getBackgroundTaskStatus,
@@ -227,9 +224,9 @@ export default function ActivitiesList({ scope }: ActivitiesListProps) {
         getClassName: (a: IActivity) => (a.isRead ? 'opacity-50' : ''),
         icon: (a: IActivity) =>
           a.isRead ? (
-            <HiEnvelopeOpen className="size-4 text-foreground/50" />
+            <MailOpen className="size-4 text-foreground/50" />
           ) : (
-            <HiEnvelope className="size-4 text-info" />
+            <Mail className="size-4 text-info" />
           ),
         onClick: (a: IActivity) => toggleActivityRead(a.id),
         tooltip: (a: IActivity) =>
@@ -280,7 +277,7 @@ export default function ActivitiesList({ scope }: ActivitiesListProps) {
     <Container
       label="Activities"
       description="Recent actions and system events."
-      icon={HiOutlineClipboardDocumentList}
+      icon={ClipboardList}
       right={
         <>
           <ButtonRefresh

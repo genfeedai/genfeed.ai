@@ -2,8 +2,8 @@
 import type { IUser } from '@genfeedai/interfaces';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import AppTable from '@ui/display/table/Table';
+import { Eye, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { HiEye, HiPencil, HiTrash } from 'react-icons/hi2';
 
 /**
  * AppTable component for displaying tabular data with sorting, selection, and actions.
@@ -232,21 +232,21 @@ export const WithActions: Story = {
       actions={[
         {
           className: 'hover:bg-accent hover:text-accent-foreground',
-          icon: <HiEye />,
+          icon: <Eye />,
           onClick: (user: IUser) =>
             alert(`View ${user.firstName} ${user.lastName}`),
           tooltip: 'View details',
         },
         {
           className: 'hover:bg-accent hover:text-accent-foreground',
-          icon: <HiPencil />,
+          icon: <Pencil />,
           onClick: (user: IUser) =>
             alert(`Edit ${user.firstName} ${user.lastName}`),
           tooltip: 'Edit user',
         },
         {
           className: 'hover:bg-accent hover:text-accent-foreground text-error',
-          icon: <HiTrash />,
+          icon: <Trash2 />,
           onClick: (user: IUser) =>
             alert(`Delete ${user.firstName} ${user.lastName}`),
           tooltip: 'Delete user',
@@ -457,14 +457,14 @@ export const FullFeatured: Story = {
           actions={[
             {
               className: 'hover:bg-accent hover:text-accent-foreground',
-              icon: <HiEye />,
+              icon: <Eye />,
               onClick: (user: IUser) =>
                 alert(`View ${user.firstName} ${user.lastName}`),
               tooltip: 'View details',
             },
             {
               className: 'hover:bg-accent hover:text-accent-foreground',
-              icon: <HiPencil />,
+              icon: <Pencil />,
               onClick: (user: IUser) =>
                 alert(`Edit ${user.firstName} ${user.lastName}`),
               tooltip: 'Edit user',
@@ -472,7 +472,7 @@ export const FullFeatured: Story = {
             {
               className:
                 'hover:bg-accent hover:text-accent-foreground text-error',
-              icon: <HiTrash />,
+              icon: <Trash2 />,
               onClick: (user: IUser) =>
                 alert(`Delete ${user.firstName} ${user.lastName}`),
               tooltip: 'Delete user',

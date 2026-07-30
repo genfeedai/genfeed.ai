@@ -1,5 +1,5 @@
+import { CheckCircle2 } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { HiCheckCircle } from 'react-icons/hi2';
 
 type SupervisedReviewStatus =
   | 'pending'
@@ -65,7 +65,7 @@ export function ClipWorkflowStatusFooter({
 
       {supervisedReviewStatus === 'completed' && (
         <div className="flex items-center gap-2 border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
-          <HiCheckCircle className="size-4" />
+          <CheckCircle2 className="size-4" />
           Handed off into the supervised publishing flow for human review.
         </div>
       )}

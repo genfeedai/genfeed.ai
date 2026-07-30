@@ -3,7 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { HiArrowRight, HiGlobeAlt } from 'react-icons/hi2';
+import { ArrowRight, Globe } from 'lucide-react';
 
 type Props = {
   brandName: string;
@@ -148,7 +148,7 @@ export default function BrandFormFields({
           </span>
         </label>
         <div className="relative">
-          <HiGlobeAlt className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-white/30" />
+          <Globe className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-white/30" />
           <Input
             id="brand-website-url"
             type="url"
@@ -184,7 +184,7 @@ export default function BrandFormFields({
             variant={ButtonVariant.DEFAULT}
             size={ButtonSize.DEFAULT}
             label="Continue"
-            icon={<HiArrowRight className="size-4" />}
+            icon={<ArrowRight className="size-4" />}
             isLoading={submitting}
             isDisabled={!brandName.trim() || !organizationName.trim()}
             onClick={onContinue}

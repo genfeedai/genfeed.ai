@@ -4,20 +4,13 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
+import { Check, DollarSign, Scale, Sparkles, Trophy, Zap } from 'lucide-react';
 import {
   type ChangeEvent,
   type ReactElement,
   useCallback,
   useState,
 } from 'react';
-import {
-  HiOutlineBolt,
-  HiOutlineCheck,
-  HiOutlineCurrencyDollar,
-  HiOutlineScale,
-  HiOutlineSparkles,
-  HiOutlineTrophy,
-} from 'react-icons/hi2';
 
 export type AgentGenerationPriority = 'quality' | 'balanced' | 'speed' | 'cost';
 
@@ -43,25 +36,25 @@ interface PriorityOption {
 const GENERATION_PRIORITY_OPTIONS: PriorityOption[] = [
   {
     description: 'Premium models, highest quality output',
-    icon: <HiOutlineTrophy className="size-4" />,
+    icon: <Trophy className="size-4" />,
     key: 'quality',
     label: 'Best Quality',
   },
   {
     description: 'Smart balance of quality, speed, and cost',
-    icon: <HiOutlineScale className="size-4" />,
+    icon: <Scale className="size-4" />,
     key: 'balanced',
     label: 'Balanced',
   },
   {
     description: 'Fastest generation, may use lighter models',
-    icon: <HiOutlineBolt className="size-4" />,
+    icon: <Zap className="size-4" />,
     key: 'speed',
     label: 'Fast',
   },
   {
     description: 'Cheapest models, saves credits',
-    icon: <HiOutlineCurrencyDollar className="size-4" />,
+    icon: <DollarSign className="size-4" />,
     key: 'cost',
     label: 'Budget',
   },
@@ -179,7 +172,7 @@ export function AgentSettings({
                 </span>
               </div>
               {generationPriority === option.key && (
-                <HiOutlineCheck className="size-4 shrink-0 text-primary" />
+                <Check className="size-4 shrink-0 text-primary" />
               )}
             </Button>
           ))}
@@ -213,7 +206,7 @@ export function AgentSettings({
               <div className="flex flex-1 flex-col gap-0.5">
                 <div className="flex items-center gap-1.5">
                   {model.isReasoning && (
-                    <HiOutlineSparkles className="size-3.5 text-purple-400" />
+                    <Sparkles className="size-3.5 text-purple-400" />
                   )}
                   <span className="text-sm font-medium text-foreground">
                     {model.label}
@@ -235,7 +228,7 @@ export function AgentSettings({
                 </span>
               ) : null}
               {selectedModel === model.key && (
-                <HiOutlineCheck className="size-4 text-primary" />
+                <Check className="size-4 text-primary" />
               )}
             </Button>
           ))}

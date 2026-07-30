@@ -3,8 +3,9 @@
 import { IngredientCategory } from '@genfeedai/enums';
 import type { IAsset, IIngredient } from '@genfeedai/interfaces';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
+import { ImageIcon } from 'lucide-react';
 import Image from 'next/image';
-import { HiOutlinePhoto } from 'react-icons/hi2';
+
 import type { LibraryArtifactReference } from './library-remix-reference';
 
 type LibrarySourcePreviewProps = {
@@ -73,7 +74,7 @@ export default function LibrarySourcePreview({
         />
       ) : (
         <div className="flex size-full items-center justify-center text-muted-foreground">
-          <HiOutlinePhoto aria-hidden="true" className="size-7" />
+          <ImageIcon aria-hidden="true" className="size-7" />
           <span className="sr-only">Preview unavailable</span>
         </div>
       )}

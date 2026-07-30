@@ -1,8 +1,8 @@
 /* eslint-disable react-hooks/rules-of-hooks -- Storybook render functions are invoked as story components. */
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
+import { Calendar, Clock, Filter, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
-import { FiCalendar, FiClock, FiFilter, FiTrendingUp } from 'react-icons/fi';
 
 /**
  * ButtonDropdown component for selecting from a list of options.
@@ -88,14 +88,14 @@ export const WithIcons: Story = {
     const [value, setValue] = useState('');
 
     const options = [
-      { icon: <FiClock size={16} />, label: 'Today', value: 'today' },
+      { icon: <Clock size={16} />, label: 'Today', value: 'today' },
       {
-        icon: <FiCalendar size={16} />,
+        icon: <Calendar size={16} />,
         label: 'This Week',
         value: 'week',
       },
       {
-        icon: <FiTrendingUp size={16} />,
+        icon: <TrendingUp size={16} />,
         label: 'This Month',
         value: 'month',
       },
@@ -176,7 +176,7 @@ export const FilterExample: Story = {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <FiFilter className="text-foreground/70" />
+          <Filter className="text-foreground/70" />
           <span className="text-sm text-foreground/70">Filters:</span>
         </div>
 

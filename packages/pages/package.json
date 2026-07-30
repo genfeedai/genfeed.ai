@@ -2,9 +2,9 @@
   "dependencies": {
     "@genfeedai/config": "workspace:*",
     "@genfeedai/constants": "workspace:*",
-    "react": "19.2.8",
-    "react-icons": "5.7.0",
-    "@tanstack/react-query": "5.101.4"
+    "@tanstack/react-query": "5.101.4",
+    "lucide-react": "1.27.0",
+    "react": "19.2.8"
   },
   "description": "Shared page-level compositions for Genfeed applications",
   "devDependencies": {

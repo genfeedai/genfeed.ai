@@ -13,13 +13,8 @@ import { RolesService } from '@services/organization/roles.service';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import { Pencil, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  HiOutlineShieldCheck,
-  HiPencil,
-  HiPlus,
-  HiTrash,
-} from 'react-icons/hi2';
 
 export default function RolesList() {
   const { openConfirm } = useConfirmModal();
@@ -55,14 +50,14 @@ export default function RolesList() {
 
   const actions: TableAction<IRole>[] = [
     {
-      icon: <HiPencil />,
+      icon: <Pencil />,
       onClick: (r: IRole) => openRoleModal(ModalEnum.ROLE, r),
       size: ButtonSize.SM,
       tooltip: 'Edit',
       variant: ButtonVariant.DEFAULT,
     },
     {
-      icon: <HiTrash />,
+      icon: <Trash2 />,
       onClick: (r: IRole) => {
         setSelectedRole(r);
         openConfirm({
@@ -124,7 +119,7 @@ export default function RolesList() {
     <Container
       label="Roles"
       description="Manage user roles, permissions, and access control settings"
-      icon={HiOutlineShieldCheck}
+      icon={ShieldCheck}
       right={
         <>
           <ButtonRefresh
@@ -135,7 +130,7 @@ export default function RolesList() {
           <Button
             label={
               <>
-                <HiPlus /> Role
+                <Plus /> Role
               </>
             }
             variant={ButtonVariant.DEFAULT}

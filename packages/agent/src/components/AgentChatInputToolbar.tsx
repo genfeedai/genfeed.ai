@@ -10,15 +10,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
+import { ArrowUp, Link, Mic, Paperclip, RefreshCw, Zap } from 'lucide-react';
 import { type ChangeEvent, type ReactElement, useRef, useState } from 'react';
-import {
-  HiArrowUp,
-  HiOutlineArrowPath,
-  HiOutlineBolt,
-  HiOutlineLink,
-  HiOutlineMicrophone,
-  HiOutlinePaperClip,
-} from 'react-icons/hi2';
 
 interface AgentChatInputToolbarProps {
   canSendMessage: boolean;
@@ -106,7 +99,7 @@ export function AgentChatInputToolbar({
             <Button
               ariaLabel="Attach files"
               className={cn('shrink-0', controlSize)}
-              icon={<HiOutlinePaperClip className="size-4" />}
+              icon={<Paperclip className="size-4" />}
               isDisabled={disabled}
               onClick={() => fileInputRef.current?.click()}
               size={ButtonSize.ICON}
@@ -120,7 +113,7 @@ export function AgentChatInputToolbar({
         <Button
           ariaLabel="Add an existing content reference"
           className={cn('shrink-0', controlSize)}
-          icon={<HiOutlineLink className="size-4" />}
+          icon={<Link className="size-4" />}
           isDisabled={disabled || !hasEditor}
           onClick={onInsertReference}
           size={ButtonSize.ICON}
@@ -137,7 +130,7 @@ export function AgentChatInputToolbar({
                 'shrink-0 gap-1.5',
                 isCompact ? 'size-8 px-0' : 'h-9 px-2.5',
               )}
-              icon={<HiOutlineBolt className="size-4" />}
+              icon={<Zap className="size-4" />}
               isDisabled={disabled || !hasEditor}
               variant={ButtonVariant.GHOST}
               withWrapper={false}
@@ -212,7 +205,7 @@ export function AgentChatInputToolbar({
             ariaLabel="Transcribing"
             className={cn('shrink-0', controlSize)}
             icon={
-              <HiOutlineArrowPath className="size-4 animate-spin motion-reduce:animate-none" />
+              <RefreshCw className="size-4 animate-spin motion-reduce:animate-none" />
             }
             isDisabled
             size={ButtonSize.ICON}
@@ -231,7 +224,7 @@ export function AgentChatInputToolbar({
             variant={ButtonVariant.GHOST}
             withWrapper={false}
           >
-            <HiOutlineMicrophone className="size-4" />
+            <Mic className="size-4" />
             <span
               aria-hidden="true"
               className="absolute right-0 top-0 size-2 animate-pulse rounded-full bg-destructive motion-reduce:animate-none"
@@ -241,7 +234,7 @@ export function AgentChatInputToolbar({
           <Button
             ariaLabel="Start voice input"
             className={cn('shrink-0', controlSize)}
-            icon={<HiOutlineMicrophone className="size-4" />}
+            icon={<Mic className="size-4" />}
             isDisabled={disabled}
             onClick={onStartListening}
             size={ButtonSize.ICON}
@@ -257,7 +250,7 @@ export function AgentChatInputToolbar({
               // Match model chip height; keep filled primary without oversized ship defaults
               'min-h-0 min-w-0 p-0',
             )}
-            icon={<HiArrowUp className="size-4" />}
+            icon={<ArrowUp className="size-4" />}
             isDisabled={
               disabled || !hasEditor || !canSendMessage || isUploading
             }

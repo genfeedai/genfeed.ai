@@ -3,14 +3,8 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
+import { Briefcase, Building2, Image, Sparkles, User } from 'lucide-react';
 import { type ReactElement, useMemo, useState } from 'react';
-import {
-  HiOutlineBriefcase,
-  HiOutlineBuildingOffice2,
-  HiOutlinePhoto,
-  HiOutlineSparkles,
-  HiOutlineUser,
-} from 'react-icons/hi2';
 
 interface OnboardingConversationCardProps {
   signupGiftCredits?: number;
@@ -22,19 +16,19 @@ interface OnboardingConversationCardProps {
 const ACCOUNT_TYPES = [
   {
     description: 'I am building my own creator workflow.',
-    icon: HiOutlineUser,
+    icon: User,
     id: 'creator',
     label: 'Creator',
   },
   {
     description: 'I want GenFeed to learn my brand and business.',
-    icon: HiOutlineBuildingOffice2,
+    icon: Building2,
     id: 'brand',
     label: 'Brand',
   },
   {
     description: 'I manage multiple clients or accounts.',
-    icon: HiOutlineBriefcase,
+    icon: Briefcase,
     id: 'agency',
     label: 'Agency',
   },
@@ -86,7 +80,7 @@ export function OnboardingConversationCard({
     <div className="mx-auto mt-8 w-full max-w-3xl border border-white/[0.08] bg-[#0d1118] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
       <div className="flex items-start gap-4">
         <div className="flex size-12 shrink-0 items-center justify-center bg-foreground/[0.06] ring-1 ring-inset ring-foreground/[0.1]">
-          <HiOutlineSparkles className="size-6 text-foreground/70" />
+          <Sparkles className="size-6 text-foreground/70" />
         </div>
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-foreground/45">
@@ -156,7 +150,7 @@ export function OnboardingConversationCard({
 
         <div className="border border-white/[0.08] bg-white/[0.02] p-4">
           <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-            <HiOutlinePhoto className="size-4 text-foreground/70" />
+            <Image className="size-4 text-foreground/70" />
             First reward
           </div>
           <p className="mt-2 text-xs leading-5 text-foreground/58">

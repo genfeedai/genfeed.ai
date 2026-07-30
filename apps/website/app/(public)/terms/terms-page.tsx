@@ -4,15 +4,8 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { Button } from '@ui/primitives/button';
 import PageLayout from '@web-components/PageLayout';
+import { Check, FileText, Gavel, Mail, Scale, Shield } from 'lucide-react';
 import Link from 'next/link';
-import {
-  LuCheck,
-  LuFileText,
-  LuGavel,
-  LuMail,
-  LuScale,
-  LuShield,
-} from 'react-icons/lu';
 
 const termsOfService = [
   {
@@ -40,28 +33,28 @@ const legalInfo = [
   {
     content:
       'All content generated through our platform is subject to our intellectual property policies. Users retain rights to their created content as specified in our licensing terms.',
-    icon: LuScale,
+    icon: Scale,
     shortLabel: 'IP',
     title: 'Intellectual Property',
   },
   {
     content:
       'All purchases are final. Credits are non-refundable but valid for 12 months from purchase date. If you experience technical issues preventing you from using the platform, contact support within 30 days for resolution.',
-    icon: LuGavel,
+    icon: Gavel,
     shortLabel: 'Refunds',
     title: 'Refund Policy',
   },
   {
     content:
       'Genfeed.ai is provided "as is" without warranties of any kind. We are not liable for any damages arising from the use of our services.',
-    icon: LuShield,
+    icon: Shield,
     shortLabel: 'Liability',
     title: 'Limitation of Liability',
   },
   {
     content:
       'These terms shall be governed by and construed in accordance with the laws of the jurisdiction in which Genfeed.ai operates, without regard to conflict of law principles.',
-    icon: LuFileText,
+    icon: FileText,
     shortLabel: 'Law',
     title: 'Governing Law',
   },
@@ -74,7 +67,7 @@ export default function TermsPage() {
     <div ref={containerRef}>
       <PageLayout
         badge="Legal"
-        badgeIcon={LuFileText}
+        badgeIcon={FileText}
         compact
         title={<>Terms of Service</>}
         description="Legal terms for using Genfeed. All purchases final. No refunds."
@@ -111,7 +104,7 @@ export default function TermsPage() {
                       <ul className="space-y-3">
                         {term.listItems.map((item) => (
                           <li key={item} className="flex items-start gap-3">
-                            <LuCheck className="size-4 text-surface/65 mt-0.5 shrink-0" />
+                            <Check className="size-4 text-surface/65 mt-0.5 shrink-0" />
                             <span className="text-surface/60 text-sm">
                               {item}
                             </span>
@@ -169,7 +162,7 @@ export default function TermsPage() {
         <section className="py-40 gsap-section">
           <div className="container mx-auto px-6">
             <div className="text-center max-w-3xl mx-auto">
-              <LuMail className="size-12 mx-auto text-surface/30 mb-8" />
+              <Mail className="size-12 mx-auto text-surface/30 mb-8" />
               <h2 className="text-5xl font-semibold mb-10">Questions?</h2>
               <p className="text-surface/65 text-xl mb-12 font-medium">
                 If you have any questions about these terms, please contact our

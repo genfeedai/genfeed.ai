@@ -19,8 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { Image } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { HiOutlinePhoto } from 'react-icons/hi2';
 
 type ContentRating = 'all' | 'sfw' | 'nsfw';
 
@@ -139,7 +139,7 @@ export default function GalleryPage() {
     <Container
       label="Gallery"
       description="Review and manage generated fleet assets"
-      icon={HiOutlinePhoto}
+      icon={Image}
       right={
         <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
       }

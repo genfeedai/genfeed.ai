@@ -12,9 +12,10 @@ import {
   waitFor,
 } from '@testing-library/react';
 import PromptBar from '@ui/prompt-bars/base/PromptBar';
+import { RectangleHorizontal, Square } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { use } from 'react';
-import { MdOutlineCropLandscape, MdOutlineCropSquare } from 'react-icons/md';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock ResizeObserver globally
@@ -848,7 +849,7 @@ describe('PromptBar', () => {
       render(<PromptBar {...(defaultProps as any)} />);
 
       const props = collapsedViewProps as { formatIcon?: ReactElement };
-      expect(props?.formatIcon?.type).toBe(MdOutlineCropLandscape);
+      expect(props?.formatIcon?.type).toBe(RectangleHorizontal);
     });
 
     it('uses the square format icon', () => {
@@ -865,7 +866,7 @@ describe('PromptBar', () => {
       render(<PromptBar {...(defaultProps as any)} />);
 
       const props = collapsedViewProps as { formatIcon?: ReactElement };
-      expect(props?.formatIcon?.type).toBe(MdOutlineCropSquare);
+      expect(props?.formatIcon?.type).toBe(Square);
     });
 
     it('passes watched quality from the form to the expanded view in studio-unified mode', () => {

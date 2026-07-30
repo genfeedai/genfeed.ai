@@ -1,7 +1,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { Upload } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { HiOutlineArrowUpTray } from 'react-icons/hi2';
 
 type LibraryViewHeaderProps = {
   ingredientCount: number;
@@ -36,7 +36,7 @@ export function LibraryViewHeader({
         type="button"
         variant={ButtonVariant.GHOST}
       >
-        <HiOutlineArrowUpTray className="nav-icon-svg" />
+        <Upload className="nav-icon-svg" />
         {isImporting ? 'Importing' : 'Import assets'}
       </Button>
     </div>

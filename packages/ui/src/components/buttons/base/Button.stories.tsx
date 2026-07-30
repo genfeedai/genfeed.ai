@@ -1,7 +1,12 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import Button from '@ui/buttons/base/Button';
-import { FiDownload, FiSave, FiTrash2, FiUpload } from 'react-icons/fi';
+import {
+  Download as DownloadIcon,
+  Save,
+  Trash2,
+  Upload as UploadIcon,
+} from 'lucide-react';
 
 /**
  * The Button component is the primary interactive element in the Genfeed design system.
@@ -82,7 +87,7 @@ export const Secondary: Story = {
  */
 export const WithIcon: Story = {
   render: () => (
-    <Button label="Save" icon={<FiSave />} variant={ButtonVariant.DEFAULT} />
+    <Button label="Save" icon={<Save />} variant={ButtonVariant.DEFAULT} />
   ),
 };
 
@@ -93,7 +98,7 @@ export const IconOnly: Story = {
   render: () => (
     <Button
       label=""
-      icon={<FiTrash2 />}
+      icon={<Trash2 />}
       variant={ButtonVariant.DESTRUCTIVE}
       size={ButtonSize.SM}
       ariaLabel="Delete"
@@ -210,7 +215,7 @@ export const Destructive: Story = {
   render: () => (
     <Button
       label="Delete"
-      icon={<FiTrash2 />}
+      icon={<Trash2 />}
       variant={ButtonVariant.DESTRUCTIVE}
     />
   ),
@@ -223,7 +228,7 @@ export const Download: Story = {
   render: () => (
     <Button
       label="Download"
-      icon={<FiDownload />}
+      icon={<DownloadIcon />}
       variant={ButtonVariant.DEFAULT}
       tooltip="Download file"
     />
@@ -237,7 +242,7 @@ export const Upload: Story = {
   render: () => (
     <Button
       label="Upload"
-      icon={<FiUpload />}
+      icon={<UploadIcon />}
       variant={ButtonVariant.SECONDARY}
     />
   ),
@@ -258,7 +263,7 @@ export const AllStates: Story = {
       <Button label="Ghost" variant={ButtonVariant.GHOST} />
       <Button
         label="With Icon"
-        icon={<FiSave />}
+        icon={<Save />}
         variant={ButtonVariant.DEFAULT}
       />
       <Button label="Loading" isLoading variant={ButtonVariant.DEFAULT} />

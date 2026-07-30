@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { HiArrowPath, HiMagnifyingGlass } from 'react-icons/hi2';
+import { RefreshCw, Search } from 'lucide-react';
 
 export type ProviderFilter =
   | 'all'
@@ -56,7 +56,7 @@ export default function VoicesCatalogControls({
               Search
             </span>
             <div className="relative">
-              <HiMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground/40" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground/40" />
               <Input
                 className="pl-9"
                 onChange={(event) => onSearchChange(event.target.value)}
@@ -98,7 +98,7 @@ export default function VoicesCatalogControls({
             variant={ButtonVariant.DEFAULT}
             withWrapper={false}
           >
-            <HiArrowPath className="mr-2 size-4" />
+            <RefreshCw className="mr-2 size-4" />
             Sync All
           </Button>
           <Button

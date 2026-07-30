@@ -12,9 +12,10 @@ import { Modal } from '@ui/modals/compound/modal.compound';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
+import { ChevronDown, Settings } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useReducer } from 'react';
-import { HiChevronDown, HiOutlineCog6Tooth } from 'react-icons/hi2';
+
 import { useCreateOrganizationModal } from './use-create-organization-modal';
 
 interface OrgEntry {
@@ -188,7 +189,7 @@ export default function OrganizationSwitcher({
           label: o.label,
           trailingAction: {
             ariaLabel: `Open ${o.label} settings`,
-            icon: HiOutlineCog6Tooth,
+            icon: Settings,
             onAction: () => handleOpenOrganizationSettings(o.slug),
           },
         }))}
@@ -212,7 +213,7 @@ export default function OrganizationSwitcher({
             >
               {isSwitching ? 'Switching\u2026' : displayLabel}
             </span>
-            <HiChevronDown
+            <ChevronDown
               className={cn(
                 'size-3.5 flex-shrink-0 text-foreground/40 transition-transform duration-200',
                 isOpen && 'rotate-180',

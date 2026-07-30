@@ -9,6 +9,7 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import { FlaskConical } from 'lucide-react';
 import {
   type ReactElement,
   useCallback,
@@ -16,7 +17,7 @@ import {
   useReducer,
   useRef,
 } from 'react';
-import { HiOutlineBeaker } from 'react-icons/hi2';
+
 import { AgentLabSurface } from './AgentLabSurface';
 import { MissionControlBulkBar } from './MissionControlBulkBar';
 import { MissionControlLabBanner } from './MissionControlLabBanner';
@@ -600,7 +601,7 @@ export function MissionControlView({
       <Container
         label="Agent UX Lab"
         description="Compare a compact right rail against a wider overlay sheet while staying inside Mission Control."
-        icon={HiOutlineBeaker}
+        icon={FlaskConical}
         right={
           <Button variant={ButtonVariant.SECONDARY} onClick={onStartNewThread}>
             Open Agent Workspace

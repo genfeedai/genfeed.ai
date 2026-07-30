@@ -12,9 +12,9 @@ import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import { FileText } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { HiOutlineDocumentText } from 'react-icons/hi2';
 
 export default function TemplatesPage() {
   const notificationsService = NotificationsService.getInstance();
@@ -51,7 +51,7 @@ export default function TemplatesPage() {
     <Container
       label="Templates"
       description="Create and manage reusable content templates"
-      icon={HiOutlineDocumentText}
+      icon={FileText}
     >
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

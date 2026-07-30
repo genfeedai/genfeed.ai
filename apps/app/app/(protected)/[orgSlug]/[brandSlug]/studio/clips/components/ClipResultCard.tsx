@@ -16,13 +16,10 @@ import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import { Download, PenSquare, Rocket } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
-import {
-  HiOutlineArrowDownTray,
-  HiOutlinePencilSquare,
-  HiOutlineRocketLaunch,
-} from 'react-icons/hi2';
+
 import type { ClipsApiService } from '../services/clips-api.service';
 
 interface ClipResultCardProps {
@@ -251,7 +248,7 @@ export default function ClipResultCard({
               onClick={handleEdit}
               title="Edit in video editor"
             >
-              <HiOutlinePencilSquare className="size-3.5" />
+              <PenSquare className="size-3.5" />
               <span>Edit</span>
             </Button>
           )}
@@ -262,7 +259,7 @@ export default function ClipResultCard({
               onClick={handlePublish}
               title="Publish to social platforms"
             >
-              <HiOutlineRocketLaunch className="size-3.5" />
+              <Rocket className="size-3.5" />
               <span>Publish</span>
             </Button>
           )}
@@ -274,7 +271,7 @@ export default function ClipResultCard({
               aria-label="Download video"
               title="Download video"
             >
-              <HiOutlineArrowDownTray className="size-3.5" />
+              <Download className="size-3.5" />
             </Button>
           )}
         </div>

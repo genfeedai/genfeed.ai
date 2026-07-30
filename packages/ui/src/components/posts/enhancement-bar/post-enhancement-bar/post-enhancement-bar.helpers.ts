@@ -1,13 +1,9 @@
 import type { TweetTone } from '@ui/posts/enhancement-bar/PostEnhancementBar.props';
-import {
-  HiArrowsPointingIn,
-  HiLanguage,
-  HiRocketLaunch,
-} from 'react-icons/hi2';
+import { Languages, Minimize2, Rocket } from 'lucide-react';
 
 export const QUICK_ACTIONS = [
   {
-    icon: HiArrowsPointingIn,
+    icon: Minimize2,
     key: 'shorten' as const,
     label: 'Shorten',
     prompt:
@@ -15,14 +11,14 @@ export const QUICK_ACTIONS = [
     tooltip: 'Shorten content (1 credit)',
   },
   {
-    icon: HiLanguage,
+    icon: Languages,
     key: 'simplify' as const,
     label: 'Simplify',
     prompt: 'Simplify the language to make it easier to understand',
     tooltip: 'Simplify language (1 credit)',
   },
   {
-    icon: HiRocketLaunch,
+    icon: Rocket,
     key: 'boost' as const,
     label: 'Boost',
     prompt:

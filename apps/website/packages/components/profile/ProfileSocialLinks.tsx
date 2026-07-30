@@ -1,9 +1,14 @@
 'use client';
 
+import {
+  InstagramIcon,
+  TiktokIcon,
+  XTwitterIcon,
+  YoutubeIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
+import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 import { addUTMParameters } from '@helpers/utm/utm-builder.helper';
 import type { ProfileSocialLinksProps } from '@props/content/profile.props';
-import type { IconType } from 'react-icons';
-import { FaInstagram, FaTiktok, FaXTwitter, FaYoutube } from 'react-icons/fa6';
 
 interface SocialLinkConfig {
   url: string | undefined;
@@ -19,10 +24,10 @@ export default function ProfileSocialLinks({
   twitterUrl,
 }: ProfileSocialLinksProps) {
   const socialLinks: SocialLinkConfig[] = [
-    { icon: FaYoutube, label: 'YouTube', url: youtubeUrl },
-    { icon: FaTiktok, label: 'TikTok', url: tiktokUrl },
-    { icon: FaInstagram, label: 'Instagram', url: instagramUrl },
-    { icon: FaXTwitter, label: 'Twitter', url: twitterUrl },
+    { icon: YoutubeIcon, label: 'YouTube', url: youtubeUrl },
+    { icon: TiktokIcon, label: 'TikTok', url: tiktokUrl },
+    { icon: InstagramIcon, label: 'Instagram', url: instagramUrl },
+    { icon: XTwitterIcon, label: 'Twitter', url: twitterUrl },
   ];
 
   const activeLinks = socialLinks.filter(

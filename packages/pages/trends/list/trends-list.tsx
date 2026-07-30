@@ -40,13 +40,8 @@ import {
   TableHeader,
   TableRow,
 } from '@ui/primitives/table';
+import { Film, Inbox, Sparkles, TrendingUp } from 'lucide-react';
 import { type ChangeEvent, type ReactNode, useMemo } from 'react';
-import {
-  HiOutlineArrowTrendingUp,
-  HiOutlineFilm,
-  HiOutlineInboxStack,
-  HiOutlineSparkles,
-} from 'react-icons/hi2';
 
 function getVideoExternalId(video: ITrendVideo): string | null {
   if (video.externalId) {
@@ -134,7 +129,7 @@ function ViralVideoPreview({
 
   return (
     <div className="flex size-full items-center justify-center bg-background-secondary text-foreground/35">
-      <HiOutlineFilm className="size-8" />
+      <Film className="size-8" />
       <span className="sr-only">Video preview unavailable</span>
     </div>
   );
@@ -351,7 +346,7 @@ function TrendContentEmptyTable({
             <TableCell colSpan={6} className="px-4 py-12 text-foreground/70">
               <div className="mx-auto flex max-w-xl flex-col items-center text-center">
                 <div className="flex size-11 items-center justify-center rounded-full border border-border bg-background-secondary text-foreground/70">
-                  <HiOutlineInboxStack className="size-5" />
+                  <Inbox className="size-5" />
                 </div>
                 <div className="mt-4 text-base font-semibold text-foreground">
                   {hasSearch
@@ -389,7 +384,7 @@ function ViralVideosLoadingCards() {
         {labels.map((label) => (
           <div key={label} className="bg-background/30 p-4">
             <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <HiOutlineSparkles className="size-4 text-foreground/52" />
+              <Sparkles className="size-4 text-foreground/52" />
               {label}
             </div>
             <div className="mt-4 text-xs uppercase tracking-[0.18em] text-foreground/35">
@@ -416,7 +411,7 @@ function ViralVideosEmptyState({
 
   return (
     <EmptyStateCard
-      icon={HiOutlineFilm}
+      icon={Film}
       title="No viral videos yet"
       description="Breakout video patterns will surface here once trend syncs pull in videos adjacent to your saved feed."
       action={{
@@ -500,7 +495,7 @@ export default function TrendsList() {
       <SectionTopbar
         title="Trending Content"
         subtitle="Actual posts and videos trending across platforms, ready to remix."
-        icon={HiOutlineArrowTrendingUp}
+        icon={TrendingUp}
         actions={
           <ButtonRefresh isRefreshing={isRefreshing} onClick={handleRefresh} />
         }
@@ -572,9 +567,7 @@ export default function TrendsList() {
               <SectionCardHeader
                 title="Trending Content Feed"
                 badge="Content-first"
-                icon={
-                  <HiOutlineArrowTrendingUp className="size-5 text-foreground/70" />
-                }
+                icon={<TrendingUp className="size-5 text-foreground/70" />}
               />
 
               {filteredItems.length === 0 ? (
@@ -623,7 +616,7 @@ export default function TrendsList() {
                 title="Viral Videos"
                 badge="Cross-platform"
                 description="Breakout video patterns adjacent to the saved trend feed."
-                icon={<HiOutlineFilm className="size-5 text-foreground/70" />}
+                icon={<Film className="size-5 text-foreground/70" />}
                 right={
                   <Badge variant={isLoadingVideos ? 'ghost' : 'info'}>
                     {isLoadingVideos

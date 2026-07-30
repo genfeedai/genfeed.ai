@@ -19,8 +19,8 @@ import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
+import { Trash2 } from 'lucide-react';
 import { type ChangeEvent, useEffect } from 'react';
-import { HiTrash } from 'react-icons/hi2';
 
 export default function ModalCredential({
   credential,
@@ -118,7 +118,7 @@ export default function ModalCredential({
 
           {credential && deleteModalCredential && (
             <Button
-              label={<HiTrash />}
+              label={<Trash2 />}
               variant={ButtonVariant.DESTRUCTIVE}
               onClick={deleteModalCredential}
               isLoading={isSubmitting}

@@ -5,6 +5,7 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import { logger } from '@genfeedai/services/core/logger.service';
 import { Code } from '@genfeedai/ui';
 import { Button } from '@ui/primitives/button';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 import {
   createContext,
   type ReactNode,
@@ -14,7 +15,6 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { HiArrowPath, HiExclamationTriangle } from 'react-icons/hi2';
 
 export type ApiStatus = 'checking' | 'connected' | 'error';
 
@@ -156,7 +156,7 @@ export default function ApiStatusProvider({
         <div className="fixed inset-0 flex items-center justify-center bg-background p-4">
           <div className="max-w-md w-full text-center space-y-6">
             <div className="mx-auto flex items-center justify-center size-16 bg-error/10">
-              <HiExclamationTriangle className="size-8 text-error" />
+              <AlertTriangle className="size-8 text-error" />
             </div>
 
             <div className="space-y-2">
@@ -201,7 +201,7 @@ export default function ApiStatusProvider({
               onClick={() => void checkApiHealth(true)}
               className="gap-2"
             >
-              <HiArrowPath className="size-4" />
+              <RefreshCw className="size-4" />
               Try Again
             </Button>
           </div>

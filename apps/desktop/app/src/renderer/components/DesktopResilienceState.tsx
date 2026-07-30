@@ -1,12 +1,8 @@
 import { ButtonVariant } from '@genfeedai/enums';
+import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 import { Button } from '@ui/primitives/button';
+import { Inbox, RefreshCw, SignalZero } from 'lucide-react';
 import type { ReactElement } from 'react';
-import type { IconType } from 'react-icons';
-import {
-  HiOutlineArrowPath,
-  HiOutlineInbox,
-  HiOutlineSignalSlash,
-} from 'react-icons/hi2';
 
 export type DesktopResilienceKind = 'empty' | 'error' | 'offline';
 
@@ -20,9 +16,9 @@ interface DesktopResilienceStateProps {
 }
 
 const RESILIENCE_ICON = {
-  empty: HiOutlineInbox,
-  error: HiOutlineArrowPath,
-  offline: HiOutlineSignalSlash,
+  empty: Inbox,
+  error: RefreshCw,
+  offline: SignalZero,
 } satisfies Record<DesktopResilienceKind, IconType>;
 
 export function DesktopResilienceState({
@@ -50,9 +46,7 @@ export function DesktopResilienceState({
       {actionLabel && onAction ? (
         <Button
           className="desktop-resilience-action"
-          icon={
-            <HiOutlineArrowPath className="desktop-resilience-action-icon" />
-          }
+          icon={<RefreshCw className="desktop-resilience-action-icon" />}
           onClick={onAction}
           type="button"
           variant={ButtonVariant.GHOST}

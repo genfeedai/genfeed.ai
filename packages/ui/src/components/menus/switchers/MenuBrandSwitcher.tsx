@@ -12,10 +12,10 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
 import { Button } from '@ui/primitives/button';
+import { ChevronDown, Settings, X } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { type MouseEvent, useCallback, useState } from 'react';
-import { HiChevronDown, HiOutlineCog6Tooth, HiXMark } from 'react-icons/hi2';
 
 export default function MenuBrandSwitcher({
   brands,
@@ -117,7 +117,7 @@ export default function MenuBrandSwitcher({
           orgSlug && b.slug
             ? {
                 ariaLabel: `Open ${b.label ?? 'brand'} settings`,
-                icon: HiOutlineCog6Tooth,
+                icon: Settings,
                 onAction: () =>
                   push(createBrandAppRoute(orgSlug, b.slug, '/settings')),
               }
@@ -192,7 +192,7 @@ export default function MenuBrandSwitcher({
                   <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-foreground">
                     {isUpdating ? 'Switching…' : selectedBrandLabel}
                   </span>
-                  <HiChevronDown
+                  <ChevronDown
                     className={cn(
                       'size-3.5 flex-shrink-0 text-foreground/45 transition-transform duration-200',
                       isOpen && 'rotate-180',
@@ -230,7 +230,7 @@ export default function MenuBrandSwitcher({
             'hover:border-foreground/20 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-0',
           )}
         >
-          <HiXMark className="size-3.5" />
+          <X className="size-3.5" />
         </Button>
       ) : null}
     </div>

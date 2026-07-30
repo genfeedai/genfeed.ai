@@ -9,17 +9,18 @@ import { EditorProjectsService } from '@services/editor/editor-projects.service'
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import {
+  ArrowLeft,
+  Film,
+  Music,
+  Plus,
+  Scissors,
+  Sparkles,
+  Trash2,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  HiOutlineArrowLeft,
-  HiOutlineFilm,
-  HiOutlineMusicalNote,
-  HiOutlinePlus,
-  HiOutlineScissors,
-  HiOutlineSparkles,
-  HiOutlineTrash,
-} from 'react-icons/hi2';
+
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 
 const features = [
@@ -27,26 +28,26 @@ const features = [
     color: 'bg-muted text-muted-foreground',
     description:
       'Professional timeline-based video editing with multi-track support',
-    icon: HiOutlineFilm,
+    icon: Film,
     title: 'Timeline Editor',
   },
   {
     color: 'bg-muted text-muted-foreground',
     description: 'Cut, trim, and splice clips with frame-accurate precision',
-    icon: HiOutlineScissors,
+    icon: Scissors,
     title: 'Precise Trimming',
   },
   {
     color: 'bg-muted text-muted-foreground',
     description:
       'Synchronize audio tracks, add music, and adjust volume levels',
-    icon: HiOutlineMusicalNote,
+    icon: Music,
     title: 'Audio Sync',
   },
   {
     color: 'bg-muted text-muted-foreground',
     description: 'Apply effects, transitions, and color grading to your videos',
-    icon: HiOutlineSparkles,
+    icon: Sparkles,
     title: 'Effects & Transitions',
   },
 ];
@@ -136,7 +137,7 @@ export default function EditorProjectsPage() {
               }
               href={href(isStudioEnabled ? '/studio/video' : '/library')}
             >
-              <HiOutlineArrowLeft className="size-4" />
+              <ArrowLeft className="size-4" />
             </Link>
           </Button>
           <h1 className="sr-only">Video Editor</h1>
@@ -149,7 +150,7 @@ export default function EditorProjectsPage() {
           withWrapper={false}
         >
           <Link href={href('/editor/new')}>
-            <HiOutlinePlus className="size-4" />
+            <Plus className="size-4" />
             New Project
           </Link>
         </Button>
@@ -216,12 +217,12 @@ export default function EditorProjectsPage() {
                       ariaLabel="Delete project"
                       tooltip="Delete project"
                     >
-                      <HiOutlineTrash className="size-4" />
+                      <Trash2 className="size-4" />
                     </Button>
                   </div>
 
                   <div className="mb-3 flex aspect-video items-center justify-center rounded bg-muted/50">
-                    <HiOutlineFilm className="size-8 text-foreground/20" />
+                    <Film className="size-8 text-foreground/20" />
                   </div>
 
                   <div className="flex items-center gap-3 text-xs text-foreground/50">
@@ -240,7 +241,7 @@ export default function EditorProjectsPage() {
         <Card variant={CardVariant.DEFAULT} className="mb-8 p-8">
           <div className="mx-auto max-w-2xl text-center">
             <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-primary/10">
-              <HiOutlineFilm className="size-8 text-primary" />
+              <Film className="size-8 text-primary" />
             </div>
 
             <h2 className="mb-2 text-xl font-semibold">
@@ -255,7 +256,7 @@ export default function EditorProjectsPage() {
 
             <Button asChild variant={ButtonVariant.DEFAULT}>
               <Link href={href('/editor/new')}>
-                <HiOutlinePlus className="size-5" />
+                <Plus className="size-5" />
                 Start New Project
               </Link>
             </Button>

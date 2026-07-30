@@ -1,3 +1,4 @@
+export { SlackIcon } from '@genfeedai/helpers/ui/icons/brands';
 export {
   Check as CheckIcon,
   CircleAlert as AlertCircleIcon,
@@ -17,5 +18,4 @@ export {
   Webhook as WebhookIcon,
   X as XIcon,
 } from 'lucide-react';
-export { FaSlack as SlackIcon } from 'react-icons/fa';
 export { PlatformIcon } from '@/features/workflows/components/ui/icons/platform-icon';

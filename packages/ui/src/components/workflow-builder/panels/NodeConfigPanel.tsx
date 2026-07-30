@@ -17,8 +17,8 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Slider } from '@ui/primitives/slider';
+import { Variable, X } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import { HiOutlineVariable, HiOutlineXMark } from 'react-icons/hi2';
 
 interface ConfigFieldProps {
   fieldKey: string;
@@ -193,7 +193,7 @@ function ConfigField({
             className={cn(useVariable && 'text-primary')}
             onClick={() => setUseVariable(!useVariable)}
             ariaLabel="Use variable"
-            icon={<HiOutlineVariable className="size-4" />}
+            icon={<Variable className="size-4" />}
           />
         )}
       </div>
@@ -252,7 +252,7 @@ export default function NodeConfigPanel({
           variant={ButtonVariant.GHOST}
           size={ButtonSize.SM}
           onClick={onClose}
-          icon={<HiOutlineXMark className="size-4" />}
+          icon={<X className="size-4" />}
         />
       </div>
 

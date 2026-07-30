@@ -21,11 +21,11 @@ import { Button } from '@ui/primitives/button';
 import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
+import { Menu, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback } from 'react';
-import { HiBars3, HiXMark } from 'react-icons/hi2';
-import { LuPanelRightClose, LuPanelRightOpen } from 'react-icons/lu';
+
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
 import { useWorkspaceInspector } from '@/components/workspace-shell/WorkspaceInspectorContext';
 import {
@@ -220,7 +220,7 @@ function AppProtectedTopbarContent({
     },
     [currentHref, searchParams],
   );
-  const ToggleIcon = isMenuOpen ? HiXMark : HiBars3;
+  const ToggleIcon = isMenuOpen ? X : Menu;
   const isAdminChrome = chrome === 'admin';
   const effectiveCurrentApp = isAdminChrome
     ? 'admin'
@@ -354,9 +354,9 @@ function AppProtectedTopbarContent({
               onClick={workspaceInspector.toggle}
             >
               {workspaceInspector.isOpen ? (
-                <LuPanelRightClose className="size-5" />
+                <PanelRightClose className="size-5" />
               ) : (
-                <LuPanelRightOpen className="size-5" />
+                <PanelRightOpen className="size-5" />
               )}
             </Button>
           ) : null}

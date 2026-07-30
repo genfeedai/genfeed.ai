@@ -14,8 +14,8 @@ import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
+import { Trash2 } from 'lucide-react';
 import type { ChangeEvent } from 'react';
-import { HiTrash } from 'react-icons/hi2';
 
 export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
   const { isSuperAdmin } = useAccessState();
@@ -155,7 +155,7 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
 
           {sound && deleteModalSound && (
             <Button
-              label={<HiTrash />}
+              label={<Trash2 />}
               variant={ButtonVariant.DESTRUCTIVE}
               onClick={deleteModalSound}
               isLoading={isSubmitting}

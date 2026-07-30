@@ -2,7 +2,8 @@
 import type { SwitcherDropdownItem } from '@genfeedai/props/ui/menus/switcher-dropdown.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
-import { HiOutlineCog6Tooth } from 'react-icons/hi2';
+import { Settings } from 'lucide-react';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const items: SwitcherDropdownItem[] = [
@@ -155,7 +156,7 @@ describe('SwitcherDropdown', () => {
     renderDropdown({
       footerActions: [
         {
-          icon: HiOutlineCog6Tooth,
+          icon: Settings,
           label: 'Settings',
           onAction: vi.fn(),
         },
@@ -180,7 +181,7 @@ describe('SwitcherDropdown', () => {
           label: 'Alpha',
           trailingAction: {
             ariaLabel: 'Open Alpha settings',
-            icon: HiOutlineCog6Tooth,
+            icon: Settings,
             onAction,
           },
         },
@@ -206,7 +207,7 @@ describe('SwitcherDropdown', () => {
           label: 'Alpha',
           trailingAction: {
             ariaLabel: 'Open Alpha settings',
-            icon: HiOutlineCog6Tooth,
+            icon: Settings,
             onAction: vi.fn(),
           },
         },

@@ -11,8 +11,9 @@ import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
 import { Tabs, TabsList, TabsTrigger } from '@ui/primitives/tabs';
+import { ArrowRight, FolderOpen } from 'lucide-react';
 import Link from 'next/link';
-import { HiOutlineArrowRight, HiOutlineFolderOpen } from 'react-icons/hi2';
+
 import LibrarySourcePreview, {
   getLibrarySourceLabel,
 } from './LibrarySourcePreview';
@@ -126,7 +127,7 @@ export default function LibraryPickerOverlay({
           href={managementHref}
         >
           Manage Library
-          <HiOutlineArrowRight aria-hidden="true" className="size-3.5" />
+          <ArrowRight aria-hidden="true" className="size-3.5" />
         </Link>
       </div>
 
@@ -158,7 +159,7 @@ export default function LibraryPickerOverlay({
 
         {state.status === 'empty' ? (
           <div className="flex min-h-56 flex-col items-center justify-center gap-3 text-center">
-            <HiOutlineFolderOpen
+            <FolderOpen
               aria-hidden="true"
               className="size-8 text-muted-foreground"
             />

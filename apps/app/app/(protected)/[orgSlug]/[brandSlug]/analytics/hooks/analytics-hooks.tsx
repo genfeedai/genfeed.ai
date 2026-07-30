@@ -21,8 +21,9 @@ import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 import { PLATFORM_CONFIGS_ARRAY as PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
 import { format } from 'date-fns';
+import { Clock, Video } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { HiClock, HiOutlineVideoCamera } from 'react-icons/hi2';
+
 import HookAnalysisSection from './HookAnalysisSection';
 import HookStatCards from './HookStatCards';
 import PlatformPerformanceSection from './PlatformPerformanceSection';
@@ -167,7 +168,7 @@ export default function AnalyticsHooks({
     <Container
       label="Viral Hooks"
       description="Analyze hooks and engagement patterns."
-      icon={HiOutlineVideoCamera}
+      icon={Video}
     >
       <div className="flex justify-end gap-2 pb-4">
         <ButtonRefresh onClick={handleRefresh} isRefreshing={isLoading} />
@@ -304,7 +305,7 @@ export default function AnalyticsHooks({
                     key: 'timeTracked',
                     render: (video) => (
                       <div className="flex items-center gap-2">
-                        <HiClock className="text-foreground/60" />
+                        <Clock className="text-foreground/60" />
                         <span className="text-sm font-medium">
                           {formatTimeSpent(video.totalTimeTracked)}
                         </span>

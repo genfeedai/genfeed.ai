@@ -9,14 +9,10 @@ import {
 import type { PromptDropdownProps } from '@genfeedai/props/prompts/prompt-dropdown.props';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { Button } from '@ui/primitives/button';
+import { Clipboard, Copy, RefreshCw } from 'lucide-react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  HiArrowPath,
-  HiClipboardDocument,
-  HiDocumentDuplicate,
-} from 'react-icons/hi2';
 
 export default function DropdownPrompt({
   promptText,
@@ -152,7 +148,7 @@ export default function DropdownPrompt({
                       setIsOpen(false);
                     }}
                   >
-                    <HiArrowPath className="size-4" />
+                    <RefreshCw className="size-4" />
                   </Button>
                 )}
 
@@ -166,7 +162,7 @@ export default function DropdownPrompt({
                   tooltip="Copy prompt"
                   tooltipPosition="top"
                 >
-                  <HiDocumentDuplicate className="size-4" />
+                  <Copy className="size-4" />
                 </Button>
               </div>
             </div>
@@ -203,7 +199,7 @@ export default function DropdownPrompt({
         tooltipPosition="top"
         ariaLabel="View prompt"
       >
-        <HiClipboardDocument className="size-4" />
+        <Clipboard className="size-4" />
       </Button>
 
       {/* Dropdown Menu rendered via portal */}

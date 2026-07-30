@@ -7,24 +7,21 @@ import {
   CampaignStatus,
   CampaignType,
 } from '@genfeedai/enums';
+import {
+  InstagramIcon,
+  RedditIcon,
+  XTwitterIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
 import type { OutreachCampaign } from '@services/automation/outreach-campaigns.service';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
+import { Check, Pause, Play, RefreshCw, Settings, Trash2 } from 'lucide-react';
 import { useMemo } from 'react';
-import { FaInstagram, FaReddit, FaXTwitter } from 'react-icons/fa6';
-import {
-  HiArrowPath,
-  HiCheck,
-  HiCog6Tooth,
-  HiPause,
-  HiPlay,
-  HiTrash,
-} from 'react-icons/hi2';
 
 const platformIcons: Record<CampaignPlatform, React.ReactNode> = {
-  [CampaignPlatform.TWITTER]: <FaXTwitter className="text-slate-300" />,
-  [CampaignPlatform.REDDIT]: <FaReddit className="text-orange-500" />,
-  [CampaignPlatform.INSTAGRAM]: <FaInstagram className="text-pink-500" />,
+  [CampaignPlatform.TWITTER]: <XTwitterIcon className="text-slate-300" />,
+  [CampaignPlatform.REDDIT]: <RedditIcon className="text-orange-500" />,
+  [CampaignPlatform.INSTAGRAM]: <InstagramIcon className="text-pink-500" />,
 };
 
 const typeLabels: Record<CampaignType, string> = {
@@ -158,12 +155,12 @@ export default function OutreachCampaignsTable({
       {
         icon: (campaign: OutreachCampaign) => {
           if (campaign.status === CampaignStatus.ACTIVE) {
-            return <HiPause />;
+            return <Pause />;
           }
           if (campaign.status === CampaignStatus.COMPLETED) {
-            return <HiArrowPath />;
+            return <RefreshCw />;
           }
-          return <HiPlay />;
+          return <Play />;
         },
         onClick: (campaign: OutreachCampaign) => {
           if (campaign.status === CampaignStatus.ACTIVE) {
@@ -185,21 +182,21 @@ export default function OutreachCampaignsTable({
         variant: ButtonVariant.DEFAULT,
       },
       {
-        icon: <HiCheck />,
+        icon: <Check />,
         onClick: onComplete,
         size: ButtonSize.SM,
         tooltip: 'Mark Complete',
         variant: ButtonVariant.SECONDARY,
       },
       {
-        icon: <HiCog6Tooth />,
+        icon: <Settings />,
         onClick: onConfigure,
         size: ButtonSize.SM,
         tooltip: 'Configure',
         variant: ButtonVariant.SECONDARY,
       },
       {
-        icon: <HiTrash />,
+        icon: <Trash2 />,
         onClick: onDelete,
         size: ButtonSize.SM,
         tooltip: 'Delete',

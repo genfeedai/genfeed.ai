@@ -4,8 +4,8 @@ import { VideoEaseCurve } from '@genfeedai/enums';
 import type { EaseCurveSelectorProps } from '@genfeedai/props/studio/storyboard.props';
 import type { DropdownFieldOption } from '@ui/primitives/dropdown-field';
 import FormDropdown from '@ui/primitives/dropdown-field';
+import { BarChart3 } from 'lucide-react';
 import type { ChangeEvent } from 'react';
-import { HiChartBar } from 'react-icons/hi2';
 
 const EASE_CURVE_OPTIONS: DropdownFieldOption[] = [
   {
@@ -54,7 +54,7 @@ export default function EaseCurveSelector({
     <FormDropdown
       name="easeCurve"
       value={value}
-      icon={<HiChartBar />}
+      icon={<BarChart3 />}
       label={label}
       placeholder={placeholder}
       isDisabled={isDisabled}

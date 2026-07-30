@@ -24,9 +24,9 @@ import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
+import { ArrowUp } from 'lucide-react';
 import { type ChangeEvent, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
-import { HiArrowUp } from 'react-icons/hi2';
 
 export default function ModalBrandGenerate({
   type,
@@ -137,7 +137,7 @@ export default function ModalBrandGenerate({
 
           <Button
             variant={ButtonVariant.DEFAULT}
-            icon={<HiArrowUp />}
+            icon={<ArrowUp />}
             type="submit"
             label={type === 'logo' ? 'Profile Picture' : 'Banner'}
             isDisabled={isSubmitting || !form.formState.isValid}

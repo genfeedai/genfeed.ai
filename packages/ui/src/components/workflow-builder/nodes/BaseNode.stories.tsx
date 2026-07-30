@@ -1,10 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import BaseNode from '@ui/workflow-builder/nodes/BaseNode';
-import {
-  HiOutlineCog6Tooth,
-  HiOutlinePhoto,
-  HiOutlineSparkles,
-} from 'react-icons/hi2';
+import { Image, Settings, Sparkles } from 'lucide-react';
 
 const meta: Meta<typeof BaseNode> = {
   argTypes: {
@@ -50,7 +46,7 @@ export const Default: Story = {
       label: 'Image Input',
       nodeType: 'input-image',
     },
-    icon: <HiOutlinePhoto />,
+    icon: <Image />,
     id: 'node-1',
     isConnectable: true,
     selected: false,
@@ -75,7 +71,7 @@ export const Selected: Story = {
       label: 'Resize',
       nodeType: 'process-resize',
     },
-    icon: <HiOutlineCog6Tooth />,
+    icon: <Settings />,
     id: 'node-2',
     isConnectable: true,
     selected: true,
@@ -104,7 +100,7 @@ export const WithConfig: Story = {
       label: 'Add Effects',
       nodeType: 'effects-add',
     },
-    icon: <HiOutlineSparkles />,
+    icon: <Sparkles />,
     id: 'node-3',
     isConnectable: true,
     selected: false,

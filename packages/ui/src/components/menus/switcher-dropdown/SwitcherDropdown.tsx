@@ -19,10 +19,11 @@ import {
   PopoverPanelContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
+import { Check, Plus } from 'lucide-react';
 import Image from 'next/image';
 import type React from 'react';
 import { cloneElement, isValidElement, useCallback, useState } from 'react';
-import { HiCheck, HiPlus } from 'react-icons/hi2';
+
 // Relative import: @ui/lib/* isn't aliased (the @ui test alias maps to
 // src/components), and accordion.tsx sources this same hook the same way.
 import { useMounted } from '../../../lib/hooks';
@@ -185,7 +186,7 @@ export default function SwitcherDropdown({
                   {ActionIcon ? (
                     <ActionIcon className="size-3.5 flex-shrink-0" />
                   ) : (
-                    <HiPlus className="size-3.5 flex-shrink-0" />
+                    <Plus className="size-3.5 flex-shrink-0" />
                   )}
                   <span>{action.label}</span>
                 </Button>
@@ -260,7 +261,7 @@ function SwitcherItem({
         <span className="flex-1 truncate text-left">{item.label}</span>
 
         {item.isActive && (
-          <HiCheck className="size-3.5 text-primary flex-shrink-0" />
+          <Check className="size-3.5 text-primary flex-shrink-0" />
         )}
       </CommandItem>
 

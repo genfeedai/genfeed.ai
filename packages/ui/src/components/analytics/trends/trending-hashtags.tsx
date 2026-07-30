@@ -10,7 +10,7 @@ import {
   PLATFORM_CONFIGS,
   PLATFORM_CONFIGS_ARRAY,
 } from '@ui-constants/platform.constant';
-import { HiArrowTrendingUp, HiOutlineHashtag } from 'react-icons/hi2';
+import { Hash, TrendingUp } from 'lucide-react';
 
 const HASHTAG_PLATFORMS = ['tiktok', 'instagram', 'twitter'];
 
@@ -52,7 +52,7 @@ export function TrendingHashtags({
   if (filteredHashtags.length === 0) {
     return (
       <div className={`text-center py-12 ${className}`}>
-        <HiOutlineHashtag className="size-12 mx-auto mb-3 opacity-30" />
+        <Hash className="size-12 mx-auto mb-3 opacity-30" />
         <p className="text-foreground/60">No trending hashtags found</p>
         <p className="text-sm text-foreground/40 mt-1">
           {selectedPlatform
@@ -72,7 +72,7 @@ export function TrendingHashtags({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="space-y-1">
           <h3 className="text-lg font-semibold flex items-center gap-2">
-            <HiOutlineHashtag className="text-muted-foreground" />
+            <Hash className="text-muted-foreground" />
             Trending Hashtags
           </h3>
           <p className="text-sm text-foreground/60">
@@ -159,7 +159,7 @@ export function TrendingHashtags({
 
                 <div className="flex items-center justify-between pt-1">
                   <span className="text-foreground/60 flex items-center gap-1">
-                    <HiArrowTrendingUp className="size-3.5" />
+                    <TrendingUp className="size-3.5" />
                     Growth
                   </span>
                   <span

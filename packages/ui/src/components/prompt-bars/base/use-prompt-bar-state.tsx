@@ -46,15 +46,12 @@ import {
   getConfigForCategoryType,
   getConfigForRoute,
 } from '@ui-constants/media.constant';
+import { RectangleHorizontal, RectangleVertical, Square } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWatch } from 'react-hook-form';
-import {
-  MdOutlineCropLandscape,
-  MdOutlineCropPortrait,
-  MdOutlineCropSquare,
-} from 'react-icons/md';
+
 import {
   EMPTY_ARRAY,
   resizeTextarea,
@@ -631,11 +628,11 @@ export function usePromptBarState({
   const formatIcon = useMemo(() => {
     switch (watchedFormat) {
       case IngredientFormat.LANDSCAPE:
-        return <MdOutlineCropLandscape className="size-4" />;
+        return <RectangleHorizontal className="size-4" />;
       case IngredientFormat.SQUARE:
-        return <MdOutlineCropSquare className="size-4" />;
+        return <Square className="size-4" />;
       default:
-        return <MdOutlineCropPortrait className="size-4" />;
+        return <RectangleVertical className="size-4" />;
     }
   }, [watchedFormat]);
 

@@ -17,8 +17,25 @@ import {
   TargetValidationState,
 } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import {
+  InstagramIcon,
+  LinkedinIcon,
+  TiktokIcon,
+  XTwitterIcon,
+  YoutubeIcon,
+} from '@genfeedai/helpers/ui/icons/brands';
 import type { IIngredient, IPost } from '@genfeedai/interfaces';
 import { Button } from '@ui/primitives/button';
+import {
+  Bookmark,
+  Heart,
+  MessageCircle,
+  Play,
+  RefreshCw,
+  Send,
+  Sparkles,
+  ThumbsUp,
+} from 'lucide-react';
 import Image from 'next/image';
 import {
   type ComponentType,
@@ -27,23 +44,6 @@ import {
   useMemo,
   useState,
 } from 'react';
-import {
-  FaInstagram,
-  FaLinkedin,
-  FaTiktok,
-  FaXTwitter,
-  FaYoutube,
-} from 'react-icons/fa6';
-import {
-  HiArrowPath,
-  HiBookmark,
-  HiChatBubbleOvalLeft,
-  HiHandThumbUp,
-  HiHeart,
-  HiPaperAirplane,
-  HiPlay,
-  HiSparkles,
-} from 'react-icons/hi2';
 
 export type PlatformPreviewMedia = {
   id: string;
@@ -287,22 +287,22 @@ function getPlatformIcon(platform: CredentialPlatform | string) {
   const normalizedPlatform = normalizePlatform(platform);
 
   if (normalizedPlatform === CredentialPlatform.INSTAGRAM) {
-    return FaInstagram;
+    return InstagramIcon;
   }
 
   if (normalizedPlatform === CredentialPlatform.LINKEDIN) {
-    return FaLinkedin;
+    return LinkedinIcon;
   }
 
   if (normalizedPlatform === CredentialPlatform.TIKTOK) {
-    return FaTiktok;
+    return TiktokIcon;
   }
 
   if (normalizedPlatform === CredentialPlatform.YOUTUBE) {
-    return FaYoutube;
+    return YoutubeIcon;
   }
 
-  return FaXTwitter;
+  return XTwitterIcon;
 }
 
 function formatHandle(handle?: string): string {
@@ -607,7 +607,7 @@ function MediaTile({
       )}
       {item.kind === 'video' || item.kind === 'short_video' ? (
         <span className="absolute inset-0 flex items-center justify-center bg-black/20 text-white">
-          <HiPlay className="size-6" />
+          <Play className="size-6" />
         </span>
       ) : null}
       <div className="absolute bottom-2 left-2 flex flex-wrap gap-1">
@@ -863,10 +863,10 @@ function XPreviewRenderer({ target }: PlatformPreviewRendererProps) {
           <MediaGrid target={target} />
           <LinkPreviewCard target={target} />
           <div className="mt-4 flex justify-between text-foreground/45">
-            <HiChatBubbleOvalLeft className="size-4" />
-            <HiArrowPath className="size-4" />
-            <HiHeart className="size-4" />
-            <HiBookmark className="size-4" />
+            <MessageCircle className="size-4" />
+            <RefreshCw className="size-4" />
+            <Heart className="size-4" />
+            <Bookmark className="size-4" />
           </div>
           <ValidationIssues target={target} />
         </div>
@@ -892,15 +892,15 @@ function LinkedInPreviewRenderer({ target }: PlatformPreviewRendererProps) {
       <LinkPreviewCard target={target} />
       <div className="mt-4 flex items-center gap-5 border-t border-white/10 pt-3 text-xs text-foreground/45">
         <span className="inline-flex items-center gap-1">
-          <HiHandThumbUp className="size-4" />
+          <ThumbsUp className="size-4" />
           Like
         </span>
         <span className="inline-flex items-center gap-1">
-          <HiChatBubbleOvalLeft className="size-4" />
+          <MessageCircle className="size-4" />
           Comment
         </span>
         <span className="inline-flex items-center gap-1">
-          <HiPaperAirplane className="size-4" />
+          <Send className="size-4" />
           Send
         </span>
       </div>
@@ -915,10 +915,10 @@ function InstagramPreviewRenderer({ target }: PlatformPreviewRendererProps) {
       <AuthorRow target={target} />
       <MediaGrid target={target} variant="square" />
       <div className="mt-3 flex items-center gap-4 text-foreground/70">
-        <HiHeart className="size-5" />
-        <HiChatBubbleOvalLeft className="size-5" />
-        <HiPaperAirplane className="size-5" />
-        <HiBookmark className="ml-auto size-5" />
+        <Heart className="size-5" />
+        <MessageCircle className="size-5" />
+        <Send className="size-5" />
+        <Bookmark className="ml-auto size-5" />
       </div>
       <div className="mt-3 flex items-start justify-between gap-3">
         <p className="min-w-0 whitespace-pre-wrap text-sm leading-6 text-foreground/85">
@@ -997,7 +997,7 @@ function GenericPlatformPreviewRenderer({
     >
       <div className="flex items-start gap-3">
         <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground/55">
-          <HiSparkles className="size-4" />
+          <Sparkles className="size-4" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-3">

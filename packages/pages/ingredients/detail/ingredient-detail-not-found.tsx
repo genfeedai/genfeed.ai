@@ -4,8 +4,8 @@ import { ButtonVariant } from '@genfeedai/enums';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { HiArrowLeft } from 'react-icons/hi2';
 
 type Props = {
   type: string;
@@ -28,7 +28,7 @@ export default function IngredientDetailNotFound({ type }: Props) {
           withWrapper={false}
         >
           <Link href={`/ingredients/${type}`}>
-            <HiArrowLeft /> Back to {type}
+            <ArrowLeft /> Back to {type}
           </Link>
         </Button>
       </Card>

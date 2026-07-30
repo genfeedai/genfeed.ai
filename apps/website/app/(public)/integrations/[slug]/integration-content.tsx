@@ -4,9 +4,9 @@ import EditorialPoster from '@ui/marketing/EditorialPoster';
 import HeroProofRail from '@ui/marketing/HeroProofRail';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
 import PageLayout from '@web-components/PageLayout';
+import { Check } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
-import { FaCheck } from 'react-icons/fa6';
 
 export default function IntegrationContent({
   integration,
@@ -74,7 +74,7 @@ export default function IntegrationContent({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {integration.features.map((feature: string) => (
             <div key={feature} className="flex items-start gap-3">
-              <FaCheck className="size-5 text-success mt-1 flex-shrink-0" />
+              <Check className="size-5 text-success mt-1 flex-shrink-0" />
               <span className="text-lg">{feature}</span>
             </div>
           ))}

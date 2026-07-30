@@ -1,23 +1,24 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/constants';
+import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import CardIcon from '@ui/card/icon/CardIcon';
 import Container from '@ui/layout/container/Container';
 import { PageSection } from '@ui/layout/page-section';
+import {
+  ArrowRight,
+  Folder,
+  Image,
+  Mic,
+  Music,
+  PlayCircle,
+  Sparkles,
+  Video,
+} from 'lucide-react';
 import Link from 'next/link';
 import { Suspense } from 'react';
-import type { IconType } from 'react-icons';
-import {
-  HiOutlineArrowRight,
-  HiOutlineFolder,
-  HiOutlineMicrophone,
-  HiOutlineMusicalNote,
-  HiOutlinePhoto,
-  HiOutlinePlayCircle,
-  HiOutlineSparkles,
-  HiOutlineVideoCamera,
-} from 'react-icons/hi2';
+
 import LibraryOverviewCreditNotice from './library-overview-credit-notice';
 
 interface LibraryCategoryCardConfig {
@@ -34,7 +35,7 @@ const VISUAL_CATEGORY_CARDS: LibraryCategoryCardConfig[] = [
   {
     description: 'Motion-ready edits, exports, and reusable clips.',
     href: APP_ROUTES.LIBRARY.VIDEOS,
-    icon: HiOutlineVideoCamera,
+    icon: Video,
     id: 'videos',
     kicker: 'Motion',
     label: 'Videos',
@@ -43,7 +44,7 @@ const VISUAL_CATEGORY_CARDS: LibraryCategoryCardConfig[] = [
   {
     description: 'Stills, references, and brand visual building blocks.',
     href: APP_ROUTES.LIBRARY.IMAGES,
-    icon: HiOutlinePhoto,
+    icon: Image,
     id: 'images',
     kicker: 'Still',
     label: 'Images',
@@ -52,7 +53,7 @@ const VISUAL_CATEGORY_CARDS: LibraryCategoryCardConfig[] = [
   {
     description: 'Short-form loops and reaction-ready motion snippets.',
     href: APP_ROUTES.LIBRARY.GIFS,
-    icon: HiOutlinePlayCircle,
+    icon: PlayCircle,
     id: 'gifs',
     kicker: 'Loop',
     label: 'GIFs',
@@ -61,7 +62,7 @@ const VISUAL_CATEGORY_CARDS: LibraryCategoryCardConfig[] = [
   {
     description: 'Character presets and presenter surfaces for video creation.',
     href: APP_ROUTES.LIBRARY.AVATARS,
-    icon: HiOutlineSparkles,
+    icon: Sparkles,
     id: 'avatars',
     kicker: 'Persona',
     label: 'Avatars',
@@ -73,7 +74,7 @@ const UTILITY_CATEGORY_CARDS: LibraryCategoryCardConfig[] = [
   {
     description: 'Voice presets and cloned speakers ready for narration.',
     href: APP_ROUTES.LIBRARY.VOICES,
-    icon: HiOutlineMicrophone,
+    icon: Mic,
     id: 'voices',
     kicker: 'Voice',
     label: 'Voices',
@@ -82,7 +83,7 @@ const UTILITY_CATEGORY_CARDS: LibraryCategoryCardConfig[] = [
   {
     description: 'Music cues and background tracks organized for reuse.',
     href: APP_ROUTES.LIBRARY.MUSIC,
-    icon: HiOutlineMusicalNote,
+    icon: Music,
     id: 'music',
     kicker: 'Audio',
     label: 'Music',
@@ -92,7 +93,7 @@ const UTILITY_CATEGORY_CARDS: LibraryCategoryCardConfig[] = [
     description:
       'Captions and copy-ready text assets for publishing workflows.',
     href: APP_ROUTES.LIBRARY.CAPTIONS,
-    icon: HiOutlineFolder,
+    icon: Folder,
     id: 'captions',
     kicker: 'Text',
     label: 'Captions',
@@ -157,7 +158,7 @@ function LibraryCategoryTile({
 
         <div className="mt-auto flex items-center justify-between border-t border-white/[0.06] pt-4 text-xs font-semibold uppercase tracking-[0.12em] text-foreground/45 transition-colors group-hover:text-foreground/75">
           <span>Browse</span>
-          <HiOutlineArrowRight
+          <ArrowRight
             aria-hidden="true"
             className="size-4 transition-transform duration-200 group-hover:translate-x-1"
           />
@@ -196,7 +197,7 @@ export default function LibraryOverviewPage() {
     <Container
       label="Library"
       description="Browse reusable assets across your workspace."
-      icon={HiOutlineFolder}
+      icon={Folder}
     >
       <div data-testid="library-landing-title" className="sr-only">
         Library

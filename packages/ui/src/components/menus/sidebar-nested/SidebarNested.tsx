@@ -5,8 +5,9 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import MenuItem from '@ui/menus/item/MenuItem';
 import { Button } from '@ui/primitives/button';
+import { ArrowLeft } from 'lucide-react';
 import { Fragment, useCallback } from 'react';
-import { HiArrowLeft } from 'react-icons/hi2';
+
 import { useMenuRouteResolution } from '../shared/useMenuRouteResolution';
 
 interface SidebarNestedProps {
@@ -63,7 +64,7 @@ export default function SidebarNested({
           )}
           ariaLabel={`Back to ${backLabel ?? groupLabel}`}
         >
-          <HiArrowLeft className="size-4 text-foreground/60 group-hover:text-foreground transition-colors duration-200" />
+          <ArrowLeft className="size-4 text-foreground/60 group-hover:text-foreground transition-colors duration-200" />
           <span className="font-medium text-foreground/90">
             {backLabel ?? groupLabel}
           </span>
