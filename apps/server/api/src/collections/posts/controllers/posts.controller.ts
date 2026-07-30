@@ -203,6 +203,17 @@ export class PostsController extends BaseCRUDController<
       OR: [{ parentId: null }, { parentId: { not: null } }],
     };
 
+    // Members may narrow to a brand/org (preferred over nested relationship lists).
+    // Superadmin already gets these via adminFilter when present.
+    if (!adminFilter) {
+      if (query.brand) {
+        matchFilter.brand = String(query.brand);
+      }
+      if (query.organization) {
+        matchFilter.organization = String(query.organization);
+      }
+    }
+
     if (query.platform) {
       matchFilter.platform = query.platform;
     }

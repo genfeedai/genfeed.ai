@@ -112,14 +112,14 @@ export async function fetchPosts({
     totalPages: 1,
   };
 
-  // Load posts based on scope
+  // Load posts based on scope (collection endpoints with brand/org query filters)
   if ((scope === PageScope.BRAND || scope === PageScope.PUBLISHER) && brandId) {
     const service = await getBrandsService();
-    url = `GET /brands/${brandId}/posts`;
+    url = `GET /posts?brand=${brandId}`;
     data = await service.findBrandPostsPage(brandId, query);
   } else if (scope === PageScope.ORGANIZATION && organizationId) {
     const service = await getOrganizationsService();
-    url = `GET /organizations/${organizationId}/posts`;
+    url = `GET /posts?organization=${organizationId}`;
     data = await service.findOrganizationPostsPage(organizationId, query);
   } else if (scope === PageScope.SUPERADMIN) {
     const service = await getPostsService();
@@ -134,7 +134,7 @@ export async function fetchPosts({
   } else if (!scope && organizationId) {
     // Default to organization scope
     const service = await getOrganizationsService();
-    url = `GET /organizations/${organizationId}/posts`;
+    url = `GET /posts?organization=${organizationId}`;
     data = await service.findOrganizationPostsPage(organizationId, query);
   } else {
     // Fallback to global (will likely require superadmin)

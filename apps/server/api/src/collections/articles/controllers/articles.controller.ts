@@ -84,9 +84,11 @@ export class ArticlesController extends BaseCRUDController<
         tag: query.tag,
       },
       {
-        brand: publicMetadata.brand,
+        brand: query.brand ? String(query.brand) : publicMetadata.brand,
         isDeleted: query.isDeleted ?? false,
-        organization: publicMetadata.organization,
+        organization: query.organization
+          ? String(query.organization)
+          : publicMetadata.organization,
         user: publicMetadata.user,
       },
     );

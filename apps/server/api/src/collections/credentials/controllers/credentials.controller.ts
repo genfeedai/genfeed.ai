@@ -224,11 +224,20 @@ export class CredentialsController {
 
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
+    // Prefer brand/org query filters (collection style); keep user ownership as
+    // the default so the list stays tenant-safe for members.
+    const where: Record<string, unknown> = {
+      isDeleted,
+      user: publicMetadata.user,
+    };
+    if (query.brand) {
+      where.brand = String(query.brand);
+    } else if (query.organization) {
+      where.organization = String(query.organization);
+    }
+
     const aggregate = {
-      where: {
-        isDeleted,
-        user: publicMetadata.user,
-      },
+      where,
       orderBy: handleQuerySort(query.sort),
     };
 

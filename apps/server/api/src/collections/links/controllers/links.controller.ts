@@ -11,6 +11,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
@@ -46,6 +47,25 @@ export class LinksController extends BaseCRUDController<
     @Optional() private readonly cacheService?: CacheService,
   ) {
     super(loggerService, linksService, LinkSerializer, 'Link');
+  }
+
+  /**
+   * List links for a brand (preferred over nested `GET /brands/:id/links`).
+   */
+  public buildFindAllQuery(user: User, query: LinksQueryDto) {
+    const publicMetadata = getPublicMetadata(user);
+    const brand =
+      typeof query.brand === 'string' && query.brand.length > 0
+        ? query.brand
+        : publicMetadata.brand;
+
+    return {
+      orderBy: handleQuerySort(query.sort),
+      where: {
+        brand,
+        isDeleted: query.isDeleted ?? false,
+      },
+    };
   }
 
   /**
