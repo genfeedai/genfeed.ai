@@ -100,14 +100,7 @@ export class WorkflowCrudController {
     @Req() request: Request,
     @CurrentUser() user: User,
     @Query() query: WorkflowQueryDto,
-  ): Promise<
-    | JsonApiCollectionResponse
-    | {
-        data: Awaited<
-          ReturnType<SystemWorkflowCatalogService['listCatalogForOrganization']>
-        >;
-      }
-  > {
+  ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
 
     // Code-owned system catalog (not persisted rows). Same collection resource
@@ -118,7 +111,7 @@ export class WorkflowCrudController {
           await this.systemWorkflowCatalogService.listCatalogForOrganization(
             publicMetadata.organization,
           );
-        return { data };
+        return { data } as unknown as JsonApiCollectionResponse;
       }, 'Failed to list system workflow catalog');
     }
 
@@ -128,7 +121,7 @@ export class WorkflowCrudController {
           publicMetadata.user,
           publicMetadata.organization,
         );
-        return { data: stats };
+        return { data: stats } as unknown as JsonApiCollectionResponse;
       }, 'Failed to load workflow statistics');
     }
 

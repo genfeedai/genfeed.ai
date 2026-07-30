@@ -175,9 +175,11 @@ export class OrganizationsController extends BaseCRUDController<
     @Req() request: Request,
     @CurrentUser() user: User,
     @Query() query: OrganizationQueryDto,
-  ): Promise<JsonApiCollectionResponse | unknown[]> {
+  ): Promise<JsonApiCollectionResponse> {
+    // Membership summary is a non–JSON:API array; cast at the HTTP boundary so
+    // the override stays assignable to BaseCRUDController.findAll.
     if (query.mine) {
-      return this.findMine(user);
+      return this.findMine(user) as unknown as JsonApiCollectionResponse;
     }
 
     if (!getIsSuperAdmin(user)) {
