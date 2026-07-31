@@ -7,53 +7,18 @@ import type {
 } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
-import type { BrandDetailAgentProfileCardProps } from '@props/pages/brand-detail.props';
+import type {
+  AgentProfileFormState,
+  AgentProfilePlatformOverrideFormState,
+  AgentProfilePlatformOverrideSelectField,
+  AgentProfilePlatformOverrideTextField,
+  AgentProfileTextField,
+  BrandDetailAgentProfileCardProps,
+} from '@props/pages/brand-detail.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-
-export type AgentProfileFormState = {
-  defaultModel: string;
-  frequency: string;
-  persona: string;
-  platformOverrides: Record<string, PlatformOverrideFormState>;
-  strategyContentTypes: string;
-  strategyGoals: string;
-  strategyPlatforms: string;
-  voiceApprovedHooks: string;
-  voiceAudience: string;
-  voiceBannedPhrases: string;
-  voiceCanonicalSource: 'brand' | 'founder' | 'hybrid';
-  voiceDoNotSoundLike: string;
-  voiceExemplarTexts: string;
-  voiceMessagingPillars: string;
-  voiceSampleOutput: string;
-  voiceStyle: string;
-  voiceTone: string;
-  voiceValues: string;
-  voiceWritingRules: string;
-};
-
-export type PlatformOverrideFormState = {
-  approvedHooks: string;
-  contentTypes: string;
-  defaultModel: string;
-  bannedPhrases: string;
-  canonicalSource: 'brand' | 'founder' | 'hybrid' | '';
-  doNotSoundLike: string;
-  exemplarTexts: string;
-  frequency: string;
-  goals: string;
-  messagingPillars: string;
-  persona: string;
-  sampleOutput: string;
-  style: string;
-  tone: string;
-  audience: string;
-  values: string;
-  writingRules: string;
-};
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export const AUTO_MODEL_SELECT_VALUE = '__auto__';
 export const PLATFORM_OPTIONS = [
@@ -81,7 +46,7 @@ function parseList(value: string): string[] {
 
 function toPlatformOverrideFormState(
   override?: IBrandAgentPlatformOverride,
-): PlatformOverrideFormState {
+): AgentProfilePlatformOverrideFormState {
   const overrideVoice = override?.voice as
     | (IBrandAgentPlatformOverride['voice'] & {
         approvedHooks?: string[];
@@ -202,7 +167,7 @@ function buildStrategy(
 }
 
 function hasPlatformOverrideContent(
-  override: PlatformOverrideFormState,
+  override: AgentProfilePlatformOverrideFormState,
 ): boolean {
   return Boolean(
     override.persona ||
@@ -334,14 +299,17 @@ export function useBrandDetailAgentProfileCard({
     toFormState(brand),
   );
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const formRef = useRef(form);
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   const getBrandsService = useAuthedService((token: string) =>
     BrandsService.getInstance(token),
   );
 
   useEffect(() => {
-    setForm(toFormState(brand));
+    const nextForm = toFormState(brand);
+    formRef.current = nextForm;
+    setForm(nextForm);
   }, [brand]);
 
   const enabledModels = settings?.enabledModels ?? [];
@@ -352,44 +320,107 @@ export function useBrandDetailAgentProfileCard({
     [form.platformOverrides],
   );
 
-  const handlePlatformOverrideChange = useCallback(
-    (platform: string, key: keyof PlatformOverrideFormState, value: string) => {
-      setForm((prev) => ({
-        ...prev,
-        platformOverrides: {
-          ...prev.platformOverrides,
-          [platform]: {
-            ...prev.platformOverrides[platform],
-            [key]: value,
-          },
-        },
-      }));
+  const enqueueFormSave = useCallback(
+    (
+      updateForm: (current: AgentProfileFormState) => AgentProfileFormState,
+    ): Promise<void> => {
+      const queuedSave = saveQueueRef.current.then(async () => {
+        const previousForm = formRef.current;
+        const nextForm = updateForm(previousForm);
+
+        formRef.current = nextForm;
+        setForm(nextForm);
+
+        try {
+          const service = await getBrandsService();
+          await service.updateAgentConfig(
+            brandId,
+            buildAgentConfigPayload(nextForm),
+          );
+          await refreshBrands();
+          await onRefreshBrand();
+        } catch (error) {
+          formRef.current = previousForm;
+          setForm(previousForm);
+          logger.error('Failed to save brand agent profile field', error);
+          notifications.error('Failed to save brand voice');
+          throw error;
+        }
+      });
+
+      saveQueueRef.current = queuedSave.catch(() => undefined);
+      return queuedSave;
     },
-    [],
+    [brandId, getBrandsService, notifications, onRefreshBrand, refreshBrands],
   );
 
-  const handleSave = useCallback(async () => {
-    setIsSaving(true);
-    try {
-      const service = await getBrandsService();
-      await service.updateAgentConfig(brandId, buildAgentConfigPayload(form));
-      await refreshBrands();
-      await onRefreshBrand();
-      notifications.success('Brand voice saved');
-    } catch (error) {
-      logger.error('Failed to save brand agent profile', error);
-      notifications.error('Failed to save brand voice');
-    } finally {
-      setIsSaving(false);
-    }
-  }, [
-    brandId,
-    form,
-    getBrandsService,
-    notifications,
-    onRefreshBrand,
-    refreshBrands,
-  ]);
+  const handleFieldSave = useCallback(
+    (field: AgentProfileTextField, value: string) =>
+      enqueueFormSave((current) => ({
+        ...current,
+        [field]: value,
+      })),
+    [enqueueFormSave],
+  );
+
+  const handleDefaultModelChange = useCallback(
+    (value: string) => {
+      void enqueueFormSave((current) => ({
+        ...current,
+        defaultModel: value,
+      })).catch(() => undefined);
+    },
+    [enqueueFormSave],
+  );
+
+  const handleCanonicalSourceChange = useCallback(
+    (value: AgentProfileFormState['voiceCanonicalSource']) => {
+      void enqueueFormSave((current) => ({
+        ...current,
+        voiceCanonicalSource: value,
+      })).catch(() => undefined);
+    },
+    [enqueueFormSave],
+  );
+
+  const handlePlatformOverrideSave = useCallback(
+    (
+      platform: string,
+      field: AgentProfilePlatformOverrideTextField,
+      value: string,
+    ) =>
+      enqueueFormSave((current) => ({
+        ...current,
+        platformOverrides: {
+          ...current.platformOverrides,
+          [platform]: {
+            ...current.platformOverrides[platform],
+            [field]: value,
+          },
+        },
+      })),
+    [enqueueFormSave],
+  );
+
+  const handlePlatformOverrideSelectChange = useCallback(
+    (
+      platform: string,
+      field: AgentProfilePlatformOverrideSelectField,
+      value: string,
+    ) => {
+      void enqueueFormSave((current) => ({
+        ...current,
+        platformOverrides: {
+          ...current.platformOverrides,
+          [platform]: {
+            ...current.platformOverrides[platform],
+            [field]: value,
+          },
+        },
+      })).catch(() => undefined);
+    },
+    [enqueueFormSave],
+  );
 
   /**
    * One-click AI generation: scan brand website (server) + LLM profile,
@@ -398,6 +429,7 @@ export function useBrandDetailAgentProfileCard({
   const handleGenerate = useCallback(async () => {
     setIsGenerating(true);
     try {
+      await saveQueueRef.current;
       const service = await getBrandsService();
       const websiteFromLinks = brand.links?.find((link) => {
         const category = String(link.category ?? '').toLowerCase();
@@ -414,7 +446,12 @@ export function useBrandDetailAgentProfileCard({
         brandId,
         ...(website ? { url: website } : {}),
       });
-      const nextForm = applyGeneratedProfileToForm(form, profile, brand.label);
+      const nextForm = applyGeneratedProfileToForm(
+        formRef.current,
+        profile,
+        brand.label,
+      );
+      formRef.current = nextForm;
       setForm(nextForm);
       await service.updateAgentConfig(
         brandId,
@@ -432,7 +469,6 @@ export function useBrandDetailAgentProfileCard({
   }, [
     brand,
     brandId,
-    form,
     getBrandsService,
     notifications,
     onRefreshBrand,
@@ -443,13 +479,14 @@ export function useBrandDetailAgentProfileCard({
     AUTO_MODEL_SELECT_VALUE,
     enabledModels,
     form,
+    handleCanonicalSourceChange,
+    handleDefaultModelChange,
+    handleFieldSave,
     handleGenerate,
-    handlePlatformOverrideChange,
-    handleSave,
+    handlePlatformOverrideSave,
+    handlePlatformOverrideSelectChange,
     isGenerating,
-    isSaving,
     PLATFORM_OPTIONS,
     populatedPlatformCount,
-    setForm,
   };
 }

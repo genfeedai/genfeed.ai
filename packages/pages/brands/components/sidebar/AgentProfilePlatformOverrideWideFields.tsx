@@ -1,42 +1,13 @@
 'use client';
 
-import { Input } from '@ui/primitives/input';
-import { Textarea } from '@ui/primitives/textarea';
-
-type PlatformOverrideFormState = {
-  approvedHooks: string;
-  contentTypes: string;
-  defaultModel: string;
-  bannedPhrases: string;
-  canonicalSource: 'brand' | 'founder' | 'hybrid' | '';
-  doNotSoundLike: string;
-  exemplarTexts: string;
-  frequency: string;
-  goals: string;
-  messagingPillars: string;
-  persona: string;
-  sampleOutput: string;
-  style: string;
-  tone: string;
-  audience: string;
-  values: string;
-  writingRules: string;
-};
-
-type AgentProfilePlatformOverrideWideFieldsProps = {
-  override: PlatformOverrideFormState;
-  platformValue: string;
-  onChange: (
-    platform: string,
-    key: keyof PlatformOverrideFormState,
-    value: string,
-  ) => void;
-};
+import type { AgentProfilePlatformOverrideWideFieldsProps } from '@props/pages/brand-detail.props';
+import { EditableText } from '@ui/primitives/editable-text';
 
 export default function AgentProfilePlatformOverrideWideFields({
+  isDisabled,
+  onSave,
   override,
   platformValue,
-  onChange,
 }: AgentProfilePlatformOverrideWideFieldsProps) {
   return (
     <>
@@ -47,13 +18,13 @@ export default function AgentProfilePlatformOverrideWideFields({
         >
           Content Types Override
         </label>
-        <Input
-          id={`${platformValue}-content-types`}
+        <EditableText
+          ariaLabel={`${platformValue} Content Types Override`}
+          displayClassName="text-sm"
+          isDisabled={isDisabled}
+          onSave={(value) => onSave(platformValue, 'contentTypes', value)}
           placeholder="thread, reel, explainer"
           value={override.contentTypes}
-          onChange={(event) =>
-            onChange(platformValue, 'contentTypes', event.target.value)
-          }
         />
       </div>
 
@@ -64,13 +35,13 @@ export default function AgentProfilePlatformOverrideWideFields({
         >
           Writing Rules Override
         </label>
-        <Input
-          id={`${platformValue}-writing-rules`}
+        <EditableText
+          ariaLabel={`${platformValue} Writing Rules Override`}
+          displayClassName="text-sm"
+          isDisabled={isDisabled}
+          onSave={(value) => onSave(platformValue, 'writingRules', value)}
           placeholder="Lead with a claim, use proof"
           value={override.writingRules}
-          onChange={(event) =>
-            onChange(platformValue, 'writingRules', event.target.value)
-          }
         />
       </div>
 
@@ -81,13 +52,14 @@ export default function AgentProfilePlatformOverrideWideFields({
         >
           Persona Override
         </label>
-        <Textarea
-          id={`${platformValue}-persona`}
-          className="min-h-[90px]"
+        <EditableText
+          ariaLabel={`${platformValue} Persona Override`}
+          className="w-full"
+          displayClassName="text-sm leading-6"
+          isDisabled={isDisabled}
+          isMultiline
+          onSave={(value) => onSave(platformValue, 'persona', value)}
           value={override.persona}
-          onChange={(event) =>
-            onChange(platformValue, 'persona', event.target.value)
-          }
         />
       </div>
 
@@ -98,14 +70,15 @@ export default function AgentProfilePlatformOverrideWideFields({
         >
           Sample Output Override
         </label>
-        <Textarea
-          id={`${platformValue}-sample-output`}
-          className="min-h-[90px]"
+        <EditableText
+          ariaLabel={`${platformValue} Sample Output Override`}
+          className="w-full"
+          displayClassName="text-sm leading-6"
+          isDisabled={isDisabled}
+          isMultiline
+          onSave={(value) => onSave(platformValue, 'sampleOutput', value)}
           placeholder="Short example of how this platform-specific voice should sound."
           value={override.sampleOutput}
-          onChange={(event) =>
-            onChange(platformValue, 'sampleOutput', event.target.value)
-          }
         />
       </div>
 
@@ -116,13 +89,14 @@ export default function AgentProfilePlatformOverrideWideFields({
         >
           Exemplar Texts Override
         </label>
-        <Input
-          id={`${platformValue}-exemplar-texts`}
+        <EditableText
+          ariaLabel={`${platformValue} Exemplar Texts Override`}
+          displayClassName="text-sm leading-6"
+          isDisabled={isDisabled}
+          isMultiline
+          onSave={(value) => onSave(platformValue, 'exemplarTexts', value)}
           placeholder="Short example of a winning post."
           value={override.exemplarTexts}
-          onChange={(event) =>
-            onChange(platformValue, 'exemplarTexts', event.target.value)
-          }
         />
       </div>
     </>

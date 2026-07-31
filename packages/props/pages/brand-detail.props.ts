@@ -107,6 +107,116 @@ export interface BrandDetailAgentProfileCardProps {
   onRefreshBrand: () => Promise<void>;
 }
 
+export interface AgentProfileFormState {
+  defaultModel: string;
+  frequency: string;
+  persona: string;
+  platformOverrides: Record<string, AgentProfilePlatformOverrideFormState>;
+  strategyContentTypes: string;
+  strategyGoals: string;
+  strategyPlatforms: string;
+  voiceApprovedHooks: string;
+  voiceAudience: string;
+  voiceBannedPhrases: string;
+  voiceCanonicalSource: 'brand' | 'founder' | 'hybrid';
+  voiceDoNotSoundLike: string;
+  voiceExemplarTexts: string;
+  voiceMessagingPillars: string;
+  voiceSampleOutput: string;
+  voiceStyle: string;
+  voiceTone: string;
+  voiceValues: string;
+  voiceWritingRules: string;
+}
+
+export interface AgentProfilePlatformOverrideFormState {
+  approvedHooks: string;
+  audience: string;
+  bannedPhrases: string;
+  canonicalSource: 'brand' | 'founder' | 'hybrid' | '';
+  contentTypes: string;
+  defaultModel: string;
+  doNotSoundLike: string;
+  exemplarTexts: string;
+  frequency: string;
+  goals: string;
+  messagingPillars: string;
+  persona: string;
+  sampleOutput: string;
+  style: string;
+  tone: string;
+  values: string;
+  writingRules: string;
+}
+
+export type AgentProfileTextField = Exclude<
+  keyof AgentProfileFormState,
+  'platformOverrides' | 'voiceCanonicalSource'
+>;
+
+export type AgentProfilePlatformOverrideTextField = Exclude<
+  keyof AgentProfilePlatformOverrideFormState,
+  'canonicalSource' | 'defaultModel'
+>;
+
+export type AgentProfilePlatformOverrideSelectField =
+  | 'canonicalSource'
+  | 'defaultModel';
+
+export interface AgentProfileVoiceFieldsProps {
+  isDisabled?: boolean;
+  onCanonicalSourceChange: (
+    value: AgentProfileFormState['voiceCanonicalSource'],
+  ) => void;
+  onFieldSave: (field: AgentProfileTextField, value: string) => Promise<void>;
+  voiceApprovedHooks: string;
+  voiceAudience: string;
+  voiceBannedPhrases: string;
+  voiceCanonicalSource: AgentProfileFormState['voiceCanonicalSource'];
+  voiceDoNotSoundLike: string;
+  voiceExemplarTexts: string;
+  voiceMessagingPillars: string;
+  voiceSampleOutput: string;
+  voiceStyle: string;
+  voiceTone: string;
+  voiceValues: string;
+  voiceWritingRules: string;
+}
+
+export interface AgentProfilePlatformOverrideProps {
+  enabledModels: string[];
+  isDisabled?: boolean;
+  label: string;
+  onSave: (
+    platform: string,
+    field: AgentProfilePlatformOverrideTextField,
+    value: string,
+  ) => Promise<void>;
+  onSelectChange: (
+    platform: string,
+    field: AgentProfilePlatformOverrideSelectField,
+    value: string,
+  ) => void;
+  override: AgentProfilePlatformOverrideFormState;
+  platformValue: string;
+}
+
+export interface AgentProfilePlatformOverrideFieldsProps {
+  enabledModels: string[];
+  isDisabled?: boolean;
+  onSave: AgentProfilePlatformOverrideProps['onSave'];
+  onSelectChange: AgentProfilePlatformOverrideProps['onSelectChange'];
+  override: AgentProfilePlatformOverrideFormState;
+  platformValue: string;
+}
+
+export interface AgentProfilePlatformOverrideWideFieldsProps {
+  isDisabled?: boolean;
+  onSave: AgentProfilePlatformOverrideProps['onSave'];
+  override: AgentProfilePlatformOverrideFormState;
+  platformValue: string;
+}
+
 export interface BrandDetailIdentityCardProps {
   brand: IBrand;
   brandId: string;

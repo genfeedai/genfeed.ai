@@ -1,46 +1,17 @@
 'use client';
 
+import type { AgentProfilePlatformOverrideProps } from '@props/pages/brand-detail.props';
 import AgentProfilePlatformOverrideFields from './AgentProfilePlatformOverrideFields';
 import AgentProfilePlatformOverrideWideFields from './AgentProfilePlatformOverrideWideFields';
 
-type PlatformOverrideFormState = {
-  approvedHooks: string;
-  contentTypes: string;
-  defaultModel: string;
-  bannedPhrases: string;
-  canonicalSource: 'brand' | 'founder' | 'hybrid' | '';
-  doNotSoundLike: string;
-  exemplarTexts: string;
-  frequency: string;
-  goals: string;
-  messagingPillars: string;
-  persona: string;
-  sampleOutput: string;
-  style: string;
-  tone: string;
-  audience: string;
-  values: string;
-  writingRules: string;
-};
-
-type AgentProfilePlatformOverrideProps = {
-  enabledModels: string[];
-  label: string;
-  override: PlatformOverrideFormState;
-  platformValue: string;
-  onChange: (
-    platform: string,
-    key: keyof PlatformOverrideFormState,
-    value: string,
-  ) => void;
-};
-
 export default function AgentProfilePlatformOverride({
   enabledModels,
+  isDisabled,
   label,
+  onSave,
+  onSelectChange,
   override,
   platformValue,
-  onChange,
 }: AgentProfilePlatformOverrideProps) {
   return (
     <div className="space-y-4 rounded-lg bg-background-secondary p-4 shadow-border">
@@ -52,14 +23,17 @@ export default function AgentProfilePlatformOverride({
       <div className="grid gap-4 md:grid-cols-2">
         <AgentProfilePlatformOverrideFields
           enabledModels={enabledModels}
+          isDisabled={isDisabled}
+          onSave={onSave}
+          onSelectChange={onSelectChange}
           override={override}
           platformValue={platformValue}
-          onChange={onChange}
         />
         <AgentProfilePlatformOverrideWideFields
+          isDisabled={isDisabled}
+          onSave={onSave}
           override={override}
           platformValue={platformValue}
-          onChange={onChange}
         />
       </div>
     </div>
