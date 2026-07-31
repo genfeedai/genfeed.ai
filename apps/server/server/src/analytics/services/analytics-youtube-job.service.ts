@@ -1,5 +1,8 @@
 import { CredentialPlatform } from '@genfeedai/enums';
-import type { ServerAnalyticsCollectionState } from '@genfeedai/interfaces';
+import type {
+  AnalyticsCollectionAttemptRef,
+  ServerAnalyticsCollectionState,
+} from '@genfeedai/interfaces';
 import type { YouTubeAnalyticsJobData } from '@genfeedai/queue-contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import {
@@ -53,37 +56,38 @@ export class AnalyticsYouTubeJobService {
 
       await job.updateProgress(50);
 
-      let processed = 0;
+      const readyTargets: AnalyticsCollectionAttemptRef[] = [];
+      const delayedTargets: AnalyticsCollectionAttemptRef[] = [];
+
       for (const post of posts) {
         const analytics = analyticsMap.get(post.externalId);
+        const target: AnalyticsCollectionAttemptRef = {
+          attemptKey: job.data.attemptKey,
+          brandId: post.brand,
+          id: post.id,
+          organizationId: post.organization,
+          platform: CredentialPlatform.YOUTUBE,
+        };
 
         if (analytics) {
           await this.postAnalyticsService.processYouTubeAnalytics(
             post.id,
             analytics,
           );
-          await this.analyticsCollectionState.markReady({
-            attemptKey: job.data.attemptKey,
-            brandId: post.brand,
-            id: post.id,
-            organizationId: post.organization,
-            platform: CredentialPlatform.YOUTUBE,
-          });
-          processed++;
+          readyTargets.push(target);
           continue;
         }
 
         this.logger.warn(
           `No analytics found for video ${post.externalId} (post ${post.id})`,
         );
-        await this.analyticsCollectionState.markFailed(
-          {
-            attemptKey: job.data.attemptKey,
-            brandId: post.brand,
-            id: post.id,
-            organizationId: post.organization,
-            platform: CredentialPlatform.YOUTUBE,
-          },
+        delayedTargets.push(target);
+      }
+
+      await this.analyticsCollectionState.markReadyBatch(readyTargets);
+      if (delayedTargets.length > 0) {
+        await this.analyticsCollectionState.markFailedBatch(
+          delayedTargets,
           delayedAnalyticsCollectionFailure('YouTube'),
         );
       }
@@ -91,23 +95,19 @@ export class AnalyticsYouTubeJobService {
       await job.updateProgress(100);
 
       this.logger.log(
-        `YouTube analytics batch completed - processed ${processed}/${posts.length} posts`,
+        `YouTube analytics batch completed - processed ${readyTargets.length}/${posts.length} posts`,
       );
     } catch (error: unknown) {
       const failure = classifyAnalyticsCollectionError(error, 'YouTube');
-      await Promise.all(
-        posts.map((post) =>
-          this.analyticsCollectionState.markFailed(
-            {
-              attemptKey: job.data.attemptKey,
-              brandId: post.brand,
-              id: post.id,
-              organizationId: post.organization,
-              platform: CredentialPlatform.YOUTUBE,
-            },
-            failure,
-          ),
-        ),
+      await this.analyticsCollectionState.markFailedBatch(
+        posts.map((post) => ({
+          attemptKey: job.data.attemptKey,
+          brandId: post.brand,
+          id: post.id,
+          organizationId: post.organization,
+          platform: CredentialPlatform.YOUTUBE,
+        })),
+        failure,
       );
       this.logger.error(
         `Failed to process YouTube analytics batch for ${posts.length} posts`,

@@ -3,7 +3,10 @@ import { PostAnalyticsService } from '@api/collections/posts/services/post-analy
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { CredentialPlatform } from '@genfeedai/enums';
-import type { ServerAnalyticsCollectionState } from '@genfeedai/interfaces';
+import type {
+  AnalyticsCollectionAttemptRef,
+  ServerAnalyticsCollectionState,
+} from '@genfeedai/interfaces';
 import {
   ANALYTICS_FACEBOOK_QUEUE,
   SocialAnalyticsJobData,
@@ -69,6 +72,7 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
         return;
       }
 
+      const readyTargets: AnalyticsCollectionAttemptRef[] = [];
       let processed = 0;
 
       for (const post of posts) {
@@ -114,7 +118,7 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
             shares: analytics.shares,
             views: analytics.views,
           });
-          await this.analyticsCollectionState.markReady({
+          readyTargets.push({
             attemptKey: job.data.attemptKey,
             brandId: post.brand,
             id: post.id,
@@ -165,6 +169,7 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
         }
       }
 
+      await this.analyticsCollectionState.markReadyBatch(readyTargets);
       await job.updateProgress(100);
 
       this.logger.log(

@@ -30,7 +30,9 @@ describe('AnalyticsSocialJobService', () => {
     const readyError = new Error('ready state write failed');
     const collectionState = {
       markFailed: vi.fn().mockResolvedValue(undefined),
+      markFailedBatch: vi.fn().mockResolvedValue(undefined),
       markReady: vi.fn().mockRejectedValue(readyError),
+      markReadyBatch: vi.fn().mockResolvedValue(undefined),
     } satisfies ServerAnalyticsCollectionState;
     const logger = {
       error: vi.fn(),
