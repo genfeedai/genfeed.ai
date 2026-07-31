@@ -73,11 +73,26 @@ export function handleWorkflowControlTool(
       const run = await client.getWorkflowRun(requiredStringArg(a, 'runId'));
       return jsonText('Workflow run', run);
     },
+    install_system_workflow: async (a) => {
+      const workflow = await client.installSystemWorkflow({
+        brandId: optionalStringArg(a, 'brandId'),
+        canonicalId: requiredStringArg(a, 'canonicalId'),
+      });
+      return jsonText('System workflow installed', workflow);
+    },
     inspect_workflow: async (a) => {
       const workflow = await client.inspectWorkflow(
         requiredStringArg(a, 'workflowId'),
       );
       return jsonText('Workflow', workflow);
+    },
+    list_system_workflow_catalog: async (a) => {
+      const entries = await client.listSystemWorkflowCatalog({
+        family: optionalStringArg(a, 'family'),
+        includeNonInstallable: a.includeNonInstallable === true,
+        installedOnly: a.installedOnly === true,
+      });
+      return jsonText('System workflow catalog', entries);
     },
     list_workflow_runs: async (a) => {
       const runs = await client.listWorkflowRuns({

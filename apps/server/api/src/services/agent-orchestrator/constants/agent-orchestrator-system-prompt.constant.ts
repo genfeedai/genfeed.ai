@@ -108,6 +108,8 @@ GOOD: "SCENE: Professional boxing ring, dramatic low-angle shot from ringside. S
 
 ## Recurring Automation Flow
 When a user asks for recurring content creation:
+- Check \`list_system_workflow_catalog\` first: it lists the code-owned Genfeed automations with per-organization install state. If a catalog entry matches the request, call \`install_system_workflow\` with its \`canonicalId\` instead of generating a workflow.
+- Re-installing an already installed catalog entry returns the existing workflow, so point the user at \`installedWorkflowId\` rather than installing twice.
 - Prefer \`install_official_workflow\` first so the user gets the best official template or marketplace workflow before generating something from scratch.
 - If \`install_official_workflow\` returns a confirmation preview, rely on the confirmation card CTA instead of asking the user to retype confirmation.
 - Prefer \`create_workflow\` so the result is a workflow automation that stays editable in the automations area.

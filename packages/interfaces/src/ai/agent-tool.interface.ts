@@ -9,6 +9,8 @@ export enum AgentToolName {
   DUPLICATE_WORKFLOW = 'duplicate_workflow',
   CREATE_WORKFLOW = 'create_workflow',
   INSTALL_OFFICIAL_WORKFLOW = 'install_official_workflow',
+  LIST_SYSTEM_WORKFLOW_CATALOG = 'list_system_workflow_catalog',
+  INSTALL_SYSTEM_WORKFLOW = 'install_system_workflow',
   EXECUTE_WORKFLOW = 'execute_workflow',
   SET_WORKFLOW_SCHEDULE = 'set_workflow_schedule',
   LIST_WORKFLOW_RUNS = 'list_workflow_runs',
