@@ -235,6 +235,12 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
     orgField: 'organizationId',
   },
   {
+    delegate: 'socialReplyCampaign',
+    table: 'social_reply_campaigns',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
     delegate: 'agentStrategy',
     table: 'agent_strategies',
     brandField: 'brandId',
@@ -548,6 +554,18 @@ export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
     parents: [
       {
         parentDelegate: 'outreachCampaign',
+        parentBrandField: 'brandId',
+        fkField: 'campaignId',
+      },
+    ],
+  },
+  {
+    delegate: 'socialReplyCampaignRecipient',
+    table: 'social_reply_campaign_recipients',
+    orgField: 'organizationId',
+    parents: [
+      {
+        parentDelegate: 'socialReplyCampaign',
         parentBrandField: 'brandId',
         fkField: 'campaignId',
       },
