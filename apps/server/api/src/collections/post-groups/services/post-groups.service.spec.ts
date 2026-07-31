@@ -791,6 +791,126 @@ describe('PostGroupsService', () => {
     expect(result.targets?.[0]?.id).toBe('target-1');
   });
 
+  it('rejects a publish-now release whose channel credential cannot publish', async () => {
+    // The agent immediate-publish path lands here: it saves an ungated draft and
+    // publishes it in the next call, so publish-now is the only gate that runs.
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-1', status: ReleaseStatus.DRAFT }),
+    );
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({
+        groupId: 'group-1',
+        id: 'target-1',
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
+    ]);
+    prisma.credential.findMany.mockResolvedValue([
+      makeCredential({
+        accessTokenExpiry: new Date('2026-07-01T00:00:00.000Z'),
+      }),
+    ]);
+
+    await expect(
+      service.publishNow('org-1', 'user-1', 'group-1'),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        classification: 'expired_credential',
+        credentialId: 'cred-x',
+        platform: CredentialPlatform.TWITTER,
+        readinessState: 'blocked',
+        title: 'Channel not ready to publish',
+      }),
+    });
+
+    expect(prisma.post.updateMany).not.toHaveBeenCalled();
+    expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
+    expect(postPublishQueueService.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('resolves channel readiness inside the publish-now transaction before queueing', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-1', status: ReleaseStatus.DRAFT }),
+    );
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({
+        groupId: 'group-1',
+        id: 'target-1',
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+      }),
+    ]);
+    prisma.postGroup.update.mockImplementation(({ data }) =>
+      Promise.resolve(
+        makeGroup({
+          id: 'group-1',
+          status: data.status ?? ReleaseStatus.SCHEDULED,
+          statusTransitions: data.statusTransitions ?? [],
+        }),
+      ),
+    );
+
+    await service.publishNow('org-1', 'user-1', 'group-1');
+
+    expect(prisma.credential.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: { in: ['cred-x'] },
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+    expect(prisma.post.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+        }),
+      }),
+    );
+    expect(postPublishQueueService.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        postId: 'target-1',
+        source: 'publish_now',
+      }),
+    );
+  });
+
+  it('does not gate a publish-now release on targets it will not transition', async () => {
+    // A cancelled sibling is never queued, so its credential must not decide
+    // whether the actionable targets may publish.
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-1', status: ReleaseStatus.DRAFT }),
+    );
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({
+        credentialId: 'cred-cancelled',
+        groupId: 'group-1',
+        id: 'target-cancelled',
+        targetExecutionState: TargetExecutionState.CANCELLED,
+      }),
+      makeTarget({
+        groupId: 'group-1',
+        id: 'target-1',
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
+    ]);
+    prisma.postGroup.update.mockImplementation(({ data }) =>
+      Promise.resolve(
+        makeGroup({
+          id: 'group-1',
+          status: data.status ?? ReleaseStatus.SCHEDULED,
+          statusTransitions: data.statusTransitions ?? [],
+        }),
+      ),
+    );
+
+    await service.publishNow('org-1', 'user-1', 'group-1');
+
+    expect(prisma.credential.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: { in: ['cred-x'] } }),
+      }),
+    );
+  });
+
   it('queues a publish-now target with its bound approval operation', async () => {
     prisma.postGroup.findFirst.mockResolvedValue(
       makeGroup({ id: 'group-1', status: ReleaseStatus.DRAFT }),

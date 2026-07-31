@@ -28,8 +28,8 @@ agent has no non-interactive path to. Each fix carries a regression test.
 
 ## Still open from this train
 
-- `LinksController.buildFindAllQuery` filters on raw `where.brand`; `normalizeWhere` only remaps writes, so the standalone `GET /links?brand=` path is unmapped. Not on the modal's path (the Social page reads links through `brand.links`)
-- `link.config.ts` uses `simpleConfig`, so `brand` is a plain attribute rather than a JSON:API relationship — inconsistent with sibling configs using `STANDARD_ENTITY_RELS`
+- ~~`LinksController.buildFindAllQuery` filters on raw `where.brand`; `normalizeWhere` only remaps writes, so the standalone `GET /links?brand=` path is unmapped~~ — **fixed** (`fix/brand-link-modal-and-kit-polish`). The claim was half right: `processSearchParams`' generic `${key}Id` fallback (`base.service.ts:1170-1187`) *does* map a non-empty string `brand` → `brandId`, so the string path already worked. The real hole was the `undefined` path — a superadmin with neither `?brand=` nor a session brand produced `where.brand = undefined`, which `normalizeWhere` (`base.service.ts:647-650`) drops, and since `model Link` (`schema.prisma:1888`) has **no `organizationId`** that widened the read to every link in the database. `buildFindAllQuery` now emits the scalar `brandId` through `requireRelationId`, which fails closed with `BadRequestException`. Covered by three cases in `links.controller.spec.ts`
+- ~~`link.config.ts` uses `simpleConfig`, so `brand` is a plain attribute rather than a JSON:API relationship~~ — **fixed.** Now `{ attributes: linkAttributes, brand: BRAND_REL, type: 'link' }`, matching `folder.config.ts` / `watchlist.config.ts` (Link has only a brand relation, so no `STANDARD_ENTITY_RELS` spread). Regression test in `packages/serializers/__tests__/server-serializers.test.ts`
 - `use-brand-detail.test.ts` has no coverage for `handleUpdateAccount`'s scope-toggle path
 - `SidebarHeader.tsx` mounts a second brand switcher that nothing imports — dead code
 - ~~`bun run check:ui-guards` is red on `master`~~ — green as of the storyboard-depth train. The `StoryboardWorkspace.tsx:70` bespoke card is gone: that local `SceneFrameRow` moved to `packages/pages/studio/storyboard/components/SceneFrameRow.tsx` and carries no surface token, because the parent `Card` already paints `bg-card`
@@ -39,7 +39,9 @@ agent has no non-interactive path to. Each fix carries a regression test.
 Items 3 and 6 worked as one train on 2026-07-31 (`feat/studio-storyboard-depth`).
 
 1. **Messages reply campaigns** — GH PRD under #1010 (throttled, not blast)
-2. **Prompt-bar domain merge** — shell/notice only so far; full domain merge unfinished
+2. ~~**Prompt-bar domain merge**~~ — **done.** `PromptBarArticle` and `PromptBarPost` are deleted;
+   every content surface renders `PromptBarContent`, and submit/Enter/trim/clear is one primitive
+   (`usePromptBarSubmission`) shared with `PostEnhancementBar`
 - [x] 3. **Studio storyboard depth** — **done.** Five real defects, all found by reading the code rather than from the card text:
   - Scene generation had no cancellation. `VideosService.post` now takes an optional `AbortSignal`; `use-storyboard-workspace.ts` owns one `AbortController` per batch, checks `signal.aborted` before and after every request, and aborts on unmount. Cancelled frames are restored from `generating` to `pending` instead of being stranded
   - The batch always claimed success. It now counts outcomes and emits one of four accurate toasts (cancelled / all-succeeded / all-failed / partial), and per-frame errors carry the real message via `getErrorMessage` instead of a constant `'Generation failed'`
@@ -48,8 +50,8 @@ Items 3 and 6 worked as one train on 2026-07-31 (`feat/studio-storyboard-depth`)
   - `mergeSelectedVideos` hardcoded `isCaptionsEnabled: false` and dropped transitions. Both merge paths now spread the same `mergeSettings`, exposed through a new `MergeSettingsPanel` (transition, ease curve, duration, captions, mute)
   - Clips: **yes.** `/studio/clips` had a full page and a workspace-shell breadcrumb but no nav entry — reachable only by typing the URL. Added to the Automation group between Storyboard and Batch, with a test asserting the route is linked
 - [x] 6. **Optional studio polish** past cards-above-prompt empty state — **done**, scoped to the storyboard surface: per-scene status pill (Ready/Generating/Completed/Failed) with a spinner over the thumbnail, video thumbnail preferred once a clip exists, inline failure reason, `Generating scene N of M` counter replacing the idle counts, and every control locked while a batch runs so a mid-flight edit cannot race the request
-4. **Kit contrast / inputs polish** if still weak after Kit settings page
-5. **Brand OverviewPanel** still has inline link editor path — align to modal like Social
+4. - [x] **Kit contrast / inputs polish** if still weak after Kit settings page — re-checked on `fix/brand-link-modal-and-kit-polish`; still weak, so polished. Two real defects in `BrandDetailManualKitCard.tsx`: (a) every manual-kit field was placeholder-only with an `aria-label` and no visible label, so three adjacent hex inputs became indistinguishable the moment you typed — now wrapped in `FormControl` (`Label` by hand for `ColorField`/`Select`, whose single-child clone would collide with the control's own `id`); (b) the draft-review panel was `bg-background-secondary` with its selectable field rows painted the *same* `bg-background-secondary`, separated only by `shadow-border` — rows stepped down to `bg-background`. No other Kit surface was touched
+5. - [x] **Brand OverviewPanel** still has inline link editor path — align to modal like Social — **done.** `BrandDetailLinkEditor.tsx` (+ its test) deleted, and the five inline handlers plus four `useState` pairs removed from `useModalBrand.ts`. `ModalBrand.tsx` now mounts `LazyModalBrandLink` as a sibling and `handleOpenLinkModal` fires `openModal(ModalEnum.BRAND_LINK)` — byte-for-byte the Social settings page's pattern (`settings/social/content.tsx`). Open/save/cancel/delete covered in `ModalBrandLink.test.tsx`; the open path is guarded in `ModalBrand.test.tsx`
 7. **Agent / shell residual** polish from the same session branch if anything still feels off in prod
 
 ## Intent locked this session

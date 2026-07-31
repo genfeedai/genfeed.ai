@@ -1,3 +1,5 @@
+import { ModalEnum } from '@genfeedai/enums';
+import type { ILink } from '@genfeedai/interfaces';
 import type { BrandOverlayProps } from '@genfeedai/props/modals/modal.props';
 import type { BaseButtonProps } from '@genfeedai/props/ui/forms/button.props';
 import type { TextareaLabelActionsProps } from '@genfeedai/props/ui/forms/textarea-label-actions.props';
@@ -36,6 +38,22 @@ const importBrandKitAssetsMock = vi.fn().mockResolvedValue({
 const formValues = vi.hoisted(() => ({
   current: {} as Record<string, string>,
 }));
+const openModalMock = vi.hoisted(() => vi.fn());
+const existingLink = vi.hoisted(() => ({
+  category: 'website',
+  id: 'link-1',
+  label: 'Homepage',
+  url: 'https://genfeed.ai',
+}));
+
+vi.mock('@genfeedai/helpers/ui/modal/modal.helper', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+
+  return {
+    ...actual,
+    openModal: openModalMock,
+  };
+});
 
 vi.mock('@ui/overlays/entity/EntityOverlayShell', () => ({
   __esModule: true,
@@ -226,12 +244,40 @@ vi.mock(
 vi.mock('@ui/lazy/modal/LazyModal', () => ({
   __esModule: true,
   LazyModalBrandGenerate: () => <div data-testid="brand-generate-modal" />,
-  LazyModalBrandLink: () => <div data-testid="brand-link-modal" />,
+  LazyModalBrandLink: ({
+    brandId,
+    link,
+  }: {
+    brandId: string | null;
+    link: ILink | null;
+  }) => (
+    <div
+      data-testid="brand-link-modal"
+      data-brand-id={brandId ?? ''}
+      data-link-id={link?.id ?? ''}
+    />
+  ),
 }));
 
 vi.mock('@pages/brands/components/detail-sidebar/BrandDetailSidebar', () => ({
   __esModule: true,
-  default: () => <div data-testid="brand-detail-sidebar" />,
+  default: ({
+    onOpenLinkModal,
+  }: {
+    onOpenLinkModal: (link?: ILink) => void;
+  }) => (
+    <div data-testid="brand-detail-sidebar">
+      <button type="button" onClick={() => onOpenLinkModal()}>
+        Add link
+      </button>
+      <button
+        type="button"
+        onClick={() => onOpenLinkModal(existingLink as unknown as ILink)}
+      >
+        Edit link
+      </button>
+    </div>
+  ),
 }));
 
 vi.mock('@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
@@ -300,8 +346,17 @@ describe('ModalBrand', () => {
     findBrandMock.mockClear();
     crawlBrandKitMock.mockClear();
     importBrandKitAssetsMock.mockClear();
+    openModalMock.mockClear();
     formValues.current = {};
   });
+
+  const overviewBrand: BrandOverlayProps['brand'] = {
+    description: 'Brand description',
+    id: 'brand-1',
+    label: 'Brand One',
+    scope: 'brand',
+    slug: 'brand-one',
+  };
 
   it('renders the create brand form in a dialog', () => {
     render(<ModalBrand {...defaultProps} />);
@@ -374,13 +429,7 @@ describe('ModalBrand', () => {
     render(
       <ModalBrand
         {...defaultProps}
-        brand={{
-          description: 'Brand description',
-          id: 'brand-1',
-          label: 'Brand One',
-          scope: 'brand',
-          slug: 'brand-one',
-        }}
+        brand={overviewBrand}
         initialView="overview"
       />,
     );
@@ -388,5 +437,48 @@ describe('ModalBrand', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open page' }));
 
     expect(pushMock).toHaveBeenCalledWith('/acme-org/brand-one/settings');
+  });
+
+  // Regression: the overview panel used to hold its own inline link editor.
+  // Links now go through the same shared `ModalBrandLink` dialog the Social
+  // settings page uses, opened by `ModalEnum.BRAND_LINK`.
+  it('opens the shared brand link modal for a new link', () => {
+    render(
+      <ModalBrand
+        {...defaultProps}
+        brand={overviewBrand}
+        initialView="overview"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add link' }));
+
+    expect(openModalMock).toHaveBeenCalledWith(ModalEnum.BRAND_LINK);
+    expect(screen.getByTestId('brand-link-modal')).toHaveAttribute(
+      'data-brand-id',
+      'brand-1',
+    );
+    expect(screen.getByTestId('brand-link-modal')).toHaveAttribute(
+      'data-link-id',
+      '',
+    );
+  });
+
+  it('hands the selected link to the shared modal when editing', () => {
+    render(
+      <ModalBrand
+        {...defaultProps}
+        brand={overviewBrand}
+        initialView="overview"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit link' }));
+
+    expect(openModalMock).toHaveBeenCalledWith(ModalEnum.BRAND_LINK);
+    expect(screen.getByTestId('brand-link-modal')).toHaveAttribute(
+      'data-link-id',
+      'link-1',
+    );
   });
 });

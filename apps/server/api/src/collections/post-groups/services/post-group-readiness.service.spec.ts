@@ -226,5 +226,50 @@ describe('PostGroupReadinessService', () => {
         BadRequestException,
       );
     });
+
+    /**
+     * `HttpException.initMessage()` only picks up a response object's `message`
+     * when it is a string — without one it falls back to the literal
+     * `'Bad Request Exception'`. The HTTP surface never noticed, because
+     * `HttpExceptionFilter` renders `detail`. In-process callers do: the agent
+     * publish tool reports `error.message` straight back to the user, so a
+     * blocked channel read as `'Bad Request Exception'` with no reason attached.
+     */
+    it('carries a readable reason on the exception itself, not just in the payload', async () => {
+      tx.credential.findMany.mockResolvedValue([
+        makeRow({ accessToken: null }),
+      ]);
+      const readiness = await service.resolveForCredentials(tx, 'org-1', [
+        'cred-x',
+      ]);
+
+      try {
+        service.assertSchedulable(target, readiness.get('cred-x'));
+        expect.unreachable('assertSchedulable should have thrown');
+      } catch (error) {
+        const thrown = error as BadRequestException;
+        expect(thrown.message).toBe(
+          'X: The provider account has no usable access credential. Reconnect the provider account before publishing.',
+        );
+        // The structured payload keeps its own fields; `message` is additive.
+        expect(thrown.getResponse()).toMatchObject({
+          detail: 'The provider account has no usable access credential.',
+          message: thrown.message,
+          title: 'Channel not ready to publish',
+        });
+      }
+    });
+
+    it('names the channel when readiness could not be resolved at all', () => {
+      try {
+        service.assertSchedulable(target, undefined);
+        expect.unreachable('assertSchedulable should have thrown');
+      } catch (error) {
+        const thrown = error as BadRequestException;
+        expect(thrown.message).toBe(
+          'X: publishing readiness could not be resolved for this channel.',
+        );
+      }
+    });
   });
 });

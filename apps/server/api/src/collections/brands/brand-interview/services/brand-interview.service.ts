@@ -450,7 +450,9 @@ export class BrandInterviewService {
   /**
    * Write a single field value back to the Brand record.
    * Uses a read-modify-write for nested agentConfig fields to preserve siblings.
-   * Never calls BrandsService.updateAgentConfig (it shallow-overwrites the group).
+   * This writes one leaf key at a time (`voice.tone`, not `voice`), which is a
+   * finer granularity than `BrandsService.updateAgentConfig` takes, so it stays
+   * on the direct Prisma path.
    */
   private async writeFieldToBrand(
     brandId: string,

@@ -7,7 +7,7 @@ import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
-import PromptBarArticle from '@ui/prompt-bars/article/PromptBarArticle';
+import PromptBarContent from '@ui/prompt-bars/content/PromptBarContent';
 import type { ChangeEvent } from 'react';
 
 const ARTICLE_CATEGORY_OPTIONS = Object.values(ArticleCategory).map(
@@ -109,7 +109,7 @@ export default function ArticleEditForm({
 
       {/* AI Enhancement Bar */}
       {!isNew && (
-        <PromptBarArticle onSubmit={onEnhance} isEnhancing={isEnhancing} />
+        <PromptBarContent onSubmit={onEnhance} isEnhancing={isEnhancing} />
       )}
     </>
   );

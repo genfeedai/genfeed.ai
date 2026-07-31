@@ -15,7 +15,9 @@ import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { ColorInput } from '@ui/primitives/color-input';
+import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import {
   Select,
   SelectContent,
@@ -125,6 +127,7 @@ function toFormState(
 
 type ColorFieldProps = {
   ariaLabel: string;
+  label: string;
   name: 'backgroundColor' | 'primaryColor' | 'secondaryColor';
   placeholder: string;
   value: string;
@@ -133,29 +136,39 @@ type ColorFieldProps = {
 
 function ColorField({
   ariaLabel,
+  label,
   name,
   placeholder,
   value,
   onHexChange,
 }: ColorFieldProps) {
   return (
-    <div className="flex min-w-0 items-center gap-2">
-      <ColorInput
-        aria-label={`${ariaLabel} picker`}
-        className="size-10 shrink-0 rounded-md border-white/[0.08] p-1"
-        value={toColorPickerValue(value)}
-        onChange={(event) =>
-          onHexChange(name, event.target.value.toUpperCase())
-        }
-      />
-      <Input
-        aria-label={ariaLabel}
-        className="min-w-0 flex-1 font-mono uppercase"
-        name={name}
-        placeholder={placeholder}
-        value={value}
-        onChange={(event) => onHexChange(name, event.target.value)}
-      />
+    // Three hex inputs sit side by side; without a persistent label the only
+    // thing telling them apart is a placeholder that disappears on first
+    // keystroke. `FormControl` clones a single child to inject its generated
+    // id, which would collide with the hex input's own id, so the label is
+    // wired by hand here.
+    <div className="flex w-full min-w-0 flex-col gap-1.5">
+      <Label htmlFor={`manual-kit-${name}`}>{label}</Label>
+      <div className="flex min-w-0 items-center gap-2">
+        <ColorInput
+          aria-label={`${ariaLabel} picker`}
+          className="size-10 shrink-0 rounded-md border-white/[0.08] p-1"
+          value={toColorPickerValue(value)}
+          onChange={(event) =>
+            onHexChange(name, event.target.value.toUpperCase())
+          }
+        />
+        <Input
+          aria-label={ariaLabel}
+          className="min-w-0 flex-1 font-mono uppercase"
+          id={`manual-kit-${name}`}
+          name={name}
+          placeholder={placeholder}
+          value={value}
+          onChange={(event) => onHexChange(name, event.target.value)}
+        />
+      </div>
     </div>
   );
 }
@@ -483,19 +496,22 @@ export default function BrandDetailManualKitCard({
       description="Draft fields from uploaded assets, typed values, and pasted guidance."
     >
       <div className="flex flex-col gap-3">
-        <div className="flex flex-col gap-2">
-          <Textarea
-            aria-label="Manual brand description"
-            className="min-h-[88px]"
-            name="description"
-            placeholder="Description"
-            value={form.description}
-            onChange={handleFieldChange}
-          />
+        <div className="flex flex-col gap-3">
+          <FormControl label="Description">
+            <Textarea
+              aria-label="Manual brand description"
+              className="min-h-[88px]"
+              name="description"
+              placeholder="What this brand is about"
+              value={form.description}
+              onChange={handleFieldChange}
+            />
+          </FormControl>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <ColorField
               ariaLabel="Manual primary color"
+              label="Primary color"
               name="primaryColor"
               placeholder="#000000"
               value={form.primaryColor}
@@ -503,6 +519,7 @@ export default function BrandDetailManualKitCard({
             />
             <ColorField
               ariaLabel="Manual secondary color"
+              label="Secondary color"
               name="secondaryColor"
               placeholder="#FFFFFF"
               value={form.secondaryColor}
@@ -510,50 +527,64 @@ export default function BrandDetailManualKitCard({
             />
             <ColorField
               ariaLabel="Manual background color"
+              label="Background color"
               name="backgroundColor"
               placeholder="#000000"
               value={form.backgroundColor}
               onHexChange={handleColorChange}
             />
-            <Select
-              value={form.fontFamily || undefined}
-              onValueChange={handleFontFamilyChange}
-            >
-              <SelectTrigger aria-label="Manual font family" className="w-full">
-                <SelectValue placeholder="Font" />
-              </SelectTrigger>
-              <SelectContent>
-                {FONT_FAMILY_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              aria-label="Manual voice tone"
-              name="voiceTone"
-              placeholder="Voice tone"
-              value={form.voiceTone}
-              onChange={handleFieldChange}
-            />
-            <Input
-              aria-label="Manual voice style"
-              name="voiceStyle"
-              placeholder="Voice style"
-              value={form.voiceStyle}
-              onChange={handleFieldChange}
-            />
+            <div className="flex w-full min-w-0 flex-col gap-1.5">
+              <Label htmlFor="manual-kit-font-family">Font family</Label>
+              <Select
+                value={form.fontFamily || undefined}
+                onValueChange={handleFontFamilyChange}
+              >
+                <SelectTrigger
+                  aria-label="Manual font family"
+                  className="w-full"
+                  id="manual-kit-font-family"
+                >
+                  <SelectValue placeholder="Font" />
+                </SelectTrigger>
+                <SelectContent>
+                  {FONT_FAMILY_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <FormControl label="Voice tone">
+              <Input
+                aria-label="Manual voice tone"
+                name="voiceTone"
+                placeholder="Warm, direct"
+                value={form.voiceTone}
+                onChange={handleFieldChange}
+              />
+            </FormControl>
+            <FormControl label="Voice style">
+              <Input
+                aria-label="Manual voice style"
+                name="voiceStyle"
+                placeholder="Short sentences"
+                value={form.voiceStyle}
+                onChange={handleFieldChange}
+              />
+            </FormControl>
           </div>
 
-          <Textarea
-            aria-label="Manual brand guidance"
-            className="min-h-[120px]"
-            name="guidanceText"
-            placeholder="Brand guidance"
-            value={form.guidanceText}
-            onChange={handleFieldChange}
-          />
+          <FormControl label="Brand guidance">
+            <Textarea
+              aria-label="Manual brand guidance"
+              className="min-h-[120px]"
+              name="guidanceText"
+              placeholder="Paste tone-of-voice notes, do's and don'ts, positioning"
+              value={form.guidanceText}
+              onChange={handleFieldChange}
+            />
+          </FormControl>
 
           <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground hover:border-foreground/30">
             <FileText className="size-4" />
@@ -662,9 +693,13 @@ export default function BrandDetailManualKitCard({
                 }
 
                 return (
+                  // The draft panel is already `bg-background-secondary`; a row
+                  // painted the same colour reads as one flat block separated
+                  // only by `shadow-border`. Step it back down to the base
+                  // surface so each selectable field is legible as its own row.
                   <label
                     key={key}
-                    className="flex items-start gap-2 rounded-md bg-background-secondary p-2 text-sm shadow-border"
+                    className="flex cursor-pointer items-start gap-2 rounded-md bg-background p-2 text-sm shadow-border hover:bg-background/70"
                   >
                     <Checkbox
                       aria-label={`Select ${label}`}

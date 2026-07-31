@@ -48,6 +48,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import type { Request } from 'express';
 
@@ -61,6 +62,7 @@ export class VideosUpscaleController {
     private readonly configService: ConfigService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly failedGenerationService: FailedGenerationService,
+    private readonly filesClientService: FilesClientService,
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
     private readonly modelsService: ModelsService,
@@ -103,7 +105,13 @@ export class VideosUpscaleController {
       return returnNotFound(this.constructorName, videoId);
     }
 
-    const videoUrl = `${this.configService.get('GENFEEDAI_API_URL')}/v1/public/videos/${videoId}/video.mp4`;
+    // A presigned S3 URL, not the public stream route: the source video is
+    // user- or organization-scoped, and that route now serves public assets
+    // only. Same handoff `PortraitConversionService` uses for Replicate.
+    const videoUrl = await this.filesClientService.getPresignedDownloadUrl(
+      videoId,
+      'videos',
+    );
     // Hard-cap to a predictable cost tier (1080p @ 30fps) until dynamic pricing is added.
     // const targetFps = videoEditDto.targetFps || 60;
     // const targetResolution = videoEditDto.targetResolution || '4k';

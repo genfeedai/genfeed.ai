@@ -16,6 +16,7 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
+import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import type {
   JsonApiSingleResponse,
   PopulateOption,
@@ -76,12 +77,25 @@ export class LinksController extends BaseCRUDController<
       });
     }
 
+    // `model Link` has no `organizationId` — `brandId` is the only tenancy
+    // boundary, so this filter must always be present and must always be the
+    // scalar FK. `LinksService.normalizeData` only remaps the `brand` alias on
+    // write, and an unresolved alias reaches `normalizeWhere` as `undefined`,
+    // which drops the key and widens the read to every brand in the database.
+    // `requireRelationId` fails closed instead: no brand id, no query.
+    const brandId = requireRelationId(
+      isSuperAdmin
+        ? (scope.brand ?? publicMetadata.brand)
+        : publicMetadata.brand,
+      undefined,
+      'brand',
+      'Link list query',
+    );
+
     return {
       orderBy: handleQuerySort(query.sort),
       where: {
-        brand: isSuperAdmin
-          ? (scope.brand ?? publicMetadata.brand)
-          : publicMetadata.brand,
+        brandId,
         isDeleted: query.isDeleted ?? false,
       },
     };

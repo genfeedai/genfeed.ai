@@ -736,6 +736,26 @@ export class PostGroupsService {
         group.id,
       );
 
+      /**
+       * Readiness is resolved inside the write transaction, exactly as
+       * `scheduleTarget` does, so the verdict and the rows it gates come from
+       * one snapshot. Drafts are saved ungated on purpose, so for the agent's
+       * immediate-publish path — draft group, then publish-now — this is the
+       * only readiness gate the release ever passes through. Only the targets
+       * this call transitions are gated: a cancelled or already-published
+       * sibling is never queued, so its channel cannot block the rest.
+       */
+      const readinessByCredential =
+        await this.readinessService.resolveForCredentials(
+          tx,
+          organizationId,
+          targets
+            .filter((target) =>
+              GROUP_ACTION_STATES.has(target.targetExecutionState),
+            )
+            .map((target) => target.credentialId),
+        );
+
       for (const target of targets) {
         const validation = validateChannelTargetSettings({
           caption: group.baseContent,
@@ -755,6 +775,16 @@ export class PostGroupsService {
               platform: target.platform as CredentialPlatform,
             },
             validation,
+          );
+        }
+
+        if (GROUP_ACTION_STATES.has(target.targetExecutionState)) {
+          this.readinessService.assertSchedulable(
+            {
+              credentialId: target.credentialId,
+              platform: target.platform,
+            },
+            readinessByCredential.get(target.credentialId),
           );
         }
       }
