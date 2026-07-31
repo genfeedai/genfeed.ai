@@ -141,6 +141,7 @@ vi.mock('@genfeedai/constants', () => {
       library: 'app_switcher_library',
       posts: 'app_switcher_posts',
       analytics: 'app_switcher_analytics',
+      automate: 'app_switcher_automate',
     },
     createBrandAppRoute: (
       orgSlug: string,
