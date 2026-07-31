@@ -15150,7 +15150,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -15159,7 +15159,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -18257,7 +18257,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -18266,7 +18266,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -19134,7 +19134,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -19143,7 +19143,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -19908,7 +19908,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -19917,7 +19917,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -20311,7 +20311,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -20320,7 +20320,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -20691,7 +20691,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -20700,7 +20700,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -21372,7 +21372,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -21381,7 +21381,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -21812,7 +21812,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -21821,7 +21821,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -22721,7 +22721,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -22730,7 +22730,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -23374,7 +23374,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -23383,7 +23383,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -23589,7 +23589,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -23598,7 +23598,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -25931,7 +25931,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -25940,7 +25940,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -26675,7 +26675,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -26684,7 +26684,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -28919,7 +28919,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -29635,7 +29635,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -29644,7 +29644,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -30049,7 +30049,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -30058,7 +30058,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -30421,7 +30421,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -30430,7 +30430,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -30549,7 +30549,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -30558,7 +30558,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -31204,7 +31204,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -31213,7 +31213,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -31476,7 +31476,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -31485,7 +31485,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -31797,7 +31797,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -31806,7 +31806,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -31996,7 +31996,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -32005,7 +32005,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -32458,7 +32458,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -32467,7 +32467,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -32608,7 +32608,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -32617,7 +32617,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -33146,7 +33146,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -33155,7 +33155,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -33999,7 +33999,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -34008,7 +34008,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -34628,7 +34628,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -34637,7 +34637,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -34951,7 +34951,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -34960,7 +34960,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -36567,7 +36567,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -36576,7 +36576,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -37694,7 +37694,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -37703,7 +37703,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -38015,7 +38015,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -38024,7 +38024,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -38493,7 +38493,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -38502,7 +38502,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -38725,7 +38725,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -38734,7 +38734,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -38877,7 +38877,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -38886,7 +38886,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -38989,7 +38989,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -38998,7 +38998,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -39212,7 +39212,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -39221,7 +39221,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -39545,7 +39545,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -39554,7 +39554,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -43517,7 +43517,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -43526,7 +43526,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -43680,7 +43680,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -43689,7 +43689,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -44058,7 +44058,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -44067,7 +44067,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -45696,7 +45696,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -45705,7 +45705,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -45940,7 +45940,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -45949,7 +45949,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -46162,7 +46162,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -46171,7 +46171,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -47047,7 +47047,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -47056,7 +47056,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -47196,7 +47196,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -47205,7 +47205,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -47316,7 +47316,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -47325,7 +47325,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -47642,7 +47642,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -47651,7 +47651,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -48038,7 +48038,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -48047,7 +48047,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -48174,7 +48174,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -48183,7 +48183,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -48458,7 +48458,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -48467,7 +48467,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -48914,7 +48914,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -48923,7 +48923,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -49202,7 +49202,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -49211,7 +49211,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -49944,7 +49944,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -49953,7 +49953,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -50211,7 +50211,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -50220,7 +50220,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -50478,7 +50478,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -50487,7 +50487,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
