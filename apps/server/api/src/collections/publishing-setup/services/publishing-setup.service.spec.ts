@@ -253,17 +253,22 @@ describe('PublishingSetupService', () => {
   it('fails a partially configured provider in every deployment mode', async () => {
     delete env.TWITTER_CLIENT_SECRET;
 
-    const check = findCheck(
-      (await build().buildChecklist()).checks,
-      'provider.twitter',
-    );
+    for (const cloudFlag of ['', 'true']) {
+      vi.stubEnv('GENFEED_CLOUD', cloudFlag);
 
-    expect(check.status).toBe('fail');
-    expect(check.diagnostics[0]).toMatchObject({
-      classification: 'misconfiguration',
-      code: 'provider_partially_configured',
-      details: { missingEnvKeys: ['TWITTER_CLIENT_SECRET'] },
-    });
+      const check = findCheck(
+        (await build().buildChecklist()).checks,
+        'provider.twitter',
+      );
+
+      expect(check.status).toBe('fail');
+      expect(check.diagnostics[0]).toMatchObject({
+        classification: 'misconfiguration',
+        code: 'provider_partially_configured',
+        details: { missingEnvKeys: ['TWITTER_CLIENT_SECRET'] },
+        severity: 'error',
+      });
+    }
   });
 
   it('exports severity-sorted diagnostics without any secret material', async () => {

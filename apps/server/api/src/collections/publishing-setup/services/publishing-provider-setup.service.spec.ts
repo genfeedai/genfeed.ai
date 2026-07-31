@@ -1,4 +1,8 @@
 import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
+import {
+  canScheduleWithPublishingReadiness,
+  classifyPublishingReadiness,
+} from '@genfeedai/helpers';
 import type { ConfigService } from '@libs/config/config.service';
 
 const CHECKED_AT = '2026-06-02T00:00:00.000Z';
@@ -72,6 +76,52 @@ describe('PublishingProviderSetupService', () => {
     expect(signals.callbackUrlStatus).toBe('warn');
     expect(signals.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
       'provider_not_configured',
+    ]);
+  });
+
+  it.each([
+    ['self-hosted', ''],
+    ['cloud', 'true'],
+  ])(
+    'blocks a partially configured provider on %s rather than degrading it',
+    (_deployment, cloudFlag) => {
+      // Deliberate asymmetry with `provider_not_configured` (#2256): absent
+      // credentials are an operator *choice* and follow the deployment axis,
+      // but a half-configured app is an operator *error* that boots fine and
+      // then fails at connect time. Downgrading it self-hosted would restore
+      // `canSchedule`, letting a post be scheduled against a provider that
+      // cannot complete an OAuth exchange.
+      vi.stubEnv('GENFEED_CLOUD', cloudFlag);
+      delete env.TWITTER_CLIENT_SECRET;
+
+      const signals = build().resolveProviderSignals('twitter', CHECKED_AT);
+      const state = classifyPublishingReadiness(signals.diagnostics);
+
+      expect(signals.diagnostics).toContainEqual(
+        expect.objectContaining({
+          classification: 'misconfiguration',
+          code: 'provider_partially_configured',
+          details: { missingEnvKeys: ['TWITTER_CLIENT_SECRET'] },
+          isRetryable: false,
+          severity: 'error',
+        }),
+      );
+      expect(state).toBe('blocked');
+      expect(canScheduleWithPublishingReadiness(state)).toBe(false);
+    },
+  );
+
+  it('fails app review for a half-configured app rather than calling it reviewable', () => {
+    // The app-review question needs a *complete* app: a client id with no
+    // secret is not an app anyone can submit for review, so reporting
+    // `unknown` ("approval pending") would overstate what exists.
+    delete env.TWITTER_CLIENT_SECRET;
+
+    const signals = build().resolveProviderSignals('twitter', CHECKED_AT);
+
+    expect(signals.appReviewStatus).toBe('fail');
+    expect(signals.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
+      'provider_partially_configured',
     ]);
   });
 
