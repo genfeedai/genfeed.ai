@@ -28,7 +28,7 @@ Project-level `.agents/` for all AI agent knowledge, skills, and operational doc
 │   ├── architecture/       # ADRs
 │   ├── rules/              # Coding rules (symlinked to .claude/rules/)
 │   └── system/             # Critical rules, agent runtime
-├── SESSIONS/    # Daily session logs (gitignored)
+├── sessions/    # Daily session logs (gitignored)
 ├── skills/      # Dev/build skills (47 skills)
 └── README.md    # This file
 ```

@@ -27,7 +27,7 @@ Only the current intentional root docs are allowed at root: `AGENTS.md` and `CLA
 
 ### Session Files: ONE FILE PER DAY
 
-Pattern: `.agents/SESSIONS/YYYY-MM-DD.md`. Multiple sessions same day -> add to SAME file. Only allowed patterns: `README.md`, `TEMPLATE.md`, `YYYY-MM-DD.md`.
+Pattern: `.agents/sessions/YYYY-MM-DD.md`. Multiple sessions same day -> add to SAME file. Only allowed patterns: `README.md`, `TEMPLATE.md`, `YYYY-MM-DD.md`.
 
 ---
 

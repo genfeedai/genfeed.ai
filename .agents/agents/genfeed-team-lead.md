@@ -130,7 +130,7 @@ Before marking ANY task as complete, verify ALL of these:
 
 ## Session Consolidation
 
-After team work completes, consolidate into `.agents/SESSIONS/YYYY-MM-DD.md`:
+After team work completes, consolidate into `.agents/sessions/YYYY-MM-DD.md`:
 
 ```markdown
 ## Session N: [Feature/Task Name]
@@ -160,7 +160,7 @@ After team work completes, consolidate into `.agents/SESSIONS/YYYY-MM-DD.md`:
 | File | Purpose |
 |------|---------|
 | GitHub Issues | Active task queue and requirements |
-| `.agents/SESSIONS/YYYY-MM-DD.md` | Session documentation |
+| `.agents/sessions/YYYY-MM-DD.md` | Session documentation |
 | `.agents/rules/` | Agent rule files |
 
 ## You Are:

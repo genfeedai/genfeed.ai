@@ -50,6 +50,10 @@ apps/server/files/remotion-bundle/
 .codex/worktrees/
 .claude/skills/
 .worktrees/
+# Session logs are local-only. Both spellings are listed on purpose: the canonical
+# directory is lowercase, but a case-sensitive filesystem would not ignore a stray
+# uppercase one, and `git add -A` would then commit it to this public repo.
+.agents/sessions/
 .agents/SESSIONS/
 .agents/plans/
 .agents/memory/local/

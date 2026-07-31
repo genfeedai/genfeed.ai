@@ -33,7 +33,7 @@ bun run start    # Start production server (Next.js default port 3000; set PORT 
 ## Docs
 
 - `../../.agents/README.md` - Workspace project guide
-- `../../.agents/SESSIONS/` - Session logs and template
+- `../../.agents/sessions/` - Session logs and template
 - `../../.agents/memory/` - Workspace-level architecture/rules/SOPs
 
 ## Vercel Deployments

@@ -49,7 +49,7 @@ Checkpoint format:
 - Next command
 - Open risk/blocker
 
-Store session notes in `.agents/SESSIONS/YYYY-MM-DD.md` and update the related GitHub issue.
+Store session notes in `.agents/sessions/YYYY-MM-DD.md` and update the related GitHub issue.
 
 ## Recovery Protocol
 
