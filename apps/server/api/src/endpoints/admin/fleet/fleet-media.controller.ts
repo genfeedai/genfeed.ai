@@ -48,7 +48,7 @@ import type { Request } from 'express';
 @ApiTags('Admin / Fleet')
 @Controller('admin/fleet')
 @UseGuards(IpWhitelistGuard, SuperAdminGuard)
-class AdminFleetController {
+export class AdminFleetMediaController {
   constructor(
     private readonly adminFleetService: AdminFleetService,
     private readonly loggerService: LoggerService,
@@ -415,5 +415,3 @@ class AdminFleetController {
     }
   }
 }
-
-export { AdminFleetController as AdminFleetMediaController };

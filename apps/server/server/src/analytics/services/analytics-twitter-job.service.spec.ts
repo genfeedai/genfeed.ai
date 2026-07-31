@@ -16,6 +16,7 @@ function createHarness(analyticsMap = new Map<string, unknown>()) {
   const analyticsCollectionState = {
     markFailed: vi.fn().mockResolvedValue(undefined),
     markFailedBatch: vi.fn().mockResolvedValue(undefined),
+    markFailedTargets: vi.fn().mockResolvedValue(undefined),
     markReady: vi.fn().mockResolvedValue(undefined),
     markReadyBatch: vi.fn().mockResolvedValue(undefined),
   } satisfies ServerAnalyticsCollectionState;

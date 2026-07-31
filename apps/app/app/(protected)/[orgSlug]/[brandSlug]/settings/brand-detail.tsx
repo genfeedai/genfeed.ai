@@ -142,12 +142,13 @@ export default function BrandDetail() {
             deletingRefId={null}
             isUpdatingPublicProfile={isUpdating}
             manageSocialHref={manageSocialHref}
-            onTogglePublicProfile={(isPublic) =>
-              handleUpdateAccount(
+            onTogglePublicProfile={(isPublic) => {
+              // Fire-and-forget: the hook already reverts and toasts on failure.
+              void handleUpdateAccount(
                 'scope',
                 isPublic ? AssetScope.PUBLIC : AssetScope.BRAND,
-              )
-            }
+              ).catch(() => undefined);
+            }}
             onRefreshBrand={async () => {
               await handleRefreshBrand(true);
             }}

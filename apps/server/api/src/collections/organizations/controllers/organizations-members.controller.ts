@@ -18,9 +18,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UsersService } from '@api/collections/users/services/users.service';
-import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
-import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
-import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
+import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -76,9 +74,7 @@ export class OrganizationsMembersController {
     private readonly configService: ConfigService,
     private readonly invitationService: InvitationService,
     private readonly brandsService: BrandsService,
-    private readonly requestContextCacheService: RequestContextCacheService,
-    private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
-    private readonly betterAuthIdentityCacheService: BetterAuthIdentityCacheService,
+    private readonly userAccessCacheService: UserAccessCacheService,
   ) {}
 
   @Get(':organizationId/members')
@@ -184,17 +180,10 @@ export class OrganizationsMembersController {
       await this.usersService.patch(String(existingUser.id), {
         lastUsedOrganizationId: organizationId,
       });
-      await Promise.all([
-        this.requestContextCacheService.invalidateForUser(
-          String(existingUser._id),
-        ),
-        this.accessBootstrapCacheService.invalidateForUser(
-          String(existingUser._id),
-        ),
-        this.betterAuthIdentityCacheService.invalidateForUser(
-          String(existingUser._id),
-        ),
-      ]);
+      // `_id` is a Mongo-era alias that is undefined on a Prisma row, so this
+      // used to invalidate the literal key "undefined" — read the scalar id,
+      // matching the `usersService.patch` above.
+      await this.userAccessCacheService.invalidateAll(String(existingUser.id));
 
       return serializeSingle(request, MemberSerializer, member);
     } else {

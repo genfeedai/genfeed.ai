@@ -197,4 +197,78 @@ describe('PostAnalyticsCollectionStateService', () => {
       }),
     });
   });
+
+  it('groups per-target failures by identical classification', async () => {
+    const { service, updateMany } = createHarness();
+    const rateLimited = {
+      code: 'analytics.rate_limited',
+      isRetryable: true,
+      message: 'Facebook analytics is temporarily rate limited.',
+    };
+    const unauthorized = {
+      code: 'analytics.authentication_failed',
+      isRetryable: false,
+      message: 'Facebook analytics authorization must be refreshed.',
+    };
+
+    await service.markFailedTargets([
+      { ...target, attemptKey: 'attempt-1', failure: rateLimited, id: 'a' },
+      { ...target, attemptKey: 'attempt-1', failure: unauthorized, id: 'b' },
+      { ...target, attemptKey: 'attempt-1', failure: rateLimited, id: 'c' },
+    ]);
+
+    // Three posts, two distinct classifications — two writes, not three.
+    expect(updateMany).toHaveBeenCalledTimes(2);
+    expect(updateMany).toHaveBeenCalledWith({
+      data: {
+        analyticsCollectionError: {
+          ...rateLimited,
+          failedAt: '2026-07-27T06:30:00.000Z',
+        },
+        analyticsCollectionState: TargetAnalyticsCollectionState.FAILED,
+      },
+      where: expect.objectContaining({ id: { in: ['a', 'c'] } }),
+    });
+    expect(updateMany).toHaveBeenCalledWith({
+      data: {
+        analyticsCollectionError: {
+          ...unauthorized,
+          failedAt: '2026-07-27T06:30:00.000Z',
+        },
+        analyticsCollectionState: TargetAnalyticsCollectionState.FAILED,
+      },
+      where: expect.objectContaining({ id: { in: ['b'] } }),
+    });
+  });
+
+  it('keeps per-target failures inside their own org/brand/attempt scope', async () => {
+    const { service, updateMany } = createHarness();
+    const failure = {
+      code: 'analytics.rate_limited',
+      isRetryable: true,
+      message: 'Facebook analytics is temporarily rate limited.',
+    };
+
+    await service.markFailedTargets([
+      { ...target, attemptKey: 'attempt-1', failure, id: 'a' },
+      { ...target, attemptKey: 'attempt-2', failure, id: 'b' },
+      {
+        ...target,
+        brandId: 'brand-2',
+        attemptKey: 'attempt-1',
+        failure,
+        id: 'c',
+      },
+      // No attempt key — the row is not owned by this attempt, so skip it
+      // rather than clobber whatever attempt does own it.
+      { ...target, failure, id: 'd' },
+    ]);
+
+    expect(updateMany).toHaveBeenCalledTimes(3);
+    expect(updateMany.mock.calls.map((call) => call[0].where.id.in)).toEqual([
+      ['a'],
+      ['b'],
+      ['c'],
+    ]);
+  });
 });
