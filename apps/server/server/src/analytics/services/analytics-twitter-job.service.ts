@@ -1,5 +1,6 @@
 import { CredentialPlatform } from '@genfeedai/enums';
 import type {
+  AnalyticsCollectionAttemptRef,
   IReplyBotCredentialData,
   ServerAnalyticsCollectionState,
 } from '@genfeedai/interfaces';
@@ -74,37 +75,38 @@ export class AnalyticsTwitterJobService {
 
       await job.updateProgress(50);
 
-      let processed = 0;
+      const readyTargets: AnalyticsCollectionAttemptRef[] = [];
+      const delayedTargets: AnalyticsCollectionAttemptRef[] = [];
+
       for (const post of posts) {
         const analytics = analyticsMap.get(post.externalId);
+        const target: AnalyticsCollectionAttemptRef = {
+          attemptKey: job.data.attemptKey,
+          brandId: post.brand,
+          id: post.id,
+          organizationId: post.organization,
+          platform: CredentialPlatform.TWITTER,
+        };
 
         if (analytics) {
           await this.postAnalyticsService.processTwitterAnalytics(
             post.id,
             analytics,
           );
-          await this.analyticsCollectionState.markReady({
-            attemptKey: job.data.attemptKey,
-            brandId: post.brand,
-            id: post.id,
-            organizationId: post.organization,
-            platform: CredentialPlatform.TWITTER,
-          });
-          processed++;
+          readyTargets.push(target);
           continue;
         }
 
         this.logger.warn(
           `No analytics found for tweet ${post.externalId} (post ${post.id})`,
         );
-        await this.analyticsCollectionState.markFailed(
-          {
-            attemptKey: job.data.attemptKey,
-            brandId: post.brand,
-            id: post.id,
-            organizationId: post.organization,
-            platform: CredentialPlatform.TWITTER,
-          },
+        delayedTargets.push(target);
+      }
+
+      await this.analyticsCollectionState.markReadyBatch(readyTargets);
+      if (delayedTargets.length > 0) {
+        await this.analyticsCollectionState.markFailedBatch(
+          delayedTargets,
           delayedAnalyticsCollectionFailure('Twitter'),
         );
       }
@@ -112,23 +114,19 @@ export class AnalyticsTwitterJobService {
       await job.updateProgress(100);
 
       this.logger.log(
-        `Twitter analytics batch completed - processed ${processed}/${posts.length} posts`,
+        `Twitter analytics batch completed - processed ${readyTargets.length}/${posts.length} posts`,
       );
     } catch (error: unknown) {
       const failure = classifyAnalyticsCollectionError(error, 'Twitter');
-      await Promise.all(
-        posts.map((post) =>
-          this.analyticsCollectionState.markFailed(
-            {
-              attemptKey: job.data.attemptKey,
-              brandId: post.brand,
-              id: post.id,
-              organizationId: post.organization,
-              platform: CredentialPlatform.TWITTER,
-            },
-            failure,
-          ),
-        ),
+      await this.analyticsCollectionState.markFailedBatch(
+        posts.map((post) => ({
+          attemptKey: job.data.attemptKey,
+          brandId: post.brand,
+          id: post.id,
+          organizationId: post.organization,
+          platform: CredentialPlatform.TWITTER,
+        })),
+        failure,
       );
       if (!this.isRateLimitError(error)) {
         this.logger.error(

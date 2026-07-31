@@ -75,6 +75,8 @@ const SIX_HOURS_MS = 6 * HOUR_MS;
 const CHUNK_SIZE = 50;
 const TWITTER_BATCH_SIZE = 100;
 const YOUTUBE_BATCH_SIZE = 50;
+/** Bound each postsService.findAll page — never load an unbounded findMany. */
+const FIND_POSTS_PAGE_SIZE = 500;
 
 @Injectable()
 export class AnalyticsSyncWorkflowService {
@@ -491,16 +493,43 @@ export class AnalyticsSyncWorkflowService {
       where.isAnalyticsEnabled = { not: false };
     }
 
-    const result = await this.postsService.findAll(
-      {
-        include: { credential: true },
-        ...(options.orderBy ? { orderBy: options.orderBy } : {}),
-        where,
-      },
-      { customLabels, pagination: false },
-    );
+    // Page through with take/skip rather than one unbounded findMany.
+    // Callers may pass orderBy (Twitter uses publishedAt desc); page offsets
+    // preserve that ordering without keyset cursor math.
+    const docs: AnalyticsPost[] = [];
+    let page = 1;
 
-    return result.docs as unknown as AnalyticsPost[];
+    for (;;) {
+      const result = await this.postsService.findAll(
+        {
+          include: { credential: true },
+          ...(options.orderBy ? { orderBy: options.orderBy } : {}),
+          where,
+        },
+        {
+          customLabels,
+          limit: FIND_POSTS_PAGE_SIZE,
+          page,
+          pagination: true,
+        },
+        false,
+      );
+
+      const pageDocs = result.docs as unknown as AnalyticsPost[];
+      if (pageDocs.length === 0) {
+        break;
+      }
+
+      docs.push(...pageDocs);
+
+      if (!result.hasNextPage || pageDocs.length < FIND_POSTS_PAGE_SIZE) {
+        break;
+      }
+
+      page += 1;
+    }
+
+    return docs;
   }
 
   private async enqueue<T>(
