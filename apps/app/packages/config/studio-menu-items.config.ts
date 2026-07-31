@@ -6,6 +6,7 @@ import {
   Image,
   Layers,
   Music,
+  Scissors,
   Users,
   Zap,
 } from 'lucide-react';
@@ -51,6 +52,16 @@ export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [APP_ROUTES.STUDIO.STORYBOARD],
     outline: Clapperboard,
     solid: Clapperboard,
+  },
+  {
+    // `/studio/clips` shipped a full page and a workspace-shell breadcrumb but
+    // never a nav entry, so it was only reachable by typing the URL.
+    group: 'Automation',
+    href: APP_ROUTES.STUDIO.CLIPS,
+    label: 'Clips',
+    matchPaths: [APP_ROUTES.STUDIO.CLIPS],
+    outline: Scissors,
+    solid: Scissors,
   },
   {
     group: 'Automation',

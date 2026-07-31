@@ -245,15 +245,34 @@ export function canMergeStoryboard(storyboard: Storyboard): boolean {
 }
 
 /**
+ * A frame is generatable when it carries a usable prompt and has not already
+ * produced a video. Status is deliberately excluded so the same predicate can
+ * gate a first attempt and a retry.
+ */
+function isFrameGeneratable(frame: StoryboardFrame): boolean {
+  return Boolean(frame.prompt && frame.prompt.length >= 10 && !frame.videoId);
+}
+
+/**
  * Helper to get frames that need generation
  */
 export function getPendingFrames(storyboard: Storyboard): StoryboardFrame[] {
   return storyboard.frames.filter(
     (frame: StoryboardFrame) =>
-      frame.status === 'pending' &&
-      frame.prompt &&
-      frame.prompt.length >= 10 &&
-      !frame.videoId,
+      frame.status === 'pending' && isFrameGeneratable(frame),
+  );
+}
+
+/**
+ * Helper to get frames whose generation failed and can be attempted again.
+ *
+ * `getPendingFrames` only matches `pending`, so without this a failed frame is
+ * terminal — nothing in the workspace could ever pick it back up.
+ */
+export function getFailedFrames(storyboard: Storyboard): StoryboardFrame[] {
+  return storyboard.frames.filter(
+    (frame: StoryboardFrame) =>
+      frame.status === 'failed' && isFrameGeneratable(frame),
   );
 }
 
