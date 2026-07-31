@@ -1,6 +1,7 @@
 'use client';
 
-import { AlertCategory, AssetScope } from '@genfeedai/enums';
+import { AlertCategory } from '@genfeedai/enums';
+import { isPublicAssetScope } from '@genfeedai/helpers';
 import type { ILink } from '@genfeedai/interfaces';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
@@ -103,8 +104,7 @@ export default function BrandOverviewPanel({
               onGenerateLogo={onGenerateLogo}
               onUpdateBrand={onUpdateBrand}
               onCopyPublicProfile={
-                typeof activeBrand.scope === 'string' &&
-                activeBrand.scope.toLowerCase() === AssetScope.PUBLIC
+                isPublicAssetScope(activeBrand.scope)
                   ? () =>
                       onCopy(
                         `${EnvironmentService.apps.website}/u/${activeBrand.slug}`,
