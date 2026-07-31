@@ -185,8 +185,10 @@ test('lcov parsing merges repeated records for the same source file', () => {
 test('source-file matching resolves absolute and workspace-relative lcov paths', () => {
   const changed = ['apps/app/lib/a.ts', 'apps/server/api/src/b.ts'];
 
+  // Absolute prefix is arbitrary on purpose: the matcher only reads the suffix, and the
+  // runner's real workspace prefix is homedir-shaped, which secretlint rejects on sight.
   assert.equal(
-    matchSourceFile('/home/runner/work/repo/apps/app/lib/a.ts', changed),
+    matchSourceFile('/build/workspace/repo/apps/app/lib/a.ts', changed),
     'apps/app/lib/a.ts',
   );
   assert.equal(
