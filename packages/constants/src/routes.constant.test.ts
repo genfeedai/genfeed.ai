@@ -64,7 +64,7 @@ describe('routes.constant', () => {
         'paperclip',
         APP_ROUTES.WORKSPACE.OVERVIEW,
       ),
-    ).toBe('/genfeed-ai/paperclip/workspace/overview');
+    ).toBe('/genfeed-ai/paperclip/workspace');
     expect(createBrandAppRoute('genfeed-ai', 'paperclip', 'studio/image')).toBe(
       '/genfeed-ai/paperclip/studio/image',
     );
