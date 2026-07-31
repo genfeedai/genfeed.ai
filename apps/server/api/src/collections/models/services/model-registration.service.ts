@@ -1,4 +1,3 @@
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -6,7 +5,6 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { PrismaService } from '../../../shared/modules/prisma/prisma.service';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { OrganizationSettingsService } from '../../organization-settings/services/organization-settings.service';
 import type { TrainingDocument } from '../../trainings/schemas/training.schema';
 import type { ModelDocument } from '../schemas/model.schema';

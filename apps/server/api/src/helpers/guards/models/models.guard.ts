@@ -1,4 +1,3 @@
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import {
   isFalDestination,

@@ -11,15 +11,10 @@
  */
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { CreateRemixArticleDto } from '@api/collections/articles/dto/create-remix-article.dto';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { EditArticleWithAIDto } from '@api/collections/articles/dto/generate-articles.dto';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
@@ -40,16 +35,12 @@ import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { RouterService } from '@api/services/router/router.service';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { ScoreSeoDto } from '@api/services/seo/dto/score-seo.dto';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
 import { ActivitySource, ModelCategory } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { ArticleSerializer } from '@genfeedai/serializers';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
