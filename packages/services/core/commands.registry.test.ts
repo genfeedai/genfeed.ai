@@ -173,14 +173,14 @@ describe('commands.registry', () => {
       );
     });
 
-    it('agents action should navigate to brand-scoped workflows URL', () => {
+    it('agents action should navigate to brand-scoped orchestration workflows URL', () => {
       const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
       const agentsCmd = navigationCommands.find((c) => c.id === 'nav-agents');
 
       agentsCmd?.action();
 
       expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/workflows`,
+        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/orchestration/workflows`,
       );
     });
 

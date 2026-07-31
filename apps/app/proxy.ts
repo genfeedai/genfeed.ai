@@ -584,7 +584,6 @@ const ORG_ROOT_APP_PREFIXES = [
   'posts',
   'settings',
   'studio',
-  'workflows',
 ] as const;
 
 function createOrgScopedCanonicalPath(
