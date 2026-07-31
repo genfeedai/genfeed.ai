@@ -29,6 +29,7 @@ export const metadata = createAppMetadata({
         url: cards.default,
         width: 1600,
       },
+      siteName: name,
       title: name,
       type: 'website',
       url,
