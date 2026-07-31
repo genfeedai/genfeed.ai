@@ -1912,6 +1912,19 @@ export async function mockOverviewRunsData(
 // ----------------------------------------------------------------------------
 
 /**
+ * The system catalog is a filter on the workflows collection, not a path:
+ * `GET /workflows?source=system-catalog` (#2225, workflow-api.listSystemCatalog).
+ * Substring-matching `/workflows/system-catalog` therefore never fires — parse
+ * the query instead so these guards keep working when the path shape moves.
+ */
+function isSystemCatalogRequest(route: Route): boolean {
+  return (
+    new URL(route.request().url()).searchParams.get('source') ===
+    'system-catalog'
+  );
+}
+
+/**
  * Mock for workflow CRUD operations
  */
 export async function mockWorkflowCrud(
@@ -1932,10 +1945,11 @@ export async function mockWorkflowCrud(
     const method = route.request().method();
     const url = route.request().url();
 
-    // Literal catalog/templates routes must not be treated as workflow CRUD
-    // list/create — `/workflows/*` would otherwise mint a fake "system-catalog"
-    // document and break `listSystemCatalog().filter(...)` (#2176 / #1626).
-    if (url.includes('/workflows/system-catalog')) {
+    // Catalog/templates requests must not be treated as workflow CRUD
+    // list/create — the list branch would otherwise answer the catalog with the
+    // full workflows collection and break `listSystemCatalog().filter(...)`
+    // (#2176 / #1626).
+    if (isSystemCatalogRequest(route)) {
       if (method === 'GET') {
         await route.fulfill({
           body: JSON.stringify({ data: [] }),
@@ -1997,7 +2011,9 @@ export async function mockWorkflowCrud(
     const method = route.request().method();
     const url = route.request().url();
 
-    if (url.includes('/workflows/system-catalog')) {
+    // Trailing-slash form (`/workflows/?source=system-catalog`) lands here
+    // rather than on the collection pattern above — same answer either way.
+    if (isSystemCatalogRequest(route)) {
       if (method === 'GET') {
         await route.fulfill({
           body: JSON.stringify({ data: [] }),
@@ -2190,7 +2206,14 @@ export async function mockWorkflowTemplates(
   // #2176 catalog-first install: templates page loads system catalog in parallel
   // with generation templates. Without this mock, Promise.all rejects and the
   // gallery renders "Failed to load templates" (nightly automation-loop).
-  await routeApiPattern(page, '/workflows/system-catalog**', async (route) => {
+  // Registered on the collection pattern because the catalog is a query filter
+  // (#2225); everything else falls through to whatever workflow mock a spec
+  // registered earlier — `mockWorkflowCrud` in every current caller.
+  await routeApiPattern(page, '/workflows**', async (route) => {
+    if (!isSystemCatalogRequest(route)) {
+      await route.fallback();
+      return;
+    }
     if (route.request().method() === 'GET') {
       await route.fulfill({
         body: JSON.stringify({ data: [] }),
@@ -2199,7 +2222,7 @@ export async function mockWorkflowTemplates(
       });
       return;
     }
-    await route.continue();
+    await route.fallback();
   });
 }
 

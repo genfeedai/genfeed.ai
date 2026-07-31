@@ -15,6 +15,14 @@ import {
   testWorkflowTemplates,
 } from '../../fixtures/test-data.fixture';
 
+/**
+ * The editor toolbar back-link renders `href(APP_ROUTES.ORCHESTRATION.WORKFLOWS)`
+ * — an org/brand-scoped href, so only the suffix is stable. Built from the route
+ * constant so a route rename travels with it instead of leaving a literal that
+ * silently matches nothing (as `a[href="/workflows"]` did before the migration).
+ */
+const workflowsBackLinkSelector = `a[href$="${APP_ROUTES.ORCHESTRATION.WORKFLOWS}"]`;
+
 test.describe('Workflows', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockActiveSubscription(authenticatedPage, {
@@ -41,7 +49,7 @@ test.describe('Workflows', () => {
       new RegExp(`/orchestration/workflows/${workflow.id}$`),
     );
     await expect(
-      authenticatedPage.locator('a[href$="/orchestration/workflows"]').first(),
+      authenticatedPage.locator(workflowsBackLinkSelector).first(),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByRole('button', { name: workflow.name }),
@@ -68,7 +76,7 @@ test.describe('Workflows', () => {
       /\/orchestration\/workflows\/new$/,
     );
     await expect(
-      authenticatedPage.locator('a[href$="/orchestration/workflows"]').first(),
+      authenticatedPage.locator(workflowsBackLinkSelector).first(),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByRole('button', { name: 'Untitled Workflow' }),
