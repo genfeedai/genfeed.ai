@@ -45,7 +45,7 @@ test.describe('Workflows builder & canvas interactions', () => {
   test('library lists workflows and supports searching', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.WORKFLOWS.ROOT, {
+    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -73,7 +73,7 @@ test.describe('Workflows builder & canvas interactions', () => {
   test('library exposes Templates and New Workflow entry points', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.WORKFLOWS.ROOT, {
+    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -91,7 +91,7 @@ test.describe('Workflows builder & canvas interactions', () => {
   test('opening a workflow from the library navigates to its builder', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.WORKFLOWS.ROOT, {
+    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -109,7 +109,7 @@ test.describe('Workflows builder & canvas interactions', () => {
   test('new workflow builder renders the React Flow canvas', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.WORKFLOWS.NEW, {
+    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS_NEW, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -125,7 +125,7 @@ test.describe('Workflows builder & canvas interactions', () => {
   test('node palette can be searched in the new builder', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.WORKFLOWS.NEW, {
+    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS_NEW, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -156,7 +156,7 @@ test.describe('Workflows builder & canvas interactions', () => {
   test('builder toolbar exposes Run and draft lifecycle actions', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.WORKFLOWS.NEW, {
+    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS_NEW, {
       waitUntil: 'domcontentloaded',
     });
 

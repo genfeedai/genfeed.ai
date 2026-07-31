@@ -60,7 +60,7 @@ test.describe('Workflows', () => {
   test('workflow creation route renders restored navigation and draft actions', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.WORKFLOWS.NEW, {
+    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS_NEW, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -82,9 +82,12 @@ test.describe('Workflows', () => {
   test('workflow executions route renders execution history shell', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.WORKFLOWS.EXECUTIONS, {
-      waitUntil: 'domcontentloaded',
-    });
+    await authenticatedPage.goto(
+      APP_ROUTES.ORCHESTRATION.WORKFLOWS_EXECUTIONS,
+      {
+        waitUntil: 'domcontentloaded',
+      },
+    );
 
     await expect(authenticatedPage).toHaveURL(/\/workflows\/executions$/);
     await expect(
@@ -95,7 +98,7 @@ test.describe('Workflows', () => {
   test('unauthenticated user is redirected away from workflow editor routes', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.WORKFLOWS.NEW, {
+    await unauthenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS_NEW, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -108,9 +111,12 @@ test.describe('Workflows', () => {
   test('unauthenticated user is redirected away from workflow executions', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.WORKFLOWS.EXECUTIONS, {
-      waitUntil: 'domcontentloaded',
-    });
+    await unauthenticatedPage.goto(
+      APP_ROUTES.ORCHESTRATION.WORKFLOWS_EXECUTIONS,
+      {
+        waitUntil: 'domcontentloaded',
+      },
+    );
 
     await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
       timeout: 15000,

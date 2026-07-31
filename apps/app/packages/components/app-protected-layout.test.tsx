@@ -1145,7 +1145,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it('gives workflow routes their own nav column', () => {
-    mockPathname.value = '/org-123/brand-123/workflows';
+    mockPathname.value = '/org-123/brand-123/orchestration/workflows';
 
     render(
       <AppProtectedLayout>
@@ -1190,7 +1190,7 @@ describe('AppProtectedLayout', () => {
     ['/org-123/brand-123/studio/image', 'studio', 'Studio'],
     ['/org-123/brand-123/library', 'library', 'Library'],
     ['/org-123/brand-123/analytics', 'analytics', 'Analytics'],
-    ['/org-123/brand-123/workflows', 'workflows', 'Workflows'],
+    ['/org-123/brand-123/orchestration/workflows', 'workflows', 'Workflows'],
     ['/org-123/brand-123/posts/remix', 'posts', 'Publish'],
   ])(
     'keeps the %s app-switcher surface on its own module nav',
@@ -1448,7 +1448,8 @@ describe('AppProtectedLayout', () => {
   });
 
   it('keeps workflow editor detail routes inside the workspace shell', () => {
-    mockPathname.value = '/org-123/brand-123/workflows/workflow-123';
+    mockPathname.value =
+      '/org-123/brand-123/orchestration/workflows/workflow-123';
 
     render(
       <AppProtectedLayout>

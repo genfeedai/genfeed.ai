@@ -284,6 +284,8 @@ const config = createAppNextConfig({
       '/orchestration/outreach-campaigns',
       APP_ROUTES.POSTS.OUTREACH_CAMPAIGNS,
     ),
+    // Former /workflows surface lives under Automate workflows.
+    ...legacyPathRedirects('/workflows', APP_ROUTES.ORCHESTRATION.WORKFLOWS),
   ],
   sentryProject: 'app-genfeed-ai',
 });

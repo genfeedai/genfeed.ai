@@ -31,7 +31,7 @@ test.describe('Core Automation Loop', () => {
   test('workflow library stays available inside the agent-first canvas', async ({
     automationPage,
   }) => {
-    await automationPage.goto(`${BRAND_BASE}/workflows`);
+    await automationPage.goto(`/orchestration/workflows`);
 
     await expect(automationPage).toHaveURL(/\/test-org\/brand-1\/workflows$/);
     await expect(
@@ -66,7 +66,7 @@ test.describe('Core Automation Loop', () => {
 
     await expect(automationPage.getByText('Templates').first()).toBeVisible();
     await automationPage
-      .locator('a[href*="/workflows/templates?template="]')
+      .locator('a[href*="/orchestration/workflows/templates?template="]')
       .first()
       .click({ force: true });
 

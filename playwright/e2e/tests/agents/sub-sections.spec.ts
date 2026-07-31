@@ -103,11 +103,11 @@ test.describe('Agents — Sub-Sections', () => {
     await mockWorkflowExecutions(authenticatedPage, []);
     await mockWorkflowTemplates(authenticatedPage, []);
 
-    await authenticatedPage.goto(APP_ROUTES.WORKFLOWS.ROOT, {
+    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/workflows$/);
+    await expect(authenticatedPage).toHaveURL(/orchestration\/workflows/);
     await expect(
       authenticatedPage.getByText(/automation|workflow/i).first(),
     ).toBeVisible();
@@ -120,11 +120,11 @@ test.describe('Agents — Sub-Sections', () => {
     await mockWorkflowExecutions(authenticatedPage, []);
     await mockWorkflowTemplates(authenticatedPage, []);
 
-    await authenticatedPage.goto(APP_ROUTES.WORKFLOWS.NEW, {
+    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS_NEW, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/workflows\/new/);
+    await expect(authenticatedPage).toHaveURL(/orchestration\/workflows\/new/);
     await expect(
       authenticatedPage.getByText(/new|create|editor|workflow/i).first(),
     ).toBeVisible();
@@ -137,11 +137,13 @@ test.describe('Agents — Sub-Sections', () => {
     await mockWorkflowExecutions(authenticatedPage, []);
     await mockWorkflowTemplates(authenticatedPage, []);
 
-    await authenticatedPage.goto(APP_ROUTES.WORKFLOWS.TEMPLATES, {
+    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS_TEMPLATES, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/workflows\/templates/);
+    await expect(authenticatedPage).toHaveURL(
+      /orchestration\/workflows\/templates/,
+    );
     await expect(
       authenticatedPage.getByText(/template/i).first(),
     ).toBeVisible();

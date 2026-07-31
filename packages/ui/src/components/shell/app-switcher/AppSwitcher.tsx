@@ -200,23 +200,9 @@ const ADMIN_APP_SWITCHER_SECTION: AppSwitcherSectionConfig = {
   ],
 };
 
-const PRIMARY_APP_ITEM_KEYS = [
-  'workspace',
-  'agent',
-  'messages',
-  'automate',
-  'studio',
-  'library',
-  'trends',
-  'publish',
-  'analytics',
-] as const;
-
-const PRIMARY_APP_ICONS: Partial<
-  Record<
-    (typeof PRIMARY_APP_ITEM_KEYS)[number],
-    LifecycleAppSwitcherItemConfig['icon']
-  >
+/** Optional icon overrides for a few tiles in the flat grid. */
+const APP_SWITCHER_ICON_OVERRIDES: Partial<
+  Record<string, LifecycleAppSwitcherItemConfig['icon']>
 > = {
   automate: Workflow,
   library: Briefcase,
@@ -259,20 +245,6 @@ function humanizeSlug(value?: string): string {
     .filter(Boolean)
     .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
     .join(' ');
-}
-
-function isPrimaryApp(app: LifecycleAppSwitcherItemConfig): boolean {
-  return PRIMARY_APP_ITEM_KEYS.includes(
-    app.itemKey as (typeof PRIMARY_APP_ITEM_KEYS)[number],
-  );
-}
-
-function getPrimaryApps(
-  apps: LifecycleAppSwitcherItemConfig[],
-): LifecycleAppSwitcherItemConfig[] {
-  return PRIMARY_APP_ITEM_KEYS.map((itemKey) =>
-    apps.find((app) => app.itemKey === itemKey),
-  ).filter((app): app is LifecycleAppSwitcherItemConfig => Boolean(app));
 }
 
 function useAppSwitcherVisibility(): Record<
@@ -423,9 +395,7 @@ function AppSwitcherGridItem({
   navigationAnnouncement?: string;
   onNavigateStart: (announcement?: string) => void;
 }) {
-  const Icon =
-    PRIMARY_APP_ICONS[app.itemKey as (typeof PRIMARY_APP_ITEM_KEYS)[number]] ??
-    app.icon;
+  const Icon = APP_SWITCHER_ICON_OVERRIDES[app.itemKey] ?? app.icon;
 
   return (
     <DropdownMenuItem asChild>
@@ -570,20 +540,11 @@ export function AppSwitcher({
   const activeApp = apps.find((app) => app.itemKey === activeItemKey);
   const ActiveIcon = activeApp?.icon ?? LayoutGrid;
   const activeLabel = activeApp?.label ?? 'Apps';
-  const visibleApps = useMemo(() => {
-    const primaryApps = getPrimaryApps(apps);
-
-    if (activeApp && !isPrimaryApp(activeApp)) {
-      return [...primaryApps, activeApp];
-    }
-
-    const adminApp = apps.find((app) => app.id === 'admin');
-
-    return adminApp ? [...primaryApps, adminApp] : primaryApps;
-  }, [activeApp, apps]);
   const tenantLabel = humanizeSlug(brandSlug || orgSlug);
 
-  if (visibleApps.length === 0) {
+  // Flat grid of every flag-visible app (curation list removed — no dual
+  // primary/secondary list that diverged from what actually rendered).
+  if (apps.length === 0) {
     return null;
   }
 

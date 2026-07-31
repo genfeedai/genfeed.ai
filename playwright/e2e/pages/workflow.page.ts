@@ -11,7 +11,7 @@ import { expect } from '@playwright/test';
  */
 export class WorkflowPage {
   readonly page: Page;
-  readonly basePath = '/workflows';
+  readonly basePath = '/orchestration/workflows';
 
   // Layout
   readonly sidebar: Locator;
@@ -83,18 +83,20 @@ export class WorkflowPage {
 
     // Sidebar nav links
     this.navEditor = page.locator(
-      'a[href="/workflows/new"],' +
-        ' a[href*="/workflows/new"],' +
+      'a[href="/orchestration/workflows/new"],' +
+        ' a[href*="/orchestration/workflows/new"],' +
         ' [data-testid="nav-editor"]',
     );
     this.navLibrary = page.locator(
-      'a[href="/workflows"],' + ' [data-testid="nav-library"]',
+      'a[href="/orchestration/workflows"],' + ' [data-testid="nav-library"]',
     );
     this.navTemplates = page.locator(
-      'a[href*="/workflows/templates"],' + ' [data-testid="nav-templates"]',
+      'a[href*="/orchestration/workflows/templates"],' +
+        ' [data-testid="nav-templates"]',
     );
     this.navExecutions = page.locator(
-      'a[href*="/workflows/executions"],' + ' [data-testid="nav-executions"]',
+      'a[href*="/orchestration/workflows/executions"],' +
+        ' [data-testid="nav-executions"]',
     );
 
     // Canvas
