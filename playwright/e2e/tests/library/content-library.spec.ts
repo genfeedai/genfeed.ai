@@ -9,7 +9,7 @@ import { expect, test } from '../../fixtures/auth.fixture';
  * E2E Tests for Content Library
  *
  * Tests verify library page display, sections
- * (captions, ingredients, scenes, trainings),
+ * (captions, assets, mood board, avatars),
  * navigation, and item display.
  * All API calls are mocked.
  */
@@ -53,21 +53,21 @@ test.describe('Content Library', () => {
       ).toBeVisible();
     });
 
-    test('should show scenes section', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/library/scenes');
+    test('should show mood board section', async ({ authenticatedPage }) => {
+      await authenticatedPage.goto(APP_ROUTES.LIBRARY.MOODBOARD);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
-      await expect(authenticatedPage).toHaveURL(/scenes/);
+      await expect(authenticatedPage).toHaveURL(/moodboard/);
       await expect(
         authenticatedPage.locator('main, [data-testid="main-content"]'),
       ).toBeVisible();
     });
 
-    test('should show trainings section', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/library/trainings');
+    test('should show avatars section', async ({ authenticatedPage }) => {
+      await authenticatedPage.goto(APP_ROUTES.LIBRARY.AVATARS);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
-      await expect(authenticatedPage).toHaveURL(/trainings/);
+      await expect(authenticatedPage).toHaveURL(/avatars/);
       await expect(
         authenticatedPage.locator('main, [data-testid="main-content"]'),
       ).toBeVisible();
@@ -98,38 +98,38 @@ test.describe('Content Library', () => {
         await expect(authenticatedPage).toHaveURL(/videos/);
       }
 
-      // Navigate to scenes
-      const scenesLink = authenticatedPage.locator(
-        'a[href*="library/scenes"],' +
-          ' button:has-text("Scenes"),' +
-          ' [data-testid="scenes-tab"]',
+      // Navigate to mood board
+      const moodBoardLink = authenticatedPage.locator(
+        'a[href*="library/moodboard"],' +
+          ' button:has-text("Mood board"),' +
+          ' [data-testid="moodboard-tab"]',
       );
-      const hasScenesLink = await scenesLink
+      const hasMoodBoardLink = await moodBoardLink
         .first()
         .isVisible()
         .catch(() => false);
 
-      if (hasScenesLink) {
-        await scenesLink.first().click();
+      if (hasMoodBoardLink) {
+        await moodBoardLink.first().click();
         await authenticatedPage.waitForLoadState('domcontentloaded');
-        await expect(authenticatedPage).toHaveURL(/scenes/);
+        await expect(authenticatedPage).toHaveURL(/moodboard/);
       }
 
-      // Navigate to trainings
-      const trainingsLink = authenticatedPage.locator(
-        'a[href*="library/trainings"],' +
-          ' button:has-text("Trainings"),' +
-          ' [data-testid="trainings-tab"]',
+      // Navigate to avatars
+      const avatarsLink = authenticatedPage.locator(
+        'a[href*="library/avatars"],' +
+          ' button:has-text("Avatars"),' +
+          ' [data-testid="avatars-tab"]',
       );
-      const hasTrainingsLink = await trainingsLink
+      const hasAvatarsLink = await avatarsLink
         .first()
         .isVisible()
         .catch(() => false);
 
-      if (hasTrainingsLink) {
-        await trainingsLink.first().click();
+      if (hasAvatarsLink) {
+        await avatarsLink.first().click();
         await authenticatedPage.waitForLoadState('domcontentloaded');
-        await expect(authenticatedPage).toHaveURL(/trainings/);
+        await expect(authenticatedPage).toHaveURL(/avatars/);
       }
     });
   });
@@ -178,10 +178,10 @@ test.describe('Content Library', () => {
       await expect(mainContent).toBeVisible();
     });
 
-    test('should display items in scenes section', async ({
+    test('should display items in mood board section', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/library/scenes');
+      await authenticatedPage.goto(APP_ROUTES.LIBRARY.MOODBOARD);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(
@@ -190,10 +190,10 @@ test.describe('Content Library', () => {
       await expect(mainContent).toBeVisible();
     });
 
-    test('should display items in trainings section', async ({
+    test('should display items in avatars section', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/library/trainings');
+      await authenticatedPage.goto(APP_ROUTES.LIBRARY.AVATARS);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(

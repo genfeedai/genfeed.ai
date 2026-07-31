@@ -67,7 +67,9 @@ function SceneFrameRow({
   const thumb = frame.imageThumbnailUrl || frame.imageUrl || frame.videoUrl;
 
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-border bg-card p-3 sm:flex-row sm:items-start">
+    // A row inside the "Scenes" Card, not a card of its own — it carries no
+    // surface token because the parent Card already paints `bg-card`.
+    <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-start">
       <div className="relative size-20 shrink-0 overflow-hidden rounded-md bg-background-secondary">
         {thumb ? (
           <Image
