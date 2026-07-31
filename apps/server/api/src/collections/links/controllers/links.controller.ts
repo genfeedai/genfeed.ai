@@ -11,6 +11,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
@@ -51,18 +52,21 @@ export class LinksController extends BaseCRUDController<
 
   /**
    * List links for a brand (preferred over nested `GET /brands/:id/links`).
+   * Links have no organization column; reject unauthorized organization query
+   * params and default brand to the session brand when omitted.
    */
   public buildFindAllQuery(user: User, query: LinksQueryDto) {
     const publicMetadata = getPublicMetadata(user);
-    const brand =
-      typeof query.brand === 'string' && query.brand.length > 0
-        ? query.brand
-        : publicMetadata.brand;
+    const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
+      query,
+      publicMetadata,
+      publicMetadata.isSuperAdmin === true,
+    );
 
     return {
       orderBy: handleQuerySort(query.sort),
       where: {
-        brand,
+        brand: scope.brand ?? publicMetadata.brand,
         isDeleted: query.isDeleted ?? false,
       },
     };

@@ -8,6 +8,48 @@ describe('CollectionFilterUtil', () => {
     vi.useRealTimers();
   });
 
+  describe('resolveAuthorizedTenantQuery', () => {
+    const orgA = 'org-member-a';
+    const orgB = 'org-foreign-b';
+    const brandA = 'brand-member-a';
+
+    it('allows superadmin arbitrary organization and brand filters', () => {
+      expect(
+        CollectionFilterUtil.resolveAuthorizedTenantQuery(
+          { brand: brandA, organization: orgB },
+          { brand: brandA, isSuperAdmin: true, organization: orgA },
+        ),
+      ).toEqual({ brand: brandA, organization: orgB });
+    });
+
+    it('rejects a member organization filter outside the session org', () => {
+      expect(() =>
+        CollectionFilterUtil.resolveAuthorizedTenantQuery(
+          { organization: orgB },
+          { brand: brandA, isSuperAdmin: false, organization: orgA },
+        ),
+      ).toThrow(/Access denied to this organization/);
+    });
+
+    it('allows member brand filters but forces the session organization boundary', () => {
+      expect(
+        CollectionFilterUtil.resolveAuthorizedTenantQuery(
+          { brand: 'brand-other-in-org' },
+          { brand: brandA, isSuperAdmin: false, organization: orgA },
+        ),
+      ).toEqual({ brand: 'brand-other-in-org', organization: orgA });
+    });
+
+    it('allows member organization filter equal to the session org', () => {
+      expect(
+        CollectionFilterUtil.resolveAuthorizedTenantQuery(
+          { organization: orgA },
+          { brand: brandA, isSuperAdmin: false, organization: orgA },
+        ),
+      ).toEqual({ organization: orgA });
+    });
+  });
+
   describe('buildBrandFilter', () => {
     it('returns provided brand ObjectId when valid', () => {
       const brandId = '507f191e810c19729de860ee';

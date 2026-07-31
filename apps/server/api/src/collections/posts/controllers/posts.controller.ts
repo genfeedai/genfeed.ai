@@ -205,12 +205,17 @@ export class PostsController extends BaseCRUDController<
 
     // Members may narrow to a brand/org (preferred over nested relationship lists).
     // Superadmin already gets these via adminFilter when present.
-    if (!adminFilter) {
-      if (query.brand) {
-        matchFilter.brand = String(query.brand);
+    if (!adminFilter && (query.brand || query.organization)) {
+      const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
+        query,
+        publicMetadata,
+        false,
+      );
+      if (scope.brand) {
+        matchFilter.brand = scope.brand;
       }
-      if (query.organization) {
-        matchFilter.organization = String(query.organization);
+      if (scope.organization) {
+        matchFilter.organization = scope.organization;
       }
     }
 

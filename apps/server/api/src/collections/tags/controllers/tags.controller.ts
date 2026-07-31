@@ -9,6 +9,7 @@ import {
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { TagSerializer } from '@genfeedai/serializers';
@@ -43,15 +44,18 @@ export class TagsController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
 
     // Build OR conditions: global items OR user's org items OR user's items.
-    // Prefer explicit `organization` query (collection style) over session org.
+    // Prefer explicit `organization` query (collection style) over session org,
+    // but only when authorized for that tenant.
     const orConditions: MatchConditions[] = [
       { organization: null, user: null }, // global items (null, not missing)
     ];
 
-    const organizationId =
-      typeof query.organization === 'string' && query.organization.length > 0
-        ? query.organization
-        : publicMetadata.organization;
+    const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
+      query,
+      publicMetadata,
+      publicMetadata.isSuperAdmin === true,
+    );
+    const organizationId = scope.organization;
 
     if (organizationId) {
       orConditions.push({
@@ -66,7 +70,7 @@ export class TagsController extends BaseCRUDController<
     const matchConditions: MatchConditions = {
       isDeleted: query.isDeleted ?? false,
       ...(query.category && { category: query.category }),
-      ...(query.brand && { brand: query.brand }),
+      ...(scope.brand ? { brand: scope.brand } : {}),
       OR: orConditions,
     };
 

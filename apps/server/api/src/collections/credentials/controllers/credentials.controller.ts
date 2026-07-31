@@ -16,6 +16,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -225,15 +226,23 @@ export class CredentialsController {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
     // Prefer brand/org query filters (collection style); keep user ownership as
-    // the default so the list stays tenant-safe for members.
+    // the default so the list stays tenant-safe for members. Reject foreign org.
     const where: Record<string, unknown> = {
       isDeleted,
       user: publicMetadata.user,
     };
-    if (query.brand) {
-      where.brand = String(query.brand);
-    } else if (query.organization) {
-      where.organization = String(query.organization);
+    if (query.brand || query.organization) {
+      const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
+        query,
+        publicMetadata,
+        publicMetadata.isSuperAdmin === true,
+      );
+      if (scope.brand) {
+        where.brand = scope.brand;
+      }
+      if (scope.organization) {
+        where.organization = scope.organization;
+      }
     }
 
     const aggregate = {

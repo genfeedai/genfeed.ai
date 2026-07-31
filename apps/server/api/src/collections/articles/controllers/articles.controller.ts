@@ -20,6 +20,7 @@ import {
   getIsSuperAdmin,
   getPublicMetadata,
 } from '@api/helpers/utils/auth/auth.util';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
@@ -72,6 +73,11 @@ export class ArticlesController extends BaseCRUDController<
    */
   public buildFindAllQuery(user: User, query: ArticlesQueryDto) {
     const publicMetadata = getPublicMetadata(user);
+    const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
+      query,
+      publicMetadata,
+      publicMetadata.isSuperAdmin === true,
+    );
 
     return ArticleFilterUtil.buildArticlequery(
       {
@@ -84,11 +90,9 @@ export class ArticlesController extends BaseCRUDController<
         tag: query.tag,
       },
       {
-        brand: query.brand ? String(query.brand) : publicMetadata.brand,
+        brand: scope.brand ?? publicMetadata.brand,
         isDeleted: query.isDeleted ?? false,
-        organization: query.organization
-          ? String(query.organization)
-          : publicMetadata.organization,
+        organization: scope.organization ?? publicMetadata.organization,
         user: publicMetadata.user,
       },
     );

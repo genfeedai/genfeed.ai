@@ -342,10 +342,13 @@ export class BrandsController extends BaseCRUDController<
       };
     }
 
-    const organizationId =
-      typeof query.organization === 'string' && query.organization.length > 0
-        ? query.organization
-        : publicMetadata.organization;
+    // Members may only filter by their session organization (or omit the param).
+    const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
+      query,
+      publicMetadata,
+      false,
+    );
+    const organizationId = scope.organization ?? publicMetadata.organization;
 
     const orConditions: Record<string, unknown>[] = [
       { user: publicMetadata.user },

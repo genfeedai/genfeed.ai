@@ -300,8 +300,9 @@ describe('BrandsController', () => {
       expect(result.orderBy).toEqual({ label: 1 });
     });
 
-    it('scopes members to owned brands or the requested organization', () => {
-      const organizationId = 'org-member-scope-1';
+    it('scopes members to owned brands or their session organization', () => {
+      const organizationId = (mockUser.publicMetadata as IAuthPublicMetadata)
+        .organization;
       const query = {
         isDeleted: false,
         organization: organizationId,
@@ -318,6 +319,18 @@ describe('BrandsController', () => {
         ],
       });
       expect(result.orderBy).toEqual({ label: 1 });
+    });
+
+    it('rejects member organization filters outside the session org', () => {
+      const query = {
+        isDeleted: false,
+        organization: 'org-foreign-not-in-session',
+        sort: 'label: 1',
+      } as BaseQueryDto;
+
+      expect(() => controller.buildFindAllQuery(mockUser, query)).toThrow(
+        /Access denied to this organization/,
+      );
     });
   });
 

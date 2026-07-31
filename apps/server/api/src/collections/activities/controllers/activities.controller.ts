@@ -12,6 +12,7 @@ import {
   getIsSuperAdmin,
   getPublicMetadata,
 } from '@api/helpers/utils/auth/auth.util';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -69,12 +70,25 @@ export class ActivitiesController {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
     const where: Record<string, unknown> = { isDeleted };
+    const isSuperAdmin = getIsSuperAdmin(user, request);
+    const hasExplicitTenantFilter = Boolean(query.brand || query.organization);
 
-    if (query.brand) {
-      where.brand = String(query.brand);
-    } else if (query.organization) {
-      where.organization = String(query.organization);
-    } else if (!getIsSuperAdmin(user, request)) {
+    if (hasExplicitTenantFilter) {
+      const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
+        query,
+        publicMetadata,
+        isSuperAdmin,
+      );
+      if (scope.brand) {
+        where.brand = scope.brand;
+      }
+      // Always keep a tenant boundary for non-superadmin explicit filters.
+      if (scope.organization) {
+        where.organization = scope.organization;
+      } else if (!isSuperAdmin && publicMetadata.user) {
+        where.user = publicMetadata.user;
+      }
+    } else if (!isSuperAdmin) {
       // Default member scope: active brand, else org ownership OR.
       if (publicMetadata.brand) {
         where.brand = publicMetadata.brand;

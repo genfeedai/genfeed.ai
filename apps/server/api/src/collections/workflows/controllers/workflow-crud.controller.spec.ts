@@ -231,14 +231,14 @@ describe('WorkflowCrudController', () => {
 
       const result = await controller.create(
         mockRequest,
-        { sourceWorkflowId: id } as never,
+        { label: 'Copy', sourceWorkflowId: id } as never,
         mockUser,
       );
 
       expect(service.createWorkflow).toHaveBeenCalledWith(
         mockUser.publicMetadata.user,
         mockUser.publicMetadata.organization,
-        { sourceWorkflowId: id },
+        { label: 'Copy', sourceWorkflowId: id },
         mockUser.publicMetadata.brand,
       );
       expect(result).toBeDefined();

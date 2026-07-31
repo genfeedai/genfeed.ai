@@ -1,5 +1,6 @@
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AssetScope } from '@genfeedai/enums';
+import { ForbiddenException } from '@nestjs/common';
 
 /**
  * CollectionFilterUtil - Utility for building consistent collection query filters
@@ -25,6 +26,57 @@ import { AssetScope } from '@genfeedai/enums';
  * ];
  */
 export class CollectionFilterUtil {
+  /**
+   * Authorize list-query brand/org filters for non-superadmins.
+   *
+   * Members may only pass `organization` equal to their session org. An explicit
+   * `brand` is allowed (multi-brand orgs), but the caller's organization is always
+   * returned so list handlers can AND the tenant boundary and avoid cross-tenant
+   * brand id enumeration.
+   *
+   * Superadmins may filter any org/brand.
+   */
+  static resolveAuthorizedTenantQuery(
+    query: { organization?: string; brand?: string },
+    publicMetadata: {
+      organization?: string;
+      brand?: string;
+      isSuperAdmin?: boolean;
+    },
+    isSuperAdmin = publicMetadata.isSuperAdmin === true,
+  ): { organization?: string; brand?: string } {
+    if (isSuperAdmin) {
+      return {
+        ...(query.organization
+          ? { organization: String(query.organization) }
+          : {}),
+        ...(query.brand ? { brand: String(query.brand) } : {}),
+      };
+    }
+
+    if (
+      query.organization &&
+      publicMetadata.organization &&
+      String(query.organization) !== String(publicMetadata.organization)
+    ) {
+      throw new ForbiddenException({
+        detail: 'Access denied to this organization',
+        title: 'Forbidden',
+      });
+    }
+
+    const organization =
+      (query.organization && String(query.organization)) ||
+      (publicMetadata.organization
+        ? String(publicMetadata.organization)
+        : undefined);
+
+    return {
+      ...(organization ? { organization } : {}),
+      ...(query.brand ? { brand: String(query.brand) } : {}),
+    };
+  }
+
   /**
    * Build admin filter for superadmin org/brand filtering
    *
