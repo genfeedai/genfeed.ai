@@ -1,23 +1,28 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { COMPOSE_ROUTES, PLATFORM_COLORS } from '@genfeedai/constants';
+import { COMPOSE_ROUTES } from '@genfeedai/constants';
 import {
   ArticleStatus,
-  CredentialPlatform,
-  PageScope,
-  PostStatus,
+  formatPlatformLabel,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import type { IArticle, IReleaseGroup } from '@genfeedai/interfaces';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCalendarWeekRange } from '@hooks/utils/use-calendar-week-range/use-calendar-week-range';
-import type { Post } from '@models/content/post.model';
-import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
-import type { CalendarItem } from '@props/components/calendar.props';
+import type {
+  CalendarEventBadge,
+  CalendarEventDrop,
+  CalendarItem,
+} from '@props/components/calendar.props';
+import type {
+  ReleaseCalendarFilterOption,
+  ReleaseCalendarFilters as ReleaseFilters,
+} from '@props/publisher/release-calendar.props';
 import { ArticlesService } from '@services/content/articles.service';
-import { PostsService } from '@services/content/posts.service';
+import type { ReleaseGroupListQuery } from '@services/content/release-groups.service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -29,7 +34,18 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import EvergreenSeriesControls from './evergreen-series-controls';
-import ReleaseAnalyticsOverlay from './release-analytics-overlay';
+import ReleaseCalendarFilters, {
+  EMPTY_RELEASE_CALENDAR_FILTERS,
+} from './release-calendar-filters';
+import ReleaseDetailDrawer, {
+  RELEASE_RESCHEDULE_ACTION,
+  targetRescheduleAction,
+  targetRetryAction,
+} from './release-detail-drawer';
+import {
+  isReleaseReschedulable,
+  releaseStatusBadge,
+} from './release-status.helpers';
 
 const DEFAULT_COLOR = '#8b5cf6';
 const ARTICLE_STATUS_COLORS: Record<string, string> = {
@@ -37,11 +53,6 @@ const ARTICLE_STATUS_COLORS: Record<string, string> = {
   [ArticleStatus.DRAFT]: '#6b7280',
   [ArticleStatus.PUBLIC]: '#10b981',
 };
-
-interface PostContentCalendarItem extends CalendarItem {
-  itemType: 'post';
-  post: Post;
-}
 
 interface ArticleContentCalendarItem extends CalendarItem {
   article: IArticle;
@@ -54,54 +65,36 @@ interface ReleaseContentCalendarItem extends CalendarItem {
 }
 
 type ContentCalendarItem =
-  | PostContentCalendarItem
   | ArticleContentCalendarItem
   | ReleaseContentCalendarItem;
-
-function getPlatformColor(platform: string): string {
-  const platformKey = platform?.toLowerCase();
-  return (
-    PLATFORM_COLORS[platformKey as keyof typeof PLATFORM_COLORS]?.base ??
-    DEFAULT_COLOR
-  );
-}
 
 function getArticleColor(status: string): string {
   return ARTICLE_STATUS_COLORS[status] ?? DEFAULT_COLOR;
 }
 
-function getPostEventTitle(post: Post): string {
-  if (post.platform === CredentialPlatform.YOUTUBE) {
-    return post.label || 'Untitled';
-  }
-
-  return post.description || post.label || 'Untitled';
+function mutationErrorMessage(error: unknown): string {
+  return error instanceof Error
+    ? error.message
+    : 'The schedule change could not be saved.';
 }
 
-function isPostDisabled(post: Post): boolean {
-  if (post.status === PostStatus.PUBLIC) {
-    return true;
-  }
-
-  if (post.scheduledDate) {
-    return new Date(post.scheduledDate) < new Date();
-  }
-
-  return false;
+/** Earliest instant a release occupies, so a target-only schedule still lands. */
+function releaseInstant(release: IReleaseGroup): string | undefined {
+  return (
+    release.scheduledAt ??
+    release.targets?.find((target) => target.scheduledAt)?.scheduledAt ??
+    undefined
+  );
 }
 
 export default function ContentCalendarPage(): React.JSX.Element {
-  const { brandId } = useBrand();
+  const { brandId, credentials } = useBrand();
   const { push } = useRouter();
   const { href } = useOrgUrl();
 
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
     [],
-  );
-
-  const getPostsService = useAuthedService((token: string) =>
-    PostsService.getInstance(token),
   );
 
   const getArticlesService = useAuthedService((token: string) =>
@@ -112,13 +105,16 @@ export default function ContentCalendarPage(): React.JSX.Element {
     ReleaseGroupsService.getInstance(token),
   );
 
-  const [posts, setPosts] = useState<Post[]>([]);
   const [articles, setArticles] = useState<IArticle[]>([]);
   const [releases, setReleases] = useState<IReleaseGroup[]>([]);
-  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
-  const [selectedRelease, setSelectedRelease] = useState<IReleaseGroup | null>(
+  const [selectedReleaseId, setSelectedReleaseId] = useState<string | null>(
     null,
   );
+  const [filters, setFilters] = useState<ReleaseFilters>(
+    EMPTY_RELEASE_CALENDAR_FILTERS,
+  );
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [drawerError, setDrawerError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [dateRange, setDateRange] = useCalendarWeekRange();
 
@@ -127,90 +123,75 @@ export default function ContentCalendarPage(): React.JSX.Element {
       return;
     }
 
-    let isActive = true;
+    const controller = new AbortController();
 
     const loadContent = async () => {
       setIsLoading(true);
 
       try {
-        const [postsService, articlesService, releaseGroupsService] =
-          await Promise.all([
-            getPostsService(),
-            getArticlesService(),
-            getReleaseGroupsService(),
-          ]);
+        const [articlesService, releaseGroupsService] = await Promise.all([
+          getArticlesService(),
+          getReleaseGroupsService(),
+        ]);
 
-        const postsQuery: Record<string, string | boolean | undefined> = {
-          brandId,
-          endDate: dateRange.end.toISOString(),
-          pagination: false,
-          startDate: dateRange.start.toISOString(),
-        };
-
-        const articlesQuery: Record<string, string | undefined> = {
+        const window = {
           endDate: dateRange.end.toISOString(),
           startDate: dateRange.start.toISOString(),
         };
 
-        const [fetchedPosts, fetchedArticles, fetchedReleases] =
-          await Promise.all([
-            postsService.findAll(postsQuery),
-            articlesService.findAll(articlesQuery),
-            releaseGroupsService.findAll({
-              brandId,
-              endDate: dateRange.end.toISOString(),
-              startDate: dateRange.start.toISOString(),
-            }),
-          ]);
+        // Empty facets are omitted rather than sent as empty arrays: the DTO
+        // treats a present-but-empty filter as "match nothing".
+        const releasesQuery: ReleaseGroupListQuery = {
+          ...window,
+          ...(brandId ? { brandId } : {}),
+          ...(filters.credentialId.length
+            ? { credentialId: filters.credentialId }
+            : {}),
+          ...(filters.executionState.length
+            ? { executionState: filters.executionState }
+            : {}),
+          ...(filters.platform.length ? { platform: filters.platform } : {}),
+          ...(filters.source.length ? { source: filters.source } : {}),
+          ...(filters.status.length ? { status: filters.status } : {}),
+        };
 
-        if (!isActive) {
+        const [fetchedArticles, fetchedReleases] = await Promise.all([
+          articlesService.findAll(window),
+          releaseGroupsService.findAll(releasesQuery, controller.signal),
+        ]);
+
+        if (controller.signal.aborted) {
           return;
         }
 
-        setPosts(fetchedPosts);
         setArticles(fetchedArticles);
         setReleases(fetchedReleases);
       } catch (error) {
-        if (!isActive) {
+        if (controller.signal.aborted) {
           return;
         }
         logger.error('Failed to load calendar content', error);
         notificationsService.error('Failed to load calendar content');
       } finally {
-        if (isActive) {
+        if (!controller.signal.aborted) {
           setIsLoading(false);
         }
       }
     };
 
-    loadContent();
+    void loadContent();
 
-    return () => {
-      isActive = false;
-    };
+    return () => controller.abort();
   }, [
     dateRange,
     brandId,
-    getPostsService,
+    filters,
     getArticlesService,
     getReleaseGroupsService,
     notificationsService,
   ]);
 
   const calendarItems: ContentCalendarItem[] = useMemo(() => {
-    const releaseIds = new Set(releases.map((release) => release.id));
-    const postItems: PostContentCalendarItem[] = posts
-      .filter((post) => !post.groupId || !releaseIds.has(post.groupId))
-      .map((post) => ({
-        id: post.id,
-        isDisabled: isPostDisabled(post),
-        itemType: 'post',
-        post,
-        scheduledDate: post.scheduledDate ?? undefined,
-        status: post.platform || '',
-        title: getPostEventTitle(post),
-      }));
-
     const articleItems: ArticleContentCalendarItem[] = articles.map(
       (article) => ({
         article,
@@ -227,22 +208,81 @@ export default function ContentCalendarPage(): React.JSX.Element {
         id: release.id,
         itemType: 'release',
         release,
-        scheduledDate:
-          release.scheduledAt ??
-          release.targets?.find((target) => target.scheduledAt)?.scheduledAt ??
-          undefined,
+        scheduledDate: releaseInstant(release),
         status: release.status,
         title: release.title,
       }),
     );
 
-    return [...releaseItems, ...postItems, ...articleItems];
-  }, [posts, articles, releases]);
-  const selectedGroupId = useMemo(
+    return [...releaseItems, ...articleItems];
+  }, [articles, releases]);
+
+  const selectedRelease = useMemo(
+    () => releases.find((release) => release.id === selectedReleaseId) ?? null,
+    [releases, selectedReleaseId],
+  );
+
+  const credentialOptions: ReleaseCalendarFilterOption[] = useMemo(
     () =>
-      selectedRelease?.id ??
-      posts.find((post) => post.id === selectedPostId)?.groupId,
-    [posts, selectedPostId, selectedRelease],
+      credentials.map((credential) => ({
+        label:
+          credential.label ||
+          credential.externalName ||
+          credential.externalHandle ||
+          (formatPlatformLabel(credential.platform) ?? credential.platform),
+        value: credential.id,
+      })),
+    [credentials],
+  );
+
+  const platformOptions: ReleaseCalendarFilterOption[] = useMemo(() => {
+    const seen = new Map<string, ReleaseCalendarFilterOption>();
+    for (const credential of credentials) {
+      if (!seen.has(credential.platform)) {
+        seen.set(credential.platform, {
+          label:
+            formatPlatformLabel(credential.platform) ?? credential.platform,
+          value: credential.platform,
+        });
+      }
+    }
+
+    return [...seen.values()];
+  }, [credentials]);
+
+  /**
+   * Every schedule mutation shares one path: apply the server's response, or
+   * undo whatever the UI already showed and surface the failure. `revert` is the
+   * calendar's own undo for a drag; state mutations restore the prior list.
+   */
+  const runMutation = useCallback(
+    async (
+      action: string,
+      mutation: (service: ReleaseGroupsService) => Promise<IReleaseGroup>,
+      onFailure?: () => void,
+    ): Promise<void> => {
+      setPendingAction(action);
+      setDrawerError(null);
+
+      try {
+        const service = await getReleaseGroupsService();
+        const updated = await mutation(service);
+        setReleases((current) =>
+          current.map((release) =>
+            release.id === updated.id ? updated : release,
+          ),
+        );
+      } catch (error) {
+        onFailure?.();
+        const message = mutationErrorMessage(error);
+        logger.error('Failed to update release schedule', error);
+        setDrawerError(message);
+        notificationsService.error(message);
+      } finally {
+        setPendingAction(null);
+      }
+    },
+    [getReleaseGroupsService, notificationsService],
   );
 
   const handleEventClick = useCallback(
@@ -252,14 +292,8 @@ export default function ContentCalendarPage(): React.JSX.Element {
         return;
       }
 
-      if (item.itemType === 'release') {
-        setSelectedPostId(null);
-        setSelectedRelease(item.release);
-        return;
-      }
-
-      setSelectedRelease(null);
-      setSelectedPostId(item.post.id);
+      setDrawerError(null);
+      setSelectedReleaseId(item.release.id);
     },
     [push],
   );
@@ -276,23 +310,118 @@ export default function ContentCalendarPage(): React.JSX.Element {
       return getArticleColor(item.status);
     }
 
-    if (item.itemType === 'release') {
-      return DEFAULT_COLOR;
-    }
-
-    return getPlatformColor(item.status);
+    return DEFAULT_COLOR;
   }, []);
 
+  const getEventBadge = useCallback(
+    (item: ContentCalendarItem): CalendarEventBadge | null =>
+      item.itemType === 'release' ? releaseStatusBadge(item.release) : null,
+    [],
+  );
+
+  const isItemDraggable = useCallback(
+    (item: ContentCalendarItem): boolean =>
+      item.itemType === 'release' && isReleaseReschedulable(item.release),
+    [],
+  );
+
+  const handleEventDrop = useCallback(
+    (change: CalendarEventDrop<ContentCalendarItem>) => {
+      if (change.item.itemType !== 'release') {
+        change.revert();
+        return;
+      }
+
+      const { release } = change.item;
+      const scheduledDate = change.start.toISOString();
+      const previous = releases;
+
+      // Optimistic: the event is already in its new slot, so the list has to
+      // agree before the request resolves or the drawer contradicts the grid.
+      setReleases((current) =>
+        current.map((entry) =>
+          entry.id === release.id
+            ? { ...entry, scheduledAt: scheduledDate }
+            : entry,
+        ),
+      );
+
+      void runMutation(
+        RELEASE_RESCHEDULE_ACTION,
+        (service) => service.update(release.id, { scheduledDate }),
+        () => {
+          change.revert();
+          setReleases(previous);
+        },
+      );
+    },
+    [releases, runMutation],
+  );
+
+  const handleRescheduleRelease = useCallback(
+    (scheduledDate: string) => {
+      if (!selectedReleaseId) {
+        return;
+      }
+
+      void runMutation(RELEASE_RESCHEDULE_ACTION, (service) =>
+        service.update(selectedReleaseId, { scheduledDate }),
+      );
+    },
+    [runMutation, selectedReleaseId],
+  );
+
+  const handleRescheduleTarget = useCallback(
+    (targetId: string, scheduledDate: string) => {
+      if (!selectedReleaseId) {
+        return;
+      }
+
+      void runMutation(targetRescheduleAction(targetId), (service) =>
+        service.updateTarget(selectedReleaseId, targetId, { scheduledDate }),
+      );
+    },
+    [runMutation, selectedReleaseId],
+  );
+
+  /**
+   * A manual retry is expressed as moving a failed target back to `scheduled`.
+   * The API turns that transition into a fresh publish attempt — there is no
+   * separate retry endpoint to call.
+   */
+  const handleRetryTarget = useCallback(
+    (targetId: string) => {
+      if (!selectedReleaseId) {
+        return;
+      }
+
+      void runMutation(targetRetryAction(targetId), (service) =>
+        service.updateTarget(selectedReleaseId, targetId, {
+          executionState: TargetExecutionState.SCHEDULED,
+        }),
+      );
+    },
+    [runMutation, selectedReleaseId],
+  );
+
   const filterControls = (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
+      <ReleaseCalendarFilters
+        credentialOptions={credentialOptions}
+        filters={filters}
+        onChange={setFilters}
+        platformOptions={platformOptions}
+      />
       <Link
         href={href(getPublisherPostsHref())}
+        aria-label="Open the list view"
         className="inline-flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-secondary/80 size-9 transition-colors"
       >
         <List />
       </Link>
       <Link
         href={COMPOSE_ROUTES.ARTICLE}
+        aria-label="Write an article"
         className="inline-flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-secondary/80 size-9 transition-colors"
       >
         <FileText />
@@ -302,17 +431,17 @@ export default function ContentCalendarPage(): React.JSX.Element {
 
   const modal = (
     <>
-      <PostDetailOverlay
-        postId={selectedPostId}
-        scope={PageScope.PUBLISHER}
-        onClose={() => setSelectedPostId(null)}
-      />
-      <ReleaseAnalyticsOverlay
+      <ReleaseDetailDrawer
+        error={drawerError}
+        onClose={() => setSelectedReleaseId(null)}
+        onRescheduleRelease={handleRescheduleRelease}
+        onRescheduleTarget={handleRescheduleTarget}
+        onRetryTarget={handleRetryTarget}
+        pendingAction={pendingAction}
         release={selectedRelease}
-        onClose={() => setSelectedRelease(null)}
       />
-      {selectedGroupId ? (
-        <EvergreenSeriesControls groupId={selectedGroupId} />
+      {selectedRelease ? (
+        <EvergreenSeriesControls groupId={selectedRelease.id} />
       ) : null}
     </>
   );
@@ -336,6 +465,9 @@ export default function ContentCalendarPage(): React.JSX.Element {
       onEventClick={handleEventClick}
       onDatesChange={handleDatesChange}
       getEventColor={getEventColor}
+      getEventBadge={getEventBadge}
+      isItemDraggable={isItemDraggable}
+      onEventDrop={handleEventDrop}
       filterControls={filterControls}
       modal={modal}
       emptyState={emptyState}

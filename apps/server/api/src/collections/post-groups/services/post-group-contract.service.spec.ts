@@ -7,6 +7,7 @@ import { PostGroupContractService } from '@api/collections/post-groups/services/
 import {
   CredentialPlatform,
   ReleaseStatus,
+  ReleaseTargetSource,
   TargetAnalyticsCapability,
   TargetAnalyticsCollectionState,
   TargetAnalyticsFreshness,
@@ -248,6 +249,35 @@ describe('PostGroupContractService', () => {
     expect(() => service.parseCredentialPlatform('unsupported')).toThrow(
       'not supported',
     );
+  });
+
+  it.each([
+    {
+      expected: ReleaseTargetSource.MANUAL,
+      name: 'a target with no provenance',
+      overrides: {},
+    },
+    {
+      expected: ReleaseTargetSource.AGENT,
+      name: 'a target carrying only agent provenance',
+      overrides: { agentRunId: 'run-1' },
+    },
+    {
+      expected: ReleaseTargetSource.AGENT,
+      name: 'a target whose only provenance is a context source',
+      overrides: { agentContextSource: 'brand-voice' },
+    },
+    {
+      expected: ReleaseTargetSource.WORKFLOW,
+      name: 'a target executed by a workflow despite agent provenance',
+      overrides: { agentRunId: 'run-1', workflowExecutionId: 'execution-1' },
+    },
+  ])('derives $expected for $name', ({ expected, overrides }) => {
+    const release = service.toReleaseGroup(makeGroup(), [
+      makeTarget(overrides),
+    ]);
+
+    expect(release.targets?.[0]?.source).toBe(expected);
   });
 
   it('matches only the provenance fields supplied by the caller', () => {

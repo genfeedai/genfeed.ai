@@ -6,7 +6,10 @@ import type {
 } from '@api-types/contracts';
 import { ReleaseStatus } from '@genfeedai/enums';
 import type { IRecurrenceRule, IReleaseGroup } from '@genfeedai/interfaces';
-import { createDateFromTimezone } from '@helpers/formatting/timezone/timezone.helper';
+import {
+  fromDateTimeLocalInput,
+  toDateTimeLocalInput,
+} from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -18,63 +21,13 @@ type EvergreenSeriesControlsProps = {
   groupId: string;
 };
 
-function toLocalDateTimeInput(
-  value: string | null | undefined,
-  timezone: string,
-): string {
-  if (!value) {
-    return '';
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return '';
-  }
-
-  try {
-    const parts = new Map(
-      new Intl.DateTimeFormat('en-US-u-ca-gregory-nu-latn', {
-        day: '2-digit',
-        hour: '2-digit',
-        hourCycle: 'h23',
-        minute: '2-digit',
-        month: '2-digit',
-        timeZone: timezone,
-        year: 'numeric',
-      })
-        .formatToParts(date)
-        .filter((part) => part.type !== 'literal')
-        .map((part) => [part.type, part.value]),
-    );
-    const year = parts.get('year');
-    const month = parts.get('month');
-    const day = parts.get('day');
-    const hour = parts.get('hour');
-    const minute = parts.get('minute');
-    if (!year || !month || !day || !hour || !minute) {
-      return '';
-    }
-
-    return `${year}-${month}-${day}T${hour}:${minute}`;
-  } catch {
-    return '';
-  }
-}
-
 function scheduledDateToISOString(value: string, timezone: string): string {
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
-  if (!match) {
+  const isoString = fromDateTimeLocalInput(value, timezone);
+  if (!isoString) {
     throw new Error('The next occurrence date is invalid.');
   }
 
-  return createDateFromTimezone(
-    Number.parseInt(match[1], 10),
-    Number.parseInt(match[2], 10),
-    Number.parseInt(match[3], 10),
-    Number.parseInt(match[4], 10),
-    Number.parseInt(match[5], 10),
-    timezone,
-  ).toISOString();
+  return isoString;
 }
 
 function recurrenceInput(rule: IRecurrenceRule): RecurrenceInput {
@@ -123,7 +76,7 @@ export default function EvergreenSeriesControls({
         }
         setRelease(nextRelease);
         setScheduledDate(
-          toLocalDateTimeInput(nextRelease.scheduledAt, nextRelease.timezone),
+          toDateTimeLocalInput(nextRelease.scheduledAt, nextRelease.timezone),
         );
       } catch (loadError) {
         if (!signal?.aborted) {
@@ -205,7 +158,7 @@ export default function EvergreenSeriesControls({
         const nextRelease = await mutation(service);
         setRelease(nextRelease);
         setScheduledDate(
-          toLocalDateTimeInput(nextRelease.scheduledAt, nextRelease.timezone),
+          toDateTimeLocalInput(nextRelease.scheduledAt, nextRelease.timezone),
         );
         setIsConfirmingCancel(false);
         notifications.success(successMessage);

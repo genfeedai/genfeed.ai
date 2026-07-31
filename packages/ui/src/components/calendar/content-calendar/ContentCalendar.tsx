@@ -2,6 +2,7 @@
 
 import type {
   CalendarItem,
+  CalendarViewKey,
   ContentCalendarProps,
 } from '@genfeedai/props/components/calendar.props';
 import Card from '@ui/card/Card';
@@ -9,6 +10,8 @@ import type {
   CalendarOptions,
   DatesSetInfo,
   EventClickInfo,
+  EventDisplayInfo,
+  EventDropInfo,
   EventInput,
   Calendar as FullCalendarInstance,
 } from 'fullcalendar';
@@ -37,6 +40,23 @@ const calendarThemeStyle = {
   '--fc-classic-border': 'rgba(255, 255, 255, 0.06)',
   '--fc-classic-strong-border': 'rgba(255, 255, 255, 0.06)',
 } as CSSProperties;
+
+/**
+ * Product view names → FullCalendar view ids. Hosts pick layouts by intent
+ * (`month`) and never name the plugin-specific view (`dayGridMonth`).
+ */
+const VIEW_IDS: Record<CalendarViewKey, string> = {
+  day: 'timeGridDay',
+  list: 'listWeek',
+  month: 'dayGridMonth',
+  week: 'timeGridWeek',
+};
+
+const DEFAULT_VIEWS: CalendarViewKey[] = ['day', 'week', 'month', 'list'];
+
+function toViewId(view: CalendarViewKey): string {
+  return VIEW_IDS[view];
+}
 
 function isSameDateRange(
   dateRange: CalendarDateRange | null,
@@ -68,13 +88,21 @@ function FullCalendarHost({ options }: FullCalendarHostProps) {
       setLoadError(null);
 
       try {
-        const [coreModule, timeGridModule, interactionModule, themeModule] =
-          await Promise.all([
-            import('fullcalendar'),
-            import('fullcalendar/timegrid'),
-            import('fullcalendar/interaction'),
-            import('fullcalendar/themes/classic'),
-          ]);
+        const [
+          coreModule,
+          timeGridModule,
+          dayGridModule,
+          listModule,
+          interactionModule,
+          themeModule,
+        ] = await Promise.all([
+          import('fullcalendar'),
+          import('fullcalendar/timegrid'),
+          import('fullcalendar/daygrid'),
+          import('fullcalendar/list'),
+          import('fullcalendar/interaction'),
+          import('fullcalendar/themes/classic'),
+        ]);
 
         if (signal.aborted || !elementRef.current) {
           return;
@@ -85,6 +113,8 @@ function FullCalendarHost({ options }: FullCalendarHostProps) {
           plugins: [
             themeModule.default,
             timeGridModule.default,
+            dayGridModule.default,
+            listModule.default,
             interactionModule.default,
           ],
         });
@@ -125,21 +155,42 @@ export default function ContentCalendar<T extends CalendarItem>({
   onEventClick,
   onDatesChange,
   getEventColor,
+  getEventBadge,
+  isItemDraggable,
+  onEventDrop,
+  initialView = 'week',
+  views = DEFAULT_VIEWS,
   filterControls,
   modal,
   emptyState,
 }: ContentCalendarProps<T>) {
   const dateRangeRef = useRef<CalendarDateRange | null>(null);
   const [, setDateRange] = useState<CalendarDateRange | null>(null);
+  /**
+   * The calendar instance is destroyed and rebuilt whenever its options change
+   * (a new `items` array is enough), so the active view has to survive outside
+   * the instance or every data refresh would snap the operator back to the
+   * initial layout. A ref rather than state on purpose: the value is only read
+   * when the options are next rebuilt, and holding it in state would rebuild the
+   * calendar a second time on every view switch.
+   */
+  const viewIdRef = useRef<string>(toViewId(initialView));
+
+  const isDragEnabled = Boolean(isItemDraggable && onEventDrop);
 
   const events: EventInput[] = useMemo(
     () =>
       items.reduce<EventInput[]>((acc, item) => {
         if (item.scheduledDate) {
           const color = getEventColor(item);
+          const isDraggable = Boolean(
+            isDragEnabled && !item.isDisabled && isItemDraggable?.(item),
+          );
           acc.push({
             className: item.isDisabled ? 'event-disabled' : '',
             color,
+            durationEditable: false,
+            editable: isDraggable,
             extendedProps: {
               isDisabled: item.isDisabled,
               item,
@@ -151,7 +202,7 @@ export default function ContentCalendar<T extends CalendarItem>({
         }
         return acc;
       }, []),
-    [items, getEventColor],
+    [items, getEventColor, isDragEnabled, isItemDraggable],
   );
 
   const handleEventClick = useCallback(
@@ -165,8 +216,67 @@ export default function ContentCalendar<T extends CalendarItem>({
     [onEventClick],
   );
 
+  const handleEventDrop = useCallback(
+    (info: EventDropInfo) => {
+      const item = info.event.extendedProps.item as T | undefined;
+      const start = info.event.start;
+
+      // An all-day drop in month view can clear the start instant. There is no
+      // schedule to send in that case, so put the event back rather than
+      // guessing a time on the operator's behalf.
+      if (!item || !start) {
+        info.revert();
+        return;
+      }
+
+      onEventDrop?.({ item, revert: info.revert, start });
+    },
+    [onEventDrop],
+  );
+
+  const handleEventContent = useCallback(
+    (info: EventDisplayInfo): true | { domNodes: HTMLElement[] } => {
+      const item = info.event.extendedProps.item as T | undefined;
+      const badge = item && getEventBadge ? getEventBadge(item) : null;
+
+      if (!badge) {
+        return true;
+      }
+
+      const container = document.createElement('div');
+      container.className = 'gen-calendar-event';
+
+      // List views render the time in their own cell, so repeating it here would
+      // duplicate it on every row.
+      if (info.timeText && !info.view.type.startsWith('list')) {
+        const time = document.createElement('span');
+        time.className = 'gen-calendar-event-time';
+        time.textContent = info.timeText;
+        container.appendChild(time);
+      }
+
+      const title = document.createElement('span');
+      title.className = 'gen-calendar-event-title';
+      title.textContent = info.event.title;
+      container.appendChild(title);
+
+      const badgeNode = document.createElement('span');
+      badgeNode.className = `gen-calendar-event-badge gen-calendar-event-badge--${badge.tone}`;
+      badgeNode.textContent = badge.label;
+      container.appendChild(badgeNode);
+
+      return { domNodes: [container] };
+    },
+    [getEventBadge],
+  );
+
   const handleDatesSet = useCallback(
     (arg: DatesSetInfo) => {
+      // Recorded before the range check on purpose: switching week → list keeps
+      // the identical range, and losing that switch would reset the layout on
+      // the next data refresh.
+      viewIdRef.current = arg.view.type;
+
       if (isSameDateRange(dateRangeRef.current, arg.start, arg.end)) {
         return;
       }
@@ -183,13 +293,21 @@ export default function ContentCalendar<T extends CalendarItem>({
     [onDatesChange],
   );
 
+  const viewSwitcher = useMemo(
+    () => (views.length > 1 ? views.map(toViewId).join(',') : ''),
+    [views],
+  );
+
   const calendarOptions: CalendarOptions = useMemo(
     () => ({
       allDaySlot: false,
       contentHeight: 'auto',
       datesSet: handleDatesSet,
       defaultTimedEventDuration: '00:15:00',
+      editable: isDragEnabled,
       eventClick: handleEventClick,
+      eventContent: handleEventContent,
+      eventDrop: handleEventDrop,
       eventTimeFormat: {
         hour: '2-digit',
         meridiem: false,
@@ -200,17 +318,25 @@ export default function ContentCalendar<T extends CalendarItem>({
       headerToolbar: {
         center: 'title',
         left: 'prev,next',
-        right: '',
+        right: viewSwitcher,
       },
       height: 'auto',
-      initialView: 'timeGridWeek',
+      initialView: viewIdRef.current,
       nowIndicator: true,
       slotDuration: '00:15:00',
       slotMaxTime: '24:00:00',
       slotMinTime: '00:00:00',
       snapDuration: '00:15:00',
     }),
-    [events, handleEventClick, handleDatesSet],
+    [
+      events,
+      handleEventClick,
+      handleEventContent,
+      handleEventDrop,
+      handleDatesSet,
+      isDragEnabled,
+      viewSwitcher,
+    ],
   );
 
   return (

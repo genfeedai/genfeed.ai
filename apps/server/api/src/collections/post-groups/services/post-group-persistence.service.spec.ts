@@ -12,6 +12,7 @@ import {
   CredentialPlatform,
   ReleaseAttachmentKind,
   ReleaseStatus,
+  ReleaseTargetSource,
   TargetExecutionState,
   TargetValidationState,
 } from '@genfeedai/enums';
@@ -367,6 +368,163 @@ describe('PostGroupPersistenceService', () => {
       'group-a',
       'group-b',
     ]);
+  });
+
+  it('narrows the calendar to releases owning a target that matches the platform, credential, and execution-state filters', async () => {
+    prisma.post.groupBy
+      .mockResolvedValueOnce([{ groupId: 'group-target' }])
+      .mockResolvedValueOnce([{ groupId: 'group-target' }]);
+    prisma.postGroup.findMany.mockResolvedValue([
+      makeGroup({ id: 'group-target' }),
+    ]);
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({ groupId: 'group-target' }),
+    ]);
+
+    await service.listReleaseGroups({
+      brandId: 'brand-1',
+      credentialIds: ['credential-1'],
+      endDate: new Date('2026-07-27T00:00:00.000Z'),
+      executionStates: [TargetExecutionState.FAILED],
+      organizationId: 'org-1',
+      platforms: [CredentialPlatform.INSTAGRAM],
+      startDate: new Date('2026-07-20T00:00:00.000Z'),
+    });
+
+    // The window is already enforced on the release, so the target-attribute
+    // pass deliberately omits `scheduledDate`.
+    expect(prisma.post.groupBy).toHaveBeenNthCalledWith(2, {
+      by: ['groupId'],
+      where: {
+        brandId: 'brand-1',
+        credentialId: { in: ['credential-1'] },
+        groupId: { not: null },
+        isDeleted: false,
+        organizationId: 'org-1',
+        parentId: null,
+        platform: { in: [CredentialPlatform.INSTAGRAM] },
+        targetExecutionState: { in: [TargetExecutionState.FAILED] },
+      },
+    });
+    expect(prisma.postGroup.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: { in: ['group-target'] },
+        }),
+      }),
+    );
+  });
+
+  it('translates derived source filters back into the provenance columns they come from', async () => {
+    prisma.post.groupBy
+      .mockResolvedValueOnce([{ groupId: 'group-target' }])
+      .mockResolvedValueOnce([{ groupId: 'group-target' }]);
+    prisma.postGroup.findMany.mockResolvedValue([
+      makeGroup({ id: 'group-target' }),
+    ]);
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({ groupId: 'group-target' }),
+    ]);
+
+    await service.listReleaseGroups({
+      endDate: new Date('2026-07-27T00:00:00.000Z'),
+      organizationId: 'org-1',
+      sources: [ReleaseTargetSource.MANUAL, ReleaseTargetSource.WORKFLOW],
+      startDate: new Date('2026-07-20T00:00:00.000Z'),
+    });
+
+    expect(prisma.post.groupBy).toHaveBeenNthCalledWith(2, {
+      by: ['groupId'],
+      where: {
+        groupId: { not: null },
+        isDeleted: false,
+        OR: [
+          {
+            agentContextSource: null,
+            agentRunId: null,
+            agentStrategyId: null,
+            agentThreadId: null,
+            workflowExecutionId: null,
+          },
+          { workflowExecutionId: { not: null } },
+        ],
+        organizationId: 'org-1',
+        parentId: null,
+      },
+    });
+  });
+
+  it('excludes workflow-executed targets from the agent source filter', async () => {
+    prisma.post.groupBy
+      .mockResolvedValueOnce([{ groupId: 'group-target' }])
+      .mockResolvedValueOnce([{ groupId: 'group-target' }]);
+    prisma.postGroup.findMany.mockResolvedValue([
+      makeGroup({ id: 'group-target' }),
+    ]);
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({ groupId: 'group-target' }),
+    ]);
+
+    await service.listReleaseGroups({
+      endDate: new Date('2026-07-27T00:00:00.000Z'),
+      organizationId: 'org-1',
+      sources: [ReleaseTargetSource.AGENT],
+      startDate: new Date('2026-07-20T00:00:00.000Z'),
+    });
+
+    expect(prisma.post.groupBy).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: [
+            {
+              OR: [
+                { agentRunId: { not: null } },
+                { agentThreadId: { not: null } },
+                { agentStrategyId: { not: null } },
+                { agentContextSource: { not: null } },
+              ],
+              workflowExecutionId: null,
+            },
+          ],
+        }),
+      }),
+    );
+  });
+
+  it('returns nothing and skips the release query when no target matches the filters', async () => {
+    prisma.post.groupBy
+      .mockResolvedValueOnce([{ groupId: 'group-target' }])
+      .mockResolvedValueOnce([]);
+
+    await expect(
+      service.listReleaseGroups({
+        endDate: new Date('2026-07-27T00:00:00.000Z'),
+        organizationId: 'org-1',
+        platforms: [CredentialPlatform.TIKTOK],
+        startDate: new Date('2026-07-20T00:00:00.000Z'),
+      }),
+    ).resolves.toEqual([]);
+    expect(prisma.postGroup.findMany).not.toHaveBeenCalled();
+  });
+
+  it('skips the target-attribute pass entirely when no target filter is requested', async () => {
+    prisma.post.groupBy.mockResolvedValue([]);
+    prisma.postGroup.findMany.mockResolvedValue([]);
+
+    await service.listReleaseGroups({
+      endDate: new Date('2026-07-27T00:00:00.000Z'),
+      organizationId: 'org-1',
+      startDate: new Date('2026-07-20T00:00:00.000Z'),
+      statuses: [ReleaseStatus.SCHEDULED],
+    });
+
+    expect(prisma.post.groupBy).toHaveBeenCalledTimes(1);
+    expect(prisma.postGroup.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.not.objectContaining({ id: expect.anything() }),
+      }),
+    );
   });
 
   it('creates only platform-compatible thread and comment child posts', async () => {

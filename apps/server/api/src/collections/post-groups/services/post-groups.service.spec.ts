@@ -11,6 +11,7 @@ import {
   CredentialPlatform,
   PublishApprovalStatus,
   ReleaseStatus,
+  ReleaseTargetSource,
   TargetExecutionState,
   TargetValidationState,
 } from '@genfeedai/enums';
@@ -278,6 +279,32 @@ describe('PostGroupsService', () => {
           brandId: 'brand-1',
           organizationId: 'org-1',
           status: { in: [ReleaseStatus.SCHEDULED] },
+        }),
+      }),
+    );
+  });
+
+  it('forwards the target-scoped calendar filters to persistence', async () => {
+    prisma.post.groupBy.mockResolvedValue([{ groupId: 'group-1' }]);
+
+    await service.list('org-1', {
+      credentialId: ['credential-1'],
+      endDate: '2026-07-27T00:00:00.000Z',
+      executionState: [TargetExecutionState.FAILED],
+      platform: [CredentialPlatform.INSTAGRAM],
+      source: [ReleaseTargetSource.WORKFLOW],
+      startDate: '2026-07-20T00:00:00.000Z',
+    });
+
+    expect(prisma.post.groupBy).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          credentialId: { in: ['credential-1'] },
+          OR: [{ workflowExecutionId: { not: null } }],
+          organizationId: 'org-1',
+          platform: { in: [CredentialPlatform.INSTAGRAM] },
+          targetExecutionState: { in: [TargetExecutionState.FAILED] },
         }),
       }),
     );

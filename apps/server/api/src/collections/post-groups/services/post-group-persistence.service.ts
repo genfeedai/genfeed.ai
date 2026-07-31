@@ -19,6 +19,7 @@ import {
 import {
   ReleaseAttachmentKind,
   ReleaseStatus,
+  ReleaseTargetSource,
   TargetExecutionState,
 } from '@genfeedai/enums';
 import type { IReleaseGroup } from '@genfeedai/interfaces';
@@ -252,11 +253,20 @@ export class PostGroupPersistenceService {
       scheduleFilters.push({ id: { in: targetGroupIds } });
     }
 
+    // Target-scoped filters are deliberately evaluated without the date window:
+    // the window is already applied to the group above, and a target can sit
+    // outside it while its release is in view.
+    const matchedGroupIds = await this.matchTargetFilteredGroupIds(query);
+    if (matchedGroupIds !== null && matchedGroupIds.length === 0) {
+      return [];
+    }
+
     const groups = (await this.prisma.postGroup.findMany({
       orderBy: { id: 'asc' },
       where: scopedWhere(query.organizationId, {
         ...(query.brandId ? { brandId: query.brandId } : {}),
         OR: scheduleFilters,
+        ...(matchedGroupIds ? { id: { in: matchedGroupIds } } : {}),
         ...(query.statuses?.length ? { status: { in: query.statuses } } : {}),
       }),
     })) as SchedulerPostGroup[];
@@ -306,6 +316,83 @@ export class PostGroupPersistenceService {
           this.getEarliestSchedule(left) - this.getEarliestSchedule(right);
         return scheduleOrder || left.id.localeCompare(right.id);
       });
+  }
+
+  /**
+   * Translates one derived {@link ReleaseTargetSource} back into the durable
+   * provenance columns it is computed from, mirroring
+   * `PostGroupContractService.toTargetSource` exactly: a workflow execution wins
+   * over agent provenance, and manual means no provenance at all.
+   */
+  private toSourceWhere(source: ReleaseTargetSource): Prisma.PostWhereInput {
+    const agentProvenance: Prisma.PostWhereInput[] = [
+      { agentRunId: { not: null } },
+      { agentThreadId: { not: null } },
+      { agentStrategyId: { not: null } },
+      { agentContextSource: { not: null } },
+    ];
+
+    if (source === ReleaseTargetSource.WORKFLOW) {
+      return { workflowExecutionId: { not: null } };
+    }
+
+    if (source === ReleaseTargetSource.AGENT) {
+      return { OR: agentProvenance, workflowExecutionId: null };
+    }
+
+    return {
+      agentContextSource: null,
+      agentRunId: null,
+      agentStrategyId: null,
+      agentThreadId: null,
+      workflowExecutionId: null,
+    };
+  }
+
+  /**
+   * Resolves the releases that own at least one channel target matching the
+   * target-scoped calendar filters (platform, credential, execution state,
+   * source).
+   *
+   * Returns `null` when no target filter was requested, so the caller can skip
+   * the `id IN (...)` narrowing entirely rather than intersecting with an
+   * every-release list.
+   */
+  private async matchTargetFilteredGroupIds(
+    query: ReleaseGroupListQuery,
+  ): Promise<string[] | null> {
+    const targetFilters: Prisma.PostWhereInput = {
+      ...(query.platforms?.length ? { platform: { in: query.platforms } } : {}),
+      ...(query.credentialIds?.length
+        ? { credentialId: { in: query.credentialIds } }
+        : {}),
+      ...(query.executionStates?.length
+        ? { targetExecutionState: { in: query.executionStates } }
+        : {}),
+      ...(query.sources?.length
+        ? {
+            OR: query.sources.map((source) => this.toSourceWhere(source)),
+          }
+        : {}),
+    };
+
+    if (Object.keys(targetFilters).length === 0) {
+      return null;
+    }
+
+    const rows = await this.prisma.post.groupBy({
+      by: ['groupId'],
+      where: scopedWhere(query.organizationId, {
+        ...(query.brandId ? { brandId: query.brandId } : {}),
+        groupId: { not: null },
+        parentId: null,
+        ...targetFilters,
+      }),
+    });
+
+    return [
+      ...new Set(rows.flatMap((row) => (row.groupId ? [row.groupId] : []))),
+    ];
   }
 
   async resolveCredentials(

@@ -1,9 +1,17 @@
 import type {
   RecurrencePreviewInput,
   RecurrencePreviewResult,
+  UpdateChannelTargetInput,
   UpdateRecurrenceSeriesInput,
+  UpdateReleaseGroupInput,
 } from '@api-types/contracts';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import type {
+  CredentialPlatform,
+  ReleaseStatus,
+  ReleaseTargetSource,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import type { IReleaseGroup } from '@genfeedai/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
@@ -14,10 +22,24 @@ import {
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
 
+/**
+ * Calendar window plus its filters. `status` narrows the release; the remaining
+ * filters are target-scoped, so a release stays in the result when *any* of its
+ * channel targets matches.
+ *
+ * Array values are serialized as repeated query keys by
+ * {@link HTTPBaseService}'s params serializer, which is the shape
+ * `PostGroupsQueryDto` normalizes.
+ */
 export interface ReleaseGroupListQuery {
   brandId?: string;
+  credentialId?: string[];
   endDate: string;
+  executionState?: TargetExecutionState[];
+  platform?: CredentialPlatform[];
+  source?: ReleaseTargetSource[];
   startDate: string;
+  status?: ReleaseStatus[];
 }
 
 export class ReleaseGroupsService extends HTTPBaseService {
@@ -35,9 +57,13 @@ export class ReleaseGroupsService extends HTTPBaseService {
     ) as ReleaseGroupsService;
   }
 
-  async findAll(query: ReleaseGroupListQuery): Promise<IReleaseGroup[]> {
+  async findAll(
+    query: ReleaseGroupListQuery,
+    signal?: AbortSignal,
+  ): Promise<IReleaseGroup[]> {
     const response = await this.instance.get<JsonApiResponseDocument>('', {
       params: query,
+      signal,
     });
 
     return extractCollection<IReleaseGroup>(response.data);
@@ -131,6 +157,39 @@ export class ReleaseGroupsService extends HTTPBaseService {
     const response = await this.instance.patch<JsonApiResponseDocument>(
       `/${groupId}`,
       { action: 'cancel' },
+    );
+    return deserializeResource<IReleaseGroup>(response.data);
+  }
+
+  /**
+   * Partial edit of a release's shared fields — the release-level reschedule
+   * path when `scheduledDate` is supplied.
+   */
+  async update(
+    groupId: string,
+    input: UpdateReleaseGroupInput,
+  ): Promise<IReleaseGroup> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `/${groupId}`,
+      input,
+    );
+    return deserializeResource<IReleaseGroup>(response.data);
+  }
+
+  /**
+   * Partial edit of a single channel target. Covers a per-target reschedule
+   * (`scheduledDate`) and a manual retry of a failed target
+   * (`executionState: scheduled`), which the API turns into a fresh publish
+   * attempt rather than a bare column write.
+   */
+  async updateTarget(
+    groupId: string,
+    targetId: string,
+    input: UpdateChannelTargetInput,
+  ): Promise<IReleaseGroup> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `/${groupId}/targets/${targetId}`,
+      input,
     );
     return deserializeResource<IReleaseGroup>(response.data);
   }
