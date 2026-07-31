@@ -155,7 +155,7 @@ export function createNavigationCommands(
     },
     {
       action: () => {
-        navigate(`${brandPath}/workflows`);
+        navigate(`${brandPath}/orchestration/workflows`);
       },
       category: 'navigation',
       condition: () => EnvironmentService.currentApp !== 'app',

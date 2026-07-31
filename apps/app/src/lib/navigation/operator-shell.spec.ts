@@ -67,19 +67,16 @@ describe('operator-shell helpers', () => {
     expect(resolveOrganizationScopePath('/studio/image')).toBe('/studio/image');
   });
 
-  it('gates the first-asset unlock sections (and their aliases) only', () => {
-    // Gated sections + Workspace/Workflows aliases.
+  it('gates the first-asset unlock sections (and their subpaths) only', () => {
+    // Every gated section prefix, plus a nested path under one of them.
     for (const gated of [
       '/workspace',
-      '/workspace',
-      '/overview',
       '/workspace/tasks',
-      '/library',
+      '/overview',
       '/library',
       '/analytics',
-      '/analytics',
       '/orchestration',
-      '/orchestration',
+      '/orchestration/workflows',
       '/posts/calendar',
     ]) {
       expect(isAssetGateSectionPath(gated)).toBe(true);

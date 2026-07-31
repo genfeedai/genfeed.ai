@@ -1467,6 +1467,7 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({ isWorkspaceShell: true }),
     );
     expect(screen.getByText('Workflow editor')).toBeInTheDocument();
+    // Canvas route: the graph editor owns the left rail, so no module sidebar.
     expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
     expect(screen.getByTestId('app-layout')).toBeInTheDocument();
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();

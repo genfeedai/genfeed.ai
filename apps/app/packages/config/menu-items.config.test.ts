@@ -119,9 +119,7 @@ describe('APP_MENU_ITEMS', () => {
   it('does not expose Operations or Create groups (workflows now live in their own sidebar)', () => {
     const hrefs = APP_MENU_ITEMS.map((item) => item.href);
 
-    expect(hrefs).not.toContain('/workflows/executions');
-    expect(hrefs).not.toContain('/workflows/autopilot');
-    expect(hrefs).not.toContain('/workflows/configuration');
+    expect(hrefs).not.toContain('/orchestration/workflows/executions');
     expect(hrefs).not.toContain('/compose/post');
   });
 });
