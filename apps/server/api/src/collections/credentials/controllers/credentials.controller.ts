@@ -6,6 +6,7 @@ import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-cre
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
+import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
@@ -46,6 +47,7 @@ import { CredentialPlatform } from '@genfeedai/enums';
 import type {
   AccountHealthSummary,
   ContentSurface,
+  IPublishingProviderReadiness,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
@@ -117,6 +119,7 @@ export class CredentialsController {
     private readonly accountHealthService: AccountHealthService,
     private readonly accountPublishingContextService: AccountPublishingContextService,
     private readonly brandsService: BrandsService,
+    private readonly credentialPublishingReadinessService: CredentialPublishingReadinessService,
     private readonly credentialsService: CredentialsService,
     private readonly facebookService: FacebookService,
     private readonly googleAdsService: GoogleAdsService,
@@ -158,6 +161,25 @@ export class CredentialsController {
     const publicMetadata = getPublicMetadata(user);
 
     return this.accountHealthService.listBrandHealth(
+      publicMetadata.organization,
+      brandId,
+    );
+  }
+
+  /**
+   * Publishing readiness for every connected channel of a brand, so selection
+   * surfaces can block an unpublishable channel before the user authors
+   * against it instead of failing the schedule mutation afterwards.
+   */
+  @Get('brand/:brandId/publishing-readiness')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async listBrandPublishingReadiness(
+    @Param('brandId') brandId: string,
+    @CurrentUser() user: User,
+  ): Promise<IPublishingProviderReadiness[]> {
+    const publicMetadata = getPublicMetadata(user);
+
+    return this.credentialPublishingReadinessService.resolveForBrand(
       publicMetadata.organization,
       brandId,
     );

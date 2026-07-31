@@ -4,6 +4,7 @@ import type {
   AccountPublishingContext,
   AssessAccountHealthRequest,
   ContentSurface,
+  IPublishingProviderReadiness,
   ManualAccountHealthOverrideRequest,
 } from '@genfeedai/interfaces';
 import type { QuotaStatus } from '@genfeedai/interfaces/organization/quota-status.interface';
@@ -52,6 +53,22 @@ export class CredentialsService extends BaseService<Credential> {
   ): Promise<AccountHealthSummary[]> {
     const response = await this.instance.get<AccountHealthSummary[]>(
       `/brand/${brandId}/account-health`,
+    );
+    return response.data;
+  }
+
+  /**
+   * Publishing readiness for every connected channel of a brand. Selection
+   * surfaces need the whole set before the user picks anything, so this is one
+   * request rather than one per channel.
+   */
+  public async listBrandPublishingReadiness(
+    brandId: string,
+    signal?: AbortSignal,
+  ): Promise<IPublishingProviderReadiness[]> {
+    const response = await this.instance.get<IPublishingProviderReadiness[]>(
+      `/brand/${brandId}/publishing-readiness`,
+      { signal },
     );
     return response.data;
   }

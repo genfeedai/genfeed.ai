@@ -1,3 +1,4 @@
+import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { PostGroupsController } from '@api/collections/post-groups/controllers/post-groups.controller';
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
@@ -14,6 +15,9 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [PostGroupsService],
   imports: [
     forwardRef(() => QueuesModule),
+    // Readiness derivation is shared with every read surface. This is a
+    // downward edge into a leaf, so it stays a plain import.
+    CredentialsCoreModule,
     PublishApprovalsModule,
     PublishingProviderSetupModule,
   ],

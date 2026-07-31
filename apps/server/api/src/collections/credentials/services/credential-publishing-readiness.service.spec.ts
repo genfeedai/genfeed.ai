@@ -25,8 +25,28 @@ function buildCredential(): CredentialDocument {
   } as unknown as CredentialDocument;
 }
 
+/** One connected credential row as the batch resolver selects it. */
+function buildRow(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    accessToken: 'encrypted-access',
+    accessTokenExpiry: new Date('2099-01-01T00:00:00.000Z'),
+    accessTokenSecret: 'encrypted-secret',
+    id: 'cred-1',
+    isConnected: true,
+    oauthToken: null,
+    oauthTokenSecret: null,
+    platform: CredentialPlatform.TWITTER,
+    refreshToken: null,
+    refreshTokenExpiry: null,
+    ...overrides,
+  };
+}
+
 describe('CredentialPublishingReadinessService', () => {
   let getQuotaStatus: ReturnType<typeof vi.fn>;
+  let findMany: ReturnType<typeof vi.fn>;
 
   function build(): CredentialPublishingReadinessService {
     return new CredentialPublishingReadinessService(
@@ -34,6 +54,7 @@ describe('CredentialPublishingReadinessService', () => {
         get: (key: string) => HEALTHY_ENV[key],
       } as unknown as ConfigService),
       { get: () => ({ getQuotaStatus }) } as never,
+      { credential: { findMany } } as never,
     );
   }
 
@@ -52,6 +73,7 @@ describe('CredentialPublishingReadinessService', () => {
   beforeEach(() => {
     vi.stubEnv('GENFEED_CLOUD', '');
     getQuotaStatus = vi.fn().mockResolvedValue(null);
+    findMany = vi.fn().mockResolvedValue([buildRow()]);
   });
 
   afterEach(() => {
@@ -140,6 +162,163 @@ describe('CredentialPublishingReadinessService', () => {
     ).toMatchObject({
       code: 'credential_daily_quota_exhausted',
       severity: 'error',
+    });
+  });
+
+  describe('resolveForCredentials', () => {
+    it('scopes the batch read by organization and soft delete', async () => {
+      const client = { credential: { findMany } };
+
+      await build().resolveForCredentials(client as never, ORGANIZATION_ID, [
+        'cred-1',
+      ]);
+
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: { in: ['cred-1'] },
+            isDeleted: false,
+            organizationId: ORGANIZATION_ID,
+          }),
+        }),
+      );
+    });
+
+    it('deduplicates credential ids and skips the query when none are given', async () => {
+      const client = { credential: { findMany } };
+      const service = build();
+
+      await service.resolveForCredentials(client as never, ORGANIZATION_ID, [
+        'cred-1',
+        'cred-1',
+      ]);
+      expect(findMany.mock.calls[0]?.[0].where.id).toEqual({ in: ['cred-1'] });
+
+      const empty = await service.resolveForCredentials(
+        client as never,
+        ORGANIZATION_ID,
+        [],
+      );
+      expect(empty.size).toBe(0);
+      expect(findMany).toHaveBeenCalledTimes(1);
+    });
+
+    it('leaves quota unresolved rather than paying four queries per credential', async () => {
+      const readiness = await build().resolveForCredentials(
+        { credential: { findMany } } as never,
+        ORGANIZATION_ID,
+        ['cred-1'],
+      );
+
+      expect(readiness.get('cred-1')).toMatchObject({
+        canSchedule: true,
+        quotaStatus: 'unknown',
+        state: 'publish_capable',
+      });
+      expect(getQuotaStatus).not.toHaveBeenCalled();
+    });
+
+    it('resolves provider setup signals once per platform, not once per credential', async () => {
+      const setupService = new PublishingProviderSetupService({
+        get: (key: string) => HEALTHY_ENV[key],
+      } as unknown as ConfigService);
+      const resolveProviderSignals = vi.spyOn(
+        setupService,
+        'resolveProviderSignals',
+      );
+      findMany.mockResolvedValue([
+        buildRow({ id: 'cred-1' }),
+        buildRow({ id: 'cred-2' }),
+        buildRow({ id: 'cred-3', platform: CredentialPlatform.LINKEDIN }),
+      ]);
+
+      const readiness = await new CredentialPublishingReadinessService(
+        setupService,
+        { get: () => ({ getQuotaStatus }) } as never,
+        { credential: { findMany } } as never,
+      ).resolveForCredentials(
+        { credential: { findMany } } as never,
+        ORGANIZATION_ID,
+        ['cred-1', 'cred-2', 'cred-3'],
+      );
+
+      expect(readiness.size).toBe(3);
+      expect(resolveProviderSignals).toHaveBeenCalledTimes(2);
+    });
+
+    it('carries no token material into the resolved records', async () => {
+      const readiness = await build().resolveForCredentials(
+        { credential: { findMany } } as never,
+        ORGANIZATION_ID,
+        ['cred-1'],
+      );
+
+      const serialized = JSON.stringify([...readiness.values()]);
+      expect(serialized).not.toContain('encrypted-access');
+      expect(serialized).not.toContain('encrypted-secret');
+    });
+  });
+
+  describe('resolveForBrand', () => {
+    it('reads only the brand’s connected channels, scoped to the organization', async () => {
+      await build().resolveForBrand(ORGANIZATION_ID, 'brand-1');
+
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { createdAt: 'asc' },
+          where: expect.objectContaining({
+            brandId: 'brand-1',
+            isConnected: true,
+            isDeleted: false,
+            organizationId: ORGANIZATION_ID,
+          }),
+        }),
+      );
+    });
+
+    it('returns one readiness record per channel, keyed by credential id', async () => {
+      findMany.mockResolvedValue([
+        buildRow({ id: 'cred-1' }),
+        buildRow({ accessToken: null, id: 'cred-2', isConnected: false }),
+      ]);
+
+      const readiness = await build().resolveForBrand(
+        ORGANIZATION_ID,
+        'brand-1',
+      );
+
+      expect(readiness.map((entry) => entry.credentialId)).toEqual([
+        'cred-1',
+        'cred-2',
+      ]);
+      expect(readiness[1]).toMatchObject({
+        canSchedule: false,
+        state: 'blocked',
+      });
+      expect(readiness[1]?.requiredAction).toBe(
+        'Reconnect the provider account before publishing.',
+      );
+    });
+
+    it('blocks a provider the deployment never configured', async () => {
+      vi.stubEnv('GENFEED_CLOUD', 'true');
+      findMany.mockResolvedValue([
+        buildRow({ platform: CredentialPlatform.LINKEDIN }),
+      ]);
+
+      const [readiness] = await build().resolveForBrand(
+        ORGANIZATION_ID,
+        'brand-1',
+      );
+
+      expect(readiness).toMatchObject({
+        callbackUrlStatus: 'fail',
+        canSchedule: false,
+        state: 'blocked',
+        // The token is fine — the deployment is what is broken.
+        tokenFreshness: 'pass',
+      });
+      expect(readiness?.diagnostics[0]?.code).toBe('provider_not_configured');
     });
   });
 
