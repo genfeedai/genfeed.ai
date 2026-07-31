@@ -1,7 +1,8 @@
 import BrandDetailAgentProfileCard from '@pages/brands/components/sidebar/BrandDetailAgentProfileCard';
 import type { BrandDetailAgentProfileCardProps } from '@props/pages/brand-detail.props';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const refreshBrandsMock = vi.fn().mockResolvedValue(undefined);
@@ -60,8 +61,8 @@ describe('BrandDetailAgentProfileCard', () => {
       },
       voice: {
         audience: [],
-        style: '',
-        tone: '',
+        style: 'direct',
+        tone: 'steady',
         values: [],
       },
     },
@@ -78,6 +79,7 @@ describe('BrandDetailAgentProfileCard', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    updateAgentConfigMock.mockResolvedValue(undefined);
     generateBrandVoiceMock.mockResolvedValue({
       audience: ['founders'],
       doNotSoundLike: ['hype'],
@@ -93,7 +95,7 @@ describe('BrandDetailAgentProfileCard', () => {
     });
   });
 
-  it('renders all voice fields on the page without a Manage modal', () => {
+  it('renders inline fields and keeps select controls without a Save button', () => {
     render(
       <BrandDetailAgentProfileCard
         brand={brand}
@@ -105,18 +107,28 @@ describe('BrandDetailAgentProfileCard', () => {
     expect(
       screen.queryByRole('button', { name: 'Manage' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Persona')).toBeInTheDocument();
-    expect(screen.getByLabelText('Messaging Pillars')).toBeInTheDocument();
-    expect(screen.getByLabelText('Tone')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Persona' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Messaging Pillars' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tone' })).toHaveTextContent(
+      'steady',
+    );
+    expect(
+      screen.getByRole('combobox', {
+        name: 'Brand Content Generation Model Override',
+      }),
+    ).toBeInTheDocument();
     expect(
       screen.getAllByRole('button', { name: 'Generate' }).length,
     ).toBeGreaterThan(0);
     expect(
-      screen.getAllByRole('button', { name: 'Save' }).length,
-    ).toBeGreaterThan(0);
+      screen.queryByRole('button', { name: 'Save' }),
+    ).not.toBeInTheDocument();
   });
 
-  it('saves expanded brand voice fields at brand and platform levels', async () => {
+  it('auto-saves a committed field with the full updated payload', async () => {
+    const user = userEvent.setup();
     render(
       <BrandDetailAgentProfileCard
         brand={brand}
@@ -125,52 +137,68 @@ describe('BrandDetailAgentProfileCard', () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText('Messaging Pillars'), {
-      target: { value: 'clarity, proof' },
+    await user.click(screen.getByRole('button', { name: 'Messaging Pillars' }));
+    const editor = screen.getByRole('textbox', {
+      name: 'Messaging Pillars',
     });
-    fireEvent.change(screen.getByLabelText('Approved Hooks'), {
-      target: {
-        value: 'Say the quiet part out loud, Most teams get this wrong',
-      },
-    });
-    fireEvent.change(screen.getByLabelText('Banned Phrases'), {
-      target: { value: 'game-changing AI, unlock your potential' },
-    });
-    fireEvent.change(screen.getByLabelText('Writing Rules'), {
-      target: { value: 'Lead with a claim, use proof, cut fluff' },
-    });
-    fireEvent.change(screen.getByLabelText('Exemplar Texts'), {
-      target: { value: 'We ship systems, not vibes' },
-    });
-    fireEvent.change(screen.getByLabelText('Do Not Sound Like'), {
-      target: { value: 'clickbait, jargon' },
-    });
-    fireEvent.change(screen.getByLabelText('Sample Output'), {
-      target: { value: 'A sharp, practical founder post.' },
+    await user.clear(editor);
+    await user.type(editor, 'clarity, proof');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(updateAgentConfigMock).toHaveBeenCalledWith('brand-1', {
+        defaultModel: undefined,
+        persona: '',
+        platformOverrides: {},
+        strategy: {
+          contentTypes: [],
+          frequency: '',
+          goals: [],
+          platforms: [],
+        },
+        voice: {
+          approvedHooks: [],
+          audience: [],
+          bannedPhrases: [],
+          canonicalSource: 'brand',
+          doNotSoundLike: [],
+          exemplarTexts: [],
+          messagingPillars: ['clarity', 'proof'],
+          sampleOutput: '',
+          style: 'direct',
+          tone: 'steady',
+          values: [],
+          writingRules: [],
+        },
+      });
     });
 
-    fireEvent.change(screen.getAllByPlaceholderText('clarity, proof')[0], {
-      target: { value: 'speed, practicality' },
-    });
-    fireEvent.change(screen.getAllByPlaceholderText('clickbait, jargon')[0], {
-      target: { value: 'hype, fluff' },
-    });
-    fireEvent.change(
-      screen.getAllByPlaceholderText(
-        'Short example of how this platform-specific voice should sound.',
-      )[0],
-      {
-        target: { value: 'Fast-moving Twitter voice with crisp hooks.' },
-      },
-    );
-    fireEvent.change(
-      screen.getByPlaceholderText('Short example of a winning post.'),
-      {
-        target: { value: 'Open with a sharp claim, then prove it fast.' },
-      },
+    expect(refreshBrandsMock).toHaveBeenCalledOnce();
+    expect(onRefreshBrand).toHaveBeenCalledOnce();
+    expect(successMock).not.toHaveBeenCalled();
+  });
+
+  it('auto-saves platform override fields in the full payload', async () => {
+    const user = userEvent.setup();
+    render(
+      <BrandDetailAgentProfileCard
+        brand={brand}
+        brandId="brand-1"
+        onRefreshBrand={onRefreshBrand}
+      />,
     );
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Save' })[0]);
+    await user.click(
+      screen.getByRole('button', {
+        name: 'twitter Messaging Pillars Override',
+      }),
+    );
+    const editor = screen.getByRole('textbox', {
+      name: 'twitter Messaging Pillars Override',
+    });
+    await user.clear(editor);
+    await user.type(editor, 'speed, practicality');
+    await user.keyboard('{Enter}');
 
     await waitFor(() => {
       expect(updateAgentConfigMock).toHaveBeenCalledWith(
@@ -182,40 +210,22 @@ describe('BrandDetailAgentProfileCard', () => {
                 platforms: ['twitter'],
               }),
               voice: expect.objectContaining({
-                approvedHooks: ['speed', 'practicality'],
-                doNotSoundLike: ['hype', 'fluff'],
-                exemplarTexts: [
-                  'Open with a sharp claim',
-                  'then prove it fast.',
-                ],
                 messagingPillars: ['speed', 'practicality'],
-                sampleOutput: 'Fast-moving Twitter voice with crisp hooks.',
               }),
             }),
           },
           voice: expect.objectContaining({
-            approvedHooks: [
-              'Say the quiet part out loud',
-              'Most teams get this wrong',
-            ],
-            bannedPhrases: ['game-changing AI', 'unlock your potential'],
-            canonicalSource: 'brand',
-            doNotSoundLike: ['clickbait', 'jargon'],
-            exemplarTexts: ['We ship systems', 'not vibes'],
-            messagingPillars: ['clarity', 'proof'],
-            sampleOutput: 'A sharp, practical founder post.',
-            writingRules: ['Lead with a claim', 'use proof', 'cut fluff'],
+            style: 'direct',
+            tone: 'steady',
           }),
         }),
       );
     });
-
-    expect(refreshBrandsMock).toHaveBeenCalled();
-    expect(onRefreshBrand).toHaveBeenCalled();
-    expect(successMock).toHaveBeenCalledWith('Brand voice saved');
   });
 
-  it('generates voice from brand scan, fills the form, and saves', async () => {
+  it('reverts the inline value and reports an error when saving fails', async () => {
+    const user = userEvent.setup();
+    updateAgentConfigMock.mockRejectedValueOnce(new Error('save failed'));
     render(
       <BrandDetailAgentProfileCard
         brand={brand}
@@ -224,7 +234,80 @@ describe('BrandDetailAgentProfileCard', () => {
       />,
     );
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Generate' })[0]);
+    await user.click(screen.getByRole('button', { name: 'Tone' }));
+    const editor = screen.getByRole('textbox', { name: 'Tone' });
+    await user.clear(editor);
+    await user.type(editor, 'bold');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Tone' })).toHaveTextContent(
+        'steady',
+      ),
+    );
+    expect(errorMock).toHaveBeenCalledWith('Failed to save brand voice');
+    expect(refreshBrandsMock).not.toHaveBeenCalled();
+    expect(onRefreshBrand).not.toHaveBeenCalled();
+  });
+
+  it('serializes quick field saves and preserves both updates', async () => {
+    const user = userEvent.setup();
+    let resolveFirstSave: (() => void) | undefined;
+    updateAgentConfigMock
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveFirstSave = resolve;
+          }),
+      )
+      .mockResolvedValue(undefined);
+
+    render(
+      <BrandDetailAgentProfileCard
+        brand={brand}
+        brandId="brand-1"
+        onRefreshBrand={onRefreshBrand}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Tone' }));
+    await user.clear(screen.getByRole('textbox', { name: 'Tone' }));
+    await user.type(screen.getByRole('textbox', { name: 'Tone' }), 'bold');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => expect(updateAgentConfigMock).toHaveBeenCalledOnce());
+
+    await user.click(screen.getByRole('button', { name: 'Style' }));
+    await user.clear(screen.getByRole('textbox', { name: 'Style' }));
+    await user.type(screen.getByRole('textbox', { name: 'Style' }), 'concise');
+    await user.keyboard('{Enter}');
+
+    expect(updateAgentConfigMock).toHaveBeenCalledOnce();
+    resolveFirstSave?.();
+
+    await waitFor(() => expect(updateAgentConfigMock).toHaveBeenCalledTimes(2));
+    expect(updateAgentConfigMock).toHaveBeenLastCalledWith(
+      'brand-1',
+      expect.objectContaining({
+        voice: expect.objectContaining({
+          style: 'concise',
+          tone: 'bold',
+        }),
+      }),
+    );
+  });
+
+  it('generates voice from brand scan, fills the form, and saves', async () => {
+    const user = userEvent.setup();
+    render(
+      <BrandDetailAgentProfileCard
+        brand={brand}
+        brandId="brand-1"
+        onRefreshBrand={onRefreshBrand}
+      />,
+    );
+
+    await user.click(screen.getAllByRole('button', { name: 'Generate' })[0]);
 
     await waitFor(() => {
       expect(generateBrandVoiceMock).toHaveBeenCalledWith('brand-1', {
@@ -237,25 +320,29 @@ describe('BrandDetailAgentProfileCard', () => {
       expect(updateAgentConfigMock).toHaveBeenCalledWith(
         'brand-1',
         expect.objectContaining({
+          strategy: expect.objectContaining({
+            contentTypes: ['product'],
+            goals: ['awareness'],
+          }),
           voice: expect.objectContaining({
-            tone: 'confident',
-            style: 'plainspoken',
             audience: ['founders'],
+            doNotSoundLike: ['hype'],
             messagingPillars: ['clarity', 'proof'],
             sampleOutput: 'A sharp, practical founder post.',
+            style: 'plainspoken',
+            tone: 'confident',
             values: ['honesty'],
-            doNotSoundLike: ['hype'],
-          }),
-          strategy: expect.objectContaining({
-            goals: ['awareness'],
-            contentTypes: ['product'],
           }),
         }),
       );
     });
 
-    expect(screen.getByLabelText('Tone')).toHaveValue('confident');
-    expect(screen.getByLabelText('Style')).toHaveValue('plainspoken');
+    expect(screen.getByRole('button', { name: 'Tone' })).toHaveTextContent(
+      'confident',
+    );
+    expect(screen.getByRole('button', { name: 'Style' })).toHaveTextContent(
+      'plainspoken',
+    );
     expect(successMock).toHaveBeenCalledWith('Brand voice generated and saved');
   });
 });

@@ -1,6 +1,7 @@
 'use client';
 
-import { Input } from '@ui/primitives/input';
+import type { AgentProfilePlatformOverrideFieldsProps } from '@props/pages/brand-detail.props';
+import { EditableText } from '@ui/primitives/editable-text';
 import {
   Select,
   SelectContent,
@@ -11,42 +12,13 @@ import {
 
 const AUTO_MODEL_SELECT_VALUE = '__auto__';
 
-type PlatformOverrideFormState = {
-  approvedHooks: string;
-  contentTypes: string;
-  defaultModel: string;
-  bannedPhrases: string;
-  canonicalSource: 'brand' | 'founder' | 'hybrid' | '';
-  doNotSoundLike: string;
-  exemplarTexts: string;
-  frequency: string;
-  goals: string;
-  messagingPillars: string;
-  persona: string;
-  sampleOutput: string;
-  style: string;
-  tone: string;
-  audience: string;
-  values: string;
-  writingRules: string;
-};
-
-type AgentProfilePlatformOverrideFieldsProps = {
-  enabledModels: string[];
-  override: PlatformOverrideFormState;
-  platformValue: string;
-  onChange: (
-    platform: string,
-    key: keyof PlatformOverrideFormState,
-    value: string,
-  ) => void;
-};
-
 export default function AgentProfilePlatformOverrideFields({
   enabledModels,
+  isDisabled,
+  onSave,
+  onSelectChange,
   override,
   platformValue,
-  onChange,
 }: AgentProfilePlatformOverrideFieldsProps) {
   return (
     <>
@@ -58,9 +30,10 @@ export default function AgentProfilePlatformOverrideFields({
           Voice Source Override
         </label>
         <Select
+          disabled={isDisabled}
           value={override.canonicalSource || AUTO_MODEL_SELECT_VALUE}
           onValueChange={(value) =>
-            onChange(
+            onSelectChange(
               platformValue,
               'canonicalSource',
               value === AUTO_MODEL_SELECT_VALUE ? '' : value,
@@ -92,9 +65,10 @@ export default function AgentProfilePlatformOverrideFields({
           Model Override
         </label>
         <Select
+          disabled={isDisabled}
           value={override.defaultModel || AUTO_MODEL_SELECT_VALUE}
           onValueChange={(value) =>
-            onChange(
+            onSelectChange(
               platformValue,
               'defaultModel',
               value === AUTO_MODEL_SELECT_VALUE ? '' : value,
@@ -125,12 +99,12 @@ export default function AgentProfilePlatformOverrideFields({
         >
           Tone Override
         </label>
-        <Input
-          id={`${platformValue}-tone`}
+        <EditableText
+          ariaLabel={`${platformValue} Tone Override`}
+          displayClassName="text-sm"
+          isDisabled={isDisabled}
+          onSave={(value) => onSave(platformValue, 'tone', value)}
           value={override.tone}
-          onChange={(event) =>
-            onChange(platformValue, 'tone', event.target.value)
-          }
         />
       </div>
 
@@ -141,12 +115,12 @@ export default function AgentProfilePlatformOverrideFields({
         >
           Style Override
         </label>
-        <Input
-          id={`${platformValue}-style`}
+        <EditableText
+          ariaLabel={`${platformValue} Style Override`}
+          displayClassName="text-sm"
+          isDisabled={isDisabled}
+          onSave={(value) => onSave(platformValue, 'style', value)}
           value={override.style}
-          onChange={(event) =>
-            onChange(platformValue, 'style', event.target.value)
-          }
         />
       </div>
 
@@ -157,12 +131,12 @@ export default function AgentProfilePlatformOverrideFields({
         >
           Frequency Override
         </label>
-        <Input
-          id={`${platformValue}-frequency`}
+        <EditableText
+          ariaLabel={`${platformValue} Frequency Override`}
+          displayClassName="text-sm"
+          isDisabled={isDisabled}
+          onSave={(value) => onSave(platformValue, 'frequency', value)}
           value={override.frequency}
-          onChange={(event) =>
-            onChange(platformValue, 'frequency', event.target.value)
-          }
         />
       </div>
 
@@ -173,13 +147,13 @@ export default function AgentProfilePlatformOverrideFields({
         >
           Audience Override
         </label>
-        <Input
-          id={`${platformValue}-audience`}
+        <EditableText
+          ariaLabel={`${platformValue} Audience Override`}
+          displayClassName="text-sm"
+          isDisabled={isDisabled}
+          onSave={(value) => onSave(platformValue, 'audience', value)}
           placeholder="developers, operators"
           value={override.audience}
-          onChange={(event) =>
-            onChange(platformValue, 'audience', event.target.value)
-          }
         />
       </div>
 
@@ -190,13 +164,13 @@ export default function AgentProfilePlatformOverrideFields({
         >
           Goals Override
         </label>
-        <Input
-          id={`${platformValue}-goals`}
+        <EditableText
+          ariaLabel={`${platformValue} Goals Override`}
+          displayClassName="text-sm"
+          isDisabled={isDisabled}
+          onSave={(value) => onSave(platformValue, 'goals', value)}
           placeholder="engagement, leads"
           value={override.goals}
-          onChange={(event) =>
-            onChange(platformValue, 'goals', event.target.value)
-          }
         />
       </div>
 
@@ -207,13 +181,13 @@ export default function AgentProfilePlatformOverrideFields({
         >
           Messaging Pillars Override
         </label>
-        <Input
-          id={`${platformValue}-messaging-pillars`}
+        <EditableText
+          ariaLabel={`${platformValue} Messaging Pillars Override`}
+          displayClassName="text-sm"
+          isDisabled={isDisabled}
+          onSave={(value) => onSave(platformValue, 'messagingPillars', value)}
           placeholder="clarity, proof"
           value={override.messagingPillars}
-          onChange={(event) =>
-            onChange(platformValue, 'messagingPillars', event.target.value)
-          }
         />
       </div>
 
@@ -224,13 +198,13 @@ export default function AgentProfilePlatformOverrideFields({
         >
           Approved Hooks Override
         </label>
-        <Input
-          id={`${platformValue}-approved-hooks`}
+        <EditableText
+          ariaLabel={`${platformValue} Approved Hooks Override`}
+          displayClassName="text-sm"
+          isDisabled={isDisabled}
+          onSave={(value) => onSave(platformValue, 'approvedHooks', value)}
           placeholder="clarity, proof"
           value={override.approvedHooks}
-          onChange={(event) =>
-            onChange(platformValue, 'approvedHooks', event.target.value)
-          }
         />
       </div>
 
@@ -241,13 +215,13 @@ export default function AgentProfilePlatformOverrideFields({
         >
           Banned Phrases Override
         </label>
-        <Input
-          id={`${platformValue}-banned-phrases`}
+        <EditableText
+          ariaLabel={`${platformValue} Banned Phrases Override`}
+          displayClassName="text-sm"
+          isDisabled={isDisabled}
+          onSave={(value) => onSave(platformValue, 'bannedPhrases', value)}
           placeholder="clickbait, jargon"
           value={override.bannedPhrases}
-          onChange={(event) =>
-            onChange(platformValue, 'bannedPhrases', event.target.value)
-          }
         />
       </div>
 
@@ -258,13 +232,13 @@ export default function AgentProfilePlatformOverrideFields({
         >
           Avoid Override
         </label>
-        <Input
-          id={`${platformValue}-do-not-sound-like`}
+        <EditableText
+          ariaLabel={`${platformValue} Avoid Override`}
+          displayClassName="text-sm"
+          isDisabled={isDisabled}
+          onSave={(value) => onSave(platformValue, 'doNotSoundLike', value)}
           placeholder="clickbait, jargon"
           value={override.doNotSoundLike}
-          onChange={(event) =>
-            onChange(platformValue, 'doNotSoundLike', event.target.value)
-          }
         />
       </div>
     </>

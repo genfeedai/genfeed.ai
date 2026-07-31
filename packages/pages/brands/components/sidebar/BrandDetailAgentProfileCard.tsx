@@ -5,7 +5,7 @@ import type { BrandDetailAgentProfileCardProps } from '@props/pages/brand-detail
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
+import { EditableText } from '@ui/primitives/editable-text';
 import {
   Select,
   SelectContent,
@@ -13,7 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { Textarea } from '@ui/primitives/textarea';
 import { Sparkles } from 'lucide-react';
 import AgentProfilePlatformOverride from './AgentProfilePlatformOverride';
 import AgentProfileVoiceFields from './AgentProfileVoiceFields';
@@ -32,17 +31,16 @@ export default function BrandDetailAgentProfileCard({
     AUTO_MODEL_SELECT_VALUE,
     enabledModels,
     form,
+    handleCanonicalSourceChange,
+    handleDefaultModelChange,
+    handleFieldSave,
     handleGenerate,
-    handlePlatformOverrideChange,
-    handleSave,
+    handlePlatformOverrideSave,
+    handlePlatformOverrideSelectChange,
     isGenerating,
-    isSaving,
     PLATFORM_OPTIONS,
     populatedPlatformCount,
-    setForm,
   } = useBrandDetailAgentProfileCard({ brand, brandId, onRefreshBrand });
-
-  const isBusy = isGenerating || isSaving;
 
   return (
     <Container>
@@ -58,19 +56,10 @@ export default function BrandDetailAgentProfileCard({
                 className="h-8 gap-1.5 px-2.5 text-xs"
                 onClick={handleGenerate}
                 isLoading={isGenerating}
-                isDisabled={isBusy}
+                isDisabled={isGenerating}
                 icon={<Sparkles className="size-3.5" />}
               >
                 Generate
-              </Button>
-              <Button
-                size={ButtonSize.SM}
-                className="h-8 px-2.5 text-xs"
-                onClick={handleSave}
-                isLoading={isSaving}
-                isDisabled={isBusy}
-              >
-                Save
               </Button>
             </div>
           }
@@ -78,24 +67,20 @@ export default function BrandDetailAgentProfileCard({
           <p className="text-xs leading-5 text-muted-foreground">
             Generate scans this brand (website when available, otherwise name /
             description / guidance) and fills tone, style, audience, pillars,
-            and more. Edit and save anytime.
+            and more. Inline edits save automatically.
           </p>
         </Card>
 
         <Card label="Persona" description="What agents optimize for.">
-          <Textarea
-            id="brand-agent-persona"
-            aria-label="Persona"
-            className="min-h-[100px]"
+          <EditableText
+            ariaLabel="Persona"
+            className="w-full"
+            displayClassName="text-sm leading-6"
+            isDisabled={isGenerating}
+            isMultiline
+            onSave={(value) => handleFieldSave('persona', value)}
             placeholder="What should this brand's agents optimize for?"
             value={form.persona}
-            disabled={isBusy}
-            onChange={(event) =>
-              setForm((prev) => ({
-                ...prev,
-                persona: event.target.value,
-              }))
-            }
           />
         </Card>
 
@@ -106,12 +91,11 @@ export default function BrandDetailAgentProfileCard({
           <Select
             value={form.defaultModel || AUTO_MODEL_SELECT_VALUE}
             onValueChange={(value) =>
-              setForm((prev) => ({
-                ...prev,
-                defaultModel: value === AUTO_MODEL_SELECT_VALUE ? '' : value,
-              }))
+              handleDefaultModelChange(
+                value === AUTO_MODEL_SELECT_VALUE ? '' : value,
+              )
             }
-            disabled={isBusy}
+            disabled={isGenerating}
           >
             <SelectTrigger
               id="brand-agent-default-model"
@@ -149,42 +133,9 @@ export default function BrandDetailAgentProfileCard({
             voiceWritingRules={form.voiceWritingRules}
             voiceExemplarTexts={form.voiceExemplarTexts}
             voiceSampleOutput={form.voiceSampleOutput}
-            onCanonicalSourceChange={(value) =>
-              setForm((prev) => ({ ...prev, voiceCanonicalSource: value }))
-            }
-            onToneChange={(value) =>
-              setForm((prev) => ({ ...prev, voiceTone: value }))
-            }
-            onStyleChange={(value) =>
-              setForm((prev) => ({ ...prev, voiceStyle: value }))
-            }
-            onAudienceChange={(value) =>
-              setForm((prev) => ({ ...prev, voiceAudience: value }))
-            }
-            onValuesChange={(value) =>
-              setForm((prev) => ({ ...prev, voiceValues: value }))
-            }
-            onMessagingPillarsChange={(value) =>
-              setForm((prev) => ({ ...prev, voiceMessagingPillars: value }))
-            }
-            onDoNotSoundLikeChange={(value) =>
-              setForm((prev) => ({ ...prev, voiceDoNotSoundLike: value }))
-            }
-            onApprovedHooksChange={(value) =>
-              setForm((prev) => ({ ...prev, voiceApprovedHooks: value }))
-            }
-            onBannedPhrasesChange={(value) =>
-              setForm((prev) => ({ ...prev, voiceBannedPhrases: value }))
-            }
-            onWritingRulesChange={(value) =>
-              setForm((prev) => ({ ...prev, voiceWritingRules: value }))
-            }
-            onExemplarTextsChange={(value) =>
-              setForm((prev) => ({ ...prev, voiceExemplarTexts: value }))
-            }
-            onSampleOutputChange={(value) =>
-              setForm((prev) => ({ ...prev, voiceSampleOutput: value }))
-            }
+            isDisabled={isGenerating}
+            onCanonicalSourceChange={handleCanonicalSourceChange}
+            onFieldSave={handleFieldSave}
           />
         </Card>
 
@@ -200,18 +151,15 @@ export default function BrandDetailAgentProfileCard({
               >
                 Content Types
               </label>
-              <Input
-                id="brand-agent-content-types"
-                aria-label="Content Types"
+              <EditableText
+                ariaLabel="Content Types"
+                displayClassName="text-sm"
+                isDisabled={isGenerating}
+                onSave={(value) =>
+                  handleFieldSave('strategyContentTypes', value)
+                }
                 placeholder="thread, short video, article"
                 value={form.strategyContentTypes}
-                disabled={isBusy}
-                onChange={(event) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    strategyContentTypes: event.target.value,
-                  }))
-                }
               />
             </div>
 
@@ -222,18 +170,13 @@ export default function BrandDetailAgentProfileCard({
               >
                 Target Platforms
               </label>
-              <Input
-                id="brand-agent-platforms"
-                aria-label="Target Platforms"
+              <EditableText
+                ariaLabel="Target Platforms"
+                displayClassName="text-sm"
+                isDisabled={isGenerating}
+                onSave={(value) => handleFieldSave('strategyPlatforms', value)}
                 placeholder="twitter, linkedin, youtube"
                 value={form.strategyPlatforms}
-                disabled={isBusy}
-                onChange={(event) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    strategyPlatforms: event.target.value,
-                  }))
-                }
               />
             </div>
 
@@ -244,18 +187,13 @@ export default function BrandDetailAgentProfileCard({
               >
                 Frequency
               </label>
-              <Input
-                id="brand-agent-frequency"
-                aria-label="Frequency"
+              <EditableText
+                ariaLabel="Frequency"
+                displayClassName="text-sm"
+                isDisabled={isGenerating}
+                onSave={(value) => handleFieldSave('frequency', value)}
                 placeholder="daily"
                 value={form.frequency}
-                disabled={isBusy}
-                onChange={(event) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    frequency: event.target.value,
-                  }))
-                }
               />
             </div>
 
@@ -266,18 +204,13 @@ export default function BrandDetailAgentProfileCard({
               >
                 Goals
               </label>
-              <Input
-                id="brand-agent-goals"
-                aria-label="Goals"
+              <EditableText
+                ariaLabel="Goals"
+                displayClassName="text-sm"
+                isDisabled={isGenerating}
+                onSave={(value) => handleFieldSave('strategyGoals', value)}
                 placeholder="awareness, lead gen"
                 value={form.strategyGoals}
-                disabled={isBusy}
-                onChange={(event) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    strategyGoals: event.target.value,
-                  }))
-                }
               />
             </div>
           </div>
@@ -299,7 +232,9 @@ export default function BrandDetailAgentProfileCard({
                 label={platform.label}
                 override={form.platformOverrides[platform.value]}
                 platformValue={platform.value}
-                onChange={handlePlatformOverrideChange}
+                isDisabled={isGenerating}
+                onSave={handlePlatformOverrideSave}
+                onSelectChange={handlePlatformOverrideSelectChange}
               />
             ))}
           </div>
@@ -310,13 +245,10 @@ export default function BrandDetailAgentProfileCard({
             variant={ButtonVariant.SECONDARY}
             onClick={handleGenerate}
             isLoading={isGenerating}
-            isDisabled={isBusy}
+            isDisabled={isGenerating}
             icon={<Sparkles className="size-3.5" />}
           >
             Generate
-          </Button>
-          <Button onClick={handleSave} isLoading={isSaving} isDisabled={isBusy}>
-            Save
           </Button>
         </div>
       </div>

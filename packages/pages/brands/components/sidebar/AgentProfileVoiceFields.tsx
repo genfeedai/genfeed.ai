@@ -1,6 +1,7 @@
 'use client';
 
-import { Input } from '@ui/primitives/input';
+import type { AgentProfileVoiceFieldsProps } from '@props/pages/brand-detail.props';
+import { EditableText } from '@ui/primitives/editable-text';
 import {
   Select,
   SelectContent,
@@ -8,60 +9,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { Textarea } from '@ui/primitives/textarea';
-
-type AgentProfileVoiceFieldsProps = {
-  voiceCanonicalSource: 'brand' | 'founder' | 'hybrid';
-  voiceTone: string;
-  voiceStyle: string;
-  voiceAudience: string;
-  voiceValues: string;
-  voiceMessagingPillars: string;
-  voiceDoNotSoundLike: string;
-  voiceApprovedHooks: string;
-  voiceBannedPhrases: string;
-  voiceWritingRules: string;
-  voiceExemplarTexts: string;
-  voiceSampleOutput: string;
-  onCanonicalSourceChange: (value: 'brand' | 'founder' | 'hybrid') => void;
-  onToneChange: (value: string) => void;
-  onStyleChange: (value: string) => void;
-  onAudienceChange: (value: string) => void;
-  onValuesChange: (value: string) => void;
-  onMessagingPillarsChange: (value: string) => void;
-  onDoNotSoundLikeChange: (value: string) => void;
-  onApprovedHooksChange: (value: string) => void;
-  onBannedPhrasesChange: (value: string) => void;
-  onWritingRulesChange: (value: string) => void;
-  onExemplarTextsChange: (value: string) => void;
-  onSampleOutputChange: (value: string) => void;
-};
 
 export default function AgentProfileVoiceFields({
-  voiceCanonicalSource,
-  voiceTone,
-  voiceStyle,
-  voiceAudience,
-  voiceValues,
-  voiceMessagingPillars,
-  voiceDoNotSoundLike,
-  voiceApprovedHooks,
-  voiceBannedPhrases,
-  voiceWritingRules,
-  voiceExemplarTexts,
-  voiceSampleOutput,
+  isDisabled,
   onCanonicalSourceChange,
-  onToneChange,
-  onStyleChange,
-  onAudienceChange,
-  onValuesChange,
-  onMessagingPillarsChange,
-  onDoNotSoundLikeChange,
-  onApprovedHooksChange,
-  onBannedPhrasesChange,
-  onWritingRulesChange,
-  onExemplarTextsChange,
-  onSampleOutputChange,
+  onFieldSave,
+  voiceApprovedHooks,
+  voiceAudience,
+  voiceBannedPhrases,
+  voiceCanonicalSource,
+  voiceDoNotSoundLike,
+  voiceExemplarTexts,
+  voiceMessagingPillars,
+  voiceSampleOutput,
+  voiceStyle,
+  voiceTone,
+  voiceValues,
+  voiceWritingRules,
 }: AgentProfileVoiceFieldsProps) {
   return (
     <>
@@ -74,6 +38,7 @@ export default function AgentProfileVoiceFields({
             Canonical Voice Source
           </label>
           <Select
+            disabled={isDisabled}
             value={voiceCanonicalSource}
             onValueChange={(value: 'brand' | 'founder' | 'hybrid') =>
               onCanonicalSourceChange(value)
@@ -97,10 +62,12 @@ export default function AgentProfileVoiceFields({
           >
             Tone
           </label>
-          <Input
-            id="brand-agent-tone"
+          <EditableText
+            ariaLabel="Tone"
+            displayClassName="text-sm"
+            isDisabled={isDisabled}
+            onSave={(value) => onFieldSave('voiceTone', value)}
             value={voiceTone}
-            onChange={(event) => onToneChange(event.target.value)}
           />
         </div>
 
@@ -111,10 +78,12 @@ export default function AgentProfileVoiceFields({
           >
             Style
           </label>
-          <Input
-            id="brand-agent-style"
+          <EditableText
+            ariaLabel="Style"
+            displayClassName="text-sm"
+            isDisabled={isDisabled}
+            onSave={(value) => onFieldSave('voiceStyle', value)}
             value={voiceStyle}
-            onChange={(event) => onStyleChange(event.target.value)}
           />
         </div>
 
@@ -125,11 +94,13 @@ export default function AgentProfileVoiceFields({
           >
             Audience
           </label>
-          <Input
-            id="brand-agent-audience"
+          <EditableText
+            ariaLabel="Audience"
+            displayClassName="text-sm"
+            isDisabled={isDisabled}
+            onSave={(value) => onFieldSave('voiceAudience', value)}
             placeholder="founders, marketers"
             value={voiceAudience}
-            onChange={(event) => onAudienceChange(event.target.value)}
           />
         </div>
 
@@ -140,11 +111,13 @@ export default function AgentProfileVoiceFields({
           >
             Values
           </label>
-          <Input
-            id="brand-agent-values"
+          <EditableText
+            ariaLabel="Values"
+            displayClassName="text-sm"
+            isDisabled={isDisabled}
+            onSave={(value) => onFieldSave('voiceValues', value)}
             placeholder="clarity, speed"
             value={voiceValues}
-            onChange={(event) => onValuesChange(event.target.value)}
           />
         </div>
 
@@ -155,11 +128,13 @@ export default function AgentProfileVoiceFields({
           >
             Messaging Pillars
           </label>
-          <Input
-            id="brand-agent-messaging-pillars"
+          <EditableText
+            ariaLabel="Messaging Pillars"
+            displayClassName="text-sm"
+            isDisabled={isDisabled}
+            onSave={(value) => onFieldSave('voiceMessagingPillars', value)}
             placeholder="clarity, proof, systems thinking"
             value={voiceMessagingPillars}
-            onChange={(event) => onMessagingPillarsChange(event.target.value)}
           />
         </div>
 
@@ -170,11 +145,13 @@ export default function AgentProfileVoiceFields({
           >
             Do Not Sound Like
           </label>
-          <Input
-            id="brand-agent-do-not-sound-like"
+          <EditableText
+            ariaLabel="Do Not Sound Like"
+            displayClassName="text-sm"
+            isDisabled={isDisabled}
+            onSave={(value) => onFieldSave('voiceDoNotSoundLike', value)}
             placeholder="buzzwords, hype-heavy copy, corporate jargon"
             value={voiceDoNotSoundLike}
-            onChange={(event) => onDoNotSoundLikeChange(event.target.value)}
           />
         </div>
 
@@ -185,11 +162,13 @@ export default function AgentProfileVoiceFields({
           >
             Approved Hooks
           </label>
-          <Input
-            id="brand-agent-approved-hooks"
+          <EditableText
+            ariaLabel="Approved Hooks"
+            displayClassName="text-sm"
+            isDisabled={isDisabled}
+            onSave={(value) => onFieldSave('voiceApprovedHooks', value)}
             placeholder="Say the quiet part out loud, Most teams get this wrong"
             value={voiceApprovedHooks}
-            onChange={(event) => onApprovedHooksChange(event.target.value)}
           />
         </div>
 
@@ -200,11 +179,13 @@ export default function AgentProfileVoiceFields({
           >
             Banned Phrases
           </label>
-          <Input
-            id="brand-agent-banned-phrases"
+          <EditableText
+            ariaLabel="Banned Phrases"
+            displayClassName="text-sm"
+            isDisabled={isDisabled}
+            onSave={(value) => onFieldSave('voiceBannedPhrases', value)}
             placeholder="game-changing AI, unlock your potential"
             value={voiceBannedPhrases}
-            onChange={(event) => onBannedPhrasesChange(event.target.value)}
           />
         </div>
 
@@ -215,11 +196,13 @@ export default function AgentProfileVoiceFields({
           >
             Writing Rules
           </label>
-          <Input
-            id="brand-agent-writing-rules"
+          <EditableText
+            ariaLabel="Writing Rules"
+            displayClassName="text-sm"
+            isDisabled={isDisabled}
+            onSave={(value) => onFieldSave('voiceWritingRules', value)}
             placeholder="Lead with a claim, use proof, cut fluff"
             value={voiceWritingRules}
-            onChange={(event) => onWritingRulesChange(event.target.value)}
           />
         </div>
 
@@ -230,11 +213,14 @@ export default function AgentProfileVoiceFields({
           >
             Exemplar Texts
           </label>
-          <Input
-            id="brand-agent-exemplar-texts"
+          <EditableText
+            ariaLabel="Exemplar Texts"
+            displayClassName="text-sm leading-6"
+            isDisabled={isDisabled}
+            isMultiline
+            onSave={(value) => onFieldSave('voiceExemplarTexts', value)}
             placeholder="We ship systems, not vibes"
             value={voiceExemplarTexts}
-            onChange={(event) => onExemplarTextsChange(event.target.value)}
           />
         </div>
       </div>
@@ -246,12 +232,15 @@ export default function AgentProfileVoiceFields({
         >
           Sample Output
         </label>
-        <Textarea
-          id="brand-agent-sample-output"
-          className="min-h-[120px]"
+        <EditableText
+          ariaLabel="Sample Output"
+          className="w-full"
+          displayClassName="text-sm leading-6"
+          isDisabled={isDisabled}
+          isMultiline
+          onSave={(value) => onFieldSave('voiceSampleOutput', value)}
           placeholder="Write a representative example of how this brand should sound."
           value={voiceSampleOutput}
-          onChange={(event) => onSampleOutputChange(event.target.value)}
         />
       </div>
     </>
