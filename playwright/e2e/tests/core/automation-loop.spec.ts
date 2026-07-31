@@ -1,4 +1,4 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
 import {
   mockActiveSubscription,
   mockNodeTypes,
@@ -15,6 +15,12 @@ import {
 } from '../../fixtures/test-data.fixture';
 import { WorkflowPage } from '../../pages/workflow.page';
 
+const WORKFLOWS_ROUTE = createBrandAppRoute(
+  'test-org',
+  'brand-1',
+  APP_ROUTES.ORCHESTRATION.WORKFLOWS,
+);
+
 test.describe('Core Automation Loop', () => {
   test.beforeEach(async ({ automationPage }) => {
     await mockActiveSubscription(automationPage, {
@@ -27,10 +33,10 @@ test.describe('Core Automation Loop', () => {
     await mockNodeTypes(automationPage, testNodeTypes);
   });
 
-  test('workflow library stays available inside the agent-first canvas', async ({
+  test('workflow library stays available inside the Automate canvas', async ({
     automationPage,
   }) => {
-    await automationPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS);
+    await automationPage.goto(WORKFLOWS_ROUTE);
 
     await expect(automationPage).toHaveURL(/\/orchestration\/workflows$/);
     await expect(
@@ -38,7 +44,7 @@ test.describe('Core Automation Loop', () => {
     ).toHaveAttribute('data-shell-section-label', 'Automate');
     await expect(
       automationPage.getByTestId('universal-workspace-shell'),
-    ).toHaveAttribute('data-workspace-surface', 'workflows');
+    ).toHaveAttribute('data-workspace-surface', 'orchestration');
     await expect(
       automationPage.getByTestId('workspace-canvas-layout'),
     ).toBeVisible();
