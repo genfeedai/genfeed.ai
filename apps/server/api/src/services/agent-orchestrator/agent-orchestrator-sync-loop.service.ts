@@ -26,10 +26,7 @@ import {
   persistRunArtifacts,
 } from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
 import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator/utils/agent-final-content.util';
-import {
-  buildResolvedModelMetadata,
-  normalizeResponseModel,
-} from '@api/services/agent-orchestrator/utils/agent-response-model.util';
+import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import { buildAgentRoutingMetadata } from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';
 import { buildAgentScopeMetadata } from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
 import {
@@ -46,17 +43,13 @@ import { settleAgentTurnCredits } from '@api/services/agent-orchestrator/utils/a
 import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/sanitize-agent-output.util';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
-import { AgentMessageRole, AgentType } from '@genfeedai/enums';
+import { AgentMessageRole } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
-import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
 @Injectable()
 export class AgentOrchestratorSyncLoopService {
-  private readonly constructorName = String(this.constructor.name);
-
   constructor(
-    private readonly loggerService: LoggerService,
     private readonly llmDispatcher: LlmDispatcherService,
     private readonly agentThreadsService: AgentThreadsService,
     private readonly agentMessagesService: AgentMessagesService,
@@ -185,15 +178,17 @@ export class AgentOrchestratorSyncLoopService {
           }),
           context.organizationId,
         );
-        const actualModel = await this.recordAgentResponseModel({
-          actualModels: Array.from(actualModels),
-          context,
-          requestedModel: model,
-          responseModel: response.model,
-          runId: context.runId,
-          source: request.source,
-          threadId,
-        });
+        const actualModel = await this.turnRoundRunner.recordAgentResponseModel(
+          {
+            actualModels: Array.from(actualModels),
+            context,
+            requestedModel: model,
+            responseModel: response.model,
+            runId: context.runId,
+            source: request.source,
+            threadId,
+          },
+        );
         actualModels.add(actualModel);
 
         const choice = response.choices[0];
@@ -411,43 +406,5 @@ export class AgentOrchestratorSyncLoopService {
       });
       throw error;
     }
-  }
-
-  private async recordAgentResponseModel(params: {
-    actualModels?: string[];
-    context: AgentChatContext;
-    requestedModel: string;
-    responseModel?: string;
-    runId?: string;
-    source?: AgentChatRequest['source'];
-    threadId: string;
-  }): Promise<string> {
-    const actualModel = normalizeResponseModel(
-      params.requestedModel,
-      params.responseModel,
-    );
-
-    this.loggerService.log(`${this.constructorName} resolved agent response`, {
-      actualModel,
-      organizationId: params.context.organizationId,
-      requestedModel: params.requestedModel,
-      runId: params.runId,
-      source: params.source ?? 'agent',
-      threadId: params.threadId,
-      userId: params.context.userId,
-    });
-
-    if (params.runId) {
-      await this.agentRunsService.mergeMetadata(
-        params.runId,
-        params.context.organizationId,
-        buildResolvedModelMetadata(params.requestedModel, [
-          ...(params.actualModels ?? []),
-          actualModel,
-        ]),
-      );
-    }
-
-    return actualModel;
   }
 }

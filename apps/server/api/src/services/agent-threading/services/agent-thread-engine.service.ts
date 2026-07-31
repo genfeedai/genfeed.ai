@@ -10,7 +10,10 @@ import type { AgentInputRequestDocument } from '@api/services/agent-threading/sc
 import type { AgentProfileSnapshotDocument } from '@api/services/agent-threading/schemas/agent-profile-snapshot.schema';
 import type { AgentThreadEventDocument } from '@api/services/agent-threading/schemas/agent-thread-event.schema';
 import type { AgentThreadSnapshotDocument } from '@api/services/agent-threading/schemas/agent-thread-snapshot.schema';
-import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
+import {
+  AgentRuntimeSessionService,
+  upsertRuntimeBindingEffect,
+} from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentThreadProjectorService } from '@api/services/agent-threading/services/agent-thread-projector.service';
 import { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
 import { AgentThreadEventType } from '@api/services/agent-threading/types/agent-thread.types';
@@ -766,7 +769,7 @@ export class AgentThreadEngineService {
         });
       }).pipe(
         Effect.zipRight(
-          this.upsertRuntimeBindingEffect({
+          upsertRuntimeBindingEffect(this.runtimeSessionService, {
             organizationId,
             runId: this.optionalString(event.runId),
             status: 'waiting_input',
@@ -783,7 +786,7 @@ export class AgentThreadEngineService {
       event.type === 'tool.started' ||
       event.type === 'tool.progress'
     ) {
-      return this.upsertRuntimeBindingEffect({
+      return upsertRuntimeBindingEffect(this.runtimeSessionService, {
         activeCommandId: this.optionalString(event.commandId),
         metadata: event.metadata,
         model: this.readString(event.payload, 'model'),
@@ -795,7 +798,7 @@ export class AgentThreadEngineService {
     }
 
     if (event.type === 'input.resolved') {
-      return this.upsertRuntimeBindingEffect({
+      return upsertRuntimeBindingEffect(this.runtimeSessionService, {
         organizationId,
         runId: this.optionalString(event.runId),
         status: 'running',
@@ -831,7 +834,7 @@ export class AgentThreadEngineService {
           );
       }
 
-      return this.upsertRuntimeBindingEffect({
+      return upsertRuntimeBindingEffect(this.runtimeSessionService, {
         organizationId,
         runId: this.optionalString(event.runId),
         status: 'completed',
@@ -840,7 +843,7 @@ export class AgentThreadEngineService {
     }
 
     if (event.type === 'run.failed' || event.type === 'error.raised') {
-      return this.upsertRuntimeBindingEffect({
+      return upsertRuntimeBindingEffect(this.runtimeSessionService, {
         organizationId,
         runId: this.optionalString(event.runId),
         status: 'failed',
@@ -849,20 +852,6 @@ export class AgentThreadEngineService {
     }
 
     return Effect.void;
-  }
-
-  private upsertRuntimeBindingEffect(params: {
-    threadId: string;
-    organizationId: string;
-    runId?: string;
-    model?: string;
-    status: 'running' | 'waiting_input' | 'completed' | 'cancelled' | 'failed';
-    activeCommandId?: string;
-    metadata?: Record<string, unknown>;
-  }): Effect.Effect<void, unknown> {
-    return this.runtimeSessionService
-      .upsertBindingEffect(params)
-      .pipe(Effect.asVoid);
   }
 
   private markRuntimeCancelledEffect(

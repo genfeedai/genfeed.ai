@@ -28,6 +28,7 @@ import {
   CredentialPlatform,
   PostCategory,
   PostStatus,
+  parsePlatform,
 } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
@@ -60,15 +61,6 @@ export class PostsGenerationController {
     private readonly postsService: PostsService,
     private readonly seoScorerService: SeoScorerService,
   ) {}
-
-  private normalizeCredentialPlatform(
-    value: unknown,
-  ): CredentialPlatform | undefined {
-    const normalized = String(value ?? '').toLowerCase();
-    return Object.values(CredentialPlatform).find(
-      (platform) => platform === normalized,
-    );
-  }
 
   @Post('account-generations')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -189,10 +181,7 @@ export class PostsGenerationController {
       );
     }
 
-    if (
-      this.normalizeCredentialPlatform(originalPost.platform) !==
-      CredentialPlatform.TWITTER
-    ) {
+    if (parsePlatform(originalPost.platform) !== CredentialPlatform.TWITTER) {
       throw new HttpException(
         {
           detail: 'Thread expansion is only available for Twitter/X posts',
@@ -217,8 +206,7 @@ export class PostsGenerationController {
         organization: publicMetadata.organization,
         parent: postId,
         platform:
-          this.normalizeCredentialPlatform(originalPost.platform) ??
-          CredentialPlatform.TWITTER,
+          parsePlatform(originalPost.platform) ?? CredentialPlatform.TWITTER,
         status: PostStatus.PROCESSING,
         user: publicMetadata.user,
       });
