@@ -338,6 +338,41 @@ describe('CrossPostComposerPage', () => {
       ).toBeInTheDocument();
     });
 
+    it('keeps a degraded channel selectable and shows its readiness warning', async () => {
+      useBrandMock.mockReturnValue({
+        brandId: 'brand-1',
+        credentials: [connectedX],
+      });
+      mocks.listBrandPublishingReadiness.mockResolvedValue([
+        readiness({
+          credentialId: 'cred-x',
+          diagnostics: [
+            {
+              checkedAt: '2026-07-31T00:00:00.000Z',
+              classification: 'quota_or_rate_limit',
+              code: 'provider_quota_near_limit',
+              isRetryable: true,
+              message: 'Publishing is available, but provider quota is low.',
+              scope: 'provider',
+              severity: 'warning',
+            },
+          ],
+          state: 'degraded',
+        }),
+      ]);
+
+      render(<CrossPostComposerPage />);
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('checkbox', { name: /launch_x/i }),
+        ).toBeEnabled();
+      });
+      expect(
+        screen.getByText('Publishing is available, but provider quota is low.'),
+      ).toBeInTheDocument();
+    });
+
     it('falls back to the connection flag when readiness cannot be loaded', async () => {
       useBrandMock.mockReturnValue({
         brandId: 'brand-1',

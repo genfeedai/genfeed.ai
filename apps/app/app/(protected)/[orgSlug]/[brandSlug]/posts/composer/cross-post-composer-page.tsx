@@ -71,6 +71,16 @@ type ChannelOption = {
   credentials: ICredential[];
 };
 
+type ChannelReadinessIssue = {
+  code: string;
+  message: string;
+};
+
+type ChannelReadinessVerdict = {
+  block: ChannelReadinessIssue | null;
+  warning: ChannelReadinessIssue | null;
+};
+
 const DEFAULT_TIMEZONE = 'UTC';
 
 function getInitialTimezone(): string {
@@ -144,6 +154,19 @@ function createValidationIssue(
   };
 }
 
+function createValidationWarning(
+  code: string,
+  message: string,
+  field?: string,
+): ChannelValidationIssue {
+  return {
+    code,
+    field,
+    message,
+    severity: 'warning',
+  };
+}
+
 /**
  * The channel-picker verdict for one credential.
  *
@@ -151,19 +174,50 @@ function createValidationIssue(
  * failed request must leave authoring available rather than block it. Without
  * a record the composer falls back to the `isConnected` flag it already had.
  */
-function resolveChannelBlock(
+function resolveChannelReadiness(
   isConnected: boolean,
   readiness: IPublishingProviderReadiness | undefined,
-): { message: string } | null {
+): ChannelReadinessVerdict {
   if (readiness && !readiness.canSchedule) {
     return {
-      message:
-        readiness.requiredAction ??
-        'This channel cannot publish until its provider setup is fixed.',
+      block: {
+        code: 'channel_target.not_publish_capable',
+        message:
+          readiness.requiredAction ??
+          'This channel cannot publish until its provider setup is fixed.',
+      },
+      warning: null,
     };
   }
 
-  return isConnected ? null : { message: 'Reconnect before scheduling' };
+  if (!isConnected) {
+    return {
+      block: {
+        code: 'channel_target.disconnected_credential',
+        message: 'Reconnect before scheduling',
+      },
+      warning: null,
+    };
+  }
+
+  if (readiness?.state === 'degraded') {
+    const diagnostic =
+      readiness.diagnostics.find(
+        (candidate) => candidate.severity === 'warning',
+      ) ?? readiness.diagnostics[0];
+
+    return {
+      block: null,
+      warning: {
+        code: 'channel_target.degraded_publish_capability',
+        message:
+          diagnostic?.message ??
+          'This channel can publish, but its provider readiness is degraded.',
+      },
+    };
+  }
+
+  return { block: null, warning: null };
 }
 
 function validateComposerTarget(
@@ -181,15 +235,27 @@ function validateComposerTarget(
     settings: target.settings,
   });
   const errors = [...validation.errors];
+  const warnings = [...validation.warnings];
 
-  const block = resolveChannelBlock(target.isConnected, readiness);
+  const { block, warning } = resolveChannelReadiness(
+    target.isConnected,
+    readiness,
+  );
   if (block) {
     errors.unshift(
       createValidationIssue(
-        readiness && !readiness.canSchedule
-          ? 'channel_target.not_publish_capable'
-          : 'channel_target.disconnected_credential',
+        block.code,
         `${target.credentialLabel}: ${block.message}`,
+        'credentialId',
+      ),
+    );
+  }
+
+  if (warning) {
+    warnings.unshift(
+      createValidationWarning(
+        warning.code,
+        `${target.credentialLabel}: ${warning.message}`,
         'credentialId',
       ),
     );
@@ -219,7 +285,7 @@ function validateComposerTarget(
     errors,
     target,
     valid: errors.length === 0,
-    warnings: validation.warnings,
+    warnings,
   };
 }
 
@@ -628,10 +694,10 @@ export default function CrossPostComposerPage() {
                 // nothing is broken, the brand simply has not connected one.
                 const isPlatformSchedulable = channelCredentials.some(
                   (credential) =>
-                    resolveChannelBlock(
+                    resolveChannelReadiness(
                       credential.isConnected,
                       readinessByCredentialId[credential.id],
-                    ) === null,
+                    ).block === null,
                 );
                 const platformBadgeLabel = !channelCredentials.length
                   ? 'Disconnected'
@@ -663,10 +729,11 @@ export default function CrossPostComposerPage() {
                     {channelCredentials.length ? (
                       <div className="mt-4 grid gap-2">
                         {channelCredentials.map((credential) => {
-                          const block = resolveChannelBlock(
+                          const { block, warning } = resolveChannelReadiness(
                             credential.isConnected,
                             readinessByCredentialId[credential.id],
                           );
+                          const status = block ?? warning;
 
                           return (
                             <Checkbox
@@ -682,10 +749,12 @@ export default function CrossPostComposerPage() {
                                     className={
                                       block
                                         ? 'text-xs text-destructive'
-                                        : 'text-xs text-muted-foreground'
+                                        : warning
+                                          ? 'text-xs text-warning'
+                                          : 'text-xs text-muted-foreground'
                                     }
                                   >
-                                    {block?.message ?? 'Ready for review'}
+                                    {status?.message ?? 'Ready for review'}
                                   </span>
                                 </span>
                               }
