@@ -37,7 +37,9 @@ agent has no non-interactive path to. Each fix carries a regression test.
 ## Boil-the-ocean backlog (next train)
 
 1. **Messages reply campaigns** — GH PRD under #1010 (throttled, not blast)
-2. **Prompt-bar domain merge** — shell/notice only so far; full domain merge unfinished
+2. ~~**Prompt-bar domain merge**~~ — **done.** `PromptBarArticle` and `PromptBarPost` are deleted;
+   every content surface renders `PromptBarContent`, and submit/Enter/trim/clear is one primitive
+   (`usePromptBarSubmission`) shared with `PostEnhancementBar`
 3. **Studio storyboard depth** — scene gen reliability, merge polish, Clips in Automation menu if desired
 4. - [x] **Kit contrast / inputs polish** if still weak after Kit settings page — re-checked on `fix/brand-link-modal-and-kit-polish`; still weak, so polished. Two real defects in `BrandDetailManualKitCard.tsx`: (a) every manual-kit field was placeholder-only with an `aria-label` and no visible label, so three adjacent hex inputs became indistinguishable the moment you typed — now wrapped in `FormControl` (`Label` by hand for `ColorField`/`Select`, whose single-child clone would collide with the control's own `id`); (b) the draft-review panel was `bg-background-secondary` with its selectable field rows painted the *same* `bg-background-secondary`, separated only by `shadow-border` — rows stepped down to `bg-background`. No other Kit surface was touched
 5. - [x] **Brand OverviewPanel** still has inline link editor path — align to modal like Social — **done.** `BrandDetailLinkEditor.tsx` (+ its test) deleted, and the five inline handlers plus four `useState` pairs removed from `useModalBrand.ts`. `ModalBrand.tsx` now mounts `LazyModalBrandLink` as a sibling and `handleOpenLinkModal` fires `openModal(ModalEnum.BRAND_LINK)` — byte-for-byte the Social settings page's pattern (`settings/social/content.tsx`). Open/save/cancel/delete covered in `ModalBrandLink.test.tsx`; the open path is guarded in `ModalBrand.test.tsx`
