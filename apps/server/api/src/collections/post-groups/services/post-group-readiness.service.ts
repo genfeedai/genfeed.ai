@@ -1,6 +1,10 @@
 import type { SchedulerTx } from '@api/collections/post-groups/services/post-group.types';
+import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
 import { buildCredentialTokenPublishingReadiness } from '@genfeedai/integrations/connections';
-import type { IPublishingProviderReadiness } from '@genfeedai/interfaces';
+import type {
+  IPublishingProviderReadiness,
+  IPublishingProviderSetupSignals,
+} from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -42,10 +46,22 @@ export type SchedulerReadinessTarget = {
 
 @Injectable()
 export class PostGroupReadinessService {
+  constructor(
+    private readonly publishingProviderSetupService: PublishingProviderSetupService,
+  ) {}
+
   /**
    * Derives sanitized publishing readiness for every credential backing a
    * channel target. Tenant scoping and soft-delete filtering come from
    * `scopedWhere`; no provider network call is made.
+   *
+   * Deployment setup axes are folded in so a target is gated on the same
+   * signals the setup checklist reports. They are pure configuration reads and
+   * are memoized per platform, so this stays a single query no matter how many
+   * targets a post group fans out to — it runs inside the scheduler's write
+   * transaction. Quota is deliberately left `unknown` here: measuring it costs
+   * four queries per credential and can only ever produce `degraded`, which
+   * never changes whether the target may be scheduled.
    */
   async resolveForCredentials(
     tx: Pick<SchedulerTx, 'credential'>,
@@ -62,23 +78,55 @@ export class PostGroupReadinessService {
       where: scopedWhere(organizationId, { id: { in: ids } }),
     })) as ReadinessCredentialRow[];
 
-    return new Map(
-      rows.map((row) => [
-        row.id,
-        buildCredentialTokenPublishingReadiness({
-          accessToken: row.accessToken,
-          accessTokenExpiresAt: row.accessTokenExpiry,
-          accessTokenSecret: row.accessTokenSecret,
-          credentialId: row.id,
-          isConnected: row.isConnected,
-          oauthToken: row.oauthToken,
-          oauthTokenSecret: row.oauthTokenSecret,
-          providerKey: row.platform,
-          refreshToken: row.refreshToken,
-          refreshTokenExpiresAt: row.refreshTokenExpiry,
-        }),
-      ]),
+    // One instant for the whole batch so every target's diagnostics agree.
+    const checkedAt = new Date().toISOString();
+    const signalsByPlatform = new Map<
+      string,
+      IPublishingProviderSetupSignals
+    >();
+    const resolveSignals = (
+      platform: string,
+    ): IPublishingProviderSetupSignals => {
+      const cached = signalsByPlatform.get(platform);
+      if (cached) {
+        return cached;
+      }
+
+      const signals =
+        this.publishingProviderSetupService.resolveProviderSignals(
+          platform,
+          checkedAt,
+        );
+      signalsByPlatform.set(platform, signals);
+      return signals;
+    };
+
+    const entries: [string, IPublishingProviderReadiness][] = rows.map(
+      (row) => {
+        const signals = resolveSignals(row.platform);
+
+        return [
+          row.id,
+          buildCredentialTokenPublishingReadiness({
+            accessToken: row.accessToken,
+            accessTokenExpiresAt: row.accessTokenExpiry,
+            accessTokenSecret: row.accessTokenSecret,
+            appReviewStatus: signals.appReviewStatus,
+            callbackUrlStatus: signals.callbackUrlStatus,
+            credentialId: row.id,
+            isConnected: row.isConnected,
+            oauthToken: row.oauthToken,
+            oauthTokenSecret: row.oauthTokenSecret,
+            providerKey: row.platform,
+            refreshToken: row.refreshToken,
+            refreshTokenExpiresAt: row.refreshTokenExpiry,
+            setupDiagnostics: signals.diagnostics,
+          }),
+        ];
+      },
     );
+
+    return new Map(entries);
   }
 
   /**

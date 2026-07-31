@@ -5,6 +5,7 @@ import type {
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
+import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
@@ -13,7 +14,22 @@ import {
   TargetExecutionState,
   TargetValidationState,
 } from '@genfeedai/enums';
+import type { ConfigService } from '@libs/config/config.service';
 import { BadRequestException } from '@nestjs/common';
+
+/**
+ * Setup signals are not what these tests exercise, so every provider reads as
+ * fully configured on a publicly reachable origin — readiness then reflects
+ * token state alone.
+ */
+function buildFullyConfiguredConfigService(): ConfigService {
+  return {
+    get: (key: string) =>
+      key.endsWith('_URI') || key.endsWith('_URL')
+        ? 'https://app.example.com/oauth/callback'
+        : `${key}-value`,
+  } as unknown as ConfigService;
+}
 
 describe('PostGroupPersistenceService', () => {
   let contractService: PostGroupContractService;
@@ -56,7 +72,9 @@ describe('PostGroupPersistenceService', () => {
     service = new PostGroupPersistenceService(
       prisma as unknown as PrismaService,
       contractService,
-      new PostGroupReadinessService(),
+      new PostGroupReadinessService(
+        new PublishingProviderSetupService(buildFullyConfiguredConfigService()),
+      ),
     );
   });
 
