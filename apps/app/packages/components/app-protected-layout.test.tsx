@@ -991,6 +991,9 @@ describe('AppProtectedLayout', () => {
     expect(
       screen.queryByTestId('universal-workspace-shell'),
     ).not.toBeInTheDocument();
+    // The module sidebar is the canvas's to own on an editor route; the frame
+    // around it is not the shell's to withhold while auth is still loading.
+    expect(screen.getByTestId('app-layout')).toBeInTheDocument();
     expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
