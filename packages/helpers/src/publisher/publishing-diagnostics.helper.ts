@@ -1,6 +1,7 @@
 import type {
   IPublishingDiagnostic,
   IPublishingProviderReadiness,
+  IPublishingSetupCheck,
   PublishingReadinessState,
   PublishingSetupCheckStatus,
   PublishingSetupFailureClassification,
@@ -157,6 +158,34 @@ export function classifyPublishingReadiness(
     )
   ) {
     return 'degraded';
+  }
+
+  return 'publish_capable';
+}
+
+/**
+ * Checklist-level counterpart of {@link classifyPublishingReadiness}. Setup
+ * checks already carry an explicit status, so the worst status wins rather than
+ * re-deriving severity from diagnostics: a failing dependency blocks publishing
+ * even when its diagnostic is retryable.
+ */
+export function classifyPublishingSetupChecklistState(
+  checks: readonly IPublishingSetupCheck[],
+): PublishingReadinessState {
+  if (checks.length === 0) {
+    return 'unknown';
+  }
+
+  if (checks.some((check) => check.status === 'fail')) {
+    return 'blocked';
+  }
+
+  if (checks.some((check) => check.status === 'warn')) {
+    return 'degraded';
+  }
+
+  if (checks.some((check) => check.status === 'unknown')) {
+    return 'unknown';
   }
 
   return 'publish_capable';

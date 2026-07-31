@@ -1,6 +1,7 @@
 'use client';
 
-import { AssetScope, ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { isPublicAssetScope } from '@genfeedai/helpers';
 import type { BrandDetailOverviewProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
@@ -85,9 +86,7 @@ export default function BrandDetailOverview({
             />
           </div>
 
-          {typeof brand.scope === 'string' &&
-          brand.scope.toLowerCase() === AssetScope.PUBLIC &&
-          onCopyPublicProfile ? (
+          {isPublicAssetScope(brand.scope) && onCopyPublicProfile ? (
             <div className="flex shrink-0 items-center gap-1.5">
               <Button
                 icon={<Copy className="size-3.5" />}

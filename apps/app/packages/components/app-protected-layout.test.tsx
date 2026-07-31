@@ -975,7 +975,7 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('keeps the frame on a canvas route while the shell body is still booting', () => {
+  it('keeps the topbar frame on a canvas route while the shell body is still booting', () => {
     // No auth yet means no agent API service, so the shell body cannot mount.
     // The frame around it is not the shell's to withhold: the topbar used to
     // disappear on canvas routes for exactly this window. The module sidebar is

@@ -5593,7 +5593,7 @@
             "type": "boolean"
           },
           "label": {
-            "description": "The display label/name of the workflow",
+            "description": "The display label/name of the workflow. Omit when sourceWorkflowId is set; the server derives the copy label.",
             "type": "string"
           },
           "lastExecutedAt": {
@@ -5709,9 +5709,6 @@
             "type": "string"
           }
         },
-        "required": [
-          "label"
-        ],
         "type": "object"
       },
       "CreateWorkflowExecutionDto": {
@@ -14324,7 +14321,7 @@
             "type": "boolean"
           },
           "label": {
-            "description": "The display label/name of the workflow",
+            "description": "The display label/name of the workflow. Omit when sourceWorkflowId is set; the server derives the copy label.",
             "type": "string"
           },
           "lastExecutedAt": {
@@ -39326,6 +39323,36 @@
         "summary": "create",
         "tags": [
           "PublishApprovals"
+        ]
+      }
+    },
+    "/publishing-setup/checklist": {
+      "get": {
+        "operationId": "PublishingSetupController.getChecklist",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "getChecklist",
+        "tags": [
+          "PublishingSetup"
+        ]
+      }
+    },
+    "/publishing-setup/diagnostics": {
+      "get": {
+        "operationId": "PublishingSetupController.getDiagnostics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "getDiagnostics",
+        "tags": [
+          "PublishingSetup"
         ]
       }
     },

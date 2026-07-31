@@ -102,6 +102,70 @@ export const WORKFLOW_CONTROL_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
+      'List the code-owned Genfeed system workflow catalog with per-organization install state. Use this to discover official automations before installing one.',
+    name: 'list_system_workflow_catalog',
+    parameters: {
+      properties: {
+        family: {
+          description:
+            'Optional catalog family filter such as reply-polling or trend-notification.',
+          enum: [
+            'ad-automation',
+            'agent-autopilot',
+            'analytics-sync',
+            'campaign-orchestration',
+            'content-production',
+            'livestream-bot',
+            'product',
+            'reply-polling',
+            'system-action',
+            'trend-notification',
+          ],
+          type: 'string',
+        },
+        includeNonInstallable: {
+          default: false,
+          description:
+            'Include product system-action entries that are created on demand and cannot be installed by a user.',
+          type: 'boolean',
+        },
+        installedOnly: {
+          default: false,
+          description:
+            'Return only catalog entries already installed in this organization.',
+          type: 'boolean',
+        },
+      },
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
+      'Install one system workflow catalog entry into the current organization as an editable, schedulable copy. Installing the same entry twice returns the existing workflow.',
+    name: 'install_system_workflow',
+    parameters: {
+      properties: {
+        brandId: {
+          description:
+            'Optional brand ID to attach to the installed workflow. Defaults to the current brand scope when available.',
+          type: 'string',
+        },
+        canonicalId: {
+          description:
+            'Canonical catalog id to install, as returned by list_system_workflow_catalog.',
+          type: 'string',
+        },
+      },
+      required: ['canonicalId'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
       'Inspect a single workflow run, including status, trigger, node results, progress, timing, errors, and metadata.',
     name: 'get_workflow_run',
     parameters: {

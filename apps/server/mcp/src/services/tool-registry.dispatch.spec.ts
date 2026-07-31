@@ -27,6 +27,11 @@ describe('ToolRegistryService.classify', () => {
     // inspect_workflow is BOTH an AgentToolName and a workflow-control tool;
     // precedence must keep it on workflow-control (checked first).
     ['inspect_workflow', 'workflow-control'],
+    // The system workflow catalog (#2223) is REST-backed on the workflows
+    // collection, so both catalog tools stay on workflow-control even though
+    // they are also AgentToolName members.
+    ['list_system_workflow_catalog', 'workflow-control'],
+    ['install_system_workflow', 'workflow-control'],
     ['generate_image', 'agent-executor'],
     ['get_video_status', 'legacy'],
     ['list_meta_campaigns', 'meta-ads'],

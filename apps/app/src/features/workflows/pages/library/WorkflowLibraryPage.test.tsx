@@ -11,6 +11,20 @@ const mocks = vi.hoisted(() => ({
   isSystemWorkflow: false,
 }));
 
+vi.mock('@genfeedai/enums', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/enums')>();
+
+  return {
+    ...actual,
+    ButtonVariant: {
+      DEFAULT: 'default',
+      OUTLINE: 'outline',
+      SECONDARY: 'secondary',
+      UNSTYLED: 'unstyled',
+    },
+  };
+});
+
 vi.mock('@ui/card/Card', () => ({
   default: ({
     children,

@@ -34,6 +34,7 @@ import type {
   IChannelTarget,
   IChannelTargetAnalyticsCollection,
   IChannelTargetAnalyticsCollectionError,
+  IPublishingProviderReadiness,
   IReleaseAttachment,
   IReleaseGroup,
   IReleaseMediaReference,
@@ -347,6 +348,12 @@ export class PostGroupContractService {
 
   toJson(value: unknown): Prisma.InputJsonValue {
     return value as Prisma.InputJsonValue;
+  }
+
+  toReadinessJson(
+    readiness: IPublishingProviderReadiness | null | undefined,
+  ): Prisma.InputJsonValue | typeof Prisma.JsonNull {
+    return readiness ? this.toJson(readiness) : Prisma.JsonNull;
   }
 
   toValidationMedia(

@@ -8,6 +8,7 @@ import {
   ButtonVariant,
   ModalEnum,
 } from '@genfeedai/enums';
+import { isPublicAssetScope } from '@genfeedai/helpers';
 import type { BrandOverlayProps } from '@genfeedai/props/modals/modal.props';
 import Alert from '@ui/feedback/alert/Alert';
 import { LazyModalBrandGenerate } from '@ui/lazy/modal/LazyModal';
@@ -271,7 +272,7 @@ export default function BrandOverlay({
                 Brand
               </span>
               <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-foreground/70">
-                {activeBrand.scope === AssetScope.PUBLIC ? 'Public' : 'Private'}
+                {isPublicAssetScope(activeBrand.scope) ? 'Public' : 'Private'}
               </span>
               <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-foreground/70">
                 {connectedPlatformsCount} connected

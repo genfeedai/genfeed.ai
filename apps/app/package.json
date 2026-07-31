@@ -13,6 +13,7 @@
     "@genfeedai/types": "*",
     "@genfeedai/workflows": "*",
     "@remotion/player": "4.0.502",
+    "@serwist/turbopack": "9.5.12",
     "@tanstack/react-query": "5.101.4",
     "@tiptap/core": "3.29.2",
     "@tiptap/extension-mention": "3.29.2",
@@ -29,6 +30,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "remotion": "4.0.502",
+    "serwist": "9.5.12",
     "zustand": "5.0.14"
   },
   "description": "Genfeed Content Hub - Unified content management, publishing, and analytics",
@@ -39,6 +41,7 @@
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "@typescript/native": "npm:typescript@7.0.2",
+    "esbuild": "0.28.1",
     "typescript": "6.0.2"
   },
   "name": "@genfeedai/app",

@@ -223,15 +223,25 @@ export function initializeStoryboard(format: IngredientFormat): Storyboard {
 }
 
 /**
- * Helper to check if all frames are ready for merging
+ * Helper to get the frames that already produced a video
+ */
+export function getCompletedFrames(storyboard: Storyboard): StoryboardFrame[] {
+  return storyboard.frames.filter(
+    (frame: StoryboardFrame) =>
+      frame.status === 'completed' && Boolean(frame.videoId),
+  );
+}
+
+/**
+ * Helper to check whether enough frames produced a video to merge.
+ *
+ * Counts completed frames rather than requiring every frame to be completed:
+ * the storyboard workspace enables "Merge clips" from the completed count and
+ * merges exactly those videos, so an `every()` predicate here left the button
+ * enabled while the merge itself refused to run.
  */
 export function canMergeStoryboard(storyboard: Storyboard): boolean {
-  return (
-    storyboard.frames.length >= VIDEO_MERGE_LIMITS.MIN_VIDEOS &&
-    storyboard.frames.every(
-      (frame: StoryboardFrame) => frame.status === 'completed' && frame.videoId,
-    )
-  );
+  return getCompletedFrames(storyboard).length >= VIDEO_MERGE_LIMITS.MIN_VIDEOS;
 }
 
 /**

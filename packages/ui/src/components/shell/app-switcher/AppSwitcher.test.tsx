@@ -136,12 +136,12 @@ vi.mock('@genfeedai/constants', () => {
       workspace: 'app_switcher_workspace',
       agent: 'app_switcher_agent',
       messages: 'app_switcher_messages',
+      automate: 'app_switcher_automate',
       research: 'app_switcher_research',
       studio: 'app_switcher_studio',
       library: 'app_switcher_library',
       posts: 'app_switcher_posts',
       analytics: 'app_switcher_analytics',
-      automate: 'app_switcher_automate',
     },
     createBrandAppRoute: (
       orgSlug: string,
@@ -272,13 +272,20 @@ describe('AppSwitcher', () => {
 
   it('independently hides every module whose discovery flag is disabled', () => {
     featureFlags.app_switcher_messages = false;
+    featureFlags.app_switcher_automate = false;
     featureFlags.app_switcher_research = false;
     featureFlags.app_switcher_library = false;
     featureFlags.app_switcher_analytics = false;
 
     render(<AppSwitcher orgSlug="acme" />);
 
-    for (const label of ['Messages', 'Trends', 'Library', 'Analytics']) {
+    for (const label of [
+      'Messages',
+      'Automate',
+      'Trends',
+      'Library',
+      'Analytics',
+    ]) {
       expect(
         screen.queryByRole('link', { name: label }),
       ).not.toBeInTheDocument();
