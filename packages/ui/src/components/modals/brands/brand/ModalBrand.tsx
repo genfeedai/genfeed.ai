@@ -376,6 +376,9 @@ export default function BrandOverlay({
                   isPublic ? AssetScope.PUBLIC : AssetScope.BRAND,
                 )
               }
+              onUpdateBrand={(field, value) =>
+                handleUpdateBrandField(field, value)
+              }
               onUploadBanner={() => handleOpenUploadModal(AssetCategory.BANNER)}
               onUploadLogo={() => handleOpenUploadModal(AssetCategory.LOGO)}
               onUploadReference={() =>

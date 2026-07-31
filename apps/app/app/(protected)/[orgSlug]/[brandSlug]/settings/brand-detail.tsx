@@ -122,6 +122,7 @@ export default function BrandDetail() {
             isGeneratingLogo={isGeneratingLogo}
             onUploadLogo={() => handleOpenUploadModal(AssetCategory.LOGO)}
             onGenerateLogo={handleGenerateLogo}
+            onUpdateBrand={(field, value) => handleUpdateAccount(field, value)}
             onCopyPublicProfile={
               isPublicProfile ? handleCopyPublicProfile : undefined
             }

@@ -10,7 +10,6 @@ export { default as FormDatepicker } from '@ui/primitives/datepicker';
 export { default as FormDropdown } from '@ui/primitives/dropdown-field';
 // Upload
 export { default as FormDropzone } from '@ui/primitives/dropzone-field';
-export { default as FormInputEditable } from '@ui/primitives/editable-input';
 export { default as FormControl } from '@ui/primitives/field';
 // Inputs
 export { Input } from '@ui/primitives/input';
