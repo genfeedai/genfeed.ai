@@ -40,7 +40,7 @@ Project-level rules and facts that apply to this repo regardless of which agent 
 - Git history (use `git log` / `git blame`)
 - Fix recipes or debug solutions (the fix is in the code; commit messages have the context)
 - User-level preferences that apply across all of decod3rs's projects (those live in a separate user-level memory location, not git-tracked here)
-- Session-ephemeral state (goes in `.agents/SESSIONS/YYYY-MM-DD.md` instead)
+- Session-ephemeral state (goes in `.agents/sessions/YYYY-MM-DD.md` instead)
 - Secrets, credentials, API keys, tokens (obviously)
 
 ## Writing memory
@@ -63,4 +63,4 @@ If a rule in `.agents/memory/` conflicts with a rule in `CLAUDE.md` or `AGENTS.m
 - `system/` — critical rules, agent runtime, architecture
 - `features/` — feature architecture docs
 - `architecture/` — ADRs
-- `.agents/SESSIONS/` — daily session logs — ephemeral journal, not memory
+- `.agents/sessions/` — daily session logs — ephemeral journal, not memory

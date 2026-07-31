@@ -29,7 +29,7 @@ reviews:
     - "!**/.next/**"
     - "!**/dist/**"
     - "!bun.lock"
-    - "!.agents/SESSIONS/**"
+    - "!.agents/sessions/**"
   path_instructions:
     - path: "content/**/*.mdx"
       instructions: >

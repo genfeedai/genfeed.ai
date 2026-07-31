@@ -8,7 +8,7 @@ cd "$ROOT_DIR"
 EXCLUDE_GLOBS=(
   "!.git/**"
   "!.agents/**"
-  "!.agents/SESSIONS/**"
+  "!.agents/sessions/**"
   "!**/node_modules/**"
   "!**/.next/**"
   "!**/dist/**"

@@ -227,7 +227,7 @@ console.warn(...)
 Only `AGENTS.md`, `CLAUDE.md`, `README.md` at project roots.
 
 #### Session File Naming
-Only `YYYY-MM-DD.md` in `.agents/SESSIONS/` — no descriptive suffixes.
+Only `YYYY-MM-DD.md` in `.agents/sessions/` — no descriptive suffixes.
 
 ## Severity Classification
 
