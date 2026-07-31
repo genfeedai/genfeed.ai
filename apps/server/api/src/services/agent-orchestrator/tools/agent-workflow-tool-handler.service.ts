@@ -17,7 +17,12 @@ import type { AgentToolResult } from '@genfeedai/interfaces';
 import { AgentToolName, toAgentScopeMetadata } from '@genfeedai/interfaces';
 import { formatRecurringSchedule } from '@helpers/formatting/recurring-schedule/recurring-schedule.helper';
 import { ConfigService } from '@libs/config/config.service';
-import { Inject, Injectable, Optional } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 
 type OfficialWorkflowSourceKind =
   | 'generated'
@@ -544,6 +549,35 @@ export class AgentWorkflowToolHandler {
   }
 
   /**
+   * A client-supplied brandId is untrusted: the catalog install builds its
+   * create data straight from it, so a foreign brand would end up owning an
+   * org's workflow. Only the server-derived `ctx.brandId` skips the lookup.
+   */
+  private async resolveInstallBrandId(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<string | undefined> {
+    const requestedBrandId = readOptionalString(params.brandId);
+    if (!requestedBrandId) {
+      return ctx.brandId;
+    }
+
+    const brand = await this.brandsService.findOne({
+      _id: requestedBrandId,
+      isDeleted: false,
+      organization: ctx.organizationId,
+    });
+
+    if (!brand) {
+      throw new BadRequestException(
+        'Brand is not available in this organization',
+      );
+    }
+
+    return requestedBrandId;
+  }
+
+  /**
    * Installs one catalog entry as an editable org-owned copy. The underlying
    * service is idempotent, so a repeat install returns the existing workflow.
    */
@@ -561,8 +595,10 @@ export class AgentWorkflowToolHandler {
     }
 
     try {
+      const brandId = await this.resolveInstallBrandId(params, ctx);
+
       const workflow = (await this.systemWorkflowCatalogService.install({
-        brandId: readOptionalString(params.brandId) ?? ctx.brandId,
+        brandId,
         canonicalId,
         organizationId: ctx.organizationId,
         userId: ctx.userId,
