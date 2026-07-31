@@ -31,9 +31,11 @@ describe('ANALYTICS_MENU_ITEMS', () => {
     }
   });
 
-  it('all hrefs point to /analytics/* routes', () => {
+  // Overview collapsed onto the surface root, so /analytics is a valid href
+  // alongside the /analytics/* leaves.
+  it('all hrefs stay on the analytics surface', () => {
     for (const item of ANALYTICS_MENU_ITEMS) {
-      expect(item.href).toMatch(/^\/analytics\//);
+      expect(item.href).toMatch(/^\/analytics(?:\/|$)/);
     }
   });
 });

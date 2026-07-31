@@ -31,11 +31,11 @@ function materializeRoutePattern(pattern: string): string {
 
 describe('workspace shell trusted registry', () => {
   it('owns the complete accepted protected-route denominator', () => {
-    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(219);
+    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(213);
     expect(
       new Set(PROTECTED_ROUTE_INVENTORY.map((route) => route.canonicalUrl))
         .size,
-    ).toBe(219);
+    ).toBe(213);
 
     for (const route of PROTECTED_ROUTE_INVENTORY) {
       expect(route.accessPolicy).toMatch(
@@ -237,12 +237,17 @@ describe('workspace shell trusted registry', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/studio/image'),
     ).toMatchObject({ productClass: 'contextual-action' });
+    // The Automate hard-cut folded autopilot and configuration into the
+    // first-class orchestration family; /write is the surviving compat alias.
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/orchestration/autopilot'),
-    ).toMatchObject({ productClass: 'compatibility-only' });
+    ).toMatchObject({ productClass: 'control-plane' });
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/orchestration/configuration'),
-    ).toMatchObject({ productClass: 'compatibility-only' });
+    ).toMatchObject({ productClass: 'control-plane' });
+    expect(resolveWorkspaceShellRoute('/acme/~/write')).toMatchObject({
+      productClass: 'compatibility-only',
+    });
   });
 
   it('keeps the two accepted hard-cut families outside the registry', () => {

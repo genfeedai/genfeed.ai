@@ -92,9 +92,12 @@ describe('StudioPageContent', () => {
     const { rerender } = render(<StudioPageContent />);
 
     await waitFor(() => {
-      expect(replaceMock).toHaveBeenCalledWith('/studio/video', {
-        scroll: false,
-      });
+      expect(replaceMock).toHaveBeenCalledWith(
+        '/default/default/studio/video',
+        {
+          scroll: false,
+        },
+      );
     });
 
     navigationState.type = 'music';
@@ -103,9 +106,12 @@ describe('StudioPageContent', () => {
     rerender(<StudioPageContent />);
 
     await waitFor(() => {
-      expect(replaceMock).toHaveBeenCalledWith('/studio/image', {
-        scroll: false,
-      });
+      expect(replaceMock).toHaveBeenCalledWith(
+        '/default/default/studio/image',
+        {
+          scroll: false,
+        },
+      );
     });
 
     expect(replaceMock).toHaveBeenCalledTimes(2);

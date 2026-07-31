@@ -44,7 +44,7 @@ describe('workspace shell URL restoration', () => {
     '/acme/moonrise/research/discovery',
     '/acme/moonrise/studio/image',
     '/acme/moonrise/workspace/tasks/task-1',
-    '/acme/moonrise/workflows/templates',
+    '/acme/moonrise/orchestration/workflows/templates',
     '/acme/moonrise/workspace/inbox/all',
     '/acme/~/write',
   ])('registers the protected product family %s as canvas', (pathname) => {
@@ -77,10 +77,12 @@ describe('workspace shell URL restoration', () => {
     });
   });
 
-  it('restores the workflow picker and canonical organization run URL', () => {
+  // Workflows are brand-scoped only since the Automate hard-cut — the
+  // organization scope no longer registers a workflows surface.
+  it('restores the workflow picker and canonical run URL', () => {
     expect(
       restoreWorkspaceShellLocation({
-        pathname: '/acme/~/workflows/executions/run-1',
+        pathname: '/acme/moonrise/orchestration/workflows/executions/run-1',
         searchParams: new URLSearchParams({
           overlay: 'workflow-picker',
           thread: 'thread-1',
@@ -88,7 +90,8 @@ describe('workspace shell URL restoration', () => {
       }),
     ).toMatchObject({
       overlay: { key: 'workflow-picker', parameters: {} },
-      routeKey: 'route:/:orgSlug/~/workflows/executions/:id',
+      routeKey:
+        'route:/:orgSlug/:brandSlug/orchestration/workflows/executions/:id',
       state: 'overlay',
       threadId: null,
     });
