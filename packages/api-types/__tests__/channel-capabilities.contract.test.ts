@@ -219,6 +219,90 @@ describe('validateChannelTargetSettings', () => {
     );
   });
 
+  test('declares animated media handling for every catalogued channel', () => {
+    for (const capability of listChannelCapabilities({
+      includeHidden: true,
+      includePlanned: true,
+    })) {
+      expect(capability.media.animated.supported).toBeTypeOf('boolean');
+
+      // A platform that drops animation must say what happens instead, because
+      // that string is what the preview shows on the affected media item.
+      if (!capability.media.animated.supported) {
+        expect(capability.media.animated.consequence).toBeTypeOf('string');
+      }
+    }
+
+    expect(
+      getChannelCapability(CredentialPlatform.INSTAGRAM)?.media.animated,
+    ).toEqual({
+      consequence: expect.stringContaining('still frame'),
+      supported: false,
+    });
+    expect(
+      getChannelCapability(CredentialPlatform.TWITTER)?.media.animated
+        .supported,
+    ).toBe(true);
+  });
+
+  test('warns without blocking when animated media targets a flattening channel', () => {
+    const result = validateChannelTargetSettings({
+      caption: 'Carousel launch',
+      media: [{ id: 'gif-1', isAnimated: true, kind: 'image' }],
+      platform: CredentialPlatform.INSTAGRAM,
+      settings: { placement: 'feed' },
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.validationState).toBe(TargetValidationState.WARNING);
+    expect(result.warnings).toEqual([
+      expect.objectContaining({
+        code: 'channel_target.animated_media_flattened',
+        field: 'media.0.isAnimated',
+        severity: 'warning',
+      }),
+    ]);
+    expect(
+      channelTargetValidationResultSchema.parse(result).warnings,
+    ).toHaveLength(1);
+  });
+
+  test('leaves animation untouched on channels that preserve it', () => {
+    const result = validateChannelTargetSettings({
+      caption: 'Launch loop',
+      media: [{ id: 'gif-1', isAnimated: true, kind: 'image' }],
+      platform: CredentialPlatform.TWITTER,
+    });
+
+    expect(result.warnings).toEqual([]);
+    expect(result.validationState).toBe(TargetValidationState.VALID);
+  });
+
+  test('keeps blocking errors dominant over animation warnings', () => {
+    const capability = getChannelCapability(CredentialPlatform.INSTAGRAM);
+    const maxItems = capability?.media.maxItems ?? 0;
+    const result = validateChannelTargetSettings({
+      caption: 'Carousel launch',
+      media: Array.from({ length: maxItems + 1 }, (_, index) => ({
+        id: `gif-${index}`,
+        isAnimated: true,
+        kind: 'image' as const,
+      })),
+      platform: CredentialPlatform.INSTAGRAM,
+      settings: { placement: 'feed' },
+    });
+
+    // The only blocker is the media count, so INVALID must win purely because
+    // an error outranks the animation warnings that travel with it.
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual([
+      expect.objectContaining({ code: 'channel_target.too_many_media_items' }),
+    ]);
+    expect(result.validationState).toBe(TargetValidationState.INVALID);
+    expect(result.warnings.length).toBeGreaterThan(0);
+  });
+
   test('flags a valid enum platform with no registered capability', () => {
     const result = validateChannelTargetSettings({
       caption: 'Discord announcement',
