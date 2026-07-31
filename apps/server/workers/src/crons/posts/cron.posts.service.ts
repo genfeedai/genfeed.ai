@@ -1,5 +1,6 @@
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
@@ -29,6 +30,7 @@ import type { IChannelTargetError } from '@genfeedai/interfaces';
 import type { PostPublishJobData } from '@genfeedai/queue-contracts';
 import { PublishApprovalsService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
@@ -73,6 +75,8 @@ export class CronPostsService {
     private readonly postRepeatSchedulerService: PostRepeatSchedulerService,
     private readonly scheduledPostExecutionGuardService: ScheduledPostExecutionGuardService,
     private readonly scheduledPostQueueService: ScheduledPostQueueService,
+    private readonly publishingReadinessService: CredentialPublishingReadinessService,
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
@@ -424,6 +428,62 @@ export class CronPostsService {
         );
         this.emitPublishFailedWebhook(post, 'Organization not found');
         return this.createFailedResult('', 'Organization not found');
+      }
+
+      // Re-derive readiness at consume time rather than trusting the verdict
+      // the scheduler gated on. A queued job can sit for the whole scheduling
+      // horizon, and a channel can expire, be disconnected, or lose its
+      // provider configuration in that window. Same derivation the scheduler
+      // uses (`resolveForCredentials`), so the two ends of the queue can never
+      // disagree — and quota stays out of it, leaving the branch below to own
+      // that verdict and its activity record.
+      const readiness = (
+        await this.publishingReadinessService.resolveForCredentials(
+          this.prisma,
+          postOrganizationId ?? '',
+          [postCredentialId ?? ''],
+        )
+      ).get(postCredentialId ?? '');
+
+      if (!readiness?.canSchedule) {
+        const blocking = readiness?.diagnostics.find(
+          (diagnostic) => diagnostic.severity === 'error',
+        );
+        // An absent verdict means the credential resolved to no tenant-scoped
+        // row — soft-deleted or foreign. Absence is a block, never a pass.
+        const readinessError =
+          blocking?.message ?? 'Channel is not ready to publish';
+
+        this.logger.error(`${url} channel not ready to publish`, {
+          classification: blocking?.classification,
+          credentialId: postCredentialId,
+          platform: credential.platform,
+          postId: post.id,
+          readinessState: readiness?.state ?? 'unresolved',
+        });
+        await this.persistPublishState(
+          post,
+          {
+            // `isRetryable` is recorded for operator tooling, not acted on:
+            // retrying a disconnected channel three minutes later changes
+            // nothing, so the target is failed outright either way.
+            error: this.createTargetError(
+              blocking?.code ?? 'channel_not_ready',
+              readinessError,
+              readiness?.isRetryable ?? false,
+            ),
+            executionState: TargetExecutionState.FAILED,
+            status: PostStatus.FAILED,
+          },
+          readinessError,
+        );
+        this.emitPublishFailedWebhook(
+          post,
+          readinessError,
+          credential.platform,
+        );
+
+        return this.createFailedResult(credential.platform, readinessError);
       }
 
       // Check quota
