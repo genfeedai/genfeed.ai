@@ -8,12 +8,12 @@ type PageContextContract = {
   route: string;
   currentApp:
     | 'analytics'
+    | 'automate'
     | 'compose'
     | 'editor'
     | 'library'
     | 'posts'
     | 'studio'
-    | 'workflows'
     | 'workspace';
   sectionLabel?: string;
   pageLabels?: string[];
@@ -48,8 +48,8 @@ const CONTRACTS: PageContextContract[] = [
   },
   {
     route: `${BRAND_BASE}/orchestration/library`,
-    currentApp: 'workflows',
-    sectionLabel: 'Workflows',
+    currentApp: 'automate',
+    sectionLabel: 'Automate',
   },
 ];
 
