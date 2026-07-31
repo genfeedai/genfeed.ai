@@ -203,7 +203,7 @@ describe('WorkflowLibraryPage card semantics', () => {
 
     expect(cardLink).toHaveAttribute(
       'href',
-      '/acme/brand/workflows/workflow-1',
+      '/acme/brand/orchestration/workflows/workflow-1',
     );
     expect(cardLink).toHaveClass(
       'absolute',
