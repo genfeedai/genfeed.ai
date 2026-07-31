@@ -8,8 +8,11 @@ type VersionResponse = {
 };
 
 // The build id this session was served with, inlined at build time via
-// next.config `env`. Empty in local dev without the var — then there is nothing
-// to compare and the watcher stays idle.
+// next.config `env`. In local dev that value is the stable constant 'dev', so it
+// always matches what /api/version reports and the watcher never prompts. (When
+// it was a per-start timestamp, every dev-server restart looked like a new
+// deployment and fired a spurious toast.) Empty only if the id is unset, in
+// which case there is nothing to compare and the watcher stays idle.
 const CURRENT_BUILD_ID = process.env.NEXT_PUBLIC_BUILD_ID ?? '';
 const VERSION_ENDPOINT = '/api/version';
 const POLL_INTERVAL_MS = 60_000;
