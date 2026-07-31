@@ -33,15 +33,15 @@ test.describe('Workflows', () => {
   }) => {
     const workflow = testWorkflows[1];
 
-    await authenticatedPage.goto(`/workflows/${workflow.id}`, {
+    await authenticatedPage.goto(`/orchestration/workflows/${workflow.id}`, {
       waitUntil: 'domcontentloaded',
     });
 
     await expect(authenticatedPage).toHaveURL(
-      new RegExp(`/workflows/${workflow.id}$`),
+      new RegExp(`/orchestration/workflows/${workflow.id}$`),
     );
     await expect(
-      authenticatedPage.locator('a[href="/workflows"]').first(),
+      authenticatedPage.locator('a[href$="/orchestration/workflows"]').first(),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByRole('button', { name: workflow.name }),
@@ -64,9 +64,11 @@ test.describe('Workflows', () => {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/workflows\/new$/);
+    await expect(authenticatedPage).toHaveURL(
+      /\/orchestration\/workflows\/new$/,
+    );
     await expect(
-      authenticatedPage.locator('a[href="/workflows"]').first(),
+      authenticatedPage.locator('a[href$="/orchestration/workflows"]').first(),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByRole('button', { name: 'Untitled Workflow' }),
@@ -89,7 +91,9 @@ test.describe('Workflows', () => {
       },
     );
 
-    await expect(authenticatedPage).toHaveURL(/\/workflows\/executions$/);
+    await expect(authenticatedPage).toHaveURL(
+      /\/orchestration\/workflows\/executions$/,
+    );
     await expect(
       authenticatedPage.getByRole('heading', { name: /execution history/i }),
     ).toBeVisible();

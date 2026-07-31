@@ -888,6 +888,59 @@ describe('proxy', () => {
     );
   });
 
+  it('collapses flat automation routes onto the org Automate overview when no brand is selected', async () => {
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+
+      if (url.endsWith('/auth/token')) {
+        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
+          status: 200,
+        });
+      }
+
+      if (url.endsWith('/auth/bootstrap')) {
+        return new Response(
+          JSON.stringify({
+            access: {},
+            brands: [{ id: 'brand_1', slug: 'moonrise-studio' }],
+          }),
+          { status: 200 },
+        );
+      }
+
+      if (url.endsWith('/organizations?mine=true')) {
+        return new Response(
+          JSON.stringify([{ isActive: true, slug: 'acme' }]),
+          { status: 200 },
+        );
+      }
+
+      return new Response('not found', { status: 404 });
+    });
+
+    const { default: proxy } = await import('./proxy');
+
+    const rootResponse = await proxy(
+      makeSignedInRequest('/orchestration'),
+      {} as never,
+    );
+
+    expect(rootResponse.status).toBe(307);
+    expect(rootResponse.headers.get('location')).toBe(
+      'http://localhost:3000/acme/~/orchestration',
+    );
+
+    const workflowsResponse = await proxy(
+      makeSignedInRequest('/orchestration/workflows'),
+      {} as never,
+    );
+
+    expect(workflowsResponse.status).toBe(307);
+    expect(workflowsResponse.headers.get('location')).toBe(
+      'http://localhost:3000/acme/~/orchestration',
+    );
+  });
+
   it('keeps personal settings canonical when no brand is selected', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);

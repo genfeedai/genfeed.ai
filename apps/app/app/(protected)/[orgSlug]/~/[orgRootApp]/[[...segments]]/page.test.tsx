@@ -6,15 +6,21 @@ import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { notFoundMock, renderPostsListPageMock } = vi.hoisted(() => ({
-  notFoundMock: vi.fn(() => {
-    throw new Error('NEXT_NOT_FOUND');
+const { notFoundMock, redirectMock, renderPostsListPageMock } = vi.hoisted(
+  () => ({
+    notFoundMock: vi.fn(() => {
+      throw new Error('NEXT_NOT_FOUND');
+    }),
+    redirectMock: vi.fn((destination: string) => {
+      throw new Error(`NEXT_REDIRECT:${destination}`);
+    }),
+    renderPostsListPageMock: vi.fn(),
   }),
-  renderPostsListPageMock: vi.fn(),
-}));
+);
 
 vi.mock('next/navigation', () => ({
   notFound: notFoundMock,
+  redirect: redirectMock,
 }));
 
 vi.mock('@pages/ingredients/layout/ingredients-layout', () => ({
@@ -238,7 +244,7 @@ describe('OrgRootAppPage', () => {
     });
   });
 
-  it('hard-cuts org-scoped workflows (use brand /orchestration/workflows)', async () => {
+  it('has no org-scoped /workflows route at all', async () => {
     await expect(
       OrgRootAppPage({
         params: Promise.resolve({
@@ -248,6 +254,20 @@ describe('OrgRootAppPage', () => {
       }),
     ).rejects.toThrow('NEXT_NOT_FOUND');
     expect(notFoundMock).toHaveBeenCalled();
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  it('sends deeper org-scoped automation paths to the Automate overview', async () => {
+    await expect(
+      OrgRootAppPage({
+        params: Promise.resolve({
+          orgRootApp: 'orchestration',
+          orgSlug: 'acme',
+          segments: ['workflows'],
+        }),
+      }),
+    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/orchestration');
+    expect(notFoundMock).not.toHaveBeenCalled();
   });
 
   it('renders org editor projects', async () => {

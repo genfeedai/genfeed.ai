@@ -198,28 +198,16 @@ describe('app next.config', () => {
     });
   });
 
-  it('permanently hard-cuts legacy /workflows into Automate workflows', async () => {
+  it('keeps the legacy /workflows surface hard-cut with no compatibility redirect', async () => {
     const redirects = await config.redirects?.();
 
-    expect(redirects).toContainEqual({
-      destination: APP_ROUTES.ORCHESTRATION.WORKFLOWS,
-      permanent: true,
-      source: '/workflows',
-    });
-    expect(redirects).toContainEqual({
-      destination: `${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/:path*`,
-      permanent: true,
-      source: '/workflows/:path*',
-    });
-    expect(redirects).toContainEqual({
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.ORCHESTRATION.WORKFLOWS,
-      ),
-      permanent: true,
-      source: createBrandAppRoute(':orgSlug', ':brandSlug', '/workflows'),
-    });
+    const legacyWorkflowRedirects = (redirects ?? []).filter((redirect) =>
+      redirect.source
+        .replace(createBrandAppRoute(':orgSlug', ':brandSlug'), '')
+        .startsWith('/workflows'),
+    );
+
+    expect(legacyWorkflowRedirects).toEqual([]);
   });
 
   it('rewrites clean local workspace routes into the default local shell scope', async () => {

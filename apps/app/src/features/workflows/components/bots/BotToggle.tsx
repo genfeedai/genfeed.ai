@@ -142,7 +142,7 @@ export default function BotToggle({
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Configuration</h2>
           <Link
-            href={editorPath}
+            href={href(editorPath)}
             className="flex items-center gap-2 text-sm text-primary hover:underline"
           >
             <Settings className="size-4" />
