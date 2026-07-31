@@ -123,7 +123,9 @@ describe('PostGroupReadinessService', () => {
     expect(
       readiness.get('cred-x')?.diagnostics.map((entry) => entry.code),
     ).toEqual(['provider_app_review_unverified']);
-    expect(readiness.get('cred-x')?.requiredAction).toBeUndefined();
+    // `buildPublishingProviderReadiness` normalizes "no corrective action" to
+    // null, so the contract's optional-and-nullable field lands as null here.
+    expect(readiness.get('cred-x')?.requiredAction).toBeNull();
   });
 
   it('blocks an unconfigured provider on cloud before any publish work is queued', async () => {
