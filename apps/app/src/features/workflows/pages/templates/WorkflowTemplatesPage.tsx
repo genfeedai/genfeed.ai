@@ -11,11 +11,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useReducer, useRef } from 'react';
 import {
   createWorkflowApiService,
+  type SystemWorkflowCatalogEntry,
   type WorkflowTemplate,
 } from '@/features/workflows/services/workflow-api';
 
 const TEMPLATE_CATEGORIES = [
   { id: 'all', label: 'All Templates' },
+  { id: 'system', label: 'System' },
   { id: 'social', label: 'Social Media' },
   { id: 'video', label: 'Video' },
   { id: 'editing', label: 'Editing' },
@@ -28,26 +30,41 @@ const TEMPLATE_CATEGORIES = [
 
 type PageState = {
   templates: WorkflowTemplate[];
+  systemCatalog: SystemWorkflowCatalogEntry[];
   selectedCategory: string;
   isLoading: boolean;
   error: string | null;
   isBootstrapping: boolean;
+  installingCanonicalId: string | null;
 };
 
 type PageAction =
   | { type: 'LOAD_START' }
-  | { type: 'LOAD_SUCCESS'; templates: WorkflowTemplate[] }
+  | {
+      type: 'LOAD_SUCCESS';
+      templates: WorkflowTemplate[];
+      systemCatalog: SystemWorkflowCatalogEntry[];
+    }
   | { type: 'LOAD_ERROR'; error: string }
   | { type: 'SET_CATEGORY'; category: string }
   | { type: 'BOOTSTRAP_START' }
-  | { type: 'BOOTSTRAP_ERROR'; error: string };
+  | { type: 'BOOTSTRAP_ERROR'; error: string }
+  | { type: 'INSTALL_START'; canonicalId: string }
+  | {
+      type: 'INSTALL_SUCCESS';
+      canonicalId: string;
+      installedWorkflowId: string;
+    }
+  | { type: 'INSTALL_ERROR'; error: string };
 
 const initialState: PageState = {
   templates: [],
+  systemCatalog: [],
   selectedCategory: 'all',
   isLoading: true,
   error: null,
   isBootstrapping: false,
+  installingCanonicalId: null,
 };
 
 function pageReducer(state: PageState, action: PageAction): PageState {
@@ -55,7 +72,12 @@ function pageReducer(state: PageState, action: PageAction): PageState {
     case 'LOAD_START':
       return { ...state, isLoading: true, error: null };
     case 'LOAD_SUCCESS':
-      return { ...state, isLoading: false, templates: action.templates };
+      return {
+        ...state,
+        isLoading: false,
+        templates: action.templates,
+        systemCatalog: action.systemCatalog,
+      };
     case 'LOAD_ERROR':
       return { ...state, isLoading: false, error: action.error };
     case 'SET_CATEGORY':
@@ -64,19 +86,55 @@ function pageReducer(state: PageState, action: PageAction): PageState {
       return { ...state, isBootstrapping: true, error: null };
     case 'BOOTSTRAP_ERROR':
       return { ...state, isBootstrapping: false, error: action.error };
+    case 'INSTALL_START':
+      return {
+        ...state,
+        installingCanonicalId: action.canonicalId,
+        error: null,
+      };
+    case 'INSTALL_SUCCESS':
+      return {
+        ...state,
+        installingCanonicalId: null,
+        systemCatalog: state.systemCatalog.map((entry) =>
+          entry.canonicalId === action.canonicalId
+            ? {
+                ...entry,
+                installed: true,
+                installedWorkflowId: action.installedWorkflowId,
+              }
+            : entry,
+        ),
+      };
+    case 'INSTALL_ERROR':
+      return {
+        ...state,
+        installingCanonicalId: null,
+        error: action.error,
+      };
     default:
       return state;
   }
 }
 
 /**
- * Template Gallery - Pre-built workflow templates
+ * Template Gallery — generation templates + system catalog install (#2176).
+ *
+ * System catalog entries are app-owned automations the org installs on demand
+ * (no clone at signup). Generation templates still bootstrap via create + templateId.
  */
 function WorkflowTemplatesPageContent() {
   const { href } = useOrgUrl();
   const [state, dispatch] = useReducer(pageReducer, initialState);
-  const { templates, selectedCategory, isLoading, error, isBootstrapping } =
-    state;
+  const {
+    templates,
+    systemCatalog,
+    selectedCategory,
+    isLoading,
+    error,
+    isBootstrapping,
+    installingCanonicalId,
+  } = state;
 
   const mountedRef = useRef(true);
   const getService = useAuthedService(createWorkflowApiService);
@@ -93,10 +151,17 @@ function WorkflowTemplatesPageContent() {
       }
 
       const service = await getService();
-      const data = await service.listTemplates();
+      const [data, catalog] = await Promise.all([
+        service.listTemplates(),
+        service.listSystemCatalog(),
+      ]);
 
       if (mountedRef.current) {
-        dispatch({ type: 'LOAD_SUCCESS', templates: data });
+        dispatch({
+          type: 'LOAD_SUCCESS',
+          systemCatalog: catalog.filter((entry) => entry.installable),
+          templates: data,
+        });
       }
     } catch (err) {
       logger.error('Failed to load workflow templates', { error: err });
@@ -128,7 +193,9 @@ function WorkflowTemplatesPageContent() {
   hrefRef.current = href;
 
   useEffect(() => {
-    if (!templateId) {
+    // Wait for catalog+templates load so system installables are classified
+    // correctly before creating from a generation template id.
+    if (!templateId || isLoading) {
       return;
     }
 
@@ -139,6 +206,22 @@ function WorkflowTemplatesPageContent() {
 
       try {
         const service = await getService();
+        const isSystemCatalogId = systemCatalog.some(
+          (entry) => entry.canonicalId === templateId,
+        );
+
+        if (isSystemCatalogId) {
+          const workflow = await service.installSystemCatalog(templateId);
+          if (!isCancelled) {
+            replace(
+              hrefRef.current(
+                `${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/${workflow._id}`,
+              ),
+            );
+          }
+          return;
+        }
+
         const workflow = await service.create({
           edges: [],
           metadata: {
@@ -178,10 +261,53 @@ function WorkflowTemplatesPageContent() {
     return () => {
       isCancelled = true;
     };
-  }, [getService, replace, templateId]);
+  }, [getService, isLoading, replace, systemCatalog, templateId]);
+
+  const handleInstallSystem = useCallback(
+    async (entry: SystemWorkflowCatalogEntry) => {
+      if (entry.installed && entry.installedWorkflowId) {
+        replace(
+          href(
+            `${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/${entry.installedWorkflowId}`,
+          ),
+        );
+        return;
+      }
+
+      dispatch({ type: 'INSTALL_START', canonicalId: entry.canonicalId });
+
+      try {
+        const service = await getService();
+        const workflow = await service.installSystemCatalog(entry.canonicalId);
+        dispatch({
+          type: 'INSTALL_SUCCESS',
+          canonicalId: entry.canonicalId,
+          installedWorkflowId: workflow._id,
+        });
+        replace(href(`${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/${workflow._id}`));
+      } catch (err) {
+        logger.error('Failed to install system workflow', {
+          canonicalId: entry.canonicalId,
+          error: err,
+        });
+        dispatch({
+          type: 'INSTALL_ERROR',
+          error:
+            err instanceof Error
+              ? err.message
+              : 'Failed to install system workflow',
+        });
+      }
+    },
+    [getService, href, replace],
+  );
+
+  const showSystemSection =
+    selectedCategory === 'all' || selectedCategory === 'system';
+  const showGenerationSection = selectedCategory !== 'system';
 
   const filteredTemplates =
-    selectedCategory === 'all'
+    selectedCategory === 'all' || selectedCategory === 'system'
       ? templates
       : templates.filter((t) => t.category === selectedCategory);
 
@@ -206,7 +332,7 @@ function WorkflowTemplatesPageContent() {
                 className="overflow-hidden border border-white/[0.08] bg-card"
               >
                 <div className="aspect-video animate-pulse bg-muted" />
-                <div className="p-4 space-y-2">
+                <div className="space-y-2 p-4">
                   <div className="h-5 w-40 animate-pulse rounded bg-muted" />
                   <div className="h-4 w-full animate-pulse rounded bg-muted" />
                   <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
@@ -219,7 +345,7 @@ function WorkflowTemplatesPageContent() {
     );
   }
 
-  if (error) {
+  if (error && templates.length === 0 && systemCatalog.length === 0) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
         <p className="text-destructive">{error}</p>
@@ -234,7 +360,6 @@ function WorkflowTemplatesPageContent() {
     <div className="min-h-screen bg-background">
       <h1 className="sr-only">Templates</h1>
 
-      {/* Category Filter */}
       <div className="border-b border-white/[0.08] bg-card/50 px-6 py-3">
         <div className="mx-auto flex max-w-7xl gap-2">
           {TEMPLATE_CATEGORIES.map((category) => (
@@ -257,65 +382,164 @@ function WorkflowTemplatesPageContent() {
         </div>
       </div>
 
-      {/* Template Grid */}
-      <main className="mx-auto max-w-7xl px-6 py-8">
-        {filteredTemplates.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <h2 className="mb-2 text-xl font-semibold">No templates found</h2>
-            <p className="mb-6 text-muted-foreground">
-              {selectedCategory === 'all'
-                ? 'No workflow templates are available yet.'
-                : 'No templates match the selected category.'}
-            </p>
-            {selectedCategory !== 'all' && (
-              <Button
-                variant={ButtonVariant.SECONDARY}
-                onClick={() =>
-                  dispatch({ type: 'SET_CATEGORY', category: 'all' })
-                }
-              >
-                View All Templates
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredTemplates.map((template) => (
-              <div
-                key={template.id}
-                className="group relative overflow-hidden shadow-border bg-card"
-              >
-                {/* Preview Image Placeholder */}
-                <div className="aspect-video bg-gradient-to-br from-primary/10 to-primary/5">
-                  <div className="flex h-full items-center justify-center text-4xl opacity-50">
-                    {template.icon || ''}
-                  </div>
-                </div>
+      <main className="mx-auto max-w-7xl space-y-10 px-6 py-8">
+        {error ? (
+          <p className="text-sm text-destructive" role="alert">
+            {error}
+          </p>
+        ) : null}
 
-                {/* Template Info */}
-                <div className="p-4">
-                  <h3 className="mb-1 font-semibold">{template.name}</h3>
-                  <p className="mb-3 text-sm text-muted-foreground line-clamp-2">
-                    {template.description}
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">
-                      {template.steps.length} steps
-                    </span>
-                    <Link
-                      href={href(
-                        `${APP_ROUTES.ORCHESTRATION.WORKFLOWS_TEMPLATES}?template=${template.id}`,
-                      )}
-                      className=" bg-primary px-4 py-2 text-sm text-primary-foreground opacity-0 transition-opacity hover:bg-primary/90 group-hover:opacity-100"
+        {showSystemSection ? (
+          <section aria-labelledby="system-catalog-heading">
+            <div className="mb-4">
+              <h2
+                id="system-catalog-heading"
+                className="text-lg font-semibold tracking-tight"
+              >
+                System workflows
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                App-owned automations. Install the ones you want — nothing is
+                copied into your org until you install.
+              </p>
+            </div>
+
+            {systemCatalog.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No installable system workflows are available.
+              </p>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {systemCatalog.map((entry) => {
+                  const isInstalling =
+                    installingCanonicalId === entry.canonicalId;
+
+                  return (
+                    <div
+                      key={entry.canonicalId}
+                      className="group relative overflow-hidden bg-card shadow-border"
                     >
-                      Use Template
-                    </Link>
-                  </div>
-                </div>
+                      <div className="aspect-video bg-gradient-to-br from-primary/10 to-primary/5">
+                        <div className="flex h-full items-center justify-center text-4xl opacity-50">
+                          {entry.icon || '⚙'}
+                        </div>
+                      </div>
+                      <div className="p-4">
+                        <div className="mb-1 flex items-center gap-2">
+                          <h3 className="font-semibold">{entry.label}</h3>
+                          {entry.installed ? (
+                            <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
+                              Installed
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">
+                          {entry.description}
+                        </p>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs text-muted-foreground">
+                            {entry.family}
+                            {entry.schedule ? ` · ${entry.schedule}` : ''}
+                          </span>
+                          <Button
+                            variant={ButtonVariant.DEFAULT}
+                            withWrapper={false}
+                            disabled={isInstalling}
+                            onClick={() => {
+                              void handleInstallSystem(entry);
+                            }}
+                            className="px-4 py-2 text-sm"
+                          >
+                            {isInstalling
+                              ? 'Installing…'
+                              : entry.installed
+                                ? 'Open'
+                                : 'Install'}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
-        )}
+            )}
+          </section>
+        ) : null}
+
+        {showGenerationSection ? (
+          <section aria-labelledby="generation-templates-heading">
+            {selectedCategory === 'all' ? (
+              <div className="mb-4">
+                <h2
+                  id="generation-templates-heading"
+                  className="text-lg font-semibold tracking-tight"
+                >
+                  Templates
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Starting points for custom workflows.
+                </p>
+              </div>
+            ) : null}
+
+            {filteredTemplates.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <h2 className="mb-2 text-xl font-semibold">
+                  No templates found
+                </h2>
+                <p className="mb-6 text-muted-foreground">
+                  {selectedCategory === 'all'
+                    ? 'No workflow templates are available yet.'
+                    : 'No templates match the selected category.'}
+                </p>
+                {selectedCategory !== 'all' && (
+                  <Button
+                    variant={ButtonVariant.SECONDARY}
+                    onClick={() =>
+                      dispatch({ type: 'SET_CATEGORY', category: 'all' })
+                    }
+                  >
+                    View All Templates
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {filteredTemplates.map((template) => (
+                  <div
+                    key={template.id}
+                    className="group relative overflow-hidden bg-card shadow-border"
+                  >
+                    <div className="aspect-video bg-gradient-to-br from-primary/10 to-primary/5">
+                      <div className="flex h-full items-center justify-center text-4xl opacity-50">
+                        {template.icon || ''}
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="mb-1 font-semibold">{template.name}</h3>
+                      <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">
+                        {template.description}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">
+                          {template.steps.length} steps
+                        </span>
+                        <Link
+                          href={href(
+                            `${APP_ROUTES.ORCHESTRATION.WORKFLOWS_TEMPLATES}?template=${template.id}`,
+                          )}
+                          className="bg-primary px-4 py-2 text-sm text-primary-foreground opacity-0 transition-opacity hover:bg-primary/90 group-hover:opacity-100"
+                        >
+                          Use Template
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        ) : null}
       </main>
     </div>
   );

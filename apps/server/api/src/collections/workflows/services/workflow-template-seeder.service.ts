@@ -397,10 +397,10 @@ export class WorkflowTemplateSeederService {
 
   /**
    * Idempotently seeds the predetermined "Daily Trends Digest" workflow for an
-   * organization. Seeded ON (`isScheduleEnabled: true`) so the workflow is the
-   * default recurring automation path for every organization. Unlike the
-   * template seeders below, an existing row that was toggled off is repaired
-   * back to enabled.
+   * organization. Kept for operator backfill / self-host scripts only —
+   * organization creation no longer auto-seeds (#2176 catalog install).
+   * Unlike the template seeders below, an existing row that was toggled off is
+   * repaired back to enabled.
    */
   async ensureDailyTrendsDigestWorkflow(
     userId: string,
@@ -515,10 +515,10 @@ export class WorkflowTemplateSeederService {
       nodes: DAILY_TRENDS_DIGEST_TEMPLATE.nodes as never,
       organizationId,
       progress: 0,
-      schedule: '0 7 * * *',
+      schedule: DAILY_TRENDS_DIGEST_TEMPLATE.schedule ?? '0 7 * * *',
       status: WorkflowStatus.ACTIVE,
       steps: [],
-      timezone: 'UTC',
+      timezone: DAILY_TRENDS_DIGEST_TEMPLATE.timezone ?? 'UTC',
       userId,
     };
   }

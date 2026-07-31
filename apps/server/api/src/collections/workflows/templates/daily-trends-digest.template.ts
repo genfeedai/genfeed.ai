@@ -21,7 +21,10 @@ export const DAILY_TRENDS_DIGEST_TEMPLATE: WorkflowTemplate = {
     'Scan the latest social trends daily and email a curated digest to the organization owner. Uses credits per delivered email.',
   icon: 'trending-up',
   id: 'daily-trends-digest',
+  isScheduleEnabled: true,
   name: 'Daily Trends Digest',
+  schedule: '0 7 * * *',
+  timezone: 'UTC',
   nodes: [
     {
       data: {
