@@ -63,7 +63,7 @@ test.describe('Core Content Loop', () => {
       name: 'Breadcrumb',
     });
     await expect(breadcrumb).toContainText('Workspace');
-    await expect(breadcrumb).toContainText('Dashboard');
+    await expect(breadcrumb).toContainText('Overview');
 
     const sidebar = authenticatedPage.getByTestId('sidebar-shell').first();
     await expect(sidebar).toHaveAttribute(

@@ -61,7 +61,7 @@ test.describe('Modal cleanup', () => {
     await authenticatedPage.goto(APP_ROUTES.WORKSPACE.OVERVIEW);
     await expect(
       authenticatedPage.getByRole('navigation', { name: 'Breadcrumb' }),
-    ).toContainText('Dashboard');
+    ).toContainText('Overview');
 
     await setStaleModalGlobalState(authenticatedPage);
 

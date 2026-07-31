@@ -37,7 +37,7 @@ test.describe('Core Automation Loop', () => {
     );
     await expect(
       automationPage.getByTestId('sidebar-shell').first(),
-    ).toHaveAttribute('data-shell-section-label', 'Workflows');
+    ).toHaveAttribute('data-shell-section-label', 'Automate');
     await expect(
       automationPage.getByTestId('universal-workspace-shell'),
     ).toHaveAttribute('data-workspace-surface', 'workflows');
