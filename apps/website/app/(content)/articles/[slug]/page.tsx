@@ -64,6 +64,7 @@ export async function generateMetadata({
         url: articleImage,
         width: 1200,
       },
+      siteName: metadata.name,
       title: articleTitle,
       type: 'article',
       url: articleUrl,

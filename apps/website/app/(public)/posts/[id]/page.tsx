@@ -44,6 +44,7 @@ export async function generateMetadata({
         url: ingredientImage,
         width: 1200,
       },
+      siteName: metadata.name,
       title: ingredientTitle,
       type: 'website',
       url: ingredientUrl,

@@ -1,5 +1,6 @@
 import { stringifyJsonLd } from '@data/json-ld';
 import { getAllUseCaseSlugs } from '@data/use-cases.data';
+import { metadata } from '@helpers/media/metadata/metadata.helper';
 import {
   formatUseCaseSlug,
   getUseCaseBySlugCached,
@@ -29,9 +30,21 @@ export async function generateMetadata(
   return {
     alternates: { canonical: url },
     description,
-    openGraph: { description, images: [...previousImages], title, url },
+    openGraph: {
+      description,
+      images: [...previousImages],
+      siteName: metadata.name,
+      title,
+      type: 'website',
+      url,
+    },
     title,
-    twitter: { description, images: [...previousImages] },
+    twitter: {
+      card: 'summary_large_image',
+      description,
+      images: [...previousImages],
+      title,
+    },
   };
 }
 

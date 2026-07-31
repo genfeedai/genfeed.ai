@@ -48,6 +48,7 @@ export async function generateMetadata(
     openGraph: {
       description,
       images: [...previousImages],
+      siteName: metadata.name,
       title,
       type: 'website',
       url,

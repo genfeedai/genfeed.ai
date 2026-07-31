@@ -37,11 +37,14 @@ export async function generateMetadata(
     openGraph: {
       description: articlesDescription,
       images,
+      siteName: metadata.name,
       title: `${metadata.name} | Articles & Blog`,
+      type: 'website',
       url: `${metadata.url}/articles`,
     },
     title: `${metadata.name} | Articles & Blog`,
     twitter: {
+      card: 'summary_large_image',
       description: articlesDescription,
       images,
       title: `${metadata.name} | Articles & Blog`,

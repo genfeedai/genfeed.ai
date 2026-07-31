@@ -1,5 +1,6 @@
 import { getAllIntegrationSlugs } from '@data/integrations.data';
 import { stringifyJsonLd } from '@data/json-ld';
+import { metadata } from '@helpers/media/metadata/metadata.helper';
 import IntegrationContent from '@public/integrations/[slug]/integration-content';
 import { getIntegrationBySlugCached } from '@public/integrations/[slug]/integration-loader';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -38,13 +39,17 @@ export async function generateMetadata(
     openGraph: {
       description,
       images: [...previousImages],
+      siteName: metadata.name,
       title,
+      type: 'website',
       url,
     },
     title,
     twitter: {
+      card: 'summary_large_image',
       description,
       images: [...previousImages],
+      title,
     },
   };
 }
