@@ -2,6 +2,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsController } from '@api/collections/credentials/controllers/credentials.controller';
 import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
+import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { TagsService } from '@api/collections/tags/services/tags.service';
@@ -23,6 +24,10 @@ describe('CredentialsController', () => {
   let controller: CredentialsController;
   let accountHealthService: Record<string, ReturnType<typeof vi.fn>>;
   let accountPublishingContextService: Record<string, ReturnType<typeof vi.fn>>;
+  let credentialPublishingReadinessService: Record<
+    string,
+    ReturnType<typeof vi.fn>
+  >;
   let credentialsService: Record<string, ReturnType<typeof vi.fn>>;
   let brandsService: Record<string, ReturnType<typeof vi.fn>>;
   let organizationsService: Record<string, ReturnType<typeof vi.fn>>;
@@ -75,6 +80,21 @@ describe('CredentialsController', () => {
     },
   };
 
+  const brandReadiness = {
+    appReviewStatus: 'unknown',
+    callbackUrlStatus: 'pass',
+    canSchedule: true,
+    checkedAt: '2026-06-30T10:00:00.000Z',
+    credentialId: credId,
+    diagnostics: [],
+    isRetryable: false,
+    permissionScopeStatus: 'unknown',
+    providerKey: CredentialPlatform.TWITTER,
+    quotaStatus: 'unknown',
+    state: 'publish_capable',
+    tokenFreshness: 'pass',
+  };
+
   beforeEach(() => {
     accountHealthService = {
       assessCredentialHealth: vi.fn().mockResolvedValue(accountHealthSummary),
@@ -114,6 +134,9 @@ describe('CredentialsController', () => {
         surface: 'post',
       }),
     };
+    credentialPublishingReadinessService = {
+      resolveForBrand: vi.fn().mockResolvedValue([brandReadiness]),
+    };
     brandsService = { findOne: vi.fn() };
     organizationsService = { findOne: vi.fn() };
     tagsService = { create: vi.fn() };
@@ -127,6 +150,7 @@ describe('CredentialsController', () => {
       accountHealthService as unknown as AccountHealthService,
       accountPublishingContextService as unknown as AccountPublishingContextService,
       brandsService as unknown as BrandsService,
+      credentialPublishingReadinessService as unknown as CredentialPublishingReadinessService,
       credentialsService as unknown as CredentialsService,
       createMockPlatformService() as unknown as FacebookService,
       createMockPlatformService() as unknown as GoogleAdsService,
@@ -231,6 +255,30 @@ describe('CredentialsController', () => {
       const result = await controller.getMentions(mockUser);
 
       expect(result.mentions).toHaveLength(0);
+    });
+  });
+
+  describe('listBrandPublishingReadiness', () => {
+    it('resolves readiness for the brand within the caller organization', async () => {
+      const result = await controller.listBrandPublishingReadiness(
+        'brand-1',
+        mockUser,
+      );
+
+      expect(
+        credentialPublishingReadinessService.resolveForBrand,
+      ).toHaveBeenCalledWith(orgId, 'brand-1');
+      expect(result).toEqual([brandReadiness]);
+    });
+
+    it('returns an empty list rather than failing when the brand has no channels', async () => {
+      credentialPublishingReadinessService.resolveForBrand.mockResolvedValue(
+        [],
+      );
+
+      await expect(
+        controller.listBrandPublishingReadiness('brand-1', mockUser),
+      ).resolves.toEqual([]);
     });
   });
 
@@ -359,6 +407,7 @@ describe('CredentialsController', () => {
         accountHealthService as unknown as AccountHealthService,
         accountPublishingContextService as unknown as AccountPublishingContextService,
         brandsService as unknown as BrandsService,
+        credentialPublishingReadinessService as unknown as CredentialPublishingReadinessService,
         credentialsService as unknown as CredentialsService,
         createMockPlatformService() as unknown as FacebookService,
         createMockPlatformService() as unknown as GoogleAdsService,
