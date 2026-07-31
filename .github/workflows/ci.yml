@@ -176,6 +176,19 @@ jobs:
         with:
           bun-version: '1.3.14'
           cache-turbo: 'false'
+      # The executable form of "new hard-coded content automation is blocked in
+      # CI" (#1011 FR8/FR9, success criterion 6). These three shipped in #1034
+      # but ran nowhere: the check:architecture aggregate that carried them was
+      # dropped from this job by #2127, leaving them as package.json scripts
+      # that enforced nothing. Restoring the whole aggregate is blocked on
+      # unrelated debt (deterministic-locale and agent-decomposition
+      # violations), so the automation-boundary guards are wired directly.
+      - name: Platform Cron Boundary
+        run: bun run check:cron-boundary
+      - name: Legacy Cron Jobs Surface
+        run: bun run check:legacy-cron-surface
+      - name: Product Workflow Boundary
+        run: bun run check:product-workflow-boundary
       - name: DI Value Imports
         run: bun run check:di-value-imports
       - name: Relation Alias Reads

@@ -32,6 +32,14 @@ function directPullRequestWorkflows() {
     .sort();
 }
 
+function jobBlock(workflow, jobId, fileName) {
+  const match = workflow.match(
+    new RegExp(`^ {2}${jobId}:\\n((?: {4}.*(?:\\n|$)|\\n)+)`, 'm'),
+  );
+  assert.ok(match, `${fileName} must define the ${jobId} job`);
+  return match[1];
+}
+
 function topLevelConcurrencyBlock(workflow, fileName) {
   const match = workflow.match(/^concurrency:\n((?: {2}.*(?:\n|$))+)/m);
   assert.ok(match, `${fileName} must define top-level concurrency`);
@@ -151,6 +159,27 @@ test('direct PR workflows cancel only within one PR or complete ref', () => {
         `${fileName} must trigger when its own routing contract changes`,
       );
     }
+  }
+});
+
+test('enforces the content-automation boundary guards on every pull request', () => {
+  // #1011 requires CI to block new hard-coded content cron/action/publish
+  // paths. These guards shipped in #1034 but stopped running when #2127 dropped
+  // the check:architecture aggregate from this job, and nothing caught the
+  // loss — a guard that exists only as a package.json script enforces nothing.
+  const workflow = readWorkflow('ci.yml');
+  const guards = jobBlock(workflow, 'guards', 'ci.yml');
+
+  for (const script of [
+    'check:cron-boundary',
+    'check:legacy-cron-surface',
+    'check:product-workflow-boundary',
+  ]) {
+    assert.match(
+      guards,
+      new RegExp(`^ {8}run: bun run ${script}$`, 'm'),
+      `the guards job must run ${script}`,
+    );
   }
 });
 
