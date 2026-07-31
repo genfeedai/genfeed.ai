@@ -101,7 +101,9 @@ describe('SocialReplyCampaignsService', () => {
   });
 
   it('sends a transition to the dedicated status route', async () => {
-    mockPatch.mockResolvedValue(campaignDocument({ status: 'paused' }));
+    mockPatch.mockResolvedValue({
+      data: campaignDocument({ status: 'paused' }),
+    });
 
     const campaign = await service.transition('campaign-1', 'pause');
 
@@ -146,7 +148,9 @@ describe('SocialReplyCampaignsService', () => {
   });
 
   it('creates a campaign from an enrollment payload', async () => {
-    mockPost.mockResolvedValue(campaignDocument({ status: 'draft' }));
+    mockPost.mockResolvedValue({
+      data: campaignDocument({ status: 'draft' }),
+    });
 
     await service.createCampaign({
       bodyTemplate: 'Hi {{name}}',
