@@ -85,6 +85,7 @@ describe('workspace shell trusted registry', () => {
 
   it.each([
     ['/acme/~/settings/api-keys', 'Settings', 'API Keys'],
+    ['/acme/~/orchestration', 'Automate', 'Overview'],
     ['/acme/moonrise/research/following', 'Research', 'Following'],
     ['/acme/moonrise/research/instagram', 'Research', 'Instagram'],
     ['/acme/moonrise/library', 'Library', 'Overview'],
