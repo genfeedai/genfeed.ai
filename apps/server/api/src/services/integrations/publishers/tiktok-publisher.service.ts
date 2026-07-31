@@ -110,6 +110,7 @@ export class TikTokPublisherService extends BasePublisherService {
           mediaInfo.mediaUrls,
           post,
           isDraft,
+          context.settings,
         );
       } else {
         // Video upload
@@ -118,6 +119,7 @@ export class TikTokPublisherService extends BasePublisherService {
           brandId,
           mediaInfo.mediaUrls[0],
           post,
+          context.settings,
         );
       }
 

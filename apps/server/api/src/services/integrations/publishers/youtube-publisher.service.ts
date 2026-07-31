@@ -88,6 +88,7 @@ export class YouTubePublisherService extends BasePublisherService {
         brandId,
         mediaInfo.ingredientIds[0],
         post,
+        context.settings,
       );
 
       if (!externalId) {

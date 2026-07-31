@@ -109,6 +109,7 @@ function makePost(overrides: Partial<PostEntity> = {}): PostEntity {
 
 function makeContext(post: PostEntity): PublishContext {
   return {
+    settings: {},
     brandId: 'brand-1',
     credential: {} as never,
     organization: {} as never,

@@ -4,6 +4,11 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
+  type ChannelTargetSettings,
+  readChannelSettingBoolean,
+  readChannelSettingString,
+} from '@api-types/contracts/channel-capabilities.contract';
+import {
   CredentialPlatform,
   OAuthGrantType,
   TikTokPublishStatus,
@@ -26,6 +31,17 @@ import { AxiosError } from 'axios';
 import { firstValueFrom } from 'rxjs';
 
 const TIKTOK_TOKEN_REFRESH_BUFFER_MS = 15 * 60 * 1000;
+
+/**
+ * Catalog privacy values translated to TikTok's `privacy_level` vocabulary.
+ * The catalog stays platform-neutral, so this is the only place the provider
+ * spelling appears.
+ */
+const TIKTOK_PRIVACY_LEVEL_BY_SETTING: Record<string, string> = {
+  friends: 'MUTUAL_FOLLOW_FRIENDS',
+  private: 'SELF_ONLY',
+  public: 'PUBLIC_TO_EVERYONE',
+};
 
 interface TikTokTokenResponse {
   access_token?: string;
@@ -185,9 +201,25 @@ export class TiktokService {
   }
 
   /**
-   * Select privacy level from available options
+   * Select privacy level from available options.
+   *
+   * A composer choice only wins if the creator's account actually offers the
+   * matching level — TikTok rejects the publish outright for a level absent
+   * from `privacy_level_options`, so an unavailable choice degrades to the
+   * account-safe default rather than failing the release.
    */
-  private selectPrivacyLevel(availablePrivacyLevels: string[]): string {
+  private selectPrivacyLevel(
+    availablePrivacyLevels: string[],
+    requestedPrivacy?: string,
+  ): string {
+    const requestedLevel = requestedPrivacy
+      ? TIKTOK_PRIVACY_LEVEL_BY_SETTING[requestedPrivacy]
+      : undefined;
+
+    if (requestedLevel && availablePrivacyLevels.includes(requestedLevel)) {
+      return requestedLevel;
+    }
+
     return availablePrivacyLevels.includes(this.PREFERRED_PRIVACY_LEVEL)
       ? this.PREFERRED_PRIVACY_LEVEL
       : availablePrivacyLevels[0];
@@ -199,6 +231,7 @@ export class TiktokService {
   private validateCreatorInfo(
     creatorInfo: ITikTokCreatorInfo,
     context: string,
+    settings: ChannelTargetSettings = {},
   ): {
     privacyLevel: string;
     disableOptions: { comment: boolean; duet: boolean; stitch: boolean };
@@ -215,19 +248,52 @@ export class TiktokService {
       );
     }
 
-    const privacyLevel = this.selectPrivacyLevel(availablePrivacyLevels);
+    const requestedPrivacy = readChannelSettingString(settings, 'privacyLevel');
+    const privacyLevel = this.selectPrivacyLevel(
+      availablePrivacyLevels,
+      requestedPrivacy,
+    );
     this.loggerService.log(`${context} using privacy_level: ${privacyLevel}`, {
       available: availablePrivacyLevels,
+      requestedPrivacy,
     });
 
     return {
+      // Account-level restrictions are a ceiling, not a default: when TikTok
+      // reports an interaction as disabled for this creator it stays disabled
+      // however the composer set it.
       disableOptions: {
-        comment: creatorInfo.comment_disabled || false,
-        duet: creatorInfo.duet_disabled || false,
-        stitch: creatorInfo.stitch_disabled || false,
+        comment: this.resolveDisabled(
+          creatorInfo.comment_disabled,
+          settings,
+          'allowComments',
+        ),
+        duet: this.resolveDisabled(
+          creatorInfo.duet_disabled,
+          settings,
+          'allowDuet',
+        ),
+        stitch: this.resolveDisabled(
+          creatorInfo.stitch_disabled,
+          settings,
+          'allowStitch',
+        ),
       },
       privacyLevel,
     };
+  }
+
+  private resolveDisabled(
+    accountDisabled: boolean | undefined,
+    settings: ChannelTargetSettings,
+    key: string,
+  ): boolean {
+    if (accountDisabled) {
+      return true;
+    }
+
+    const allowed = readChannelSettingBoolean(settings, key);
+    return allowed === undefined ? false : !allowed;
   }
 
   /**
@@ -616,6 +682,7 @@ export class TiktokService {
     brandId: string,
     videoUrl: string,
     post: PostEntity,
+    settings: ChannelTargetSettings = {},
   ): Promise<ITikTokPublishResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
@@ -634,6 +701,7 @@ export class TiktokService {
       const { privacyLevel, disableOptions } = this.validateCreatorInfo(
         creatorInfo,
         url,
+        settings,
       );
 
       const description =
@@ -683,6 +751,7 @@ export class TiktokService {
     imageUrls: string[],
     post: PostEntity,
     draftMode = false,
+    settings: ChannelTargetSettings = {},
   ): Promise<ITikTokPublishResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
@@ -711,6 +780,7 @@ export class TiktokService {
       const { privacyLevel, disableOptions } = this.validateCreatorInfo(
         creatorInfo,
         url,
+        settings,
       );
 
       const description =

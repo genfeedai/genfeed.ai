@@ -14,6 +14,7 @@ import type {
   MediaInfo,
   PublishContext,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -111,13 +112,17 @@ describe('InstagramPublisherService', () => {
   } as unknown as PostEntity;
 
   // Create publish context helper
-  const createPublishContext = (post: PostEntity): PublishContext => ({
+  const createPublishContext = (
+    post: PostEntity,
+    settings: ChannelTargetSettings = {},
+  ): PublishContext => ({
     brandId: mockBrandId.toString(),
     credential: mockCredential,
     organization: mockOrganization,
     organizationId: mockOrganizationId.toString(),
     post,
     postId: mockPostId.toString(),
+    settings,
   });
 
   beforeEach(async () => {
@@ -282,6 +287,54 @@ describe('InstagramPublisherService', () => {
           undefined, // coverImageUrl
           undefined, // hashtags
           true, // isShareToFeedSelected
+        );
+      });
+
+      it('should suppress the feed copy when the placement is reel-only', async () => {
+        // `placement: 'reel'` means reel-only, so keeping the feed copy would
+        // publish twice and contradict what the composer selected.
+        const context = createPublishContext(mockVideoPost, {
+          placement: 'reel',
+        });
+
+        instagramService.uploadReel.mockResolvedValue({
+          mediaId: 'reel-123',
+          shortcode: 'REEL123',
+        });
+
+        await service.publish(context);
+
+        expect(instagramService.uploadReel).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          undefined,
+          undefined,
+          false,
+        );
+      });
+
+      it('should keep the feed copy for the default feed placement', async () => {
+        const context = createPublishContext(mockVideoPost, {
+          placement: 'feed',
+        });
+
+        instagramService.uploadReel.mockResolvedValue({
+          mediaId: 'reel-123',
+          shortcode: 'REEL123',
+        });
+
+        await service.publish(context);
+
+        expect(instagramService.uploadReel).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          undefined,
+          undefined,
+          true,
         );
       });
 
@@ -590,6 +643,41 @@ describe('InstagramPublisherService', () => {
       const result = (service as any).validatePost(context, mediaInfo);
 
       expect(result.valid).toBe(true);
+    });
+
+    it('should fail validation when a reel placement has an image', () => {
+      // Instagram derives the container type from the media, so a reel
+      // placement on an image used to publish to the feed without a word.
+      const context = createPublishContext(mockImagePost, {
+        placement: 'reel',
+      });
+      const mediaInfo: MediaInfo = {
+        hasIngredients: true,
+        ingredientIds: [mockIngredientId.toString()],
+        isCarousel: false,
+        isImagePost: true,
+        mediaUrls: ['https://api.test.com/ingredients/images/123'],
+      };
+
+      const result = service.validatePost(context, mediaInfo);
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('reels require a video');
+    });
+
+    it('should pass validation when a reel placement has a video', () => {
+      const context = createPublishContext(mockVideoPost, {
+        placement: 'reel',
+      });
+      const mediaInfo: MediaInfo = {
+        hasIngredients: true,
+        ingredientIds: [mockIngredientId.toString()],
+        isCarousel: false,
+        isImagePost: false,
+        mediaUrls: ['https://api.test.com/ingredients/videos/123'],
+      };
+
+      expect(service.validatePost(context, mediaInfo).valid).toBe(true);
     });
 
     it('should pass validation for carousel posts', () => {

@@ -3,10 +3,12 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import type {
+  MediaInfo,
   PublishContext,
   PublishResult,
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { readChannelSettingString } from '@api-types/contracts/channel-capabilities.contract';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -29,6 +31,31 @@ export class InstagramPublisherService extends BasePublisherService {
     private readonly postsService: PostsService,
   ) {
     super(configService, logger);
+  }
+
+  /**
+   * Instagram derives the container type from the media, so the `reel`
+   * placement is only reachable with a video. Rejecting the mismatch here keeps
+   * the composer's choice honest instead of silently publishing to the feed.
+   */
+  override validatePost(
+    context: PublishContext,
+    mediaInfo: MediaInfo,
+  ): { valid: boolean; error?: string } {
+    const base = super.validatePost(context, mediaInfo);
+    if (!base.valid) {
+      return base;
+    }
+
+    const placement = readChannelSettingString(context.settings, 'placement');
+    if (placement === 'reel' && mediaInfo.isImagePost) {
+      return {
+        error: 'Instagram reels require a video; images publish to the feed',
+        valid: false,
+      };
+    }
+
+    return { valid: true };
   }
 
   /**
@@ -77,6 +104,15 @@ export class InstagramPublisherService extends BasePublisherService {
         externalShortcode = imageResult.shortcode;
       } else {
         // Video as Reel (Instagram requires all videos to use Reels API since July 2022)
+        // `placement: 'reel'` means reel-only, so it suppresses the feed copy
+        // that the default feed placement keeps.
+        const placement = readChannelSettingString(
+          context.settings,
+          'placement',
+        );
+        const shareToFeed =
+          placement === 'reel' ? false : (post.isShareToFeedSelected ?? true);
+
         const reelResult = await this.instagramService.uploadReel(
           organizationId,
           brandId,
@@ -84,7 +120,7 @@ export class InstagramPublisherService extends BasePublisherService {
           caption,
           undefined, // coverImageUrl
           undefined, // hashtags
-          post.isShareToFeedSelected ?? true,
+          shareToFeed,
         );
         externalId = reelResult.mediaId;
         externalShortcode = reelResult.shortcode;

@@ -7,6 +7,7 @@ import type {
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { readChannelSettingString } from '@api-types/contracts/channel-capabilities.contract';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -83,10 +84,13 @@ export class PinterestPublisherService extends BasePublisherService {
         platform: CredentialPlatform.PINTEREST,
       });
 
-      if (
-        !pinterestCredential?.accessToken ||
-        !pinterestCredential?.externalId
-      ) {
+      // The explicit board setting wins; the credential's board is the
+      // fallback for releases scheduled before the setting existed.
+      const boardId =
+        readChannelSettingString(context.settings, 'boardId') ??
+        pinterestCredential?.externalId;
+
+      if (!pinterestCredential?.accessToken || !boardId) {
         this.logger.error(`${url} Pinterest credential or board ID not found`, {
           postId: context.postId,
         });
@@ -105,7 +109,7 @@ export class PinterestPublisherService extends BasePublisherService {
 
       const externalId = await this.pinterestService.createPin(
         decryptedAccessToken,
-        pinterestCredential.externalId, // boardId stored in externalId
+        boardId,
         mediaInfo.mediaUrls[0],
         post.label ?? 'Untitled',
         description,

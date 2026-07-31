@@ -11,10 +11,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 // Mock googleapis
 const mockVideosInsert = vi.fn();
+const mockPlaylistItemsInsert = vi.fn();
 
 vi.mock('googleapis', () => ({
   google: {
     youtube: () => ({
+      playlistItems: { insert: mockPlaylistItemsInsert },
       videos: { insert: mockVideosInsert },
     }),
   },
@@ -92,6 +94,7 @@ describe('YoutubeUploadService', () => {
     };
 
     mockVideosInsert.mockResolvedValue({ data: { id: 'yt-uploaded-123' } });
+    mockPlaylistItemsInsert.mockResolvedValue({ data: { id: 'playlist-1' } });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -270,5 +273,120 @@ describe('YoutubeUploadService', () => {
 
     // Should use fallback path constructed from videoId
     expect(fs.createReadStream).toHaveBeenCalled();
+  });
+
+  describe('channel target settings', () => {
+    const statusOf = () =>
+      mockVideosInsert.mock.calls[0][0].requestBody.status as Record<
+        string,
+        unknown
+      >;
+
+    it('prefers the requested privacy over the one derived from post status', async () => {
+      const post = createPost({ status: PostStatus.PUBLIC });
+
+      await service.uploadVideo(orgId, brandId, videoId, post, {
+        privacyStatus: 'unlisted',
+      });
+
+      expect(statusOf()).toEqual({ privacyStatus: 'unlisted' });
+    });
+
+    it('drops the publish timer when a non-public privacy is requested', async () => {
+      // `publishAt` always flips the video public at the scheduled time, so
+      // honouring both would quietly override the composer's choice.
+      const futureDate = new Date(Date.now() + 86400000);
+      const post = createPost({
+        scheduledDate: futureDate,
+        status: PostStatus.SCHEDULED,
+      });
+
+      await service.uploadVideo(orgId, brandId, videoId, post, {
+        privacyStatus: 'private',
+      });
+
+      expect(statusOf()).toEqual({ privacyStatus: 'private' });
+    });
+
+    it('keeps the publish timer when the requested privacy is public', async () => {
+      const futureDate = new Date(Date.now() + 86400000);
+      const post = createPost({
+        scheduledDate: futureDate,
+        status: PostStatus.SCHEDULED,
+      });
+
+      await service.uploadVideo(orgId, brandId, videoId, post, {
+        privacyStatus: 'public',
+      });
+
+      expect(statusOf()).toEqual({
+        privacyStatus: PostStatus.PRIVATE,
+        publishAt: futureDate.toISOString(),
+      });
+    });
+
+    it('declares the made-for-kids audience when the setting is present', async () => {
+      const post = createPost({ status: PostStatus.PUBLIC });
+
+      await service.uploadVideo(orgId, brandId, videoId, post, {
+        madeForKids: true,
+      });
+
+      expect(statusOf()).toEqual({
+        privacyStatus: PostStatus.PUBLIC,
+        selfDeclaredMadeForKids: true,
+      });
+    });
+
+    it('omits the audience declaration when the setting is absent', async () => {
+      // YouTube rejects `selfDeclaredMadeForKids: undefined` rather than
+      // treating it as unset, so the field has to stay off the request.
+      const post = createPost({ status: PostStatus.PUBLIC });
+
+      await service.uploadVideo(orgId, brandId, videoId, post);
+
+      expect(statusOf()).not.toHaveProperty('selfDeclaredMadeForKids');
+    });
+
+    it('adds the uploaded video to the requested playlist', async () => {
+      const post = createPost();
+
+      await service.uploadVideo(orgId, brandId, videoId, post, {
+        playlistId: 'PL123',
+      });
+
+      expect(mockPlaylistItemsInsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          requestBody: {
+            snippet: {
+              playlistId: 'PL123',
+              resourceId: { kind: 'youtube#video', videoId: 'yt-uploaded-123' },
+            },
+          },
+        }),
+      );
+    });
+
+    it('does not touch playlists when no playlist was chosen', async () => {
+      const post = createPost();
+
+      await service.uploadVideo(orgId, brandId, videoId, post);
+
+      expect(mockPlaylistItemsInsert).not.toHaveBeenCalled();
+    });
+
+    it('still reports success when the playlist insert fails', async () => {
+      // The video is already live at that point, so a playlist failure must not
+      // report the publish itself as failed.
+      mockPlaylistItemsInsert.mockRejectedValueOnce(new Error('no such list'));
+      const post = createPost();
+
+      const result = await service.uploadVideo(orgId, brandId, videoId, post, {
+        playlistId: 'PL404',
+      });
+
+      expect(result).toBe('yt-uploaded-123');
+      expect(loggerService.error).toHaveBeenCalled();
+    });
   });
 });

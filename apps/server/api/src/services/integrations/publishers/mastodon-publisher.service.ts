@@ -8,6 +8,7 @@ import type {
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { readChannelSettingString } from '@api-types/contracts/channel-capabilities.contract';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -93,10 +94,13 @@ export class MastodonPublisherService extends BasePublisherService {
         platform: CredentialPlatform.MASTODON,
       });
 
-      if (
-        !mastodonCredential?.accessToken ||
-        !mastodonCredential?.description
-      ) {
+      // The explicit instance setting wins; the credential's instance is the
+      // fallback for releases scheduled before the setting existed.
+      const instanceUrl =
+        readChannelSettingString(context.settings, 'instanceUrl') ??
+        mastodonCredential?.description;
+
+      if (!mastodonCredential?.accessToken || !instanceUrl) {
         this.logger.error(
           `${url} Mastodon credential or instance URL not found`,
           { postId: context.postId },
@@ -110,7 +114,6 @@ export class MastodonPublisherService extends BasePublisherService {
       const decryptedAccessToken = EncryptionUtil.decrypt(
         mastodonCredential.accessToken,
       );
-      const instanceUrl = mastodonCredential.description;
 
       // Sanitize HTML to plain text - Mastodon supports plain text
       const text = this.sanitizeDescription(post.description);
@@ -135,6 +138,8 @@ export class MastodonPublisherService extends BasePublisherService {
         decryptedAccessToken,
         text,
         mediaIds,
+        undefined, // Not a reply
+        readChannelSettingString(context.settings, 'visibility') ?? 'public',
       );
 
       if (!status?.id) {
@@ -188,7 +193,11 @@ export class MastodonPublisherService extends BasePublisherService {
       platform: CredentialPlatform.MASTODON,
     });
 
-    if (!mastodonCredential?.accessToken || !mastodonCredential?.description) {
+    const instanceUrl =
+      readChannelSettingString(context.settings, 'instanceUrl') ??
+      mastodonCredential?.description;
+
+    if (!mastodonCredential?.accessToken || !instanceUrl) {
       this.logger.error(`${url} Mastodon credential not found for thread`, {
         parentPostId: context.postId,
       });
@@ -198,7 +207,10 @@ export class MastodonPublisherService extends BasePublisherService {
     const decryptedAccessToken = EncryptionUtil.decrypt(
       mastodonCredential.accessToken,
     );
-    const instanceUrl = mastodonCredential.description;
+
+    // Replies inherit the parent status's audience.
+    const visibility =
+      readChannelSettingString(context.settings, 'visibility') ?? 'public';
 
     let replyToId = parentExternalId;
 
@@ -246,6 +258,7 @@ export class MastodonPublisherService extends BasePublisherService {
           text.substring(0, 500), // Truncate if needed
           mediaIds,
           replyToId,
+          visibility,
         );
 
         if (status?.id) {

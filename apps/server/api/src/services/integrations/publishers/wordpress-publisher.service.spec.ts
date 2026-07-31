@@ -70,6 +70,7 @@ describe('WordpressPublisherService', () => {
 
     it('should publish a text-only post successfully', async () => {
       const context: PublishContext = {
+        settings: {},
         brandId: mockBrandId,
         credential: {
           _id: '507f1f77bcf86cd799439011',
@@ -107,6 +108,7 @@ describe('WordpressPublisherService', () => {
 
     it('should return failure when credential not found', async () => {
       const context: PublishContext = {
+        settings: {},
         brandId: mockBrandId,
         credential: {
           _id: '507f1f77bcf86cd799439011',
@@ -133,6 +135,7 @@ describe('WordpressPublisherService', () => {
 
     it('should return failure when credential missing accessToken', async () => {
       const context: PublishContext = {
+        settings: {},
         brandId: mockBrandId,
         credential: {
           _id: '507f1f77bcf86cd799439011',
@@ -167,6 +170,7 @@ describe('WordpressPublisherService', () => {
 
     it('should throw when WordPress API errors occur', async () => {
       const context: PublishContext = {
+        settings: {},
         brandId: mockBrandId,
         credential: {
           _id: '507f1f77bcf86cd799439011',

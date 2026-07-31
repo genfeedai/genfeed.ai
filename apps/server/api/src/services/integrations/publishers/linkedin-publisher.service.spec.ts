@@ -13,6 +13,7 @@ import type {
   PublishContext,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { LinkedInPublisherService } from '@api/services/integrations/publishers/linkedin-publisher.service';
+import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -106,13 +107,17 @@ describe('LinkedInPublisherService', () => {
   } as unknown as PostEntity;
 
   // Create publish context helper
-  const createPublishContext = (post: PostEntity): PublishContext => ({
+  const createPublishContext = (
+    post: PostEntity,
+    settings: ChannelTargetSettings = {},
+  ): PublishContext => ({
     brandId: mockBrandId.toString(),
     credential: mockCredential,
     organization: mockOrganization,
     organizationId: mockOrganizationId.toString(),
     post,
     postId: mockPostId.toString(),
+    settings,
   });
 
   beforeEach(async () => {
@@ -219,6 +224,26 @@ describe('LinkedInPublisherService', () => {
           mockOrganizationId.toString(),
           mockBrandId.toString(),
           expect.any(String),
+          {},
+        );
+      });
+
+      it('should forward the target settings to the LinkedIn service', async () => {
+        // Visibility is decided inside `LinkedInService` so every share shape
+        // resolves it identically; the publisher only has to hand it over.
+        const context = createPublishContext(mockTextPost, {
+          visibility: 'CONNECTIONS',
+        });
+
+        linkedInService.createTextPost.mockResolvedValue({ id: 'urn:li:1' });
+
+        await service.publish(context);
+
+        expect(linkedInService.createTextPost).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          { visibility: 'CONNECTIONS' },
         );
       });
 
@@ -255,6 +280,7 @@ describe('LinkedInPublisherService', () => {
           mockBrandId.toString(),
           expect.stringContaining('/images/'),
           expect.any(String),
+          {},
         );
       });
 
@@ -294,6 +320,7 @@ describe('LinkedInPublisherService', () => {
           mockBrandId.toString(),
           expect.stringContaining('/videos/'),
           expect.any(String),
+          {},
         );
       });
     });

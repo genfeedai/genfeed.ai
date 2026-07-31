@@ -86,6 +86,7 @@ export class LinkedInPublisherService extends BasePublisherService {
           organizationId,
           brandId,
           caption,
+          context.settings,
         );
         externalId = this.getLinkedInPublishId(result);
       } else if (mediaInfo.isImagePost) {
@@ -94,6 +95,7 @@ export class LinkedInPublisherService extends BasePublisherService {
           brandId,
           mediaInfo.mediaUrls[0],
           caption,
+          context.settings,
         );
         externalId = this.getLinkedInPublishId(result);
       } else {
@@ -102,6 +104,7 @@ export class LinkedInPublisherService extends BasePublisherService {
           brandId,
           mediaInfo.mediaUrls[0],
           caption,
+          context.settings,
         );
         externalId = this.getLinkedInPublishId(result);
       }

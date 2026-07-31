@@ -8,6 +8,7 @@ import type {
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
+import { readChannelSettingString } from '@api-types/contracts/channel-capabilities.contract';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -39,12 +40,16 @@ export class RedditPublisherService extends BasePublisherService {
     context: PublishContext,
     mediaInfo: MediaInfo,
   ): { valid: boolean; error?: string } {
-    // Validate subreddit is configured - don't silently post to wrong target
-    const subreddit = context.credential.externalId;
+    // Validate subreddit is configured - don't silently post to wrong target.
+    // The explicit setting wins; the credential's subreddit is the fallback for
+    // releases scheduled before the setting existed.
+    const subreddit =
+      readChannelSettingString(context.settings, 'subreddit') ??
+      context.credential.externalId;
     if (!subreddit) {
       return {
         error:
-          'Reddit subreddit not configured in credential (externalId required)',
+          'Reddit subreddit not configured; set the subreddit setting or the credential external ID',
         valid: false,
       };
     }
@@ -82,12 +87,15 @@ export class RedditPublisherService extends BasePublisherService {
       // Sanitize HTML to plain text - Reddit doesn't support HTML markup
       const description = this.sanitizeDescription(post.description);
       const title = post.label ?? 'Untitled';
-      const subreddit = credential.externalId;
+      const subreddit =
+        readChannelSettingString(context.settings, 'subreddit') ??
+        credential.externalId;
+      const flairId = readChannelSettingString(context.settings, 'flairId');
 
       if (!subreddit) {
         return this.createFailedResult(
           this.platform,
-          'Reddit subreddit not configured in credential (externalId required)',
+          'Reddit subreddit not configured; set the subreddit setting or the credential external ID',
         );
       }
 
@@ -103,6 +111,7 @@ export class RedditPublisherService extends BasePublisherService {
           title,
           undefined, // No self-text for link posts
           mediaInfo.mediaUrls[0],
+          flairId,
         );
 
         // If there's a description, add it as the first comment
@@ -130,6 +139,8 @@ export class RedditPublisherService extends BasePublisherService {
           subreddit,
           title,
           description || undefined,
+          undefined, // No link URL for text posts
+          flairId,
         );
       }
 
@@ -140,7 +151,10 @@ export class RedditPublisherService extends BasePublisherService {
         );
       }
 
-      const postUrl = this.buildPostUrl(externalId, credential);
+      // Built from the resolved subreddit rather than `buildPostUrl`: the
+      // interface only receives the credential, so it cannot see a setting that
+      // overrode the credential's subreddit.
+      const postUrl = `https://www.reddit.com/r/${subreddit}/comments/${externalId}`;
       return this.createSuccessResult(externalId, this.platform, postUrl);
     } catch (error: unknown) {
       this.logger.error(`${url} failed to publish`, {

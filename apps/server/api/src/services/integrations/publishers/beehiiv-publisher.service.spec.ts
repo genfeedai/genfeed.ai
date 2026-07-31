@@ -31,6 +31,7 @@ describe('BeehiivPublisherService', () => {
   };
 
   const baseContext: PublishContext = {
+    settings: {},
     brandId: 'brand-123',
     credential: mockCredential as never,
     isDraft: false,
@@ -138,6 +139,7 @@ describe('BeehiivPublisherService', () => {
 
     it('should use "Untitled" when post label is missing', async () => {
       const context: PublishContext = {
+        settings: {},
         ...baseContext,
         post: { ...baseContext.post, label: undefined } as never,
       };
@@ -155,6 +157,7 @@ describe('BeehiivPublisherService', () => {
 
     it('should use empty string for content when description is missing', async () => {
       const context: PublishContext = {
+        settings: {},
         ...baseContext,
         post: { ...baseContext.post, description: undefined } as never,
       };

@@ -36,6 +36,7 @@ describe('GhostPublisherService', () => {
   const makeContext = (
     overrides: Partial<PublishContext> = {},
   ): PublishContext => ({
+    settings: {},
     brandId,
     credential: mockCredential as never,
     isDraft: false,

@@ -168,6 +168,7 @@ export class RedditService {
     title: string,
     text?: string,
     url?: string,
+    flairId?: string,
   ): Promise<string> {
     const credential = await this.refreshToken(organizationId, brandId);
 
@@ -185,6 +186,9 @@ export class RedditService {
     }
     if (url) {
       params.append('url', url);
+    }
+    if (flairId) {
+      params.append('flair_id', flairId);
     }
 
     const response = await firstValueFrom(

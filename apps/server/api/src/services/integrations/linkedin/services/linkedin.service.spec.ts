@@ -20,7 +20,10 @@ vi.mock('linkedin-api-client', () => ({
 
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
-import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
+import {
+  LinkedInService,
+  resolveLinkedInVisibility,
+} from '@api/services/integrations/linkedin/services/linkedin.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -86,6 +89,26 @@ describe('LinkedInService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('resolveLinkedInVisibility', () => {
+    it('maps the connections choice to LinkedIn vocabulary', () => {
+      expect(resolveLinkedInVisibility({ visibility: 'CONNECTIONS' })).toBe(
+        'CONNECTIONS',
+      );
+    });
+
+    it('defaults to public when the setting is unset', () => {
+      // Every share was public before the setting existed, so an unset value
+      // has to keep publishing the way it always did.
+      expect(resolveLinkedInVisibility({})).toBe('PUBLIC');
+    });
+
+    it('falls back to public for a value LinkedIn does not accept', () => {
+      expect(resolveLinkedInVisibility({ visibility: 'FRIENDS' })).toBe(
+        'PUBLIC',
+      );
+    });
   });
 
   describe('generateAuthUrl', () => {

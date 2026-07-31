@@ -55,6 +55,7 @@ describe('MastodonPublisherService', () => {
   const makeContext = (
     overrides: Partial<PublishContext> = {},
   ): PublishContext => ({
+    settings: {},
     brandId,
     credential: mockCredential,
     organizationId: orgId,
@@ -173,6 +174,8 @@ describe('MastodonPublisherService', () => {
         'decrypted:enc-token',
         'Hello Mastodon!',
         undefined,
+        undefined,
+        'public',
       );
     });
 
@@ -211,8 +214,44 @@ describe('MastodonPublisherService', () => {
         'decrypted:enc-token',
         expect.any(String),
         ['media-abc'],
+        undefined,
+        'public',
       );
       expect(result.success).toBe(true);
+    });
+
+    it('should publish with the selected visibility', async () => {
+      // Mastodon defaults to a public timeline; an unlisted or followers-only
+      // post is only possible if the setting reaches `publishStatus`.
+      await service.publish(
+        makeContext({ settings: { visibility: 'private' } }),
+      );
+
+      expect(mastodonService.publishStatus).toHaveBeenCalledWith(
+        'https://mastodon.social',
+        'decrypted:enc-token',
+        'Hello Mastodon!',
+        undefined,
+        undefined,
+        'private',
+      );
+    });
+
+    it('should publish to the instance named by the setting', async () => {
+      // The credential's `description` is the legacy home for the instance URL,
+      // so the explicit setting has to win over it.
+      await service.publish(
+        makeContext({ settings: { instanceUrl: 'https://hachyderm.io' } }),
+      );
+
+      expect(mastodonService.publishStatus).toHaveBeenCalledWith(
+        'https://hachyderm.io',
+        'decrypted:enc-token',
+        'Hello Mastodon!',
+        undefined,
+        undefined,
+        'public',
+      );
     });
 
     it('should rethrow errors from mastodonService.publishStatus', async () => {

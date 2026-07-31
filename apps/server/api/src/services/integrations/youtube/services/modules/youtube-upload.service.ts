@@ -5,6 +5,11 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { TagResolutionService } from '@api/shared/services/tag-resolution/tag-resolution.service';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
+import {
+  type ChannelTargetSettings,
+  readChannelSettingBoolean,
+  readChannelSettingString,
+} from '@api-types/contracts/channel-capabilities.contract';
 import { PostStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -48,6 +53,7 @@ export class YoutubeUploadService {
     brandId: string,
     videoId: string,
     post: PostEntity,
+    settings: ChannelTargetSettings = {},
   ): Promise<string> {
     const url = `${this.constructorName} uploadVideo ${videoId}`;
 
@@ -84,19 +90,46 @@ export class YoutubeUploadService {
       const hasFutureScheduledDate =
         post.scheduledDate && new Date(post.scheduledDate) > new Date();
 
+      // The composer's explicit choice wins over the status-derived default.
+      const requestedPrivacy = readChannelSettingString(
+        settings,
+        'privacyStatus',
+      );
+      const madeForKids = readChannelSettingBoolean(settings, 'madeForKids');
+      // `selfDeclaredMadeForKids` is only accepted alongside the `status` part,
+      // and YouTube rejects the field when it is absent rather than defaulting.
+      const audienceConfig =
+        madeForKids === undefined
+          ? {}
+          : { selfDeclaredMadeForKids: madeForKids };
+
       let privacyStatus: string;
       let statusConfig: unknown;
 
       if (hasFutureScheduledDate) {
         // Future scheduled date: upload as private with publishAt
-        // YouTube will automatically make it public at the scheduled time
-        statusConfig = {
-          privacyStatus: PostStatus.PRIVATE,
-          publishAt: new Date(post.scheduledDate).toISOString(),
-        };
+        // YouTube will automatically make it public at the scheduled time.
+        // `publishAt` always publishes publicly, so an explicit non-public
+        // choice has to drop the timer rather than silently override it.
+        const honoursTimer =
+          requestedPrivacy === undefined || requestedPrivacy === 'public';
+
+        statusConfig = honoursTimer
+          ? {
+              ...audienceConfig,
+              privacyStatus: PostStatus.PRIVATE,
+              publishAt: new Date(post.scheduledDate).toISOString(),
+            }
+          : { ...audienceConfig, privacyStatus: requestedPrivacy };
+
         this.loggerService.log(
-          `Scheduling video for future publication: ${post.scheduledDate.toISOString()}`,
+          honoursTimer
+            ? `Scheduling video for future publication: ${post.scheduledDate.toISOString()}`
+            : `Uploading video as ${requestedPrivacy}; YouTube's publish timer only supports public releases`,
         );
+      } else if (requestedPrivacy) {
+        privacyStatus = requestedPrivacy;
+        statusConfig = { ...audienceConfig, privacyStatus };
       } else {
         // No future date or date has passed: use the post status
         if (post.status === PostStatus.PUBLIC) {
@@ -116,11 +149,13 @@ export class YoutubeUploadService {
           // Invalid status, default to PRIVATE for safety
           privacyStatus = PostStatus.PRIVATE;
         }
-        statusConfig = { privacyStatus };
+        statusConfig = { ...audienceConfig, privacyStatus };
       }
 
       // Sanitize HTML to plain text - YouTube doesn't support HTML markup
       const description = htmlToText(post.description);
+
+      const playlistId = readChannelSettingString(settings, 'playlistId');
 
       const body = {
         media: {
@@ -152,6 +187,10 @@ export class YoutubeUploadService {
 
       const youtubeVideoId = res.data.id;
 
+      if (playlistId) {
+        await this.addToPlaylist(youtubeVideoId, playlistId, auth, url);
+      }
+
       this.loggerService.log(`${url} completed`, { youtubeVideoId });
 
       fs.unlinkSync(filePath);
@@ -160,6 +199,37 @@ export class YoutubeUploadService {
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Playlist insertion is a separate API call that runs after a successful
+   * upload. It is deliberately non-fatal: the video is already live, so a
+   * playlist failure must not report the publish itself as failed.
+   */
+  private async addToPlaylist(
+    videoId: string,
+    playlistId: string,
+    auth: unknown,
+    logPrefix: string,
+  ): Promise<void> {
+    try {
+      await this.youtubeAPI.playlistItems.insert({
+        auth,
+        part: ['snippet'],
+        requestBody: {
+          snippet: {
+            playlistId,
+            resourceId: { kind: 'youtube#video', videoId },
+          },
+        },
+      } as never);
+    } catch (error: unknown) {
+      this.loggerService.error(`${logPrefix} failed to add video to playlist`, {
+        error: (error as Error)?.message,
+        playlistId,
+        videoId,
+      });
     }
   }
 }

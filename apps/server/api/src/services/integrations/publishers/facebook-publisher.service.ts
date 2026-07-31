@@ -8,6 +8,7 @@ import type {
   PublishResult,
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { readChannelSettingString } from '@api-types/contracts/channel-capabilities.contract';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -59,7 +60,13 @@ export class FacebookPublisherService extends BasePublisherService {
         platform: CredentialPlatform.FACEBOOK,
       });
 
-      if (!fbCredential?.accessToken || !fbCredential?.externalId) {
+      // The explicit page setting wins; the credential's page is the fallback
+      // for releases scheduled before the setting existed.
+      const pageId =
+        readChannelSettingString(context.settings, 'pageId') ??
+        fbCredential?.externalId;
+
+      if (!fbCredential?.accessToken || !pageId) {
         this.logger.error(`${url} Facebook credential or page ID not found`, {
           postId: context.postId,
         });
@@ -74,9 +81,7 @@ export class FacebookPublisherService extends BasePublisherService {
         organizationId,
         brandId,
       );
-      const targetPage = pagesResponse.find(
-        (page) => page.id === fbCredential.externalId,
-      );
+      const targetPage = pagesResponse.find((page) => page.id === pageId);
 
       if (!targetPage?.accessToken) {
         this.logger.error(`${url} Facebook page access token not found`, {
@@ -96,7 +101,7 @@ export class FacebookPublisherService extends BasePublisherService {
       if (mediaInfo.isImagePost) {
         // Upload single image with caption
         externalId = await this.facebookService.uploadImage(
-          fbCredential.externalId, // pageId
+          pageId,
           targetPage.accessToken, // pageAccessToken
           mediaInfo.mediaUrls[0],
           caption,

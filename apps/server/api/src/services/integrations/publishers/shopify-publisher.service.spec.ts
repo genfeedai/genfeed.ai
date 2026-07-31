@@ -59,6 +59,7 @@ describe('ShopifyPublisherService', () => {
   const makeContext = (
     overrides?: Partial<PublishContext>,
   ): PublishContext => ({
+    settings: {},
     brandId: brandId.toString(),
     credential: mockCredential,
     organization: mockOrganization,
