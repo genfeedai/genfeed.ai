@@ -20,7 +20,7 @@ import baseConfig from './playwright.config';
  *
  * Output:
  *   playwright-report/coverage/index.html   # interactive V8 report
- *   playwright-report/coverage/lcov.info    # lcov for CI / codecov
+ *   playwright-report/coverage/lcov.info    # lcov for CI artifacts
  *   console summary with line/statement %
  *
  * Coverage is gathered per-test by `e2e/fixtures/coverage.fixture.ts` (Chromium

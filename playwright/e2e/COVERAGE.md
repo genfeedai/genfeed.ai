@@ -31,7 +31,7 @@ bun run test:e2e:coverage
 Outputs under `playwright-report/coverage/`:
 
 - `index.html` — interactive V8 report (source-mapped to TypeScript)
-- `lcov.info` — for CI / Codecov
+- `lcov.info` — for CI artifacts
 - console summary with line / statement %
 
 The run **fails** if coverage drops below the threshold. Override with

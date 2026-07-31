@@ -230,7 +230,7 @@ deduped issue.
 
 - **Vitest 4.1.9** workspace-projects mode (`vitest.config.ts` globs per app/package; `TZ=UTC` forced). ~3,000 colocated spec files (§1 table).
 - **Playwright 1.61.1**, 115 specs, projects `better-auth-setup` → `app-core` → `app-authed` (`playwright/configs/playwright.config.ts`); 12-way CI sharding (`scripts/e2e-sharded.mjs`); the authed frontend job is dormant behind `vars.E2E_AUTHED_ENABLED`.
-- **Coverage:** codecov.yml — project flags api/packages (2% threshold), web (3%, "relaxed — harder to maintain solo"), patch 80% but `informational: true`; uploads `continue-on-error`.
+- **Coverage:** weekly `coverage.yml` workflow publishes lcov reports as Actions artifacts; Codecov removed in favor of the changed-code coverage ratchet (#1849).
 
 ### 5.3 Quality tooling & guards
 
