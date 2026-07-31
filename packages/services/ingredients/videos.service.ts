@@ -42,10 +42,15 @@ export class VideosService extends IngredientsService<Video> {
     return instance;
   }
 
-  public async post(body: Partial<IVideo>) {
+  /**
+   * @param signal - Optional AbortSignal so long-running batch callers (the
+   * storyboard scene loop) can cancel the request in flight, not just stop
+   * reading its result.
+   */
+  public async post(body: Partial<IVideo>, signal?: AbortSignal) {
     const data = VideoSerializer.serialize(body);
     return await this.instance
-      .post<JsonApiResponseDocument>('', data) // Empty string for root path, data as second argument
+      .post<JsonApiResponseDocument>('', data, { signal }) // Empty string for root path, data as second argument
       .then((res) => this.mapOne(res.data));
   }
 

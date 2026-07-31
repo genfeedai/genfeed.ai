@@ -1,6 +1,5 @@
 'use client';
 
-import type { StoryboardFrame } from '@genfeedai/client/schemas';
 import { useGalleryModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import {
   ButtonSize,
@@ -10,23 +9,26 @@ import {
 } from '@genfeedai/enums';
 import type { IImage, IVideo } from '@genfeedai/interfaces';
 import { StoryboardPanel } from '@pages/studio/generate/components/StoryboardPanel';
+import MergeProgressPanel from '@pages/studio/storyboard/components/MergeProgressPanel';
+import MergeSettingsPanel from '@pages/studio/storyboard/components/MergeSettingsPanel';
+import SceneFrameRow from '@pages/studio/storyboard/components/SceneFrameRow';
 import {
   type StoryboardWorkspaceMode,
   useStoryboardWorkspace,
 } from '@pages/studio/storyboard/use-storyboard-workspace';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
-import { Textarea } from '@ui/primitives/textarea';
 import {
   Clapperboard,
   Film,
   Layers2,
   Plus,
+  RotateCcw,
   Sparkles,
+  Square,
   Trash2,
   X,
 } from 'lucide-react';
-import Image from 'next/image';
 import { useCallback } from 'react';
 
 const MODE_OPTIONS: Array<{
@@ -55,79 +57,20 @@ const MODE_OPTIONS: Array<{
   },
 ];
 
-function SceneFrameRow({
-  frame,
-  onChange,
-  onRemove,
-}: {
-  frame: StoryboardFrame;
-  onChange: (frameId: string, patch: Partial<StoryboardFrame>) => void;
-  onRemove: (frameId: string) => void;
-}) {
-  const thumb = frame.imageThumbnailUrl || frame.imageUrl || frame.videoUrl;
-
-  return (
-    // A row inside the "Scenes" Card, not a card of its own — it carries no
-    // surface token because the parent Card already paints `bg-card`.
-    <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-start">
-      <div className="relative size-20 shrink-0 overflow-hidden rounded-md bg-background-secondary">
-        {thumb ? (
-          <Image
-            src={thumb}
-            alt={`Scene ${frame.order + 1}`}
-            fill
-            className="object-cover"
-            sizes="80px"
-          />
-        ) : (
-          <div className="flex size-full items-center justify-center text-xs text-muted-foreground">
-            No image
-          </div>
-        )}
-      </div>
-
-      <div className="min-w-0 flex-1 space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-medium text-foreground">
-            Scene {frame.order + 1}
-          </span>
-          <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
-            {frame.status ?? 'pending'}
-            {frame.error ? ` · ${frame.error}` : ''}
-          </span>
-        </div>
-        <Textarea
-          value={frame.prompt ?? ''}
-          onChange={(event) =>
-            onChange(frame.id, { prompt: event.target.value })
-          }
-          placeholder="Script / prompt for this frame (what should happen in the clip)"
-          className="min-h-20 text-sm"
-        />
-      </div>
-
-      <Button
-        variant={ButtonVariant.GHOST}
-        size={ButtonSize.ICON}
-        ariaLabel={`Remove scene ${frame.order + 1}`}
-        onClick={() => onRemove(frame.id)}
-        icon={<Trash2 className="size-3.5" />}
-      />
-    </div>
-  );
-}
-
 export default function StoryboardWorkspace() {
   const { openGallery } = useGalleryModal();
   const {
     addMergeVideos,
     addSceneImages,
     cameraMovementPreset,
+    cancelSceneGeneration,
     clearInterpolate,
     clearMergeVideos,
     clearScenes,
     completedSceneCount,
     customCameraPrompt,
+    dismissMergeProgress,
+    failedSceneCount,
     format,
     generatePendingScenes,
     handleGenerateStoryboard,
@@ -136,19 +79,26 @@ export default function StoryboardWorkspace() {
     isGeneratingScenes,
     isMerging,
     isStoryboardGenerating,
+    mergeProgress,
     mergeSelectedVideos,
+    mergeSettings,
+    mergeSteps,
     mergeStoryboardVideos,
     mergeVideoIds,
     mode,
     pendingSceneCount,
     removeMergeVideo,
     removeSceneFrame,
+    retryFailedScenes,
+    retrySceneFrame,
+    sceneProgress,
     setCameraMovementPreset,
     setCustomCameraPrompt,
     setFormat,
     setInterpolateFrames,
     setMode,
     storyboard,
+    updateMergeSettings,
     updateSceneFrame,
   } = useStoryboardWorkspace();
 
@@ -284,16 +234,23 @@ export default function StoryboardWorkspace() {
                     <SceneFrameRow
                       key={frame.id}
                       frame={frame}
+                      isBusy={isGeneratingScenes}
                       onChange={updateSceneFrame}
                       onRemove={removeSceneFrame}
+                      onRetry={retrySceneFrame}
                     />
                   ))
                 )}
 
                 <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
                   <div className="text-xs text-muted-foreground">
-                    {storyboard.frames.length} scenes · {pendingSceneCount}{' '}
-                    ready · {completedSceneCount} completed
+                    {sceneProgress
+                      ? `Generating scene ${sceneProgress.current} of ${sceneProgress.total}`
+                      : `${storyboard.frames.length} scenes · ${pendingSceneCount} ready · ${completedSceneCount} completed${
+                          failedSceneCount > 0
+                            ? ` · ${failedSceneCount} failed`
+                            : ''
+                        }`}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
@@ -302,6 +259,7 @@ export default function StoryboardWorkspace() {
                       icon={<Plus className="size-3.5" />}
                       label="Add images"
                       onClick={openImagePicker}
+                      isDisabled={isGeneratingScenes}
                     />
                     <Button
                       size={ButtonSize.SM}
@@ -309,17 +267,42 @@ export default function StoryboardWorkspace() {
                       icon={<X className="size-3.5" />}
                       label="Clear"
                       onClick={clearScenes}
-                      isDisabled={storyboard.frames.length === 0}
+                      isDisabled={
+                        storyboard.frames.length === 0 || isGeneratingScenes
+                      }
                     />
-                    <Button
-                      size={ButtonSize.SM}
-                      variant={ButtonVariant.DEFAULT}
-                      icon={<Sparkles className="size-3.5" />}
-                      label="Generate scenes"
-                      onClick={() => void generatePendingScenes()}
-                      isLoading={isGeneratingScenes}
-                      isDisabled={pendingSceneCount === 0}
-                    />
+                    {/* Cancelling is only meaningful mid-batch, and the batch is
+                        the only thing that can be cancelled — so this replaces
+                        "Generate scenes" rather than sitting next to it. */}
+                    {isGeneratingScenes ? (
+                      <Button
+                        size={ButtonSize.SM}
+                        variant={ButtonVariant.DESTRUCTIVE}
+                        icon={<Square className="size-3.5" />}
+                        label="Cancel"
+                        onClick={cancelSceneGeneration}
+                      />
+                    ) : (
+                      <>
+                        {failedSceneCount > 0 ? (
+                          <Button
+                            size={ButtonSize.SM}
+                            variant={ButtonVariant.SECONDARY}
+                            icon={<RotateCcw className="size-3.5" />}
+                            label={`Retry failed (${failedSceneCount})`}
+                            onClick={() => void retryFailedScenes()}
+                          />
+                        ) : null}
+                        <Button
+                          size={ButtonSize.SM}
+                          variant={ButtonVariant.DEFAULT}
+                          icon={<Sparkles className="size-3.5" />}
+                          label="Generate scenes"
+                          onClick={() => void generatePendingScenes()}
+                          isDisabled={pendingSceneCount === 0}
+                        />
+                      </>
+                    )}
                     <Button
                       size={ButtonSize.SM}
                       variant={ButtonVariant.DEFAULT}
@@ -327,10 +310,22 @@ export default function StoryboardWorkspace() {
                       label="Merge clips"
                       onClick={() => void mergeStoryboardVideos()}
                       isLoading={isMerging}
-                      isDisabled={completedSceneCount < 2}
+                      isDisabled={completedSceneCount < 2 || isGeneratingScenes}
                     />
                   </div>
                 </div>
+
+                <MergeSettingsPanel
+                  isDisabled={isMerging}
+                  settings={mergeSettings}
+                  onChange={updateMergeSettings}
+                />
+
+                <MergeProgressPanel
+                  overallProgress={mergeProgress}
+                  steps={mergeSteps}
+                  onDismiss={dismissMergeProgress}
+                />
               </div>
             </Card>
           ) : null}
@@ -399,6 +394,18 @@ export default function StoryboardWorkspace() {
                     isDisabled={mergeVideoIds.length < 2}
                   />
                 </div>
+
+                <MergeSettingsPanel
+                  isDisabled={isMerging}
+                  settings={mergeSettings}
+                  onChange={updateMergeSettings}
+                />
+
+                <MergeProgressPanel
+                  overallProgress={mergeProgress}
+                  steps={mergeSteps}
+                  onDismiss={dismissMergeProgress}
+                />
               </div>
             </Card>
           ) : null}

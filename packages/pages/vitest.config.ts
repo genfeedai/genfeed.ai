@@ -358,6 +358,8 @@ export default defineConfig({
       'studio/generate/utils/**/*.test.ts',
       'studio/fastlane/**/*.test.ts',
       'studio/fastlane/**/*.test.tsx',
+      'studio/storyboard/**/*.test.ts',
+      'studio/storyboard/**/*.test.tsx',
       'trends/**/*.test.ts',
       'trends/**/*.test.tsx',
       'twitter-pipeline/**/*.test.tsx',

@@ -32,18 +32,26 @@ agent has no non-interactive path to. Each fix carries a regression test.
 - ~~`link.config.ts` uses `simpleConfig`, so `brand` is a plain attribute rather than a JSON:API relationship~~ — **fixed.** Now `{ attributes: linkAttributes, brand: BRAND_REL, type: 'link' }`, matching `folder.config.ts` / `watchlist.config.ts` (Link has only a brand relation, so no `STANDARD_ENTITY_RELS` spread). Regression test in `packages/serializers/__tests__/server-serializers.test.ts`
 - `use-brand-detail.test.ts` has no coverage for `handleUpdateAccount`'s scope-toggle path
 - `SidebarHeader.tsx` mounts a second brand switcher that nothing imports — dead code
-- `bun run check:ui-guards` is red on `master` on two required guards — hardcoded routes in `playwright/e2e/tests/{library/content-library,core/automation-loop}.spec.ts`, and a bespoke card at `StoryboardWorkspace.tsx:70`. Pre-existing, untouched by this train, chipped to its own session
+- ~~`bun run check:ui-guards` is red on `master`~~ — green as of the storyboard-depth train. The `StoryboardWorkspace.tsx:70` bespoke card is gone: that local `SceneFrameRow` moved to `packages/pages/studio/storyboard/components/SceneFrameRow.tsx` and carries no surface token, because the parent `Card` already paints `bg-card`
 
 ## Boil-the-ocean backlog (next train)
+
+Items 3 and 6 worked as one train on 2026-07-31 (`feat/studio-storyboard-depth`).
 
 1. **Messages reply campaigns** — GH PRD under #1010 (throttled, not blast)
 2. ~~**Prompt-bar domain merge**~~ — **done.** `PromptBarArticle` and `PromptBarPost` are deleted;
    every content surface renders `PromptBarContent`, and submit/Enter/trim/clear is one primitive
    (`usePromptBarSubmission`) shared with `PostEnhancementBar`
-3. **Studio storyboard depth** — scene gen reliability, merge polish, Clips in Automation menu if desired
+- [x] 3. **Studio storyboard depth** — **done.** Five real defects, all found by reading the code rather than from the card text:
+  - Scene generation had no cancellation. `VideosService.post` now takes an optional `AbortSignal`; `use-storyboard-workspace.ts` owns one `AbortController` per batch, checks `signal.aborted` before and after every request, and aborts on unmount. Cancelled frames are restored from `generating` to `pending` instead of being stranded
+  - The batch always claimed success. It now counts outcomes and emits one of four accurate toasts (cancelled / all-succeeded / all-failed / partial), and per-frame errors carry the real message via `getErrorMessage` instead of a constant `'Generation failed'`
+  - A failed frame was terminal — `getPendingFrames` only matched `status === 'pending'`. Added `getFailedFrames` in `storyboard-frame.schema.ts` behind a shared `isFrameGeneratable` predicate, wired to "Retry failed (N)" and a per-row Retry
+  - `MergeProgressBars`, `useMergeProgress`, and `EaseCurveSelector` all existed, were tested, and had **zero production consumers**. They are now mounted: `isMerging` stays true until the socket reports done (it used to clear the instant the POST resolved, so a multi-minute render looked finished immediately), and a "Stop watching" control exists for when the socket goes quiet
+  - `mergeSelectedVideos` hardcoded `isCaptionsEnabled: false` and dropped transitions. Both merge paths now spread the same `mergeSettings`, exposed through a new `MergeSettingsPanel` (transition, ease curve, duration, captions, mute)
+  - Clips: **yes.** `/studio/clips` had a full page and a workspace-shell breadcrumb but no nav entry — reachable only by typing the URL. Added to the Automation group between Storyboard and Batch, with a test asserting the route is linked
+- [x] 6. **Optional studio polish** past cards-above-prompt empty state — **done**, scoped to the storyboard surface: per-scene status pill (Ready/Generating/Completed/Failed) with a spinner over the thumbnail, video thumbnail preferred once a clip exists, inline failure reason, `Generating scene N of M` counter replacing the idle counts, and every control locked while a batch runs so a mid-flight edit cannot race the request
 4. - [x] **Kit contrast / inputs polish** if still weak after Kit settings page — re-checked on `fix/brand-link-modal-and-kit-polish`; still weak, so polished. Two real defects in `BrandDetailManualKitCard.tsx`: (a) every manual-kit field was placeholder-only with an `aria-label` and no visible label, so three adjacent hex inputs became indistinguishable the moment you typed — now wrapped in `FormControl` (`Label` by hand for `ColorField`/`Select`, whose single-child clone would collide with the control's own `id`); (b) the draft-review panel was `bg-background-secondary` with its selectable field rows painted the *same* `bg-background-secondary`, separated only by `shadow-border` — rows stepped down to `bg-background`. No other Kit surface was touched
 5. - [x] **Brand OverviewPanel** still has inline link editor path — align to modal like Social — **done.** `BrandDetailLinkEditor.tsx` (+ its test) deleted, and the five inline handlers plus four `useState` pairs removed from `useModalBrand.ts`. `ModalBrand.tsx` now mounts `LazyModalBrandLink` as a sibling and `handleOpenLinkModal` fires `openModal(ModalEnum.BRAND_LINK)` — byte-for-byte the Social settings page's pattern (`settings/social/content.tsx`). Open/save/cancel/delete covered in `ModalBrandLink.test.tsx`; the open path is guarded in `ModalBrand.test.tsx`
-6. **Optional studio polish** past cards-above-prompt empty state
 7. **Agent / shell residual** polish from the same session branch if anything still feels off in prod
 
 ## Intent locked this session
@@ -53,5 +61,5 @@ agent has no non-interactive path to. Each fix carries a regression test.
 - Config on dedicated settings routes
 - 1–2 nav groups
 - Social as own page; Interview inline + draft store; links as modal
-- Studio Automation group: Storyboard, Batch, Fastlane
+- Studio Automation group: Storyboard, Clips, Batch, Fastlane (Clips added 2026-07-31 under backlog item 3 — it was an orphan route before)
 - Flat master, keep QA together, no split for taste

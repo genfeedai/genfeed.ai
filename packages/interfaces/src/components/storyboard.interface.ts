@@ -1,4 +1,9 @@
-import type { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
+import type {
+  IngredientCategory,
+  IngredientStatus,
+  VideoEaseCurve,
+  VideoTransition,
+} from '@genfeedai/enums';
 import type { IIngredient } from '../index';
 
 export interface IStoryboardStep {
@@ -23,4 +28,26 @@ export interface StoryboardFrame {
   prompt: string;
   status: IngredientStatus[];
   category: IngredientCategory;
+}
+
+/**
+ * The merge-time settings the storyboard workspace exposes. Mirrors the merge
+ * fields of `storyboardSchema` so both merge paths (scene clips and hand-picked
+ * videos) send the same options instead of hardcoding defaults.
+ */
+export interface IStoryboardMergeSettings {
+  isCaptionsEnabled: boolean;
+  isMuteVideoAudio?: boolean;
+  transition?: VideoTransition;
+  transitionDuration?: number;
+  transitionEaseCurve?: VideoEaseCurve;
+}
+
+/**
+ * In-flight position of a scene-generation run. `total` is the size of the
+ * batch that was started, not the storyboard's frame count.
+ */
+export interface IStoryboardSceneProgress {
+  current: number;
+  total: number;
 }
