@@ -32,6 +32,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
+import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { SubscriptionTier } from '@genfeedai/enums';
 import type { OrganizationOption } from '@genfeedai/interfaces';
@@ -161,6 +162,7 @@ describe('OrganizationsController', () => {
           provide: BetterAuthIdentityCacheService,
           useValue: mockInvalidatingCache,
         },
+        UserAccessCacheService,
       ],
     }).compile();
 

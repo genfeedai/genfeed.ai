@@ -1,4 +1,5 @@
 import { QueueService } from '@api/queues/core/queue.service';
+import { SOCIAL_REPLY_CAMPAIGN_QUEUE } from '@genfeedai/queue-contracts';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Job, Queue } from 'bullmq';
@@ -49,6 +50,10 @@ describe('QueueService', () => {
         { provide: getQueueToken('analytics-facebook'), useValue: mockQueue },
         { provide: getQueueToken('analytics-threads'), useValue: mockQueue },
         { provide: getQueueToken('social-inbox-sync'), useValue: mockQueue },
+        {
+          provide: getQueueToken(SOCIAL_REPLY_CAMPAIGN_QUEUE),
+          useValue: mockQueue,
+        },
       ],
     }).compile();
 
