@@ -8,7 +8,10 @@ import {
 } from '@api/collections/tags/schemas/tag.schema';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import {
+  getIsSuperAdmin,
+  getPublicMetadata,
+} from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
@@ -53,7 +56,7 @@ export class TagsController extends BaseCRUDController<
     const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
       query,
       publicMetadata,
-      publicMetadata.isSuperAdmin === true,
+      getIsSuperAdmin(user),
     );
     const organizationId = scope.organization;
 

@@ -285,17 +285,19 @@ export class WorkflowsService extends BaseService<
     workflowData: CreateWorkflowDto,
     defaultBrandId?: string,
   ): Promise<WorkflowEntity> {
-    // Clone via create body (`sourceWorkflowId`).
+    // Clone via create body (`sourceWorkflowId`). An explicit body brandId wins
+    // over the session brand — the retired POST /:id/clone had the same
+    // precedence (`dto.brandId ?? sessionBrand`).
     if (workflowData.sourceWorkflowId) {
       return this.cloneWorkflow(
         workflowData.sourceWorkflowId,
         userId,
         organizationId,
-        defaultBrandId ??
-          this.normalizeWorkflowBrandId(
-            (workflowData as WorkflowCreateExtras).brandId,
-            (workflowData as WorkflowCreateExtras).brands,
-          ),
+        this.normalizeWorkflowBrandId(
+          (workflowData as WorkflowCreateExtras).brandId,
+          (workflowData as WorkflowCreateExtras).brands,
+          defaultBrandId,
+        ),
       );
     }
 

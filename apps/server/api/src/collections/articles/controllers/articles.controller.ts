@@ -76,7 +76,7 @@ export class ArticlesController extends BaseCRUDController<
     const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
       query,
       publicMetadata,
-      publicMetadata.isSuperAdmin === true,
+      getIsSuperAdmin(user),
     );
 
     return ArticleFilterUtil.buildArticlequery(

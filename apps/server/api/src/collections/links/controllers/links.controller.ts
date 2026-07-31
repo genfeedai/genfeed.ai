@@ -10,7 +10,10 @@ import { LinksService } from '@api/collections/links/services/links.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import {
+  getIsSuperAdmin,
+  getPublicMetadata,
+} from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
@@ -60,7 +63,7 @@ export class LinksController extends BaseCRUDController<
     const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
       query,
       publicMetadata,
-      publicMetadata.isSuperAdmin === true,
+      getIsSuperAdmin(user),
     );
 
     return {

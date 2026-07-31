@@ -115,7 +115,7 @@ export class BaseQueryDto {
   sort: string = 'createdAt: -1';
 
   @ApiProperty({
-    description: 'Filter by organization ID (superadmin only)',
+    description: 'Filter by organization ID',
     required: false,
   })
   @IsOptional()
@@ -123,7 +123,7 @@ export class BaseQueryDto {
   organization?: string;
 
   @ApiProperty({
-    description: 'Filter by brand ID (superadmin only)',
+    description: 'Filter by brand ID',
     required: false,
   })
   @IsOptional()

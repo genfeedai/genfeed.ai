@@ -1,5 +1,6 @@
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { AssetScope } from '@genfeedai/enums';
+import { ForbiddenException } from '@nestjs/common';
 
 describe('CollectionFilterUtil', () => {
   afterEach(() => {
@@ -23,12 +24,23 @@ describe('CollectionFilterUtil', () => {
     });
 
     it('rejects a member organization filter outside the session org', () => {
-      expect(() =>
+      const call = () =>
         CollectionFilterUtil.resolveAuthorizedTenantQuery(
           { organization: orgB },
           { brand: brandA, isSuperAdmin: false, organization: orgA },
-        ),
-      ).toThrow(/Access denied to this organization/);
+        );
+
+      expect(call).toThrow(ForbiddenException);
+
+      try {
+        call();
+        expect.unreachable('expected a ForbiddenException');
+      } catch (error) {
+        expect((error as ForbiddenException).getResponse()).toEqual({
+          detail: 'Access denied to this organization',
+          title: 'Forbidden',
+        });
+      }
     });
 
     it('allows member brand filters but forces the session organization boundary', () => {

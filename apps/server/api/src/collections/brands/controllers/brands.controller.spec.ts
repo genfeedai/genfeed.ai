@@ -32,6 +32,7 @@ import {
   BrandSerializer,
 } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ForbiddenException } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -328,9 +329,19 @@ describe('BrandsController', () => {
         sort: 'label: 1',
       } as BaseQueryDto;
 
-      expect(() => controller.buildFindAllQuery(mockUser, query)).toThrow(
-        /Access denied to this organization/,
-      );
+      const call = () => controller.buildFindAllQuery(mockUser, query);
+
+      expect(call).toThrow(ForbiddenException);
+
+      try {
+        call();
+        expect.unreachable('expected a ForbiddenException');
+      } catch (error) {
+        expect((error as ForbiddenException).getResponse()).toEqual({
+          detail: 'Access denied to this organization',
+          title: 'Forbidden',
+        });
+      }
     });
   });
 
