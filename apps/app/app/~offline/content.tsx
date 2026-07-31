@@ -12,7 +12,7 @@ import Image from 'next/image';
  * Precached at build time, so it must not depend on anything the network would
  * have to provide — no session, no org/brand scope, no API data.
  */
-export default function OfflinePage() {
+export default function OfflineContent() {
   const logoUrl = useThemeLogo();
 
   return (
