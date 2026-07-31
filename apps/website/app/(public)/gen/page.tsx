@@ -15,6 +15,7 @@ export function generateMetadata(): Metadata {
     openGraph: {
       description,
       images: [metadata.cards.default],
+      siteName: metadata.name,
       title,
       type: 'website',
       url: `${metadata.url}/gen`,
