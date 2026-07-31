@@ -144,9 +144,26 @@ describe('Admin Fleet split controllers', () => {
       );
       expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
       expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(requestMethod);
-      expect(controllerClass.name).toBe('AdminFleetController');
     },
   );
+
+  it('gives each split controller a distinct class name', () => {
+    // operationIds are `<ControllerClass>.<method>`, so three classes sharing
+    // one name puts them one method-name overlap away from colliding onto a
+    // single id — and the alias export spelling hid that from
+    // controller-class-names.spec.ts, which only matches `export class`.
+    const names = [
+      AdminFleetMediaController,
+      AdminFleetOperationsController,
+      AdminFleetController,
+    ].map((controllerClass) => controllerClass.name);
+
+    expect(names).toEqual([
+      'AdminFleetMediaController',
+      'AdminFleetOperationsController',
+      'AdminFleetController',
+    ]);
+  });
 
   it.each([
     AdminFleetMediaController,
