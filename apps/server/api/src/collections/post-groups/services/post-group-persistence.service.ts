@@ -9,6 +9,7 @@ import type {
   SchedulerTx,
 } from '@api/collections/post-groups/services/post-group.types';
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
+import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -30,6 +31,7 @@ export class PostGroupPersistenceService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly contractService: PostGroupContractService,
+    private readonly readinessService: PostGroupReadinessService,
   ) {}
 
   async createPostGroup(
@@ -47,14 +49,27 @@ export class PostGroupPersistenceService {
       params.input.brandId,
       credentials,
     );
+    const isDraft = params.status === ReleaseStatus.DRAFT;
+    const readinessByCredential =
+      await this.readinessService.resolveForCredentials(
+        tx,
+        params.organizationId,
+        params.input.targets.map((target) => target.credentialId),
+      );
     const validations = params.input.targets.map((target) => {
       const validation = this.contractService.validateTarget(
         params.input,
         target,
-        params.status === ReleaseStatus.DRAFT ? 'draft' : 'scheduled',
+        isDraft ? 'draft' : 'scheduled',
       );
-      if (!validation.valid && params.status !== ReleaseStatus.DRAFT) {
+      if (!validation.valid && !isDraft) {
         throw this.contractService.invalidTargetException(target, validation);
+      }
+      if (!isDraft) {
+        this.readinessService.assertSchedulable(
+          target,
+          readinessByCredential.get(target.credentialId),
+        );
       }
       return validation;
     });
@@ -145,9 +160,10 @@ export class PostGroupPersistenceService {
           targetExecutionState: this.contractService.toTargetState(
             params.status,
           ),
-          targetReadiness: validation.readiness
-            ? this.contractService.toJson(validation.readiness)
-            : Prisma.JsonNull,
+          targetReadiness: this.contractService.toReadinessJson(
+            readinessByCredential.get(target.credentialId) ??
+              validation.readiness,
+          ),
           targetSettings: this.contractService.toJson(target.settings ?? {}),
           targetValidationIssues:
             this.contractService.validationIssues(validation),
