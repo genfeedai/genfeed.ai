@@ -13,14 +13,14 @@ import {
 import { WorkflowPage } from '../../pages/workflow.page';
 
 /**
- * E2E Tests for Workflow Detail (parameterized /agents/workflows/[id])
+ * E2E Tests for Workflow Detail (parameterized /orchestration/workflows/[id])
  *
  * CRITICAL: All tests use mocked API responses.
  * No real backend calls occur during tests.
  *
  * Tests verify that navigating to a specific workflow by ID loads correctly.
  */
-test.describe('Workflow Detail — /agents/workflows/[id]', () => {
+test.describe('Workflow Detail — /orchestration/workflows/[id]', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockActiveSubscription(authenticatedPage, {
       credits: 1000,
@@ -40,7 +40,7 @@ test.describe('Workflow Detail — /agents/workflows/[id]', () => {
     await workflowPage.gotoEditorById(workflow.id);
 
     await expect(authenticatedPage).toHaveURL(
-      new RegExp(`agents/workflows/${workflow.id}`),
+      new RegExp(`orchestration/workflows/${workflow.id}`),
     );
     await expect(workflowPage.mainContent).toBeVisible({ timeout: 15000 });
   });
@@ -55,7 +55,7 @@ test.describe('Workflow Detail — /agents/workflows/[id]', () => {
 
     // Verify we stay on the workflow detail page, not redirected to list or login
     const url = authenticatedPage.url();
-    expect(url).toContain(`agents/workflows/${workflow.id}`);
+    expect(url).toContain(`orchestration/workflows/${workflow.id}`);
     expect(url).not.toContain('/login');
   });
 
@@ -68,7 +68,7 @@ test.describe('Workflow Detail — /agents/workflows/[id]', () => {
     await workflowPage.gotoEditorById(workflow.id);
 
     await expect(authenticatedPage).toHaveURL(
-      new RegExp(`agents/workflows/${workflow.id}`),
+      new RegExp(`orchestration/workflows/${workflow.id}`),
     );
     await expect(workflowPage.mainContent).toBeVisible({ timeout: 15000 });
   });
@@ -107,7 +107,7 @@ test.describe('Workflow Detail — /agents/workflows/[id]', () => {
     await workflowPage.gotoEditorById(workflow.id);
 
     await expect(authenticatedPage).toHaveURL(
-      new RegExp(`agents/workflows/${workflow.id}`),
+      new RegExp(`orchestration/workflows/${workflow.id}`),
     );
 
     // On mobile, a desktop gate or the main content should be visible

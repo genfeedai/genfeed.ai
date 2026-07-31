@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { XIcon } from '@genfeedai/helpers/ui/icons/brands';
 import BotToggle from '@/features/workflows/components/bots/BotToggle';
 
@@ -17,7 +18,7 @@ export default function TwitterReplyBot() {
       description="Automatically reply to mentions and tweets"
       icon={<XIcon className="size-6" />}
       iconBgColor="bg-foreground/10"
-      editorPath="/workflows/twitter-reply"
+      editorPath={`${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/twitter-reply`}
       enabledMessage="Bot is active and responding to mentions"
       configItems={TWITTER_CONFIG_ITEMS}
     />

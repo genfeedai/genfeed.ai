@@ -32,7 +32,9 @@ test.describe('Core Automation Loop', () => {
   }) => {
     await automationPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS);
 
-    await expect(automationPage).toHaveURL(/\/orchestration\/workflows$/);
+    await expect(automationPage).toHaveURL(
+      /\/test-org\/brand-1\/orchestration\/workflows$/,
+    );
     await expect(
       automationPage.getByTestId('sidebar-shell').first(),
     ).toHaveAttribute('data-shell-section-label', 'Automate');
@@ -47,7 +49,7 @@ test.describe('Core Automation Loop', () => {
     ).toBeVisible();
     await expect(
       automationPage.getByRole('link', { name: 'New Workflow' }).first(),
-    ).toHaveAttribute('href', /\/workflows\/new$/);
+    ).toHaveAttribute('href', /\/orchestration\/workflows\/new$/);
     await expect(
       automationPage.getByRole('link', { name: 'Templates' }).first(),
     ).toBeVisible();
@@ -69,7 +71,9 @@ test.describe('Core Automation Loop', () => {
       .first()
       .click({ force: true });
 
-    await expect(automationPage).toHaveURL(/\/workflows\/workflow-new$/);
+    await expect(automationPage).toHaveURL(
+      /\/orchestration\/workflows\/workflow-new$/,
+    );
     await expect(automationPage.locator('.workflow-scope')).toBeVisible();
   });
 
@@ -80,7 +84,9 @@ test.describe('Core Automation Loop', () => {
 
     await workflowPage.gotoEditorById(testWorkflows[0].id);
 
-    await expect(automationPage).toHaveURL(/\/workflows\/workflow-001/);
+    await expect(automationPage).toHaveURL(
+      /\/orchestration\/workflows\/workflow-001/,
+    );
     await expect(workflowPage.canvas.first()).toBeVisible();
     await expect(
       automationPage.getByText(/draft|published|archived/i).first(),
@@ -103,14 +109,18 @@ test.describe('Core Automation Loop', () => {
 
     await workflowPage.gotoExecutions();
 
-    await expect(automationPage).toHaveURL(/\/workflows\/executions/);
+    await expect(automationPage).toHaveURL(
+      /\/orchestration\/workflows\/executions/,
+    );
     await expect(automationPage.getByText('Execution History')).toBeVisible();
     await expect(automationPage.getByText('completed').first()).toBeVisible();
     await expect(automationPage.getByText('failed').first()).toBeVisible();
 
     await workflowPage.gotoExecutionById('exec-003');
 
-    await expect(automationPage).toHaveURL(/\/workflows\/executions\/exec-003/);
+    await expect(automationPage).toHaveURL(
+      /\/orchestration\/workflows\/executions\/exec-003/,
+    );
     await expect(
       automationPage.getByRole('button', { name: 'Resume Execution' }),
     ).toBeVisible();

@@ -1,10 +1,11 @@
+import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
 import { PageScope, PostStatus } from '@genfeedai/enums';
 import IngredientsLayout from '@pages/ingredients/layout/ingredients-layout';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import FeatureGate from '@ui/guards/feature/FeatureGate';
 import { SkeletonLoadingFallback } from '@ui/loading/skeleton/SkeletonFallbacks';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import EditorDetailPage from '../../../[brandSlug]/editor/[id]/page';
 import EditorProjectsPage from '../../../[brandSlug]/editor/editor-projects-page';
@@ -92,11 +93,18 @@ export default async function OrgRootAppPage({
   params,
   searchParams,
 }: OrgRootAppPageProps) {
-  const { orgRootApp, segments } = await params;
+  const { orgRootApp, orgSlug, segments } = await params;
 
-  if (orgRootApp === 'workspace' || orgRootApp === 'workflows') {
-    // Hard cut: org-scoped workflows are gone; use brand /orchestration/workflows.
+  if (orgRootApp === 'workspace') {
     notFound();
+  }
+
+  if (orgRootApp === 'orchestration') {
+    // Automate's only org-scoped surface is the cross-brand overview at
+    // `/~/orchestration`; deeper automation paths are brand-scoped.
+    redirect(
+      createOrganizationAppRoute(orgSlug, APP_ROUTES.ORCHESTRATION.ROOT),
+    );
   }
 
   if (orgRootApp === 'library') {
