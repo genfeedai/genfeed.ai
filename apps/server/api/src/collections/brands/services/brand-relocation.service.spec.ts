@@ -264,6 +264,10 @@ describe('BrandRelocationService', () => {
     getDelegate('organization').findFirst.mockResolvedValue({ id: DEST_ORG });
     // A moved Task exists → its TaskComment children must follow.
     getDelegate('task').findMany.mockResolvedValue([{ id: 'task_1' }]);
+    // A moved social reply campaign exists → its recipients must follow.
+    getDelegate('socialReplyCampaign').findMany.mockResolvedValue([
+      { id: 'social_reply_campaign_1' },
+    ]);
 
     const result = await service.relocateToOrganization(
       BRAND_ID,
@@ -301,6 +305,15 @@ describe('BrandRelocationService', () => {
       data: { organizationId: DEST_ORG },
       where: {
         OR: [{ taskId: { in: ['task_1'] } }],
+        organizationId: { not: DEST_ORG },
+      },
+    });
+    expect(
+      getDelegate('socialReplyCampaignRecipient').updateMany,
+    ).toHaveBeenCalledWith({
+      data: { organizationId: DEST_ORG },
+      where: {
+        OR: [{ campaignId: { in: ['social_reply_campaign_1'] } }],
         organizationId: { not: DEST_ORG },
       },
     });
