@@ -960,7 +960,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('gives canonical workflow editors focused canvas overflow ownership', () => {
-    navigation.pathname = '/acme/moonrise/workflows/workflow-1';
+    navigation.pathname = '/acme/moonrise/orchestration/workflows/workflow-1';
     navigation.searchParams = new URLSearchParams();
 
     render(
