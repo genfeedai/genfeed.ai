@@ -35,9 +35,20 @@ on:
 # cancel-in-progress, and the nested `ci` cancelled itself at startup (0 jobs) —
 # tripping cancel-doomed-run and silently killing every production deploy. The
 # prefix keeps push-CI dedup ("ci-CI-<ref>") while never matching a caller group.
+#
+# `cancel-in-progress` is PULL-REQUEST ONLY. On a PR, a new push makes the
+# running validation obsolete, so cancelling is free. On `master` it is not:
+# every merge shares the group `ci-CI-refs/heads/master`, so an unconditional
+# `true` meant each merge killed the previous commit's validation before it
+# could report. On 2026-07-31 fifteen merges landed in three hours and NINE
+# consecutive master runs were cancelled — a non-booting API
+# (`Cannot access 'CredentialsCoreModule' before initialization`, #2270) rode
+# master for twenty minutes because no run ever survived long enough to fail.
+# Each master commit now validates to completion, and `workflow_call` (the
+# release path, which inherits the caller's event) is likewise never cancelled.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read

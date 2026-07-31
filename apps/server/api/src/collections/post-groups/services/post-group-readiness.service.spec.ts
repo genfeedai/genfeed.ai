@@ -1,3 +1,4 @@
+import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
 import { CredentialPlatform } from '@genfeedai/enums';
@@ -44,6 +45,12 @@ function makeRow(
   };
 }
 
+/**
+ * The scheduler owns the gate, not the derivation — that lives in
+ * `CredentialPublishingReadinessService` and is pinned by its own spec. These
+ * tests use the real collaborator so the gate is exercised against genuine
+ * verdicts rather than a stubbed shape that could drift from the contract.
+ */
 describe('PostGroupReadinessService', () => {
   const now = new Date('2026-07-08T22:25:13.000Z');
   let env: Record<string, string>;
@@ -51,12 +58,14 @@ describe('PostGroupReadinessService', () => {
   let tx: { credential: { findMany: ReturnType<typeof vi.fn> } };
 
   function build(): PostGroupReadinessService {
-    // Real collaborator: setup-signal resolution is pure config reading, and
-    // stubbing it would hide the axes these tests exist to pin down.
     return new PostGroupReadinessService(
-      new PublishingProviderSetupService({
-        get: (key: string) => env[key],
-      } as unknown as ConfigService),
+      new CredentialPublishingReadinessService(
+        new PublishingProviderSetupService({
+          get: (key: string) => env[key],
+        } as unknown as ConfigService),
+        { get: () => ({ getQuotaStatus: vi.fn() }) } as never,
+        { credential: { findMany: vi.fn() } } as never,
+      ),
     );
   }
 
@@ -75,12 +84,14 @@ describe('PostGroupReadinessService', () => {
     vi.clearAllMocks();
   });
 
-  it('resolves readiness through a tenant-scoped, soft-delete-filtered query', async () => {
+  it('resolves readiness against the scheduler transaction, tenant-scoped', async () => {
     const readiness = await service.resolveForCredentials(tx, 'org-1', [
       'cred-x',
       'cred-x',
     ]);
 
+    // The write path must read through `tx`, never a fresh connection, so the
+    // verdict and the rows it gates come from one snapshot.
     expect(tx.credential.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
@@ -104,110 +115,17 @@ describe('PostGroupReadinessService', () => {
     expect(tx.credential.findMany).not.toHaveBeenCalled();
   });
 
-  it('never exposes credential token material in the resolved readiness', async () => {
-    tx.credential.findMany.mockResolvedValue([
-      makeRow({
-        accessToken: 'super-secret-access-token',
-        refreshToken: 'super-secret-refresh-token',
-      }),
-    ]);
-
+  it('leaves an info-severity setup FYI out of the target required action', async () => {
     const readiness = await service.resolveForCredentials(tx, 'org-1', [
       'cred-x',
     ]);
 
-    expect(JSON.stringify(readiness.get('cred-x'))).not.toContain('secret');
-  });
-
-  it('marks a disconnected credential as blocked and not schedulable', async () => {
-    tx.credential.findMany.mockResolvedValue([makeRow({ isConnected: false })]);
-
-    const readiness = await service.resolveForCredentials(tx, 'org-1', [
-      'cred-x',
-    ]);
-
-    expect(readiness.get('cred-x')).toMatchObject({
-      canSchedule: false,
-      state: 'blocked',
-      tokenFreshness: 'fail',
-    });
-  });
-
-  it('keeps a refreshable expired credential schedulable but degraded', async () => {
-    tx.credential.findMany.mockResolvedValue([
-      makeRow({
-        accessTokenExpiry: new Date('2026-07-01T00:00:00.000Z'),
-        refreshToken: 'refresh-token-value',
-        refreshTokenExpiry: new Date('2026-09-01T00:00:00.000Z'),
-      }),
-    ]);
-
-    const readiness = await service.resolveForCredentials(tx, 'org-1', [
-      'cred-x',
-    ]);
-
-    expect(readiness.get('cred-x')).toMatchObject({
-      canSchedule: true,
-      state: 'degraded',
-      tokenFreshness: 'warn',
-    });
-  });
-
-  it('keeps unknown token expiry schedulable', async () => {
-    tx.credential.findMany.mockResolvedValue([
-      makeRow({ accessTokenExpiry: null }),
-    ]);
-
-    const readiness = await service.resolveForCredentials(tx, 'org-1', [
-      'cred-x',
-    ]);
-
-    expect(readiness.get('cred-x')).toMatchObject({
-      canSchedule: true,
-      state: 'publish_capable',
-      tokenFreshness: 'unknown',
-    });
-  });
-
-  it('resolves the deployment setup axes instead of defaulting them to unknown', async () => {
-    const readiness = await service.resolveForCredentials(tx, 'org-1', [
-      'cred-x',
-    ]);
-
-    expect(readiness.get('cred-x')).toMatchObject({
-      // X gates publishing behind an access tier we cannot observe.
-      appReviewStatus: 'unknown',
-      callbackUrlStatus: 'pass',
-      canSchedule: true,
-      // Quota is deliberately not measured on the scheduler path.
-      quotaStatus: 'unknown',
-      state: 'publish_capable',
-    });
     expect(
       readiness.get('cred-x')?.diagnostics.map((entry) => entry.code),
     ).toEqual(['provider_app_review_unverified']);
-    // An info-severity FYI must not become the target's required action.
-    expect(readiness.get('cred-x')?.requiredAction).toBeUndefined();
-  });
-
-  it('degrades an unconfigured provider on self-hosted without blocking it', async () => {
-    env = {
-      GENFEEDAI_API_PUBLIC_URL: HEALTHY_ENV.GENFEEDAI_API_PUBLIC_URL,
-      GENFEEDAI_APP_URL: HEALTHY_ENV.GENFEEDAI_APP_URL,
-    };
-
-    const readiness = await build().resolveForCredentials(tx, 'org-1', [
-      'cred-x',
-    ]);
-
-    expect(readiness.get('cred-x')).toMatchObject({
-      appReviewStatus: 'fail',
-      callbackUrlStatus: 'warn',
-      canSchedule: true,
-      state: 'degraded',
-      // The token is fine — the deployment is what is incomplete.
-      tokenFreshness: 'pass',
-    });
+    // `buildPublishingProviderReadiness` normalizes "no corrective action" to
+    // null, so the contract's optional-and-nullable field lands as null here.
+    expect(readiness.get('cred-x')?.requiredAction).toBeNull();
   });
 
   it('blocks an unconfigured provider on cloud before any publish work is queued', async () => {
@@ -216,8 +134,9 @@ describe('PostGroupReadinessService', () => {
       GENFEEDAI_APP_URL: HEALTHY_ENV.GENFEEDAI_APP_URL,
     };
     vi.stubEnv('GENFEED_CLOUD', 'true');
+    const cloudService = build();
 
-    const readiness = await build().resolveForCredentials(tx, 'org-1', [
+    const readiness = await cloudService.resolveForCredentials(tx, 'org-1', [
       'cred-x',
     ]);
 
@@ -229,7 +148,7 @@ describe('PostGroupReadinessService', () => {
     });
 
     try {
-      service.assertSchedulable(
+      cloudService.assertSchedulable(
         { credentialId: 'cred-x', platform: CredentialPlatform.TWITTER },
         readiness.get('cred-x'),
       );
@@ -244,34 +163,6 @@ describe('PostGroupReadinessService', () => {
     }
   });
 
-  it('resolves setup signals once per platform rather than once per target', async () => {
-    const resolveProviderSignals = vi.spyOn(
-      PublishingProviderSetupService.prototype,
-      'resolveProviderSignals',
-    );
-    tx.credential.findMany.mockResolvedValue([
-      makeRow({ id: 'cred-a' }),
-      makeRow({ id: 'cred-b' }),
-      makeRow({ id: 'cred-c', platform: CredentialPlatform.LINKEDIN }),
-    ]);
-
-    await build().resolveForCredentials(tx, 'org-1', [
-      'cred-a',
-      'cred-b',
-      'cred-c',
-    ]);
-
-    // Two distinct platforms across three credentials.
-    expect(resolveProviderSignals).toHaveBeenCalledTimes(2);
-    resolveProviderSignals.mockRestore();
-  });
-
-  it('adds no database round-trips beyond the single credential query', async () => {
-    await service.resolveForCredentials(tx, 'org-1', ['cred-x']);
-
-    expect(tx.credential.findMany).toHaveBeenCalledTimes(1);
-  });
-
   describe('assertSchedulable', () => {
     const target = {
       credentialId: 'cred-x',
@@ -283,6 +174,24 @@ describe('PostGroupReadinessService', () => {
         'cred-x',
       ]);
 
+      expect(() =>
+        service.assertSchedulable(target, readiness.get('cred-x')),
+      ).not.toThrow();
+    });
+
+    it('lets a degraded channel schedule rather than failing the mutation', async () => {
+      tx.credential.findMany.mockResolvedValue([
+        makeRow({
+          accessTokenExpiry: new Date('2026-07-01T00:00:00.000Z'),
+          refreshToken: 'refresh-token-value',
+          refreshTokenExpiry: new Date('2026-09-01T00:00:00.000Z'),
+        }),
+      ]);
+      const readiness = await service.resolveForCredentials(tx, 'org-1', [
+        'cred-x',
+      ]);
+
+      expect(readiness.get('cred-x')?.state).toBe('degraded');
       expect(() =>
         service.assertSchedulable(target, readiness.get('cred-x')),
       ).not.toThrow();

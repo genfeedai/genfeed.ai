@@ -25990,6 +25990,30 @@
         ]
       }
     },
+    "/credentials/brand/{brandId}/publishing-readiness": {
+      "get": {
+        "operationId": "CredentialsController.listBrandPublishingReadiness",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "brandId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "listBrandPublishingReadiness",
+        "tags": [
+          "credentials"
+        ]
+      }
+    },
     "/credentials/mentions": {
       "get": {
         "operationId": "CredentialsController.getMentions",

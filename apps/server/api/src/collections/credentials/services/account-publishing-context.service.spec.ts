@@ -48,6 +48,7 @@ describe('AccountPublishingContextService', () => {
         get: (key: string) => HEALTHY_ENV[key],
       } as unknown as ConfigService),
       { get: () => quotaService } as never,
+      prisma as never,
     ),
     credentialsService as never,
     prisma as never,

@@ -1,3 +1,4 @@
+import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
@@ -206,6 +207,9 @@ describe('PostGroupsService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        // Readiness now lives in one credentials-owned service that the
+        // scheduler delegates to, so the real collaborator has to be wired up.
+        CredentialPublishingReadinessService,
         PostGroupContractService,
         PostGroupPersistenceService,
         PostGroupReadinessService,

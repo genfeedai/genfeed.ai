@@ -1,13 +1,17 @@
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
 import { QuotaService } from '@api/services/quota/quota.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { CredentialPlatform } from '@genfeedai/enums';
 import { buildCredentialTokenPublishingReadiness } from '@genfeedai/integrations/connections';
 import type {
   IPublishingDiagnostic,
   IPublishingProviderReadiness,
+  IPublishingProviderSetupSignals,
   PublishingSetupCheckStatus,
 } from '@genfeedai/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -17,10 +21,51 @@ export interface ResolveCredentialPublishingReadinessParams {
   platform: CredentialPlatform;
 }
 
+/**
+ * Anything that can read credentials: the request-scoped `PrismaService` for
+ * reads, or the scheduler's transaction client so the write path resolves
+ * readiness against the same snapshot it persists against.
+ */
+export type PublishingReadinessCredentialClient = Pick<
+  Prisma.TransactionClient,
+  'credential'
+>;
+
 interface QuotaSignals {
   diagnostics: IPublishingDiagnostic[];
   status: PublishingSetupCheckStatus;
 }
+
+/**
+ * Token material is selected only to derive presence/expiry signals. It never
+ * leaves this service: `buildCredentialTokenPublishingReadiness` returns a
+ * sanitized readiness record and the rows are discarded with the query result.
+ */
+const READINESS_CREDENTIAL_SELECT = {
+  accessToken: true,
+  accessTokenExpiry: true,
+  accessTokenSecret: true,
+  id: true,
+  isConnected: true,
+  oauthToken: true,
+  oauthTokenSecret: true,
+  platform: true,
+  refreshToken: true,
+  refreshTokenExpiry: true,
+} as const;
+
+type ReadinessCredentialRow = {
+  accessToken: string | null;
+  accessTokenExpiry: Date | null;
+  accessTokenSecret: string | null;
+  id: string;
+  isConnected: boolean;
+  oauthToken: string | null;
+  oauthTokenSecret: string | null;
+  platform: string;
+  refreshToken: string | null;
+  refreshTokenExpiry: Date | null;
+};
 
 /** Fraction of the daily limit above which the account is worth flagging. */
 const QUOTA_WARN_RATIO = 0.8;
@@ -44,6 +89,7 @@ export class CredentialPublishingReadinessService {
   constructor(
     private readonly publishingProviderSetupService: PublishingProviderSetupService,
     private readonly moduleRef: ModuleRef,
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
@@ -101,6 +147,108 @@ export class CredentialPublishingReadinessService {
         ...quotaSignals.diagnostics,
       ],
     });
+  }
+
+  /**
+   * Batch readiness for a set of credentials, keyed by credential ID.
+   *
+   * Deployment setup axes are folded in so every caller is gated on the same
+   * signals the setup checklist reports. They are pure configuration reads and
+   * are memoized per platform, so this stays a single query no matter how many
+   * credentials are asked for — it runs inside the scheduler's write
+   * transaction. Quota is deliberately left `unknown` here: measuring it costs
+   * four queries per credential and can only ever produce `degraded`, which
+   * never changes whether a channel may be scheduled.
+   */
+  async resolveForCredentials(
+    client: PublishingReadinessCredentialClient,
+    organizationId: string,
+    credentialIds: readonly string[],
+  ): Promise<Map<string, IPublishingProviderReadiness>> {
+    const ids = [...new Set(credentialIds)];
+    if (ids.length === 0) {
+      return new Map();
+    }
+
+    const rows = (await client.credential.findMany({
+      select: READINESS_CREDENTIAL_SELECT,
+      where: scopedWhere(organizationId, { id: { in: ids } }),
+    })) as ReadinessCredentialRow[];
+
+    return this.buildReadinessByCredentialId(rows);
+  }
+
+  /**
+   * Readiness for every connected channel of one brand, ordered like the
+   * credential list the channel picker renders. Selection surfaces need the
+   * whole set up front; asking per credential would fan out one request per
+   * channel before the user has typed anything.
+   */
+  async resolveForBrand(
+    organizationId: string,
+    brandId: string,
+  ): Promise<IPublishingProviderReadiness[]> {
+    const rows = (await this.prisma.credential.findMany({
+      orderBy: { createdAt: 'asc' },
+      select: READINESS_CREDENTIAL_SELECT,
+      where: scopedWhere(organizationId, { brandId, isConnected: true }),
+    })) as ReadinessCredentialRow[];
+
+    return [...this.buildReadinessByCredentialId(rows).values()];
+  }
+
+  private buildReadinessByCredentialId(
+    rows: readonly ReadinessCredentialRow[],
+  ): Map<string, IPublishingProviderReadiness> {
+    // One instant for the whole batch so every record's diagnostics agree.
+    const checkedAt = new Date().toISOString();
+    const signalsByPlatform = new Map<
+      string,
+      IPublishingProviderSetupSignals
+    >();
+    const resolveSignals = (
+      platform: string,
+    ): IPublishingProviderSetupSignals => {
+      const cached = signalsByPlatform.get(platform);
+      if (cached) {
+        return cached;
+      }
+
+      const signals =
+        this.publishingProviderSetupService.resolveProviderSignals(
+          platform,
+          checkedAt,
+        );
+      signalsByPlatform.set(platform, signals);
+      return signals;
+    };
+
+    const entries: [string, IPublishingProviderReadiness][] = rows.map(
+      (row) => {
+        const signals = resolveSignals(row.platform);
+
+        return [
+          row.id,
+          buildCredentialTokenPublishingReadiness({
+            accessToken: row.accessToken,
+            accessTokenExpiresAt: row.accessTokenExpiry,
+            accessTokenSecret: row.accessTokenSecret,
+            appReviewStatus: signals.appReviewStatus,
+            callbackUrlStatus: signals.callbackUrlStatus,
+            credentialId: row.id,
+            isConnected: row.isConnected,
+            oauthToken: row.oauthToken,
+            oauthTokenSecret: row.oauthTokenSecret,
+            providerKey: row.platform,
+            refreshToken: row.refreshToken,
+            refreshTokenExpiresAt: row.refreshTokenExpiry,
+            setupDiagnostics: signals.diagnostics,
+          }),
+        ];
+      },
+    );
+
+    return new Map(entries);
   }
 
   /**

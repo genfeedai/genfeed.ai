@@ -14,7 +14,13 @@ import {
   ButtonVariant,
   type CredentialPlatform,
 } from '@genfeedai/enums';
-import type { ICredential } from '@genfeedai/interfaces';
+import type {
+  ICredential,
+  IPublishingProviderReadiness,
+} from '@genfeedai/interfaces';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { logger } from '@services/core/logger.service';
+import { CredentialsService } from '@services/organization/credentials.service';
 import Card from '@ui/card/Card';
 import PlatformPreview, {
   type PlatformPreviewTarget,
@@ -63,6 +69,16 @@ type TargetReview = {
 type ChannelOption = {
   capability: ChannelCapability;
   credentials: ICredential[];
+};
+
+type ChannelReadinessIssue = {
+  code: string;
+  message: string;
+};
+
+type ChannelReadinessVerdict = {
+  block: ChannelReadinessIssue | null;
+  warning: ChannelReadinessIssue | null;
 };
 
 const DEFAULT_TIMEZONE = 'UTC';
@@ -138,9 +154,76 @@ function createValidationIssue(
   };
 }
 
+function createValidationWarning(
+  code: string,
+  message: string,
+  field?: string,
+): ChannelValidationIssue {
+  return {
+    code,
+    field,
+    message,
+    severity: 'warning',
+  };
+}
+
+/**
+ * The channel-picker verdict for one credential.
+ *
+ * Readiness is optional on purpose: it is fetched after first paint, and a
+ * failed request must leave authoring available rather than block it. Without
+ * a record the composer falls back to the `isConnected` flag it already had.
+ */
+function resolveChannelReadiness(
+  isConnected: boolean,
+  readiness: IPublishingProviderReadiness | undefined,
+): ChannelReadinessVerdict {
+  if (readiness && !readiness.canSchedule) {
+    return {
+      block: {
+        code: 'channel_target.not_publish_capable',
+        message:
+          readiness.requiredAction ??
+          'This channel cannot publish until its provider setup is fixed.',
+      },
+      warning: null,
+    };
+  }
+
+  if (!isConnected) {
+    return {
+      block: {
+        code: 'channel_target.disconnected_credential',
+        message: 'Reconnect before scheduling',
+      },
+      warning: null,
+    };
+  }
+
+  if (readiness?.state === 'degraded') {
+    const diagnostic =
+      readiness.diagnostics.find(
+        (candidate) => candidate.severity === 'warning',
+      ) ?? readiness.diagnostics[0];
+
+    return {
+      block: null,
+      warning: {
+        code: 'channel_target.degraded_publish_capability',
+        message:
+          diagnostic?.message ??
+          'This channel can publish, but its provider readiness is degraded.',
+      },
+    };
+  }
+
+  return { block: null, warning: null };
+}
+
 function validateComposerTarget(
   draft: ComposerDraft,
   target: ComposerTarget,
+  readiness: IPublishingProviderReadiness | undefined,
 ): TargetReview {
   const caption = target.captionOverride.trim() || draft.baseContent.trim();
   const validation = validateChannelTargetSettings({
@@ -152,12 +235,27 @@ function validateComposerTarget(
     settings: target.settings,
   });
   const errors = [...validation.errors];
+  const warnings = [...validation.warnings];
 
-  if (!target.isConnected) {
+  const { block, warning } = resolveChannelReadiness(
+    target.isConnected,
+    readiness,
+  );
+  if (block) {
     errors.unshift(
       createValidationIssue(
-        'channel_target.disconnected_credential',
-        `${target.credentialLabel} is disconnected.`,
+        block.code,
+        `${target.credentialLabel}: ${block.message}`,
+        'credentialId',
+      ),
+    );
+  }
+
+  if (warning) {
+    warnings.unshift(
+      createValidationWarning(
+        warning.code,
+        `${target.credentialLabel}: ${warning.message}`,
         'credentialId',
       ),
     );
@@ -187,7 +285,7 @@ function validateComposerTarget(
     errors,
     target,
     valid: errors.length === 0,
-    warnings: validation.warnings,
+    warnings,
   };
 }
 
@@ -334,7 +432,13 @@ function TargetReviewList({ reviews }: { reviews: TargetReview[] }) {
           </div>
 
           {review.errors.length ? (
-            <ul className="mt-3 grid gap-2 text-sm text-destructive">
+            // The preview panel repeats these messages for the active target.
+            // Naming the list keeps the two addressable apart — by a reader
+            // and by a test.
+            <ul
+              aria-label={`${review.target.credentialLabel} blockers`}
+              className="mt-3 grid gap-2 text-sm text-destructive"
+            >
               {review.errors.map((issue) => (
                 <li key={`${review.target.id}-${issue.code}-${issue.field}`}>
                   {issue.message}
@@ -353,11 +457,17 @@ function TargetReviewList({ reviews }: { reviews: TargetReview[] }) {
 }
 
 export default function CrossPostComposerPage() {
-  const { credentials = [] } = useBrand();
+  const { brandId, credentials = [] } = useBrand();
   const channelOptions = useMemo(
     () => getChannelOptions(credentials),
     [credentials],
   );
+  const getCredentialsService = useAuthedService((token: string) =>
+    CredentialsService.getInstance(token),
+  );
+  const [readinessByCredentialId, setReadinessByCredentialId] = useState<
+    Record<string, IPublishingProviderReadiness>
+  >({});
   const [draft, setDraft] = useState<ComposerDraft>(() => ({
     baseContent: '',
     scheduledDate: '',
@@ -377,11 +487,59 @@ export default function CrossPostComposerPage() {
     selectedTargets[0];
   const reviews = useMemo(
     () =>
-      selectedTargets.map((target) => validateComposerTarget(draft, target)),
-    [draft, selectedTargets],
+      selectedTargets.map((target) =>
+        validateComposerTarget(
+          draft,
+          target,
+          readinessByCredentialId[target.credentialId],
+        ),
+      ),
+    [draft, readinessByCredentialId, selectedTargets],
   );
   const readyCount = reviews.filter((review) => review.valid).length;
   const blockedCount = reviews.length - readyCount;
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    if (!brandId) {
+      setReadinessByCredentialId({});
+      return () => controller.abort();
+    }
+
+    const loadReadiness = async () => {
+      try {
+        const service = await getCredentialsService();
+        const records = await service.listBrandPublishingReadiness(
+          brandId,
+          controller.signal,
+        );
+
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setReadinessByCredentialId(
+          Object.fromEntries(
+            records.flatMap((record) =>
+              record.credentialId ? [[record.credentialId, record]] : [],
+            ),
+          ),
+        );
+      } catch (error) {
+        // Readiness is an enhancement over the `isConnected` flag the composer
+        // already has. Losing it must not stop the user from authoring.
+        if (!controller.signal.aborted) {
+          logger.error('Failed to load channel publishing readiness', error);
+          setReadinessByCredentialId({});
+        }
+      }
+    };
+
+    void loadReadiness();
+
+    return () => controller.abort();
+  }, [brandId, getCredentialsService]);
 
   useEffect(() => {
     if (selectedTargets.length === 0) {
@@ -529,71 +687,96 @@ export default function CrossPostComposerPage() {
 
           <div className="grid gap-3">
             {channelOptions.map(
-              ({ capability, credentials: channelCredentials }) => (
-                <div
-                  key={capability.platform}
-                  className="rounded-lg border border-border/70 p-4"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium">{capability.label}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {capability.description}
-                      </p>
-                    </div>
-                    <Badge
-                      variant={
-                        channelCredentials.some(
-                          (credential) => credential.isConnected,
-                        )
-                          ? 'success'
-                          : 'outline'
-                      }
-                    >
-                      {channelCredentials.some(
-                        (credential) => credential.isConnected,
-                      )
-                        ? 'Connected'
-                        : 'Disconnected'}
-                    </Badge>
-                  </div>
+              ({ capability, credentials: channelCredentials }) => {
+                // The platform badge tracks what can actually be scheduled, so
+                // it cannot read "Connected" while every account is blocked.
+                // A platform with no credential at all is a different state:
+                // nothing is broken, the brand simply has not connected one.
+                const isPlatformSchedulable = channelCredentials.some(
+                  (credential) =>
+                    resolveChannelReadiness(
+                      credential.isConnected,
+                      readinessByCredentialId[credential.id],
+                    ).block === null,
+                );
+                const platformBadgeLabel = !channelCredentials.length
+                  ? 'Disconnected'
+                  : isPlatformSchedulable
+                    ? 'Ready'
+                    : 'Not publishable';
 
-                  {channelCredentials.length ? (
-                    <div className="mt-4 grid gap-2">
-                      {channelCredentials.map((credential) => (
-                        <Checkbox
-                          key={credential.id}
-                          isChecked={Boolean(targetsById[credential.id])}
-                          isDisabled={!credential.isConnected}
-                          label={
-                            <span className="flex min-w-0 flex-col">
-                              <span className="truncate text-sm">
-                                {getCredentialLabel(credential)}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {credential.isConnected
-                                  ? 'Ready for review'
-                                  : 'Reconnect before scheduling'}
-                              </span>
-                            </span>
-                          }
-                          onCheckedChange={(checked) =>
-                            toggleTarget(
-                              credential,
-                              capability,
-                              checked === true,
-                            )
-                          }
-                        />
-                      ))}
+                return (
+                  <div
+                    key={capability.platform}
+                    className="rounded-lg border border-border/70 p-4"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium">
+                          {capability.label}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {capability.description}
+                        </p>
+                      </div>
+                      <Badge
+                        variant={isPlatformSchedulable ? 'success' : 'outline'}
+                      >
+                        {platformBadgeLabel}
+                      </Badge>
                     </div>
-                  ) : (
-                    <p className="mt-4 text-sm text-muted-foreground">
-                      No connected {capability.label} credential is available.
-                    </p>
-                  )}
-                </div>
-              ),
+
+                    {channelCredentials.length ? (
+                      <div className="mt-4 grid gap-2">
+                        {channelCredentials.map((credential) => {
+                          const { block, warning } = resolveChannelReadiness(
+                            credential.isConnected,
+                            readinessByCredentialId[credential.id],
+                          );
+                          const status = block ?? warning;
+
+                          return (
+                            <Checkbox
+                              key={credential.id}
+                              isChecked={Boolean(targetsById[credential.id])}
+                              isDisabled={block !== null}
+                              label={
+                                <span className="flex min-w-0 flex-col">
+                                  <span className="truncate text-sm">
+                                    {getCredentialLabel(credential)}
+                                  </span>
+                                  <span
+                                    className={
+                                      block
+                                        ? 'text-xs text-destructive'
+                                        : warning
+                                          ? 'text-xs text-warning'
+                                          : 'text-xs text-muted-foreground'
+                                    }
+                                  >
+                                    {status?.message ?? 'Ready for review'}
+                                  </span>
+                                </span>
+                              }
+                              onCheckedChange={(checked) =>
+                                toggleTarget(
+                                  credential,
+                                  capability,
+                                  checked === true,
+                                )
+                              }
+                            />
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="mt-4 text-sm text-muted-foreground">
+                        No connected {capability.label} credential is available.
+                      </p>
+                    )}
+                  </div>
+                );
+              },
             )}
           </div>
 

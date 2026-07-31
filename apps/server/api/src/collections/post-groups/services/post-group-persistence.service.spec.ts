@@ -1,3 +1,4 @@
+import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import type {
   SchedulerPostGroup,
   SchedulerPostTarget,
@@ -73,7 +74,15 @@ describe('PostGroupPersistenceService', () => {
       prisma as unknown as PrismaService,
       contractService,
       new PostGroupReadinessService(
-        new PublishingProviderSetupService(buildFullyConfiguredConfigService()),
+        new CredentialPublishingReadinessService(
+          new PublishingProviderSetupService(
+            buildFullyConfiguredConfigService(),
+          ),
+          // Quota is only read on the single-credential path, and readiness
+          // rows arrive through the transaction client these tests pass in.
+          { get: () => ({ getQuotaStatus: vi.fn() }) } as never,
+          { credential: { findMany: vi.fn() } } as never,
+        ),
       ),
     );
   });
