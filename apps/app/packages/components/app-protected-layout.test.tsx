@@ -977,9 +977,8 @@ describe('AppProtectedLayout', () => {
 
   it('keeps the topbar frame on a canvas route while the shell body is still booting', () => {
     // No auth yet means no agent API service, so the shell body cannot mount.
-    // The frame around it is not the shell's to withhold: the topbar used to
-    // disappear on canvas routes for exactly this window. The module sidebar is
-    // a separate matter — canvas routes own their left rail, so it stays out.
+    // Canvas routes still own the left rail, while the application keeps the
+    // shared topbar visible during this boot window.
     shellState.isAuthLoaded = false;
     mockPathname.value = '/org-123/brand-123/editor/new';
 
