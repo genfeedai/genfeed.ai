@@ -827,6 +827,15 @@ function isPlaywrightBypassRequest(req: NextRequest): boolean {
   return isPlaywrightTestBuild && hasPlaywrightBypassCookie;
 }
 
+/**
+ * `/serwist/*` serves the compiled service worker (and its source map);
+ * `/~offline` is the precached offline shell. Both are static, session-free,
+ * and identical for every visitor.
+ */
+function isServiceWorkerRoute(pathname: string): boolean {
+  return pathname === '/~offline' || pathname.startsWith('/serwist/');
+}
+
 export async function proxy(req: NextRequest) {
   // `/v1` is the same-origin API/auth proxy used by local Portless routes.
   // It must reach the Next.js rewrite without entering app-page auth routing.
@@ -849,6 +858,14 @@ export async function proxy(req: NextRequest) {
   }
 
   if (req.nextUrl.pathname === '/playwright-ready') {
+    return NextResponse.next();
+  }
+
+  // Service worker assets and the offline shell must never be auth-gated. The
+  // shell is precached at install time, and a redirect to /login would be
+  // cached in its place — the offline fallback would then render a login page
+  // to a signed-in user with no network.
+  if (isServiceWorkerRoute(req.nextUrl.pathname)) {
     return NextResponse.next();
   }
 
