@@ -16,34 +16,75 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+/**
+ * Every *patchable* field in this DTO family is optional by design.
+ *
+ * `PATCH /brands/:id/agent-config` is a partial update: `BrandsService
+ * .updateAgentConfig` merges the payload over the stored config and skips
+ * `undefined`, so an omitted field means "leave unchanged". A patchable field
+ * declared without `@IsOptional()` inverts that contract — the pipe validates
+ * with neither `skipMissingProperties` nor `skipUndefinedProperties`, so every
+ * value-constraint decorator (`@IsArray`, `@IsString`, `@IsBoolean`, …) fires
+ * on `undefined` and rejects the whole request with a 400. Only
+ * `@ValidateNested()` tolerates absence, which is why the missing
+ * `@IsOptional()` on `enabledSkills` broke every partial caller in the app
+ * while the sibling nested objects appeared to work.
+ *
+ * The exception is `UpdateBrandPromptSeedDto` and
+ * `UpdateBrandConversationStarterDto`: those are value objects *inside* an
+ * array that is replaced wholesale, never patch targets, so their fields stay
+ * required — a half-built seed or starter is not a valid element.
+ */
 export class UpdateBrandAgentVoiceDto {
   @IsString()
-  @ApiProperty({ description: 'Brand voice tone' })
-  tone!: string;
+  @IsOptional()
+  @ApiProperty({ description: 'Brand voice tone', required: false })
+  tone?: string;
 
   @IsString()
-  @ApiProperty({ description: 'Brand voice style' })
-  style!: string;
+  @IsOptional()
+  @ApiProperty({ description: 'Brand voice style', required: false })
+  style?: string;
 
   @IsArray()
   @IsString({ each: true })
-  @ApiProperty({ description: 'Target audience', type: [String] })
-  audience!: string[];
+  @IsOptional()
+  @ApiProperty({
+    description: 'Target audience',
+    required: false,
+    type: [String],
+  })
+  audience?: string[];
 
   @IsArray()
   @IsString({ each: true })
-  @ApiProperty({ description: 'Core brand values', type: [String] })
-  values!: string[];
+  @IsOptional()
+  @ApiProperty({
+    description: 'Core brand values',
+    required: false,
+    type: [String],
+  })
+  values?: string[];
 
   @IsArray()
   @IsString({ each: true })
-  @ApiProperty({ description: 'Brand taglines', type: [String] })
-  taglines!: string[];
+  @IsOptional()
+  @ApiProperty({
+    description: 'Brand taglines',
+    required: false,
+    type: [String],
+  })
+  taglines?: string[];
 
   @IsArray()
   @IsString({ each: true })
-  @ApiProperty({ description: 'Preferred hashtags', type: [String] })
-  hashtags!: string[];
+  @IsOptional()
+  @ApiProperty({
+    description: 'Preferred hashtags',
+    required: false,
+    type: [String],
+  })
+  hashtags?: string[];
 
   @IsArray()
   @IsString({ each: true })
@@ -128,22 +169,41 @@ export class UpdateBrandAgentVoiceDto {
 export class UpdateBrandAgentStrategyDto {
   @IsArray()
   @IsString({ each: true })
-  @ApiProperty({ description: 'Enabled content types', type: [String] })
-  contentTypes!: string[];
+  @IsOptional()
+  @ApiProperty({
+    description: 'Enabled content types',
+    required: false,
+    type: [String],
+  })
+  contentTypes?: string[];
 
   @IsArray()
   @IsString({ each: true })
-  @ApiProperty({ description: 'Target platforms', type: [String] })
-  platforms!: string[];
+  @IsOptional()
+  @ApiProperty({
+    description: 'Target platforms',
+    required: false,
+    type: [String],
+  })
+  platforms?: string[];
 
   @IsString()
-  @ApiProperty({ description: 'Publishing frequency descriptor' })
-  frequency!: string;
+  @IsOptional()
+  @ApiProperty({
+    description: 'Publishing frequency descriptor',
+    required: false,
+  })
+  frequency?: string;
 
   @IsArray()
   @IsString({ each: true })
-  @ApiProperty({ description: 'Primary strategic goals', type: [String] })
-  goals!: string[];
+  @IsOptional()
+  @ApiProperty({
+    description: 'Primary strategic goals',
+    required: false,
+    type: [String],
+  })
+  goals?: string[];
 
   @IsArray()
   @IsString({ each: true })
@@ -235,22 +295,26 @@ export class UpdateBrandAgentPromptingDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => UpdateBrandConversationStarterDto)
+  @IsOptional()
   @ApiProperty({
     description: 'Top conversation starters generated with the brand profile',
     isArray: true,
+    required: false,
     type: UpdateBrandConversationStarterDto,
   })
-  conversationStarters!: UpdateBrandConversationStarterDto[];
+  conversationStarters?: UpdateBrandConversationStarterDto[];
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => UpdateBrandPromptSeedDto)
+  @IsOptional()
   @ApiProperty({
     description: 'Reusable prompt seeds generated with the brand profile',
     isArray: true,
+    required: false,
     type: UpdateBrandPromptSeedDto,
   })
-  seeds!: UpdateBrandPromptSeedDto[];
+  seeds?: UpdateBrandPromptSeedDto[];
 }
 
 export class UpdateBrandAgentScheduleDto {
@@ -268,14 +332,19 @@ export class UpdateBrandAgentScheduleDto {
   timezone?: string;
 
   @IsBoolean()
-  @ApiProperty({ description: 'Whether schedule is active' })
-  enabled!: boolean;
+  @IsOptional()
+  @ApiProperty({ description: 'Whether schedule is active', required: false })
+  enabled?: boolean;
 }
 
 export class UpdateBrandAgentAutoPublishDto {
   @IsBoolean()
-  @ApiProperty({ description: 'Whether auto publish is enabled' })
-  enabled!: boolean;
+  @IsOptional()
+  @ApiProperty({
+    description: 'Whether auto publish is enabled',
+    required: false,
+  })
+  enabled?: boolean;
 
   @IsNumber()
   @Min(0)
@@ -330,13 +399,15 @@ export class UpdateBrandAgentPlatformOverrideDto {
 export class UpdateBrandAgentConfigDto {
   @ValidateNested()
   @Type(() => UpdateBrandAgentVoiceDto)
-  @ApiProperty({ type: UpdateBrandAgentVoiceDto })
-  voice!: UpdateBrandAgentVoiceDto;
+  @IsOptional()
+  @ApiProperty({ required: false, type: UpdateBrandAgentVoiceDto })
+  voice?: UpdateBrandAgentVoiceDto;
 
   @ValidateNested()
   @Type(() => UpdateBrandAgentStrategyDto)
-  @ApiProperty({ type: UpdateBrandAgentStrategyDto })
-  strategy!: UpdateBrandAgentStrategyDto;
+  @IsOptional()
+  @ApiProperty({ required: false, type: UpdateBrandAgentStrategyDto })
+  strategy?: UpdateBrandAgentStrategyDto;
 
   @ValidateNested()
   @Type(() => UpdateBrandAgentPromptingDto)
@@ -350,18 +421,25 @@ export class UpdateBrandAgentConfigDto {
 
   @IsArray()
   @IsString({ each: true })
-  @ApiProperty({ description: 'Enabled skill IDs', type: [String] })
-  enabledSkills!: string[];
+  @IsOptional()
+  @ApiProperty({
+    description: 'Enabled skill IDs',
+    required: false,
+    type: [String],
+  })
+  enabledSkills?: string[];
 
   @ValidateNested()
   @Type(() => UpdateBrandAgentScheduleDto)
-  @ApiProperty({ type: UpdateBrandAgentScheduleDto })
-  schedule!: UpdateBrandAgentScheduleDto;
+  @IsOptional()
+  @ApiProperty({ required: false, type: UpdateBrandAgentScheduleDto })
+  schedule?: UpdateBrandAgentScheduleDto;
 
   @ValidateNested()
   @Type(() => UpdateBrandAgentAutoPublishDto)
-  @ApiProperty({ type: UpdateBrandAgentAutoPublishDto })
-  autoPublish!: UpdateBrandAgentAutoPublishDto;
+  @IsOptional()
+  @ApiProperty({ required: false, type: UpdateBrandAgentAutoPublishDto })
+  autoPublish?: UpdateBrandAgentAutoPublishDto;
 
   @IsString()
   @IsOptional()

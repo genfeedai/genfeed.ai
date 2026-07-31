@@ -1095,4 +1095,119 @@ describe('BrandsService', () => {
       );
     });
   });
+
+  describe('updateAgentConfig', () => {
+    const brandId = 'brand-1';
+    const orgId = 'org-1';
+
+    /** The `agentConfig` JSON handed to `prisma.brand.update`. */
+    function persistedConfig(): Record<string, unknown> {
+      const call = delegate.update.mock.calls[0]?.[0] as {
+        data: { agentConfig: Record<string, unknown> };
+      };
+      return call.data.agentConfig;
+    }
+
+    function withStoredConfig(agentConfig: Record<string, unknown>): void {
+      delegate.findFirst.mockResolvedValue({ agentConfig, id: brandId });
+      delegate.update.mockResolvedValue({ agentConfig, id: brandId });
+    }
+
+    it('leaves omitted top-level keys unchanged', async () => {
+      withStoredConfig({ enabledSkills: ['research'], persona: 'Original' });
+
+      await service.updateAgentConfig(brandId, orgId, {
+        persona: 'Rewritten',
+      });
+
+      expect(persistedConfig()).toEqual({
+        enabledSkills: ['research'],
+        persona: 'Rewritten',
+      });
+    });
+
+    it('never clears a key the caller explicitly sent as undefined', async () => {
+      withStoredConfig({ enabledSkills: ['research'] });
+
+      await service.updateAgentConfig(brandId, orgId, {
+        enabledSkills: undefined,
+        persona: 'Rewritten',
+      });
+
+      expect(persistedConfig().enabledSkills).toEqual(['research']);
+    });
+
+    it('clears a key the caller explicitly sent as null', async () => {
+      withStoredConfig({ defaultVoiceId: 'voice-1' });
+
+      await service.updateAgentConfig(brandId, orgId, {
+        defaultVoiceId: null as unknown as string,
+      });
+
+      expect(persistedConfig().defaultVoiceId).toBeNull();
+    });
+
+    /**
+     * `voice.taglines` and `voice.hashtags` are written by brand-kit extraction
+     * and read back by `buildBrandContext`, but no UI surfaces them. A card that
+     * patches one voice field must not take the rest of `voice` with it.
+     */
+    it('merges a partial voice patch instead of replacing the stored voice', async () => {
+      withStoredConfig({
+        voice: {
+          hashtags: ['#build'],
+          taglines: ['Ship it'],
+          tone: 'formal',
+        },
+      });
+
+      await service.updateAgentConfig(brandId, orgId, {
+        voice: { tone: 'warm' },
+      });
+
+      expect(persistedConfig().voice).toEqual({
+        hashtags: ['#build'],
+        taglines: ['Ship it'],
+        tone: 'warm',
+      });
+    });
+
+    it('drops undefined keys materialised on a nested DTO instance', async () => {
+      withStoredConfig({ voice: { taglines: ['Ship it'], tone: 'formal' } });
+
+      // `plainToInstance` builds the DTO with `new`, so every declared-but-absent
+      // property arrives as an own property holding `undefined`.
+      await service.updateAgentConfig(brandId, orgId, {
+        voice: { hashtags: undefined, taglines: undefined, tone: 'warm' },
+      });
+
+      expect(persistedConfig().voice).toEqual({
+        taglines: ['Ship it'],
+        tone: 'warm',
+      });
+    });
+
+    it('replaces platformOverrides wholesale so cleared overrides stay cleared', async () => {
+      withStoredConfig({
+        platformOverrides: { twitter: { tone: 'punchy' }, youtube: {} },
+      });
+
+      await service.updateAgentConfig(brandId, orgId, {
+        platformOverrides: { twitter: { tone: 'punchy' } },
+      });
+
+      expect(persistedConfig().platformOverrides).toEqual({
+        twitter: { tone: 'punchy' },
+      });
+    });
+
+    it('returns null without writing when the brand is outside the organization', async () => {
+      delegate.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.updateAgentConfig(brandId, orgId, { persona: 'Rewritten' }),
+      ).resolves.toBeNull();
+      expect(delegate.update).not.toHaveBeenCalled();
+    });
+  });
 });
