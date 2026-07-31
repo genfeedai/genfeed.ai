@@ -175,8 +175,33 @@ export class YtDlpService {
     proc.kill('SIGKILL');
   }
 
+  /**
+   * Remove the expected output, its `.part` fragment, and any sibling files
+   * that share the same basename stem. Downloads that use a `%(ext)s` template
+   * can leave intermediate containers (e.g. `.webm` / `.m4a`) even when the
+   * resolved expected path is hardcoded to `.mp3` / `.mp4`.
+   */
   private cleanupPartialOutput(outputPath: string): void {
-    for (const partialPath of [outputPath, `${outputPath}.part`]) {
+    const candidates = new Set<string>([outputPath, `${outputPath}.part`]);
+    const dir = path.dirname(outputPath);
+    const stem = path.basename(outputPath, path.extname(outputPath));
+
+    try {
+      if (fs.existsSync(dir)) {
+        for (const name of fs.readdirSync(dir)) {
+          if (name === stem || name.startsWith(`${stem}.`)) {
+            candidates.add(path.join(dir, name));
+          }
+        }
+      }
+    } catch (error: unknown) {
+      this.logger.warn('Failed to list yt-dlp output directory for cleanup', {
+        error,
+        outputDir: dir,
+      });
+    }
+
+    for (const partialPath of candidates) {
       try {
         if (fs.existsSync(partialPath)) {
           fs.unlinkSync(partialPath);

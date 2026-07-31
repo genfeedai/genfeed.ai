@@ -13,6 +13,15 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@ui/primitives/sheet';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@ui/primitives/table';
 
 interface ReleaseAnalyticsOverlayProps {
   onClose: () => void;
@@ -102,48 +111,48 @@ export default function ReleaseAnalyticsOverlay({
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto bg-card shadow-sm ring-1 ring-border/60">
-              <table className="w-full border-collapse text-sm">
-                <caption className="sr-only">
+            <div className="bg-card shadow-sm ring-1 ring-border/60">
+              <Table className="w-full border-collapse text-sm">
+                <TableCaption className="sr-only">
                   Normalized analytics metrics by release target
-                </caption>
-                <thead className="bg-muted/45 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <tr>
-                    <th scope="col" className="px-4 py-3 font-medium">
+                </TableCaption>
+                <TableHeader className="bg-muted/45 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <TableRow>
+                    <TableHead scope="col" className="px-4 py-3 font-medium">
                       Target
-                    </th>
+                    </TableHead>
                     {comparison.metricDefinitions.map((metric) => (
-                      <th
+                      <TableHead
                         key={metric}
                         scope="col"
                         className="px-4 py-3 text-right font-medium"
                       >
                         {METRIC_LABELS[metric]}
-                      </th>
+                      </TableHead>
                     ))}
-                    <th scope="col" className="px-4 py-3 font-medium">
+                    <TableHead scope="col" className="px-4 py-3 font-medium">
                       Evidence
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-border">
                   {comparison.targets.map((target) => (
-                    <tr key={target.targetId}>
-                      <th
+                    <TableRow key={target.targetId}>
+                      <TableHead
                         scope="row"
                         className="px-4 py-4 text-left font-medium capitalize text-foreground"
                       >
                         {target.platform}
-                      </th>
+                      </TableHead>
                       {comparison.metricDefinitions.map((metric) => (
-                        <td
+                        <TableCell
                           key={metric}
                           className="px-4 py-4 text-right tabular-nums text-foreground"
                         >
                           {formatMetric(metric, target.metrics)}
-                        </td>
+                        </TableCell>
                       ))}
-                      <td className="px-4 py-4">
+                      <TableCell className="px-4 py-4">
                         <div className="flex flex-col gap-1 text-xs text-muted-foreground">
                           <span className="capitalize">
                             {target.collection.freshness}
@@ -159,11 +168,11 @@ export default function ReleaseAnalyticsOverlay({
                             </span>
                           ) : null}
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
         </div>

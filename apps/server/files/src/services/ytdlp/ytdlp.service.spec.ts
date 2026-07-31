@@ -29,10 +29,12 @@ vi.mock('node:fs', () => ({
   default: {
     existsSync: vi.fn(),
     mkdirSync: vi.fn(),
+    readdirSync: vi.fn(() => []),
     unlinkSync: vi.fn(),
   },
   existsSync: vi.fn(),
   mkdirSync: vi.fn(),
+  readdirSync: vi.fn(() => []),
   unlinkSync: vi.fn(),
 }));
 
@@ -248,6 +250,45 @@ describe('YtDlpService', () => {
         expect.stringContaining('public/tmp/clips/'),
       );
       expect(loggedCommand).toEqual(expect.stringContaining(` ${url}`));
+    });
+
+    it('removes %(ext)s intermediate siblings after a failed download', async () => {
+      const url = 'https://youtube.com/watch?v=test';
+      const mockProcess = useMockProcess(spawnMock);
+      const dateNowMock = vi
+        .spyOn(Date, 'now')
+        .mockReturnValue(1_700_000_000_000);
+      const stem = '1700000000000';
+      const clipsDir = path.join(FILES_TMP_ROOT, 'clips');
+
+      fsMock.existsSync.mockReturnValue(true);
+      fsMock.readdirSync.mockReturnValue([
+        `${stem}.webm`,
+        `${stem}.webm.part`,
+        `${stem}.mp3.part`,
+        'other-file.mp3',
+      ] as unknown as ReturnType<typeof fs.readdirSync>);
+
+      const promise = service.downloadAudio(url);
+      closeProcess(mockProcess, 1);
+
+      await expect(promise).rejects.toThrow('yt-dlp exited with code 1');
+      expect(fsMock.unlinkSync).toHaveBeenCalledWith(
+        path.join(clipsDir, `${stem}.mp3`),
+      );
+      expect(fsMock.unlinkSync).toHaveBeenCalledWith(
+        path.join(clipsDir, `${stem}.webm`),
+      );
+      expect(fsMock.unlinkSync).toHaveBeenCalledWith(
+        path.join(clipsDir, `${stem}.webm.part`),
+      );
+      expect(fsMock.unlinkSync).toHaveBeenCalledWith(
+        path.join(clipsDir, `${stem}.mp3.part`),
+      );
+      expect(fsMock.unlinkSync).not.toHaveBeenCalledWith(
+        path.join(clipsDir, 'other-file.mp3'),
+      );
+      dateNowMock.mockRestore();
     });
   });
 
