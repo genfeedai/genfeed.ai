@@ -77,7 +77,7 @@ failed shard + gate carries the green shards forward. The old single `e2e-fronte
   (`REPLICATE_API_TOKEN`, `STRIPE_SECRET_KEY`, and auth secrets use test-safe values).
 - **Steps:** checkout → Bun 1.3.14 via `.github/actions/setup-bun-env` → cache bun/turbo → `bun install` →
   `bunx turbo run build --filter="./packages/*"` →
-  `bunx prisma migrate deploy` (cwd `packages/prisma`) → `test:e2e:core` → codecov (flag `api-e2e`, non-fatal).
+  `bunx prisma migrate deploy` (cwd `packages/prisma`) → `test:e2e:core` → lcov artifact upload.
 - `e2e-api-full` uses the same hermetic Postgres/Redis/migration boundary, runs `test:e2e:full`,
   writes discovered/selected/executed/excluded/failed counts to the job summary, and uploads its JSON report.
   It is intentionally skipped when `e2e.yml` is called by the production full-suite workflow.
@@ -95,7 +95,7 @@ failed shard + gate carries the green shards forward. The old single `e2e-fronte
 ### 2.4 `e2e-frontend-coverage` — V8 → monocart (non-blocking)
 - `continue-on-error: true`. Builds app with `E2E_COVERAGE=1` (browser source maps) →
   `bun run test:e2e:coverage` with `E2E_COVERAGE_THRESHOLD=0` (report, don't gate while suite hardens).
-- Artifacts: `e2e-coverage-report` (`playwright-report/coverage/`), codecov flag `app-e2e`.
+- Artifacts: `e2e-coverage-report` (`playwright-report/coverage/`).
 
 ### Caching
 | Cache | Path | Key | Jobs |

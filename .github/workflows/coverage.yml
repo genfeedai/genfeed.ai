@@ -79,19 +79,6 @@ jobs:
           fi
           echo "Found coverage report: $report ($(wc -c < "$report") bytes)"
 
-      - name: Report coverage to Codecov
-        uses: codecov/codecov-action@v6
-        if: always()
-        # Explicit file only — no directory autodiscovery (#1846). Fail the
-        # reporting contract when Codecov rejects the trusted upload.
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ matrix.package }}/coverage/lcov.info
-          disable_search: true
-          flags: packages
-          fail_ci_if_error: true
-          handle_no_reports_found: true
-
   # ── Hooks — needs custom vitest config flag ──
   coverage-hooks:
     name: Coverage — packages/hooks
@@ -129,17 +116,6 @@ jobs:
             echo "::error::Missing non-empty coverage report at $report"
             exit 1
           fi
-
-      - name: Report coverage to Codecov
-        uses: codecov/codecov-action@v6
-        if: always()
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: packages/hooks/coverage/lcov.info
-          disable_search: true
-          flags: packages
-          fail_ci_if_error: true
-          handle_no_reports_found: true
 
   # ── App — sharded 4-way to keep Next/Vitest memory bounded ──
   coverage-app:
@@ -223,17 +199,6 @@ jobs:
             echo "::error::Missing non-empty coverage report at $report"
             exit 1
           fi
-
-      - name: Report coverage to Codecov
-        uses: codecov/codecov-action@v6
-        if: always()
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: apps/app/coverage/lcov.info
-          disable_search: true
-          flags: web
-          fail_ci_if_error: true
-          handle_no_reports_found: true
 
   # ── API — sharded 4-way; needs BETTER_AUTH_SECRET env ──
   coverage-api:
@@ -320,23 +285,11 @@ jobs:
             exit 1
           fi
 
-      - name: Report coverage to Codecov
-        uses: codecov/codecov-action@v6
-        if: always()
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: apps/server/api/coverage/lcov.info
-          disable_search: true
-          flags: api
-          fail_ci_if_error: true
-          handle_no_reports_found: true
-
   # ── Frontend E2E coverage — sharded 4-way (V8 → monocart) ──
   # Lives here, NOT in e2e.yml, so a slow/cancelled coverage run can never turn
   # the E2E gate red. Inherits this workflow's triggers (workflow_dispatch +
   # weekly Mon 6am UTC) and runs the mocked app-core suite only. Each shard is an
-  # isolated machine; the 4 lcov reports are merged server-side by Codecov via the
-  # shared `app-e2e` flag, so no cross-shard merge job is needed.
+  # isolated machine publishing its own lcov artifact (e2e-coverage-shard-N).
   coverage-e2e:
     name: Coverage — apps/app E2E (shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
@@ -393,14 +346,3 @@ jobs:
             echo "::error::Missing non-empty E2E coverage report at $report"
             exit 1
           fi
-
-      - name: Report E2E coverage to Codecov (shard ${{ matrix.shard }})
-        uses: codecov/codecov-action@v6
-        if: always()
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: playwright-report/coverage/lcov.info
-          disable_search: true
-          flags: app-e2e
-          fail_ci_if_error: true
-          handle_no_reports_found: true
