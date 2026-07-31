@@ -1,6 +1,10 @@
-import { buildPublishingProviderReadiness } from '@genfeedai/helpers';
+import {
+  buildPublishingProviderReadiness,
+  type PublishingReadinessInput,
+} from '@genfeedai/helpers';
 import type {
   CredentialTokenPublishingReadinessInput,
+  IPublishingDiagnostic,
   IPublishingProviderReadiness,
 } from '@genfeedai/interfaces';
 
@@ -160,6 +164,26 @@ function hasKnownExpiry(value: Date | string | null | undefined): boolean {
   return Number.isFinite(timestamp);
 }
 
+/**
+ * Carries the caller-resolved setup axes onto every return path. Token health
+ * is the only axis this module can compute; callback, app-review, permission,
+ * and quota state are resolved where configuration and org data live.
+ */
+function withSetupSignals(
+  input: CredentialTokenPublishingReadinessInput,
+  tokenDiagnostics: readonly IPublishingDiagnostic[],
+): Omit<PublishingReadinessInput, 'tokenFreshness'> {
+  return {
+    appReviewStatus: input.appReviewStatus,
+    callbackUrlStatus: input.callbackUrlStatus,
+    credentialId: input.credentialId,
+    diagnostics: [...tokenDiagnostics, ...(input.setupDiagnostics ?? [])],
+    permissionScopeStatus: input.permissionScopeStatus,
+    providerKey: input.providerKey,
+    quotaStatus: input.quotaStatus,
+  };
+}
+
 export function buildCredentialTokenPublishingReadiness(
   input: CredentialTokenPublishingReadinessInput,
 ): IPublishingProviderReadiness {
@@ -183,8 +207,7 @@ export function buildCredentialTokenPublishingReadiness(
 
   if (!input.isConnected) {
     return buildPublishingProviderReadiness({
-      credentialId: input.credentialId,
-      diagnostics: [
+      ...withSetupSignals(input, [
         {
           checkedAt,
           classification: 'expired_credential',
@@ -195,16 +218,14 @@ export function buildCredentialTokenPublishingReadiness(
           scope: 'credential',
           severity: 'error',
         },
-      ],
-      providerKey: input.providerKey,
+      ]),
       tokenFreshness: 'fail',
     });
   }
 
   if (!health.hasAccessToken) {
     return buildPublishingProviderReadiness({
-      credentialId: input.credentialId,
-      diagnostics: [
+      ...withSetupSignals(input, [
         {
           checkedAt,
           classification: 'expired_credential',
@@ -215,32 +236,28 @@ export function buildCredentialTokenPublishingReadiness(
           scope: 'credential',
           severity: 'error',
         },
-      ],
-      providerKey: input.providerKey,
+      ]),
       tokenFreshness: 'fail',
     });
   }
 
   if (!hasKnownExpiry(input.accessTokenExpiresAt)) {
     return buildPublishingProviderReadiness({
-      credentialId: input.credentialId,
-      providerKey: input.providerKey,
+      ...withSetupSignals(input, []),
       tokenFreshness: 'unknown',
     });
   }
 
   if (health.status === 'healthy') {
     return buildPublishingProviderReadiness({
-      credentialId: input.credentialId,
-      providerKey: input.providerKey,
+      ...withSetupSignals(input, []),
       tokenFreshness: 'pass',
     });
   }
 
   if (health.status === 'refreshable') {
     return buildPublishingProviderReadiness({
-      credentialId: input.credentialId,
-      diagnostics: [
+      ...withSetupSignals(input, [
         {
           checkedAt,
           classification: 'expired_credential',
@@ -253,15 +270,13 @@ export function buildCredentialTokenPublishingReadiness(
           scope: 'credential',
           severity: 'warning',
         },
-      ],
-      providerKey: input.providerKey,
+      ]),
       tokenFreshness: 'warn',
     });
   }
 
   return buildPublishingProviderReadiness({
-    credentialId: input.credentialId,
-    diagnostics: [
+    ...withSetupSignals(input, [
       {
         checkedAt,
         classification: 'expired_credential',
@@ -273,8 +288,7 @@ export function buildCredentialTokenPublishingReadiness(
         scope: 'credential',
         severity: 'error',
       },
-    ],
-    providerKey: input.providerKey,
+    ]),
     tokenFreshness: 'fail',
   });
 }

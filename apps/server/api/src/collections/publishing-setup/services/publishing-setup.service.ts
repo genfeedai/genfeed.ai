@@ -1,46 +1,27 @@
-import {
-  PUBLISHING_PROVIDER_ENV_DESCRIPTORS,
-  type PublishingProviderEnvDescriptor,
-} from '@api/collections/publishing-setup/publishing-setup.constants';
-import {
-  resolveOAuthAppUrl,
-  resolveOAuthIssuerUrl,
-} from '@api/oauth/oauth-metadata.util';
+import { PUBLISHING_PROVIDER_ENV_DESCRIPTORS } from '@api/collections/publishing-setup/publishing-setup.constants';
+import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
 import { MicroservicesService } from '@api/services/microservices/microservices.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { getDeployment, isCloudDeployment } from '@genfeedai/config';
+import { getDeployment } from '@genfeedai/config';
 import {
   classifyPublishingSetupChecklistState,
   sanitizePublishingDiagnostics,
 } from '@genfeedai/helpers';
 import type {
-  IPublishingDiagnostic,
   IPublishingSetupCheck,
   IPublishingSetupChecklist,
   IPublishingSetupDiagnosticsExport,
   PublishingDiagnosticSeverity,
-  PublishingSetupCheckScope,
-  PublishingSetupCheckStatus,
 } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-
-const LOOPBACK_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
 
 const SEVERITY_ORDER: Record<PublishingDiagnosticSeverity, number> = {
   error: 0,
   info: 2,
   warning: 1,
 };
-
-interface CheckDraft {
-  diagnostics: IPublishingDiagnostic[];
-  key: string;
-  label: string;
-  scope: PublishingSetupCheckScope;
-  status: PublishingSetupCheckStatus;
-}
 
 /**
  * Deployment-level publishing setup checklist.
@@ -60,17 +41,21 @@ export class PublishingSetupService {
     private readonly loggerService: LoggerService,
     private readonly microservicesService: MicroservicesService,
     private readonly prismaService: PrismaService,
+    private readonly publishingProviderSetupService: PublishingProviderSetupService,
   ) {}
 
   async buildChecklist(): Promise<IPublishingSetupChecklist> {
     const checkedAt = new Date().toISOString();
-    const drafts: CheckDraft[] = [
+    const drafts: IPublishingSetupCheck[] = [
       await this.checkDatabase(checkedAt),
       await this.checkQueueBackend(checkedAt),
       this.checkAuthSecret(checkedAt),
-      this.checkPublicCallbackUrls(checkedAt),
+      this.publishingProviderSetupService.buildPublicCallbackCheck(checkedAt),
       ...PUBLISHING_PROVIDER_ENV_DESCRIPTORS.map((descriptor) =>
-        this.checkProvider(descriptor, checkedAt),
+        this.publishingProviderSetupService.buildProviderCheck(
+          descriptor,
+          checkedAt,
+        ),
       ),
     ];
 
@@ -105,8 +90,10 @@ export class PublishingSetupService {
     };
   }
 
-  private async checkDatabase(checkedAt: string): Promise<CheckDraft> {
-    const draft: CheckDraft = {
+  private async checkDatabase(
+    checkedAt: string,
+  ): Promise<IPublishingSetupCheck> {
+    const draft: IPublishingSetupCheck = {
       diagnostics: [],
       key: 'core_runtime.database',
       label: 'Database connectivity',
@@ -141,8 +128,10 @@ export class PublishingSetupService {
     return draft;
   }
 
-  private async checkQueueBackend(checkedAt: string): Promise<CheckDraft> {
-    const draft: CheckDraft = {
+  private async checkQueueBackend(
+    checkedAt: string,
+  ): Promise<IPublishingSetupCheck> {
+    const draft: IPublishingSetupCheck = {
       diagnostics: [],
       key: 'core_runtime.queue',
       label: 'Queue backend (Redis)',
@@ -185,8 +174,8 @@ export class PublishingSetupService {
     return draft;
   }
 
-  private checkAuthSecret(checkedAt: string): CheckDraft {
-    const draft: CheckDraft = {
+  private checkAuthSecret(checkedAt: string): IPublishingSetupCheck {
+    const draft: IPublishingSetupCheck = {
       diagnostics: [],
       key: 'auth.session_secret',
       label: 'Authentication secret',
@@ -212,144 +201,6 @@ export class PublishingSetupService {
     return draft;
   }
 
-  private checkPublicCallbackUrls(checkedAt: string): CheckDraft {
-    const draft: CheckDraft = {
-      diagnostics: [],
-      key: 'callback.public_urls',
-      label: 'Public callback URLs',
-      scope: 'callback',
-      status: 'pass',
-    };
-
-    const origins: Array<{ envKey: string; url: string }> = [
-      {
-        envKey: 'GENFEEDAI_API_PUBLIC_URL',
-        url: resolveOAuthIssuerUrl(this.configService),
-      },
-      {
-        envKey: 'GENFEEDAI_APP_URL',
-        url: resolveOAuthAppUrl(this.configService),
-      },
-    ];
-
-    const isCloud = isCloudDeployment();
-
-    for (const origin of origins) {
-      const parsed = this.parseAbsoluteUrl(origin.url);
-
-      if (!parsed) {
-        draft.status = 'fail';
-        draft.diagnostics.push({
-          checkedAt,
-          classification: 'misconfiguration',
-          code: 'callback_origin_invalid',
-          correctiveAction: `Set ${origin.envKey} to an absolute origin, e.g. https://app.example.com.`,
-          details: { envKey: origin.envKey },
-          isRetryable: false,
-          message: `${origin.envKey} is not an absolute URL, so OAuth callbacks cannot be built.`,
-          scope: 'callback',
-          severity: 'error',
-        });
-        continue;
-      }
-
-      if (!this.isLoopbackHost(parsed.hostname)) {
-        continue;
-      }
-
-      draft.status = this.worstStatus(draft.status, isCloud ? 'fail' : 'warn');
-      draft.diagnostics.push({
-        checkedAt,
-        classification: 'misconfiguration',
-        code: 'callback_origin_not_publicly_reachable',
-        correctiveAction: `Point ${origin.envKey} at the externally reachable origin registered with each provider.`,
-        details: { envKey: origin.envKey },
-        isRetryable: false,
-        message: `${origin.envKey} resolves to a loopback host, which providers requiring a public callback will reject.`,
-        scope: 'callback',
-        severity: isCloud ? 'error' : 'warning',
-      });
-    }
-
-    return draft;
-  }
-
-  private checkProvider(
-    descriptor: PublishingProviderEnvDescriptor,
-    checkedAt: string,
-  ): CheckDraft {
-    const draft: CheckDraft = {
-      diagnostics: [],
-      key: `provider.${descriptor.platform}`,
-      label: `${descriptor.label} app credentials`,
-      scope: 'provider',
-      status: 'pass',
-    };
-
-    const missingEnvKeys = [
-      ...this.findMissingRequirement(descriptor.clientIdKeys),
-      ...this.findMissingRequirement(descriptor.clientSecretKeys),
-    ];
-    const configuredCount =
-      Number(this.hasAnyConfigured(descriptor.clientIdKeys)) +
-      Number(this.hasAnyConfigured(descriptor.clientSecretKeys));
-
-    if (configuredCount === 0) {
-      const isCloud = isCloudDeployment();
-      draft.status = isCloud ? 'fail' : 'warn';
-      draft.diagnostics.push({
-        checkedAt,
-        classification: 'unsupported_self_host_mode',
-        code: 'provider_not_configured',
-        correctiveAction: `Register a ${descriptor.label} developer app and set ${missingEnvKeys.join(', ')} to publish to it.`,
-        details: { missingEnvKeys },
-        isRetryable: false,
-        message: `${descriptor.label} has no OAuth app credentials, so no account can be connected.`,
-        scope: 'provider',
-        severity: isCloud ? 'error' : 'warning',
-      });
-
-      return draft;
-    }
-
-    if (missingEnvKeys.length > 0) {
-      draft.status = 'fail';
-      draft.diagnostics.push({
-        checkedAt,
-        classification: 'misconfiguration',
-        code: 'provider_partially_configured',
-        correctiveAction: `Set ${missingEnvKeys.join(', ')} to complete the ${descriptor.label} app configuration.`,
-        details: { missingEnvKeys },
-        isRetryable: false,
-        message: `${descriptor.label} is partially configured, which fails at connect time rather than at boot.`,
-        scope: 'provider',
-        severity: 'error',
-      });
-    }
-
-    for (const envKey of descriptor.redirectUriKeys) {
-      const value = this.readConfig(envKey);
-      if (!value || this.parseAbsoluteUrl(value)) {
-        continue;
-      }
-
-      draft.status = 'fail';
-      draft.diagnostics.push({
-        checkedAt,
-        classification: 'misconfiguration',
-        code: 'provider_redirect_uri_invalid',
-        correctiveAction: `Set ${envKey} to the absolute callback URL registered in the ${descriptor.label} developer console.`,
-        details: { envKey },
-        isRetryable: false,
-        message: `${descriptor.label} has a redirect URI that is not an absolute URL.`,
-        scope: 'callback',
-        severity: 'error',
-      });
-    }
-
-    return draft;
-  }
-
   /** Reads presence only — the value never leaves this method. */
   private readConfig(key: string): string | null {
     const value = this.configService.get(key);
@@ -359,41 +210,6 @@ export class PublishingSetupService {
 
     const trimmed = value.trim();
     return trimmed.length > 0 ? trimmed : null;
-  }
-
-  private hasAnyConfigured(keys: readonly string[]): boolean {
-    return keys.some((key) => this.readConfig(key) !== null);
-  }
-
-  /** Empty when the requirement is satisfied by any one of its keys. */
-  private findMissingRequirement(keys: readonly string[]): string[] {
-    return this.hasAnyConfigured(keys) ? [] : [...keys];
-  }
-
-  private parseAbsoluteUrl(value: string): URL | null {
-    try {
-      return new URL(value);
-    } catch {
-      return null;
-    }
-  }
-
-  private isLoopbackHost(hostname: string): boolean {
-    const normalized = hostname.toLowerCase();
-    return (
-      LOOPBACK_HOSTNAMES.has(normalized) || normalized.endsWith('.localhost')
-    );
-  }
-
-  private worstStatus(
-    current: PublishingSetupCheckStatus,
-    candidate: PublishingSetupCheckStatus,
-  ): PublishingSetupCheckStatus {
-    if (current === 'fail' || candidate === 'fail') {
-      return 'fail';
-    }
-
-    return current === 'warn' || candidate === 'warn' ? 'warn' : current;
   }
 
   private async withTimeout<T>(

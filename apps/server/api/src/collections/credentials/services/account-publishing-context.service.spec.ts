@@ -1,7 +1,19 @@
 import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
+import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
+import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { CredentialPlatform } from '@genfeedai/enums';
+import type { ConfigService } from '@libs/config/config.service';
+
+/** Fully configured self-hosted deployment: setup contributes no problems. */
+const HEALTHY_ENV: Record<string, string> = {
+  GENFEEDAI_API_PUBLIC_URL: 'https://api.example.com',
+  GENFEEDAI_APP_URL: 'https://app.example.com',
+  TWITTER_CLIENT_ID: 'twitter-app-identifier',
+  TWITTER_CLIENT_SECRET: 'twitter-app-secret-value',
+  TWITTER_REDIRECT_URI: 'https://app.example.com/oauth/twitter',
+};
 
 describe('AccountPublishingContextService', () => {
   const credentialId = 'cred-1';
@@ -24,8 +36,19 @@ describe('AccountPublishingContextService', () => {
   const logger = {
     debug: vi.fn(),
   };
+  const quotaService = {
+    getQuotaStatus: vi.fn(),
+  };
+  // Real readiness collaborators over a healthy configuration, so these
+  // assertions still exercise the token axis rather than a stubbed verdict.
   const service = new AccountPublishingContextService(
     accountHealthService as unknown as AccountHealthService,
+    new CredentialPublishingReadinessService(
+      new PublishingProviderSetupService({
+        get: (key: string) => HEALTHY_ENV[key],
+      } as unknown as ConfigService),
+      quotaService as never,
+    ),
     credentialsService as never,
     prisma as never,
     logger as never,
@@ -33,6 +56,8 @@ describe('AccountPublishingContextService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubEnv('GENFEED_CLOUD', '');
+    quotaService.getQuotaStatus.mockResolvedValue(null);
     credentialsService.findOne.mockResolvedValue({
       id: credentialId,
       accessToken: 'secret-token',
@@ -90,6 +115,10 @@ describe('AccountPublishingContextService', () => {
         status: 'DRAFT',
       },
     ]);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('resolves credentials with strict organization and brand guards', async () => {
@@ -277,6 +306,75 @@ describe('AccountPublishingContextService', () => {
       state: 'publish_capable',
       tokenFreshness: 'unknown',
     });
+  });
+
+  it('resolves every readiness axis instead of defaulting them to unknown', async () => {
+    quotaService.getQuotaStatus.mockResolvedValue({
+      allowed: true,
+      currentCount: 9,
+      dailyLimit: 10,
+      platform: CredentialPlatform.TWITTER,
+    });
+
+    const context = await service.resolve({
+      brandId,
+      credentialId,
+      organizationId,
+      surface: 'post',
+    });
+
+    expect(quotaService.getQuotaStatus).toHaveBeenCalledWith(
+      credentialId,
+      organizationId,
+    );
+    expect(context.readiness).toMatchObject({
+      // Configured provider, public callback origins, near-quota account.
+      appReviewStatus: 'unknown',
+      callbackUrlStatus: 'pass',
+      canSchedule: true,
+      // Granted OAuth scopes are not persisted, so this axis stays unresolved.
+      permissionScopeStatus: 'unknown',
+      quotaStatus: 'warn',
+      state: 'degraded',
+      tokenFreshness: 'pass',
+    });
+    expect(context.readiness.diagnostics.map((entry) => entry.code)).toEqual([
+      'provider_app_review_unverified',
+      'credential_daily_quota_nearly_exhausted',
+    ]);
+  });
+
+  it('blocks on a provider the deployment has never configured', async () => {
+    credentialsService.findOne.mockResolvedValueOnce({
+      accessToken: 'secret-token',
+      accessTokenExpiry: new Date('2099-01-01T00:00:00.000Z'),
+      brand: brandId,
+      id: credentialId,
+      isConnected: true,
+      isDeleted: false,
+      organization: organizationId,
+      platform: CredentialPlatform.LINKEDIN,
+    });
+    vi.stubEnv('GENFEED_CLOUD', 'true');
+
+    const context = await service.resolve({
+      brandId,
+      credentialId,
+      organizationId,
+      surface: 'post',
+    });
+
+    expect(context.readiness).toMatchObject({
+      appReviewStatus: 'fail',
+      callbackUrlStatus: 'fail',
+      canSchedule: false,
+      state: 'blocked',
+      // The token itself is fine — the deployment is what is broken.
+      tokenFreshness: 'pass',
+    });
+    expect(context.readiness.diagnostics[0]?.code).toBe(
+      'provider_not_configured',
+    );
   });
 
   it('marks X Articles as copy-only rich-copy surfaces', async () => {
