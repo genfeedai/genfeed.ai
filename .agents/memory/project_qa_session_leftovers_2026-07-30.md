@@ -21,14 +21,10 @@ against code; fixes landed for the three that were broken.
 - [x] Studio Video empty: no Frame Sequence block — `GenerateEmptyState` renders heading + composer only
 - [x] Studio Storyboard: Frame sequence / Scenes / Merge modes work end-to-end — **fixed.** Scenes mode enabled "Merge clips" at 2 completed scenes while the guard demanded every frame be completed
 - [x] Brand switcher: active row selected wash — `bg-foreground/[0.08]` + check + `aria-current` via the shared `SwitcherDropdown`
-- [x] Library nav + status filters + AppSwitcher underlines — nav/filter wiring correct; **fixed** duplicate voices status options. AppSwitcher has no underline by design (removed in #2204; active state is the filled icon tile)
+- [x] Library nav + status filters + AppSwitcher underlines — nav/filter wiring correct; **fixed** duplicate voices status options. AppSwitcher underlines are **done, nothing to do**: removed on purpose in #2204, active state is the filled icon tile
 
-**Not verified in a browser.** The dev app boots, but every protected route
-bounces to `/login` and there is no non-interactive way in: passwords are
-off-limits to the agent, and the magic-link URL is deliberately never logged
-(`better-auth-mailer.service.ts` logs `emailDomain` only). A seeded local
-account, or a documented self-hosted dev sign-in, would unblock browser QA for
-the next train.
+Audited against code, not clicked through — protected routes need a sign-in the
+agent has no non-interactive path to. Each fix carries a regression test.
 
 ## Still open from this train
 
@@ -36,7 +32,7 @@ the next train.
 - `link.config.ts` uses `simpleConfig`, so `brand` is a plain attribute rather than a JSON:API relationship — inconsistent with sibling configs using `STANDARD_ENTITY_RELS`
 - `use-brand-detail.test.ts` has no coverage for `handleUpdateAccount`'s scope-toggle path
 - `SidebarHeader.tsx` mounts a second brand switcher that nothing imports — dead code
-- `bun run check:ui-guards` is red on `master` for hardcoded routes in `playwright/e2e/tests/library/content-library.spec.ts` and `.../core/automation-loop.spec.ts` — pre-existing, untouched by this train
+- `bun run check:ui-guards` is red on `master` on two required guards — hardcoded routes in `playwright/e2e/tests/{library/content-library,core/automation-loop}.spec.ts`, and a bespoke card at `StoryboardWorkspace.tsx:70`. Pre-existing, untouched by this train, chipped to its own session
 
 ## Boil-the-ocean backlog (next train)
 
