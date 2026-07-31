@@ -53,6 +53,57 @@ export type {
   BrandRelocationSummary,
 } from '@api/collections/brands/services/brand-relocation.service';
 
+/**
+ * `agentConfig` sub-objects that `updateAgentConfig` merges key-by-key instead
+ * of replacing wholesale.
+ *
+ * These are partial-patch targets: the app's brand cards each own a slice of
+ * `voice`/`strategy` and send only their own keys, and fields no UI surfaces at
+ * all (`voice.taglines`, `voice.hashtags` — written during brand-kit extraction
+ * and read back by `buildBrandContext`) would otherwise be dropped by the first
+ * inline field save.
+ *
+ * `platformOverrides` is deliberately absent. It is an authoritative map, not a
+ * patch target: the agent profile card rebuilds it from form state and omits
+ * overrides the user cleared, so merging would resurrect deleted overrides.
+ */
+const MERGEABLE_AGENT_CONFIG_KEYS: ReadonlySet<string> = new Set([
+  'autoPublish',
+  'prompting',
+  'schedule',
+  'strategy',
+  'voice',
+]);
+
+function isMergeableRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Copies the defined keys of `incoming` over `current`.
+ *
+ * `undefined` has to be skipped here for the same reason it is skipped at the
+ * top level: `plainToInstance` builds the DTO with `new`, and under this
+ * codebase's runtime class-field semantics every declared-but-absent property
+ * becomes a real own property holding `undefined`. Spreading the instance
+ * directly would therefore write `undefined` over each stored value the caller
+ * never mentioned — the exact data loss this merge exists to prevent.
+ */
+function mergeDefinedKeys(
+  current: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+): Record<string, unknown> {
+  const merged = { ...current };
+
+  for (const [key, value] of Object.entries(incoming)) {
+    if (value !== undefined) {
+      merged[key] = value;
+    }
+  }
+
+  return merged;
+}
+
 @Injectable()
 export class BrandsService extends BaseService<
   BrandDocument,
@@ -345,9 +396,21 @@ export class BrandsService extends BaseService<
     const updatedConfig = { ...currentConfig };
 
     for (const [key, value] of Object.entries(agentConfig)) {
-      if (value !== undefined) {
-        updatedConfig[key] = value;
+      if (value === undefined) {
+        continue;
       }
+
+      const current = updatedConfig[key];
+
+      if (MERGEABLE_AGENT_CONFIG_KEYS.has(key) && isMergeableRecord(value)) {
+        updatedConfig[key] = mergeDefinedKeys(
+          isMergeableRecord(current) ? current : {},
+          value,
+        );
+        continue;
+      }
+
+      updatedConfig[key] = value;
     }
 
     return this.delegate.update({
