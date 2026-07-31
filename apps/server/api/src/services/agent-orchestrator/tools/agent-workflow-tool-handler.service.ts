@@ -22,7 +22,8 @@ import { Inject, Injectable, Optional } from '@nestjs/common';
 type OfficialWorkflowSourceKind =
   | 'generated'
   | 'marketplace-listing'
-  | 'seeded-template';
+  | 'seeded-template'
+  | 'system-catalog';
 interface OfficialWorkflowSource {
   id: string;
   kind: OfficialWorkflowSourceKind;
@@ -32,6 +33,7 @@ interface OfficialWorkflowSource {
   slug?: string;
   price?: number;
   pricingTier?: string;
+  installedWorkflowId?: string;
 }
 type RecurringTaskContentType = 'image' | 'video' | 'post' | 'newsletter';
 
@@ -185,7 +187,10 @@ export class AgentWorkflowToolHandler {
     );
     const haystackSet = new Set(haystack);
 
-    let score = source.kind === 'seeded-template' ? 100 : 50;
+    // Code-owned sources (seeded templates and the system catalog) start ahead
+    // of marketplace listings; the catalog shares the seeded base so the
+    // existing confidence thresholds keep their meaning.
+    let score = source.kind === 'marketplace-listing' ? 50 : 100;
     for (const token of queryTokens) {
       if (haystackSet.has(token)) {
         score += 8;
@@ -228,7 +233,30 @@ export class AgentWorkflowToolHandler {
 
   private async resolveOfficialWorkflowSource(
     params: Record<string, unknown>,
+    organizationId: string,
   ): Promise<OfficialWorkflowSource | null> {
+    const catalog =
+      await this.systemWorkflowCatalogService.listCatalogForOrganization(
+        organizationId,
+      );
+    const catalogCandidates: OfficialWorkflowSource[] = catalog
+      .filter((entry) => entry.installable)
+      .map((entry) => ({
+        confidence: this.scoreOfficialWorkflowSource(
+          {
+            description: entry.description,
+            kind: 'system-catalog',
+            name: entry.label,
+          },
+          params,
+        ),
+        description: entry.description,
+        id: entry.canonicalId,
+        installedWorkflowId: entry.installedWorkflowId ?? undefined,
+        kind: 'system-catalog',
+        name: entry.label,
+      }));
+
     const templates = await this.workflowsService.getWorkflowTemplates();
     const seededCandidates: OfficialWorkflowSource[] = templates.map(
       (template) => ({
@@ -247,7 +275,10 @@ export class AgentWorkflowToolHandler {
       }),
     );
 
-    const bestSeeded = seededCandidates.sort(
+    // Catalog entries lead the array so the stable sort keeps them ahead of a
+    // seeded template that ties on confidence — the code-owned canonical graph
+    // is the one we want installed.
+    const bestSeeded = [...catalogCandidates, ...seededCandidates].sort(
       (left, right) => right.confidence - left.confidence,
     )[0];
 
@@ -1081,7 +1112,10 @@ export class AgentWorkflowToolHandler {
         : null;
 
     if (!source) {
-      source = await this.resolveOfficialWorkflowSource(params);
+      source = await this.resolveOfficialWorkflowSource(
+        params,
+        ctx.organizationId,
+      );
     }
 
     if (!source) {
@@ -1123,6 +1157,41 @@ export class AgentWorkflowToolHandler {
         },
         ctx,
       );
+    }
+
+    // A catalog install is idempotent, so re-installing would just hand back
+    // the same workflow — open it instead of asking the user to confirm.
+    if (source.kind === 'system-catalog' && source.installedWorkflowId) {
+      const installedWorkflowId = source.installedWorkflowId;
+
+      return {
+        creditsUsed: 0,
+        data: {
+          alreadyInstalled: true,
+          canonicalId: source.id,
+          editorUrl: `/automations/editor/${installedWorkflowId}`,
+          id: installedWorkflowId,
+        },
+        nextActions: [
+          {
+            ctas: [
+              {
+                href: `/automations/editor/${installedWorkflowId}`,
+                label: 'Open workflow',
+              },
+            ],
+            description:
+              'This Genfeed automation is already installed in your workspace.',
+            id: `workflow-already-installed-${installedWorkflowId}`,
+            title: 'Automation already installed',
+            type: 'workflow_created_card' as const,
+            workflowDescription: source.description,
+            workflowId: installedWorkflowId,
+            workflowName: source.name,
+          },
+        ],
+        success: true,
+      };
     }
 
     if (!confirmed) {
@@ -1192,6 +1261,58 @@ export class AgentWorkflowToolHandler {
           },
         ],
         requiresConfirmation: true,
+        success: true,
+      };
+    }
+
+    if (source.kind === 'system-catalog') {
+      // Catalog canonicalIds are not WORKFLOW_TEMPLATES keys, so they must go
+      // through the catalog install path rather than createWorkflow.
+      const installResult = await this.installSystemWorkflow(
+        { brandId: params.brandId, canonicalId: source.id },
+        ctx,
+      );
+
+      if (!installResult.success) {
+        return installResult;
+      }
+
+      const workflowId = String(installResult.data?.id ?? '');
+      await this.applyInstalledWorkflowContext(workflowId, ctx, params, source);
+
+      const nextRunAt = schedule
+        ? computeNextRunAtOrThrow(schedule, timezone)
+        : null;
+
+      return {
+        creditsUsed: 0,
+        data: {
+          ...installResult.data,
+          installedFrom: source.kind,
+          nextRunAt,
+        },
+        nextActions: [
+          {
+            ctas: [
+              {
+                href: `/automations/editor/${workflowId}`,
+                label: 'Open workflow',
+              },
+              { href: '/automations/executions', label: 'Open executions' },
+            ],
+            description: 'Genfeed automation installed into your workspace.',
+            id: `workflow-installed-${workflowId}`,
+            nextRunAt: nextRunAt?.toISOString(),
+            scheduleSummary: schedule
+              ? formatRecurringSchedule(schedule, timezone)
+              : undefined,
+            title: 'Automation installed',
+            type: 'workflow_created_card' as const,
+            workflowDescription: source.description,
+            workflowId,
+            workflowName: source.name,
+          },
+        ],
         success: true,
       };
     }
