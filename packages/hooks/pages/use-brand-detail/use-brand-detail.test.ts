@@ -13,6 +13,22 @@ const mockNotifyError = vi.fn();
 const mockFindPublicArticles = vi.fn();
 const mockFindPublicImages = vi.fn();
 const mockFindPublicVideos = vi.fn();
+const mockSubscribe = vi.fn(() => vi.fn());
+
+const mockPublicService = {
+  findPublicArticles: mockFindPublicArticles,
+  findPublicImages: mockFindPublicImages,
+  findPublicVideos: mockFindPublicVideos,
+};
+
+const mockClipboardService = {
+  copyToClipboard: mockCopyToClipboard,
+};
+
+const mockNotificationsService = {
+  error: mockNotifyError,
+  success: vi.fn(),
+};
 
 vi.mock('next/navigation', () => ({
   useParams: vi.fn(() => ({ orgSlug: 'acme', slug: 'brand-1' })),
@@ -28,7 +44,7 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
 
 vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
   useSocketManager: vi.fn(() => ({
-    subscribe: vi.fn(() => vi.fn()),
+    subscribe: mockSubscribe,
   })),
 }));
 
@@ -52,28 +68,19 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 
 vi.mock('@genfeedai/services/external/public.service', () => ({
   PublicService: {
-    getInstance: vi.fn(() => ({
-      findPublicArticles: mockFindPublicArticles,
-      findPublicImages: mockFindPublicImages,
-      findPublicVideos: mockFindPublicVideos,
-    })),
+    getInstance: vi.fn(() => mockPublicService),
   },
 }));
 
 vi.mock('@genfeedai/services/core/clipboard.service', () => ({
   ClipboardService: {
-    getInstance: vi.fn(() => ({
-      copyToClipboard: mockCopyToClipboard,
-    })),
+    getInstance: vi.fn(() => mockClipboardService),
   },
 }));
 
 vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
-    getInstance: vi.fn(() => ({
-      error: mockNotifyError,
-      success: vi.fn(),
-    })),
+    getInstance: vi.fn(() => mockNotificationsService),
   },
 }));
 
