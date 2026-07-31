@@ -3,10 +3,35 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
 } from '@genfeedai/constants';
+import { isCsrfOriginAllowed } from 'next/dist/server/app-render/csrf-protection.js';
 import { describe, expect, it } from 'vitest';
 import config from './next.config';
 
 describe('app next.config', () => {
+  describe('allowedDevOrigins', () => {
+    // Next runs the configured patterns through this exact matcher before it
+    // serves any `/_next/*` dev resource. A rejected origin 403s the dev
+    // runtime, so hydration never starts and the app renders a blank shell.
+    const isAllowed = (host: string) =>
+      isCsrfOriginAllowed(host, config.allowedDevOrigins ?? []);
+
+    it('allows the plain Portless service hosts', () => {
+      expect(isAllowed('app.genfeed.localhost')).toBe(true);
+      expect(isAllowed('api.genfeed.localhost')).toBe(true);
+      expect(isAllowed('genfeed.localhost')).toBe(true);
+    });
+
+    it('allows branch-prefixed Portless hosts used by linked worktrees', () => {
+      expect(isAllowed('qa-train-2026-07-31.app.genfeed.localhost')).toBe(true);
+      expect(isAllowed('feat-something.api.genfeed.localhost')).toBe(true);
+    });
+
+    it('still rejects unrelated hosts', () => {
+      expect(isAllowed('evil.example.com')).toBe(false);
+      expect(isAllowed('genfeed.localhost.evil.com')).toBe(false);
+    });
+  });
+
   it('allows current social-provider avatars without retaining Clerk hosts', () => {
     const hostnames = config.images?.remotePatterns?.map((pattern) =>
       pattern instanceof URL ? pattern.hostname : pattern.hostname,
