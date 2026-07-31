@@ -49,6 +49,10 @@ interface OrganizationAutomationBrand {
   }[];
 }
 
+interface OrganizationAutomationBrandCardProps {
+  brand: OrganizationAutomationBrand;
+}
+
 /**
  * Org-level Automate home at `/:orgSlug/~/orchestration`.
  *
@@ -61,22 +65,31 @@ export default function OrganizationAutomationOverviewPage() {
 
   const brandCards: OrganizationAutomationBrand[] = useMemo(
     () =>
-      brands
-        .map((brand) => ({
-          href: createBrandAppRoute(
-            orgSlug,
-            brand.slug ?? '',
-            APP_ROUTES.ORCHESTRATION.ROOT,
-          ),
-          id: getBrandEntityId(brand),
-          label: brand.label || brand.slug || getBrandEntityId(brand),
-          surfaces: AUTOMATION_SURFACES.map((surface) => ({
-            href: createBrandAppRoute(orgSlug, brand.slug ?? '', surface.path),
-            icon: surface.icon,
-            label: surface.label,
-          })),
-        }))
-        .filter((brand) => Boolean(brand.id && brand.label)),
+      brands.flatMap((brand) => {
+        const id = getBrandEntityId(brand);
+        const slug = brand.slug?.trim();
+
+        if (!id || !slug) {
+          return [];
+        }
+
+        return [
+          {
+            href: createBrandAppRoute(
+              orgSlug,
+              slug,
+              APP_ROUTES.ORCHESTRATION.ROOT,
+            ),
+            id,
+            label: brand.label || slug,
+            surfaces: AUTOMATION_SURFACES.map((surface) => ({
+              href: createBrandAppRoute(orgSlug, slug, surface.path),
+              icon: surface.icon,
+              label: surface.label,
+            })),
+          },
+        ];
+      }),
     [brands, orgSlug],
   );
 
@@ -129,9 +142,7 @@ export default function OrganizationAutomationOverviewPage() {
 
 function OrganizationAutomationBrandCard({
   brand,
-}: {
-  brand: OrganizationAutomationBrand;
-}) {
+}: OrganizationAutomationBrandCardProps) {
   return (
     <Card
       className="h-full shadow-none"

@@ -2,7 +2,7 @@
 
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -13,7 +13,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 }));
 
 vi.mock('next/link', () => ({
-  default: ({ children, href }: { children: ReactNode; href: string }) => (
+  default: ({ children, href }: ComponentProps<'a'>) => (
     <a href={href}>{children}</a>
   ),
 }));

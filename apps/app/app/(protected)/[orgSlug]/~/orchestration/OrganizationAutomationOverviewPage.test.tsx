@@ -2,12 +2,12 @@
 
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   brandState: {
-    brands: [] as Array<{ id: string; label: string; slug: string }>,
+    brands: [] as Array<{ id: string; label: string; slug?: string }>,
     isReady: true,
   },
 }));
@@ -24,7 +24,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 }));
 
 vi.mock('next/link', () => ({
-  default: ({ children, href }: { children: ReactNode; href: string }) => (
+  default: ({ children, href }: ComponentProps<'a'>) => (
     <a href={href}>{children}</a>
   ),
 }));
@@ -71,6 +71,21 @@ describe('OrganizationAutomationOverviewPage', () => {
       'href',
       '/acme/~/settings/brands',
     );
+  });
+
+  it('omits brands without a navigable slug', () => {
+    mocks.brandState.brands = [
+      { id: 'brand_1', label: 'Incomplete' },
+      { id: 'brand_2', label: 'Moonrise', slug: 'moonrise' },
+    ];
+
+    render(<OrganizationAutomationOverviewPage />);
+
+    expect(
+      screen.getByTestId('organization-automation-brands').children,
+    ).toHaveLength(1);
+    expect(screen.queryByRole('heading', { name: 'Incomplete' })).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Moonrise' })).toBeVisible();
   });
 
   it('waits for the brand context before deciding the empty state', () => {
