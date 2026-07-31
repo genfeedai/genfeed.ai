@@ -11,7 +11,10 @@ const mocks = vi.hoisted(() => ({
   isSystemWorkflow: false,
 }));
 
-vi.mock('@genfeedai/enums', () => ({
+// Spread the real module: a bare object drops every other enum, so any new
+// import in the render tree (CredentialPlatform, etc.) fails module resolution.
+vi.mock('@genfeedai/enums', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   ButtonVariant: {
     DEFAULT: 'default',
     OUTLINE: 'outline',
@@ -198,7 +201,7 @@ describe('WorkflowLibraryPage card semantics', () => {
 
     expect(cardLink).toHaveAttribute(
       'href',
-      '/acme/brand/workflows/workflow-1',
+      '/acme/brand/orchestration/workflows/workflow-1',
     );
     expect(cardLink).toHaveClass(
       'absolute',

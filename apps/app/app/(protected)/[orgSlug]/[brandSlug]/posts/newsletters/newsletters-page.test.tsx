@@ -277,6 +277,8 @@ describe('NewslettersPage', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Workflows' }));
-    expect(mocks.push).toHaveBeenCalledWith('/acme/main/workflows');
+    expect(mocks.push).toHaveBeenCalledWith(
+      '/acme/main/orchestration/workflows',
+    );
   });
 });

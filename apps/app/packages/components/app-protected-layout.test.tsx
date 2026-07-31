@@ -911,7 +911,7 @@ describe('AppProtectedLayout', () => {
     ],
     [
       '/org-123/brand-123/orchestration/content-runs/run-1',
-      'Workflows',
+      'Automate',
       'Content Run',
     ],
     ['/org-123/brand-123/posts/campaigns/campaign-1', 'Publish', 'Campaign'],
@@ -991,7 +991,9 @@ describe('AppProtectedLayout', () => {
     expect(
       screen.queryByTestId('universal-workspace-shell'),
     ).not.toBeInTheDocument();
-    expect(screen.getByTestId('app-sidebar')).toBeInTheDocument();
+    // The module sidebar is deliberately suppressed on canvas routes; the frame
+    // that has to survive the booting window is the layout plus its topbar.
+    expect(screen.getByTestId('app-layout')).toBeInTheDocument();
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         isWorkspaceShell: false,
@@ -1156,7 +1158,7 @@ describe('AppProtectedLayout', () => {
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         currentApp: 'automate',
-        sectionLabel: 'Workflows',
+        sectionLabel: 'Automate',
         shellChromeVariant: 'default',
       }),
     );
@@ -1190,7 +1192,7 @@ describe('AppProtectedLayout', () => {
     ['/org-123/brand-123/studio/image', 'studio', 'Studio'],
     ['/org-123/brand-123/library', 'library', 'Library'],
     ['/org-123/brand-123/analytics', 'analytics', 'Analytics'],
-    ['/org-123/brand-123/orchestration/workflows', 'workflows', 'Workflows'],
+    ['/org-123/brand-123/orchestration/workflows', 'automate', 'Automate'],
     ['/org-123/brand-123/posts/remix', 'posts', 'Publish'],
   ])(
     'keeps the %s app-switcher surface on its own module nav',
@@ -1440,7 +1442,10 @@ describe('AppProtectedLayout', () => {
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({ isWorkspaceShell: true }),
     );
-    expect(screen.getByTestId('app-sidebar')).toBeInTheDocument();
+    // Canvas routes own their left rail, so the module sidebar stays out while
+    // the shell frame itself remains.
+    expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
+    expect(screen.getByTestId('app-layout')).toBeInTheDocument();
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('streak-notifications-bridge'),
@@ -1461,7 +1466,8 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({ isWorkspaceShell: true }),
     );
     expect(screen.getByText('Workflow editor')).toBeInTheDocument();
-    expect(screen.getByTestId('app-sidebar')).toBeInTheDocument();
+    expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
+    expect(screen.getByTestId('app-layout')).toBeInTheDocument();
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
   });
 });

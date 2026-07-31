@@ -7,9 +7,13 @@ import {
 } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Every APP_SWITCHER_FEATURE_FLAGS key must be listed: the mock falls back to
+// `true`, so a missing key silently keeps its tile visible and the
+// no-modules-released case can never reach zero.
 const featureFlags = vi.hoisted(() => ({
   app_switcher_agent: true,
   app_switcher_analytics: true,
+  app_switcher_automate: true,
   app_switcher_library: true,
   app_switcher_messages: true,
   app_switcher_posts: true,
@@ -140,6 +144,7 @@ vi.mock('@genfeedai/constants', () => {
       library: 'app_switcher_library',
       posts: 'app_switcher_posts',
       analytics: 'app_switcher_analytics',
+      automate: 'app_switcher_automate',
     },
     createBrandAppRoute: (
       orgSlug: string,
@@ -234,9 +239,10 @@ describe('AppSwitcher', () => {
       'Workspace',
       'Agent',
       'Messages',
-      'Research',
+      'Automate',
       'Studio',
       'Library',
+      'Trends',
       'Publish',
       'Analytics',
     ]) {
@@ -275,7 +281,9 @@ describe('AppSwitcher', () => {
 
     render(<AppSwitcher orgSlug="acme" />);
 
-    for (const label of ['Messages', 'Research', 'Library', 'Analytics']) {
+    // 'Trends' is the research tile's label — asserting on 'Research' passed
+    // vacuously because no tile carries that name any more.
+    for (const label of ['Messages', 'Trends', 'Library', 'Analytics']) {
       expect(
         screen.queryByRole('link', { name: label }),
       ).not.toBeInTheDocument();
