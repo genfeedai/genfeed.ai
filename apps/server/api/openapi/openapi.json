@@ -9002,6 +9002,14 @@
         ],
         "type": "string"
       },
+      "ReleaseTargetSource": {
+        "enum": [
+          "manual",
+          "workflow",
+          "agent"
+        ],
+        "type": "string"
+      },
       "ReplicateWebhookPayloadDto": {
         "properties": {
           "error": {
@@ -9791,6 +9799,124 @@
         },
         "type": "object"
       },
+      "SocialReplyCampaignCreateDto": {
+        "properties": {
+          "bodyTemplate": {
+            "description": "Message body sent to every recipient. Supports {{handle}} and {{name}} placeholders.",
+            "maxLength": 5000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "conversationIds": {
+            "description": "Conversations to enroll, in drain order.",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 500,
+            "type": "array"
+          },
+          "description": {
+            "type": "string"
+          },
+          "maxPerDay": {
+            "default": 50,
+            "maximum": 2000,
+            "minimum": 1,
+            "type": "number"
+          },
+          "maxPerHour": {
+            "default": 10,
+            "maximum": 500,
+            "minimum": 1,
+            "type": "number"
+          },
+          "messageType": {
+            "enum": [
+              "reply",
+              "dm"
+            ],
+            "type": "string"
+          },
+          "minDelaySeconds": {
+            "default": 60,
+            "maximum": 86400,
+            "minimum": 5,
+            "type": "number"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "platform": {
+            "enum": [
+              "youtube",
+              "instagram",
+              "twitter",
+              "linkedin",
+              "unipile"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "platform",
+          "bodyTemplate",
+          "conversationIds"
+        ],
+        "type": "object"
+      },
+      "SocialReplyCampaignStatusDto": {
+        "properties": {
+          "transition": {
+            "enum": [
+              "start",
+              "pause",
+              "resume",
+              "cancel"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "transition"
+        ],
+        "type": "object"
+      },
+      "SocialReplyCampaignUpdateDto": {
+        "properties": {
+          "bodyTemplate": {
+            "maxLength": 5000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "maxPerDay": {
+            "maximum": 2000,
+            "minimum": 1,
+            "type": "number"
+          },
+          "maxPerHour": {
+            "maximum": 500,
+            "minimum": 1,
+            "type": "number"
+          },
+          "minDelaySeconds": {
+            "maximum": 86400,
+            "minimum": 5,
+            "type": "number"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "SocialReplyDto": {
         "properties": {
           "agentRunId": {
@@ -10028,6 +10154,19 @@
           "Ingredient",
           "Prompt",
           "Article"
+        ],
+        "type": "string"
+      },
+      "TargetExecutionState": {
+        "enum": [
+          "draft",
+          "scheduled",
+          "paused",
+          "cancelled",
+          "publishing",
+          "published",
+          "failed",
+          "skipped"
         ],
         "type": "string"
       },
@@ -31928,6 +32067,438 @@
         ]
       }
     },
+    "/message-campaigns": {
+      "get": {
+        "operationId": "SocialReplyCampaignController.list",
+        "parameters": [
+          {
+            "description": "Page number for pagination",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Number of items per page",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Enable or disable pagination",
+            "in": "query",
+            "name": "pagination",
+            "required": false,
+            "schema": {
+              "default": true,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Filter by deleted status",
+            "in": "query",
+            "name": "isDeleted",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "createdAt: -1",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by organization ID",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by brand ID",
+            "in": "query",
+            "name": "brand",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by favorite status",
+            "in": "query",
+            "name": "isFavorite",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "platform",
+            "required": false,
+            "schema": {
+              "enum": [
+                "youtube",
+                "instagram",
+                "twitter",
+                "linkedin",
+                "unipile"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "enum": [
+                "draft",
+                "running",
+                "paused",
+                "completed",
+                "cancelled",
+                "failed"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "brandId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List throttled inbox reply campaigns",
+        "tags": [
+          "message-campaigns",
+          "Messages"
+        ]
+      },
+      "post": {
+        "operationId": "SocialReplyCampaignController.create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SocialReplyCampaignCreateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a reply campaign and enroll its conversations",
+        "tags": [
+          "message-campaigns",
+          "Messages"
+        ]
+      }
+    },
+    "/message-campaigns/{campaignId}": {
+      "delete": {
+        "operationId": "SocialReplyCampaignController.remove",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel and soft-delete a reply campaign",
+        "tags": [
+          "message-campaigns",
+          "Messages"
+        ]
+      },
+      "get": {
+        "operationId": "SocialReplyCampaignController.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Inspect one reply campaign",
+        "tags": [
+          "message-campaigns",
+          "Messages"
+        ]
+      },
+      "patch": {
+        "operationId": "SocialReplyCampaignController.patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SocialReplyCampaignUpdateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a campaign’s copy or rate limits",
+        "tags": [
+          "message-campaigns",
+          "Messages"
+        ]
+      }
+    },
+    "/message-campaigns/{campaignId}/recipients": {
+      "get": {
+        "operationId": "SocialReplyCampaignController.listRecipients",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Page number for pagination",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Number of items per page",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Enable or disable pagination",
+            "in": "query",
+            "name": "pagination",
+            "required": false,
+            "schema": {
+              "default": true,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Filter by deleted status",
+            "in": "query",
+            "name": "isDeleted",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "createdAt: -1",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by organization ID",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by brand ID",
+            "in": "query",
+            "name": "brand",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by favorite status",
+            "in": "query",
+            "name": "isFavorite",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "enum": [
+                "pending",
+                "dispatching",
+                "sent",
+                "failed",
+                "skipped",
+                "cancelled"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List a campaign’s recipients in drain order",
+        "tags": [
+          "message-campaigns",
+          "Messages"
+        ]
+      }
+    },
+    "/message-campaigns/{campaignId}/status": {
+      "patch": {
+        "operationId": "SocialReplyCampaignController.transition",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "campaignId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SocialReplyCampaignStatusDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start, pause, resume, or cancel a campaign",
+        "tags": [
+          "message-campaigns",
+          "Messages"
+        ]
+      }
+    },
     "/messages": {
       "get": {
         "operationId": "SocialInboxController.listConversations",
@@ -36344,6 +36915,54 @@
             "schema": {
               "items": {
                 "$ref": "#/components/schemas/ReleaseStatus"
+              },
+              "type": "array"
+            }
+          },
+          {
+            "description": "Filter to releases with at least one channel target on any of these platforms (for example, ?platform=instagram&platform=tiktok).",
+            "in": "query",
+            "name": "platform",
+            "required": false,
+            "schema": {
+              "items": {
+                "$ref": "#/components/schemas/CredentialPlatform"
+              },
+              "type": "array"
+            }
+          },
+          {
+            "description": "Filter to releases with at least one channel target publishing through any of these credentials.",
+            "in": "query",
+            "name": "credentialId",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          {
+            "description": "Filter to releases with at least one channel target in any of these execution states. Use `?executionState=failed` for the error-state view.",
+            "in": "query",
+            "name": "executionState",
+            "required": false,
+            "schema": {
+              "items": {
+                "$ref": "#/components/schemas/TargetExecutionState"
+              },
+              "type": "array"
+            }
+          },
+          {
+            "description": "Filter to releases with at least one channel target placed by any of these sources. Source is derived from target provenance, not stored.",
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "items": {
+                "$ref": "#/components/schemas/ReleaseTargetSource"
               },
               "type": "array"
             }
