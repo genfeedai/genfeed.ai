@@ -14,6 +14,7 @@ describe('getCoreAppFeatureFlagFallbacks', () => {
     expect(getCoreAppFeatureFlagFallbacks()).toEqual({
       app_switcher_agent: false,
       app_switcher_analytics: false,
+      app_switcher_automate: false,
       app_switcher_library: false,
       app_switcher_messages: false,
       app_switcher_posts: false,
@@ -32,6 +33,7 @@ describe('getCoreAppFeatureFlagFallbacks', () => {
     expect(getCoreAppFeatureFlagFallbacks()).toEqual({
       app_switcher_agent: true,
       app_switcher_analytics: true,
+      app_switcher_automate: true,
       app_switcher_library: true,
       app_switcher_messages: true,
       app_switcher_posts: true,
@@ -50,6 +52,7 @@ describe('getCoreAppFeatureFlagFallbacks', () => {
     expect(getCoreAppFeatureFlagFallbacks()).toEqual({
       app_switcher_agent: true,
       app_switcher_analytics: true,
+      app_switcher_automate: true,
       app_switcher_library: true,
       app_switcher_messages: true,
       app_switcher_posts: true,

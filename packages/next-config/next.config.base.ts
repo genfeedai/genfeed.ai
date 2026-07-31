@@ -16,10 +16,16 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
 
   const isProduction = process.env.NODE_ENV === 'production';
   const config: NextConfig = {
+    // `**` (not `*`) is required: Next matches these patterns label-by-label
+    // (next/dist/server/app-render/csrf-protection.js), so `*` consumes exactly
+    // one label. Portless prefixes linked worktrees with the branch name, giving
+    // hosts like `my-branch.app.genfeed.localhost` — two labels deep, which
+    // `*.genfeed.localhost` rejects. Next then 403s every `/_next/*` dev
+    // resource, hydration never runs, and the app renders as a blank shell.
     allowedDevOrigins: [
       '127.0.0.1',
       'genfeed.localhost',
-      '*.genfeed.localhost',
+      '**.genfeed.localhost',
       // Temporary backwards-compatible development host.
       'local.genfeed.ai',
       'localhost',

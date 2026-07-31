@@ -158,6 +158,22 @@ describe('proxy', () => {
     },
   );
 
+  // The service worker precaches /~offline at install time. If the proxy
+  // redirected it to /login, that redirect would be stored as the offline
+  // fallback and a signed-in user with no network would see a login page.
+  it.each(['/~offline', '/serwist/sw.js', '/serwist/sw.js.map'])(
+    'passes the service worker route %s through without app auth routing',
+    async (pathname) => {
+      const { default: proxy } = await import('./proxy');
+
+      const response = await proxy(makeSignedOutRequest(pathname), {} as never);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('location')).toBeNull();
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
   // ─── Signed-in redirect away from root / public entry points ──────────────
 
   it.each(['/login', '/login/password', '/login/magic-link'])(

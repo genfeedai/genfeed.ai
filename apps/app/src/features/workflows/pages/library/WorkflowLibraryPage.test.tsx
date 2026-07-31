@@ -11,14 +11,19 @@ const mocks = vi.hoisted(() => ({
   isSystemWorkflow: false,
 }));
 
-vi.mock('@genfeedai/enums', () => ({
-  ButtonVariant: {
-    DEFAULT: 'default',
-    OUTLINE: 'outline',
-    SECONDARY: 'secondary',
-    UNSTYLED: 'unstyled',
-  },
-}));
+vi.mock('@genfeedai/enums', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/enums')>();
+
+  return {
+    ...actual,
+    ButtonVariant: {
+      DEFAULT: 'default',
+      OUTLINE: 'outline',
+      SECONDARY: 'secondary',
+      UNSTYLED: 'unstyled',
+    },
+  };
+});
 
 vi.mock('@ui/card/Card', () => ({
   default: ({
@@ -198,7 +203,7 @@ describe('WorkflowLibraryPage card semantics', () => {
 
     expect(cardLink).toHaveAttribute(
       'href',
-      '/acme/brand/workflows/workflow-1',
+      '/acme/brand/orchestration/workflows/workflow-1',
     );
     expect(cardLink).toHaveClass(
       'absolute',

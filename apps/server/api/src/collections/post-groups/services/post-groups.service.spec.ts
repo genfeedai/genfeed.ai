@@ -1,5 +1,6 @@
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
+import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -35,6 +36,21 @@ type MockPostGroup = {
   timezone: string;
   title: string;
   updatedAt: Date;
+};
+
+type MockCredential = {
+  accessToken: string | null;
+  accessTokenExpiry: Date | null;
+  accessTokenSecret: string | null;
+  brandId: string | null;
+  id: string;
+  isConnected: boolean;
+  oauthToken: string | null;
+  oauthTokenSecret: string | null;
+  organizationId: string;
+  platform: string;
+  refreshToken: string | null;
+  refreshTokenExpiry: Date | null;
 };
 
 type MockPostTarget = {
@@ -124,15 +140,7 @@ describe('PostGroupsService', () => {
         findFirst: vi.fn().mockResolvedValue({ id: 'brand-1' }),
       },
       credential: {
-        findMany: vi.fn().mockResolvedValue([
-          {
-            brandId: 'brand-1',
-            id: 'cred-x',
-            isConnected: true,
-            organizationId: 'org-1',
-            platform: CredentialPlatform.TWITTER,
-          },
-        ]),
+        findMany: vi.fn().mockResolvedValue([makeCredential()]),
       },
       post: {
         create: vi
@@ -184,6 +192,7 @@ describe('PostGroupsService', () => {
       providers: [
         PostGroupContractService,
         PostGroupPersistenceService,
+        PostGroupReadinessService,
         PostGroupsService,
         {
           provide: PrismaService,
@@ -341,6 +350,105 @@ describe('PostGroupsService', () => {
       scheduled: 1,
       total: 1,
     });
+  });
+
+  it('persists derived publishing readiness on every scheduled channel target', async () => {
+    await service.create('org-1', 'user-1', {
+      baseContent: 'Launch note for X',
+      brandId: 'brand-1',
+      status: ReleaseStatus.SCHEDULED,
+      targets: [
+        {
+          credentialId: 'cred-x',
+          platform: CredentialPlatform.TWITTER,
+        },
+      ],
+      timezone: 'UTC',
+      title: 'Launch note',
+    });
+
+    expect(prisma.post.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          targetReadiness: expect.objectContaining({
+            canSchedule: true,
+            credentialId: 'cred-x',
+            state: 'publish_capable',
+            tokenFreshness: 'pass',
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('rejects a scheduled release whose channel credential cannot publish', async () => {
+    prisma.credential.findMany.mockResolvedValue([
+      makeCredential({
+        accessTokenExpiry: new Date('2026-07-01T00:00:00.000Z'),
+      }),
+    ]);
+
+    await expect(
+      service.create('org-1', 'user-1', {
+        baseContent: 'Launch note for X',
+        brandId: 'brand-1',
+        status: ReleaseStatus.SCHEDULED,
+        targets: [
+          {
+            credentialId: 'cred-x',
+            platform: CredentialPlatform.TWITTER,
+          },
+        ],
+        timezone: 'UTC',
+        title: 'Launch note',
+      }),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        classification: 'expired_credential',
+        credentialId: 'cred-x',
+        platform: CredentialPlatform.TWITTER,
+        readinessState: 'blocked',
+        title: 'Channel not ready to publish',
+      }),
+    });
+
+    expect(prisma.postGroup.create).not.toHaveBeenCalled();
+    expect(prisma.post.create).not.toHaveBeenCalled();
+    expect(postPublishQueueService.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('lets a draft release be saved with a channel credential that cannot publish', async () => {
+    prisma.credential.findMany.mockResolvedValue([
+      makeCredential({
+        accessTokenExpiry: new Date('2026-07-01T00:00:00.000Z'),
+      }),
+    ]);
+
+    const result = await service.create('org-1', 'user-1', {
+      baseContent: 'Launch note for X',
+      brandId: 'brand-1',
+      status: ReleaseStatus.DRAFT,
+      targets: [
+        {
+          credentialId: 'cred-x',
+          platform: CredentialPlatform.TWITTER,
+        },
+      ],
+      timezone: 'UTC',
+      title: 'Launch note',
+    });
+
+    expect(result.status).toBe(ReleaseStatus.DRAFT);
+    expect(prisma.post.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          targetReadiness: expect.objectContaining({
+            canSchedule: false,
+            state: 'blocked',
+          }),
+        }),
+      }),
+    );
   });
 
   it('replays an existing idempotent group without creating duplicates', async () => {
@@ -591,13 +699,10 @@ describe('PostGroupsService', () => {
 
   it('rejects scheduled targets that fail channel capability validation before writing', async () => {
     prisma.credential.findMany.mockResolvedValue([
-      {
-        brandId: 'brand-1',
+      makeCredential({
         id: 'cred-youtube',
-        isConnected: true,
-        organizationId: 'org-1',
         platform: CredentialPlatform.YOUTUBE,
-      },
+      }),
     ]);
 
     await expect(
@@ -913,13 +1018,7 @@ describe('PostGroupsService', () => {
       }),
     );
     prisma.credential.findMany.mockResolvedValue([
-      {
-        brandId: 'brand-1',
-        id: 'cred-x',
-        isConnected: false,
-        organizationId: 'org-1',
-        platform: CredentialPlatform.TWITTER,
-      },
+      makeCredential({ isConnected: false }),
     ]);
 
     await expect(
@@ -934,6 +1033,97 @@ describe('PostGroupsService', () => {
 
     expect(prisma.post.updateMany).not.toHaveBeenCalled();
     expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
+  });
+
+  it('rejects a canonical target whose credential cannot publish before durable mutation', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-1', status: ReleaseStatus.DRAFT }),
+    );
+    prisma.post.findFirst.mockResolvedValue(
+      makeTarget({
+        groupId: 'group-1',
+        id: 'target-1',
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
+    );
+    prisma.credential.findMany.mockResolvedValue([
+      makeCredential({
+        accessTokenExpiry: new Date('2026-07-01T00:00:00.000Z'),
+      }),
+    ]);
+
+    await expect(
+      service.scheduleTarget(
+        'org-1',
+        'user-1',
+        'group-1',
+        'target-1',
+        '2026-07-09T12:00:00.000Z',
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        classification: 'expired_credential',
+        credentialId: 'cred-x',
+        readinessState: 'blocked',
+        title: 'Channel not ready to publish',
+      }),
+    });
+
+    expect(prisma.post.updateMany).not.toHaveBeenCalled();
+    expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
+    expect(postPublishQueueService.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('persists derived publishing readiness when a canonical target is scheduled', async () => {
+    const scheduledAt = '2026-07-09T12:00:00.000Z';
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-1', status: ReleaseStatus.DRAFT }),
+    );
+    prisma.post.findFirst.mockResolvedValue(
+      makeTarget({
+        groupId: 'group-1',
+        id: 'target-1',
+        scheduledDate: null,
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
+    );
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({
+        groupId: 'group-1',
+        id: 'target-1',
+        scheduledDate: new Date(scheduledAt),
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+      }),
+    ]);
+    prisma.postGroup.update.mockImplementation(({ data }) =>
+      Promise.resolve(
+        makeGroup({
+          id: 'group-1',
+          status: data.status,
+          statusTransitions: data.statusTransitions,
+        }),
+      ),
+    );
+
+    await service.scheduleTarget(
+      'org-1',
+      'user-1',
+      'group-1',
+      'target-1',
+      scheduledAt,
+    );
+
+    expect(prisma.post.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          targetReadiness: expect.objectContaining({
+            canSchedule: true,
+            credentialId: 'cred-x',
+            state: 'publish_capable',
+          }),
+        }),
+      }),
+    );
   });
 
   it('rejects a canonical target without a valid release brand before durable mutation', async () => {
@@ -1271,6 +1461,26 @@ describe('PostGroupsService', () => {
     });
   });
 });
+
+function makeCredential(
+  overrides: Partial<MockCredential> = {},
+): MockCredential {
+  return {
+    accessToken: 'access-token-value',
+    accessTokenExpiry: new Date('2026-09-01T00:00:00.000Z'),
+    accessTokenSecret: null,
+    brandId: 'brand-1',
+    id: 'cred-x',
+    isConnected: true,
+    oauthToken: null,
+    oauthTokenSecret: null,
+    organizationId: 'org-1',
+    platform: CredentialPlatform.TWITTER,
+    refreshToken: null,
+    refreshTokenExpiry: null,
+    ...overrides,
+  };
+}
 
 function makeGroup(overrides: Partial<MockPostGroup> = {}): MockPostGroup {
   return {

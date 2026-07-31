@@ -2,6 +2,7 @@
 
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { AlertCategory, AssetCategory, AssetScope } from '@genfeedai/enums';
+import { isPublicAssetScope } from '@genfeedai/helpers';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import BrandDetailBanner from '@pages/brands/components/banner/BrandDetailBanner';
@@ -82,9 +83,7 @@ export default function BrandDetail() {
     handleCopy(`${EnvironmentService.apps.website}/u/${brand.slug}`);
   };
 
-  const isPublicProfile =
-    typeof brand?.scope === 'string' &&
-    brand.scope.toLowerCase() === AssetScope.PUBLIC;
+  const isPublicProfile = isPublicAssetScope(brand?.scope);
 
   if (!hasBrandId) {
     return (

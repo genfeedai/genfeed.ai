@@ -1,9 +1,13 @@
-import type { IPublishingDiagnostic } from '@genfeedai/interfaces';
+import type {
+  IPublishingDiagnostic,
+  IPublishingSetupCheck,
+} from '@genfeedai/interfaces';
 import {
   buildPublishingProviderReadiness,
   canScheduleWithPublishingReadiness,
   classifyPublishingDiagnostic,
   classifyPublishingReadiness,
+  classifyPublishingSetupChecklistState,
   redactPublishingDiagnosticValue,
   sanitizePublishingDiagnostic,
 } from '@helpers/publisher/publishing-diagnostics.helper';
@@ -17,6 +21,19 @@ function diagnostic(
     isRetryable: true,
     message: 'Provider returned an unknown response.',
     severity: 'warning',
+    ...overrides,
+  };
+}
+
+function check(
+  overrides: Partial<IPublishingSetupCheck> = {},
+): IPublishingSetupCheck {
+  return {
+    diagnostics: [],
+    key: 'core_runtime.database',
+    label: 'Database connectivity',
+    scope: 'core_runtime',
+    status: 'pass',
     ...overrides,
   };
 }
@@ -139,6 +156,44 @@ describe('publishing diagnostics helpers', () => {
 
     expect(state).toBe('degraded');
     expect(canScheduleWithPublishingReadiness(state)).toBe(true);
+  });
+
+  it('blocks the checklist on a failing check even when its diagnostic is retryable', () => {
+    expect(
+      classifyPublishingSetupChecklistState([
+        check(),
+        check({
+          diagnostics: [
+            diagnostic({
+              classification: 'provider_outage',
+              isRetryable: true,
+              severity: 'error',
+            }),
+          ],
+          key: 'core_runtime.queue',
+          status: 'fail',
+        }),
+      ]),
+    ).toBe('blocked');
+  });
+
+  it('resolves the checklist to the worst observed check status', () => {
+    expect(classifyPublishingSetupChecklistState([check(), check()])).toBe(
+      'publish_capable',
+    );
+    expect(
+      classifyPublishingSetupChecklistState([
+        check(),
+        check({ key: 'provider.reddit', status: 'warn' }),
+      ]),
+    ).toBe('degraded');
+    expect(
+      classifyPublishingSetupChecklistState([
+        check(),
+        check({ key: 'provider.reddit', status: 'unknown' }),
+      ]),
+    ).toBe('unknown');
+    expect(classifyPublishingSetupChecklistState([])).toBe('unknown');
   });
 
   it('builds sanitized provider readiness with inferred schedule gate', () => {
