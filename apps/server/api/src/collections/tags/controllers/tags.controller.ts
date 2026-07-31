@@ -2,13 +2,14 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
 import { TagsQueryDto } from '@api/collections/tags/dto/tags-query.dto';
 import { UpdateTagDto } from '@api/collections/tags/dto/update-tag.dto';
-import {
-  Tag,
-  type TagDocument,
-} from '@api/collections/tags/schemas/tag.schema';
+import type { TagDocument } from '@api/collections/tags/schemas/tag.schema';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import {
+  getIsSuperAdmin,
+  getPublicMetadata,
+} from '@api/helpers/utils/auth/auth.util';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { TagSerializer } from '@genfeedai/serializers';
@@ -42,14 +43,23 @@ export class TagsController extends BaseCRUDController<
   public buildFindAllQuery(user: User, query: TagsQueryDto) {
     const publicMetadata = getPublicMetadata(user);
 
-    // Build OR conditions: global items OR user's org items OR user's items
+    // Build OR conditions: global items OR user's org items OR user's items.
+    // Prefer explicit `organization` query (collection style) over session org,
+    // but only when authorized for that tenant.
     const orConditions: MatchConditions[] = [
       { organization: null, user: null }, // global items (null, not missing)
     ];
 
-    if (publicMetadata.organization) {
+    const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
+      query,
+      publicMetadata,
+      getIsSuperAdmin(user),
+    );
+    const organizationId = scope.organization;
+
+    if (organizationId) {
       orConditions.push({
-        organization: publicMetadata.organization,
+        organization: organizationId,
       });
     }
 
@@ -60,7 +70,7 @@ export class TagsController extends BaseCRUDController<
     const matchConditions: MatchConditions = {
       isDeleted: query.isDeleted ?? false,
       ...(query.category && { category: query.category }),
-      ...(query.brand && { brand: query.brand }),
+      ...(scope.brand ? { brand: scope.brand } : {}),
       OR: orConditions,
     };
 

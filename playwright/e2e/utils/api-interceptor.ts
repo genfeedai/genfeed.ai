@@ -487,7 +487,12 @@ async function _handleAuthRoutes(route: Route): Promise<void> {
 async function handleOrganizationRoutes(route: Route): Promise<void> {
   const url = route.request().url();
 
-  if (url.endsWith('/mine') || url.includes('/mine?')) {
+  // Membership list: GET /organizations?mine=true (legacy /mine removed).
+  if (
+    url.includes('mine=true') ||
+    url.endsWith('/mine') ||
+    url.includes('/mine?')
+  ) {
     await route.fulfill({
       body: JSON.stringify([
         {
@@ -537,7 +542,13 @@ async function handleOrganizationRoutes(route: Route): Promise<void> {
     return;
   }
 
-  if (url.endsWith('/create')) {
+  // Collection POST /organizations (preferred) and legacy /create seed shape.
+  if (
+    route.request().method() === 'POST' &&
+    (url.endsWith('/organizations') ||
+      url.endsWith('/organizations/') ||
+      url.endsWith('/create'))
+  ) {
     await route.fulfill({
       body: JSON.stringify({
         brand: { id: 'brand-1', label: 'Brand 1' },

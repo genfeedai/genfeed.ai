@@ -13,11 +13,13 @@ import {
   IsBoolean,
   IsDate,
   IsEnum,
+  IsIn,
   IsNotEmpty,
   IsNumber,
   IsObject,
   IsOptional,
   IsString,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -263,11 +265,13 @@ export class CreateWorkflowDto {
   })
   readonly organization?: string;
 
+  @ValidateIf((dto: CreateWorkflowDto) => !dto.sourceWorkflowId)
   @IsString()
   @IsNotEmpty()
   @ApiProperty({
-    description: 'The display label/name of the workflow',
-    required: true,
+    description:
+      'The display label/name of the workflow. Omit when sourceWorkflowId is set; the server derives the copy label.',
+    required: false,
   })
   readonly label!: string;
 
@@ -312,6 +316,25 @@ export class CreateWorkflowDto {
     required: false,
   })
   readonly templateId?: string;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'When set, create is a clone of this workflow (POST /workflows body clone).',
+    required: false,
+  })
+  readonly sourceWorkflowId?: string;
+
+  @IsOptional()
+  @IsIn(['system-catalog', 'seeded-template'])
+  @ApiProperty({
+    description:
+      'When `system-catalog`, `templateId` is a system catalog canonical id and create installs that catalog entry (idempotent).',
+    enum: ['system-catalog', 'seeded-template'],
+    required: false,
+  })
+  readonly sourceType?: 'system-catalog' | 'seeded-template';
 
   @IsEnum(WorkflowTrigger)
   @IsOptional()

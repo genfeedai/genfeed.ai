@@ -21,7 +21,6 @@ import { TrendsModule } from '@api/collections/trends/trends.module';
 import { VideoGenerationModule } from '@api/collections/videos/video-generation.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
-import { SystemWorkflowCatalogController } from '@api/collections/workflows/controllers/system-workflow-catalog.controller';
 import { WebhooksController } from '@api/collections/workflows/controllers/webhooks.controller';
 import { WorkflowBatchController } from '@api/collections/workflows/controllers/workflow-batch.controller';
 import { WorkflowBuilderController } from '@api/collections/workflows/controllers/workflow-builder.controller';
@@ -79,7 +78,6 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [
     WorkflowBuilderController,
     WorkflowMarketplaceController,
-    SystemWorkflowCatalogController,
     WorkflowExecutionController,
     WorkflowBatchController,
     WorkflowWebhookManagementController,

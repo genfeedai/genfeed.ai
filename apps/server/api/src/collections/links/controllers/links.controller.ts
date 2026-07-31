@@ -2,15 +2,17 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CreateLinkDto } from '@api/collections/links/dto/create-link.dto';
 import { LinksQueryDto } from '@api/collections/links/dto/links-query.dto';
 import { UpdateLinkDto } from '@api/collections/links/dto/update-link.dto';
-import {
-  Link,
-  type LinkDocument,
-} from '@api/collections/links/schemas/link.schema';
+import type { LinkDocument } from '@api/collections/links/schemas/link.schema';
 import { LinksService } from '@api/collections/links/services/links.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import {
+  getIsSuperAdmin,
+  getPublicMetadata,
+} from '@api/helpers/utils/auth/auth.util';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
+import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
@@ -24,6 +26,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Optional,
   Param,
   Patch,
@@ -46,6 +49,42 @@ export class LinksController extends BaseCRUDController<
     @Optional() private readonly cacheService?: CacheService,
   ) {
     super(loggerService, linksService, LinkSerializer, 'Link');
+  }
+
+  /**
+   * List links for a brand (preferred over nested `GET /brands/:id/links`).
+   * Links have no organization column; reject unauthorized organization query
+   * params and default brand to the session brand when omitted.
+   */
+  public buildFindAllQuery(user: User, query: LinksQueryDto) {
+    const publicMetadata = getPublicMetadata(user);
+    const isSuperAdmin = getIsSuperAdmin(user);
+    const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
+      query,
+      publicMetadata,
+      isSuperAdmin,
+    );
+
+    if (
+      !isSuperAdmin &&
+      (!publicMetadata.brand ||
+        (scope.brand && String(scope.brand) !== String(publicMetadata.brand)))
+    ) {
+      throw new ForbiddenException({
+        detail: 'Access denied to this brand',
+        title: 'Forbidden',
+      });
+    }
+
+    return {
+      orderBy: handleQuerySort(query.sort),
+      where: {
+        brand: isSuperAdmin
+          ? (scope.brand ?? publicMetadata.brand)
+          : publicMetadata.brand,
+        isDeleted: query.isDeleted ?? false,
+      },
+    };
   }
 
   /**

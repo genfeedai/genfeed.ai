@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { WorkflowCrudController } from '@api/collections/workflows/controllers/workflow-crud.controller';
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflow.dto';
+import { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -38,7 +39,6 @@ describe('WorkflowCrudController', () => {
   };
 
   const mockWorkflowsService = {
-    cloneWorkflow: vi.fn(),
     createWorkflow: vi.fn(),
     findAll: vi.fn(),
     findMutableOwnedOrThrow: vi.fn(),
@@ -52,6 +52,10 @@ describe('WorkflowCrudController', () => {
 
   const mockWorkflowSchedulerService = {
     updateSchedule: vi.fn(),
+  };
+
+  const mockSystemWorkflowCatalogService = {
+    listCatalogForOrganization: vi.fn(),
   };
 
   const mockLoggerService = {
@@ -69,6 +73,10 @@ describe('WorkflowCrudController', () => {
         {
           provide: WorkflowSchedulerService,
           useValue: mockWorkflowSchedulerService,
+        },
+        {
+          provide: SystemWorkflowCatalogService,
+          useValue: mockSystemWorkflowCatalogService,
         },
         { provide: LoggerService, useValue: mockLoggerService },
       ],
@@ -180,18 +188,44 @@ describe('WorkflowCrudController', () => {
     });
   });
 
-  describe('getStatistics', () => {
-    it('should return workflow statistics', async () => {
+  describe('findAll view=statistics', () => {
+    it('should return workflow statistics via the collection view', async () => {
       const stats = { active: 5, completed: 2, draft: 3, total: 10 };
       mockWorkflowsService.getWorkflowStatistics.mockResolvedValue(stats);
 
-      const result = await controller.getStatistics(mockUser);
+      const result = await controller.findAll(mockRequest, mockUser, {
+        view: 'statistics',
+      });
 
       expect(service.getWorkflowStatistics).toHaveBeenCalledWith(
         mockUser.publicMetadata.user,
         mockUser.publicMetadata.organization,
       );
-      expect(result.data).toEqual(stats);
+      expect(result).toEqual({ data: stats });
+    });
+  });
+
+  describe('findAll source=system-catalog', () => {
+    it('returns the explicit raw catalog list response contract', async () => {
+      const catalog = [
+        {
+          canonicalId: 'daily-trends-digest',
+          installed: false,
+          installedWorkflowId: null,
+        },
+      ];
+      mockSystemWorkflowCatalogService.listCatalogForOrganization.mockResolvedValue(
+        catalog,
+      );
+
+      const result = await controller.findAll(mockRequest, mockUser, {
+        source: 'system-catalog',
+      });
+
+      expect(
+        mockSystemWorkflowCatalogService.listCatalogForOrganization,
+      ).toHaveBeenCalledWith(mockUser.publicMetadata.organization);
+      expect(result).toEqual({ data: catalog });
     });
   });
 
@@ -210,45 +244,28 @@ describe('WorkflowCrudController', () => {
     });
   });
 
-  describe('cloneWorkflow', () => {
-    it('should clone a workflow', async () => {
+  describe('create with sourceWorkflowId', () => {
+    it('should clone via create body', async () => {
       const id = '507f1f77bcf86cd799439014';
-      mockWorkflowsService.cloneWorkflow.mockResolvedValue({
+      mockWorkflowsService.createWorkflow.mockResolvedValue({
         ...mockWorkflow,
         _id: '507f1f77bcf86cd799439015',
         label: 'Test Workflow (Copy)',
       });
 
-      const result = await controller.cloneWorkflow(mockRequest, id, mockUser);
+      const result = await controller.create(
+        mockRequest,
+        { sourceWorkflowId: id } as never,
+        mockUser,
+      );
 
-      expect(service.cloneWorkflow).toHaveBeenCalledWith(
-        id,
+      expect(service.createWorkflow).toHaveBeenCalledWith(
         mockUser.publicMetadata.user,
         mockUser.publicMetadata.organization,
+        { sourceWorkflowId: id },
         mockUser.publicMetadata.brand,
       );
       expect(result).toBeDefined();
-    });
-
-    it('should clone a workflow for an explicit target brand', async () => {
-      const id = '507f1f77bcf86cd799439014';
-      mockWorkflowsService.cloneWorkflow.mockResolvedValue({
-        ...mockWorkflow,
-        _id: '507f1f77bcf86cd799439015',
-        brandId: '507f1f77bcf86cd799439016',
-        label: 'Test Workflow (Copy)',
-      });
-
-      await controller.cloneWorkflow(mockRequest, id, mockUser, {
-        brandId: '507f1f77bcf86cd799439016',
-      });
-
-      expect(service.cloneWorkflow).toHaveBeenCalledWith(
-        id,
-        mockUser.publicMetadata.user,
-        mockUser.publicMetadata.organization,
-        '507f1f77bcf86cd799439016',
-      );
     });
   });
 

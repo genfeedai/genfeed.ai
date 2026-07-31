@@ -100,8 +100,8 @@ export interface SetScheduleInput {
 export interface CreateWorkflowInput {
   name: string;
   description?: string;
-  nodes: Node[];
-  edges: Edge[];
+  nodes?: Node[];
+  edges?: Edge[];
   edgeStyle?: string;
   groups?: NodeGroup[];
   brandId?: string | null;
@@ -109,7 +109,11 @@ export interface CreateWorkflowInput {
   isScheduleEnabled?: boolean;
   metadata?: Record<string, unknown>;
   schedule?: string;
+  /** When `system-catalog`, installs the catalog entry named by `templateId`. */
+  sourceType?: 'system-catalog' | 'seeded-template';
   templateId?: string;
+  /** Clone an existing workflow via POST /workflows { sourceWorkflowId }. */
+  sourceWorkflowId?: string;
   timezone?: string;
   trigger?: string;
 }
@@ -263,7 +267,7 @@ export interface BatchJobSummary {
   createdAt?: string;
 }
 
-/** System catalog entry from GET /workflows/system-catalog (#2176) */
+/** System catalog entry from GET /workflows?source=system-catalog (#2176) */
 export interface SystemWorkflowCatalogEntry {
   canonicalId: string;
   category: string;
@@ -587,16 +591,16 @@ export class WorkflowApiService extends HTTPBaseService {
     }
   }
 
-  /** Duplicate (clone) a workflow */
+  /** Duplicate (clone) a workflow via POST /workflows { sourceWorkflowId } */
   async duplicate(
     id: string,
     options?: { brandId?: string | null },
   ): Promise<CloudWorkflowData> {
     try {
-      const response = await this.instance.post<JsonApiResponseDocument>(
-        `/${id}/clone`,
-        options,
-      );
+      const response = await this.instance.post<JsonApiResponseDocument>('', {
+        ...(options?.brandId ? { brandId: options.brandId } : {}),
+        sourceWorkflowId: id,
+      });
       const item = deserializeResource<CloudWorkflowData>(response.data);
       return this.normalizeWorkflowData(item);
     } catch (error) {
@@ -840,12 +844,17 @@ export class WorkflowApiService extends HTTPBaseService {
     }
   }
 
-  /** List code-owned system workflow catalog entries for the active org */
+  /**
+   * List code-owned system workflow catalog entries for the active org.
+   * Uses the workflows collection with a source filter (#2176).
+   */
   async listSystemCatalog(): Promise<SystemWorkflowCatalogEntry[]> {
     try {
       const response = await this.instance.get<{
         data: SystemWorkflowCatalogEntry[];
-      }>('/system-catalog');
+      }>('', {
+        params: { source: 'system-catalog' },
+      });
       return response.data.data;
     } catch (error) {
       logger.error('Failed to list system workflow catalog', { error });
@@ -855,19 +864,19 @@ export class WorkflowApiService extends HTTPBaseService {
 
   /**
    * Install a system catalog workflow into the organization (#2176).
-   * Idempotent when the template is already installed.
+   * `POST /workflows` with sourceType=system-catalog — idempotent.
    */
   async installSystemCatalog(
     canonicalId: string,
     brandId?: string,
   ): Promise<CloudWorkflowData> {
     try {
-      const response = await this.instance.post<JsonApiResponseDocument>(
-        `/system-catalog/${encodeURIComponent(canonicalId)}/install`,
-        brandId ? { brandId } : {},
-      );
-      const item = deserializeResource<CloudWorkflowData>(response.data);
-      return this.normalizeWorkflowData(item);
+      return await this.create({
+        ...(brandId ? { brandId } : {}),
+        name: canonicalId,
+        sourceType: 'system-catalog',
+        templateId: canonicalId,
+      });
     } catch (error) {
       logger.error('Failed to install system workflow from catalog', {
         canonicalId,

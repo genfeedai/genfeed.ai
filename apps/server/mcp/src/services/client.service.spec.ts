@@ -357,13 +357,14 @@ describe('ClientService (MCP)', () => {
       );
     });
 
-    it('posts lifecycle control actions to the release route', async () => {
-      (mockAxiosInstance.post as Mock).mockResolvedValue(releaseResponse);
+    it('patches lifecycle control actions onto the release route', async () => {
+      (mockAxiosInstance.patch as Mock).mockResolvedValue(releaseResponse);
 
       await service.controlScheduledRelease('release-1', 'pause');
 
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-        '/post-groups/release-1/pause',
+      expect(mockAxiosInstance.patch).toHaveBeenCalledWith(
+        '/post-groups/release-1',
+        { action: 'pause' },
       );
     });
   });
@@ -965,7 +966,7 @@ describe('ClientService (MCP)', () => {
   });
 
   describe('duplicateWorkflow', () => {
-    it('should duplicate a workflow through the clone endpoint', async () => {
+    it('should duplicate a workflow via POST /workflows sourceWorkflowId', async () => {
       const mockResponse = {
         data: {
           data: {
@@ -979,9 +980,9 @@ describe('ClientService (MCP)', () => {
 
       const result = await service.duplicateWorkflow('workflow-123');
 
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-        '/workflows/workflow-123/clone',
-      );
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/workflows', {
+        sourceWorkflowId: 'workflow-123',
+      });
       expect(result.id).toBe('workflow-copy');
       expect(result.name).toBe('System workflow (Copy)');
     });

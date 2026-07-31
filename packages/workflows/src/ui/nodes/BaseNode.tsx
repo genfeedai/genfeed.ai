@@ -339,7 +339,7 @@ function BaseNodeHeader({
         size="icon-sm"
         onClick={onLockToggle}
         className={state.isLocked ? 'text-chart-3' : 'text-muted-foreground'}
-        title={state.isLocked ? 'LockOpen node (L)' : 'Lock node (L)'}
+        title={state.isLocked ? 'Unlock node (L)' : 'Lock node (L)'}
       >
         {state.isLocked ? (
           <Lock className="size-4" />

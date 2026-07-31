@@ -5,11 +5,14 @@ import { UpdateActivityDto } from '@api/collections/activities/dto/update-activi
 import { type ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
-import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import {
+  getIsSuperAdmin,
+  getPublicMetadata,
+} from '@api/helpers/utils/auth/auth.util';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -51,21 +54,56 @@ export class ActivitiesController {
   ) {}
 
   @Get()
-  @RolesDecorator('superadmin')
+  // Members list activities scoped by brand/org (preferred over nested duals).
+  // Superadmins without filters still see all non-deleted activities.
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAll(
     @Req() request: Request,
     @Query() query: ActivitiesQueryDto,
+    @CurrentUser() user: User,
   ): Promise<JsonApiCollectionResponse> {
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
+    const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
+    const where: Record<string, unknown> = { isDeleted };
+    const isSuperAdmin = getIsSuperAdmin(user, request);
+    const hasExplicitTenantFilter = Boolean(query.brand || query.organization);
+
+    if (hasExplicitTenantFilter) {
+      const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
+        query,
+        publicMetadata,
+        isSuperAdmin,
+      );
+      if (scope.brand) {
+        where.brand = scope.brand;
+      }
+      // Always keep a tenant boundary for non-superadmin explicit filters.
+      if (scope.organization) {
+        where.organization = scope.organization;
+      } else if (!isSuperAdmin && publicMetadata.user) {
+        where.user = publicMetadata.user;
+      }
+    } else if (!isSuperAdmin) {
+      // Default member scope: active brand, else org ownership OR.
+      if (publicMetadata.brand) {
+        where.brand = publicMetadata.brand;
+      } else if (publicMetadata.organization) {
+        where.OR = [
+          { user: publicMetadata.user },
+          { organization: publicMetadata.organization },
+        ];
+      } else {
+        where.user = publicMetadata.user;
+      }
+    }
 
     const aggregate = {
-      where: { isDeleted },
+      where,
       orderBy: query.sort
         ? handleQuerySort(query.sort)
         : ({ createdAt: -1, key: 1 } as SortObject),

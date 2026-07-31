@@ -44,12 +44,13 @@ import {
   BaseService,
   type JsonApiResponseDocument,
 } from '@services/core/base.service';
+import { EnvironmentService } from '@services/core/environment.service';
 import { deserializeCollection } from '@services/core/json-api';
 
 const ORGANIZATION_LIST_PAGE_SIZE = 100;
 
 /**
- * Cross-org membership summary returned by `GET /organizations/mine`. A bespoke
+ * Cross-org membership summary returned by `GET /organizations?mine=true`. A bespoke
  * projection (not a serialized Organization) consumed structurally by the org
  * switcher, post-signup routing, and scope controls.
  */
@@ -64,7 +65,7 @@ type MyOrganizationSummary = {
 
 export class OrganizationsService extends BaseService<Organization> {
   /**
-   * In-flight `GET /organizations/mine` request shared across concurrent
+   * In-flight `GET /organizations?mine=true` request shared across concurrent
    * callers. Null when no request is pending. See {@link getMyOrganizations}.
    */
   private myOrganizationsInFlight: Promise<MyOrganizationSummary[]> | null =
@@ -88,9 +89,10 @@ export class OrganizationsService extends BaseService<Organization> {
     query?: IQueryParams,
   ): Promise<Brand[]> {
     return await this.instance
-      .get<JsonApiResponseDocument>(`/${id}/brands`, {
-        params: query,
-      })
+      .get<JsonApiResponseDocument>(
+        `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.BRANDS}`,
+        { params: { ...query, organization: id } },
+      )
       .then((res) => {
         const document = res.data;
         const pagination = document.links?.pagination;
@@ -123,8 +125,12 @@ export class OrganizationsService extends BaseService<Organization> {
     id: string,
     query?: IQueryParams,
   ): Promise<Tag[]> {
+    // Collection endpoint: GET /tags?organization=
     return await this.instance
-      .get<JsonApiResponseDocument>(`/${id}/tags`, { params: query })
+      .get<JsonApiResponseDocument>(
+        `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.TAGS}`,
+        { params: { ...query, organization: id } },
+      )
       .then((res) => {
         const tags = this.extractCollection<Partial<Tag>>(res.data);
         return tags.map((item) => new Tag(item));
@@ -135,6 +141,8 @@ export class OrganizationsService extends BaseService<Organization> {
     id: string,
     query?: IQueryParams,
   ): Promise<Ingredient[]> {
+    // Mixed-category ingredient list still lives on the org relationship route;
+    // typed collections (/videos, /images, …) cover single-category surfaces.
     return await this.instance
       .get<JsonApiResponseDocument>(`/${id}/ingredients`, {
         params: query,
@@ -291,9 +299,10 @@ export class OrganizationsService extends BaseService<Organization> {
     query?: IQueryParams,
   ): Promise<Activity[]> {
     return await this.instance
-      .get<JsonApiResponseDocument>(`/${id}/activities`, {
-        params: query,
-      })
+      .get<JsonApiResponseDocument>(
+        `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.ACTIVITIES}`,
+        { params: { ...query, organization: id } },
+      )
       .then((res) => {
         const document = res.data;
         const pagination = document.links?.pagination;
@@ -327,9 +336,10 @@ export class OrganizationsService extends BaseService<Organization> {
     query?: IQueryParams,
   ): Promise<IPaginatedResponse<Post>> {
     return await this.instance
-      .get<JsonApiResponseDocument>(`/${id}/posts`, {
-        params: query,
-      })
+      .get<JsonApiResponseDocument>(
+        `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.POSTS}`,
+        { params: { ...query, organization: id } },
+      )
       .then((response) => {
         const document = response.data;
         const items = this.extractCollection<Partial<IPost>>(document).map(
@@ -428,7 +438,7 @@ export class OrganizationsService extends BaseService<Organization> {
   public getMyOrganizations(): Promise<MyOrganizationSummary[]> {
     // Coalesce concurrent callers onto a single request. The protected sidebar
     // mounts OrganizationSwitcher twice at once (desktop + CSS-hidden mobile),
-    // so a naive fetch fires GET /mine ×2 on every shell mount. BaseService
+    // so a naive fetch fires GET ?mine=true ×2 on every shell mount. BaseService
     // pools this service per auth token (getDataServiceInstance), so this
     // in-flight promise is shared across both mounts and is automatically
     // identity-scoped: a different token resolves to a different pooled
@@ -439,7 +449,7 @@ export class OrganizationsService extends BaseService<Organization> {
     }
 
     const request = this.instance
-      .get<MyOrganizationSummary[]>('/mine')
+      .get<MyOrganizationSummary[]>('', { params: { mine: true } })
       .then((res) =>
         // Defensive dedup by org id: a duplicate entry here renders twice in
         // the org switcher with the active checkmark on both rows (the
@@ -530,7 +540,7 @@ export class OrganizationsService extends BaseService<Organization> {
       .post<{
         organization: { id: string; label: string };
         brand: { id: string; label: string };
-      }>('/create', data)
+      }>('', data)
       .then((res) => res.data);
   }
 

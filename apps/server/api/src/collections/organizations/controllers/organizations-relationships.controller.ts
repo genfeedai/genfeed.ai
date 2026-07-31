@@ -1,46 +1,34 @@
 /**
  * Organizations Relationships Controller
  * Handles organization relationship routes:
- * - Get organization brands
- * - Get organization analytics
- * - Get organization ingredients
- * - Get organization videos
- * - Get organization tags
- * - Get organization posts
- * - Get organization activities
+ * - Get organization analytics (aggregates — no flat dual)
+ * - Get organization ingredients (no flat mixed list)
+ *
+ * Prefer flat lists for relationship duals:
+ * - GET /brands?organization=
+ * - GET /posts?organization=
+ * - GET /activities?organization=
+ * - GET /videos (org-scoped via session)
+ * - GET /tags?organization=
  */
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import type { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { OrganizationQueryDto } from '@api/collections/organizations/dto/organization-query.dto';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import {
   AnalyticsQueryDto,
   TimeSeriesQueryDto,
   TopContentQueryDto,
 } from '@api/collections/posts/dto/analytics-query.dto';
-import { PostsQueryDto } from '@api/collections/posts/dto/posts-query.dto';
-import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
-import { PostsService } from '@api/collections/posts/services/posts.service';
-import type { TagDocument } from '@api/collections/tags/schemas/tag.schema';
-import { TagsService } from '@api/collections/tags/services/tags.service';
-import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
-import type { VideoDocument } from '@api/collections/videos/schemas/video.schema';
-import { VideosService } from '@api/collections/videos/services/videos.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   getIsSuperAdmin,
@@ -57,23 +45,17 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { MemberRole, PostStatus } from '@genfeedai/enums';
+import { MemberRole } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-  SortObject,
 } from '@genfeedai/interfaces';
 import {
-  ActivitySerializer,
   AnalyticSerializer,
   AnalyticsPlatformSerializer,
   AnalyticsTimeseriesWithPlatformsSerializer,
   AnalyticsTopContentSerializer,
-  BrandSerializer,
   IngredientSerializer,
-  PostSerializer,
-  TagSerializer,
-  VideoSerializer,
 } from '@genfeedai/serializers';
 import {
   Controller,
@@ -96,16 +78,11 @@ import type { Request } from 'express';
 @UseGuards(RolesGuard)
 export class OrganizationsRelationshipsController {
   constructor(
-    private readonly activitiesService: ActivitiesService,
     private readonly analyticsAggregationService: AnalyticsAggregationService,
-    private readonly brandsService: BrandsService,
     private readonly credentialsService: CredentialsService,
     private readonly ingredientsService: IngredientsService,
     private readonly membersService: MembersService,
     private readonly organizationsService: OrganizationsService,
-    private readonly postsService: PostsService,
-    private readonly tagsService: TagsService,
-    private readonly videosService: VideosService,
   ) {}
 
   /**
@@ -141,41 +118,6 @@ export class OrganizationsRelationshipsController {
         HttpStatus.FORBIDDEN,
       );
     }
-  }
-
-  @Get(':organizationId/brands')
-  @Cache({ tags: ['brands'], ttl: 300 })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findAllBrands(
-    @Req() request: Request,
-    @Param('organizationId') organizationId: string,
-    @CurrentUser() user: User,
-    @Query() query: OrganizationQueryDto,
-  ): Promise<JsonApiCollectionResponse> {
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-
-    const options = {
-      customLabels,
-      ...QueryDefaultsUtil.getPaginationDefaults(query),
-    };
-
-    const publicMetadata = getPublicMetadata(user);
-    const data: AggregatePaginateResult<BrandDocument> =
-      await this.brandsService.findAll(
-        {
-          include: { credentials: true },
-          orderBy: handleQuerySort(query.sort),
-          where: {
-            OR: [
-              { user: publicMetadata.user },
-              { organization: organizationId },
-            ],
-            isDeleted,
-          },
-        },
-        options,
-      );
-    return serializeCollection(request, BrandSerializer, data);
   }
 
   @Get(':organizationId/analytics')
@@ -416,174 +358,5 @@ export class OrganizationsRelationshipsController {
     return serializeCollection(request, IngredientSerializer, data);
   }
 
-  @Get(':organizationId/videos')
-  @Cache({ tags: ['videos'], ttl: 60 })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findAllVideos(
-    @Req() request: Request,
-    @Param('organizationId') organizationId: string,
-    @CurrentUser() user: User,
-    @Query() query: VideosQueryDto,
-  ): Promise<JsonApiCollectionResponse> {
-    const options = {
-      customLabels,
-      ...QueryDefaultsUtil.getPaginationDefaults(query),
-    };
-
-    const publicMetadata = getPublicMetadata(user);
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const data = (await this.videosService.findAll(
-      {
-        orderBy: handleQuerySort(query.sort),
-        where: {
-          isDeleted,
-          organization: organizationId,
-          user: publicMetadata.user,
-        },
-      },
-      options,
-    )) as unknown as AggregatePaginateResult<VideoDocument>;
-    return serializeCollection(request, VideoSerializer, data);
-  }
-
-  @Get(':organizationId/tags')
-  @Cache({ tags: ['tags'], ttl: 600 })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findAllTags(
-    @Req() request: Request,
-    @Param('organizationId') organizationId: string,
-    @CurrentUser() user: User,
-    @Query() query: BaseQueryDto,
-  ): Promise<JsonApiCollectionResponse> {
-    const options = {
-      customLabels,
-      ...QueryDefaultsUtil.getPaginationDefaults(query),
-    };
-    const publicMetadata = getPublicMetadata(user);
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-
-    const data: AggregatePaginateResult<TagDocument> =
-      await this.tagsService.findAll(
-        {
-          orderBy: handleQuerySort(query.sort),
-          where: {
-            OR: [
-              { organizationId: null, userId: null },
-              { organizationId },
-              { userId: publicMetadata.user },
-            ],
-            isDeleted,
-          },
-        },
-        options,
-      );
-    return serializeCollection(request, TagSerializer, data);
-  }
-
-  @Get(':organizationId/posts')
-  @Cache({ tags: ['posts'], ttl: 60 })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findAllPosts(
-    @Req() request: Request,
-    @Param('organizationId') organizationId: string,
-    @CurrentUser() user: User,
-    @Query() query: PostsQueryDto,
-  ): Promise<JsonApiCollectionResponse> {
-    await this.verifyOrganizationAccess(request, organizationId, user);
-
-    const options = {
-      customLabels,
-      ...QueryDefaultsUtil.getPaginationDefaults(query),
-    };
-
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const scheduledDate: { gte?: Date; lte?: Date } = {};
-    if (query.startDate) {
-      scheduledDate.gte = new Date(query.startDate);
-    }
-    if (query.endDate) {
-      scheduledDate.lte = new Date(query.endDate);
-    }
-
-    const where: Record<string, unknown> = {
-      isDeleted,
-      organization: organizationId,
-      parentId: null,
-      ...(Object.keys(scheduledDate).length > 0 && { scheduledDate }),
-      ...(query.platform && { platform: query.platform }),
-      ...(query.publicationState === 'posted'
-        ? { status: PostStatus.PUBLIC }
-        : query.publicationState === 'not-posted'
-          ? { status: { not: PostStatus.PUBLIC } }
-          : query.status
-            ? { status: query.status }
-            : {}),
-      ...(query.credential && { credential: query.credential }),
-      ...(query.search?.trim()
-        ? {
-            OR: [
-              {
-                description: {
-                  contains: query.search.trim(),
-                  mode: 'insensitive',
-                },
-              },
-              {
-                label: {
-                  contains: query.search.trim(),
-                  mode: 'insensitive',
-                },
-              },
-            ],
-          }
-        : {}),
-    };
-
-    const data: AggregatePaginateResult<PostDocument> =
-      await this.postsService.findAll(
-        {
-          include: {
-            credential: true,
-            ingredients: true,
-            postAnalytics: true,
-          },
-          orderBy: handleQuerySort(query.sort),
-          where,
-        },
-        options,
-      );
-    return serializeCollection(request, PostSerializer, data);
-  }
-
-  @Get(':organizationId/activities')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findAllActivities(
-    @Req() request: Request,
-    @Param('organizationId') organizationId: string,
-    @CurrentUser() user: User,
-    @Query() query: BaseQueryDto,
-  ): Promise<JsonApiCollectionResponse> {
-    await this.verifyOrganizationAccess(request, organizationId, user);
-
-    const options = {
-      customLabels,
-      ...QueryDefaultsUtil.getPaginationDefaults(query),
-    };
-
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const data: AggregatePaginateResult<ActivityDocument> =
-      await this.activitiesService.findAll(
-        {
-          orderBy: query.sort
-            ? handleQuerySort(query.sort)
-            : ({ createdAt: -1, key: 1, label: 1 } as SortObject),
-          where: {
-            isDeleted,
-            organization: organizationId,
-          },
-        },
-        options,
-      );
-    return serializeCollection(request, ActivitySerializer, data);
-  }
+  // Nested videos/tags duals removed: prefer GET /videos and GET /tags?organization=
 }

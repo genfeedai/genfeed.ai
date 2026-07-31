@@ -51,15 +51,15 @@ export class ElementsScenesController extends BaseCRUDController<
     super(loggerService, scenesService, SceneSerializer, 'ElementScene');
   }
 
-  @Get(':sceneId')
+  @Get(':id')
   @ApiOperation({ summary: 'Get a specific scene' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   findOne(
     @Req() request: Request,
     @CurrentUser() _user: User,
-    @Param('sceneId') sceneId: string,
+    @Param('id') id: string,
   ) {
-    return super.findOne(request, _user, sceneId);
+    return super.findOne(request, _user, id);
   }
 
   @Post()
@@ -74,29 +74,29 @@ export class ElementsScenesController extends BaseCRUDController<
     return super.create(request, user, createDto);
   }
 
-  @Patch(':sceneId')
+  @Patch(':id')
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Update a scene' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   update(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Param('sceneId') sceneId: string,
+    @Param('id') id: string,
     @Body() updateDto: UpdateElementSceneDto,
   ) {
-    return super.patch(request, user, sceneId, updateDto);
+    return super.patch(request, user, id, updateDto);
   }
 
-  @Delete(':sceneId')
+  @Delete(':id')
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Delete a scene' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   remove(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Param('sceneId') sceneId: string,
+    @Param('id') id: string,
   ) {
-    return super.remove(request, user, sceneId);
+    return super.remove(request, user, id);
   }
 
   public buildFindAllQuery(user: User, query: BaseQueryDto) {

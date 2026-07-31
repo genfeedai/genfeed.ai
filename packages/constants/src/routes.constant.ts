@@ -66,16 +66,6 @@ export const APP_ROUTES = {
     },
     FOLDERS: '/admin/folders',
     IMAGES: '/admin/images',
-    DARKROOM: {
-      CHARACTERS: '/admin/fleet/characters',
-      GALLERY: '/admin/fleet/gallery',
-      GENERATE: '/admin/fleet/generate',
-      INFRASTRUCTURE: '/admin/fleet/infrastructure',
-      LIP_SYNC: '/admin/fleet/lip-sync',
-      PIPELINE: '/admin/fleet/pipeline',
-      TRAINING: '/admin/fleet/training',
-      VOICES: '/admin/fleet/voices',
-    },
     LIBRARY: {
       VOICES: '/admin/library/voices',
     },

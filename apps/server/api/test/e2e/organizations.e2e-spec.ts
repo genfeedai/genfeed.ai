@@ -5,18 +5,31 @@
  */
 
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
+import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
+import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { ImagesService } from '@api/collections/images/services/images.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { LinksService } from '@api/collections/links/services/links.service';
 import { MembersService } from '@api/collections/members/services/members.service';
+import { MusicsService } from '@api/collections/musics/services/musics.service';
 // Import controllers and services
 import { OrganizationsController } from '@api/collections/organizations/controllers/organizations.controller';
+import { OrganizationsRelationshipsController } from '@api/collections/organizations/controllers/organizations-relationships.controller';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { PostsController } from '@api/collections/posts/controllers/posts.controller';
+import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
+import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { QuotaService } from '@api/services/quota/quota.service';
 import {
   createTestBrand,
   createTestCredential,
@@ -39,6 +52,14 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 
+const inertService = {
+  create: () => Promise.resolve(null),
+  findAll: () => Promise.resolve({ docs: [], total: 0 }),
+  findOne: () => Promise.resolve(null),
+  remove: () => Promise.resolve(null),
+  update: () => Promise.resolve(null),
+};
+
 describe('Organizations E2E Tests', () => {
   let app: INestApplication;
   let moduleRef: TestingModule;
@@ -52,7 +73,12 @@ describe('Organizations E2E Tests', () => {
 
   beforeAll(async () => {
     const moduleConfig = await E2ETestModule.forRoot({
-      controllers: [OrganizationsController],
+      controllers: [
+        OrganizationsController,
+        OrganizationsRelationshipsController,
+        BrandsController,
+        PostsController,
+      ],
       providers: [
         OrganizationsService,
         BrandsService,
@@ -65,6 +91,41 @@ describe('Organizations E2E Tests', () => {
         SettingsService,
         UsersService,
         AssetsService,
+        CredentialsService,
+        LinksService,
+        AnalyticsAggregationService,
+        {
+          provide: ArticlesService,
+          useValue: inertService,
+        },
+        {
+          provide: ImagesService,
+          useValue: inertService,
+        },
+        {
+          provide: MusicsService,
+          useValue: inertService,
+        },
+        {
+          provide: BrandSetupService,
+          useValue: {
+            setupBrand: () => Promise.resolve(null),
+          },
+        },
+        {
+          provide: AccountHealthService,
+          useValue: inertService,
+        },
+        {
+          provide: PostAnalyticsService,
+          useValue: inertService,
+        },
+        {
+          provide: QuotaService,
+          useValue: {
+            assertWithinQuota: () => Promise.resolve(),
+          },
+        },
       ],
     });
 
@@ -154,7 +215,7 @@ describe('Organizations E2E Tests', () => {
       .set('x-organization-id', testOrganization.id.toString());
   };
 
-  describe('GET /v1/organizations/:organizationId/brands', () => {
+  describe('GET /v1/brands?organization=', () => {
     beforeEach(async () => {
       // Add more brands for testing
       const additionalBrands = [
@@ -178,7 +239,7 @@ describe('Organizations E2E Tests', () => {
 
     it('should return all brands for organization', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization.id}/brands`,
+        `/v1/brands?organization=${testOrganization.id}`,
       );
 
       expect(response.status).toBe(200);
@@ -189,7 +250,7 @@ describe('Organizations E2E Tests', () => {
 
     it('should return brands with correct structure', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization.id}/brands`,
+        `/v1/brands?organization=${testOrganization.id}`,
       );
 
       expect(response.status).toBe(200);
@@ -211,7 +272,7 @@ describe('Organizations E2E Tests', () => {
       await dbHelper.seedCollection('brands', [deletedBrand]);
 
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization.id}/brands`,
+        `/v1/brands?organization=${testOrganization.id}`,
       );
 
       expect(response.status).toBe(200);
@@ -221,7 +282,7 @@ describe('Organizations E2E Tests', () => {
 
     it('should support pagination', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization.id}/brands?page[size]=2&page[number]=1`,
+        `/v1/brands?organization=${testOrganization.id}&page=1&limit=2`,
       );
 
       expect(response.status).toBe(200);
@@ -293,7 +354,7 @@ describe('Organizations E2E Tests', () => {
     });
   });
 
-  describe('GET /v1/organizations/:organizationId/posts', () => {
+  describe('GET /v1/posts?organization=', () => {
     beforeEach(async () => {
       // Create credentials for posts
       const credential = createTestCredential({
@@ -332,7 +393,7 @@ describe('Organizations E2E Tests', () => {
 
     it('should return posts for organization', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization.id}/posts`,
+        `/v1/posts?organization=${testOrganization.id}`,
       );
 
       expect(response.status).toBe(200);
@@ -343,7 +404,7 @@ describe('Organizations E2E Tests', () => {
 
     it('should return posts with populated credentials', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization.id}/posts`,
+        `/v1/posts?organization=${testOrganization.id}`,
       );
 
       expect(response.status).toBe(200);
@@ -366,7 +427,7 @@ describe('Organizations E2E Tests', () => {
       await dbHelper.seedCollection('posts', [deletedPost]);
 
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization.id}/posts`,
+        `/v1/posts?organization=${testOrganization.id}`,
       );
 
       expect(response.status).toBe(200);
@@ -464,8 +525,9 @@ describe('Organizations E2E Tests', () => {
       });
       await dbHelper.seedCollection('users', [otherUser]);
 
+      // Nested ingredients dual still enforces org membership.
       const response = await request(app.getHttpServer())
-        .get(`/v1/organizations/${testOrganization.id}/posts`)
+        .get(`/v1/organizations/${testOrganization.id}/ingredients`)
         .set('Authorization', 'Bearer mock-jwt-token')
         .set('x-authProvider-user-id', otherUser.id.toString())
         .set('x-user-id', otherUser.id.toString())
@@ -495,7 +557,7 @@ describe('Organizations E2E Tests', () => {
       await dbHelper.seedCollection('members', [membership]);
 
       const response = await request(app.getHttpServer())
-        .get(`/v1/organizations/${testOrganization.id}/brands`)
+        .get(`/v1/brands?organization=${testOrganization.id}`)
         .set('Authorization', 'Bearer mock-jwt-token')
         .set('x-authProvider-user-id', memberUser.id.toString())
         .set('x-user-id', memberUser.id.toString())
@@ -551,7 +613,7 @@ describe('Organizations E2E Tests', () => {
 
     it('should not return brands from other organizations', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization.id}/brands`,
+        `/v1/brands?organization=${testOrganization.id}`,
       );
 
       expect(response.status).toBe(200);
@@ -592,7 +654,7 @@ describe('Organizations E2E Tests', () => {
   describe('Error Handling', () => {
     it('should return 400 for invalid organization ID format', async () => {
       const response = await authenticatedRequest().get(
-        '/v1/organizations/invalid-id/brands',
+        '/v1/organizations/invalid-id/ingredients',
       );
 
       // The response might be 400 or 404 depending on validation
@@ -603,7 +665,7 @@ describe('Organizations E2E Tests', () => {
       const nonExistentId = generateIdString();
 
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${nonExistentId}/brands`,
+        `/v1/organizations/${nonExistentId}/ingredients`,
       );
 
       // Might return empty data or 404
@@ -614,7 +676,7 @@ describe('Organizations E2E Tests', () => {
   describe('Sorting', () => {
     it('should support sorting by createdAt descending', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization.id}/brands?sort=-createdAt`,
+        `/v1/brands?organization=${testOrganization.id}&sort=-createdAt`,
       );
 
       expect(response.status).toBe(200);
@@ -624,7 +686,7 @@ describe('Organizations E2E Tests', () => {
 
     it('should support sorting by label ascending', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization.id}/brands?sort=label`,
+        `/v1/brands?organization=${testOrganization.id}&sort=label`,
       );
 
       expect(response.status).toBe(200);

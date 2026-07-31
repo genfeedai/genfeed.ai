@@ -458,7 +458,7 @@ async function resolveActiveWorkspaceSlugs(
 
     try {
       organizationsResponse = await fetch(
-        `${getApiBaseUrl()}/organizations/mine`,
+        `${getApiBaseUrl()}/organizations?mine=true`,
         {
           cache: 'no-store',
           headers,

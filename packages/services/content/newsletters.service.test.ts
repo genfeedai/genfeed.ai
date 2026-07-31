@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockInstance = {
   get: vi.fn(),
+  patch: vi.fn(),
   post: vi.fn(),
 };
 
@@ -58,8 +59,8 @@ describe('NewslettersService', () => {
     vi.clearAllMocks();
   });
 
-  it('publishes a newsletter through the publish endpoint', async () => {
-    mockInstance.post.mockResolvedValue({
+  it('publishes a newsletter through PATCH action=publish', async () => {
+    mockInstance.patch.mockResolvedValue({
       data: {
         data: {
           content: '# Issue',
@@ -73,7 +74,9 @@ describe('NewslettersService', () => {
 
     const result = await service.publish('newsletter-1');
 
-    expect(mockInstance.post).toHaveBeenCalledWith('newsletter-1/publish', {});
+    expect(mockInstance.patch).toHaveBeenCalledWith('newsletter-1', {
+      action: 'publish',
+    });
     expect(result).toBeInstanceOf(Newsletter);
     expect(result.status).toBe('published');
   });

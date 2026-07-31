@@ -46,7 +46,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
 @ApiTags('Admin / Fleet')
-@Controller(['admin/fleet', 'admin/darkroom'])
+@Controller('admin/fleet')
 @UseGuards(IpWhitelistGuard, SuperAdminGuard)
 class AdminFleetController {
   constructor(

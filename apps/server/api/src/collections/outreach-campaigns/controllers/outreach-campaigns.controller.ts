@@ -3,7 +3,7 @@ import { CampaignTargetsService } from '@api/collections/campaign-targets/servic
 import { AddCampaignTargetsDto } from '@api/collections/outreach-campaigns/dto/add-campaign-targets.dto';
 import { CreateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/create-outreach-campaign.dto';
 import type { OutreachCampaignsQueryDto } from '@api/collections/outreach-campaigns/dto/outreach-campaigns-query.dto';
-import type { UpdateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/update-outreach-campaign.dto';
+import { UpdateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/update-outreach-campaign.dto';
 import type { OutreachCampaignDocument } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
 import { parseCampaignTargetUrl } from '@api/collections/outreach-campaigns/services/campaign-target-url.util';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
@@ -19,6 +19,7 @@ import type { BaseService } from '@api/shared/services/base/base.service';
 import {
   CampaignDiscoverySource,
   type CampaignPlatform,
+  CampaignStatus,
   CampaignTargetStatus,
   CampaignTargetType,
   CampaignType,
@@ -33,6 +34,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Req,
 } from '@nestjs/common';
@@ -168,66 +170,58 @@ export class OutreachCampaignsController extends BaseCRUDController<
   }
 
   /**
-   * Start a campaign
+   * Lifecycle transitions prefer `PATCH /outreach-campaigns/:id` with
+   * `{ status: "active" | "paused" | "completed" }` (mirrors agent-campaigns).
    */
-  @Post(':id/start')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Start a campaign' })
-  @ApiResponse({ description: 'Campaign started successfully', status: 200 })
-  async startCampaign(
+  @Patch(':id')
+  @ApiOperation({
+    summary: 'Update a campaign (status transitions via status field)',
+  })
+  async patchCampaign(
     @Req() request: Request,
     @Param('id') id: string,
     @CurrentUser() user: User,
+    @Body() updateDto: UpdateOutreachCampaignDto,
   ) {
     const publicMetadata = getPublicMetadata(user);
-    const data = await this.outreachCampaignsService.start(
-      id,
-      publicMetadata.organization,
-      publicMetadata.brand,
+    const hasNonStatusUpdates = Object.entries(updateDto).some(
+      ([key, value]) => key !== 'status' && value !== undefined,
     );
-    return serializeSingle(request, OutreachCampaignSerializer, data);
-  }
 
-  /**
-   * Pause a campaign
-   */
-  @Post(':id/pause')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Pause a campaign' })
-  @ApiResponse({ description: 'Campaign paused successfully', status: 200 })
-  async pauseCampaign(
-    @Req() request: Request,
-    @Param('id') id: string,
-    @CurrentUser() user: User,
-  ) {
-    const publicMetadata = getPublicMetadata(user);
-    const data = await this.outreachCampaignsService.pause(
-      id,
-      publicMetadata.organization,
-      publicMetadata.brand,
-    );
-    return serializeSingle(request, OutreachCampaignSerializer, data);
-  }
+    if (updateDto.status && hasNonStatusUpdates) {
+      throw new BadRequestException(
+        'Campaign status transitions cannot be combined with other updates',
+      );
+    }
 
-  /**
-   * Complete a campaign
-   */
-  @Post(':id/complete')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Complete a campaign' })
-  @ApiResponse({ description: 'Campaign completed successfully', status: 200 })
-  async completeCampaign(
-    @Req() request: Request,
-    @Param('id') id: string,
-    @CurrentUser() user: User,
-  ) {
-    const publicMetadata = getPublicMetadata(user);
-    const data = await this.outreachCampaignsService.complete(
-      id,
-      publicMetadata.organization,
-      publicMetadata.brand,
-    );
-    return serializeSingle(request, OutreachCampaignSerializer, data);
+    if (updateDto.status === CampaignStatus.ACTIVE) {
+      const data = await this.outreachCampaignsService.start(
+        id,
+        publicMetadata.organization,
+        publicMetadata.brand,
+      );
+      return serializeSingle(request, OutreachCampaignSerializer, data);
+    }
+
+    if (updateDto.status === CampaignStatus.PAUSED) {
+      const data = await this.outreachCampaignsService.pause(
+        id,
+        publicMetadata.organization,
+        publicMetadata.brand,
+      );
+      return serializeSingle(request, OutreachCampaignSerializer, data);
+    }
+
+    if (updateDto.status === CampaignStatus.COMPLETED) {
+      const data = await this.outreachCampaignsService.complete(
+        id,
+        publicMetadata.organization,
+        publicMetadata.brand,
+      );
+      return serializeSingle(request, OutreachCampaignSerializer, data);
+    }
+
+    return super.patch(request, user, id, updateDto);
   }
 
   /**

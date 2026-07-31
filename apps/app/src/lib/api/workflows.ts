@@ -107,9 +107,16 @@ export const workflowsApi = {
     const options = isAbortSignal ? undefined : optionsOrSignal;
     const requestSignal = isAbortSignal ? optionsOrSignal : signal;
 
-    return apiClient.post<WorkflowData>(`/workflows/${id}/clone`, options, {
-      signal: requestSignal,
-    });
+    return apiClient.post<WorkflowData>(
+      '/workflows',
+      {
+        ...(options && typeof options === 'object' && 'brandId' in options
+          ? { brandId: options.brandId }
+          : {}),
+        sourceWorkflowId: id,
+      },
+      { signal: requestSignal },
+    );
   },
 
   // Export/Import endpoints

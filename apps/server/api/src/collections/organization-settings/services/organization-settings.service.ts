@@ -48,8 +48,8 @@ export class OrganizationSettingsService extends BaseService<
   /**
    * Org-bootstrap chokepoint: all organization-creation paths funnel through
    * settings creation. System workflows are **not** cloned here (#2176) —
-   * tenants discover them via `GET /workflows/system-catalog` and install
-   * opt-in via `POST /workflows/system-catalog/:canonicalId/install`.
+   * tenants discover them via `GET /workflows?source=system-catalog` and
+   * install via `POST /workflows` with `sourceType: "system-catalog"`.
    */
   async create(
     createDto: CreateOrganizationSettingDto,

@@ -133,15 +133,18 @@ describe('SmartSchedulerService', () => {
     );
   });
 
-  it('cancelSchedule POSTs to /automation/schedules/:id/cancel', async () => {
+  it('cancelSchedule PATCHes /automation/schedules/:id with cancelled status', async () => {
     mockFetch.mockResolvedValue(makeOkResponse({}));
 
     const svc = SmartSchedulerService.getInstance(token);
     await svc.cancelSchedule('sched-2');
 
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining('/automation/schedules/sched-2/cancel'),
-      expect.objectContaining({ method: 'POST' }),
+      expect.stringContaining('/automation/schedules/sched-2'),
+      expect.objectContaining({
+        body: JSON.stringify({ status: 'cancelled' }),
+        method: 'PATCH',
+      }),
     );
   });
 

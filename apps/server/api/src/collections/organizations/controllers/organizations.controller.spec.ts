@@ -34,19 +34,11 @@ import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { SubscriptionTier } from '@genfeedai/enums';
+import type { OrganizationOption } from '@genfeedai/interfaces';
 import { SINGLE_ORGANIZATION_LIMIT } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-
-interface FindMineEntry {
-  brand: { id: string; label: string } | null;
-  id: string;
-  isActive: boolean;
-  isOwner: boolean;
-  label: string;
-  slug: string;
-}
 
 describe('OrganizationsController', () => {
   let controller: OrganizationsController;
@@ -196,7 +188,7 @@ describe('OrganizationsController', () => {
 
       const result = (await controller.findMine(
         currentUser,
-      )) as FindMineEntry[];
+      )) as OrganizationOption[];
 
       expect(mockOrganizationsService.findOne).toHaveBeenCalledWith({
         _id: 'org_a',
@@ -229,7 +221,7 @@ describe('OrganizationsController', () => {
 
       const result = (await controller.findMine(
         currentUser,
-      )) as FindMineEntry[];
+      )) as OrganizationOption[];
 
       expect(result).toHaveLength(1);
       expect(mockOrganizationsService.findOne).toHaveBeenCalledTimes(1);
@@ -249,7 +241,7 @@ describe('OrganizationsController', () => {
 
       const result = (await controller.findMine(
         currentUser,
-      )) as FindMineEntry[];
+      )) as OrganizationOption[];
 
       expect(result).toHaveLength(1);
       expect(mockOrganizationsService.findOne).toHaveBeenCalledTimes(1);
@@ -272,7 +264,7 @@ describe('OrganizationsController', () => {
 
       const result = (await controller.findMine(
         currentUser,
-      )) as FindMineEntry[];
+      )) as OrganizationOption[];
 
       expect(result.map((entry) => entry.id)).toEqual(['org_legacy']);
     });
@@ -293,7 +285,7 @@ describe('OrganizationsController', () => {
 
       const result = (await controller.findMine(
         currentUser,
-      )) as FindMineEntry[];
+      )) as OrganizationOption[];
 
       expect(
         result.map((entry) => ({ id: entry.id, isActive: entry.isActive })),
@@ -315,7 +307,7 @@ describe('OrganizationsController', () => {
 
       const result = (await controller.findMine(
         currentUser,
-      )) as FindMineEntry[];
+      )) as OrganizationOption[];
 
       expect(result).toEqual([
         {
@@ -346,6 +338,32 @@ describe('OrganizationsController', () => {
 
       expect(result).toEqual([]);
       expect(mockOrganizationsService.findOne).not.toHaveBeenCalled();
+    });
+
+    it('returns the mine collection as the documented raw option array', async () => {
+      mockMembersService.find.mockResolvedValue([]);
+      mockOrganizationsService.findOne.mockResolvedValue({
+        id: 'org_active',
+        label: 'Active Org',
+        slug: 'active-org',
+        userId: 'user_1',
+      });
+      mockBrandsService.findOne.mockResolvedValue(null);
+
+      const result = await controller.findAll({} as never, currentUser, {
+        mine: true,
+      });
+
+      expect(result).toEqual([
+        {
+          brand: null,
+          id: 'org_active',
+          isActive: true,
+          isOwner: true,
+          label: 'Active Org',
+          slug: 'active-org',
+        },
+      ]);
     });
   });
 

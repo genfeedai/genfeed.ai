@@ -32,6 +32,7 @@ import {
   BrandSerializer,
 } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ForbiddenException } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -298,6 +299,49 @@ describe('BrandsController', () => {
         organization: organizationId,
       });
       expect(result.orderBy).toEqual({ label: 1 });
+    });
+
+    it('scopes members to owned brands or their session organization', () => {
+      const organizationId = (mockUser.publicMetadata as IAuthPublicMetadata)
+        .organization;
+      const query = {
+        isDeleted: false,
+        organization: organizationId,
+        sort: 'label: 1',
+      } as BaseQueryDto;
+
+      const result = controller.buildFindAllQuery(mockUser, query);
+
+      expect(result.where).toEqual({
+        isDeleted: false,
+        OR: [
+          { user: (mockUser.publicMetadata as IAuthPublicMetadata).user },
+          { organization: organizationId },
+        ],
+      });
+      expect(result.orderBy).toEqual({ label: 1 });
+    });
+
+    it('rejects member organization filters outside the session org', () => {
+      const query = {
+        isDeleted: false,
+        organization: 'org-foreign-not-in-session',
+        sort: 'label: 1',
+      } as BaseQueryDto;
+
+      const call = () => controller.buildFindAllQuery(mockUser, query);
+
+      expect(call).toThrow(ForbiddenException);
+
+      try {
+        call();
+        expect.unreachable('expected a ForbiddenException');
+      } catch (error) {
+        expect((error as ForbiddenException).getResponse()).toEqual({
+          detail: 'Access denied to this organization',
+          title: 'Forbidden',
+        });
+      }
     });
   });
 

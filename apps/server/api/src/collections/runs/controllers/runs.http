@@ -79,8 +79,13 @@ Authorization: Bearer {{bearerToken}}
 
 
 ### Cancel Run
-POST {{apiBaseUrl}}/runs/{{testRunId}}/cancel
+PATCH {{apiBaseUrl}}/runs/{{testRunId}}
 Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "status": "cancelled"
+}
 
 
 ########################################
@@ -141,8 +146,13 @@ Content-Type: application/json
 
 
 ### Test: Cancel Already Completed Run
-POST {{apiBaseUrl}}/runs/{{testRunId}}/cancel
+PATCH {{apiBaseUrl}}/runs/{{testRunId}}
 Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "status": "cancelled"
+}
 
 
 ### Test: Unauthorized Access

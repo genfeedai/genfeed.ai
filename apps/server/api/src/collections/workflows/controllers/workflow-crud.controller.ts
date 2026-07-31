@@ -1,9 +1,12 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { CloneWorkflowDto } from '@api/collections/workflows/dto/clone-workflow.dto';
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import { WorkflowQueryDto } from '@api/collections/workflows/dto/query-workflow.dto';
 import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflow.dto';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
+import {
+  type SystemWorkflowCatalogListItem,
+  SystemWorkflowCatalogService,
+} from '@api/collections/workflows/services/system-workflow-catalog.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { SYSTEM_WORKFLOW_METADATA_KEY } from '@api/collections/workflows/system-workflow.contract';
@@ -44,17 +47,20 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBody } from '@nestjs/swagger';
 import type { Request } from 'express';
 
-type WorkflowStatistics = Awaited<
-  ReturnType<WorkflowsService['getWorkflowStatistics']>
->;
+export interface SystemWorkflowCatalogResponse {
+  data: SystemWorkflowCatalogListItem[];
+}
+
+export interface WorkflowStatisticsResponse {
+  data: Awaited<ReturnType<WorkflowsService['getWorkflowStatistics']>>;
+}
 
 /**
- * Standard workflow CRUD (+ statistics and ComfyUI export). Registered LAST
+ * Standard workflow CRUD (+ statistics view and ComfyUI export). Registered LAST
  * among the workflow controllers so its `:workflowId` param route never
- * shadows the literal routes (templates, statistics, batch, marketplace, …)
+ * shadows the literal routes (templates, batch, marketplace, …)
  * owned by the sibling controllers. Split out of the former monolithic
  * `WorkflowsController`.
  */
@@ -67,6 +73,7 @@ export class WorkflowCrudController {
   constructor(
     private readonly workflowsService: WorkflowsService,
     private readonly workflowSchedulerService: WorkflowSchedulerService,
+    private readonly systemWorkflowCatalogService: SystemWorkflowCatalogService,
     readonly _loggerService: LoggerService,
   ) {}
 
@@ -98,13 +105,40 @@ export class WorkflowCrudController {
     @Req() request: Request,
     @CurrentUser() user: User,
     @Query() query: WorkflowQueryDto,
-  ): Promise<JsonApiCollectionResponse> {
+  ): Promise<
+    | JsonApiCollectionResponse
+    | SystemWorkflowCatalogResponse
+    | WorkflowStatisticsResponse
+  > {
+    const publicMetadata = getPublicMetadata(user);
+
+    // Code-owned system catalog (not persisted rows). Same collection resource
+    // as workflows; filter via query instead of a parallel /system-catalog path.
+    if (query.source === 'system-catalog') {
+      return wrapError(async () => {
+        const data =
+          await this.systemWorkflowCatalogService.listCatalogForOrganization(
+            publicMetadata.organization,
+          );
+        return { data };
+      }, 'Failed to list system workflow catalog');
+    }
+
+    if (query.view === 'statistics') {
+      return wrapError(async () => {
+        const stats = await this.workflowsService.getWorkflowStatistics(
+          publicMetadata.user,
+          publicMetadata.organization,
+        );
+        return { data: stats };
+      }, 'Failed to load workflow statistics');
+    }
+
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
     // `referencable=true` widens the list to every workflow in the org (used to
@@ -139,20 +173,6 @@ export class WorkflowCrudController {
     const data: AggregatePaginateResult<WorkflowDocument> =
       await this.workflowsService.findAll(aggregate, options);
     return serializeCollection(request, WorkflowSerializer, data);
-  }
-
-  @Get('statistics')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async getStatistics(
-    @CurrentUser() user: User,
-  ): Promise<{ data: WorkflowStatistics }> {
-    const publicMetadata = getPublicMetadata(user);
-    const stats = await this.workflowsService.getWorkflowStatistics(
-      publicMetadata.user,
-      publicMetadata.organization,
-    );
-
-    return { data: stats };
   }
 
   @Get(':workflowId/export-comfyui')
@@ -195,31 +215,6 @@ export class WorkflowCrudController {
     );
 
     return serializeSingle(request, WorkflowSerializer, workflow);
-  }
-
-  @Post(':workflowId/clone')
-  @ApiBody({ required: false, type: CloneWorkflowDto })
-  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async cloneWorkflow(
-    @Req() request: Request,
-    @Param('workflowId') workflowId: string,
-    @CurrentUser() user: User,
-    @Body() dto: CloneWorkflowDto = {},
-  ): Promise<JsonApiSingleResponse> {
-    return wrapError(async () => {
-      const publicMetadata = getPublicMetadata(user);
-      const targetBrandId = dto.brandId ?? (publicMetadata.brand || undefined);
-
-      const clonedWorkflow = await this.workflowsService.cloneWorkflow(
-        workflowId,
-        publicMetadata.user,
-        publicMetadata.organization,
-        targetBrandId,
-      );
-
-      return serializeSingle(request, WorkflowSerializer, clonedWorkflow);
-    }, 'Failed to clone workflow');
   }
 
   /**

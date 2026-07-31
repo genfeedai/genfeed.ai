@@ -77,18 +77,16 @@ export class NewslettersService extends BaseService<Newsletter> {
   }
 
   public async approve(id: string): Promise<Newsletter> {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      `${id}/approve`,
-      {},
-    );
+    const response = await this.instance.patch<JsonApiResponseDocument>(id, {
+      action: 'approve',
+    });
     return this.mapOne(response.data);
   }
 
   public async publish(id: string): Promise<Newsletter> {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      `${id}/publish`,
-      {},
-    );
+    const response = await this.instance.patch<JsonApiResponseDocument>(id, {
+      action: 'publish',
+    });
     return this.mapOne(response.data);
   }
 

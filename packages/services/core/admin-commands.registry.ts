@@ -287,7 +287,7 @@ export const adminNavigationCommands: ICommand[] = [
   // DARKROOM
   {
     action: () => {
-      navigate(`${EnvironmentService.apps.admin}/darkroom/characters`);
+      navigate(`${EnvironmentService.apps.admin}/fleet/characters`);
     },
     category: 'darkroom',
     condition: adminCondition,
@@ -300,7 +300,7 @@ export const adminNavigationCommands: ICommand[] = [
   },
   {
     action: () => {
-      navigate(`${EnvironmentService.apps.admin}/darkroom/gallery`);
+      navigate(`${EnvironmentService.apps.admin}/fleet/gallery`);
     },
     category: 'darkroom',
     condition: adminCondition,
@@ -313,7 +313,7 @@ export const adminNavigationCommands: ICommand[] = [
   },
   {
     action: () => {
-      navigate(`${EnvironmentService.apps.admin}/darkroom/training`);
+      navigate(`${EnvironmentService.apps.admin}/fleet/training`);
     },
     category: 'darkroom',
     condition: adminCondition,
@@ -326,7 +326,7 @@ export const adminNavigationCommands: ICommand[] = [
   },
   {
     action: () => {
-      navigate(`${EnvironmentService.apps.admin}/darkroom/pipeline`);
+      navigate(`${EnvironmentService.apps.admin}/fleet/pipeline`);
     },
     category: 'darkroom',
     condition: adminCondition,
@@ -339,7 +339,7 @@ export const adminNavigationCommands: ICommand[] = [
   },
   {
     action: () => {
-      navigate(`${EnvironmentService.apps.admin}/darkroom/generate`);
+      navigate(`${EnvironmentService.apps.admin}/fleet/generate`);
     },
     category: 'darkroom',
     condition: adminCondition,
@@ -352,7 +352,7 @@ export const adminNavigationCommands: ICommand[] = [
   },
   {
     action: () => {
-      navigate(`${EnvironmentService.apps.admin}/darkroom/lip-sync`);
+      navigate(`${EnvironmentService.apps.admin}/fleet/lip-sync`);
     },
     category: 'darkroom',
     condition: adminCondition,
@@ -365,7 +365,7 @@ export const adminNavigationCommands: ICommand[] = [
   },
   {
     action: () => {
-      navigate(`${EnvironmentService.apps.admin}/darkroom/voices`);
+      navigate(`${EnvironmentService.apps.admin}/fleet/voices`);
     },
     category: 'darkroom',
     condition: adminCondition,
@@ -378,7 +378,7 @@ export const adminNavigationCommands: ICommand[] = [
   },
   {
     action: () => {
-      navigate(`${EnvironmentService.apps.admin}/darkroom/infrastructure`);
+      navigate(`${EnvironmentService.apps.admin}/fleet/infrastructure`);
     },
     category: 'darkroom',
     condition: adminCondition,

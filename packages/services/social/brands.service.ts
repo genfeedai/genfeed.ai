@@ -35,6 +35,7 @@ import { Link } from '@genfeedai/models/social/link.model';
 import { BrandSerializer } from '@genfeedai/serializers';
 import { PagesService } from '@services/content/pages.service';
 import { BaseService } from '@services/core/base.service';
+import { EnvironmentService } from '@services/core/environment.service';
 import {
   deserializeCollection,
   deserializeResource,
@@ -68,7 +69,10 @@ export class BrandsService extends BaseService<Brand> {
 
   public async findBrandCredentials(id: string): Promise<Credential[]> {
     return await this.instance
-      .get<JsonApiResponseDocument>(`${id}/credentials`)
+      .get<JsonApiResponseDocument>(
+        `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.CREDENTIALS}`,
+        { params: { brand: id } },
+      )
       .then((res) =>
         deserializeCollection<Partial<Credential>>(res.data).map(
           (item) => new Credential(item),
@@ -78,7 +82,10 @@ export class BrandsService extends BaseService<Brand> {
 
   public async findBrandLinks(id: string): Promise<Link[]> {
     return await this.instance
-      .get<JsonApiResponseDocument>(`/${id}/links`)
+      .get<JsonApiResponseDocument>(
+        `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.LINKS}`,
+        { params: { brand: id } },
+      )
       .then((res) =>
         deserializeCollection<Partial<Link>>(res.data).map(
           (item) => new Link(item),
@@ -91,9 +98,10 @@ export class BrandsService extends BaseService<Brand> {
     query?: BrandQueryParams,
   ): Promise<Activity[]> {
     return await this.instance
-      .get<JsonApiResponseDocument>(`/${id}/activities`, {
-        params: query,
-      })
+      .get<JsonApiResponseDocument>(
+        `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.ACTIVITIES}`,
+        { params: { ...query, brand: id } },
+      )
       .then((res) => {
         const document = res.data;
         const pagination = document.links?.pagination;
@@ -128,9 +136,10 @@ export class BrandsService extends BaseService<Brand> {
     query?: IQueryParams,
   ): Promise<IPaginatedResponse<Post>> {
     return await this.instance
-      .get<JsonApiResponseDocument>(`/${id}/posts`, {
-        params: query,
-      })
+      .get<JsonApiResponseDocument>(
+        `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.POSTS}`,
+        { params: { ...query, brand: id } },
+      )
       .then((response) => {
         const document = response.data;
         const items = deserializeCollection<Partial<IPost>>(document).map(
@@ -157,7 +166,10 @@ export class BrandsService extends BaseService<Brand> {
     query?: IQueryParams,
   ): Promise<Video[]> {
     return await this.instance
-      .get<JsonApiResponseDocument>(`/${id}/videos`, { params: query })
+      .get<JsonApiResponseDocument>(
+        `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.VIDEOS}`,
+        { params: { ...query, brand: id } },
+      )
       .then((res) => {
         const document = res.data;
         const pagination = document.links?.pagination;
@@ -178,7 +190,10 @@ export class BrandsService extends BaseService<Brand> {
     query?: IQueryParams,
   ): Promise<IImage[]> {
     return await this.instance
-      .get<JsonApiResponseDocument>(`/${id}/images`, { params: query })
+      .get<JsonApiResponseDocument>(
+        `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.IMAGES}`,
+        { params: { ...query, brand: id } },
+      )
       .then((res) => {
         const document = res.data;
         const pagination = document.links?.pagination;
@@ -199,9 +214,10 @@ export class BrandsService extends BaseService<Brand> {
     query?: IQueryParams,
   ): Promise<IArticle[]> {
     return await this.instance
-      .get<JsonApiResponseDocument>(`/${id}/articles`, {
-        params: query,
-      })
+      .get<JsonApiResponseDocument>(
+        `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.ARTICLES}`,
+        { params: { ...query, brand: id } },
+      )
       .then((res) => {
         const document = res.data;
         const pagination = document.links?.pagination;

@@ -362,6 +362,7 @@
         "type": "object"
       },
       "ArticleCategory": {
+        "description": "Article category",
         "enum": [
           "post",
           "tutorial",
@@ -380,6 +381,7 @@
         "type": "string"
       },
       "ArticleStatus": {
+        "description": "Article status",
         "enum": [
           "draft",
           "processing",
@@ -936,6 +938,16 @@
         ],
         "type": "string"
       },
+      "CampaignStatus": {
+        "description": "Campaign status",
+        "enum": [
+          "draft",
+          "active",
+          "paused",
+          "completed"
+        ],
+        "type": "string"
+      },
       "CampaignTargetType": {
         "description": "Discriminator for how targets are added. Defaults to URL-based target detection. Use DM_RECIPIENT to add DM recipients by username.",
         "enum": [
@@ -1106,15 +1118,6 @@
         "required": [
           "name"
         ],
-        "type": "object"
-      },
-      "CloneWorkflowDto": {
-        "properties": {
-          "brandId": {
-            "description": "Target brand ID for the duplicated workflow. Defaults to the current selected brand.",
-            "type": "string"
-          }
-        },
         "type": "object"
       },
       "CloudFrontInvalidateDto": {
@@ -3826,6 +3829,75 @@
         ],
         "type": "object"
       },
+      "CreateOrganizationDto": {
+        "properties": {
+          "accountType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrganizationCategory"
+              }
+            ],
+            "description": "Account type selected during onboarding (creator, business, or agency)"
+          },
+          "authProviderOrganizationId": {
+            "description": "legacy auth provider organization ID used to synchronize organization state",
+            "type": "object"
+          },
+          "category": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrganizationCategory"
+              }
+            ],
+            "default": "business",
+            "description": "The category of the organization (creator, business, or agency)"
+          },
+          "isProactiveOnboarding": {
+            "default": false,
+            "description": "Whether this organization is a proactive onboarding shadow workspace",
+            "type": "boolean"
+          },
+          "isSelected": {
+            "default": false,
+            "description": "Whether this organization is currently selected",
+            "type": "boolean"
+          },
+          "label": {
+            "description": "The display name of the organization",
+            "type": "string"
+          },
+          "onboardingCompleted": {
+            "default": false,
+            "description": "Whether onboarding has been completed for this organization",
+            "type": "boolean"
+          },
+          "prefix": {
+            "description": "Unique 3-letter uppercase prefix for issue identifiers (e.g., GEN)",
+            "example": "GEN",
+            "maxLength": 3,
+            "minLength": 3,
+            "pattern": "^[A-Z]{3}$",
+            "type": "string"
+          },
+          "slug": {
+            "description": "URL-friendly slug for the organization (auto-generated from label if not provided)",
+            "example": "genfeed-ai",
+            "maxLength": 48,
+            "minLength": 2,
+            "type": "string"
+          },
+          "user": {
+            "description": "The user ID who owns this organization",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user",
+          "label",
+          "isSelected"
+        ],
+        "type": "object"
+      },
       "CreateOutreachCampaignDto": {
         "properties": {
           "aiConfig": {
@@ -5567,6 +5639,18 @@
           },
           "sourceAsset": {
             "description": "Source asset that triggered the workflow",
+            "type": "string"
+          },
+          "sourceType": {
+            "description": "When `system-catalog`, `templateId` is a system catalog canonical id and create installs that catalog entry (idempotent).",
+            "enum": [
+              "system-catalog",
+              "seeded-template"
+            ],
+            "type": "string"
+          },
+          "sourceWorkflowId": {
+            "description": "When set, create is a clone of this workflow (POST /workflows body clone).",
             "type": "string"
           },
           "startedAt": {
@@ -7409,15 +7493,6 @@
         ],
         "type": "string"
       },
-      "InstallSystemWorkflowDto": {
-        "properties": {
-          "brandId": {
-            "description": "Optional brand to bind the installed workflow to. Defaults to the active brand when present.",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
       "IntegrationPlatform": {
         "enum": [
           "telegram",
@@ -8249,6 +8324,15 @@
         },
         "type": "object"
       },
+      "OrganizationCategory": {
+        "description": "The category of the organization (creator, business, or agency)",
+        "enum": [
+          "creator",
+          "business",
+          "agency"
+        ],
+        "type": "string"
+      },
       "OutreachCampaignAiConfigDto": {
         "properties": {
           "context": {
@@ -8668,6 +8752,7 @@
         "type": "string"
       },
       "PostStatus": {
+        "description": "The current status of the post",
         "enum": [
           "public",
           "private",
@@ -12695,6 +12780,14 @@
       },
       "UpdateNewsletterDto": {
         "properties": {
+          "action": {
+            "description": "Lifecycle action. `approve` or `publish` run the dedicated transition; omit for field updates.",
+            "enum": [
+              "approve",
+              "publish"
+            ],
+            "type": "string"
+          },
           "angle": {
             "description": "Optional angle",
             "type": "string"
@@ -12985,6 +13078,107 @@
           },
           "webhookSecret": {
             "description": "Webhook secret for signature verification",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateOutreachCampaignDto": {
+        "properties": {
+          "aiConfig": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OutreachCampaignAiConfigDto"
+              }
+            ],
+            "description": "AI configuration for reply generation"
+          },
+          "brand": {
+            "description": "Brand this campaign is scoped to",
+            "type": "string"
+          },
+          "campaignType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CampaignType"
+              }
+            ],
+            "description": "Type of campaign",
+            "example": "manual"
+          },
+          "credential": {
+            "description": "Credential to use for posting replies",
+            "type": "string"
+          },
+          "description": {
+            "description": "Description of the campaign",
+            "type": "string"
+          },
+          "discoveryConfig": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OutreachCampaignDiscoveryConfigDto"
+              }
+            ],
+            "description": "Discovery configuration for AI-powered targeting"
+          },
+          "dmConfig": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OutreachCampaignDmConfigDto"
+              }
+            ],
+            "description": "DM configuration for DM outreach campaigns"
+          },
+          "isActive": {
+            "default": true,
+            "description": "Whether the campaign is active",
+            "type": "boolean"
+          },
+          "label": {
+            "description": "Name of the campaign",
+            "example": "Product Launch Campaign",
+            "type": "string"
+          },
+          "organization": {
+            "description": "Organization that owns this campaign",
+            "type": "string"
+          },
+          "platform": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CampaignPlatform"
+              }
+            ],
+            "description": "Platform for the campaign",
+            "example": "twitter"
+          },
+          "rateLimits": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OutreachCampaignRateLimitsDto"
+              }
+            ],
+            "description": "Rate limit configuration"
+          },
+          "schedule": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OutreachCampaignScheduleDto"
+              }
+            ],
+            "description": "Schedule configuration"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CampaignStatus"
+              }
+            ],
+            "description": "Campaign status"
+          },
+          "user": {
+            "description": "User that created this campaign",
             "type": "string"
           }
         },
@@ -14186,6 +14380,18 @@
             "description": "Source asset that triggered the workflow",
             "type": "string"
           },
+          "sourceType": {
+            "description": "When `system-catalog`, `templateId` is a system catalog canonical id and create installs that catalog entry (idempotent).",
+            "enum": [
+              "system-catalog",
+              "seeded-template"
+            ],
+            "type": "string"
+          },
+          "sourceWorkflowId": {
+            "description": "When set, create is a clone of this workflow (POST /workflows body clone).",
+            "type": "string"
+          },
           "startedAt": {
             "description": "Workflow start timestamp",
             "format": "date-time",
@@ -14944,7 +15150,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -14953,7 +15159,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -15173,720 +15379,9 @@
         ]
       }
     },
-    "/admin/darkroom/assets": {
-      "get": {
-        "operationId": "AdminFleetController.listAssets[1]",
-        "parameters": [
-          {
-            "description": "Filter by persona slug",
-            "in": "query",
-            "name": "personaSlug",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by review status",
-            "in": "query",
-            "name": "reviewStatus",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/FleetReviewStatus"
-            }
-          },
-          {
-            "description": "Filter by asset label",
-            "in": "query",
-            "name": "assetLabel",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/FleetAssetLabel"
-            }
-          },
-          {
-            "description": "Filter by content rating",
-            "in": "query",
-            "name": "contentRating",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/ContentRating"
-            }
-          },
-          {
-            "description": "Filter by campaign",
-            "in": "query",
-            "name": "campaign",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "type": "number"
-            }
-          },
-          {
-            "description": "Items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "List fleet assets with filters",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/assets/{id}/publish": {
-      "post": {
-        "operationId": "AdminFleetController.publishAsset[1]",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PublishAssetDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Publish an approved asset to platforms",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/assets/{id}/review": {
-      "patch": {
-        "operationId": "AdminFleetController.reviewAsset[1]",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReviewAssetDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Review an asset (approve/reject)",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/characters": {
-      "get": {
-        "operationId": "AdminFleetController.listCharacters[1]",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "List all fleet characters",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      },
-      "post": {
-        "operationId": "AdminFleetController.createCharacter[1]",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateCharacterDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Create a new fleet character",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/characters/{slug}": {
-      "delete": {
-        "operationId": "AdminFleetController.deleteCharacter[1]",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "slug",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Soft-delete a fleet character",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      },
-      "get": {
-        "operationId": "AdminFleetController.getCharacter[1]",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "slug",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get character by slug",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      },
-      "patch": {
-        "operationId": "AdminFleetController.updateCharacter[1]",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "slug",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateCharacterDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Update a fleet character",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/characters/{slug}/dataset": {
-      "post": {
-        "operationId": "AdminFleetController.uploadDataset[1]",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "slug",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UploadDatasetDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Upload a training dataset and sync it to the GPU images service",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/characters/{slug}/training-data": {
-      "post": {
-        "operationId": "AdminFleetController.generateCharacterTrainingData[1]",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "slug",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Generate persona training data from enabled fleet sources",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/generate": {
-      "post": {
-        "operationId": "AdminFleetController.generateImage[1]",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GenerateImageDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Generate an image for a character",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/generate/jobs": {
-      "post": {
-        "operationId": "AdminFleetController.createGenerateJob[1]",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GenerateImageDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Queue an image generation job for a character",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/generate/jobs/{jobId}": {
-      "get": {
-        "operationId": "AdminFleetController.getGenerateJob[1]",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "jobId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get image generation job status",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/infrastructure/cloudfront/invalidate": {
-      "post": {
-        "operationId": "AdminFleetController.invalidateCloudFront[1]",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CloudFrontInvalidateDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Invalidate CloudFront cache",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/infrastructure/ec2/action": {
-      "post": {
-        "operationId": "AdminFleetController.ec2Action[1]",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Ec2ActionDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Start or stop an EC2 instance",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/infrastructure/ec2/action-all": {
-      "post": {
-        "operationId": "AdminFleetController.ec2ActionAll[1]",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BulkEc2ActionDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Start or stop all matching EC2 instances",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/infrastructure/ec2/status": {
-      "get": {
-        "operationId": "AdminFleetController.getEC2Status[1]",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "List EC2 instances with status",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/infrastructure/fleet/health": {
-      "get": {
-        "operationId": "AdminFleetController.getFleetHealth[1]",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get detailed GPU fleet health",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/infrastructure/services": {
-      "get": {
-        "operationId": "AdminFleetController.getServiceHealth[1]",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Check ComfyUI and Ollama health",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/lip-sync": {
-      "post": {
-        "operationId": "AdminFleetController.generateLipSync[1]",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GenerateLipSyncDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Generate lip sync video for a character",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/lip-sync/{jobId}": {
-      "get": {
-        "operationId": "AdminFleetController.getLipSyncStatus[1]",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "jobId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get lip sync job status",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/pipeline/campaigns": {
-      "get": {
-        "operationId": "AdminFleetController.listCampaigns[1]",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "List campaigns with stats",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/pipeline/stats": {
-      "get": {
-        "operationId": "AdminFleetController.getPipelineStats[1]",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get pipeline statistics",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/training-data": {
-      "post": {
-        "operationId": "AdminFleetController.generateAllTrainingData[1]",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Generate training data for all enabled fleet personas in enabled brands",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/trainings": {
-      "get": {
-        "operationId": "AdminFleetController.listTrainings[1]",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "List trainings (optionally filtered by persona)",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      },
-      "post": {
-        "operationId": "AdminFleetController.startTraining[1]",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StartTrainingDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Start LoRA training for a character",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/trainings/{id}": {
-      "get": {
-        "operationId": "AdminFleetController.getTraining[1]",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get training details",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/voices": {
-      "get": {
-        "operationId": "AdminFleetController.listVoices[1]",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "List available TTS voices",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
-    "/admin/darkroom/voices/generate": {
-      "post": {
-        "operationId": "AdminFleetController.generateVoice[1]",
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AdminFleetGenerateVoiceDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Generate TTS audio",
-        "tags": [
-          "Admin / Fleet"
-        ]
-      }
-    },
     "/admin/fleet/assets": {
       "get": {
-        "operationId": "AdminFleetController.listAssets[0]",
+        "operationId": "AdminFleetController.listAssets",
         "parameters": [
           {
             "description": "Filter by persona slug",
@@ -15965,7 +15460,7 @@
     },
     "/admin/fleet/assets/{id}/publish": {
       "post": {
-        "operationId": "AdminFleetController.publishAsset[0]",
+        "operationId": "AdminFleetController.publishAsset",
         "parameters": [
           {
             "in": "path",
@@ -15999,7 +15494,7 @@
     },
     "/admin/fleet/assets/{id}/review": {
       "patch": {
-        "operationId": "AdminFleetController.reviewAsset[0]",
+        "operationId": "AdminFleetController.reviewAsset",
         "parameters": [
           {
             "in": "path",
@@ -16033,7 +15528,7 @@
     },
     "/admin/fleet/characters": {
       "get": {
-        "operationId": "AdminFleetController.listCharacters[0]",
+        "operationId": "AdminFleetController.listCharacters",
         "parameters": [],
         "responses": {
           "200": {
@@ -16046,7 +15541,7 @@
         ]
       },
       "post": {
-        "operationId": "AdminFleetController.createCharacter[0]",
+        "operationId": "AdminFleetController.createCharacter",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -16071,7 +15566,7 @@
     },
     "/admin/fleet/characters/{slug}": {
       "delete": {
-        "operationId": "AdminFleetController.deleteCharacter[0]",
+        "operationId": "AdminFleetController.deleteCharacter",
         "parameters": [
           {
             "in": "path",
@@ -16093,7 +15588,7 @@
         ]
       },
       "get": {
-        "operationId": "AdminFleetController.getCharacter[0]",
+        "operationId": "AdminFleetController.getCharacter",
         "parameters": [
           {
             "in": "path",
@@ -16115,7 +15610,7 @@
         ]
       },
       "patch": {
-        "operationId": "AdminFleetController.updateCharacter[0]",
+        "operationId": "AdminFleetController.updateCharacter",
         "parameters": [
           {
             "in": "path",
@@ -16149,7 +15644,7 @@
     },
     "/admin/fleet/characters/{slug}/dataset": {
       "post": {
-        "operationId": "AdminFleetController.uploadDataset[0]",
+        "operationId": "AdminFleetController.uploadDataset",
         "parameters": [
           {
             "in": "path",
@@ -16183,7 +15678,7 @@
     },
     "/admin/fleet/characters/{slug}/training-data": {
       "post": {
-        "operationId": "AdminFleetController.generateCharacterTrainingData[0]",
+        "operationId": "AdminFleetController.generateCharacterTrainingData",
         "parameters": [
           {
             "in": "path",
@@ -16207,7 +15702,7 @@
     },
     "/admin/fleet/generate": {
       "post": {
-        "operationId": "AdminFleetController.generateImage[0]",
+        "operationId": "AdminFleetController.generateImage",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -16232,7 +15727,7 @@
     },
     "/admin/fleet/generate/jobs": {
       "post": {
-        "operationId": "AdminFleetController.createGenerateJob[0]",
+        "operationId": "AdminFleetController.createGenerateJob",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -16257,7 +15752,7 @@
     },
     "/admin/fleet/generate/jobs/{jobId}": {
       "get": {
-        "operationId": "AdminFleetController.getGenerateJob[0]",
+        "operationId": "AdminFleetController.getGenerateJob",
         "parameters": [
           {
             "in": "path",
@@ -16281,7 +15776,7 @@
     },
     "/admin/fleet/infrastructure/cloudfront/invalidate": {
       "post": {
-        "operationId": "AdminFleetController.invalidateCloudFront[0]",
+        "operationId": "AdminFleetController.invalidateCloudFront",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -16306,7 +15801,7 @@
     },
     "/admin/fleet/infrastructure/ec2/action": {
       "post": {
-        "operationId": "AdminFleetController.ec2Action[0]",
+        "operationId": "AdminFleetController.ec2Action",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -16331,7 +15826,7 @@
     },
     "/admin/fleet/infrastructure/ec2/action-all": {
       "post": {
-        "operationId": "AdminFleetController.ec2ActionAll[0]",
+        "operationId": "AdminFleetController.ec2ActionAll",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -16356,7 +15851,7 @@
     },
     "/admin/fleet/infrastructure/ec2/status": {
       "get": {
-        "operationId": "AdminFleetController.getEC2Status[0]",
+        "operationId": "AdminFleetController.getEC2Status",
         "parameters": [],
         "responses": {
           "200": {
@@ -16371,7 +15866,7 @@
     },
     "/admin/fleet/infrastructure/fleet/health": {
       "get": {
-        "operationId": "AdminFleetController.getFleetHealth[0]",
+        "operationId": "AdminFleetController.getFleetHealth",
         "parameters": [],
         "responses": {
           "200": {
@@ -16386,7 +15881,7 @@
     },
     "/admin/fleet/infrastructure/services": {
       "get": {
-        "operationId": "AdminFleetController.getServiceHealth[0]",
+        "operationId": "AdminFleetController.getServiceHealth",
         "parameters": [],
         "responses": {
           "200": {
@@ -16401,7 +15896,7 @@
     },
     "/admin/fleet/lip-sync": {
       "post": {
-        "operationId": "AdminFleetController.generateLipSync[0]",
+        "operationId": "AdminFleetController.generateLipSync",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -16426,7 +15921,7 @@
     },
     "/admin/fleet/lip-sync/{jobId}": {
       "get": {
-        "operationId": "AdminFleetController.getLipSyncStatus[0]",
+        "operationId": "AdminFleetController.getLipSyncStatus",
         "parameters": [
           {
             "in": "path",
@@ -16450,7 +15945,7 @@
     },
     "/admin/fleet/pipeline/campaigns": {
       "get": {
-        "operationId": "AdminFleetController.listCampaigns[0]",
+        "operationId": "AdminFleetController.listCampaigns",
         "parameters": [],
         "responses": {
           "200": {
@@ -16465,7 +15960,7 @@
     },
     "/admin/fleet/pipeline/stats": {
       "get": {
-        "operationId": "AdminFleetController.getPipelineStats[0]",
+        "operationId": "AdminFleetController.getPipelineStats",
         "parameters": [],
         "responses": {
           "200": {
@@ -16480,7 +15975,7 @@
     },
     "/admin/fleet/training-data": {
       "post": {
-        "operationId": "AdminFleetController.generateAllTrainingData[0]",
+        "operationId": "AdminFleetController.generateAllTrainingData",
         "parameters": [],
         "responses": {
           "201": {
@@ -16495,7 +15990,7 @@
     },
     "/admin/fleet/trainings": {
       "get": {
-        "operationId": "AdminFleetController.listTrainings[0]",
+        "operationId": "AdminFleetController.listTrainings",
         "parameters": [],
         "responses": {
           "200": {
@@ -16508,7 +16003,7 @@
         ]
       },
       "post": {
-        "operationId": "AdminFleetController.startTraining[0]",
+        "operationId": "AdminFleetController.startTraining",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -16533,7 +16028,7 @@
     },
     "/admin/fleet/trainings/{id}": {
       "get": {
-        "operationId": "AdminFleetController.getTraining[0]",
+        "operationId": "AdminFleetController.getTraining",
         "parameters": [
           {
             "in": "path",
@@ -16557,7 +16052,7 @@
     },
     "/admin/fleet/voices": {
       "get": {
-        "operationId": "AdminFleetController.listVoices[0]",
+        "operationId": "AdminFleetController.listVoices",
         "parameters": [],
         "responses": {
           "200": {
@@ -16572,7 +16067,7 @@
     },
     "/admin/fleet/voices/generate": {
       "post": {
-        "operationId": "AdminFleetController.generateVoice[0]",
+        "operationId": "AdminFleetController.generateVoice",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -18762,7 +18257,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -18771,7 +18266,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -19639,7 +19134,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -19648,7 +19143,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -20413,7 +19908,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -20422,7 +19917,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -20816,7 +20311,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -20825,7 +20320,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -21196,7 +20691,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -21205,7 +20700,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -21877,7 +21372,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -21886,7 +21381,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -22107,110 +21602,6 @@
         ]
       }
     },
-    "/brands/{brandId}/activities": {
-      "get": {
-        "operationId": "BrandsRelationshipsController.findAllActivities",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "brandId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findAllActivities",
-        "tags": [
-          "brands"
-        ]
-      }
-    },
     "/brands/{brandId}/analytics": {
       "get": {
         "operationId": "BrandsRelationshipsController.findBrandAnalytics",
@@ -22331,180 +21722,6 @@
         ]
       }
     },
-    "/brands/{brandId}/articles": {
-      "get": {
-        "operationId": "BrandsRelationshipsController.findBrandArticles",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "brandId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Search articles by title or content",
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter articles by status using repeated query keys (e.g., ?status=draft&status=published).",
-            "in": "query",
-            "name": "status",
-            "required": false,
-            "schema": {
-              "items": {
-                "$ref": "#/components/schemas/ArticleStatus"
-              },
-              "type": "array"
-            }
-          },
-          {
-            "description": "Filter articles by category",
-            "in": "query",
-            "name": "category",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/ArticleCategory"
-            }
-          },
-          {
-            "description": "Filter articles by tag ID",
-            "in": "query",
-            "name": "tag",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter articles by access scope",
-            "in": "query",
-            "name": "scope",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/AssetScope"
-            }
-          },
-          {
-            "description": "Field to sort by",
-            "in": "query",
-            "name": "sortBy",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Sort order (ascending or descending)",
-            "in": "query",
-            "name": "sortOrder",
-            "required": false,
-            "schema": {
-              "enum": [
-                "asc",
-                "desc"
-              ],
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findBrandArticles",
-        "tags": [
-          "brands"
-        ]
-      }
-    },
     "/brands/{brandId}/completeness": {
       "get": {
         "operationId": "BrandInterviewController.getCompleteness",
@@ -22595,7 +21812,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -22604,7 +21821,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -23064,332 +22281,6 @@
         ]
       }
     },
-    "/brands/{brandId}/credentials": {
-      "get": {
-        "operationId": "BrandsRelationshipsController.findBrandCredentials",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "brandId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findBrandCredentials",
-        "tags": [
-          "brands"
-        ]
-      }
-    },
-    "/brands/{brandId}/images": {
-      "get": {
-        "operationId": "BrandsRelationshipsController.findBrandImages",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "brandId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by parent image ID",
-            "in": "query",
-            "name": "parent",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by status using repeated query keys (e.g., ?status=completed&status=failed). Defaults to [\"draft\", \"uploaded\", \"completed\"] when not specified.",
-            "in": "query",
-            "name": "status",
-            "required": false,
-            "schema": {
-              "example": [
-                "completed",
-                "failed"
-              ],
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          },
-          {
-            "description": "Filter by scope/visibility level",
-            "in": "query",
-            "name": "scope",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/AssetScope"
-            }
-          },
-          {
-            "description": "Filter by reference image ID",
-            "in": "query",
-            "name": "references",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by image format",
-            "in": "query",
-            "name": "format",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by provider",
-            "in": "query",
-            "name": "provider",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Search images by text",
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by folder ID",
-            "in": "query",
-            "name": "folder",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by training ID",
-            "in": "query",
-            "name": "training",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Use lightweight mode (skip expensive lookups for gallery views)",
-            "in": "query",
-            "name": "lightweight",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by public gallery visibility (for getshareable.app)",
-            "in": "query",
-            "name": "isPublic",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded, plus brand-default images), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
-            "in": "query",
-            "name": "latest",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findBrandImages",
-        "tags": [
-          "brands"
-        ]
-      }
-    },
     "/brands/{brandId}/interview": {
       "post": {
         "operationId": "BrandInterviewController.start",
@@ -23433,110 +22324,6 @@
           }
         },
         "summary": "getActiveForBrand",
-        "tags": [
-          "brands"
-        ]
-      }
-    },
-    "/brands/{brandId}/links": {
-      "get": {
-        "operationId": "BrandsRelationshipsController.findBrandLinks",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "brandId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findBrandLinks",
         "tags": [
           "brands"
         ]
@@ -23632,110 +22419,6 @@
         },
         "tags": [
           "BrandMemory"
-        ]
-      }
-    },
-    "/brands/{brandId}/musics": {
-      "get": {
-        "operationId": "BrandsRelationshipsController.findBrandMusics",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "brandId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findBrandMusics",
-        "tags": [
-          "brands"
         ]
       }
     },
@@ -23972,179 +22655,6 @@
         ]
       }
     },
-    "/brands/{brandId}/posts": {
-      "get": {
-        "operationId": "BrandsRelationshipsController.findAllPosts",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "brandId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Separate posts that have been published from work in progress",
-            "in": "query",
-            "name": "publicationState",
-            "required": false,
-            "schema": {
-              "enum": [
-                "posted",
-                "not-posted"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Search post labels and descriptions",
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter posts scheduled after this date (ISO 8601 format)",
-            "in": "query",
-            "name": "startDate",
-            "required": false,
-            "schema": {
-              "example": "2024-01-01T00:00:00.000Z",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter posts scheduled before this date (ISO 8601 format)",
-            "in": "query",
-            "name": "endDate",
-            "required": false,
-            "schema": {
-              "example": "2024-01-31T23:59:59.999Z",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter posts by platform",
-            "in": "query",
-            "name": "platform",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/CredentialPlatform"
-            }
-          },
-          {
-            "description": "Filter posts by status",
-            "in": "query",
-            "name": "status",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/PostStatus"
-            }
-          },
-          {
-            "description": "Filter posts by credential ID",
-            "in": "query",
-            "name": "credential",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findAllPosts",
-        "tags": [
-          "brands"
-        ]
-      }
-    },
     "/brands/{brandId}/schedules": {
       "get": {
         "operationId": "ContentSchedulesController.list",
@@ -24211,7 +22721,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -24220,7 +22730,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -24375,218 +22885,6 @@
         },
         "tags": [
           "ContentSchedules"
-        ]
-      }
-    },
-    "/brands/{brandId}/videos": {
-      "get": {
-        "operationId": "BrandsRelationshipsController.findBrandVideos",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "brandId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by status using repeated query keys (e.g., ?status=completed&status=failed). Defaults to [\"draft\", \"uploaded\", \"completed\"] when not specified.",
-            "in": "query",
-            "name": "status",
-            "required": false,
-            "schema": {
-              "example": [
-                "completed",
-                "failed"
-              ],
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          },
-          {
-            "description": "Filter by training ID",
-            "in": "query",
-            "name": "training",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by scope/visibility level",
-            "in": "query",
-            "name": "scope",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/AssetScope"
-            }
-          },
-          {
-            "description": "Filter by reference video ID",
-            "in": "query",
-            "name": "reference",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by video format",
-            "in": "query",
-            "name": "format",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by parent video ID",
-            "in": "query",
-            "name": "parent",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by folder ID",
-            "in": "query",
-            "name": "folder",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by provider",
-            "in": "query",
-            "name": "provider",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Search videos by text",
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Use lightweight mode (skip expensive lookups for masonry/gallery views)",
-            "in": "query",
-            "name": "lightweight",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
-            "in": "query",
-            "name": "latest",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "findBrandVideos",
-        "tags": [
-          "brands"
         ]
       }
     },
@@ -25076,7 +23374,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -25085,7 +23383,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -25291,7 +23589,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -25300,7 +23598,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -27633,7 +25931,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -27642,7 +25940,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -28377,7 +26675,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -28386,7 +26684,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -28668,13 +26966,13 @@
         ]
       }
     },
-    "/elements/blacklists/{blacklistId}": {
+    "/elements/blacklists/{id}": {
       "delete": {
         "operationId": "ElementsBlacklistsController.remove",
         "parameters": [
           {
             "in": "path",
-            "name": "blacklistId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -28701,7 +26999,7 @@
         "parameters": [
           {
             "in": "path",
-            "name": "blacklistId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -28723,45 +27021,6 @@
           "blacklists"
         ]
       },
-      "patch": {
-        "operationId": "ElementsBlacklistsController.update",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "blacklistId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateElementBlacklistDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Update a blacklist entry",
-        "tags": [
-          "blacklists"
-        ]
-      }
-    },
-    "/elements/blacklists/{id}": {
       "patch": {
         "operationId": "ElementsBlacklistsController.patch",
         "parameters": [
@@ -28838,13 +27097,13 @@
         ]
       }
     },
-    "/elements/camera-movements/{cameraMovementId}": {
+    "/elements/camera-movements/{id}": {
       "delete": {
         "operationId": "ElementsCameraMovementsController.remove",
         "parameters": [
           {
             "in": "path",
-            "name": "cameraMovementId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -28871,7 +27130,7 @@
         "parameters": [
           {
             "in": "path",
-            "name": "cameraMovementId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -28893,45 +27152,6 @@
           "camera-movements"
         ]
       },
-      "patch": {
-        "operationId": "ElementsCameraMovementsController.update",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "cameraMovementId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateElementCameraMovementDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Update a camera movement",
-        "tags": [
-          "camera-movements"
-        ]
-      }
-    },
-    "/elements/camera-movements/{id}": {
       "patch": {
         "operationId": "ElementsCameraMovementsController.patch",
         "parameters": [
@@ -29008,13 +27228,13 @@
         ]
       }
     },
-    "/elements/cameras/{cameraId}": {
+    "/elements/cameras/{id}": {
       "delete": {
         "operationId": "ElementsCamerasController.remove",
         "parameters": [
           {
             "in": "path",
-            "name": "cameraId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29041,7 +27261,7 @@
         "parameters": [
           {
             "in": "path",
-            "name": "cameraId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29063,45 +27283,6 @@
           "cameras"
         ]
       },
-      "patch": {
-        "operationId": "ElementsCamerasController.update",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "cameraId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateElementCameraDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Update a camera",
-        "tags": [
-          "cameras"
-        ]
-      }
-    },
-    "/elements/cameras/{id}": {
       "patch": {
         "operationId": "ElementsCamerasController.patch",
         "parameters": [
@@ -29179,41 +27360,12 @@
       }
     },
     "/elements/lenses/{id}": {
-      "patch": {
-        "operationId": "ElementsLensesController.patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "patch",
-        "tags": [
-          "lenses"
-        ]
-      }
-    },
-    "/elements/lenses/{lensId}": {
       "delete": {
         "operationId": "ElementsLensesController.remove",
         "parameters": [
           {
             "in": "path",
-            "name": "lensId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29240,7 +27392,7 @@
         "parameters": [
           {
             "in": "path",
-            "name": "lensId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29263,27 +27415,17 @@
         ]
       },
       "patch": {
-        "operationId": "ElementsLensesController.update",
+        "operationId": "ElementsLensesController.patch",
         "parameters": [
           {
             "in": "path",
-            "name": "lensId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateElementLensDto"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": ""
@@ -29294,7 +27436,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update a lens",
+        "summary": "patch",
         "tags": [
           "lenses"
         ]
@@ -29349,41 +27491,12 @@
       }
     },
     "/elements/lightings/{id}": {
-      "patch": {
-        "operationId": "ElementsLightingsController.patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "patch",
-        "tags": [
-          "lightings"
-        ]
-      }
-    },
-    "/elements/lightings/{lightingId}": {
       "delete": {
         "operationId": "ElementsLightingsController.remove",
         "parameters": [
           {
             "in": "path",
-            "name": "lightingId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29410,7 +27523,7 @@
         "parameters": [
           {
             "in": "path",
-            "name": "lightingId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29433,27 +27546,17 @@
         ]
       },
       "patch": {
-        "operationId": "ElementsLightingsController.update",
+        "operationId": "ElementsLightingsController.patch",
         "parameters": [
           {
             "in": "path",
-            "name": "lightingId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateElementLightingDto"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": ""
@@ -29464,7 +27567,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update a lighting",
+        "summary": "patch",
         "tags": [
           "lightings"
         ]
@@ -29519,41 +27622,12 @@
       }
     },
     "/elements/moods/{id}": {
-      "patch": {
-        "operationId": "ElementsMoodsController.patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "patch",
-        "tags": [
-          "moods"
-        ]
-      }
-    },
-    "/elements/moods/{moodId}": {
       "delete": {
         "operationId": "ElementsMoodsController.remove",
         "parameters": [
           {
             "in": "path",
-            "name": "moodId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29580,7 +27654,7 @@
         "parameters": [
           {
             "in": "path",
-            "name": "moodId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29603,27 +27677,17 @@
         ]
       },
       "patch": {
-        "operationId": "ElementsMoodsController.update",
+        "operationId": "ElementsMoodsController.patch",
         "parameters": [
           {
             "in": "path",
-            "name": "moodId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateElementMoodDto"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": ""
@@ -29634,7 +27698,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update a mood",
+        "summary": "patch",
         "tags": [
           "moods"
         ]
@@ -29689,41 +27753,12 @@
       }
     },
     "/elements/scenes/{id}": {
-      "patch": {
-        "operationId": "ElementsScenesController.patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "patch",
-        "tags": [
-          "scenes"
-        ]
-      }
-    },
-    "/elements/scenes/{sceneId}": {
       "delete": {
         "operationId": "ElementsScenesController.remove",
         "parameters": [
           {
             "in": "path",
-            "name": "sceneId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29750,7 +27785,7 @@
         "parameters": [
           {
             "in": "path",
-            "name": "sceneId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29773,27 +27808,17 @@
         ]
       },
       "patch": {
-        "operationId": "ElementsScenesController.update",
+        "operationId": "ElementsScenesController.patch",
         "parameters": [
           {
             "in": "path",
-            "name": "sceneId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateElementSceneDto"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": ""
@@ -29804,7 +27829,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update a scene",
+        "summary": "patch",
         "tags": [
           "scenes"
         ]
@@ -29859,41 +27884,12 @@
       }
     },
     "/elements/sounds/{id}": {
-      "patch": {
-        "operationId": "ElementsSoundsController.patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "patch",
-        "tags": [
-          "sounds"
-        ]
-      }
-    },
-    "/elements/sounds/{soundId}": {
       "delete": {
         "operationId": "ElementsSoundsController.remove",
         "parameters": [
           {
             "in": "path",
-            "name": "soundId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29920,7 +27916,7 @@
         "parameters": [
           {
             "in": "path",
-            "name": "soundId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -29943,27 +27939,17 @@
         ]
       },
       "patch": {
-        "operationId": "ElementsSoundsController.update",
+        "operationId": "ElementsSoundsController.patch",
         "parameters": [
           {
             "in": "path",
-            "name": "soundId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateElementSoundDto"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": ""
@@ -29974,7 +27960,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update a sound",
+        "summary": "patch",
         "tags": [
           "sounds"
         ]
@@ -30029,41 +28015,12 @@
       }
     },
     "/elements/styles/{id}": {
-      "patch": {
-        "operationId": "ElementsStylesController.patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "patch",
-        "tags": [
-          "styles"
-        ]
-      }
-    },
-    "/elements/styles/{styleId}": {
       "delete": {
         "operationId": "ElementsStylesController.remove",
         "parameters": [
           {
             "in": "path",
-            "name": "styleId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -30090,7 +28047,7 @@
         "parameters": [
           {
             "in": "path",
-            "name": "styleId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
@@ -30113,27 +28070,17 @@
         ]
       },
       "patch": {
-        "operationId": "ElementsStylesController.update",
+        "operationId": "ElementsStylesController.patch",
         "parameters": [
           {
             "in": "path",
-            "name": "styleId",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string"
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateElementStyleDto"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": ""
@@ -30144,7 +28091,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update a style",
+        "summary": "patch",
         "tags": [
           "styles"
         ]
@@ -30972,7 +28919,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -31688,7 +29635,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -31697,7 +29644,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -32102,7 +30049,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -32111,7 +30058,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -32474,7 +30421,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -32483,7 +30430,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -32602,7 +30549,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -32611,7 +30558,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -33257,7 +31204,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -33266,7 +31213,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -33529,7 +31476,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -33538,7 +31485,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -33850,7 +31797,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -33859,7 +31806,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -34049,7 +31996,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -34058,7 +32005,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -34511,7 +32458,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -34520,7 +32467,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -34661,7 +32608,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -34670,7 +32617,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -35199,7 +33146,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -35208,7 +33155,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -35395,30 +33342,6 @@
         ]
       }
     },
-    "/newsletters/{id}/approve": {
-      "post": {
-        "operationId": "NewslettersController.approve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "approve",
-        "tags": [
-          "newsletters"
-        ]
-      }
-    },
     "/newsletters/{id}/context": {
       "get": {
         "operationId": "NewslettersController.context",
@@ -35438,30 +33361,6 @@
           }
         },
         "summary": "context",
-        "tags": [
-          "newsletters"
-        ]
-      }
-    },
-    "/newsletters/{id}/publish": {
-      "post": {
-        "operationId": "NewslettersController.publish",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "publish",
         "tags": [
           "newsletters"
         ]
@@ -36100,7 +33999,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -36109,7 +34008,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -36121,6 +34020,15 @@
             "description": "Filter by favorite status",
             "in": "query",
             "name": "isFavorite",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "When true, return membership summaries for the current user (cross-org).",
+            "in": "query",
+            "name": "mine",
             "required": false,
             "schema": {
               "type": "boolean"
@@ -36145,6 +34053,16 @@
       "post": {
         "operationId": "OrganizationsController.create",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrganizationDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
@@ -36185,46 +34103,6 @@
           }
         ],
         "summary": "findBySlug",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
-    "/organizations/create": {
-      "post": {
-        "operationId": "OrganizationsController.createOrganization",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "createOrganization",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
-    "/organizations/mine": {
-      "get": {
-        "operationId": "OrganizationsController.findMine",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "findMine",
         "tags": [
           "organizations"
         ]
@@ -36337,115 +34215,6 @@
           }
         ],
         "summary": "patch",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
-    "/organizations/{organizationId}/activities": {
-      "get": {
-        "operationId": "OrganizationsRelationshipsController.findAllActivities",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "organizationId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "findAllActivities",
         "tags": [
           "organizations"
         ]
@@ -36756,115 +34525,6 @@
         ]
       }
     },
-    "/organizations/{organizationId}/brands": {
-      "get": {
-        "operationId": "OrganizationsRelationshipsController.findAllBrands",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "organizationId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "findAllBrands",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
     "/organizations/{organizationId}/brands/{brandId}/darkroom-capabilities": {
       "get": {
         "operationId": "OrganizationsSettingsController.getDarkroomCapabilities",
@@ -36968,7 +34628,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -36977,7 +34637,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -37291,7 +34951,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -37300,7 +34960,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -37479,184 +35139,6 @@
           }
         ],
         "summary": "findPlatformAnalytics",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
-    "/organizations/{organizationId}/posts": {
-      "get": {
-        "operationId": "OrganizationsRelationshipsController.findAllPosts",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "organizationId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Separate posts that have been published from work in progress",
-            "in": "query",
-            "name": "publicationState",
-            "required": false,
-            "schema": {
-              "enum": [
-                "posted",
-                "not-posted"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Search post labels and descriptions",
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter posts scheduled after this date (ISO 8601 format)",
-            "in": "query",
-            "name": "startDate",
-            "required": false,
-            "schema": {
-              "example": "2024-01-01T00:00:00.000Z",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter posts scheduled before this date (ISO 8601 format)",
-            "in": "query",
-            "name": "endDate",
-            "required": false,
-            "schema": {
-              "example": "2024-01-31T23:59:59.999Z",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter posts by platform",
-            "in": "query",
-            "name": "platform",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/CredentialPlatform"
-            }
-          },
-          {
-            "description": "Filter posts by status",
-            "in": "query",
-            "name": "status",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/PostStatus"
-            }
-          },
-          {
-            "description": "Filter posts by credential ID",
-            "in": "query",
-            "name": "credential",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "findAllPosts",
         "tags": [
           "organizations"
         ]
@@ -38105,115 +35587,6 @@
         ]
       }
     },
-    "/organizations/{organizationId}/tags": {
-      "get": {
-        "operationId": "OrganizationsRelationshipsController.findAllTags",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "organizationId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "findAllTags",
-        "tags": [
-          "organizations"
-        ]
-      }
-    },
     "/organizations/{organizationId}/twitter-pipeline/draft": {
       "post": {
         "operationId": "TwitterPipelineController.draft",
@@ -38310,223 +35683,6 @@
         },
         "tags": [
           "TwitterPipeline"
-        ]
-      }
-    },
-    "/organizations/{organizationId}/videos": {
-      "get": {
-        "operationId": "OrganizationsRelationshipsController.findAllVideos",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "organizationId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
-            "in": "query",
-            "name": "organization",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by brand ID (superadmin only)",
-            "in": "query",
-            "name": "brand",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by status using repeated query keys (e.g., ?status=completed&status=failed). Defaults to [\"draft\", \"uploaded\", \"completed\"] when not specified.",
-            "in": "query",
-            "name": "status",
-            "required": false,
-            "schema": {
-              "example": [
-                "completed",
-                "failed"
-              ],
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          },
-          {
-            "description": "Filter by training ID",
-            "in": "query",
-            "name": "training",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by scope/visibility level",
-            "in": "query",
-            "name": "scope",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/AssetScope"
-            }
-          },
-          {
-            "description": "Filter by reference video ID",
-            "in": "query",
-            "name": "reference",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by video format",
-            "in": "query",
-            "name": "format",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by parent video ID",
-            "in": "query",
-            "name": "parent",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by folder ID",
-            "in": "query",
-            "name": "folder",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by provider",
-            "in": "query",
-            "name": "provider",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Search videos by text",
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Use lightweight mode (skip expensive lookups for masonry/gallery views)",
-            "in": "query",
-            "name": "lightweight",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
-            "in": "query",
-            "name": "latest",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "findAllVideos",
-        "tags": [
-          "organizations"
         ]
       }
     },
@@ -38676,81 +35832,6 @@
           }
         },
         "summary": "Get campaign analytics",
-        "tags": [
-          "outreach-campaigns",
-          "OutreachCampaigns"
-        ]
-      }
-    },
-    "/outreach-campaigns/{id}/complete": {
-      "post": {
-        "operationId": "OutreachCampaignsController.completeCampaign",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Campaign completed successfully"
-          }
-        },
-        "summary": "Complete a campaign",
-        "tags": [
-          "outreach-campaigns",
-          "OutreachCampaigns"
-        ]
-      }
-    },
-    "/outreach-campaigns/{id}/pause": {
-      "post": {
-        "operationId": "OutreachCampaignsController.pauseCampaign",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Campaign paused successfully"
-          }
-        },
-        "summary": "Pause a campaign",
-        "tags": [
-          "outreach-campaigns",
-          "OutreachCampaigns"
-        ]
-      }
-    },
-    "/outreach-campaigns/{id}/start": {
-      "post": {
-        "operationId": "OutreachCampaignsController.startCampaign",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Campaign started successfully"
-          }
-        },
-        "summary": "Start a campaign",
         "tags": [
           "outreach-campaigns",
           "OutreachCampaigns"
@@ -39372,126 +36453,6 @@
         ]
       }
     },
-    "/post-groups/{id}/cancel": {
-      "post": {
-        "operationId": "PostGroupsController.cancel",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "cancel",
-        "tags": [
-          "PostGroups"
-        ]
-      }
-    },
-    "/post-groups/{id}/pause": {
-      "post": {
-        "operationId": "PostGroupsController.pause",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "pause",
-        "tags": [
-          "PostGroups"
-        ]
-      }
-    },
-    "/post-groups/{id}/publish-now": {
-      "post": {
-        "operationId": "PostGroupsController.publishNow",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "publishNow",
-        "tags": [
-          "PostGroups"
-        ]
-      }
-    },
-    "/post-groups/{id}/resume": {
-      "post": {
-        "operationId": "PostGroupsController.resume",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "resume",
-        "tags": [
-          "PostGroups"
-        ]
-      }
-    },
-    "/post-groups/{id}/series/cancel-future": {
-      "post": {
-        "operationId": "PostGroupsController.cancelFutureSeries",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "cancelFutureSeries",
-        "tags": [
-          "PostGroups"
-        ]
-      }
-    },
     "/post-groups/{id}/series/future": {
       "patch": {
         "operationId": "PostGroupsController.editFutureSeries",
@@ -39511,54 +36472,6 @@
           }
         },
         "summary": "editFutureSeries",
-        "tags": [
-          "PostGroups"
-        ]
-      }
-    },
-    "/post-groups/{id}/series/pause": {
-      "post": {
-        "operationId": "PostGroupsController.pauseSeries",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "pauseSeries",
-        "tags": [
-          "PostGroups"
-        ]
-      }
-    },
-    "/post-groups/{id}/series/resume": {
-      "post": {
-        "operationId": "PostGroupsController.resumeSeries",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "resumeSeries",
         "tags": [
           "PostGroups"
         ]
@@ -39654,7 +36567,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -39663,7 +36576,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -40781,7 +37694,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -40790,7 +37703,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -41102,7 +38015,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -41111,7 +38024,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -41580,7 +38493,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -41589,7 +38502,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -41812,7 +38725,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -41821,7 +38734,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -41964,7 +38877,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -41973,7 +38886,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -42076,7 +38989,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -42085,7 +38998,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -42299,7 +39212,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -42308,7 +39221,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -42632,7 +39545,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -42641,7 +39554,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -43325,43 +40238,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update run status/output/progress",
-        "tags": [
-          "Runs"
-        ]
-      }
-    },
-    "/runs/{runId}/cancel": {
-      "post": {
-        "operationId": "RunsController.cancel",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "runId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RunEntity"
-                }
-              }
-            },
-            "description": "Run cancelled"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Cancel a run",
+        "summary": "Update run status/output/progress (cancel via { status: cancelled })",
         "tags": [
           "Runs"
         ]
@@ -46640,7 +43517,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -46649,7 +43526,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -46803,7 +43680,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -46812,7 +43689,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -47181,7 +44058,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -47190,7 +44067,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -48819,7 +45696,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -48828,7 +45705,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -49063,7 +45940,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -49072,7 +45949,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -49285,7 +46162,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -49294,7 +46171,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -50170,7 +47047,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -50179,7 +47056,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -50319,7 +47196,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -50328,7 +47205,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -50439,7 +47316,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -50448,7 +47325,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -50765,7 +47642,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -50774,7 +47651,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -51161,7 +48038,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -51170,7 +48047,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -51297,7 +48174,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -51306,7 +48183,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -51581,7 +48458,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -51590,7 +48467,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -52037,7 +48914,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -52046,7 +48923,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -52325,7 +49202,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -52334,7 +49211,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -53067,7 +49944,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -53076,7 +49953,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -53334,7 +50211,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -53343,7 +50220,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -53376,6 +50253,30 @@
             "required": false,
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "description": "When `system-catalog`, return the code-owned system workflow catalog for this organization instead of persisted workflows.",
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "enum": [
+                "system-catalog"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "When `statistics`, return aggregated workflow stats for the org instead of the list.",
+            "in": "query",
+            "name": "view",
+            "required": false,
+            "schema": {
+              "enum": [
+                "statistics"
+              ],
+              "type": "string"
             }
           }
         ],
@@ -53577,7 +50478,7 @@
             }
           },
           {
-            "description": "Filter by organization ID (superadmin only)",
+            "description": "Filter by organization ID",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -53586,7 +50487,7 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
+            "description": "Filter by brand ID",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -53649,70 +50550,6 @@
           }
         },
         "summary": "getNodeDefinition",
-        "tags": [
-          "workflows"
-        ]
-      }
-    },
-    "/workflows/statistics": {
-      "get": {
-        "operationId": "WorkflowCrudController.getStatistics",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "getStatistics",
-        "tags": [
-          "workflows"
-        ]
-      }
-    },
-    "/workflows/system-catalog": {
-      "get": {
-        "operationId": "SystemWorkflowCatalogController.listCatalog",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "listCatalog",
-        "tags": [
-          "workflows"
-        ]
-      }
-    },
-    "/workflows/system-catalog/{canonicalId}/install": {
-      "post": {
-        "operationId": "SystemWorkflowCatalogController.install",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "canonicalId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/InstallSystemWorkflowDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "install",
         "tags": [
           "workflows"
         ]
@@ -53845,40 +50682,6 @@
           }
         },
         "summary": "runBatch",
-        "tags": [
-          "workflows"
-        ]
-      }
-    },
-    "/workflows/{workflowId}/clone": {
-      "post": {
-        "operationId": "WorkflowCrudController.cloneWorkflow",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "workflowId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CloneWorkflowDto"
-              }
-            }
-          },
-          "required": false
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "cloneWorkflow",
         "tags": [
           "workflows"
         ]

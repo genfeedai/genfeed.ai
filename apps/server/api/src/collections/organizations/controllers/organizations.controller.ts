@@ -4,7 +4,7 @@ import { DefaultRecurringContentService } from '@api/collections/brands/services
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { DEFAULT_FREE_SEATS } from '@api/collections/organization-settings/utils/seat-policy.util';
-import type { CreateOrganizationDto } from '@api/collections/organizations/dto/create-organization.dto';
+import { CreateOrganizationDto } from '@api/collections/organizations/dto/create-organization.dto';
 import { OrganizationQueryDto } from '@api/collections/organizations/dto/organization-query.dto';
 import type { UpdateOrganizationDto } from '@api/collections/organizations/dto/update-organization.dto';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
@@ -15,7 +15,6 @@ import { AccessBootstrapCacheService } from '@api/common/services/access-bootstr
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
-import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { PlanLimitExceededException } from '@api/helpers/exceptions/business/business-logic.exception';
@@ -37,7 +36,11 @@ import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { isCloudDeployment } from '@genfeedai/config';
-import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
+import type {
+  JsonApiCollectionResponse,
+  JsonApiSingleResponse,
+  OrganizationOption,
+} from '@genfeedai/interfaces';
 import {
   getOrganizationLimitForTier,
   getUpgradeTierForLimit,
@@ -163,14 +166,43 @@ export class OrganizationsController extends BaseCRUDController<
     return serializeSingle(request, OrganizationSerializer, org);
   }
 
+  /**
+   * List organizations.
+   *
+   * - `?mine=true` — membership summaries for the current user (cross-org).
+   * - default — platform-wide list (superadmin only).
+   */
+  findAll(
+    request: Request,
+    user: User,
+    query: OrganizationQueryDto & { readonly mine: true },
+  ): Promise<OrganizationOption[]>;
+  findAll(
+    request: Request,
+    user: User,
+    query: OrganizationQueryDto,
+  ): Promise<JsonApiCollectionResponse>;
   @Get()
-  @RolesDecorator('superadmin')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAll(
     @Req() request: Request,
-    @CurrentUser() _user: User,
+    @CurrentUser() user: User,
     @Query() query: OrganizationQueryDto,
-  ): Promise<JsonApiCollectionResponse> {
+  ): Promise<JsonApiCollectionResponse | OrganizationOption[]> {
+    if (query.mine) {
+      return this.findMine(user);
+    }
+
+    if (!getIsSuperAdmin(user)) {
+      throw new HttpException(
+        {
+          detail: 'Platform superadmin access is required',
+          title: 'Forbidden',
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -188,20 +220,41 @@ export class OrganizationsController extends BaseCRUDController<
     return serializeCollection(request, OrganizationSerializer, data);
   }
 
-  // Sub-resource collection routes (brands, ingredients, videos, tags, posts,
-  // activities, analytics) moved to organizations-relationships.controller.ts
-  // to keep this controller under the runtime-complexity line cap. See
-  // OrganizationsRelationshipsController for GET
-  // /organizations/:organizationId/{brands,ingredients,videos,tags,posts,activities,analytics}.
+  // Sub-resource collection routes (ingredients, videos, tags, analytics)
+  // live in organizations-relationships.controller.ts. Prefer flat lists for
+  // brands/posts/activities: GET /brands?organization=, /posts?organization=,
+  // /activities?organization=.
 
   /**
-   * GET /organizations/mine
-   * Returns all organizations the current user belongs to (as member or owner).
-   * Cross-org by design — no single-org auth scoping.
+   * Create a new organization (collection POST).
+   * Seeds settings, brand, member; switches active org.
+   * Overrides BaseCRUD create: response is `{ organization, brand }`, not a
+   * serialized Organization document alone.
    */
-  @Get('mine')
+  @Post()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findMine(@CurrentUser() user: User): Promise<unknown[]> {
+  override async create(
+    @Req() _request: Request,
+    @CurrentUser() user: User,
+    @Body() createDto: CreateOrganizationDto,
+  ): Promise<JsonApiSingleResponse> {
+    const result = await this.createOrganization(
+      {
+        description: (createDto as { description?: string }).description,
+        label: createDto.label,
+      },
+      user,
+    );
+    // Seeded create returns a custom payload (org + brand), not a single
+    // Organization JSON:API document. Cast keeps the BaseCRUD signature.
+    return result as JsonApiSingleResponse;
+  }
+
+  /**
+   * Membership summaries for the current user (cross-org).
+   * Invoked via `GET /organizations?mine=true`.
+   */
+  async findMine(user: User): Promise<OrganizationOption[]> {
     const publicMetadata = getPublicMetadata(user);
     const userId = publicMetadata.user;
 
@@ -367,16 +420,11 @@ export class OrganizationsController extends BaseCRUDController<
   }
 
   /**
-   * POST /organizations/create
-   * Create a new organization for the current user.
-   * Seeds org settings, brand, and member records.
-   * Switches the user's active org to the newly created one.
+   * Shared create implementation for `POST /organizations`.
    */
-  @Post('create')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
   async createOrganization(
-    @Body() body: { label: string; description?: string },
-    @CurrentUser() user: User,
+    body: { label: string; description?: string },
+    user: User,
   ): Promise<unknown> {
     const publicMetadata = getPublicMetadata(user);
     const userId = publicMetadata.user;

@@ -9,14 +9,6 @@ describe('WorkflowCrudController RBAC', () => {
     expect(metadata).toEqual(['owner', 'admin', 'creator']);
   });
 
-  it('should require owner, admin, or creator role for cloneWorkflow', () => {
-    const metadata = Reflect.getMetadata(
-      'roles',
-      WorkflowCrudController.prototype.cloneWorkflow,
-    );
-    expect(metadata).toEqual(['owner', 'admin', 'creator']);
-  });
-
   it('should require owner, admin, or creator role for update', () => {
     const metadata = Reflect.getMetadata(
       'roles',
@@ -33,15 +25,9 @@ describe('WorkflowCrudController RBAC', () => {
     expect(metadata).toEqual(['owner', 'admin', 'creator']);
   });
 
-  it('should not require a role for findAll, getStatistics, exportComfyUI, or findOne', () => {
+  it('should not require a role for findAll, exportComfyUI, or findOne', () => {
     expect(
       Reflect.getMetadata('roles', WorkflowCrudController.prototype.findAll),
-    ).toBeUndefined();
-    expect(
-      Reflect.getMetadata(
-        'roles',
-        WorkflowCrudController.prototype.getStatistics,
-      ),
     ).toBeUndefined();
     expect(
       Reflect.getMetadata(

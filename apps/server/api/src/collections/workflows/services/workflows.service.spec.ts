@@ -454,6 +454,51 @@ describe('WorkflowsService system workflow guardrails', () => {
     expect(createInput.user).toBeUndefined();
   });
 
+  it('prefers an explicit body brandId over the session brand when cloning via create', async () => {
+    vi.spyOn(service, 'cloneWorkflow').mockResolvedValue({} as never);
+
+    await service.createWorkflow(
+      'user-1',
+      'org-1',
+      {
+        brandId: 'body-brand',
+        edges: [],
+        nodes: [],
+        sourceWorkflowId: 'workflow-1',
+      } as never,
+      'session-brand',
+    );
+
+    expect(service.cloneWorkflow).toHaveBeenCalledWith(
+      'workflow-1',
+      'user-1',
+      'org-1',
+      'body-brand',
+    );
+  });
+
+  it('falls back to the session brand when cloning via create without a body brandId', async () => {
+    vi.spyOn(service, 'cloneWorkflow').mockResolvedValue({} as never);
+
+    await service.createWorkflow(
+      'user-1',
+      'org-1',
+      {
+        edges: [],
+        nodes: [],
+        sourceWorkflowId: 'workflow-1',
+      } as never,
+      'session-brand',
+    );
+
+    expect(service.cloneWorkflow).toHaveBeenCalledWith(
+      'workflow-1',
+      'user-1',
+      'org-1',
+      'session-brand',
+    );
+  });
+
   it('rejects clone target brands outside the authenticated organization', async () => {
     vi.spyOn(service, 'findVisibleOrThrow').mockResolvedValue({
       brandId: 'source-brand',

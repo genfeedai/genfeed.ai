@@ -51,15 +51,15 @@ export class ElementsMoodsController extends BaseCRUDController<
     super(loggerService, moodsService, MoodSerializer, 'ElementMood');
   }
 
-  @Get(':moodId')
+  @Get(':id')
   @ApiOperation({ summary: 'Get a specific mood' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   findOne(
     @Req() request: Request,
     @CurrentUser() _user: User,
-    @Param('moodId') moodId: string,
+    @Param('id') id: string,
   ) {
-    return super.findOne(request, _user, moodId);
+    return super.findOne(request, _user, id);
   }
 
   @Post()
@@ -74,29 +74,29 @@ export class ElementsMoodsController extends BaseCRUDController<
     return super.create(request, user, createDto);
   }
 
-  @Patch(':moodId')
+  @Patch(':id')
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Update a mood' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   update(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Param('moodId') moodId: string,
+    @Param('id') id: string,
     @Body() updateDto: UpdateElementMoodDto,
   ) {
-    return super.patch(request, user, moodId, updateDto);
+    return super.patch(request, user, id, updateDto);
   }
 
-  @Delete(':moodId')
+  @Delete(':id')
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Delete a mood' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   remove(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Param('moodId') moodId: string,
+    @Param('id') id: string,
   ) {
-    return super.remove(request, user, moodId);
+    return super.remove(request, user, id);
   }
 
   public buildFindAllQuery(user: User, query: BaseQueryDto) {

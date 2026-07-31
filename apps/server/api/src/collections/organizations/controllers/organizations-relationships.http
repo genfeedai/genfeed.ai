@@ -1,20 +1,8 @@
 ### Genfeed API - Organizations Relationships Endpoints
-### Get organization brands, analytics, ingredients, videos, tags, posts, activities, tasks
+### Analytics aggregates, ingredients (no flat mixed list), videos, tags
+### Prefer flat collections for duals:
+###   GET /brands?organization=  /posts?organization=  /activities?organization=
 ### Protected by RolesGuard
-
-########################################
-# Organization Brands
-########################################
-
-### Get Organization Brands
-GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/brands
-Authorization: Bearer {{bearerToken}}
-
-
-### Get Organization Brands with Pagination
-GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/brands?page=1&limit=10&sort=-createdAt
-Authorization: Bearer {{bearerToken}}
-
 
 ########################################
 # Organization Analytics
@@ -72,7 +60,7 @@ Authorization: Bearer {{bearerToken}}
 
 
 ########################################
-# Organization Collections
+# Organization Collections (kept duals)
 ########################################
 
 ### Get Organization Ingredients
@@ -105,33 +93,22 @@ GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/tags?page=1&limit=50&sor
 Authorization: Bearer {{bearerToken}}
 
 
-### Get Organization Posts
-GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/posts
+########################################
+# Flat collection equivalents (preferred)
+########################################
+
+### List Organization Brands (flat)
+GET {{apiBaseUrl}}/brands?organization={{testOrganizationId}}&page=1&limit=10&sort=-createdAt
 Authorization: Bearer {{bearerToken}}
 
 
-### Get Organization Posts with Filters
-GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/posts?platform=twitter&status=scheduled&page=1&limit=20&sort=-scheduledDate
+### List Organization Posts (flat)
+GET {{apiBaseUrl}}/posts?organization={{testOrganizationId}}&platform=twitter&status=scheduled&page=1&limit=20&sort=-scheduledDate
 Authorization: Bearer {{bearerToken}}
 
 
-### Get Organization Activities
-GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/activities
-Authorization: Bearer {{bearerToken}}
-
-
-### Get Organization Activities with Pagination
-GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/activities?page=1&limit=20&sort=-createdAt
-Authorization: Bearer {{bearerToken}}
-
-
-### Get Organization Tasks
-GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/tasks
-Authorization: Bearer {{bearerToken}}
-
-
-### Get Organization Tasks with Pagination
-GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/tasks?page=1&limit=20&sort=-createdAt
+### List Organization Activities (flat)
+GET {{apiBaseUrl}}/activities?organization={{testOrganizationId}}&page=1&limit=20&sort=-createdAt
 Authorization: Bearer {{bearerToken}}
 
 
@@ -139,15 +116,15 @@ Authorization: Bearer {{bearerToken}}
 # Test Cases
 ########################################
 
-### Test: Invalid Organization ID
-GET {{apiBaseUrl}}/organizations/invalid-id/brands
+### Test: Invalid Organization ID (ingredients)
+GET {{apiBaseUrl}}/organizations/invalid-id/ingredients
 Authorization: Bearer {{bearerToken}}
 
 
-### Test: Organization Not Found
-GET {{apiBaseUrl}}/organizations/507f1f77bcf86cd799439011/brands
+### Test: Organization Not Found (ingredients)
+GET {{apiBaseUrl}}/organizations/507f1f77bcf86cd799439011/ingredients
 Authorization: Bearer {{bearerToken}}
 
 
-### Test: Unauthorized Access
-GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/brands
+### Test: Unauthorized Access (ingredients)
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/ingredients

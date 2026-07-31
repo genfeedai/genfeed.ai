@@ -2,7 +2,7 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsOptional } from 'class-validator';
+import { IsBoolean, IsIn, IsOptional } from 'class-validator';
 
 /**
  * Query params for `GET /workflows`.
@@ -11,6 +11,10 @@ import { IsBoolean, IsOptional } from 'class-validator';
  * workflow-reference pickers) instead of the default caller-scoped
  * user + system-visible set. Replaces the former `GET /workflows/referencable`
  * RPC route (#1354).
+ *
+ * `source=system-catalog` lists code-owned installable system templates for
+ * the org (not persisted workflow rows). Install via
+ * `POST /workflows { templateId, sourceType: "system-catalog" }` (#2176).
  */
 export class WorkflowQueryDto extends BaseQueryDto {
   @IsEntityId()
@@ -37,4 +41,24 @@ export class WorkflowQueryDto extends BaseQueryDto {
     required: false,
   })
   readonly referencable?: boolean;
+
+  @IsOptional()
+  @IsIn(['system-catalog'])
+  @ApiProperty({
+    description:
+      'When `system-catalog`, return the code-owned system workflow catalog for this organization instead of persisted workflows.',
+    enum: ['system-catalog'],
+    required: false,
+  })
+  readonly source?: 'system-catalog';
+
+  @IsOptional()
+  @IsIn(['statistics'])
+  @ApiProperty({
+    description:
+      'When `statistics`, return aggregated workflow stats for the org instead of the list.',
+    enum: ['statistics'],
+    required: false,
+  })
+  readonly view?: 'statistics';
 }

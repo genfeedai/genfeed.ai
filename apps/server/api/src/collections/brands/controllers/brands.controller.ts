@@ -19,7 +19,6 @@ import { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dto';
 import { AddReferenceImagesDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
-import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
@@ -323,7 +322,9 @@ export class BrandsController extends BaseCRUDController<
   }
 
   /**
-   * Override buildFindAllQuery to add logo and banner lookups
+   * List brands for the caller. Superadmins may pass `organization`/`brand`
+   * query filters. Members get brands they own or that belong to the requested
+   * (or active) organization via `GET /brands?organization=`.
    */
   public buildFindAllQuery(user: User, query: BaseQueryDto) {
     const publicMetadata = getPublicMetadata(user);
@@ -332,19 +333,36 @@ export class BrandsController extends BaseCRUDController<
       query,
     );
 
-    const where: Record<string, unknown> = {
-      isDeleted: query.isDeleted ?? false,
-    };
+    const isDeleted = query.isDeleted ?? false;
 
     if (adminFilter) {
-      Object.assign(where, adminFilter);
-    } else {
-      where.user = publicMetadata.user;
+      return {
+        orderBy: handleQuerySort(query.sort),
+        where: { isDeleted, ...adminFilter },
+      };
+    }
+
+    // Members may only filter by their session organization (or omit the param).
+    const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
+      query,
+      publicMetadata,
+      false,
+    );
+    const organizationId = scope.organization ?? publicMetadata.organization;
+
+    const orConditions: Record<string, unknown>[] = [
+      { user: publicMetadata.user },
+    ];
+    if (organizationId) {
+      orConditions.push({ organization: organizationId });
     }
 
     return {
       orderBy: handleQuerySort(query.sort),
-      where,
+      where: {
+        isDeleted,
+        OR: orConditions,
+      },
     };
   }
 
@@ -355,7 +373,9 @@ export class BrandsController extends BaseCRUDController<
   }
 
   @Get()
-  @RolesDecorator('superadmin')
+  // No @RolesDecorator('superadmin'): members list brands for their org via
+  // `GET /brands?organization=`. Class-level RolesGuard still requires auth +
+  // org membership.
   @Cache({
     keyGenerator: (req) =>
       `brands:list:user:${req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`,

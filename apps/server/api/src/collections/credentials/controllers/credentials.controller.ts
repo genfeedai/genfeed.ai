@@ -15,7 +15,11 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import {
+  getIsSuperAdmin,
+  getPublicMetadata,
+} from '@api/helpers/utils/auth/auth.util';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -224,11 +228,28 @@ export class CredentialsController {
 
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
+    // Prefer brand/org query filters (collection style); keep user ownership as
+    // the default so the list stays tenant-safe for members. Reject foreign org.
+    const where: Record<string, unknown> = {
+      isDeleted,
+      user: publicMetadata.user,
+    };
+    if (query.brand || query.organization) {
+      const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
+        query,
+        publicMetadata,
+        getIsSuperAdmin(user, request),
+      );
+      if (scope.brand) {
+        where.brand = scope.brand;
+      }
+      if (scope.organization) {
+        where.organization = scope.organization;
+      }
+    }
+
     const aggregate = {
-      where: {
-        isDeleted,
-        user: publicMetadata.user,
-      },
+      where,
       orderBy: handleQuerySort(query.sort),
     };
 
@@ -379,7 +400,7 @@ export class CredentialsController {
         platform: CredentialPlatform.INSTAGRAM,
       });
 
-      if (!credential || !credential.accessToken) {
+      if (!credential?.accessToken) {
         throw new HttpException(
           {
             detail: 'Instagram account is not connected',

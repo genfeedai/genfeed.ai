@@ -51,15 +51,15 @@ export class ElementsCamerasController extends BaseCRUDController<
     super(loggerService, camerasService, CameraSerializer, 'ElementCamera');
   }
 
-  @Get(':cameraId')
+  @Get(':id')
   @ApiOperation({ summary: 'Get a specific camera' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   findOne(
     @Req() request: Request,
     @CurrentUser() _user: User,
-    @Param('cameraId') cameraId: string,
+    @Param('id') id: string,
   ) {
-    return super.findOne(request, _user, cameraId);
+    return super.findOne(request, _user, id);
   }
 
   @Post()
@@ -74,29 +74,29 @@ export class ElementsCamerasController extends BaseCRUDController<
     return super.create(request, user, createDto);
   }
 
-  @Patch(':cameraId')
+  @Patch(':id')
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Update a camera' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   update(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Param('cameraId') cameraId: string,
+    @Param('id') id: string,
     @Body() updateDto: UpdateElementCameraDto,
   ) {
-    return super.patch(request, user, cameraId, updateDto);
+    return super.patch(request, user, id, updateDto);
   }
 
-  @Delete(':cameraId')
+  @Delete(':id')
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Delete a camera' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   remove(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Param('cameraId') cameraId: string,
+    @Param('id') id: string,
   ) {
-    return super.remove(request, user, cameraId);
+    return super.remove(request, user, id);
   }
 
   public buildFindAllQuery(user: User, query: BaseQueryDto) {

@@ -320,7 +320,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   },
   {
     method: 'Post',
-    sub: ':workflowId/clone',
+    sub: '',
     controller: 'workflowCrud',
     tools: ['duplicate_workflow'],
   },
@@ -454,41 +454,18 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     controller: 'postGroups',
     tools: ['get_scheduled_release'],
   },
+  // Field updates and lifecycle ({ action }) share PATCH :id.
   {
     method: 'Patch',
     sub: ':id',
     controller: 'postGroups',
-    tools: ['update_scheduled_release'],
+    tools: ['update_scheduled_release', 'control_scheduled_release'],
   },
   {
     method: 'Patch',
     sub: ':id/targets/:targetId',
     controller: 'postGroups',
     tools: ['update_scheduled_release'],
-  },
-  {
-    method: 'Post',
-    sub: ':id/cancel',
-    controller: 'postGroups',
-    tools: ['control_scheduled_release'],
-  },
-  {
-    method: 'Post',
-    sub: ':id/pause',
-    controller: 'postGroups',
-    tools: ['control_scheduled_release'],
-  },
-  {
-    method: 'Post',
-    sub: ':id/resume',
-    controller: 'postGroups',
-    tools: ['control_scheduled_release'],
-  },
-  {
-    method: 'Post',
-    sub: ':id/publish-now',
-    controller: 'postGroups',
-    tools: ['control_scheduled_release'],
   },
 
   // ── Meta Ads (services/meta-ads) ──

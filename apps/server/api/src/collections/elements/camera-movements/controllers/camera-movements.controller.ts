@@ -56,15 +56,15 @@ export class ElementsCameraMovementsController extends BaseCRUDController<
     );
   }
 
-  @Get(':cameraMovementId')
+  @Get(':id')
   @ApiOperation({ summary: 'Get a specific camera movement' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   findOne(
     @Req() request: Request,
     @CurrentUser() _user: User,
-    @Param('cameraMovementId') cameraMovementId: string,
+    @Param('id') id: string,
   ) {
-    return super.findOne(request, _user, cameraMovementId);
+    return super.findOne(request, _user, id);
   }
 
   @Post()
@@ -79,29 +79,29 @@ export class ElementsCameraMovementsController extends BaseCRUDController<
     return super.create(request, user, createDto);
   }
 
-  @Patch(':cameraMovementId')
+  @Patch(':id')
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Update a camera movement' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   update(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Param('cameraMovementId') cameraMovementId: string,
+    @Param('id') id: string,
     @Body() updateDto: UpdateElementCameraMovementDto,
   ) {
-    return super.patch(request, user, cameraMovementId, updateDto);
+    return super.patch(request, user, id, updateDto);
   }
 
-  @Delete(':cameraMovementId')
+  @Delete(':id')
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Delete a camera movement' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   remove(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Param('cameraMovementId') cameraMovementId: string,
+    @Param('id') id: string,
   ) {
-    return super.remove(request, user, cameraMovementId);
+    return super.remove(request, user, id);
   }
 
   /**

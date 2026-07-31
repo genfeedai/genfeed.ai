@@ -175,15 +175,15 @@ export class ElementsBlacklistsController extends BaseCRUDController<
     return false;
   }
 
-  @Get(':blacklistId')
+  @Get(':id')
   @ApiOperation({ summary: 'Get a specific blacklist entry' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   findOne(
     @Req() request: Request,
     @CurrentUser() _user: User,
-    @Param('blacklistId') blacklistId: string,
+    @Param('id') id: string,
   ) {
-    return super.findOne(request, _user, blacklistId);
+    return super.findOne(request, _user, id);
   }
 
   @Post()
@@ -198,60 +198,60 @@ export class ElementsBlacklistsController extends BaseCRUDController<
     return super.create(request, user, createDto);
   }
 
-  @Patch(':blacklistId')
+  @Patch(':id')
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Update a blacklist entry' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async update(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Param('blacklistId') blacklistId: string,
+    @Param('id') id: string,
     @Body() updateDto: UpdateElementBlacklistDto,
   ) {
-    if (!isEntityId(blacklistId)) {
-      ErrorResponse.notFound(this.entityName, blacklistId);
+    if (!isEntityId(id)) {
+      ErrorResponse.notFound(this.entityName, id);
     }
 
     // Check ownership before update - don't populate 'user' field since blacklists don't have it
     const existing = await this.blacklistsService.findOne(
-      { _id: blacklistId },
+      { _id: id },
       [], // No population needed for ownership check
     );
 
     if (!existing) {
-      ErrorResponse.notFound(this.entityName, blacklistId);
+      ErrorResponse.notFound(this.entityName, id);
     }
 
     // Return 404 instead of 403 for security
     if (!this.canUserModifyEntity(user, existing) && !getIsSuperAdmin(user)) {
-      ErrorResponse.notFound(this.entityName, blacklistId);
+      ErrorResponse.notFound(this.entityName, id);
     }
 
     // Enrich the update DTO
     const enrichedDto = await this.enrichUpdateDto(updateDto);
 
     const data = await this.blacklistsService.patch(
-      blacklistId,
+      id,
       enrichedDto,
       this.getPopulateFields(),
     );
 
     if (!data) {
-      ErrorResponse.notFound(this.entityName, blacklistId);
+      ErrorResponse.notFound(this.entityName, id);
     }
 
     return serializeSingle(request, this.serializer, data);
   }
 
-  @Delete(':blacklistId')
+  @Delete(':id')
   @SetMetadata('roles', ['superadmin', MemberRole.ADMIN])
   @ApiOperation({ summary: 'Delete a blacklist entry' })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   remove(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Param('blacklistId') blacklistId: string,
+    @Param('id') id: string,
   ) {
-    return super.remove(request, user, blacklistId);
+    return super.remove(request, user, id);
   }
 }
