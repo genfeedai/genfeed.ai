@@ -201,7 +201,7 @@ jobs:
       - name: Package Release Scripts
         run: bunx vitest run --config scripts/package-release/vitest.config.ts
       - name: CI Workflow Contracts
-        run: node --test scripts/ci/daily-deploy-orchestration.test.mjs scripts/ci/pr-test-plan.test.mjs scripts/ci/pr-validation-workflows.test.mjs scripts/ci/release-e2e-failure-reporter.test.mjs scripts/ci/setup-bun-env.test.mjs scripts/ci/tests-gate.test.mjs
+        run: node --test scripts/ci/changed-code-coverage.test.mjs scripts/ci/daily-deploy-orchestration.test.mjs scripts/ci/pr-test-plan.test.mjs scripts/ci/pr-validation-workflows.test.mjs scripts/ci/release-e2e-failure-reporter.test.mjs scripts/ci/setup-bun-env.test.mjs scripts/ci/tests-gate.test.mjs
       - name: Coverage Workspace Contract
         run: bunx vitest run --config scripts/ci/vitest.config.ts coverage-workspaces.test.ts
       # Fail the build if the committed Prisma model metadata (enum-field-map)
@@ -696,3 +696,164 @@ jobs:
           BUILD_RESULT: ${{ needs.build.result }}
         shell: bash
         run: node scripts/ci/tests-gate.mjs | tee -a "$GITHUB_STEP_SUMMARY"
+
+  # ── Changed-code coverage — OBSERVATION ONLY (#1849) ────────────────────────
+  #
+  # These three jobs are deliberately absent from `tests-gate.needs` above and
+  # must stay that way while the committed baseline says `mode: "observation"`.
+  # They measure; they never gate. Promotion to a merge requirement is a separate
+  # reviewed change (flip the baseline `mode`, then add "Changed Coverage Report"
+  # to the branch ruleset) — see scripts/ci/changed-code-coverage.baseline.json.
+  #
+  # Full-repository coverage stays in the weekly Coverage workflow: its matrix
+  # costs 21-24 minutes and must never enter pull-request CI. What runs here is
+  # the SAME already-affected scope the changed-shard jobs run, re-executed once
+  # with instrumentation and unsharded so one lcov covers the whole changed graph.
+  coverage-changed-app:
+    name: Changed Coverage (app)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [trust, test-scope]
+    # Keys off `app`, not `app_tests`: a planner escalation to the full suite
+    # sets app_tests=false while app stays true, and the diff is still worth
+    # measuring. `--changed` bounds the work either way.
+    if: >-
+      needs.trust.outputs.is-trusted == 'true'
+      && github.event_name == 'pull_request'
+      && needs.test-scope.outputs.app == 'true'
+    outputs:
+      outcome: ${{ steps.coverage.outcome }}
+      seconds: ${{ steps.coverage.outputs.seconds }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: '1.3.14'
+      - name: Build app workspace
+        run: bunx turbo run build --filter='./apps/app...'
+      - name: Run changed app tests with coverage
+        id: coverage
+        # Never fails the job: a red surface is recorded as a surface result and
+        # reported downstream, not raised as a pull-request failure.
+        continue-on-error: true
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          STARTED=$(date +%s)
+          cd apps/app && bunx vitest run --config ./vitest.config.mts \
+            --maxWorkers=2 --passWithNoTests --changed "$BASE" \
+            --coverage --coverage.enabled=true --coverage.provider=v8 \
+            --coverage.all=false --coverage.reporter=lcovonly
+          echo "seconds=$(($(date +%s) - STARTED))" >> "$GITHUB_OUTPUT"
+        env:
+          NODE_ENV: test
+      - name: Upload app lcov
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: changed-code-coverage-lcov-app-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
+          path: apps/app/coverage/lcov.info
+          if-no-files-found: ignore
+          retention-days: 7
+
+  coverage-changed-api:
+    name: Changed Coverage (api)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [trust, test-scope]
+    if: >-
+      needs.trust.outputs.is-trusted == 'true'
+      && github.event_name == 'pull_request'
+      && needs.test-scope.outputs.api == 'true'
+    outputs:
+      outcome: ${{ steps.coverage.outcome }}
+      seconds: ${{ steps.coverage.outputs.seconds }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: '1.3.14'
+      - name: Build API dependencies
+        run: bunx turbo run build --filter=./packages/**
+      - name: Run changed API tests with coverage
+        id: coverage
+        continue-on-error: true
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          STARTED=$(date +%s)
+          cd apps/server/api && bunx vitest run --config vitest.config.ts \
+            --maxWorkers=2 --passWithNoTests --changed "$BASE" \
+            --coverage --coverage.reporter=lcovonly
+          echo "seconds=$(($(date +%s) - STARTED))" >> "$GITHUB_OUTPUT"
+        env:
+          NODE_ENV: test
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
+          # Suppresses the API suite's whole-repository coverage thresholds. They
+          # describe the full suite; a diff-scoped subset would trip every one of
+          # them and the failure would carry no information.
+          CHANGED_CODE_COVERAGE: '1'
+      - name: Upload api lcov
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: changed-code-coverage-lcov-api-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
+          path: apps/server/api/coverage/lcov.info
+          if-no-files-found: ignore
+          retention-days: 7
+
+  coverage-changed-report:
+    name: Changed Coverage Report
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [trust, coverage-changed-app, coverage-changed-api]
+    if: >-
+      always() && github.event_name == 'pull_request'
+      && needs.trust.outputs.is-trusted == 'true'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Download surface lcov reports
+        # Both surfaces can legitimately be skipped (a docs-only or packages-only
+        # diff), leaving nothing to download. A missing artifact is a surface
+        # state the report already models, not a step failure.
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          pattern: changed-code-coverage-lcov-*-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
+          path: .changed-coverage
+      - name: Intersect coverage with the pull-request diff
+        env:
+          APP_RESULT: ${{ needs.coverage-changed-app.outputs.outcome || needs.coverage-changed-app.result }}
+          API_RESULT: ${{ needs.coverage-changed-api.outputs.outcome || needs.coverage-changed-api.result }}
+          APP_SECONDS: ${{ needs.coverage-changed-app.outputs.seconds || 0 }}
+          API_SECONDS: ${{ needs.coverage-changed-api.outputs.seconds || 0 }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |
+          # Surface wall clock, not report wall clock — that is what the 20-minute
+          # budget in the baseline is measured against.
+          OBSERVATION_LATENCY_SECONDS=$(( APP_SECONDS > API_SECONDS ? APP_SECONDS : API_SECONDS ))
+          export OBSERVATION_LATENCY_SECONDS
+          node scripts/ci/changed-code-coverage.mjs \
+            --base "${{ github.event.pull_request.base.sha }}" \
+            --head HEAD \
+            --surface "app=${APP_RESULT}=.changed-coverage/changed-code-coverage-lcov-app-${PR_NUMBER}-${{ github.run_attempt }}/lcov.info" \
+            --surface "api=${API_RESULT}=.changed-coverage/changed-code-coverage-lcov-api-${PR_NUMBER}-${{ github.run_attempt }}/lcov.info" \
+            --out changed-code-coverage.json \
+            --annotate
+      - name: Upload changed-code coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: changed-code-coverage-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
+          path: changed-code-coverage.json
+          if-no-files-found: warn
+          # Observation evidence: the first ratchet is derived by aggregating
+          # these artifacts, so they outlive the usual 7-day CI retention.
+          retention-days: 90

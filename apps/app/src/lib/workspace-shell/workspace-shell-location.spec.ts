@@ -77,7 +77,9 @@ describe('workspace shell URL restoration', () => {
     });
   });
 
-  it('restores the workflow picker and canonical brand run URL', () => {
+  // Workflows are brand-scoped only since the Automate hard-cut — the
+  // organization scope no longer registers a workflows surface.
+  it('restores the workflow picker and canonical run URL', () => {
     expect(
       restoreWorkspaceShellLocation({
         pathname: '/acme/moonrise/orchestration/workflows/executions/run-1',

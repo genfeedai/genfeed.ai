@@ -237,12 +237,17 @@ describe('workspace shell trusted registry', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/studio/image'),
     ).toMatchObject({ productClass: 'contextual-action' });
+    // The Automate hard-cut folded autopilot and configuration into the
+    // first-class orchestration family; /write is the surviving compat alias.
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/orchestration/autopilot'),
     ).toMatchObject({ productClass: 'control-plane' });
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/orchestration/configuration'),
     ).toMatchObject({ productClass: 'control-plane' });
+    expect(resolveWorkspaceShellRoute('/acme/~/write')).toMatchObject({
+      productClass: 'compatibility-only',
+    });
   });
 
   it('keeps the two accepted hard-cut families outside the registry', () => {
