@@ -35,6 +35,7 @@ import {
   ChevronRight,
   CircleCheck,
   LinkIcon,
+  Megaphone,
   MessageSquare,
   RefreshCw,
   Send,
@@ -42,7 +43,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useWorkspaceNavPanel } from '@/components/workspace-shell/WorkspaceNavPanelContext';
@@ -58,10 +59,12 @@ import {
   STATUS_LABELS,
   STATUS_STYLES,
 } from './messages-page.helpers';
+import MessagesReplyCampaignsPanel from './messages-reply-campaigns-panel';
 import { useMessagesSurfaceAdapter } from './messages-surface-adapter';
 import { useMessagesActions } from './use-messages-actions';
 import { useMessagesConversations } from './use-messages-conversations';
 import { useMessagesInboxFilters } from './use-messages-inbox-filters';
+import { useReplyCampaigns } from './use-reply-campaigns';
 
 function StatusPill({ status }: { status: string }) {
   return (
@@ -280,6 +283,24 @@ export default function MessagesPage() {
     [setSelectedId, updateSelectedConversationParam],
   );
 
+  const [isCampaignsPanelOpen, setIsCampaignsPanelOpen] = useState(false);
+  const replyCampaigns = useReplyCampaigns({
+    brandFilter: filters.brandFilter,
+    isEnabled: isCampaignsPanelOpen,
+    platform: filters.platform,
+  });
+
+  // A campaign enrols exactly what the inbox is showing, so the roster follows
+  // the filters instead of a separate selection model.
+  const enrollableConversations = useMemo(
+    () =>
+      conversations.map((conversation) => ({
+        id: conversation.id,
+        platform: conversation.platform,
+      })),
+    [conversations],
+  );
+
   const canAttachReferences = Boolean(
     activeThreadId &&
       activeThread?.brandId &&
@@ -438,6 +459,31 @@ export default function MessagesPage() {
         ? createPortal(conversationNavPanel, workspaceNavPanel.portalTarget)
         : null}
       <h1 className="sr-only">Messages</h1>
+      <div className="mb-4 flex items-center justify-end">
+        <Button
+          icon={<Megaphone className="size-4" />}
+          onClick={() => {
+            setIsCampaignsPanelOpen(true);
+          }}
+          size={ButtonSize.SM}
+          variant={ButtonVariant.GHOST}
+        >
+          Campaigns
+        </Button>
+      </div>
+      <MessagesReplyCampaignsPanel
+        busyCampaignId={replyCampaigns.busyCampaignId}
+        campaigns={replyCampaigns.campaigns}
+        enrollableConversations={enrollableConversations}
+        error={replyCampaigns.error}
+        isCreating={replyCampaigns.isCreating}
+        isLoading={replyCampaigns.isLoading}
+        isOpen={isCampaignsPanelOpen}
+        onCreate={replyCampaigns.createCampaign}
+        onOpenChange={setIsCampaignsPanelOpen}
+        onRefresh={replyCampaigns.refresh}
+        onTransition={replyCampaigns.transitionCampaign}
+      />
       {error ? (
         <div
           className="mb-4 rounded border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive"

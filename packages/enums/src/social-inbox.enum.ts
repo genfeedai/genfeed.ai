@@ -49,3 +49,26 @@ export enum SocialActionActorType {
   USER = 'user',
   WORKFLOW = 'workflow',
 }
+
+/**
+ * Lifecycle of a throttled reply campaign. `RUNNING` is the only state that
+ * lets a dispatch tick claim a recipient — pause/cancel work by flipping this
+ * column, so an already-delayed BullMQ job simply no-ops when it lands.
+ */
+export enum SocialReplyCampaignStatus {
+  DRAFT = 'draft',
+  RUNNING = 'running',
+  PAUSED = 'paused',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+  FAILED = 'failed',
+}
+
+export enum SocialReplyCampaignRecipientStatus {
+  PENDING = 'pending',
+  DISPATCHING = 'dispatching',
+  SENT = 'sent',
+  FAILED = 'failed',
+  SKIPPED = 'skipped',
+  CANCELLED = 'cancelled',
+}

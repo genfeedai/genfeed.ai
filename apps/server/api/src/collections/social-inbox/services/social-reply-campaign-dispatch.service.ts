@@ -1,0 +1,372 @@
+/**
+ * Social Reply Campaign Dispatch
+ *
+ * One tick sends at most one reply. Pacing lives in the delay of the next
+ * enqueued tick, never in a sleep inside the worker, so a campaign occupies a
+ * worker slot only for the duration of a single outbound call and survives a
+ * restart with nothing but its database rows.
+ */
+import type { SocialInboxScope } from '@api/collections/social-inbox/services/social-inbox.types';
+import { SocialInboxActionService } from '@api/collections/social-inbox/services/social-inbox-action.service';
+import {
+  dayWindowStart,
+  decideThrottle,
+  hourWindowStart,
+  renderCampaignBody,
+} from '@api/collections/social-inbox/services/social-reply-campaign.helpers';
+import type { SocialReplyCampaign } from '@api/collections/social-inbox/services/social-reply-campaign.types';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  SystemWorkflowProvenanceService,
+} from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { SocialReplyCampaignQueueService } from '@api/queues/social-reply-campaign/social-reply-campaign-queue.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  SocialMessageType,
+  SocialReplyCampaignRecipientStatus,
+  SocialReplyCampaignStatus,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/enums';
+import type {
+  SocialReplyCampaignJobData,
+  SocialReplyCampaignJobResult,
+} from '@genfeedai/queue-contracts';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException, Injectable } from '@nestjs/common';
+
+@Injectable()
+export class SocialReplyCampaignDispatchService {
+  private readonly logContext = 'SocialReplyCampaignDispatchService';
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly actionService: SocialInboxActionService,
+    private readonly queueService: SocialReplyCampaignQueueService,
+    private readonly provenanceService: SystemWorkflowProvenanceService,
+    private readonly logger: LoggerService,
+  ) {}
+
+  async dispatchTick(
+    data: SocialReplyCampaignJobData,
+  ): Promise<SocialReplyCampaignJobResult> {
+    const campaign = await this.prisma.socialReplyCampaign.findFirst({
+      where: scopedWhere(data.organizationId, { id: data.campaignId }),
+    });
+
+    // A pause or cancel flips `status`, and a resume bumps `dispatchCursor`.
+    // Either makes an already-delayed tick a no-op when it finally lands.
+    if (!campaign || campaign.status !== SocialReplyCampaignStatus.RUNNING) {
+      return { outcome: 'campaign-inactive' };
+    }
+    if (campaign.dispatchCursor !== data.dispatchCursor) {
+      return { outcome: 'campaign-inactive' };
+    }
+
+    const now = new Date();
+    const throttle = await this.evaluateThrottle(campaign, now);
+    if (throttle.delaySeconds > 0) {
+      await this.scheduleNext(campaign, throttle.delaySeconds, now);
+      return {
+        nextRunInSeconds: throttle.delaySeconds,
+        outcome: 'throttled',
+      };
+    }
+
+    const recipient = await this.claimNextRecipient(campaign, now);
+    if (!recipient) {
+      await this.completeCampaign(campaign);
+      return { outcome: 'campaign-completed' };
+    }
+
+    return this.sendToRecipient(campaign, recipient.id, now);
+  }
+
+  /**
+   * Rate-limit state is recomputed from persisted `sentAt` values every tick,
+   * so nothing has to be carried across a restart or a redeploy.
+   */
+  private async evaluateThrottle(
+    campaign: SocialReplyCampaign,
+    now: Date,
+  ): Promise<{ delaySeconds: number }> {
+    const dayStart = dayWindowStart(now);
+    const hourStart = hourWindowStart(now);
+
+    const sends = await this.prisma.socialReplyCampaignRecipient.findMany({
+      orderBy: { sentAt: 'asc' },
+      select: { sentAt: true },
+      where: scopedWhere(campaign.organizationId, {
+        campaignId: campaign.id,
+        sentAt: { gte: dayStart },
+        status: SocialReplyCampaignRecipientStatus.SENT,
+      }),
+    });
+
+    const sentAts = sends
+      .map((row) => row.sentAt)
+      .filter((value): value is Date => value !== null);
+    const inHour = sentAts.filter((value) => value >= hourStart);
+
+    return decideThrottle({
+      dailyCount: sentAts.length,
+      hourlyCount: inHour.length,
+      lastSentAt: sentAts.at(-1) ?? null,
+      maxPerDay: campaign.maxPerDay,
+      maxPerHour: campaign.maxPerHour,
+      minDelaySeconds: campaign.minDelaySeconds,
+      now,
+      oldestInDayAt: sentAts.at(0) ?? null,
+      oldestInHourAt: inHour.at(0) ?? null,
+    });
+  }
+
+  /**
+   * Claim-by-update: the `updateMany` count is the claim. Two workers racing
+   * the same recipient cannot both win, so a duplicated job never doubles a
+   * send even before the message-level idempotency key is consulted.
+   */
+  private async claimNextRecipient(
+    campaign: SocialReplyCampaign,
+    now: Date,
+  ): Promise<{ id: string } | null> {
+    const candidate = await this.prisma.socialReplyCampaignRecipient.findFirst({
+      orderBy: [{ position: 'asc' }, { id: 'asc' }],
+      select: { id: true },
+      where: scopedWhere(campaign.organizationId, {
+        campaignId: campaign.id,
+        status: SocialReplyCampaignRecipientStatus.PENDING,
+      }),
+    });
+
+    if (!candidate) {
+      return null;
+    }
+
+    const claimed = await this.prisma.socialReplyCampaignRecipient.updateMany({
+      data: {
+        attemptCount: { increment: 1 },
+        dispatchedAt: now,
+        status: SocialReplyCampaignRecipientStatus.DISPATCHING,
+      },
+      where: scopedWhere(campaign.organizationId, {
+        id: candidate.id,
+        status: SocialReplyCampaignRecipientStatus.PENDING,
+      }),
+    });
+
+    return claimed.count === 1 ? candidate : null;
+  }
+
+  private async sendToRecipient(
+    campaign: SocialReplyCampaign,
+    recipientId: string,
+    now: Date,
+  ): Promise<SocialReplyCampaignJobResult> {
+    const recipient = await this.prisma.socialReplyCampaignRecipient.findFirst({
+      where: scopedWhere(campaign.organizationId, { id: recipientId }),
+    });
+    if (!recipient) {
+      return { outcome: 'recipient-skipped', recipientId };
+    }
+
+    const conversation = await this.prisma.socialConversation.findFirst({
+      where: scopedWhere(campaign.organizationId, {
+        id: recipient.conversationId,
+      }),
+    });
+    if (!conversation) {
+      await this.markSkipped(
+        campaign,
+        recipientId,
+        'Conversation is no longer available',
+      );
+      await this.scheduleNext(campaign, 0, now);
+      return { outcome: 'recipient-skipped', recipientId };
+    }
+
+    const scope: SocialInboxScope = {
+      brandId: campaign.brandId ?? undefined,
+      organizationId: campaign.organizationId,
+      userId: campaign.userId ?? undefined,
+    };
+    const body = renderCampaignBody(campaign.bodyTemplate, {
+      handle: conversation.participantHandle,
+      name: conversation.participantName,
+    });
+
+    try {
+      const { result: message } = await this.provenanceService.runAction(
+        {
+          actionType: 'social-reply-campaign',
+          canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SOCIAL_REPLY_CAMPAIGN,
+          description:
+            'Dispatches one throttled inbox reply or DM per tick, pacing a campaign across its rate-limit windows.',
+          inputValues: {
+            campaignId: campaign.id,
+            conversationId: recipient.conversationId,
+            messageType: campaign.messageType,
+            platform: campaign.platform,
+            recipientId,
+          },
+          label: 'Inbox Reply Campaign Dispatch',
+          organizationId: campaign.organizationId,
+          source: 'SocialReplyCampaignDispatchService.dispatchTick',
+          trigger: WorkflowExecutionTrigger.SCHEDULED,
+          userId: campaign.userId ?? undefined,
+        },
+        (provenance) =>
+          campaign.messageType === SocialMessageType.DM
+            ? this.actionService.sendDm(scope, recipient.conversationId, {
+                idempotencyKey: recipient.idempotencyKey,
+                text: body,
+                workflowRunId: provenance.executionId,
+              })
+            : this.actionService.postReply(scope, recipient.conversationId, {
+                idempotencyKey: recipient.idempotencyKey,
+                text: body,
+                workflowRunId: provenance.executionId,
+              }),
+      );
+
+      await this.markSent(campaign, recipientId, message.id, body);
+      await this.scheduleNext(campaign, campaign.minDelaySeconds, now);
+      return { outcome: 'recipient-sent', recipientId };
+    } catch (error: unknown) {
+      const reason = error instanceof Error ? error.message : 'Dispatch failed';
+
+      // A `BadRequestException` means the platform will never accept this
+      // conversation (reply window closed, DMs unsupported). Skipping keeps the
+      // campaign draining instead of burning retries on a permanent refusal.
+      if (error instanceof BadRequestException) {
+        await this.markSkipped(campaign, recipientId, reason);
+        await this.scheduleNext(campaign, 0, now);
+        return { outcome: 'recipient-skipped', recipientId };
+      }
+
+      this.logger.error(`${this.logContext} dispatch failed`, {
+        campaignId: campaign.id,
+        error: reason,
+        recipientId,
+      });
+      await this.markFailed(campaign, recipientId, reason);
+      await this.scheduleNext(campaign, campaign.minDelaySeconds, now);
+      return { outcome: 'recipient-failed', recipientId };
+    }
+  }
+
+  private async markSent(
+    campaign: SocialReplyCampaign,
+    recipientId: string,
+    messageId: string,
+    body: string,
+  ): Promise<void> {
+    await this.prisma.socialReplyCampaignRecipient.updateMany({
+      data: {
+        body,
+        failureReason: null,
+        messageId,
+        sentAt: new Date(),
+        status: SocialReplyCampaignRecipientStatus.SENT,
+      },
+      where: scopedWhere(campaign.organizationId, { id: recipientId }),
+    });
+    await this.prisma.socialReplyCampaign.update({
+      data: {
+        lastDispatchedAt: new Date(),
+        lastError: null,
+        sentCount: { increment: 1 },
+      },
+      where: scopedWhere(campaign.organizationId, { id: campaign.id }),
+    });
+  }
+
+  private async markSkipped(
+    campaign: SocialReplyCampaign,
+    recipientId: string,
+    reason: string,
+  ): Promise<void> {
+    await this.prisma.socialReplyCampaignRecipient.updateMany({
+      data: {
+        failureReason: reason,
+        status: SocialReplyCampaignRecipientStatus.SKIPPED,
+      },
+      where: scopedWhere(campaign.organizationId, { id: recipientId }),
+    });
+    await this.prisma.socialReplyCampaign.update({
+      data: { skippedCount: { increment: 1 } },
+      where: scopedWhere(campaign.organizationId, { id: campaign.id }),
+    });
+  }
+
+  private async markFailed(
+    campaign: SocialReplyCampaign,
+    recipientId: string,
+    reason: string,
+  ): Promise<void> {
+    await this.prisma.socialReplyCampaignRecipient.updateMany({
+      data: {
+        failureReason: reason,
+        status: SocialReplyCampaignRecipientStatus.FAILED,
+      },
+      where: scopedWhere(campaign.organizationId, { id: recipientId }),
+    });
+    await this.prisma.socialReplyCampaign.update({
+      data: {
+        failedCount: { increment: 1 },
+        lastError: reason.slice(0, 500),
+      },
+      where: scopedWhere(campaign.organizationId, { id: campaign.id }),
+    });
+  }
+
+  private async completeCampaign(campaign: SocialReplyCampaign): Promise<void> {
+    await this.prisma.socialReplyCampaign.update({
+      data: {
+        completedAt: new Date(),
+        nextRunAt: null,
+        status: SocialReplyCampaignStatus.COMPLETED,
+      },
+      where: scopedWhere(campaign.organizationId, { id: campaign.id }),
+    });
+  }
+
+  /**
+   * Always bump the cursor before enqueuing: the tick that is scheduling its
+   * own successor is still `active` under its current job id, so reusing that
+   * id would be refused as already queued and the campaign would stall.
+   */
+  private async scheduleNext(
+    campaign: SocialReplyCampaign,
+    delaySeconds: number,
+    now: Date,
+  ): Promise<void> {
+    const dispatchCursor = campaign.dispatchCursor + 1;
+    const updated = await this.prisma.socialReplyCampaign.updateMany({
+      data: {
+        dispatchCursor,
+        nextRunAt: new Date(now.getTime() + delaySeconds * 1000),
+      },
+      where: scopedWhere(campaign.organizationId, {
+        dispatchCursor: campaign.dispatchCursor,
+        id: campaign.id,
+        status: SocialReplyCampaignStatus.RUNNING,
+      }),
+    });
+
+    // The campaign was paused or cancelled while this tick was running — the
+    // lifecycle transition already owns what happens next.
+    if (updated.count !== 1) {
+      return;
+    }
+
+    await this.queueService.enqueueTick(
+      {
+        campaignId: campaign.id,
+        dispatchCursor,
+        organizationId: campaign.organizationId,
+      },
+      delaySeconds,
+    );
+  }
+}

@@ -1,9 +1,13 @@
 import { SocialInboxController } from '@api/collections/social-inbox/controllers/social-inbox.controller';
+import { SocialReplyCampaignController } from '@api/collections/social-inbox/controllers/social-reply-campaign.controller';
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
 import { SocialInboxActionService } from '@api/collections/social-inbox/services/social-inbox-action.service';
 import { SocialInboxIngestionService } from '@api/collections/social-inbox/services/social-inbox-ingestion.service';
 import { SocialInboxQueryService } from '@api/collections/social-inbox/services/social-inbox-query.service';
 import { SocialInboxRealtimeService } from '@api/collections/social-inbox/services/social-inbox-realtime.service';
+import { SocialReplyCampaignService } from '@api/collections/social-inbox/services/social-reply-campaign.service';
+import { SocialReplyCampaignDispatchService } from '@api/collections/social-inbox/services/social-reply-campaign-dispatch.service';
+import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
@@ -12,8 +16,8 @@ import { NotificationsPublisherModule } from '@api/services/notifications/publis
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
-  controllers: [SocialInboxController],
-  exports: [SocialInboxService],
+  controllers: [SocialInboxController, SocialReplyCampaignController],
+  exports: [SocialInboxService, SocialReplyCampaignDispatchService],
   imports: [
     forwardRef(() => InstagramModule),
     forwardRef(() => NotificationsPublisherModule),
@@ -27,6 +31,12 @@ import { forwardRef, Module } from '@nestjs/common';
     SocialInboxQueryService,
     SocialInboxRealtimeService,
     SocialInboxService,
+    SocialReplyCampaignDispatchService,
+    SocialReplyCampaignService,
+    // Declared directly rather than imported from WorkflowsModule: that module
+    // does not export it, and pulling in another edge would push this module
+    // further from the leaf-ward shape the module-graph guard ratchets on.
+    SystemWorkflowProvenanceService,
   ],
 })
 export class SocialInboxModule {}

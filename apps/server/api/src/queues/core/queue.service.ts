@@ -13,6 +13,7 @@ import {
   DEFAULT_QUEUE,
   EMAIL_DIGEST_QUEUE,
   SOCIAL_INBOX_SYNC_QUEUE,
+  SOCIAL_REPLY_CAMPAIGN_QUEUE,
   TELEGRAM_DISTRIBUTE_QUEUE,
 } from '@genfeedai/queue-contracts';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -57,6 +58,8 @@ export class QueueService {
     private readonly analyticsThreadsQueue: Queue,
     @InjectQueue(SOCIAL_INBOX_SYNC_QUEUE)
     private readonly socialInboxSyncQueue: Queue,
+    @InjectQueue(SOCIAL_REPLY_CAMPAIGN_QUEUE)
+    private readonly socialReplyCampaignQueue: Queue,
   ) {}
 
   add<T = Record<string, unknown>>(
@@ -98,6 +101,8 @@ export class QueueService {
         return this.analyticsThreadsQueue;
       case SOCIAL_INBOX_SYNC_QUEUE:
         return this.socialInboxSyncQueue;
+      case SOCIAL_REPLY_CAMPAIGN_QUEUE:
+        return this.socialReplyCampaignQueue;
       default:
         return this.defaultQueue;
     }

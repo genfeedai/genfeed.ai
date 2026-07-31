@@ -7,6 +7,8 @@ import type {
   SocialMessageDirection as SocialMessageDirectionEnum,
   SocialMessageType as SocialMessageTypeEnum,
   SocialMessageWorkflowTriggerStatus,
+  SocialReplyCampaignRecipientStatus as SocialReplyCampaignRecipientStatusEnum,
+  SocialReplyCampaignStatus as SocialReplyCampaignStatusEnum,
 } from '@genfeedai/enums';
 
 export type SocialPlatform = `${SocialInboxPlatform}`;
@@ -16,6 +18,9 @@ export type SocialConversationType = `${SocialConversationTypeEnum}`;
 export type SocialMessageDirection = `${SocialMessageDirectionEnum}`;
 export type SocialMessageType = `${SocialMessageTypeEnum}`;
 export type SocialActionActorType = `${SocialActionActorTypeEnum}`;
+export type SocialReplyCampaignStatus = `${SocialReplyCampaignStatusEnum}`;
+export type SocialReplyCampaignRecipientStatus =
+  `${SocialReplyCampaignRecipientStatusEnum}`;
 
 export interface SocialActionProvenance {
   action?: string;
@@ -198,4 +203,100 @@ export interface SocialActionInput {
 export interface YoutubeSyncResult {
   jobId?: string;
   status: string;
+}
+
+/** Rate-limit envelope for a throttled reply campaign. */
+export interface SocialReplyCampaignRateLimits {
+  /** Minimum seconds between two consecutive sends. */
+  minDelaySeconds: number;
+  maxPerDay: number;
+  maxPerHour: number;
+}
+
+export interface SocialReplyCampaign {
+  id: string;
+  organizationId?: string;
+  brandId?: string | null;
+  userId?: string | null;
+  name: string;
+  description?: string | null;
+  platform: SocialPlatform;
+  messageType: 'dm' | 'reply';
+  status: SocialReplyCampaignStatus;
+  bodyTemplate: string;
+  maxPerHour: number;
+  maxPerDay: number;
+  minDelaySeconds: number;
+  totalRecipients: number;
+  sentCount: number;
+  failedCount: number;
+  skippedCount: number;
+  dispatchCursor: number;
+  startedAt?: string | null;
+  pausedAt?: string | null;
+  completedAt?: string | null;
+  nextRunAt?: string | null;
+  lastDispatchedAt?: string | null;
+  lastError?: string | null;
+  workflowId?: string | null;
+  workflowExecutionId?: string | null;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SocialReplyCampaignRecipient {
+  id: string;
+  campaignId?: string;
+  organizationId?: string;
+  conversationId: string;
+  messageId?: string | null;
+  status: SocialReplyCampaignRecipientStatus;
+  position: number;
+  scheduledAt?: string | null;
+  dispatchedAt?: string | null;
+  sentAt?: string | null;
+  attemptCount: number;
+  idempotencyKey: string;
+  body?: string | null;
+  failureReason?: string | null;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SocialReplyCampaignInput {
+  bodyTemplate: string;
+  /** Conversations to enroll, in drain order. */
+  conversationIds: string[];
+  description?: string;
+  maxPerDay?: number;
+  maxPerHour?: number;
+  messageType?: 'dm' | 'reply';
+  minDelaySeconds?: number;
+  name: string;
+  platform: SocialPlatform;
+}
+
+export interface SocialReplyCampaignPatch {
+  bodyTemplate?: string;
+  description?: string;
+  maxPerDay?: number;
+  maxPerHour?: number;
+  minDelaySeconds?: number;
+  name?: string;
+}
+
+export interface SocialReplyCampaignQuery {
+  brandId?: string;
+  limit?: number;
+  page?: number;
+  platform?: SocialPlatform;
+  status?: SocialReplyCampaignStatus;
+}
+
+export interface SocialReplyCampaignRecipientQuery {
+  limit?: number;
+  page?: number;
+  status?: SocialReplyCampaignRecipientStatus;
 }
