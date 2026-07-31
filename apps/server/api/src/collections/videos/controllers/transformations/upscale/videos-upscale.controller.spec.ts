@@ -44,6 +44,10 @@ vi.mock('@api/collections/models/services/models.service', () => ({
 vi.mock('@api/services/router/router.service', () => ({
   RouterService: class {},
 }));
+vi.mock(
+  '@server/services/files-microservice/client/files-client.service',
+  () => ({ FilesClientService: class {} }),
+);
 
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -60,6 +64,7 @@ import { SharedService } from '@api/shared/services/shared/shared.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import type { Request } from 'express';
 
@@ -99,6 +104,11 @@ describe('VideosUpscaleController', () => {
     },
     creditsUtilsService: { deductCreditsFromOrganization: vi.fn() },
     failedGenerationService: { handleFailedVideoGeneration: vi.fn() },
+    filesClientService: {
+      getPresignedDownloadUrl: vi
+        .fn()
+        .mockResolvedValue('https://s3.example.com/videos/signed?sig=abc'),
+    },
     loggerService: { error: vi.fn(), log: vi.fn() },
     metadataService: { patch: vi.fn() },
     modelsService: { findOne: vi.fn().mockResolvedValue({ cost: 10 }) },
@@ -144,6 +154,10 @@ describe('VideosUpscaleController', () => {
         {
           provide: FailedGenerationService,
           useValue: mockServices.failedGenerationService,
+        },
+        {
+          provide: FilesClientService,
+          useValue: mockServices.filesClientService,
         },
         { provide: LoggerService, useValue: mockServices.loggerService },
         { provide: MetadataService, useValue: mockServices.metadataService },
@@ -192,6 +206,28 @@ describe('VideosUpscaleController', () => {
     );
     expect(result).toBeDefined();
     expect(result.id).toEqual(ingredientId);
+  });
+
+  it('should hand the model a presigned URL, not the public stream route', async () => {
+    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+    const dto: VideoEditDto = {};
+
+    await controller.upscaleVideo(
+      mockReq,
+      mockUser,
+      '507f1f77bcf86cd799439011',
+      dto,
+    );
+
+    expect(
+      mockServices.filesClientService.getPresignedDownloadUrl,
+    ).toHaveBeenCalledWith('507f1f77bcf86cd799439011', 'videos');
+    expect(mockServices.promptBuilderService.buildPrompt).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        video: 'https://s3.example.com/videos/signed?sig=abc',
+      }),
+    );
   });
 
   it('should throw when video does not exist for upscale', async () => {

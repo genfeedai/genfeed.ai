@@ -11,7 +11,10 @@ import {
 import { isPublicAssetScope } from '@genfeedai/helpers';
 import type { BrandOverlayProps } from '@genfeedai/props/modals/modal.props';
 import Alert from '@ui/feedback/alert/Alert';
-import { LazyModalBrandGenerate } from '@ui/lazy/modal/LazyModal';
+import {
+  LazyModalBrandGenerate,
+  LazyModalBrandLink,
+} from '@ui/lazy/modal/LazyModal';
 import { Modal } from '@ui/modals/compound/modal.compound';
 import EntityOverlayShell from '@ui/overlays/entity/EntityOverlayShell';
 import { Button } from '@ui/primitives/button';
@@ -52,12 +55,8 @@ export default function BrandOverlay({
     generateModalType,
     imageModels,
     isGenerating,
-    isLinkEditorOpen,
     isLoadingBrand,
     isSubmitting,
-    isSubmittingLink,
-    linkEditorError,
-    linkFormValues,
     musicModels,
     navigateToBrandSettings,
     organizationDefaults,
@@ -69,7 +68,6 @@ export default function BrandOverlay({
     selectedLink,
     socialConnections,
     videoModels,
-    closeLinkEditor,
     closeModalBrand,
     enhanceDescription,
     handleCopy,
@@ -78,9 +76,7 @@ export default function BrandOverlay({
     handleGenerateBanner,
     handleGenerateConfirm,
     handleGenerateLogo,
-    handleLinkDelete,
-    handleLinkFieldChange,
-    handleLinkSubmit,
+    handleLinkConfirm,
     handleOpenLinkModal,
     handleOpenUploadModal,
     handleRequestDeleteReference,
@@ -351,21 +347,12 @@ export default function BrandOverlay({
               activeBrand={activeBrand}
               connectedPlatformsCount={connectedPlatformsCount}
               error={error}
-              isLinkEditorOpen={isLinkEditorOpen}
-              isSubmittingLink={isSubmittingLink}
-              linkEditorError={linkEditorError}
-              linkFormValues={linkFormValues}
-              selectedLink={selectedLink}
               socialConnections={socialConnections}
               onCopy={handleCopy}
               onDeleteReference={handleRequestDeleteReference}
               onEditBrand={() => setOverlayView('edit')}
               onGenerateBanner={handleGenerateBanner}
               onGenerateLogo={handleGenerateLogo}
-              onLinkCancel={closeLinkEditor}
-              onLinkDelete={handleLinkDelete}
-              onLinkFieldChange={handleLinkFieldChange}
-              onLinkSubmit={handleLinkSubmit}
               onOpenLinkModal={handleOpenLinkModal}
               onRefreshBrand={async () => {
                 await refreshBrand();
@@ -398,6 +385,14 @@ export default function BrandOverlay({
           onConfirm={() => {
             void handleGenerateConfirm();
           }}
+        />
+      ) : null}
+
+      {activeBrand ? (
+        <LazyModalBrandLink
+          brandId={activeBrand.id}
+          link={selectedLink}
+          onConfirm={handleLinkConfirm}
         />
       ) : null}
     </>

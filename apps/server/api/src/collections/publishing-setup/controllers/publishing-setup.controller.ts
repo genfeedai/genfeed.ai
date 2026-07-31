@@ -3,12 +3,12 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { ApiKeyScope } from '@genfeedai/enums';
+import { ApiKeyScope, MemberRole } from '@genfeedai/enums';
 import type {
   IPublishingSetupChecklist,
   IPublishingSetupDiagnosticsExport,
 } from '@genfeedai/interfaces';
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, SetMetadata, UseGuards } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
 /**
@@ -39,9 +39,14 @@ export class PublishingSetupController {
    * Operator support bundle. Admin-scoped because it aggregates every check's
    * diagnostics — sanitized, but still a fuller picture of the deployment than
    * the checklist itself.
+   *
+   * `@RequiredScopes` only binds API-key tokens; the roles metadata is what
+   * keeps browser sessions out, since RolesGuard admits any active member when
+   * a handler declares no roles.
    */
   @Get('diagnostics')
   @RequiredScopes(ApiKeyScope.ADMIN)
+  @SetMetadata('roles', ['superadmin', MemberRole.OWNER, MemberRole.ADMIN])
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getDiagnostics(): Promise<IPublishingSetupDiagnosticsExport> {
     return this.publishingSetupService.exportDiagnostics();

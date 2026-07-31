@@ -1889,6 +1889,63 @@ describe('AgentToolExecutorService', () => {
     });
   });
 
+  it('reports a failed publish when the release is blocked by channel readiness', async () => {
+    const {
+      credentialsService,
+      ingredientsService,
+      postGroupsService,
+      postsService,
+      service,
+    } = createService();
+
+    ingredientsService.findOne.mockResolvedValue({
+      brand: '67a123456789012345678941',
+      category: 'image',
+      id: '67a123456789012345678940',
+    });
+    credentialsService.find.mockResolvedValue([
+      {
+        id: '67a123456789012345678942',
+        platform: 'linkedin',
+      },
+    ]);
+    // The immediate-publish path saves an ungated draft first, so readiness is
+    // enforced by publishNow — the agent must surface that rejection, not a
+    // queued publish.
+    postGroupsService.publishNow.mockRejectedValue(
+      new BadRequestException({
+        classification: 'expired_credential',
+        credentialId: '67a123456789012345678942',
+        platform: 'linkedin',
+        readinessState: 'blocked',
+        title: 'Channel not ready to publish',
+      }),
+    );
+
+    const result = await service.executeTool(
+      AgentToolName.CREATE_POST,
+      {
+        confirmed: true,
+        contentId: '67a123456789012345678940',
+        platforms: ['linkedin'],
+        sourceActionId: 'publish-card-blocked',
+      },
+      scopedContext('67a123456789012345678941'),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.data).toBeUndefined();
+    expect(postGroupsService.create).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      expect.objectContaining({ status: ReleaseStatus.DRAFT }),
+      expect.any(String),
+      expect.any(Object),
+    );
+    expect(postGroupsService.publishNow).toHaveBeenCalled();
+    expect(postsService.create).not.toHaveBeenCalled();
+  });
+
   it('rejects direct publishing at the executor boundary for an under-scoped API key', async () => {
     const { postGroupsService, postsService, service } = createService();
 

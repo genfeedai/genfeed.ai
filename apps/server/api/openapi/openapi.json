@@ -11009,9 +11009,6 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "enabled"
-        ],
         "type": "object"
       },
       "UpdateBrandAgentConfigDto": {
@@ -11087,13 +11084,6 @@
             "$ref": "#/components/schemas/UpdateBrandAgentVoiceDto"
           }
         },
-        "required": [
-          "voice",
-          "strategy",
-          "enabledSkills",
-          "schedule",
-          "autoPublish"
-        ],
         "type": "object"
       },
       "UpdateBrandAgentPromptingDto": {
@@ -11113,10 +11103,6 @@
             "type": "array"
           }
         },
-        "required": [
-          "conversationStarters",
-          "seeds"
-        ],
         "type": "object"
       },
       "UpdateBrandAgentScheduleDto": {
@@ -11134,9 +11120,6 @@
             "type": "string"
           }
         },
-        "required": [
-          "enabled"
-        ],
         "type": "object"
       },
       "UpdateBrandAgentStrategyDto": {
@@ -11174,12 +11157,6 @@
             "type": "array"
           }
         },
-        "required": [
-          "contentTypes",
-          "platforms",
-          "frequency",
-          "goals"
-        ],
         "type": "object"
       },
       "UpdateBrandAgentVoiceDto": {
@@ -11276,14 +11253,6 @@
             "type": "array"
           }
         },
-        "required": [
-          "tone",
-          "style",
-          "audience",
-          "values",
-          "taglines",
-          "hashtags"
-        ],
         "type": "object"
       },
       "UpdateBrandConversationStarterDto": {

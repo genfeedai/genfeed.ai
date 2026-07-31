@@ -124,7 +124,11 @@ export class PublicVideosController {
     return serializeSingle(request, VideoSerializer, video);
   }
 
-  // REQUIRED FOR TOPAZ VIDEO UPSCALE MODEL AND DISCORD NOTIFICATIONS
+  /**
+   * Unauthenticated byte stream, so it serves public-scope videos only. The
+   * Topaz upscale flow used to lean on this route for user-scope videos; it
+   * now hands the provider a presigned S3 URL instead.
+   */
   @Get(':videoId/video.mp4')
   async getVideo(
     @Param('videoId') videoId: string,
@@ -133,10 +137,14 @@ export class PublicVideosController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(url, { params: { videoId } });
 
+    if (!isEntityId(videoId)) {
+      returnNotFound(this.constructorName, videoId);
+    }
+
     const video = await this.videosService.findOne({
       _id: videoId,
       isDeleted: false,
-      // scope: AssetScope.PUBLIC,
+      scope: AssetScope.PUBLIC,
     });
 
     if (!video) {

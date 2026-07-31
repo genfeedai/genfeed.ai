@@ -733,6 +733,29 @@ describe('Server Serializers', () => {
     it('should have a serialize method', () => {
       expect(typeof LinkSerializer.serialize).toBe('function');
     });
+
+    // Regression: `link.config.ts` used `simpleConfig()`, which emitted `brand`
+    // as a plain attribute instead of a JSON:API relationship — inconsistent
+    // with every sibling config that declares `brand: BRAND_REL`.
+    it('serializes brand as a relationship, not an attribute', () => {
+      const output = LinkSerializer.serialize({
+        brand: { id: 'ckbrand000000000000000001', label: 'Acme' },
+        category: 'website',
+        id: 'cklink0000000000000000001',
+        label: 'Homepage',
+        url: 'https://genfeed.ai',
+      }) as {
+        data: {
+          attributes: Record<string, unknown>;
+          relationships?: Record<string, { data?: { id?: string } | null }>;
+        };
+      };
+
+      expect(output.data.relationships?.brand?.data?.id).toBe(
+        'ckbrand000000000000000001',
+      );
+      expect(output.data.attributes).not.toHaveProperty('brand');
+    });
   });
 
   describe('PersonaSerializer', () => {

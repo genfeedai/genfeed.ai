@@ -55,7 +55,11 @@ export class PublishingProviderSetupService {
 
     const providerCheck = this.buildProviderCheck(descriptor, checkedAt);
     const publicCallbackCheck = this.buildPublicCallbackCheck(checkedAt);
-    const isConfigured = this.hasProviderAppCredentials(descriptor);
+    // App review asks about a *complete* app, so it takes the strict predicate:
+    // a client id with no secret is nothing a provider console would accept for
+    // submission. `buildProviderCheck` deliberately uses the loose one instead —
+    // see the two predicates at the bottom of this file.
+    const isConfigured = this.hasCompleteProviderAppCredentials(descriptor);
 
     return {
       appReviewStatus: this.resolveAppReviewStatus(descriptor, isConfigured),
@@ -150,7 +154,9 @@ export class PublishingProviderSetupService {
       ...this.findMissingRequirement(descriptor.clientSecretKeys),
     ];
 
-    if (!this.hasProviderAppCredentials(descriptor)) {
+    // Loose predicate on purpose: "is there an app here at all?" is what
+    // separates the operator *choice* below from the operator *error* after it.
+    if (!this.hasAnyProviderAppCredential(descriptor)) {
       const isCloud = isCloudDeployment();
       check.status = isCloud ? 'fail' : 'warn';
       check.diagnostics.push({
@@ -168,6 +174,15 @@ export class PublishingProviderSetupService {
       return check;
     }
 
+    // Deliberately *not* deployment-sensitive, unlike the branch above (#2256).
+    // Absent credentials are a legitimate self-host choice — nobody has to run
+    // TikTok — and no credential can exist to be blocked. A half-configured app
+    // is an operator error on a provider that may already hold live
+    // credentials: it boots fine and then fails the OAuth exchange at connect
+    // or refresh time. Downgrading it to a self-hosted `warning` would restore
+    // `canSchedule` (severity drives `classifyPublishingReadiness`), letting a
+    // post be scheduled against a provider that cannot publish it — the exact
+    // silent-dispatch failure this checklist exists to surface.
     if (missingEnvKeys.length > 0) {
       check.status = 'fail';
       check.diagnostics.push({
@@ -266,11 +281,32 @@ export class PublishingProviderSetupService {
     ];
   }
 
-  private hasProviderAppCredentials(
+  /**
+   * `true` when *anything* has been set for this provider. Answers "has the
+   * operator started configuring this app?", which is the question that splits
+   * `provider_not_configured` from `provider_partially_configured` — so the
+   * OR is load-bearing, not a loose check awaiting a tightening.
+   */
+  private hasAnyProviderAppCredential(
     descriptor: PublishingProviderEnvDescriptor,
   ): boolean {
     return (
       this.hasAnyConfigured(descriptor.clientIdKeys) ||
+      this.hasAnyConfigured(descriptor.clientSecretKeys)
+    );
+  }
+
+  /**
+   * `true` only when every requirement is satisfied. Answers "does a usable app
+   * exist?", which is what app-review reporting needs: a client id with no
+   * secret is not an app any provider console would review, so it must read
+   * `fail` rather than inherit the configured app's `unknown`/`pass`.
+   */
+  private hasCompleteProviderAppCredentials(
+    descriptor: PublishingProviderEnvDescriptor,
+  ): boolean {
+    return (
+      this.hasAnyConfigured(descriptor.clientIdKeys) &&
       this.hasAnyConfigured(descriptor.clientSecretKeys)
     );
   }

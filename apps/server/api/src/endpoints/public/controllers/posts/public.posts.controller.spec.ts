@@ -273,23 +273,68 @@ describe('PublicPostsController', () => {
   });
 
   describe('getPostMetadata', () => {
-    it('should return post metadata for valid id', async () => {
-      const postId = '507f191e810c19729de860ee'.toString();
-      const mockPost = {
-        _id: postId,
-        status: PostStatus.PUBLIC,
-        title: 'Test Post',
+    // Rows carry the Prisma enum casing ('PUBLIC'), not the TS value.
+    const PRISMA_STATUS_PUBLIC = 'PUBLIC';
+    const PRISMA_STATUS_DRAFT = 'DRAFT';
+
+    /**
+     * Stands in for the database honouring the controller's status filter, so
+     * a controller that fetches any post by id fails here instead of passing
+     * on a mock that ignores the filter.
+     */
+    const statusFilteringFindOne =
+      (storedStatus: string) =>
+      async (filter: Record<string, unknown>): Promise<unknown> => {
+        const requested = filter.status;
+
+        if (typeof requested !== 'string') {
+          throw new Error('Public post lookups must constrain status');
+        }
+
+        return requested.toUpperCase() === storedStatus
+          ? { _id: filter._id, status: storedStatus, title: 'Test Post' }
+          : null;
       };
 
-      postsService.findOne.mockResolvedValue(mockPost as never);
+    it('should return post metadata for valid id', async () => {
+      const postId = '507f191e810c19729de860ee'.toString();
+
+      postsService.findOne.mockImplementation(
+        statusFilteringFindOne(PRISMA_STATUS_PUBLIC) as never,
+      );
 
       const result = await controller.getPostMetadata(mockRequest, postId);
 
       expect(postsService.findOne).toHaveBeenCalledWith({
         _id: postId,
         isDeleted: false,
+        status: PostStatus.PUBLIC,
       });
-      expect(result).toEqual({ data: mockPost });
+      expect(result).toEqual({
+        data: {
+          _id: postId,
+          status: PRISMA_STATUS_PUBLIC,
+          title: 'Test Post',
+        },
+      });
+    });
+
+    it('should not expose a post that is not public', async () => {
+      const postId = '507f191e810c19729de860ee'.toString();
+      const responseUtil = await import(
+        '@api/helpers/utils/response/response.util'
+      );
+
+      postsService.findOne.mockImplementation(
+        statusFilteringFindOne(PRISMA_STATUS_DRAFT) as never,
+      );
+
+      await controller.getPostMetadata(mockRequest, postId);
+
+      expect(responseUtil.returnNotFound).toHaveBeenCalledWith(
+        'PublicPostsController',
+        postId,
+      );
     });
 
     it('should return not found for invalid object id', async () => {
@@ -331,6 +376,7 @@ describe('PublicPostsController', () => {
       expect(postsService.findOne).toHaveBeenCalledWith({
         _id: postId,
         isDeleted: false,
+        status: PostStatus.PUBLIC,
       });
       expect(returnNotFound).toHaveBeenCalledWith(
         'PublicPostsController',
