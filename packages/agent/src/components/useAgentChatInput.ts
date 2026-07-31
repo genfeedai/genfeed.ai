@@ -130,6 +130,49 @@ function extractMentions(json: JSONContent): ExtractedMention[] {
   return result;
 }
 
+function mapMentionsToReferences(
+  mentions: readonly ExtractedMention[],
+): AgentChatReferenceItem[] {
+  return mentions.map((mention) => ({
+    id: mention.id,
+    label:
+      mention.type === 'brand'
+        ? `#${mention.brandName}`
+        : mention.type === 'team'
+          ? `@${mention.displayName}`
+          : mention.type === 'credential'
+            ? `!${mention.handle}`
+            : `^${mention.contentTitle}`,
+    type: mention.type,
+  }));
+}
+
+/** True when mention chip lists are equivalent (order-sensitive). */
+export function areAgentChatMentionReferencesEqual(
+  previous: readonly AgentChatReferenceItem[],
+  next: readonly AgentChatReferenceItem[],
+): boolean {
+  if (previous.length !== next.length) {
+    return false;
+  }
+
+  for (let index = 0; index < previous.length; index += 1) {
+    const left = previous[index];
+    const right = next[index];
+    if (
+      !left ||
+      !right ||
+      left.id !== right.id ||
+      left.label !== right.label ||
+      left.type !== right.type
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 interface SendOnEnterOptions {
   onEnter: () => boolean;
 }
@@ -299,18 +342,7 @@ export function useAgentChatInput({
     AgentChatReferenceItem[]
   >(() =>
     restoredDraft.document
-      ? extractMentions(restoredDraft.document).map((mention) => ({
-          id: mention.id,
-          label:
-            mention.type === 'brand'
-              ? `#${mention.brandName}`
-              : mention.type === 'team'
-                ? `@${mention.displayName}`
-                : mention.type === 'credential'
-                  ? `!${mention.handle}`
-                  : `^${mention.contentTitle}`,
-          type: mention.type,
-        }))
+      ? mapMentionsToReferences(extractMentions(restoredDraft.document))
       : [],
   );
   const editorRef = useRef<Editor | null>(null);
@@ -494,19 +526,14 @@ export function useAgentChatInput({
     const updateHandler = () => {
       setIsEmpty(editor.isEmpty);
       const document = editor.getJSON();
-      const nextReferences = extractMentions(document).map((mention) => ({
-        id: mention.id,
-        label:
-          mention.type === 'brand'
-            ? `#${mention.brandName}`
-            : mention.type === 'team'
-              ? `@${mention.displayName}`
-              : mention.type === 'credential'
-                ? `!${mention.handle}`
-                : `^${mention.contentTitle}`,
-        type: mention.type,
-      }));
-      setMentionReferences(nextReferences);
+      const nextReferences = mapMentionsToReferences(extractMentions(document));
+      // Editor fires on every keystroke; only promote mention state when the
+      // chip list actually changes so the attachment tray / toolbar stay still.
+      setMentionReferences((current) =>
+        areAgentChatMentionReferencesEqual(current, nextReferences)
+          ? current
+          : nextReferences,
+      );
       writeConversationComposerDocument(
         draftScopeKey,
         document,
@@ -540,21 +567,13 @@ export function useAgentChatInput({
     const draft = readConversationComposerDraft(draftScopeKey);
     editor.commands.setContent(draft.document ?? '');
     setIsEmpty(!draft.plainText.trim());
-    setMentionReferences(
-      draft.document
-        ? extractMentions(draft.document).map((mention) => ({
-            id: mention.id,
-            label:
-              mention.type === 'brand'
-                ? `#${mention.brandName}`
-                : mention.type === 'team'
-                  ? `@${mention.displayName}`
-                  : mention.type === 'credential'
-                    ? `!${mention.handle}`
-                    : `^${mention.contentTitle}`,
-            type: mention.type,
-          }))
-        : [],
+    const nextReferences = draft.document
+      ? mapMentionsToReferences(extractMentions(draft.document))
+      : [];
+    setMentionReferences((current) =>
+      areAgentChatMentionReferencesEqual(current, nextReferences)
+        ? current
+        : nextReferences,
     );
 
     if (!draft.hasFocusIntent) {
