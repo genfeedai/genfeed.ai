@@ -366,7 +366,13 @@ function TargetReviewList({ reviews }: { reviews: TargetReview[] }) {
           </div>
 
           {review.errors.length ? (
-            <ul className="mt-3 grid gap-2 text-sm text-destructive">
+            // The preview panel repeats these messages for the active target.
+            // Naming the list keeps the two addressable apart — by a reader
+            // and by a test.
+            <ul
+              aria-label={`${review.target.credentialLabel} blockers`}
+              className="mt-3 grid gap-2 text-sm text-destructive"
+            >
               {review.errors.map((issue) => (
                 <li key={`${review.target.id}-${issue.code}-${issue.field}`}>
                   {issue.message}
@@ -618,6 +624,8 @@ export default function CrossPostComposerPage() {
               ({ capability, credentials: channelCredentials }) => {
                 // The platform badge tracks what can actually be scheduled, so
                 // it cannot read "Connected" while every account is blocked.
+                // A platform with no credential at all is a different state:
+                // nothing is broken, the brand simply has not connected one.
                 const isPlatformSchedulable = channelCredentials.some(
                   (credential) =>
                     resolveChannelBlock(
@@ -625,6 +633,11 @@ export default function CrossPostComposerPage() {
                       readinessByCredentialId[credential.id],
                     ) === null,
                 );
+                const platformBadgeLabel = !channelCredentials.length
+                  ? 'Disconnected'
+                  : isPlatformSchedulable
+                    ? 'Ready'
+                    : 'Not publishable';
 
                 return (
                   <div
@@ -643,7 +656,7 @@ export default function CrossPostComposerPage() {
                       <Badge
                         variant={isPlatformSchedulable ? 'success' : 'outline'}
                       >
-                        {isPlatformSchedulable ? 'Ready' : 'Not publishable'}
+                        {platformBadgeLabel}
                       </Badge>
                     </div>
 

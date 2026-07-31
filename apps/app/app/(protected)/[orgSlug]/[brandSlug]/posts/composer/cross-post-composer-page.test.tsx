@@ -4,7 +4,13 @@ import type {
   ICredential,
   IPublishingProviderReadiness,
 } from '@genfeedai/interfaces';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CrossPostComposerPage from './cross-post-composer-page';
 
@@ -183,14 +189,19 @@ describe('CrossPostComposerPage', () => {
       screen.getByRole('checkbox', { name: /youtube .*studio/i }),
     );
 
+    // Scoped to the review column: the preview panel repeats a subset of these
+    // messages for the active target, so an unscoped query matches twice.
+    const blockers = within(
+      screen.getByRole('list', { name: 'YouTube @studio blockers' }),
+    );
     expect(
-      screen.getByText('Release content is required for YouTube.'),
+      blockers.getByText('Release content is required for YouTube.'),
     ).toBeInTheDocument();
     expect(
-      screen.getByText('Schedule date is required for YouTube.'),
+      blockers.getByText('Schedule date is required for YouTube.'),
     ).toBeInTheDocument();
     expect(
-      screen.getByText('YouTube requires at least 1 media item(s).'),
+      blockers.getByText('YouTube requires at least 1 media item(s).'),
     ).toBeInTheDocument();
   });
 
