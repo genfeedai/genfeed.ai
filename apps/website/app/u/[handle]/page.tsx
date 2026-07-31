@@ -22,17 +22,25 @@ export async function generateMetadata(
     };
   }
 
+  const profileUrl = `${EnvironmentService.apps.website}/u/${handle}`;
+
   try {
     // Fetch brand data for dynamic Twitter card
     const brand = await getPublicBrandBySlug(handle);
 
     if (!brand) {
       return {
+        alternates: {
+          canonical: profileUrl,
+        },
         description: `View ${handle}'s profile on ${metadata.name}`,
         openGraph: {
           description: `View ${handle}'s profile on ${metadata.name}`,
           images: [...previousImages],
+          siteName: metadata.name,
           title: `${metadata.name} | ${handle}`,
+          type: 'profile',
+          url: profileUrl,
         },
         title: `${metadata.name} | ${handle}`,
         twitter: {
@@ -51,11 +59,11 @@ export async function generateMetadata(
     const imageUrl =
       brand.bannerUrl ||
       `${EnvironmentService.assetsEndpoint}/placeholders/landscape.jpg`;
-    const profileUrl = `${EnvironmentService.apps.website}/u/${handle}`;
     const rssUrl = `${EnvironmentService.apiEndpoint}/public/rss/brands/${brand.id}`;
 
     return {
       alternates: {
+        canonical: profileUrl,
         types: {
           'application/rss+xml': [
             {
@@ -76,6 +84,7 @@ export async function generateMetadata(
             width: 1500,
           },
         ],
+        siteName: metadata.name,
         title,
         type: 'profile',
         url: profileUrl,

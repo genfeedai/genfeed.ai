@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockActiveSubscription,
   mockNodeTypes,
@@ -14,8 +15,6 @@ import {
 } from '../../fixtures/test-data.fixture';
 import { WorkflowPage } from '../../pages/workflow.page';
 
-const BRAND_BASE = '/test-org/brand-1';
-
 test.describe('Core Automation Loop', () => {
   test.beforeEach(async ({ automationPage }) => {
     await mockActiveSubscription(automationPage, {
@@ -31,7 +30,7 @@ test.describe('Core Automation Loop', () => {
   test('workflow library stays available inside the agent-first canvas', async ({
     automationPage,
   }) => {
-    await automationPage.goto(`/orchestration/workflows`);
+    await automationPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS);
 
     await expect(automationPage).toHaveURL(/\/test-org\/brand-1\/workflows$/);
     await expect(

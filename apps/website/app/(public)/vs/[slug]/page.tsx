@@ -1,5 +1,6 @@
 import { getAllCompetitorSlugs } from '@data/competitors.data';
 import { stringifyJsonLd } from '@data/json-ld';
+import { metadata } from '@helpers/media/metadata/metadata.helper';
 import ComparisonPage from '@public/vs/[slug]/comparison-page';
 import {
   formatCompetitorSlug,
@@ -34,13 +35,17 @@ export async function generateMetadata(
     openGraph: {
       description,
       images: [...previousImages],
+      siteName: metadata.name,
       title,
+      type: 'website',
       url,
     },
     title,
     twitter: {
+      card: 'summary_large_image',
       description,
       images: [...previousImages],
+      title,
     },
   };
 }

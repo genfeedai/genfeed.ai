@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
+import type { CreateAppMetadataOptions } from '@ui/shell/metadata';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -52,7 +53,13 @@ vi.mock('@ui/shell/AppHtmlDocument', () => ({
 }));
 
 vi.mock('@ui/shell/metadata', () => ({
-  createAppMetadata: vi.fn(() => ({})),
+  // Passing the overrides straight through lets the assertions below read the
+  // real exported `metadata`. `clearMocks: true` wipes call history between
+  // tests, and the layout module is only evaluated once, so inspecting spy
+  // arguments would silently pass on an empty call list.
+  createAppMetadata: vi.fn((options: CreateAppMetadataOptions) => ({
+    ...options.overrides,
+  })),
   createPwaMetadata: vi.fn(() => ({
     metadata: {},
     viewport: {},
@@ -94,5 +101,14 @@ describe('app root layout', () => {
         storageKey: 'theme',
       }),
     );
+  });
+
+  it('marks the whole studio noindex, nofollow in the root metadata', async () => {
+    const { metadata } = await import('./layout');
+
+    expect(metadata.robots).toEqual({
+      follow: false,
+      index: false,
+    });
   });
 });

@@ -15,6 +15,7 @@ export const metadata = {
       url: cards.default,
       width: 1600,
     },
+    siteName: name,
     title: `Page Not Found - ${name}`,
     type: 'website',
     url,

@@ -35,11 +35,14 @@ export async function generateMetadata(
     openGraph: {
       description: vsDescription,
       images,
+      siteName: metadata.name,
       title,
+      type: 'website',
       url: `${metadata.url}/vs`,
     },
     title,
     twitter: {
+      card: 'summary_large_image',
       description: vsDescription,
       images,
       title,
