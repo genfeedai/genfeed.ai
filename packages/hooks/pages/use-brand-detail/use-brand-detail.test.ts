@@ -1,16 +1,34 @@
-import { AssetCategory } from '@genfeedai/enums';
+import { AssetCategory, AssetScope } from '@genfeedai/enums';
 import type { IBrand } from '@genfeedai/interfaces';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockFindOne = vi.fn();
+const mockPatch = vi.fn();
 const mockGetService = vi.fn();
 const mockCopyToClipboard = vi.fn();
 const mockOpenUpload = vi.fn();
+const mockNotifyError = vi.fn();
 const mockFindPublicArticles = vi.fn();
 const mockFindPublicImages = vi.fn();
 const mockFindPublicVideos = vi.fn();
+const mockSubscribe = vi.fn(() => vi.fn());
+
+const mockPublicService = {
+  findPublicArticles: mockFindPublicArticles,
+  findPublicImages: mockFindPublicImages,
+  findPublicVideos: mockFindPublicVideos,
+};
+
+const mockClipboardService = {
+  copyToClipboard: mockCopyToClipboard,
+};
+
+const mockNotificationsService = {
+  error: mockNotifyError,
+  success: vi.fn(),
+};
 
 vi.mock('next/navigation', () => ({
   useParams: vi.fn(() => ({ orgSlug: 'acme', slug: 'brand-1' })),
@@ -28,7 +46,9 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => {
 });
 
 vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => {
-  const socketManager = { subscribe: vi.fn(() => vi.fn()) };
+  const socketManager = {
+    subscribe: (...args: unknown[]) => mockSubscribe(...args),
+  };
   return { useSocketManager: vi.fn(() => socketManager) };
 });
 
@@ -57,28 +77,23 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(),
 }));
 
-vi.mock('@genfeedai/services/external/public.service', () => {
-  const publicService = {
-    findPublicArticles: (...args: unknown[]) => mockFindPublicArticles(...args),
-    findPublicImages: (...args: unknown[]) => mockFindPublicImages(...args),
-    findPublicVideos: (...args: unknown[]) => mockFindPublicVideos(...args),
-  };
-  return { PublicService: { getInstance: vi.fn(() => publicService) } };
-});
+vi.mock('@genfeedai/services/external/public.service', () => ({
+  PublicService: {
+    getInstance: vi.fn(() => mockPublicService),
+  },
+}));
 
-vi.mock('@genfeedai/services/core/clipboard.service', () => {
-  const clipboardService = {
-    copyToClipboard: (...args: unknown[]) => mockCopyToClipboard(...args),
-  };
-  return { ClipboardService: { getInstance: vi.fn(() => clipboardService) } };
-});
+vi.mock('@genfeedai/services/core/clipboard.service', () => ({
+  ClipboardService: {
+    getInstance: vi.fn(() => mockClipboardService),
+  },
+}));
 
-vi.mock('@genfeedai/services/core/notifications.service', () => {
-  const notificationsService = { error: vi.fn(), success: vi.fn() };
-  return {
-    NotificationsService: { getInstance: vi.fn(() => notificationsService) },
-  };
-});
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: vi.fn(() => mockNotificationsService),
+  },
+}));
 
 vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
@@ -99,11 +114,17 @@ describe('useBrandDetail', () => {
     mockFindOne.mockResolvedValue({
       id: 'brand-1',
       links: [],
+      scope: AssetScope.BRAND,
+    } as IBrand);
+    mockPatch.mockResolvedValue({
+      id: 'brand-1',
+      links: [],
+      scope: AssetScope.PUBLIC,
     } as IBrand);
     mockGetService.mockResolvedValue({
       delete: vi.fn(),
       findOneBySlug: mockFindOne,
-      patch: vi.fn(),
+      patch: mockPatch,
     });
     (useAuthedService as ReturnType<typeof vi.fn>).mockReturnValue(
       mockGetService,
@@ -162,6 +183,106 @@ describe('useBrandDetail', () => {
         parentModel: 'Brand',
       }),
     );
+  });
+
+  describe('handleUpdateAccount scope toggle', () => {
+    async function renderLoadedBrand() {
+      const { result } = renderHook(() => useBrandDetail());
+
+      await waitFor(() => {
+        expect(result.current.brand).not.toBeNull();
+      });
+
+      return result;
+    }
+
+    it('flips the scope optimistically before the patch resolves', async () => {
+      let resolvePatch: ((brand: IBrand) => void) | undefined;
+      mockPatch.mockImplementationOnce(
+        () =>
+          new Promise<IBrand>((resolve) => {
+            resolvePatch = resolve;
+          }),
+      );
+
+      const result = await renderLoadedBrand();
+
+      act(() => {
+        void result.current.handleUpdateAccount('scope', AssetScope.PUBLIC);
+      });
+
+      await waitFor(() => {
+        expect(result.current.brand?.scope).toBe(AssetScope.PUBLIC);
+      });
+      expect(result.current.isUpdating).toBe(true);
+
+      await act(async () => {
+        resolvePatch?.({
+          id: 'brand-1',
+          links: [],
+          scope: AssetScope.PUBLIC,
+        } as IBrand);
+      });
+
+      expect(result.current.isUpdating).toBe(false);
+    });
+
+    it('persists the public scope when the toggle is switched on', async () => {
+      const result = await renderLoadedBrand();
+
+      await act(async () => {
+        await result.current.handleUpdateAccount('scope', AssetScope.PUBLIC);
+      });
+
+      expect(mockPatch).toHaveBeenCalledWith('brand-1', {
+        scope: AssetScope.PUBLIC,
+      });
+      expect(result.current.brand?.scope).toBe(AssetScope.PUBLIC);
+      expect(mockNotifyError).not.toHaveBeenCalled();
+    });
+
+    it('persists the brand scope when the toggle is switched back off', async () => {
+      mockFindOne.mockResolvedValue({
+        id: 'brand-1',
+        links: [],
+        scope: AssetScope.PUBLIC,
+      } as IBrand);
+      mockPatch.mockResolvedValue({
+        id: 'brand-1',
+        links: [],
+        scope: AssetScope.BRAND,
+      } as IBrand);
+
+      const result = await renderLoadedBrand();
+
+      await act(async () => {
+        await result.current.handleUpdateAccount('scope', AssetScope.BRAND);
+      });
+
+      expect(mockPatch).toHaveBeenCalledWith('brand-1', {
+        scope: AssetScope.BRAND,
+      });
+      expect(result.current.brand?.scope).toBe(AssetScope.BRAND);
+      expect(mockNotifyError).not.toHaveBeenCalled();
+    });
+
+    it('rolls the optimistic scope back and notifies when the patch fails', async () => {
+      mockPatch.mockRejectedValueOnce(new Error('patch failed'));
+
+      const result = await renderLoadedBrand();
+
+      await act(async () => {
+        await expect(
+          result.current.handleUpdateAccount('scope', AssetScope.PUBLIC),
+        ).rejects.toThrow('patch failed');
+      });
+
+      expect(result.current.brand?.scope).toBe(AssetScope.BRAND);
+      expect(result.current.isUpdating).toBe(false);
+      expect(mockNotifyError).toHaveBeenCalledWith(
+        'PATCH /brands/brand-1 failed',
+      );
+    });
   });
 
   it('persists a second field edited while the first save is still in flight', async () => {
