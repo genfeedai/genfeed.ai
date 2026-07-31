@@ -53,6 +53,7 @@ describe('WhatsappPublisherService', () => {
     organizationId: orgId.toString(),
     post,
     postId: postId.toString(),
+    settings: {},
   });
 
   beforeEach(async () => {

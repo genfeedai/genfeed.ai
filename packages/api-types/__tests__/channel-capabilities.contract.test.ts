@@ -3,6 +3,8 @@ import {
   getChannelCapability,
   listChannelCapabilities,
   PRODUCTIZED_SCHEDULER_PLATFORMS,
+  resolveChannelStatusIssue,
+  resolveChannelTargetSettings,
   validateChannelTargetSettings,
 } from '@api-types/contracts/channel-capabilities.contract';
 import { CredentialPlatform, TargetValidationState } from '@genfeedai/enums';
@@ -50,14 +52,15 @@ describe('channel capability catalog', () => {
   });
 
   test('exposes helper lookup contracts for supported and stubbed platforms', () => {
-    expect(getChannelCapability(CredentialPlatform.YOUTUBE)?.helpers).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          key: 'youtube.channels',
-          lookupPath: '/integrations/youtube/channels',
-        }),
-      ]),
-    );
+    // YouTube declares a channel helper but no lookup path: the API has no
+    // channel-listing route, and a fabricated path is worse than none because
+    // the UI would render a picker that can never load.
+    const youtubeChannelHelper = getChannelCapability(
+      CredentialPlatform.YOUTUBE,
+    )?.helpers.find((helper) => helper.key === 'youtube.channels');
+
+    expect(youtubeChannelHelper).toBeDefined();
+    expect(youtubeChannelHelper?.lookupPath).toBeUndefined();
 
     expect(getChannelCapability(CredentialPlatform.TIKTOK)?.helpers).toEqual(
       expect.arrayContaining([
@@ -69,6 +72,40 @@ describe('channel capability catalog', () => {
       expect.arrayContaining([
         expect.objectContaining({ key: 'pinterest.boards' }),
       ]),
+    );
+  });
+
+  test('gives every publishable platform a catalog entry', () => {
+    // Mastodon shipped a working publisher with no capability entry, which made
+    // it invisible to validation: every setting it needed was smuggled through
+    // credential columns instead.
+    expect(
+      listChannelCapabilities({
+        includeHidden: true,
+        includePlanned: true,
+      }).map((capability) => capability.platform),
+    ).toContain(CredentialPlatform.MASTODON);
+  });
+
+  test('derives a status issue from the capability status', () => {
+    const supported = getChannelCapability(CredentialPlatform.YOUTUBE);
+    const hidden = getChannelCapability(CredentialPlatform.REDDIT);
+
+    expect(supported && resolveChannelStatusIssue(supported)).toBeUndefined();
+    expect(hidden && resolveChannelStatusIssue(hidden)).toEqual(
+      expect.objectContaining({
+        code: 'channel_target.hidden_channel',
+        severity: 'error',
+      }),
+    );
+
+    expect(
+      hidden && resolveChannelStatusIssue({ ...hidden, status: 'planned' }),
+    ).toEqual(
+      expect.objectContaining({
+        code: 'channel_target.planned_channel',
+        severity: 'error',
+      }),
     );
   });
 });
@@ -321,6 +358,44 @@ describe('validateChannelTargetSettings', () => {
     );
   });
 
+  test('rejects a setting key the catalog does not declare', () => {
+    // The issue is explicit that an unrecognised setting must fail rather than
+    // be ignored: a silently dropped key looks applied in the composer.
+    const result = validateChannelTargetSettings({
+      caption: 'Launch video',
+      media: [{ id: 'asset_1', kind: 'video' }],
+      platform: CredentialPlatform.YOUTUBE,
+      settings: { privacyStatus: 'public', unknownSetting: 'value' },
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'channel_target.unknown_setting',
+          field: 'settings.unknownSetting',
+        }),
+      ]),
+    );
+  });
+
+  test('rejects a url setting that is not an http(s) URL', () => {
+    const result = validateChannelTargetSettings({
+      caption: 'Toot',
+      platform: CredentialPlatform.MASTODON,
+      settings: { instanceUrl: 'mastodon.social' },
+    });
+
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'channel_target.invalid_setting_url',
+          field: 'settings.instanceUrl',
+        }),
+      ]),
+    );
+  });
+
   test('rejects an unsupported platform string', () => {
     const result = validateChannelTargetSettings({
       caption: 'Unknown network post',
@@ -337,5 +412,50 @@ describe('validateChannelTargetSettings', () => {
         }),
       ]),
     );
+  });
+});
+
+describe('resolveChannelTargetSettings', () => {
+  test('substitutes catalog defaults for absent values', () => {
+    expect(
+      resolveChannelTargetSettings(CredentialPlatform.YOUTUBE, {}),
+    ).toEqual({
+      madeForKids: false,
+      privacyStatus: 'private',
+    });
+  });
+
+  test('drops keys the catalog does not declare', () => {
+    // The stored JSON is whatever passed validation when the release was
+    // scheduled. A key the catalog has since dropped must not reach a provider.
+    const resolved = resolveChannelTargetSettings(CredentialPlatform.YOUTUBE, {
+      privacyStatus: 'unlisted',
+      retiredSetting: 'whatever',
+    });
+
+    expect(resolved.privacyStatus).toBe('unlisted');
+    expect(resolved).not.toHaveProperty('retiredSetting');
+  });
+
+  test('falls back to the default when a stored value is no longer valid', () => {
+    expect(
+      resolveChannelTargetSettings(CredentialPlatform.YOUTUBE, {
+        privacyStatus: 'organization',
+      }).privacyStatus,
+    ).toBe('private');
+  });
+
+  test('returns nothing for a platform with no capability', () => {
+    expect(
+      resolveChannelTargetSettings(CredentialPlatform.DISCORD, {
+        anything: true,
+      }),
+    ).toEqual({});
+  });
+
+  test('ignores a stored value that is not an object', () => {
+    expect(
+      resolveChannelTargetSettings(CredentialPlatform.TWITTER, 'corrupt'),
+    ).toEqual({ replyPolicy: 'everyone' });
   });
 });

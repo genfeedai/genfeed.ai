@@ -13,6 +13,7 @@ import type {
   PublishContext,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { PinterestPublisherService } from '@api/services/integrations/publishers/pinterest-publisher.service';
+import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -109,13 +110,17 @@ describe('PinterestPublisherService', () => {
   } as unknown as PostEntity;
 
   // Create publish context helper
-  const createPublishContext = (post: PostEntity): PublishContext => ({
+  const createPublishContext = (
+    post: PostEntity,
+    settings: ChannelTargetSettings = {},
+  ): PublishContext => ({
     brandId: mockBrandId.toString(),
     credential: mockCredential,
     organization: mockOrganization,
     organizationId: mockOrganizationId.toString(),
     post,
     postId: mockPostId.toString(),
+    settings,
   });
 
   beforeEach(async () => {
@@ -320,6 +325,43 @@ describe('PinterestPublisherService', () => {
 
         expect(result.success).toBe(true);
         expect(pinterestService.createPin).toHaveBeenCalled();
+      });
+    });
+
+    describe('channel target settings', () => {
+      it('should pin to the board named by the setting', async () => {
+        // One credential covers every board on the account, so the per-target
+        // setting decides where the pin lands.
+        pinterestService.createPin.mockResolvedValue('pin-1');
+
+        await service.publish(
+          createPublishContext(mockImagePost, { boardId: 'board-987654321' }),
+        );
+
+        expect(pinterestService.createPin).toHaveBeenCalledWith(
+          expect.any(String),
+          'board-987654321',
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          undefined,
+        );
+      });
+
+      it('should fall back to the credential board when unset', async () => {
+        // Releases scheduled before the setting existed carry no settings.
+        pinterestService.createPin.mockResolvedValue('pin-1');
+
+        await service.publish(createPublishContext(mockImagePost));
+
+        expect(pinterestService.createPin).toHaveBeenCalledWith(
+          expect.any(String),
+          mockBoardId,
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          undefined,
+        );
       });
     });
 

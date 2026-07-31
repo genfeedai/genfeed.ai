@@ -17,7 +17,10 @@ import { ActivitiesService } from '@api/collections/activities/services/activiti
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { mockModel } from '@api/helpers/mocks/model.mock';
-import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import {
+  resolveTwitterReplySettings,
+  TwitterService,
+} from '@api/services/integrations/twitter/services/twitter.service';
 import { TwitterResponseMapper } from '@api/services/integrations/twitter/services/twitter-response.mapper';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ConfigService } from '@libs/config/config.service';
@@ -57,6 +60,32 @@ describe('TwitterService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('resolveTwitterReplySettings', () => {
+    it('maps the following policy to Twitter vocabulary', () => {
+      expect(resolveTwitterReplySettings({ replyPolicy: 'following' })).toBe(
+        'following',
+      );
+    });
+
+    it('maps the mentioned policy to Twitter vocabulary', () => {
+      expect(resolveTwitterReplySettings({ replyPolicy: 'mentioned' })).toBe(
+        'mentionedUsers',
+      );
+    });
+
+    it('omits the field for the everyone policy', () => {
+      // Twitter expresses "everyone" by leaving `reply_settings` off; sending
+      // the literal value rejects the whole tweet.
+      expect(
+        resolveTwitterReplySettings({ replyPolicy: 'everyone' }),
+      ).toBeUndefined();
+    });
+
+    it('omits the field when no policy was chosen', () => {
+      expect(resolveTwitterReplySettings({})).toBeUndefined();
+    });
   });
 
   describe('getMediaAnalytics', () => {

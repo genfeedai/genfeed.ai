@@ -1,6 +1,7 @@
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
+import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 
 /**
@@ -27,6 +28,12 @@ export interface PublishContext {
   brandId: string;
   postId: string;
   isDraft?: boolean;
+  /**
+   * Channel settings resolved from `post.targetSettings` against the current
+   * capability catalog. Always present — publishers read it instead of the raw
+   * JSON so a stale or unknown key can never reach a provider API.
+   */
+  settings: ChannelTargetSettings;
 }
 
 /**

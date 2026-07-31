@@ -157,6 +157,133 @@ describe('TiktokService', () => {
     });
   });
 
+  describe('channel target settings', () => {
+    /**
+     * The composer's choices only reach TikTok through the publish body, so
+     * these assert the body rather than any intermediate helper.
+     */
+    const arrangeUpload = (
+      creatorOverrides: Partial<{
+        comment_disabled: boolean;
+        duet_disabled: boolean;
+        privacy_level_options: string[];
+        stitch_disabled: boolean;
+      }> = {},
+    ) => {
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue({
+        accessToken: 'test-token',
+      } as unknown as CredentialEntity);
+
+      vi.spyOn(service, 'getCreatorInfo').mockResolvedValue({
+        comment_disabled: false,
+        creator_avatar_url: '',
+        creator_nickname: 'Test',
+        creator_username: 'test',
+        duet_disabled: false,
+        max_video_post_duration_sec: 600,
+        privacy_level_options: ['SELF_ONLY', 'PUBLIC_TO_EVERYONE'],
+        stitch_disabled: false,
+        ...creatorOverrides,
+      });
+
+      (httpService.post as vi.Mock).mockReturnValue(
+        of({
+          data: { data: { publish_id: 'test-id' } },
+          status: 200,
+        }),
+      );
+
+      vi.spyOn(service, 'getPublishStatus').mockResolvedValue({
+        publicly_available_post_id: ['post-123'],
+        status: 'PUBLISH_COMPLETE',
+      } as unknown as import('@genfeedai/interfaces').ITikTokPublishStatusData);
+    };
+
+    const postInfoOf = () =>
+      (
+        (httpService.post as vi.Mock).mock.calls[0][1] as {
+          post_info: Record<string, unknown>;
+        }
+      ).post_info;
+
+    it('translates the catalog privacy value to TikTok vocabulary', async () => {
+      arrangeUpload();
+
+      await service.uploadVideo(
+        'org-id',
+        'account-id',
+        'http://video.url',
+        { label: 'Test video' } as never,
+        { privacyLevel: 'public' },
+      );
+
+      expect(postInfoOf().privacy_level).toBe('PUBLIC_TO_EVERYONE');
+    });
+
+    it('falls back to the safe default when the account cannot offer the requested level', async () => {
+      // TikTok rejects the whole publish for a level missing from
+      // `privacy_level_options`, so an unavailable choice must degrade.
+      arrangeUpload({ privacy_level_options: ['SELF_ONLY'] });
+
+      await service.uploadVideo(
+        'org-id',
+        'account-id',
+        'http://video.url',
+        { label: 'Test video' } as never,
+        { privacyLevel: 'public' },
+      );
+
+      expect(postInfoOf().privacy_level).toBe('SELF_ONLY');
+    });
+
+    it('disables the interactions the composer turned off', async () => {
+      arrangeUpload();
+
+      await service.uploadVideo(
+        'org-id',
+        'account-id',
+        'http://video.url',
+        { label: 'Test video' } as never,
+        { allowComments: false, allowDuet: false, allowStitch: true },
+      );
+
+      expect(postInfoOf()).toMatchObject({
+        disable_comment: true,
+        disable_duet: true,
+        disable_stitch: false,
+      });
+    });
+
+    it('keeps an account-disabled interaction disabled even when the composer allows it', async () => {
+      // The account restriction is a ceiling, not a default.
+      arrangeUpload({ comment_disabled: true });
+
+      await service.uploadVideo(
+        'org-id',
+        'account-id',
+        'http://video.url',
+        { label: 'Test video' } as never,
+        { allowComments: true },
+      );
+
+      expect(postInfoOf().disable_comment).toBe(true);
+    });
+
+    it('leaves interactions enabled when the composer set nothing', async () => {
+      arrangeUpload();
+
+      await service.uploadVideo('org-id', 'account-id', 'http://video.url', {
+        label: 'Test video',
+      } as never);
+
+      expect(postInfoOf()).toMatchObject({
+        disable_comment: false,
+        disable_duet: false,
+        disable_stitch: false,
+      });
+    });
+  });
+
   describe('refreshToken', () => {
     it('refreshes token and saves credentials', async () => {
       (credentialsMock.findOne as vi.Mock).mockResolvedValue({

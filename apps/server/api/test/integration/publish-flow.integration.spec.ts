@@ -249,6 +249,7 @@ describe('Publish flow real-backend proof (#334)', () => {
     });
 
     const context: PublishContext = {
+      settings: {},
       brandId,
       credential: rawCredential as unknown as CredentialDocument,
       isDraft: false,

@@ -56,6 +56,12 @@ export class PostEntity extends BaseEntity {
   declare readonly uploadedAt?: Date;
 
   declare readonly platform: CredentialPlatform;
+  // Per-channel publishing settings captured at schedule time. Stored as
+  // untyped JSON, so the publish path must run it through
+  // `resolveChannelTargetSettings` before acting on any key.
+  declare readonly targetSettings?: unknown;
+  declare readonly targetValidationState?: string;
+  declare readonly targetExecutionState?: string;
   declare readonly nextScheduledDate: Date;
   declare readonly isRepeat: boolean;
   declare readonly repeatFrequency: string;

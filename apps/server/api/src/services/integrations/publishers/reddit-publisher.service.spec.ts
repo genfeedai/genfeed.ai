@@ -13,6 +13,7 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { RedditPublisherService } from '@api/services/integrations/publishers/reddit-publisher.service';
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
+import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -106,6 +107,7 @@ describe('RedditPublisherService', () => {
   const createPublishContext = (
     post: PostEntity,
     credential = mockCredential,
+    settings: ChannelTargetSettings = {},
   ): PublishContext => ({
     brandId: mockBrandId.toString(),
     credential,
@@ -113,6 +115,7 @@ describe('RedditPublisherService', () => {
     organizationId: mockOrganizationId.toString(),
     post,
     postId: mockPostId.toString(),
+    settings,
   });
 
   beforeEach(async () => {
@@ -283,7 +286,8 @@ describe('RedditPublisherService', () => {
           mockSubreddit,
           mockTextPost.label,
           expect.any(String),
-          // No media URL for text posts — submitPost only receives 5 args
+          undefined, // No link URL for text posts
+          undefined, // No flair selected
         );
       });
 
@@ -302,7 +306,8 @@ describe('RedditPublisherService', () => {
           expect.any(String),
           'Untitled',
           expect.any(String),
-          // No media URL for text posts — submitPost only receives 5 args
+          undefined, // No link URL for text posts
+          undefined, // No flair selected
         );
       });
 
@@ -338,7 +343,76 @@ describe('RedditPublisherService', () => {
           expect.any(String),
           expect.any(String),
           expect.any(String),
-          undefined, // Empty description becomes undefined — submitPost receives 5 args
+          undefined, // Empty description becomes undefined
+          undefined, // No link URL for text posts
+          undefined, // No flair selected
+        );
+      });
+    });
+
+    describe('channel target settings', () => {
+      it('should submit to the subreddit setting instead of the credential', async () => {
+        // The credential holds one subreddit, but a brand posts to several, so
+        // the per-target setting has to win — including in the permalink.
+        const context = createPublishContext(mockTextPost, {
+          subreddit: 'anothersub',
+        });
+
+        redditService.submitPost.mockResolvedValue('post-999');
+
+        const result = await service.publish(context);
+
+        expect(redditService.submitPost).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.any(String),
+          'anothersub',
+          expect.any(String),
+          expect.any(String),
+          undefined,
+          undefined,
+        );
+        expect(result.url).toBe(
+          'https://www.reddit.com/r/anothersub/comments/post-999',
+        );
+      });
+
+      it('should fall back to the credential subreddit when unset', async () => {
+        // Releases scheduled before the setting existed carry no settings at
+        // all; they must keep publishing where they always did.
+        const context = createPublishContext(mockTextPost);
+
+        redditService.submitPost.mockResolvedValue('post-1');
+
+        await service.publish(context);
+
+        expect(redditService.submitPost).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.any(String),
+          mockSubreddit,
+          expect.any(String),
+          expect.any(String),
+          undefined,
+          undefined,
+        );
+      });
+
+      it('should forward the selected flair id', async () => {
+        const context = createPublishContext(mockTextPost, {
+          flairId: 'flair-abc',
+        });
+
+        redditService.submitPost.mockResolvedValue('post-1');
+
+        await service.publish(context);
+
+        expect(redditService.submitPost).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          undefined,
+          'flair-abc',
         );
       });
     });

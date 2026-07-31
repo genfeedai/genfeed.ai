@@ -14,6 +14,7 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { YouTubePublisherService } from '@api/services/integrations/publishers/youtube-publisher.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
+import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -119,13 +120,17 @@ describe('YouTubePublisherService', () => {
   } as unknown as PostEntity;
 
   // Create publish context helper
-  const createPublishContext = (post: PostEntity): PublishContext => ({
+  const createPublishContext = (
+    post: PostEntity,
+    settings: ChannelTargetSettings = {},
+  ): PublishContext => ({
     brandId: mockBrandId.toString(),
     credential: mockCredential,
     organization: mockOrganization,
     organizationId: mockOrganizationId.toString(),
     post,
     postId: mockPostId.toString(),
+    settings,
   });
 
   beforeEach(async () => {
@@ -317,6 +322,7 @@ describe('YouTubePublisherService', () => {
           mockBrandId.toString(),
           mockIngredientId.toString(),
           mockVideoPost,
+          {},
         );
       });
 

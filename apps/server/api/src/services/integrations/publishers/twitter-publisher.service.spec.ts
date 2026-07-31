@@ -28,6 +28,7 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { TwitterPublisherService } from '@api/services/integrations/publishers/twitter-publisher.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -132,13 +133,17 @@ describe('TwitterPublisherService', () => {
   } as unknown as PostEntity;
 
   // Create publish context helper
-  const createPublishContext = (post: PostEntity): PublishContext => ({
+  const createPublishContext = (
+    post: PostEntity,
+    settings: ChannelTargetSettings = {},
+  ): PublishContext => ({
     brandId: mockBrandId.toString(),
     credential: mockCredential,
     organization: mockOrganization,
     organizationId: mockOrganizationId.toString(),
     post,
     postId: mockPostId.toString(),
+    settings,
   });
 
   beforeEach(async () => {
@@ -310,6 +315,47 @@ describe('TwitterPublisherService', () => {
         );
       });
 
+      it('should send the reply policy on a text-only tweet', async () => {
+        // A text-only tweet takes the options object only when something needs
+        // it, so the reply policy has to be what turns it on here.
+        const context = createPublishContext(mockTextPost, {
+          replyPolicy: 'following',
+        });
+
+        credentialsService.findOne.mockResolvedValue({
+          ...mockCredential,
+          accessToken: 'encrypted-token',
+        } as unknown as CredentialDocument);
+        mockTweet.mockResolvedValue({ data: { id: '1234567890' } });
+        twitterService.buildTweetUrl.mockReturnValue('https://x.com/t/1');
+
+        await service.publish(context);
+
+        expect(mockTweet).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({ reply_settings: 'following' }),
+        );
+      });
+
+      it('should omit reply settings for the everyone policy', async () => {
+        // Twitter expresses "everyone" by leaving `reply_settings` off; sending
+        // the literal value rejects the whole tweet.
+        const context = createPublishContext(mockTextPost, {
+          replyPolicy: 'everyone',
+        });
+
+        credentialsService.findOne.mockResolvedValue({
+          ...mockCredential,
+          accessToken: 'encrypted-token',
+        } as unknown as CredentialDocument);
+        mockTweet.mockResolvedValue({ data: { id: '1234567890' } });
+        twitterService.buildTweetUrl.mockReturnValue('https://x.com/t/1');
+
+        await service.publish(context);
+
+        expect(mockTweet).toHaveBeenCalledWith(expect.any(String));
+      });
+
       it('should handle HTML in description by converting to plain text', async () => {
         const postWithHtml = {
           ...mockTextPost,
@@ -341,6 +387,29 @@ describe('TwitterPublisherService', () => {
     });
 
     describe('media posts', () => {
+      it('should forward the target settings to uploadMedia', async () => {
+        // The media path builds its tweet inside `TwitterService`, so the
+        // settings have to travel with the call rather than be applied here.
+        const context = createPublishContext(mockImagePost, {
+          replyPolicy: 'mentioned',
+        });
+
+        twitterService.uploadMedia.mockResolvedValue('1234567890');
+        twitterService.buildTweetUrl.mockReturnValue('https://x.com/t/1');
+
+        await service.publish(context);
+
+        expect(twitterService.uploadMedia).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          'image/jpeg',
+          undefined,
+          { replyPolicy: 'mentioned' },
+        );
+      });
+
       it('should publish an image post successfully', async () => {
         const context = createPublishContext(mockImagePost);
         const mockTweetId = '1234567890';
@@ -361,6 +430,7 @@ describe('TwitterPublisherService', () => {
           mockImagePost.description,
           'image/jpeg',
           undefined,
+          {},
         );
       });
 
@@ -384,6 +454,7 @@ describe('TwitterPublisherService', () => {
           mockVideoPost.description,
           'video/mp4',
           undefined,
+          {},
         );
       });
 
@@ -408,6 +479,7 @@ describe('TwitterPublisherService', () => {
           mockCarouselPost.description,
           'image/jpeg',
           undefined,
+          {},
         );
       });
 
@@ -434,6 +506,7 @@ describe('TwitterPublisherService', () => {
           expect.any(String),
           'image/jpeg',
           undefined,
+          {},
         );
       });
     });

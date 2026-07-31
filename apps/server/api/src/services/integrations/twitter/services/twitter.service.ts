@@ -5,6 +5,10 @@ import type { CredentialDocument } from '@api/collections/credentials/schemas/cr
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
+  type ChannelTargetSettings,
+  readChannelSettingString,
+} from '@api-types/contracts/channel-capabilities.contract';
+import {
   ActivityKey,
   ActivitySource,
   CredentialPlatform,
@@ -50,6 +54,26 @@ interface TweetMediaOptions {
       | [string, string, string, string];
   };
   quote_tweet_id?: string;
+  reply_settings?: string;
+}
+
+/**
+ * Catalog reply-policy values translated to Twitter's `reply_settings`
+ * vocabulary. `everyone` is absent on purpose: the API expresses it by omitting
+ * the field, and sending an unknown value rejects the whole tweet.
+ */
+const TWITTER_REPLY_SETTINGS_BY_POLICY: Record<string, string> = {
+  following: 'following',
+  mentioned: 'mentionedUsers',
+};
+
+export function resolveTwitterReplySettings(
+  settings: ChannelTargetSettings,
+): string | undefined {
+  const policy = readChannelSettingString(settings, 'replyPolicy');
+  return policy === undefined
+    ? undefined
+    : TWITTER_REPLY_SETTINGS_BY_POLICY[policy];
 }
 
 function requireString(
@@ -429,6 +453,7 @@ export class TwitterService {
     caption: string,
     mediaType: 'image/jpeg' | 'video/mp4' = 'video/mp4',
     quoteTweetId?: string,
+    settings: ChannelTargetSettings = {},
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -485,6 +510,11 @@ export class TwitterService {
         tweetOptions.quote_tweet_id = quoteTweetId;
       }
 
+      const replySettings = resolveTwitterReplySettings(settings);
+      if (replySettings) {
+        tweetOptions.reply_settings = replySettings;
+      }
+
       const tweetRes = await userClient.v2.tweet(
         plainTextCaption,
         tweetOptions,
@@ -517,6 +547,7 @@ export class TwitterService {
     brandId: string,
     text: string,
     inReplyToTweetId?: string,
+    settings: ChannelTargetSettings = {},
   ): Promise<string> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -532,6 +563,15 @@ export class TwitterService {
       const tweetOptions: Record<string, unknown> = {};
       if (inReplyToTweetId) {
         tweetOptions.reply = { in_reply_to_tweet_id: inReplyToTweetId };
+      }
+
+      // A reply inherits the parent tweet's audience, so the policy only
+      // applies to the root tweet.
+      const replySettings = inReplyToTweetId
+        ? undefined
+        : resolveTwitterReplySettings(settings);
+      if (replySettings) {
+        tweetOptions.reply_settings = replySettings;
       }
 
       const tweetRes = await userClient.v2.tweet(

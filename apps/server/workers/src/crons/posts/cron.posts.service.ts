@@ -17,6 +17,7 @@ import type {
 import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
+import { resolveChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -551,7 +552,9 @@ export class CronPostsService {
         return this.createFailedResult(platform, 'Unsupported platform');
       }
 
-      // Build publish context
+      // Build publish context. Settings are re-resolved against the catalog
+      // here rather than trusted as stored: the release was validated when it
+      // was scheduled, and the catalog may have changed since.
       const context: PublishContext = {
         brandId: postBrandId ?? '',
         credential,
@@ -559,6 +562,7 @@ export class CronPostsService {
         organizationId: postOrganizationId ?? '',
         post,
         postId: post.id.toString(),
+        settings: resolveChannelTargetSettings(platform, post.targetSettings),
       };
 
       // Publish using the platform publisher, with a durable workflow execution

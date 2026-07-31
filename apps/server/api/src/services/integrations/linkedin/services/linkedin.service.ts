@@ -2,6 +2,10 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import type { TrendSourceClassification } from '@api/collections/trends/interfaces/trend.interfaces';
 import { buildPublicPlatformReferenceClassification } from '@api/collections/trends/utils/trend-source-classification.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
+import {
+  type ChannelTargetSettings,
+  readChannelSettingString,
+} from '@api-types/contracts/channel-capabilities.contract';
 import { CredentialPlatform } from '@genfeedai/enums';
 import {
   getIntegrationProviderDefinition,
@@ -103,6 +107,21 @@ const LINKEDIN_TREND_STOP_WORDS = new Set([
   'with',
   'your',
 ]);
+
+/**
+ * LinkedIn's member-network visibility for this release.
+ *
+ * `PUBLIC` stays the fallback because it is what every share used before the
+ * setting existed, so an unset value keeps the previous behaviour. The catalog
+ * stays platform-neutral, so this is the only place the provider spelling is
+ * decided.
+ */
+export function resolveLinkedInVisibility(
+  settings: ChannelTargetSettings,
+): string {
+  const visibility = readChannelSettingString(settings, 'visibility');
+  return visibility === 'CONNECTIONS' ? 'CONNECTIONS' : 'PUBLIC';
+}
 
 @Injectable()
 export class LinkedInService {
@@ -304,6 +323,7 @@ export class LinkedInService {
     brandId: string,
     imageUrl: string,
     caption: string,
+    settings: ChannelTargetSettings = {},
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -394,7 +414,8 @@ export class LinkedInService {
               },
             },
             visibility: {
-              'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
+              'com.linkedin.ugc.MemberNetworkVisibility':
+                resolveLinkedInVisibility(settings),
             },
           },
           {
@@ -418,6 +439,7 @@ export class LinkedInService {
     organizationId: string,
     brandId: string,
     text: string,
+    settings: ChannelTargetSettings = {},
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -449,7 +471,8 @@ export class LinkedInService {
             },
           },
           visibility: {
-            'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
+            'com.linkedin.ugc.MemberNetworkVisibility':
+              resolveLinkedInVisibility(settings),
           },
         },
         headers: {
@@ -474,6 +497,7 @@ export class LinkedInService {
     brandId: string,
     videoUrl: string,
     caption: string,
+    settings: ChannelTargetSettings = {},
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -564,7 +588,8 @@ export class LinkedInService {
               },
             },
             visibility: {
-              'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
+              'com.linkedin.ugc.MemberNetworkVisibility':
+                resolveLinkedInVisibility(settings),
             },
           },
           {

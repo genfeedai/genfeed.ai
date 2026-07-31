@@ -8,7 +8,10 @@ import type {
   PublishResult,
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
-import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import {
+  resolveTwitterReplySettings,
+  TwitterService,
+} from '@api/services/integrations/twitter/services/twitter.service';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
@@ -34,6 +37,7 @@ type TwitterClient = {
 
 type TwitterQuoteOptions = {
   quote_tweet_id?: string;
+  reply_settings?: string;
 };
 
 function toBuffer(data: unknown): Buffer {
@@ -136,6 +140,11 @@ export class TwitterPublisherService extends BasePublisherService {
       tweetOptions.quote_tweet_id = post.quoteTweetId;
     }
 
+    const replySettings = resolveTwitterReplySettings(context.settings);
+    if (replySettings) {
+      tweetOptions.reply_settings = replySettings;
+    }
+
     const tweetRes =
       Object.keys(tweetOptions).length > 0
         ? await userClient.v2.tweet(plainTextDescription, tweetOptions)
@@ -161,6 +170,7 @@ export class TwitterPublisherService extends BasePublisherService {
       post.description, // Will be converted to plain text in uploadMedia
       mediaInfo.isImagePost ? 'image/jpeg' : 'video/mp4',
       post.quoteTweetId, // Quote tweet support
+      context.settings,
     );
 
     return externalId;

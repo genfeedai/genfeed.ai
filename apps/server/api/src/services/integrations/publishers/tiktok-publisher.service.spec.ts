@@ -12,6 +12,7 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { TikTokPublisherService } from '@api/services/integrations/publishers/tiktok-publisher.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
+import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -109,13 +110,17 @@ describe('TikTokPublisherService', () => {
   } as unknown as PostEntity;
 
   // Create publish context helper
-  const createPublishContext = (post: PostEntity): PublishContext => ({
+  const createPublishContext = (
+    post: PostEntity,
+    settings: ChannelTargetSettings = {},
+  ): PublishContext => ({
     brandId: mockBrandId.toString(),
     credential: mockCredential,
     organization: mockOrganization,
     organizationId: mockOrganizationId.toString(),
     post,
     postId: mockPostId.toString(),
+    settings,
   });
 
   beforeEach(async () => {
@@ -283,6 +288,7 @@ describe('TikTokPublisherService', () => {
           mockBrandId.toString(),
           expect.stringContaining('/videos/'),
           mockVideoPost,
+          {},
         );
       });
 
@@ -347,6 +353,7 @@ describe('TikTokPublisherService', () => {
           expect.arrayContaining([expect.stringContaining('/images/')]),
           mockCarouselPost,
           undefined,
+          {},
         );
       });
 
@@ -372,6 +379,7 @@ describe('TikTokPublisherService', () => {
           expect.arrayContaining([expect.stringContaining('/images/')]),
           mockCarouselPost,
           true,
+          {},
         );
       });
 

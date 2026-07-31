@@ -11,6 +11,15 @@ import { CredentialPlatform, TargetValidationState } from '@genfeedai/enums';
 import { z } from 'zod';
 import { publishingProviderReadinessSchema } from './publishing-readiness.contract';
 
+/**
+ * Publish readiness of a scheduler channel.
+ *
+ * - `supported` — listed by default and schedulable.
+ * - `hidden` — a backend integration and publisher exist, but scheduling is
+ *   refused. This is where a platform waits until its live publish behaviour
+ *   has been verified against a real account.
+ * - `planned` — no publish path yet; scheduling is refused.
+ */
 export const channelCapabilityStatusValues = [
   'supported',
   'hidden',
@@ -234,7 +243,6 @@ const channelCapabilities = [
         key: 'youtube.channels',
         kind: 'account',
         label: 'YouTube channel',
-        lookupPath: '/integrations/youtube/channels',
         required: true,
       },
     ],
@@ -294,7 +302,6 @@ const channelCapabilities = [
         key: 'tiktok.accounts',
         kind: 'account',
         label: 'TikTok account',
-        lookupPath: '/integrations/tiktok/accounts',
         required: true,
       },
       {
@@ -354,7 +361,7 @@ const channelCapabilities = [
   {
     caption: { maxLength: 2_200, required: false },
     description:
-      'Feed, Reel, Story, or carousel publishing for professional Instagram accounts.',
+      'Feed, Reel, or carousel publishing for professional Instagram accounts.',
     helpers: [
       {
         key: 'instagram.credential',
@@ -366,7 +373,7 @@ const channelCapabilities = [
         key: 'instagram.accounts',
         kind: 'account',
         label: 'Instagram professional account',
-        lookupPath: '/integrations/instagram/accounts',
+        lookupPath: '/credentials/{credentialId}/instagram/pages',
         required: true,
       },
     ],
@@ -392,7 +399,6 @@ const channelCapabilities = [
         options: [
           { label: 'Feed', value: 'feed' },
           { label: 'Reel', value: 'reel' },
-          { label: 'Story', value: 'story' },
         ],
         required: true,
         type: 'select',
@@ -415,7 +421,6 @@ const channelCapabilities = [
         key: 'twitter.accounts',
         kind: 'account',
         label: 'X account',
-        lookupPath: '/integrations/twitter/accounts',
         required: true,
       },
     ],
@@ -458,7 +463,6 @@ const channelCapabilities = [
         key: 'linkedin.accounts',
         kind: 'account',
         label: 'LinkedIn profile or organization',
-        lookupPath: '/integrations/linkedin/accounts',
         required: true,
       },
     ],
@@ -494,7 +498,7 @@ const channelCapabilities = [
         key: 'facebook.pages',
         kind: 'page',
         label: 'Facebook page',
-        lookupPath: '/integrations/facebook/pages',
+        lookupPath: '/services/facebook/pages',
         required: true,
       },
     ],
@@ -507,7 +511,16 @@ const channelCapabilities = [
     },
     platform: CredentialPlatform.FACEBOOK,
     publishModes: ['draft', 'publish_now', 'scheduled'],
-    settings: [],
+    settings: [
+      {
+        description:
+          'Defaults to the page stored on the credential when left blank.',
+        helper: 'facebook.pages',
+        key: 'pageId',
+        label: 'Facebook page ID',
+        type: 'string',
+      },
+    ],
     status: 'hidden',
   },
   {
@@ -519,7 +532,6 @@ const channelCapabilities = [
         key: 'pinterest.boards',
         kind: 'board',
         label: 'Pinterest board',
-        lookupPath: '/integrations/pinterest/boards',
         required: true,
       },
     ],
@@ -536,7 +548,16 @@ const channelCapabilities = [
     },
     platform: CredentialPlatform.PINTEREST,
     publishModes: ['draft', 'publish_now', 'scheduled'],
-    settings: [],
+    settings: [
+      {
+        description:
+          'Defaults to the board stored on the credential when left blank.',
+        helper: 'pinterest.boards',
+        key: 'boardId',
+        label: 'Pinterest board ID',
+        type: 'string',
+      },
+    ],
     status: 'hidden',
   },
   {
@@ -548,7 +569,6 @@ const channelCapabilities = [
         key: 'reddit.subreddits',
         kind: 'subreddit',
         label: 'Subreddit',
-        lookupPath: '/integrations/reddit/subreddits',
         required: true,
       },
     ],
@@ -561,7 +581,64 @@ const channelCapabilities = [
     },
     platform: CredentialPlatform.REDDIT,
     publishModes: ['draft', 'publish_now', 'scheduled'],
-    settings: [],
+    settings: [
+      {
+        description:
+          'Defaults to the subreddit stored on the credential when left blank.',
+        helper: 'reddit.subreddits',
+        key: 'subreddit',
+        label: 'Subreddit',
+        type: 'string',
+      },
+      {
+        key: 'flairId',
+        label: 'Post flair ID',
+        type: 'string',
+      },
+    ],
+    status: 'hidden',
+  },
+  {
+    caption: { maxLength: 500, required: true },
+    description:
+      'Backend integration for Mastodon instances; hidden until scheduler publishing is productized.',
+    helpers: [
+      {
+        key: 'mastodon.credential',
+        kind: 'credential',
+        label: 'Mastodon credential',
+        required: true,
+      },
+    ],
+    label: 'Mastodon',
+    media: {
+      animated: { supported: true },
+      kinds: ['image', 'video', 'link'],
+      maxItems: 4,
+      minItems: 0,
+    },
+    platform: CredentialPlatform.MASTODON,
+    publishModes: ['draft', 'publish_now', 'scheduled'],
+    settings: [
+      {
+        description:
+          'Defaults to the instance stored on the credential when left blank.',
+        key: 'instanceUrl',
+        label: 'Instance URL',
+        type: 'url',
+      },
+      {
+        defaultValue: 'public',
+        key: 'visibility',
+        label: 'Visibility',
+        options: [
+          { label: 'Public', value: 'public' },
+          { label: 'Unlisted', value: 'unlisted' },
+          { label: 'Followers only', value: 'private' },
+        ],
+        type: 'select',
+      },
+    ],
     status: 'hidden',
   },
   {
@@ -627,15 +704,14 @@ export function listChannelCapabilities(
   options: ChannelCapabilityListOptions = {},
 ): ChannelCapability[] {
   return CHANNEL_CAPABILITIES.filter((capability) => {
-    if (capability.status === 'supported') {
-      return true;
+    switch (capability.status) {
+      case 'supported':
+        return true;
+      case 'hidden':
+        return options.includeHidden === true;
+      default:
+        return options.includePlanned === true;
     }
-
-    if (capability.status === 'hidden') {
-      return options.includeHidden === true;
-    }
-
-    return options.includePlanned === true;
   }).map(cloneChannelCapability);
 }
 
@@ -700,22 +776,11 @@ export function validateChannelTargetSettings(
   const errors: ChannelValidationIssue[] = [];
   const warnings: ChannelValidationIssue[] = [];
 
-  if (capability.status === 'hidden') {
-    errors.push({
-      code: 'channel_target.hidden_channel',
-      field: 'platform',
-      message: `${capability.label} is hidden from scheduler publishing.`,
-      severity: 'error',
-    });
-  }
-
-  if (capability.status === 'planned') {
-    errors.push({
-      code: 'channel_target.planned_channel',
-      field: 'platform',
-      message: `${capability.label} is planned but not yet enabled for scheduler publishing.`,
-      severity: 'error',
-    });
+  const statusIssue = resolveChannelStatusIssue(capability);
+  if (statusIssue?.severity === 'error') {
+    errors.push(statusIssue);
+  } else if (statusIssue) {
+    warnings.push(statusIssue);
   }
 
   errors.push(...validateCaption(parsedInput.data, capability));
@@ -732,6 +797,108 @@ export function validateChannelTargetSettings(
     validationState: resolveValidationState(errors, warnings),
     warnings,
   };
+}
+
+export type ChannelTargetSettingValue = string | number | boolean | string[];
+export type ChannelTargetSettings = Readonly<
+  Record<string, ChannelTargetSettingValue>
+>;
+
+/**
+ * Resolve stored target settings into the values a publisher may act on.
+ *
+ * `Post.targetSettings` is untyped JSON that was validated when the release was
+ * scheduled, but the catalog can change between scheduling and publishing. This
+ * re-checks every value against the current catalog, substitutes the declared
+ * default when a value is absent or no longer valid, and drops keys the catalog
+ * does not declare — so a publisher never acts on a setting the composer never
+ * offered and the API never validated.
+ */
+export function resolveChannelTargetSettings(
+  platform: CredentialPlatform | string,
+  raw: unknown,
+): ChannelTargetSettings {
+  const capability = getChannelCapability(platform);
+  if (!capability) {
+    return {};
+  }
+
+  const stored: Record<string, unknown> =
+    raw && typeof raw === 'object' && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : {};
+
+  const resolved: Record<string, ChannelTargetSettingValue> = {};
+
+  for (const setting of capability.settings) {
+    const value = stored[setting.key];
+    const isUsable =
+      !isMissingValue(value) &&
+      validateSettingType(setting, value, capability.label, setting.key)
+        .length === 0 &&
+      validateSettingOptions(setting, value, capability.label, setting.key)
+        .length === 0;
+
+    if (isUsable) {
+      resolved[setting.key] = value as ChannelTargetSettingValue;
+      continue;
+    }
+
+    if (setting.defaultValue !== undefined) {
+      resolved[setting.key] = setting.defaultValue;
+    }
+  }
+
+  return resolved;
+}
+
+export function readChannelSettingString(
+  settings: ChannelTargetSettings,
+  key: string,
+): string | undefined {
+  const value = settings[key];
+  return typeof value === 'string' && value.trim().length > 0
+    ? value
+    : undefined;
+}
+
+export function readChannelSettingBoolean(
+  settings: ChannelTargetSettings,
+  key: string,
+): boolean | undefined {
+  const value = settings[key];
+  return typeof value === 'boolean' ? value : undefined;
+}
+
+/**
+ * Status-derived issue for a channel, or `undefined` when the status places no
+ * constraint on scheduling.
+ *
+ * Exported so the status-to-issue mapping has one home: `validateChannelTargetSettings`
+ * is the only caller today, but the same mapping is what a capability listing
+ * needs to explain why a channel is not schedulable.
+ */
+export function resolveChannelStatusIssue(
+  capability: ChannelCapability,
+): ChannelValidationIssue | undefined {
+  switch (capability.status) {
+    case 'supported':
+      return undefined;
+    case 'hidden':
+      return {
+        code: 'channel_target.hidden_channel',
+        field: 'platform',
+        message: `${capability.label} is hidden from scheduler publishing.`,
+        severity: 'error',
+      };
+    default:
+      return {
+        code: 'channel_target.planned_channel',
+        field: 'platform',
+        message: `${capability.label} is planned but not yet enabled for scheduler publishing.`,
+        severity: 'error',
+      };
+  }
 }
 
 function resolveValidationState(
@@ -929,6 +1096,22 @@ function validateSettings(
   const settings = input.settings ?? {};
   const errors: ChannelValidationIssue[] = [];
 
+  // A key the catalog does not declare is never carried to the publisher, so
+  // accepting it silently would promise a setting the publish path ignores.
+  const declaredKeys = new Set(
+    capability.settings.map((setting) => setting.key),
+  );
+  for (const key of Object.keys(settings)) {
+    if (!declaredKeys.has(key)) {
+      errors.push({
+        code: 'channel_target.unknown_setting',
+        field: `settings.${key}`,
+        message: `${capability.label} does not accept the setting "${key}".`,
+        severity: 'error',
+      });
+    }
+  }
+
   for (const setting of capability.settings) {
     const value = settings[setting.key];
     const field = `settings.${setting.key}`;
@@ -975,6 +1158,19 @@ function validateSettingType(
       typeof value === 'string');
 
   if (typeMatches) {
+    // `url` is otherwise indistinguishable from `string`, so without this the
+    // declared type is decoration and an unparseable host reaches the publisher.
+    if (setting.type === 'url' && !isParsableHttpUrl(value)) {
+      return [
+        {
+          code: 'channel_target.invalid_setting_url',
+          field,
+          message: `${label} setting ${setting.label} must be an http(s) URL.`,
+          severity: 'error',
+        },
+      ];
+    }
+
     return [];
   }
 
@@ -986,6 +1182,14 @@ function validateSettingType(
       severity: 'error',
     },
   ];
+}
+
+// Matched rather than parsed with `URL`: this contract compiles without DOM or
+// Node lib types so it can run in the browser bundle, workers, and the CLI.
+const HTTP_URL_PATTERN = /^https?:\/\/[^\s/?#]+[^\s]*$/i;
+
+function isParsableHttpUrl(value: unknown): boolean {
+  return typeof value === 'string' && HTTP_URL_PATTERN.test(value.trim());
 }
 
 function validateSettingOptions(
