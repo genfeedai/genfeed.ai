@@ -49,7 +49,9 @@ test.describe('Workflow templates & executions interactions', () => {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/workflows\/templates$/);
+    await expect(authenticatedPage).toHaveURL(
+      /\/orchestration\/workflows\/templates$/,
+    );
     await expect(
       authenticatedPage.getByRole('heading', { name: 'Templates' }).first(),
     ).toBeVisible();
@@ -104,7 +106,9 @@ test.describe('Workflow templates & executions interactions', () => {
       await authenticatedPage.waitForTimeout(400);
     }
 
-    expect(authenticatedPage.url()).toContain('/workflows/templates');
+    expect(authenticatedPage.url()).toContain(
+      '/orchestration/workflows/templates',
+    );
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
   });
@@ -115,7 +119,7 @@ test.describe('Workflow templates & executions interactions', () => {
     const template = testWorkflowTemplates[0];
 
     await authenticatedPage.goto(
-      `/workflows/templates?template=${template.id}`,
+      `/orchestration/workflows/templates?template=${template.id}`,
       { waitUntil: 'domcontentloaded' },
     );
 
@@ -137,7 +141,9 @@ test.describe('Workflow templates & executions interactions', () => {
       },
     );
 
-    await expect(authenticatedPage).toHaveURL(/\/workflows\/executions$/);
+    await expect(authenticatedPage).toHaveURL(
+      /\/orchestration\/workflows\/executions$/,
+    );
     await expect(
       authenticatedPage.getByRole('heading', { name: /execution history/i }),
     ).toBeVisible();
@@ -215,7 +221,7 @@ test.describe('Workflow templates & executions interactions', () => {
       await authenticatedPage.waitForTimeout(500);
     }
 
-    expect(authenticatedPage.url()).toContain('/workflows');
+    expect(authenticatedPage.url()).toContain('/orchestration/workflows');
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
   });
@@ -225,12 +231,15 @@ test.describe('Workflow templates & executions interactions', () => {
   }) => {
     const execution = testWorkflowExecutions[0];
 
-    await authenticatedPage.goto(`/workflows/executions/${execution.id}`, {
-      waitUntil: 'domcontentloaded',
-    });
+    await authenticatedPage.goto(
+      `/orchestration/workflows/executions/${execution.id}`,
+      {
+        waitUntil: 'domcontentloaded',
+      },
+    );
 
     await expect(authenticatedPage).toHaveURL(
-      new RegExp(`/workflows/executions/${execution.id}$`),
+      new RegExp(`/orchestration/workflows/executions/${execution.id}$`),
     );
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
@@ -248,7 +257,7 @@ test.describe('Workflow templates & executions interactions', () => {
     );
 
     await expect(authenticatedPage).toHaveURL(
-      /\/workflows\/executions\/mock-id$/,
+      /\/orchestration\/workflows\/executions\/mock-id$/,
     );
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
@@ -263,7 +272,9 @@ test.describe('Workflow templates & executions interactions', () => {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(automationPage).toHaveURL(/\/workflows\/templates$/);
+    await expect(automationPage).toHaveURL(
+      /\/orchestration\/workflows\/templates$/,
+    );
     await expect(automationPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(automationPage);
   });
@@ -275,7 +286,9 @@ test.describe('Workflow templates & executions interactions', () => {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(automationPage).toHaveURL(/\/workflows\/executions$/);
+    await expect(automationPage).toHaveURL(
+      /\/orchestration\/workflows\/executions$/,
+    );
     await expect(automationPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(automationPage);
   });

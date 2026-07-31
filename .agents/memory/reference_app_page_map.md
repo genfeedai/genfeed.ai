@@ -174,21 +174,23 @@ Organization catch-all module pages served by `/:orgSlug/~/:orgRootApp/[[...segm
 - `/:orgSlug/~/write/:segment`
 - `/:orgSlug/~/compose`
 - `/:orgSlug/~/compose/:segment`
-- `/:orgSlug/~/workflows`
-- `/:orgSlug/~/workflows/library`
-- `/:orgSlug/~/workflows/templates`
-- `/:orgSlug/~/workflows/executions`
-- `/:orgSlug/~/workflows/executions/:id`
-- `/:orgSlug/~/workflows/new`
-- `/:orgSlug/~/workflows/:id`
 - `/:orgSlug/~/editor`
 - `/:orgSlug/~/editor/projects`
 - `/:orgSlug/~/editor/new`
 - `/:orgSlug/~/editor/:id`
 
+Automate at org scope is a real static page, not a catch-all module:
+
+- `/:orgSlug/~/orchestration` — cross-brand Automate overview, the destination for members with
+  no brand selected. Deeper `/:orgSlug/~/orchestration/*` paths redirect back to it, because every
+  other automation surface is brand-scoped.
+
 Hard cut:
 
 - `/:orgSlug/~/workspace/*` is intentionally unsupported and returns 404. Do not add legacy redirects for this route family.
+- `/workflows*` is gone everywhere in `apps/app` — no page, no constant, no compatibility redirect.
+  Automation lives under `/:orgSlug/:brandSlug/orchestration/workflows*`. In `apps/app/src/lib/api/*`
+  `/workflows` still means the **backend API** endpoint; that is unrelated and unchanged.
 - `/:orgSlug/~/settings/organization/*` is intentionally unsupported and returns 404. Organization settings live directly under `/:orgSlug/~/settings/*`.
 
 ## Brand Scope Pages
@@ -306,12 +308,12 @@ Analytics:
 
 Workflows and orchestration:
 
-- `/:orgSlug/:brandSlug/workflows`
-- `/:orgSlug/:brandSlug/workflows/new`
-- `/:orgSlug/:brandSlug/workflows/:id`
-- `/:orgSlug/:brandSlug/workflows/templates`
-- `/:orgSlug/:brandSlug/workflows/executions`
-- `/:orgSlug/:brandSlug/workflows/executions/:id`
+- `/:orgSlug/:brandSlug/orchestration/workflows`
+- `/:orgSlug/:brandSlug/orchestration/workflows/new`
+- `/:orgSlug/:brandSlug/orchestration/workflows/:id`
+- `/:orgSlug/:brandSlug/orchestration/workflows/templates`
+- `/:orgSlug/:brandSlug/orchestration/workflows/executions`
+- `/:orgSlug/:brandSlug/orchestration/workflows/executions/:id`
 - `/:orgSlug/:brandSlug/orchestration`
 - `/:orgSlug/:brandSlug/orchestration/:agentId`
 - `/:orgSlug/:brandSlug/orchestration/overview`

@@ -600,6 +600,13 @@ function createOrgScopedCanonicalPath(
     return `/${orgSlug}/~/posts`;
   }
 
+  // Automate has one org-scoped surface — the cross-brand overview. Deeper
+  // automation paths are brand-scoped, so they collapse onto that overview
+  // rather than falling into the org catch-all and 404ing.
+  if (topLevelSegment === 'orchestration') {
+    return `/${orgSlug}/~/orchestration`;
+  }
+
   if (
     topLevelSegment &&
     ORG_ROOT_APP_PREFIXES.includes(

@@ -99,7 +99,7 @@ test.describe('App surfaces — fetch error states', () => {
     authenticatedPage,
   }) => {
     await mockServerError(authenticatedPage, '**/workflows**');
-    const route = '/workflows';
+    const route = '/orchestration/workflows';
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
@@ -109,7 +109,7 @@ test.describe('App surfaces — fetch error states', () => {
     authenticatedPage,
   }) => {
     await mockNetworkError(authenticatedPage, '**/workflows**');
-    const route = '/workflows';
+    const route = '/orchestration/workflows';
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);

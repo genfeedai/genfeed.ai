@@ -88,7 +88,7 @@ export class WorkflowPage {
         ' [data-testid="nav-editor"]',
     );
     this.navLibrary = page.locator(
-      'a[href="/orchestration/workflows"],' + ' [data-testid="nav-library"]',
+      'a[href$="/orchestration/workflows"],' + ' [data-testid="nav-library"]',
     );
     this.navTemplates = page.locator(
       'a[href*="/orchestration/workflows/templates"],' +
