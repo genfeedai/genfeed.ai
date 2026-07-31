@@ -171,10 +171,12 @@ export class PublicPostsController {
     }
 
     this.logger.log(url, { params: { postId } });
+    // Posts carry no `scope` column — `status` is their visibility, and this
+    // matches what the public list endpoint above returns.
     const post = await this.postsService.findOne({
       _id: postId,
       isDeleted: false,
-      // scope: AssetScope.PUBLIC,
+      status: PostStatus.PUBLIC,
     });
 
     if (!post) {

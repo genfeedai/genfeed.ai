@@ -1,7 +1,18 @@
+import type { MembersService } from '@api/collections/members/services/members.service';
 import { PublishingSetupController } from '@api/collections/publishing-setup/controllers/publishing-setup.controller';
 import type { PublishingSetupService } from '@api/collections/publishing-setup/services/publishing-setup.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
-import { ApiKeyScope } from '@genfeedai/enums';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { ApiKeyScope, MemberRole } from '@genfeedai/enums';
+import {
+  type ExecutionContext,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+
+const ORGANIZATION_ID = '000000000000000000000001';
+const USER_ID = '000000000000000000000002';
 
 describe('PublishingSetupController', () => {
   it('separates the schedule-scoped checklist from the admin-scoped support bundle', () => {
@@ -38,5 +49,89 @@ describe('PublishingSetupController', () => {
 
     await expect(controller.getChecklist()).resolves.toBe(checklist);
     await expect(controller.getDiagnostics()).resolves.toBe(diagnosticsExport);
+  });
+
+  /**
+   * `@RequiredScopes(ApiKeyScope.ADMIN)` only binds API-key tokens. Browser
+   * sessions are judged by RolesGuard, which lets any active member through
+   * when a handler declares no roles — so the admin intent has to be stated
+   * as role metadata too. Exercise the real guard, not the metadata.
+   */
+  describe('RolesGuard behaviour', () => {
+    const mockMembersService = { findOne: vi.fn() };
+    let guard: RolesGuard;
+
+    const createContext = (handler: () => unknown): ExecutionContext =>
+      ({
+        getClass: vi.fn(),
+        getHandler: () => handler,
+        switchToHttp: () => ({
+          getRequest: () => ({
+            body: {},
+            params: {},
+            user: {
+              publicMetadata: {
+                organization: ORGANIZATION_ID,
+                user: USER_ID,
+              },
+            },
+          }),
+        }),
+      }) as unknown as ExecutionContext;
+
+    const asActiveMember = (role: MemberRole) =>
+      mockMembersService.findOne.mockResolvedValue({
+        id: 'member-1',
+        role: { _id: 'role-1', key: role },
+      });
+
+    beforeEach(() => {
+      mockMembersService.findOne.mockReset();
+      guard = new RolesGuard(
+        new Reflector(),
+        mockMembersService as unknown as MembersService,
+      );
+    });
+
+    it('rejects a non-admin organization member on diagnostics', async () => {
+      asActiveMember(MemberRole.CREATOR);
+
+      let thrownError: unknown;
+      try {
+        await guard.canActivate(
+          createContext(PublishingSetupController.prototype.getDiagnostics),
+        );
+      } catch (error: unknown) {
+        thrownError = error;
+      }
+
+      expect(thrownError).toBeInstanceOf(HttpException);
+      expect((thrownError as HttpException).getStatus()).toBe(
+        HttpStatus.FORBIDDEN,
+      );
+    });
+
+    it.each([MemberRole.OWNER, MemberRole.ADMIN])(
+      'allows %s on diagnostics',
+      async (role) => {
+        asActiveMember(role);
+
+        await expect(
+          guard.canActivate(
+            createContext(PublishingSetupController.prototype.getDiagnostics),
+          ),
+        ).resolves.toBe(true);
+      },
+    );
+
+    it('keeps the checklist open to any active member', async () => {
+      asActiveMember(MemberRole.CREATOR);
+
+      await expect(
+        guard.canActivate(
+          createContext(PublishingSetupController.prototype.getChecklist),
+        ),
+      ).resolves.toBe(true);
+    });
   });
 });

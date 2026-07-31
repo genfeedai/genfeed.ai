@@ -15,6 +15,10 @@ describe('AgentWorkflowToolHandler system workflow catalog', () => {
     listCatalogForOrganization: vi.fn(),
   };
 
+  const brandsService = {
+    findOne: vi.fn(),
+  };
+
   const ctx: ToolExecutionContext = {
     brandId: 'brand-1',
     organizationId: 'org-1',
@@ -85,7 +89,7 @@ describe('AgentWorkflowToolHandler system workflow catalog', () => {
       {} as never,
       {} as never,
       {} as never,
-      {} as never,
+      brandsService as never,
       systemWorkflowCatalogService as never,
     );
   });
@@ -195,17 +199,49 @@ describe('AgentWorkflowToolHandler system workflow catalog', () => {
       });
     });
 
-    it('prefers an explicit brandId over the context brand', async () => {
+    it('does not look up brands when no explicit brandId is supplied', async () => {
       systemWorkflowCatalogService.install.mockResolvedValue({ id: 'wf-new' });
 
       await handler.installSystemWorkflow(
+        { canonicalId: 'daily-trends-digest' },
+        ctx,
+      );
+
+      expect(brandsService.findOne).not.toHaveBeenCalled();
+    });
+
+    it('prefers an explicit brandId that belongs to the organization', async () => {
+      brandsService.findOne.mockResolvedValue({ _id: 'brand-2' });
+      systemWorkflowCatalogService.install.mockResolvedValue({ id: 'wf-new' });
+
+      const result = await handler.installSystemWorkflow(
         { brandId: 'brand-2', canonicalId: 'daily-trends-digest' },
         ctx,
       );
 
+      expect(brandsService.findOne).toHaveBeenCalledWith({
+        _id: 'brand-2',
+        isDeleted: false,
+        organization: 'org-1',
+      });
       expect(systemWorkflowCatalogService.install).toHaveBeenCalledWith(
         expect.objectContaining({ brandId: 'brand-2' }),
       );
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects a brandId that belongs to another organization', async () => {
+      brandsService.findOne.mockResolvedValue(null);
+      systemWorkflowCatalogService.install.mockResolvedValue({ id: 'wf-new' });
+
+      const result = await handler.installSystemWorkflow(
+        { brandId: 'foreign-brand', canonicalId: 'daily-trends-digest' },
+        ctx,
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Brand is not available in this organization');
+      expect(systemWorkflowCatalogService.install).not.toHaveBeenCalled();
     });
 
     it('surfaces a non-installable catalog entry as a failed tool result', async () => {

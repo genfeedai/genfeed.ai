@@ -49,6 +49,31 @@ describe('PublicVideosController', () => {
   };
   const mockLoggerService = { error: vi.fn(), log: vi.fn() };
 
+  // Rows come back with the Prisma enum casing ('PUBLIC'), not the TS enum
+  // value ('public') — same trap #2269 documented for public brands.
+  const PRISMA_SCOPE_PUBLIC = 'PUBLIC';
+  const PRISMA_SCOPE_USER = 'USER';
+
+  /**
+   * Stands in for the database honouring the controller's scope filter.
+   * `storedScope` is what Postgres holds for the row; the controller supplies
+   * the TS enum, which BaseService normalizes to the Prisma casing before the
+   * query runs. A controller that drops the scope filter fails here.
+   */
+  const scopeFilteringFindOne =
+    (storedScope: string) =>
+    async (filter: Record<string, unknown>): Promise<unknown> => {
+      const requested = filter.scope;
+
+      if (typeof requested !== 'string') {
+        throw new Error('Public video lookups must constrain scope');
+      }
+
+      return requested.toUpperCase() === storedScope
+        ? { _id: filter._id, scope: storedScope }
+        : null;
+    };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PublicVideosController],
@@ -155,7 +180,9 @@ describe('PublicVideosController', () => {
   // --- getVideo (stream) ---
   it('should stream video file from S3', async () => {
     const videoId = '507f1f77bcf86cd799439011';
-    mockVideosService.findOne.mockResolvedValue({ _id: videoId });
+    mockVideosService.findOne.mockImplementation(
+      scopeFilteringFindOne(PRISMA_SCOPE_PUBLIC),
+    );
     const mockStream = new Readable({
       read() {
         this.push(null);
@@ -177,6 +204,26 @@ describe('PublicVideosController', () => {
     expect(mockRes.set).toHaveBeenCalledWith(
       expect.objectContaining({ 'Content-Type': 'video/mp4' }),
     );
+  });
+
+  it('should not stream a private video', async () => {
+    mockVideosService.findOne.mockImplementation(
+      scopeFilteringFindOne(PRISMA_SCOPE_USER),
+    );
+    const mockRes = { set: vi.fn() } as unknown as ExpressResponse;
+
+    await expect(
+      controller.getVideo('507f1f77bcf86cd799439011', mockRes),
+    ).rejects.toThrow(HttpException);
+    expect(mockFilesClientService.getFileFromS3).not.toHaveBeenCalled();
+  });
+
+  it('should throw NOT_FOUND for an invalid ObjectId on stream', async () => {
+    const mockRes = { set: vi.fn() } as unknown as ExpressResponse;
+    await expect(controller.getVideo('invalid-id', mockRes)).rejects.toThrow(
+      HttpException,
+    );
+    expect(mockVideosService.findOne).not.toHaveBeenCalled();
   });
 
   it('should throw NOT_FOUND when video does not exist for stream', async () => {
