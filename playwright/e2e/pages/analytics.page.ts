@@ -11,7 +11,7 @@ import { expect } from '@playwright/test';
  */
 export class AnalyticsPage {
   readonly page: Page;
-  readonly url = '/analytics/overview';
+  readonly url = '/analytics';
 
   // Main layout
   readonly mainContent: Locator;
@@ -49,7 +49,7 @@ export class AnalyticsPage {
 
     // Navigation
     this.overviewTab = page.locator(
-      'a[href*="analytics/overview"],' +
+      'a[href*="/analytics"],' +
         ' button:has-text("Overview"),' +
         ' [data-testid="analytics-overview-tab"]',
     );

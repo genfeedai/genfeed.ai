@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import type { Newsletter } from '@models/content/newsletter.model';
 import Card from '@ui/card/Card';
@@ -162,7 +163,7 @@ function NewslettersPageContent() {
             description="Create or schedule newsletter workflows from Workflows, then review generated issues here."
             action={{
               label: 'Open Workflows',
-              onClick: () => push(href('/workflows')),
+              onClick: () => push(href(APP_ROUTES.ORCHESTRATION.WORKFLOWS)),
               variant: ButtonVariant.SECONDARY,
             }}
           />

@@ -96,7 +96,8 @@ export const APP_ROUTES = {
     BRANDS: '/analytics/brands',
     HOOKS: '/analytics/hooks',
     INSIGHTS: '/analytics/insights',
-    OVERVIEW: '/analytics/overview',
+    /** Canonical app home is ROOT; OVERVIEW is an alias for call sites. */
+    OVERVIEW: '/analytics',
     PERFORMANCE_LAB: '/analytics/performance-lab',
     POSTS: '/analytics/posts',
     STREAKS: '/analytics/streaks',
@@ -121,7 +122,7 @@ export const APP_ROUTES = {
   },
   LAB: {
     ARTICLES: '/lab/articles',
-    CRON_JOBS: '/workflows',
+    CRON_JOBS: '/lab/cron-jobs',
     LIBRARY_PREVIEW: '/lab/library-preview',
     TWITTER_ENGAGE: '/lab/twitter-engage',
   },
@@ -134,8 +135,9 @@ export const APP_ROUTES = {
     INGREDIENTS: '/library/ingredients',
     MOODBOARD: '/library/moodboard',
     MUSIC: '/library/music',
-    OVERVIEW: '/library/overview',
-    ROOT: '/library/overview',
+    /** Canonical app home is ROOT; OVERVIEW is an alias for call sites. */
+    OVERVIEW: '/library',
+    ROOT: '/library',
     VIDEOS: '/library/videos',
     VOICES: '/library/voices',
   },
@@ -154,21 +156,22 @@ export const APP_ROUTES = {
   ORCHESTRATION: {
     ANALYTICS: '/orchestration/analytics',
     AUTOPILOT: '/orchestration/autopilot',
-    CAMPAIGNS: '/orchestration/campaigns',
-    CAMPAIGNS_NEW: '/orchestration/campaigns/new',
     CONFIGURATION: '/orchestration/configuration',
     HIRE: '/orchestration/hire',
     LIBRARY: '/orchestration/library',
     NEW: '/orchestration/new',
     ORCHESTRATOR: '/orchestration/orchestrator',
-    OUTREACH_CAMPAIGNS: '/orchestration/outreach-campaigns',
-    OUTREACH_CAMPAIGNS_NEW: '/orchestration/outreach-campaigns/new',
-    OVERVIEW: '/orchestration/overview',
+    /** Canonical app home is ROOT; OVERVIEW is an alias for call sites. */
+    OVERVIEW: '/orchestration',
     ROOT: '/orchestration',
     RUNS: '/orchestration/runs',
     SKILLS: '/orchestration/skills',
     STRATEGIES: '/orchestration/strategies',
+    /** Pipeline canvas library (merged former /workflows surface). */
     WORKFLOWS: '/orchestration/workflows',
+    WORKFLOWS_EXECUTIONS: '/orchestration/workflows/executions',
+    WORKFLOWS_NEW: '/orchestration/workflows/new',
+    WORKFLOWS_TEMPLATES: '/orchestration/workflows/templates',
   },
   OVERVIEW: {
     ACTIVITIES: '/overview/activities',
@@ -177,7 +180,13 @@ export const APP_ROUTES = {
   POSTS: {
     ANALYTICS: '/posts/analytics',
     CALENDAR: '/posts/calendar',
+    /** Agent-driven content campaigns (Publish surface). */
+    CAMPAIGNS: '/posts/campaigns',
+    CAMPAIGNS_NEW: '/posts/campaigns/new',
     NEWSLETTERS: '/posts/newsletters',
+    /** Outreach / growth campaigns (Publish surface). */
+    OUTREACH_CAMPAIGNS: '/posts/outreach-campaigns',
+    OUTREACH_CAMPAIGNS_NEW: '/posts/outreach-campaigns/new',
     PUBLISHED: '/posts/published',
     REMIX: '/posts/remix',
     REVIEW: '/posts/review',
@@ -228,23 +237,14 @@ export const APP_ROUTES = {
     STORYBOARD: '/studio/storyboard',
     VIDEO: '/studio/video',
   },
-  WORKFLOWS: {
-    /** @deprecated Use ORCHESTRATION.AUTOPILOT. Retained for legacy deep links. */
-    AUTOPILOT: '/workflows/autopilot',
-    /** @deprecated Use ORCHESTRATION.CONFIGURATION. Retained for legacy deep links. */
-    CONFIGURATION: '/workflows/configuration',
-    EXECUTIONS: '/workflows/executions',
-    NEW: '/workflows/new',
-    ROOT: '/workflows',
-    TEMPLATES: '/workflows/templates',
-  },
   WORKSPACE: {
     ACTIVITY: '/workspace/activity',
     INBOX: '/workspace/inbox',
     INBOX_ALL: '/workspace/inbox/all',
     INBOX_RECENT: '/workspace/inbox/recent',
     INBOX_UNREAD: '/workspace/inbox/unread',
-    OVERVIEW: '/workspace/overview',
+    /** Canonical app home is ROOT; OVERVIEW is an alias for call sites. */
+    OVERVIEW: '/workspace',
     ROOT: '/workspace',
     TASKS: '/workspace/tasks',
   },
@@ -264,7 +264,6 @@ export const APP_ROUTE_PREFIXES = {
   RESEARCH: APP_ROUTES.RESEARCH.ROOT,
   SETTINGS: APP_ROUTES.SETTINGS.ROOT,
   STUDIO: APP_ROUTES.STUDIO.ROOT,
-  WORKFLOWS: APP_ROUTES.WORKFLOWS.ROOT,
   WORKSPACE: APP_ROUTES.WORKSPACE.ROOT,
 } as const;
 

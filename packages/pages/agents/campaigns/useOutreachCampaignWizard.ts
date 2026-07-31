@@ -1,4 +1,5 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   CampaignPlatform,
   CampaignType,
@@ -178,7 +179,7 @@ export function useOutreachCampaignWizard() {
       const created = await service.post(campaignData);
 
       notificationsService.success('Campaign created successfully');
-      router.push(`/orchestration/outreach-campaigns/${created.id}`);
+      router.push(`${APP_ROUTES.POSTS.OUTREACH_CAMPAIGNS}/${created.id}`);
     } catch (error) {
       logger.error('Failed to create campaign', error);
       notificationsService.error('Failed to create campaign');

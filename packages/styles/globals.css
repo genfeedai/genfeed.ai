@@ -513,6 +513,18 @@ a {
   border: 1px solid hsl(var(--border));
 }
 
+/**
+ * Shell chrome icon contract (14px / size-3.5).
+ * Any control using gen-shell-control / gen-shell-segmented-button inherits
+ * consistent Lucide sizing — callers should not fight this with text-lg / size-4.
+ */
+.gen-shell-control svg,
+.gen-shell-segmented-button svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+}
+
 .gen-shell-panel {
   background: hsl(var(--background));
 }

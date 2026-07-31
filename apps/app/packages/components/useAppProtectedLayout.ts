@@ -58,20 +58,19 @@ import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
 import { resolveWorkspaceShellRoute } from '@/lib/workspace-shell/workspace-shell-registry';
 import { useCommandPaletteStore } from '@/store/commandPaletteStore';
 
-const WORKFLOWS_NAMED_ROUTES = new Set([
+const ORCHESTRATION_WORKFLOW_RESERVED = new Set([
   'executions',
-  'autopilot',
-  'configuration',
-  'skills',
+  'new',
+  'templates',
 ]);
 
 export function isProtectedEditorCanvasRoute(pathname: string): boolean {
   return (
     pathname === APP_ROUTES.EDITOR.NEW ||
     /^\/editor\/[^/]+$/.test(pathname) ||
-    pathname === APP_ROUTES.WORKFLOWS.NEW ||
-    (/^\/workflows\/([^/]+)$/.test(pathname) &&
-      !WORKFLOWS_NAMED_ROUTES.has(pathname.split('/')[2] ?? ''))
+    pathname === APP_ROUTES.ORCHESTRATION.WORKFLOWS_NEW ||
+    (/^\/orchestration\/workflows\/([^/]+)$/.test(pathname) &&
+      !ORCHESTRATION_WORKFLOW_RESERVED.has(pathname.split('/')[3] ?? ''))
   );
 }
 
@@ -118,7 +117,7 @@ export function useAppProtectedLayout(
   const isPostsPromptBarRoute = pathname === APP_ROUTES.POSTS.ROOT;
   const isPostsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.POSTS);
   const isMissionControlPromptBarRoute =
-    pathname === APP_ROUTES.WORKFLOWS.EXECUTIONS ||
+    pathname === APP_ROUTES.ORCHESTRATION.WORKFLOWS_EXECUTIONS ||
     pathname === APP_ROUTES.ORCHESTRATION.RUNS;
   const isPromptBarRoute =
     isStudioPromptBarRoute ||
@@ -129,9 +128,9 @@ export function useAppProtectedLayout(
     !isAdminRoute && pathname.startsWith(APP_ROUTE_PREFIXES.STUDIO);
   const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);
   const isMoodboardRoute = pathname === APP_ROUTES.LIBRARY.MOODBOARD;
-  const isWorkflowsRoute =
-    pathname.startsWith(APP_ROUTE_PREFIXES.WORKFLOWS) ||
-    pathname.startsWith(APP_ROUTE_PREFIXES.ORCHESTRATION);
+  const isWorkflowsRoute = pathname.startsWith(
+    APP_ROUTE_PREFIXES.ORCHESTRATION,
+  );
   const isEditorRoute = pathname.startsWith(APP_ROUTE_PREFIXES.EDITOR);
   const isAnalyticsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.ANALYTICS);
   // Org shell only for true org destinations (overview, etc.). Module routes
@@ -172,7 +171,7 @@ export function useAppProtectedLayout(
           : isComposeRoute
             ? 'compose'
             : isWorkflowsRoute
-              ? 'workflows'
+              ? 'automate'
               : isEditorRoute
                 ? 'editor'
                 : isAnalyticsRoute

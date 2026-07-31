@@ -1,16 +1,17 @@
 'use client';
 
-import { PageScope } from '@genfeedai/enums';
+import { ButtonVariant, PageScope } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import type {
   IFilters,
   IFiltersState,
 } from '@genfeedai/interfaces/utils/filters.interface';
 import type { TableAction } from '@props/ui/display/table.props';
+import { EmptyState } from '@ui/card/EmptyState';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalModel } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { Archive, CircleCheck, CircleX, Info, Trash2 } from 'lucide-react';
+import { Archive, CircleCheck, CircleX, Cpu, Info, Trash2 } from 'lucide-react';
 import { useMemo } from 'react';
 
 import ModelsAdminHeader from './components/ModelsAdminHeader';
@@ -162,6 +163,20 @@ export default function ModelsList({
         actions={actions}
         getRowKey={(model: IModel) => model.id}
         emptyLabel="No models found"
+        emptyState={
+          <EmptyState
+            title="No models found"
+            description="No models are available for this filter. Try another tab or refresh the list."
+            icon={Cpu}
+            action={{
+              label: 'Refresh',
+              onClick: () => {
+                void refresh();
+              },
+              variant: ButtonVariant.SECONDARY,
+            }}
+          />
+        }
         items={filteredModels}
       />
 

@@ -6,13 +6,12 @@ describe('workspace surface launcher', () => {
     expect(
       resolveWorkspaceSurfaceLaunch({
         currentHref: '/acme/~/agent/thread-1',
-        destinationHref:
-          '/acme/~/analytics/overview?taskId=task-1&taskSource=workspace',
+        destinationHref: '/acme/~/analytics?taskId=task-1&taskSource=workspace',
       }),
     ).toMatchObject({
       announcement: 'Opening analytics in canvas mode.',
       history: 'push',
-      href: '/acme/~/analytics/overview?taskId=task-1&taskSource=workspace',
+      href: '/acme/~/analytics?taskId=task-1&taskSource=workspace',
       mode: 'canvas',
     });
   });

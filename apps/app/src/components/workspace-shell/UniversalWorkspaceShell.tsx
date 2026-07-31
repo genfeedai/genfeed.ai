@@ -759,7 +759,9 @@ function UniversalWorkspaceShellContent({
   const openWorkflowCanvas = useCallback(
     (workflow?: WorkflowSummary) => {
       const destinationHref = href(
-        workflow ? `/workflows/${workflow._id}` : '/workflows',
+        workflow
+          ? `${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/${workflow._id}`
+          : APP_ROUTES.ORCHESTRATION.WORKFLOWS,
       );
       const launch = resolveWorkspaceSurfaceLaunch({
         currentHref,

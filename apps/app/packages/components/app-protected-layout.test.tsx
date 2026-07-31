@@ -216,7 +216,7 @@ vi.mock('@ui/menus/organization-switcher/OrganizationSwitcher', () => ({
 }));
 
 vi.mock('@app-config/menu-items.config', () => ({
-  APP_LOGO_HREF: '/workspace/overview',
+  APP_LOGO_HREF: '/workspace',
   APP_MENU_ITEMS: [{ href: '/workspace', label: 'Workspace' }],
   APP_SECONDARY_MENU_ITEMS: [
     { href: '/workspace/activity', label: 'Activity' },
@@ -856,12 +856,12 @@ describe('AppProtectedLayout', () => {
   });
 
   it.each([
-    ['/workspace/overview', 'Workspace'],
+    ['/workspace', 'Workspace'],
     ['/studio/image', 'Image'],
     ['/library/images', 'Assets'],
     ['/research/discovery', 'Discovery'],
-    ['/analytics/overview', 'Overview'],
-    ['/workflows/executions', 'Runs'],
+    ['/analytics', 'Overview'],
+    ['/orchestration/workflows/executions', 'Runs'],
     ['/admin', 'Dashboard'],
     ['/agent/new', 'New conversation'],
   ])(
@@ -889,7 +889,7 @@ describe('AppProtectedLayout', () => {
   it.each([
     ['/org-123/~/settings/api-keys', 'Settings', 'API Keys'],
     ['/org-123/brand-123/research/following', 'Research', 'Following'],
-    ['/org-123/brand-123/library/overview', 'Library', 'Overview'],
+    ['/org-123/brand-123/library', 'Library', 'Overview'],
     ['/org-123/brand-123/library/videos', 'Library', 'Assets'],
     ['/org-123/brand-123/library/moodboard', 'Library', 'Moodboard'],
     ['/org-123/brand-123/studio/clips', 'Studio', 'Clips'],
@@ -899,18 +899,22 @@ describe('AppProtectedLayout', () => {
       'Analytics',
       'Trend Detail',
     ],
-    ['/org-123/brand-123/workflows/templates', 'Workflows', 'Templates'],
-    ['/org-123/brand-123/workflows/new', 'Workflows', 'New Workflow'],
+    [
+      '/org-123/brand-123/orchestration/workflows/templates',
+      'Automate',
+      'Templates',
+    ],
+    [
+      '/org-123/brand-123/orchestration/workflows/new',
+      'Automate',
+      'New Workflow',
+    ],
     [
       '/org-123/brand-123/orchestration/content-runs/run-1',
       'Workflows',
       'Content Run',
     ],
-    [
-      '/org-123/brand-123/orchestration/campaigns/campaign-1',
-      'Workflows',
-      'Campaign',
-    ],
+    ['/org-123/brand-123/posts/campaigns/campaign-1', 'Publish', 'Campaign'],
   ] as const)(
     'feeds canonical root and leaf breadcrumb metadata on %s',
     (pathname, rootLabel, leafLabel) => {
@@ -928,6 +932,25 @@ describe('AppProtectedLayout', () => {
       expect(layoutProps.breadcrumb).toEqual({ leafLabel, rootLabel });
     },
   );
+
+  it.each([
+    '/org-123/brand-123/orchestration/workflows/new',
+    '/org-123/brand-123/orchestration/workflows/wf-123',
+    '/org-123/brand-123/editor/new',
+  ])('hides module sidebar on editor canvas route %s', (pathname) => {
+    mockPathname.value = pathname;
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('streak-notifications-bridge'),
+    ).not.toBeInTheDocument();
+  });
 
   it('hides sidebar and topbar chrome for focused onboarding agent routes', () => {
     // Org-scoped on purpose: onboarding is a registered shell route, so this is
@@ -1122,7 +1145,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it('gives workflow routes their own nav column', () => {
-    mockPathname.value = '/org-123/brand-123/workflows';
+    mockPathname.value = '/org-123/brand-123/orchestration/workflows';
 
     render(
       <AppProtectedLayout>
@@ -1132,7 +1155,7 @@ describe('AppProtectedLayout', () => {
 
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        currentApp: 'workflows',
+        currentApp: 'automate',
         sectionLabel: 'Workflows',
         shellChromeVariant: 'default',
       }),
@@ -1165,9 +1188,9 @@ describe('AppProtectedLayout', () => {
 
   it.each([
     ['/org-123/brand-123/studio/image', 'studio', 'Studio'],
-    ['/org-123/brand-123/library/overview', 'library', 'Library'],
-    ['/org-123/brand-123/analytics/overview', 'analytics', 'Analytics'],
-    ['/org-123/brand-123/workflows', 'workflows', 'Workflows'],
+    ['/org-123/brand-123/library', 'library', 'Library'],
+    ['/org-123/brand-123/analytics', 'analytics', 'Analytics'],
+    ['/org-123/brand-123/orchestration/workflows', 'workflows', 'Workflows'],
     ['/org-123/brand-123/posts/remix', 'posts', 'Publish'],
   ])(
     'keeps the %s app-switcher surface on its own module nav',
@@ -1425,7 +1448,8 @@ describe('AppProtectedLayout', () => {
   });
 
   it('keeps workflow editor detail routes inside the workspace shell', () => {
-    mockPathname.value = '/org-123/brand-123/workflows/workflow-123';
+    mockPathname.value =
+      '/org-123/brand-123/orchestration/workflows/workflow-123';
 
     render(
       <AppProtectedLayout>

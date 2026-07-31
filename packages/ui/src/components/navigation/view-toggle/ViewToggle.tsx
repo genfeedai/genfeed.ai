@@ -55,7 +55,7 @@ export default function ViewToggle<TView extends ViewType>({
               <span className="inline-flex">
                 <ToggleGroupItem
                   aria-label={option.ariaLabel || option.label}
-                  className="gen-shell-segmented-button rounded-[5px] p-0"
+                  className="gen-shell-segmented-button size-7 min-w-7 rounded-[5px] p-0"
                   value={option.type}
                 >
                   {option.icon}

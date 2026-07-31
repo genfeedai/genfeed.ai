@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Badge from '@ui/display/badge/Badge';
@@ -147,7 +148,9 @@ export default function CronJobsList() {
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
           >
-            <Link href={href('/workflows')}>Open Workflows</Link>
+            <Link href={href(APP_ROUTES.ORCHESTRATION.WORKFLOWS)}>
+              Open Workflows
+            </Link>
           </Button>
           <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
         </div>

@@ -1,20 +1,14 @@
 'use client';
 
-import { ButtonVariant, ModalEnum, PageScope } from '@genfeedai/enums';
+import { ModalEnum, PageScope } from '@genfeedai/enums';
 import type { ITraining } from '@genfeedai/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import type { ContentProps } from '@props/layout/content.props';
-import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import CardEmpty from '@ui/card/empty/CardEmpty';
+import { EmptyState } from '@ui/card/EmptyState';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import AppTable from '@ui/display/table/Table';
-import Container from '@ui/layout/container/Container';
-import {
-  LazyModalTraining,
-  LazyModalTrainingNew,
-} from '@ui/lazy/modal/LazyModal';
-import { Button } from '@ui/primitives/button';
-import { Cpu, Plus } from 'lucide-react';
+import { LazyModalTraining } from '@ui/lazy/modal/LazyModal';
+import { Cpu } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 
@@ -23,12 +17,15 @@ import { buildTrainingsTableActions } from './components/TrainingsTableActions';
 import { buildTrainingsTableColumns } from './components/TrainingsTableColumns';
 import { useTrainingsList } from './useTrainingsList';
 
+/**
+ * Trainings list body — table, filters, empty state, edit modal.
+ * Page chrome (title, refresh, create CTA) lives on the route shell
+ * (Models settings layout, admin trainings page), same as ModelsList.
+ */
 export default function TrainingsList({
   scope = PageScope.ORGANIZATION,
-  hideContainer = false,
   onRefreshRegister,
 }: ContentProps & {
-  hideContainer?: boolean;
   onRefreshRegister?: (fn: (() => Promise<void>) | null) => void;
 }) {
   const router = useRouter();
@@ -36,7 +33,6 @@ export default function TrainingsList({
   const {
     trainings,
     isLoading,
-    isRefreshing,
     error,
     selectedTraining,
     adminOrg,
@@ -47,9 +43,8 @@ export default function TrainingsList({
     handleToggleActive,
     openTrainingModal,
     openDeleteConfirmation,
-  } = useTrainingsList({ scope, hideContainer, onRefreshRegister });
+  } = useTrainingsList({ scope, onRefreshRegister });
 
-  // Memoize columns to prevent unnecessary re-renders
   const columns = useMemo(
     () =>
       buildTrainingsTableColumns({
@@ -59,7 +54,6 @@ export default function TrainingsList({
     [scope, handleToggleActive],
   );
 
-  // Memoize actions to prevent unnecessary re-renders
   const actions = useMemo(
     () =>
       buildTrainingsTableActions({
@@ -77,21 +71,19 @@ export default function TrainingsList({
     );
   }
 
-  const adminFilterNode =
-    scope === PageScope.SUPERADMIN ? (
-      <div className="mb-4">
-        <AdminOrgBrandFilter
-          organization={adminOrg}
-          brand={adminBrand}
-          onOrganizationChange={handleAdminOrgChange}
-          onBrandChange={handleAdminBrandChange}
-        />
-      </div>
-    ) : null;
-
-  const tableContent = (
+  return (
     <>
-      {adminFilterNode}
+      {scope === PageScope.SUPERADMIN ? (
+        <div className="mb-4">
+          <AdminOrgBrandFilter
+            organization={adminOrg}
+            brand={adminBrand}
+            onOrganizationChange={handleAdminOrgChange}
+            onBrandChange={handleAdminBrandChange}
+          />
+        </div>
+      ) : null}
+
       <AppTable<ITraining>
         items={trainings}
         columns={columns}
@@ -101,10 +93,10 @@ export default function TrainingsList({
         emptyLabel="No trainings found"
         emptyState={
           scope !== PageScope.SUPERADMIN ? (
-            <CardEmpty
-              icon={Cpu}
-              label="No trainings yet"
+            <EmptyState
+              title="No trainings yet"
               description="Train a custom AI model on your brand assets to generate on-brand content."
+              icon={Cpu}
               action={{
                 label: 'Create Training',
                 onClick: () => openModal(ModalEnum.TRAINING_UPLOAD),
@@ -114,50 +106,10 @@ export default function TrainingsList({
         }
       />
 
-      {/* Only render modals when not hiding container (layout handles modals when hideContainer=true) */}
-      {!hideContainer && (
-        <>
-          <LazyModalTraining
-            training={selectedTraining}
-            onSuccess={() => handleRefresh()}
-          />
-
-          <LazyModalTrainingNew onSuccess={() => handleRefresh()} />
-        </>
-      )}
+      <LazyModalTraining
+        training={selectedTraining}
+        onSuccess={() => handleRefresh()}
+      />
     </>
-  );
-
-  if (hideContainer) {
-    return tableContent;
-  }
-
-  return (
-    <Container
-      label="Trainings"
-      description="Create and manage model trainings."
-      icon={Cpu}
-      right={
-        <>
-          <ButtonRefresh
-            onClick={() => handleRefresh()}
-            isRefreshing={isRefreshing}
-          />
-
-          {scope !== PageScope.SUPERADMIN && (
-            <div className="flex items-center gap-4">
-              <Button
-                label="Training"
-                icon={<Plus />}
-                variant={ButtonVariant.DEFAULT}
-                onClick={() => openModal(ModalEnum.TRAINING_UPLOAD)}
-              />
-            </div>
-          )}
-        </>
-      }
-    >
-      {tableContent}
-    </Container>
   );
 }

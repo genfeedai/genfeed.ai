@@ -4,7 +4,7 @@ import { useModelsContext } from '@contexts/models/models-context/models-context
 import { useTrainingsContext } from '@contexts/models/trainings-context/trainings-context';
 import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
-import type { NavigationTab } from '@genfeedai/interfaces/ui/navigation.interface';
+import type { RouteTabItem } from '@genfeedai/props/ui/navigation/tabs.props';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
@@ -28,7 +28,7 @@ export default function ModelsLayoutContent({
   const { refreshModels, isRefreshing: isRefreshingModels } =
     useModelsContext();
 
-  const tabs: NavigationTab[] = useMemo(
+  const tabs: RouteTabItem[] = useMemo(
     () => [
       {
         href: orgHref('/settings/models/all'),
@@ -94,28 +94,34 @@ export default function ModelsLayoutContent({
       label="Models"
       description="Manage available AI models."
       icon={Cpu}
-      tabs={tabs.map((tab) => ({
-        href: tab.href,
-        label: tab.label,
-      }))}
+      headerTabs={{
+        activeTab,
+        fullWidth: false,
+        items: tabs.map((tab) => ({
+          href: tab.href,
+          id: tab.id,
+          label: tab.label,
+        })),
+        variant: 'default',
+      }}
       right={
-        <div className="flex items-center gap-2">
+        <>
           <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
 
-          {isTrainingsTab && (
+          {isTrainingsTab ? (
             <Button
               label="Training"
               icon={<Plus />}
               variant={ButtonVariant.DEFAULT}
               onClick={() => openModal(ModalEnum.TRAINING_UPLOAD)}
             />
-          )}
-        </div>
+          ) : null}
+        </>
       }
     >
       {children}
 
-      {isTrainingsTab && <LazyModalTrainingNew />}
+      {isTrainingsTab ? <LazyModalTrainingNew /> : null}
     </Container>
   );
 }

@@ -16,8 +16,6 @@ import { useCallback, useRef, useState } from 'react';
 interface CloudWorkflowToolbarProps {
   isSaving: boolean;
   leftContent?: ReactNode;
-  logoHref?: string;
-  logoSrc?: string;
   middleContent?: ReactNode;
   onRename?: (newName: string) => Promise<void> | void;
   rightContent?: ReactNode;
@@ -26,8 +24,6 @@ interface CloudWorkflowToolbarProps {
 export function CloudWorkflowToolbar({
   isSaving,
   leftContent,
-  logoHref = '/',
-  logoSrc = 'https://cdn.genfeed.ai/assets/branding/logo-white.png',
   middleContent,
   onRename,
   rightContent,
@@ -124,8 +120,6 @@ export function CloudWorkflowToolbar({
             </div>
           </div>
         }
-        logoHref={logoHref}
-        logoSrc={logoSrc}
         middleContent={middleContent}
         onAutoLayout={autoLayout}
         rightContent={rightContent}

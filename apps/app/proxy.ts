@@ -59,7 +59,6 @@ const BRAND_SCOPED_PREFIXES = [
   APP_ROUTE_PREFIXES.POSTS.slice(1),
   APP_ROUTE_PREFIXES.RESEARCH.slice(1),
   APP_ROUTE_PREFIXES.STUDIO.slice(1),
-  APP_ROUTE_PREFIXES.WORKFLOWS.slice(1),
   APP_ROUTE_PREFIXES.WORKSPACE.slice(1),
 ] as const;
 
@@ -800,7 +799,7 @@ async function redirectSignedInUserToDefaultRoute(
   }
 
   const resolved = await resolveCanonicalProtectedPath(
-    '/workspace/overview',
+    '/workspace',
     token,
     cacheKey,
     req,
@@ -883,7 +882,7 @@ export async function proxy(req: NextRequest) {
         }
 
         return await resolveCanonicalProtectedPath(
-          '/workspace/overview',
+          '/workspace',
           desktopToken,
           undefined,
           req,
@@ -1035,7 +1034,7 @@ export async function proxy(req: NextRequest) {
 
     if (pathname === '/') {
       const resolved = await resolveCanonicalProtectedPath(
-        '/workspace/overview',
+        '/workspace',
         token,
         sessionCookie,
         req,

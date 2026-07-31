@@ -26,11 +26,11 @@ export interface AppLayoutProps {
   isAgentCollapsed?: boolean;
   /** Toggle agent panel visibility */
   onAgentToggle?: () => void;
-  /** Current app context for the AppSwitcher in the topbar */
+  /** Product app context for shell chrome / breadcrumb fallbacks */
   currentApp?: AppContext;
-  /** Organization slug for the AppSwitcher in the topbar */
+  /** Organization slug for tenant-scoped shell chrome */
   orgSlug?: string;
-  /** Brand slug for the AppSwitcher in the topbar */
+  /** Brand slug for tenant-scoped shell chrome */
   brandSlug?: string;
   /** Enables geometry and landmarks scoped to the conversation workspace. */
   isWorkspaceShell?: boolean;

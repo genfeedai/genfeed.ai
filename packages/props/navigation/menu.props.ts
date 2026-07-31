@@ -55,7 +55,7 @@ export interface SidebarSizingProps {
 
 export interface MenuSharedProps extends BaseMenuProps, SidebarSizingProps {
   config: MenuShellConfig;
-  /** Current app context for the AppSwitcher in the sidebar */
+  /** Product app context for menu shell chrome */
   currentApp?: AppContext;
   /** Renders content above the sidebar header and navigation */
   renderTopSlot?: () => ReactNode;

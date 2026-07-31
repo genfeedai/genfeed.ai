@@ -243,7 +243,7 @@ export function OverviewOperationsSection({
 }
 
 export function OverviewPerformanceChartSection({
-  analyticsHref = '/analytics/overview',
+  analyticsHref = '/analytics',
   data,
   isLoading = false,
   platforms,

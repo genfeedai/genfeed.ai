@@ -216,7 +216,7 @@ async function openTaskComposerFromSidebar() {
 describe('WorkspacePageContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    window.history.replaceState({}, '', '/workspace/overview');
+    window.history.replaceState({}, '', '/workspace');
     getTokenMock.mockResolvedValue('authProvider-token');
     vi.mocked(resolveAuthToken).mockResolvedValue('api-token');
     listMock.mockResolvedValue([]);
@@ -689,7 +689,7 @@ describe('WorkspacePageContent', () => {
     ).toBeInTheDocument();
     expect(
       within(inspector).getByRole('link', { name: 'Open library' }),
-    ).toHaveAttribute('href', '/library/overview');
+    ).toHaveAttribute('href', '/library');
   });
 
   it('surfaces the linked issue deep-link inside the task inspector', async () => {

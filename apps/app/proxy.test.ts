@@ -186,7 +186,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+      'http://localhost:3000/acme/moonrise-studio/workspace',
     );
   });
 
@@ -224,7 +224,7 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      makeSignedOutRequest('/acme/moonrise-studio/workspace/overview'),
+      makeSignedOutRequest('/acme/moonrise-studio/workspace'),
       {} as never,
     );
 
@@ -233,7 +233,7 @@ describe('proxy', () => {
     expect(location.origin).toBe('http://localhost:3000');
     expect(location.pathname).toBe('/login');
     expect(location.searchParams.get('callbackUrl')).toBe(
-      '/acme/moonrise-studio/workspace/overview',
+      '/acme/moonrise-studio/workspace',
     );
   });
 
@@ -288,7 +288,7 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      makeSignedInRequest('/workspace/overview'),
+      makeSignedInRequest('/workspace'),
       {} as never,
     );
 
@@ -308,7 +308,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+      'http://localhost:3000/acme/moonrise-studio/workspace',
     );
   });
 
@@ -393,7 +393,7 @@ describe('proxy', () => {
 
       const { default: proxy } = await import('./proxy');
       const response = await proxy(
-        makeSignedInRequest('/acme/default/workspace/overview'),
+        makeSignedInRequest('/acme/default/workspace'),
         {} as never,
       );
 
@@ -421,7 +421,7 @@ describe('proxy', () => {
 
       const { default: proxy } = await import('./proxy');
       const response = await proxy(
-        makeSignedInRequest('/acme/default/workspace/overview'),
+        makeSignedInRequest('/acme/default/workspace'),
         {} as never,
       );
 
@@ -437,7 +437,7 @@ describe('proxy', () => {
 
       const { default: proxy } = await import('./proxy');
       const response = await proxy(
-        makeSignedInRequest('/acme/default/workspace/overview'),
+        makeSignedInRequest('/acme/default/workspace'),
         {} as never,
       );
 
@@ -471,7 +471,7 @@ describe('proxy', () => {
 
       const { default: proxy } = await import('./proxy');
       const response = await proxy(
-        makeSignedInRequest('/acme/default/workspace/overview'),
+        makeSignedInRequest('/acme/default/workspace'),
         {} as never,
       );
 
@@ -520,7 +520,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/default/workspace/overview',
+      'http://localhost:3000/acme/default/workspace',
     );
   });
 
@@ -560,7 +560,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+      'http://localhost:3000/acme/moonrise-studio/workspace',
     );
   });
 
@@ -615,7 +615,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+      'http://localhost:3000/acme/moonrise-studio/workspace',
     );
   });
 
@@ -691,7 +691,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+      'http://localhost:3000/acme/moonrise-studio/workspace',
     );
   });
 
@@ -757,12 +757,12 @@ describe('proxy', () => {
     vi.resetModules();
     const { default: proxy } = await import('./proxy');
 
-    for (const pathname of ['/settings', '/workspace/overview']) {
+    for (const pathname of ['/settings', '/workspace']) {
       const response = await proxy(makeSignedOutRequest(pathname), {} as never);
 
       expect(response.status).toBe(307);
       expect(response.headers.get('location')).toBe(
-        'http://localhost:3000/default/default/workspace/overview',
+        'http://localhost:3000/default/default/workspace',
       );
     }
   });
@@ -771,13 +771,13 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      makeSignedInRequest('/workspace/overview'),
+      makeSignedInRequest('/workspace'),
       {} as never,
     );
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+      'http://localhost:3000/acme/moonrise-studio/workspace',
     );
   });
 
@@ -862,7 +862,7 @@ describe('proxy', () => {
     );
 
     const workspaceResponse = await proxy(
-      makeSignedInRequest('/workspace/overview'),
+      makeSignedInRequest('/workspace'),
       {} as never,
     );
 
@@ -941,7 +941,7 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      makeSignedInRequest('/workspace/overview'),
+      makeSignedInRequest('/workspace'),
       {} as never,
     );
 
@@ -1113,7 +1113,7 @@ describe('proxy', () => {
 
       expect(response.status).toBe(307);
       expect(response.headers.get('location')).toBe(
-        'http://localhost:3000/default/default/workspace/overview',
+        'http://localhost:3000/default/default/workspace',
       );
     } finally {
       if (previousDesktopShell === undefined) {
@@ -1196,13 +1196,13 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      makeSignedInRequest('/workspace/overview'),
+      makeSignedInRequest('/workspace'),
       {} as never,
     );
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+      'http://localhost:3000/acme/moonrise-studio/workspace',
     );
     expect(
       fetchMock.mock.calls.some(([input]) =>
@@ -1249,7 +1249,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/default/default/workspace/overview',
+      'http://localhost:3000/default/default/workspace',
     );
   });
 
@@ -1269,15 +1269,15 @@ describe('proxy', () => {
             return name === 'x-genfeed-desktop-token' ? 'token_1' : null;
           }),
         },
-        nextUrl: { pathname: '/workspace/overview', search: '' },
-        url: 'http://localhost:3000/workspace/overview',
+        nextUrl: { pathname: '/workspace', search: '' },
+        url: 'http://localhost:3000/workspace',
       } as never,
       {} as never,
     );
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+      'http://localhost:3000/acme/moonrise-studio/workspace',
     );
 
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
@@ -1308,7 +1308,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+      'http://localhost:3000/acme/moonrise-studio/workspace',
     );
 
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
@@ -1358,13 +1358,13 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const firstResponse = await proxy(
-      makeSignedInRequest('/workspace/overview'),
+      makeSignedInRequest('/workspace'),
       {} as never,
     );
 
     expect(firstResponse.status).toBe(307);
     expect(firstResponse.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+      'http://localhost:3000/acme/moonrise-studio/workspace',
     );
 
     const setCookieHeader = firstResponse.headers.get('set-cookie') ?? '';
@@ -1409,7 +1409,7 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      makeSignedInRequest('/workspace/overview', {
+      makeSignedInRequest('/workspace', {
         extraCookies: { gf_ws: 'tampered.cookie' },
       }),
       {} as never,

@@ -36,7 +36,7 @@ export const CONVERSATION_COMPOSER_ACTIONS = [
     label: 'Workflow',
     name: 'workflow',
     requiredScope: 'brand',
-    route: APP_ROUTES.WORKFLOWS.ROOT,
+    route: APP_ROUTES.ORCHESTRATION.WORKFLOWS,
   },
   {
     description: 'Open scheduling controls',

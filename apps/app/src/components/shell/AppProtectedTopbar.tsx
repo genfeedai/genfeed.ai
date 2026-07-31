@@ -51,7 +51,9 @@ const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   posts: 'Posts',
   research: 'Research',
   studio: 'Studio',
-  workflows: 'Workflows',
+  automate: 'Automate',
+  orchestration: 'Automate',
+  workflows: 'Automate',
   workspace: 'Workspace',
 };
 
@@ -226,7 +228,8 @@ function AppProtectedTopbarContent({
   );
   const ToggleIcon = isMenuOpen ? X : Menu;
   const isAdminChrome = chrome === 'admin';
-  const effectiveCurrentApp = isAdminChrome
+  // Breadcrumb fallback label only (switcher active state is path-based).
+  const breadcrumbFallbackApp = isAdminChrome
     ? 'admin'
     : (currentApp ?? 'workspace');
   const backToTaskHref = taskId
@@ -290,7 +293,7 @@ function AppProtectedTopbarContent({
         <div className="hidden min-w-0 justify-center md:flex">
           <TopbarBreadcrumbs
             fallbackRootLabel={
-              TOPBAR_BREADCRUMB_ROOT_LABELS[effectiveCurrentApp]
+              TOPBAR_BREADCRUMB_ROOT_LABELS[breadcrumbFallbackApp]
             }
             rootLabel={isSettingsRoute ? 'Settings' : undefined}
           />
@@ -325,7 +328,6 @@ function AppProtectedTopbarContent({
           {effectiveOrgSlug ? (
             <AppSwitcher
               variant="icon"
-              currentApp={effectiveCurrentApp}
               currentPath={pathname}
               orgSlug={effectiveOrgSlug}
               brandAwareSlug={brandAwareAppSlug}

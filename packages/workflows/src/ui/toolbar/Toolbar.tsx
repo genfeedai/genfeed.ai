@@ -66,28 +66,34 @@ function isValidWorkflow(data: unknown): data is WorkflowFile {
 
 interface ToolbarLogoProps {
   branding?: ReactNode;
-  logoHref: string;
-  logoSrc: string;
+  logoHref?: string;
+  logoSrc?: string;
 }
 
 function ToolbarLogo({ branding, logoHref, logoSrc }: ToolbarLogoProps) {
+  if (branding !== undefined) {
+    return branding;
+  }
+
+  if (!logoSrc) {
+    return null;
+  }
+
   return (
-    branding ?? (
-      <a
-        href={logoHref}
-        title="Go to Dashboard"
-        className="flex size-6 items-center justify-center transition hover:opacity-90"
-      >
-        <NextImage
-          src={logoSrc}
-          alt="Genfeed"
-          width={24}
-          height={24}
-          className="size-6 object-contain"
-          unoptimized
-        />
-      </a>
-    )
+    <a
+      href={logoHref ?? '/'}
+      title="Go to Dashboard"
+      className="flex size-6 items-center justify-center transition hover:opacity-90"
+    >
+      <NextImage
+        src={logoSrc}
+        alt="Genfeed"
+        width={24}
+        height={24}
+        className="size-6 object-contain"
+        unoptimized
+      />
+    </a>
   );
 }
 
@@ -211,8 +217,8 @@ export function Toolbar({
   leftContent,
   middleContent,
   saveIndicator,
-  logoHref = '/',
-  logoSrc = 'https://cdn.genfeed.ai/assets/branding/logo-white.png',
+  logoHref,
+  logoSrc,
   showSettings = true,
   showShortcutHelp = false,
   rightContent,

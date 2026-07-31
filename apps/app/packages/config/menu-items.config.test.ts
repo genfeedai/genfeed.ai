@@ -11,7 +11,7 @@ describe('APP_MENU_ITEMS', () => {
     const primaryItems = APP_MENU_ITEMS.filter((item) => item.isPrimary);
 
     expect(primaryItems).toHaveLength(0);
-    expect(APP_LOGO_HREF).toBe('/workspace/overview');
+    expect(APP_LOGO_HREF).toBe('/workspace');
   });
 
   it('renders the workspace entrypoints as standalone top-level rows', () => {
@@ -99,7 +99,7 @@ describe('APP_MENU_ITEMS', () => {
     expect(hrefs).not.toContain('/orchestration/activities');
     expect(hrefs).not.toContain('/orchestration/reply-bots');
     expect(hrefs).not.toContain('/orchestration/bots');
-    expect(hrefs).not.toContain('/orchestration/campaigns');
+    expect(hrefs).not.toContain('/posts/campaigns');
     expect(hrefs).not.toContain('/orchestration/runs');
     expect(hrefs).not.toContain('/orchestration/workflows');
     expect(hrefs).not.toContain('/orchestration/autopilot');

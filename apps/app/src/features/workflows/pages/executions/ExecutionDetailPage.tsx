@@ -173,7 +173,7 @@ export default function ExecutionDetailPage({
         </h2>
         <p className="mb-6 text-muted-foreground">{error}</p>
         <Link
-          href={href(APP_ROUTES.WORKFLOWS.EXECUTIONS)}
+          href={href(APP_ROUTES.ORCHESTRATION.WORKFLOWS_EXECUTIONS)}
           className=" bg-primary px-6 py-3 text-primary-foreground hover:bg-primary/90"
         >
           Back to History
@@ -190,7 +190,7 @@ export default function ExecutionDetailPage({
           The execution run you're looking for doesn't exist.
         </p>
         <Link
-          href={href(APP_ROUTES.WORKFLOWS.EXECUTIONS)}
+          href={href(APP_ROUTES.ORCHESTRATION.WORKFLOWS_EXECUTIONS)}
           className=" bg-primary px-6 py-3 text-primary-foreground hover:bg-primary/90"
         >
           Back to History
@@ -218,9 +218,9 @@ export default function ExecutionDetailPage({
         runId={execution.runId}
         workflowLabel={execution.workflowLabel}
         status={execution.status}
-        executionsHref={href(APP_ROUTES.WORKFLOWS.EXECUTIONS)}
+        executionsHref={href(APP_ROUTES.ORCHESTRATION.WORKFLOWS_EXECUTIONS)}
         workflowHref={href(
-          `/workflows/${execution.workflowId}?execution=${execution.runId}`,
+          `${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/${execution.workflowId}?execution=${execution.runId}`,
         )}
       />
 

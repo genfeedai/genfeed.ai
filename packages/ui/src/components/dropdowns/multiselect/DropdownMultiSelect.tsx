@@ -12,6 +12,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
+import {
+  SHELL_CONTROL_HEIGHT_CLASS,
+  SHELL_ICON_CLASS,
+  SHELL_ICON_SVG_CLASS,
+} from '@ui-constants/shell-chrome.constant';
 import { ChevronDown } from 'lucide-react';
 import {
   type ChangeEvent,
@@ -208,6 +213,8 @@ export default function MultiSelectDropdown({
               size: ButtonSize.SM,
               variant,
             }),
+            SHELL_CONTROL_HEIGHT_CLASS,
+            'gap-1.5 px-2.5',
             values.length > 0 ? 'text-foreground' : 'text-foreground/70',
             isDisabled && 'opacity-50 cursor-not-allowed',
             shouldFlash &&
@@ -216,9 +223,22 @@ export default function MultiSelectDropdown({
           )}
           aria-label={displayLabel}
         >
-          {icon && <span className="flex items-center">{icon}</span>}
-          <span className="text-xs font-medium">{displayLabel}</span>
-          <ChevronDown className="size-3 text-foreground/50 transition-transform" />
+          {icon ? (
+            <span
+              className={cn('flex shrink-0 items-center', SHELL_ICON_SVG_CLASS)}
+            >
+              {icon}
+            </span>
+          ) : null}
+          <span className="text-xs font-medium leading-none">
+            {displayLabel}
+          </span>
+          <ChevronDown
+            className={cn(
+              SHELL_ICON_CLASS,
+              'text-foreground/50 transition-transform',
+            )}
+          />
         </PrimitiveButton>
       </DropdownMenuTrigger>
 

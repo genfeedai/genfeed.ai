@@ -36,12 +36,7 @@ describe('MenuItem', () => {
   it('uses the active row fill as the expanded sidebar hover fill', () => {
     render(
       <>
-        <MenuItem
-          href="/workspace/overview"
-          isActive
-          label="Dashboard"
-          variant="icon"
-        />
+        <MenuItem href="/workspace" isActive label="Dashboard" variant="icon" />
         <MenuItem href="/workspace/inbox/unread" label="Inbox" variant="icon" />
       </>,
     );

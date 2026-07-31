@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -212,7 +213,11 @@ function WorkflowTemplatesPageContent() {
         if (isSystemCatalogId) {
           const workflow = await service.installSystemCatalog(templateId);
           if (!isCancelled) {
-            replace(hrefRef.current(`/workflows/${workflow._id}`));
+            replace(
+              hrefRef.current(
+                `${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/${workflow._id}`,
+              ),
+            );
           }
           return;
         }
@@ -230,7 +235,11 @@ function WorkflowTemplatesPageContent() {
         });
 
         if (!isCancelled) {
-          replace(hrefRef.current(`/workflows/${workflow._id}`));
+          replace(
+            hrefRef.current(
+              `${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/${workflow._id}`,
+            ),
+          );
         }
       } catch (err) {
         logger.error('Failed to bootstrap workflow template', { error: err });
@@ -257,7 +266,11 @@ function WorkflowTemplatesPageContent() {
   const handleInstallSystem = useCallback(
     async (entry: SystemWorkflowCatalogEntry) => {
       if (entry.installed && entry.installedWorkflowId) {
-        replace(href(`/workflows/${entry.installedWorkflowId}`));
+        replace(
+          href(
+            `${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/${entry.installedWorkflowId}`,
+          ),
+        );
         return;
       }
 
@@ -271,7 +284,7 @@ function WorkflowTemplatesPageContent() {
           canonicalId: entry.canonicalId,
           installedWorkflowId: workflow._id,
         });
-        replace(href(`/workflows/${workflow._id}`));
+        replace(href(`${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/${workflow._id}`));
       } catch (err) {
         logger.error('Failed to install system workflow', {
           canonicalId: entry.canonicalId,
@@ -513,7 +526,7 @@ function WorkflowTemplatesPageContent() {
                         </span>
                         <Link
                           href={href(
-                            `/workflows/templates?template=${template.id}`,
+                            `${APP_ROUTES.ORCHESTRATION.WORKFLOWS_TEMPLATES}?template=${template.id}`,
                           )}
                           className="bg-primary px-4 py-2 text-sm text-primary-foreground opacity-0 transition-opacity hover:bg-primary/90 group-hover:opacity-100"
                         >

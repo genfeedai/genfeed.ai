@@ -316,7 +316,7 @@ export default function MessagesPage() {
 
   const automationHref = useMemo(() => {
     if (!selectedConversation) {
-      return href(APP_ROUTES.WORKFLOWS.NEW);
+      return href(APP_ROUTES.ORCHESTRATION.WORKFLOWS_NEW);
     }
 
     const params = new URLSearchParams({
@@ -333,7 +333,9 @@ export default function MessagesPage() {
       params.set('credentialId', selectedConversation.credentialId);
     }
 
-    return href(`${APP_ROUTES.WORKFLOWS.NEW}?${params.toString()}`);
+    return href(
+      `${APP_ROUTES.ORCHESTRATION.WORKFLOWS_NEW}?${params.toString()}`,
+    );
   }, [href, selectedConversation]);
 
   useMessagesSurfaceAdapter({

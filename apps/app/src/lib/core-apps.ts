@@ -5,7 +5,7 @@ import {
   type AppSwitcherFeatureFlagKey,
 } from '@genfeedai/constants';
 
-export type CoreAppId = 'agent' | 'workflows' | 'studio' | 'editor';
+export type CoreAppId = 'agent' | 'automate' | 'studio' | 'editor';
 export type CoreAppFeatureFlagKey = 'studio' | AppSwitcherFeatureFlagKey;
 
 export interface CoreAppDefinition {
@@ -31,11 +31,11 @@ export const CORE_APPS: CoreAppDefinition[] = [
   },
   {
     description:
-      'Build reusable node-based automation pipelines and manage saved workflows.',
-    href: APP_ROUTES.WORKFLOWS.ROOT,
-    id: 'workflows',
-    label: 'Workflows',
-    shortLabel: 'Flows',
+      'Workflows, autopilot, skills, and content-team orchestration.',
+    href: APP_ROUTES.ORCHESTRATION.ROOT,
+    id: 'automate',
+    label: 'Automate',
+    shortLabel: 'Automate',
   },
   {
     description:

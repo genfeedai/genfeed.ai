@@ -87,7 +87,7 @@ describe('workspace shell trusted registry', () => {
     ['/acme/~/settings/api-keys', 'Settings', 'API Keys'],
     ['/acme/moonrise/research/following', 'Research', 'Following'],
     ['/acme/moonrise/research/instagram', 'Research', 'Instagram'],
-    ['/acme/moonrise/library/overview', 'Library', 'Overview'],
+    ['/acme/moonrise/library', 'Library', 'Overview'],
     ['/acme/moonrise/library/videos', 'Library', 'Assets'],
     ['/acme/moonrise/library/voices', 'Library', 'Assets'],
     ['/acme/moonrise/library/moodboard', 'Library', 'Moodboard'],
@@ -104,21 +104,25 @@ describe('workspace shell trusted registry', () => {
       'Analytics',
       'Instagram Trends',
     ],
-    ['/acme/moonrise/workflows/templates', 'Workflows', 'Templates'],
-    ['/acme/moonrise/workflows/new', 'Workflows', 'New Workflow'],
-    ['/acme/moonrise/workflows/workflow-1', 'Workflows', 'Workflow'],
-    ['/acme/moonrise/orchestration/overview', 'Workflows', 'Overview'],
+    [
+      '/acme/moonrise/orchestration/workflows/templates',
+      'Automate',
+      'Templates',
+    ],
+    ['/acme/moonrise/orchestration/workflows/new', 'Automate', 'New Workflow'],
+    [
+      '/acme/moonrise/orchestration/workflows/workflow-1',
+      'Automate',
+      'Workflow',
+    ],
+    ['/acme/moonrise/orchestration', 'Automate', 'Overview'],
     [
       '/acme/moonrise/orchestration/content-runs/run-1',
-      'Workflows',
+      'Automate',
       'Content Run',
     ],
-    [
-      '/acme/moonrise/orchestration/campaigns/campaign-1',
-      'Workflows',
-      'Campaign',
-    ],
-    ['/acme/moonrise/orchestration/library/images', 'Workflows', 'Images'],
+    ['/acme/moonrise/posts/campaigns/campaign-1', 'Publish', 'Campaign'],
+    ['/acme/moonrise/orchestration/library/images', 'Automate', 'Images'],
   ] as const)(
     'resolves canonical breadcrumb metadata for %s',
     (pathname, rootLabel, leafLabel) => {
@@ -161,10 +165,10 @@ describe('workspace shell trusted registry', () => {
 
   it('keeps legacy workflow aliases aligned with their canonical orchestration owners', () => {
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/workflows/autopilot'),
+      resolveWorkspaceShellRoute('/acme/moonrise/orchestration/autopilot'),
     ).toMatchObject({ mode: 'canvas', surfaceKey: 'orchestration' });
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/workflows/configuration'),
+      resolveWorkspaceShellRoute('/acme/moonrise/orchestration/configuration'),
     ).toMatchObject({
       mode: 'canvas',
       surfaceKey: 'orchestration-management',
@@ -212,7 +216,7 @@ describe('workspace shell trusted registry', () => {
       '/acme/moonrise/library/images',
       '/acme/moonrise/posts/calendar',
       '/acme/moonrise/posts/review',
-      '/acme/moonrise/workflows/executions/run-1',
+      '/acme/moonrise/orchestration/workflows/executions/run-1',
       '/acme/moonrise/settings/publishing',
       '/acme/~/settings/api-keys',
       '/acme/~/settings/billing',
@@ -234,15 +238,15 @@ describe('workspace shell trusted registry', () => {
       resolveWorkspaceShellRoute('/acme/moonrise/studio/image'),
     ).toMatchObject({ productClass: 'contextual-action' });
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/workflows/autopilot'),
+      resolveWorkspaceShellRoute('/acme/moonrise/orchestration/autopilot'),
     ).toMatchObject({ productClass: 'compatibility-only' });
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/workflows/configuration'),
+      resolveWorkspaceShellRoute('/acme/moonrise/orchestration/configuration'),
     ).toMatchObject({ productClass: 'compatibility-only' });
   });
 
   it('keeps the two accepted hard-cut families outside the registry', () => {
-    expect(resolveWorkspaceShellRoute('/acme/~/workspace/overview')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/acme/~/workspace')).toBeNull();
     expect(
       resolveWorkspaceShellRoute('/acme/~/settings/organization/billing'),
     ).toBeNull();
@@ -259,18 +263,18 @@ describe('workspace shell trusted registry', () => {
       surfaceKey: 'organization-overview',
     });
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/workspace/overview'),
+      resolveWorkspaceShellRoute('/acme/moonrise/workspace'),
     ).toMatchObject({
       adapter: {
         key: 'brand-workspace-overview',
         status: 'embedded',
       },
-      safeFallback: '/:orgSlug/:brandSlug/workspace/overview',
+      safeFallback: '/:orgSlug/:brandSlug/workspace',
       scope: 'brand',
       surfaceKey: 'workspace-overview',
     });
     expect(
-      resolveWorkspaceShellRoute('/acme/~/analytics/overview')?.adapter.status,
+      resolveWorkspaceShellRoute('/acme/~/analytics')?.adapter.status,
     ).toBe('placeholder');
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/workspace/inbox/all')?.adapter
@@ -314,7 +318,7 @@ describe('workspace shell trusted registry', () => {
       throw new Error('Expected analytics detail route to be registered.');
     }
     expect(resolveWorkspaceShellSafeFallback(route)).toBe(
-      '/acme/moonrise/analytics/overview',
+      '/acme/moonrise/analytics',
     );
   });
 

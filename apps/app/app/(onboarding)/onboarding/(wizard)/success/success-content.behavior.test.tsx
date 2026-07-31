@@ -179,7 +179,7 @@ describe('SuccessContent behavior', () => {
       localStorage.getItem(ONBOARDING_STORAGE_KEYS.contentType),
     ).toBeNull();
     expect(assignMock).toHaveBeenCalledWith(
-      '/acme-org/primary-brand/workspace/overview',
+      '/acme-org/primary-brand/workspace',
     );
     expect(patchSettingsMock).not.toHaveBeenCalled();
   });
@@ -205,7 +205,7 @@ describe('SuccessContent behavior', () => {
 
     expect(patchMeMock).toHaveBeenCalledWith({ isOnboardingCompleted: true });
     expect(assignMock).toHaveBeenCalledWith(
-      '/acme-org/primary-brand/workspace/overview',
+      '/acme-org/primary-brand/workspace',
     );
   });
 });

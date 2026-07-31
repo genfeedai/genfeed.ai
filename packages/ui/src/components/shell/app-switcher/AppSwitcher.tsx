@@ -9,7 +9,7 @@ import {
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useFeatureFlag } from '@genfeedai/hooks/feature-flags/use-feature-flag';
-import type { AppContext, AppSwitcherItemConfig } from '@genfeedai/interfaces';
+import type { AppSwitcherItemConfig } from '@genfeedai/interfaces';
 import type {
   AppSwitcherNavigationTarget,
   AppSwitcherProps,
@@ -28,6 +28,7 @@ import {
   Sparkles,
   Terminal,
   TrendingUp,
+  Workflow,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useRef, useState } from 'react';
@@ -41,7 +42,12 @@ import {
 } from '../../../primitives/dropdown-menu';
 
 type LifecycleAppSwitcherItemConfig = AppSwitcherItemConfig & {
-  activeIds?: AppContext[];
+  /**
+   * Product path roots that activate this app (menu-style). Matched against the
+   * brand/org-stripped pathname, e.g. `/studio`, `/posts`, `/orchestration`.
+   * Longest root wins; no match → nothing highlighted (settings, onboarding, …).
+   */
+  activePathRoots: readonly string[];
   description: string;
   itemKey: string;
   visibilityFlagKey?: AppSwitcherFeatureFlagKey;
@@ -66,92 +72,97 @@ function createScopedAppRoute({
       : createOrganizationAppRoute(org, organizationPath);
 }
 
+/**
+ * Flat ordered launcher (no section chrome). Order encodes product flow:
+ * Operate tools → Create assets → Trends → Publish (+ compose/editor) → Analytics.
+ */
 const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
   {
-    id: 'home',
-    label: 'Home',
+    id: 'apps',
+    label: 'Apps',
     apps: [
       {
+        activePathRoots: ['/workspace', '/overview'],
         description: 'Command center.',
         icon: LayoutGrid,
         id: 'workspace',
-        itemKey: 'home-workspace',
+        itemKey: 'workspace',
         label: 'Workspace',
         route: createScopedAppRoute({
-          brandPath: '/workspace/overview',
+          brandPath: '/workspace',
           organizationPath: '/overview',
         }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.workspace,
       },
       {
+        activePathRoots: ['/agent'],
         description: 'Ask and execute.',
         icon: Terminal,
         id: 'agent',
-        itemKey: 'home-agent',
+        itemKey: 'agent',
         label: 'Agent',
         route: createScopedAppRoute({ brandPath: '/agent' }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.agent,
       },
       {
+        activePathRoots: ['/messages'],
         description: 'Reply to audience.',
         icon: MessageSquare,
         id: 'messages',
-        itemKey: 'home-messages',
+        itemKey: 'messages',
         label: 'Messages',
         route: createScopedAppRoute({ brandPath: '/messages' }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.messages,
       },
-    ],
-  },
-  {
-    id: 'trends',
-    label: 'Trends',
-    apps: [
       {
-        description: 'Find winners.',
-        icon: TrendingUp,
-        id: 'research',
-        itemKey: 'trends-research',
-        label: 'Research',
-        route: createScopedAppRoute({ brandPath: '/research/discovery' }),
-        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.research,
+        activePathRoots: ['/orchestration'],
+        description: 'Workflows, autopilot, and team ops.',
+        icon: Workflow,
+        id: 'automate',
+        itemKey: 'automate',
+        label: 'Automate',
+        route: createScopedAppRoute({
+          brandPath: '/orchestration',
+        }),
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.automate,
       },
-    ],
-  },
-  {
-    id: 'create',
-    label: 'Create',
-    apps: [
       {
-        activeIds: ['studio', 'compose', 'editor'],
+        activePathRoots: ['/studio'],
         description: 'Generate media.',
         icon: LayoutGrid,
         id: 'studio',
-        itemKey: 'create-studio',
+        itemKey: 'studio',
         label: 'Studio',
         route: createScopedAppRoute({ brandPath: '/studio/image' }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.studio,
       },
       {
+        activePathRoots: ['/library'],
         description: 'Use source assets.',
         icon: Layers,
         id: 'library',
-        itemKey: 'create-library',
+        itemKey: 'library',
         label: 'Library',
         route: createScopedAppRoute({
-          brandPath: '/library/overview',
+          brandPath: '/library',
           organizationPath: '/library',
         }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.library,
       },
-    ],
-  },
-  {
-    id: 'publish',
-    label: 'Publish',
-    apps: [
       {
-        description: 'Drafts and posts.',
+        activePathRoots: ['/research'],
+        description: 'Find winners.',
+        icon: TrendingUp,
+        id: 'research',
+        itemKey: 'trends',
+        label: 'Trends',
+        route: createScopedAppRoute({ brandPath: '/research/discovery' }),
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.research,
+      },
+      {
+        // Compose + Editor are publish-adjacent create surfaces, not Studio.
+        activePathRoots: ['/posts', '/compose', '/editor'],
+        description: 'Drafts, posts, compose, and editor.',
         icon: Send,
         id: 'posts',
         itemKey: 'publish',
@@ -159,19 +170,14 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         route: createScopedAppRoute({ brandPath: '/posts' }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.posts,
       },
-    ],
-  },
-  {
-    id: 'analytics',
-    label: 'Analytics',
-    apps: [
       {
+        activePathRoots: ['/analytics'],
         description: 'Measure results.',
         icon: ChartNoAxesColumn,
         id: 'analytics',
-        itemKey: 'analytics-overview',
+        itemKey: 'analytics',
         label: 'Analytics',
-        route: createScopedAppRoute({ brandPath: '/analytics/overview' }),
+        route: createScopedAppRoute({ brandPath: '/analytics' }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.analytics,
       },
     ],
@@ -183,6 +189,7 @@ const ADMIN_APP_SWITCHER_SECTION: AppSwitcherSectionConfig = {
   label: 'Administration',
   apps: [
     {
+      activePathRoots: ['/admin'],
       description: 'Platform management.',
       icon: ShieldCheck,
       id: 'admin',
@@ -193,25 +200,13 @@ const ADMIN_APP_SWITCHER_SECTION: AppSwitcherSectionConfig = {
   ],
 };
 
-const PRIMARY_APP_ITEM_KEYS = [
-  'home-workspace',
-  'home-agent',
-  'home-messages',
-  'trends-research',
-  'create-studio',
-  'create-library',
-  'publish',
-  'analytics-overview',
-] as const;
-
-const PRIMARY_APP_ICONS: Partial<
-  Record<
-    (typeof PRIMARY_APP_ITEM_KEYS)[number],
-    LifecycleAppSwitcherItemConfig['icon']
-  >
+/** Optional icon overrides for a few tiles in the flat grid. */
+const APP_SWITCHER_ICON_OVERRIDES: Partial<
+  Record<string, LifecycleAppSwitcherItemConfig['icon']>
 > = {
-  'create-library': Briefcase,
-  'create-studio': Sparkles,
+  automate: Workflow,
+  library: Briefcase,
+  studio: Sparkles,
 };
 
 function withPreservedSearch(path: string, preservedSearch?: string): string {
@@ -252,20 +247,6 @@ function humanizeSlug(value?: string): string {
     .join(' ');
 }
 
-function isPrimaryApp(app: LifecycleAppSwitcherItemConfig): boolean {
-  return PRIMARY_APP_ITEM_KEYS.includes(
-    app.itemKey as (typeof PRIMARY_APP_ITEM_KEYS)[number],
-  );
-}
-
-function getPrimaryApps(
-  apps: LifecycleAppSwitcherItemConfig[],
-): LifecycleAppSwitcherItemConfig[] {
-  return PRIMARY_APP_ITEM_KEYS.map((itemKey) =>
-    apps.find((app) => app.itemKey === itemKey),
-  ).filter((app): app is LifecycleAppSwitcherItemConfig => Boolean(app));
-}
-
 function useAppSwitcherVisibility(): Record<
   AppSwitcherFeatureFlagKey,
   boolean
@@ -295,14 +276,10 @@ function useAppSwitcherVisibility(): Record<
     [APP_SWITCHER_FEATURE_FLAGS.analytics]: useFeatureFlag(
       APP_SWITCHER_FEATURE_FLAGS.analytics,
     ),
+    [APP_SWITCHER_FEATURE_FLAGS.automate]: useFeatureFlag(
+      APP_SWITCHER_FEATURE_FLAGS.automate,
+    ),
   };
-}
-
-function isActiveApp(
-  app: LifecycleAppSwitcherItemConfig,
-  currentApp: AppContext,
-): boolean {
-  return app.id === currentApp || app.activeIds?.includes(currentApp) === true;
 }
 
 function normalizePath(path?: string): string | undefined {
@@ -316,62 +293,91 @@ function normalizePath(path?: string): string | undefined {
   return normalizedPathname || '/';
 }
 
-function getPathMatchScore(currentPath: string, targetPath: string): number {
-  const normalizedCurrentPath = normalizePath(currentPath);
-  const normalizedTargetPath = normalizePath(targetPath);
+/**
+ * Strip tenant scope so matching is product-root based, like sidebar menus:
+ * `/acme/default/studio/video` → `/studio/video`
+ * `/acme/~/settings/brands` → `/settings/brands`
+ * `/admin/users` → `/admin/users`
+ */
+function extractProductPath(pathname: string): string {
+  const normalized = normalizePath(pathname);
+  if (!normalized) {
+    return '/';
+  }
 
-  if (!(normalizedCurrentPath && normalizedTargetPath)) {
+  const parts = normalized.split('/').filter(Boolean);
+  if (parts.length === 0) {
+    return '/';
+  }
+
+  // Global / personal (no org prefix)
+  if (
+    parts[0] === 'admin' ||
+    parts[0] === 'settings' ||
+    parts[0] === 'connect' ||
+    parts[0] === 'login' ||
+    parts[0] === 'sign-up' ||
+    parts[0] === 'onboarding'
+  ) {
+    return `/${parts.join('/')}`;
+  }
+
+  // `/:orgSlug/~/:rest*` or `/:orgSlug/:brandSlug/:rest*`
+  if (parts.length >= 2) {
+    const rest = parts.slice(2);
+    return rest.length > 0 ? `/${rest.join('/')}` : '/';
+  }
+
+  return `/${parts.join('/')}`;
+}
+
+function scoreActivePathRoot(productPath: string, root: string): number {
+  const normalizedRoot = normalizePath(root);
+  if (!normalizedRoot) {
     return 0;
   }
 
-  if (normalizedCurrentPath === normalizedTargetPath) {
-    return normalizedTargetPath.length + 1000;
+  if (productPath === normalizedRoot) {
+    return normalizedRoot.length + 1000;
   }
 
-  if (normalizedCurrentPath.startsWith(`${normalizedTargetPath}/`)) {
-    return normalizedTargetPath.length;
+  if (productPath.startsWith(`${normalizedRoot}/`)) {
+    return normalizedRoot.length;
   }
 
   return 0;
 }
 
+/**
+ * Highlight like a menu item: the app whose product root owns the current path.
+ * No fallback to a default app — settings / unknown surfaces stay unselected.
+ */
 function getActiveItemKey({
   apps,
-  brandSlug,
-  currentApp,
   currentPath,
-  orgSlug,
 }: {
   apps: LifecycleAppSwitcherItemConfig[];
-  brandSlug?: string;
-  currentApp: AppContext;
   currentPath?: string;
-  orgSlug: string;
 }): string | undefined {
-  const normalizedCurrentPath = normalizePath(currentPath);
+  const productPath = extractProductPath(currentPath ?? '');
+  if (!productPath || productPath === '/') {
+    return undefined;
+  }
 
-  if (normalizedCurrentPath) {
-    let activeItemKey: string | undefined;
-    let activeScore = 0;
+  let activeItemKey: string | undefined;
+  let activeScore = 0;
 
-    for (const app of apps) {
-      const score = getPathMatchScore(
-        normalizedCurrentPath,
-        app.route(orgSlug, brandSlug),
-      );
-
+  for (const app of apps) {
+    for (const root of app.activePathRoots) {
+      const score = scoreActivePathRoot(productPath, root);
       if (score > activeScore) {
         activeItemKey = app.itemKey;
         activeScore = score;
       }
     }
-
-    if (activeItemKey) {
-      return activeItemKey;
-    }
   }
 
-  return apps.find((app) => isActiveApp(app, currentApp))?.itemKey;
+  return activeItemKey;
 }
 
 function AppSwitcherGridItem({
@@ -389,9 +395,7 @@ function AppSwitcherGridItem({
   navigationAnnouncement?: string;
   onNavigateStart: (announcement?: string) => void;
 }) {
-  const Icon =
-    PRIMARY_APP_ICONS[app.itemKey as (typeof PRIMARY_APP_ITEM_KEYS)[number]] ??
-    app.icon;
+  const Icon = APP_SWITCHER_ICON_OVERRIDES[app.itemKey] ?? app.icon;
 
   return (
     <DropdownMenuItem asChild>
@@ -446,7 +450,6 @@ function AppSwitcherGridItem({
 export function AppSwitcher({
   brandAwareSlug,
   brandSlug,
-  currentApp,
   currentPath,
   isAssetGateLocked = false,
   orgSlug,
@@ -532,30 +535,16 @@ export function AppSwitcher({
   );
   const activeItemKey = getActiveItemKey({
     apps,
-    brandSlug,
-    currentApp,
     currentPath,
-    orgSlug,
   });
-  const activeApp =
-    apps.find((app) => app.itemKey === activeItemKey) ??
-    apps.find((app) => isActiveApp(app, currentApp));
+  const activeApp = apps.find((app) => app.itemKey === activeItemKey);
   const ActiveIcon = activeApp?.icon ?? LayoutGrid;
   const activeLabel = activeApp?.label ?? 'Apps';
-  const visibleApps = useMemo(() => {
-    const primaryApps = getPrimaryApps(apps);
-
-    if (activeApp && !isPrimaryApp(activeApp)) {
-      return [...primaryApps, activeApp];
-    }
-
-    const adminApp = apps.find((app) => app.id === 'admin');
-
-    return adminApp ? [...primaryApps, adminApp] : primaryApps;
-  }, [activeApp, apps]);
   const tenantLabel = humanizeSlug(brandSlug || orgSlug);
 
-  if (visibleApps.length === 0) {
+  // Flat grid of every flag-visible app (curation list removed — no dual
+  // primary/secondary list that diverged from what actually rendered).
+  if (apps.length === 0) {
     return null;
   }
 
@@ -609,8 +598,12 @@ export function AppSwitcher({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-1 px-2.5 py-2.5">
-          {visibleApps.map((app) => {
+        <div
+          className="grid grid-cols-3 gap-1 px-2.5 py-2.5"
+          role="group"
+          aria-label="Apps"
+        >
+          {apps.map((app) => {
             const navigation = resolveAppNavigation(app);
 
             return (

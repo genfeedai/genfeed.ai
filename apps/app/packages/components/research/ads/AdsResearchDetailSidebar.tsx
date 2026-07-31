@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type {
   AdPack,
@@ -206,7 +207,9 @@ function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
 
       {prep.workflowId && (
         <Link
-          href={href(`/workflows/${prep.workflowId}`)}
+          href={href(
+            `${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/${prep.workflowId}`,
+          )}
           className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
         >
           Open linked workflow
@@ -432,7 +435,9 @@ export function DetailSidebar({
                     </p>
                   )}
                   <Link
-                    href={href(`/workflows/${workflowResult.workflowId}`)}
+                    href={href(
+                      `${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/${workflowResult.workflowId}`,
+                    )}
                     className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
                   >
                     Open workflow editor

@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { UsePatternButtonProps } from '@props/analytics/performance-lab.props';
@@ -17,7 +18,9 @@ export default function UsePatternButton({ pattern }: UsePatternButtonProps) {
       formula: encodeURIComponent(pattern.formula),
       patternType: pattern.patternType,
     });
-    push(href(`/workflows/new?${params.toString()}`));
+    push(
+      href(`${APP_ROUTES.ORCHESTRATION.WORKFLOWS_NEW}?${params.toString()}`),
+    );
   }, [pattern.formula, pattern.patternType, push, href]);
 
   return (

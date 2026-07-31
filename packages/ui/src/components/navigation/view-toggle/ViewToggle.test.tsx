@@ -83,6 +83,28 @@ describe('ViewToggle', () => {
     expect(screen.getByRole('group', { name: 'View' })).toBeVisible();
   });
 
+  it('uses sm toggle tier so shell icons are size-3.5 (not default size-4)', () => {
+    const updateViewToggle = vi.fn();
+    render(
+      <ViewToggle
+        options={[
+          {
+            icon: <svg data-testid="masonry-svg" className="size-3.5" />,
+            label: 'Masonry view',
+            type: ViewType.MASONRY,
+          },
+        ]}
+        activeView={ViewType.MASONRY}
+        onChange={updateViewToggle}
+      />,
+    );
+
+    const item = screen.getByRole('radio', { name: 'Masonry view' });
+    // sm size variant from toggleVariants
+    expect(item.className).toMatch(/size-3\.5|h-8/);
+    expect(item.className).toContain('size-7');
+  });
+
   it('applies custom className', () => {
     const updateViewToggle = vi.fn();
     const { container } = render(

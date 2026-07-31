@@ -15,6 +15,7 @@ export default function ModelsTypePageClientContent({
   const { setRefreshTrainings } = useTrainingsContext();
 
   if (type === 'trainings') {
+    // Body-only list: Models layout owns tabs, refresh, and create chrome.
     return (
       <TrainingsList
         scope={PageScope.ORGANIZATION}

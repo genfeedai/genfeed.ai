@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import type { AgentStrategy } from '@services/automation/agent-strategies.service';
 import AppTable from '@ui/display/table/Table';
@@ -54,7 +55,9 @@ export default function AgentStrategiesPage() {
           />
         }
       >
-        <AgentStrategiesInfoBanner workflowsHref={href('/workflows')} />
+        <AgentStrategiesInfoBanner
+          workflowsHref={href(APP_ROUTES.ORCHESTRATION.WORKFLOWS)}
+        />
         <AppTable<AgentStrategy>
           items={strategies}
           columns={columns}

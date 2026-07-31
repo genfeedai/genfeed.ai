@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ButtonSize,
   ButtonVariant,
   ComponentSize,
   IngredientFormat,
@@ -12,6 +13,10 @@ import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown'
 import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
+import {
+  SHELL_CONTROL_HEIGHT_CLASS,
+  SHELL_ICON_CLASS,
+} from '@ui-constants/shell-chrome.constant';
 import {
   RectangleHorizontal,
   RectangleVertical,
@@ -35,17 +40,19 @@ const DEFAULT_STATUS_OPTIONS = [
 const DEFAULT_FORMAT_OPTIONS = [
   { label: 'All Formats', value: '' },
   {
-    icon: <Square size={16} />,
+    icon: <Square className={SHELL_ICON_CLASS} aria-hidden="true" />,
     label: '1:1',
     value: IngredientFormat.SQUARE,
   },
   {
-    icon: <RectangleHorizontal size={16} />,
+    icon: (
+      <RectangleHorizontal className={SHELL_ICON_CLASS} aria-hidden="true" />
+    ),
     label: '16:9',
     value: IngredientFormat.LANDSCAPE,
   },
   {
-    icon: <RectangleVertical size={16} />,
+    icon: <RectangleVertical className={SHELL_ICON_CLASS} aria-hidden="true" />,
     label: '9:16',
     value: IngredientFormat.PORTRAIT,
   },
@@ -216,10 +223,13 @@ export default function FiltersBar({
   const ACCOUNT_OPTIONS = filterOptions.brand || DEFAULT_ACCOUNT_OPTIONS;
 
   return (
-    <div className={`flex items-center gap-2 w-full ${className}`}>
+    <div
+      className={`flex w-full items-center gap-1.5 ${className}`}
+      data-testid="filters-bar"
+    >
       {/* Search */}
       {visibleFilters.search && (
-        <div className="flex-1 min-w-56 max-w-96">
+        <div className="min-w-56 max-w-96 flex-1">
           <FormSearchbar
             value={searchValue}
             onChange={updateFiltersBar}
@@ -230,7 +240,7 @@ export default function FiltersBar({
       )}
 
       {/* Filter Dropdowns Container */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         {/* Status Filter */}
         {visibleFilters.status && (
           <DropdownMultiSelect
@@ -326,16 +336,18 @@ export default function FiltersBar({
         )}
       </div>
 
-      {/* Clear Filters Button */}
+      {/* Clear Filters Button — same icon size as dropdown chevrons / view toggle */}
       {hasActiveFilters && (
         <Button
-          label={
-            <>
-              <X className="text-lg" /> Clear
-            </>
-          }
+          ariaLabel="Clear filters"
+          className={`${SHELL_CONTROL_HEIGHT_CLASS} gap-1.5 px-2 text-xs font-medium text-foreground/70 hover:text-foreground`}
+          icon={<X className={SHELL_ICON_CLASS} aria-hidden="true" />}
+          label="Clear"
           onClick={handleClearFilters}
+          size={ButtonSize.SM}
+          textTransform="none"
           variant={ButtonVariant.GHOST}
+          withWrapper={false}
         />
       )}
     </div>

@@ -60,7 +60,7 @@ describe('conversation composer action registry', () => {
         name: 'workflow',
         resolved: expect.objectContaining({
           requiredScope: 'brand',
-          route: APP_ROUTES.WORKFLOWS.ROOT,
+          route: APP_ROUTES.ORCHESTRATION.WORKFLOWS,
         }),
       },
       {

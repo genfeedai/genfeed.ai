@@ -55,9 +55,9 @@ describe('SidebarNavigationProvider', () => {
 
     renderNavigation([
       {
-        href: '/workspace/overview',
+        href: '/workspace',
         label: 'Dashboard',
-        matchPaths: ['/workspace', '/workspace/overview'],
+        matchPaths: ['/workspace', '/workspace'],
       },
     ]);
 

@@ -212,7 +212,7 @@ export default function AppProtectedLayoutSidebar({
         currentApp,
         items: workflowsMenuItems,
         logoHref: buildHref(WORKFLOWS_LOGO_HREF),
-        sectionLabel: 'Workflows',
+        sectionLabel: 'Automate',
         showOrgSwitcher: true,
       },
       {

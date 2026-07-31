@@ -24,11 +24,7 @@ import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
 function BrandCard({ brand, orgSlug }: { brand: Brand; orgSlug: string }) {
-  const cardHref = createBrandAppRoute(
-    orgSlug,
-    brand.slug,
-    '/workspace/overview',
-  );
+  const cardHref = createBrandAppRoute(orgSlug, brand.slug, '/workspace');
 
   return (
     <Link
@@ -115,9 +111,7 @@ export default function OrgLandingContent() {
     }
 
     if (brands.length <= 1 && primaryBrandSlug) {
-      replace(
-        createBrandAppRoute(orgSlug, primaryBrandSlug, '/workspace/overview'),
-      );
+      replace(createBrandAppRoute(orgSlug, primaryBrandSlug, '/workspace'));
     }
   }, [
     brands.length,

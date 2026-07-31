@@ -12,7 +12,7 @@ import { expect, test } from '@playwright/test';
  * So requiring that label proves the web app fetched live data from the real API.
  */
 
-const SEEDED_WORKSPACE_PATH = '/default/default/workspace/overview';
+const SEEDED_WORKSPACE_PATH = '/default/default/workspace';
 
 test.describe('Released image — workspace shell', () => {
   test('seeded workspace renders with live brand/org data', async ({

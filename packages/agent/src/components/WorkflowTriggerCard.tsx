@@ -2,6 +2,7 @@ import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
@@ -92,7 +93,7 @@ export function WorkflowTriggerCard({
             No workflows found
           </p>
           <a
-            href={href('/workflows')}
+            href={href(APP_ROUTES.ORCHESTRATION.WORKFLOWS)}
             className="text-xs font-medium text-primary underline-offset-2 hover:underline"
           >
             Create a workflow →
@@ -183,7 +184,9 @@ export function WorkflowTriggerCard({
             </div>
             {executionId && (
               <a
-                href={href(`/workflows/executions/${executionId}`)}
+                href={href(
+                  `${APP_ROUTES.ORCHESTRATION.WORKFLOWS_EXECUTIONS}/${executionId}`,
+                )}
                 className="flex w-full items-center justify-center gap-1 border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
               >
                 View Execution →

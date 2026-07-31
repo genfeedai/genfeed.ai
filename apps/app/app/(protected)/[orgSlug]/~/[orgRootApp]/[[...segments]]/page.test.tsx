@@ -56,22 +56,22 @@ vi.mock('@ui/loading/skeleton/SkeletonFallbacks', () => ({
   ),
 }));
 
-vi.mock('@/features/workflows/pages/executions/WorkflowExecutionsPage', () => ({
-  default: () => <div data-testid="workflow-executions-page" />,
+vi.mock('@ui/display/error-boundary/ErrorBoundary', () => ({
+  default: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
-vi.mock('@/features/workflows/pages/executions/ExecutionDetailPage', () => ({
-  default: ({ executionId }: { executionId: string }) => (
-    <div data-execution-id={executionId} data-testid="execution-detail-page" />
+vi.mock('@ui/guards/feature/FeatureGate', () => ({
+  default: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
+
+vi.mock('../../../[brandSlug]/studio/[type]/StudioPageContent', () => ({
+  default: ({ typeOverride }: { typeOverride?: string }) => (
+    <div data-testid="studio-page-content" data-type={typeOverride} />
   ),
 }));
 
-vi.mock('@/features/workflows/pages/library/WorkflowLibraryPage', () => ({
-  default: () => <div data-testid="workflow-library-page" />,
-}));
-
-vi.mock('@/features/workflows/pages/templates/WorkflowTemplatesPage', () => ({
-  default: () => <div data-testid="workflow-templates-page" />,
+vi.mock('../../../[brandSlug]/studio/[type]/studio-route', () => ({
+  canonicalizeStudioType: (value?: string) => value ?? 'image',
 }));
 
 vi.mock('../../../[brandSlug]/editor/[id]/page', () => ({
@@ -106,26 +106,6 @@ vi.mock('../../../[brandSlug]/posts/posts-layout-content', () => ({
   default: ({ children }: { children: ReactNode }) => (
     <section data-testid="posts-layout-content">{children}</section>
   ),
-}));
-
-vi.mock('../../../[brandSlug]/workflows/[id]/WorkflowDetailPageClient', () => ({
-  default: ({
-    initialExecutionId,
-    workflowId,
-  }: {
-    initialExecutionId?: string;
-    workflowId: string;
-  }) => (
-    <div
-      data-execution-id={initialExecutionId}
-      data-testid="workflow-detail-page"
-      data-workflow-id={workflowId}
-    />
-  ),
-}));
-
-vi.mock('../../../[brandSlug]/workflows/new/WorkflowNewPageClient', () => ({
-  default: () => <div data-testid="workflow-new-page" />,
 }));
 
 const { default: OrgRootAppPage } = await import('./page');
@@ -198,25 +178,23 @@ describe('OrgRootAppPage', () => {
     );
   });
 
-  it('renders org studio ingredients by requested type', async () => {
+  it('renders the studio generate surface for org /studio/:type (not library)', async () => {
     const element = await OrgRootAppPage({
       params: Promise.resolve({
         orgRootApp: 'studio',
         orgSlug: 'acme',
-        segments: ['image'],
+        segments: ['music'],
       }),
     });
 
     render(element);
 
-    expect(screen.getByTestId('ingredients-layout')).toHaveAttribute(
-      'data-scope',
-      PageScope.ORGANIZATION,
-    );
-    expect(screen.getByTestId('ingredients-list')).toHaveAttribute(
+    expect(screen.getByTestId('studio-page-content')).toBeInTheDocument();
+    expect(screen.getByTestId('studio-page-content')).toHaveAttribute(
       'data-type',
-      'images',
+      'music',
     );
+    expect(screen.queryByTestId('ingredients-list')).not.toBeInTheDocument();
   });
 
   it('renders org posts with published status for /posts/published', async () => {
@@ -260,108 +238,16 @@ describe('OrgRootAppPage', () => {
     });
   });
 
-  it('renders org workflow library by default', async () => {
-    const element = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'workflows',
-        orgSlug: 'acme',
+  it('hard-cuts org-scoped workflows (use brand /orchestration/workflows)', async () => {
+    await expect(
+      OrgRootAppPage({
+        params: Promise.resolve({
+          orgRootApp: 'workflows',
+          orgSlug: 'acme',
+        }),
       }),
-    });
-
-    render(element);
-
-    expect(screen.getByTestId('workflow-library-page')).toBeInTheDocument();
-  });
-
-  it('renders org workflow templates and executions sections', async () => {
-    const templatesElement = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'workflows',
-        orgSlug: 'acme',
-        segments: ['templates'],
-      }),
-    });
-    const { unmount } = render(templatesElement);
-
-    expect(screen.getByTestId('workflow-templates-page')).toBeInTheDocument();
-
-    unmount();
-
-    const executionsElement = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'workflows',
-        orgSlug: 'acme',
-        segments: ['executions'],
-      }),
-    });
-    render(executionsElement);
-
-    expect(screen.getByTestId('workflow-executions-page')).toBeInTheDocument();
-  });
-
-  it('restores an org workflow execution detail route', async () => {
-    const element = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'workflows',
-        orgSlug: 'acme',
-        segments: ['executions', 'execution-1'],
-      }),
-    });
-
-    render(element);
-
-    expect(screen.getByTestId('execution-detail-page')).toHaveAttribute(
-      'data-execution-id',
-      'execution-1',
-    );
-  });
-
-  it('renders org workflow new and detail pages', async () => {
-    const newElement = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'workflows',
-        orgSlug: 'acme',
-        segments: ['new'],
-      }),
-    });
-    const { unmount } = render(newElement);
-
-    expect(screen.getByTestId('workflow-new-page')).toBeInTheDocument();
-
-    unmount();
-
-    const detailElement = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'workflows',
-        orgSlug: 'acme',
-        segments: ['workflow-1'],
-      }),
-      searchParams: Promise.resolve({ execution: 'execution-1' }),
-    });
-    render(detailElement);
-
-    expect(screen.getByTestId('workflow-detail-page')).toHaveAttribute(
-      'data-workflow-id',
-      'workflow-1',
-    );
-    expect(screen.getByTestId('workflow-detail-page')).toHaveAttribute(
-      'data-execution-id',
-      'execution-1',
-    );
-  });
-
-  it('renders org workflow library for the reserved library segment', async () => {
-    const element = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'workflows',
-        orgSlug: 'acme',
-        segments: ['library'],
-      }),
-    });
-
-    render(element);
-
-    expect(screen.getByTestId('workflow-library-page')).toBeInTheDocument();
+    ).rejects.toThrow('NEXT_NOT_FOUND');
+    expect(notFoundMock).toHaveBeenCalled();
   });
 
   it('renders org editor projects', async () => {

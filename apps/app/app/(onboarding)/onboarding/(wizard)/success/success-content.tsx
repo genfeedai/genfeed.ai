@@ -144,7 +144,7 @@ export default function SuccessContent() {
 
     if (orgSlug && brandSlug) {
       window.location.assign(
-        createBrandAppRoute(orgSlug, brandSlug, '/workspace/overview'),
+        createBrandAppRoute(orgSlug, brandSlug, '/workspace'),
       );
     } else {
       window.location.assign(APP_ROUTES.WORKSPACE.OVERVIEW);

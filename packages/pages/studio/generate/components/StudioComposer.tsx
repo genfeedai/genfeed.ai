@@ -30,7 +30,17 @@ import PromptBarNotice from '@ui/prompt-bars/components/notice/PromptBarNotice';
 import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
 import PromptBarSurfaceRenderer from '@ui/prompt-bars/surface/PromptBarSurfaceRenderer';
 import { STUDIO_PROMPT_BAR_SURFACE } from '@ui/prompt-bars/surface/prompt-bar-surface.config';
-import { useMemo } from 'react';
+import {
+  Clapperboard,
+  Film,
+  Image as ImageIcon,
+  Mic2,
+  Music2,
+  Sparkles,
+  UserRound,
+  Video,
+} from 'lucide-react';
+import { createElement, useMemo } from 'react';
 
 interface StudioComposerProps {
   promptText: string;
@@ -65,26 +75,93 @@ interface StudioComposerProps {
   isEmptyState: boolean;
 }
 
-const CATEGORY_SUGGESTIONS: Record<string, string[]> = {
+/**
+ * Empty-state prompt cards — same visual contract as agent suggestions:
+ * colored icon + one-line label. Full text lives in `prompt` (and can later
+ * be swapped for generated content without changing the card chrome).
+ */
+const CATEGORY_SUGGESTIONS: Record<string, PromptBarSuggestionItem[]> = {
   avatar: [
-    'Create an avatar welcome video for new users',
-    'Record a friendly product walkthrough avatar clip',
-    'Generate an avatar FAQ response for onboarding',
+    {
+      id: 'studio-avatar-welcome',
+      icon: createElement(UserRound, { className: 'size-5 text-sky-400' }),
+      label: 'Welcome avatar video',
+      prompt: 'Create an avatar welcome video for new users',
+    },
+    {
+      id: 'studio-avatar-walkthrough',
+      icon: createElement(Mic2, { className: 'size-5 text-violet-400' }),
+      label: 'Product walkthrough clip',
+      prompt: 'Record a friendly product walkthrough avatar clip',
+    },
+    {
+      id: 'studio-avatar-faq',
+      icon: createElement(Sparkles, { className: 'size-5 text-emerald-400' }),
+      label: 'Onboarding FAQ reply',
+      prompt: 'Generate an avatar FAQ response for onboarding',
+    },
   ],
   image: [
-    'Cinematic portrait with dramatic rim light',
-    'Product photo on clean studio background',
-    'Minimalist poster concept with bold typography',
+    {
+      id: 'studio-image-portrait',
+      icon: createElement(ImageIcon, { className: 'size-5 text-sky-400' }),
+      label: 'Cinematic portrait',
+      prompt: 'Cinematic portrait with dramatic rim light',
+    },
+    {
+      id: 'studio-image-product',
+      icon: createElement(Sparkles, { className: 'size-5 text-violet-400' }),
+      label: 'Clean product photo',
+      prompt: 'Product photo on clean studio background',
+    },
+    {
+      id: 'studio-image-poster',
+      icon: createElement(ImageIcon, { className: 'size-5 text-emerald-400' }),
+      label: 'Bold poster concept',
+      prompt: 'Minimalist poster concept with bold typography',
+    },
   ],
   music: [
-    'Compose a lo-fi background track for content',
-    'Generate an upbeat intro sting for short videos',
-    'Create ambient cinematic music with soft pads',
+    {
+      id: 'studio-music-lofi',
+      icon: createElement(Music2, { className: 'size-5 text-sky-400' }),
+      label: 'Lo-fi background track',
+      prompt: 'Compose a lo-fi background track for content',
+    },
+    {
+      id: 'studio-music-sting',
+      icon: createElement(Sparkles, { className: 'size-5 text-violet-400' }),
+      label: 'Upbeat intro sting',
+      prompt: 'Generate an upbeat intro sting for short videos',
+    },
+    {
+      id: 'studio-music-ambient',
+      icon: createElement(Music2, { className: 'size-5 text-emerald-400' }),
+      label: 'Ambient cinematic pads',
+      prompt: 'Create ambient cinematic music with soft pads',
+    },
   ],
   video: [
-    'Create a short product teaser with smooth camera moves',
-    'Make a cinematic b-roll sequence for a brand ad',
-    'Generate a vertical reel intro with dynamic motion',
+    {
+      id: 'studio-video-teaser',
+      icon: createElement(Video, { className: 'size-5 text-sky-400' }),
+      label: 'Short product teaser',
+      prompt: 'Create a short product teaser with smooth camera moves',
+    },
+    {
+      id: 'studio-video-broll',
+      icon: createElement(Clapperboard, {
+        className: 'size-5 text-violet-400',
+      }),
+      label: 'Cinematic brand b-roll',
+      prompt: 'Make a cinematic b-roll sequence for a brand ad',
+    },
+    {
+      id: 'studio-video-reel',
+      icon: createElement(Film, { className: 'size-5 text-emerald-400' }),
+      label: 'Vertical reel intro',
+      prompt: 'Generate a vertical reel intro with dynamic motion',
+    },
   ],
 };
 
@@ -136,12 +213,7 @@ export function StudioComposer({
   const { creditsBreakdown } = useSubscription();
   const { orgHref } = useOrgUrl();
   const suggestionItems = useMemo<PromptBarSuggestionItem[]>(
-    () =>
-      (CATEGORY_SUGGESTIONS[categoryType] ?? []).map((prompt, index) => ({
-        id: `studio-${categoryType}-${index}`,
-        label: prompt,
-        prompt,
-      })),
+    () => CATEGORY_SUGGESTIONS[categoryType] ?? [],
     [categoryType],
   );
   const surface = isEmptyState

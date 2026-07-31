@@ -1,9 +1,10 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactElement } from 'react';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
   useRegisterWorkspaceInspector,
   useWorkspaceInspector,
+  WORKSPACE_INSPECTOR_OPEN_STORAGE_KEY,
   WorkspaceInspectorProvider,
 } from './WorkspaceInspectorContext';
 
@@ -30,6 +31,10 @@ function InspectorRegistration(): null {
 }
 
 describe('WorkspaceInspectorContext', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   it('tracks mounted inspector registrations and shared collapse state', async () => {
     const view = render(
       <WorkspaceInspectorProvider>
@@ -48,6 +53,9 @@ describe('WorkspaceInspectorContext', () => {
     expect(screen.getByTestId('inspector-state')).toHaveTextContent(
       'registered:closed',
     );
+    expect(
+      window.localStorage.getItem(WORKSPACE_INSPECTOR_OPEN_STORAGE_KEY),
+    ).toBe('false');
 
     view.rerender(
       <WorkspaceInspectorProvider>
@@ -58,6 +66,23 @@ describe('WorkspaceInspectorContext', () => {
     await waitFor(() => {
       expect(screen.getByTestId('inspector-state')).toHaveTextContent(
         'unregistered:closed',
+      );
+    });
+  });
+
+  it('restores a closed inspector preference after remount', async () => {
+    window.localStorage.setItem(WORKSPACE_INSPECTOR_OPEN_STORAGE_KEY, 'false');
+
+    render(
+      <WorkspaceInspectorProvider>
+        <InspectorProbe />
+        <InspectorRegistration />
+      </WorkspaceInspectorProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('inspector-state')).toHaveTextContent(
+        'registered:closed',
       );
     });
   });

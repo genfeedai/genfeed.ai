@@ -39,7 +39,7 @@ export interface ToolbarProps {
   fileMenuItemsAppend?: DropdownItem[];
   /** Additional menu dropdowns to render after File */
   additionalMenus?: ToolbarMenu[];
-  /** Optional custom branding; falls back to the default logo link */
+  /** Optional custom branding slot (replaces the logo when provided) */
   branding?: ReactNode;
   /** Optional content rendered between branding and the File menu */
   leftContent?: ReactNode;
@@ -49,9 +49,9 @@ export interface ToolbarProps {
   rightContent?: ReactNode;
   /** Custom save indicator override */
   saveIndicator?: ReactNode;
-  /** Logo href (defaults to "/") */
+  /** Logo href when `logoSrc` is set. Omitted when no logo should render. */
   logoHref?: string;
-  /** Logo image src */
+  /** Logo image src. When omitted (and branding is unset), no logo is shown. */
   logoSrc?: string;
   /** Whether to show the settings button */
   showSettings?: boolean;

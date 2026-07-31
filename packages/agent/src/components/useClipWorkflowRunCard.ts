@@ -6,7 +6,7 @@ import {
   buildAgentGenerationRequestBody,
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
-import { COMPOSE_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES, COMPOSE_ROUTES } from '@genfeedai/constants';
 import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
 import { useCallback, useMemo, useState } from 'react';
 
@@ -411,7 +411,7 @@ export function useClipWorkflowRunCard({
     runOneStep,
     addAnotherClip,
     workflowExecutionUrl: hrefFn(
-      `/workflows/executions/${workflowExecutionId ?? ''}`,
+      `${APP_ROUTES.ORCHESTRATION.WORKFLOWS_EXECUTIONS}/${workflowExecutionId ?? ''}`,
     ),
     humanReviewUrl: hrefFn('/posts/review'),
   };

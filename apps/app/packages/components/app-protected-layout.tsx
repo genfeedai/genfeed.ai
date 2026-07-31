@@ -286,10 +286,11 @@ function AppLayoutWithDynamicMenu({
     conversationNavPanel ?? messagesNavPanel ?? libraryNavPanel;
 
   const menuComponent = useMemo(() => {
-    // Only the focused onboarding flow runs without navigation. Canvas surfaces
-    // — the editor, a workflow graph, the moodboard — keep the frame they are
-    // rendered inside; they used to lose it whenever the shell had not booted.
-    if (isFocusedOnboardingRoute) {
+    // Focused onboarding has no module nav. Editor/workflow canvas routes also
+    // suppress the Automate/module sidebar so the surface can own the left rail
+    // (nodes palette, graph chrome) instead of stacking module menu items under
+    // a second logo topbar.
+    if (isFocusedOnboardingRoute || isEditorCanvasRoute) {
       return undefined;
     }
 
@@ -340,6 +341,7 @@ function AppLayoutWithDynamicMenu({
     isAnalyticsRoute,
     isComposeRoute,
     isConversationRoute,
+    isEditorCanvasRoute,
     isEditorRoute,
     isFocusedOnboardingRoute,
     isLibraryRoute,

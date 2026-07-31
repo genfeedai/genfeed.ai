@@ -98,8 +98,23 @@ describe('Toolbar', () => {
     expect(screen.getByText('Saved')).toBeTruthy();
     expect(screen.getByText('Estimated Cost')).toBeTruthy();
     expect(screen.getByText('Lifecycle Actions')).toBeTruthy();
+    expect(screen.queryByTitle('Go to Dashboard')).toBeNull();
 
     fireEvent.click(screen.getByTitle('Keyboard shortcuts'));
     expect(stores.openModal).toHaveBeenCalledWith('shortcutHelp');
+  });
+
+  it('renders an optional logo only when logoSrc is provided', () => {
+    render(
+      <Toolbar
+        logoHref="/workflows"
+        logoSrc="https://cdn.genfeed.ai/assets/branding/logo-white.png"
+      />,
+    );
+
+    expect(screen.getByTitle('Go to Dashboard')).toBeTruthy();
+    expect(screen.getByTitle('Go to Dashboard').getAttribute('href')).toBe(
+      '/workflows',
+    );
   });
 });

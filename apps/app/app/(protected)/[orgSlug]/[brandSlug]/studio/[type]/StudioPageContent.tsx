@@ -6,6 +6,7 @@ import {
   paramToCategory,
   useEnabledCategories,
 } from '@hooks/data/organization/use-enabled-categories/use-enabled-categories';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import StudioGenerateLayout from '@pages/studio/generate';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
@@ -13,23 +14,45 @@ import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
 import StudioWorkspaceSurfaceAdapter from '../studio-workspace-surface-adapter';
 import GenerationFeatureGuard from './GenerationFeatureGuard';
 
-function StudioPageContentInner() {
+type StudioPageContentProps = {
+  /** Org catch-all routes pass type via segments, not `params.type`. */
+  typeOverride?: string | null;
+};
+
+function StudioPageContentInner({ typeOverride }: StudioPageContentProps) {
   const { replace } = useRouter();
-  const params = useParams<{ type?: string }>();
+  const { href } = useOrgUrl();
+  const params = useParams<{
+    segments?: string | string[];
+    type?: string;
+  }>();
   const searchParams = useSearchParams();
   const requestedType = searchParams.get('type');
   const { isEnabled, defaultCategory, isLoading } = useEnabledCategories();
   const hasRedirectedRef = useRef(false);
 
+  const segmentType = useMemo(() => {
+    if (Array.isArray(params.segments)) {
+      return params.segments[0];
+    }
+    return params.segments;
+  }, [params.segments]);
+
   // Derive category from URL (single source of truth)
   const category = useMemo(() => {
-    const fromPath = params.type;
+    const fromPath = typeOverride ?? params.type ?? segmentType;
     if (fromPath) {
       return paramToCategory(fromPath);
     }
 
     return paramToCategory(requestedType);
-  }, [params.type, requestedType]);
+  }, [params.type, requestedType, segmentType, typeOverride]);
+
+  const studioPath = useCallback(
+    (nextCategory: IngredientCategory) =>
+      href(`/studio/${categoryToParam(nextCategory)}`),
+    [href],
+  );
 
   // Redirect to default if current category is disabled
   useEffect(() => {
@@ -39,11 +62,11 @@ function StudioPageContentInner() {
 
     if (!isEnabled(category)) {
       hasRedirectedRef.current = true;
-      replace(`/studio/${categoryToParam(defaultCategory)}`, {
+      replace(studioPath(defaultCategory), {
         scroll: false,
       });
     }
-  }, [isLoading, category, isEnabled, defaultCategory, replace]);
+  }, [isLoading, category, isEnabled, defaultCategory, replace, studioPath]);
 
   // Reset redirect flag on URL change
   useEffect(() => {
@@ -52,11 +75,11 @@ function StudioPageContentInner() {
 
   const handleCategoryChange = useCallback(
     (newCategory: IngredientCategory) => {
-      replace(`/studio/${categoryToParam(newCategory)}`, {
+      replace(studioPath(newCategory), {
         scroll: false,
       });
     },
-    [replace],
+    [replace, studioPath],
   );
 
   return (
@@ -75,10 +98,12 @@ function StudioPageContentInner() {
   );
 }
 
-export default function StudioPageContent() {
+export default function StudioPageContent({
+  typeOverride,
+}: StudioPageContentProps) {
   return (
     <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-      <StudioPageContentInner />
+      <StudioPageContentInner typeOverride={typeOverride} />
     </Suspense>
   );
 }

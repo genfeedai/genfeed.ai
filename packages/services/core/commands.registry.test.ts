@@ -169,7 +169,7 @@ describe('commands.registry', () => {
       libraryCmd?.action();
 
       expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/library/overview`,
+        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/library`,
       );
     });
 
@@ -365,7 +365,7 @@ describe('commands.registry', () => {
       searchCmd?.action();
 
       expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/library/overview`,
+        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/library`,
       );
     });
 

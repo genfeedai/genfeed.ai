@@ -12,11 +12,11 @@ export interface TopbarProps {
   isAgentCollapsed?: boolean;
   /** Toggle agent panel visibility */
   onAgentToggle?: () => void;
-  /** Current app context for the AppSwitcher */
+  /** Product app context for breadcrumb fallback labels (not switcher active state). */
   currentApp?: AppContext;
-  /** Organization slug for the AppSwitcher */
+  /** Organization slug for tenant-scoped topbar controls */
   orgSlug?: string;
-  /** Brand slug for the AppSwitcher */
+  /** Brand slug for tenant-scoped topbar controls */
   brandSlug?: string;
 }
 

@@ -102,7 +102,7 @@ export const ADVANCED_TOOLS = [
   },
   {
     description: 'Workflow builder for repeatable automation.',
-    href: APP_ROUTES.WORKFLOWS.ROOT,
+    href: APP_ROUTES.ORCHESTRATION.WORKFLOWS,
     label: 'Workflows',
   },
   {

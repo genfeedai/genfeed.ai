@@ -43,7 +43,7 @@ test.describe('Analytics — Overview & dashboards (deep interactions)', () => {
   test.setTimeout(90_000);
 
   const routes = [
-    `${BRAND}/analytics/overview`,
+    `${BRAND}/analytics`,
     `${BRAND}/analytics/insights`,
     `${BRAND}/analytics/posts`,
     `${BRAND}/analytics/performance-lab`,
@@ -59,7 +59,7 @@ test.describe('Analytics — Overview & dashboards (deep interactions)', () => {
   test('overview cycles date-range presets, tabs, and refresh', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, `${BRAND}/analytics/overview`);
+    await assertRouteRenders(authenticatedPage, `${BRAND}/analytics`);
 
     await exerciseDateRange(authenticatedPage);
     await tryClick(authenticatedPage, '[role="tab"]');

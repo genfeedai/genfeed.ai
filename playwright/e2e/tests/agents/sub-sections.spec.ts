@@ -11,8 +11,8 @@ import { expect, test } from '../../fixtures/auth.fixture';
 /**
  * E2E Tests for Agents Sub-Routes
  *
- * Covers: /orchestration/campaigns, /orchestration/campaigns/new, /orchestration/outreach-campaigns,
- *         /orchestration/outreach-campaigns/new, /orchestration/runs, /orchestration/strategies,
+ * Covers: /posts/campaigns, /posts/campaigns/new, /posts/outreach-campaigns,
+ *         /posts/outreach-campaigns/new, /orchestration/runs, /orchestration/strategies,
  *         /workflows, /workflows/new, /workflows/templates
  *
  * CRITICAL: All tests use mocked API responses.
@@ -28,11 +28,11 @@ test.describe('Agents — Sub-Sections', () => {
 
   test('campaigns page loads campaigns list', async ({ authenticatedPage }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.CAMPAIGNS, {
+    await authenticatedPage.goto(APP_ROUTES.POSTS.CAMPAIGNS, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/orchestration\/campaigns/);
+    await expect(authenticatedPage).toHaveURL(/posts\/campaigns/);
     await expect(
       authenticatedPage.getByText(/campaign/i).first(),
     ).toBeVisible();
@@ -42,11 +42,11 @@ test.describe('Agents — Sub-Sections', () => {
     authenticatedPage,
   }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.CAMPAIGNS_NEW, {
+    await authenticatedPage.goto(APP_ROUTES.POSTS.CAMPAIGNS_NEW, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/orchestration\/campaigns\/new/);
+    await expect(authenticatedPage).toHaveURL(/posts\/campaigns\/new/);
     // Should show a creation form or wizard
     await expect(authenticatedPage.locator('form').first()).toBeVisible();
   });
@@ -55,11 +55,9 @@ test.describe('Agents — Sub-Sections', () => {
     authenticatedPage,
   }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.OUTREACH_CAMPAIGNS);
+    await authenticatedPage.goto(APP_ROUTES.POSTS.OUTREACH_CAMPAIGNS);
 
-    await expect(authenticatedPage).toHaveURL(
-      /orchestration\/outreach-campaigns/,
-    );
+    await expect(authenticatedPage).toHaveURL(/posts\/outreach-campaigns/);
     await expect(
       authenticatedPage.getByText(/campaign/i).first(),
     ).toBeVisible();
@@ -69,13 +67,9 @@ test.describe('Agents — Sub-Sections', () => {
     authenticatedPage,
   }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(
-      APP_ROUTES.ORCHESTRATION.OUTREACH_CAMPAIGNS_NEW,
-    );
+    await authenticatedPage.goto(APP_ROUTES.POSTS.OUTREACH_CAMPAIGNS_NEW);
 
-    await expect(authenticatedPage).toHaveURL(
-      /orchestration\/outreach-campaigns\/new/,
-    );
+    await expect(authenticatedPage).toHaveURL(/posts\/outreach-campaigns\/new/);
     await expect(authenticatedPage.locator('form').first()).toBeVisible();
   });
 
@@ -109,11 +103,11 @@ test.describe('Agents — Sub-Sections', () => {
     await mockWorkflowExecutions(authenticatedPage, []);
     await mockWorkflowTemplates(authenticatedPage, []);
 
-    await authenticatedPage.goto(APP_ROUTES.WORKFLOWS.ROOT, {
+    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/workflows$/);
+    await expect(authenticatedPage).toHaveURL(/orchestration\/workflows/);
     await expect(
       authenticatedPage.getByText(/automation|workflow/i).first(),
     ).toBeVisible();
@@ -126,11 +120,11 @@ test.describe('Agents — Sub-Sections', () => {
     await mockWorkflowExecutions(authenticatedPage, []);
     await mockWorkflowTemplates(authenticatedPage, []);
 
-    await authenticatedPage.goto(APP_ROUTES.WORKFLOWS.NEW, {
+    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS_NEW, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/workflows\/new/);
+    await expect(authenticatedPage).toHaveURL(/orchestration\/workflows\/new/);
     await expect(
       authenticatedPage.getByText(/new|create|editor|workflow/i).first(),
     ).toBeVisible();
@@ -143,11 +137,13 @@ test.describe('Agents — Sub-Sections', () => {
     await mockWorkflowExecutions(authenticatedPage, []);
     await mockWorkflowTemplates(authenticatedPage, []);
 
-    await authenticatedPage.goto(APP_ROUTES.WORKFLOWS.TEMPLATES, {
+    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS_TEMPLATES, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/workflows\/templates/);
+    await expect(authenticatedPage).toHaveURL(
+      /orchestration\/workflows\/templates/,
+    );
     await expect(
       authenticatedPage.getByText(/template/i).first(),
     ).toBeVisible();
@@ -156,7 +152,7 @@ test.describe('Agents — Sub-Sections', () => {
   test('unauthenticated user is redirected from agents routes', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.ORCHESTRATION.CAMPAIGNS, {
+    await unauthenticatedPage.goto(APP_ROUTES.POSTS.CAMPAIGNS, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -170,7 +166,7 @@ test.describe('Agents — Sub-Sections', () => {
       // Local keyless dev mode intentionally skips auth enforcement.
     }
 
-    await expect(unauthenticatedPage).toHaveURL(/orchestration\/campaigns/);
+    await expect(unauthenticatedPage).toHaveURL(/posts\/campaigns/);
     await expect(
       unauthenticatedPage.getByRole('heading', { name: 'Agent Campaigns' }),
     ).toBeVisible();
@@ -179,7 +175,7 @@ test.describe('Agents — Sub-Sections', () => {
   test('unauthenticated user is redirected from outreach campaign routes', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.ORCHESTRATION.OUTREACH_CAMPAIGNS);
+    await unauthenticatedPage.goto(APP_ROUTES.POSTS.OUTREACH_CAMPAIGNS);
 
     await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
       timeout: 15000,

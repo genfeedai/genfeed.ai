@@ -522,13 +522,6 @@ export class AgentTurnRoundRunnerService {
         },
       );
 
-      if (strategy.onAfterTool) {
-        const action = await strategy.onAfterTool();
-        if (action === 'cancel') {
-          return { isCancelled: true };
-        }
-      }
-
       const durationMs = Date.now() - startTime;
       state.artifactMetadata.push(buildArtifactMetadata(result.data, context));
 
@@ -550,6 +543,9 @@ export class AgentTurnRoundRunnerService {
 
       // Generation tools delegate billing to their endpoint (dynamic
       // amount); deducting the flat creditCost here would double-charge.
+      // Bill + record the summary *before* onAfterTool cancel: the tool already
+      // ran (side effects done). Cancelled streams must still charge
+      // orchestrator-billed tools and leave an audit trail.
       const isOrchestratorBilled =
         result.success && creditCost > 0 && !result.isBillingDelegated;
       if (isOrchestratorBilled) {
@@ -573,6 +569,13 @@ export class AgentTurnRoundRunnerService {
         toolName,
       };
       state.toolCalls.push(summary);
+
+      if (strategy.onAfterTool) {
+        const action = await strategy.onAfterTool();
+        if (action === 'cancel') {
+          return { isCancelled: true };
+        }
+      }
 
       if (
         toolName === AgentToolName.RENDER_DASHBOARD &&

@@ -136,7 +136,7 @@ describe('StudioComposer', () => {
 
     fireEvent.click(
       screen.getByRole('button', {
-        name: 'Create a short product teaser with smooth camera moves',
+        name: 'Short product teaser',
       }),
     );
 
@@ -160,11 +160,7 @@ describe('StudioComposer', () => {
         }),
       }),
     );
-    expect(
-      screen.queryByText(
-        'Create a short product teaser with smooth camera moves',
-      ),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Short product teaser')).not.toBeInTheDocument();
   });
 
   it('blocks generation without a compatible model and hides the ETA', async () => {

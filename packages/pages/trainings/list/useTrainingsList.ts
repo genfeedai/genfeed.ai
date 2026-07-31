@@ -23,7 +23,6 @@ type TrainingStatusUpdate = {
 };
 
 type UseTrainingsListParams = ContentProps & {
-  hideContainer?: boolean;
   onRefreshRegister?: (fn: (() => Promise<void>) | null) => void;
 };
 

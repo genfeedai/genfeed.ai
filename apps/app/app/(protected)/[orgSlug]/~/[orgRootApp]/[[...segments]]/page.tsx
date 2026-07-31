@@ -1,22 +1,18 @@
 import { PageScope, PostStatus } from '@genfeedai/enums';
 import IngredientsLayout from '@pages/ingredients/layout/ingredients-layout';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
+import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import FeatureGate from '@ui/guards/feature/FeatureGate';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { SkeletonLoadingFallback } from '@ui/loading/skeleton/SkeletonFallbacks';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
-import ExecutionDetailPage from '@/features/workflows/pages/executions/ExecutionDetailPage';
-import WorkflowExecutionsPage from '@/features/workflows/pages/executions/WorkflowExecutionsPage';
-import WorkflowLibraryPage from '@/features/workflows/pages/library/WorkflowLibraryPage';
-import WorkflowTemplatesPage from '@/features/workflows/pages/templates/WorkflowTemplatesPage';
 import EditorDetailPage from '../../../[brandSlug]/editor/[id]/page';
 import EditorProjectsPage from '../../../[brandSlug]/editor/editor-projects-page';
 import EditorNewPage from '../../../[brandSlug]/editor/new/page';
 import PostsLayoutContent from '../../../[brandSlug]/posts/posts-layout-content';
 import { renderPostsListPage } from '../../../[brandSlug]/posts/posts-list-page';
-import WorkflowDetailPageClient from '../../../[brandSlug]/workflows/[id]/WorkflowDetailPageClient';
-import WorkflowNewPageClient from '../../../[brandSlug]/workflows/new/WorkflowNewPageClient';
+import StudioPageContent from '../../../[brandSlug]/studio/[type]/StudioPageContent';
+import { canonicalizeStudioType } from '../../../[brandSlug]/studio/[type]/studio-route';
 
 const ORG_LIBRARY_TYPE_BY_SEGMENT: Record<string, string> = {
   avatar: 'avatars',
@@ -92,78 +88,14 @@ function getOrgPostsStatusOverride(segments?: string[]) {
   return undefined;
 }
 
-function OrgWorkflowsPage({
-  initialExecutionId,
-  segments,
-}: {
-  initialExecutionId?: string;
-  segments?: string[];
-}) {
-  const section = segments?.[0];
-
-  if (section === 'templates') {
-    return (
-      <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-        <WorkflowTemplatesPage />
-      </Suspense>
-    );
-  }
-
-  if (section === 'executions') {
-    const executionId = segments?.[1];
-    if (executionId) {
-      return (
-        <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-          <ExecutionDetailPage executionId={executionId} />
-        </Suspense>
-      );
-    }
-
-    return (
-      <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-        <WorkflowExecutionsPage />
-      </Suspense>
-    );
-  }
-
-  if (section === 'new') {
-    return <WorkflowNewPageClient />;
-  }
-
-  // Reserved index segment: /~/workflows/library mirrors the workflows root
-  // (library). Without this guard it would fall into the detail branch below
-  // and request a workflow with id 'library'.
-  if (section === 'library') {
-    return (
-      <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-        <WorkflowLibraryPage />
-      </Suspense>
-    );
-  }
-
-  if (section) {
-    return (
-      <WorkflowDetailPageClient
-        workflowId={section}
-        initialExecutionId={initialExecutionId}
-      />
-    );
-  }
-
-  return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-      <WorkflowLibraryPage />
-    </Suspense>
-  );
-}
-
 export default async function OrgRootAppPage({
   params,
   searchParams,
 }: OrgRootAppPageProps) {
   const { orgRootApp, segments } = await params;
 
-  if (orgRootApp === 'workspace') {
+  if (orgRootApp === 'workspace' || orgRootApp === 'workflows') {
+    // Hard cut: org-scoped workflows are gone; use brand /orchestration/workflows.
     notFound();
   }
 
@@ -179,9 +111,15 @@ export default async function OrgRootAppPage({
   }
 
   if (orgRootApp === 'studio') {
+    // Studio generate surface — never the library ingredient browser.
+    // Type comes from /~/studio/:type (e.g. music, video, image, avatar).
+    const studioType = canonicalizeStudioType(segments?.[0]);
+
     return (
       <FeatureGate flagKey="studio">
-        <OrgIngredientListPage type={getOrgLibraryType(segments)} />
+        <ErrorBoundary>
+          <StudioPageContent typeOverride={studioType} />
+        </ErrorBoundary>
       </FeatureGate>
     );
   }
@@ -198,17 +136,6 @@ export default async function OrgRootAppPage({
     });
 
     return <PostsLayoutContent>{postsListPage}</PostsLayoutContent>;
-  }
-
-  if (orgRootApp === 'workflows') {
-    const resolvedSearchParams = searchParams ? await searchParams : undefined;
-
-    return (
-      <OrgWorkflowsPage
-        segments={segments}
-        initialExecutionId={resolvedSearchParams?.execution}
-      />
-    );
   }
 
   if (orgRootApp === 'editor') {
