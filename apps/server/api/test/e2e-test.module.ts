@@ -33,6 +33,7 @@ import { AccessBootstrapCacheService } from '@api/common/services/access-bootstr
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
+import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { InternalIntegrationsController } from '@api/endpoints/integrations/integrations.controller';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
@@ -241,6 +242,8 @@ export const COLLECTION_E2E_MOCK_PROVIDERS = [
     provide: service,
     useValue: { invalidateForUser: () => Promise.resolve() },
   })),
+  // Real fan-out over the three stubs above — no extra behavior to stub out.
+  UserAccessCacheService,
 ];
 
 type PrismaDelegate = {

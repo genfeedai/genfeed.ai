@@ -5,9 +5,10 @@ import { SettingsService } from '@api/collections/settings/services/settings.ser
 import { UsersController } from '@api/collections/users/controllers/users.controller';
 import { UsersRelationshipsController } from '@api/collections/users/controllers/users-relationships.controller';
 import { UsersService } from '@api/collections/users/services/users.service';
-import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
-import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
-import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
+import type { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import type { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
+import type { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
+import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import type { ISubscriptionsService } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
@@ -89,15 +90,20 @@ describe('UsersController', () => {
     betterAuthIdentityCacheService = {
       invalidateForUser: vi.fn().mockResolvedValue(undefined),
     };
+    // The real fan-out over mocked caches, so the assertions below still prove
+    // each individual cache is busted rather than just that the facade was hit.
+    const userAccessCacheService = new UserAccessCacheService(
+      requestContextCacheService as unknown as RequestContextCacheService,
+      accessBootstrapCacheService as unknown as AccessBootstrapCacheService,
+      betterAuthIdentityCacheService as unknown as BetterAuthIdentityCacheService,
+    );
     controller = new UsersController(
       brandsService as unknown as BrandsService,
       usersService as unknown as UsersService,
       subscriptionsService as unknown as ISubscriptionsService,
       filesClientService as unknown as FilesClientService,
       membersService as unknown as MembersService,
-      requestContextCacheService as unknown as RequestContextCacheService,
-      accessBootstrapCacheService as unknown as AccessBootstrapCacheService,
-      betterAuthIdentityCacheService as unknown as BetterAuthIdentityCacheService,
+      userAccessCacheService,
     );
     relationshipsController = new UsersRelationshipsController(
       brandsService as unknown as BrandsService,
@@ -106,9 +112,7 @@ describe('UsersController', () => {
       settingsService as unknown as SettingsService,
       mockLogger as unknown as LoggerService,
       membersService as unknown as MembersService,
-      requestContextCacheService as unknown as RequestContextCacheService,
-      accessBootstrapCacheService as unknown as AccessBootstrapCacheService,
-      betterAuthIdentityCacheService as unknown as BetterAuthIdentityCacheService,
+      userAccessCacheService,
     );
   });
 
@@ -242,7 +246,7 @@ describe('UsersController', () => {
       expect(usersService.patch).toHaveBeenCalledWith(userId, {
         hasDismissedAssetGate: true,
       });
-      // invalidateUserAccessCaches busts all three per-user caches so the next
+      // invalidateAll busts all three per-user caches so the next
       // /auth/bootstrap reflects the dismissal immediately.
       expect(
         accessBootstrapCacheService.invalidateForUser,

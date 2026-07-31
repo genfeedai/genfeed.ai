@@ -14,7 +14,10 @@ import { describe, expect, it } from 'vitest';
 const specDir = dirname(fileURLToPath(import.meta.url));
 const srcRoot = resolve(specDir, '..', '..', '..');
 
-const CONTROLLER_CLASS_PATTERN = /^export class (\w+Controller)\b/;
+// Matches unexported declarations too: the operationId comes from the runtime
+// class name, so `class X {}` + `export { X as Y }` collides exactly the same
+// way an `export class X` would — it just used to slip past this guard.
+const CONTROLLER_CLASS_PATTERN = /^(?:export )?class (\w+Controller)\b/;
 
 function walkControllerFiles(dir: string): string[] {
   const files: string[] = [];

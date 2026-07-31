@@ -5,9 +5,7 @@ import { UpdateAssetGateDto } from '@api/collections/users/dto/update-asset-gate
 import { UpdateUserDto } from '@api/collections/users/dto/update-user.dto';
 import { UpdateUserOnboardingDto } from '@api/collections/users/dto/update-user-onboarding.dto';
 import { UsersService } from '@api/collections/users/services/users.service';
-import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
-import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
-import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
+import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -65,9 +63,7 @@ export class UsersController {
     private readonly subscriptionsService: ISubscriptionsService,
     private readonly filesClientService: FilesClientService,
     private readonly membersService: MembersService,
-    private readonly requestContextCacheService: RequestContextCacheService,
-    private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
-    private readonly betterAuthIdentityCacheService: BetterAuthIdentityCacheService,
+    private readonly userAccessCacheService: UserAccessCacheService,
   ) {}
 
   private isActiveSubscriptionStatus(value: unknown): boolean {
@@ -82,14 +78,6 @@ export class UsersController {
   private canAccessUser(targetUserId: string, currentUser: User): boolean {
     const publicMetadata = getPublicMetadata(currentUser);
     return getIsSuperAdmin(currentUser) || publicMetadata.user === targetUserId;
-  }
-
-  private async invalidateUserAccessCaches(userId: string): Promise<void> {
-    await Promise.all([
-      this.requestContextCacheService.invalidateForUser(userId),
-      this.accessBootstrapCacheService.invalidateForUser(userId),
-      this.betterAuthIdentityCacheService.invalidateForUser(userId),
-    ]);
   }
 
   private async setBrandSelectionForUser(
@@ -114,7 +102,7 @@ export class UsersController {
         null,
       );
 
-      await this.invalidateUserAccessCaches(publicMetadata.user);
+      await this.userAccessCacheService.invalidateAll(publicMetadata.user);
       return;
     }
 
@@ -134,7 +122,7 @@ export class UsersController {
       selectedBrand.id,
     );
 
-    await this.invalidateUserAccessCaches(publicMetadata.user);
+    await this.userAccessCacheService.invalidateAll(publicMetadata.user);
   }
 
   @Get()
@@ -213,7 +201,7 @@ export class UsersController {
 
         const userIdString = data.id?.toString();
         if (userIdString) {
-          await this.invalidateUserAccessCaches(userIdString);
+          await this.userAccessCacheService.invalidateAll(userIdString);
         }
       }
     }
@@ -310,7 +298,7 @@ export class UsersController {
       hasDismissedAssetGate: updateAssetGateDto.hasDismissedAssetGate,
     } as Partial<UpdateUserDto>);
 
-    await this.invalidateUserAccessCaches(publicMetadata.user);
+    await this.userAccessCacheService.invalidateAll(publicMetadata.user);
 
     return data
       ? serializeSingle(request, UserSerializer, data)
@@ -344,7 +332,7 @@ export class UsersController {
     }
 
     const dbUserId = dbUser.id.toString();
-    await this.invalidateUserAccessCaches(dbUserId);
+    await this.userAccessCacheService.invalidateAll(dbUserId);
 
     const completed = await this.usersService.findOne({
       _id: dbUserId,
@@ -427,7 +415,7 @@ export class UsersController {
 
     const existingUserId = existingUser.id?.toString();
     if (existingUserId) {
-      await this.invalidateUserAccessCaches(existingUserId);
+      await this.userAccessCacheService.invalidateAll(existingUserId);
     }
 
     return data

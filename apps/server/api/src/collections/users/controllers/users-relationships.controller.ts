@@ -6,9 +6,7 @@ import { UpdateSettingDto } from '@api/collections/settings/dto/update-setting.d
 import { SettingEntity } from '@api/collections/settings/entities/setting.entity';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UsersService } from '@api/collections/users/services/users.service';
-import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
-import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
-import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
+import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -59,9 +57,7 @@ export class UsersRelationshipsController {
     private readonly settingsService: SettingsService,
     private readonly loggerService: LoggerService,
     private readonly membersService: MembersService,
-    private readonly requestContextCacheService: RequestContextCacheService,
-    private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
-    private readonly betterAuthIdentityCacheService: BetterAuthIdentityCacheService,
+    private readonly userAccessCacheService: UserAccessCacheService,
   ) {}
 
   @Get('me/brands')
@@ -243,7 +239,7 @@ export class UsersRelationshipsController {
       await this.usersService.patch(publicMetadata.user, {
         lastUsedOrganizationId: String(data.id),
       });
-      await this.invalidateUserAccessCaches(publicMetadata.user);
+      await this.userAccessCacheService.invalidateAll(publicMetadata.user);
     }
 
     return serializeSingle(request, OrganizationSerializer, data);
@@ -268,7 +264,7 @@ export class UsersRelationshipsController {
     );
 
     if (publicMetadata.user) {
-      await this.invalidateUserAccessCaches(publicMetadata.user);
+      await this.userAccessCacheService.invalidateAll(publicMetadata.user);
     }
 
     await this.membersService.setLastUsedBrand(
@@ -370,13 +366,5 @@ export class UsersRelationshipsController {
     }
 
     return null;
-  }
-
-  private async invalidateUserAccessCaches(userId: string): Promise<void> {
-    await Promise.all([
-      this.requestContextCacheService.invalidateForUser(userId),
-      this.accessBootstrapCacheService.invalidateForUser(userId),
-      this.betterAuthIdentityCacheService.invalidateForUser(userId),
-    ]);
   }
 }

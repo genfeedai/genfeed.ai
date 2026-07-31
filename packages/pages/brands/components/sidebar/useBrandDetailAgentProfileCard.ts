@@ -7,6 +7,7 @@ import type {
 } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
+import { useSaveQueue } from '@hooks/utils/use-save-queue/use-save-queue';
 import type {
   AgentProfileFormState,
   AgentProfilePlatformOverrideFormState,
@@ -300,7 +301,7 @@ export function useBrandDetailAgentProfileCard({
   );
   const [isGenerating, setIsGenerating] = useState(false);
   const formRef = useRef(form);
-  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const { enqueueSave, waitForIdle } = useSaveQueue();
 
   const getBrandsService = useAuthedService((token: string) =>
     BrandsService.getInstance(token),
@@ -323,8 +324,8 @@ export function useBrandDetailAgentProfileCard({
   const enqueueFormSave = useCallback(
     (
       updateForm: (current: AgentProfileFormState) => AgentProfileFormState,
-    ): Promise<void> => {
-      const queuedSave = saveQueueRef.current.then(async () => {
+    ): Promise<void> =>
+      enqueueSave(async () => {
         const previousForm = formRef.current;
         const nextForm = updateForm(previousForm);
 
@@ -346,12 +347,15 @@ export function useBrandDetailAgentProfileCard({
           notifications.error('Failed to save brand voice');
           throw error;
         }
-      });
-
-      saveQueueRef.current = queuedSave.catch(() => undefined);
-      return queuedSave;
-    },
-    [brandId, getBrandsService, notifications, onRefreshBrand, refreshBrands],
+      }),
+    [
+      brandId,
+      enqueueSave,
+      getBrandsService,
+      notifications,
+      onRefreshBrand,
+      refreshBrands,
+    ],
   );
 
   const handleFieldSave = useCallback(
@@ -429,7 +433,7 @@ export function useBrandDetailAgentProfileCard({
   const handleGenerate = useCallback(async () => {
     setIsGenerating(true);
     try {
-      await saveQueueRef.current;
+      await waitForIdle();
       const service = await getBrandsService();
       const websiteFromLinks = brand.links?.find((link) => {
         const category = String(link.category ?? '').toLowerCase();
@@ -473,6 +477,7 @@ export function useBrandDetailAgentProfileCard({
     notifications,
     onRefreshBrand,
     refreshBrands,
+    waitForIdle,
   ]);
 
   return {

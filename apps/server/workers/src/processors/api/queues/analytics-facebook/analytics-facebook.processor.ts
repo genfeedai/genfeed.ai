@@ -5,6 +5,7 @@ import { FacebookService } from '@api/services/integrations/facebook/services/fa
 import { CredentialPlatform } from '@genfeedai/enums';
 import type {
   AnalyticsCollectionAttemptRef,
+  AnalyticsCollectionFailedTarget,
   ServerAnalyticsCollectionState,
 } from '@genfeedai/interfaces';
 import {
@@ -73,6 +74,7 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
       }
 
       const readyTargets: AnalyticsCollectionAttemptRef[] = [];
+      const failedTargets: AnalyticsCollectionFailedTarget[] = [];
       let processed = 0;
 
       for (const post of posts) {
@@ -138,16 +140,14 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
             error,
           );
 
-          await this.analyticsCollectionState.markFailed(
-            {
-              attemptKey: job.data.attemptKey,
-              brandId: post.brand,
-              id: post.id,
-              organizationId: post.organization,
-              platform: post.platform,
-            },
+          failedTargets.push({
+            attemptKey: job.data.attemptKey,
+            brandId: post.brand,
             failure,
-          );
+            id: post.id,
+            organizationId: post.organization,
+            platform: post.platform,
+          });
 
           if (failure.isRetryable) {
             continue;
@@ -170,6 +170,9 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
       }
 
       await this.analyticsCollectionState.markReadyBatch(readyTargets);
+      if (failedTargets.length > 0) {
+        await this.analyticsCollectionState.markFailedTargets(failedTargets);
+      }
       await job.updateProgress(100);
 
       this.logger.log(

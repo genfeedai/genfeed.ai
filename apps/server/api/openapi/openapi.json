@@ -15347,7 +15347,7 @@
     },
     "/admin/fleet/assets": {
       "get": {
-        "operationId": "AdminFleetController.listAssets",
+        "operationId": "AdminFleetMediaController.listAssets",
         "parameters": [
           {
             "description": "Filter by persona slug",
@@ -15426,7 +15426,7 @@
     },
     "/admin/fleet/assets/{id}/publish": {
       "post": {
-        "operationId": "AdminFleetController.publishAsset",
+        "operationId": "AdminFleetMediaController.publishAsset",
         "parameters": [
           {
             "in": "path",
@@ -15460,7 +15460,7 @@
     },
     "/admin/fleet/assets/{id}/review": {
       "patch": {
-        "operationId": "AdminFleetController.reviewAsset",
+        "operationId": "AdminFleetMediaController.reviewAsset",
         "parameters": [
           {
             "in": "path",
@@ -15668,7 +15668,7 @@
     },
     "/admin/fleet/generate": {
       "post": {
-        "operationId": "AdminFleetController.generateImage",
+        "operationId": "AdminFleetMediaController.generateImage",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -15693,7 +15693,7 @@
     },
     "/admin/fleet/generate/jobs": {
       "post": {
-        "operationId": "AdminFleetController.createGenerateJob",
+        "operationId": "AdminFleetMediaController.createGenerateJob",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -15718,7 +15718,7 @@
     },
     "/admin/fleet/generate/jobs/{jobId}": {
       "get": {
-        "operationId": "AdminFleetController.getGenerateJob",
+        "operationId": "AdminFleetMediaController.getGenerateJob",
         "parameters": [
           {
             "in": "path",
@@ -15742,7 +15742,7 @@
     },
     "/admin/fleet/infrastructure/cloudfront/invalidate": {
       "post": {
-        "operationId": "AdminFleetController.invalidateCloudFront",
+        "operationId": "AdminFleetOperationsController.invalidateCloudFront",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -15767,7 +15767,7 @@
     },
     "/admin/fleet/infrastructure/ec2/action": {
       "post": {
-        "operationId": "AdminFleetController.ec2Action",
+        "operationId": "AdminFleetOperationsController.ec2Action",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -15792,7 +15792,7 @@
     },
     "/admin/fleet/infrastructure/ec2/action-all": {
       "post": {
-        "operationId": "AdminFleetController.ec2ActionAll",
+        "operationId": "AdminFleetOperationsController.ec2ActionAll",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -15817,7 +15817,7 @@
     },
     "/admin/fleet/infrastructure/ec2/status": {
       "get": {
-        "operationId": "AdminFleetController.getEC2Status",
+        "operationId": "AdminFleetOperationsController.getEC2Status",
         "parameters": [],
         "responses": {
           "200": {
@@ -15832,7 +15832,7 @@
     },
     "/admin/fleet/infrastructure/fleet/health": {
       "get": {
-        "operationId": "AdminFleetController.getFleetHealth",
+        "operationId": "AdminFleetOperationsController.getFleetHealth",
         "parameters": [],
         "responses": {
           "200": {
@@ -15847,7 +15847,7 @@
     },
     "/admin/fleet/infrastructure/services": {
       "get": {
-        "operationId": "AdminFleetController.getServiceHealth",
+        "operationId": "AdminFleetOperationsController.getServiceHealth",
         "parameters": [],
         "responses": {
           "200": {
@@ -15862,7 +15862,7 @@
     },
     "/admin/fleet/lip-sync": {
       "post": {
-        "operationId": "AdminFleetController.generateLipSync",
+        "operationId": "AdminFleetMediaController.generateLipSync",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -15887,7 +15887,7 @@
     },
     "/admin/fleet/lip-sync/{jobId}": {
       "get": {
-        "operationId": "AdminFleetController.getLipSyncStatus",
+        "operationId": "AdminFleetMediaController.getLipSyncStatus",
         "parameters": [
           {
             "in": "path",
@@ -15911,7 +15911,7 @@
     },
     "/admin/fleet/pipeline/campaigns": {
       "get": {
-        "operationId": "AdminFleetController.listCampaigns",
+        "operationId": "AdminFleetOperationsController.listCampaigns",
         "parameters": [],
         "responses": {
           "200": {
@@ -15926,7 +15926,7 @@
     },
     "/admin/fleet/pipeline/stats": {
       "get": {
-        "operationId": "AdminFleetController.getPipelineStats",
+        "operationId": "AdminFleetOperationsController.getPipelineStats",
         "parameters": [],
         "responses": {
           "200": {
@@ -15956,7 +15956,7 @@
     },
     "/admin/fleet/trainings": {
       "get": {
-        "operationId": "AdminFleetController.listTrainings",
+        "operationId": "AdminFleetMediaController.listTrainings",
         "parameters": [],
         "responses": {
           "200": {
@@ -15969,7 +15969,7 @@
         ]
       },
       "post": {
-        "operationId": "AdminFleetController.startTraining",
+        "operationId": "AdminFleetMediaController.startTraining",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -15994,7 +15994,7 @@
     },
     "/admin/fleet/trainings/{id}": {
       "get": {
-        "operationId": "AdminFleetController.getTraining",
+        "operationId": "AdminFleetMediaController.getTraining",
         "parameters": [
           {
             "in": "path",
@@ -16018,7 +16018,7 @@
     },
     "/admin/fleet/voices": {
       "get": {
-        "operationId": "AdminFleetController.listVoices",
+        "operationId": "AdminFleetMediaController.listVoices",
         "parameters": [],
         "responses": {
           "200": {
@@ -16033,7 +16033,7 @@
     },
     "/admin/fleet/voices/generate": {
       "post": {
-        "operationId": "AdminFleetController.generateVoice",
+        "operationId": "AdminFleetMediaController.generateVoice",
         "parameters": [],
         "requestBody": {
           "content": {

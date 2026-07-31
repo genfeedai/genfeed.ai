@@ -3,6 +3,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
 import type {
   AnalyticsCollectionAttemptRef,
+  AnalyticsCollectionFailedTarget,
   ServerAnalyticsCollectionState,
 } from '@genfeedai/interfaces';
 import {
@@ -69,6 +70,7 @@ export class AnalyticsThreadsProcessor extends WorkerHost {
       }
 
       const readyTargets: AnalyticsCollectionAttemptRef[] = [];
+      const failedTargets: AnalyticsCollectionFailedTarget[] = [];
       let processed = 0;
 
       for (const post of posts) {
@@ -104,16 +106,14 @@ export class AnalyticsThreadsProcessor extends WorkerHost {
             error,
           );
 
-          await this.analyticsCollectionState.markFailed(
-            {
-              attemptKey: job.data.attemptKey,
-              brandId: post.brand,
-              id: post.id,
-              organizationId: post.organization,
-              platform: post.platform,
-            },
+          failedTargets.push({
+            attemptKey: job.data.attemptKey,
+            brandId: post.brand,
             failure,
-          );
+            id: post.id,
+            organizationId: post.organization,
+            platform: post.platform,
+          });
 
           if (failure.isRetryable) {
             continue;
@@ -136,6 +136,9 @@ export class AnalyticsThreadsProcessor extends WorkerHost {
       }
 
       await this.analyticsCollectionState.markReadyBatch(readyTargets);
+      if (failedTargets.length > 0) {
+        await this.analyticsCollectionState.markFailedTargets(failedTargets);
+      }
       await job.updateProgress(100);
 
       this.logger.log(

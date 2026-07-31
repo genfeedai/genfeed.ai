@@ -11,9 +11,7 @@ import type { OrganizationDocument } from '@api/collections/organizations/schema
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { UsersService } from '@api/collections/users/services/users.service';
-import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
-import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
-import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
+import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -81,9 +79,7 @@ export class OrganizationsController extends BaseCRUDController<
     private readonly usersService: UsersService,
     private readonly rolesService: RolesService,
     private readonly organizationSettingsService: OrganizationSettingsService,
-    private readonly requestContextCacheService: RequestContextCacheService,
-    private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
-    private readonly betterAuthIdentityCacheService: BetterAuthIdentityCacheService,
+    private readonly userAccessCacheService: UserAccessCacheService,
   ) {
     super(
       loggerService,
@@ -402,11 +398,7 @@ export class OrganizationsController extends BaseCRUDController<
         brand.id.toString(),
       );
     }
-    await Promise.all([
-      this.requestContextCacheService.invalidateForUser(userId),
-      this.accessBootstrapCacheService.invalidateForUser(userId),
-      this.betterAuthIdentityCacheService.invalidateForUser(userId),
-    ]);
+    await this.userAccessCacheService.invalidateAll(userId);
 
     const org = await this.organizationsService.findOne({
       _id: orgId,
@@ -560,11 +552,7 @@ export class OrganizationsController extends BaseCRUDController<
       brand.id.toString(),
     );
 
-    await Promise.all([
-      this.requestContextCacheService.invalidateForUser(userId),
-      this.accessBootstrapCacheService.invalidateForUser(userId),
-      this.betterAuthIdentityCacheService.invalidateForUser(userId),
-    ]);
+    await this.userAccessCacheService.invalidateAll(userId);
 
     return {
       brand: { id: brand.id.toString(), label: brand.label },

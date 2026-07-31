@@ -16,6 +16,15 @@ export interface AnalyticsCollectionAttemptRef
   attemptKey?: string;
 }
 
+/**
+ * A target that carries its own failure, for callers whose posts fail
+ * individually (a per-post fetch loop) rather than all for one shared reason.
+ */
+export interface AnalyticsCollectionFailedTarget
+  extends AnalyticsCollectionAttemptRef {
+  failure: AnalyticsCollectionFailure;
+}
+
 export interface ServerAnalyticsCollectionState {
   markFailed(
     target: AnalyticsCollectionAttemptRef,
@@ -25,6 +34,7 @@ export interface ServerAnalyticsCollectionState {
     targets: AnalyticsCollectionAttemptRef[],
     failure: AnalyticsCollectionFailure,
   ): Promise<void>;
+  markFailedTargets(targets: AnalyticsCollectionFailedTarget[]): Promise<void>;
   markReady(
     target: AnalyticsCollectionAttemptRef,
     collectedAt?: Date,

@@ -1,4 +1,5 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -11,6 +12,7 @@ import {
   PostStatus,
   TargetExecutionState,
 } from '@genfeedai/enums';
+import type { IPublishingProviderReadiness } from '@genfeedai/interfaces';
 import {
   AgentArtifactReferenceService,
   AgentScopeContextService,
@@ -18,6 +20,7 @@ import {
   PublishApprovalsService,
 } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
@@ -30,6 +33,41 @@ const APPROVAL_JOB_IDENTITY = {
   operationId: 'operation-1',
   versionPinId: 'pin-1',
 } as const;
+
+/**
+ * The consumer's default verdict. `quotaStatus` is deliberately `unknown`:
+ * `resolveForCredentials` does not measure quota, which keeps the readiness
+ * gate disjoint from the worker's own `quota_exceeded` branch.
+ */
+const PUBLISH_CAPABLE_READINESS: IPublishingProviderReadiness = {
+  appReviewStatus: 'pass',
+  callbackUrlStatus: 'pass',
+  canSchedule: true,
+  diagnostics: [],
+  isRetryable: false,
+  permissionScopeStatus: 'pass',
+  providerKey: CredentialPlatform.TWITTER,
+  quotaStatus: 'unknown',
+  state: 'publish_capable',
+  tokenFreshness: 'pass',
+};
+
+const BLOCKED_READINESS: IPublishingProviderReadiness = {
+  ...PUBLISH_CAPABLE_READINESS,
+  canSchedule: false,
+  diagnostics: [
+    {
+      classification: 'expired_credential',
+      code: 'credential_access_token_missing',
+      isRetryable: false,
+      message: 'The provider account has no usable access credential.',
+      severity: 'error',
+    },
+  ],
+  requiredAction: 'Reconnect the provider account before publishing.',
+  state: 'blocked',
+  tokenFreshness: 'fail',
+};
 
 describe('CronPostsService', () => {
   let service: CronPostsService;
@@ -64,6 +102,10 @@ describe('CronPostsService', () => {
     materializeRecurrence: ReturnType<typeof vi.fn>;
     scheduleNextRepeat: ReturnType<typeof vi.fn>;
   };
+  let publishingReadinessService: {
+    resolveForCredentials: ReturnType<typeof vi.fn>;
+  };
+  let prismaService: { credential: { findMany: ReturnType<typeof vi.fn> } };
 
   beforeEach(async () => {
     activitiesService = {
@@ -116,6 +158,22 @@ describe('CronPostsService', () => {
       materializeRecurrence: vi.fn().mockResolvedValue(undefined),
       scheduleNextRepeat: vi.fn().mockResolvedValue(undefined),
     };
+    prismaService = { credential: { findMany: vi.fn() } };
+    publishingReadinessService = {
+      resolveForCredentials: vi.fn(
+        async (
+          _client: unknown,
+          _organizationId: string,
+          credentialIds: readonly string[],
+        ) =>
+          new Map(
+            credentialIds.map((credentialId) => [
+              credentialId,
+              { ...PUBLISH_CAPABLE_READINESS, credentialId },
+            ]),
+          ),
+      ),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -145,6 +203,14 @@ describe('CronPostsService', () => {
         {
           provide: CredentialsService,
           useValue: credentialsService,
+        },
+        {
+          provide: CredentialPublishingReadinessService,
+          useValue: publishingReadinessService,
+        },
+        {
+          provide: PrismaService,
+          useValue: prismaService,
         },
         {
           provide: OrganizationsService,
@@ -1009,6 +1075,192 @@ describe('CronPostsService', () => {
         errorMessage: 'Provider validation failed',
         platform: CredentialPlatform.TWITTER,
         post,
+      }),
+    );
+  });
+
+  /**
+   * Readiness is a snapshot, and a queued job can sit for the entire scheduling
+   * horizon before it runs — a token expires, an account is disconnected, a
+   * provider app loses its configuration. The enqueue-side gate cannot see any
+   * of that, so the consumer re-derives the same verdict before it hands
+   * anything to a provider. Same derivation as the scheduler
+   * (`resolveForCredentials`), so the two ends of the queue never disagree.
+   */
+  it('fails a queued publish whose channel stopped being publishable after it was scheduled', async () => {
+    schedulerPublishStateService.transitionPost.mockResolvedValue(true);
+    const post = {
+      brandId: 'brand-1',
+      children: [],
+      credentialId: 'cred-1',
+      id: 'post-1',
+      ingredients: [],
+      organizationId: 'org-1',
+      platform: CredentialPlatform.TWITTER,
+      reviewVersionPinId: 'pin-1',
+      retryCount: 0,
+      scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
+      status: PostStatus.SCHEDULED,
+      userId: 'user-1',
+    };
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [post],
+      total: 1,
+    } as never);
+    credentialsService.findOne.mockResolvedValue({
+      id: 'cred-1',
+      platform: CredentialPlatform.TWITTER,
+    });
+    publishingReadinessService.resolveForCredentials.mockResolvedValue(
+      new Map([['cred-1', BLOCKED_READINESS]]),
+    );
+
+    const result = await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
+      enqueuedAt: '2026-07-07T09:55:00.000Z',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+    });
+
+    // Nothing reaches the provider, and the quota branch never runs — the two
+    // gates stay disjoint so a blocked channel is not misreported as quota.
+    expect(publisherFactory.getPublisher).not.toHaveBeenCalled();
+    expect(quotaService.checkQuota).not.toHaveBeenCalled();
+    expect(result).toEqual(
+      expect.objectContaining({
+        error: 'The provider account has no usable access credential.',
+        platform: CredentialPlatform.TWITTER,
+        status: PostStatus.FAILED,
+        success: false,
+      }),
+    );
+    expect(schedulerPublishStateService.transitionPost).toHaveBeenNthCalledWith(
+      2,
+      post,
+      expect.objectContaining({
+        error: expect.objectContaining({
+          code: 'credential_access_token_missing',
+          isRetryable: false,
+          message: 'The provider account has no usable access credential.',
+        }),
+        executionState: TargetExecutionState.FAILED,
+        status: PostStatus.FAILED,
+      }),
+      'The provider account has no usable access credential.',
+      // Hard failures carry no transition guard.
+      undefined,
+    );
+    expect(
+      publishEventWebhookService.emitLegacyPostFailed,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorMessage: 'The provider account has no usable access credential.',
+        platform: CredentialPlatform.TWITTER,
+        post,
+      }),
+    );
+  });
+
+  it('resolves consume-time readiness tenant-scoped for the post own credential', async () => {
+    schedulerPublishStateService.transitionPost.mockResolvedValue(true);
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [
+        {
+          brandId: 'brand-1',
+          children: [],
+          credentialId: 'cred-1',
+          id: 'post-1',
+          ingredients: [],
+          organizationId: 'org-1',
+          platform: CredentialPlatform.TWITTER,
+          reviewVersionPinId: 'pin-1',
+          retryCount: 0,
+          scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
+          status: PostStatus.SCHEDULED,
+          userId: 'user-1',
+        },
+      ],
+      total: 1,
+    } as never);
+    credentialsService.findOne.mockResolvedValue({
+      id: 'cred-1',
+      platform: CredentialPlatform.TWITTER,
+    });
+    quotaService.checkQuota.mockResolvedValue({
+      allowed: true,
+      currentCount: 0,
+      dailyLimit: 10,
+    });
+    publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn().mockResolvedValue({
+        externalId: 'tweet-1',
+        platform: CredentialPlatform.TWITTER,
+        status: PostStatus.PUBLIC,
+        success: true,
+        url: 'https://x.com/example/status/tweet-1',
+      }),
+      supportsThreads: false,
+    });
+
+    const result = await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
+      enqueuedAt: '2026-07-07T09:55:00.000Z',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+    });
+
+    expect(
+      publishingReadinessService.resolveForCredentials,
+    ).toHaveBeenCalledWith(prismaService, 'org-1', ['cred-1']);
+    expect(result).toEqual(expect.objectContaining({ success: true }));
+  });
+
+  it('fails closed when consume-time readiness cannot be resolved at all', async () => {
+    schedulerPublishStateService.transitionPost.mockResolvedValue(true);
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [
+        {
+          brandId: 'brand-1',
+          children: [],
+          credentialId: 'cred-1',
+          id: 'post-1',
+          ingredients: [],
+          organizationId: 'org-1',
+          platform: CredentialPlatform.TWITTER,
+          reviewVersionPinId: 'pin-1',
+          retryCount: 0,
+          scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
+          status: PostStatus.SCHEDULED,
+          userId: 'user-1',
+        },
+      ],
+      total: 1,
+    } as never);
+    credentialsService.findOne.mockResolvedValue({
+      id: 'cred-1',
+      platform: CredentialPlatform.TWITTER,
+    });
+    // A soft-deleted or cross-tenant credential yields no row, so the map has
+    // no entry for it. Absence is a block, never a pass.
+    publishingReadinessService.resolveForCredentials.mockResolvedValue(
+      new Map(),
+    );
+
+    const result = await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
+      enqueuedAt: '2026-07-07T09:55:00.000Z',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+    });
+
+    expect(publisherFactory.getPublisher).not.toHaveBeenCalled();
+    expect(result).toEqual(
+      expect.objectContaining({
+        error: 'Channel is not ready to publish',
+        success: false,
       }),
     );
   });
