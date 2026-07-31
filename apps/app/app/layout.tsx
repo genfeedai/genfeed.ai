@@ -23,6 +23,15 @@ const pwaConfig = createPwaMetadata('app');
 export const metadata: Metadata = createAppMetadata({
   description,
   metadataBase: 'https://cdn.genfeed.ai',
+  // The studio is an authenticated product surface — only the marketing site
+  // (apps/website) is meant to rank. Every route inherits this unless it
+  // declares its own `robots`.
+  overrides: {
+    robots: {
+      follow: false,
+      index: false,
+    },
+  },
   pwaMetadata: pwaConfig.metadata,
   title: name,
 });

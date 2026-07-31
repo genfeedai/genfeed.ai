@@ -301,6 +301,30 @@ describe('app next.config', () => {
     ]);
   });
 
+  it('sends X-Robots-Tag: noindex, nofollow on every studio route', async () => {
+    const headers = await config.headers?.();
+    const catchAll = headers?.find((header) => header.source === '/(.*)');
+
+    expect(catchAll?.headers).toContainEqual({
+      key: 'X-Robots-Tag',
+      value: 'noindex, nofollow',
+    });
+  });
+
+  it('never advertises the studio as indexable', async () => {
+    const headers = await config.headers?.();
+    const robotsValues =
+      headers
+        ?.flatMap((header) => header.headers)
+        .filter((header) => header.key === 'X-Robots-Tag')
+        .map((header) => header.value) ?? [];
+
+    expect(robotsValues).not.toHaveLength(0);
+    for (const value of robotsValues) {
+      expect(value).not.toMatch(/(^|[\s,])index/);
+    }
+  });
+
   it('aliases published serializers to the local workspace source', () => {
     expect(config.turbopack?.resolveAlias).toMatchObject({
       '@genfeedai/serializers': '../../packages/serializers/src/index.ts',

@@ -153,6 +153,20 @@ function legacyPathRedirects(fromPrefix: `/${string}`, toPrefix: `/${string}`) {
 }
 
 const config = createAppNextConfig({
+  // Defense in depth alongside app/robots.ts and the root layout metadata: the
+  // header also covers responses that carry no HTML head (API routes, redirects,
+  // assets), so nothing under app.genfeed.ai is indexable.
+  headers: async () => [
+    {
+      headers: [
+        {
+          key: 'X-Robots-Tag',
+          value: 'noindex, nofollow',
+        },
+      ],
+      source: '/(.*)',
+    },
+  ],
   output: process.env.GENFEED_DESKTOP_BUNDLE === '1' ? 'standalone' : undefined,
   rewrites: async () => [
     {
