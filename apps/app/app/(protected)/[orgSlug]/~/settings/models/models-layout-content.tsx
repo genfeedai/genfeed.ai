@@ -4,7 +4,7 @@ import { useModelsContext } from '@contexts/models/models-context/models-context
 import { useTrainingsContext } from '@contexts/models/trainings-context/trainings-context';
 import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
-import type { NavigationTab } from '@genfeedai/interfaces/ui/navigation.interface';
+import type { RouteTabItem } from '@genfeedai/props/ui/navigation/tabs.props';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
@@ -28,7 +28,7 @@ export default function ModelsLayoutContent({
   const { refreshModels, isRefreshing: isRefreshingModels } =
     useModelsContext();
 
-  const tabs: NavigationTab[] = useMemo(
+  const tabs: RouteTabItem[] = useMemo(
     () => [
       {
         href: orgHref('/settings/models/all'),
