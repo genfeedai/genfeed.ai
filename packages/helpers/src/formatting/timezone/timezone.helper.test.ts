@@ -3,9 +3,11 @@ import {
   convertToUTC,
   createDateFromTimezone,
   formatDateInTimezone,
+  fromDateTimeLocalInput,
   getBrowserTimezone,
   isValidTimezone,
   TIMEZONES,
+  toDateTimeLocalInput,
 } from '@helpers/formatting/timezone/timezone.helper';
 import { describe, expect, it } from 'vitest';
 
@@ -133,5 +135,57 @@ describe('createDateFromTimezone', () => {
   it('returns a Date instance for any valid timezone', () => {
     const result = createDateFromTimezone(2024, 1, 1, 9, 0, 'Asia/Tokyo');
     expect(result).toBeInstanceOf(Date);
+  });
+});
+
+describe('toDateTimeLocalInput', () => {
+  it('renders the instant as wall-clock time in the release timezone', () => {
+    expect(
+      toDateTimeLocalInput('2026-08-02T09:00:00.000Z', 'America/New_York'),
+    ).toBe('2026-08-02T05:00');
+  });
+
+  it('reads the same instant differently on the other side of the date line', () => {
+    expect(toDateTimeLocalInput('2026-08-02T23:30:00.000Z', 'Asia/Tokyo')).toBe(
+      '2026-08-03T08:30',
+    );
+  });
+
+  it('pads to the exact shape a datetime-local input accepts', () => {
+    expect(
+      toDateTimeLocalInput(new Date('2026-01-05T04:07:00.000Z'), 'UTC'),
+    ).toBe('2026-01-05T04:07');
+  });
+
+  it('returns an empty string so a controlled input stays controlled', () => {
+    expect(toDateTimeLocalInput(null, 'UTC')).toBe('');
+    expect(toDateTimeLocalInput(undefined, 'UTC')).toBe('');
+    expect(toDateTimeLocalInput('not-a-date', 'UTC')).toBe('');
+    expect(
+      toDateTimeLocalInput('2026-08-02T09:00:00.000Z', 'Mars/Olympus'),
+    ).toBe('');
+  });
+});
+
+describe('fromDateTimeLocalInput', () => {
+  it('interprets the typed value as wall-clock time in the given zone', () => {
+    expect(fromDateTimeLocalInput('2026-08-02T05:00', 'America/New_York')).toBe(
+      '2026-08-02T09:00:00.000Z',
+    );
+  });
+
+  it('round-trips an instant through the input and back', () => {
+    const instant = '2026-12-31T23:45:00.000Z';
+    const zone = 'Australia/Sydney';
+
+    expect(
+      fromDateTimeLocalInput(toDateTimeLocalInput(instant, zone), zone),
+    ).toBe(instant);
+  });
+
+  it('refuses a value that is not a well-formed datetime-local string', () => {
+    expect(fromDateTimeLocalInput('', 'UTC')).toBeNull();
+    expect(fromDateTimeLocalInput('2026-08-02', 'UTC')).toBeNull();
+    expect(fromDateTimeLocalInput('2026-08-02T05:00:30', 'UTC')).toBeNull();
   });
 });

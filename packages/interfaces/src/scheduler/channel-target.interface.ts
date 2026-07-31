@@ -1,5 +1,6 @@
 import type {
   CredentialPlatform,
+  ReleaseTargetSource,
   TargetAnalyticsCapability,
   TargetAnalyticsCollectionState,
   TargetAnalyticsFreshness,
@@ -108,6 +109,12 @@ export interface IChannelTarget extends IBaseEntity {
    */
   readiness?: IPublishingProviderReadiness | null;
   executionState: TargetExecutionState;
+  /**
+   * Whether this target was placed by hand, by a workflow run, or by an agent.
+   * Derived from the target's provenance columns — never stored on its own — so
+   * the calendar can filter automation output without leaking run identifiers.
+   */
+  source: ReleaseTargetSource;
   /** Latest exact-target analytics snapshot, or an explicit empty state. */
   analytics: IChannelTargetAnalyticsSummary;
   /** Provider's ID for the published item (used for analytics reconciliation). */

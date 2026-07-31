@@ -46,6 +46,19 @@ export enum TargetExecutionState {
 }
 
 /**
+ * Where a channel target's schedule intent came from.
+ *
+ * Derived from the durable provenance columns on the target row rather than
+ * stored separately, so the calendar can separate hand-placed content from
+ * automation output without exposing raw run/thread identifiers.
+ */
+export enum ReleaseTargetSource {
+  MANUAL = 'manual',
+  WORKFLOW = 'workflow',
+  AGENT = 'agent',
+}
+
+/**
  * Result of validating a channel target against its platform capability rules
  * before it is allowed to be scheduled. `WARNING` is non-blocking; `INVALID`
  * blocks scheduling.

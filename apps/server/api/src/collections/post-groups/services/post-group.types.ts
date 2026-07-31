@@ -3,7 +3,12 @@ import type {
   CreateReleaseGroupInput,
   UpdateChannelTargetInput,
 } from '@api-types/contracts/scheduler.contract';
-import type { ReleaseStatus } from '@genfeedai/enums';
+import type {
+  CredentialPlatform,
+  ReleaseStatus,
+  ReleaseTargetSource,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import type {
   IPublishApproval,
   PostGroupCreateProvenance,
@@ -97,10 +102,19 @@ export type SchedulerPostAnalytics = {
   updatedAt: Date;
 };
 
+/**
+ * Calendar read-model query. `statuses` narrows the release itself; the
+ * remaining filters are target-scoped — a release matches when **at least one**
+ * of its channel targets satisfies them.
+ */
 export type ReleaseGroupListQuery = {
   brandId?: string;
+  credentialIds?: string[];
   endDate: Date;
+  executionStates?: TargetExecutionState[];
   organizationId: string;
+  platforms?: CredentialPlatform[];
+  sources?: ReleaseTargetSource[];
   startDate: Date;
   statuses?: ReleaseStatus[];
 };

@@ -1,0 +1,300 @@
+import {
+  CredentialPlatform,
+  ReleaseStatus,
+  ReleaseTargetSource,
+  TargetExecutionState,
+  TargetValidationState,
+} from '@genfeedai/enums';
+import type { IChannelTarget, IReleaseGroup } from '@genfeedai/interfaces';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import '@testing-library/jest-dom/vitest';
+import ReleaseDetailDrawer, {
+  RELEASE_RESCHEDULE_ACTION,
+  targetRescheduleAction,
+  targetRetryAction,
+} from './release-detail-drawer';
+
+// Radix's Sheet portals into a dialog the jsdom tree cannot focus-trap; the
+// drawer's own behavior is what these tests are about.
+vi.mock('@ui/primitives/sheet', () => ({
+  Sheet: ({ children }: { children: React.ReactNode }) => children,
+  SheetContent: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+  SheetDescription: ({ children }: { children: React.ReactNode }) => (
+    <p>{children}</p>
+  ),
+  SheetHeader: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+  SheetTitle: ({ children }: { children: React.ReactNode }) => (
+    <h2>{children}</h2>
+  ),
+}));
+
+function target(overrides: Partial<IChannelTarget> = {}): IChannelTarget {
+  return {
+    executionState: TargetExecutionState.SCHEDULED,
+    id: 'target-1',
+    platform: CredentialPlatform.INSTAGRAM,
+    retryCount: 0,
+    scheduledAt: '2026-08-02T10:00:00.000Z',
+    source: ReleaseTargetSource.MANUAL,
+    timezone: 'UTC',
+    validationIssues: [],
+    validationState: TargetValidationState.VALID,
+    ...overrides,
+  } as IChannelTarget;
+}
+
+function release(overrides: Partial<IReleaseGroup> = {}): IReleaseGroup {
+  return {
+    id: 'release-1',
+    scheduledAt: '2026-08-02T09:00:00.000Z',
+    status: ReleaseStatus.SCHEDULED,
+    targets: [target()],
+    timezone: 'UTC',
+    title: 'Campaign release',
+    ...overrides,
+  } as IReleaseGroup;
+}
+
+function renderDrawer(
+  overrides: Partial<IReleaseGroup> = {},
+  pending: string | null = null,
+) {
+  const handlers = {
+    onClose: vi.fn(),
+    onRescheduleRelease: vi.fn(),
+    onRescheduleTarget: vi.fn(),
+    onRetryTarget: vi.fn(),
+  };
+
+  const view = render(
+    <ReleaseDetailDrawer
+      error={null}
+      pendingAction={pending}
+      release={release(overrides)}
+      {...handlers}
+    />,
+  );
+
+  return { ...handlers, view };
+}
+
+describe('ReleaseDetailDrawer', () => {
+  it('seeds both schedule inputs from the instants the API returned', () => {
+    renderDrawer();
+
+    expect(screen.getByLabelText('Release time')).toHaveValue(
+      '2026-08-02T09:00',
+    );
+    expect(screen.getByLabelText('Instagram time')).toHaveValue(
+      '2026-08-02T10:00',
+    );
+  });
+
+  it('falls back to the release instant for a target with no override', () => {
+    renderDrawer({ targets: [target({ scheduledAt: null })] });
+
+    expect(screen.getByLabelText('Instagram time')).toHaveValue(
+      '2026-08-02T09:00',
+    );
+  });
+
+  it('emits an absolute instant, not the local wall-clock string', () => {
+    const { onRescheduleRelease } = renderDrawer();
+
+    fireEvent.change(screen.getByLabelText('Release time'), {
+      target: { value: '2026-08-03T14:30' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Reschedule release' }));
+
+    expect(onRescheduleRelease).toHaveBeenCalledWith(
+      '2026-08-03T14:30:00.000Z',
+    );
+  });
+
+  it('reschedules a single target through its own handler', () => {
+    const { onRescheduleTarget } = renderDrawer();
+
+    fireEvent.change(screen.getByLabelText('Instagram time'), {
+      target: { value: '2026-08-03T16:00' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Reschedule Instagram target' }),
+    );
+
+    expect(onRescheduleTarget).toHaveBeenCalledWith(
+      'target-1',
+      '2026-08-03T16:00:00.000Z',
+    );
+  });
+
+  it('offers a retry only for a failed target', () => {
+    renderDrawer();
+    expect(
+      screen.queryByRole('button', { name: 'Retry Instagram target' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('retries a failed target and surfaces why it failed', () => {
+    const { onRetryTarget } = renderDrawer({
+      status: ReleaseStatus.FAILED,
+      targets: [
+        target({
+          error: {
+            code: 'provider_timeout',
+            failedAt: '2026-08-02T10:00:05.000Z',
+            isRetryable: true,
+            message: 'Provider timed out.',
+          },
+          executionState: TargetExecutionState.FAILED,
+          lastAttemptAt: '2026-08-02T10:00:00.000Z',
+          retryCount: 1,
+        }),
+      ],
+    });
+
+    // Once as the current failure banner, once as the history entry — the
+    // banner answers "why is it red now", the entry answers "when did it fail".
+    expect(screen.getAllByText('Provider timed out.')).toHaveLength(2);
+    expect(screen.getByText('Retry 1')).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Retry Instagram target' }),
+    );
+    expect(onRetryTarget).toHaveBeenCalledWith('target-1');
+  });
+
+  it('locks the release once a target published, but not its unsent siblings', () => {
+    renderDrawer({
+      targets: [
+        target({ executionState: TargetExecutionState.PUBLISHED }),
+        target({ id: 'target-2', platform: CredentialPlatform.LINKEDIN }),
+      ],
+    });
+
+    // Moving the release would rewrite the instant a published target already
+    // went out at; moving the target that has not gone out yet is still valid.
+    expect(
+      screen.getByRole('button', { name: 'Reschedule release' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Reschedule Instagram target' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Reschedule LinkedIn target' }),
+    ).toBeEnabled();
+  });
+
+  it('blocks a target the publishing-readiness gate would reject anyway', () => {
+    renderDrawer({
+      targets: [
+        target({
+          readiness: {
+            canSchedule: false,
+            diagnostics: [
+              {
+                classification: 'expired_credential',
+                code: 'credential_expired',
+                isRetryable: false,
+                message: 'The Instagram token expired.',
+                severity: 'error',
+              },
+            ],
+            requiredAction: 'Reconnect the Instagram channel.',
+          } as IChannelTarget['readiness'],
+        }),
+      ],
+    });
+
+    expect(
+      screen.getByText('Publishing setup is blocking this channel'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Reconnect the Instagram channel.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('The Instagram token expired.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Reschedule Instagram target' }),
+    ).toBeDisabled();
+  });
+
+  it('lists the validation issues that produced an invalid target', () => {
+    renderDrawer({
+      targets: [
+        target({
+          validationIssues: ['Caption exceeds 2200 characters.'],
+          validationState: TargetValidationState.INVALID,
+        }),
+      ],
+    });
+
+    expect(
+      screen.getByText('Caption exceeds 2200 characters.'),
+    ).toBeInTheDocument();
+  });
+
+  it('stops a second mutation racing the one already in flight', () => {
+    renderDrawer({}, targetRescheduleAction('target-1'));
+
+    expect(
+      screen.getByRole('button', { name: 'Reschedule release' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Reschedule Instagram target' }),
+    ).toBeDisabled();
+  });
+
+  it('surfaces a rejected mutation as an alert instead of silently reverting', () => {
+    render(
+      <ReleaseDetailDrawer
+        error="Cannot schedule: the Instagram channel is not publish-capable."
+        onClose={vi.fn()}
+        onRescheduleRelease={vi.fn()}
+        onRescheduleTarget={vi.fn()}
+        onRetryTarget={vi.fn()}
+        pendingAction={null}
+        release={release()}
+      />,
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Cannot schedule: the Instagram channel is not publish-capable.',
+    );
+  });
+
+  it('shows the analytics empty state rather than an empty table', () => {
+    renderDrawer();
+
+    expect(screen.getByText('No target analytics yet')).toBeInTheDocument();
+  });
+
+  it('says so plainly when there is no release to inspect', () => {
+    render(
+      <ReleaseDetailDrawer
+        error={null}
+        onClose={vi.fn()}
+        onRescheduleRelease={vi.fn()}
+        onRescheduleTarget={vi.fn()}
+        onRetryTarget={vi.fn()}
+        pendingAction={null}
+        release={null}
+      />,
+    );
+
+    expect(
+      screen.getByText('This release has no channel targets.'),
+    ).toBeInTheDocument();
+  });
+
+  it('exposes stable action identifiers for the page to key pending state on', () => {
+    expect(RELEASE_RESCHEDULE_ACTION).toBe('release:reschedule');
+    expect(targetRescheduleAction('t-1')).toBe('target:reschedule:t-1');
+    expect(targetRetryAction('t-1')).toBe('target:retry:t-1');
+  });
+});
