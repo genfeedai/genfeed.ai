@@ -1,15 +1,11 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { InvitationsQueryDto } from '@api/collections/members/dto/invitations-query.dto';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { InvitationService } from '@api/collections/members/services/invitation.service';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { MembersService } from '@api/collections/members/services/members.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
@@ -25,7 +21,6 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 import { MemberSerializer } from '@genfeedai/serializers';
 import { scopedWhere } from '@genfeedai/server';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Controller,

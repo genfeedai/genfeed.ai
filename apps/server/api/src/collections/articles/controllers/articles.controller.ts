@@ -1,10 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { ArticlesQueryDto } from '@api/collections/articles/dto/articles-query.dto';
 import type { CreateArticleDto } from '@api/collections/articles/dto/create-article.dto';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { UpdateArticleDto } from '@api/collections/articles/dto/update-article.dto';
 import type { ArticleDocument } from '@api/collections/articles/schemas/article.schema';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -25,9 +23,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { ArticleSerializer } from '@genfeedai/serializers';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { ConfigService } from '@libs/config/config.service';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

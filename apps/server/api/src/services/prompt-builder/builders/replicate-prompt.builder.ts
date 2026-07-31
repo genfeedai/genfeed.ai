@@ -1,5 +1,3 @@
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
-
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { BasePromptBuilder } from '@api/services/prompt-builder/builders/base-prompt.builder';
 import {
