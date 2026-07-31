@@ -328,7 +328,6 @@ describe('WorkflowApiService', () => {
       lifecycle: 'archived',
     });
     expect(mocks.post).toHaveBeenCalledWith('', {
-      label: 'Copy',
       sourceWorkflowId: 'workflow-1',
     });
     expect(mocks.delete).toHaveBeenCalledWith('/workflow-1');
@@ -343,7 +342,6 @@ describe('WorkflowApiService', () => {
 
     expect(mocks.post).toHaveBeenCalledWith('', {
       brandId: 'brand-2',
-      label: 'Copy',
       sourceWorkflowId: 'workflow-1',
     });
   });

@@ -9,5 +9,6 @@ export * from './credential.interface';
 export * from './member.interface';
 export * from './organization.interface';
 export * from './organization-category-seed.interface';
+export * from './organization-option.interface';
 export * from './organization-setting.interface';
 export * from './quota-status.interface';

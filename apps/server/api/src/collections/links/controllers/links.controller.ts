@@ -26,6 +26,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Optional,
   Param,
   Patch,
@@ -57,16 +58,30 @@ export class LinksController extends BaseCRUDController<
    */
   public buildFindAllQuery(user: User, query: LinksQueryDto) {
     const publicMetadata = getPublicMetadata(user);
+    const isSuperAdmin = getIsSuperAdmin(user);
     const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
       query,
       publicMetadata,
-      getIsSuperAdmin(user),
+      isSuperAdmin,
     );
+
+    if (
+      !isSuperAdmin &&
+      (!publicMetadata.brand ||
+        (scope.brand && String(scope.brand) !== String(publicMetadata.brand)))
+    ) {
+      throw new ForbiddenException({
+        detail: 'Access denied to this brand',
+        title: 'Forbidden',
+      });
+    }
 
     return {
       orderBy: handleQuerySort(query.sort),
       where: {
-        brand: scope.brand ?? publicMetadata.brand,
+        brand: isSuperAdmin
+          ? (scope.brand ?? publicMetadata.brand)
+          : publicMetadata.brand,
         isDeleted: query.isDeleted ?? false,
       },
     };

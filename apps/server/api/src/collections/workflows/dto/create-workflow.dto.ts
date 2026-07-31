@@ -19,6 +19,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -264,11 +265,13 @@ export class CreateWorkflowDto {
   })
   readonly organization?: string;
 
+  @ValidateIf((dto: CreateWorkflowDto) => !dto.sourceWorkflowId)
   @IsString()
   @IsNotEmpty()
   @ApiProperty({
-    description: 'The display label/name of the workflow',
-    required: true,
+    description:
+      'The display label/name of the workflow. Omit when sourceWorkflowId is set; the server derives the copy label.',
+    required: false,
   })
   readonly label!: string;
 

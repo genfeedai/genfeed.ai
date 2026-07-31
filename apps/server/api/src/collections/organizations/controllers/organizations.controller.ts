@@ -39,6 +39,7 @@ import { isCloudDeployment } from '@genfeedai/config';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
+  OrganizationOption,
 } from '@genfeedai/interfaces';
 import {
   getOrganizationLimitForTier,
@@ -171,17 +172,25 @@ export class OrganizationsController extends BaseCRUDController<
    * - `?mine=true` — membership summaries for the current user (cross-org).
    * - default — platform-wide list (superadmin only).
    */
+  findAll(
+    request: Request,
+    user: User,
+    query: OrganizationQueryDto & { readonly mine: true },
+  ): Promise<OrganizationOption[]>;
+  findAll(
+    request: Request,
+    user: User,
+    query: OrganizationQueryDto,
+  ): Promise<JsonApiCollectionResponse>;
   @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAll(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Query() query: OrganizationQueryDto,
-  ): Promise<JsonApiCollectionResponse> {
-    // Membership summary is a non–JSON:API array; cast at the HTTP boundary so
-    // the override stays assignable to BaseCRUDController.findAll.
+  ): Promise<JsonApiCollectionResponse | OrganizationOption[]> {
     if (query.mine) {
-      return this.findMine(user) as unknown as JsonApiCollectionResponse;
+      return this.findMine(user);
     }
 
     if (!getIsSuperAdmin(user)) {
@@ -245,7 +254,7 @@ export class OrganizationsController extends BaseCRUDController<
    * Membership summaries for the current user (cross-org).
    * Invoked via `GET /organizations?mine=true`.
    */
-  async findMine(user: User): Promise<unknown[]> {
+  async findMine(user: User): Promise<OrganizationOption[]> {
     const publicMetadata = getPublicMetadata(user);
     const userId = publicMetadata.user;
 

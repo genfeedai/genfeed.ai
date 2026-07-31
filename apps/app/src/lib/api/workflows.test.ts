@@ -212,7 +212,7 @@ describe('workflowsApi', () => {
 
       expect(apiClient.post).toHaveBeenCalledWith(
         '/workflows',
-        { label: 'Copy', sourceWorkflowId: 'workflow-1' },
+        { sourceWorkflowId: 'workflow-1' },
         {
           signal: undefined,
         },
@@ -235,7 +235,6 @@ describe('workflowsApi', () => {
         '/workflows',
         {
           brandId: 'brand-2',
-          label: 'Copy',
           sourceWorkflowId: 'workflow-1',
         },
         {
@@ -253,7 +252,7 @@ describe('workflowsApi', () => {
 
       expect(apiClient.post).toHaveBeenCalledWith(
         '/workflows',
-        { label: 'Copy', sourceWorkflowId: 'workflow-1' },
+        { sourceWorkflowId: 'workflow-1' },
         {
           signal: abortController.signal,
         },

@@ -596,12 +596,17 @@ export class WorkflowApiService extends HTTPBaseService {
     id: string,
     options?: { brandId?: string | null },
   ): Promise<CloudWorkflowData> {
-    // Delegate to create — it already logs failures; avoid double-logging.
-    return this.create({
-      ...(options?.brandId ? { brandId: options.brandId } : {}),
-      name: 'Copy',
-      sourceWorkflowId: id,
-    });
+    try {
+      const response = await this.instance.post<JsonApiResponseDocument>('', {
+        ...(options?.brandId ? { brandId: options.brandId } : {}),
+        sourceWorkflowId: id,
+      });
+      const item = deserializeResource<CloudWorkflowData>(response.data);
+      return this.normalizeWorkflowData(item);
+    } catch (error) {
+      logger.error('Failed to duplicate workflow', { error, workflowId: id });
+      throw error;
+    }
   }
 
   // ---------------------------------------------------------------------------

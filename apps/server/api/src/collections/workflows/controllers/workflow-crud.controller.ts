@@ -3,7 +3,10 @@ import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflo
 import { WorkflowQueryDto } from '@api/collections/workflows/dto/query-workflow.dto';
 import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflow.dto';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
-import { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
+import {
+  type SystemWorkflowCatalogListItem,
+  SystemWorkflowCatalogService,
+} from '@api/collections/workflows/services/system-workflow-catalog.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { SYSTEM_WORKFLOW_METADATA_KEY } from '@api/collections/workflows/system-workflow.contract';
@@ -45,6 +48,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
+
+export interface SystemWorkflowCatalogResponse {
+  data: SystemWorkflowCatalogListItem[];
+}
+
+export interface WorkflowStatisticsResponse {
+  data: Awaited<ReturnType<WorkflowsService['getWorkflowStatistics']>>;
+}
 
 /**
  * Standard workflow CRUD (+ statistics view and ComfyUI export). Registered LAST
@@ -94,7 +105,11 @@ export class WorkflowCrudController {
     @Req() request: Request,
     @CurrentUser() user: User,
     @Query() query: WorkflowQueryDto,
-  ): Promise<JsonApiCollectionResponse> {
+  ): Promise<
+    | JsonApiCollectionResponse
+    | SystemWorkflowCatalogResponse
+    | WorkflowStatisticsResponse
+  > {
     const publicMetadata = getPublicMetadata(user);
 
     // Code-owned system catalog (not persisted rows). Same collection resource
@@ -105,7 +120,7 @@ export class WorkflowCrudController {
           await this.systemWorkflowCatalogService.listCatalogForOrganization(
             publicMetadata.organization,
           );
-        return { data } as unknown as JsonApiCollectionResponse;
+        return { data };
       }, 'Failed to list system workflow catalog');
     }
 
@@ -115,7 +130,7 @@ export class WorkflowCrudController {
           publicMetadata.user,
           publicMetadata.organization,
         );
-        return { data: stats } as unknown as JsonApiCollectionResponse;
+        return { data: stats };
       }, 'Failed to load workflow statistics');
     }
 

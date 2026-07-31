@@ -1,15 +1,5 @@
+import type { OrganizationOption } from '@genfeedai/interfaces';
 import { get, post } from './client';
-import { flattenCollection, type JsonApiCollectionResponse } from './json-api';
-
-export interface OrganizationOption {
-  id: string;
-  label: string;
-  isActive: boolean;
-  brand: {
-    id: string;
-    label: string;
-  } | null;
-}
 
 export interface SwitchOrganizationResponse {
   organization: {
@@ -23,8 +13,7 @@ export interface SwitchOrganizationResponse {
 }
 
 export async function listMyOrganizations(): Promise<OrganizationOption[]> {
-  const response = await get<JsonApiCollectionResponse>('/organizations?mine=true');
-  return flattenCollection<OrganizationOption>(response);
+  return get<OrganizationOption[]>('/organizations?mine=true');
 }
 
 export async function switchOrganization(id: string): Promise<SwitchOrganizationResponse> {

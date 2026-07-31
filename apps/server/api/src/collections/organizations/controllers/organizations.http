@@ -157,17 +157,14 @@ Authorization: Bearer {{bearerToken}}
 # Create Organization
 ########################################
 
-### Create New Organization (Superadmin Only)
+### Create New Organization
 POST {{apiBaseUrl}}/organizations
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
 {
-  "name": "Acme Corporation",
-  "slug": "acme-corp",
-  "plan": "pro",
-  "maxAccounts": 10,
-  "maxMembers": 50
+  "label": "Acme Corporation",
+  "description": "Optional organization description"
 }
 
 

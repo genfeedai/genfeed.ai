@@ -186,6 +186,7 @@ export * from './organization/credential.interface';
 export * from './organization/member.interface';
 export * from './organization/organization.interface';
 export * from './organization/organization-category-seed.interface';
+export * from './organization/organization-option.interface';
 export * from './organization/organization-setting.interface';
 export * from './organization/quota-status.interface';
 export * from './providers/providers.interface';

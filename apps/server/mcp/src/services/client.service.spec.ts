@@ -981,7 +981,6 @@ describe('ClientService (MCP)', () => {
       const result = await service.duplicateWorkflow('workflow-123');
 
       expect(mockAxiosInstance.post).toHaveBeenCalledWith('/workflows', {
-        label: 'Copy',
         sourceWorkflowId: 'workflow-123',
       });
       expect(result.id).toBe('workflow-copy');

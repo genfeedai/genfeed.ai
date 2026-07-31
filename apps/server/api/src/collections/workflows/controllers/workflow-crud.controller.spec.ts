@@ -205,6 +205,30 @@ describe('WorkflowCrudController', () => {
     });
   });
 
+  describe('findAll source=system-catalog', () => {
+    it('returns the explicit raw catalog list response contract', async () => {
+      const catalog = [
+        {
+          canonicalId: 'daily-trends-digest',
+          installed: false,
+          installedWorkflowId: null,
+        },
+      ];
+      mockSystemWorkflowCatalogService.listCatalogForOrganization.mockResolvedValue(
+        catalog,
+      );
+
+      const result = await controller.findAll(mockRequest, mockUser, {
+        source: 'system-catalog',
+      });
+
+      expect(
+        mockSystemWorkflowCatalogService.listCatalogForOrganization,
+      ).toHaveBeenCalledWith(mockUser.publicMetadata.organization);
+      expect(result).toEqual({ data: catalog });
+    });
+  });
+
   describe('findOne', () => {
     it('should return a workflow by id via the ownership guard', async () => {
       const id = '507f1f77bcf86cd799439014';
@@ -231,14 +255,14 @@ describe('WorkflowCrudController', () => {
 
       const result = await controller.create(
         mockRequest,
-        { label: 'Copy', sourceWorkflowId: id } as never,
+        { sourceWorkflowId: id } as never,
         mockUser,
       );
 
       expect(service.createWorkflow).toHaveBeenCalledWith(
         mockUser.publicMetadata.user,
         mockUser.publicMetadata.organization,
-        { label: 'Copy', sourceWorkflowId: id },
+        { sourceWorkflowId: id },
         mockUser.publicMetadata.brand,
       );
       expect(result).toBeDefined();

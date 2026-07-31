@@ -184,6 +184,15 @@ export class OutreachCampaignsController extends BaseCRUDController<
     @Body() updateDto: UpdateOutreachCampaignDto,
   ) {
     const publicMetadata = getPublicMetadata(user);
+    const hasNonStatusUpdates = Object.entries(updateDto).some(
+      ([key, value]) => key !== 'status' && value !== undefined,
+    );
+
+    if (updateDto.status && hasNonStatusUpdates) {
+      throw new BadRequestException(
+        'Campaign status transitions cannot be combined with other updates',
+      );
+    }
 
     if (updateDto.status === CampaignStatus.ACTIVE) {
       const data = await this.outreachCampaignsService.start(

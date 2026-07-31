@@ -113,7 +113,6 @@ export const workflowsApi = {
         ...(options && typeof options === 'object' && 'brandId' in options
           ? { brandId: options.brandId }
           : {}),
-        label: 'Copy',
         sourceWorkflowId: id,
       },
       { signal: requestSignal },

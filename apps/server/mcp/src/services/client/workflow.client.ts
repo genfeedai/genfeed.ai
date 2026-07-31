@@ -205,7 +205,6 @@ export class WorkflowClient {
       'duplicating workflow',
       async (http) => {
         const response = await http.post('/workflows', {
-          label: 'Copy',
           sourceWorkflowId: workflowId,
         });
         return mapWorkflowResource(
