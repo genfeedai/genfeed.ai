@@ -11,15 +11,6 @@ const mocks = vi.hoisted(() => ({
   isSystemWorkflow: false,
 }));
 
-vi.mock('@genfeedai/enums', () => ({
-  ButtonVariant: {
-    DEFAULT: 'default',
-    OUTLINE: 'outline',
-    SECONDARY: 'secondary',
-    UNSTYLED: 'unstyled',
-  },
-}));
-
 vi.mock('@ui/card/Card', () => ({
   default: ({
     children,

@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const featureFlags = vi.hoisted(() => ({
   app_switcher_agent: true,
   app_switcher_analytics: true,
+  app_switcher_automate: true,
   app_switcher_library: true,
   app_switcher_messages: true,
   app_switcher_posts: true,
@@ -234,9 +235,10 @@ describe('AppSwitcher', () => {
       'Workspace',
       'Agent',
       'Messages',
-      'Research',
+      'Automate',
       'Studio',
       'Library',
+      'Trends',
       'Publish',
       'Analytics',
     ]) {
@@ -275,7 +277,7 @@ describe('AppSwitcher', () => {
 
     render(<AppSwitcher orgSlug="acme" />);
 
-    for (const label of ['Messages', 'Research', 'Library', 'Analytics']) {
+    for (const label of ['Messages', 'Trends', 'Library', 'Analytics']) {
       expect(
         screen.queryByRole('link', { name: label }),
       ).not.toBeInTheDocument();

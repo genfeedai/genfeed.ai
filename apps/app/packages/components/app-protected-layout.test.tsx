@@ -911,7 +911,7 @@ describe('AppProtectedLayout', () => {
     ],
     [
       '/org-123/brand-123/orchestration/content-runs/run-1',
-      'Workflows',
+      'Automate',
       'Content Run',
     ],
     ['/org-123/brand-123/posts/campaigns/campaign-1', 'Publish', 'Campaign'],
@@ -977,8 +977,9 @@ describe('AppProtectedLayout', () => {
 
   it('keeps the frame on a canvas route while the shell body is still booting', () => {
     // No auth yet means no agent API service, so the shell body cannot mount.
-    // The application around it is not the shell's to withhold: chrome used to
-    // disappear on canvas routes for exactly this window.
+    // The frame around it is not the shell's to withhold: the topbar used to
+    // disappear on canvas routes for exactly this window. The module sidebar is
+    // a separate matter — canvas routes own their left rail, so it stays out.
     shellState.isAuthLoaded = false;
     mockPathname.value = '/org-123/brand-123/editor/new';
 
@@ -991,7 +992,7 @@ describe('AppProtectedLayout', () => {
     expect(
       screen.queryByTestId('universal-workspace-shell'),
     ).not.toBeInTheDocument();
-    expect(screen.getByTestId('app-sidebar')).toBeInTheDocument();
+    expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         isWorkspaceShell: false,
@@ -1156,7 +1157,7 @@ describe('AppProtectedLayout', () => {
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         currentApp: 'automate',
-        sectionLabel: 'Workflows',
+        sectionLabel: 'Automate',
         shellChromeVariant: 'default',
       }),
     );
@@ -1190,7 +1191,7 @@ describe('AppProtectedLayout', () => {
     ['/org-123/brand-123/studio/image', 'studio', 'Studio'],
     ['/org-123/brand-123/library', 'library', 'Library'],
     ['/org-123/brand-123/analytics', 'analytics', 'Analytics'],
-    ['/org-123/brand-123/orchestration/workflows', 'workflows', 'Workflows'],
+    ['/org-123/brand-123/orchestration/workflows', 'automate', 'Automate'],
     ['/org-123/brand-123/posts/remix', 'posts', 'Publish'],
   ])(
     'keeps the %s app-switcher surface on its own module nav',
@@ -1440,7 +1441,8 @@ describe('AppProtectedLayout', () => {
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({ isWorkspaceShell: true }),
     );
-    expect(screen.getByTestId('app-sidebar')).toBeInTheDocument();
+    // Canvas route: the editor owns the left rail, so no module sidebar.
+    expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('streak-notifications-bridge'),
@@ -1461,7 +1463,8 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({ isWorkspaceShell: true }),
     );
     expect(screen.getByText('Workflow editor')).toBeInTheDocument();
-    expect(screen.getByTestId('app-sidebar')).toBeInTheDocument();
+    // Canvas route: the graph editor owns the left rail, so no module sidebar.
+    expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
   });
 });
