@@ -3,12 +3,8 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
 } from '@genfeedai/constants';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import config from './next.config';
-
-vi.mock('@next/bundle-analyzer', () => ({
-  default: () => (nextConfig: Record<string, unknown>) => nextConfig,
-}));
 
 describe('app next.config', () => {
   it('allows current social-provider avatars without retaining Clerk hosts', () => {
@@ -287,22 +283,23 @@ describe('app next.config', () => {
     });
   });
 
-  it('adds the same serializers aliases to webpack resolution', () => {
-    const webpackConfig = config.webpack?.(
-      {
-        resolve: {
-          alias: {},
-          extensions: ['.js'],
-        },
-      },
-      {} as never,
-    );
+  it('exposes a non-empty build id that generateBuildId agrees with', async () => {
+    const buildId = config.env?.NEXT_PUBLIC_BUILD_ID;
 
-    expect(webpackConfig?.resolve?.alias).toMatchObject({
-      '@genfeedai/serializers': expect.stringContaining(
-        'packages/serializers/src/index.ts',
-      ),
-      '@serializers': expect.stringContaining('packages/serializers/src'),
-    });
+    expect(buildId?.trim()).toBeTruthy();
+    await expect(config.generateBuildId?.()).resolves.toBe(buildId);
+  });
+
+  it('keeps the dev build id stable so the Turbopack dev cache survives restarts', () => {
+    // A per-start value (e.g. `dev-${Date.now()}`) lands in the compiler define
+    // map and invalidates the whole filesystem cache on every dev-server boot.
+    expect(config.env?.NEXT_PUBLIC_BUILD_ID).not.toMatch(/^dev-\d+$/);
+  });
+
+  it('does not re-list packages the base config already transpiles', () => {
+    const transpiled = config.transpilePackages ?? [];
+
+    expect(new Set(transpiled).size).toBe(transpiled.length);
+    expect(transpiled).toEqual(expect.arrayContaining(['@tiptap/core']));
   });
 });

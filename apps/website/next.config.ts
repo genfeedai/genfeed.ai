@@ -14,7 +14,6 @@ const helpersRoot = path.resolve(websiteDir, '../../packages/helpers');
 const enumsRoot = path.resolve(websiteDir, '../../packages/enums');
 
 const config = createAppNextConfig({
-  appName: 'website',
   headers: async () => [
     {
       headers: [

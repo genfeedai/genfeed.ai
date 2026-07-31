@@ -8,16 +8,23 @@ import {
   createOrganizationAppRoute,
 } from '@genfeedai/constants/routes.constant';
 import { createAppNextConfig } from '@genfeedai/next-config';
-import bundleAnalyzer from '@next/bundle-analyzer';
-import type { NextConfig } from 'next';
 
 // Deterministic, empty-string-safe build id. A plain `??` chain does NOT skip
 // empty strings, and Vercel sets VERCEL_GIT_COMMIT_SHA="" on CLI deploys with no
 // git metadata. An empty buildId makes Next.js embed "b":"" in RSC flight
 // payloads, so the App Router treats every navigation as a cross-deployment
 // change and forces a full hard reload (and silently disables version checks).
-// firstNonBlank skips blank/whitespace values; the dev-* fallback guarantees the
-// id is never empty so generateBuildId never returns "".
+// firstNonBlank skips blank/whitespace values so generateBuildId never returns "".
+//
+// The dev fallback is a STABLE constant, not a timestamp. `config.env` is fed
+// straight into the compiler define map (next/dist/build/define-env.js →
+// getNextConfigEnv), and Turbopack's dev filesystem cache is on by default
+// (`turbopackFileSystemCacheForDev: true`, next/dist/server/config-shared.js).
+// A per-start timestamp changes the compilation environment on every `next dev`
+// boot, so no cached artifact can ever be reused — every restart is a full cold
+// compile and each run leaves behind another stale cache generation. A constant
+// keeps the define map identical across restarts so the cache warm-starts, and
+// keeps the client bundle and /api/version agreeing on one id in dev.
 const firstNonBlank = (
   ...values: Array<string | undefined>
 ): string | undefined => values.find((value) => value?.trim());
@@ -27,51 +34,9 @@ const buildId =
     process.env.BUILD_ID,
     process.env.VERCEL_GIT_COMMIT_SHA,
     process.env.NEXT_PUBLIC_BUILD_ID,
-  ) ?? `dev-${Date.now()}`;
-
-const withBundleAnalyzer = bundleAnalyzer({
-  analyzerMode: process.env.BUNDLE_ANALYZE === 'json' ? 'json' : 'static',
-  enabled: process.env.ANALYZE === 'true',
-  openAnalyzer: false,
-});
+  ) ?? 'dev';
 
 const appDir = path.dirname(fileURLToPath(import.meta.url));
-const workflowUiRoot = path.resolve(appDir, '../../packages/workflows/src/ui');
-const helpersRoot = path.resolve(appDir, '../../packages/helpers');
-const serializersRoot = path.resolve(appDir, '../../packages/serializers');
-
-const workflowUiAliases = {
-  '@genfeedai/helpers': path.join(helpersRoot, 'src/index.ts'),
-  '@genfeedai/workflows/ui': path.join(workflowUiRoot, 'index.ts'),
-  '@genfeedai/workflows/ui/canvas': path.join(
-    workflowUiRoot,
-    'canvas/index.ts',
-  ),
-  '@genfeedai/workflows/ui/hooks': path.join(workflowUiRoot, 'hooks/index.ts'),
-  '@genfeedai/workflows/ui/lib': path.join(workflowUiRoot, 'lib/index.ts'),
-  '@genfeedai/workflows/ui/nodes': path.join(workflowUiRoot, 'nodes/index.ts'),
-  '@genfeedai/workflows/ui/panels': path.join(
-    workflowUiRoot,
-    'panels/index.ts',
-  ),
-  '@genfeedai/workflows/ui/provider': path.join(
-    workflowUiRoot,
-    'provider/index.ts',
-  ),
-  '@genfeedai/workflows/ui/stores': path.join(
-    workflowUiRoot,
-    'stores/index.ts',
-  ),
-  '@genfeedai/workflows/ui/styles': path.join(
-    workflowUiRoot,
-    'styles/workflow-ui.css',
-  ),
-  '@genfeedai/workflows/ui/toolbar': path.join(
-    workflowUiRoot,
-    'toolbar/index.ts',
-  ),
-  '@genfeedai/workflows/ui/ui': path.join(workflowUiRoot, 'ui/index.ts'),
-};
 
 const NEXT_PUBLIC_GENFEED_CLOUD = envFlag(
   process.env.GENFEED_CLOUD ?? process.env.NEXT_PUBLIC_GENFEED_CLOUD,
@@ -187,9 +152,7 @@ function legacyPathRedirects(fromPrefix: `/${string}`, toPrefix: `/${string}`) {
 }
 
 const config = createAppNextConfig({
-  appName: 'app',
   output: process.env.GENFEED_DESKTOP_BUNDLE === '1' ? 'standalone' : undefined,
-  pwa: { enabled: true },
   rewrites: async () => [
     {
       destination: `${resolvedApiBaseUrl}/v1/:path*`,
@@ -329,12 +292,6 @@ config.sassOptions = {
   ],
 };
 
-config.logging = {
-  fetches: {
-    fullUrl: false,
-  },
-};
-
 config.turbopack = {
   ...(config.turbopack ?? {}),
   resolveAlias: {
@@ -399,130 +356,16 @@ config.turbopack = {
   root: path.resolve(appDir, '../..'),
 };
 
+// Additive: the tiptap packages and most @genfeedai/* workspaces are already
+// transpiled by next.config.base.ts — only list what the base does not cover.
 config.transpilePackages = [
+  ...(config.transpilePackages ?? []),
   'fullcalendar',
-  '@tiptap/core',
-  '@tiptap/extension-image',
-  '@tiptap/extension-link',
-  '@tiptap/extension-mention',
-  '@tiptap/extension-placeholder',
-  '@tiptap/extensions',
-  '@tiptap/pm',
-  '@tiptap/react',
-  '@tiptap/starter-kit',
-  '@tiptap/suggestion',
-  '@genfeedai/agent',
-  '@genfeedai/client',
   '@genfeedai/desktop-contracts',
-  '@genfeedai/serializers',
-  '@genfeedai/constants',
-  '@genfeedai/enums',
-  '@genfeedai/helpers',
   '@genfeedai/hooks',
-  '@genfeedai/interfaces',
+  '@genfeedai/serializers',
   '@genfeedai/types',
-  '@genfeedai/workflows',
 ];
-
-const existingWebpack = config.webpack;
-
-config.webpack = ((webpackConfig, options) => {
-  const nextConfig =
-    typeof existingWebpack === 'function'
-      ? existingWebpack(webpackConfig, options)
-      : webpackConfig;
-
-  const packagesRoot = path.resolve(appDir, '../../packages');
-
-  nextConfig.resolve.alias = {
-    ...nextConfig.resolve.alias,
-    '@genfeedai/serializers': path.join(serializersRoot, 'src/index.ts'),
-    ...workflowUiAliases,
-    // Tsconfig path aliases → webpack aliases
-    // The @ prefix maps to packages/ directories
-    '@ui': path.join(packagesRoot, 'ui'),
-    '@ui-constants': path.join(packagesRoot, 'ui/constants'),
-    '@components': path.join(packagesRoot, 'ui'),
-    '@components/buttons/refresh/button-refresh/ButtonRefresh': path.join(
-      packagesRoot,
-      'ui/src/components/buttons/refresh/button-refresh/ButtonRefresh.tsx',
-    ),
-    '@components/cards/KpiCard': path.join(
-      appDir,
-      'packages/components/admin/cards/KpiCard.tsx',
-    ),
-    '@components/lazy/LazyModal': path.join(
-      appDir,
-      'packages/components/admin/lazy/LazyModal.ts',
-    ),
-    '@components/lazy/modal/LazyModal': path.join(
-      packagesRoot,
-      'ui/src/components/lazy/modal/LazyModal.tsx',
-    ),
-    '@components/loading/fallback/LazyLoadingFallback': path.join(
-      packagesRoot,
-      'ui/src/components/loading/fallback/LazyLoadingFallback.tsx',
-    ),
-    '@components/loading/skeleton/SkeletonFallbacks': path.join(
-      packagesRoot,
-      'ui/src/components/loading/skeleton/SkeletonFallbacks.tsx',
-    ),
-    '@components/modals/actions/ModalActions': path.join(
-      packagesRoot,
-      'ui/src/components/modals/actions/ModalActions.tsx',
-    ),
-    '@components/modals/modal/Modal': path.join(
-      packagesRoot,
-      'ui/src/components/modals/modal/Modal.tsx',
-    ),
-    '@components/modals/ModalRole': path.join(
-      appDir,
-      'packages/components/admin/modals/ModalRole.tsx',
-    ),
-    '@components/modals/ModalSubscription': path.join(
-      appDir,
-      'packages/components/admin/modals/ModalSubscription.tsx',
-    ),
-    '@components/social/SocialLinks': path.join(
-      appDir,
-      'packages/components/admin/social/SocialLinks.tsx',
-    ),
-    '@contexts': path.join(packagesRoot, 'contexts'),
-    '@helpers': path.join(packagesRoot, 'helpers/src'),
-    '@hooks': path.join(packagesRoot, 'hooks'),
-    '@models': path.join(packagesRoot, 'models'),
-    '@pages': path.join(packagesRoot, 'pages'),
-    '@props': path.join(packagesRoot, 'props'),
-    '@protected': path.join(appDir, 'app/(protected)/admin'),
-    '@providers': path.join(packagesRoot, 'providers'),
-    '@schemas': path.join(packagesRoot, 'schemas'),
-    '@serializers': path.join(serializersRoot, 'src'),
-    '@services': path.join(packagesRoot, 'services'),
-    '@styles': path.join(packagesRoot, 'styles'),
-    '@utils': path.join(packagesRoot, 'utils'),
-    '@libs': path.join(packagesRoot, 'libs'),
-    '@cloud-types': path.join(packagesRoot, 'types/src'),
-    '@ui/forms/base/form-control/FormControl': path.join(
-      packagesRoot,
-      'ui/src/primitives/field.tsx',
-    ),
-  };
-  nextConfig.resolve.extensions = [
-    ...(nextConfig.resolve.extensions ?? []),
-    '.css',
-  ];
-
-  // Add packages root to resolve.modules so @ui/*, @services/*, etc. resolve
-  // via directory structure (packages/ui/*, packages/services/*, etc.)
-  nextConfig.resolve.modules = [
-    ...(nextConfig.resolve.modules ?? []),
-    packagesRoot,
-    path.resolve(appDir, '../../node_modules'),
-    'node_modules',
-  ];
-
-  return nextConfig;
-}) as NextConfig['webpack'];
 
 // E2E code-coverage runs against a production build need browser source maps so
 // monocart can map executed bytes back to TypeScript. Gated on E2E_COVERAGE so
@@ -531,4 +374,4 @@ if (process.env.E2E_COVERAGE === '1') {
   config.productionBrowserSourceMaps = true;
 }
 
-export default withBundleAnalyzer(config);
+export default config;

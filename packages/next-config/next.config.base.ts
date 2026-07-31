@@ -2,31 +2,17 @@ import path from 'node:path';
 import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from 'next';
 
-interface PWAOptions {
-  enabled?: boolean;
-}
-
 interface AppNextConfigOptions {
-  appName: string;
   env?: NextConfig['env'];
   headers?: NextConfig['headers'];
   output?: NextConfig['output'];
-  pwa?: PWAOptions;
   redirects?: NextConfig['redirects'];
   rewrites?: NextConfig['rewrites'];
   sentryProject?: string;
 }
 
 export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
-  const {
-    appName: _appName,
-    env,
-    headers,
-    output,
-    redirects,
-    rewrites,
-    sentryProject,
-  } = options;
+  const { env, headers, output, redirects, rewrites, sentryProject } = options;
 
   const isProduction = process.env.NODE_ENV === 'production';
   const config: NextConfig = {
