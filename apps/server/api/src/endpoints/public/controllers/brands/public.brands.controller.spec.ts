@@ -21,6 +21,13 @@ describe('PublicBrandsController', () => {
   let articlesService: vi.Mocked<ArticlesService>;
   let brandsService: vi.Mocked<BrandsService>;
 
+  // Rows come back with the Prisma enum casing ('PUBLIC'), not the TS enum
+  // value ('public'). Mocking the TS value hid a production bug where the
+  // controller compared a row value against `AssetScope.PUBLIC` after the
+  // fetch and always rejected genuinely public brands.
+  const PRISMA_SCOPE_PUBLIC = 'PUBLIC';
+  const PRISMA_SCOPE_USER = 'USER';
+
   const mockBrand = {
     _id: '507f191e810c19729de860ee',
     description: 'A public test brand',
@@ -28,10 +35,33 @@ describe('PublicBrandsController', () => {
     isDeleted: false,
     logo: '507f191e810c19729de860ee',
     name: 'Test Brand',
-    scope: AssetScope.PUBLIC,
+    scope: PRISMA_SCOPE_PUBLIC,
   };
 
   const mockReq = {} as Request;
+
+  /**
+   * Stands in for the database honouring the controller's scope filter.
+   * `storedScope` is the value Postgres holds for the row; the filter value the
+   * controller supplies is the TS enum ('public'), which BaseService normalizes
+   * to the Prisma casing before the query runs. The row is returned only when
+   * the two agree — so a controller that drops the scope filter fails here.
+   */
+  const scopeFilteringFindOne =
+    (storedScope: string) =>
+    async (filter: Record<string, unknown>): Promise<BrandEntity | null> => {
+      const requested = filter.scope;
+
+      if (typeof requested !== 'string') {
+        throw new Error('Public brand lookups must constrain scope');
+      }
+
+      const normalized = requested.toUpperCase();
+
+      return normalized === storedScope
+        ? ({ ...mockBrand, scope: storedScope } as unknown as BrandEntity)
+        : null;
+    };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -81,7 +111,28 @@ describe('PublicBrandsController', () => {
       expect(brandsService.findOneBySlug).toHaveBeenCalledWith({
         slug: { equals: 'test-brand', mode: 'insensitive' },
         isDeleted: false,
+        scope: AssetScope.PUBLIC,
       });
+    });
+
+    it('returns a brand stored with the PUBLIC scope value', async () => {
+      brandsService.findOneBySlug.mockImplementation(
+        scopeFilteringFindOne(PRISMA_SCOPE_PUBLIC),
+      );
+
+      const result = await controller.findOneBySlug(mockReq, 'test-brand');
+
+      expect(result).toEqual(mockBrand);
+    });
+
+    it('returns not found for a brand stored with the USER scope value', async () => {
+      brandsService.findOneBySlug.mockImplementation(
+        scopeFilteringFindOne(PRISMA_SCOPE_USER),
+      );
+
+      const result = await controller.findOneBySlug(mockReq, 'test-brand');
+
+      expect(result).toMatchObject({ data: null });
     });
 
     it('should return not found message for non-existent brand', async () => {
@@ -93,10 +144,43 @@ describe('PublicBrandsController', () => {
     });
   });
 
-  describe('public brand access', () => {
-    it('should only access public brand data', () => {
-      expect(controller).toBeDefined();
-      // Public controller should not expose private data
+  describe('findOne', () => {
+    it('constrains scope in the query and serializes a PUBLIC brand row', async () => {
+      brandsService.findOne.mockResolvedValue(
+        mockBrand as unknown as BrandEntity,
+      );
+
+      const result = await controller.findOne(
+        mockReq,
+        '507f191e810c19729de860ee',
+      );
+
+      expect(brandsService.findOne).toHaveBeenCalledWith({
+        _id: '507f191e810c19729de860ee',
+        isDeleted: false,
+        scope: AssetScope.PUBLIC,
+      });
+      expect(result).toEqual(mockBrand);
+    });
+
+    it('returns not found for a brand stored with the USER scope value', async () => {
+      brandsService.findOne.mockImplementation(
+        scopeFilteringFindOne(PRISMA_SCOPE_USER),
+      );
+
+      const result = await controller.findOne(
+        mockReq,
+        '507f191e810c19729de860ee',
+      );
+
+      expect(result).toMatchObject({ data: null });
+    });
+
+    it('rejects a malformed brand id before querying', async () => {
+      const result = await controller.findOne(mockReq, 'not-an-id');
+
+      expect(brandsService.findOne).not.toHaveBeenCalled();
+      expect(result).toMatchObject({ data: null });
     });
   });
 
