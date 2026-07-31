@@ -4,6 +4,7 @@ import type {
 } from '@api/collections/post-groups/services/post-group.types';
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
+import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
@@ -55,6 +56,7 @@ describe('PostGroupPersistenceService', () => {
     service = new PostGroupPersistenceService(
       prisma as unknown as PrismaService,
       contractService,
+      new PostGroupReadinessService(),
     );
   });
 
