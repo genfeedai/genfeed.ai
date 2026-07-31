@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "issue": 1849,
+  "mode": "observation",
+  "ratchet": {
+    "lines": null,
+    "branches": null
+  },
+  "roundingMarginPercentagePoints": 0.5,
+  "treatUnmeasuredAsUncovered": false,
+  "nonDecreaseRule": "A ratchet value may never be lowered. Every change to `ratchet` must append a `ratchetHistory` entry carrying the linked issue that reviewed it; changed-code-coverage.test.mjs fails when history regresses or omits an issue.",
+  "observation": {
+    "requiredRuns": 20,
+    "latencyBudgetMinutesP95": 20,
+    "minimumInfrastructureSuccessRate": 0.95,
+    "evidence": {
+      "artifactNamePrefix": "changed-code-coverage",
+      "retentionDays": 90,
+      "note": "Each eligible pull-request run uploads its normalized report as an Actions artifact. Aggregate those artifacts to derive the first ratchet; nothing is written back to the repository during observation."
+    }
+  },
+  "promotion": {
+    "issue": 1849,
+    "rulesetChangeRequired": true,
+    "decidedAt": null,
+    "note": "Promotion to enforcement is a separate ruleset change: flip `mode` to \"enforcement\", set both ratchet values from the observed evidence minus `roundingMarginPercentagePoints`, set `treatUnmeasuredAsUncovered` to true, then add Changed Coverage Report to the required checks."
+  },
+  "ratchetHistory": [
+    {
+      "adoptedAt": "2026-07-31",
+      "issue": 1849,
+      "mode": "observation",
+      "lines": null,
+      "branches": null,
+      "note": "Phase 2 observation opened. No merge gate; thresholds stay null until twenty representative runs satisfy the observation success criteria."
+    }
+  ]
+}
