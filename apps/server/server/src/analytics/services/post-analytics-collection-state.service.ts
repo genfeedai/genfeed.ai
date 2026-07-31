@@ -61,67 +61,99 @@ export class PostAnalyticsCollectionStateService
     target: AnalyticsCollectionAttemptRef,
     collectedAt = new Date(),
   ): Promise<void> {
-    if (!target.attemptKey) {
-      return;
+    await this.markReadyBatch([target], collectedAt);
+  }
+
+  async markReadyBatch(
+    targets: AnalyticsCollectionAttemptRef[],
+    collectedAt = new Date(),
+  ): Promise<void> {
+    const targetsByScope = new Map<string, AnalyticsCollectionAttemptRef[]>();
+    for (const target of targets) {
+      if (!target.attemptKey) {
+        continue;
+      }
+      const scopeKey = `${target.organizationId}:${target.brandId}:${target.platform}:${target.attemptKey}`;
+      const scopedTargets = targetsByScope.get(scopeKey) ?? [];
+      scopedTargets.push(target);
+      targetsByScope.set(scopeKey, scopedTargets);
     }
 
-    await this.prisma.post.updateMany({
-      data: {
-        analyticsCollectedAt: collectedAt,
-        analyticsCollectionAttemptKey: null,
-        analyticsCollectionError: Prisma.DbNull,
-        analyticsCollectionState: TargetAnalyticsCollectionState.READY,
-      },
-      where: {
-        ...scopedWhere(target.organizationId, {
-          brandId: target.brandId,
-          groupId: { not: null },
-          id: target.id,
-          parentId: null,
-          platform: target.platform,
-        }),
-        analyticsCollectionAttemptKey: target.attemptKey,
-      },
-    });
+    for (const scopedTargets of targetsByScope.values()) {
+      const [scope] = scopedTargets;
+      if (!scope?.attemptKey) {
+        continue;
+      }
+      await this.prisma.post.updateMany({
+        data: {
+          analyticsCollectedAt: collectedAt,
+          analyticsCollectionAttemptKey: null,
+          analyticsCollectionError: Prisma.DbNull,
+          analyticsCollectionState: TargetAnalyticsCollectionState.READY,
+        },
+        where: {
+          ...scopedWhere(scope.organizationId, {
+            brandId: scope.brandId,
+            groupId: { not: null },
+            id: { in: scopedTargets.map((target) => target.id) },
+            parentId: null,
+            platform: scope.platform,
+          }),
+          analyticsCollectionAttemptKey: scope.attemptKey,
+        },
+      });
+    }
   }
 
   async markFailed(
     target: AnalyticsCollectionAttemptRef,
     failure: AnalyticsCollectionFailure,
   ): Promise<void> {
-    if (!target.attemptKey) {
-      return;
-    }
-
-    await this.prisma.post.updateMany({
-      data: {
-        analyticsCollectionError: {
-          code: failure.code,
-          failedAt: new Date().toISOString(),
-          isRetryable: failure.isRetryable,
-          message: failure.message,
-        },
-        analyticsCollectionState: TargetAnalyticsCollectionState.FAILED,
-      },
-      where: {
-        ...scopedWhere(target.organizationId, {
-          brandId: target.brandId,
-          groupId: { not: null },
-          id: target.id,
-          parentId: null,
-          platform: target.platform,
-        }),
-        analyticsCollectionAttemptKey: target.attemptKey,
-      },
-    });
+    await this.markFailedBatch([target], failure);
   }
 
   async markFailedBatch(
     targets: AnalyticsCollectionAttemptRef[],
     failure: AnalyticsCollectionFailure,
   ): Promise<void> {
-    await Promise.all(
-      targets.map((target) => this.markFailed(target, failure)),
-    );
+    const targetsByScope = new Map<string, AnalyticsCollectionAttemptRef[]>();
+    for (const target of targets) {
+      if (!target.attemptKey) {
+        continue;
+      }
+      const scopeKey = `${target.organizationId}:${target.brandId}:${target.platform}:${target.attemptKey}`;
+      const scopedTargets = targetsByScope.get(scopeKey) ?? [];
+      scopedTargets.push(target);
+      targetsByScope.set(scopeKey, scopedTargets);
+    }
+
+    const failedAt = new Date().toISOString();
+    for (const scopedTargets of targetsByScope.values()) {
+      const [scope] = scopedTargets;
+      if (!scope?.attemptKey) {
+        continue;
+      }
+      await this.prisma.post.updateMany({
+        data: {
+          analyticsCollectionError: {
+            code: failure.code,
+            failedAt,
+            isRetryable: failure.isRetryable,
+            message: failure.message,
+          },
+          analyticsCollectionState: TargetAnalyticsCollectionState.FAILED,
+        },
+        where: {
+          ...scopedWhere(scope.organizationId, {
+            brandId: scope.brandId,
+            groupId: { not: null },
+            id: { in: scopedTargets.map((target) => target.id) },
+            parentId: null,
+            platform: scope.platform,
+          }),
+          analyticsCollectionAttemptKey: scope.attemptKey,
+        },
+      });
+    }
   }
 }

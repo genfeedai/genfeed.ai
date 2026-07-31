@@ -11,9 +11,15 @@ import {
   PopoverTrigger,
 } from '@ui/primitives/popover';
 import { ArrowUp, Link, Mic, Paperclip, RefreshCw, Zap } from 'lucide-react';
-import { type ChangeEvent, type ReactElement, useRef, useState } from 'react';
+import {
+  type ChangeEvent,
+  memo,
+  type ReactElement,
+  useRef,
+  useState,
+} from 'react';
 
-interface AgentChatInputToolbarProps {
+export interface AgentChatInputToolbarProps {
   canSendMessage: boolean;
   creditsAvailable?: number | null;
   disabled: boolean | undefined;
@@ -37,7 +43,7 @@ interface AgentChatInputToolbarProps {
   density?: 'compact' | 'default';
 }
 
-export function AgentChatInputToolbar({
+function AgentChatInputToolbarInner({
   canSendMessage,
   creditsAvailable = null,
   disabled,
@@ -269,3 +275,5 @@ export function AgentChatInputToolbar({
     </div>
   );
 }
+
+export const AgentChatInputToolbar = memo(AgentChatInputToolbarInner);

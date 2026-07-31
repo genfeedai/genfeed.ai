@@ -82,7 +82,12 @@ describe('AnalyticsSyncWorkflowService', () => {
           platform: CredentialPlatform.FACEBOOK,
         }),
       },
-      expect.objectContaining({ pagination: false }),
+      expect.objectContaining({
+        limit: 500,
+        page: 1,
+        pagination: true,
+      }),
+      false,
     );
     expect(queueService.add).toHaveBeenCalledTimes(2);
     expect(queueService.add).toHaveBeenNthCalledWith(
@@ -122,6 +127,55 @@ describe('AnalyticsSyncWorkflowService', () => {
     });
   });
 
+  it('pages through analytics posts instead of one unbounded findMany', async () => {
+    const firstPage = Array.from({ length: 500 }, (_, index) => ({
+      id: `post-${index}`,
+      brand: 'brand-1',
+      credential: { id: 'credential-1' },
+      externalId: `facebook-${index}`,
+      organization: 'org-1',
+      platform: CredentialPlatform.FACEBOOK,
+    }));
+    const secondPage = [
+      {
+        id: 'post-500',
+        brand: 'brand-1',
+        credential: { id: 'credential-1' },
+        externalId: 'facebook-500',
+        organization: 'org-1',
+        platform: CredentialPlatform.FACEBOOK,
+      },
+    ];
+    postsService.findAll
+      .mockResolvedValueOnce({
+        docs: firstPage,
+        hasNextPage: true,
+      })
+      .mockResolvedValueOnce({
+        docs: secondPage,
+        hasNextPage: false,
+      });
+
+    const result = await service.runFacebookAnalytics('org-1');
+
+    expect(postsService.findAll).toHaveBeenCalledTimes(2);
+    expect(postsService.findAll).toHaveBeenNthCalledWith(
+      1,
+      expect.any(Object),
+      expect.objectContaining({ limit: 500, page: 1, pagination: true }),
+      false,
+    );
+    expect(postsService.findAll).toHaveBeenNthCalledWith(
+      2,
+      expect.any(Object),
+      expect.objectContaining({ limit: 500, page: 2, pagination: true }),
+      false,
+    );
+    expect(result.posts).toBe(501);
+    // 500 posts → 10 chunks of 50, plus 1 leftover → 11 enqueued jobs
+    expect(result.enqueued).toBe(11);
+  });
+
   it('groups Twitter analytics batches by credential and skips malformed posts', async () => {
     postsService.findAll.mockResolvedValue({
       docs: [
@@ -159,7 +213,12 @@ describe('AnalyticsSyncWorkflowService', () => {
           platform: CredentialPlatform.TWITTER,
         }),
       },
-      expect.objectContaining({ pagination: false }),
+      expect.objectContaining({
+        limit: 500,
+        page: 1,
+        pagination: true,
+      }),
+      false,
     );
     expect(queueService.add).toHaveBeenCalledWith(
       'analytics-twitter',

@@ -16,7 +16,7 @@ import { EditorContent } from '@tiptap/react';
 import PromptBarShell, {
   PROMPT_BAR_SURFACE_CLASS,
 } from '@ui/prompt-bars/components/shell/PromptBarShell';
-import { type ReactElement, useMemo } from 'react';
+import { type ReactElement, useCallback, useMemo } from 'react';
 
 export type ExtractedMention =
   | { type: 'brand'; id: string; brandName: string; brandSlug: string }
@@ -138,6 +138,9 @@ export function AgentChatInput({
       ),
     [attachments],
   );
+  const handleToolbarSend = useCallback(() => {
+    void handleSend();
+  }, [handleSend]);
 
   return (
     <div
@@ -200,9 +203,7 @@ export function AgentChatInput({
             onInsertReference={handleInsertReference}
             onModelChange={onModelChange}
             onSelectAction={handleSelectAction}
-            onSend={() => {
-              void handleSend();
-            }}
+            onSend={handleToolbarSend}
             onStartListening={startListening}
             onStop={onStop}
             onStopListening={stopListening}

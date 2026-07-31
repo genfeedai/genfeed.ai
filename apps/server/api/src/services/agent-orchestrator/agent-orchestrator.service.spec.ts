@@ -464,7 +464,6 @@ describe('AgentOrchestratorService', () => {
         },
         {
           inject: [
-            LoggerService,
             LlmDispatcherService,
             AgentThreadsService,
             AgentMessagesService,
@@ -478,7 +477,6 @@ describe('AgentOrchestratorService', () => {
           ],
           provide: AgentOrchestratorSyncLoopService,
           useFactory: (
-            loggerService: LoggerService,
             llmDispatcherService: LlmDispatcherService,
             agentThreadsSvc: AgentThreadsService,
             agentMessagesSvc: AgentMessagesService,
@@ -491,7 +489,6 @@ describe('AgentOrchestratorService', () => {
             agentRunsSvc: AgentRunsService,
           ) =>
             new AgentOrchestratorSyncLoopService(
-              loggerService,
               llmDispatcherService,
               agentThreadsSvc,
               agentMessagesSvc,
@@ -513,17 +510,20 @@ describe('AgentOrchestratorService', () => {
             LoggerService,
             CreditsUtilsService,
             AgentToolExecutorService,
+            AgentRunsService,
           ],
           provide: AgentTurnRoundRunnerService,
           useFactory: (
             loggerService: LoggerService,
             creditsUtilsSvc: CreditsUtilsService,
             toolExecutorSvc: AgentToolExecutorService,
+            agentRunsSvc: AgentRunsService,
           ) =>
             new AgentTurnRoundRunnerService(
               loggerService,
               creditsUtilsSvc,
               toolExecutorSvc,
+              agentRunsSvc,
             ),
         },
         {

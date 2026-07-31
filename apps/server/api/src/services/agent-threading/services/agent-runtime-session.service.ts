@@ -188,3 +188,35 @@ export class AgentRuntimeSessionService {
     );
   }
 }
+
+/**
+ * Null-safe get when `AgentRuntimeSessionService` is `@Optional()`-injected.
+ * Returns `null` when the service is absent so orchestrator callers do not
+ * each re-implement the same guard.
+ */
+export function getRuntimeBindingEffect(
+  service: AgentRuntimeSessionService | undefined,
+  threadId: string,
+  organizationId: string,
+): Effect.Effect<AgentSessionBindingDocument | null, unknown> {
+  if (!service) {
+    return Effect.succeed(null);
+  }
+
+  return service.getBindingEffect(threadId, organizationId);
+}
+
+/**
+ * Null-safe upsert when `AgentRuntimeSessionService` is `@Optional()`-injected.
+ * No-ops (void) when the service is absent.
+ */
+export function upsertRuntimeBindingEffect(
+  service: AgentRuntimeSessionService | undefined,
+  params: UpsertRuntimeSessionBindingParams,
+): Effect.Effect<void, unknown> {
+  if (!service) {
+    return Effect.void;
+  }
+
+  return service.upsertBindingEffect(params).pipe(Effect.asVoid);
+}

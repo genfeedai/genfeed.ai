@@ -1329,4 +1329,72 @@ describe('BaseService', () => {
       );
     });
   });
+
+  describe('normalizeData — enabledModels→enabledModelIds remap', () => {
+    it('remaps enabledModels to enabledModelIds when only the Prisma field exists', async () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', 'enabledModelIds'),
+      );
+      const created = {
+        id: 'org_setting_1',
+        enabledModelIds: ['model_1'],
+      };
+      delegate.create.mockResolvedValue(created);
+
+      await service.create({
+        enabledModels: ['model_1'],
+      } as TestDocument);
+
+      expect(delegate.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ enabledModelIds: ['model_1'] }),
+        }),
+      );
+      expect(delegate.create).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ enabledModels: ['model_1'] }),
+        }),
+      );
+    });
+
+    it('leaves enabledModels untouched when the model still exposes that field', async () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', 'enabledModels'),
+      );
+      const created = { id: 'org_setting_2', enabledModels: ['model_1'] };
+      delegate.create.mockResolvedValue(created);
+
+      await service.create({
+        enabledModels: ['model_1'],
+      } as TestDocument);
+
+      expect(delegate.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ enabledModels: ['model_1'] }),
+        }),
+      );
+    });
+  });
+
+  describe('normalizeDocument — enabledModelIds→enabledModels alias', () => {
+    it('exposes enabledModels from enabledModelIds for domain consumers', async () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', 'enabledModelIds'),
+      );
+      delegate.findFirst.mockResolvedValue({
+        enabledModelIds: ['model_a', 'model_b'],
+        id: 'org_setting_3',
+      });
+
+      const result = await service.findOne({ id: 'org_setting_3' });
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          enabledModelIds: ['model_a', 'model_b'],
+          enabledModels: ['model_a', 'model_b'],
+          id: 'org_setting_3',
+        }),
+      );
+    });
+  });
 });

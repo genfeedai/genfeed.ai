@@ -28,14 +28,17 @@ import {
   recordAgentRunScope,
   withAgentScopeResult,
 } from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
+import { normalizeUiBlocks } from '@api/services/agent-orchestrator/utils/agent-ui-blocks.util';
 import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/sanitize-agent-output.util';
-import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
+import {
+  AgentRuntimeSessionService,
+  getRuntimeBindingEffect,
+} from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { AgentAutonomyMode, AgentMessageRole } from '@genfeedai/enums';
 import {
   type AgentDashboardOperation,
   AgentToolName,
-  type AgentUIBlock,
   type AgentUiAction,
 } from '@genfeedai/interfaces';
 import { AgentScopeContextService } from '@genfeedai/server';
@@ -265,7 +268,11 @@ export class AgentOrchestratorUiActionService {
     organizationId: string,
   ): Promise<string> {
     const binding = await runEffectPromise(
-      this.getRuntimeBindingEffect(threadId, organizationId),
+      getRuntimeBindingEffect(
+        this.agentRuntimeSessionService,
+        threadId,
+        organizationId,
+      ),
     );
 
     return binding?.model?.trim()
@@ -697,20 +704,6 @@ export class AgentOrchestratorUiActionService {
     });
   }
 
-  private normalizeUiBlocks(blocks: unknown[]): AgentUIBlock[] {
-    const normalized: AgentUIBlock[] = [];
-
-    for (const block of blocks) {
-      if (!block || typeof block !== 'object') {
-        continue;
-      }
-
-      normalized.push(block as AgentUIBlock);
-    }
-
-    return normalized;
-  }
-
   private async finalizeStructuredAssistantTurn(params: {
     content: string;
     context: AgentChatContext;
@@ -740,7 +733,7 @@ export class AgentOrchestratorUiActionService {
         : null;
 
     if (rawUiBlocks && rawOperation) {
-      const normalizedBlocks = this.normalizeUiBlocks(rawUiBlocks);
+      const normalizedBlocks = normalizeUiBlocks(rawUiBlocks);
 
       latestUiBlocks = {
         blockIds: Array.isArray(params.result.data?.blockIds)
@@ -845,23 +838,6 @@ export class AgentOrchestratorUiActionService {
       threadId: params.threadId,
       toolCalls: params.toolCalls,
     };
-  }
-
-  private getRuntimeBindingEffect(
-    threadId: string,
-    organizationId: string,
-  ): Effect.Effect<
-    Awaited<ReturnType<AgentRuntimeSessionService['getBinding']>> | null,
-    unknown
-  > {
-    if (!this.agentRuntimeSessionService) {
-      return Effect.succeed(null);
-    }
-
-    return this.agentRuntimeSessionService.getBindingEffect(
-      threadId,
-      organizationId,
-    );
   }
 
   private getThreadSnapshotEffect(

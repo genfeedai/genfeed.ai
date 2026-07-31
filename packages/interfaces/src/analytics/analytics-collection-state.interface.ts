@@ -21,8 +21,16 @@ export interface ServerAnalyticsCollectionState {
     target: AnalyticsCollectionAttemptRef,
     failure: AnalyticsCollectionFailure,
   ): Promise<void>;
+  markFailedBatch(
+    targets: AnalyticsCollectionAttemptRef[],
+    failure: AnalyticsCollectionFailure,
+  ): Promise<void>;
   markReady(
     target: AnalyticsCollectionAttemptRef,
+    collectedAt?: Date,
+  ): Promise<void>;
+  markReadyBatch(
+    targets: AnalyticsCollectionAttemptRef[],
     collectedAt?: Date,
   ): Promise<void>;
 }

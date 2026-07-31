@@ -256,8 +256,22 @@ function isButtonLikeClassName(className: string): boolean {
   return hasInlineLayout && hasButtonBox && (hasInteraction || hasButtonWeight);
 }
 
+/**
+ * Crude per-line comment filter for raw-element scanners.
+ * Catches JSX comments, JS/TS line comments, and JSDoc/block comment lines
+ * (bodies starting with `*`, openers starting with `/*`, and closers with `* /`).
+ * Not a full parser — intentional parity with the predecessor shell guard.
+ */
 function isCommentLine(text: string): boolean {
-  return text.includes('{/*') || text.includes('*/');
+  const trimmed = text.trim();
+  return (
+    trimmed.startsWith('//') ||
+    trimmed.startsWith('/*') ||
+    trimmed.startsWith('*') ||
+    trimmed.startsWith('{/*') ||
+    text.includes('{/*') ||
+    text.includes('*/')
+  );
 }
 
 function isButtonAllowed(rel: string): boolean {
@@ -314,6 +328,10 @@ const RULES: readonly Rule[] = [
     detect: (_rel, content) => {
       const lines: number[] = [];
       for (const match of content.matchAll(RAW_INPUT_PATTERN)) {
+        const index = match.index ?? 0;
+        if (isCommentLine(lineTextOf(content, index))) {
+          continue;
+        }
         if (
           ALLOWLIST.allowedRawInputTypes.some((pattern) =>
             pattern.test(match[0]),
@@ -321,7 +339,7 @@ const RULES: readonly Rule[] = [
         ) {
           continue;
         }
-        lines.push(lineOf(content, match.index ?? 0));
+        lines.push(lineOf(content, index));
       }
       return lines;
     },
@@ -330,7 +348,17 @@ const RULES: readonly Rule[] = [
     category: 'raw-select',
     severity: 'required',
     scope: { prefixes: APP_PAGES_WORKFLOW_BUILDER_PREFIXES, exts: JSX_EXTS },
-    detect: (_rel, content) => matchLines(content, RAW_SELECT_PATTERN),
+    detect: (_rel, content) => {
+      const lines: number[] = [];
+      for (const match of content.matchAll(RAW_SELECT_PATTERN)) {
+        const index = match.index ?? 0;
+        if (isCommentLine(lineTextOf(content, index))) {
+          continue;
+        }
+        lines.push(lineOf(content, index));
+      }
+      return lines;
+    },
   },
   {
     category: 'raw-html',

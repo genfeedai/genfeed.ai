@@ -122,6 +122,32 @@ describe('control-guard detection', () => {
     expect(categoriesFor(file)).not.toContain('raw-html');
   });
 
+  it('ignores raw <input> documented in JSDoc / block comments', () => {
+    const file = write(
+      'packages/pages/brands/kit.tsx',
+      [
+        '/** Native `<input type="color">` requires `#rrggbb`. */',
+        'export default function K(){return <div />;}',
+      ].join('\n'),
+    );
+    expect(categoriesFor(file)).not.toContain('raw-input');
+    expect(categoriesFor(file)).not.toContain('raw-html');
+  });
+
+  it('ignores raw elements on multi-line JSDoc body lines', () => {
+    const file = write(
+      'packages/pages/brands/docs.tsx',
+      [
+        '/**',
+        ' * Prefer ColorInput over raw <input type="color">.',
+        ' */',
+        'export default function D(){return <div />;}',
+      ].join('\n'),
+    );
+    expect(categoriesFor(file)).not.toContain('raw-input');
+    expect(categoriesFor(file)).not.toContain('raw-html');
+  });
+
   it('skips primitive-wrapper paths for raw-html and banned-import', () => {
     const file = write(
       'packages/ui/src/primitives/table/Table.tsx',

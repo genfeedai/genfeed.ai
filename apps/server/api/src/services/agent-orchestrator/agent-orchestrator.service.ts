@@ -65,7 +65,10 @@ import {
 } from '@api/services/agent-orchestrator/utils/agent-thread-title.util';
 import { AgentExecutionLaneService } from '@api/services/agent-threading/services/agent-execution-lane.service';
 import { AgentProfileResolverService } from '@api/services/agent-threading/services/agent-profile-resolver.service';
-import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
+import {
+  AgentRuntimeSessionService,
+  upsertRuntimeBindingEffect,
+} from '@api/services/agent-threading/services/agent-runtime-session.service';
 import type { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import {
@@ -452,7 +455,7 @@ export class AgentOrchestratorService {
       threadId,
     });
     await runEffectPromise(
-      this.upsertRuntimeBindingEffect({
+      upsertRuntimeBindingEffect(this.agentRuntimeSessionService, {
         model,
         organizationId: context.organizationId,
         runId,
@@ -683,23 +686,6 @@ export class AgentOrchestratorService {
     run: () => Promise<T>,
   ): Promise<T> {
     return runEffectPromise(this.runInThreadLaneEffect(threadId, run));
-  }
-
-  private upsertRuntimeBindingEffect(params: {
-    threadId: string;
-    organizationId: string;
-    runId?: string;
-    model?: string;
-    status: 'running' | 'waiting_input' | 'completed' | 'cancelled' | 'failed';
-    resumeCursor?: Record<string, unknown>;
-  }): Effect.Effect<void, unknown> {
-    if (!this.agentRuntimeSessionService) {
-      return Effect.void;
-    }
-
-    return this.agentRuntimeSessionService
-      .upsertBindingEffect(params)
-      .pipe(Effect.asVoid);
   }
 
   private recordThreadProfileSnapshotEffect(

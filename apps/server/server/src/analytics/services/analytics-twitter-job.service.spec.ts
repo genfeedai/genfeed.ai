@@ -15,7 +15,9 @@ function createHarness(analyticsMap = new Map<string, unknown>()) {
   vi.spyOn(EncryptionUtil, 'decrypt').mockImplementation((value) => value);
   const analyticsCollectionState = {
     markFailed: vi.fn().mockResolvedValue(undefined),
+    markFailedBatch: vi.fn().mockResolvedValue(undefined),
     markReady: vi.fn().mockResolvedValue(undefined),
+    markReadyBatch: vi.fn().mockResolvedValue(undefined),
   } satisfies ServerAnalyticsCollectionState;
   const postAnalytics = {
     processTwitterAnalytics: vi.fn().mockResolvedValue(undefined),
@@ -86,18 +88,22 @@ describe('AnalyticsTwitterJobService collection state', () => {
       'target-1',
       { views: 42 },
     );
-    expect(analyticsCollectionState.markReady).toHaveBeenCalledWith({
-      attemptKey: 'attempt-1',
-      brandId: 'brand-1',
-      id: 'target-1',
-      organizationId: 'org-1',
-      platform: CredentialPlatform.TWITTER,
-    });
-    expect(analyticsCollectionState.markFailed).toHaveBeenCalledWith(
-      expect.objectContaining({
+    expect(analyticsCollectionState.markReadyBatch).toHaveBeenCalledWith([
+      {
         attemptKey: 'attempt-1',
-        id: 'target-2',
-      }),
+        brandId: 'brand-1',
+        id: 'target-1',
+        organizationId: 'org-1',
+        platform: CredentialPlatform.TWITTER,
+      },
+    ]);
+    expect(analyticsCollectionState.markFailedBatch).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({
+          attemptKey: 'attempt-1',
+          id: 'target-2',
+        }),
+      ],
       expect.objectContaining({
         code: 'analytics.metrics_delayed',
         isRetryable: true,
@@ -113,9 +119,12 @@ describe('AnalyticsTwitterJobService collection state', () => {
 
     await expect(service.process(job)).rejects.toBe(providerError);
 
-    expect(analyticsCollectionState.markFailed).toHaveBeenCalledTimes(2);
-    expect(analyticsCollectionState.markFailed).toHaveBeenCalledWith(
-      expect.any(Object),
+    expect(analyticsCollectionState.markFailedBatch).toHaveBeenCalledTimes(1);
+    expect(analyticsCollectionState.markFailedBatch).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'target-1' }),
+        expect.objectContaining({ id: 'target-2' }),
+      ]),
       {
         code: 'analytics.rate_limited',
         isRetryable: true,

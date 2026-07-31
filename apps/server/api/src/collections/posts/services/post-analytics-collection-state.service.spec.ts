@@ -83,7 +83,7 @@ describe('PostAnalyticsCollectionStateService', () => {
       },
       where: expect.objectContaining({
         analyticsCollectionAttemptKey: 'attempt-1',
-        id: 'target-1',
+        id: { in: ['target-1'] },
         organizationId: 'org-1',
       }),
     });
@@ -112,7 +112,89 @@ describe('PostAnalyticsCollectionStateService', () => {
     expect(update.where).toEqual(
       expect.objectContaining({
         analyticsCollectionAttemptKey: 'attempt-1',
+        id: { in: ['target-1'] },
       }),
     );
+  });
+
+  it('batches ready updates with id in-list per org/brand/platform/attempt scope', async () => {
+    const { service, updateMany } = createHarness();
+    const collectedAt = new Date();
+
+    await service.markReadyBatch(
+      [
+        { ...target, attemptKey: 'attempt-1', id: 'target-1' },
+        { ...target, attemptKey: 'attempt-1', id: 'target-2' },
+        {
+          ...target,
+          attemptKey: 'attempt-1',
+          brandId: 'brand-2',
+          id: 'target-3',
+        },
+      ],
+      collectedAt,
+    );
+
+    expect(updateMany).toHaveBeenCalledTimes(2);
+    expect(updateMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        analyticsCollectedAt: collectedAt,
+        analyticsCollectionAttemptKey: null,
+        analyticsCollectionState: TargetAnalyticsCollectionState.READY,
+      }),
+      where: {
+        analyticsCollectionAttemptKey: 'attempt-1',
+        brandId: 'brand-1',
+        groupId: { not: null },
+        id: { in: ['target-1', 'target-2'] },
+        isDeleted: false,
+        organizationId: 'org-1',
+        parentId: null,
+        platform: CredentialPlatform.TWITTER,
+      },
+    });
+    expect(updateMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        analyticsCollectionState: TargetAnalyticsCollectionState.READY,
+      }),
+      where: expect.objectContaining({
+        brandId: 'brand-2',
+        id: { in: ['target-3'] },
+      }),
+    });
+  });
+
+  it('batches failed updates with id in-list for a shared failure', async () => {
+    const { service, updateMany } = createHarness();
+
+    await service.markFailedBatch(
+      [
+        { ...target, attemptKey: 'attempt-1', id: 'target-1' },
+        { ...target, attemptKey: 'attempt-1', id: 'target-2' },
+      ],
+      {
+        code: 'analytics.rate_limited',
+        isRetryable: true,
+        message: 'Twitter analytics is temporarily rate limited.',
+      },
+    );
+
+    expect(updateMany).toHaveBeenCalledTimes(1);
+    expect(updateMany).toHaveBeenCalledWith({
+      data: {
+        analyticsCollectionError: {
+          code: 'analytics.rate_limited',
+          failedAt: '2026-07-27T06:30:00.000Z',
+          isRetryable: true,
+          message: 'Twitter analytics is temporarily rate limited.',
+        },
+        analyticsCollectionState: TargetAnalyticsCollectionState.FAILED,
+      },
+      where: expect.objectContaining({
+        analyticsCollectionAttemptKey: 'attempt-1',
+        id: { in: ['target-1', 'target-2'] },
+        organizationId: 'org-1',
+      }),
+    });
   });
 });

@@ -1,7 +1,10 @@
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
-import type { ServerAnalyticsCollectionState } from '@genfeedai/interfaces';
+import type {
+  AnalyticsCollectionAttemptRef,
+  ServerAnalyticsCollectionState,
+} from '@genfeedai/interfaces';
 import {
   ANALYTICS_THREADS_QUEUE,
   SocialAnalyticsJobData,
@@ -65,6 +68,7 @@ export class AnalyticsThreadsProcessor extends WorkerHost {
         return;
       }
 
+      const readyTargets: AnalyticsCollectionAttemptRef[] = [];
       let processed = 0;
 
       for (const post of posts) {
@@ -80,7 +84,7 @@ export class AnalyticsThreadsProcessor extends WorkerHost {
             post.id,
             analytics,
           );
-          await this.analyticsCollectionState.markReady({
+          readyTargets.push({
             attemptKey: job.data.attemptKey,
             brandId: post.brand,
             id: post.id,
@@ -131,6 +135,7 @@ export class AnalyticsThreadsProcessor extends WorkerHost {
         }
       }
 
+      await this.analyticsCollectionState.markReadyBatch(readyTargets);
       await job.updateProgress(100);
 
       this.logger.log(

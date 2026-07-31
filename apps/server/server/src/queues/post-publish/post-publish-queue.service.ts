@@ -10,6 +10,7 @@ import {
   getActionOriginContext,
   sanitizeActionOriginContext,
 } from '@server/action-origin/action-origin.context';
+import { reserveIdempotentJob } from '@server/queues/idempotent-job';
 import { SERVER_TOKENS, type ServerLogger } from '@server/server.dependencies';
 import type { Queue } from 'bullmq';
 
@@ -46,19 +47,15 @@ export class PostPublishQueueService {
       return jobId;
     }
 
-    const existingJob = await this.queue.getJob(jobId);
-
-    if (existingJob) {
-      const state = await existingJob.getState();
-      if (state === 'active' || state === 'waiting' || state === 'delayed') {
-        this.logger.warn(`${this.logContext} post already queued`, {
-          jobId,
-          postId: data.postId,
-          state,
-        });
-        return jobId;
-      }
-      await existingJob.remove();
+    // Prevent duplicate publish jobs sharing the deterministic job id.
+    const reservation = await reserveIdempotentJob(this.queue, jobId);
+    if (reservation.alreadyQueued) {
+      this.logger.warn(`${this.logContext} post already queued`, {
+        jobId,
+        postId: data.postId,
+        state: reservation.state,
+      });
+      return jobId;
     }
 
     const job = await this.queue.add(POST_PUBLISH_JOB_NAME, payload, {
