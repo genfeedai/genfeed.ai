@@ -32,9 +32,7 @@ test.describe('Core Automation Loop', () => {
   }) => {
     await automationPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS);
 
-    await expect(automationPage).toHaveURL(
-      /\/test-org\/brand-1\/orchestration\/workflows$/,
-    );
+    await expect(automationPage).toHaveURL(/\/orchestration\/workflows$/);
     await expect(
       automationPage.getByTestId('sidebar-shell').first(),
     ).toHaveAttribute('data-shell-section-label', 'Automate');
