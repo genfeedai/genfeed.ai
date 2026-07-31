@@ -2,10 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
 import { TagsQueryDto } from '@api/collections/tags/dto/tags-query.dto';
 import { UpdateTagDto } from '@api/collections/tags/dto/update-tag.dto';
-import {
-  Tag,
-  type TagDocument,
-} from '@api/collections/tags/schemas/tag.schema';
+import type { TagDocument } from '@api/collections/tags/schemas/tag.schema';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import {

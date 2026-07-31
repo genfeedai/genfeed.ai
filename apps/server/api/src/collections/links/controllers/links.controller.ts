@@ -2,10 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CreateLinkDto } from '@api/collections/links/dto/create-link.dto';
 import { LinksQueryDto } from '@api/collections/links/dto/links-query.dto';
 import { UpdateLinkDto } from '@api/collections/links/dto/update-link.dto';
-import {
-  Link,
-  type LinkDocument,
-} from '@api/collections/links/schemas/link.schema';
+import type { LinkDocument } from '@api/collections/links/schemas/link.schema';
 import { LinksService } from '@api/collections/links/services/links.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';

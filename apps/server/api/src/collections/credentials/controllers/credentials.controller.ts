@@ -400,7 +400,7 @@ export class CredentialsController {
         platform: CredentialPlatform.INSTAGRAM,
       });
 
-      if (!credential || !credential.accessToken) {
+      if (!credential?.accessToken) {
         throw new HttpException(
           {
             detail: 'Instagram account is not connected',
