@@ -8,38 +8,21 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import BrandDetailBanner from '@pages/brands/components/banner/BrandDetailBanner';
 import BrandDetailSidebar from '@pages/brands/components/detail-sidebar/BrandDetailSidebar';
 import BrandDetailOverview from '@pages/brands/components/overview/BrandDetailOverview';
-import BrandDetailLinkEditor, {
-  type BrandLinkEditorValues,
-} from '@pages/brands/components/sidebar/BrandDetailLinkEditor';
 import BrandDetailSystemPrompt from '@pages/brands/components/system-prompt/BrandDetailSystemPrompt';
 import Card from '@ui/card/Card';
 import Alert from '@ui/feedback/alert/Alert';
-import type { ChangeEvent } from 'react';
 import type { BrandOverlayRecord } from './ModalBrand.types';
 
 export type BrandOverviewPanelProps = {
   activeBrand: BrandOverlayRecord;
   connectedPlatformsCount: number;
   error: string | null;
-  isLinkEditorOpen: boolean;
-  isSubmittingLink: boolean;
-  linkEditorError: string | null;
-  linkFormValues: BrandLinkEditorValues;
-  selectedLink: { id?: string } | null;
   socialConnections: BrandDetailSocialConnection[];
   onCopy: (text?: string) => Promise<void>;
   onDeleteReference: (assetId: string) => void;
   onEditBrand: () => void;
   onGenerateBanner: () => void;
   onGenerateLogo: () => void;
-  onLinkCancel: () => void;
-  onLinkDelete: () => Promise<void>;
-  onLinkFieldChange: (
-    event: ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
-  ) => void;
-  onLinkSubmit: () => Promise<void>;
   onOpenLinkModal: (link?: ILink) => void;
   onRefreshBrand: () => Promise<void>;
   onTogglePublicProfile: (isPublic: boolean) => void;
@@ -56,21 +39,12 @@ export default function BrandOverviewPanel({
   activeBrand,
   connectedPlatformsCount,
   error,
-  isLinkEditorOpen,
-  isSubmittingLink,
-  linkEditorError,
-  linkFormValues,
-  selectedLink,
   socialConnections,
   onCopy,
   onDeleteReference,
   onEditBrand: _onEditBrand,
   onGenerateBanner,
   onGenerateLogo,
-  onLinkCancel,
-  onLinkDelete,
-  onLinkFieldChange,
-  onLinkSubmit,
   onOpenLinkModal,
   onRefreshBrand,
   onTogglePublicProfile,
@@ -125,38 +99,23 @@ export default function BrandOverviewPanel({
         </div>
 
         <div className="xl:col-span-4">
-          <div className="space-y-6">
-            <BrandDetailSidebar
-              brand={activeBrand}
-              brandId={activeBrand.id}
-              links={(activeBrand.links || []) as unknown as ILink[]}
-              socialConnections={socialConnections}
-              connectedPlatformsCount={connectedPlatformsCount}
-              deletingRefId={null}
-              onTogglePublicProfile={(isPublic) =>
-                onTogglePublicProfile(isPublic)
-              }
-              onRefreshBrand={onRefreshBrand}
-              onOpenLinkModal={onOpenLinkModal}
-              onUploadBanner={onUploadBanner}
-              onUploadLogo={onUploadLogo}
-              onUploadReference={onUploadReference}
-              onDeleteReference={onDeleteReference}
-            />
-
-            {isLinkEditorOpen ? (
-              <BrandDetailLinkEditor
-                error={linkEditorError}
-                isSubmitting={isSubmittingLink}
-                isEditing={Boolean(selectedLink)}
-                values={linkFormValues}
-                onChange={onLinkFieldChange}
-                onCancel={onLinkCancel}
-                onDelete={onLinkDelete}
-                onSubmit={onLinkSubmit}
-              />
-            ) : null}
-          </div>
+          <BrandDetailSidebar
+            brand={activeBrand}
+            brandId={activeBrand.id}
+            links={(activeBrand.links || []) as unknown as ILink[]}
+            socialConnections={socialConnections}
+            connectedPlatformsCount={connectedPlatformsCount}
+            deletingRefId={null}
+            onTogglePublicProfile={(isPublic) =>
+              onTogglePublicProfile(isPublic)
+            }
+            onRefreshBrand={onRefreshBrand}
+            onOpenLinkModal={onOpenLinkModal}
+            onUploadBanner={onUploadBanner}
+            onUploadLogo={onUploadLogo}
+            onUploadReference={onUploadReference}
+            onDeleteReference={onDeleteReference}
+          />
         </div>
       </div>
     </div>
