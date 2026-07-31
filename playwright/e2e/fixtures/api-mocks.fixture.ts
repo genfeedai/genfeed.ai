@@ -1930,6 +1930,28 @@ export async function mockWorkflowCrud(
 ): Promise<void> {
   await routeApiPattern(page, '/workflows**', async (route) => {
     const method = route.request().method();
+    const url = route.request().url();
+
+    // Literal catalog/templates routes must not be treated as workflow CRUD
+    // list/create — `/workflows/*` would otherwise mint a fake "system-catalog"
+    // document and break `listSystemCatalog().filter(...)` (#2176 / #1626).
+    if (url.includes('/workflows/system-catalog')) {
+      if (method === 'GET') {
+        await route.fulfill({
+          body: JSON.stringify({ data: [] }),
+          contentType: 'application/json',
+          status: 200,
+        });
+        return;
+      }
+      await route.fallback();
+      return;
+    }
+    if (url.includes('/workflows/templates')) {
+      await route.fallback();
+      return;
+    }
+
     if (method === 'GET') {
       const resources = workflows.map((workflow) => ({
         attributes: normalizeWorkflow(workflow, {
@@ -1974,6 +1996,24 @@ export async function mockWorkflowCrud(
   await routeApiPattern(page, '/workflows/*', async (route) => {
     const method = route.request().method();
     const url = route.request().url();
+
+    if (url.includes('/workflows/system-catalog')) {
+      if (method === 'GET') {
+        await route.fulfill({
+          body: JSON.stringify({ data: [] }),
+          contentType: 'application/json',
+          status: 200,
+        });
+        return;
+      }
+      await route.fallback();
+      return;
+    }
+    if (url.includes('/workflows/templates')) {
+      await route.fallback();
+      return;
+    }
+
     const idMatch = url.match(/\/workflows\/([^/?]+)/);
     const id = idMatch ? idMatch[1] : 'workflow-001';
     const found = workflows.find((w) => w.id === id);
@@ -2145,6 +2185,21 @@ export async function mockWorkflowTemplates(
       contentType: 'application/json',
       status: 200,
     });
+  });
+
+  // #2176 catalog-first install: templates page loads system catalog in parallel
+  // with generation templates. Without this mock, Promise.all rejects and the
+  // gallery renders "Failed to load templates" (nightly automation-loop).
+  await routeApiPattern(page, '/workflows/system-catalog**', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        body: JSON.stringify({ data: [] }),
+        contentType: 'application/json',
+        status: 200,
+      });
+      return;
+    }
+    await route.continue();
   });
 }
 

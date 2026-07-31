@@ -424,6 +424,15 @@ export abstract class BaseService<
       normalized.action = normalized.key;
     }
 
+    // Prisma stores OrganizationSetting model allowlist as enabledModelIds;
+    // domain/API surface remains enabledModels.
+    if (
+      normalized.enabledModels === undefined &&
+      Array.isArray(normalized.enabledModelIds)
+    ) {
+      normalized.enabledModels = normalized.enabledModelIds;
+    }
+
     return normalized as T;
   }
 
@@ -662,6 +671,22 @@ export abstract class BaseService<
       // effects from a broad remap.
       if (key === 'metadata' && typeof value === 'string' && value.length > 0) {
         result.metadataId = value;
+        continue;
+      }
+
+      // Domain API still uses `enabledModels`; Prisma column is `enabledModelIds`
+      // (OrganizationSetting). Without this remap, org bootstrap / user setup
+      // create throws PrismaClientValidationError and brands never provision —
+      // which is what reds the authed nightly (#1626).
+      if (
+        key === 'enabledModels' &&
+        this.modelHasField('enabledModelIds') &&
+        !this.modelHasField('enabledModels')
+      ) {
+        result.enabledModelIds = this.normalizeOperatorValue(
+          'enabledModelIds',
+          value,
+        );
         continue;
       }
 
