@@ -421,6 +421,7 @@
         "multer": "2.2.0",
         "openai": "7.1.0",
         "rss": "1.2.2",
+        "tsconfig-paths": "4.2.0",
         "twitter-text": "3.1.0",
       },
       "devDependencies": {
@@ -447,6 +448,7 @@
         "@genfeedai/config": "workspace:*",
         "@genfeedai/integrations": "workspace:*",
         "discord.js": "14.27.0",
+        "tsconfig-paths": "4.2.0",
       },
       "devDependencies": {
         "unplugin-swc": "1.5.9",
@@ -469,6 +471,7 @@
         "react": "19.2.8",
         "react-dom": "19.2.8",
         "remotion": "4.0.502",
+        "tsconfig-paths": "4.2.0",
       },
       "devDependencies": {
         "@types/ffprobe-static": "2.0.3",
@@ -480,6 +483,7 @@
       "dependencies": {
         "@genfeedai/config": "workspace:*",
         "@genfeedai/workflows": "workspace:*",
+        "tsconfig-paths": "4.2.0",
       },
     },
     "apps/server/mcp": {
@@ -492,6 +496,7 @@
         "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/tools": "workspace:*",
         "@genfeedai/ui": "workspace:*",
+        "tsconfig-paths": "4.2.0",
       },
     },
     "apps/server/notifications": {
@@ -504,6 +509,7 @@
         "@slack/web-api": "8.0.0",
         "jose": "^6.2.5",
         "node-pty": "1.1.0",
+        "tsconfig-paths": "4.2.0",
       },
     },
     "apps/server/server": {
@@ -541,6 +547,7 @@
         "@genfeedai/config": "workspace:*",
         "@genfeedai/integrations": "workspace:*",
         "@slack/bolt": "5.0.0",
+        "tsconfig-paths": "4.2.0",
       },
       "devDependencies": {
         "unplugin-swc": "1.5.9",
@@ -554,6 +561,7 @@
         "@genfeedai/enums": "workspace:*",
         "@genfeedai/integrations": "workspace:*",
         "grammy": "1.45.1",
+        "tsconfig-paths": "4.2.0",
       },
       "devDependencies": {
         "unplugin-swc": "1.5.9",
@@ -564,6 +572,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@genfeedai/config": "workspace:*",
+        "tsconfig-paths": "4.2.0",
       },
     },
     "apps/server/voices": {
@@ -571,6 +580,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@genfeedai/config": "workspace:*",
+        "tsconfig-paths": "4.2.0",
       },
     },
     "apps/server/workers": {
@@ -593,6 +603,7 @@
         "@nestjs/event-emitter": "3.1.0",
         "bullmq": "5.81.3",
         "rxjs": "7.8.2",
+        "tsconfig-paths": "4.2.0",
       },
       "devDependencies": {
         "@nestjs/testing": "11.1.28",

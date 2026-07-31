@@ -12,7 +12,8 @@
     "bullmq": "5.81.3",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "remotion": "4.0.502"
+    "remotion": "4.0.502",
+    "tsconfig-paths": "4.2.0"
   },
   "description": "Genfeed Files Service",
   "devDependencies": {

@@ -1,7 +1,8 @@
 {
   "dependencies": {
     "@genfeedai/config": "workspace:*",
-    "@genfeedai/workflows": "workspace:*"
+    "@genfeedai/workflows": "workspace:*",
+    "tsconfig-paths": "4.2.0"
   },
   "description": "Genfeed Images Service",
   "devDependencies": {},

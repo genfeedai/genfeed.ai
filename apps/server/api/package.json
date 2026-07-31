@@ -41,6 +41,7 @@
     "multer": "2.2.0",
     "openai": "7.1.0",
     "rss": "1.2.2",
+    "tsconfig-paths": "4.2.0",
     "twitter-text": "3.1.0"
   },
   "description": "Genfeed API Service",
