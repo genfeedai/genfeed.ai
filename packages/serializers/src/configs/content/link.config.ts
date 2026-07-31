@@ -1,4 +1,8 @@
 import { linkAttributes } from '@serializers/attributes/content/link.attributes';
-import { simpleConfig } from '@serializers/builders';
+import { BRAND_REL } from '@serializers/relationships';
 
-export const linkSerializerConfig = simpleConfig('link', linkAttributes);
+export const linkSerializerConfig = {
+  attributes: linkAttributes,
+  brand: BRAND_REL,
+  type: 'link',
+};

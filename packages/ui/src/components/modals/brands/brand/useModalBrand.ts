@@ -44,7 +44,6 @@ import { BrandsService } from '@genfeedai/services/social/brands.service';
 import { LinksService } from '@genfeedai/services/social/links.service';
 import { hasErrorDetail } from '@genfeedai/utils/error/error-handler.util';
 import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
-import type { BrandLinkEditorValues } from '@pages/brands/components/sidebar/BrandDetailLinkEditor';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { THEME_COLORS } from '@ui-constants/theme.constant';
 import { useRouter } from 'next/navigation';
@@ -97,12 +96,6 @@ function getStructuredErrorStatus(error: unknown): number | undefined {
   return typeof status === 'number' ? status : undefined;
 }
 
-const DEFAULT_BRAND_LINK_FORM_VALUES: BrandLinkEditorValues = {
-  category: LinkCategory.WEBSITE,
-  label: '',
-  url: '',
-};
-
 export type UseModalBrandReturn = {
   activeBrand: BrandOverlayRecord | null;
   canMoveOrganization: boolean;
@@ -116,12 +109,8 @@ export type UseModalBrandReturn = {
   generateModalType: 'banner' | 'logo' | null;
   imageModels: ReturnType<typeof useElements>['imageModels'];
   isGenerating: boolean;
-  isLinkEditorOpen: boolean;
   isLoadingBrand: boolean;
   isSubmitting: boolean;
-  isSubmittingLink: boolean;
-  linkEditorError: string | null;
-  linkFormValues: BrandLinkEditorValues;
   musicModels: ReturnType<typeof useElements>['musicModels'];
   navigateToBrandSettings: (() => void) | undefined;
   organizationDefaults: {
@@ -139,7 +128,6 @@ export type UseModalBrandReturn = {
   selectedLink: ILink | null;
   socialConnections: ReturnType<typeof buildSocialConnections>;
   videoModels: ReturnType<typeof useElements>['videoModels'];
-  closeLinkEditor: () => void;
   closeModalBrand: () => void;
   enhanceDescription: () => Promise<void>;
   handleCopy: (text?: string) => Promise<void>;
@@ -148,13 +136,7 @@ export type UseModalBrandReturn = {
   handleGenerateBanner: () => void;
   handleGenerateConfirm: () => Promise<void>;
   handleGenerateLogo: () => void;
-  handleLinkDelete: () => Promise<void>;
-  handleLinkFieldChange: (
-    event: ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
-  ) => void;
-  handleLinkSubmit: () => Promise<void>;
+  handleLinkConfirm: () => Promise<void>;
   handleOpenLinkModal: (link?: ILink) => void;
   handleOpenUploadModal: (category: AssetCategory) => void;
   handleRequestDeleteReference: (assetId: string) => void;
@@ -242,12 +224,6 @@ export function useModalBrand(
     brand?.id ?? null,
   );
   const [selectedLink, setSelectedLink] = useState<ILink | null>(null);
-  const [isLinkEditorOpen, setIsLinkEditorOpen] = useState(false);
-  const [linkFormValues, setLinkFormValues] = useState<BrandLinkEditorValues>(
-    DEFAULT_BRAND_LINK_FORM_VALUES,
-  );
-  const [linkEditorError, setLinkEditorError] = useState<string | null>(null);
-  const [isSubmittingLink, setIsSubmittingLink] = useState(false);
   const [generateModalType, setGenerateModalType] = useState<
     'banner' | 'logo' | null
   >(null);
@@ -323,9 +299,6 @@ export function useModalBrand(
     setOverlayBrandId(brand?.id ?? null);
     setOverlayView(brand ? initialView : 'edit');
     setSelectedLink(null);
-    setIsLinkEditorOpen(false);
-    setLinkFormValues(DEFAULT_BRAND_LINK_FORM_VALUES);
-    setLinkEditorError(null);
     setGenerateModalType(null);
   }, [brand, initialView]);
 
@@ -568,114 +541,19 @@ export function useModalBrand(
     [getAssetsService, onConfirm, openConfirm, refreshBrand],
   );
 
+  // Links are edited through the shared `ModalBrandLink` dialog — the same
+  // path the Social settings page uses. This hook only tracks which link is
+  // being edited; create/update/delete and validation live in the modal.
   const handleOpenLinkModal = useCallback((link?: ILink) => {
     setSelectedLink(link ?? null);
-    setLinkFormValues({
-      category: link?.category ?? LinkCategory.WEBSITE,
-      label: link?.label ?? '',
-      url: link?.url ?? '',
-    });
-    setLinkEditorError(null);
-    setIsLinkEditorOpen(true);
+    openModal(ModalEnum.BRAND_LINK);
   }, []);
 
-  const closeLinkEditor = useCallback(() => {
+  const handleLinkConfirm = useCallback(async () => {
     setSelectedLink(null);
-    setLinkFormValues(DEFAULT_BRAND_LINK_FORM_VALUES);
-    setLinkEditorError(null);
-    setIsLinkEditorOpen(false);
-  }, []);
-
-  const handleLinkFieldChange = useCallback(
-    (
-      event: ChangeEvent<
-        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-      >,
-    ) => {
-      const { name, value } = event.target;
-      setLinkFormValues((current) => ({
-        ...current,
-        [name]: value,
-      }));
-    },
-    [],
-  );
-
-  const handleLinkSubmit = useCallback(async () => {
-    if (!overlayBrandId) {
-      return;
-    }
-
-    if (!linkFormValues.label.trim() || !linkFormValues.url.trim()) {
-      setLinkEditorError('Label and URL are required.');
-      return;
-    }
-
-    try {
-      new URL(linkFormValues.url);
-    } catch {
-      setLinkEditorError('Enter a valid URL, including http:// or https://.');
-      return;
-    }
-
-    setIsSubmittingLink(true);
-    setLinkEditorError(null);
-
-    try {
-      const service = await getLinksService();
-      const payload = {
-        brand: overlayBrandId,
-        category: linkFormValues.category,
-        label: linkFormValues.label.trim(),
-        url: linkFormValues.url.trim(),
-      } as unknown as Partial<Link>;
-
-      if (selectedLink?.id) {
-        await service.patch(selectedLink.id, payload);
-      } else {
-        await service.post(payload);
-      }
-
-      await refreshBrand();
-      onConfirm?.(true);
-      closeLinkEditor();
-    } catch (linkError) {
-      logger.error('Failed to save brand link', linkError);
-      setLinkEditorError('Failed to save link');
-    } finally {
-      setIsSubmittingLink(false);
-    }
-  }, [
-    closeLinkEditor,
-    getLinksService,
-    linkFormValues,
-    onConfirm,
-    overlayBrandId,
-    refreshBrand,
-    selectedLink?.id,
-  ]);
-
-  const handleLinkDelete = useCallback(async () => {
-    if (!selectedLink?.id) {
-      return;
-    }
-
-    setIsSubmittingLink(true);
-    setLinkEditorError(null);
-
-    try {
-      const service = await getLinksService();
-      await service.delete(selectedLink.id);
-      await refreshBrand();
-      onConfirm?.(true);
-      closeLinkEditor();
-    } catch (linkError) {
-      logger.error('Failed to delete brand link', linkError);
-      setLinkEditorError('Failed to delete link');
-    } finally {
-      setIsSubmittingLink(false);
-    }
-  }, [closeLinkEditor, getLinksService, onConfirm, refreshBrand, selectedLink]);
+    await refreshBrand();
+    onConfirm?.(true);
+  }, [onConfirm, refreshBrand]);
 
   const handleGenerateBanner = useCallback(() => {
     setGenerateModalType('banner');
@@ -1115,12 +993,8 @@ export function useModalBrand(
     generateModalType,
     imageModels,
     isGenerating,
-    isLinkEditorOpen,
     isLoadingBrand,
     isSubmitting,
-    isSubmittingLink,
-    linkEditorError,
-    linkFormValues,
     musicModels,
     navigateToBrandSettings,
     organizationDefaults,
@@ -1133,7 +1007,6 @@ export function useModalBrand(
     selectedLink,
     socialConnections,
     videoModels,
-    closeLinkEditor,
     closeModalBrand,
     enhanceDescription,
     handleCopy,
@@ -1142,9 +1015,7 @@ export function useModalBrand(
     handleGenerateBanner,
     handleGenerateConfirm,
     handleGenerateLogo,
-    handleLinkDelete,
-    handleLinkFieldChange,
-    handleLinkSubmit,
+    handleLinkConfirm,
     handleOpenLinkModal,
     handleOpenUploadModal,
     handleRequestDeleteReference,
