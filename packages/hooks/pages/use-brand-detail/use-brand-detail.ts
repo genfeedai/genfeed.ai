@@ -33,6 +33,7 @@ import { PublicService } from '@genfeedai/services/external/public.service';
 import { BrandsService } from '@genfeedai/services/social/brands.service';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useSaveQueue } from '@hooks/utils/use-save-queue/use-save-queue';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import {
@@ -137,8 +138,21 @@ export function useBrandDetail(): UseBrandDetailReturn {
 
   const brandId = state.brand?.id ?? '';
 
+  // Queued saves run after the render that enqueued them, so they read the
+  // brand from this ref rather than from a stale closure.
+  const brandStateRef = useRef<{ brand: IBrand | null; links: ILink[] }>({
+    brand: null,
+    links: [],
+  });
+
+  const applyBrand = useCallback((brand: IBrand, links: ILink[]) => {
+    brandStateRef.current = { brand, links };
+    dispatch({ brand, links, type: 'SET_BRAND' });
+  }, []);
+
+  const { enqueueSave, isSaving: isUpdating } = useSaveQueue();
+
   const [isLoading, setIsLoading] = useState(true);
-  const [isUpdating, setIsUpdating] = useState(false);
   const [isGeneratingBanner, setIsGeneratingBanner] = useState(false);
   const [isGeneratingLogo, setIsGeneratingLogo] = useState(false);
   const [pendingAssetId, setPendingAssetId] = useState<string | null>(null);
@@ -257,18 +271,14 @@ export function useBrandDetail(): UseBrandDetailReturn {
 
         logger.info(`${url} success`, brandResponse);
 
-        dispatch({
-          brand: brandResponse,
-          links: brandResponse.links || [],
-          type: 'SET_BRAND',
-        });
+        applyBrand(brandResponse, brandResponse.links || []);
         setIsLoading(false);
       } catch (error) {
         logger.error(`${url} failed`, error);
         setIsLoading(false);
       }
     },
-    [brandSlug, getBrandsService],
+    [applyBrand, brandSlug, getBrandsService],
   );
 
   const handleOpenUploadModal = useCallback(
@@ -329,56 +339,59 @@ export function useBrandDetail(): UseBrandDetailReturn {
     findOneBrand(true);
   }, [findOneBrand]);
 
-  const isUpdatingRef = useRef(false);
-
   const handleUpdateAccount = useCallback(
-    async (field: string, value: boolean | string) => {
-      if (!state.brand || isUpdatingRef.current) {
-        return;
+    (field: string, value: boolean | string): Promise<void> => {
+      if (!state.brand) {
+        return Promise.resolve();
       }
 
-      const url = `PATCH /brands/${state.brand.id}`;
-      const previousBrand = state.brand;
-      const previousLinks = state.links;
-      isUpdatingRef.current = true;
-      setIsUpdating(true);
+      return enqueueSave(async () => {
+        const previousBrand = brandStateRef.current.brand;
+        const previousLinks = brandStateRef.current.links;
 
-      // Optimistic: flip public-profile switch immediately (scope is the field).
-      if (field === 'scope') {
-        dispatch({
-          brand: { ...state.brand, [field]: value } as IBrand,
-          links: state.links,
-          type: 'SET_BRAND',
-        });
-      }
+        if (!previousBrand) {
+          return;
+        }
 
-      try {
-        const service = await getBrandsService();
-        const updateData: Record<string, boolean | string> = {};
-        updateData[field] = value;
+        const url = `PATCH /brands/${previousBrand.id}`;
 
-        const updatedAccount = await service.patch(state.brand.id, updateData);
+        // Optimistic: flip public-profile switch immediately (scope is the field).
+        if (field === 'scope') {
+          applyBrand(
+            { ...previousBrand, [field]: value } as IBrand,
+            previousLinks,
+          );
+        }
 
-        logger.info(`${url} success`, updatedAccount);
-        dispatch({
-          brand: updatedAccount as IBrand,
-          links: (updatedAccount as IBrand).links || previousLinks,
-          type: 'SET_BRAND',
-        });
-      } catch (error) {
-        logger.error(`${url} failed`, error);
-        notificationsService.error(`${url} failed`);
-        dispatch({
-          brand: previousBrand,
-          links: previousLinks,
-          type: 'SET_BRAND',
-        });
-      } finally {
-        isUpdatingRef.current = false;
-        setIsUpdating(false);
-      }
+        try {
+          const service = await getBrandsService();
+          const updateData: Record<string, boolean | string> = {};
+          updateData[field] = value;
+
+          const updatedAccount = (await service.patch(
+            previousBrand.id,
+            updateData,
+          )) as IBrand;
+
+          logger.info(`${url} success`, updatedAccount);
+          applyBrand(updatedAccount, updatedAccount.links || previousLinks);
+        } catch (error) {
+          logger.error(`${url} failed`, error);
+          notificationsService.error(`${url} failed`);
+          applyBrand(previousBrand, previousLinks);
+          // Rethrow so inline editors revert their draft instead of treating a
+          // failed save as success.
+          throw error;
+        }
+      });
     },
-    [state.brand, state.links, getBrandsService, notificationsService],
+    [
+      state.brand,
+      applyBrand,
+      enqueueSave,
+      getBrandsService,
+      notificationsService,
+    ],
   );
 
   const _confirmGenerateAsset = useCallback(
