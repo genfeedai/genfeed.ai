@@ -4,6 +4,7 @@ import { AssetScope, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { BrandDetailOverviewProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
+import { EditableText } from '@ui/primitives/editable-text';
 import { Copy, Share2, Sparkles, Upload } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -15,6 +16,7 @@ export default function BrandDetailOverview({
   isGeneratingLogo,
   onUploadLogo,
   onGenerateLogo,
+  onUpdateBrand,
   onCopyPublicProfile,
 }: BrandDetailOverviewProps) {
   const profileUrl = `${EnvironmentService.apps.website}/u/${brand.slug}`;
@@ -60,15 +62,27 @@ export default function BrandDetailOverview({
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h2 className="mb-1 text-2xl font-bold">{brand.label}</h2>
+            <EditableText
+              ariaLabel="Edit brand name"
+              className="mb-1"
+              displayClassName="text-2xl font-bold"
+              isRequired
+              onSave={(value) => onUpdateBrand('label', value)}
+              value={brand.label}
+            />
             {brand.slug ? (
               <p className="mb-1 text-xs text-muted-foreground">
                 @{brand.slug}
               </p>
             ) : null}
-            <p className="text-muted-foreground">
-              {brand.description || 'No description available'}
-            </p>
+            <EditableText
+              ariaLabel="Edit brand description"
+              displayClassName="text-muted-foreground"
+              isMultiline
+              onSave={(value) => onUpdateBrand('description', value)}
+              placeholder="Add a description"
+              value={brand.description}
+            />
           </div>
 
           {typeof brand.scope === 'string' &&

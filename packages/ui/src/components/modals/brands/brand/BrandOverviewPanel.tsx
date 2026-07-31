@@ -42,6 +42,10 @@ export type BrandOverviewPanelProps = {
   onOpenLinkModal: (link?: ILink) => void;
   onRefreshBrand: () => Promise<void>;
   onTogglePublicProfile: (isPublic: boolean) => void;
+  onUpdateBrand: (
+    field: 'label' | 'description',
+    value: string,
+  ) => Promise<void>;
   onUploadBanner: () => void;
   onUploadLogo: () => void;
   onUploadReference: () => void;
@@ -69,6 +73,7 @@ export default function BrandOverviewPanel({
   onOpenLinkModal,
   onRefreshBrand,
   onTogglePublicProfile,
+  onUpdateBrand,
   onUploadBanner,
   onUploadLogo,
   onUploadReference,
@@ -96,6 +101,7 @@ export default function BrandOverviewPanel({
               isGeneratingLogo={false}
               onUploadLogo={onUploadLogo}
               onGenerateLogo={onGenerateLogo}
+              onUpdateBrand={onUpdateBrand}
               onCopyPublicProfile={
                 typeof activeBrand.scope === 'string' &&
                 activeBrand.scope.toLowerCase() === AssetScope.PUBLIC

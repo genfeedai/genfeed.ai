@@ -109,10 +109,7 @@ export {
   type DropzoneFieldProps,
   default as DropzoneField,
 } from './dropzone-field';
-export {
-  default as EditableInput,
-  type EditableInputProps,
-} from './editable-input';
+export { EditableText, type EditableTextProps } from './editable-text';
 export {
   default as Field,
   type FieldElementProps,

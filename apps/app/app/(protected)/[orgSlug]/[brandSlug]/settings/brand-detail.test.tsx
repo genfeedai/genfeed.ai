@@ -145,10 +145,15 @@ vi.mock('@pages/brands/components/overview/BrandDetailOverview', () => ({
   default: ({
     onCopyPublicProfile,
     onGenerateLogo,
+    onUpdateBrand,
     onUploadLogo,
   }: {
     onCopyPublicProfile?: () => void;
     onGenerateLogo: () => void;
+    onUpdateBrand: (
+      field: 'label' | 'description',
+      value: string,
+    ) => Promise<void>;
     onUploadLogo: () => void;
   }) => (
     <section>
@@ -158,6 +163,18 @@ vi.mock('@pages/brands/components/overview/BrandDetailOverview', () => ({
       </button>
       <button type="button" onClick={onGenerateLogo}>
         Generate Logo
+      </button>
+      <button
+        type="button"
+        onClick={() => void onUpdateBrand('label', 'Updated Brand')}
+      >
+        Update Brand Name
+      </button>
+      <button
+        type="button"
+        onClick={() => void onUpdateBrand('description', 'Updated description')}
+      >
+        Update Brand Description
       </button>
       {onCopyPublicProfile ? (
         <button type="button" onClick={onCopyPublicProfile}>
@@ -291,6 +308,18 @@ describe('BrandDetail', () => {
     expect(mocks.handleGenerateBanner).toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Generate Logo' }));
     expect(mocks.handleGenerateLogo).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Update Brand Name' }));
+    expect(mocks.handleUpdateAccount).toHaveBeenCalledWith(
+      'label',
+      'Updated Brand',
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Update Brand Description' }),
+    );
+    expect(mocks.handleUpdateAccount).toHaveBeenCalledWith(
+      'description',
+      'Updated description',
+    );
     fireEvent.click(
       screen.getByRole('button', { name: 'Copy Public Profile' }),
     );

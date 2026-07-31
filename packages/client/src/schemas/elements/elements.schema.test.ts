@@ -1,4 +1,3 @@
-import { createEditableInputSchema } from '@genfeedai/client/schemas/elements/editable-input.schema';
 import {
   elementBaseSchema,
   elementBlacklistSchema,
@@ -97,7 +96,9 @@ describe('element schemas', () => {
     });
 
     it('returns base schema for unknown type', () => {
-      expect(getElementSchema('unknown' as any)).toBe(elementBaseSchema);
+      expect(
+        getElementSchema('unknown' as Parameters<typeof getElementSchema>[0]),
+      ).toBe(elementBaseSchema);
     });
   });
 
@@ -137,53 +138,5 @@ describe('element schemas', () => {
         }).success,
       ).toBe(false);
     });
-  });
-});
-
-describe('createEditableInputSchema', () => {
-  it('basic text input', () => {
-    const schema = createEditableInputSchema({ type: 'text' });
-    expect(schema.safeParse({ editValue: 'hello' }).success).toBe(true);
-  });
-
-  it('enforces required', () => {
-    const schema = createEditableInputSchema({ required: true });
-    expect(schema.safeParse({ editValue: '' }).success).toBe(false);
-    expect(schema.safeParse({ editValue: '  ' }).success).toBe(false);
-    expect(schema.safeParse({ editValue: 'val' }).success).toBe(true);
-  });
-
-  it('enforces minLength', () => {
-    const schema = createEditableInputSchema({ minLength: 3 });
-    expect(schema.safeParse({ editValue: 'ab' }).success).toBe(false);
-    expect(schema.safeParse({ editValue: 'abc' }).success).toBe(true);
-  });
-
-  it('enforces maxLength', () => {
-    const schema = createEditableInputSchema({ maxLength: 5 });
-    expect(schema.safeParse({ editValue: 'abcdef' }).success).toBe(false);
-    expect(schema.safeParse({ editValue: 'abcde' }).success).toBe(true);
-  });
-
-  it('validates email', () => {
-    const schema = createEditableInputSchema({ type: 'email' });
-    expect(schema.safeParse({ editValue: 'a@b.com' }).success).toBe(true);
-    expect(schema.safeParse({ editValue: 'bad' }).success).toBe(false);
-    expect(schema.safeParse({ editValue: '' }).success).toBe(true);
-  });
-
-  it('validates url', () => {
-    const schema = createEditableInputSchema({ type: 'url' });
-    expect(schema.safeParse({ editValue: 'https://x.com' }).success).toBe(true);
-    expect(schema.safeParse({ editValue: 'bad' }).success).toBe(false);
-    expect(schema.safeParse({ editValue: '' }).success).toBe(true);
-  });
-
-  it('applies customValidation', () => {
-    const schema = createEditableInputSchema({
-      customValidation: (val) => (val === 'bad' ? 'Nope' : null),
-    });
-    expect(schema.safeParse({ editValue: 'good' }).success).toBe(true);
-    expect(schema.safeParse({ editValue: 'bad' }).success).toBe(false);
   });
 });

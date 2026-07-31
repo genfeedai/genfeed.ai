@@ -18,6 +18,10 @@ export interface BrandDetailBannerProps {
 export interface BrandDetailOverviewProps {
   brand: IBrand;
   isGeneratingLogo: boolean;
+  onUpdateBrand: (
+    field: 'label' | 'description',
+    value: string,
+  ) => Promise<void>;
   onUploadLogo: () => void;
   onGenerateLogo: () => void;
   onCopyPublicProfile?: () => void;
@@ -148,7 +152,10 @@ export interface UseBrandDetailReturn {
   connectedPlatformsCount: number;
   handleGenerateBanner: () => void;
   handleGenerateLogo: () => void;
-  handleUpdateAccount: (field: string, value: boolean | string) => void;
+  handleUpdateAccount: (
+    field: string,
+    value: boolean | string,
+  ) => Promise<void>;
   isUpdating: boolean;
   handleOpenUploadModal: (category: AssetCategory) => void;
   handleRequestDeleteReference: (assetId: string) => void;
