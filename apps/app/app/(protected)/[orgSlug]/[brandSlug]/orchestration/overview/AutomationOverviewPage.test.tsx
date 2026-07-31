@@ -82,7 +82,7 @@ describe('AutomationOverviewPage', () => {
     for (const workflowLink of workflowLinks) {
       expect(workflowLink).toHaveAttribute(
         'href',
-        '/acme-org/acme-creator/workflows',
+        '/acme-org/acme-creator/orchestration/workflows',
       );
     }
     expect(screen.getByText('Workflows')).toBeInTheDocument();

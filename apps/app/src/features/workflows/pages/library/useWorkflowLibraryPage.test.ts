@@ -210,7 +210,9 @@ describe('useWorkflowLibraryPage — workflow duplication and deletion', () => {
     });
 
     expect(mocks.serviceDuplicate).toHaveBeenCalledWith('wf-1');
-    expect(mocks.push).toHaveBeenCalledWith('/org/brand/workflows/wf-copy');
+    expect(mocks.push).toHaveBeenCalledWith(
+      '/org/brand/orchestration/workflows/wf-copy',
+    );
   });
 
   it('does not delete canonical system workflows from the library', async () => {

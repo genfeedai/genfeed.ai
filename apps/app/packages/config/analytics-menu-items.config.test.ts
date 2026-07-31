@@ -31,9 +31,9 @@ describe('ANALYTICS_MENU_ITEMS', () => {
     }
   });
 
-  it('all hrefs point to /analytics/* routes', () => {
+  it('all hrefs point to /analytics routes', () => {
     for (const item of ANALYTICS_MENU_ITEMS) {
-      expect(item.href).toMatch(/^\/analytics\//);
+      expect(item.href).toMatch(/^\/analytics(?:\/|$)/);
     }
   });
 });
