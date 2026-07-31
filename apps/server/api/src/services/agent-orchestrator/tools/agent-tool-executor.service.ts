@@ -94,6 +94,7 @@ const BRANDLESS_AGENT_TOOLS = new Set<AgentToolName>([
   AgentToolName.LIST_GENFEED_TOOLS,
   AgentToolName.LIST_POSTS,
   AgentToolName.LIST_REVIEW_QUEUE,
+  AgentToolName.LIST_SYSTEM_WORKFLOW_CATALOG,
   AgentToolName.LIST_WORKFLOW_RUNS,
   AgentToolName.LIST_WORKFLOWS,
   AgentToolName.PRESENT_PAYMENT_OPTIONS,
@@ -266,6 +267,12 @@ export class AgentToolExecutorService {
 
       case AgentToolName.INSTALL_OFFICIAL_WORKFLOW:
         return this.workflowHandler.installOfficialWorkflow(params, ctx);
+
+      case AgentToolName.LIST_SYSTEM_WORKFLOW_CATALOG:
+        return this.workflowHandler.listSystemWorkflowCatalog(params, ctx);
+
+      case AgentToolName.INSTALL_SYSTEM_WORKFLOW:
+        return this.workflowHandler.installSystemWorkflow(params, ctx);
 
       case AgentToolName.LIST_WORKFLOWS:
         return this.workflowHandler.listWorkflows(params, ctx);
