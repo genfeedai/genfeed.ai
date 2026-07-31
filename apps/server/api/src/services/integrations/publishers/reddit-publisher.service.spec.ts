@@ -354,7 +354,7 @@ describe('RedditPublisherService', () => {
       it('should submit to the subreddit setting instead of the credential', async () => {
         // The credential holds one subreddit, but a brand posts to several, so
         // the per-target setting has to win — including in the permalink.
-        const context = createPublishContext(mockTextPost, {
+        const context = createPublishContext(mockTextPost, mockCredential, {
           subreddit: 'anothersub',
         });
 
@@ -397,7 +397,7 @@ describe('RedditPublisherService', () => {
       });
 
       it('should forward the selected flair id', async () => {
-        const context = createPublishContext(mockTextPost, {
+        const context = createPublishContext(mockTextPost, mockCredential, {
           flairId: 'flair-abc',
         });
 

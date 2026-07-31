@@ -24,6 +24,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
+import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ConfigService } from '@libs/config/config.service';
@@ -171,6 +172,7 @@ describe('OrganizationsMembersController', () => {
           provide: BetterAuthIdentityCacheService,
           useValue: mockBetterAuthIdentityCacheService,
         },
+        UserAccessCacheService,
       ],
     })
       .overrideGuard(RolesGuard)
