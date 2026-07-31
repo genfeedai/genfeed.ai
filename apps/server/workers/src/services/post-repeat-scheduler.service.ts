@@ -10,6 +10,7 @@ import {
   PostStatus,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
+import { PublishApprovalsService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ReleaseRecurrenceMaterializerService } from '@workers/services/release-recurrence-materializer.service';
@@ -28,6 +29,7 @@ export class PostRepeatSchedulerService {
   constructor(
     private readonly logger: LoggerService,
     private readonly postsService: PostsService,
+    private readonly publishApprovalsService: PublishApprovalsService,
     private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
     private readonly releaseRecurrenceMaterializerService: ReleaseRecurrenceMaterializerService,
   ) {}
@@ -72,6 +74,21 @@ export class PostRepeatSchedulerService {
         return;
       }
 
+      const organizationId = this.readPostString(post, [
+        'organizationId',
+        'organization',
+      ]);
+      const actorUserId = this.readPostString(post, ['userId', 'user']);
+      // Occurrence #2+ must carry a version-bound PublishApproval so the
+      // scheduled sweep can enqueue approvalId + operationId + versionPinId.
+      // Without this, cron.posts.service terminal-fails non-retryably.
+      if (!organizationId || !actorUserId) {
+        throw new Error(
+          'Legacy repeat requires organization and user to create publish approval.',
+        );
+      }
+      const timezone = this.readPostString(post, ['timezone']);
+
       const postData = {
         ...(post.agentThreadId
           ? {
@@ -89,8 +106,7 @@ export class PostRepeatSchedulerService {
         isRepeat: true,
         label: post.label,
         maxRepeats: post.maxRepeats,
-        organization:
-          this.readPostString(post, ['organizationId', 'organization']) ?? '',
+        organization: organizationId,
         platform: post.platform,
         repeatCount: nextRepeatCount,
         repeatDaysOfWeek: post.repeatDaysOfWeek,
@@ -100,16 +116,30 @@ export class PostRepeatSchedulerService {
         scheduledDate: nextDate,
         status: PostStatus.SCHEDULED,
         tags: post.tags,
-        user: this.readPostString(post, ['userId', 'user']) ?? '',
+        ...(timezone ? { timezone } : {}),
+        user: actorUserId,
       };
 
       const newPost = await this.postsService.create(postData);
+      const newPostId = newPost.id.toString();
+
+      await this.publishApprovalsService.createForCurrentPost({
+        actorUserId,
+        mode: 'scheduled',
+        organizationId,
+        postId: newPostId,
+        provenance: {
+          occurrenceIndex: nextRepeatCount,
+          sourcePostId: post.id.toString(),
+          surface: 'legacy-repeat',
+        },
+      });
 
       const children = (post.children || []) as unknown as CronPostChild[];
       if (children.length > 0) {
         await this.cloneChildrenForRepeat(
           children,
-          newPost.id.toString(),
+          newPostId,
           post,
           nextDate,
           url,
@@ -118,7 +148,7 @@ export class PostRepeatSchedulerService {
 
       this.logger.log(`${url} scheduled next repeat post`, {
         childrenCloned: children.length,
-        newPostId: newPost.id,
+        newPostId,
         nextDate,
         originalPostId: post.id,
         repeatCount: nextRepeatCount,

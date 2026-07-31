@@ -1,6 +1,7 @@
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import { PublishApprovalsService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
@@ -16,6 +17,9 @@ describe('PostRepeatSchedulerService', () => {
   let postsService: {
     create: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
+  };
+  let publishApprovalsService: {
+    createForCurrentPost: ReturnType<typeof vi.fn>;
   };
   let releaseRecurrenceMaterializerService: {
     materializeNext: ReturnType<typeof vi.fn>;
@@ -44,10 +48,18 @@ describe('PostRepeatSchedulerService', () => {
     scheduledDate: new Date(2026, 6, 20, 10),
     status: PostStatus.PUBLIC,
     tags: ['repeat'],
+    timezone: 'America/New_York',
     userId: 'user-1',
   };
 
   beforeEach(async () => {
+    publishApprovalsService = {
+      createForCurrentPost: vi.fn().mockResolvedValue({
+        artifactVersionPinId: 'pin-2',
+        id: 'approval-2',
+        operationId: 'operation-2',
+      }),
+    };
     releaseRecurrenceMaterializerService = {
       materializeNext: vi.fn().mockResolvedValue({
         occurrenceId: 'release-2',
@@ -83,6 +95,10 @@ describe('PostRepeatSchedulerService', () => {
             create: vi.fn().mockResolvedValue({ id: 'post-2' }),
             patch: vi.fn().mockResolvedValue(undefined),
           },
+        },
+        {
+          provide: PublishApprovalsService,
+          useValue: publishApprovalsService,
         },
         {
           provide: SystemWorkflowProvenanceService,
@@ -155,11 +171,62 @@ describe('PostRepeatSchedulerService', () => {
           repeatCount: 1,
           repeatFrequency: frequency,
           scheduledDate: expectedDate,
+          timezone: 'America/New_York',
           user: 'user-1',
         }),
       );
+      expect(publishApprovalsService.createForCurrentPost).toHaveBeenCalledWith(
+        {
+          actorUserId: 'user-1',
+          mode: 'scheduled',
+          organizationId: 'organization-1',
+          postId: 'post-2',
+          provenance: {
+            occurrenceIndex: 1,
+            sourcePostId: 'post-1',
+            surface: 'legacy-repeat',
+          },
+        },
+      );
     },
   );
+
+  it('creates a version-bound publish approval for occurrence #2+', async () => {
+    await service.scheduleNextRepeat(
+      {
+        ...basePost,
+        repeatCount: 1,
+      } as never,
+      'CronPostsService publish',
+    );
+
+    expect(postsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isRepeat: true,
+        repeatCount: 2,
+        status: PostStatus.SCHEDULED,
+      }),
+    );
+    expect(publishApprovalsService.createForCurrentPost).toHaveBeenCalledWith({
+      actorUserId: 'user-1',
+      mode: 'scheduled',
+      organizationId: 'organization-1',
+      postId: 'post-2',
+      provenance: {
+        occurrenceIndex: 2,
+        sourcePostId: 'post-1',
+        surface: 'legacy-repeat',
+      },
+    });
+    expect(loggerService.log).toHaveBeenCalledWith(
+      expect.stringContaining('scheduled next repeat post'),
+      expect.objectContaining({
+        newPostId: 'post-2',
+        originalPostId: 'post-1',
+        repeatCount: 2,
+      }),
+    );
+  });
 
   it('increments the completed post and stops when repeats are exhausted', async () => {
     await service.scheduleNextRepeat(
@@ -175,6 +242,7 @@ describe('PostRepeatSchedulerService', () => {
       repeatCount: 3,
     });
     expect(postsService.create).not.toHaveBeenCalled();
+    expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
     expect(loggerService.log).toHaveBeenCalledWith(
       expect.stringContaining('maximum repeats reached'),
       expect.objectContaining({ repeatCount: 3 }),
@@ -194,6 +262,7 @@ describe('PostRepeatSchedulerService', () => {
       repeatCount: 1,
     });
     expect(postsService.create).not.toHaveBeenCalled();
+    expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
     expect(loggerService.log).toHaveBeenCalledWith(
       expect.stringContaining('repeat end date reached'),
       expect.objectContaining({ postId: 'post-1' }),
@@ -213,6 +282,7 @@ describe('PostRepeatSchedulerService', () => {
       repeatCount: 1,
     });
     expect(postsService.create).not.toHaveBeenCalled();
+    expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
     expect(loggerService.warn).toHaveBeenCalledWith(
       expect.stringContaining('unable to calculate next schedule date'),
       expect.objectContaining({ postId: 'post-1' }),
@@ -277,6 +347,42 @@ describe('PostRepeatSchedulerService', () => {
     ).resolves.toBeUndefined();
 
     expect(postsService.create).not.toHaveBeenCalled();
+    expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
+    expect(loggerService.error).toHaveBeenCalledWith(
+      expect.stringContaining('failed to schedule next repeat'),
+      expect.objectContaining({ postId: 'post-1' }),
+    );
+  });
+
+  it('contains publish-approval failures without throwing from scheduleNextRepeat', async () => {
+    publishApprovalsService.createForCurrentPost.mockRejectedValueOnce(
+      new Error('version pin unavailable'),
+    );
+
+    await expect(
+      service.scheduleNextRepeat(basePost as never, 'CronPostsService publish'),
+    ).resolves.toBeUndefined();
+
+    expect(postsService.create).toHaveBeenCalled();
+    expect(publishApprovalsService.createForCurrentPost).toHaveBeenCalled();
+    expect(loggerService.error).toHaveBeenCalledWith(
+      expect.stringContaining('failed to schedule next repeat'),
+      expect.objectContaining({ postId: 'post-1' }),
+    );
+  });
+
+  it('refuses to schedule a bare occurrence without organization or user identity', async () => {
+    await service.scheduleNextRepeat(
+      {
+        ...basePost,
+        organizationId: undefined,
+        userId: undefined,
+      } as never,
+      'CronPostsService publish',
+    );
+
+    expect(postsService.create).not.toHaveBeenCalled();
+    expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
     expect(loggerService.error).toHaveBeenCalledWith(
       expect.stringContaining('failed to schedule next repeat'),
       expect.objectContaining({ postId: 'post-1' }),
