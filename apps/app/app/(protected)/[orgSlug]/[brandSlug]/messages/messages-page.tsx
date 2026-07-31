@@ -10,14 +10,9 @@ import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type {
-  IPaginatedResponse,
-  SocialActionProvenance,
   SocialAutomationState,
   SocialConversationStatus,
-  SocialInboxReference,
-  SocialPlatform,
 } from '@genfeedai/interfaces';
-import type { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -47,210 +42,26 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import {
-  type ChangeEvent,
-  startTransition,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useWorkspaceNavPanel } from '@/components/workspace-shell/WorkspaceNavPanelContext';
 import {
   getParticipantLabel,
   MessagesConversationSidebar,
-  type MessagesInboxView,
 } from './messages-conversation-sidebar';
 import {
-  createMessagesIdempotencyKey,
-  createSocialConversationReference,
-  createSocialMessageReference,
-  getSocialInboxReferenceKey,
-  type MessagesActionKind,
-  toggleSocialInboxReference,
-} from './messages-surface.helpers';
+  AUTOMATION_OPTIONS,
+  formatMessageTime,
+  getMessageProvenanceItems,
+  SELECTED_CONVERSATION_PARAM,
+  STATUS_LABELS,
+  STATUS_STYLES,
+} from './messages-page.helpers';
 import { useMessagesSurfaceAdapter } from './messages-surface-adapter';
-import { captureMessagesSurfaceEvent } from './messages-surface-telemetry';
-import { useMessagesRealtime } from './use-messages-realtime';
-
-type PaginationState = Omit<IPaginatedResponse<unknown>, 'items'>;
-
-const EMPTY_PAGINATION: PaginationState = {
-  hasNext: false,
-  hasPrevious: false,
-  page: 1,
-  pageSize: 50,
-  total: 0,
-  totalPages: 1,
-};
-
-const SELECTED_CONVERSATION_PARAM = 'socialConversation';
-
-const AUTOMATION_OPTIONS: Array<{
-  label: string;
-  value: SocialAutomationState | 'all';
-}> = [
-  { label: 'All Automation', value: 'all' },
-  { label: 'Manual', value: 'manual' },
-  { label: 'Drafted', value: 'drafted' },
-  { label: 'Pending Approval', value: 'pending_approval' },
-  { label: 'Automated', value: 'automated' },
-  { label: 'Failed', value: 'failed' },
-];
-
-const STATUS_LABELS: Record<string, string> = {
-  archived: 'Archived',
-  needs_review: 'Needs Review',
-  open: 'Open',
-  resolved: 'Resolved',
-};
-
-const STATUS_STYLES: Record<string, string> = {
-  archived: 'bg-white/5 text-white/38',
-  needs_review: 'bg-warning/10 text-warning',
-  open: 'bg-info/10 text-info',
-  resolved: 'bg-success/10 text-success',
-};
-
-const ACTION_LABELS: Record<string, string> = {
-  draft: 'Draft',
-  post_reply: 'Reply',
-  send_dm: 'DM',
-};
-
-const ACTOR_LABELS: Record<string, string> = {
-  agent: 'Agent',
-  system: 'System',
-  user: 'User',
-  workflow: 'Workflow',
-};
-
-const MESSAGE_TIME = new Intl.DateTimeFormat('en', {
-  day: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-  month: 'short',
-});
-
-function isAbortLike(error: unknown): boolean {
-  return (
-    (error instanceof DOMException && error.name === 'AbortError') ||
-    (typeof error === 'object' &&
-      error !== null &&
-      (('name' in error &&
-        (error as { name?: string }).name === 'CanceledError') ||
-        ('isCancelled' in error &&
-          (error as { isCancelled?: boolean }).isCancelled === true)))
-  );
-}
-
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error && error.message
-    ? error.message
-    : 'Messages could not be loaded.';
-}
-
-function formatTime(value?: string | null): string {
-  if (!value) {
-    return 'No activity';
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return 'No activity';
-  }
-
-  return MESSAGE_TIME.format(date);
-}
-
-function formatActionLabel(value?: string | null): string | null {
-  if (!value) {
-    return null;
-  }
-
-  return (
-    ACTION_LABELS[value] ??
-    value
-      .split('_')
-      .filter(Boolean)
-      .map((part) => `${part[0]?.toUpperCase() ?? ''}${part.slice(1)}`)
-      .join(' ')
-  );
-}
-
-function getStringValue(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
-}
-
-function getMessageProvenanceItems(message: SocialMessageModel): Array<{
-  label: string;
-  value: string;
-}> {
-  const provenance: SocialActionProvenance = message.actionProvenance ?? {};
-  const actionLabel = formatActionLabel(provenance.action);
-  const actorType = getStringValue(provenance.actorType);
-  const actorLabel = actorType
-    ? (ACTOR_LABELS[actorType] ?? formatActionLabel(actorType))
-    : null;
-  const status = getStringValue(provenance.status) ?? message.status;
-  const workflowRunId =
-    getStringValue(provenance.workflowRunId) ??
-    getStringValue(message.workflowRunId);
-  const agentRunId =
-    getStringValue(provenance.agentRunId) ?? getStringValue(message.agentRunId);
-  const userId =
-    getStringValue(provenance.userId) ?? getStringValue(message.userId);
-  const actedAt = getStringValue(provenance.actedAt);
-  const approvedBy = getStringValue(provenance.approvedBy);
-  const rejectedBy = getStringValue(provenance.rejectedBy);
-  const items: Array<{ label: string; value: string }> = [];
-  const hasActionProvenance = Boolean(
-    actionLabel ||
-      actorLabel ||
-      workflowRunId ||
-      agentRunId ||
-      actedAt ||
-      approvedBy ||
-      rejectedBy,
-  );
-
-  if (!hasActionProvenance) {
-    return items;
-  }
-
-  if (actorLabel) {
-    items.push({ label: 'Actor', value: actorLabel });
-  }
-  if (actionLabel) {
-    items.push({ label: 'Action', value: actionLabel });
-  }
-  if (status) {
-    items.push({ label: 'Result', value: status });
-  }
-  if (workflowRunId) {
-    items.push({ label: 'Workflow', value: workflowRunId });
-  }
-  if (agentRunId) {
-    items.push({ label: 'Agent', value: agentRunId });
-  }
-  if (userId) {
-    items.push({ label: 'User', value: userId });
-  }
-  if (actedAt) {
-    items.push({ label: 'When', value: formatTime(actedAt) });
-  }
-  if (approvedBy) {
-    items.push({ label: 'Approved by', value: approvedBy });
-  }
-  if (rejectedBy) {
-    items.push({ label: 'Rejected by', value: rejectedBy });
-  }
-
-  return items;
-}
+import { useMessagesActions } from './use-messages-actions';
+import { useMessagesConversations } from './use-messages-conversations';
+import { useMessagesInboxFilters } from './use-messages-inbox-filters';
 
 function StatusPill({ status }: { status: string }) {
   return (
@@ -306,7 +117,7 @@ function MessageBubble({
       >
         <div className="mb-1 flex items-center gap-2 text-[10px] uppercase tracking-wider text-white/32">
           <span>{isOutbound ? 'Manager' : message.senderName || 'Sender'}</span>
-          <span>{formatTime(message.createdAt)}</span>
+          <span>{formatMessageTime(message.createdAt)}</span>
           <span>{message.status}</span>
         </div>
         <p className="whitespace-pre-wrap text-sm leading-relaxed">
@@ -371,8 +182,6 @@ function MessageBubble({
   );
 }
 
-const ALL_BRANDS_FILTER = 'all' as const;
-
 export default function MessagesPage() {
   const { brandSlug, href, orgSlug } = useOrgUrl();
   const { brands, organizationId: scopedOrganizationId } = useBrand();
@@ -409,60 +218,10 @@ export default function MessagesPage() {
     [brands],
   );
 
-  const [conversations, setConversations] = useState<SocialConversationModel[]>(
-    [],
-  );
-  const [messages, setMessages] = useState<SocialMessageModel[]>([]);
-  const [references, setReferences] = useState<SocialInboxReference[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [conversationPage, setConversationPage] = useState(1);
-  const [messagePage, setMessagePage] = useState(1);
-  const [conversationPagination, setConversationPagination] =
-    useState(EMPTY_PAGINATION);
-  const [messagePagination, setMessagePagination] = useState(EMPTY_PAGINATION);
-  const [platform, setPlatform] = useState<SocialPlatform | 'all'>('all');
-  // null = derive from route (brand path seeds brand, org path stays all brands)
-  const [brandFilterOverride, setBrandFilterOverride] = useState<string | null>(
-    null,
-  );
-  const [brandFilterRouteKey, setBrandFilterRouteKey] = useState(brandSlug);
-  // Adjust state when the brand URL segment changes (brand ↔ org navigation).
-  if (brandFilterRouteKey !== brandSlug) {
-    setBrandFilterRouteKey(brandSlug);
-    setBrandFilterOverride(null);
-  }
-  const brandFilter = brandFilterOverride ?? routeBrandId ?? ALL_BRANDS_FILTER;
-  const [status, setStatus] = useState<SocialConversationStatus | 'all'>(
-    'open',
-  );
-  const [automationState, setAutomationState] = useState<
-    SocialAutomationState | 'all'
-  >('all');
-  const [unreadOnly, setUnreadOnly] = useState(false);
-  const [needsReviewOnly, setNeedsReviewOnly] = useState(false);
-  const [credentialId, setCredentialId] = useState('');
-  const [assignedOwnerId, setAssignedOwnerId] = useState('');
-  const [search, setSearch] = useState('');
-  const [draft, setDraft] = useState('');
-  const [isLoadingConversations, setIsLoadingConversations] = useState(true);
-  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-  const [busyAction, setBusyAction] = useState<
-    | 'draft'
-    | 'dm'
-    | 'reply'
-    | 'status'
-    | 'sync'
-    | `approve:${string}`
-    | `reject:${string}`
-    | null
-  >(null);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const actionInFlightRef = useRef<string | null>(null);
-  const draftRevisionRef = useRef(1);
-  const pendingIdempotencyKeysRef = useRef(new Map<string, string>());
-  const requestedConversationId =
-    searchParams.get(SELECTED_CONVERSATION_PARAM) ?? null;
+  const filters = useMessagesInboxFilters({
+    brandSlug,
+    routeBrandId,
+  });
 
   const updateSelectedConversationParam = useCallback(
     (conversationId: string | null) => {
@@ -482,121 +241,78 @@ export default function MessagesPage() {
     [pathname, replace, searchParamsString],
   );
 
+  const clearSelectedConversationParam = useCallback(() => {
+    updateSelectedConversationParam(null);
+  }, [updateSelectedConversationParam]);
+
+  const requestedConversationId =
+    searchParams.get(SELECTED_CONVERSATION_PARAM) ?? null;
+
+  const {
+    connectionState,
+    conversationPagination,
+    conversations,
+    isLoadingConversations,
+    isLoadingMessages,
+    loadConversations,
+    loadError,
+    messagePagination,
+    messages,
+    refreshSelectedThread,
+    selectedConversation,
+    selectedId,
+    setLoadError,
+    setMessagePage,
+    setSelectedId,
+  } = useMessagesConversations({
+    getMessagesService,
+    onClearSelectedConversationParam: clearSelectedConversationParam,
+    query: filters.query,
+    requestedConversationId,
+    scopedOrganizationId,
+  });
+
   const handleSelectConversation = useCallback(
     (conversationId: string) => {
       setSelectedId(conversationId);
       updateSelectedConversationParam(conversationId);
     },
-    [updateSelectedConversationParam],
+    [setSelectedId, updateSelectedConversationParam],
   );
-  const inboxView = useMemo<MessagesInboxView>(() => {
-    if (needsReviewOnly) {
-      return 'review';
-    }
-    if (unreadOnly) {
-      return 'unread';
-    }
 
-    switch (status) {
-      case 'all':
-        return 'all';
-      case 'archived':
-        return 'archived';
-      case 'resolved':
-        return 'resolved';
-      default:
-        return 'inbox';
-    }
-  }, [needsReviewOnly, status, unreadOnly]);
-  const handleInboxViewChange = useCallback((view: MessagesInboxView) => {
-    setConversationPage(1);
-    setNeedsReviewOnly(view === 'review');
-    setUnreadOnly(view === 'unread');
-
-    switch (view) {
-      case 'all':
-      case 'unread':
-      case 'review':
-        setStatus('all');
-        break;
-      case 'archived':
-        setStatus('archived');
-        break;
-      case 'resolved':
-        setStatus('resolved');
-        break;
-      default:
-        setStatus('open');
-    }
-  }, []);
-
-  const query = useMemo(() => {
-    const isOrgWideBrandFilter = brandFilter === ALL_BRANDS_FILTER;
-
-    return {
-      limit: 50,
-      page: conversationPage,
-      // Org-scoped Messages must not inherit a stale session brand.
-      ...(isOrgWideBrandFilter
-        ? { allBrands: true }
-        : { brandId: brandFilter }),
-      ...(platform !== 'all' ? { platform } : {}),
-      ...(status !== 'all' ? { status } : {}),
-      ...(automationState !== 'all' ? { automationState } : {}),
-      ...(unreadOnly ? { unread: true } : {}),
-      ...(needsReviewOnly ? { needsReview: true } : {}),
-      ...(credentialId.trim() ? { credentialId: credentialId.trim() } : {}),
-      ...(assignedOwnerId.trim()
-        ? { assignedOwnerId: assignedOwnerId.trim() }
-        : {}),
-      ...(search.trim() ? { search: search.trim() } : {}),
-    };
-  }, [
-    assignedOwnerId,
-    automationState,
-    brandFilter,
-    conversationPage,
-    credentialId,
-    needsReviewOnly,
-    platform,
-    search,
-    status,
-    unreadOnly,
-  ]);
-
-  const selectedConversation = useMemo(
-    () =>
-      selectedId
-        ? (conversations.find(
-            (conversation) => conversation.id === selectedId,
-          ) ?? null)
-        : null,
-    [conversations, selectedId],
-  );
   const canAttachReferences = Boolean(
     activeThreadId &&
       activeThread?.brandId &&
       selectedConversation?.brandId === activeThread.brandId,
   );
-  const conversationReference = useMemo(
-    () =>
-      selectedConversation
-        ? createSocialConversationReference(selectedConversation)
-        : null,
-    [selectedConversation],
-  );
-  const isConversationReferenced = Boolean(
-    conversationReference &&
-      references.some(
-        (reference) =>
-          getSocialInboxReferenceKey(reference) ===
-          getSocialInboxReferenceKey(conversationReference),
-      ),
-  );
-  const organizationId =
-    scopedOrganizationId ||
-    selectedConversation?.organizationId ||
-    conversations[0]?.organizationId;
+
+  const {
+    busyAction,
+    draft,
+    error: actionError,
+    handleAction,
+    handleApproveDraft,
+    handleDraftChange,
+    handleRejectDraft,
+    handleStatusChange,
+    handleSyncYoutube,
+    handleToggleConversationReference,
+    handleToggleMessageReference,
+    isConversationReferenced,
+    isMessageReferenced,
+    notice,
+    references,
+  } = useMessagesActions({
+    canAttachReferences,
+    getMessagesService,
+    loadConversations,
+    onLoadError: setLoadError,
+    refreshSelectedThread,
+    selectedConversation,
+    selectedId,
+  });
+
+  const error = actionError ?? loadError;
 
   const automationHref = useMemo(() => {
     if (!selectedConversation) {
@@ -620,493 +336,6 @@ export default function MessagesPage() {
     return href(`${APP_ROUTES.WORKFLOWS.NEW}?${params.toString()}`);
   }, [href, selectedConversation]);
 
-  const loadConversations = useCallback(
-    async (signal?: AbortSignal) => {
-      setIsLoadingConversations(true);
-      setError(null);
-
-      try {
-        const service = await getMessagesService();
-        const result = await service.listPage(query, signal);
-        if (signal?.aborted) {
-          return;
-        }
-
-        const { items, ...pagination } = result;
-        let nextConversations = items;
-
-        if (
-          requestedConversationId &&
-          !items.some(
-            (conversation) => conversation.id === requestedConversationId,
-          )
-        ) {
-          try {
-            const requestedConversation = await service.getConversation(
-              requestedConversationId,
-              signal,
-            );
-            nextConversations = [requestedConversation, ...items];
-          } catch (selectionError: unknown) {
-            if (isAbortLike(selectionError)) {
-              return;
-            }
-
-            updateSelectedConversationParam(null);
-          }
-        }
-
-        if (signal?.aborted) {
-          return;
-        }
-
-        setConversations(nextConversations);
-        setConversationPagination(pagination);
-        setSelectedId((current) => {
-          if (
-            requestedConversationId &&
-            nextConversations.some(
-              (conversation) => conversation.id === requestedConversationId,
-            )
-          ) {
-            return requestedConversationId;
-          }
-
-          if (
-            current &&
-            nextConversations.some(
-              (conversation) => conversation.id === current,
-            )
-          ) {
-            return current;
-          }
-
-          return nextConversations[0]?.id ?? null;
-        });
-      } catch (err: unknown) {
-        if (!isAbortLike(err)) {
-          setError(getErrorMessage(err));
-        }
-      } finally {
-        if (!signal?.aborted) {
-          setIsLoadingConversations(false);
-        }
-      }
-    },
-    [
-      getMessagesService,
-      query,
-      requestedConversationId,
-      updateSelectedConversationParam,
-    ],
-  );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void loadConversations(controller.signal);
-    return () => controller.abort();
-  }, [loadConversations]);
-
-  useEffect(() => {
-    setMessagePage(1);
-    setReferences((current) =>
-      current.filter((reference) => reference.conversationId === selectedId),
-    );
-  }, [selectedId]);
-
-  useEffect(() => {
-    if (!selectedId) {
-      setMessages([]);
-      return;
-    }
-
-    const controller = new AbortController();
-    setIsLoadingMessages(true);
-    setError(null);
-
-    getMessagesService()
-      .then((service) =>
-        service.listMessagesPage(
-          selectedId,
-          { limit: 50, page: messagePage },
-          controller.signal,
-        ),
-      )
-      .then((result) => {
-        if (!controller.signal.aborted) {
-          const { items: nextMessages, ...pagination } = result;
-          setMessages(nextMessages);
-          setMessagePagination(pagination);
-        }
-      })
-      .catch((err: unknown) => {
-        if (!isAbortLike(err)) {
-          setError(getErrorMessage(err));
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setIsLoadingMessages(false);
-        }
-      });
-
-    return () => controller.abort();
-  }, [getMessagesService, messagePage, selectedId]);
-
-  const refreshSelectedThread = useCallback(async () => {
-    const service = await getMessagesService();
-    const [conversationResult, selectedConversationResult, messageResult] =
-      await Promise.all([
-        service.listPage(query),
-        selectedId
-          ? service.getConversation(selectedId)
-          : Promise.resolve(null),
-        selectedId
-          ? service.listMessagesPage(selectedId, {
-              limit: 50,
-              page: messagePage,
-            })
-          : Promise.resolve(null),
-      ]);
-    const { items: nextConversations, ...nextConversationPagination } =
-      conversationResult;
-    const refreshedConversations = selectedConversationResult
-      ? [
-          selectedConversationResult,
-          ...nextConversations.filter(
-            (conversation) => conversation.id !== selectedConversationResult.id,
-          ),
-        ]
-      : nextConversations;
-
-    startTransition(() => {
-      setConversations(refreshedConversations);
-      setConversationPagination(nextConversationPagination);
-      if (messageResult) {
-        const { items: nextMessages, ...nextMessagePagination } = messageResult;
-        setMessages(nextMessages);
-        setMessagePagination(nextMessagePagination);
-      }
-    });
-  }, [getMessagesService, messagePage, query, selectedId]);
-
-  const connectionState = useMessagesRealtime({
-    onRefresh: refreshSelectedThread,
-    organizationId,
-  });
-
-  const refreshAfterAction = useCallback(async () => {
-    try {
-      await refreshSelectedThread();
-    } catch {
-      setNotice(
-        (current) =>
-          `${current ?? 'Action completed.'} Realtime refresh will reconcile the inbox.`,
-      );
-      captureMessagesSurfaceEvent({
-        action: 'realtime-refresh',
-        outcome: 'failed',
-      });
-    }
-  }, [refreshSelectedThread]);
-
-  const handleDraftChange = useCallback(
-    (event: ChangeEvent<HTMLTextAreaElement>) => {
-      draftRevisionRef.current += 1;
-      pendingIdempotencyKeysRef.current.clear();
-      setDraft(event.target.value);
-    },
-    [],
-  );
-
-  const handleAction = useCallback(
-    async (action: 'draft' | 'dm' | 'reply') => {
-      if (!selectedId || !draft.trim()) {
-        return;
-      }
-
-      const actionKey = `${action}:${selectedId}`;
-      if (actionInFlightRef.current) {
-        captureMessagesSurfaceEvent({
-          action,
-          outcome: 'blocked',
-        });
-        return;
-      }
-      actionInFlightRef.current = actionKey;
-
-      setBusyAction(action);
-      setError(null);
-      setNotice(null);
-      captureMessagesSurfaceEvent({ action, outcome: 'started' });
-
-      try {
-        const service = await getMessagesService();
-        const idempotencyCacheKey = `${selectedId}:${action}:${draftRevisionRef.current}`;
-        const idempotencyKey =
-          pendingIdempotencyKeysRef.current.get(idempotencyCacheKey) ??
-          createMessagesIdempotencyKey(
-            selectedId,
-            action,
-            draftRevisionRef.current,
-          );
-        pendingIdempotencyKeysRef.current.set(
-          idempotencyCacheKey,
-          idempotencyKey,
-        );
-        const input = { idempotencyKey, text: draft.trim() };
-
-        if (action === 'draft') {
-          await service.createDraft(selectedId, {
-            ...input,
-            messageType: 'reply',
-          });
-          setNotice('Draft saved for review.');
-        } else if (action === 'reply') {
-          await service.postReply(selectedId, input);
-          setNotice('Reply posted.');
-        } else {
-          await service.sendDm(selectedId, input);
-          setNotice('DM sent.');
-        }
-
-        setDraft('');
-        draftRevisionRef.current += 1;
-        pendingIdempotencyKeysRef.current.delete(idempotencyCacheKey);
-        await refreshAfterAction();
-        captureMessagesSurfaceEvent({ action, outcome: 'succeeded' });
-      } catch (err: unknown) {
-        setError(getErrorMessage(err));
-        captureMessagesSurfaceEvent({ action, outcome: 'failed' });
-      } finally {
-        if (actionInFlightRef.current === actionKey) {
-          actionInFlightRef.current = null;
-        }
-        setBusyAction(null);
-      }
-    },
-    [draft, getMessagesService, refreshAfterAction, selectedId],
-  );
-
-  const handleStatusChange = useCallback(
-    async (nextStatus: SocialConversationStatus) => {
-      if (!selectedId) {
-        return;
-      }
-
-      const action: MessagesActionKind = 'status';
-      const actionKey = `${action}:${selectedId}`;
-      if (actionInFlightRef.current) {
-        captureMessagesSurfaceEvent({ action, outcome: 'blocked' });
-        return;
-      }
-      actionInFlightRef.current = actionKey;
-
-      setBusyAction('status');
-      setError(null);
-      setNotice(null);
-      captureMessagesSurfaceEvent({ action, outcome: 'started' });
-
-      try {
-        const service = await getMessagesService();
-        await service.updateStatus(selectedId, nextStatus);
-        setNotice(
-          `Conversation marked ${STATUS_LABELS[nextStatus] ?? nextStatus}.`,
-        );
-        await loadConversations();
-        captureMessagesSurfaceEvent({ action, outcome: 'succeeded' });
-      } catch (err: unknown) {
-        setError(getErrorMessage(err));
-        captureMessagesSurfaceEvent({ action, outcome: 'failed' });
-      } finally {
-        if (actionInFlightRef.current === actionKey) {
-          actionInFlightRef.current = null;
-        }
-        setBusyAction(null);
-      }
-    },
-    [getMessagesService, loadConversations, selectedId],
-  );
-
-  const handleSyncYoutube = useCallback(async () => {
-    const action: MessagesActionKind = 'sync';
-    if (actionInFlightRef.current) {
-      captureMessagesSurfaceEvent({ action, outcome: 'blocked' });
-      return;
-    }
-    actionInFlightRef.current = action;
-    setBusyAction('sync');
-    setError(null);
-    setNotice(null);
-    captureMessagesSurfaceEvent({ action, outcome: 'started' });
-
-    try {
-      const service = await getMessagesService();
-      await service.syncYoutube();
-      setNotice(
-        'YouTube sync started. New comments will appear here once the background job finishes.',
-      );
-      await loadConversations();
-      captureMessagesSurfaceEvent({ action, outcome: 'succeeded' });
-    } catch (err: unknown) {
-      setError(getErrorMessage(err));
-      captureMessagesSurfaceEvent({ action, outcome: 'failed' });
-    } finally {
-      if (actionInFlightRef.current === action) {
-        actionInFlightRef.current = null;
-      }
-      setBusyAction(null);
-    }
-  }, [getMessagesService, loadConversations]);
-
-  const handleApproveDraft = useCallback(
-    async (messageId: string) => {
-      if (!selectedId) {
-        return;
-      }
-
-      const action: MessagesActionKind = 'approve';
-      const actionKey = `${action}:${messageId}`;
-      if (actionInFlightRef.current) {
-        captureMessagesSurfaceEvent({ action, outcome: 'blocked' });
-        return;
-      }
-      actionInFlightRef.current = actionKey;
-
-      setBusyAction(`approve:${messageId}`);
-      setError(null);
-      setNotice(null);
-      captureMessagesSurfaceEvent({ action, outcome: 'started' });
-
-      try {
-        const service = await getMessagesService();
-        await service.approveDraft(selectedId, messageId);
-        setNotice('Draft approved and published.');
-        await refreshAfterAction();
-        captureMessagesSurfaceEvent({ action, outcome: 'succeeded' });
-      } catch (err: unknown) {
-        setError(getErrorMessage(err));
-        captureMessagesSurfaceEvent({ action, outcome: 'failed' });
-      } finally {
-        if (actionInFlightRef.current === actionKey) {
-          actionInFlightRef.current = null;
-        }
-        setBusyAction(null);
-      }
-    },
-    [getMessagesService, refreshAfterAction, selectedId],
-  );
-
-  const handleRejectDraft = useCallback(
-    async (messageId: string) => {
-      if (!selectedId) {
-        return;
-      }
-
-      const action: MessagesActionKind = 'reject';
-      const actionKey = `${action}:${messageId}`;
-      if (actionInFlightRef.current) {
-        captureMessagesSurfaceEvent({ action, outcome: 'blocked' });
-        return;
-      }
-      actionInFlightRef.current = actionKey;
-
-      setBusyAction(`reject:${messageId}`);
-      setError(null);
-      setNotice(null);
-      captureMessagesSurfaceEvent({ action, outcome: 'started' });
-
-      try {
-        const service = await getMessagesService();
-        await service.rejectDraft(selectedId, messageId);
-        setNotice('Draft rejected.');
-        await refreshAfterAction();
-        captureMessagesSurfaceEvent({ action, outcome: 'succeeded' });
-      } catch (err: unknown) {
-        setError(getErrorMessage(err));
-        captureMessagesSurfaceEvent({ action, outcome: 'failed' });
-      } finally {
-        if (actionInFlightRef.current === actionKey) {
-          actionInFlightRef.current = null;
-        }
-        setBusyAction(null);
-      }
-    },
-    [getMessagesService, refreshAfterAction, selectedId],
-  );
-
-  useEffect(() => {
-    if (!canAttachReferences) {
-      setReferences([]);
-    }
-  }, [canAttachReferences]);
-
-  const handleToggleConversationReference = useCallback(() => {
-    if (!canAttachReferences || !conversationReference) {
-      captureMessagesSurfaceEvent({
-        action: 'attach-reference',
-        outcome: 'blocked',
-        referenceKind: 'social-conversation',
-      });
-      return;
-    }
-
-    setReferences((current) =>
-      toggleSocialInboxReference(current, conversationReference),
-    );
-    captureMessagesSurfaceEvent({
-      action: 'attach-reference',
-      outcome: 'succeeded',
-      referenceKind: 'social-conversation',
-    });
-  }, [canAttachReferences, conversationReference]);
-
-  const handleToggleMessageReference = useCallback(
-    (message: SocialMessageModel) => {
-      if (!canAttachReferences || !selectedConversation) {
-        captureMessagesSurfaceEvent({
-          action: 'attach-reference',
-          outcome: 'blocked',
-          referenceKind: 'social-message',
-        });
-        return;
-      }
-
-      const reference = createSocialMessageReference(
-        selectedConversation,
-        message,
-      );
-      if (!reference) {
-        captureMessagesSurfaceEvent({
-          action: 'attach-reference',
-          outcome: 'blocked',
-          referenceKind: 'social-message',
-        });
-        return;
-      }
-
-      setReferences((current) =>
-        toggleSocialInboxReference(current, reference),
-      );
-      captureMessagesSurfaceEvent({
-        action: 'attach-reference',
-        outcome: 'succeeded',
-        referenceKind: 'social-message',
-      });
-    },
-    [canAttachReferences, selectedConversation],
-  );
-
-  const isMessageReferenced = useCallback(
-    (message: SocialMessageModel) =>
-      references.some(
-        (reference) =>
-          reference.kind === 'social-message' &&
-          reference.messageId === message.id,
-      ),
-    [references],
-  );
-
   useMessagesSurfaceAdapter({
     canAttachReferences,
     isConversationReferenced,
@@ -1126,10 +355,9 @@ export default function MessagesPage() {
       <div className="space-y-1.5">
         <p className="text-[11px] font-medium text-foreground/54">Automation</p>
         <Select
-          value={automationState}
+          value={filters.automationState}
           onValueChange={(value) => {
-            setConversationPage(1);
-            setAutomationState(value as SocialAutomationState | 'all');
+            filters.setAutomationState(value as SocialAutomationState | 'all');
           }}
         >
           <SelectTrigger className="w-full">
@@ -1146,18 +374,16 @@ export default function MessagesPage() {
       </div>
       <Input
         label="Credential or account ID"
-        value={credentialId}
+        value={filters.credentialId}
         onChange={(event) => {
-          setConversationPage(1);
-          setCredentialId(event.target.value);
+          filters.setCredentialId(event.target.value);
         }}
       />
       <Input
         label="Assigned owner ID"
-        value={assignedOwnerId}
+        value={filters.assignedOwnerId}
         onChange={(event) => {
-          setAssignedOwnerId(event.target.value);
-          setConversationPage(1);
+          filters.setAssignedOwnerId(event.target.value);
         }}
       />
     </div>
@@ -1170,38 +396,33 @@ export default function MessagesPage() {
     <MessagesConversationSidebar
       accountsHref={accountsHref}
       advancedFilters={advancedFilters}
-      brandFilter={brandFilter}
+      brandFilter={filters.brandFilter}
       brandOptions={brandOptions}
       busyAction={busyAction}
       connectionState={connectionState}
       conversations={conversations}
       isLoading={isLoadingConversations}
       onBrandFilterChange={(value) => {
-        setConversationPage(1);
+        filters.setBrandFilter(value);
         setSelectedId(null);
         updateSelectedConversationParam(null);
-        setBrandFilterOverride(value);
       }}
-      onNextPage={() => setConversationPage((page) => page + 1)}
+      onNextPage={() => filters.stepConversationPage(1)}
       onPlatformChange={(value) => {
-        setConversationPage(1);
-        setPlatform(value);
+        filters.setPlatform(value);
       }}
-      onPreviousPage={() =>
-        setConversationPage((page) => Math.max(1, page - 1))
-      }
+      onPreviousPage={() => filters.stepConversationPage(-1)}
       onSearchChange={(value) => {
-        setConversationPage(1);
-        setSearch(value);
+        filters.setSearch(value);
       }}
       onSelect={handleSelectConversation}
       onSync={handleSyncYoutube}
-      onViewChange={handleInboxViewChange}
+      onViewChange={filters.setInboxView}
       pagination={conversationPagination}
-      platform={platform}
-      search={search}
+      platform={filters.platform}
+      search={filters.search}
       selectedId={selectedId}
-      view={inboxView}
+      view={filters.inboxView}
     />
   );
   const isConversationNavPortaled = Boolean(workspaceNavPanel?.portalTarget);
@@ -1290,7 +511,11 @@ export default function MessagesPage() {
                       icon={<CircleCheck className="size-4" />}
                       isDisabled={Boolean(busyAction)}
                       isLoading={busyAction === 'status'}
-                      onClick={() => handleStatusChange('resolved')}
+                      onClick={() =>
+                        handleStatusChange(
+                          'resolved' satisfies SocialConversationStatus,
+                        )
+                      }
                     >
                       Resolve
                     </Button>
@@ -1299,7 +524,11 @@ export default function MessagesPage() {
                       size={ButtonSize.SM}
                       isDisabled={Boolean(busyAction)}
                       isLoading={busyAction === 'status'}
-                      onClick={() => handleStatusChange('open')}
+                      onClick={() =>
+                        handleStatusChange(
+                          'open' satisfies SocialConversationStatus,
+                        )
+                      }
                     >
                       Reopen
                     </Button>
@@ -1308,7 +537,11 @@ export default function MessagesPage() {
                       size={ButtonSize.SM}
                       isDisabled={Boolean(busyAction)}
                       isLoading={busyAction === 'status'}
-                      onClick={() => handleStatusChange('needs_review')}
+                      onClick={() =>
+                        handleStatusChange(
+                          'needs_review' satisfies SocialConversationStatus,
+                        )
+                      }
                     >
                       Needs Review
                     </Button>

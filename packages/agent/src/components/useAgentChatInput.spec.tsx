@@ -1,5 +1,8 @@
 import { ConversationComposerShellProvider } from '@genfeedai/agent/components/ConversationComposerShellContext';
-import { useAgentChatInput } from '@genfeedai/agent/components/useAgentChatInput';
+import {
+  areAgentChatMentionReferencesEqual,
+  useAgentChatInput,
+} from '@genfeedai/agent/components/useAgentChatInput';
 import { writeConversationComposerDocument } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import { act, renderHook, waitFor } from '@testing-library/react';
@@ -74,6 +77,29 @@ function Wrapper({ children }: { children: ReactNode }) {
     </ConversationComposerShellProvider>
   );
 }
+
+describe('areAgentChatMentionReferencesEqual', () => {
+  it('returns true only when id, label, type, and order match', () => {
+    const base = [
+      { id: 'a', label: '#Acme', type: 'brand' as const },
+      { id: 'b', label: '@Pat', type: 'team' as const },
+    ];
+
+    expect(areAgentChatMentionReferencesEqual(base, [...base])).toBe(true);
+    expect(
+      areAgentChatMentionReferencesEqual(base, [
+        { id: 'a', label: '#Acme', type: 'brand' },
+        { id: 'b', label: '@Pat Updated', type: 'team' },
+      ]),
+    ).toBe(false);
+    expect(
+      areAgentChatMentionReferencesEqual(base, [
+        { id: 'b', label: '@Pat', type: 'team' },
+        { id: 'a', label: '#Acme', type: 'brand' },
+      ]),
+    ).toBe(false);
+  });
+});
 
 describe('useAgentChatInput references', () => {
   beforeEach(() => {
