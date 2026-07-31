@@ -6,7 +6,6 @@ import { VideosService } from '@api/collections/videos/services/videos.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
-import { BrandFilterUtil } from '@api/helpers/utils/brand-filter/brand-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import {
   serializeCollection,
@@ -114,18 +113,18 @@ export class PublicBrandsController {
     }
 
     this.logger.log(url, { query: { slug } });
+    // The scope gate belongs in the WHERE clause: `data.scope` carries the
+    // Prisma casing ('PUBLIC') while `AssetScope.PUBLIC` is 'public', so a
+    // post-fetch string comparison never matches. BaseService normalizes the
+    // filter value for us — the same way the list endpoint above filters.
     const data = await this.brandsService.findOneBySlug({
       slug: { equals: slug, mode: 'insensitive' },
       isDeleted: false,
+      scope: AssetScope.PUBLIC,
     });
 
     if (!data) {
       return { data: null, message: 'Brand not found' };
-    }
-
-    // Check if brand is public
-    if (String(data.scope) !== AssetScope.PUBLIC) {
-      return { data: null, message: 'Brand is not public' };
     }
 
     return serializeSingle(request, BrandSerializer, data);
@@ -148,18 +147,15 @@ export class PublicBrandsController {
     }
 
     this.logger.log(url, { params: { brandId } });
+    // Scope is filtered in the query, not after the fetch — see findOneBySlug.
     const data = await this.brandsService.findOne({
       _id: brandId,
       isDeleted: false,
+      scope: AssetScope.PUBLIC,
     });
 
     if (!data) {
       return { data: null, message: 'Brand not found' };
-    }
-
-    // Check if brand is public
-    if (String(data.scope) !== AssetScope.PUBLIC) {
-      return { data: null, message: 'Brand is not public' };
     }
 
     return serializeSingle(request, BrandSerializer, data);
