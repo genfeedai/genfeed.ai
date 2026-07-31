@@ -1,10 +1,10 @@
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
+import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CredentialPlatform } from '@genfeedai/enums';
-import { buildCredentialTokenPublishingReadiness } from '@genfeedai/integrations/connections';
 import type {
   AccountPublishingConstraints,
   AccountPublishingContext,
@@ -61,6 +61,7 @@ function readRecord(value: unknown): Record<string, unknown> | undefined {
 export class AccountPublishingContextService {
   constructor(
     private readonly accountHealthService: AccountHealthService,
+    private readonly credentialPublishingReadinessService: CredentialPublishingReadinessService,
     private readonly credentialsService: CredentialsService,
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
@@ -138,17 +139,10 @@ export class AccountPublishingContextService {
       constraints: this.getConstraints(platform, params.surface),
       promptHints: [],
       publishability: this.getPublishability(platform, params.surface),
-      readiness: buildCredentialTokenPublishingReadiness({
-        accessToken: credential.accessToken,
-        accessTokenExpiresAt: credential.accessTokenExpiry,
-        accessTokenSecret: credential.accessTokenSecret,
-        credentialId: String(credential.id),
-        isConnected: credential.isConnected,
-        oauthToken: credential.oauthToken,
-        oauthTokenSecret: credential.oauthTokenSecret,
-        providerKey: platform,
-        refreshToken: credential.refreshToken,
-        refreshTokenExpiresAt: credential.refreshTokenExpiry,
+      readiness: await this.credentialPublishingReadinessService.resolve({
+        credential,
+        organizationId: params.organizationId,
+        platform,
       }),
       recentPosts: recentPosts.map(
         (post): AccountPublishingRecentPost => ({

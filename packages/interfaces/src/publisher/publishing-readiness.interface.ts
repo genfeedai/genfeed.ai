@@ -75,6 +75,18 @@ export interface IPublishingSetupDiagnosticsExport {
   generatedAt: string;
 }
 
+/**
+ * Deployment-level signals about one provider, resolved from configuration
+ * presence and URL shape alone. These are the axes a pure credential/token
+ * check cannot see, so they are computed where config lives and passed into the
+ * readiness builder.
+ */
+export interface IPublishingProviderSetupSignals {
+  appReviewStatus: PublishingSetupCheckStatus;
+  callbackUrlStatus: PublishingSetupCheckStatus;
+  diagnostics: IPublishingDiagnostic[];
+}
+
 export interface IPublishingProviderReadiness {
   providerKey: CredentialPlatform | string;
   credentialId?: string | null;

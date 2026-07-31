@@ -1,4 +1,5 @@
 import { PUBLISHING_PROVIDER_ENV_DESCRIPTORS } from '@api/collections/publishing-setup/publishing-setup.constants';
+import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
 import { PublishingSetupService } from '@api/collections/publishing-setup/services/publishing-setup.service';
 import type { MicroservicesService } from '@api/services/microservices/microservices.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -54,11 +55,18 @@ describe('PublishingSetupService', () => {
   let service: PublishingSetupService;
 
   function build(): PublishingSetupService {
+    const configService = {
+      get: (key: string) => env[key],
+    } as unknown as ConfigService;
+
+    // Real collaborator: the provider/callback checks are the behaviour under
+    // test here, they just live in a separately injectable service now.
     return new PublishingSetupService(
-      { get: (key: string) => env[key] } as unknown as ConfigService,
+      configService,
       logger as unknown as LoggerService,
       microservices as unknown as MicroservicesService,
       prisma as unknown as PrismaService,
+      new PublishingProviderSetupService(configService),
     );
   }
 

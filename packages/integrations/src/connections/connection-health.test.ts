@@ -233,4 +233,73 @@ describe('integration credential health', () => {
       tokenFreshness: 'unknown',
     });
   });
+
+  it('carries caller-resolved setup axes onto a token-healthy credential', () => {
+    const readiness = buildCredentialTokenPublishingReadiness({
+      accessToken: 'encrypted-access',
+      accessTokenExpiresAt: '2026-06-03T00:00:00.000Z',
+      appReviewStatus: 'pass',
+      callbackUrlStatus: 'warn',
+      credentialId: 'cred-1',
+      isConnected: true,
+      now,
+      providerKey: 'twitter',
+      quotaStatus: 'fail',
+      setupDiagnostics: [
+        {
+          classification: 'quota_or_rate_limit',
+          code: 'credential_daily_quota_exhausted',
+          correctiveAction:
+            'Wait for the daily quota to reset at midnight UTC.',
+          isRetryable: true,
+          message: 'The daily posting quota for this account is used up.',
+          scope: 'quota',
+          severity: 'error',
+        },
+      ],
+    });
+
+    expect(readiness).toMatchObject({
+      appReviewStatus: 'pass',
+      callbackUrlStatus: 'warn',
+      // Quota exhaustion resets on its own, so it degrades rather than blocks.
+      canSchedule: true,
+      permissionScopeStatus: 'unknown',
+      quotaStatus: 'fail',
+      state: 'degraded',
+      tokenFreshness: 'pass',
+    });
+    expect(readiness.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
+      'credential_daily_quota_exhausted',
+    ]);
+  });
+
+  it('reports setup problems behind a disconnected credential, token first', () => {
+    const readiness = buildCredentialTokenPublishingReadiness({
+      callbackUrlStatus: 'fail',
+      credentialId: 'cred-1',
+      isConnected: false,
+      now,
+      providerKey: 'twitter',
+      setupDiagnostics: [
+        {
+          classification: 'misconfiguration',
+          code: 'provider_not_configured',
+          isRetryable: false,
+          message: 'X (Twitter) has no OAuth app credentials.',
+          scope: 'callback',
+          severity: 'error',
+        },
+      ],
+    });
+
+    expect(readiness.callbackUrlStatus).toBe('fail');
+    expect(readiness.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
+      'credential_disconnected',
+      'provider_not_configured',
+    ]);
+    expect(readiness.requiredAction).toBe(
+      'Reconnect the provider account before publishing.',
+    );
+  });
 });
