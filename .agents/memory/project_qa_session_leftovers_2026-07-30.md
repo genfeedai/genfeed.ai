@@ -30,8 +30,8 @@ agent has no non-interactive path to. Each fix carries a regression test.
 
 - `LinksController.buildFindAllQuery` filters on raw `where.brand`; `normalizeWhere` only remaps writes, so the standalone `GET /links?brand=` path is unmapped. Not on the modal's path (the Social page reads links through `brand.links`)
 - `link.config.ts` uses `simpleConfig`, so `brand` is a plain attribute rather than a JSON:API relationship — inconsistent with sibling configs using `STANDARD_ENTITY_RELS`
-- `use-brand-detail.test.ts` has no coverage for `handleUpdateAccount`'s scope-toggle path
-- `SidebarHeader.tsx` mounts a second brand switcher that nothing imports — dead code
+- ~~`use-brand-detail.test.ts` has no coverage for `handleUpdateAccount`'s scope-toggle path~~ — **closed 2026-07-31.** Confirmed real (the file had 4 tests, none touching `handleUpdateAccount`). Added a `handleUpdateAccount scope toggle` describe with 5 tests over `use-brand-detail.ts:334-382`: optimistic flip before the patch resolves, persist `BRAND → PUBLIC`, persist `PUBLIC → BRAND`, rollback + `NotificationsService.error` on rejection, and the `isUpdatingRef` in-flight guard
+- ~~`SidebarHeader.tsx` mounts a second brand switcher that nothing imports — dead code~~ — **closed 2026-07-31.** Confirmed unreferenced (no import site, no barrel re-export, no dynamic import; the `sidebar-header-shell` testid at `MenuShared.tsx:178` and the CSS class in desktop `Sidebar.tsx:122` are unrelated). Deleted `packages/ui/src/components/menus/sidebar-header/` and its only consumer type `packages/props/navigation/sidebar-header.props.ts`. The live switcher stays `MenuBrandSwitcher` at `AppProtectedTopbar.tsx:275`
 - `bun run check:ui-guards` is red on `master` on two required guards — hardcoded routes in `playwright/e2e/tests/{library/content-library,core/automation-loop}.spec.ts`, and a bespoke card at `StoryboardWorkspace.tsx:70`. Pre-existing, untouched by this train, chipped to its own session
 
 ## Boil-the-ocean backlog (next train)
@@ -42,7 +42,7 @@ agent has no non-interactive path to. Each fix carries a regression test.
 4. **Kit contrast / inputs polish** if still weak after Kit settings page
 5. **Brand OverviewPanel** still has inline link editor path — align to modal like Social
 6. **Optional studio polish** past cards-above-prompt empty state
-7. **Agent / shell residual** polish from the same session branch if anything still feels off in prod
+7. ~~**Agent / shell residual** polish from the same session branch~~ — **done 2026-07-31.** Swept #2199, #2204 and #2206 against ADR-CONVERSATION-SHELL-CONTRACTS v3.2. One real regression: #2204 merged after #2206 and reinstated the inline `AgentThreadListProps` duplicate that #2206 (`3e3ad4163`) had deleted, so `app-protected-layout.tsx` shadowed the canonical `@genfeedai/agent` type and had already drifted from it (missing `onActionsChange`). Restored the package import. Verified the other 10 files #2206 touched: 7 byte-unchanged, 3 (`AgentChatInputToolbar.tsx`, `AgentModelSelector.tsx`, `useAgentChatInput.ts`) legitimately evolved forward with #2206's fixes intact. ADR invariants re-checked and clean: #11 frame is route-decided (`AgentWorkspaceLayoutClient.tsx` renders children regardless of `isLoaded`), #12/#13 single-owner conversation and nav column (`UniversalWorkspaceShell.tsx:871-897`, `1049-1058`), collapse-is-not-unmount (`inert={!isInspectorOpen}` at `:1188` plus `forceMount` tabs at `:940-966`). Prompt-bar/composer domain layer left untouched — that is backlog item 2
 
 ## Intent locked this session
 
