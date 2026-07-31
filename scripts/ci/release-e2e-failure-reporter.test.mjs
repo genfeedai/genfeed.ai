@@ -65,7 +65,11 @@ function createGithubMock({ openIssues = [], createNumber = 99 } = {}) {
           addProjectV2ItemById: { item: { id: 'PROJECT_ITEM_1' } },
         };
       }
-      return { updateProjectV2ItemFieldValue: { projectV2Item: { id: 'PROJECT_ITEM_1' } } };
+      return {
+        updateProjectV2ItemFieldValue: {
+          projectV2Item: { id: 'PROJECT_ITEM_1' },
+        },
+      };
     },
   };
 
@@ -117,7 +121,9 @@ test('reportReleaseE2eFailure comments existing open tracker and re-asserts P0',
 });
 
 test('reportReleaseE2eFailure creates tracker and triages project fields', async () => {
-  const { github, created, graphqlCalls } = createGithubMock({ openIssues: [] });
+  const { github, created, graphqlCalls } = createGithubMock({
+    openIssues: [],
+  });
 
   const result = await reportReleaseE2eFailure({
     github,
@@ -133,9 +139,7 @@ test('reportReleaseE2eFailure creates tracker and triages project fields', async
   assert.equal(created[0].labels[0], RELEASE_E2E_FAILURE_LABEL);
   assert.match(created[0].title, /2026-07-26/);
 
-  const optionIds = graphqlCalls
-    .map((c) => c.vars?.optionId)
-    .filter(Boolean);
+  const optionIds = graphqlCalls.map((c) => c.vars?.optionId).filter(Boolean);
   assert.ok(optionIds.includes(PRIORITY_P0));
   assert.ok(optionIds.includes(AREA_INFRA));
   assert.ok(optionIds.includes(WORK_TYPE_BUG));
@@ -168,10 +172,7 @@ test('reportReleaseE2eFailure still succeeds when project GraphQL is denied', as
 
 test('resolveReleaseE2eFailure closes all open trackers', async () => {
   const { github, comments, updates } = createGithubMock({
-    openIssues: [
-      { number: 2079 },
-      { number: 2100 },
-    ],
+    openIssues: [{ number: 2079 }, { number: 2100 }],
   });
 
   const result = await resolveReleaseE2eFailure({

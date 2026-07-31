@@ -85,12 +85,10 @@ export function buildReleaseE2eFailureBody({
  * Best-effort: add issue to Project #12 and set P0 triage fields.
  * Never throws — board writes must not block filing the issue.
  */
-export async function triageReleaseE2eOnProject(github, {
-  owner,
-  repo,
-  issueNumber,
-  core = console,
-}) {
+export async function triageReleaseE2eOnProject(
+  github,
+  { owner, repo, issueNumber, core = console },
+) {
   try {
     const issue = await github.rest.issues.get({
       owner,
@@ -163,11 +161,13 @@ export async function reportReleaseE2eFailure({
 }) {
   await ensureReleaseE2eLabel(github, { owner, repo });
 
-  const openTrackers = (await listTrackerIssues(github, {
-    owner,
-    repo,
-    state: 'open',
-  })).filter((issue) => !issue.pull_request);
+  const openTrackers = (
+    await listTrackerIssues(github, {
+      owner,
+      repo,
+      state: 'open',
+    })
+  ).filter((issue) => !issue.pull_request);
 
   if (openTrackers.length > 0) {
     const number = openTrackers[0].number;
@@ -213,11 +213,13 @@ export async function resolveReleaseE2eFailure({
   body,
   core = console,
 }) {
-  const openTrackers = (await listTrackerIssues(github, {
-    owner,
-    repo,
-    state: 'open',
-  })).filter((issue) => !issue.pull_request);
+  const openTrackers = (
+    await listTrackerIssues(github, {
+      owner,
+      repo,
+      state: 'open',
+    })
+  ).filter((issue) => !issue.pull_request);
 
   if (openTrackers.length === 0) {
     core.info?.('No open release-e2e trackers to close');
