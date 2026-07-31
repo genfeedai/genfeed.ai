@@ -266,6 +266,7 @@ describe('BrandDetail', () => {
     vi.clearAllMocks();
     mocks.brandDetail = createBrandDetailState();
     mocks.handleRefreshBrand.mockResolvedValue(undefined);
+    mocks.handleUpdateAccount.mockResolvedValue(undefined);
   });
 
   it('renders loading and not-found states', () => {
