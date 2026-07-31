@@ -37,7 +37,9 @@ agent has no non-interactive path to. Each fix carries a regression test.
 ## Boil-the-ocean backlog (next train)
 
 1. **Messages reply campaigns** — GH PRD under #1010 (throttled, not blast)
-2. **Prompt-bar domain merge** — shell/notice only so far; full domain merge unfinished
+2. ~~**Prompt-bar domain merge**~~ — **done.** `PromptBarArticle` and `PromptBarPost` are deleted;
+   every content surface renders `PromptBarContent`, and submit/Enter/trim/clear is one primitive
+   (`usePromptBarSubmission`) shared with `PostEnhancementBar`
 3. **Studio storyboard depth** — scene gen reliability, merge polish, Clips in Automation menu if desired
 4. **Kit contrast / inputs polish** if still weak after Kit settings page
 5. **Brand OverviewPanel** still has inline link editor path — align to modal like Social

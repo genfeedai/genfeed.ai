@@ -6,6 +6,7 @@ import {
   ComponentSize,
   IngredientCategory,
 } from '@genfeedai/enums';
+import { usePromptBarSubmission } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-submission/use-prompt-bar-submission';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import CaptionGeneratorButton from '@ui/ai/caption-generator/CaptionGeneratorButton';
 import HashtagGeneratorButton from '@ui/ai/hashtag-generator/HashtagGeneratorButton';
@@ -71,7 +72,6 @@ export default function PostEnhancementBar({
   onInsertHashtag,
   onAcceptCaption,
 }: PostEnhancementBarProps) {
-  const [prompt, setPrompt] = useState('');
   const [localTone, setLocalTone] = useState<TweetTone>(selectedTone);
 
   // Sync localTone with selectedTone prop when it changes (only when not controlled)
@@ -90,25 +90,14 @@ export default function PostEnhancementBar({
     }
   };
 
-  const handleSubmit = async () => {
-    if (!prompt.trim() || isEnhancing) {
-      return;
-    }
-
-    try {
-      await onPromptEnhance(postId, prompt.trim(), currentTone);
-      setPrompt(''); // Clear on success
-    } catch {
-      // Error handled by parent
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  };
+  // Trim, in-flight guard, clear-on-success and Enter-to-submit are shared with
+  // every other prompt bar; only the tone-aware payload is local to this surface.
+  const { handleKeyDown, handleSubmit, isSubmitDisabled, prompt, setPrompt } =
+    usePromptBarSubmission({
+      isEnhancing,
+      onSubmit: (trimmedPrompt: string) =>
+        onPromptEnhance(postId, trimmedPrompt, currentTone),
+    });
 
   const mediaCount = selectedMedia.length;
   const hasMedia = mediaCount > 0;
@@ -207,15 +196,16 @@ export default function PostEnhancementBar({
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          disabled={isEnhancing}
+          isDisabled={isEnhancing}
           className="h-9 min-h-0 flex-1"
         />
 
         <Button
+          ariaLabel="Enhance"
           variant={ButtonVariant.DEFAULT}
           icon={<ArrowUp />}
           isLoading={isEnhancing && !enhancingAction}
-          isDisabled={!prompt.trim() || isEnhancing}
+          isDisabled={isSubmitDisabled}
           onClick={handleSubmit}
           tooltip="Enhance"
           tooltipPosition="top"

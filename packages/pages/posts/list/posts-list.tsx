@@ -21,7 +21,7 @@ import AppTable from '@ui/display/table/Table';
 import Loading from '@ui/loading/default/Loading';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
-import PromptBarPost from '@ui/prompt-bars/post/PromptBarPost';
+import PromptBarContent from '@ui/prompt-bars/content/PromptBarContent';
 import PromptBarSurfaceRenderer from '@ui/prompt-bars/surface/PromptBarSurfaceRenderer';
 import { POSTS_PROMPT_BAR_SURFACE } from '@ui/prompt-bars/surface/prompt-bar-surface.config';
 import { LayoutGrid, Table } from 'lucide-react';
@@ -224,7 +224,7 @@ export default function PostsList({
           surface={POSTS_PROMPT_BAR_SURFACE}
           topContent={<LowCreditsBanner />}
         >
-          <PromptBarPost
+          <PromptBarContent
             onSubmit={handleGenerate}
             isEnhancing={isGenerating}
             showCountDropdown={true}
