@@ -31,6 +31,7 @@ describe('AnalyticsSocialJobService', () => {
     const collectionState = {
       markFailed: vi.fn().mockResolvedValue(undefined),
       markFailedBatch: vi.fn().mockResolvedValue(undefined),
+      markFailedTargets: vi.fn().mockResolvedValue(undefined),
       markReady: vi.fn().mockRejectedValue(readyError),
       markReadyBatch: vi.fn().mockResolvedValue(undefined),
     } satisfies ServerAnalyticsCollectionState;

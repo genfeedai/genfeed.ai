@@ -1,6 +1,7 @@
 import { TargetAnalyticsCollectionState } from '@genfeedai/enums';
 import type {
   AnalyticsCollectionAttemptRef,
+  AnalyticsCollectionFailedTarget,
   AnalyticsCollectionFailure,
   AnalyticsCollectionTargetRef,
   ServerAnalyticsCollectionState,
@@ -116,30 +117,57 @@ export class PostAnalyticsCollectionStateService
     targets: AnalyticsCollectionAttemptRef[],
     failure: AnalyticsCollectionFailure,
   ): Promise<void> {
-    const targetsByScope = new Map<string, AnalyticsCollectionAttemptRef[]>();
+    await this.markFailedTargets(
+      targets.map((target) => ({ ...target, failure })),
+    );
+  }
+
+  /**
+   * Writes one `updateMany` per (scope, failure) group.
+   *
+   * A per-post fetch loop fails each post for its own reason, which used to
+   * mean one `markFailed` round trip per post. `classifyAnalyticsCollectionError`
+   * only ever yields a handful of distinct failures per platform, so grouping
+   * by identical classification collapses a whole batch into a few writes
+   * without flattening which post failed how.
+   */
+  async markFailedTargets(
+    targets: AnalyticsCollectionFailedTarget[],
+  ): Promise<void> {
+    const targetsByGroup = new Map<string, AnalyticsCollectionFailedTarget[]>();
     for (const target of targets) {
       if (!target.attemptKey) {
         continue;
       }
-      const scopeKey = `${target.organizationId}:${target.brandId}:${target.platform}:${target.attemptKey}`;
-      const scopedTargets = targetsByScope.get(scopeKey) ?? [];
-      scopedTargets.push(target);
-      targetsByScope.set(scopeKey, scopedTargets);
+      // Serialized rather than delimiter-joined: failure messages are prose and
+      // could otherwise smuggle the separator and merge two distinct groups.
+      const groupKey = JSON.stringify([
+        target.organizationId,
+        target.brandId,
+        target.platform,
+        target.attemptKey,
+        target.failure.code,
+        target.failure.isRetryable,
+        target.failure.message,
+      ]);
+      const groupedTargets = targetsByGroup.get(groupKey) ?? [];
+      groupedTargets.push(target);
+      targetsByGroup.set(groupKey, groupedTargets);
     }
 
     const failedAt = new Date().toISOString();
-    for (const scopedTargets of targetsByScope.values()) {
-      const [scope] = scopedTargets;
+    for (const groupedTargets of targetsByGroup.values()) {
+      const [scope] = groupedTargets;
       if (!scope?.attemptKey) {
         continue;
       }
       await this.prisma.post.updateMany({
         data: {
           analyticsCollectionError: {
-            code: failure.code,
+            code: scope.failure.code,
             failedAt,
-            isRetryable: failure.isRetryable,
-            message: failure.message,
+            isRetryable: scope.failure.isRetryable,
+            message: scope.failure.message,
           },
           analyticsCollectionState: TargetAnalyticsCollectionState.FAILED,
         },
@@ -147,7 +175,7 @@ export class PostAnalyticsCollectionStateService
           ...scopedWhere(scope.organizationId, {
             brandId: scope.brandId,
             groupId: { not: null },
-            id: { in: scopedTargets.map((target) => target.id) },
+            id: { in: groupedTargets.map((target) => target.id) },
             parentId: null,
             platform: scope.platform,
           }),
