@@ -40,6 +40,10 @@ export const API_ENDPOINTS = {
   LINKS: '/links',
   LISTENING_TOPICS: '/listening-topics',
   MEMBERS: '/members',
+  // Campaigns sit beside `/messages` rather than under it: the messages
+  // controller ends in a `:conversationId` catch-all that would swallow a
+  // nested campaigns route.
+  MESSAGE_CAMPAIGNS: '/message-campaigns',
   MESSAGES: '/messages',
   MODELS: '/models',
   MONITORED_ACCOUNTS: '/monitored-accounts',

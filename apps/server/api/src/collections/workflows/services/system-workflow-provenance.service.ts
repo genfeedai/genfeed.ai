@@ -28,6 +28,7 @@ export const SYSTEM_WORKFLOW_ACTION_IDS = {
   REPLY_DM_AUTOMATION: 'reply-dm-automation',
   REVIEW_GATE_TIMEOUT: 'review-gate-timeout',
   SCHEDULED_POST_PUBLISHING: 'scheduled-post-publishing',
+  SOCIAL_REPLY_CAMPAIGN: 'social-reply-campaign',
   STREAK_MAINTENANCE: 'streak-maintenance',
   TIKTOK_STATUS_RECONCILIATION: 'tiktok-status-reconciliation',
   TWITTER_PUBLISH_ACTION: 'twitter-publish-action',
@@ -130,6 +131,16 @@ export const SYSTEM_WORKFLOW_ACTION_DEFINITIONS: readonly SystemWorkflowActionDe
         'Auto-resolves review gates whose reviewer timeout elapsed: approves when the node opted into auto-approve, otherwise rejects.',
       label: 'Review Gate Timeout Resolution',
       schedule: '*/15 * * * *',
+    },
+    {
+      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SOCIAL_REPLY_CAMPAIGN,
+      changeSummary:
+        'Initial throttled inbox reply campaign system workflow action wrapper.',
+      description:
+        'Dispatches one throttled inbox reply or DM per tick, pacing a campaign across its rate-limit windows.',
+      // No `schedule`: each dispatch tick re-enqueues the next one, so the
+      // cadence lives in the campaign's rate limits, not in a cron sweep.
+      label: 'Inbox Reply Campaign Dispatch',
     },
   ];
 

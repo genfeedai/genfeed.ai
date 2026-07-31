@@ -2908,6 +2908,87 @@ model SocialMessage {
   @@map("social_messages")
 }
 
+/// Throttled reply campaign over conversations that already exist in the social
+/// inbox. Deliberately NOT a blast sender: recipients are materialized up front
+/// and drained one at a time by a self-rescheduling BullMQ job, so a campaign is
+/// resumable from database state alone and never holds a worker open to sleep.
+model SocialReplyCampaign {
+  id                  String   @id @default(cuid())
+  organizationId      String
+  brandId             String?
+  userId              String?
+  name                String
+  description         String?
+  platform            String
+  messageType         String   @default("reply")
+  status              String   @default("draft")
+  bodyTemplate        String
+  /// Rate limits. `minDelaySeconds` paces consecutive sends; the per-hour and
+  /// per-day ceilings are re-derived from recipient send timestamps on every
+  /// tick so a restart cannot double-spend a window.
+  maxPerHour          Int      @default(10)
+  maxPerDay           Int      @default(50)
+  minDelaySeconds     Int      @default(60)
+  totalRecipients     Int      @default(0)
+  sentCount           Int      @default(0)
+  failedCount         Int      @default(0)
+  skippedCount        Int      @default(0)
+  /// Incremented on every enqueue so a resume mints a fresh deterministic job
+  /// id instead of colliding with the stale delayed job left by a pause.
+  dispatchCursor      Int      @default(0)
+  startedAt           DateTime?
+  pausedAt            DateTime?
+  completedAt         DateTime?
+  nextRunAt           DateTime?
+  lastDispatchedAt    DateTime?
+  lastError           String?
+  workflowId          String?
+  workflowExecutionId String?
+  metadata            Json     @default("{}")
+  isDeleted           Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  recipients SocialReplyCampaignRecipient[]
+
+  @@index([organizationId, isDeleted, status, createdAt(sort: Desc), id], map: "social_reply_campaigns_org_status_idx")
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc), id], map: "social_reply_campaigns_org_brand_idx")
+  @@index([status, isDeleted, nextRunAt], map: "social_reply_campaigns_due_idx")
+  @@map("social_reply_campaigns")
+}
+
+model SocialReplyCampaignRecipient {
+  id             String              @id @default(cuid())
+  campaignId     String
+  campaign       SocialReplyCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  organizationId String
+  conversationId String
+  messageId      String?
+  status         String              @default("pending")
+  /// Stable drain order. Assigned at materialization time so a resumed campaign
+  /// continues exactly where it stopped.
+  position       Int
+  scheduledAt    DateTime?
+  dispatchedAt   DateTime?
+  sentAt         DateTime?
+  attemptCount   Int                 @default(0)
+  /// Mirrors `social_messages.idempotencyKey` so a retried dispatch reuses the
+  /// existing outbound message instead of double-posting.
+  idempotencyKey String
+  body           String?
+  failureReason  String?
+  metadata       Json                @default("{}")
+  isDeleted      Boolean             @default(false)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@unique([campaignId, conversationId])
+  @@unique([organizationId, idempotencyKey])
+  @@index([campaignId, status, position, id], map: "social_reply_campaign_recipients_queue_idx")
+  @@index([organizationId, campaignId, status, sentAt(sort: Desc)], map: "social_reply_campaign_recipients_window_idx")
+  @@map("social_reply_campaign_recipients")
+}
+
 model AgentRun {
   id             String         @id @default(cuid())
   mongoId        String?        @unique

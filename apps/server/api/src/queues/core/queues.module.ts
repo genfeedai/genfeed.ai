@@ -12,6 +12,7 @@ import { CampaignQueueService } from '@api/queues/campaign/campaign-queue.servic
 import { QueueService } from '@api/queues/core/queue.service';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
 import { ReplyBotQueueService } from '@api/queues/reply-bot/reply-bot-queue.service';
+import { SocialReplyCampaignQueueService } from '@api/queues/social-reply-campaign/social-reply-campaign-queue.service';
 import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
 import {
   AD_BULK_UPLOAD_QUEUE,
@@ -35,6 +36,7 @@ import {
   POST_PUBLISH_QUEUE,
   REPLY_BOT_POLLING_QUEUE,
   SOCIAL_INBOX_SYNC_QUEUE,
+  SOCIAL_REPLY_CAMPAIGN_QUEUE,
   TELEGRAM_DISTRIBUTE_QUEUE,
   WORKSPACE_TASK_QUEUE,
 } from '@genfeedai/queue-contracts';
@@ -58,6 +60,7 @@ import { Module } from '@nestjs/common';
     QueueService,
     ReplyBotQueueService,
     CampaignQueueService,
+    SocialReplyCampaignQueueService,
     WorkspaceTaskQueueService,
   ],
   imports: [
@@ -279,6 +282,15 @@ import { Module } from '@nestjs/common';
         },
         name: SOCIAL_INBOX_SYNC_QUEUE,
       },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 10000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: SOCIAL_REPLY_CAMPAIGN_QUEUE,
+      },
     ),
   ],
   providers: [
@@ -286,6 +298,7 @@ import { Module } from '@nestjs/common';
     ReplyBotQueueService,
     CampaignQueueService,
     AgentRunQueueService,
+    SocialReplyCampaignQueueService,
     WorkspaceTaskQueueService,
     HeygenPollQueueService,
     PostPublishQueueService,
