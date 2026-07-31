@@ -16,6 +16,9 @@ import {
 } from '@genfeedai/enums';
 import type { ICredential } from '@genfeedai/interfaces';
 import Card from '@ui/card/Card';
+import PlatformPreview, {
+  type PlatformPreviewTarget,
+} from '@ui/posts/platform-preview/PlatformPreview';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -185,6 +188,29 @@ function validateComposerTarget(
     target,
     valid: errors.length === 0,
     warnings: validation.warnings,
+  };
+}
+
+/**
+ * The preview reuses the review's validation result so the rendered target and
+ * the readiness column can never disagree about what blocks publishing.
+ */
+function buildPreviewTarget(
+  draft: ComposerDraft,
+  target: ComposerTarget,
+): PlatformPreviewTarget {
+  const [, accountHandle] = target.credentialLabel.split(' @');
+
+  return {
+    author: {
+      handle: accountHandle ?? target.platformLabel,
+      name: target.credentialLabel,
+    },
+    caption: target.captionOverride.trim() || draft.baseContent,
+    platform: target.platform,
+    publishMode: 'scheduled',
+    settings: target.settings,
+    title: draft.title,
   };
 }
 
@@ -659,6 +685,19 @@ export default function CrossPostComposerPage() {
       </div>
 
       <aside className="grid content-start gap-6">
+        {activeTarget ? (
+          <Card bodyClassName="gap-5 p-6">
+            <div>
+              <h2 className="text-base font-semibold">Preview</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {activeTarget.credentialLabel} as it will publish.
+              </p>
+            </div>
+
+            <PlatformPreview target={buildPreviewTarget(draft, activeTarget)} />
+          </Card>
+        ) : null}
+
         <Card bodyClassName="gap-5 p-6">
           <div>
             <h2 className="text-base font-semibold">Review</h2>

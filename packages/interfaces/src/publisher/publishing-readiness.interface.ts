@@ -62,6 +62,19 @@ export interface IPublishingSetupChecklist {
   checks: IPublishingSetupCheck[];
 }
 
+/**
+ * Operator-facing support bundle. Everything here is derived from configuration
+ * presence and bounded dependency probes — it never carries secret material.
+ */
+export interface IPublishingSetupDiagnosticsExport {
+  checklist: IPublishingSetupChecklist;
+  /** Deployment axis the checklist was evaluated against. */
+  deployment: 'cloud' | 'self-hosted';
+  /** Every diagnostic across every check, errors first. */
+  diagnostics: IPublishingDiagnostic[];
+  generatedAt: string;
+}
+
 export interface IPublishingProviderReadiness {
   providerKey: CredentialPlatform | string;
   credentialId?: string | null;

@@ -123,3 +123,33 @@ export interface WorkflowTemplate {
   estimatedDuration?: string;
   creditsRequired?: number;
 }
+
+/**
+ * One entry of the code-owned system workflow catalog (#2223), including
+ * per-organization install state resolved by the API.
+ */
+export interface SystemWorkflowCatalogEntry {
+  canonicalId: string;
+  label: string;
+  description?: string;
+  family: string;
+  category?: string;
+  installable: boolean;
+  installed: boolean;
+  installedWorkflowId?: string;
+  isScheduleEnabled?: boolean;
+  schedule?: string;
+  timezone?: string;
+  version?: number;
+}
+
+export interface SystemWorkflowCatalogListParams {
+  family?: string;
+  includeNonInstallable?: boolean;
+  installedOnly?: boolean;
+}
+
+export interface SystemWorkflowInstallParams {
+  brandId?: string;
+  canonicalId: string;
+}

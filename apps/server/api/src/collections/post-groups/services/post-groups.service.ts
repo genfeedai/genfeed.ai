@@ -6,6 +6,7 @@ import type {
 } from '@api/collections/post-groups/services/post-group.types';
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
+import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import {
   type ApiKeyPublishingContext,
@@ -77,6 +78,7 @@ export class PostGroupsService {
     private readonly publishApprovalsService: PublishApprovalsService,
     private readonly persistenceService: PostGroupPersistenceService,
     private readonly contractService: PostGroupContractService,
+    private readonly readinessService: PostGroupReadinessService,
   ) {}
 
   async create(
@@ -243,6 +245,13 @@ export class PostGroupsService {
         );
       }
 
+      const readinessByCredential =
+        await this.readinessService.resolveForCredentials(tx, organizationId, [
+          targetInput.credentialId,
+        ]);
+      const readiness = readinessByCredential.get(targetInput.credentialId);
+      this.readinessService.assertSchedulable(targetInput, readiness);
+
       const isExactReplay =
         target.targetExecutionState === TargetExecutionState.SCHEDULED &&
         target.scheduledDate?.getTime() === scheduledDate.getTime() &&
@@ -268,9 +277,9 @@ export class PostGroupsService {
             scheduledDate,
             status: PostStatus.SCHEDULED,
             targetExecutionState: TargetExecutionState.SCHEDULED,
-            targetReadiness: validation.readiness
-              ? this.contractService.toJson(validation.readiness)
-              : Prisma.JsonNull,
+            targetReadiness: this.contractService.toReadinessJson(
+              readiness ?? validation.readiness,
+            ),
             targetValidationIssues:
               this.contractService.validationIssues(validation),
             targetValidationState: validation.validationState,

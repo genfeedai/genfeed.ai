@@ -5,6 +5,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   canMergeStoryboard,
   createStoryboardFrame,
+  getCompletedFrames,
   getPendingFrames,
   initializeStoryboard,
   type Storyboard,
@@ -279,7 +280,9 @@ export function useStoryboardWorkspace() {
       return;
     }
 
-    const ids = storyboard.frames
+    // Same source of truth as `completedSceneCount`, which drives the button's
+    // disabled state — a partially generated storyboard merges what it has.
+    const ids = getCompletedFrames(storyboard)
       .map((frame) => frame.videoId)
       .filter((id): id is string => Boolean(id));
 
@@ -361,9 +364,7 @@ export function useStoryboardWorkspace() {
   ]);
 
   const pendingSceneCount = getPendingFrames(storyboard).length;
-  const completedSceneCount = storyboard.frames.filter(
-    (frame) => frame.status === 'completed' && frame.videoId,
-  ).length;
+  const completedSceneCount = getCompletedFrames(storyboard).length;
 
   return {
     addMergeVideos,

@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import PlatformPreview, {
   countPreviewCharacters,
+  getPlatformPreviewIcon,
   hasDedicatedPlatformPreviewRenderer,
 } from '@ui/posts/platform-preview/PlatformPreview';
 
@@ -160,5 +161,82 @@ describe('PlatformPreview', () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByText('+1 more not shown')).toBeInTheDocument();
+  });
+
+  it('flags the affected media item with the platform animation consequence', () => {
+    const capability = requireCapability(CredentialPlatform.INSTAGRAM);
+    const consequence = capability.media.animated.consequence;
+
+    render(
+      <PlatformPreview
+        target={{
+          capability,
+          caption: 'Looping teaser',
+          media: [
+            { id: 'still-1', kind: 'image' },
+            { id: 'gif-1', isAnimated: true, kind: 'image' },
+          ],
+          platform: CredentialPlatform.INSTAGRAM,
+        }}
+      />,
+    );
+
+    expect(capability.media.animated.supported).toBe(false);
+    expect(consequence).toBeDefined();
+
+    // The consequence is attached to the offending tile, not just the summary.
+    const flaggedTile = screen.getByTestId('platform-preview-media-gif-1');
+    expect(flaggedTile).toHaveTextContent(consequence as string);
+    expect(
+      screen.getByTestId('platform-preview-media-still-1'),
+    ).not.toHaveTextContent(consequence as string);
+  });
+
+  it('renders the valid-with-warnings state without blocking the target', () => {
+    const capability = requireCapability(CredentialPlatform.INSTAGRAM);
+
+    render(
+      <PlatformPreview
+        target={{
+          capability,
+          caption: 'Looping teaser',
+          media: [{ id: 'gif-1', isAnimated: true, kind: 'image' }],
+          platform: CredentialPlatform.INSTAGRAM,
+          // Otherwise valid, so the badge can only come from the warning.
+          settings: { placement: 'feed' },
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Warnings')).toBeInTheDocument();
+    expect(screen.queryByText('Blocked')).not.toBeInTheDocument();
+  });
+
+  it('resolves platform aliases through the shared platform helpers', () => {
+    expect(hasDedicatedPlatformPreviewRenderer('x')).toBe(true);
+
+    render(
+      <PlatformPreview
+        target={{
+          author: { handle: 'genfeed', name: 'Genfeed' },
+          caption: 'Alias routed draft',
+          platform: 'x',
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole('article', { name: 'X (Twitter) platform preview' }),
+    ).toBeInTheDocument();
+  });
+
+  it('never falls back to another platform brand icon', () => {
+    const twitterIcon = getPlatformPreviewIcon(CredentialPlatform.TWITTER);
+
+    expect(getPlatformPreviewIcon(CredentialPlatform.REDDIT)).not.toBe(
+      twitterIcon,
+    );
+    expect(getPlatformPreviewIcon('myspace')).not.toBe(twitterIcon);
+    expect(getPlatformPreviewIcon('x')).toBe(twitterIcon);
   });
 });

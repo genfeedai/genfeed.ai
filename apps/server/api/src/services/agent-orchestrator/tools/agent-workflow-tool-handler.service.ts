@@ -1,4 +1,6 @@
 import { computeNextRunAtOrThrow } from '@api/collections/cron-jobs/services/cron-jobs.service';
+import type { SystemWorkflowCatalogListItem } from '@api/collections/workflows/services/system-workflow-catalog.service';
+import { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowGenerationService } from '@api/collections/workflows/services/workflow-generation.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
@@ -52,6 +54,7 @@ export class AgentWorkflowToolHandler {
     private readonly internalApi: AgentToolInternalApiService,
     @Inject('AGENT_BRANDS_SERVICE')
     private readonly brandsService: AgentBrandsServiceLike,
+    private readonly systemWorkflowCatalogService: SystemWorkflowCatalogService,
     @Optional()
     private readonly workflowGenerationService?: WorkflowGenerationService,
     @Optional()
@@ -456,6 +459,109 @@ export class AgentWorkflowToolHandler {
       ],
       success: true,
     };
+  }
+
+  private mapSystemCatalogEntryForTool(
+    entry: SystemWorkflowCatalogListItem,
+  ): Record<string, unknown> {
+    return {
+      canonicalId: entry.canonicalId,
+      description: entry.description,
+      family: entry.family,
+      installable: entry.installable,
+      installed: entry.installed,
+      installedWorkflowId: entry.installedWorkflowId,
+      isScheduleEnabled: entry.isScheduleEnabled,
+      label: entry.label,
+      schedule: entry.schedule,
+      timezone: entry.timezone,
+      version: entry.version,
+    };
+  }
+
+  /**
+   * Surfaces the code-owned system workflow catalog (#2223) to the agent so an
+   * install can be discovered without leaving the conversation.
+   */
+  async listSystemWorkflowCatalog(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const family = readOptionalString(params.family);
+    const includeNonInstallable = params.includeNonInstallable === true;
+    const installedOnly = params.installedOnly === true;
+
+    const catalog =
+      await this.systemWorkflowCatalogService.listCatalogForOrganization(
+        ctx.organizationId,
+      );
+
+    const entries = catalog
+      .filter((entry) => includeNonInstallable || entry.installable)
+      .filter((entry) => !family || entry.family === family)
+      .filter((entry) => !installedOnly || entry.installed)
+      .map((entry) => this.mapSystemCatalogEntryForTool(entry));
+
+    return {
+      creditsUsed: 0,
+      data: {
+        count: entries.length,
+        entries,
+      },
+      success: true,
+    };
+  }
+
+  /**
+   * Installs one catalog entry as an editable org-owned copy. The underlying
+   * service is idempotent, so a repeat install returns the existing workflow.
+   */
+  async installSystemWorkflow(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const canonicalId = readOptionalString(params.canonicalId);
+    if (!canonicalId) {
+      return {
+        creditsUsed: 0,
+        error: 'canonicalId is required',
+        success: false,
+      };
+    }
+
+    try {
+      const workflow = (await this.systemWorkflowCatalogService.install({
+        brandId: readOptionalString(params.brandId) ?? ctx.brandId,
+        canonicalId,
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
+      })) as unknown as Record<string, unknown>;
+
+      const workflowId = String(workflow.id ?? '');
+
+      return {
+        creditsUsed: 0,
+        data: {
+          canonicalId,
+          editorUrl: `/automations/editor/${workflowId}`,
+          id: workflowId,
+          isScheduleEnabled: workflow.isScheduleEnabled,
+          label: workflow.label ?? workflow.name,
+          nextRunAt: workflow.nextRunAt,
+          schedule: workflow.schedule,
+        },
+        success: true,
+      };
+    } catch (error) {
+      return {
+        creditsUsed: 0,
+        error:
+          error instanceof Error
+            ? error.message
+            : `Failed to install system workflow ${canonicalId}`,
+        success: false,
+      };
+    }
   }
 
   async listWorkflows(

@@ -59,6 +59,8 @@ const WORKFLOW_CONTROL_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
   'duplicate_workflow',
   'get_workflow_run',
   'inspect_workflow',
+  'install_system_workflow',
+  'list_system_workflow_catalog',
   'list_workflow_runs',
   'set_workflow_schedule',
 ]);

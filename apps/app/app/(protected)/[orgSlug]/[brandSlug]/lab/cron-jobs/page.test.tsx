@@ -19,8 +19,10 @@ describe('LabCronJobsPage', () => {
           orgSlug: 'test-org',
         },
       }),
-    ).rejects.toThrow('redirect:/test-org/brand-1/workflows');
+    ).rejects.toThrow('redirect:/test-org/brand-1/orchestration/workflows');
 
-    expect(redirect).toHaveBeenCalledWith('/test-org/brand-1/workflows');
+    expect(redirect).toHaveBeenCalledWith(
+      '/test-org/brand-1/orchestration/workflows',
+    );
   });
 });

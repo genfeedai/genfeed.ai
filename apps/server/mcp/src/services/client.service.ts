@@ -82,6 +82,9 @@ import type {
   VideoStatus,
 } from '@mcp/shared/interfaces/video.interface';
 import type {
+  SystemWorkflowCatalogEntry,
+  SystemWorkflowCatalogListParams,
+  SystemWorkflowInstallParams,
   WorkflowCreateParams,
   WorkflowExecuteParams,
   WorkflowExecutionResult,
@@ -479,6 +482,18 @@ export class ClientService {
 
   listWorkflowTemplates(): Promise<WorkflowTemplate[]> {
     return this.workflows.listWorkflowTemplates();
+  }
+
+  listSystemWorkflowCatalog(
+    params: SystemWorkflowCatalogListParams = {},
+  ): Promise<SystemWorkflowCatalogEntry[]> {
+    return this.workflows.listSystemWorkflowCatalog(params);
+  }
+
+  installSystemWorkflow(
+    params: SystemWorkflowInstallParams,
+  ): Promise<WorkflowResponse> {
+    return this.workflows.installSystemWorkflow(params);
   }
 
   // ── Social Messages ──

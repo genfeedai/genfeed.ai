@@ -106,7 +106,25 @@ export const channelCaptionCapabilitySchema = z.object({
   required: z.boolean().optional(),
 });
 
+/**
+ * How a channel treats animated source media (GIF and friends).
+ *
+ * `consequence` is required reading for the composer preview: when a platform
+ * drops animation it is the sentence shown on the affected media item, so it
+ * must describe the published outcome rather than the rejection.
+ */
+export const channelAnimatedMediaCapabilitySchema = z
+  .object({
+    consequence: z.string().min(1).optional(),
+    supported: z.boolean(),
+  })
+  .refine(
+    (animated) => animated.supported || Boolean(animated.consequence),
+    'A channel that drops animation must declare its consequence.',
+  );
+
 export const channelMediaCapabilitySchema = z.object({
+  animated: channelAnimatedMediaCapabilitySchema,
   kinds: z.array(channelMediaKindSchema).min(1),
   maxItems: z.number().int().positive().optional(),
   minItems: z.number().int().min(0).optional(),
@@ -126,6 +144,7 @@ export const channelCapabilitySchema = z.object({
 
 export const channelTargetValidationMediaSchema = z.object({
   id: z.string().min(1).optional(),
+  isAnimated: z.boolean().optional(),
   kind: channelMediaKindSchema,
 });
 
@@ -220,7 +239,16 @@ const channelCapabilities = [
       },
     ],
     label: 'YouTube',
-    media: { kinds: ['video', 'short_video'], maxItems: 1, minItems: 1 },
+    media: {
+      animated: {
+        consequence:
+          'Animated images are not accepted; upload the animation as a video.',
+        supported: false,
+      },
+      kinds: ['video', 'short_video'],
+      maxItems: 1,
+      minItems: 1,
+    },
     platform: CredentialPlatform.YOUTUBE,
     publishModes: ['draft', 'publish_now', 'scheduled'],
     settings: [
@@ -276,7 +304,16 @@ const channelCapabilities = [
       },
     ],
     label: 'TikTok',
-    media: { kinds: ['short_video', 'video'], maxItems: 1, minItems: 1 },
+    media: {
+      animated: {
+        consequence:
+          'Animated images are not accepted; upload the animation as a video.',
+        supported: false,
+      },
+      kinds: ['short_video', 'video'],
+      maxItems: 1,
+      minItems: 1,
+    },
     platform: CredentialPlatform.TIKTOK,
     publishModes: ['draft', 'publish_now', 'scheduled'],
     settings: [
@@ -335,6 +372,11 @@ const channelCapabilities = [
     ],
     label: 'Instagram',
     media: {
+      animated: {
+        consequence:
+          'Animated images publish as a single still frame; upload a video to keep motion.',
+        supported: false,
+      },
       kinds: ['image', 'video', 'short_video', 'carousel'],
       maxItems: 10,
       minItems: 1,
@@ -378,7 +420,12 @@ const channelCapabilities = [
       },
     ],
     label: 'X (Twitter)',
-    media: { kinds: ['image', 'video', 'link'], maxItems: 4, minItems: 0 },
+    media: {
+      animated: { supported: true },
+      kinds: ['image', 'video', 'link'],
+      maxItems: 4,
+      minItems: 0,
+    },
     platform: CredentialPlatform.TWITTER,
     publishModes: ['draft', 'publish_now', 'scheduled'],
     settings: [
@@ -416,7 +463,12 @@ const channelCapabilities = [
       },
     ],
     label: 'LinkedIn',
-    media: { kinds: ['image', 'video', 'link'], maxItems: 1, minItems: 0 },
+    media: {
+      animated: { supported: true },
+      kinds: ['image', 'video', 'link'],
+      maxItems: 1,
+      minItems: 0,
+    },
     platform: CredentialPlatform.LINKEDIN,
     publishModes: ['draft', 'publish_now', 'scheduled'],
     settings: [
@@ -447,7 +499,12 @@ const channelCapabilities = [
       },
     ],
     label: 'Facebook',
-    media: { kinds: ['image', 'video', 'link'], maxItems: 10, minItems: 0 },
+    media: {
+      animated: { supported: true },
+      kinds: ['image', 'video', 'link'],
+      maxItems: 10,
+      minItems: 0,
+    },
     platform: CredentialPlatform.FACEBOOK,
     publishModes: ['draft', 'publish_now', 'scheduled'],
     settings: [],
@@ -467,7 +524,16 @@ const channelCapabilities = [
       },
     ],
     label: 'Pinterest',
-    media: { kinds: ['image', 'video'], maxItems: 1, minItems: 1 },
+    media: {
+      animated: {
+        consequence:
+          'Animated images publish as a static Pin; upload a video Pin to keep motion.',
+        supported: false,
+      },
+      kinds: ['image', 'video'],
+      maxItems: 1,
+      minItems: 1,
+    },
     platform: CredentialPlatform.PINTEREST,
     publishModes: ['draft', 'publish_now', 'scheduled'],
     settings: [],
@@ -487,7 +553,12 @@ const channelCapabilities = [
       },
     ],
     label: 'Reddit',
-    media: { kinds: ['image', 'video', 'link'], maxItems: 1, minItems: 0 },
+    media: {
+      animated: { supported: true },
+      kinds: ['image', 'video', 'link'],
+      maxItems: 1,
+      minItems: 0,
+    },
     platform: CredentialPlatform.REDDIT,
     publishModes: ['draft', 'publish_now', 'scheduled'],
     settings: [],
@@ -506,7 +577,12 @@ const channelCapabilities = [
       },
     ],
     label: 'Threads',
-    media: { kinds: ['image', 'video', 'link'], maxItems: 10, minItems: 0 },
+    media: {
+      animated: { supported: true },
+      kinds: ['image', 'video', 'link'],
+      maxItems: 10,
+      minItems: 0,
+    },
     platform: CredentialPlatform.THREADS,
     publishModes: ['draft', 'publish_now', 'scheduled'],
     settings: [],
@@ -524,7 +600,12 @@ const channelCapabilities = [
       },
     ],
     label: 'Medium',
-    media: { kinds: ['image', 'link'], maxItems: 10, minItems: 0 },
+    media: {
+      animated: { supported: true },
+      kinds: ['image', 'link'],
+      maxItems: 10,
+      minItems: 0,
+    },
     platform: CredentialPlatform.MEDIUM,
     publishModes: ['draft', 'publish_now', 'scheduled'],
     settings: [],
@@ -641,18 +722,29 @@ export function validateChannelTargetSettings(
   errors.push(...validateMedia(parsedInput.data, capability));
   errors.push(...validatePublishMode(parsedInput.data, capability));
   errors.push(...validateSettings(parsedInput.data, capability));
+  warnings.push(...collectMediaWarnings(parsedInput.data, capability));
 
   return {
     capability: cloneChannelCapability(capability),
     errors,
     platform: normalizedPlatform,
     valid: errors.length === 0,
-    validationState:
-      errors.length === 0
-        ? TargetValidationState.VALID
-        : TargetValidationState.INVALID,
+    validationState: resolveValidationState(errors, warnings),
     warnings,
   };
+}
+
+function resolveValidationState(
+  errors: ChannelValidationIssue[],
+  warnings: ChannelValidationIssue[],
+): TargetValidationState {
+  if (errors.length > 0) {
+    return TargetValidationState.INVALID;
+  }
+
+  return warnings.length > 0
+    ? TargetValidationState.WARNING
+    : TargetValidationState.VALID;
 }
 
 function cloneChannelCapability(
@@ -664,6 +756,7 @@ function cloneChannelCapability(
     helpers: capability.helpers.map((helper) => ({ ...helper })),
     media: {
       ...capability.media,
+      animated: { ...capability.media.animated },
       kinds: [...capability.media.kinds],
     },
     publishModes: [...capability.publishModes],
@@ -776,6 +869,35 @@ function validateMedia(
   }
 
   return errors;
+}
+
+/**
+ * Non-blocking media consequences: the post still publishes, but not the way
+ * the draft looks. Emitted per media index so the preview can flag the exact
+ * item rather than the whole target.
+ */
+function collectMediaWarnings(
+  input: ValidateChannelTargetSettingsInput,
+  capability: ChannelCapability,
+): ChannelValidationIssue[] {
+  const { animated } = capability.media;
+
+  if (animated.supported) {
+    return [];
+  }
+
+  return (input.media ?? []).flatMap((item, index) =>
+    item.isAnimated
+      ? [
+          {
+            code: 'channel_target.animated_media_flattened',
+            field: `media.${index}.isAnimated`,
+            message: `${capability.label}: ${animated.consequence}`,
+            severity: 'warning' as const,
+          },
+        ]
+      : [],
+  );
 }
 
 function validatePublishMode(

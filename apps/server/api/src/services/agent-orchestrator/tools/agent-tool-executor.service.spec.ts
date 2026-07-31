@@ -282,6 +282,10 @@ describe('AgentToolExecutorService', () => {
       getWorkflowTemplates: vi.fn().mockResolvedValue([]),
       patch: vi.fn().mockResolvedValue({}),
     };
+    const systemWorkflowCatalogService = {
+      install: vi.fn().mockResolvedValue({ id: 'installed-system-workflow' }),
+      listCatalogForOrganization: vi.fn().mockResolvedValue([]),
+    };
     const workflowGenerationService = {
       generateWorkflowFromDescription: vi.fn().mockResolvedValue({
         tokensUsed: 321,
@@ -862,6 +866,7 @@ describe('AgentToolExecutorService', () => {
       workflowExecutorService as never,
       internalApi,
       brandsService as never,
+      systemWorkflowCatalogService as never,
       workflowGenerationService as never,
       marketplaceApiClient as never,
       marketplaceInstallService as never,
@@ -4359,6 +4364,7 @@ describe('AgentToolExecutorService', () => {
         { findOne: vi.fn() } as never,
         internalApiWithoutScorer,
         brandsService as never,
+        { install: vi.fn(), listCatalogForOrganization: vi.fn() } as never,
       ),
       new AgentMediaGenerationToolHandler(
         loggerService,

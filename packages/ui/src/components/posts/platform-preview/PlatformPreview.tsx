@@ -13,13 +13,20 @@ import {
 import {
   ButtonVariant,
   CredentialPlatform,
+  formatPlatformLabel,
   IngredientCategory,
+  parsePlatform,
   TargetValidationState,
 } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
+  FacebookIcon,
   InstagramIcon,
   LinkedinIcon,
+  MediumIcon,
+  PinterestIcon,
+  RedditIcon,
+  ThreadsIcon,
   TiktokIcon,
   XTwitterIcon,
   YoutubeIcon,
@@ -28,6 +35,7 @@ import type { IIngredient, IPost } from '@genfeedai/interfaces';
 import { Button } from '@ui/primitives/button';
 import {
   Bookmark,
+  Globe,
   Heart,
   MessageCircle,
   Play,
@@ -107,6 +115,8 @@ export type PlatformPreviewRendererProps = {
 export type PlatformPreviewRenderer =
   ComponentType<PlatformPreviewRendererProps>;
 
+export type PlatformPreviewIcon = ComponentType<{ className?: string }>;
+
 type CaptionPreviewState = {
   count: number;
   maxLength?: number;
@@ -136,6 +146,39 @@ export const PLATFORM_PREVIEW_RENDERERS: Partial<
   [CredentialPlatform.TWITTER]: XPreviewRenderer,
   [CredentialPlatform.YOUTUBE]: YouTubePreviewRenderer,
 };
+
+/**
+ * Brand marks are identity, not decoration: showing the wrong one makes the
+ * preview lie about where the post lands. Unmapped platforms get the neutral
+ * globe rather than borrowing another network's logo.
+ */
+export const PLATFORM_PREVIEW_ICONS: Partial<
+  Record<CredentialPlatform, PlatformPreviewIcon>
+> = {
+  [CredentialPlatform.FACEBOOK]: FacebookIcon,
+  [CredentialPlatform.INSTAGRAM]: InstagramIcon,
+  [CredentialPlatform.LINKEDIN]: LinkedinIcon,
+  [CredentialPlatform.MEDIUM]: MediumIcon,
+  [CredentialPlatform.PINTEREST]: PinterestIcon,
+  [CredentialPlatform.REDDIT]: RedditIcon,
+  [CredentialPlatform.THREADS]: ThreadsIcon,
+  [CredentialPlatform.TIKTOK]: TiktokIcon,
+  [CredentialPlatform.TWITTER]: XTwitterIcon,
+  [CredentialPlatform.YOUTUBE]: YoutubeIcon,
+};
+
+export const GENERIC_PLATFORM_PREVIEW_ICON: PlatformPreviewIcon = Globe;
+
+export function getPlatformPreviewIcon(
+  platform: CredentialPlatform | string,
+): PlatformPreviewIcon {
+  const resolvedPlatform = resolvePreviewPlatform(platform);
+
+  return resolvedPlatform
+    ? (PLATFORM_PREVIEW_ICONS[resolvedPlatform] ??
+        GENERIC_PLATFORM_PREVIEW_ICON)
+    : GENERIC_PLATFORM_PREVIEW_ICON;
+}
 
 export function countPreviewCharacters(text: string): number {
   return Array.from(text).length;
@@ -168,16 +211,19 @@ export function getCaptionPreviewState(
 export function hasDedicatedPlatformPreviewRenderer(
   platform: CredentialPlatform | string,
 ): boolean {
-  const normalizedPlatform = normalizePlatform(platform) as CredentialPlatform;
-  return Boolean(PLATFORM_PREVIEW_RENDERERS[normalizedPlatform]);
+  const resolvedPlatform = resolvePreviewPlatform(platform);
+  return Boolean(
+    resolvedPlatform && PLATFORM_PREVIEW_RENDERERS[resolvedPlatform],
+  );
 }
 
 export function getPlatformPreviewRenderer(
   platform: CredentialPlatform | string,
 ): PlatformPreviewRenderer {
-  const normalizedPlatform = normalizePlatform(platform) as CredentialPlatform;
+  const resolvedPlatform = resolvePreviewPlatform(platform);
+
   return (
-    PLATFORM_PREVIEW_RENDERERS[normalizedPlatform] ??
+    (resolvedPlatform && PLATFORM_PREVIEW_RENDERERS[resolvedPlatform]) ||
     GenericPlatformPreviewRenderer
   );
 }
@@ -185,7 +231,10 @@ export function getPlatformPreviewRenderer(
 export function resolvePlatformPreviewTarget(
   target: PlatformPreviewTarget,
 ): ResolvedPlatformPreviewTarget {
-  const capability = target.capability ?? getChannelCapability(target.platform);
+  const resolvedPlatform = resolvePreviewPlatform(target.platform);
+  const capability =
+    target.capability ??
+    getChannelCapability(resolvedPlatform ?? target.platform);
   const media = target.media ?? [];
   const validation =
     target.validation ?? validatePreviewTarget(target, capability, media);
@@ -203,7 +252,9 @@ export function resolvePlatformPreviewTarget(
     ),
     media,
     platformLabel:
-      capability?.label ?? getFallbackPlatformLabel(target.platform),
+      capability?.label ??
+      formatPlatformLabel(target.platform) ??
+      String(target.platform),
     threadSegments,
     validation,
   };
@@ -214,13 +265,20 @@ function validatePreviewTarget(
   capability: ChannelCapability | undefined,
   media: PlatformPreviewMedia[],
 ): ChannelTargetValidationResult {
-  const mediaPayload = media.map((item) => ({ id: item.id, kind: item.kind }));
+  // `isAnimated` travels with the payload so the shared catalog — not the
+  // preview — decides which channels flatten animation.
+  const mediaPayload = media.map((item) => ({
+    id: item.id,
+    isAnimated: item.isAnimated,
+    kind: item.kind,
+  }));
+  const platform = resolvePreviewPlatform(target.platform) ?? target.platform;
 
   if (!target.threadSegments || target.threadSegments.length <= 1) {
     return validateChannelTargetSettings({
       caption: target.caption,
       media: mediaPayload,
-      platform: target.platform,
+      platform,
       publishMode: target.publishMode,
       settings: target.settings,
     });
@@ -230,7 +288,7 @@ function validatePreviewTarget(
     validateChannelTargetSettings({
       caption: segment.caption,
       media: mediaPayload,
-      platform: target.platform,
+      platform,
       publishMode: target.publishMode,
       settings: target.settings,
     }),
@@ -253,7 +311,7 @@ function validatePreviewTarget(
   return {
     capability,
     errors,
-    platform: target.platform,
+    platform,
     valid: errors.length === 0,
     validationState:
       errors.length > 0
@@ -265,44 +323,26 @@ function validatePreviewTarget(
   };
 }
 
-function normalizePlatform(platform: CredentialPlatform | string): string {
-  return String(platform).toLowerCase();
-}
-
-function getFallbackPlatformLabel(
+/**
+ * Aliases such as `x` and `meta` reach the preview from stored drafts and MCP
+ * payloads. `parsePlatform` is the shared canonicaliser, so routing, capability
+ * lookup, and validation all agree on which channel is being previewed.
+ * `CredentialPlatform` is a re-export of `Platform`, so no widening is needed.
+ */
+function resolvePreviewPlatform(
   platform: CredentialPlatform | string,
-): string {
-  const normalizedPlatform = normalizePlatform(platform);
-  if (normalizedPlatform === CredentialPlatform.TWITTER) {
-    return 'X';
-  }
-
-  return normalizedPlatform
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
+): CredentialPlatform | undefined {
+  return parsePlatform(platform);
 }
 
-function getPlatformIcon(platform: CredentialPlatform | string) {
-  const normalizedPlatform = normalizePlatform(platform);
-
-  if (normalizedPlatform === CredentialPlatform.INSTAGRAM) {
-    return InstagramIcon;
-  }
-
-  if (normalizedPlatform === CredentialPlatform.LINKEDIN) {
-    return LinkedinIcon;
-  }
-
-  if (normalizedPlatform === CredentialPlatform.TIKTOK) {
-    return TiktokIcon;
-  }
-
-  if (normalizedPlatform === CredentialPlatform.YOUTUBE) {
-    return YoutubeIcon;
-  }
-
-  return XTwitterIcon;
+/**
+ * Stable key for tab selection and identity comparison. Aliases collapse onto
+ * their canonical platform so `x` and `twitter` are never two tabs.
+ */
+function getPlatformKey(platform: CredentialPlatform | string): string {
+  return (
+    resolvePreviewPlatform(platform) ?? String(platform).trim().toLowerCase()
+  );
 }
 
 function formatHandle(handle?: string): string {
@@ -579,20 +619,25 @@ function MediaTile({
   item,
   index,
   className,
+  animatedConsequence,
 }: {
   item: PlatformPreviewMedia;
   index: number;
   className?: string;
+  animatedConsequence?: string;
 }) {
   const src = item.thumbnailUrl ?? item.url;
   const label = item.kind.replace('_', ' ');
+  const consequence = item.isAnimated ? animatedConsequence : undefined;
 
   return (
     <div
       className={cn(
         'relative flex min-h-24 items-center justify-center overflow-hidden rounded-lg bg-muted text-xs text-foreground/50',
+        consequence ? 'ring-1 ring-warning/50' : undefined,
         className,
       )}
+      data-testid={`platform-preview-media-${item.id}`}
     >
       {src ? (
         <Image
@@ -622,6 +667,11 @@ function MediaTile({
           </span>
         ) : null}
       </div>
+      {consequence ? (
+        <span className="absolute inset-x-0 bottom-0 bg-warning/90 px-2 py-1 text-left text-[10px] font-medium leading-tight text-warning-foreground">
+          {consequence}
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -641,6 +691,10 @@ function MediaGrid({
     maxItems && target.media.length > maxItems
       ? target.media.length - maxItems
       : 0;
+  const animated = target.capability?.media.animated;
+  const animatedConsequence = animated?.supported
+    ? undefined
+    : animated?.consequence;
 
   if (target.media.length === 0) {
     if ((target.capability?.media.minItems ?? 0) > 0) {
@@ -665,6 +719,7 @@ function MediaGrid({
         <MediaTile
           item={visibleMedia[0]}
           index={0}
+          animatedConsequence={animatedConsequence}
           className="aspect-[9/16] min-h-80"
         />
       </div>
@@ -677,6 +732,7 @@ function MediaGrid({
         <MediaTile
           item={visibleMedia[0]}
           index={0}
+          animatedConsequence={animatedConsequence}
           className="aspect-video min-h-40"
         />
       </div>
@@ -697,6 +753,7 @@ function MediaGrid({
           key={item.id}
           item={item}
           index={index}
+          animatedConsequence={animatedConsequence}
           className={variant === 'square' ? 'aspect-square' : 'aspect-video'}
         />
       ))}
@@ -723,7 +780,7 @@ function PreviewShell({
   className?: string;
 }) {
   const status = getPreviewStatus(target);
-  const Icon = getPlatformIcon(target.platform);
+  const Icon = getPlatformPreviewIcon(target.platform);
 
   return (
     <article
@@ -1052,7 +1109,7 @@ export default function PlatformPreview({
   }, [accountHandle, accountName, post, target, targets]);
 
   const [selectedPlatform, setSelectedPlatform] = useState<string>(() =>
-    normalizePlatform(activePlatform ?? resolvedTargets[0]?.platform ?? ''),
+    getPlatformKey(activePlatform ?? resolvedTargets[0]?.platform ?? ''),
   );
 
   useEffect(() => {
@@ -1061,15 +1118,15 @@ export default function PlatformPreview({
     }
 
     const activeKey = activePlatform
-      ? normalizePlatform(activePlatform)
+      ? getPlatformKey(activePlatform)
       : selectedPlatform;
     const hasActiveTarget = resolvedTargets.some(
-      (item) => normalizePlatform(item.platform) === activeKey,
+      (item) => getPlatformKey(item.platform) === activeKey,
     );
 
     if (!hasActiveTarget || activePlatform) {
       setSelectedPlatform(
-        normalizePlatform(activePlatform ?? resolvedTargets[0].platform),
+        getPlatformKey(activePlatform ?? resolvedTargets[0].platform),
       );
     }
   }, [activePlatform, resolvedTargets, selectedPlatform]);
@@ -1086,7 +1143,7 @@ export default function PlatformPreview({
 
   const activeTarget =
     resolvedTargets.find(
-      (item) => normalizePlatform(item.platform) === selectedPlatform,
+      (item) => getPlatformKey(item.platform) === selectedPlatform,
     ) ?? resolvedTargets[0];
   const Renderer = getPlatformPreviewRenderer(activeTarget.platform);
 
@@ -1098,10 +1155,10 @@ export default function PlatformPreview({
       {resolvedTargets.length > 1 ? (
         <div className="flex flex-wrap gap-1">
           {resolvedTargets.map((item) => {
-            const itemKey = normalizePlatform(item.platform);
-            const Icon = getPlatformIcon(item.platform);
+            const itemKey = getPlatformKey(item.platform);
+            const Icon = getPlatformPreviewIcon(item.platform);
             const isSelected =
-              itemKey === normalizePlatform(activeTarget.platform);
+              itemKey === getPlatformKey(activeTarget.platform);
 
             return (
               <Button

@@ -10,11 +10,6 @@ const UI_FLOWS_SRC = path.resolve(UI_SRC, './flows.ts');
 const UI_GENERATORS_SRC = path.resolve(UI_SRC, './generators');
 const UI_MODALS_SRC = path.resolve(UI_SRC, './modals');
 const UI_SEMANTIC_SRC = path.resolve(UI_SRC, './semantic');
-const SERWIST_NEXT_WORKER_MOCK = path.resolve(
-  __dirname,
-  './tests/__mocks__/serwist-next-worker.ts',
-);
-const SERWIST_MOCK = path.resolve(__dirname, './tests/__mocks__/serwist.ts');
 const XYFLOW_REACT_MOCK = path.resolve(
   __dirname,
   './tests/__mocks__/xyflow-react.tsx',
@@ -344,14 +339,6 @@ export default defineConfig({
       {
         find: '@shipshitdev/ui/flows.css',
         replacement: EMPTY_STYLE_MOCK,
-      },
-      {
-        find: '@serwist/next/worker',
-        replacement: SERWIST_NEXT_WORKER_MOCK,
-      },
-      {
-        find: 'serwist',
-        replacement: SERWIST_MOCK,
       },
       {
         find: '@xyflow/react',

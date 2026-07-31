@@ -1,15 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
-
-vi.mock('@serwist/next/worker', () => ({
-  defaultCache: [],
-}));
-
-vi.mock('serwist', () => ({
-  Serwist: vi.fn(),
-}));
-
 import {
-  createServiceWorker,
   generatePWAManifest,
   generatePWAMetadata,
   getPWAConfig,
@@ -19,11 +8,10 @@ import {
   generatePWAMetadata as generatePWAMetadataDirect,
   getPWAConfig as getPWAConfigDirect,
 } from '@ui/pwa/pwa.helper';
-import { createServiceWorker as createServiceWorkerDirect } from '@ui/pwa/sw.template';
+import { describe, expect, it } from 'vitest';
 
 describe('pwa index', () => {
   it('aliased exports PWA helpers', () => {
-    expect(createServiceWorker).toBe(createServiceWorkerDirect);
     expect(generatePWAManifest).toBe(generatePWAManifestDirect);
     expect(generatePWAMetadata).toBe(generatePWAMetadataDirect);
     expect(getPWAConfig).toBe(getPWAConfigDirect);

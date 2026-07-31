@@ -1,6 +1,6 @@
 'use client';
 
-import { AssetScope } from '@genfeedai/enums';
+import { isPublicAssetScope } from '@genfeedai/helpers';
 
 import BrandDetailAccountSettingsCard from '@pages/brands/components/sidebar/BrandDetailAccountSettingsCard';
 import BrandDetailExternalLinksCard from '@pages/brands/components/sidebar/BrandDetailExternalLinksCard';
@@ -23,9 +23,7 @@ export default function BrandDetailSidebar({
   onTogglePublicProfile,
   onOpenLinkModal,
 }: BrandDetailSidebarProps) {
-  const isPublic =
-    typeof brand.scope === 'string' &&
-    brand.scope.toLowerCase() === AssetScope.PUBLIC;
+  const isPublic = isPublicAssetScope(brand.scope);
 
   return (
     <div className="flex flex-col gap-3 lg:sticky lg:top-4 lg:self-start">

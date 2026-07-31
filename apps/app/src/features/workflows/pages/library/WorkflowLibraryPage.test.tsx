@@ -13,15 +13,19 @@ const mocks = vi.hoisted(() => ({
 
 // Spread the real module: a bare object drops every other enum, so any new
 // import in the render tree (CredentialPlatform, etc.) fails module resolution.
-vi.mock('@genfeedai/enums', async (importOriginal) => ({
-  ...(await importOriginal<Record<string, unknown>>()),
-  ButtonVariant: {
-    DEFAULT: 'default',
-    OUTLINE: 'outline',
-    SECONDARY: 'secondary',
-    UNSTYLED: 'unstyled',
-  },
-}));
+vi.mock('@genfeedai/enums', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/enums')>();
+
+  return {
+    ...actual,
+    ButtonVariant: {
+      DEFAULT: 'default',
+      OUTLINE: 'outline',
+      SECONDARY: 'secondary',
+      UNSTYLED: 'unstyled',
+    },
+  };
+});
 
 vi.mock('@ui/card/Card', () => ({
   default: ({
