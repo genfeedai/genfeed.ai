@@ -7,6 +7,8 @@ import {
   FileText,
   List,
   Mail,
+  Megaphone,
+  Rocket,
   Send,
   Sparkles,
 } from 'lucide-react';
@@ -51,6 +53,23 @@ export const POSTS_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [APP_ROUTES.POSTS.CALENDAR],
     outline: Calendar,
     solid: Calendar,
+  },
+  {
+    group: '',
+    hasDividerAbove: true,
+    href: APP_ROUTES.POSTS.CAMPAIGNS,
+    label: 'Campaigns',
+    matchPaths: [APP_ROUTES.POSTS.CAMPAIGNS],
+    outline: Megaphone,
+    solid: Megaphone,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.POSTS.OUTREACH_CAMPAIGNS,
+    label: 'Outreach',
+    matchPaths: [APP_ROUTES.POSTS.OUTREACH_CAMPAIGNS],
+    outline: Rocket,
+    solid: Rocket,
   },
   {
     group: '',

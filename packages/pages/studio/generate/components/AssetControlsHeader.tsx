@@ -6,6 +6,7 @@ import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interfac
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FiltersBar from '@ui/content/filters-bar/FiltersBar';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
+import { SHELL_ICON_CLASS } from '@ui-constants/shell-chrome.constant';
 import { LayoutGrid, Table } from 'lucide-react';
 
 const CATEGORY_HEADER_LABELS: Record<string, string> = {
@@ -30,10 +31,10 @@ interface AssetControlsHeaderProps {
 /**
  * Studio asset toolbar: filters + view mode + refresh.
  *
+ * Icon contract: every glyph is `size-3.5`; every control is `h-8`.
  * Do not wrap ViewToggle / ButtonRefresh in another bordered pill — ViewToggle
  * already owns `gen-shell-segmented` chrome, and refresh is a single ghost icon
- * control (same as ListPageLayout / ads research). Extra outer shells produce
- * the double-border look.
+ * control. Extra outer shells produce the double-border look.
  */
 export function AssetControlsHeader({
   filters,
@@ -52,18 +53,21 @@ export function AssetControlsHeader({
   const showViewToggle = supportsMasonry;
 
   return (
-    <div className="w-full border-b border-white/[0.08] px-6 py-2">
-      <div className="flex w-full items-center justify-end gap-3">
+    <div className="w-full border-b border-white/[0.08] px-6 py-1.5">
+      <div className="flex w-full items-center justify-end">
         <h1 className="sr-only">{categoryLabel}</h1>
 
         <div
           data-testid="asset-controls-toolbar"
-          className="flex flex-wrap items-center justify-end gap-2"
+          className="flex h-8 flex-wrap items-center justify-end gap-1.5"
         >
-          <div data-testid="asset-controls-filters">
+          <div
+            data-testid="asset-controls-filters"
+            className="flex h-8 items-center"
+          >
             <FiltersBar
               filters={filters}
-              className="flex-shrink-0 !w-auto justify-end gap-1.5"
+              className="!w-auto shrink-0 justify-end"
               onFiltersChange={onFiltersChange}
               visibleFilters={{
                 favorite: false,
@@ -97,16 +101,26 @@ export function AssetControlsHeader({
           </div>
 
           {showViewToggle ? (
-            <div data-testid="asset-controls-view-toggle">
+            <div
+              data-testid="asset-controls-view-toggle"
+              className="flex h-8 items-center"
+            >
               <ViewToggle
                 options={[
                   {
-                    icon: <LayoutGrid className="size-3.5" />,
+                    icon: (
+                      <LayoutGrid
+                        className={SHELL_ICON_CLASS}
+                        aria-hidden="true"
+                      />
+                    ),
                     label: 'Masonry view',
                     type: ViewType.MASONRY,
                   },
                   {
-                    icon: <Table className="size-3.5" />,
+                    icon: (
+                      <Table className={SHELL_ICON_CLASS} aria-hidden="true" />
+                    ),
                     label: 'Table view',
                     type: ViewType.TABLE,
                   },
@@ -117,11 +131,14 @@ export function AssetControlsHeader({
             </div>
           ) : null}
 
-          <div data-testid="asset-controls-refresh">
+          <div
+            data-testid="asset-controls-refresh"
+            className="flex h-8 items-center"
+          >
             <ButtonRefresh
               onClick={onRefresh}
               isRefreshing={isRefreshing}
-              className="gen-shell-control size-8 rounded-md [&_svg]:size-3.5"
+              className="gen-shell-control rounded-md"
             />
           </div>
         </div>

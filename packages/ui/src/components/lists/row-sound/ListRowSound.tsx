@@ -3,6 +3,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IMetadata } from '@genfeedai/interfaces';
 import type { ListRowSoundProps } from '@genfeedai/props/content/list.props';
 import { Button } from '@ui/primitives/button';
+import { CONTENT_ICON_CLASS } from '@ui-constants/shell-chrome.constant';
 import { Pause, Play } from 'lucide-react';
 import type { MouseEvent } from 'react';
 
@@ -17,16 +18,16 @@ function renderLegacyPlaybackControl({
 
   return (
     <Button
-      label={
+      icon={
         ingredient.isPlaying ? (
-          <Pause className="text-lg" />
+          <Pause className={CONTENT_ICON_CLASS} aria-hidden="true" />
         ) : (
-          <Play className="text-lg" />
+          <Play className={CONTENT_ICON_CLASS} aria-hidden="true" />
         )
       }
       variant={isActive ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT}
       size={ButtonSize.ICON}
-      className="size-11 transition-colors duration-200 lg:size-8"
+      className="size-11 transition-colors duration-200 lg:size-8 [&_svg]:size-4"
       onClick={(event: MouseEvent) => onPlay(event, ingredient)}
     />
   );

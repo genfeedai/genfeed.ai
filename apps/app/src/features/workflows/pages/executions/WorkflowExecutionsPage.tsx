@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -198,7 +199,7 @@ export default function WorkflowExecutionsPage() {
               Run a workflow to see execution history here
             </p>
             <Link
-              href={href('/workflows')}
+              href={href(APP_ROUTES.ORCHESTRATION.WORKFLOWS)}
               className=" bg-primary px-6 py-3 text-primary-foreground hover:bg-primary/90"
             >
               Go to Automations
@@ -249,7 +250,7 @@ export default function WorkflowExecutionsPage() {
                         <TableCell className="px-4 py-3">
                           <Link
                             href={href(
-                              `/workflows/${getWorkflowId(execution.workflow)}`,
+                              `${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/${getWorkflowId(execution.workflow)}`,
                             )}
                             className="font-medium hover:text-primary"
                           >
@@ -305,7 +306,7 @@ export default function WorkflowExecutionsPage() {
                         <TableCell className="px-4 py-3">
                           <Link
                             href={href(
-                              `/workflows/${getWorkflowId(execution.workflow)}?execution=${execution._id}`,
+                              `${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/${getWorkflowId(execution.workflow)}?execution=${execution._id}`,
                             )}
                             className="text-sm text-primary hover:underline"
                           >

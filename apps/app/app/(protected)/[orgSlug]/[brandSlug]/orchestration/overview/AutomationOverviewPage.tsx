@@ -51,7 +51,7 @@ export default function AutomationOverviewPage() {
       cta: 'Open Workflows',
       description:
         'Run fixed automation graphs for repeatable content pipelines',
-      href: href('/workflows'),
+      href: href(APP_ROUTES.ORCHESTRATION.WORKFLOWS),
       icon: Megaphone,
       id: 'workflows',
       label: 'Workflows',
@@ -111,7 +111,7 @@ export default function AutomationOverviewPage() {
       cta: 'Open Workflows',
       description:
         'Use workflows for fixed, reusable automation graphs and scheduled pipelines.',
-      href: href('/workflows'),
+      href: href(APP_ROUTES.ORCHESTRATION.WORKFLOWS),
       icon: Megaphone,
       kicker: 'Automation',
       label: 'Workflow Engine',

@@ -103,9 +103,7 @@ describe('OrgLandingContent', () => {
     render(<OrgLandingContent />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith(
-        '/acme/moonrise/workspace/overview',
-      );
+      expect(mocks.replace).toHaveBeenCalledWith('/acme/moonrise/workspace');
     });
   });
 
@@ -199,7 +197,7 @@ describe('OrgLandingContent', () => {
     expect(screen.getByText('Projects')).toBeVisible();
     expect(screen.getByRole('link', { name: /moonrise/i })).toHaveAttribute(
       'href',
-      '/acme/moonrise/workspace/overview',
+      '/acme/moonrise/workspace',
     );
     expect(screen.getByRole('link', { name: /new brand/i })).toHaveAttribute(
       'href',

@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -151,7 +152,11 @@ function WorkflowTemplatesPageContent() {
         });
 
         if (!isCancelled) {
-          replace(hrefRef.current(`/workflows/${workflow._id}`));
+          replace(
+            hrefRef.current(
+              `${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/${workflow._id}`,
+            ),
+          );
         }
       } catch (err) {
         logger.error('Failed to bootstrap workflow template', { error: err });
@@ -299,7 +304,7 @@ function WorkflowTemplatesPageContent() {
                     </span>
                     <Link
                       href={href(
-                        `/workflows/templates?template=${template.id}`,
+                        `${APP_ROUTES.ORCHESTRATION.WORKFLOWS_TEMPLATES}?template=${template.id}`,
                       )}
                       className=" bg-primary px-4 py-2 text-sm text-primary-foreground opacity-0 transition-opacity hover:bg-primary/90 group-hover:opacity-100"
                     >

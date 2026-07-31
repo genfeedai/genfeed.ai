@@ -32,6 +32,7 @@ export default function Container({
   const onTabChange = controlledOnTabChange ?? setInternalActiveTab;
 
   const hasHeaderRight = Boolean(right);
+  const hasHeaderTabs = Boolean(headerTabs);
   // Topbar breadcrumb owns page identity when present — ContainerTitle becomes
   // sr-only. Do not keep an empty header row (mb-4 pb-3) that looks like broken
   // top padding under the shell topbar.
@@ -43,6 +44,25 @@ export default function Container({
   // the topbar, sidebar, and inspector — pages must not invent their own.
   const insetClassName = fullWidth ? 'px-5 sm:px-6' : '';
   const bodyInsetClassName = fullWidth ? insetClassName : '';
+  const hasHeaderChrome = hasVisibleTitle || hasHeaderTabs || hasHeaderRight;
+
+  // Trailing toolbar (tabs + primary actions) alignment:
+  // - tabs + actions → tabs left, actions right (justify-between)
+  // - actions only → right edge (justify-end) — main CTAs never sit left
+  // - tabs only → start
+  // With a visible title, the outer row already justify-betweens title | toolbar;
+  // when both tabs and actions exist, the toolbar itself also justify-betweens.
+  const toolbarClassName = cn(
+    'flex min-w-0 flex-wrap items-center gap-2.5',
+    !hasVisibleTitle && (hasHeaderTabs || hasHeaderRight) && 'w-full',
+    hasVisibleTitle &&
+      hasHeaderTabs &&
+      hasHeaderRight &&
+      'flex-1 justify-between',
+    hasVisibleTitle && !hasHeaderTabs && hasHeaderRight && 'ml-auto shrink-0',
+    !hasVisibleTitle && hasHeaderTabs && hasHeaderRight && 'justify-between',
+    !hasVisibleTitle && !hasHeaderTabs && hasHeaderRight && 'justify-end',
+  );
 
   return (
     <div
@@ -56,14 +76,14 @@ export default function Container({
         <ContainerTitle title={label} titleVisibility="sr-only" />
       ) : null}
 
-      {(hasVisibleTitle || headerTabs || hasHeaderRight) && (
+      {hasHeaderChrome && (
         <div
           className={cn(
             'mb-4 flex items-center gap-4 pb-3',
-            // When the topbar breadcrumb owns the title, stretch the toolbar
-            // full width so type filter sits left and actions sit right —
-            // not a lonely right-aligned cluster over empty black.
-            hasVisibleTitle ? 'justify-between' : 'w-full',
+            hasVisibleTitle &&
+              (hasHeaderTabs || hasHeaderRight) &&
+              'justify-between',
+            !hasVisibleTitle && (hasHeaderTabs || hasHeaderRight) && 'w-full',
             insetClassName,
           )}
         >
@@ -75,17 +95,16 @@ export default function Container({
             />
           )}
 
-          {(headerTabs || hasHeaderRight) && (
-            <div
-              className={cn(
-                'flex flex-wrap items-center gap-2.5',
-                !hasVisibleTitle && 'w-full min-w-0',
-              )}
-            >
-              {headerTabs && (
+          {(hasHeaderTabs || hasHeaderRight) && (
+            <div className={toolbarClassName}>
+              {headerTabs ? (
                 <Tabs {...headerTabs} className={cn(headerTabs.className)} />
-              )}
-              {hasHeaderRight && right}
+              ) : null}
+              {hasHeaderRight ? (
+                <div className="flex shrink-0 flex-wrap items-center gap-2.5">
+                  {right}
+                </div>
+              ) : null}
             </div>
           )}
         </div>

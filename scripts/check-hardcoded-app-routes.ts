@@ -63,7 +63,7 @@ const EXCLUDE_GLOBS = [
   '**/topbars/MarketplaceTopbar.tsx',
   // Public marketing surface — its nav (/studio, /library, /research, ...) are
   // public website landing pages, NOT the studio APP_ROUTES tree (whose roots
-  // differ, e.g. LIBRARY.ROOT = /library/overview). Out of scope here.
+  // differ, e.g. LIBRARY.ROOT = /library). Out of scope here.
   '**/topbars/WebsiteTopbar.tsx',
 ];
 

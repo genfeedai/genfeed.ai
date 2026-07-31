@@ -22,7 +22,7 @@ type PageContextContract = {
 
 const CONTRACTS: PageContextContract[] = [
   {
-    route: `${BRAND_BASE}/workspace/overview`,
+    route: `${BRAND_BASE}/workspace`,
     currentApp: 'workspace',
     sectionLabel: 'Workspace',
     pageLabels: ['Dashboard'],

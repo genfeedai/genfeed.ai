@@ -43,7 +43,7 @@ function getBrandOrganizationSlug(brand: IBrand | null | undefined): string {
  * ```tsx
  * const { href, orgHref } = useOrgUrl();
  *
- * <Link href={href('/workspace/overview')}>Workspace</Link>
+ * <Link href={href('/workspace')}>Workspace</Link>
  * <Link href={orgHref('/settings')}>Org Settings</Link>
  * ```
  */

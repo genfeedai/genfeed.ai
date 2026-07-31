@@ -31,6 +31,6 @@ describe('STUDIO_MENU_ITEMS', () => {
   });
 
   it('keeps the studio logo href pointed at the library overview', () => {
-    expect(STUDIO_LOGO_HREF).toBe('/library/overview');
+    expect(STUDIO_LOGO_HREF).toBe('/library');
   });
 });

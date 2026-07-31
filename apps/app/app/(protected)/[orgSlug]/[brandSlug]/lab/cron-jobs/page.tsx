@@ -21,5 +21,7 @@ export default async function LabCronJobsPage({
 }: LabCronJobsPageProps) {
   const { brandSlug, orgSlug } = await params;
 
-  redirect(createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.WORKFLOWS.ROOT));
+  redirect(
+    createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.ORCHESTRATION.WORKFLOWS),
+  );
 }

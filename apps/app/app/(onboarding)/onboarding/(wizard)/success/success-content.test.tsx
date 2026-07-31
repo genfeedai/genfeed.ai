@@ -17,7 +17,7 @@ describe('app/(onboarding)/onboarding/(wizard)/success/success-content.tsx', () 
     expect(source).toContain('forceRefresh: true');
     expect(source).toContain('user?.reload()');
     expect(source).toContain(
-      "createBrandAppRoute(orgSlug, brandSlug, '/workspace/overview')",
+      "createBrandAppRoute(orgSlug, brandSlug, '/workspace')",
     );
     expect(source).toContain(
       'window.location.assign(APP_ROUTES.WORKSPACE.OVERVIEW)',

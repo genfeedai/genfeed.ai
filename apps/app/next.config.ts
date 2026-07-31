@@ -5,6 +5,7 @@ import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
   createBrandAppRoute,
+  createOrganizationAppRoute,
 } from '@genfeedai/constants/routes.constant';
 import { createAppNextConfig } from '@genfeedai/next-config';
 import bundleAnalyzer from '@next/bundle-analyzer';
@@ -102,11 +103,10 @@ const selfHostedBrandRoutePrefixes = [
   APP_ROUTE_PREFIXES.POSTS,
   APP_ROUTE_PREFIXES.COMPOSE,
   APP_ROUTE_PREFIXES.ANALYTICS,
-  APP_ROUTE_PREFIXES.WORKFLOWS,
+  APP_ROUTE_PREFIXES.ORCHESTRATION,
   APP_ROUTE_PREFIXES.LIBRARY,
   APP_ROUTE_PREFIXES.EDITOR,
   APP_ROUTE_PREFIXES.RESEARCH,
-  APP_ROUTE_PREFIXES.ORCHESTRATION,
 ] as const;
 
 const selfHostedRewrites = IS_LOCAL_APP_SHELL
@@ -125,6 +125,66 @@ const selfHostedOrgRewrites = IS_LOCAL_APP_SHELL
       source: `/${segment}/:path*`,
     }))
   : [];
+
+/**
+ * Parent app home is `/[app]`, not `/[app]/overview`. Permanent redirects keep
+ * bookmarks and shared links working after the home path moved to root.
+ */
+function appOverviewToHomeRedirects(appRoot: `/${string}`) {
+  const overviewPath = `${appRoot}/overview` as const;
+
+  return [
+    {
+      destination: appRoot,
+      permanent: true,
+      source: overviewPath,
+    },
+    {
+      destination: createBrandAppRoute(':orgSlug', ':brandSlug', appRoot),
+      permanent: true,
+      source: createBrandAppRoute(':orgSlug', ':brandSlug', overviewPath),
+    },
+    {
+      destination: createOrganizationAppRoute(':orgSlug', appRoot),
+      permanent: true,
+      source: createOrganizationAppRoute(':orgSlug', overviewPath),
+    },
+  ];
+}
+
+/** Permanent hard-cut of a legacy path (and nested segments) onto a new prefix. */
+function legacyPathRedirects(fromPrefix: `/${string}`, toPrefix: `/${string}`) {
+  return [
+    {
+      destination: toPrefix,
+      permanent: true,
+      source: fromPrefix,
+    },
+    {
+      destination: `${toPrefix}/:path*`,
+      permanent: true,
+      source: `${fromPrefix}/:path*`,
+    },
+    {
+      destination: createBrandAppRoute(':orgSlug', ':brandSlug', toPrefix),
+      permanent: true,
+      source: createBrandAppRoute(':orgSlug', ':brandSlug', fromPrefix),
+    },
+    {
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        `${toPrefix}/:path*`,
+      ),
+      permanent: true,
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        `${fromPrefix}/:path*`,
+      ),
+    },
+  ];
+}
 
 const config = createAppNextConfig({
   appName: 'app',
@@ -178,25 +238,7 @@ const config = createAppNextConfig({
       ),
     },
     {
-      destination: APP_ROUTES.LIBRARY.OVERVIEW,
-      permanent: false,
-      source: APP_ROUTE_PREFIXES.LIBRARY,
-    },
-    {
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.LIBRARY.OVERVIEW,
-      ),
-      permanent: false,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTE_PREFIXES.LIBRARY,
-      ),
-    },
-    {
-      destination: APP_ROUTES.LIBRARY.OVERVIEW,
+      destination: APP_ROUTES.LIBRARY.ROOT,
       permanent: false,
       source: APP_ROUTES.LIBRARY.INGREDIENTS,
     },
@@ -204,7 +246,7 @@ const config = createAppNextConfig({
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.LIBRARY.OVERVIEW,
+        APP_ROUTES.LIBRARY.ROOT,
       ),
       permanent: false,
       source: createBrandAppRoute(
@@ -219,11 +261,6 @@ const config = createAppNextConfig({
       source: APP_ROUTES.SETTINGS.PERSONAL,
     },
     {
-      destination: APP_ROUTES.ANALYTICS.OVERVIEW,
-      permanent: false,
-      source: APP_ROUTES.ANALYTICS.ROOT,
-    },
-    {
       destination: APP_ROUTES.COMPOSE.ARTICLE,
       permanent: false,
       source: APP_ROUTES.COMPOSE.ROOT,
@@ -233,6 +270,20 @@ const config = createAppNextConfig({
       permanent: false,
       source: APP_ROUTES.STUDIO.ROOT,
     },
+    // App homes live at `/[app]`; `/[app]/overview` is a permanent alias.
+    ...appOverviewToHomeRedirects(APP_ROUTES.ORCHESTRATION.ROOT),
+    ...appOverviewToHomeRedirects(APP_ROUTES.WORKSPACE.ROOT),
+    ...appOverviewToHomeRedirects(APP_ROUTES.LIBRARY.ROOT),
+    ...appOverviewToHomeRedirects(APP_ROUTES.ANALYTICS.ROOT),
+    // Campaigns / outreach moved from Automate → Publish (hard cut).
+    ...legacyPathRedirects(
+      '/orchestration/campaigns',
+      APP_ROUTES.POSTS.CAMPAIGNS,
+    ),
+    ...legacyPathRedirects(
+      '/orchestration/outreach-campaigns',
+      APP_ROUTES.POSTS.OUTREACH_CAMPAIGNS,
+    ),
   ],
   sentryProject: 'app-genfeed-ai',
 });

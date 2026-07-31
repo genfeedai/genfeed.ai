@@ -411,7 +411,7 @@ export function useClipWorkflowRunCard({
     runOneStep,
     addAnotherClip,
     workflowExecutionUrl: hrefFn(
-      `/workflows/executions/${workflowExecutionId ?? ''}`,
+      `${APP_ROUTES.ORCHESTRATION.WORKFLOWS_EXECUTIONS}/${workflowExecutionId ?? ''}`,
     ),
     humanReviewUrl: hrefFn('/posts/review'),
   };

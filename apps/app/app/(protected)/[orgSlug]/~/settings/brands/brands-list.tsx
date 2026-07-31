@@ -15,6 +15,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
 import { useQuery } from '@tanstack/react-query';
+import { EmptyState } from '@ui/card/EmptyState';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
@@ -220,6 +221,18 @@ function BrandsListContent() {
         actions={actions}
         columns={columns}
         emptyLabel="No brands yet"
+        emptyState={
+          <EmptyState
+            title="No brands yet"
+            description="Create a brand to manage settings, platforms, and publishing identity."
+            icon={Building2}
+            action={{
+              label: 'Add Brand',
+              onClick: () => openBrandOverlay(null, () => refresh()),
+              variant: ButtonVariant.DEFAULT,
+            }}
+          />
+        }
         getRowKey={(brand) => brand.id}
         isLoading={isLoading}
         items={brands || []}

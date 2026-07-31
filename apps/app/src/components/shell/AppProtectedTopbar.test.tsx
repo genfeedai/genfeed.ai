@@ -7,7 +7,7 @@ const appSwitcherSpy = vi.hoisted(() => vi.fn());
 const brandSwitcherSpy = vi.hoisted(() => vi.fn());
 const mockPush = vi.hoisted(() => vi.fn());
 const mockPathname = vi.hoisted(() => ({
-  value: '/acme/brand/workspace/overview',
+  value: '/acme/brand/workspace',
 }));
 const mockAccessState = vi.hoisted(() => ({
   isSuperAdmin: false,
@@ -33,7 +33,7 @@ vi.mock('@genfeedai/constants', () => ({
       PUBLISHING: '/settings/publishing',
     },
     WORKSPACE: {
-      OVERVIEW: '/workspace/overview',
+      OVERVIEW: '/workspace',
     },
   },
   createBrandAppRoute: (orgSlug: string, brandSlug: string, routePath = '/') =>
@@ -144,7 +144,7 @@ vi.mock('@ui/shell/app-switcher/AppSwitcher', () => ({
   AppSwitcher: (props: {
     brandAwareSlug?: string;
     brandSlug?: string;
-    currentApp?: string;
+    currentPath?: string;
     orgSlug: string;
     preservedSearch?: string;
     resolveNavigation?: (href: string) => {
@@ -193,7 +193,7 @@ const { default: AppProtectedTopbar } = await import('./AppProtectedTopbar');
 describe('AppProtectedTopbar', () => {
   beforeEach(() => {
     mockSearchParams = new URLSearchParams();
-    mockPathname.value = '/acme/brand/workspace/overview';
+    mockPathname.value = '/acme/brand/workspace';
     mockAccessState.isSuperAdmin = false;
     workspaceInspectorState.value = null;
     appSwitcherSpy.mockClear();
@@ -260,9 +260,11 @@ describe('AppProtectedTopbar', () => {
       expect.objectContaining({
         brandAwareSlug: 'brand',
         brandSlug: undefined,
-        currentApp: 'workspace',
         orgSlug: 'acme',
       }),
+    );
+    expect(appSwitcherSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty(
+      'currentApp',
     );
   });
 
@@ -293,9 +295,11 @@ describe('AppProtectedTopbar', () => {
     expect(appSwitcherSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         brandSlug: 'brand',
-        currentApp: 'workspace',
         orgSlug: 'acme',
       }),
+    );
+    expect(appSwitcherSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty(
+      'currentApp',
     );
   });
 
@@ -316,10 +320,12 @@ describe('AppProtectedTopbar', () => {
     expect(appSwitcherSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         brandSlug: 'brand',
-        currentApp: 'admin',
         orgSlug: 'acme',
         showAdmin: true,
       }),
+    );
+    expect(appSwitcherSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty(
+      'currentApp',
     );
     expect(screen.queryByTestId('brand-switcher')).not.toBeInTheDocument();
     expect(
@@ -377,12 +383,10 @@ describe('AppProtectedTopbar', () => {
       'taskId=task-1&taskSource=workspace',
     );
     expect(
-      switcherProps.resolveNavigation?.(
-        '/acme/brand/analytics/overview?taskId=task-1',
-      ),
+      switcherProps.resolveNavigation?.('/acme/brand/analytics?taskId=task-1'),
     ).toEqual({
       announcement: 'Opening analytics in canvas mode.',
-      href: '/acme/brand/analytics/overview?taskId=task-1',
+      href: '/acme/brand/analytics?taskId=task-1',
     });
   });
 
@@ -415,7 +419,7 @@ describe('AppProtectedTopbar', () => {
     expect(screen.getByText('Launch plan')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back to task' })).toHaveAttribute(
       'href',
-      '/workspace/overview?taskId=task-1',
+      '/workspace?taskId=task-1',
     );
   });
 

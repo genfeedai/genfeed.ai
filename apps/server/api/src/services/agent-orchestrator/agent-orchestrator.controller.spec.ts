@@ -466,7 +466,7 @@ describe('AgentOrchestratorController', () => {
                   source: 'genfeed-analytics-api',
                   summaryAuthority: 'derivative',
                 },
-                route: '/analytics/overview',
+                route: '/analytics',
                 version: 1,
               },
             },

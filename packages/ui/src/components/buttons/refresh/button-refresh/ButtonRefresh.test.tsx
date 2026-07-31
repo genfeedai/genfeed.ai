@@ -9,6 +9,15 @@ describe('ButtonRefresh', () => {
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
   });
 
+  it('uses a compact shell icon (size-3.5 inside a size-8 hit target)', () => {
+    render(<ButtonRefresh onClick={vi.fn()} />);
+
+    const button = screen.getByRole('button', { name: 'Refresh' });
+    expect(button.className).toContain('size-8');
+    expect(button.className).toContain('[&_svg]:size-3.5');
+    expect(button.querySelector('svg')).toHaveClass('size-3.5');
+  });
+
   it('calls onClick when pressed', () => {
     const onClick = vi.fn();
 

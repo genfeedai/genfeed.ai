@@ -1,5 +1,3 @@
-import type { AppContext } from '@genfeedai/interfaces';
-
 export interface AppSwitcherNavigationTarget {
   announcement?: string;
   href: string;
@@ -9,7 +7,7 @@ export interface AppSwitcherProps {
   /** Selected brand context used by brand-aware apps when the current route is org-scoped. */
   brandAwareSlug?: string;
   brandSlug?: string;
-  currentApp: AppContext;
+  /** Full pathname used to highlight the app whose product root owns the route. */
   currentPath?: string;
   /**
    * First-asset unlock gate. When true, the gated sections (workspace, library,

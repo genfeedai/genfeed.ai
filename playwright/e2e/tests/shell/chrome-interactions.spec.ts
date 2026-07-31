@@ -33,7 +33,7 @@ test.describe('Shell — chrome interactions', () => {
   test('command palette opens via Cmd+K, accepts a query and closes', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(`${BRAND_BASE}/workspace/overview`, {
+    await authenticatedPage.goto(`${BRAND_BASE}/workspace`, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -60,7 +60,7 @@ test.describe('Shell — chrome interactions', () => {
   test('command palette also responds to Control+k', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(`${BRAND_BASE}/workspace/overview`, {
+    await authenticatedPage.goto(`${BRAND_BASE}/workspace`, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -85,7 +85,7 @@ test.describe('Shell — chrome interactions', () => {
   test('user / account menu opens and exposes settings entries', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(`${BRAND_BASE}/workspace/overview`, {
+    await authenticatedPage.goto(`${BRAND_BASE}/workspace`, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -151,7 +151,7 @@ test.describe('Shell — chrome interactions', () => {
   test('theme toggle and global search controls respond when present', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(`${BRAND_BASE}/workspace/overview`, {
+    await authenticatedPage.goto(`${BRAND_BASE}/workspace`, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -181,7 +181,7 @@ test.describe('Shell — chrome interactions', () => {
   test('brand / org switcher dropdown opens and closes cleanly', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(`${BRAND_BASE}/workspace/overview`, {
+    await authenticatedPage.goto(`${BRAND_BASE}/workspace`, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);

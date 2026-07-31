@@ -94,28 +94,34 @@ export default function ModelsLayoutContent({
       label="Models"
       description="Manage available AI models."
       icon={Cpu}
-      tabs={tabs.map((tab) => ({
-        href: tab.href,
-        label: tab.label,
-      }))}
+      headerTabs={{
+        activeTab,
+        fullWidth: false,
+        items: tabs.map((tab) => ({
+          href: tab.href,
+          id: tab.id,
+          label: tab.label,
+        })),
+        variant: 'default',
+      }}
       right={
-        <div className="flex items-center gap-2">
+        <>
           <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
 
-          {isTrainingsTab && (
+          {isTrainingsTab ? (
             <Button
               label="Training"
               icon={<Plus />}
               variant={ButtonVariant.DEFAULT}
               onClick={() => openModal(ModalEnum.TRAINING_UPLOAD)}
             />
-          )}
-        </div>
+          ) : null}
+        </>
       }
     >
       {children}
 
-      {isTrainingsTab && <LazyModalTrainingNew />}
+      {isTrainingsTab ? <LazyModalTrainingNew /> : null}
     </Container>
   );
 }

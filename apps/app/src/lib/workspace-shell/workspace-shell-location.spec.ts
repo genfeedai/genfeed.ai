@@ -31,7 +31,7 @@ describe('workspace shell URL restoration', () => {
   });
 
   it.each([
-    '/acme/moonrise/analytics/overview',
+    '/acme/moonrise/analytics',
     '/acme/moonrise/compose/post',
     '/acme/moonrise/library/moodboard',
     '/acme/moonrise/messages',
@@ -115,7 +115,7 @@ describe('workspace shell URL restoration', () => {
 
   it('fails an invalid typed reference back to the base route', () => {
     const restored = restoreWorkspaceShellLocation({
-      pathname: '/acme/moonrise/workspace/overview',
+      pathname: '/acme/moonrise/workspace',
       searchParams: new URLSearchParams({
         overlay: 'shell-preview',
         overlayRef: 'approval:grant-access',

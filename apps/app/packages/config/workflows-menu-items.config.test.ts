@@ -32,23 +32,21 @@ describe('WORKFLOWS_MENU_ITEMS', () => {
   });
 
   it.each([
-    ['Autopilot', '/orchestration/autopilot', '/workflows/autopilot'],
-    [
-      'Configuration',
-      '/orchestration/configuration',
-      '/workflows/configuration',
-    ],
+    ['Autopilot', '/orchestration/autopilot'],
+    ['Configuration', '/orchestration/configuration'],
+    ['Workflows', '/orchestration/workflows'],
   ])(
-    'uses the canonical orchestration route for %s and only matches its legacy workflow alias',
-    (label, canonicalHref, legacyHref) => {
+    'uses the canonical orchestration route for %s',
+    (label, canonicalHref) => {
       const item = WORKFLOWS_MENU_ITEMS.find(
         (menuItem) => menuItem.label === label,
       );
 
       expect(item).toMatchObject({ href: canonicalHref });
-      expect(item?.matchPaths).toEqual(
-        expect.arrayContaining([canonicalHref, legacyHref]),
-      );
+      expect(item?.matchPaths).toEqual(expect.arrayContaining([canonicalHref]));
+      expect(
+        item?.matchPaths?.some((path) => path.startsWith('/workflows')),
+      ).toBe(false);
     },
   );
 });

@@ -12,6 +12,10 @@ import {
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
+import {
+  SHELL_CONTROL_HEIGHT_CLASS,
+  SHELL_ICON_CLASS,
+} from '@ui-constants/shell-chrome.constant';
 import { ChevronDown } from 'lucide-react';
 
 export default function ButtonDropdown({
@@ -43,9 +47,10 @@ export default function ButtonDropdown({
           size: ButtonSize.SM,
           variant,
         }),
-        'font-medium',
+        SHELL_CONTROL_HEIGHT_CLASS,
+        'gap-1.5 px-2.5 font-medium',
         value ? 'text-foreground' : 'text-foreground/70',
-        isIconOnly && 'w-9 px-0 justify-center',
+        isIconOnly && 'size-8 w-8 justify-center px-0',
         className,
       )}
       disabled={isDisabled}
@@ -55,8 +60,15 @@ export default function ButtonDropdown({
         icon
       ) : (
         <>
-          <span className="text-xs font-medium">{displayLabel}</span>
-          <ChevronDown className="size-3 text-foreground/50 transition-transform data-[state=open]:rotate-180" />
+          <span className="text-xs font-medium leading-none">
+            {displayLabel}
+          </span>
+          <ChevronDown
+            className={cn(
+              SHELL_ICON_CLASS,
+              'text-foreground/50 transition-transform data-[state=open]:rotate-180',
+            )}
+          />
         </>
       )}
     </PrimitiveButton>

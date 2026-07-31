@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
@@ -82,7 +83,7 @@ export function useWorkflowLibraryPage() {
       try {
         const service = await getService();
         const duplicated = await service.duplicate(id);
-        push(href(`/workflows/${duplicated._id}`));
+        push(href(`${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/${duplicated._id}`));
       } catch (err) {
         logger.error('Failed to duplicate workflow', {
           error: err,

@@ -77,13 +77,13 @@ function normalizeAnalyticsRoute(pathname: string): string {
   const parts = pathname.split('/').filter(Boolean);
   const analyticsIndex = parts.indexOf('analytics');
   if (analyticsIndex === -1) {
-    return '/analytics/overview';
+    return '/analytics';
   }
   return `/${parts.slice(analyticsIndex).join('/')}`;
 }
 
 function resolveDescriptor(route: string): AnalyticsSurfaceDescriptor {
-  if (route === '/analytics/overview') {
+  if (route === '/analytics') {
     return { ...DEFAULT_DESCRIPTOR, exportKind: 'published-posts' };
   }
   if (route === '/analytics/posts') {

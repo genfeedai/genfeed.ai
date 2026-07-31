@@ -32,7 +32,7 @@ test.describe('Shell — navigation interactions', () => {
   test('sidebar shell renders with header and navigation sections', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(`${BRAND_BASE}/workspace/overview`, {
+    await authenticatedPage.goto(`${BRAND_BASE}/workspace`, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -50,7 +50,7 @@ test.describe('Shell — navigation interactions', () => {
   test('sidebar nav links navigate across primary sections', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(`${BRAND_BASE}/workspace/overview`, {
+    await authenticatedPage.goto(`${BRAND_BASE}/workspace`, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -78,7 +78,7 @@ test.describe('Shell — navigation interactions', () => {
   test('sidebar collapse control toggles the shell body', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(`${BRAND_BASE}/workspace/overview`, {
+    await authenticatedPage.goto(`${BRAND_BASE}/workspace`, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -101,7 +101,7 @@ test.describe('Shell — navigation interactions', () => {
   test('app switcher opens and exposes content and tools entries', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(`${BRAND_BASE}/workspace/overview`, {
+    await authenticatedPage.goto(`${BRAND_BASE}/workspace`, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -127,7 +127,7 @@ test.describe('Shell — navigation interactions', () => {
   test('brand switcher opens and shows per-brand settings actions', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(`${BRAND_BASE}/workspace/overview`, {
+    await authenticatedPage.goto(`${BRAND_BASE}/workspace`, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -165,7 +165,7 @@ test.describe('Shell — navigation interactions', () => {
   test('breadcrumbs render and remain healthy when entering a drill-down group', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(`${BRAND_BASE}/workspace/overview`, {
+    await authenticatedPage.goto(`${BRAND_BASE}/workspace`, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -197,8 +197,8 @@ test.describe('Shell — navigation interactions', () => {
     authenticatedPage,
   }) => {
     for (const route of [
-      `${BRAND_BASE}/workspace/overview`,
-      `${BRAND_BASE}/library/overview`,
+      `${BRAND_BASE}/workspace`,
+      `${BRAND_BASE}/library`,
       `${BRAND_BASE}/research/discovery`,
     ]) {
       await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });

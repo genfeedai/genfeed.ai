@@ -7,7 +7,7 @@ import {
 describe('LIBRARY_MENU_ITEMS', () => {
   it('lists library destinations rather than asset-type filters', () => {
     expect(LIBRARY_MENU_ITEMS.map((item) => item.href)).toEqual([
-      '/library/overview',
+      '/library',
       '/library/videos',
       '/library/moodboard',
       '/workspace/activity',
@@ -31,6 +31,6 @@ describe('LIBRARY_MENU_ITEMS', () => {
   });
 
   it('points the library logo at the canonical overview', () => {
-    expect(LIBRARY_LOGO_HREF).toBe('/library/overview');
+    expect(LIBRARY_LOGO_HREF).toBe('/library');
   });
 });

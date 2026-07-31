@@ -158,9 +158,7 @@ export default function ContentTeamCampaignsSection({
                   variant={ButtonVariant.SECONDARY}
                   size={ButtonSize.SM}
                 >
-                  <Link href={APP_ROUTES.ORCHESTRATION.CAMPAIGNS}>
-                    Open Campaigns
-                  </Link>
+                  <Link href={APP_ROUTES.POSTS.CAMPAIGNS}>Open Campaigns</Link>
                 </PrimitiveButton>
                 <PrimitiveButton
                   asChild

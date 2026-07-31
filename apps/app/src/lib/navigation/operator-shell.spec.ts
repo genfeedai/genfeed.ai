@@ -29,15 +29,13 @@ describe('operator-shell helpers', () => {
   });
 
   it('keeps the current brand-scoped path when switching brands', () => {
-    expect(getCurrentBrandScopedPath('/acme/moonrise/workspace/overview')).toBe(
-      '/workspace/overview',
+    expect(getCurrentBrandScopedPath('/acme/moonrise/workspace')).toBe(
+      '/workspace',
     );
     expect(getCurrentBrandScopedPath('/acme/moonrise/studio/video')).toBe(
       '/studio/video',
     );
-    expect(getCurrentBrandScopedPath('/acme/~/overview')).toBe(
-      '/workspace/overview',
-    );
+    expect(getCurrentBrandScopedPath('/acme/~/overview')).toBe('/workspace');
     expect(getCurrentBrandScopedPath('/acme/~/agent/new')).toBe('/agent/new');
     expect(getCurrentBrandScopedPath('/acme/moonrise/agent/thread-1')).toBe(
       '/agent/thread-1',
@@ -73,14 +71,14 @@ describe('operator-shell helpers', () => {
     // Gated sections + Workspace/Workflows aliases.
     for (const gated of [
       '/workspace',
-      '/workspace/overview',
+      '/workspace',
       '/overview',
       '/workspace/tasks',
       '/library',
-      '/library/overview',
+      '/library',
       '/analytics',
-      '/analytics/overview',
-      '/workflows',
+      '/analytics',
+      '/orchestration',
       '/orchestration',
       '/posts/calendar',
     ]) {

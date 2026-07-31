@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test';
  * Root entry — the released web app boots and routes a fresh visitor.
  *
  * In LOCAL mode the app has no Better Auth, so proxy.ts redirects `/` straight to the
- * seeded workspace (SEEDED_WORKSPACE_PATH = /default/default/workspace/overview)
+ * seeded workspace (SEEDED_WORKSPACE_PATH = /default/default/workspace)
  * rather than to /login. Landing there proves the Next.js server is up AND the
  * LOCAL-mode routing path is active.
  *
@@ -14,7 +14,7 @@ import { expect, test } from '@playwright/test';
  * and workspace-loads.spec.ts (seeded label in the live shell).
  */
 
-const SEEDED_WORKSPACE_PATH = '/default/default/workspace/overview';
+const SEEDED_WORKSPACE_PATH = '/default/default/workspace';
 
 test.describe('Released image — app entry', () => {
   test('GET / redirects into the seeded workspace, not login', async ({

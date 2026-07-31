@@ -78,11 +78,11 @@ describe('app next.config', () => {
     });
   });
 
-  it('redirects legacy Library ingredients routes to the canonical overview', async () => {
+  it('redirects legacy Library ingredients routes to the library home', async () => {
     const redirects = await config.redirects?.();
 
     expect(redirects).toContainEqual({
-      destination: APP_ROUTES.LIBRARY.OVERVIEW,
+      destination: APP_ROUTES.LIBRARY.ROOT,
       permanent: false,
       source: APP_ROUTES.LIBRARY.INGREDIENTS,
     });
@@ -90,13 +90,89 @@ describe('app next.config', () => {
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.LIBRARY.OVERVIEW,
+        APP_ROUTES.LIBRARY.ROOT,
       ),
       permanent: false,
       source: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
         APP_ROUTES.LIBRARY.INGREDIENTS,
+      ),
+    });
+  });
+
+  it.each([
+    APP_ROUTES.ORCHESTRATION.ROOT,
+    APP_ROUTES.WORKSPACE.ROOT,
+    APP_ROUTES.LIBRARY.ROOT,
+    APP_ROUTES.ANALYTICS.ROOT,
+  ] as const)(
+    'permanently redirects %s/overview to the app home',
+    async (appRoot) => {
+      const redirects = await config.redirects?.();
+      const overviewPath = `${appRoot}/overview`;
+
+      expect(redirects).toContainEqual({
+        destination: appRoot,
+        permanent: true,
+        source: overviewPath,
+      });
+      expect(redirects).toContainEqual({
+        destination: createBrandAppRoute(':orgSlug', ':brandSlug', appRoot),
+        permanent: true,
+        source: createBrandAppRoute(':orgSlug', ':brandSlug', overviewPath),
+      });
+    },
+  );
+
+  it('does not redirect app roots into a nested overview home', async () => {
+    const redirects = await config.redirects?.();
+
+    expect(
+      redirects?.some(
+        (redirect) =>
+          redirect.source === APP_ROUTES.LIBRARY.ROOT &&
+          redirect.destination.includes('/overview'),
+      ),
+    ).toBe(false);
+    expect(
+      redirects?.some(
+        (redirect) =>
+          redirect.source === APP_ROUTES.ANALYTICS.ROOT &&
+          redirect.destination.includes('/overview'),
+      ),
+    ).toBe(false);
+  });
+
+  it('permanently hard-cuts Automate campaign routes into Publish', async () => {
+    const redirects = await config.redirects?.();
+
+    expect(redirects).toContainEqual({
+      destination: APP_ROUTES.POSTS.CAMPAIGNS,
+      permanent: true,
+      source: '/orchestration/campaigns',
+    });
+    expect(redirects).toContainEqual({
+      destination: `${APP_ROUTES.POSTS.CAMPAIGNS}/:path*`,
+      permanent: true,
+      source: '/orchestration/campaigns/:path*',
+    });
+    expect(redirects).toContainEqual({
+      destination: APP_ROUTES.POSTS.OUTREACH_CAMPAIGNS,
+      permanent: true,
+      source: '/orchestration/outreach-campaigns',
+    });
+    expect(redirects).toContainEqual({
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.POSTS.CAMPAIGNS,
+      ),
+      permanent: true,
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        '/orchestration/campaigns',
       ),
     });
   });

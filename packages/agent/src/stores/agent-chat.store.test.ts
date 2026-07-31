@@ -1,18 +1,22 @@
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const getItemSpy = vi.fn();
 const setItemSpy = vi.fn();
 
 describe('useAgentChatStore overlay coordination', () => {
   beforeEach(() => {
+    getItemSpy.mockReset();
+    setItemSpy.mockReset();
+    getItemSpy.mockReturnValue(null);
+
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
       value: {
-        getItem: vi.fn(),
+        getItem: getItemSpy,
         setItem: setItemSpy,
       },
     });
-    setItemSpy.mockClear();
 
     useAgentChatStore.setState({
       isOpen: true,
@@ -21,6 +25,17 @@ describe('useAgentChatStore overlay coordination', () => {
       userChangedAgentDuringOverlay: false,
       wasAgentOpenBeforeOverlay: false,
     });
+  });
+
+  it('persists explicit open/close preference to localStorage', () => {
+    useAgentChatStore.getState().setIsOpen(false);
+    expect(setItemSpy).toHaveBeenCalledWith(
+      'genfeed-agent-panel-open',
+      'false',
+    );
+
+    useAgentChatStore.getState().setIsOpen(true);
+    expect(setItemSpy).toHaveBeenCalledWith('genfeed-agent-panel-open', 'true');
   });
 
   it('auto-collapses the agent on the first overlay and restores it on close', () => {

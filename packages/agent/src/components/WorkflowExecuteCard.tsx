@@ -6,6 +6,7 @@ import type {
 } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   type ChangeEvent,
@@ -238,7 +239,7 @@ export function WorkflowExecuteCard({
   }, []);
 
   const executionHref = executionId
-    ? href(`/workflows/executions/${executionId}`)
+    ? href(`${APP_ROUTES.ORCHESTRATION.WORKFLOWS_EXECUTIONS}/${executionId}`)
     : null;
 
   return (

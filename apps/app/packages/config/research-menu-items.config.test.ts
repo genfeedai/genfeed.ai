@@ -20,7 +20,7 @@ describe('RESEARCH_MENU_ITEMS', () => {
   it('keeps Workspace and Messages routes out of the Research sidebar', () => {
     const hrefs = RESEARCH_MENU_ITEMS.map((item) => item.href);
 
-    expect(hrefs).not.toContain('/workspace/overview');
+    expect(hrefs).not.toContain('/workspace');
     expect(hrefs).not.toContain('/messages');
   });
 

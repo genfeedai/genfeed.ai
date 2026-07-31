@@ -118,7 +118,7 @@ vi.mock('@genfeedai/agent', () => ({
               label: 'Workflow',
               name: 'workflow',
               requiredScope: 'brand',
-              route: '/workflows',
+              route: '/orchestration/workflows',
             },
             arguments: '',
           })
@@ -189,7 +189,7 @@ vi.mock('@genfeedai/agent', () => ({
         label: 'Workflow',
         name: 'workflow',
         requiredScope: 'brand',
-        route: '/workflows',
+        route: '/orchestration/workflows',
       };
     }
     return null;
@@ -594,7 +594,7 @@ describe('UniversalWorkspaceShell', () => {
       screen.getByTestId('universal-workspace-shell').parentElement,
     ).toHaveAttribute('data-composer-target', 'workspace-composer-slot');
 
-    navigation.pathname = '/acme/moonrise/workspace/overview';
+    navigation.pathname = '/acme/moonrise/workspace';
     navigation.searchParams = new URLSearchParams();
     view.rerender(
       <UniversalWorkspaceShell agentApiService={agentApiService}>
@@ -647,7 +647,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('deep links the inspector conversation back to its full surface', () => {
-    navigation.pathname = '/acme/moonrise/workspace/overview';
+    navigation.pathname = '/acme/moonrise/workspace';
     navigation.searchParams = new URLSearchParams();
 
     render(
@@ -664,7 +664,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('hands the single conversation to the mobile drawer while it is open', () => {
-    navigation.pathname = '/acme/moonrise/workspace/overview';
+    navigation.pathname = '/acme/moonrise/workspace';
     navigation.searchParams = new URLSearchParams();
 
     render(
@@ -688,7 +688,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('keeps the inspector conversation and composer mounted when collapsed', () => {
-    navigation.pathname = '/acme/moonrise/workspace/overview';
+    navigation.pathname = '/acme/moonrise/workspace';
     navigation.searchParams = new URLSearchParams();
 
     render(
@@ -757,7 +757,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('mounts the brand overview registration in the harness inspector', async () => {
-    navigation.pathname = '/acme/moonrise/workspace/overview';
+    navigation.pathname = '/acme/moonrise/workspace';
 
     render(
       <UniversalWorkspaceShell agentApiService={agentApiService}>
@@ -903,7 +903,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('dispatches publish only as a trusted brand-scoped review route', () => {
-    navigation.pathname = '/acme/moonrise/workspace/overview';
+    navigation.pathname = '/acme/moonrise/workspace';
     navigation.searchParams = new URLSearchParams();
 
     render(
@@ -920,7 +920,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('opens and restores the trusted workflow picker without dialog graph UI', () => {
-    navigation.pathname = '/acme/moonrise/workspace/overview';
+    navigation.pathname = '/acme/moonrise/workspace';
     navigation.searchParams = new URLSearchParams();
 
     const view = render(
@@ -933,7 +933,7 @@ describe('UniversalWorkspaceShell', () => {
       screen.getByRole('button', { name: 'Dispatch workflow action' }),
     );
     expect(router.push).toHaveBeenCalledWith(
-      '/acme/moonrise/workspace/overview?overlay=workflow-picker',
+      '/acme/moonrise/workspace?overlay=workflow-picker',
     );
 
     navigation.searchParams = new URLSearchParams({
@@ -977,7 +977,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('dispatches Remix through the authorized no-parameter Library overlay', () => {
-    navigation.pathname = '/acme/moonrise/workspace/overview';
+    navigation.pathname = '/acme/moonrise/workspace';
     navigation.searchParams = new URLSearchParams();
 
     render(
@@ -991,12 +991,12 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(router.push).toHaveBeenCalledWith(
-      '/acme/moonrise/workspace/overview?overlay=library-picker',
+      '/acme/moonrise/workspace?overlay=library-picker',
     );
   });
 
   it('consumes a reauthorized Library reference into the canonical Remix route', () => {
-    navigation.pathname = '/acme/moonrise/workspace/overview';
+    navigation.pathname = '/acme/moonrise/workspace';
     navigation.searchParams = new URLSearchParams({
       overlay: 'library-picker',
     });
@@ -1017,7 +1017,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('keeps effective scope in the inspector and renders composer controls once', () => {
-    navigation.pathname = '/acme/moonrise/workspace/overview';
+    navigation.pathname = '/acme/moonrise/workspace';
 
     render(
       <UniversalWorkspaceShell
@@ -1076,7 +1076,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('rejects forged command metadata instead of trusting the invocation', () => {
-    navigation.pathname = '/acme/moonrise/workspace/overview';
+    navigation.pathname = '/acme/moonrise/workspace';
 
     render(
       <UniversalWorkspaceShell agentApiService={agentApiService}>
@@ -1094,7 +1094,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('pushes a registered overlay so browser Back owns UI dismissal', () => {
-    navigation.pathname = '/acme/moonrise/workspace/overview';
+    navigation.pathname = '/acme/moonrise/workspace';
     navigation.searchParams = new URLSearchParams();
 
     const view = render(
@@ -1108,7 +1108,7 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(router.push).toHaveBeenCalledWith(
-      '/acme/moonrise/workspace/overview?overlay=shell-preview',
+      '/acme/moonrise/workspace?overlay=shell-preview',
     );
 
     navigation.searchParams = new URLSearchParams({
@@ -1127,7 +1127,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('lets browser Back dismiss the overlay before the canvas', () => {
-    navigation.pathname = '/acme/moonrise/workspace/overview';
+    navigation.pathname = '/acme/moonrise/workspace';
     navigation.searchParams = new URLSearchParams({
       overlay: 'shell-preview',
     });
@@ -1181,7 +1181,7 @@ describe('UniversalWorkspaceShell', () => {
       </UniversalWorkspaceShell>,
     );
 
-    navigation.pathname = '/other-org/other-brand/workspace/overview';
+    navigation.pathname = '/other-org/other-brand/workspace';
     navigation.searchParams = new URLSearchParams();
     view.rerender(
       <UniversalWorkspaceShell agentApiService={agentApiService}>

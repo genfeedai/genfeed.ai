@@ -5,22 +5,33 @@ import { CirclePlay, Rocket, Settings, Sparkles, Wrench } from 'lucide-react';
 export const WORKFLOWS_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
-    href: APP_ROUTES.WORKFLOWS.EXECUTIONS,
+    href: APP_ROUTES.ORCHESTRATION.OVERVIEW,
+    label: 'Overview',
+    matchPaths: [
+      APP_ROUTES.ORCHESTRATION.ROOT,
+      APP_ROUTES.ORCHESTRATION.OVERVIEW,
+    ],
+    outline: Sparkles,
+    solid: Sparkles,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.ORCHESTRATION.WORKFLOWS,
+    label: 'Workflows',
+    matchPaths: [APP_ROUTES.ORCHESTRATION.WORKFLOWS],
+    outline: Wrench,
+    solid: Wrench,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.ORCHESTRATION.WORKFLOWS_EXECUTIONS,
     label: 'Runs',
     matchPaths: [
-      APP_ROUTES.WORKFLOWS.EXECUTIONS,
+      APP_ROUTES.ORCHESTRATION.WORKFLOWS_EXECUTIONS,
       APP_ROUTES.ORCHESTRATION.RUNS,
     ],
     outline: CirclePlay,
     solid: CirclePlay,
-  },
-  {
-    group: '',
-    href: APP_ROUTES.WORKFLOWS.ROOT,
-    label: 'Workflows',
-    matchPaths: [APP_ROUTES.ORCHESTRATION.WORKFLOWS, APP_ROUTES.WORKFLOWS.ROOT],
-    outline: Wrench,
-    solid: Wrench,
   },
   {
     group: '',
@@ -35,9 +46,8 @@ export const WORKFLOWS_MENU_ITEMS: MenuItemConfig[] = [
     href: APP_ROUTES.ORCHESTRATION.AUTOPILOT,
     label: 'Autopilot',
     matchPaths: [
-      APP_ROUTES.WORKFLOWS.AUTOPILOT,
       APP_ROUTES.ORCHESTRATION.AUTOPILOT,
-      '/orchestration/strategies',
+      APP_ROUTES.ORCHESTRATION.STRATEGIES,
     ],
     outline: Rocket,
     solid: Rocket,
@@ -46,10 +56,7 @@ export const WORKFLOWS_MENU_ITEMS: MenuItemConfig[] = [
     group: '',
     href: APP_ROUTES.ORCHESTRATION.CONFIGURATION,
     label: 'Configuration',
-    matchPaths: [
-      APP_ROUTES.WORKFLOWS.CONFIGURATION,
-      APP_ROUTES.ORCHESTRATION.CONFIGURATION,
-    ],
+    matchPaths: [APP_ROUTES.ORCHESTRATION.CONFIGURATION],
     outline: Settings,
     solid: Settings,
   },

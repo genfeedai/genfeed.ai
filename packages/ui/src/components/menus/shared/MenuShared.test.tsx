@@ -348,7 +348,7 @@ describe('MenuShared', () => {
     const inboxConfig: MenuShellConfig = {
       items: [
         {
-          href: '/workspace/overview',
+          href: '/workspace',
           label: 'Dashboard',
         },
         {
@@ -374,7 +374,7 @@ describe('MenuShared', () => {
       ],
       logoHref: '/',
       primaryAction: {
-        href: '/workspace/overview?compose=1',
+        href: '/workspace?compose=1',
         label: 'New Task',
       },
     };
@@ -390,7 +390,7 @@ describe('MenuShared', () => {
     ).toBeTruthy();
     expect(screen.getByTestId('sidebar-primary-action')).toHaveAttribute(
       'href',
-      '/acme/moonrise-studio/workspace/overview?compose=1',
+      '/acme/moonrise-studio/workspace?compose=1',
     );
     expect(screen.getByText('⌘⇧N')).toBeInTheDocument();
   });
@@ -400,7 +400,7 @@ describe('MenuShared', () => {
       items: [
         {
           group: '',
-          href: '/workspace/overview',
+          href: '/workspace',
           label: 'Dashboard',
         },
         {
@@ -493,7 +493,7 @@ describe('MenuShared', () => {
       items: [
         {
           group: '',
-          href: '/workspace/overview',
+          href: '/workspace',
           label: 'Dashboard',
         },
       ],

@@ -189,7 +189,7 @@ export function useContentTeamPage() {
           dailyCreditBudget > 0
             ? `${creditsUsedToday} used today across ${dailyCreditBudget} planned credits`
             : 'No credit allocation configured yet.',
-        href: APP_ROUTES.ORCHESTRATION.CAMPAIGNS,
+        href: APP_ROUTES.POSTS.CAMPAIGNS,
         label: 'Budget Burn',
         tone: 'Finance',
         value: `${formatCompactNumber(creditsUsedToday)} / ${formatCompactNumber(dailyCreditBudget)}`,
@@ -214,7 +214,7 @@ export function useContentTeamPage() {
     () => [
       {
         accent: `${workflows.length} workflow${workflows.length === 1 ? '' : 's'} available for repeatable content ops.`,
-        href: href('/workflows'),
+        href: href(APP_ROUTES.ORCHESTRATION.WORKFLOWS),
         label: 'Workflow Templates',
         tone: 'Fixed Graphs',
         value: String(workflows.length),

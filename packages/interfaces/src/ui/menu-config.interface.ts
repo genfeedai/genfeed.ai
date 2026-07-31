@@ -11,6 +11,8 @@ export type AppContext =
   | 'posts'
   | 'studio'
   | 'workflows'
+  | 'orchestration'
+  | 'automate'
   | 'editor'
   | 'compose'
   | 'analytics';

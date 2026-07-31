@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
@@ -97,13 +98,13 @@ export default function WorkflowLibraryPage() {
       right={
         <>
           <Button asChild variant={ButtonVariant.SECONDARY} withWrapper={false}>
-            <Link href={href('/workflows/templates')}>
+            <Link href={href(APP_ROUTES.ORCHESTRATION.WORKFLOWS_TEMPLATES)}>
               <Copy className="size-4" />
               Templates
             </Link>
           </Button>
           <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
-            <Link href={href('/workflows/new')}>
+            <Link href={href(APP_ROUTES.ORCHESTRATION.WORKFLOWS_NEW)}>
               <Plus className="size-4" />
               New Workflow
             </Link>
@@ -134,7 +135,7 @@ export default function WorkflowLibraryPage() {
         explicit automation graphs. Schedule a workflow when the steps should be
         predictable and repeatable. For adaptive agent behavior, use{' '}
         <Link
-          href={href('/orchestration/autopilot')}
+          href={href(APP_ROUTES.ORCHESTRATION.AUTOPILOT)}
           className="underline underline-offset-2"
         >
           Autopilot
@@ -159,7 +160,7 @@ export default function WorkflowLibraryPage() {
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
           >
-            <Link href={href('/workflows/new')}>
+            <Link href={href(APP_ROUTES.ORCHESTRATION.WORKFLOWS_NEW)}>
               <div className="flex flex-col items-center gap-3 py-8">
                 <div className="flex size-14 items-center justify-center rounded-full bg-foreground/5 transition-[transform,background-color] duration-300 group-hover:scale-110 group-hover:bg-foreground/10">
                   <Plus className="size-7 text-foreground/50" />
@@ -228,7 +229,9 @@ export default function WorkflowLibraryPage() {
                 bodyClassName="h-full justify-between"
               >
                 <Link
-                  href={href(`/workflows/${workflow._id}`)}
+                  href={href(
+                    `${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/${workflow._id}`,
+                  )}
                   aria-label={`Open ${workflow.name}`}
                   className="absolute inset-0 z-10 rounded-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                 />

@@ -80,11 +80,37 @@ const ONBOARDING_TOTAL_VISIBLE_CREDITS = 600;
 
 export { AGENT_PANEL_OPEN_KEY };
 
+function readPanelPreference(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(AGENT_PANEL_OPEN_KEY);
+    if (raw === 'true') {
+      return true;
+    }
+    if (raw === 'false') {
+      return false;
+    }
+  } catch {
+    // Private mode / quota — default collapsed.
+  }
+
+  // Collapsed by default — matches shipcode TerminalDrawer.
+  return false;
+}
+
 function persistPanelPreference(isOpen: boolean): void {
   if (typeof window === 'undefined') {
     return;
   }
-  localStorage.setItem(AGENT_PANEL_OPEN_KEY, String(isOpen));
+
+  try {
+    window.localStorage.setItem(AGENT_PANEL_OPEN_KEY, String(isOpen));
+  } catch {
+    // Ignore write errors (private-browsing quota, etc.)
+  }
 }
 
 export type AgentSocketConnectionState =
@@ -476,7 +502,7 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       };
     }),
   isGenerating: false,
-  isOpen: false, // collapsed by default — matches shipcode TerminalDrawer
+  isOpen: readPanelPreference(),
   latestProposedPlan: null,
   memoryEntries: [],
   messages: [],

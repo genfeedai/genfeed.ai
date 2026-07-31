@@ -46,8 +46,8 @@ describe('useOrgUrl', () => {
 
   it('should build brand-scoped href', () => {
     const { result } = renderHook(() => useOrgUrl());
-    expect(result.current.href('/workspace/overview')).toBe(
-      '/genfeed-ai/my-brand/workspace/overview',
+    expect(result.current.href('/workspace')).toBe(
+      '/genfeed-ai/my-brand/workspace',
     );
   });
 
@@ -70,8 +70,8 @@ describe('useOrgUrl', () => {
 
     expect(result.current.orgSlug).toBe('fallback-org');
     expect(result.current.brandSlug).toBe('fallback-brand');
-    expect(result.current.href('/workspace/overview')).toBe(
-      '/fallback-org/fallback-brand/workspace/overview',
+    expect(result.current.href('/workspace')).toBe(
+      '/fallback-org/fallback-brand/workspace',
     );
     expect(result.current.orgHref('/settings')).toBe(
       '/fallback-org/~/settings',

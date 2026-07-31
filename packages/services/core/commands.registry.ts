@@ -99,7 +99,7 @@ export function createNavigationCommands(
     },
     {
       action: () => {
-        navigate(`${brandPath}/library/overview`);
+        navigate(`${brandPath}/library`);
       },
       category: 'navigation',
       condition: () => EnvironmentService.currentApp !== 'app',
@@ -141,7 +141,7 @@ export function createNavigationCommands(
     },
     {
       action: () => {
-        navigate(`${brandPath}/analytics/overview`);
+        navigate(`${brandPath}/analytics`);
       },
       category: 'navigation',
       condition: () => EnvironmentService.currentApp !== 'app',
@@ -263,7 +263,7 @@ export function createContentCommands(
   return [
     {
       action: () => {
-        navigate(`${brandPath}/library/overview`);
+        navigate(`${brandPath}/library`);
       },
       category: 'content',
       description: 'Find content in your library',

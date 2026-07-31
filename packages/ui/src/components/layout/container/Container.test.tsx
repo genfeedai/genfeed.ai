@@ -124,10 +124,28 @@ describe('Container', () => {
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
   });
 
-  it('renders header tabs alongside header actions', () => {
+  it('right-aligns primary actions when the title is assistive-only', () => {
     render(
       <Container
-        label="Test"
+        label="Brands"
+        titleVisibility="sr-only"
+        right={<button type="button">Add Brand</button>}
+      >
+        content
+      </Container>,
+    );
+
+    const action = screen.getByRole('button', { name: 'Add Brand' });
+    const toolbar = action.closest('.justify-end');
+
+    expect(toolbar).not.toBeNull();
+  });
+
+  it('renders header tabs alongside header actions on one toolbar row', () => {
+    render(
+      <Container
+        label="Models"
+        titleVisibility="sr-only"
         headerTabs={{
           activeTab: 'overview',
           fullWidth: false,
@@ -143,7 +161,14 @@ describe('Container', () => {
       </Container>,
     );
 
-    expect(screen.getByRole('link', { name: 'Overview' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
+    const overview = screen.getByRole('link', { name: 'Overview' });
+    const refresh = screen.getByRole('button', { name: 'Refresh' });
+    const toolbar = refresh.closest('.justify-between');
+
+    expect(overview).toBeInTheDocument();
+    expect(refresh).toBeInTheDocument();
+    expect(toolbar).not.toBeNull();
+    expect(toolbar?.contains(overview)).toBe(true);
+    expect(toolbar?.contains(refresh)).toBe(true);
   });
 });
