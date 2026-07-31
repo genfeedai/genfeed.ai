@@ -205,9 +205,6 @@ export const INGREDIENT_CONFIGS: Record<string, IngredientsLayoutConfig> = {
       ],
       status: [
         { label: 'All Status', value: '' },
-        { label: 'Completed', value: IngredientStatus.GENERATED },
-        { label: 'Processing', value: IngredientStatus.PROCESSING },
-
         { label: 'Archived', value: IngredientStatus.ARCHIVED },
         { label: 'Uploaded', value: IngredientStatus.UPLOADED },
         { label: 'Completed', value: IngredientStatus.GENERATED },

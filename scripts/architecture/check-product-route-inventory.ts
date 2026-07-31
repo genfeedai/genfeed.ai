@@ -24,6 +24,9 @@ export type PublicRouteProductClass =
   | 'marketing'
   | 'onboarding'
   | 'public-content'
+  // Shells the runtime serves rather than pages a user navigates to — the
+  // service worker's offline fallback is the only one today.
+  | 'system'
   | 'transactional';
 
 export type PublicRouteClassification = {
@@ -135,6 +138,9 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/onboarding/success',
     '/onboarding/summary',
   ] as const),
+  // Precached by the service worker and rendered only when a navigation fails
+  // with no network. Never linked, never indexed, never auth-gated.
+  ...classifyPublicRoutes('app', 'system', ['/~offline'] as const),
   ...classifyPublicRoutes('app', 'transactional', [
     '/managed-credits/success',
   ] as const),

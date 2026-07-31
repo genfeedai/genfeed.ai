@@ -1,4 +1,5 @@
 export * from './aspect-ratio.helper';
+export * from './asset-scope.helper';
 export * from './async/sleep.helper';
 export * from './auth/auth.helper';
 export * from './brand-completeness.helper';

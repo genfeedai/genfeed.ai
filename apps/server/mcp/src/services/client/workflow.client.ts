@@ -1,5 +1,8 @@
 import type { WorkflowTemplateResource } from '@mcp/shared/interfaces/api-response.interface';
 import type {
+  SystemWorkflowCatalogEntry,
+  SystemWorkflowCatalogListParams,
+  SystemWorkflowInstallParams,
   WorkflowCreateParams,
   WorkflowExecuteParams,
   WorkflowExecutionResult,
@@ -71,6 +74,28 @@ function mapWorkflowResource(
     steps: asArray(attrs.steps) as WorkflowResponse['steps'],
     timezone: asString(attrs.timezone),
     updatedAt: asString(attrs.updatedAt),
+  };
+}
+
+function mapSystemWorkflowCatalogEntry(
+  entry: Record<string, unknown>,
+): SystemWorkflowCatalogEntry {
+  return {
+    canonicalId: asString(entry.canonicalId) ?? '',
+    category: asString(entry.category),
+    description: asString(entry.description),
+    family: asString(entry.family) ?? 'product',
+    installable: entry.installable !== false,
+    installed: entry.installed === true,
+    installedWorkflowId: asString(entry.installedWorkflowId),
+    isScheduleEnabled:
+      typeof entry.isScheduleEnabled === 'boolean'
+        ? entry.isScheduleEnabled
+        : undefined,
+    label: asString(entry.label) ?? asString(entry.canonicalId) ?? 'Untitled',
+    schedule: asString(entry.schedule),
+    timezone: asString(entry.timezone),
+    version: asNumber(entry.version),
   };
 }
 
@@ -329,6 +354,60 @@ export class WorkflowClient {
         );
       },
       this.base.failWithDetail('Failed to get workflow run'),
+    );
+  }
+
+  /**
+   * Lists the code-owned system workflow catalog. Same collection resource as
+   * workflows — the catalog is a query filter, not a parallel path (#2176).
+   */
+  listSystemWorkflowCatalog(
+    params: SystemWorkflowCatalogListParams = {},
+  ): Promise<SystemWorkflowCatalogEntry[]> {
+    this.base.logger.debug('Listing system workflow catalog', { params });
+
+    return this.base.request(
+      'listing system workflow catalog',
+      async (http) => {
+        const response = await http.get('/workflows', {
+          params: { source: 'system-catalog' },
+        });
+
+        const entries = asArray(response.data?.data).map((entry) =>
+          mapSystemWorkflowCatalogEntry(asRecord(entry)),
+        );
+
+        return entries
+          .filter((entry) => params.includeNonInstallable || entry.installable)
+          .filter((entry) => !params.family || entry.family === params.family)
+          .filter((entry) => !params.installedOnly || entry.installed);
+      },
+      this.base.failWithDetail('Failed to list system workflow catalog'),
+    );
+  }
+
+  /**
+   * Installs one catalog entry as an editable org-owned workflow. The API is
+   * idempotent, so a repeat install returns the existing workflow.
+   */
+  installSystemWorkflow(
+    params: SystemWorkflowInstallParams,
+  ): Promise<WorkflowResponse> {
+    this.base.logger.debug('Installing system workflow', { params });
+
+    return this.base.request(
+      'installing system workflow',
+      async (http) => {
+        const response = await http.post('/workflows', {
+          brandId: params.brandId,
+          sourceType: 'system-catalog',
+          templateId: params.canonicalId,
+        });
+        return mapWorkflowResource(
+          this.base.unwrapData<JsonApiResource>(response),
+        );
+      },
+      this.base.failWithDetail('Failed to install system workflow'),
     );
   }
 

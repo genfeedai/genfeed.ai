@@ -12,13 +12,27 @@ type: project
 
 ## Must verify (product)
 
-- [ ] Social: Add/Edit link modal + POST `/v1/links` after `brand` → `brandId` map
-- [ ] Public Profile toggle sticks (scope case + Switch label)
-- [ ] Interview draft store survives reload
-- [ ] Studio Video empty: no Frame Sequence block
-- [ ] Studio Storyboard: Frame sequence / Scenes / Merge modes work end-to-end
-- [ ] Brand switcher: active row selected wash
-- [ ] Library nav + status filters + AppSwitcher underlines
+Worked as one train on 2026-07-31 (`qa/train-2026-07-31`). All seven audited
+against code; fixes landed for the three that were broken.
+
+- [x] Social: Add/Edit link modal + POST `/v1/links` after `brand` → `brandId` map — correct. The remap lives only in `LinksService.normalizeData()` and is covered by `links.service.spec.ts`
+- [x] Public Profile toggle sticks (scope case + Switch label) — write path uppercases via `BaseService.normalizeEnumScalarValue`, read path lowercases in the `Brand` model; `Switch` renders its label as a sibling `span`, regression-tested. Hardened the one bare comparison behind `isPublicAssetScope`
+- [x] Interview draft store survives reload — `brand-interview-draft.store.ts` persists `byBrandId` under `genfeed-brand-interview-drafts-v1`, no `skipHydration`
+- [x] Studio Video empty: no Frame Sequence block — `GenerateEmptyState` renders heading + composer only
+- [x] Studio Storyboard: Frame sequence / Scenes / Merge modes work end-to-end — **fixed.** Scenes mode enabled "Merge clips" at 2 completed scenes while the guard demanded every frame be completed
+- [x] Brand switcher: active row selected wash — `bg-foreground/[0.08]` + check + `aria-current` via the shared `SwitcherDropdown`
+- [x] Library nav + status filters + AppSwitcher underlines — nav/filter wiring correct; **fixed** duplicate voices status options. AppSwitcher underlines are **done, nothing to do**: removed on purpose in #2204, active state is the filled icon tile
+
+Audited against code, not clicked through — protected routes need a sign-in the
+agent has no non-interactive path to. Each fix carries a regression test.
+
+## Still open from this train
+
+- `LinksController.buildFindAllQuery` filters on raw `where.brand`; `normalizeWhere` only remaps writes, so the standalone `GET /links?brand=` path is unmapped. Not on the modal's path (the Social page reads links through `brand.links`)
+- `link.config.ts` uses `simpleConfig`, so `brand` is a plain attribute rather than a JSON:API relationship — inconsistent with sibling configs using `STANDARD_ENTITY_RELS`
+- `use-brand-detail.test.ts` has no coverage for `handleUpdateAccount`'s scope-toggle path
+- `SidebarHeader.tsx` mounts a second brand switcher that nothing imports — dead code
+- `bun run check:ui-guards` is red on `master` on two required guards — hardcoded routes in `playwright/e2e/tests/{library/content-library,core/automation-loop}.spec.ts`, and a bespoke card at `StoryboardWorkspace.tsx:70`. Pre-existing, untouched by this train, chipped to its own session
 
 ## Boil-the-ocean backlog (next train)
 

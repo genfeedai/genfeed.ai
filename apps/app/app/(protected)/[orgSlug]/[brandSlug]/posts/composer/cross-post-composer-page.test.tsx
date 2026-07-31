@@ -139,4 +139,54 @@ describe('CrossPostComposerPage', () => {
       screen.getByText('YouTube requires at least 1 media item(s).'),
     ).toBeInTheDocument();
   });
+
+  it('previews the active target through the platform renderer registry', () => {
+    useBrandMock.mockReturnValue({
+      credentials: [
+        credential({
+          externalHandle: 'launch_x',
+          id: 'cred-x',
+          platform: CredentialPlatform.TWITTER,
+        }),
+        credential({
+          externalHandle: 'company',
+          id: 'cred-linkedin',
+          platform: CredentialPlatform.LINKEDIN,
+        }),
+      ],
+    });
+
+    render(<CrossPostComposerPage />);
+
+    fireEvent.change(screen.getByLabelText('Base content'), {
+      target: { value: 'Base launch copy' },
+    });
+    fireEvent.click(screen.getByRole('checkbox', { name: /x .*launch_x/i }));
+
+    expect(
+      screen.getByRole('article', { name: 'X (Twitter) platform preview' }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('Base launch copy').length).toBeGreaterThan(0);
+
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /linkedin .*company/i }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: /edit linkedin .*company/i }),
+    );
+    fireEvent.change(screen.getByLabelText('Target caption'), {
+      target: { value: 'LinkedIn variant copy' },
+    });
+
+    // The preview follows the active target and its caption override.
+    expect(
+      screen.getByRole('article', { name: 'LinkedIn platform preview' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('article', { name: 'X (Twitter) platform preview' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByText('LinkedIn variant copy').length).toBeGreaterThan(
+      0,
+    );
+  });
 });

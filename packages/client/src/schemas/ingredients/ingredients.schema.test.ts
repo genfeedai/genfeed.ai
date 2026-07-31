@@ -13,6 +13,7 @@ import { musicSchema } from '@genfeedai/client/schemas/ingredients/music.schema'
 import {
   canMergeStoryboard,
   createStoryboardFrame,
+  getCompletedFrames,
   getPendingFrames,
   initializeStoryboard,
   isGenerating,
@@ -293,8 +294,23 @@ describe('storyboard-frame schema', () => {
     });
   });
 
+  describe('getCompletedFrames', () => {
+    it('keeps only frames that are completed and carry a videoId', () => {
+      const sb = initializeStoryboard(IngredientFormat.PORTRAIT);
+      sb.frames = [
+        { duration: 5, id: 'f1', order: 0, status: 'completed', videoId: 'v1' },
+        { duration: 5, id: 'f2', order: 1, status: 'pending' },
+        { duration: 5, id: 'f3', order: 2, status: 'failed' },
+        // Completed but no videoId — nothing to merge.
+        { duration: 5, id: 'f4', order: 3, status: 'completed' },
+      ];
+
+      expect(getCompletedFrames(sb).map((frame) => frame.id)).toEqual(['f1']);
+    });
+  });
+
   describe('canMergeStoryboard', () => {
-    it('returns false for < 2 frames', () => {
+    it('returns false for < 2 completed frames', () => {
       const sb = initializeStoryboard(IngredientFormat.PORTRAIT);
       sb.frames = [
         { duration: 5, id: 'f1', order: 0, status: 'completed', videoId: 'v1' },
@@ -302,13 +318,26 @@ describe('storyboard-frame schema', () => {
       expect(canMergeStoryboard(sb)).toBe(false);
     });
 
-    it('returns false if any frame not completed', () => {
+    it('returns false when only one frame produced a video', () => {
       const sb = initializeStoryboard(IngredientFormat.PORTRAIT);
       sb.frames = [
         { duration: 5, id: 'f1', order: 0, status: 'completed', videoId: 'v1' },
         { duration: 5, id: 'f2', order: 1, status: 'pending' },
       ];
       expect(canMergeStoryboard(sb)).toBe(false);
+    });
+
+    // The storyboard workspace enables "Merge clips" at two completed scenes.
+    // Requiring every frame to be completed left that button enabled while the
+    // merge refused to run.
+    it('returns true when two frames completed even if others are pending', () => {
+      const sb = initializeStoryboard(IngredientFormat.PORTRAIT);
+      sb.frames = [
+        { duration: 5, id: 'f1', order: 0, status: 'completed', videoId: 'v1' },
+        { duration: 5, id: 'f2', order: 1, status: 'completed', videoId: 'v2' },
+        { duration: 5, id: 'f3', order: 2, status: 'pending' },
+      ];
+      expect(canMergeStoryboard(sb)).toBe(true);
     });
 
     it('returns true when all frames completed with videoId', () => {

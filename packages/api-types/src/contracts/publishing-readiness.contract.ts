@@ -96,6 +96,13 @@ export const publishingSetupChecklistSchema = z.object({
   state: publishingReadinessStateSchema,
 });
 
+export const publishingSetupDiagnosticsExportSchema = z.object({
+  checklist: publishingSetupChecklistSchema,
+  deployment: z.enum(['cloud', 'self-hosted']),
+  diagnostics: z.array(publishingDiagnosticSchema),
+  generatedAt: z.string().datetime(),
+});
+
 export const publishingProviderReadinessSchema = z.object({
   appReviewStatus: publishingSetupCheckStatusSchema,
   callbackUrlStatus: publishingSetupCheckStatusSchema,
@@ -132,6 +139,9 @@ export type PublishingDiagnostic = z.infer<typeof publishingDiagnosticSchema>;
 export type PublishingSetupCheck = z.infer<typeof publishingSetupCheckSchema>;
 export type PublishingSetupChecklist = z.infer<
   typeof publishingSetupChecklistSchema
+>;
+export type PublishingSetupDiagnosticsExport = z.infer<
+  typeof publishingSetupDiagnosticsExportSchema
 >;
 export type PublishingProviderReadiness = z.infer<
   typeof publishingProviderReadinessSchema

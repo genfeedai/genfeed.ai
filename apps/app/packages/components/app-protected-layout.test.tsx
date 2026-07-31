@@ -975,10 +975,10 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('keeps the frame on a canvas route while the shell body is still booting', () => {
+  it('keeps the topbar frame on a canvas route while the shell body is still booting', () => {
     // No auth yet means no agent API service, so the shell body cannot mount.
-    // The application around it is not the shell's to withhold: chrome used to
-    // disappear on canvas routes for exactly this window.
+    // Canvas routes still own the left rail, while the application keeps the
+    // shared topbar visible during this boot window.
     shellState.isAuthLoaded = false;
     mockPathname.value = '/org-123/brand-123/editor/new';
 
@@ -994,6 +994,7 @@ describe('AppProtectedLayout', () => {
     // The module sidebar is the canvas's to own on an editor route; the frame
     // around it is not the shell's to withhold while auth is still loading.
     expect(screen.getByTestId('app-layout')).toBeInTheDocument();
+    expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         isWorkspaceShell: false,

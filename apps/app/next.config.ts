@@ -8,6 +8,7 @@ import {
   createOrganizationAppRoute,
 } from '@genfeedai/constants/routes.constant';
 import { createAppNextConfig } from '@genfeedai/next-config';
+import { withSerwist } from '@serwist/turbopack';
 
 // Deterministic, empty-string-safe build id. A plain `??` chain does NOT skip
 // empty strings, and Vercel sets VERCEL_GIT_COMMIT_SHA="" on CLI deploys with no
@@ -374,4 +375,7 @@ if (process.env.E2E_COVERAGE === '1') {
   config.productionBrowserSourceMaps = true;
 }
 
-export default config;
+// Bundler-agnostic: withSerwist only appends esbuild to serverExternalPackages
+// so app/serwist/[path]/route.ts can require it at runtime to compile the
+// service worker. It adds no webpack plugin, so `--turbopack` stays intact.
+export default withSerwist(config);

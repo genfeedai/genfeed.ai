@@ -43,9 +43,9 @@ const config: KnipConfig = {
     // Playwright
     '@playwright/test',
     'playwright',
-    // Serwist
-    '@serwist/next',
-    'serwist',
+    // Serwist compiles apps/app/app/sw.ts through esbuild at request time
+    // (`useNativeEsbuild: true`), so esbuild is never imported from source.
+    'esbuild',
   ],
   workspaces: {
     // Root

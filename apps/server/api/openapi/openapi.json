@@ -39326,6 +39326,36 @@
         ]
       }
     },
+    "/publishing-setup/checklist": {
+      "get": {
+        "operationId": "PublishingSetupController.getChecklist",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "getChecklist",
+        "tags": [
+          "PublishingSetup"
+        ]
+      }
+    },
+    "/publishing-setup/diagnostics": {
+      "get": {
+        "operationId": "PublishingSetupController.getDiagnostics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "getDiagnostics",
+        "tags": [
+          "PublishingSetup"
+        ]
+      }
+    },
     "/reply-bot-configs": {
       "get": {
         "operationId": "ReplyBotConfigsController.findAll",
