@@ -47,7 +47,7 @@ describe('AccountPublishingContextService', () => {
       new PublishingProviderSetupService({
         get: (key: string) => HEALTHY_ENV[key],
       } as unknown as ConfigService),
-      quotaService as never,
+      { get: () => quotaService } as never,
     ),
     credentialsService as never,
     prisma as never,

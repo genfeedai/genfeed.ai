@@ -9,6 +9,7 @@ import type {
   PublishingSetupCheckStatus,
 } from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 
 export interface ResolveCredentialPublishingReadinessParams {
   credential: CredentialDocument;
@@ -38,10 +39,30 @@ const QUOTA_WARN_RATIO = 0.8;
  */
 @Injectable()
 export class CredentialPublishingReadinessService {
+  private quotaService?: QuotaService;
+
   constructor(
     private readonly publishingProviderSetupService: PublishingProviderSetupService,
-    private readonly quotaService: QuotaService,
+    private readonly moduleRef: ModuleRef,
   ) {}
+
+  /**
+   * `QuotaService` is resolved lazily instead of injected. `CredentialsCoreModule`
+   * is a leaf that half the module graph imports, and `QuotaModule` sits far above
+   * it — importing it here closes the ring
+   * `credentials-core -> quota -> organizations -> integrations -> credentials-core`,
+   * which webpack evaluates before Nest ever sees a `forwardRef`. Mirrors how
+   * `QuotaService` itself reaches `PostsService`.
+   */
+  private getQuotaService(): QuotaService {
+    this.quotaService ??= this.moduleRef.get(QuotaService, { strict: false });
+
+    if (!this.quotaService) {
+      throw new Error('QuotaService not available');
+    }
+
+    return this.quotaService;
+  }
 
   async resolve(
     params: ResolveCredentialPublishingReadinessParams,
@@ -91,7 +112,7 @@ export class CredentialPublishingReadinessService {
     organizationId: string,
     checkedAt: string,
   ): Promise<QuotaSignals> {
-    const quota = await this.quotaService.getQuotaStatus(
+    const quota = await this.getQuotaService().getQuotaStatus(
       credentialId,
       organizationId,
     );

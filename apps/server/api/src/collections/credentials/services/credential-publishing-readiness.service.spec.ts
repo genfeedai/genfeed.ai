@@ -33,7 +33,7 @@ describe('CredentialPublishingReadinessService', () => {
       new PublishingProviderSetupService({
         get: (key: string) => HEALTHY_ENV[key],
       } as unknown as ConfigService),
-      { getQuotaStatus } as never,
+      { get: () => ({ getQuotaStatus }) } as never,
     );
   }
 
