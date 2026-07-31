@@ -5593,7 +5593,7 @@
             "type": "boolean"
           },
           "label": {
-            "description": "The display label/name of the workflow",
+            "description": "The display label/name of the workflow. Omit when sourceWorkflowId is set; the server derives the copy label.",
             "type": "string"
           },
           "lastExecutedAt": {
@@ -5709,9 +5709,6 @@
             "type": "string"
           }
         },
-        "required": [
-          "label"
-        ],
         "type": "object"
       },
       "CreateWorkflowExecutionDto": {
@@ -14324,7 +14321,7 @@
             "type": "boolean"
           },
           "label": {
-            "description": "The display label/name of the workflow",
+            "description": "The display label/name of the workflow. Omit when sourceWorkflowId is set; the server derives the copy label.",
             "type": "string"
           },
           "lastExecutedAt": {
