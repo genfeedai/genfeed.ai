@@ -173,8 +173,16 @@ export class PostGroupsService {
   ): Promise<IReleaseGroup[]> {
     return this.persistenceService.listReleaseGroups({
       ...(query.brandId ? { brandId: query.brandId } : {}),
+      ...(query.credentialId?.length
+        ? { credentialIds: query.credentialId }
+        : {}),
       endDate: new Date(query.endDate),
+      ...(query.executionState?.length
+        ? { executionStates: query.executionState }
+        : {}),
       organizationId,
+      ...(query.platform?.length ? { platforms: query.platform } : {}),
+      ...(query.source?.length ? { sources: query.source } : {}),
       startDate: new Date(query.startDate),
       ...(query.status?.length ? { statuses: query.status } : {}),
     });

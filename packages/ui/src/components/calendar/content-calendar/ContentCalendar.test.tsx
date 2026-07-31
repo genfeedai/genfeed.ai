@@ -1,6 +1,7 @@
+import type { CalendarItem } from '@genfeedai/props/components/calendar.props';
 import { act, render, waitFor } from '@testing-library/react';
 import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
-import type { CalendarOptions } from 'fullcalendar';
+import type { CalendarOptions, EventInput } from 'fullcalendar';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const calendarMocks = vi.hoisted(() => {
@@ -27,7 +28,11 @@ const calendarMocks = vi.hoisted(() => {
     }
   }
 
-  function createDatesSetArg(startDate: string, endDate: string) {
+  function createDatesSetArg(
+    startDate: string,
+    endDate: string,
+    viewType = 'timeGridWeek',
+  ) {
     const start = new Date(`${startDate}T00:00:00.000Z`);
     const end = new Date(`${endDate}T00:00:00.000Z`);
 
@@ -37,7 +42,7 @@ const calendarMocks = vi.hoisted(() => {
       start,
       startStr: start.toISOString(),
       timeZone: 'UTC',
-      view: {},
+      view: { type: viewType },
     } as Parameters<NonNullable<CalendarOptions['datesSet']>>[0];
   }
 
@@ -73,6 +78,20 @@ vi.mock('fullcalendar', async () => {
 });
 
 vi.mock('fullcalendar/timegrid', async () => {
+  await calendarMocks.waitForImportGate();
+  return {
+    default: {},
+  };
+});
+
+vi.mock('fullcalendar/daygrid', async () => {
+  await calendarMocks.waitForImportGate();
+  return {
+    default: {},
+  };
+});
+
+vi.mock('fullcalendar/list', async () => {
   await calendarMocks.waitForImportGate();
   return {
     default: {},
@@ -182,4 +201,319 @@ describe('ContentCalendar', () => {
     expect(abortSpy).toHaveBeenCalled();
     abortSpy.mockRestore();
   });
+
+  it('offers the requested layouts in the header toolbar', async () => {
+    render(
+      <ContentCalendar
+        items={[]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(calendarMocks.instances).toHaveLength(1);
+    });
+
+    expect(calendarMocks.instances[0]?.options.headerToolbar).toEqual({
+      center: 'title',
+      left: 'prev,next',
+      right: 'timeGridDay,timeGridWeek,dayGridMonth,listWeek',
+    });
+  });
+
+  it('hides the switcher when only one layout is offered', async () => {
+    render(
+      <ContentCalendar
+        items={[]}
+        views={['week']}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(calendarMocks.instances).toHaveLength(1);
+    });
+
+    expect(calendarMocks.instances[0]?.options.headerToolbar).toEqual(
+      expect.objectContaining({ right: '' }),
+    );
+  });
+
+  // The instance is torn down and rebuilt on every data refresh, so a view the
+  // operator picked has to outlive it — including a switch that covers the same
+  // range as the view it replaced.
+  it('rebuilds the calendar on the layout the operator last chose', async () => {
+    const { rerender } = render(
+      <ContentCalendar
+        items={[makeItem()]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(calendarMocks.instances).toHaveLength(1);
+    });
+    expect(calendarMocks.instances[0]?.options.initialView).toBe(
+      'timeGridWeek',
+    );
+
+    act(() => {
+      calendarMocks.instances[0]?.options.datesSet?.(
+        calendarMocks.createDatesSetArg('2026-03-09', '2026-03-16', 'listWeek'),
+      );
+    });
+
+    rerender(
+      <ContentCalendar
+        items={[makeItem({ id: 'item-2' })]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(calendarMocks.instances).toHaveLength(2);
+    });
+    expect(calendarMocks.instances[1]?.options.initialView).toBe('listWeek');
+  });
+
+  it('marks only eligible events as draggable', async () => {
+    render(
+      <ContentCalendar
+        items={[makeItem(), makeItem({ id: 'item-2', isDisabled: true })]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+        isItemDraggable={() => true}
+        onEventDrop={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(calendarMocks.instances).toHaveLength(1);
+    });
+
+    const options = latestOptions();
+    const events = options.events as EventInput[];
+
+    expect(options.editable).toBe(true);
+    expect(events[0]?.editable).toBe(true);
+    expect(events[1]?.editable).toBe(false);
+  });
+
+  it('leaves the calendar read-only when the host handles no drops', async () => {
+    render(
+      <ContentCalendar
+        items={[makeItem()]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+        isItemDraggable={() => true}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(calendarMocks.instances).toHaveLength(1);
+    });
+
+    const options = latestOptions();
+
+    expect(options.editable).toBe(false);
+    expect((options.events as EventInput[])[0]?.editable).toBe(false);
+  });
+
+  it('hands a dropped event to the host without committing it', async () => {
+    const item = makeItem();
+    const onEventDrop = vi.fn();
+    const revert = vi.fn();
+    const start = new Date('2026-03-11T09:00:00.000Z');
+
+    render(
+      <ContentCalendar
+        items={[item]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+        isItemDraggable={() => true}
+        onEventDrop={onEventDrop}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(calendarMocks.instances).toHaveLength(1);
+    });
+
+    act(() => {
+      dropEvent({
+        event: { extendedProps: { item }, start, title: item.title },
+        revert,
+      });
+    });
+
+    expect(onEventDrop).toHaveBeenCalledWith({ item, revert, start });
+    expect(revert).not.toHaveBeenCalled();
+  });
+
+  it('reverts a drop that lands without a start instant', async () => {
+    const item = makeItem();
+    const onEventDrop = vi.fn();
+    const revert = vi.fn();
+
+    render(
+      <ContentCalendar
+        items={[item]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+        isItemDraggable={() => true}
+        onEventDrop={onEventDrop}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(calendarMocks.instances).toHaveLength(1);
+    });
+
+    act(() => {
+      dropEvent({
+        event: { extendedProps: { item }, start: null, title: item.title },
+        revert,
+      });
+    });
+
+    expect(revert).toHaveBeenCalledTimes(1);
+    expect(onEventDrop).not.toHaveBeenCalled();
+  });
+
+  it('renders the status badge alongside a truncatable title', async () => {
+    const item = makeItem();
+
+    render(
+      <ContentCalendar
+        items={[item]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+        getEventBadge={() => ({ label: 'Failed', tone: 'danger' })}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(calendarMocks.instances).toHaveLength(1);
+    });
+
+    const content = renderEventContent(item);
+    const node = expectDomNode(content);
+
+    expect(node.querySelector('.gen-calendar-event-time')?.textContent).toBe(
+      '09:00',
+    );
+    expect(node.querySelector('.gen-calendar-event-title')?.textContent).toBe(
+      'Launch note',
+    );
+
+    const badge = node.querySelector('.gen-calendar-event-badge');
+    expect(badge?.textContent).toBe('Failed');
+    expect(badge?.className).toContain('gen-calendar-event-badge--danger');
+  });
+
+  it('drops the duplicated time from list rows', async () => {
+    const item = makeItem();
+
+    render(
+      <ContentCalendar
+        items={[item]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+        getEventBadge={() => ({ label: 'Scheduled', tone: 'info' })}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(calendarMocks.instances).toHaveLength(1);
+    });
+
+    const content = renderEventContent(item, { viewType: 'listWeek' });
+
+    expect(
+      expectDomNode(content).querySelector('.gen-calendar-event-time'),
+    ).toBeNull();
+  });
+
+  it('falls back to default rendering when an item has no badge', async () => {
+    const item = makeItem();
+
+    render(
+      <ContentCalendar
+        items={[item]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+        getEventBadge={() => null}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(calendarMocks.instances).toHaveLength(1);
+    });
+
+    expect(renderEventContent(item)).toBe(true);
+  });
 });
+
+function makeItem(overrides: Partial<CalendarItem> = {}): CalendarItem {
+  return {
+    id: 'item-1',
+    scheduledDate: '2026-03-10T09:00:00.000Z',
+    status: 'scheduled',
+    title: 'Launch note',
+    ...overrides,
+  };
+}
+
+function latestOptions(): CalendarOptions {
+  const options = calendarMocks.instances.at(-1)?.options;
+
+  if (!options) {
+    throw new Error('Expected a FullCalendar instance to have been built');
+  }
+
+  return options;
+}
+
+function dropEvent(info: unknown): void {
+  (latestOptions().eventDrop as unknown as (arg: unknown) => void)(info);
+}
+
+function renderEventContent(
+  item: CalendarItem,
+  { timeText = '09:00', viewType = 'timeGridWeek' } = {},
+): unknown {
+  const generator = latestOptions().eventContent as unknown as (
+    arg: unknown,
+  ) => unknown;
+
+  return generator({
+    event: { extendedProps: { item }, title: item.title },
+    timeText,
+    view: { type: viewType },
+  });
+}
+
+function expectDomNode(content: unknown): HTMLElement {
+  const node = (content as { domNodes?: HTMLElement[] }).domNodes?.[0];
+
+  if (!node) {
+    throw new Error('Expected eventContent to return a single DOM node');
+  }
+
+  return node;
+}

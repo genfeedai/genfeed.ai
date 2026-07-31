@@ -24,6 +24,7 @@ import {
   CredentialPlatform,
   PostStatus,
   ReleaseStatus,
+  ReleaseTargetSource,
   TargetAnalyticsCapability,
   TargetAnalyticsCollectionState,
   TargetAnalyticsFreshness,
@@ -441,6 +442,7 @@ export class PostGroupContractService {
       retryCount: target.retryCount,
       scheduledAt: this.toIso(target.scheduledDate),
       settings: this.asRecord(target.targetSettings),
+      source: this.toTargetSource(target),
       timezone: target.timezone,
       updatedAt: target.updatedAt.toISOString(),
       url: target.url,
@@ -448,6 +450,28 @@ export class PostGroupContractService {
       validationState: target.targetValidationState as TargetValidationState,
       workflowExecutionId: target.workflowExecutionId,
     };
+  }
+
+  /**
+   * Derives the calendar-facing provenance of a target from its durable columns.
+   *
+   * A durable workflow execution wins over agent provenance because a target
+   * placed by an agent and then executed by a workflow is, operationally, a
+   * workflow-scheduled item — that is the run an operator would go look at.
+   */
+  private toTargetSource(target: SchedulerPostTarget): ReleaseTargetSource {
+    if (target.workflowExecutionId) {
+      return ReleaseTargetSource.WORKFLOW;
+    }
+    if (
+      target.agentRunId ||
+      target.agentThreadId ||
+      target.agentStrategyId ||
+      target.agentContextSource
+    ) {
+      return ReleaseTargetSource.AGENT;
+    }
+    return ReleaseTargetSource.MANUAL;
   }
 
   private toTargetAnalytics(

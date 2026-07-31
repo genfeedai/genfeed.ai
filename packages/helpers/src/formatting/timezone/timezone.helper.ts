@@ -200,3 +200,84 @@ export function createDateFromTimezone(
 
   return new Date(baseUtcDate.getTime() + dayDiffMs + timeDiffMs);
 }
+
+const DATE_TIME_LOCAL_PATTERN = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
+
+/**
+ * Render an instant as the `YYYY-MM-DDTHH:mm` string an `<input
+ * type="datetime-local">` expects, read in `timezone` rather than the browser's.
+ *
+ * A schedule is anchored to an IANA zone, so an operator in another zone must
+ * still see (and edit) the time the content will actually publish at. Returns
+ * an empty string for a missing or unparseable instant, which is exactly what a
+ * controlled empty input needs.
+ */
+export function toDateTimeLocalInput(
+  value: string | Date | null | undefined,
+  timezone: string,
+): string {
+  if (!value) {
+    return '';
+  }
+
+  const date = typeof value === 'string' ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  try {
+    const parts = new Map(
+      new Intl.DateTimeFormat('en-US-u-ca-gregory-nu-latn', {
+        day: '2-digit',
+        hour: '2-digit',
+        hourCycle: 'h23',
+        minute: '2-digit',
+        month: '2-digit',
+        timeZone: timezone,
+        year: 'numeric',
+      })
+        .formatToParts(date)
+        .filter((part) => part.type !== 'literal')
+        .map((part) => [part.type, part.value]),
+    );
+
+    const year = parts.get('year');
+    const month = parts.get('month');
+    const day = parts.get('day');
+    const hour = parts.get('hour');
+    const minute = parts.get('minute');
+    if (!year || !month || !day || !hour || !minute) {
+      return '';
+    }
+
+    return `${year}-${month}-${day}T${hour}:${minute}`;
+  } catch (_error) {
+    return '';
+  }
+}
+
+/**
+ * Inverse of {@link toDateTimeLocalInput}: interpret a `datetime-local` value as
+ * wall-clock time in `timezone` and return the corresponding UTC instant.
+ *
+ * Returns `null` rather than throwing when the value is not a well-formed
+ * `datetime-local` string, so each caller can phrase its own validation error.
+ */
+export function fromDateTimeLocalInput(
+  value: string,
+  timezone: string,
+): string | null {
+  const match = value.match(DATE_TIME_LOCAL_PATTERN);
+  if (!match) {
+    return null;
+  }
+
+  return createDateFromTimezone(
+    Number.parseInt(match[1], 10),
+    Number.parseInt(match[2], 10),
+    Number.parseInt(match[3], 10),
+    Number.parseInt(match[4], 10),
+    Number.parseInt(match[5], 10),
+    timezone,
+  ).toISOString();
+}
