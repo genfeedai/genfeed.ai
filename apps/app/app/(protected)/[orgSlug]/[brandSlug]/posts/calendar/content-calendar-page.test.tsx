@@ -29,11 +29,14 @@ interface CalendarItemShape {
   status: string;
 }
 
+const { notifyErrorMock } = vi.hoisted(() => ({
+  notifyErrorMock: vi.fn(),
+}));
+
 const findArticlesMock = vi.fn();
 const findReleasesMock = vi.fn();
 const updateReleaseMock = vi.fn();
 const updateTargetMock = vi.fn();
-const notifyErrorMock = vi.fn();
 const pushMock = vi.fn();
 const setDateRangeMock = vi.fn();
 const useAuthedServiceMock = vi.fn();
