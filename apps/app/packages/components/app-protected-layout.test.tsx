@@ -991,8 +991,8 @@ describe('AppProtectedLayout', () => {
     expect(
       screen.queryByTestId('universal-workspace-shell'),
     ).not.toBeInTheDocument();
-    // The module sidebar is the canvas's to own on an editor route; the frame
-    // around it is not the shell's to withhold while auth is still loading.
+    // The module sidebar is deliberately suppressed on canvas routes; the frame
+    // that has to survive the booting window is the layout plus its topbar.
     expect(screen.getByTestId('app-layout')).toBeInTheDocument();
     expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
     expect(appLayoutSpy).toHaveBeenCalledWith(
@@ -1443,7 +1443,10 @@ describe('AppProtectedLayout', () => {
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({ isWorkspaceShell: true }),
     );
+    // Canvas routes own their left rail, so the module sidebar stays out while
+    // the shell frame itself remains.
     expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
+    expect(screen.getByTestId('app-layout')).toBeInTheDocument();
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('streak-notifications-bridge'),
@@ -1465,6 +1468,7 @@ describe('AppProtectedLayout', () => {
     );
     expect(screen.getByText('Workflow editor')).toBeInTheDocument();
     expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
+    expect(screen.getByTestId('app-layout')).toBeInTheDocument();
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
   });
 });
