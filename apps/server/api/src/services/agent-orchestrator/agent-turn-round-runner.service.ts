@@ -1,3 +1,4 @@
+import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { AGENT_CREDIT_COSTS } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
 import type {
@@ -11,6 +12,11 @@ import {
   type AgentArtifactCompletionMetadata,
   buildAgentArtifactCompletionMetadata as buildArtifactMetadata,
 } from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
+import {
+  buildResolvedModelMetadata,
+  normalizeResponseModel,
+} from '@api/services/agent-orchestrator/utils/agent-response-model.util';
+import { normalizeUiBlocks } from '@api/services/agent-orchestrator/utils/agent-ui-blocks.util';
 import type {
   OpenRouterMessage,
   OpenRouterToolCallResponse,
@@ -174,7 +180,50 @@ export class AgentTurnRoundRunnerService {
     private readonly loggerService: LoggerService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly toolExecutorService: AgentToolExecutorService,
+    private readonly agentRunsService: AgentRunsService,
   ) {}
+
+  /**
+   * Resolve the model that actually served a turn, log it, and merge into run
+   * metadata. Shared by sync and stream loops so both stay byte-identical.
+   */
+  async recordAgentResponseModel(params: {
+    actualModels?: string[];
+    context: AgentChatContext;
+    requestedModel: string;
+    responseModel?: string;
+    runId?: string;
+    source?: AgentChatRequest['source'];
+    threadId: string;
+  }): Promise<string> {
+    const actualModel = normalizeResponseModel(
+      params.requestedModel,
+      params.responseModel,
+    );
+
+    this.loggerService.log(`${this.constructorName} resolved agent response`, {
+      actualModel,
+      organizationId: params.context.organizationId,
+      requestedModel: params.requestedModel,
+      runId: params.runId,
+      source: params.source ?? 'agent',
+      threadId: params.threadId,
+      userId: params.context.userId,
+    });
+
+    if (params.runId) {
+      await this.agentRunsService.mergeMetadata(
+        params.runId,
+        params.context.organizationId,
+        buildResolvedModelMetadata(params.requestedModel, [
+          ...(params.actualModels ?? []),
+          actualModel,
+        ]),
+      );
+    }
+
+    return actualModel;
+  }
 
   async executeToolRound(
     params: ExecuteToolRoundParams,
@@ -529,7 +578,7 @@ export class AgentTurnRoundRunnerService {
         toolName === AgentToolName.RENDER_DASHBOARD &&
         result.data?.uiBlocks
       ) {
-        const normalizedBlocks = this.normalizeUiBlocks(
+        const normalizedBlocks = normalizeUiBlocks(
           result.data.uiBlocks as unknown[],
         );
         state.latestUiBlocks = {
@@ -631,19 +680,5 @@ export class AgentTurnRoundRunnerService {
         requestedToolName === AgentToolName.GENERATE_IMAGE ? 'image' : 'video',
       prompt,
     };
-  }
-
-  private normalizeUiBlocks(blocks: unknown[]): AgentUIBlock[] {
-    const normalized: AgentUIBlock[] = [];
-
-    for (const block of blocks) {
-      if (!block || typeof block !== 'object') {
-        continue;
-      }
-
-      normalized.push(block as AgentUIBlock);
-    }
-
-    return normalized;
   }
 }

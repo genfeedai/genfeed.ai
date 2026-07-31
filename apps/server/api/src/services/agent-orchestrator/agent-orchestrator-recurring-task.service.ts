@@ -27,12 +27,15 @@ import {
   buildFallbackThreadTitle,
   maybeUpdateThreadTitle,
 } from '@api/services/agent-orchestrator/utils/agent-thread-title.util';
-import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
+import {
+  AgentRuntimeSessionService,
+  getRuntimeBindingEffect,
+  upsertRuntimeBindingEffect,
+} from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentMessageRole } from '@genfeedai/enums';
 import { AgentToolName, type ValidatedAgentScope } from '@genfeedai/interfaces';
 import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
 import { Injectable, Optional } from '@nestjs/common';
-import { Effect } from 'effect';
 
 type RecurringTaskContentType = 'image' | 'video' | 'post' | 'newsletter';
 type RecurringTaskInputField = 'prompt' | 'schedule' | 'variationBrief';
@@ -90,7 +93,11 @@ export class AgentOrchestratorRecurringTaskService {
     userId: string;
   }): Promise<void> {
     const binding = await runEffectPromise(
-      this.getRuntimeBindingEffect(params.threadId, params.organizationId),
+      getRuntimeBindingEffect(
+        this.agentRuntimeSessionService,
+        params.threadId,
+        params.organizationId,
+      ),
     );
     const resumeCursor = this.readRecurringTaskResumeCursor(
       binding?.resumeCursor as Record<string, unknown> | undefined,
@@ -304,7 +311,8 @@ export class AgentOrchestratorRecurringTaskService {
     metadata: Record<string, unknown>;
   } | null> {
     const binding = await runEffectPromise(
-      this.getRuntimeBindingEffect(
+      getRuntimeBindingEffect(
+        this.agentRuntimeSessionService,
         params.threadId,
         params.context.organizationId,
       ),
@@ -529,7 +537,7 @@ export class AgentOrchestratorRecurringTaskService {
     };
 
     await runEffectPromise(
-      this.upsertRuntimeBindingEffect({
+      upsertRuntimeBindingEffect(this.agentRuntimeSessionService, {
         organizationId: context.organizationId,
         resumeCursor,
         runId: context.runId,
@@ -842,39 +850,5 @@ export class AgentOrchestratorRecurringTaskService {
       | undefined;
 
     return settings?.timezone?.trim() || 'UTC';
-  }
-
-  private getRuntimeBindingEffect(
-    threadId: string,
-    organizationId: string,
-  ): Effect.Effect<
-    Awaited<ReturnType<AgentRuntimeSessionService['getBinding']>> | null,
-    unknown
-  > {
-    if (!this.agentRuntimeSessionService) {
-      return Effect.succeed(null);
-    }
-
-    return this.agentRuntimeSessionService.getBindingEffect(
-      threadId,
-      organizationId,
-    );
-  }
-
-  private upsertRuntimeBindingEffect(params: {
-    threadId: string;
-    organizationId: string;
-    runId?: string;
-    model?: string;
-    status: 'running' | 'waiting_input' | 'completed' | 'cancelled' | 'failed';
-    resumeCursor?: Record<string, unknown>;
-  }): Effect.Effect<void, unknown> {
-    if (!this.agentRuntimeSessionService) {
-      return Effect.void;
-    }
-
-    return this.agentRuntimeSessionService
-      .upsertBindingEffect(params)
-      .pipe(Effect.asVoid);
   }
 }

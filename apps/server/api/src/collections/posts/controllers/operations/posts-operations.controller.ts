@@ -36,6 +36,7 @@ import {
   IngredientCategory,
   PostCategory,
   PostStatus,
+  parsePlatform,
 } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { PostListSerializer, PostSerializer } from '@genfeedai/serializers';
@@ -86,15 +87,6 @@ export class PostsOperationsController {
       : typeof response === 'object' && response !== null
         ? (response as Record<string, unknown>)
         : { detail: 'Bad request' };
-  }
-
-  private normalizeCredentialPlatform(
-    value: unknown,
-  ): CredentialPlatform | undefined {
-    const normalized = String(value ?? '').toLowerCase();
-    return Object.values(CredentialPlatform).find(
-      (platform) => platform === normalized,
-    );
   }
 
   private normalizeIngredientCategory(
@@ -279,9 +271,7 @@ export class PostsOperationsController {
         );
       }
 
-      const credentialPlatform = this.normalizeCredentialPlatform(
-        credential.platform,
-      );
+      const credentialPlatform = parsePlatform(credential.platform);
       if (!credentialPlatform) {
         throw new HttpException(
           {

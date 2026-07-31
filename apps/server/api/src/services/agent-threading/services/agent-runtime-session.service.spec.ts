@@ -9,7 +9,11 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import type { AgentSessionBindingDocument } from '@api/services/agent-threading/schemas/agent-session-binding.schema';
-import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
+import {
+  AgentRuntimeSessionService,
+  getRuntimeBindingEffect,
+  upsertRuntimeBindingEffect,
+} from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -324,6 +328,58 @@ describe('AgentRuntimeSessionService', () => {
           threadId,
         },
       );
+    });
+  });
+
+  describe('optional runtime binding helpers', () => {
+    it('getRuntimeBindingEffect returns null when service is absent', async () => {
+      const result = await Effect.runPromise(
+        getRuntimeBindingEffect(undefined, threadId, organizationId),
+      );
+
+      expect(result).toBeNull();
+      expect(mockPrisma.agentThreadSnapshot.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('getRuntimeBindingEffect delegates when service is present', async () => {
+      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(
+        mockSnapshotRow,
+      );
+
+      const result = await Effect.runPromise(
+        getRuntimeBindingEffect(service, threadId, organizationId),
+      );
+
+      expect(result).not.toBeNull();
+      expect(mockPrisma.agentThreadSnapshot.findFirst).toHaveBeenCalled();
+    });
+
+    it('upsertRuntimeBindingEffect no-ops when service is absent', async () => {
+      await Effect.runPromise(
+        upsertRuntimeBindingEffect(undefined, {
+          organizationId,
+          status: 'running',
+          threadId,
+        }),
+      );
+
+      expect(mockPrisma.agentThreadSnapshot.findFirst).not.toHaveBeenCalled();
+      expect(mockPrisma.agentThreadSnapshot.create).not.toHaveBeenCalled();
+    });
+
+    it('upsertRuntimeBindingEffect delegates when service is present', async () => {
+      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
+      mockPrisma.agentThreadSnapshot.create.mockResolvedValue(mockSnapshotRow);
+
+      await Effect.runPromise(
+        upsertRuntimeBindingEffect(service, {
+          organizationId,
+          status: 'running',
+          threadId,
+        }),
+      );
+
+      expect(mockPrisma.agentThreadSnapshot.create).toHaveBeenCalled();
     });
   });
 });

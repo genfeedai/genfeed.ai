@@ -25,10 +25,7 @@ import {
   persistRunArtifacts,
 } from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
 import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator/utils/agent-final-content.util';
-import {
-  buildResolvedModelMetadata,
-  normalizeResponseModel,
-} from '@api/services/agent-orchestrator/utils/agent-response-model.util';
+import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import { buildAgentRoutingMetadata } from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';
 import { buildAgentScopeMetadata } from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
 import {
@@ -295,15 +292,17 @@ export class AgentOrchestratorStreamLoopService {
           await this.handleCancelledStream(context, threadId);
           return;
         }
-        const actualModel = await this.recordAgentResponseModel({
-          actualModels: Array.from(actualModels),
-          context,
-          requestedModel: model,
-          responseModel: response.model,
-          runId: context.runId,
-          source,
-          threadId,
-        });
+        const actualModel = await this.turnRoundRunner.recordAgentResponseModel(
+          {
+            actualModels: Array.from(actualModels),
+            context,
+            requestedModel: model,
+            responseModel: response.model,
+            runId: context.runId,
+            source,
+            threadId,
+          },
+        );
         actualModels.add(actualModel);
 
         const choice = response.choices[0];
@@ -669,43 +668,5 @@ export class AgentOrchestratorStreamLoopService {
     await runEffectPromise(
       this.streamEffects.publishStreamCancelledEffect(context, threadId),
     );
-  }
-
-  private async recordAgentResponseModel(params: {
-    actualModels?: string[];
-    context: AgentChatContext;
-    requestedModel: string;
-    responseModel?: string;
-    runId?: string;
-    source?: AgentChatRequest['source'];
-    threadId: string;
-  }): Promise<string> {
-    const actualModel = normalizeResponseModel(
-      params.requestedModel,
-      params.responseModel,
-    );
-
-    this.loggerService.log(`${this.constructorName} resolved agent response`, {
-      actualModel,
-      organizationId: params.context.organizationId,
-      requestedModel: params.requestedModel,
-      runId: params.runId,
-      source: params.source ?? 'agent',
-      threadId: params.threadId,
-      userId: params.context.userId,
-    });
-
-    if (params.runId) {
-      await this.agentRunsService.mergeMetadata(
-        params.runId,
-        params.context.organizationId,
-        buildResolvedModelMetadata(params.requestedModel, [
-          ...(params.actualModels ?? []),
-          actualModel,
-        ]),
-      );
-    }
-
-    return actualModel;
   }
 }
