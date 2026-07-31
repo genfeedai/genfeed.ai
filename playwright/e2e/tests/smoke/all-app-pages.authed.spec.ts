@@ -1,5 +1,6 @@
 import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
 import { expect, type Page, type Response, test } from '@playwright/test';
+import { playwrightApiEndpoint } from '../../config/environment';
 import { setupStrictNetworkGuard } from '../../utils/network-guard';
 
 /**
@@ -113,31 +114,62 @@ function resolveWorkspaceOracle(payload: BootstrapPayload): {
  * Do NOT derive expected org/brand slugs from `page.url()` — that would let a
  * redirect to the wrong non-empty workspace pass. Read them from the
  * authenticated bootstrap payload instead.
+ *
+ * Bootstrap for workspace resolution runs server-side in `proxy.ts` and is
+ * invisible to `page.waitForResponse`. Mint a JWT the same way proxy does
+ * (session cookie → `/auth/token`) and call bootstrap over the API request
+ * context so the oracle does not depend on a client re-fetch.
  */
 async function readWorkspaceOracleFromBootstrap(page: Page): Promise<{
   brandSlug: string;
   orgSlug: string;
 }> {
-  const bootstrapResponsePromise = page.waitForResponse(
-    (response) => {
-      try {
-        const url = new URL(response.url());
-        return (
-          url.pathname.endsWith('/auth/bootstrap') &&
-          response.request().method() === 'GET' &&
-          response.ok()
-        );
-      } catch {
-        return false;
-      }
-    },
-    { timeout: 180_000 },
+  const cookies = await page.context().cookies();
+  const sessionCookie = cookies.find(
+    (cookie) =>
+      cookie.name === 'better-auth.session_token' ||
+      cookie.name === '__Secure-better-auth.session_token',
   );
+  expect(
+    sessionCookie?.value,
+    'Better Auth session cookie missing from storageState',
+  ).toBeTruthy();
+
+  const tokenResponse = await page.request.get(
+    `${playwrightApiEndpoint}/auth/token`,
+    {
+      headers: {
+        cookie: `${sessionCookie?.name}=${sessionCookie?.value}`,
+      },
+      timeout: 60_000,
+    },
+  );
+  expect(
+    tokenResponse.ok(),
+    `GET ${playwrightApiEndpoint}/auth/token returned ${tokenResponse.status()}`,
+  ).toBeTruthy();
+  const tokenPayload = (await tokenResponse.json()) as { token?: string };
+  expect(tokenPayload.token, 'token exchange returned no JWT').toBeTruthy();
+
+  const bootstrapResponse = await page.request.get(
+    `${playwrightApiEndpoint}/auth/bootstrap`,
+    {
+      headers: {
+        Authorization: `Bearer ${tokenPayload.token}`,
+      },
+      timeout: 60_000,
+    },
+  );
+  expect(
+    bootstrapResponse.ok(),
+    `GET ${playwrightApiEndpoint}/auth/bootstrap returned ${bootstrapResponse.status()}`,
+  ).toBeTruthy();
+
+  const payload = (await bootstrapResponse.json()) as BootstrapPayload;
+  const oracle = resolveWorkspaceOracle(payload);
 
   await assertRouteLoads(page, '/');
-  const response = await bootstrapResponsePromise;
-  const payload = (await response.json()) as BootstrapPayload;
-  return resolveWorkspaceOracle(payload);
+  return oracle;
 }
 
 test.describe('Authenticated route smoke (real Better Auth session)', () => {
