@@ -134,11 +134,19 @@ test('direct PR workflows cancel only within one PR or complete ref', () => {
     const group = concurrency.match(/^ {2}group: (.+)$/m)?.[1];
 
     assert.ok(group, `${fileName} must define a concurrency group`);
-    assert.match(
-      concurrency,
-      /^ {2}cancel-in-progress: true$/m,
-      `${fileName} must cancel work superseded within its isolated group`,
-    );
+    if (fileName === 'ci.yml') {
+      assert.match(
+        concurrency,
+        /^ {2}cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}$/m,
+        'ci.yml must cancel superseded pull request runs without cancelling master runs',
+      );
+    } else {
+      assert.match(
+        concurrency,
+        /^ {2}cancel-in-progress: true$/m,
+        `${fileName} must cancel work superseded within its isolated group`,
+      );
+    }
     assert.doesNotMatch(
       group,
       /github\.(?:head_ref|ref_name|sha)/,
