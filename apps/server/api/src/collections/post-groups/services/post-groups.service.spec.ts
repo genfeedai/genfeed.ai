@@ -3,6 +3,7 @@ import { PostGroupPersistenceService } from '@api/collections/post-groups/servic
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
+import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ApiKeyScope,
@@ -13,9 +14,24 @@ import {
   TargetValidationState,
 } from '@genfeedai/enums';
 import { PostPublishQueueService } from '@genfeedai/server';
+import type { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+
+/**
+ * Setup signals are not what these tests exercise, so every provider reads as
+ * fully configured on a publicly reachable origin — readiness then reflects
+ * token state alone.
+ */
+function buildFullyConfiguredSetupService(): PublishingProviderSetupService {
+  return new PublishingProviderSetupService({
+    get: (key: string) =>
+      key.endsWith('_URI') || key.endsWith('_URL')
+        ? 'https://app.example.com/oauth/callback'
+        : `${key}-value`,
+  } as unknown as ConfigService);
+}
 
 type MockPostGroup = {
   attachments: unknown;
@@ -194,6 +210,10 @@ describe('PostGroupsService', () => {
         PostGroupPersistenceService,
         PostGroupReadinessService,
         PostGroupsService,
+        {
+          provide: PublishingProviderSetupService,
+          useValue: buildFullyConfiguredSetupService(),
+        },
         {
           provide: PrismaService,
           useValue: prisma,
