@@ -123,6 +123,20 @@ function countForwardRefs(): number {
   return count;
 }
 
+/**
+ * Modules the rest of the graph is allowed to depend on unconditionally. They
+ * must stay at the bottom: nothing they import may lead back to them.
+ */
+const LEAF_MODULES = [
+  'AuthProviderModule',
+  'CredentialsCoreModule',
+  'MetadataModule',
+  'OrganizationSettingsModule',
+  'RolesModule',
+  'SettingsModule',
+  'TagsModule',
+];
+
 describe('Module dependency graph', () => {
   const graph = buildGraph();
   const cycles = findCycles(graph);
@@ -150,24 +164,29 @@ describe('Module dependency graph', () => {
 
   it('should track forwardRef count (ratchet — decrease only)', () => {
     const count = countForwardRefs();
-    // The repository baseline is 1077. Keep the limit exact so any new
+    // The repository baseline is 1076. Keep the limit exact so any new
     // forwardRef requires removing an existing circular dependency first.
-    const MAX_ALLOWED_FORWARD_REFS = 1077;
+    const MAX_ALLOWED_FORWARD_REFS = 1076;
     console.log(`Total forwardRef() calls in module files: ${count}`);
     expect(count).toBeLessThanOrEqual(MAX_ALLOWED_FORWARD_REFS);
   });
 
-  it('leaf modules should not be wrapped in forwardRef by callers', () => {
-    const LEAF_MODULES = [
-      'AuthProviderModule',
-      'CredentialsCoreModule',
-      'MetadataModule',
-      'OrganizationSettingsModule',
-      'RolesModule',
-      'SettingsModule',
-      'TagsModule',
-    ];
+  it('leaf modules must not take part in any dependency cycle', () => {
+    // A leaf that reaches back up the graph closes a ring, and webpack
+    // evaluates that ring long before Nest can honour a `forwardRef`. The
+    // compiled API then dies while emitting its own OpenAPI spec with
+    // `Cannot access '<Module>' before initialization`, which is how
+    // `CredentialsCoreModule -> QuotaModule` was caught. Resolve the upward
+    // dependency through `ModuleRef` instead of importing its module.
+    const offenders = LEAF_MODULES.flatMap((leaf) => {
+      const cycle = cycles.find((entry) => entry.includes(leaf));
+      return cycle ? [`${leaf}: ${cycle.join(' -> ')}`] : [];
+    });
 
+    expect(offenders).toEqual([]);
+  });
+
+  it('leaf modules should not be wrapped in forwardRef by callers', () => {
     const violations: string[] = [];
     for (const [name, node] of graph) {
       const content = readFileSync(node.filePath, 'utf-8');

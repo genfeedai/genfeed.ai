@@ -5,13 +5,13 @@ import { CredentialPublishingReadinessService } from '@api/collections/credentia
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PublishingProviderSetupModule } from '@api/collections/publishing-setup/publishing-provider-setup.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
-import { QuotaModule } from '@api/services/quota/quota.module';
 import { forwardRef, Module } from '@nestjs/common';
 
 /**
- * `PublishingProviderSetupModule` has no imports of its own, so it is safe to
- * pull in directly. `QuotaModule` already reaches back here through a
- * `forwardRef`, so this side is guarded too.
+ * This module is a leaf that most of the graph imports, so it must not reach
+ * back up it. `PublishingProviderSetupModule` has no imports of its own, so it
+ * is safe to pull in directly; `QuotaService` is resolved through `ModuleRef`
+ * inside `CredentialPublishingReadinessService` rather than imported here.
  */
 @Module({
   exports: [
@@ -21,11 +21,7 @@ import { forwardRef, Module } from '@nestjs/common';
     CredentialPublishingReadinessService,
     CredentialsService,
   ],
-  imports: [
-    forwardRef(() => FilesClientModule),
-    forwardRef(() => QuotaModule),
-    PublishingProviderSetupModule,
-  ],
+  imports: [forwardRef(() => FilesClientModule), PublishingProviderSetupModule],
   providers: [
     AccountHealthService,
     AccountPublishingContextService,
