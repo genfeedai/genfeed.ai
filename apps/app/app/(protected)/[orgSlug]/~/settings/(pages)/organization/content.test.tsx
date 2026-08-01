@@ -1,4 +1,5 @@
-import { render } from '@testing-library/react';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsOrganizationPage from './content';
 import '@testing-library/jest-dom/vitest';
@@ -8,6 +9,12 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
     isReady: true,
     organizationId: 'org-123',
     selectedBrand: null,
+  })),
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: vi.fn(() => ({
+    orgHref: (path: string) => `/test-org/~${path}`,
   })),
 }));
 
@@ -56,10 +63,45 @@ vi.mock('@services/core/notifications.service', () => ({
 describe('SettingsOrganizationPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useBrand).mockReturnValue({
+      isReady: true,
+      organizationId: 'org-123',
+      selectedBrand: null,
+    } as ReturnType<typeof useBrand>);
   });
 
   it('should render without crashing', () => {
     const { container } = render(<SettingsOrganizationPage />);
     expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('always shows Start agent CTA and hides fleet NSFW when fleet is not connected', () => {
+    render(<SettingsOrganizationPage />);
+
+    expect(screen.getByRole('link', { name: /start agent/i })).toHaveAttribute(
+      'href',
+      '/test-org/~/agent/new',
+    );
+    expect(screen.queryByText(/Reveal fleet NSFW/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Fleet is not connected|Select a brand/i),
+    ).toBeInTheDocument();
+  });
+
+  it('shows fleet NSFW control when the brand has fleet connected', () => {
+    vi.mocked(useBrand).mockReturnValue({
+      isReady: true,
+      organizationId: 'org-123',
+      selectedBrand: {
+        id: 'brand-1',
+        isDarkroomEnabled: true,
+        label: 'Default Brand',
+      },
+    } as ReturnType<typeof useBrand>);
+
+    render(<SettingsOrganizationPage />);
+
+    expect(screen.getByText(/Reveal fleet NSFW assets/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Fleet$/i)).toBeInTheDocument();
   });
 });
