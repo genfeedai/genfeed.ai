@@ -88,7 +88,13 @@ export default function SettingsConversationPage({
     async (value: string) => {
       setIsSavingReplyStyle(true);
       try {
-        await updateSettings('agentReplyStyle', value as AgentReplyStyle);
+        const normalized = value.trim().toUpperCase();
+        const resolved = Object.values(AgentReplyStyle).includes(
+          normalized as AgentReplyStyle,
+        )
+          ? (normalized as AgentReplyStyle)
+          : AgentReplyStyle.CONCISE;
+        await updateSettings('agentReplyStyle', resolved);
       } catch (error) {
         logger.error('Failed to update conversation reply style', error);
       } finally {
@@ -158,12 +164,19 @@ export default function SettingsConversationPage({
           <div>
             <p className="text-sm font-medium">Reply Style</p>
             <Select
-              value={settings?.agentReplyStyle ?? AgentReplyStyle.CONCISE}
+              value={
+                Object.values(AgentReplyStyle).includes(
+                  (settings?.agentReplyStyle?.toUpperCase() ??
+                    '') as AgentReplyStyle,
+                )
+                  ? (settings?.agentReplyStyle?.toUpperCase() as AgentReplyStyle)
+                  : AgentReplyStyle.CONCISE
+              }
               disabled={isSavingReplyStyle}
               onValueChange={handleReplyStyleChange}
             >
               <SelectTrigger className="w-full mt-2 rounded">
-                <SelectValue />
+                <SelectValue placeholder="Select a reply style" />
               </SelectTrigger>
               <SelectContent>
                 {REPLY_STYLE_OPTIONS.map((option) => (

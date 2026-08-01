@@ -21,15 +21,28 @@ const REPLY_STYLE_OPTIONS: Array<{ label: string; value: AgentReplyStyle }> = [
   { label: 'Professional', value: AgentReplyStyle.PROFESSIONAL },
 ];
 
+function resolveReplyStyle(raw?: string | null): AgentReplyStyle {
+  if (!raw) {
+    return AgentReplyStyle.CONCISE;
+  }
+
+  const normalized = raw.trim().toUpperCase();
+  const match = REPLY_STYLE_OPTIONS.find(
+    (option) => option.value === normalized,
+  );
+  return match?.value ?? AgentReplyStyle.CONCISE;
+}
+
 export default function SettingsOrganizationPolicyPage() {
   const { settings, updateSettings } = useOrganization();
   const [isSavingReplyStyle, setIsSavingReplyStyle] = useState(false);
+  const replyStyle = resolveReplyStyle(settings?.agentReplyStyle);
 
   const handleReplyStyleChange = useCallback(
     async (value: string) => {
       setIsSavingReplyStyle(true);
       try {
-        await updateSettings('agentReplyStyle', value as AgentReplyStyle);
+        await updateSettings('agentReplyStyle', resolveReplyStyle(value));
       } catch (error) {
         logger.error('Failed to update organization reply style', error);
       } finally {
@@ -49,12 +62,12 @@ export default function SettingsOrganizationPolicyPage() {
         <div>
           <p className="text-sm font-medium">Organization Default</p>
           <Select
-            value={settings?.agentReplyStyle ?? AgentReplyStyle.CONCISE}
+            value={replyStyle}
             disabled={isSavingReplyStyle}
             onValueChange={handleReplyStyleChange}
           >
             <SelectTrigger className="w-full mt-2 rounded">
-              <SelectValue />
+              <SelectValue placeholder="Select a reply style" />
             </SelectTrigger>
             <SelectContent>
               {REPLY_STYLE_OPTIONS.map((option) => (

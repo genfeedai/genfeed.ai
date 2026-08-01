@@ -40,9 +40,11 @@ export function applyAgentReplyStyle(
   if (!replyStyle) {
     return prompt;
   }
+  // Accept Prisma UPPER_SNAKE or legacy lowercase style strings.
+  const styleKey = replyStyle
+    .trim()
+    .toLowerCase() as keyof typeof REPLY_STYLE_INSTRUCTIONS;
   const instruction =
-    REPLY_STYLE_INSTRUCTIONS[
-      replyStyle as keyof typeof REPLY_STYLE_INSTRUCTIONS
-    ] ?? REPLY_STYLE_INSTRUCTIONS.concise;
+    REPLY_STYLE_INSTRUCTIONS[styleKey] ?? REPLY_STYLE_INSTRUCTIONS.concise;
   return `${prompt}\n\n## Reply Style\n${instruction}`;
 }
