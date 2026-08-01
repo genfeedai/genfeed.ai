@@ -586,7 +586,7 @@ export class TrainingsService extends BaseService<
 
   /**
    * Count an organization's trainings. Encapsulates the raw Prisma aggregation
-   * so darkroom callers don't reach into `.prisma.*`.
+   * so fleet callers don't reach into `.prisma.*`.
    */
   async countTrainingsByOrganization(organizationId: string): Promise<number> {
     return this.prisma.training.count({

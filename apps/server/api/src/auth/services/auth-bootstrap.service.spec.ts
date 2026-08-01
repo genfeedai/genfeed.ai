@@ -207,7 +207,7 @@ describe('AuthBootstrapService', () => {
     expect(accessBootstrapCacheService.set).not.toHaveBeenCalled();
   });
 
-  it('normalizes stale cached bootstrap darkroom capabilities', async () => {
+  it('normalizes stale cached bootstrap fleet capabilities', async () => {
     const cached: AccessBootstrapCachePayload = {
       access: {
         brandId: 'brand_1',

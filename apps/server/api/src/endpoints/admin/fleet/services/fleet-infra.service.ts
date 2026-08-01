@@ -64,7 +64,7 @@ export class AdminFleetInfraService {
   }
 
   /**
-   * Get EC2 instance statuses filtered by the 'Project: darkroom' tag.
+   * Get EC2 instance statuses filtered by the 'Project: fleet' tag.
    */
   getEC2Status(): Promise<AdminFleetEC2InstanceStatus[]> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
@@ -77,7 +77,7 @@ export class AdminFleetInfraService {
       async () => {
         const command = new DescribeInstancesCommand({
           Filters: [
-            { Name: 'tag:Project', Values: ['darkroom', 'fleet'] },
+            { Name: 'tag:Project', Values: ['fleet'] },
             {
               Name: 'instance-state-name',
               Values: ['pending', 'running', 'stopping', 'stopped'],
@@ -255,7 +255,7 @@ export class AdminFleetInfraService {
   }
 
   getDefaultCloudFrontDistributionId(): string {
-    return this.configService.get('DARKROOM_CLOUDFRONT_DISTRIBUTION_ID') || '';
+    return this.configService.get('FLEET_CLOUDFRONT_DISTRIBUTION_ID') || '';
   }
 
   /**

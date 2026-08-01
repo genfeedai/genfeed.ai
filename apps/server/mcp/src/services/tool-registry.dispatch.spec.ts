@@ -52,12 +52,12 @@ describe('ToolRegistryService.classify', () => {
     ['brands__create', 'unknown'],
     ['content_plans__find_all', 'unknown'],
     ['a_tool_that_does_not_exist', 'unknown'],
-    // The darkroom/training/GPU fleet tools were dropped from the OSS MCP
+    // The fleet/training/GPU fleet tools were dropped from the OSS MCP
     // surface in PR 5/6 (superadmin+IP-gated fleet API — a gf_ key can't reach
     // it); they no longer classify to an executor.
     ['control_comfyui', 'unknown'],
     ['start_training', 'unknown'],
-    ['generate_darkroom_content', 'unknown'],
+    ['generate_fleet_content', 'unknown'],
     // resolve_approval is handled upstream in handleToolCall, so it is not a
     // classify-dispatch target.
     ['resolve_approval', 'unknown'],

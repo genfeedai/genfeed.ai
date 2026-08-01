@@ -59,7 +59,7 @@ export class ComfyUIService {
     private readonly httpService: HttpService,
     private readonly pollUntilService: PollUntilService,
   ) {
-    this.comfyuiUrl = this.configService.get('DARKROOM_COMFYUI_URL') ?? '';
+    this.comfyuiUrl = this.configService.get('FLEET_COMFYUI_URL') ?? '';
   }
 
   /**

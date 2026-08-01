@@ -265,25 +265,25 @@ genfeed credits summary
 genfeed posts list --platform twitter --status published
 ```
 
-### Darkroom (Admin)
+### Fleet (Admin)
 
 Check GPU health:
 
 ```bash
-gf darkroom health
+gf fleet health
 ```
 
 Manage ComfyUI service:
 
 ```bash
-gf darkroom comfy status
-gf darkroom comfy restart
+gf fleet comfy status
+gf fleet comfy restart
 ```
 
 List available LoRA models:
 
 ```bash
-gf darkroom loras
+gf fleet loras
 ```
 
 ### Training (Admin)
@@ -463,8 +463,8 @@ Config is stored in `~/.gf/config.json`:
     "default": {
       "apiUrl": "https://api.genfeed.ai/v1",
       "role": "user",
-      "darkroomHost": "100.106.229.81",
-      "darkroomApiPort": 8189,
+      "fleetHost": "100.106.229.81",
+      "fleetApiPort": 8189,
       "agent": {
         "model": "claude-3-7-sonnet",
         "lastThreadIdByOrganization": {}
@@ -488,8 +488,8 @@ Config is stored in `~/.gf/config.json`:
 | `GENFEED_ORGANIZATION_ID` | Organization ID |
 | `GENFEED_USER_ID` | User ID |
 | `GENFEED_AGENT_MODEL` | Default agent model for `chat` / `chat send` |
-| `GF_DARKROOM_HOST` | Darkroom GPU host IP |
-| `GF_DARKROOM_PORT` | Darkroom API port |
+| `GF_FLEET_HOST` | Fleet GPU host IP |
+| `GF_FLEET_PORT` | Fleet API port |
 
 ## Contributing
 

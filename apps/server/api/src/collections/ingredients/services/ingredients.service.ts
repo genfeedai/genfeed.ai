@@ -706,8 +706,8 @@ export class IngredientsService extends BaseService<
   }
 
   /**
-   * Count persona-scoped darkroom assets for an organization. Encapsulates the
-   * raw Prisma aggregation so darkroom callers don't reach into `.prisma.*`.
+   * Count persona-scoped fleet assets for an organization. Encapsulates the
+   * raw Prisma aggregation so fleet callers don't reach into `.prisma.*`.
    */
   async countPersonaAssets(organizationId: string): Promise<number> {
     return this.prisma.ingredient.count({
@@ -716,7 +716,7 @@ export class IngredientsService extends BaseService<
   }
 
   /**
-   * Group persona-scoped darkroom assets by ingredient status.
+   * Group persona-scoped fleet assets by ingredient status.
    */
   async groupPersonaAssetsByStatus(
     organizationId: string,
@@ -734,7 +734,7 @@ export class IngredientsService extends BaseService<
   }
 
   /**
-   * Group persona-scoped darkroom assets by review status.
+   * Group persona-scoped fleet assets by review status.
    */
   async groupPersonaAssetsByReviewStatus(
     organizationId: string,
@@ -752,7 +752,7 @@ export class IngredientsService extends BaseService<
   }
 
   /**
-   * Group persona-scoped darkroom assets by campaign + review status, with the
+   * Group persona-scoped fleet assets by campaign + review status, with the
    * earliest creation timestamp per group.
    */
   async groupPersonaAssetCampaigns(organizationId: string): Promise<

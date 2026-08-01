@@ -53,7 +53,7 @@ describe('ComfyUIService', () => {
 
     const configMock = {
       get: vi.fn((key: string) => {
-        if (key === 'DARKROOM_COMFYUI_URL') return COMFYUI_URL;
+        if (key === 'FLEET_COMFYUI_URL') return COMFYUI_URL;
         return undefined;
       }),
     } as unknown as ConfigService;

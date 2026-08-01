@@ -29,7 +29,7 @@ export interface BrandContextType {
   settingsLoading: boolean;
   /** Refresh organization settings */
   refreshSettings: () => Promise<void>;
-  /** Brand-scoped darkroom capability state */
+  /** Brand-scoped fleet capability state */
   fleetCapabilities: IFleetCapabilities | null;
   fleetCapabilitiesLoading: boolean;
 }

@@ -42,7 +42,7 @@
     "image-generation",
     "video-generation",
     "training",
-    "darkroom",
+    "fleet",
     "cli"
   ],
   "license": "MIT",

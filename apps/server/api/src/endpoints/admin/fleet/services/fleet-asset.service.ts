@@ -141,7 +141,7 @@ export class AdminFleetAssetService {
       sourceUrl,
       ingredient.category,
     );
-    const datasetKey = `darkroom/datasets/${slug}/${ingredient.id.toString()}.${extension}`;
+    const datasetKey = `fleet/datasets/${slug}/${ingredient.id.toString()}.${extension}`;
     await this.filesClientService.uploadToS3(datasetKey, 'images', {
       type: FileInputType.URL,
       url: sourceUrl,
@@ -152,7 +152,7 @@ export class AdminFleetAssetService {
       AdminFleetValueReader.readString(ingredient.generationPrompt) ??
       AdminFleetValueReader.readString(ingredient.text);
     if (caption) {
-      const captionKey = `darkroom/datasets/${slug}/${ingredient.id.toString()}.txt`;
+      const captionKey = `fleet/datasets/${slug}/${ingredient.id.toString()}.txt`;
       await this.filesClientService.uploadToS3(captionKey, 'images', {
         contentType: 'text/plain',
         data: Buffer.from(caption, 'utf8'),

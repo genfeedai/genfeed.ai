@@ -20,7 +20,7 @@ export type CommandCategory =
   | 'configuration'
   | 'content'
   | 'crm'
-  | 'darkroom'
+  | 'fleet'
   | 'generation'
   | 'help'
   | 'navigation'

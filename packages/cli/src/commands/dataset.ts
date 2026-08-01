@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { deleteDataset, downloadDataset, getDataset, uploadDataset } from '@/api/darkroom-api';
+import { deleteDataset, downloadDataset, getDataset, uploadDataset } from '@/api/fleet-api';
 import { requireAdmin } from '@/middleware/auth-guard';
 import { formatError, formatHeader, formatLabel, print, printJson } from '@/ui/theme';
 import { handleError } from '@/utils/errors';
@@ -50,7 +50,7 @@ datasetCommand
 
 datasetCommand
   .command('upload')
-  .description('Upload training images to darkroom')
+  .description('Upload training images to fleet')
   .argument('<handle>', 'Persona handle')
   .argument('<path>', 'Local directory containing images')
   .action(
@@ -90,7 +90,7 @@ datasetCommand
 
 datasetCommand
   .command('download')
-  .description('Download dataset from darkroom')
+  .description('Download dataset from fleet')
   .argument('<handle>', 'Persona handle')
   .argument('[outDir]', 'Output directory', '.')
   .action(
@@ -111,7 +111,7 @@ datasetCommand
 
 datasetCommand
   .command('delete')
-  .description('Delete dataset from darkroom')
+  .description('Delete dataset from fleet')
   .argument('<handle>', 'Persona handle')
   .action(
     requireAdmin(async (handle: string) => {

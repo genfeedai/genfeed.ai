@@ -134,7 +134,7 @@ export default function MasonryVideoMediaArea({
       {isFleetNsfwLocked && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/35 backdrop-blur-sm px-4 text-center">
           <div className="rounded-full border border-white/20 bg-black/50 px-3 py-1 text-xs font-medium text-white">
-            Sensitive darkroom asset
+            Sensitive fleet asset
           </div>
         </div>
       )}

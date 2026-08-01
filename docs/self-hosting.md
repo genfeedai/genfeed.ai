@@ -126,7 +126,7 @@ The Community image does not start the separate GPU service workspaces. For
 supported API flows that call a local ComfyUI instance, configure:
 
 ```env
-DARKROOM_COMFYUI_URL=http://your-comfyui-host:8188
+FLEET_COMFYUI_URL=http://your-comfyui-host:8188
 ```
 
 ## Commercial Builds

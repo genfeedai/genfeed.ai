@@ -3,7 +3,7 @@ import type { SourceTool } from '../../../interfaces/source-tool.interface.js';
 /**
  * MCP admin tools.
  *
- * The darkroom/LoRA/GPU/training fleet-control tools were removed from the OSS
+ * The fleet/LoRA/GPU/training fleet-control tools were removed from the OSS
  * MCP surface in PR 5/6: they are `requiredRole: 'superadmin'` and the only
  * matching OSS API lives on the `['admin/fleet']` controller
  * behind `SuperAdminGuard` + `IpWhitelistGuard`, which an org-scoped `gf_` MCP

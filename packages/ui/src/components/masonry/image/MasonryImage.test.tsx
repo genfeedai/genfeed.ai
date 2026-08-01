@@ -146,7 +146,7 @@ describe('MasonryImage', () => {
     expect(handleClickIngredient).toHaveBeenCalledWith(mockImage);
   });
 
-  it('blurs sensitive darkroom assets when NSFW visibility is disabled', () => {
+  it('blurs sensitive fleet assets when NSFW visibility is disabled', () => {
     vi.mocked(useBrand).mockReturnValue({
       selectedBrand: { isFleetEnabled: true },
       settings: { isFleetNsfwVisible: false },
@@ -162,11 +162,11 @@ describe('MasonryImage', () => {
       />,
     );
 
-    expect(screen.getByText('Sensitive darkroom asset')).toBeInTheDocument();
+    expect(screen.getByText('Sensitive fleet asset')).toBeInTheDocument();
     expect(screen.getByRole('img')).toHaveClass('blur-sm');
   });
 
-  it('prevents opening locked darkroom assets', () => {
+  it('prevents opening locked fleet assets', () => {
     vi.mocked(useBrand).mockReturnValue({
       selectedBrand: { isFleetEnabled: true },
       settings: { isFleetNsfwVisible: false },

@@ -43,8 +43,8 @@ profileCommand
         const apiUrl = chalk.dim(profile.apiUrl);
 
         print(`  ${marker} ${label}${activeLabel} ${apiUrl}`);
-        if (profile.darkroomHost !== '100.106.229.81') {
-          print(`    ${chalk.dim(`darkroom: ${profile.darkroomHost}`)}`);
+        if (profile.fleetHost !== '100.106.229.81') {
+          print(`    ${chalk.dim(`fleet: ${profile.fleetHost}`)}`);
         }
         if (profile.agent.model) {
           print(`    ${chalk.dim(`agent model: ${profile.agent.model}`)}`);
@@ -78,7 +78,7 @@ profileCommand
   .option('--api-url <url>', 'API URL')
   .option('--api-key <key>', 'API key')
   .option('--agent-model <model>', 'Default agent model for chat')
-  .option('--darkroom-host <host>', 'Darkroom host address')
+  .option('--fleet-host <host>', 'Fleet host address')
   .option('--role <role>', 'User role (user or admin)')
   .action(async (name, options) => {
     try {
@@ -93,7 +93,7 @@ profileCommand
           : {}),
         ...(options.apiKey ? { apiKey: options.apiKey } : {}),
         ...(options.apiUrl ? { apiUrl: options.apiUrl } : {}),
-        ...(options.darkroomHost ? { darkroomHost: options.darkroomHost } : {}),
+        ...(options.fleetHost ? { fleetHost: options.fleetHost } : {}),
         ...(options.role ? { role: options.role as 'user' | 'admin' } : {}),
       };
 
@@ -110,7 +110,7 @@ profileCommand
   .description('Update a profile field')
   .argument(
     '<field>',
-    'Field name (api-url, api-key, agent-model, darkroom-host, role, active-persona)'
+    'Field name (api-url, api-key, agent-model, fleet-host, role, active-persona)'
   )
   .argument('<value>', 'Field value')
   .option('-p, --profile <name>', 'Profile name (defaults to active)')
@@ -122,8 +122,8 @@ profileCommand
         'agent-model': 'agent',
         'api-key': 'apiKey',
         'api-url': 'apiUrl',
-        'darkroom-host': 'darkroomHost',
-        'darkroom-port': 'darkroomApiPort',
+        'fleet-host': 'fleetHost',
+        'fleet-port': 'fleetApiPort',
         role: 'role',
       };
 
@@ -135,7 +135,7 @@ profileCommand
       }
 
       let finalValue: string | number = value;
-      if (mappedField === 'darkroomApiPort') {
+      if (mappedField === 'fleetApiPort') {
         finalValue = Number.parseInt(value, 10);
         if (Number.isNaN(finalValue)) {
           console.error(formatError(`Invalid port number: ${value}`));

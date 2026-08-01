@@ -1809,7 +1809,7 @@
           },
           "isFleetEnabled": {
             "default": false,
-            "description": "Whether this brand can access darkroom fleet features and assets",
+            "description": "Whether this brand can access Fleet features and assets",
             "type": "boolean"
           },
           "isHighlighted": {
@@ -2986,7 +2986,7 @@
             "default": "image"
           },
           "contentRating": {
-            "description": "Moderation content rating for darkroom assets",
+            "description": "Moderation content rating for fleet assets",
             "enum": [
               "sfw",
               "suggestive",
@@ -3124,7 +3124,7 @@
                 "$ref": "#/components/schemas/FleetReviewStatus"
               }
             ],
-            "description": "Darkroom review status for moderated assets"
+            "description": "Fleet review status for moderated assets"
           },
           "scene": {
             "description": "The scene for image generation",
@@ -3573,7 +3573,7 @@
             "type": "number"
           },
           "contentRating": {
-            "description": "Moderation content rating for darkroom assets",
+            "description": "Moderation content rating for fleet assets",
             "enum": [
               "sfw",
               "suggestive",
@@ -3684,7 +3684,7 @@
                 "$ref": "#/components/schemas/FleetReviewStatus"
               }
             ],
-            "description": "Darkroom review status for moderated assets"
+            "description": "Fleet review status for moderated assets"
           },
           "scope": {
             "allOf": [
@@ -5214,7 +5214,7 @@
             "default": "image"
           },
           "contentRating": {
-            "description": "Moderation content rating for darkroom assets",
+            "description": "Moderation content rating for fleet assets",
             "enum": [
               "sfw",
               "suggestive",
@@ -5391,7 +5391,7 @@
                 "$ref": "#/components/schemas/FleetReviewStatus"
               }
             ],
-            "description": "Darkroom review status for moderated assets"
+            "description": "Fleet review status for moderated assets"
           },
           "scene": {
             "description": "The scene for video generation",
@@ -5873,7 +5873,7 @@
         "type": "object"
       },
       "FleetReviewStatus": {
-        "description": "Darkroom review status for moderated assets",
+        "description": "Fleet review status for moderated assets",
         "enum": [
           "pending",
           "approved",
@@ -11498,7 +11498,7 @@
           },
           "isFleetEnabled": {
             "default": false,
-            "description": "Whether this brand can access darkroom fleet features and assets",
+            "description": "Whether this brand can access Fleet features and assets",
             "type": "boolean"
           },
           "isDeleted": {
@@ -12436,7 +12436,7 @@
             "type": "string"
           },
           "contentRating": {
-            "description": "Moderation content rating for darkroom assets",
+            "description": "Moderation content rating for fleet assets",
             "enum": [
               "sfw",
               "suggestive",
@@ -12549,7 +12549,7 @@
                 "$ref": "#/components/schemas/FleetReviewStatus"
               }
             ],
-            "description": "Darkroom review status for moderated assets"
+            "description": "Fleet review status for moderated assets"
           },
           "s3Key": {
             "description": "Storage key for the generated asset",
@@ -13057,7 +13057,7 @@
           },
           "isFleetNsfwVisible": {
             "default": false,
-            "description": "Whether NSFW darkroom assets can be revealed in brand-scoped library surfaces",
+            "description": "Whether NSFW fleet assets can be revealed in brand-scoped library surfaces",
             "type": "boolean"
           },
           "isDeleted": {

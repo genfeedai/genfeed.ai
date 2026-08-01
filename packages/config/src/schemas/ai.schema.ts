@@ -131,10 +131,10 @@ export const newsApiSchema = {
 /**
  * Fleet — self-hosted GPU instance (ComfyUI + fleet-api)
  */
-export const darkroomSchema = {
-  DARKROOM_CLOUDFRONT_DISTRIBUTION_ID: Joi.string().optional().allow(''),
-  DARKROOM_COMFYUI_URL: Joi.string().uri().optional().allow(''),
-  DARKROOM_S3_BUCKET: Joi.string().optional().default('darkroom.genfeed.ai'),
+export const fleetSchema = {
+  FLEET_CLOUDFRONT_DISTRIBUTION_ID: Joi.string().optional().allow(''),
+  FLEET_COMFYUI_URL: Joi.string().uri().optional().allow(''),
+  FLEET_S3_BUCKET: Joi.string().optional().default('fleet.genfeed.ai'),
 };
 
 /**

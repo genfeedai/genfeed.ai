@@ -60,7 +60,7 @@ export class AdminFleetIngestService {
     for (const file of files) {
       const filename = file.originalname;
       const stem = filename.replace(/\.[^.]+$/, '').toLowerCase();
-      const imageKey = `darkroom/datasets/${slug}/${filename}`;
+      const imageKey = `fleet/datasets/${slug}/${filename}`;
 
       try {
         await this.filesClientService.uploadToS3(imageKey, 'images', {
@@ -72,7 +72,7 @@ export class AdminFleetIngestService {
 
         const caption = captionMap.get(stem);
         if (caption) {
-          const captionKey = `darkroom/datasets/${slug}/${caption.filenameStem}.txt`;
+          const captionKey = `fleet/datasets/${slug}/${caption.filenameStem}.txt`;
           await this.filesClientService.uploadToS3(captionKey, 'images', {
             contentType: 'text/plain',
             data: Buffer.from(caption.caption, 'utf8'),

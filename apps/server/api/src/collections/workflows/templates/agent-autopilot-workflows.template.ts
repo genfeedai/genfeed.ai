@@ -48,7 +48,7 @@ export const AGENT_AUTOPILOT_WORKFLOW_TEMPLATES = [
   }),
   actionTemplate({
     description:
-      'Per-organization AI influencer autopilot scanner for enabled darkroom personas.',
+      'Per-organization AI influencer autopilot scanner for enabled fleet personas.',
     icon: 'sparkles',
     id: 'ai-influencer-daily-posts',
     name: 'AI Influencer Daily Posts',

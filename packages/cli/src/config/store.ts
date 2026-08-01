@@ -22,12 +22,21 @@ function migrateConfig(raw: Record<string, unknown>): Record<string, unknown> {
 
   for (const profile of Object.values(profiles)) {
     if ('gpuHost' in profile) {
-      profile.darkroomHost = profile.gpuHost;
+      profile.fleetHost = profile.gpuHost;
       delete profile.gpuHost;
     }
     if ('gpuApiPort' in profile) {
-      profile.darkroomApiPort = profile.gpuApiPort;
+      profile.fleetApiPort = profile.gpuApiPort;
       delete profile.gpuApiPort;
+    }
+    // Legacy Darkroom keys (pre-Fleet rename)
+    if ('darkroomHost' in profile) {
+      profile.fleetHost = profile.darkroomHost;
+      delete profile.darkroomHost;
+    }
+    if ('darkroomApiPort' in profile) {
+      profile.fleetApiPort = profile.darkroomApiPort;
+      delete profile.darkroomApiPort;
     }
     if ('agentModel' in profile) {
       const existingAgent = profile.agent;
@@ -102,8 +111,8 @@ export function mergeProfileWithRuntime(
     agent: mergeAgentConfig(profile.agent, runtime.agent),
     apiKey: runtime.apiKey ?? profile.apiKey,
     apiUrl: runtime.apiUrl ?? profile.apiUrl,
-    darkroomApiPort: runtime.darkroomApiPort ?? profile.darkroomApiPort,
-    darkroomHost: runtime.darkroomHost ?? profile.darkroomHost,
+    fleetApiPort: runtime.fleetApiPort ?? profile.fleetApiPort,
+    fleetHost: runtime.fleetHost ?? profile.fleetHost,
     organizationId: runtime.organizationId ?? profile.organizationId,
     role: runtime.role ?? profile.role,
     token: runtime.token ?? profile.token,
@@ -120,9 +129,13 @@ export function readRuntimeOverrides(): RuntimeProfileOverrides {
   if (process.env.GENFEED_ORGANIZATION_ID)
     overrides.organizationId = process.env.GENFEED_ORGANIZATION_ID;
   if (process.env.GENFEED_USER_ID) overrides.userId = process.env.GENFEED_USER_ID;
-  if (process.env.GF_DARKROOM_HOST) overrides.darkroomHost = process.env.GF_DARKROOM_HOST;
-  if (process.env.GF_DARKROOM_PORT)
-    overrides.darkroomApiPort = Number(process.env.GF_DARKROOM_PORT);
+  // Prefer GF_FLEET_*; accept legacy GF_DARKROOM_* for one release of local env files.
+  if (process.env.GF_FLEET_HOST || process.env.GF_DARKROOM_HOST) {
+    overrides.fleetHost = process.env.GF_FLEET_HOST ?? process.env.GF_DARKROOM_HOST;
+  }
+  if (process.env.GF_FLEET_PORT || process.env.GF_DARKROOM_PORT) {
+    overrides.fleetApiPort = Number(process.env.GF_FLEET_PORT ?? process.env.GF_DARKROOM_PORT);
+  }
   if (process.env.GENFEED_AGENT_MODEL) {
     overrides.agent = {
       ...(overrides.agent ?? {}),
@@ -156,14 +169,14 @@ export async function getActiveBrand(): Promise<string | undefined> {
   return profile.activeBrand;
 }
 
-export async function getDarkroomHost(): Promise<string> {
+export async function getFleetHost(): Promise<string> {
   const { profile } = await getActiveProfile();
-  return profile.darkroomHost;
+  return profile.fleetHost;
 }
 
-export async function getDarkroomApiPort(): Promise<number> {
+export async function getFleetApiPort(): Promise<number> {
   const { profile } = await getActiveProfile();
-  return profile.darkroomApiPort;
+  return profile.fleetApiPort;
 }
 
 export async function getRole(): Promise<string> {

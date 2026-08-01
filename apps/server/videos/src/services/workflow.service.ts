@@ -10,7 +10,7 @@ export class WorkflowService {
    *   Pass 1: High-noise model (initial denoising)
    *   Pass 2: Low-noise model (refinement, no added noise)
    *
-   * Node graph matches darkroom/workflows/wan22-i2v.json exactly.
+   * Node graph matches fleet/workflows/wan22-i2v.json exactly.
    */
   buildWan22I2V(params: Wan22I2VParams): Record<string, unknown> {
     const {

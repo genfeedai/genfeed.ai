@@ -383,11 +383,11 @@ export function useBrandProviderState({
           scopedBrandId,
         );
       } catch (error) {
-        logger.error('Failed to fetch darkroom capabilities', error);
+        logger.error('Failed to fetch fleet capabilities', error);
         return null;
       }
     },
-    queryKey: ['brand-context-darkroom', scopedOrganizationId, scopedBrandId],
+    queryKey: ['brand-context-fleet', scopedOrganizationId, scopedBrandId],
     staleTime: BRAND_CONTEXT_CACHE_TTL_MS,
   });
 

@@ -284,7 +284,7 @@ export const adminNavigationCommands: ICommand[] = [
     label: 'Subscriptions',
     priority: 8,
   },
-  // DARKROOM
+  // FLEET
   {
     action: () => {
       navigate(`${EnvironmentService.apps.admin}/fleet/characters`);

@@ -3,7 +3,7 @@ import { Command } from 'commander';
 import ora from 'ora';
 import {
   comfyAction,
-  getDarkroomHealth,
+  getFleetHealth,
   getGenerateStatus,
   listLoras,
   listPersonas,
@@ -11,7 +11,7 @@ import {
   startContentGenerate,
   startFaceTest,
   startPulid,
-} from '@/api/darkroom-api';
+} from '@/api/fleet-api';
 import { requireAdmin } from '@/middleware/auth-guard';
 import {
   formatError,
@@ -30,17 +30,17 @@ import {
   sleep,
 } from '@/utils/helpers';
 
-export const darkroomCommand = new Command('darkroom')
-  .description('Darkroom infrastructure management [admin]')
+export const fleetCommand = new Command('fleet')
+  .description('Fleet infrastructure management [admin]')
   .addCommand(
     new Command('health')
-      .description('Show darkroom status (VRAM, temp, disk, ComfyUI)')
+      .description('Show fleet status (VRAM, temp, disk, ComfyUI)')
       .option('--json', 'Output as JSON')
       .action(
         requireAdmin(async (options: { json?: boolean }) => {
           try {
-            const spinner = ora('Fetching darkroom health...').start();
-            const health = await getDarkroomHealth();
+            const spinner = ora('Fetching fleet health...').start();
+            const health = await getFleetHealth();
             spinner.stop();
 
             if (options.json) {
@@ -53,7 +53,7 @@ export const darkroomCommand = new Command('darkroom')
             const vramTotalGb = (gpu.memory_total / 1024).toFixed(1);
             const vramPercent = ((gpu.memory_used / gpu.memory_total) * 100).toFixed(0);
 
-            print(formatHeader('Darkroom Status\n'));
+            print(formatHeader('Fleet Status\n'));
             print(formatLabel('GPU', gpu.name));
             print(formatLabel('VRAM', `${vramUsedGb}/${vramTotalGb} GB (${vramPercent}%)`));
             print(formatLabel('Utilization', `${gpu.utilization}%`));
@@ -219,7 +219,7 @@ function buildGenerateCommand(): Command {
 
           if (!options.wait) {
             print();
-            print(chalk.dim(`Check progress: gf darkroom generate status ${result.job_id}`));
+            print(chalk.dim(`Check progress: gf fleet generate status ${result.job_id}`));
             return;
           }
 
@@ -256,7 +256,7 @@ function buildGenerateCommand(): Command {
 
             if (!options.wait) {
               print();
-              print(chalk.dim(`Check progress: gf darkroom generate status ${result.job_id}`));
+              print(chalk.dim(`Check progress: gf fleet generate status ${result.job_id}`));
               return;
             }
 
@@ -294,7 +294,7 @@ function buildGenerateCommand(): Command {
 
             if (!options.wait) {
               print();
-              print(chalk.dim(`Check progress: gf darkroom generate status ${result.job_id}`));
+              print(chalk.dim(`Check progress: gf fleet generate status ${result.job_id}`));
               return;
             }
 
@@ -329,7 +329,7 @@ function buildGenerateCommand(): Command {
 
           if (!options.wait) {
             print();
-            print(chalk.dim(`Check progress: gf darkroom generate status ${result.job_id}`));
+            print(chalk.dim(`Check progress: gf fleet generate status ${result.job_id}`));
             return;
           }
 

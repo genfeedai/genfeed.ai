@@ -228,7 +228,7 @@ describe('IngredientsList', () => {
     expect(handleRefresh).toHaveBeenCalledWith(true);
   });
 
-  it('enables campaign publish for approved darkroom images in one campaign', () => {
+  it('enables campaign publish for approved fleet images in one campaign', () => {
     const selectedIngredients = [
       {
         campaign: 'spring-drop',
