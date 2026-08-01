@@ -45,9 +45,8 @@ describe('UserDropdown', () => {
 
     const trigger = screen.getByRole('button', { name: 'Open account menu' });
     expect(trigger).toHaveTextContent('T');
-    expect(trigger).toHaveClass('rounded-md');
-    expect(trigger).not.toHaveClass('rounded-full');
-    expect(screen.getByText('T')).toHaveClass('rounded-md');
+    expect(trigger).toHaveClass('rounded-full');
+    expect(screen.getByText('T')).toHaveClass('rounded-full');
   });
 
   it('renders the user avatar image when provided', () => {
@@ -64,7 +63,7 @@ describe('UserDropdown', () => {
       'https://cdn.example.com/avatar.png',
     );
     expect(screen.getByRole('img', { name: 'Test User' })).toHaveClass(
-      'rounded-md',
+      'rounded-full',
     );
   });
 

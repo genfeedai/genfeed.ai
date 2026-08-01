@@ -12,14 +12,25 @@ export default function TopbarEnd() {
     return null;
   }
 
+  const emailAddress = user.primaryEmailAddress?.emailAddress ?? '';
+  const composedName = [user.firstName, user.lastName]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+  const displayName =
+    user.fullName?.trim() ||
+    composedName ||
+    (emailAddress.includes('@') ? emailAddress.split('@')[0] : null) ||
+    'User';
+
   return (
     <div className="flex items-center gap-1">
       <UserDropdown
         settingsScope="user"
         side="bottom"
         imageUrl={user.imageUrl}
-        userName={user.fullName ?? 'User'}
-        userEmail={user.primaryEmailAddress?.emailAddress ?? ''}
+        userName={displayName}
+        userEmail={emailAddress}
       />
     </div>
   );
