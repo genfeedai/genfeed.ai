@@ -82,7 +82,7 @@ function ToolbarLogo({ branding, logoHref, logoSrc }: ToolbarLogoProps) {
   return (
     <a
       href={logoHref ?? '/'}
-      title="Go to Dashboard"
+      title="Go to Overview"
       className="flex size-6 items-center justify-center transition hover:opacity-90"
     >
       <NextImage

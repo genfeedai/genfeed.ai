@@ -9,7 +9,7 @@ import { CustomersModule } from '@api/collections/customers/customers.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { OssSubscriptionsService } from '@api/common/subscriptions/oss-subscriptions.service';
 import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
-import { isEEEnabled } from '@genfeedai/config';
+import { hasOrganizationBilling } from '@genfeedai/config';
 import { forwardRef, Module } from '@nestjs/common';
 import { SubscriptionsController } from './controllers/subscriptions.controller';
 import { SubscriptionsService } from './services/subscriptions.service';
@@ -25,8 +25,11 @@ import { SubscriptionsService } from './services/subscriptions.service';
   ],
   providers: [
     {
+      // SaaS cloud or licensed EE — not license-key-only (Cloud has no key).
       provide: SubscriptionsService,
-      useClass: isEEEnabled() ? SubscriptionsService : OssSubscriptionsService,
+      useClass: hasOrganizationBilling()
+        ? SubscriptionsService
+        : OssSubscriptionsService,
     },
   ],
 })

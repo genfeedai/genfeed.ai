@@ -1,40 +1,39 @@
 import { OssSubscriptionsService } from '@api/common/subscriptions/oss-subscriptions.service';
-import { isEEEnabled } from '@genfeedai/config';
-import { Test } from '@nestjs/testing';
+import { hasOrganizationBilling } from '@genfeedai/config';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const SUBSCRIPTIONS_TOKEN = 'SubscriptionsService';
-
-describe('SubscriptionsModule', () => {
+describe('SubscriptionsModule billing DI branch', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
 
-  it('resolves subscriptions service to OSS stub when EE is disabled', async () => {
+  it('uses OSS stub when not SaaS and no EE license', () => {
+    vi.stubEnv('GENFEED_CLOUD', '');
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', '');
     vi.stubEnv('GENFEED_LICENSE_KEY', '');
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '');
 
-    const module = await Test.createTestingModule({
-      providers: [
-        {
-          provide: SUBSCRIPTIONS_TOKEN,
-          useClass: isEEEnabled()
-            ? OssSubscriptionsService
-            : OssSubscriptionsService,
-        },
-      ],
-    }).compile();
-
-    const service = module.get(SUBSCRIPTIONS_TOKEN);
-    expect(service).toBeInstanceOf(OssSubscriptionsService);
+    expect(hasOrganizationBilling()).toBe(false);
+    const useClass = hasOrganizationBilling()
+      ? class Metered {}
+      : OssSubscriptionsService;
+    expect(useClass).toBe(OssSubscriptionsService);
   });
 
-  it('isEEEnabled returns false without license key', () => {
+  it('uses metered path on SaaS without a license key', () => {
     vi.stubEnv('GENFEED_LICENSE_KEY', '');
-    expect(isEEEnabled()).toBe(false);
+    vi.stubEnv('GENFEED_CLOUD', 'true');
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '');
+
+    expect(hasOrganizationBilling()).toBe(true);
   });
 
-  it('isEEEnabled returns true with license key', () => {
+  it('uses metered path on self-host with EE license', () => {
+    vi.stubEnv('GENFEED_CLOUD', '');
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', '');
     vi.stubEnv('GENFEED_LICENSE_KEY', 'test-key-123');
-    expect(isEEEnabled()).toBe(true);
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '');
+
+    expect(hasOrganizationBilling()).toBe(true);
   });
 });
