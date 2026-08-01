@@ -297,6 +297,7 @@ export class BrandsService extends BaseService<
       brandId: _sessionBrandId,
       organization: _sessionOrganization,
       user: _sessionUser,
+      userId: _sessionUserId,
       ...brandFields
     } = updateBrandDto;
 

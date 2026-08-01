@@ -92,6 +92,35 @@ export class BrandsController extends BaseCRUDController<
   }
 
   /**
+   * Brand PATCHes never persist the generic CRUD controller's session relation
+   * aliases. Prisma treats `brand`, `organization`, and `user` as nested
+   * relation inputs, so scalar session ids under those keys are invalid update
+   * data. Authorization has already consumed the request context before this
+   * hook runs; only explicit brand fields belong in the persistence payload.
+   */
+  public override enrichUpdateDto(
+    updateDto: Partial<UpdateBrandDto>,
+    _user: User,
+  ): Promise<UpdateBrandDto> {
+    const {
+      brand: _brand,
+      brandId: _brandId,
+      organization: _organization,
+      user: _owner,
+      userId: _ownerId,
+      ...brandFields
+    } = updateDto as Partial<UpdateBrandDto> & {
+      brand?: unknown;
+      brandId?: unknown;
+      organization?: unknown;
+      user?: unknown;
+      userId?: unknown;
+    };
+
+    return Promise.resolve(brandFields as UpdateBrandDto);
+  }
+
+  /**
    * Update a brand. Overrides the base handler to detect an organization change:
    * when `organizationId` differs from the brand's current org, the update becomes a
    * relocation — cascading the denormalized org id across all brand-owned records in

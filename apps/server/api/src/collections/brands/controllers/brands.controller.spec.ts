@@ -58,6 +58,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 describe('BrandsController', () => {
   let agentConfigController: BrandsAgentConfigController;
+  let activitiesService: vi.Mocked<ActivitiesService>;
   let controller: BrandsController;
   let brandSetupService: vi.Mocked<BrandSetupService>;
   let brandsService: vi.Mocked<BrandsService>;
@@ -117,12 +118,13 @@ describe('BrandsController', () => {
             generateBrandVoice: vi.fn(),
             importBrandKitAssets: vi.fn(),
             patch: vi.fn(),
+            relocateToOrganization: vi.fn(),
             remove: vi.fn(),
           },
         },
         {
           provide: ActivitiesService,
-          useValue: { findAll: vi.fn(), findOne: vi.fn() },
+          useValue: { create: vi.fn(), findAll: vi.fn(), findOne: vi.fn() },
         },
         {
           provide: VideosService,
@@ -188,6 +190,7 @@ describe('BrandsController', () => {
     agentConfigController = module.get<BrandsAgentConfigController>(
       BrandsAgentConfigController,
     );
+    activitiesService = module.get(ActivitiesService);
     controller = module.get<BrandsController>(BrandsController);
     brandSetupService = module.get(BrandSetupService);
     brandsService = module.get(BrandsService);
@@ -244,6 +247,79 @@ describe('BrandsController', () => {
       },
     );
     expect(result).toEqual({ data: { ...mockBrand, label: 'Moonrise' } });
+  });
+
+  it('removes session relation aliases before a normal brand patch', async () => {
+    const brandId = '507f191e810c19729de860ee';
+    brandsService.findOne.mockResolvedValue(mockBrand as never);
+    brandsService.patch.mockResolvedValue({
+      ...mockBrand,
+      label: 'Renamed Brand',
+    } as never);
+
+    const result = await controller.patch(mockRequest, mockUser, brandId, {
+      brand: '507f191e810c19729de860ee',
+      brandId: '507f191e810c19729de860ee',
+      label: 'Renamed Brand',
+      organization: '507f191e810c19729de860ee',
+      user: '507f191e810c19729de860ee',
+      userId: '507f191e810c19729de860ee',
+    } as never);
+
+    expect(brandsService.patch).toHaveBeenCalledWith(
+      brandId,
+      { label: 'Renamed Brand' },
+      [],
+    );
+    expect(result).toEqual({
+      data: { ...mockBrand, label: 'Renamed Brand' },
+    });
+  });
+
+  it('routes an explicit organization change through the relocation operation', async () => {
+    const brandId = '507f191e810c19729de860ee';
+    const destinationOrganizationId = '607f191e810c19729de860ee';
+    const summary = {
+      membersSevered: 0,
+      schedulingPending: 0,
+      workflowsClonedActive: 0,
+      workflowsClonedPaused: 0,
+      workflowsMoved: 0,
+    };
+    brandsService.findOne.mockResolvedValue({
+      ...mockBrand,
+      organizationId: '507f191e810c19729de860ee',
+    } as never);
+    brandsService.relocateToOrganization.mockResolvedValue({
+      brand: {
+        ...mockBrand,
+        organizationId: destinationOrganizationId,
+      },
+      summary,
+    } as never);
+
+    const updateDto = {
+      label: 'Relocated Brand',
+      organizationId: destinationOrganizationId,
+    };
+    const result = await controller.patch(
+      mockRequest,
+      mockUser,
+      brandId,
+      updateDto,
+    );
+
+    expect(brandsService.patch).not.toHaveBeenCalled();
+    expect(brandsService.relocateToOrganization).toHaveBeenCalledWith(
+      brandId,
+      updateDto,
+      {
+        isSuperAdmin: false,
+        userId: '507f191e810c19729de860ee',
+      },
+    );
+    expect(activitiesService.create).toHaveBeenCalledOnce();
+    expect(result.meta).toEqual(summary);
   });
 
   describe('findAll', () => {

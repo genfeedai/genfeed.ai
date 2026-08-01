@@ -31,6 +31,7 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { PublicService } from '@genfeedai/services/external/public.service';
 import { BrandsService } from '@genfeedai/services/social/brands.service';
+import { ErrorHandler } from '@genfeedai/utils/error/error-handler.util';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSaveQueue } from '@hooks/utils/use-save-queue/use-save-queue';
@@ -376,8 +377,19 @@ export function useBrandDetail(): UseBrandDetailReturn {
           logger.info(`${url} success`, updatedAccount);
           applyBrand(updatedAccount, updatedAccount.links || previousLinks);
         } catch (error) {
-          logger.error(`${url} failed`, error);
-          notificationsService.error(`${url} failed`);
+          const { message } = ErrorHandler.extractErrorDetails(error);
+          logger.error(`${url} failed`, {
+            error,
+            reportToSentry: false,
+            tags: { surface: 'brand-settings' },
+          });
+          notificationsService.error(
+            message === 'Validation failed'
+              ? 'Some brand settings are invalid. Review them and try again.'
+              : message === 'An unexpected error occurred'
+                ? 'Brand settings could not be saved. Please try again.'
+                : message,
+          );
           applyBrand(previousBrand, previousLinks);
           // Rethrow so inline editors revert their draft instead of treating a
           // failed save as success.
