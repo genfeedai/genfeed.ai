@@ -40,33 +40,30 @@ export default function SettingsOrganizationPolicyPage() {
   );
 
   return (
-    <div className="space-y-6">
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Assistant Reply Style</h2>
-        <div className="space-y-4">
-          <div>
-            <p className="text-sm font-medium">Organization Default</p>
-            <Select
-              value={settings?.agentReplyStyle ?? AgentReplyStyle.CONCISE}
-              disabled={isSavingReplyStyle}
-              onValueChange={handleReplyStyleChange}
-            >
-              <SelectTrigger className="w-full mt-2 rounded">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {REPLY_STYLE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Controls the default style the assistant uses across the workspace.
-            Personal chat defaults and brand voice are configured elsewhere.
-          </p>
+    <div className="space-y-4">
+      <Card
+        label="Assistant Reply Style"
+        description="Controls the default style the assistant uses across the workspace. Personal chat defaults and brand voice are configured elsewhere."
+        bodyClassName="gap-3 p-4"
+      >
+        <div>
+          <p className="text-sm font-medium">Organization Default</p>
+          <Select
+            value={settings?.agentReplyStyle ?? AgentReplyStyle.CONCISE}
+            disabled={isSavingReplyStyle}
+            onValueChange={handleReplyStyleChange}
+          >
+            <SelectTrigger className="w-full mt-2 rounded">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {REPLY_STYLE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </Card>
 

@@ -18,15 +18,10 @@ export default function HarnessHeader({
   onSave,
 }: HarnessHeaderProps) {
   return (
-    <Card className="p-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="sr-only">Harness Profile</h1>
-          <Badge variant="outline">v1.1</Badge>
-          <Badge variant={draft.status === 'active' ? 'success' : 'warning'}>
-            {draft.status ?? 'active'}
-          </Badge>
-        </div>
+    <Card
+      label="Harness Profile"
+      bodyClassName="gap-3 p-4"
+      headerAction={
         <Button
           disabled={isSaving}
           onClick={onSave}
@@ -35,6 +30,13 @@ export default function HarnessHeader({
         >
           {isSaving ? 'Saving...' : 'Save harness'}
         </Button>
+      }
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge variant="outline">v1.1</Badge>
+        <Badge variant={draft.status === 'active' ? 'success' : 'warning'}>
+          {draft.status ?? 'active'}
+        </Badge>
       </div>
     </Card>
   );

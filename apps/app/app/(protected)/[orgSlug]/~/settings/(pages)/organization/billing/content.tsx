@@ -15,7 +15,6 @@ import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { VStack } from '@ui/layout/stack';
 import { Button } from '@ui/primitives/button';
-import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { ExternalLink, TriangleAlert } from 'lucide-react';
 
@@ -31,11 +30,8 @@ function BillingCard({
   children: React.ReactNode;
 }) {
   return (
-    <Card className="p-6">
-      <VStack gap={4}>
-        <Heading size="lg">{title}</Heading>
-        {children}
-      </VStack>
+    <Card label={title} bodyClassName="gap-3 p-4">
+      {children}
     </Card>
   );
 }
@@ -188,7 +184,7 @@ export default function SettingsBillingPage() {
   }
 
   return (
-    <VStack gap={6}>
+    <VStack gap={4}>
       <BillingCard title="Current Plan">
         {subscription ? (
           <VStack gap={4}>

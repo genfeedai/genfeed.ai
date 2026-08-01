@@ -14,21 +14,11 @@ export default function SettingsProgressHeatmapCard({
   calendar,
 }: Props) {
   return (
-    <Card className="border-white/10 bg-card p-5">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
-            Last 90 days
-          </p>
-          <h2 className="mt-1 text-xl font-semibold text-foreground">
-            Creation heatmap
-          </h2>
-        </div>
-        <p className="text-sm text-foreground/60">
-          Darker cells mean more generated or published pieces.
-        </p>
-      </div>
-
+    <Card
+      label="Creation heatmap"
+      description="Last 90 days. Darker cells mean more generated or published pieces."
+      bodyClassName="gap-3 p-4"
+    >
       <div className="grid grid-cols-9 gap-2 md:grid-cols-15 lg:grid-cols-18">
         {heatmapDays.map((dayKey) => {
           const count = calendar[dayKey]?.count ?? 0;

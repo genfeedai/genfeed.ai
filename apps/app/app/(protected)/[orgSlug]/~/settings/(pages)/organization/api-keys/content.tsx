@@ -502,7 +502,7 @@ export default function SettingsApiKeysPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <h1 className="sr-only">API Keys</h1>
 
       <Tabs defaultValue={desktop && !isReady ? 'providers' : 'genfeed'}>
@@ -513,7 +513,7 @@ export default function SettingsApiKeysPage() {
 
         <TabsContent className="mt-4" value="genfeed">
           {isReady ? (
-            <Card bodyClassName="p-5">
+            <Card bodyClassName="gap-3 p-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h3 className="text-sm font-medium">Genfeed API keys</h3>

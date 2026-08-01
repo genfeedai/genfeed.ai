@@ -10,7 +10,7 @@ export const generateMetadata = createPageMetadata('Personal Settings');
 export default function SettingsPersonalPage() {
   return (
     <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <SettingsProfilePage />
         <SettingsConversationPage showReplyStyle={false} />
         <SettingsProgressPage showOverviewCard={false} />

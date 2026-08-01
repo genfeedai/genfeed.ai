@@ -260,18 +260,18 @@ export default function BrandSettingsHarnessPage() {
 
   if (!brand) {
     return (
-      <Card className="p-6">
+      <Card bodyClassName="gap-3 p-4">
         <p className="text-sm text-muted-foreground">Brand not found.</p>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <HarnessHeader draft={draft} isSaving={isSaving} onSave={handleSave} />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-        <div className="space-y-6">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+        <div className="space-y-4">
           <HarnessIdentityCard
             draft={draft}
             joinLines={joinLines}
@@ -288,15 +288,12 @@ export default function BrandSettingsHarnessPage() {
             voice={draft.voice}
           />
 
-          <Card className="p-6">
-            <div className="mb-4 space-y-1">
-              <h2 className="text-lg font-semibold">Thesis</h2>
-              <p className="text-sm text-muted-foreground">
-                The opinion engine. Beliefs, enemies, proof, and what the
-                account sells.
-              </p>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
+          <Card
+            label="Thesis"
+            description="The opinion engine. Beliefs, enemies, proof, and what the account sells."
+            bodyClassName="gap-3 p-4"
+          >
+            <div className="grid gap-3 md:grid-cols-2">
               {(['beliefs', 'enemies', 'offers', 'proofPoints'] as const).map(
                 (key) => (
                   <div className="space-y-2" key={key}>

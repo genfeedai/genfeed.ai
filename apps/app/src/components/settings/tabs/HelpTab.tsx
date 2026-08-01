@@ -22,7 +22,7 @@ export function HelpTab() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Welcome Screen */}
       <div className="space-y-3">
         <h3 className="text-sm font-medium text-foreground">Getting Started</h3>

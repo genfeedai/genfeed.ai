@@ -6,5 +6,5 @@ import type { LayoutProps } from '@props/layout/layout.props';
 // (see buildSettingsMenuItems), not in an in-page tab bar. This layout keeps
 // only the vertical spacing wrapper for the page content.
 export default function OrganizationSettingsLayout({ children }: LayoutProps) {
-  return <div className="space-y-6">{children}</div>;
+  return <div className="space-y-4">{children}</div>;
 }

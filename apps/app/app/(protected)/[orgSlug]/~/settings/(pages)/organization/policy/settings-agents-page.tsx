@@ -218,7 +218,7 @@ export default function SettingsAgentsPage() {
   const enabledModels = settings?.enabledModels ?? [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <AgentPolicyCard
         autonomyDefault={autonomyDefault}
         isSaving={isSaving}
@@ -264,15 +264,11 @@ export default function SettingsAgentsPage() {
         thinkingModelOverride={thinkingModelOverride}
       />
 
-      <Card className="p-6">
-        <div className="space-y-2">
-          <h2 className="text-lg font-semibold">Brand-Level Profiles</h2>
-          <p className="text-sm text-muted-foreground">
-            Persona, voice, strategy, and platform overrides now live on each
-            brand detail page instead of generic settings.
-          </p>
-        </div>
-      </Card>
+      <Card
+        label="Brand-Level Profiles"
+        description="Persona, voice, strategy, and platform overrides now live on each brand detail page instead of generic settings."
+        bodyClassName="gap-3 p-4"
+      />
 
       <div className="flex justify-end">
         <Button

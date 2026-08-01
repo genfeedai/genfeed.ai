@@ -227,7 +227,7 @@ function LLMKeyInput({ provider }: { provider: LLMProviderType }) {
 
 export function ApiKeysTab() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* LLM BYOK Section */}
       <div className="space-y-2">
         <h4 className="text-sm font-medium text-foreground">
