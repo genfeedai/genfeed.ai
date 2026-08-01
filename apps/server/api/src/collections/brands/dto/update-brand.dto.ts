@@ -6,9 +6,9 @@ import type {
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiHideProperty, ApiProperty, PartialType } from '@nestjs/swagger';
 import {
+  Equals,
   IsArray,
   IsBoolean,
-  IsEmpty,
   IsObject,
   IsOptional,
   IsString,
@@ -42,25 +42,33 @@ export class UpdateBrandDto extends PartialType(CreateBrandDto) {
   })
   readonly referenceImages?: BrandReferenceImage[];
 
-  @IsEmpty({ message: 'brand cannot be changed through a brand update' })
+  @Equals(undefined, {
+    message: 'brand cannot be changed through a brand update',
+  })
   @ApiHideProperty()
   readonly brand?: unknown;
 
-  @IsEmpty({ message: 'brandId cannot be changed through a brand update' })
+  @Equals(undefined, {
+    message: 'brandId cannot be changed through a brand update',
+  })
   @ApiHideProperty()
   readonly brandId?: unknown;
 
-  @IsEmpty({
+  @Equals(undefined, {
     message: 'organization must be changed through organizationId',
   })
   @ApiHideProperty()
   readonly organization?: unknown;
 
-  @IsEmpty({ message: 'user cannot be changed through a brand update' })
+  @Equals(undefined, {
+    message: 'user cannot be changed through a brand update',
+  })
   @ApiHideProperty()
   readonly user?: unknown;
 
-  @IsEmpty({ message: 'userId cannot be changed through a brand update' })
+  @Equals(undefined, {
+    message: 'userId cannot be changed through a brand update',
+  })
   @ApiHideProperty()
   readonly userId?: unknown;
 

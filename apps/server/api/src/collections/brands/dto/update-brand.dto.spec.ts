@@ -48,5 +48,24 @@ describe('UpdateBrandDto', () => {
         ).rejects.toMatchObject({ status: 400 });
       },
     );
+
+    it.each(
+      ['brand', 'brandId', 'organization', 'user', 'userId'].flatMap((field) =>
+        ['', null].map((value) => ({ field, value })),
+      ),
+    )(
+      'rejects the supplied blank ownership alias $field',
+      async ({ field, value }) => {
+        await expect(
+          pipe.transform(
+            {
+              label: 'Renamed Brand',
+              [field]: value,
+            },
+            metadata,
+          ),
+        ).rejects.toMatchObject({ status: 400 });
+      },
+    );
   });
 });

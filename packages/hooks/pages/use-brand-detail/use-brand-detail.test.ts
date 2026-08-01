@@ -302,6 +302,42 @@ describe('useBrandDetail', () => {
         }),
       );
     });
+
+    it.each([
+      {
+        error: {
+          isAxiosError: true,
+          message: 'Request failed with status code 500',
+          response: { status: 500 },
+        },
+        failure: 'a server failure',
+      },
+      {
+        error: {
+          isAxiosError: true,
+          message: 'Network Error',
+        },
+        failure: 'a network failure',
+      },
+    ])('hides technical details for $failure', async ({ error }) => {
+      mockPatch.mockRejectedValueOnce(error);
+
+      const result = await renderLoadedBrand();
+
+      await act(async () => {
+        await expect(
+          result.current.handleUpdateAccount('scope', AssetScope.PUBLIC),
+        ).rejects.toBe(error);
+      });
+
+      expect(mockNotifyError).toHaveBeenCalledWith(
+        'Brand settings could not be saved. Please try again.',
+      );
+      expect(mockLoggerError).toHaveBeenCalledWith(
+        'PATCH /brands/brand-1 failed',
+        expect.objectContaining({ error, reportToSentry: false }),
+      );
+    });
   });
 
   it('persists a second field edited while the first save is still in flight', async () => {

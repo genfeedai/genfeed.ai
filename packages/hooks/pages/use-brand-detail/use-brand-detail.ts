@@ -377,16 +377,21 @@ export function useBrandDetail(): UseBrandDetailReturn {
           logger.info(`${url} success`, updatedAccount);
           applyBrand(updatedAccount, updatedAccount.links || previousLinks);
         } catch (error) {
-          const { message } = ErrorHandler.extractErrorDetails(error);
+          const { message, status, validationErrors } =
+            ErrorHandler.extractErrorDetails(error);
+          const isValidationError =
+            message === 'Validation failed' ||
+            Boolean(validationErrors?.length);
+          const isUnexpectedError = status === undefined || status >= 500;
           logger.error(`${url} failed`, {
             error,
             reportToSentry: false,
             tags: { surface: 'brand-settings' },
           });
           notificationsService.error(
-            message === 'Validation failed'
+            isValidationError
               ? 'Some brand settings are invalid. Review them and try again.'
-              : message === 'An unexpected error occurred'
+              : isUnexpectedError
                 ? 'Brand settings could not be saved. Please try again.'
                 : message,
           );
