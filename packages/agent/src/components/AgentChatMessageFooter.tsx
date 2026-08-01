@@ -2,7 +2,7 @@ import type { AgentChatMessage } from '@genfeedai/agent/models/agent-chat.model'
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
-import { Clipboard, Clock, RefreshCw, Sparkles } from 'lucide-react';
+import { Clipboard, RefreshCw, Sparkles } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 type AgentChatMessageFooterProps = {
@@ -27,33 +27,37 @@ export function AgentChatMessageFooter({
   onCopy,
   onRetry,
   onRemember,
-}: AgentChatMessageFooterProps): ReactElement {
+}: AgentChatMessageFooterProps): ReactElement | null {
+  // Assistant duration lives on TimelineWorkGroup *after* the answer.
+  // Footer is actions-only for assistant (plus wall-clock for user bubbles).
+  if (!isUser && !shouldShowAssistantActions) {
+    return null;
+  }
+
   return (
     <div
       className={cn(
         'flex items-center justify-between gap-2 text-[10px]',
-        isUser ? 'mt-2' : 'mt-3',
+        isUser ? 'mt-2' : 'mt-2.5',
       )}
     >
-      <div
-        className={cn(
-          'flex items-center gap-1.5',
-          isUser ? 'text-foreground/38' : 'text-foreground/40',
-        )}
-      >
-        {!isUser && <Clock className="size-3 opacity-70" />}
-        {metaItems.map((item, index) => (
-          <span key={`${item}-${index}`} className="inline-flex items-center">
-            {index > 0 ? (
-              <span className="mr-1.5 text-foreground/30">•</span>
-            ) : null}
-            {index === 0 ? <time>{item}</time> : item}
-          </span>
-        ))}
-      </div>
+      {isUser ? (
+        <div className="flex items-center gap-1.5 text-foreground/38">
+          {metaItems.map((item, index) => (
+            <span key={`${item}-${index}`} className="inline-flex items-center">
+              {index > 0 ? (
+                <span className="mr-1.5 text-foreground/30">•</span>
+              ) : null}
+              {index === 0 ? <time>{item}</time> : item}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <div />
+      )}
       {!isUser && shouldShowAssistantActions ? (
-        <div className="flex items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
-          {shouldShowAssistantActions && onCopy ? (
+        <div className="ml-auto flex items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+          {onCopy ? (
             <Button
               variant={ButtonVariant.GHOST}
               size={ButtonSize.XS}
@@ -66,7 +70,7 @@ export function AgentChatMessageFooter({
               <Clipboard className="size-3.5" />
             </Button>
           ) : null}
-          {shouldShowAssistantActions && onRetry ? (
+          {onRetry ? (
             <Button
               variant={ButtonVariant.GHOST}
               size={ButtonSize.XS}
@@ -79,7 +83,7 @@ export function AgentChatMessageFooter({
               <RefreshCw className="size-3.5" />
             </Button>
           ) : null}
-          {shouldShowAssistantActions && onRemember ? (
+          {onRemember ? (
             <Button
               variant={ButtonVariant.GHOST}
               size={ButtonSize.XS}

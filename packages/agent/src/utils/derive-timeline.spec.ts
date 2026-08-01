@@ -69,7 +69,7 @@ describe('deriveTimeline', () => {
     expect(result[2].id).toBe('msg-u2');
   });
 
-  it('interleaves work events as work-group between user and assistant messages', () => {
+  it('places finished work after the assistant answer (duration at end of turn)', () => {
     const messages = [
       msg('user', 'u1', '2026-01-01T00:00:01Z'),
       msg('assistant', 'a1', '2026-01-01T00:00:05Z'),
@@ -87,11 +87,11 @@ describe('deriveTimeline', () => {
 
     expect(result).toHaveLength(3);
     expect(result[0].kind).toBe('user-message');
-    expect(result[1].kind).toBe('work-group');
-    expect(result[2].kind).toBe('assistant-message');
+    expect(result[1].kind).toBe('assistant-message');
+    expect(result[2].kind).toBe('work-group');
   });
 
-  it('tie-breaks work-group before assistant-message at same timestamp', () => {
+  it('places settled work-group after the assistant answer for the same turn', () => {
     const ts = '2026-01-01T00:00:02Z';
     const messages = [
       msg('user', 'u1', '2026-01-01T00:00:01Z'),
@@ -105,8 +105,8 @@ describe('deriveTimeline', () => {
 
     expect(result).toHaveLength(3);
     expect(result[0].kind).toBe('user-message');
-    expect(result[1].kind).toBe('work-group');
-    expect(result[2].kind).toBe('assistant-message');
+    expect(result[1].kind).toBe('assistant-message');
+    expect(result[2].kind).toBe('work-group');
   });
 
   it('enriches work events with metadata.toolCalls data', () => {

@@ -169,13 +169,13 @@ export function TimelineWorkGroup({
   );
 
   return (
-    <div className="mb-2 flex justify-start motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out">
+    <div className="mb-3 mt-0.5 flex justify-start motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out">
       <div
         className={cn(
-          'w-full max-w-none rounded-md px-1.5 py-1',
+          'w-full max-w-none rounded-md px-0.5 py-0.5',
           // Hairline only — no elevated card competing with free-text answers
           terminalStatus === 'failed'
-            ? 'border border-destructive/25 bg-destructive/[0.04]'
+            ? 'border border-destructive/25 bg-destructive/[0.04] px-1.5 py-1'
             : 'border border-transparent hover:border-border/40',
         )}
         data-testid="timeline-work-group"
