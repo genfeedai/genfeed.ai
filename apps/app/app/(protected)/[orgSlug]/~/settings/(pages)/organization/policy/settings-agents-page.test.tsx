@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import { AgentAutonomyMode } from '@genfeedai/enums';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsAgentsPage from './settings-agents-page';
 
 const mocks = vi.hoisted(() => ({
@@ -58,8 +58,11 @@ vi.mock('@services/organization/organizations.service', () => ({
 }));
 
 vi.mock('@ui/card/Card', () => ({
-  default: ({ children }: { children: ReactNode }) => (
-    <section>{children}</section>
+  default: ({ children, label }: { children?: ReactNode; label?: string }) => (
+    <section>
+      {label ? <h2>{label}</h2> : null}
+      {children}
+    </section>
   ),
 }));
 
@@ -89,22 +92,6 @@ vi.mock('@ui/primitives', () => ({
   ),
   SelectTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
   SelectValue: () => null,
-}));
-
-vi.mock('@ui/primitives/button', () => ({
-  Button: ({
-    isDisabled,
-    label,
-    onClick,
-  }: {
-    isDisabled?: boolean;
-    label: ReactNode;
-    onClick: () => void;
-  }) => (
-    <button type="button" disabled={isDisabled} onClick={onClick}>
-      {label}
-    </button>
-  ),
 }));
 
 vi.mock('@ui/primitives/input', () => ({
@@ -154,6 +141,7 @@ vi.mock('@ui/primitives/switch', () => ({
 describe('SettingsAgentsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     mocks.organizationId = 'org-1';
     mocks.settings = {
       agentPolicy: {
@@ -177,12 +165,19 @@ describe('SettingsAgentsPage', () => {
     });
   });
 
-  it('loads existing policy settings and saves advanced routing overrides', async () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('loads existing policy settings and patches on each control change', async () => {
     render(<SettingsAgentsPage />);
 
     expect(screen.getByText('Autonomous Agent Policy')).toBeInTheDocument();
     expect(screen.getByText('Advanced Routing')).toBeInTheDocument();
     expect(screen.getByText('Brand-Level Profiles')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /save agent policy/i }),
+    ).toBeNull();
     expect(screen.getByLabelText('Brand Daily Cap')).toHaveValue(1000);
     expect(screen.getByLabelText('Agent Daily Cap')).toHaveValue(250);
 
@@ -194,41 +189,60 @@ describe('SettingsAgentsPage', () => {
     expect(selects[4]).toHaveValue('gpt-5.4-mini');
 
     fireEvent.change(selects[0], { target: { value: 'budget' } });
+
+    await waitFor(() => {
+      expect(mocks.patchSettings).toHaveBeenCalledWith(
+        'org-1',
+        expect.objectContaining({
+          agentPolicy: expect.objectContaining({
+            qualityTierDefault: 'budget',
+          }),
+        }),
+      );
+    });
+
     fireEvent.change(selects[1], {
       target: { value: AgentAutonomyMode.SUPERVISED },
     });
-    fireEvent.change(selects[2], { target: { value: '__auto__' } });
-    fireEvent.change(selects[3], { target: { value: 'gpt-5.5' } });
-    fireEvent.change(selects[4], { target: { value: 'gpt-5.4' } });
+
+    await waitFor(() => {
+      expect(mocks.patchSettings).toHaveBeenCalledWith(
+        'org-1',
+        expect.objectContaining({
+          agentPolicy: expect.objectContaining({
+            autonomyDefault: AgentAutonomyMode.SUPERVISED,
+          }),
+        }),
+      );
+    });
+
     fireEvent.change(screen.getByLabelText('Brand Daily Cap'), {
       target: { value: '1500' },
     });
     fireEvent.change(screen.getByLabelText('Agent Daily Cap'), {
       target: { value: 'not-a-number' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Save Agent Policy' }));
+
+    await vi.advanceTimersByTimeAsync(450);
 
     await waitFor(() => {
-      expect(mocks.patchSettings).toHaveBeenCalledWith('org-1', {
-        agentPolicy: {
-          allowAdvancedOverrides: true,
-          autonomyDefault: AgentAutonomyMode.SUPERVISED,
-          creditGovernance: {
-            agentDailyCreditCap: null,
-            brandDailyCreditCap: 1500,
-            useOrganizationPool: true,
-          },
-          generationModelOverride: 'gpt-5.5',
-          qualityTierDefault: 'budget',
-          reviewModelOverride: 'gpt-5.4',
-          thinkingModelOverride: null,
-        },
-      });
+      expect(mocks.patchSettings).toHaveBeenCalledWith(
+        'org-1',
+        expect.objectContaining({
+          agentPolicy: expect.objectContaining({
+            creditGovernance: expect.objectContaining({
+              agentDailyCreditCap: null,
+              brandDailyCreditCap: 1500,
+              useOrganizationPool: true,
+            }),
+          }),
+        }),
+      );
       expect(mocks.refresh).toHaveBeenCalled();
     });
   });
 
-  it('saves simple tier controls, skips missing organization, and logs failures', async () => {
+  it('patches simple tier controls, skips missing organization, and logs failures', async () => {
     mocks.settings = {
       agentPolicy: undefined,
       enabledModels: ['gpt-5.5'],
@@ -245,6 +259,18 @@ describe('SettingsAgentsPage', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Expose Raw Model Overrides' }),
     );
+
+    await waitFor(() => {
+      expect(mocks.patchSettings).toHaveBeenCalledWith(
+        'org-1',
+        expect.objectContaining({
+          agentPolicy: expect.objectContaining({
+            allowAdvancedOverrides: true,
+          }),
+        }),
+      );
+    });
+
     fireEvent.click(
       screen.getByRole('button', { name: 'Expose Raw Model Overrides' }),
     );
@@ -254,7 +280,8 @@ describe('SettingsAgentsPage', () => {
     fireEvent.change(screen.getByLabelText('Agent Daily Cap'), {
       target: { value: '75' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Save Agent Policy' }));
+
+    await vi.advanceTimersByTimeAsync(450);
 
     await waitFor(() => {
       expect(mocks.patchSettings).toHaveBeenCalledWith(
@@ -277,13 +304,17 @@ describe('SettingsAgentsPage', () => {
     vi.clearAllMocks();
     mocks.organizationId = '';
     rerender(<SettingsAgentsPage />);
-    fireEvent.click(screen.getByRole('button', { name: 'Save Agent Policy' }));
+    fireEvent.change(screen.getAllByRole('combobox')[0], {
+      target: { value: 'budget' },
+    });
     expect(mocks.patchSettings).not.toHaveBeenCalled();
 
     mocks.organizationId = 'org-1';
     mocks.patchSettings.mockRejectedValueOnce(new Error('save failed'));
     rerender(<SettingsAgentsPage />);
-    fireEvent.click(screen.getByRole('button', { name: 'Save Agent Policy' }));
+    fireEvent.change(screen.getAllByRole('combobox')[0], {
+      target: { value: 'balanced' },
+    });
 
     await waitFor(() => {
       expect(mocks.loggerError).toHaveBeenCalledWith(
