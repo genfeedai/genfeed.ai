@@ -20,12 +20,18 @@ const CONVERSATION_LIMIT = 50;
 interface UseAgentThreadListParams {
   apiService: AgentApiService;
   isActive: boolean;
+  /**
+   * When set, conversations are hard-filtered to this brand. When null/undefined,
+   * the list is full org (brand dropdown cleared).
+   */
+  brandId?: string | null;
   onNavigate?: (path: string) => void;
 }
 
 export function useAgentThreadList({
   apiService,
   isActive,
+  brandId = null,
   onNavigate,
 }: UseAgentThreadListParams) {
   const threads = useAgentChatStore((s) => s.threads);
@@ -91,16 +97,27 @@ export function useAgentThreadList({
     try {
       const data = await runAgentApiEffect(
         apiService.getThreadsEffect(
-          { limit: CONVERSATION_LIMIT, status: viewStatus },
+          {
+            limit: CONVERSATION_LIMIT,
+            status: viewStatus,
+            brandId: brandId || undefined,
+          },
           abortRef.current.signal,
         ),
       );
       setAuthError(null);
       setLoadError(null);
-      const renderableData = data.filter(hasRenderableThreadId);
+      const matchesBrandScope = (thread: {
+        brandId?: string | null;
+      }): boolean => !brandId || thread.brandId === brandId;
+      const renderableData = data
+        .filter(hasRenderableThreadId)
+        .filter(matchesBrandScope);
       const { threads: current, activeThreadId: currentActiveId } =
         useAgentChatStore.getState();
-      const renderableCurrent = current.filter(hasRenderableThreadId);
+      const renderableCurrent = current
+        .filter(hasRenderableThreadId)
+        .filter(matchesBrandScope);
       const apiIds = new Set(renderableData.map((item) => item.id));
 
       const activeThread =
@@ -146,7 +163,19 @@ export function useAgentThreadList({
     } finally {
       setIsLoading(false);
     }
-  }, [apiService, isActive, setThreads, viewStatus]);
+  }, [apiService, brandId, isActive, setThreads, viewStatus]);
+
+  // Brand scope change must drop the previous brand's list immediately so we
+  // never show foreign conversations while the next fetch is in flight.
+  const prevBrandIdRef = useRef(brandId);
+  useEffect(() => {
+    if (prevBrandIdRef.current === brandId) {
+      return;
+    }
+    prevBrandIdRef.current = brandId;
+    setThreads([]);
+    setIsLoading(true);
+  }, [brandId, setThreads]);
 
   useEffect(() => {
     if (!isActive) {
@@ -419,7 +448,9 @@ export function useAgentThreadList({
 
   const handleArchiveAllThreads = useCallback(async () => {
     try {
-      await runAgentApiEffect(apiService.archiveAllThreadsEffect());
+      await runAgentApiEffect(
+        apiService.archiveAllThreadsEffect(brandId || undefined),
+      );
       const currentThreads = useAgentChatStore.getState().threads;
       const archivedActiveThread = currentThreads.some(
         (thread) => thread.id === activeThreadId,
@@ -439,6 +470,7 @@ export function useAgentThreadList({
   }, [
     activeThreadId,
     apiService,
+    brandId,
     clearMessages,
     getNewThreadHref,
     onNavigate,
