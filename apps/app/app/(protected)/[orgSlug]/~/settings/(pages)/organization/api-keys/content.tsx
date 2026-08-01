@@ -9,10 +9,11 @@ import {
   API_KEY_SCOPE_OPTIONS,
   API_KEY_SCOPE_PRESETS,
 } from '@genfeedai/constants';
-import type { ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IByokProviderStatus } from '@genfeedai/interfaces';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { hasApiAccess } from '@genfeedai/pricing';
+import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -78,13 +79,24 @@ type ProductPlainKey = {
 type ProductApiKeyScope =
   (typeof API_KEY_SCOPE_PRESETS)[keyof typeof API_KEY_SCOPE_PRESETS][number];
 
-const SECONDARY_BUTTON_VARIANT = 'secondary' as ButtonVariant;
-
 const PRODUCT_API_KEY_PRESETS = [
   { label: 'MCP', scopes: API_KEY_SCOPE_PRESETS.mcp },
   { label: 'Read', scopes: API_KEY_SCOPE_PRESETS.read },
   { label: 'Content', scopes: API_KEY_SCOPE_PRESETS.content },
 ] as const;
+
+const SECONDARY_BUTTON_VARIANT = ButtonVariant.SECONDARY;
+
+function scopesExactlyMatch(
+  selected: readonly string[],
+  preset: readonly string[],
+): boolean {
+  if (selected.length !== preset.length) {
+    return false;
+  }
+  const selectedSet = new Set(selected);
+  return preset.every((scope) => selectedSet.has(scope));
+}
 
 const initialProductApiKeyForm: ProductApiKeyForm = {
   allowedIps: '',
@@ -316,15 +328,25 @@ export default function SettingsApiKeysPage() {
         }
       }
 
-      return { ...current, selectedScopes: [...nextScopes] };
+      return {
+        ...current,
+        // Always allocate a new array so React always sees a state change.
+        selectedScopes: Array.from(nextScopes),
+      };
     });
   };
 
   const handlePresetSelect = (scopes: readonly ProductApiKeyScope[]) => {
-    setProductForm((current) => ({
-      ...current,
-      selectedScopes: [...scopes],
-    }));
+    setProductForm((current) => {
+      // Clicking the active preset again is a no-op (keep selection).
+      if (scopesExactlyMatch(current.selectedScopes, scopes)) {
+        return current;
+      }
+      return {
+        ...current,
+        selectedScopes: [...scopes],
+      };
+    });
   };
 
   const handleCreateProductKey = async () => {
@@ -629,30 +651,74 @@ export default function SettingsApiKeysPage() {
               </div>
 
               <div className="mt-4 space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  {PRODUCT_API_KEY_PRESETS.map((preset) => (
-                    <Button
-                      key={preset.label}
-                      variant={SECONDARY_BUTTON_VARIANT}
-                      onClick={() => handlePresetSelect(preset.scopes)}
-                    >
-                      {preset.label}
-                    </Button>
-                  ))}
+                <div>
+                  <span className="mb-1.5 block text-xs text-muted-foreground">
+                    Scope preset
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {PRODUCT_API_KEY_PRESETS.map((preset) => {
+                      const isActive = scopesExactlyMatch(
+                        productForm.selectedScopes,
+                        preset.scopes,
+                      );
+
+                      return (
+                        <Button
+                          key={preset.label}
+                          type="button"
+                          size={ButtonSize.SM}
+                          withWrapper={false}
+                          textTransform="none"
+                          aria-pressed={isActive}
+                          variant={
+                            isActive
+                              ? ButtonVariant.SECONDARY
+                              : ButtonVariant.GHOST
+                          }
+                          className={cn(
+                            'h-8 rounded-md border px-3 text-xs font-medium',
+                            isActive
+                              ? 'border-foreground/25 bg-foreground/[0.08] text-foreground'
+                              : 'border-border text-foreground/70 hover:bg-foreground/[0.04] hover:text-foreground',
+                          )}
+                          onClick={() => handlePresetSelect(preset.scopes)}
+                        >
+                          {preset.label}
+                        </Button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                   {API_KEY_SCOPE_OPTIONS.map((option) => {
-                    const checked = option.scopes.every((scope) =>
+                    const selectedCount = option.scopes.filter((scope) =>
                       selectedScopeSet.has(scope),
-                    );
+                    ).length;
+                    const isFullySelected =
+                      selectedCount === option.scopes.length;
+                    const isPartiallySelected =
+                      selectedCount > 0 && !isFullySelected;
 
                     return (
                       <div
                         key={option.label}
-                        className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-xs"
+                        className={cn(
+                          'flex items-center gap-2 rounded-md border px-3 py-2 text-xs transition-colors',
+                          isFullySelected
+                            ? 'border-foreground/20 bg-foreground/[0.04]'
+                            : isPartiallySelected
+                              ? 'border-border bg-muted/20'
+                              : 'border-border',
+                        )}
                       >
                         <Checkbox
-                          isChecked={checked}
+                          checked={
+                            isFullySelected
+                              ? true
+                              : isPartiallySelected
+                                ? 'indeterminate'
+                                : false
+                          }
                           label={option.label}
                           onCheckedChange={() =>
                             handleScopeToggle(option.scopes)
