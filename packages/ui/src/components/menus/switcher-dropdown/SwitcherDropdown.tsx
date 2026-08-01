@@ -49,6 +49,10 @@ export default function SwitcherDropdown({
   const isMounted = useMounted();
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  // cmdk's keyboard cursor. Pin to the active item on open so we never light
+  // up a non-selected row just because the active one was previously disabled
+  // and cmdk auto-jumped to the next option.
+  const [highlightedValue, setHighlightedValue] = useState('');
 
   const resolvedFooterActions =
     footerActions && footerActions.length > 0
@@ -67,18 +71,30 @@ export default function SwitcherDropdown({
     )
     .sort((a, b) => a.label.localeCompare(b.label));
 
+  const activeItemId =
+    filteredItems.find((item) => item.isActive)?.id ??
+    filteredItems[0]?.id ??
+    '';
+
   const close = useCallback(() => {
     setIsOpen(false);
     setSearchTerm('');
+    setHighlightedValue('');
     onOpenChange?.(false);
   }, [onOpenChange]);
 
   const handleSelect = useCallback(
     (id: string) => {
+      // Selecting the already-active item just closes — don't re-fire switch.
+      const isAlreadyActive = items.some(
+        (item) => item.id === id && item.isActive,
+      );
       close();
-      onSelect(id);
+      if (!isAlreadyActive) {
+        onSelect(id);
+      }
     },
-    [close, onSelect],
+    [close, items, onSelect],
   );
 
   const renderedTrigger = renderTrigger({ isDisabled, isOpen });
@@ -123,8 +139,15 @@ export default function SwitcherDropdown({
           return;
         }
         setIsOpen(nextOpen);
-        if (!nextOpen) {
+        if (nextOpen) {
+          // Pin keyboard cursor on the active brand/org so a non-selected row
+          // is never auto-highlighted just because it is first in the list.
+          setHighlightedValue(
+            items.find((item) => item.isActive)?.id ?? items[0]?.id ?? '',
+          );
+        } else {
           setSearchTerm('');
+          setHighlightedValue('');
         }
         onOpenChange?.(nextOpen);
       }}
@@ -138,7 +161,12 @@ export default function SwitcherDropdown({
           width: `max(var(--radix-popover-trigger-width), ${minWidth}px)`,
         }}
       >
-        <Command shouldFilter={false} className="bg-transparent">
+        <Command
+          shouldFilter={false}
+          className="bg-transparent"
+          value={highlightedValue || activeItemId}
+          onValueChange={setHighlightedValue}
+        >
           {/* Search — Radix focuses the first focusable child on open, so the
               input is focused automatically without a manual timeout. */}
           {hasSearch && (
@@ -214,27 +242,26 @@ function SwitcherItem({
     <div
       className={cn(
         'group mx-1 flex min-h-9 w-[calc(100%-0.5rem)] items-center rounded-sm transition-colors duration-150',
-        // Active = persistent selected wash + check. Inactive keyboard/hover
-        // uses a lighter wash so cmdk's auto-highlight never outranks active.
+        // Active = only persistent "selected" wash. Keyboard cursor on an
+        // inactive row is a quieter ring, never a second selected wash.
         item.isActive
           ? 'bg-foreground/[0.08]'
-          : 'hover:bg-foreground/[0.05] focus-within:bg-foreground/[0.05] has-[[data-selected=true]]:bg-foreground/[0.05]',
+          : 'hover:bg-foreground/[0.04] has-[[data-selected=true]]:bg-foreground/[0.03] has-[[data-selected=true]]:ring-1 has-[[data-selected=true]]:ring-inset has-[[data-selected=true]]:ring-foreground/10',
       )}
     >
-      {/* cmdk Item = the selectable row. The active row is `disabled` so cmdk
-          skips it in keyboard nav and never fires onSelect for it. The gear is
-          a sibling (below), not nested here, to avoid interactive-in-interactive. */}
+      {/* Active stays selectable so cmdk can keep the keyboard cursor on it
+          (disabled items are skipped → previous bug lit the next brand).
+          Gear is a sibling, not nested, to avoid interactive-in-interactive. */}
       <CommandItem
         value={item.id}
-        disabled={item.isActive}
         onSelect={() => onSelect(item.id)}
         aria-current={item.isActive ? 'true' : undefined}
         className={cn(
-          'flex min-w-0 flex-1 items-center gap-2.5 rounded-sm bg-transparent py-2 pl-2 text-sm transition-colors duration-150 data-[selected=true]:bg-transparent',
+          'flex min-w-0 flex-1 items-center gap-2.5 rounded-sm bg-transparent py-2 pl-2 text-sm transition-colors duration-150 data-[selected=true]:bg-transparent data-[disabled=true]:opacity-100',
           item.trailingAction ? 'pr-1' : 'pr-3',
           item.isActive
-            ? 'cursor-default font-medium text-foreground data-[disabled=true]:opacity-100'
-            : 'cursor-pointer font-normal text-foreground/55 data-[selected=true]:text-foreground group-hover:text-foreground',
+            ? 'cursor-default font-medium text-foreground'
+            : 'cursor-pointer font-normal text-foreground/55 data-[selected=true]:text-foreground/80 group-hover:text-foreground',
         )}
       >
         {/* Avatar */}
