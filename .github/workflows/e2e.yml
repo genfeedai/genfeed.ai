@@ -510,8 +510,13 @@ jobs:
   nightly-failure-report:
     name: Report nightly E2E failure
     needs: [e2e-gate, e2e-frontend-authed, e2e-api-full]
+    # `!cancelled()` rather than `always()`: both keep the reporter eligible when
+    # an upstream job goes red, but `always()` also fires when the whole run is
+    # cancelled — which marks every job 'cancelled' and would file a phantom
+    # failure issue. A job-level timeout does not cancel the run, so the
+    # e2e-api-full 'cancelled' arm below still catches a hung full tier.
     if: >-
-      always()
+      !cancelled()
       && github.event_name == 'schedule'
       && (needs.e2e-gate.result == 'failure'
         || needs.e2e-frontend-authed.result == 'failure'
