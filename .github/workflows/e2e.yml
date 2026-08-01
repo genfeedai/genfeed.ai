@@ -501,16 +501,27 @@ jobs:
   # creates a new issue.
   # Runs ONLY on the standalone cron: a workflow_call from the deploy path inherits
   # the caller's event, so github.event_name is 'schedule' solely for the nightly.
-  # Deploy gating is untouched. Keys off the aggregated gate AND the authed job
-  # (now nightly-gating above), so any red nightly surfaces exactly one issue.
+  # Deploy gating is untouched. Keys off the aggregated gate AND the two
+  # nightly-only jobs — the authed job and the API full tier — so any red
+  # nightly surfaces exactly one issue. The full tier is deliberately absent
+  # from e2e-gate (that gate is the deploy contract and must stay core-only),
+  # so watching the gate alone let a red "API E2E Full" report nothing: on
+  # 2026-08-01 the full tier failed and this job was skipped.
   nightly-failure-report:
     name: Report nightly E2E failure
-    needs: [e2e-gate, e2e-frontend-authed]
+    needs: [e2e-gate, e2e-frontend-authed, e2e-api-full]
+    # `!cancelled()` rather than `always()`: both keep the reporter eligible when
+    # an upstream job goes red, but `always()` also fires when the whole run is
+    # cancelled — which marks every job 'cancelled' and would file a phantom
+    # failure issue. A job-level timeout does not cancel the run, so the
+    # e2e-api-full 'cancelled' arm below still catches a hung full tier.
     if: >-
-      always()
+      !cancelled()
       && github.event_name == 'schedule'
       && (needs.e2e-gate.result == 'failure'
-        || needs.e2e-frontend-authed.result == 'failure')
+        || needs.e2e-frontend-authed.result == 'failure'
+        || needs.e2e-api-full.result == 'failure'
+        || needs.e2e-api-full.result == 'cancelled')
     # Serialize the complete label lookup + issue lookup/mutation path across
     # scheduled runs and rerun attempts. Keep all pending reporters queued.
     concurrency:
@@ -533,6 +544,7 @@ jobs:
         env:
           GATE_RESULT: ${{ needs.e2e-gate.result }}
           AUTHED_RESULT: ${{ needs.e2e-frontend-authed.result }}
+          API_FULL_RESULT: ${{ needs.e2e-api-full.result }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
           script: |
@@ -552,6 +564,12 @@ jobs:
             }
             if (process.env.AUTHED_RESULT === 'failure') {
               failed.push('authed E2E (real Better Auth)');
+            }
+            if (process.env.API_FULL_RESULT === 'failure') {
+              failed.push('API E2E full tier');
+            }
+            if (process.env.API_FULL_RESULT === 'cancelled') {
+              failed.push('API E2E full tier (cancelled — hung or timed out)');
             }
             const body = [
               'The scheduled (nightly) E2E run failed.',
