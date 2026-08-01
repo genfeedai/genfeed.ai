@@ -26,11 +26,6 @@ const mockClipboardService = {
   copyToClipboard: mockCopyToClipboard,
 };
 
-const mockNotificationsService = {
-  error: mockNotifyError,
-  success: vi.fn(),
-};
-
 vi.mock('next/navigation', () => ({
   useParams: vi.fn(() => ({ orgSlug: 'acme', slug: 'brand-1' })),
   usePathname: vi.fn(() => '/settings/brands/brand-1'),
@@ -90,11 +85,18 @@ vi.mock('@genfeedai/services/core/clipboard.service', () => ({
   },
 }));
 
-vi.mock('@genfeedai/services/core/notifications.service', () => ({
-  NotificationsService: {
-    getInstance: vi.fn(() => mockNotificationsService),
-  },
-}));
+vi.mock('@genfeedai/services/core/notifications.service', () => {
+  const notificationsService = {
+    error: (...args: unknown[]) => mockNotifyError(...args),
+    success: vi.fn(),
+  };
+
+  return {
+    NotificationsService: {
+      getInstance: vi.fn(() => notificationsService),
+    },
+  };
+});
 
 vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
