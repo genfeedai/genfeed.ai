@@ -466,7 +466,7 @@ export class AdminFleetTrainingService {
   ): Promise<void> {
     const persona = await this.personasService.findOne({
       ...(organizationId ? { organization: organizationId } : {}),
-      isDarkroomCharacter: true,
+      isFleetCharacter: true,
       isDeleted: false,
       slug: personaSlug,
     });

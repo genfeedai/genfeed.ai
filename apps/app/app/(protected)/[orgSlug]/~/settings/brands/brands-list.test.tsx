@@ -118,6 +118,8 @@ describe('BrandsList', () => {
 
     fireEvent.click(screen.getByText('Test Brand'));
 
-    expect(pushMock).toHaveBeenCalledWith('/default/testbrand/settings');
+    expect(pushMock).toHaveBeenCalledWith(
+      '/default/testbrand/settings/profile',
+    );
   });
 });

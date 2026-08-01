@@ -862,7 +862,7 @@ describe('AppProtectedLayout', () => {
     ['/research/discovery', 'Discovery'],
     ['/analytics', 'Overview'],
     ['/orchestration/workflows/executions', 'Runs'],
-    ['/admin', 'Dashboard'],
+    ['/admin', 'Overview'],
     ['/agent/new', 'New conversation'],
   ])(
     'feeds the active surface navigation to breadcrumbs on %s',
@@ -1235,7 +1235,7 @@ describe('AppProtectedLayout', () => {
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         items: expect.arrayContaining([
-          expect.objectContaining({ label: 'Dashboard' }),
+          expect.objectContaining({ label: 'Overview' }),
         ]),
         showUserProfile: true,
       }),

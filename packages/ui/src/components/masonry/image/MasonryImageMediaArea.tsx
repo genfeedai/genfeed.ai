@@ -19,7 +19,7 @@ type MasonryImageMediaAreaProps = {
   isLoading: boolean;
   imageError: boolean;
   isProcessing: boolean;
-  isDarkroomLocked: boolean;
+  isFleetNsfwLocked: boolean;
   isSquare: boolean;
   aspectRatioStyle: React.CSSProperties | undefined;
   imageSrc: string;
@@ -35,7 +35,7 @@ export default function MasonryImageMediaArea({
   isLoading,
   imageError,
   isProcessing,
-  isDarkroomLocked,
+  isFleetNsfwLocked,
   isSquare,
   aspectRatioStyle,
   imageSrc,
@@ -60,7 +60,7 @@ export default function MasonryImageMediaArea({
         data-testid={`masonry-ingredient-${image.id}`}
         className={cn(
           'relative size-full cursor-pointer overflow-hidden bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong',
-          isDarkroomLocked && 'cursor-not-allowed',
+          isFleetNsfwLocked && 'cursor-not-allowed',
           MASONRY_TILE_RADIUS_CLASS,
         )}
         onClick={handleContentClick}
@@ -96,7 +96,7 @@ export default function MasonryImageMediaArea({
           height={Math.max(1, metadata?.height || 1920)}
           className={cn(
             'size-full transition-opacity duration-300',
-            (isProcessing || isDarkroomLocked) && 'blur-sm',
+            (isProcessing || isFleetNsfwLocked) && 'blur-sm',
             isSquare ? 'object-cover object-center' : 'object-contain',
             isLoading ? 'opacity-0' : 'opacity-100',
           )}
@@ -114,7 +114,7 @@ export default function MasonryImageMediaArea({
           </div>
         )}
 
-        {isDarkroomLocked && (
+        {isFleetNsfwLocked && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/35 backdrop-blur-sm px-4 text-center">
             <div className="rounded-full border border-white/20 bg-black/50 px-3 py-1 text-xs font-medium text-white">
               Sensitive darkroom asset

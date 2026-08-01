@@ -31,6 +31,6 @@ describe('LIBRARY_MENU_ITEMS', () => {
   });
 
   it('points the library logo at the canonical overview', () => {
-    expect(LIBRARY_LOGO_HREF).toBe('/library');
+    expect(LIBRARY_LOGO_HREF).toBe('/library/overview');
   });
 });

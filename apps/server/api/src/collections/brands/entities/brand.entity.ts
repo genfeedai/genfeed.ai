@@ -15,7 +15,7 @@ export class BrandEntity extends BaseEntity implements Brand {
   declare readonly voiceIngredientId: string | null;
   declare readonly musicIngredientId: string | null;
   declare readonly isDefault: boolean;
-  declare readonly isDarkroomEnabled: boolean;
+  declare readonly isFleetEnabled: boolean;
 
   declare readonly logo?: string;
   declare readonly banner?: string;

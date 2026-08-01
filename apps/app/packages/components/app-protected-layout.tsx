@@ -3,6 +3,7 @@
 import LibrarySidebarNav from '@app/(protected)/[orgSlug]/[brandSlug]/library/library-sidebar-nav';
 import StreakNotificationsBridge from '@app-components/streaks/StreakNotificationsBridge';
 import { CommandPaletteProvider } from '@contexts/features/command-palette.provider';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import type { AgentThreadListProps } from '@genfeedai/agent';
 import { hasOrganizationBilling } from '@genfeedai/config/license';
 import type { SidebarNavPanel } from '@genfeedai/props/navigation/menu.props';
@@ -114,6 +115,7 @@ function AppLayoutWithDynamicMenu({
   initialBootstrap,
 }: AppLayoutWithDynamicMenuProps) {
   const shellChromeVariant = 'default' as const;
+  const { brandId, brands, organizationId, selectedBrand } = useBrand();
 
   const {
     isAdminRoute,
@@ -195,12 +197,13 @@ function AppLayoutWithDynamicMenu({
       agentApiService ? (
         <LazyAgentThreadList
           apiService={agentApiService}
+          brandId={brandId || null}
           onNavigate={handleNavigate}
           searchAction={searchAction}
           showTitle
         />
       ) : null,
-    [agentApiService, handleNavigate],
+    [agentApiService, brandId, handleNavigate],
   );
 
   // Keep nav-panel *identity* stable across renders. The panel object is
@@ -399,6 +402,73 @@ function AppLayoutWithDynamicMenu({
       {lowCreditsBanner}
     </>
   );
+  // Brand settings: Settings / <brand label> / <page>.
+  // Org settings: Settings / <org label> / <page> (General vs brand Profile).
+  // Registry seeds parent as :brandSlug / :orgSlug; prefer live display names.
+  const layoutBreadcrumb = useMemo(() => {
+    const breadcrumb = workspaceShellRoute?.breadcrumb;
+    if (!breadcrumb) {
+      return undefined;
+    }
+    if (
+      workspaceShellRoute?.surfaceKey === 'brand-settings' &&
+      selectedBrand?.label
+    ) {
+      return {
+        ...breadcrumb,
+        parentLabel: selectedBrand.label,
+      };
+    }
+    if (workspaceShellRoute?.surfaceKey === 'organization-settings') {
+      const nestedOrg = brands
+        .map((brand) => brand.organization)
+        .find((organization) => {
+          if (!organization || typeof organization !== 'object') {
+            return false;
+          }
+          const record = organization as {
+            id?: string;
+            label?: string;
+            slug?: string;
+          };
+          if (organizationId && record.id === organizationId) {
+            return true;
+          }
+          if (orgSlug && record.slug === orgSlug) {
+            return true;
+          }
+          return Boolean(record.label);
+        }) as { label?: string; slug?: string } | undefined;
+
+      const organizationLabel =
+        nestedOrg?.label ||
+        (orgSlug
+          ? orgSlug
+              .split('-')
+              .filter(Boolean)
+              .map(
+                (part) =>
+                  `${part.charAt(0).toUpperCase()}${part.slice(1).toLowerCase()}`,
+              )
+              .join(' ')
+          : undefined);
+
+      if (organizationLabel) {
+        return {
+          ...breadcrumb,
+          parentLabel: organizationLabel,
+        };
+      }
+    }
+    return breadcrumb;
+  }, [
+    brands,
+    organizationId,
+    orgSlug,
+    selectedBrand?.label,
+    workspaceShellRoute,
+  ]);
+
   // Provided above AppLayout on purpose: the inspector rail lives inside the
   // workspace shell (AppLayout's child) but its collapse toggle renders in the
   // topbar (AppLayout's sibling prop), so the shared state has to sit above both.
@@ -406,7 +476,7 @@ function AppLayoutWithDynamicMenu({
     <WorkspaceInspectorProvider>
       <AppLayout
         bannerComponent={shellBanner}
-        breadcrumb={workspaceShellRoute?.breadcrumb}
+        breadcrumb={layoutBreadcrumb}
         brandSlug={brandSlug}
         currentApp={currentApp}
         menuComponent={menuComponent}

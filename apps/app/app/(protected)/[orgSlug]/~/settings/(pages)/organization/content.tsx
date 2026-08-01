@@ -20,15 +20,14 @@ export default function SettingsOrganizationPage() {
   const { orgHref } = useOrgUrl();
   const [isSaving, setIsSaving] = useState(false);
 
-  // API/DB still use isDarkroom* field names (legacy). Product surface is Fleet.
-  const isFleetConnected = Boolean(selectedBrand?.isDarkroomEnabled);
+  const isFleetConnected = Boolean(selectedBrand?.isFleetEnabled);
   const agentHref = orgHref(APP_ROUTES.AGENT.NEW);
 
   const handleFleetNsfwToggle = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       setIsSaving(true);
       try {
-        await updateSettings('isDarkroomNsfwVisible', e.target.checked);
+        await updateSettings('isFleetNsfwVisible', e.target.checked);
       } finally {
         setIsSaving(false);
       }
@@ -96,7 +95,7 @@ export default function SettingsOrganizationPage() {
             <Switch
               label="Reveal fleet NSFW assets"
               description="When enabled, sensitive fleet-generated assets can be revealed in brand library views. When off, they stay blurred."
-              isChecked={settings?.isDarkroomNsfwVisible ?? false}
+              isChecked={settings?.isFleetNsfwVisible ?? false}
               isDisabled={isSaving}
               onChange={handleFleetNsfwToggle}
             />

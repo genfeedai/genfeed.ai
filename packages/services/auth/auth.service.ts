@@ -2,7 +2,7 @@ import type {
   IAgentRun,
   IAnalytics,
   IBrand,
-  IDarkroomCapabilities,
+  IFleetCapabilities,
   IOrganizationSetting,
   IUser,
 } from '@genfeedai/interfaces';
@@ -29,7 +29,7 @@ export interface ProtectedAppBootstrapPayload {
   access: AccessBootstrapState;
   brands: IBrand[];
   currentUser: IUser | null;
-  darkroomCapabilities: IDarkroomCapabilities | null;
+  fleetCapabilities: IFleetCapabilities | null;
   settings: IOrganizationSetting | null;
   streak: IStreakSummary | null;
 }

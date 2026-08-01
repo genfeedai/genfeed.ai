@@ -31,11 +31,11 @@ function materializeRoutePattern(pattern: string): string {
 
 describe('workspace shell trusted registry', () => {
   it('owns the complete accepted protected-route denominator', () => {
-    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(214);
+    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(221);
     expect(
       new Set(PROTECTED_ROUTE_INVENTORY.map((route) => route.canonicalUrl))
         .size,
-    ).toBe(214);
+    ).toBe(221);
 
     for (const route of PROTECTED_ROUTE_INVENTORY) {
       expect(route.accessPolicy).toMatch(
@@ -133,6 +133,40 @@ describe('workspace shell trusted registry', () => {
       });
     },
   );
+
+  it('resolves brand settings profile as Settings / brand / Profile', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/settings/profile')?.breadcrumb,
+    ).toEqual({
+      leafLabel: 'Profile',
+      parentLabel: 'Moonrise',
+      rootLabel: 'Settings',
+    });
+  });
+
+  it('resolves org settings as Settings / org / leaf (home is /settings/profile = General)', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/~/settings/profile')?.breadcrumb,
+    ).toEqual({
+      leafLabel: 'General',
+      parentLabel: 'Acme',
+      rootLabel: 'Settings',
+    });
+    expect(
+      resolveWorkspaceShellRoute('/acme/~/settings/usage')?.breadcrumb,
+    ).toEqual({
+      leafLabel: 'Usage',
+      parentLabel: 'Acme',
+      rootLabel: 'Settings',
+    });
+    expect(
+      resolveWorkspaceShellRoute('/acme/~/settings/policy')?.breadcrumb,
+    ).toEqual({
+      leafLabel: 'Agents',
+      parentLabel: 'Acme',
+      rootLabel: 'Settings',
+    });
+  });
 
   it.each([
     ['/acme/moonrise/research/ads/google', 'Google'],
@@ -251,8 +285,12 @@ describe('workspace shell trusted registry', () => {
     });
   });
 
-  it('keeps the two accepted hard-cut families outside the registry', () => {
-    expect(resolveWorkspaceShellRoute('/acme/~/workspace')).toBeNull();
+  it('keeps the accepted settings hard-cut family outside the registry', () => {
+    // Org workspace is first-class under `/~/workspace/*` (not a hard cut).
+    expect(resolveWorkspaceShellRoute('/acme/~/workspace')).toMatchObject({
+      surfaceKey: 'organization-overview',
+      safeFallback: '/:orgSlug/~/workspace/overview',
+    });
     expect(
       resolveWorkspaceShellRoute('/acme/~/settings/organization/billing'),
     ).toBeNull();
@@ -264,7 +302,18 @@ describe('workspace shell trusted registry', () => {
         key: 'organization-workspace-overview',
         status: 'embedded',
       },
-      safeFallback: '/:orgSlug/~/overview',
+      safeFallback: '/:orgSlug/~/workspace/overview',
+      scope: 'organization',
+      surfaceKey: 'organization-overview',
+    });
+    expect(
+      resolveWorkspaceShellRoute('/acme/~/workspace/overview'),
+    ).toMatchObject({
+      adapter: {
+        key: 'organization-workspace-overview',
+        status: 'embedded',
+      },
+      safeFallback: '/:orgSlug/~/workspace/overview',
       scope: 'organization',
       surfaceKey: 'organization-overview',
     });
@@ -275,7 +324,7 @@ describe('workspace shell trusted registry', () => {
         key: 'brand-workspace-overview',
         status: 'embedded',
       },
-      safeFallback: '/:orgSlug/:brandSlug/workspace',
+      safeFallback: '/:orgSlug/:brandSlug/workspace/overview',
       scope: 'brand',
       surfaceKey: 'workspace-overview',
     });

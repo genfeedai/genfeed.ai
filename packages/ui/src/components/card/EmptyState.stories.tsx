@@ -47,7 +47,7 @@ const meta = {
     },
     variant: {
       control: 'select',
-      description: 'Visual variant (EmptyStateCard only)',
+      description: 'Optional size/variant knobs (card chrome is always on)',
       options: ['default', 'subtle', 'prominent'],
     },
   },

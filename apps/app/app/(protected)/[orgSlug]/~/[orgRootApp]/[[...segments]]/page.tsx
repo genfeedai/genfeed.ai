@@ -95,8 +95,12 @@ export default async function OrgRootAppPage({
 }: OrgRootAppPageProps) {
   const { orgRootApp, orgSlug, segments } = await params;
 
+  // Workspace pages live as real routes under `~/workspace/*` (overview,
+  // inbox, tasks, activity). This catch-all only covers unknown leftovers.
   if (orgRootApp === 'workspace') {
-    notFound();
+    redirect(
+      createOrganizationAppRoute(orgSlug, APP_ROUTES.WORKSPACE.OVERVIEW),
+    );
   }
 
   if (orgRootApp === 'orchestration') {

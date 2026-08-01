@@ -292,7 +292,7 @@ describe('AdminFleetTrainingService', () => {
       );
 
       expect(personasService.findOne).toHaveBeenCalledWith({
-        isDarkroomCharacter: true,
+        isFleetCharacter: true,
         isDeleted: false,
         organization: 'org-123',
         slug: 'alice',
@@ -333,7 +333,7 @@ describe('AdminFleetTrainingService', () => {
       );
 
       expect(personasService.findOne).toHaveBeenCalledWith({
-        isDarkroomCharacter: true,
+        isFleetCharacter: true,
         isDeleted: false,
         slug: 'alice',
       });

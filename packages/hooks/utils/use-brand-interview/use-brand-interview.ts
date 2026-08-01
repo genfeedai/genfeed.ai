@@ -1,8 +1,10 @@
 'use client';
 
 import type {
+  BrandInterviewAnswerValue,
   IBrandInterviewProgress,
   IBrandInterviewQuestion,
+  IBrandInterviewStep,
 } from '@genfeedai/interfaces';
 import { logger } from '@genfeedai/services/core/logger.service';
 import {
@@ -22,8 +24,10 @@ export interface UseBrandInterviewReturn {
   completenessScore: number;
   isLoading: boolean;
   error: string | null;
+  steps: IBrandInterviewStep[];
+  answeredFields: Record<string, BrandInterviewAnswerValue>;
   startInterview: () => Promise<void>;
-  submitAnswer: (answer: string) => Promise<void>;
+  submitAnswer: (answer: string, fieldKey?: string) => Promise<void>;
   skipQuestion: () => Promise<void>;
 }
 
@@ -40,6 +44,10 @@ export function useBrandInterview(
   const [completenessScore, setCompletenessScore] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [steps, setSteps] = useState<IBrandInterviewStep[]>([]);
+  const [answeredFields, setAnsweredFields] = useState<
+    Record<string, BrandInterviewAnswerValue>
+  >({});
 
   const mountedRef = useRef(true);
 
@@ -73,6 +81,16 @@ export function useBrandInterview(
           setInterviewId(active.id);
           setCurrentQuestion(active.currentQuestion);
           setCompletenessScore(active.completenessScore);
+          setSteps(active.steps ?? []);
+          setAnsweredFields(active.answeredFields ?? {});
+          setProgress({
+            answeredFields: active.answeredCount,
+            percentComplete:
+              active.totalCount > 0
+                ? Math.round((active.answeredCount / active.totalCount) * 100)
+                : 100,
+            totalFields: active.totalCount,
+          });
           setStatus('in_progress');
           logger.info('Resumed active brand interview', { id: active.id });
         }
@@ -125,6 +143,8 @@ export function useBrandInterview(
       setCurrentQuestion(result.currentQuestion);
       setProgress(result.progress);
       setCompletenessScore(result.completenessScore);
+      setSteps(result.steps ?? []);
+      setAnsweredFields(result.answeredFields ?? {});
       setStatus(result.status === 'completed' ? 'complete' : 'in_progress');
 
       logger.info('Started brand interview', {
@@ -150,7 +170,7 @@ export function useBrandInterview(
   }, [brandId, getInterviewService]);
 
   const submitAnswer = useCallback(
-    async (answer: string) => {
+    async (answer: string, fieldKey?: string) => {
       if (!interviewId) {
         return;
       }
@@ -160,7 +180,9 @@ export function useBrandInterview(
 
       try {
         const service = await getInterviewService();
-        const result = await service.submitAnswer(interviewId, answer);
+        const result = await service.submitAnswer(interviewId, answer, {
+          fieldKey,
+        });
 
         if (!mountedRef.current) {
           return;
@@ -169,6 +191,8 @@ export function useBrandInterview(
         setCurrentQuestion(result.nextQuestion);
         setProgress(result.progress);
         setCompletenessScore(result.completenessScore);
+        setSteps(result.steps ?? []);
+        setAnsweredFields(result.answeredFields ?? {});
         setStatus(result.isComplete ? 'complete' : 'in_progress');
 
         logger.info('Submitted interview answer', {
@@ -214,6 +238,8 @@ export function useBrandInterview(
       setCurrentQuestion(result.nextQuestion);
       setProgress(result.progress);
       setCompletenessScore(result.completenessScore);
+      setSteps(result.steps ?? []);
+      setAnsweredFields(result.answeredFields ?? {});
       setStatus(result.isComplete ? 'complete' : 'in_progress');
 
       logger.info('Skipped interview question', {
@@ -239,6 +265,7 @@ export function useBrandInterview(
   }, [interviewId, getInterviewService]);
 
   return {
+    answeredFields,
     completenessScore,
     currentQuestion,
     error,
@@ -248,6 +275,7 @@ export function useBrandInterview(
     skipQuestion,
     startInterview,
     status,
+    steps,
     submitAnswer,
   };
 }

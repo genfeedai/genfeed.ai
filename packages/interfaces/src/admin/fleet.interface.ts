@@ -13,7 +13,7 @@ export interface IFleetCharacter {
   loraModelPath?: string;
   profileImageUrl?: string;
   personaFileS3Key?: string;
-  isDarkroomCharacter: boolean;
+  isFleetCharacter: boolean;
   selectedImagesCount?: number;
   reviewImagesCount?: number;
   trashedImagesCount?: number;

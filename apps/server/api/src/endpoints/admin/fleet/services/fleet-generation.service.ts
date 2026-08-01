@@ -9,8 +9,8 @@ import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
-  DarkroomReviewStatus as DarkroomReviewStatusEnum,
   FileInputType,
+  FleetReviewStatus as FleetReviewStatusEnum,
   IngredientStatus,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -154,7 +154,7 @@ export class AdminFleetGenerationService {
             generationSource: model,
             generationStage: 'completed',
             modelUsed: model,
-            reviewStatus: DarkroomReviewStatusEnum.PENDING,
+            reviewStatus: FleetReviewStatusEnum.PENDING,
             s3Key: `darkroom/${personaSlug}/${filename}`,
             status: IngredientStatus.GENERATED,
           });

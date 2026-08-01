@@ -5,10 +5,10 @@ import { AdminFleetValueReader } from '@api/endpoints/admin/fleet/services/fleet
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import {
   type ContentRating,
-  type DarkroomAssetLabel,
-  type DarkroomReviewStatus,
-  DarkroomReviewStatus as DarkroomReviewStatusEnum,
   FileInputType,
+  type FleetAssetLabel,
+  type FleetReviewStatus,
+  FleetReviewStatus as FleetReviewStatusEnum,
   IngredientCategory,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -38,8 +38,8 @@ export class AdminFleetAssetService {
     organizationId: string,
     filters: {
       personaSlug?: string;
-      reviewStatus?: DarkroomReviewStatus;
-      assetLabel?: DarkroomAssetLabel;
+      reviewStatus?: FleetReviewStatus;
+      assetLabel?: FleetAssetLabel;
       contentRating?: ContentRating;
       campaign?: string;
       page?: number;
@@ -78,7 +78,7 @@ export class AdminFleetAssetService {
   async reviewAsset(
     ingredientId: string,
     organizationId: string,
-    reviewStatus: DarkroomReviewStatus,
+    reviewStatus: FleetReviewStatus,
   ): Promise<IngredientDocument> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(caller, {
@@ -105,10 +105,10 @@ export class AdminFleetAssetService {
     } as Parameters<IngredientsService['patch']>[1]);
 
     if (
-      reviewStatus === DarkroomReviewStatusEnum.APPROVED &&
+      reviewStatus === FleetReviewStatusEnum.APPROVED &&
       !AdminFleetValueReader.hasReviewStatus(
         ingredient.reviewStatus,
-        DarkroomReviewStatusEnum.APPROVED,
+        FleetReviewStatusEnum.APPROVED,
       ) &&
       ingredient.personaSlug &&
       ingredient.cdnUrl &&

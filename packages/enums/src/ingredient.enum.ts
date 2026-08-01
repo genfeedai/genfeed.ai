@@ -68,14 +68,14 @@ export enum IngredientAvatarCategory {
   AVATAR_VIDEO = 'avatar-video',
 }
 
-export enum DarkroomReviewStatus {
+export enum FleetReviewStatus {
   PENDING = 'pending',
   APPROVED = 'approved',
   REJECTED = 'rejected',
   NEEDS_REVISION = 'needs-revision',
 }
 
-export enum DarkroomAssetLabel {
+export enum FleetAssetLabel {
   HERO = 'hero',
   FILLER = 'filler',
   BTS = 'bts',

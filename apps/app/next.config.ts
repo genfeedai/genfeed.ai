@@ -93,27 +93,29 @@ const selfHostedOrgRewrites = IS_LOCAL_APP_SHELL
   : [];
 
 /**
- * Parent app home is `/[app]`, not `/[app]/overview`. Permanent redirects keep
- * bookmarks and shared links working after the home path moved to root.
+ * Complete-path app home: bare `/[app]` permanently redirects to
+ * `/[app]/overview` so Overview is a complete path that does not prefix-match
+ * siblings (same pattern as workspace → overview, settings → profile).
+ * Covers unscoped, brand-scoped, and org-scoped (`~/`) routes.
  */
-function appOverviewToHomeRedirects(appRoot: `/${string}`) {
+function appHomeToOverviewRedirects(appRoot: `/${string}`) {
   const overviewPath = `${appRoot}/overview` as const;
 
   return [
     {
-      destination: appRoot,
+      destination: overviewPath,
       permanent: true,
-      source: overviewPath,
+      source: appRoot,
     },
     {
-      destination: createBrandAppRoute(':orgSlug', ':brandSlug', appRoot),
+      destination: createBrandAppRoute(':orgSlug', ':brandSlug', overviewPath),
       permanent: true,
-      source: createBrandAppRoute(':orgSlug', ':brandSlug', overviewPath),
+      source: createBrandAppRoute(':orgSlug', ':brandSlug', appRoot),
     },
     {
-      destination: createOrganizationAppRoute(':orgSlug', appRoot),
+      destination: createOrganizationAppRoute(':orgSlug', overviewPath),
       permanent: true,
-      source: createOrganizationAppRoute(':orgSlug', overviewPath),
+      source: createOrganizationAppRoute(':orgSlug', appRoot),
     },
   ];
 }
@@ -216,7 +218,7 @@ const config = createAppNextConfig({
       ),
     },
     {
-      destination: APP_ROUTES.LIBRARY.ROOT,
+      destination: APP_ROUTES.LIBRARY.OVERVIEW,
       permanent: false,
       source: APP_ROUTES.LIBRARY.INGREDIENTS,
     },
@@ -224,7 +226,7 @@ const config = createAppNextConfig({
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.LIBRARY.ROOT,
+        APP_ROUTES.LIBRARY.OVERVIEW,
       ),
       permanent: false,
       source: createBrandAppRoute(
@@ -238,6 +240,33 @@ const config = createAppNextConfig({
       permanent: false,
       source: APP_ROUTES.SETTINGS.PERSONAL,
     },
+    // Brand settings home is Profile — bare `/settings` permanently lands there
+    // so the sidebar Profile item is a complete path (no prefix-match on siblings).
+    {
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.SETTINGS.PROFILE,
+      ),
+      permanent: true,
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.SETTINGS.ROOT,
+      ),
+    },
+    // Org settings home is also the complete `/settings/profile` path (workspace
+    // defaults / General content). Bare `~/settings` permanently redirects there
+    // so the sidebar home item does not prefix-match siblings — same pattern as
+    // brand settings and workspace → overview.
+    {
+      destination: createOrganizationAppRoute(
+        ':orgSlug',
+        APP_ROUTES.SETTINGS.PROFILE,
+      ),
+      permanent: true,
+      source: createOrganizationAppRoute(':orgSlug', APP_ROUTES.SETTINGS.ROOT),
+    },
     {
       destination: APP_ROUTES.COMPOSE.ARTICLE,
       permanent: false,
@@ -248,11 +277,11 @@ const config = createAppNextConfig({
       permanent: false,
       source: APP_ROUTES.STUDIO.ROOT,
     },
-    // App homes live at `/[app]`; `/[app]/overview` is a permanent alias.
-    ...appOverviewToHomeRedirects(APP_ROUTES.ORCHESTRATION.ROOT),
-    ...appOverviewToHomeRedirects(APP_ROUTES.WORKSPACE.ROOT),
-    ...appOverviewToHomeRedirects(APP_ROUTES.LIBRARY.ROOT),
-    ...appOverviewToHomeRedirects(APP_ROUTES.ANALYTICS.ROOT),
+    // Complete-path homes: bare `/[app]` → `/[app]/overview` (and scoped variants).
+    ...appHomeToOverviewRedirects(APP_ROUTES.ORCHESTRATION.ROOT),
+    ...appHomeToOverviewRedirects(APP_ROUTES.LIBRARY.ROOT),
+    ...appHomeToOverviewRedirects(APP_ROUTES.ANALYTICS.ROOT),
+    ...appHomeToOverviewRedirects(APP_ROUTES.WORKSPACE.ROOT),
     // Campaigns / outreach moved from Automate → Publish (hard cut).
     ...legacyPathRedirects(
       '/orchestration/campaigns',

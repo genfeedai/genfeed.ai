@@ -281,7 +281,7 @@ describe('WorkspacePageContent', () => {
     });
 
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Dashboard' }),
+      screen.getByRole('heading', { level: 1, name: 'Overview' }),
     ).toHaveClass('sr-only');
     expect(screen.getByTestId('dashboard-stats-strip')).toBeInTheDocument();
     expect(screen.queryByTestId('workspace-nav')).not.toBeInTheDocument();
@@ -313,10 +313,8 @@ describe('WorkspacePageContent', () => {
       'aria-busy',
       'true',
     );
-    expect(screen.getByTestId('workspace-snapshot')).toHaveAttribute(
-      'aria-busy',
-      'true',
-    );
+    // View tabs live on Container header chrome (shared spacing with Tasks).
+    expect(screen.getByRole('link', { name: /all/i })).toBeInTheDocument();
     expect(screen.queryByText('No inbox items yet.')).not.toBeInTheDocument();
 
     resolveTasks?.([
@@ -332,10 +330,6 @@ describe('WorkspacePageContent', () => {
       expect(screen.getByText('Loaded after first fetch')).toBeInTheDocument();
     });
     expect(screen.getByTestId('workspace-inbox')).toHaveAttribute(
-      'aria-busy',
-      'false',
-    );
-    expect(screen.getByTestId('workspace-snapshot')).toHaveAttribute(
       'aria-busy',
       'false',
     );
@@ -536,7 +530,7 @@ describe('WorkspacePageContent', () => {
       expect(listMock).toHaveBeenCalledWith({});
     });
 
-    expect(screen.getByTestId('workspace-snapshot')).toBeInTheDocument();
+    expect(screen.queryByTestId('workspace-snapshot')).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('workspace-advanced-tools'),
     ).not.toBeInTheDocument();

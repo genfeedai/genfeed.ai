@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { describe, expect, it } from 'vitest';
 import {
   normalizeAnalyticsPathname,
@@ -21,8 +22,8 @@ describe('normalizeAnalyticsPathname', () => {
 
   it('leaves known non-tenant top-level routes untouched', () => {
     expect(normalizeAnalyticsPathname('/login')).toBe('/login');
-    expect(normalizeAnalyticsPathname('/settings/profile')).toBe(
-      '/settings/profile',
+    expect(normalizeAnalyticsPathname(APP_ROUTES.SETTINGS.PROFILE)).toBe(
+      APP_ROUTES.SETTINGS.PROFILE,
     );
     expect(normalizeAnalyticsPathname('/admin/users')).toBe('/admin/users');
     expect(normalizeAnalyticsPathname('/onboarding/welcome')).toBe(

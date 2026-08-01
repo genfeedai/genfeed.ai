@@ -57,13 +57,13 @@ export function useMasonryVideo({
   const isProcessing = video.status === IngredientStatus.PROCESSING;
   const isFailed = video.status === IngredientStatus.FAILED;
   const isUnavailable = isProcessing || isFailed;
-  const isDarkroomSensitive =
-    selectedBrand?.isDarkroomEnabled &&
+  const isFleetNsfwSensitive =
+    selectedBrand?.isFleetEnabled &&
     !!video.personaSlug &&
     video.contentRating !== 'sfw';
-  const isDarkroomLocked =
-    Boolean(isDarkroomSensitive) && !settings?.isDarkroomNsfwVisible;
-  const isInteractionBlocked = isUnavailable || isDarkroomLocked;
+  const isFleetNsfwLocked =
+    Boolean(isFleetNsfwSensitive) && !settings?.isFleetNsfwVisible;
+  const isInteractionBlocked = isUnavailable || isFleetNsfwLocked;
 
   const placeholderImageUrl = useMemo(() => {
     if (isProcessing && referenceImageUrl && referenceImageUrl !== '') {
@@ -278,7 +278,7 @@ export function useMasonryVideo({
     isHovered,
     isProcessing,
     isUnavailable,
-    isDarkroomLocked,
+    isFleetNsfwLocked,
     isInteractionBlocked,
     placeholderImageUrl,
     thumbnailImageUrl,

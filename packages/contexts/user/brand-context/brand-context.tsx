@@ -1,6 +1,6 @@
 import type {
   ICredential,
-  IDarkroomCapabilities,
+  IFleetCapabilities,
   IOrganizationSetting,
 } from '@genfeedai/interfaces';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
@@ -30,8 +30,8 @@ export interface BrandContextType {
   /** Refresh organization settings */
   refreshSettings: () => Promise<void>;
   /** Brand-scoped darkroom capability state */
-  darkroomCapabilities: IDarkroomCapabilities | null;
-  darkroomCapabilitiesLoading: boolean;
+  fleetCapabilities: IFleetCapabilities | null;
+  fleetCapabilitiesLoading: boolean;
 }
 
 const BrandContext = createContext<BrandContextType | undefined>(undefined);
@@ -53,8 +53,8 @@ export function BrandProvider({
       credentials: state.credentials,
       credentialsError: state.credentialsError,
       credentialsLoading: state.credentialsLoading,
-      darkroomCapabilities: state.darkroomCapabilities,
-      darkroomCapabilitiesLoading: state.darkroomCapabilitiesLoading,
+      fleetCapabilities: state.fleetCapabilities,
+      fleetCapabilitiesLoading: state.fleetCapabilitiesLoading,
       isReady: state.isReady,
       organizationId: state.organizationId,
       refreshBrands: state.refreshBrands,
@@ -71,8 +71,8 @@ export function BrandProvider({
       state.credentials,
       state.credentialsError,
       state.credentialsLoading,
-      state.darkroomCapabilities,
-      state.darkroomCapabilitiesLoading,
+      state.fleetCapabilities,
+      state.fleetCapabilitiesLoading,
       state.isReady,
       state.organizationId,
       state.refreshBrands,

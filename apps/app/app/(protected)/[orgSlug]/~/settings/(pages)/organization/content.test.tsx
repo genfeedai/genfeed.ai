@@ -26,7 +26,7 @@ vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
   useOrganization: vi.fn(() => ({
     settings: {
       isAdvancedMode: false,
-      isDarkroomNsfwVisible: false,
+      isFleetNsfwVisible: false,
     },
     updateSettings: vi.fn(),
   })),
@@ -94,7 +94,7 @@ describe('SettingsOrganizationPage', () => {
       organizationId: 'org-123',
       selectedBrand: {
         id: 'brand-1',
-        isDarkroomEnabled: true,
+        isFleetEnabled: true,
         label: 'Default Brand',
       },
     } as ReturnType<typeof useBrand>);

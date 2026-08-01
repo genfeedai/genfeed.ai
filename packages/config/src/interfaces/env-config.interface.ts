@@ -138,7 +138,7 @@ export interface IEnvConfig {
   HIGGSFIELD_API_KEY?: string;
   HIGGSFIELD_API_SECRET?: string;
 
-  // === Darkroom (self-hosted GPU) ===
+  // === Fleet (self-hosted GPU) ===
   DARKROOM_COMFYUI_URL?: string;
   DARKROOM_CLOUDFRONT_DISTRIBUTION_ID?: string;
 

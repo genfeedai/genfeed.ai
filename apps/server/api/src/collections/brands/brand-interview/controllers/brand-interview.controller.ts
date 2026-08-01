@@ -128,6 +128,7 @@ export class BrandInterviewController {
       organizationId,
       userId,
       dto.answer,
+      dto.fieldKey,
     );
   }
 

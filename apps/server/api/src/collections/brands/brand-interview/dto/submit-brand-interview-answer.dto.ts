@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, MaxLength, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class SubmitBrandInterviewAnswerDto {
   @ApiProperty({
@@ -11,4 +11,15 @@ export class SubmitBrandInterviewAnswerDto {
   @MinLength(1)
   @MaxLength(10_000)
   answer!: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Optional field key when re-saving an already-answered step from the steps sidebar. Defaults to the session current field.',
+    example: 'tone',
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(100)
+  fieldKey?: string;
 }

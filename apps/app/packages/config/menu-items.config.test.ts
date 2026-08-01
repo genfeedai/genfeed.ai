@@ -11,7 +11,7 @@ describe('APP_MENU_ITEMS', () => {
     const primaryItems = APP_MENU_ITEMS.filter((item) => item.isPrimary);
 
     expect(primaryItems).toHaveLength(0);
-    expect(APP_LOGO_HREF).toBe('/workspace');
+    expect(APP_LOGO_HREF).toBe('/workspace/overview');
   });
 
   it('renders the workspace entrypoints as standalone top-level rows', () => {
@@ -22,12 +22,17 @@ describe('APP_MENU_ITEMS', () => {
       return labels;
     }, []);
 
-    expect(ungroupedLabels).toEqual([
-      'Dashboard',
-      'Inbox',
-      'Tasks',
-      'Activity',
-    ]);
+    expect(ungroupedLabels).toEqual(['Overview', 'Inbox', 'Tasks', 'Activity']);
+  });
+
+  it('points Overview at the complete /workspace/overview path', () => {
+    const overview = APP_MENU_ITEMS.find((item) => item.label === 'Overview');
+    const activity = APP_MENU_ITEMS.find((item) => item.label === 'Activity');
+
+    expect(overview?.href).toBe('/workspace/overview');
+    expect(overview?.matchPaths).toEqual(['/workspace/overview']);
+    expect(overview?.isExactMatch).toBeUndefined();
+    expect(activity?.href).toBe('/workspace/activity');
   });
 
   it('keeps Messages out of the workspace menu (app switcher owns it)', () => {
@@ -57,12 +62,7 @@ describe('APP_MENU_ITEMS', () => {
       return labels;
     }, []);
 
-    expect(workspaceLabels).toEqual([
-      'Dashboard',
-      'Inbox',
-      'Tasks',
-      'Activity',
-    ]);
+    expect(workspaceLabels).toEqual(['Overview', 'Inbox', 'Tasks', 'Activity']);
   });
 
   it('does not include analytics group items pointing to /analytics/* routes', () => {

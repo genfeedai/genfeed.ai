@@ -86,7 +86,7 @@ export function useWorkspacePageContent({
 
   const { getToken } = useAuthIdentity();
   const { subscribe } = useSocketManager();
-  const { organizationId } = useBrand();
+  const { brandId, organizationId } = useBrand();
   const pathname = usePathname();
   const { push, replace } = useRouter();
   const searchParams = useSearchParams();
@@ -325,7 +325,9 @@ export function useWorkspacePageContent({
         }
 
         const service = TasksService.getInstance(token);
-        const tasks = await service.list({});
+        // Brand selected → brand filter. Brand cleared (org `/~/workspace/*`)
+        // → org-wide list so inbox/activity can span every brand.
+        const tasks = await service.list(brandId ? { brand: brandId } : {});
         if (!controller.signal.aborted) {
           setWorkspaceTasks(tasks);
         }
@@ -353,6 +355,7 @@ export function useWorkspacePageContent({
       }
     };
   }, [
+    brandId,
     clearWorkspaceLoadWarning,
     getToken,
     markWorkspaceLoadWarning,

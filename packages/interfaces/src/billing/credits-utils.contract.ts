@@ -17,9 +17,10 @@ import type { ActivitySource } from '@genfeedai/enums';
  * `apps/server/api/src/collections/credits/services/credits.utils.service.ts`
  * and will be moved to `ee/packages/billing/` in a follow-up PR (Phase C Layer 2).
  *
- * When `isEEEnabled() === false`, OSS ships a no-op implementation that treats
- * self-hosted deployments as having unlimited credits. The no-op's signatures
- * must match this contract exactly.
+ * When `usesMeteredCredits() === false` (community self-host / desktop — not
+ * Cloud SaaS), OSS ships a no-op that treats the deployment as having unlimited
+ * credits (BYOK free). Cloud SaaS uses the real ledger even without
+ * `GENFEED_LICENSE_KEY`. The no-op's signatures must match this contract exactly.
  */
 
 /**

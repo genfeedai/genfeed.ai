@@ -34,11 +34,11 @@ type PersonaSource = Pick<
       platforms?: string[];
       topics?: string[];
     } | null;
-    darkroomSources?: Array<{ platform?: string | null }> | null;
+    fleetSources?: Array<{ platform?: string | null }> | null;
     handle?: string | null;
     label: string;
   },
-  'bio' | 'contentStrategy' | 'darkroomSources' | 'handle' | 'label'
+  'bio' | 'contentStrategy' | 'fleetSources' | 'handle' | 'label'
 >;
 
 const MAX_BRIEF_SOURCE_LENGTH = 240;
@@ -71,8 +71,8 @@ const toStringArray = (value: unknown): string[] | undefined => {
   return items.length > 0 ? items : undefined;
 };
 
-const getDarkroomPlatforms = (
-  sources: PersonaSource['darkroomSources'],
+const getFleetPlatforms = (
+  sources: PersonaSource['fleetSources'],
 ): string[] | undefined => {
   if (!Array.isArray(sources)) {
     return undefined;
@@ -170,7 +170,7 @@ export const buildHarnessPersonaProfile = (
     label: persona.label,
     platforms:
       toStringArray(contentStrategy?.platforms) ??
-      getDarkroomPlatforms(persona.darkroomSources),
+      getFleetPlatforms(persona.fleetSources),
     topics: toStringArray(contentStrategy?.topics),
     voice: toOptionalString(persona.handle),
   };

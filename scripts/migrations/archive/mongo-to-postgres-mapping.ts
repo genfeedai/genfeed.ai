@@ -772,7 +772,7 @@ export const COLLECTION_MAPPINGS: CollectionMapping[] = [
         isDefault: doc.isDefault ?? false,
         isDeleted: doc.isDeleted ?? false,
         isHighlighted: doc.isHighlighted ?? false,
-        isDarkroomEnabled: doc.isDarkroomEnabled ?? false,
+        isFleetEnabled: doc.isFleetEnabled ?? false,
         defaultVideoModel: doc.defaultVideoModel ?? null,
         defaultImageModel: doc.defaultImageModel ?? null,
         defaultImageToVideoModel: doc.defaultImageToVideoModel ?? null,

@@ -282,7 +282,7 @@ export class BrandRelocationService {
     'isActive',
     'isHighlighted',
     'isSelected',
-    'isDarkroomEnabled',
+    'isFleetEnabled',
     'isDeleted',
     'defaultVideoModel',
     'defaultImageModel',

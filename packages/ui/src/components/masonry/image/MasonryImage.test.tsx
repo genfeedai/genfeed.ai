@@ -4,8 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
-    selectedBrand: { isDarkroomEnabled: false },
-    settings: { isDarkroomNsfwVisible: false },
+    selectedBrand: { isFleetEnabled: false },
+    settings: { isFleetNsfwVisible: false },
   })),
 }));
 
@@ -95,8 +95,8 @@ import type { IImage } from '@genfeedai/interfaces';
 import MasonryImage from '@ui/masonry/image/MasonryImage';
 
 const defaultBrandContext = {
-  selectedBrand: { isDarkroomEnabled: false },
-  settings: { isDarkroomNsfwVisible: false },
+  selectedBrand: { isFleetEnabled: false },
+  settings: { isFleetNsfwVisible: false },
 } as ReturnType<typeof useBrand>;
 
 const mockImage: IImage = {
@@ -148,8 +148,8 @@ describe('MasonryImage', () => {
 
   it('blurs sensitive darkroom assets when NSFW visibility is disabled', () => {
     vi.mocked(useBrand).mockReturnValue({
-      selectedBrand: { isDarkroomEnabled: true },
-      settings: { isDarkroomNsfwVisible: false },
+      selectedBrand: { isFleetEnabled: true },
+      settings: { isFleetNsfwVisible: false },
     } as ReturnType<typeof useBrand>);
 
     render(
@@ -168,8 +168,8 @@ describe('MasonryImage', () => {
 
   it('prevents opening locked darkroom assets', () => {
     vi.mocked(useBrand).mockReturnValue({
-      selectedBrand: { isDarkroomEnabled: true },
-      settings: { isDarkroomNsfwVisible: false },
+      selectedBrand: { isFleetEnabled: true },
+      settings: { isFleetNsfwVisible: false },
     } as ReturnType<typeof useBrand>);
 
     const handleClickIngredient = vi.fn();

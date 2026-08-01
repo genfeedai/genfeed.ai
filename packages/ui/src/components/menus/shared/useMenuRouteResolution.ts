@@ -132,7 +132,10 @@ export function useMenuRouteResolution() {
         return true;
       }
 
-      return pathname === href || pathname.startsWith(href);
+      // Segment-boundary prefix match: `/workspace` must not light on
+      // `/workspaceX`, and is paired with `isExactMatch` on module Overview
+      // roots so `/workspace/activity` does not keep Overview active.
+      return pathname === href || pathname.startsWith(`${href}/`);
     },
     [pathname],
   );

@@ -52,11 +52,11 @@ export const adminNavigationCommands: ICommand[] = [
     },
     category: 'navigation',
     condition: adminCondition,
-    description: 'Admin dashboard overview',
+    description: 'Admin overview',
     icon: Home,
     id: 'admin-nav-dashboard',
     keywords: ['dashboard', 'home', 'overview'],
-    label: 'Dashboard',
+    label: 'Overview',
     priority: 10,
   },
   {
@@ -289,7 +289,7 @@ export const adminNavigationCommands: ICommand[] = [
     action: () => {
       navigate(`${EnvironmentService.apps.admin}/fleet/characters`);
     },
-    category: 'darkroom',
+    category: 'fleet',
     condition: adminCondition,
     description: 'Manage AI characters',
     icon: Users,
@@ -302,7 +302,7 @@ export const adminNavigationCommands: ICommand[] = [
     action: () => {
       navigate(`${EnvironmentService.apps.admin}/fleet/gallery`);
     },
-    category: 'darkroom',
+    category: 'fleet',
     condition: adminCondition,
     description: 'Browse generated content',
     icon: Image,
@@ -315,20 +315,20 @@ export const adminNavigationCommands: ICommand[] = [
     action: () => {
       navigate(`${EnvironmentService.apps.admin}/fleet/training`);
     },
-    category: 'darkroom',
+    category: 'fleet',
     condition: adminCondition,
     description: 'Manage LoRA training',
     icon: Cpu,
-    id: 'admin-nav-darkroom-training',
-    keywords: ['training', 'lora', 'darkroom'],
-    label: 'Darkroom Training',
+    id: 'admin-nav-fleet-training',
+    keywords: ['training', 'lora', 'fleet'],
+    label: 'Fleet Training',
     priority: 7,
   },
   {
     action: () => {
       navigate(`${EnvironmentService.apps.admin}/fleet/pipeline`);
     },
-    category: 'darkroom',
+    category: 'fleet',
     condition: adminCondition,
     description: 'Manage generation pipeline',
     icon: ClipboardList,
@@ -341,12 +341,12 @@ export const adminNavigationCommands: ICommand[] = [
     action: () => {
       navigate(`${EnvironmentService.apps.admin}/fleet/generate`);
     },
-    category: 'darkroom',
+    category: 'fleet',
     condition: adminCondition,
     description: 'Generate AI content',
     icon: Image,
     id: 'admin-nav-generate',
-    keywords: ['generate', 'create', 'darkroom'],
+    keywords: ['generate', 'create', 'fleet'],
     label: 'Generate',
     priority: 7,
   },
@@ -354,7 +354,7 @@ export const adminNavigationCommands: ICommand[] = [
     action: () => {
       navigate(`${EnvironmentService.apps.admin}/fleet/lip-sync`);
     },
-    category: 'darkroom',
+    category: 'fleet',
     condition: adminCondition,
     description: 'Lip sync video generation',
     icon: Video,
@@ -367,7 +367,7 @@ export const adminNavigationCommands: ICommand[] = [
     action: () => {
       navigate(`${EnvironmentService.apps.admin}/fleet/voices`);
     },
-    category: 'darkroom',
+    category: 'fleet',
     condition: adminCondition,
     description: 'Manage AI voices',
     icon: Volume2,
@@ -380,7 +380,7 @@ export const adminNavigationCommands: ICommand[] = [
     action: () => {
       navigate(`${EnvironmentService.apps.admin}/fleet/infrastructure`);
     },
-    category: 'darkroom',
+    category: 'fleet',
     condition: adminCondition,
     description: 'Manage GPU infrastructure',
     icon: Settings,

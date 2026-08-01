@@ -5,7 +5,7 @@
  *   - HeyGen   (default, production-ready)
  *   - D-ID     (stub — coming soon)
  *   - Tavus    (stub — coming soon)
- *   - MuseTalk (stub — self-hosted via Darkroom/ComfyUI, coming soon)
+ *   - MuseTalk (stub — self-hosted via Fleet/ComfyUI, coming soon)
  */
 
 import type { AvatarVideoProviderName } from '@genfeedai/queue-contracts';

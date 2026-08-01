@@ -27,6 +27,29 @@ export interface IBrandInterviewProgress {
   percentComplete: number;
 }
 
+/** Session step row for the secondary interview navigator. */
+export type BrandInterviewStepStatus =
+  | 'answered'
+  | 'current'
+  | 'skipped'
+  | 'upcoming';
+
+export interface IBrandInterviewStep {
+  fieldKey: string;
+  group: BrandInterviewGroup;
+  /** Short label for the steps rail (truncated question text). */
+  label: string;
+  status: BrandInterviewStepStatus;
+  /** True when the user can jump back to this step (answered or current). */
+  isNavigable: boolean;
+  /** Full question payload so the main form can reopen any navigable step. */
+  question: IBrandInterviewQuestion;
+  /** Short answer preview for answered steps. */
+  answerPreview?: string;
+}
+
+export type BrandInterviewAnswerValue = string | string[];
+
 export interface IBrandInterviewStartResult {
   interviewId: string;
   brandId: string;
@@ -35,6 +58,8 @@ export interface IBrandInterviewStartResult {
   progress: IBrandInterviewProgress;
   completenessScore: number;
   creditsCharged: number;
+  steps: IBrandInterviewStep[];
+  answeredFields: Record<string, BrandInterviewAnswerValue>;
 }
 
 export interface IBrandInterviewAnswerResult {
@@ -44,6 +69,8 @@ export interface IBrandInterviewAnswerResult {
   nextQuestion: IBrandInterviewQuestion | null;
   progress: IBrandInterviewProgress;
   completenessScore: number;
+  steps: IBrandInterviewStep[];
+  answeredFields: Record<string, BrandInterviewAnswerValue>;
 }
 
 export interface IBrandInterviewCompleteness {
@@ -66,4 +93,6 @@ export interface IActiveBrandInterview {
   completenessScore: number;
   answeredCount: number;
   totalCount: number;
+  steps: IBrandInterviewStep[];
+  answeredFields: Record<string, BrandInterviewAnswerValue>;
 }

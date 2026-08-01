@@ -1,7 +1,7 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
 import { AdminFleetValueReader } from '@api/endpoints/admin/fleet/services/fleet-value-reader.util';
-import { DarkroomReviewStatus as DarkroomReviewStatusEnum } from '@genfeedai/enums';
+import { FleetReviewStatus as FleetReviewStatusEnum } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -66,7 +66,7 @@ export class AdminFleetStatsService {
       if (
         AdminFleetValueReader.hasReviewStatus(
           group.reviewStatus,
-          DarkroomReviewStatusEnum.APPROVED,
+          FleetReviewStatusEnum.APPROVED,
         )
       ) {
         existing.approvedCount += group.count;

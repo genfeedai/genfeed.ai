@@ -12,9 +12,11 @@ export enum AppMenuGroup {
 export const APP_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: AppMenuGroup.Root,
+    // Complete path. Bare `/workspace` permanently redirects to this in
+    // next.config — no isExactMatch needed for sibling route matching.
     href: APP_ROUTES.WORKSPACE.OVERVIEW,
-    label: 'Dashboard',
-    matchPaths: [APP_ROUTES.WORKSPACE.ROOT, APP_ROUTES.WORKSPACE.OVERVIEW],
+    label: 'Overview',
+    matchPaths: [APP_ROUTES.WORKSPACE.OVERVIEW],
     outline: LayoutGrid,
     solid: LayoutGrid,
   },

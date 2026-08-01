@@ -14,7 +14,7 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     group: '',
     href: APP_ROUTES.ANALYTICS.OVERVIEW,
     label: 'Overview',
-    matchPaths: [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
+    matchPaths: [APP_ROUTES.ANALYTICS.OVERVIEW],
     outline: ChartColumn,
     solid: ChartColumn,
   },

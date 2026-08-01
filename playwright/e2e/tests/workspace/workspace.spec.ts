@@ -51,7 +51,7 @@ test.describe('Workspace', () => {
       /\/workspace\/overview(?:$|[?#])/,
     );
     await expect(
-      authenticatedPage.getByRole('link', { name: 'Dashboard' }).first(),
+      authenticatedPage.getByRole('link', { name: 'Overview' }).first(),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByTestId('sidebar-brand-rail').first(),

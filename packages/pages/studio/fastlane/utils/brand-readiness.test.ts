@@ -35,7 +35,7 @@ function makeBrand(overrides: Partial<IBrand> = {}): IBrand {
     backgroundColor: '',
     isVerified: false,
     isDefault: false,
-    isDarkroomEnabled: false,
+    isFleetEnabled: false,
     isActive: true,
     isSelected: true,
     scope: 'brand' as IBrand['scope'],

@@ -66,8 +66,8 @@ export const BRAND_INTERVIEW_QUESTION_CATALOG: IBrandInterviewQuestion[] = [
   {
     answerType: 'text',
     examples: [
-      'You are a knowledgeable but approachable assistant for Acme Inc., a startup that helps e-commerce brands automate their social media. Keep your tone friendly, concise, and data-driven.',
-      'You represent BoldCraft Studio. Your writing is bold, slightly edgy, and always action-oriented. Prioritize short sentences and strong verbs.',
+      'You are a knowledgeable but approachable assistant for {{brandName}}. Keep your tone friendly, concise, and on-brand for this audience.',
+      'You represent {{brandName}}. Your writing is clear, action-oriented, and matches how this brand already speaks.',
     ],
     fieldKey: 'text',
     group: 'identity',

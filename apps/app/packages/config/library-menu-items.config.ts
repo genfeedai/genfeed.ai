@@ -18,7 +18,7 @@ export const LIBRARY_MENU_ITEMS: MenuItemConfig[] = [
     href: APP_ROUTES.LIBRARY.OVERVIEW,
     isExactMatch: true,
     label: 'Overview',
-    matchPaths: [APP_ROUTES.LIBRARY.ROOT, APP_ROUTES.LIBRARY.OVERVIEW],
+    matchPaths: [APP_ROUTES.LIBRARY.OVERVIEW],
     outline: LayoutGrid,
     solid: LayoutGrid,
   },

@@ -114,7 +114,7 @@ describe('BrandProvider', () => {
       },
     ],
     currentUser: null,
-    darkroomCapabilities: {
+    fleetCapabilities: {
       brandEnabled: true,
       brandId: 'brand_123',
       fleet: {
@@ -123,7 +123,7 @@ describe('BrandProvider', () => {
         videos: true,
         voices: true,
       },
-      id: 'darkroom-capabilities:org_123:brand_123',
+      id: 'fleet-capabilities:org_123:brand_123',
       organizationId: 'org_123',
     },
     organizationId: 'org_123',
@@ -166,13 +166,8 @@ describe('BrandProvider', () => {
 
   it('hydrates brand, settings, and darkroom state from the bootstrap payload', () => {
     function Consumer() {
-      const {
-        brandId,
-        brands,
-        darkroomCapabilities,
-        organizationId,
-        settings,
-      } = useBrand();
+      const { brandId, brands, fleetCapabilities, organizationId, settings } =
+        useBrand();
 
       return (
         <div>
@@ -186,7 +181,7 @@ describe('BrandProvider', () => {
             {String(settings?.enabledModels?.[0] ?? '')}
           </span>
           <span data-testid="darkroom-brand-enabled">
-            {String(darkroomCapabilities?.brandEnabled)}
+            {String(fleetCapabilities?.brandEnabled)}
           </span>
         </div>
       );
@@ -246,7 +241,7 @@ describe('BrandProvider', () => {
       ...initialBootstrap,
       brandId: '',
       brands: [],
-      darkroomCapabilities: null,
+      fleetCapabilities: null,
       organizationId: '',
       settings: null,
     };

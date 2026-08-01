@@ -7,10 +7,7 @@ export const WORKFLOWS_MENU_ITEMS: MenuItemConfig[] = [
     group: '',
     href: APP_ROUTES.ORCHESTRATION.OVERVIEW,
     label: 'Overview',
-    matchPaths: [
-      APP_ROUTES.ORCHESTRATION.ROOT,
-      APP_ROUTES.ORCHESTRATION.OVERVIEW,
-    ],
+    matchPaths: [APP_ROUTES.ORCHESTRATION.OVERVIEW],
     outline: Sparkles,
     solid: Sparkles,
   },

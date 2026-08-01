@@ -594,6 +594,57 @@ describe('MenuShared', () => {
     }
   });
 
+  describe('workspace overview complete-path active state', () => {
+    // Canonical Overview is `/workspace/overview` (bare `/workspace` redirects
+    // there via next.config). Complete path does not prefix-match siblings —
+    // no isExactMatch required.
+    const workspaceConfig: MenuConfig = {
+      items: [
+        {
+          href: '/workspace/overview',
+          label: 'Overview',
+        },
+        {
+          href: '/workspace/inbox/unread',
+          label: 'Inbox',
+        },
+        {
+          href: '/workspace/tasks',
+          label: 'Tasks',
+        },
+        {
+          href: '/workspace/activity',
+          label: 'Activity',
+        },
+      ],
+      logoHref: '/workspace/overview',
+    };
+
+    const activeLabels = () =>
+      screen
+        .getAllByTestId('menu-item')
+        .filter((node) => node.getAttribute('data-active') === 'true')
+        .map((node) => node.textContent);
+
+    it('activates only Overview on /workspace/overview', () => {
+      mockPathname.value = '/acme/moonrise/workspace/overview';
+      render(<MenuShared config={workspaceConfig} sectionLabel="Workspace" />);
+      expect(activeLabels()).toEqual(['Overview']);
+    });
+
+    it('activates only Activity on /workspace/activity — not Overview', () => {
+      mockPathname.value = '/acme/moonrise/workspace/activity';
+      render(<MenuShared config={workspaceConfig} sectionLabel="Workspace" />);
+      expect(activeLabels()).toEqual(['Activity']);
+    });
+
+    it('activates only Tasks on /workspace/tasks — not Overview', () => {
+      mockPathname.value = '/acme/moonrise/workspace/tasks';
+      render(<MenuShared config={workspaceConfig} sectionLabel="Workspace" />);
+      expect(activeLabels()).toEqual(['Tasks']);
+    });
+  });
+
   describe('settings exact-match active state', () => {
     // Mirrors the nested settings sidebar (#1231/#1264 follow-up): scope-scoped
     // items sharing the /settings root must only light up on an exact route.

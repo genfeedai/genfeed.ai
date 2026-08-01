@@ -1,6 +1,6 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
-export const darkroomCapabilitiesAttributes = createEntityAttributes([
+export const fleetCapabilitiesAttributes = createEntityAttributes([
   'brandId',
   'organizationId',
   'brandEnabled',

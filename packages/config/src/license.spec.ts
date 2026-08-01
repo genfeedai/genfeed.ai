@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { hasOrganizationBilling, isEEEnabled } from './license';
+import {
+  hasOrganizationBilling,
+  isEEEnabled,
+  shouldShowCreditsNav,
+  usesMeteredCredits,
+} from './license';
 
 const ORIGINAL_ENV = { ...process.env };
 
@@ -54,5 +59,43 @@ describe('hasOrganizationBilling', () => {
     process.env.NEXT_PUBLIC_DESKTOP_SHELL = 'true';
     delete process.env.GENFEED_LICENSE_KEY;
     expect(hasOrganizationBilling()).toBe(false);
+  });
+});
+
+describe('usesMeteredCredits', () => {
+  it('matches hasOrganizationBilling (SaaS without license key is metered)', () => {
+    delete process.env.GENFEED_LICENSE_KEY;
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
+    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
+    expect(usesMeteredCredits()).toBe(true);
+    expect(usesMeteredCredits()).toBe(hasOrganizationBilling());
+  });
+
+  it('is false for community self-host (OSS infinite stub)', () => {
+    delete process.env.GENFEED_CLOUD;
+    delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+    delete process.env.GENFEED_LICENSE_KEY;
+    expect(usesMeteredCredits()).toBe(false);
+  });
+});
+
+describe('shouldShowCreditsNav', () => {
+  it('is true on SaaS', () => {
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
+    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
+    expect(shouldShowCreditsNav()).toBe(true);
+  });
+
+  it('is true on community self-host (managed Cloud credits purchase)', () => {
+    delete process.env.GENFEED_CLOUD;
+    delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
+    expect(shouldShowCreditsNav()).toBe(true);
+  });
+
+  it('is false on desktop BYOK-only shell', () => {
+    process.env.NEXT_PUBLIC_DESKTOP_SHELL = 'true';
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
+    expect(shouldShowCreditsNav()).toBe(false);
   });
 });

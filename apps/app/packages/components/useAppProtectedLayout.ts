@@ -22,7 +22,10 @@ import {
   useAgentPageContext,
 } from '@genfeedai/agent';
 import { isDesktopClient } from '@genfeedai/config/deployment';
-import { hasOrganizationBilling } from '@genfeedai/config/license';
+import {
+  hasOrganizationBilling,
+  shouldShowCreditsNav,
+} from '@genfeedai/config/license';
 import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
@@ -77,6 +80,7 @@ export function isProtectedEditorCanvasRoute(pathname: string): boolean {
 export function isProtectedWorkspaceRoute(pathname: string): boolean {
   return (
     pathname === APP_ROUTES.WORKSPACE.ROOT ||
+    pathname === APP_ROUTES.WORKSPACE.OVERVIEW ||
     pathname === APP_ROUTES.OVERVIEW.ROOT ||
     pathname.startsWith(`${APP_ROUTE_PREFIXES.WORKSPACE}/`)
   );
@@ -133,9 +137,11 @@ export function useAppProtectedLayout(
   );
   const isEditorRoute = pathname.startsWith(APP_ROUTE_PREFIXES.EDITOR);
   const isAnalyticsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.ANALYTICS);
-  // Org shell only for true org destinations (overview, etc.). Module routes
-  // under `/:org/~/posts|studio|…` keep their own app sidebars — otherwise
-  // Publish/posts steals the Organization menu.
+  // Includes `/workspace` and legacy `/overview` so brand + brand-less Workspace
+  // share one app shell (never the Organization menu).
+  const isWorkspaceRoute = isProtectedWorkspaceRoute(pathname);
+  // Org shell only for true org destinations (connect, etc.). Module routes
+  // under `/:org/~/posts|studio|workspace|…` keep their own app sidebars.
   const isOrgRoute = (() => {
     const parts = rawPathname.split('/').filter(Boolean);
     return (
@@ -150,7 +156,8 @@ export function useAppProtectedLayout(
       !isResearchRoute &&
       !isWorkflowsRoute &&
       !isMessagesRoute &&
-      !isEditorRoute
+      !isEditorRoute &&
+      !isWorkspaceRoute
     );
   })();
   const workspaceShellRoute = useMemo(
@@ -452,6 +459,7 @@ export function useAppProtectedLayout(
       buildSettingsMenuItems({
         scope: settingsScope,
         isEnterprise: hasOrganizationBilling(),
+        showCredits: shouldShowCreditsNav(),
       }).map(
         (item): MenuItemConfig => ({
           ...item,
@@ -472,8 +480,6 @@ export function useAppProtectedLayout(
       ),
     [taskContextSearchParams],
   );
-
-  const isWorkspaceRoute = isProtectedWorkspaceRoute(pathname);
 
   const isLowCreditsBannerEnabled = useFeatureFlag('low_credits_banner');
   const isDesktopShell = isDesktopClient();

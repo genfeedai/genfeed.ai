@@ -3,7 +3,7 @@ import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
 import AnalyticsTrendTurnover from './analytics-trend-turnover';
 
-export const generateMetadata = createPageMetadata('Trend Turnover Dashboard');
+export const generateMetadata = createPageMetadata('Trend Turnover');
 
 export default function TrendTurnoverPage() {
   return (

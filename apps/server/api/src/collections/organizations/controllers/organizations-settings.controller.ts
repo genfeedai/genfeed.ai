@@ -33,7 +33,7 @@ import {
   SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/interfaces/billing';
 import {
-  DarkroomCapabilitiesSerializer,
+  FleetCapabilitiesSerializer,
   OrganizationSettingSerializer,
   SubscriptionSerializer,
 } from '@genfeedai/serializers';
@@ -180,9 +180,9 @@ export class OrganizationsSettingsController {
     return { data };
   }
 
-  @Get(':organizationId/brands/:brandId/darkroom-capabilities')
+  @Get(':organizationId/brands/:brandId/fleet-capabilities')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async getDarkroomCapabilities(
+  async getFleetCapabilities(
     @Req() req: RequestWithContext,
     @Param('organizationId') organizationId: string,
     @Param('brandId') brandId: string,
@@ -204,9 +204,9 @@ export class OrganizationsSettingsController {
       return returnNotFound('Brand', brandId);
     }
 
-    return serializeSingle(req, DarkroomCapabilitiesSerializer, {
-      _id: `darkroom-capabilities:${resolvedOrganizationId}:${brandId}`,
-      brandEnabled: Boolean(brandSettings.isDarkroomEnabled),
+    return serializeSingle(req, FleetCapabilitiesSerializer, {
+      _id: `fleet-capabilities:${resolvedOrganizationId}:${brandId}`,
+      brandEnabled: Boolean(brandSettings.isFleetEnabled),
       brandId,
       // Public Core exposes the brand switch here without probing managed fleet runtime.
       fleet: {

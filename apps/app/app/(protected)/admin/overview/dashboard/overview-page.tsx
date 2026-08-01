@@ -347,7 +347,7 @@ export default function OverviewPage() {
 
   return (
     <Container
-      label="Admin Dashboard"
+      label="Overview"
       description="Control platform operations and user management"
       icon={ChartColumn}
       className="bg-dots-subtle"

@@ -129,7 +129,7 @@ export const newsApiSchema = {
 };
 
 /**
- * Darkroom — self-hosted GPU instance (ComfyUI + darkroom-api)
+ * Fleet — self-hosted GPU instance (ComfyUI + fleet-api)
  */
 export const darkroomSchema = {
   DARKROOM_CLOUDFRONT_DISTRIBUTION_ID: Joi.string().optional().allow(''),

@@ -2,6 +2,7 @@ import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
   createBrandAppRoute,
+  createOrganizationAppRoute,
 } from '@genfeedai/constants';
 import { isCsrfOriginAllowed } from 'next/dist/server/app-render/csrf-protection.js';
 import { describe, expect, it } from 'vitest';
@@ -51,12 +52,92 @@ describe('app next.config', () => {
   it('does not define stale bare overview redirects', async () => {
     const redirects = await config.redirects?.();
     expect(redirects?.some((redirect) => redirect.source === '/')).toBe(false);
-    expect(
-      redirects?.some((redirect) => redirect.source === '/workspace'),
-    ).toBe(false);
     expect(redirects?.some((redirect) => redirect.source === '/overview')).toBe(
       false,
     );
+  });
+
+  it('permanently redirects bare app roots onto complete overview paths', async () => {
+    const redirects = await config.redirects?.();
+
+    for (const appRoot of [
+      APP_ROUTES.WORKSPACE.ROOT,
+      APP_ROUTES.ORCHESTRATION.ROOT,
+      APP_ROUTES.LIBRARY.ROOT,
+      APP_ROUTES.ANALYTICS.ROOT,
+    ] as const) {
+      const overviewPath = `${appRoot}/overview` as const;
+      expect(redirects).toContainEqual({
+        destination: overviewPath,
+        permanent: true,
+        source: appRoot,
+      });
+      expect(redirects).toContainEqual({
+        destination: createBrandAppRoute(
+          ':orgSlug',
+          ':brandSlug',
+          overviewPath,
+        ),
+        permanent: true,
+        source: createBrandAppRoute(':orgSlug', ':brandSlug', appRoot),
+      });
+      expect(redirects).toContainEqual({
+        destination: createOrganizationAppRoute(':orgSlug', overviewPath),
+        permanent: true,
+        source: createOrganizationAppRoute(':orgSlug', appRoot),
+      });
+    }
+  });
+
+  it('does not invert complete-path homes (overview must not redirect back to root)', async () => {
+    const redirects = await config.redirects?.();
+
+    for (const appRoot of [
+      APP_ROUTES.WORKSPACE.ROOT,
+      APP_ROUTES.ORCHESTRATION.ROOT,
+      APP_ROUTES.LIBRARY.ROOT,
+      APP_ROUTES.ANALYTICS.ROOT,
+    ] as const) {
+      const overviewPath = `${appRoot}/overview` as const;
+      expect(
+        redirects?.some(
+          (redirect) =>
+            redirect.source === overviewPath &&
+            redirect.destination === appRoot,
+        ),
+      ).toBe(false);
+    }
+  });
+
+  it('permanently redirects brand settings root onto /settings/profile', async () => {
+    const redirects = await config.redirects?.();
+
+    expect(redirects).toContainEqual({
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.SETTINGS.PROFILE,
+      ),
+      permanent: true,
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.SETTINGS.ROOT,
+      ),
+    });
+  });
+
+  it('permanently redirects org settings root onto /settings/profile (complete path)', async () => {
+    const redirects = await config.redirects?.();
+
+    expect(redirects).toContainEqual({
+      destination: createOrganizationAppRoute(
+        ':orgSlug',
+        APP_ROUTES.SETTINGS.PROFILE,
+      ),
+      permanent: true,
+      source: createOrganizationAppRoute(':orgSlug', APP_ROUTES.SETTINGS.ROOT),
+    });
   });
 
   it('redirects /workspace/inbox to /workspace/inbox/unread', async () => {
@@ -124,7 +205,6 @@ describe('app next.config', () => {
 
   it.each([
     APP_ROUTES.ORCHESTRATION.ROOT,
-    APP_ROUTES.WORKSPACE.ROOT,
     APP_ROUTES.LIBRARY.ROOT,
     APP_ROUTES.ANALYTICS.ROOT,
   ] as const)(
@@ -146,7 +226,7 @@ describe('app next.config', () => {
     },
   );
 
-  it('does not redirect app roots into a nested overview home', async () => {
+  it('does not redirect library/analytics roots into a nested overview home', async () => {
     const redirects = await config.redirects?.();
 
     expect(
@@ -161,6 +241,18 @@ describe('app next.config', () => {
         (redirect) =>
           redirect.source === APP_ROUTES.ANALYTICS.ROOT &&
           redirect.destination.includes('/overview'),
+      ),
+    ).toBe(false);
+  });
+
+  it('does not redirect /workspace/overview back to bare /workspace', async () => {
+    const redirects = await config.redirects?.();
+
+    expect(
+      redirects?.some(
+        (redirect) =>
+          redirect.source === APP_ROUTES.WORKSPACE.OVERVIEW &&
+          redirect.destination === APP_ROUTES.WORKSPACE.ROOT,
       ),
     ).toBe(false);
   });

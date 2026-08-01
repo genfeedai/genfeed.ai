@@ -1,8 +1,10 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import {
+  Bot,
   Box,
   Building2,
+  ChartColumn,
   CircleQuestionMark,
   Cpu,
   CreditCard,
@@ -14,7 +16,6 @@ import {
   Palette,
   Send,
   Share2,
-  ShieldCheck,
   Sparkles,
   Tag,
   User,
@@ -28,6 +29,7 @@ const BRAND_SETTINGS = {
   HARNESS: '/settings/harness',
   INTERVIEW: '/settings/interview',
   KIT: '/settings/kit',
+  PROFILE: APP_ROUTES.SETTINGS.PROFILE,
   PUBLISHING: '/settings/publishing',
   SOCIAL: '/settings/social',
   VOICE: '/settings/voice',
@@ -45,14 +47,29 @@ export interface BuildSettingsMenuItemsParams {
   scope: SettingsScope;
   /** SaaS or self-host EE — gates the organization Billing (subscription) entry. */
   isEnterprise?: boolean;
+  /**
+   * Genfeed Credits wallet / packs. Hide for pure local BYOK (desktop shell).
+   * Defaults true so community self-host still reaches managed Cloud credits.
+   */
+  showCredits?: boolean;
 }
 
 /**
- * Menu grouping rules (keep to 1–2 meaningful headers per scope):
+ * Menu grouping rules (keep meaningful headers per scope):
  * - Never add a top-level "Settings" shell label — the route/scope already says that.
- * - Org: Organization (who/what) · Access (money, keys, policy)
+ * - Org: Organization (who/what + Agents defaults) · Billing (money) ·
+ *   Developer (keys/webhooks)
  * - Brand: Brand (public + identity) · Automation (how content runs)
  * - Personal: Account · Support
+ *
+ * Naming / paths (deliberate):
+ * - Complete-path homes: bare `/settings` permanently redirects to
+ *   `/settings/profile` for **both** org and brand scopes (sidebar active-state).
+ * - Org sidebar label is **General** (workspace defaults) at `/settings/profile`.
+ * - Brand sidebar label is **Profile** (public brand identity) at the same
+ *   relative path under the brand slug — different product surface.
+ * - Org **Agents** is agent/automation governance (not legal ToS). Route stays
+ *   `/settings/policy`; sidebar label is Agents.
  */
 
 function buildPersonalMenuItems(): MenuItemConfig[] {
@@ -77,11 +94,15 @@ function buildPersonalMenuItems(): MenuItemConfig[] {
   ];
 }
 
-function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
+function buildOrganizationMenuItems(
+  isEnterprise: boolean,
+  showCredits: boolean,
+): MenuItemConfig[] {
   return [
     {
+      // Complete path (not bare /settings) so siblings are not prefix-active.
       group: 'Organization',
-      href: APP_ROUTES.SETTINGS.ROOT,
+      href: APP_ROUTES.SETTINGS.PROFILE,
       hrefScope: 'organization',
       isExactMatch: true,
       label: 'General',
@@ -114,10 +135,20 @@ function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
       outline: Box,
       solid: Box,
     },
+    {
+      // Org agent/automation defaults (reply style, autonomy, credit caps).
+      // Route remains /settings/policy; label is Agents (not legal policy).
+      group: 'Organization',
+      href: APP_ROUTES.SETTINGS.POLICY,
+      hrefScope: 'organization',
+      label: 'Agents',
+      outline: Bot,
+      solid: Bot,
+    },
     ...(isEnterprise
       ? [
           {
-            group: 'Access',
+            group: 'Billing',
             href: APP_ROUTES.SETTINGS.BILLING,
             hrefScope: 'organization' as const,
             label: 'Billing',
@@ -126,16 +157,28 @@ function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
           },
         ]
       : []),
+    ...(showCredits
+      ? [
+          {
+            group: 'Billing',
+            href: APP_ROUTES.SETTINGS.CREDITS,
+            hrefScope: 'organization' as const,
+            label: 'Credits',
+            outline: CreditCard,
+            solid: CreditCard,
+          },
+          {
+            group: 'Billing',
+            href: APP_ROUTES.SETTINGS.USAGE,
+            hrefScope: 'organization' as const,
+            label: 'Usage',
+            outline: ChartColumn,
+            solid: ChartColumn,
+          },
+        ]
+      : []),
     {
-      group: 'Access',
-      href: APP_ROUTES.SETTINGS.CREDITS,
-      hrefScope: 'organization',
-      label: 'Credits',
-      outline: CreditCard,
-      solid: CreditCard,
-    },
-    {
-      group: 'Access',
+      group: 'Developer',
       href: APP_ROUTES.SETTINGS.API_KEYS,
       hrefScope: 'organization',
       label: 'API Keys',
@@ -143,20 +186,12 @@ function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
       solid: Key,
     },
     {
-      group: 'Access',
+      group: 'Developer',
       href: APP_ROUTES.SETTINGS.WEBHOOKS,
       hrefScope: 'organization',
       label: 'Webhooks',
       outline: Link,
       solid: Link,
-    },
-    {
-      group: 'Access',
-      href: APP_ROUTES.SETTINGS.POLICY,
-      hrefScope: 'organization',
-      label: 'Policy',
-      outline: ShieldCheck,
-      solid: ShieldCheck,
     },
   ];
 }
@@ -165,7 +200,7 @@ function buildBrandMenuItems(): MenuItemConfig[] {
   return [
     {
       group: 'Brand',
-      href: APP_ROUTES.SETTINGS.ROOT,
+      href: BRAND_SETTINGS.PROFILE,
       hrefScope: 'brand',
       isExactMatch: true,
       label: 'Profile',
@@ -239,13 +274,14 @@ function buildBrandMenuItems(): MenuItemConfig[] {
 export function buildSettingsMenuItems({
   scope,
   isEnterprise = false,
+  showCredits = true,
 }: BuildSettingsMenuItemsParams): MenuItemConfig[] {
   if (scope === 'brand') {
     return buildBrandMenuItems();
   }
 
   if (scope === 'organization') {
-    return buildOrganizationMenuItems(isEnterprise);
+    return buildOrganizationMenuItems(isEnterprise, showCredits);
   }
 
   return buildPersonalMenuItems();

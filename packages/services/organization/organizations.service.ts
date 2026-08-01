@@ -8,7 +8,7 @@ import type {
   IActivity,
   IAnalytics,
   IByokProviderStatus,
-  IDarkroomCapabilities,
+  IFleetCapabilities,
   IIngredient,
   IMember,
   IMemberInvitation,
@@ -257,15 +257,15 @@ export class OrganizationsService extends BaseService<Organization> {
       );
   }
 
-  public async getDarkroomCapabilities(
+  public async getFleetCapabilities(
     organizationId: string,
     brandId: string,
-  ): Promise<IDarkroomCapabilities> {
+  ): Promise<IFleetCapabilities> {
     return await this.instance
       .get<JsonApiResponseDocument>(
-        `/${organizationId}/brands/${brandId}/darkroom-capabilities`,
+        `/${organizationId}/brands/${brandId}/fleet-capabilities`,
       )
-      .then((res) => this.extractResource<IDarkroomCapabilities>(res.data));
+      .then((res) => this.extractResource<IFleetCapabilities>(res.data));
   }
 
   public async inviteMember(

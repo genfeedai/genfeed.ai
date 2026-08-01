@@ -211,10 +211,10 @@ export class CreateOrganizationSettingDto {
   @ApiProperty({
     default: false,
     description:
-      'Whether NSFW darkroom assets can be revealed in brand-scoped library surfaces',
+      'Whether NSFW fleet assets can be revealed in brand-scoped library surfaces',
     required: false,
   })
-  readonly isDarkroomNsfwVisible?: boolean;
+  readonly isFleetNsfwVisible?: boolean;
 
   @IsBoolean()
   @ApiProperty({

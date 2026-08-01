@@ -32,7 +32,7 @@ export const CORE_APPS: CoreAppDefinition[] = [
   {
     description:
       'Workflows, autopilot, skills, and content-team orchestration.',
-    href: APP_ROUTES.ORCHESTRATION.ROOT,
+    href: APP_ROUTES.ORCHESTRATION.OVERVIEW,
     id: 'automate',
     label: 'Automate',
     shortLabel: 'Automate',
@@ -44,7 +44,7 @@ export const CORE_APPS: CoreAppDefinition[] = [
       isEnabledByDefault: () => true,
       key: 'studio',
     },
-    href: APP_ROUTES.STUDIO.ROOT,
+    href: APP_ROUTES.STUDIO.IMAGE,
     id: 'studio',
     label: 'Studio',
     shortLabel: 'Studio',

@@ -122,7 +122,7 @@ export class AdminFleetIngestService {
     const personas = await this.personasService.findAllByOrganization(
       organizationId,
       {
-        isDarkroomCharacter: true,
+        isFleetCharacter: true,
       },
     );
 
@@ -146,7 +146,7 @@ export class AdminFleetIngestService {
         'none',
       );
 
-      if (!brand?.isDarkroomEnabled) {
+      if (!brand?.isFleetEnabled) {
         continue;
       }
 
@@ -255,7 +255,7 @@ export class AdminFleetIngestService {
     }
 
     await this.personasService.patch(persona.id.toString(), {
-      darkroomSources: persona.darkroomSources,
+      fleetSources: persona.fleetSources,
     } as Parameters<PersonasService['patch']>[1]);
 
     return {

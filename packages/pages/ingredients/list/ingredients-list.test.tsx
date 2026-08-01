@@ -245,7 +245,7 @@ describe('IngredientsList', () => {
     ];
 
     mockUseBrand.mockReturnValue({
-      selectedBrand: { isDarkroomEnabled: true },
+      selectedBrand: { isFleetEnabled: true },
     });
     mockUseIngredientsList.mockReturnValue(
       buildIngredientsListReturn({
@@ -267,7 +267,7 @@ describe('IngredientsList', () => {
 
   it('disables campaign publish when assets are from different campaigns', () => {
     mockUseBrand.mockReturnValue({
-      selectedBrand: { isDarkroomEnabled: true },
+      selectedBrand: { isFleetEnabled: true },
     });
     mockUseIngredientsList.mockReturnValue(
       buildIngredientsListReturn({

@@ -188,7 +188,7 @@ describe('AuthBootstrapService', () => {
       },
       brands: [{ id: 'brand_1', label: 'Alpha' }] as never,
       currentUser: { id: 'user_1' } as never,
-      darkroomCapabilities: null,
+      fleetCapabilities: null,
       settings: null,
       streak: null,
     };
@@ -222,7 +222,7 @@ describe('AuthBootstrapService', () => {
       },
       brands: [{ id: 'brand_1', label: 'Alpha' }] as never,
       currentUser: { id: 'user_1' } as never,
-      darkroomCapabilities: {
+      fleetCapabilities: {
         brandEnabled: true,
         fleet: {
           images: true,
@@ -246,7 +246,7 @@ describe('AuthBootstrapService', () => {
 
     expect(result).toEqual({
       ...cached,
-      darkroomCapabilities: null,
+      fleetCapabilities: null,
     });
     expect(usersService.findOne).not.toHaveBeenCalled();
     expect(accessBootstrapCacheService.set).not.toHaveBeenCalled();
@@ -301,7 +301,7 @@ describe('AuthBootstrapService', () => {
       {
         _id: brandId,
         id: brandId,
-        isDarkroomEnabled: true,
+        isFleetEnabled: true,
         label: 'Primary Brand',
       },
     ]);
@@ -363,7 +363,7 @@ describe('AuthBootstrapService', () => {
           }),
         }),
       }),
-      darkroomCapabilities: null,
+      fleetCapabilities: null,
       settings: expect.objectContaining({
         enabledModels: ['model_1'],
         organization: organizationId,
@@ -407,7 +407,7 @@ describe('AuthBootstrapService', () => {
       {
         _id: brandId,
         id: brandId,
-        isDarkroomEnabled: false,
+        isFleetEnabled: false,
         label: 'Primary Brand',
       },
     ]);
@@ -486,7 +486,7 @@ describe('AuthBootstrapService', () => {
       {
         _id: brandId,
         id: brandId,
-        isDarkroomEnabled: true,
+        isFleetEnabled: true,
         label: 'Primary Brand',
       },
     ]);
@@ -511,7 +511,7 @@ describe('AuthBootstrapService', () => {
     } as never);
 
     expect(result.access.brandId).toBe('');
-    expect(result.darkroomCapabilities).toBeNull();
+    expect(result.fleetCapabilities).toBeNull();
   });
 
   it('loads workspace overview data without unused analytics work', async () => {
@@ -532,7 +532,7 @@ describe('AuthBootstrapService', () => {
       },
       brands: [],
       currentUser: null,
-      darkroomCapabilities: null,
+      fleetCapabilities: null,
       settings: null,
       streak: null,
     };
@@ -647,7 +647,7 @@ describe('AuthBootstrapService', () => {
       },
       brands: [],
       currentUser: null,
-      darkroomCapabilities: null,
+      fleetCapabilities: null,
       settings: null,
       streak: null,
     } satisfies AccessBootstrapCachePayload);

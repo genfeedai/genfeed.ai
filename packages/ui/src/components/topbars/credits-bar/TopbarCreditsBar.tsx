@@ -1,6 +1,9 @@
 'use client';
 
-import { hasOrganizationBilling } from '@genfeedai/config/license';
+import {
+  hasOrganizationBilling,
+  shouldShowCreditsNav,
+} from '@genfeedai/config/license';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
@@ -26,9 +29,14 @@ interface OptionalBalanceRequestError {
   silent?: boolean;
 }
 
+function coerceFiniteBalance(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
 export default function TopbarCreditsBar() {
   const { organizationId } = useBrand();
   const { orgHref } = useOrgUrl();
+  const showCredits = shouldShowCreditsNav();
 
   const getCreditsService = useAuthedService((token: string) =>
     CreditsService.getInstance(token),
@@ -54,7 +62,7 @@ export default function TopbarCreditsBar() {
   }, []);
 
   const findTopbarBalances = useCallback(async () => {
-    if (!organizationId) {
+    if (!showCredits || !organizationId) {
       return;
     }
 
@@ -66,11 +74,8 @@ export default function TopbarCreditsBar() {
         (segment) => segment.provider === 'genfeed',
       );
       setSegments(nextSegments);
-      setBalance(
-        typeof genfeedSegment?.balance === 'number'
-          ? genfeedSegment.balance
-          : 0,
-      );
+      // Infinity from OSS stub serializes as null in JSON — never treat as a real wallet.
+      setBalance(coerceFiniteBalance(genfeedSegment?.balance));
     } catch (error: unknown) {
       const requestError = error as OptionalBalanceRequestError;
       if (!requestError.isCancelled && !requestError.silent) {
@@ -80,7 +85,7 @@ export default function TopbarCreditsBar() {
         });
       }
     }
-  }, [organizationId, getCreditsService]);
+  }, [organizationId, getCreditsService, showCredits]);
 
   const scheduleTopbarBalanceRefresh = useCallback(() => {
     clearTopbarBalanceRefreshTimeout();
@@ -92,37 +97,45 @@ export default function TopbarCreditsBar() {
   }, [clearTopbarBalanceRefreshTimeout, findTopbarBalances]);
 
   useEffect(() => {
-    if (organizationId) {
-      const organizationEvent = `/organizations/${organizationId}`;
-      const creditsEvent = `/credits/${organizationId}`;
-
-      const orgHandler = (data: unknown) => {
-        const orgData = data as IOrganizationEventData & { balance?: number };
-        if (orgData?.balance !== undefined) {
-          setBalance(orgData.balance);
-          refreshBreakdownRef.current();
-          scheduleTopbarBalanceRefresh();
-        }
-      };
-
-      const creditsHandler = (data: unknown) => {
-        const creditsData = data as ICreditsEventData;
-        if (creditsData?.balance !== undefined) {
-          setBalance(creditsData.balance);
-          refreshBreakdownRef.current();
-          scheduleTopbarBalanceRefresh();
-        }
-      };
-
-      subscribe(organizationEvent, orgHandler);
-      subscribe(creditsEvent, creditsHandler);
-
-      return () => {
-        unsubscribe(organizationEvent, orgHandler);
-        unsubscribe(creditsEvent, creditsHandler);
-      };
+    if (!showCredits || !organizationId) {
+      return;
     }
-  }, [organizationId, subscribe, unsubscribe, scheduleTopbarBalanceRefresh]);
+
+    const organizationEvent = `/organizations/${organizationId}`;
+    const creditsEvent = `/credits/${organizationId}`;
+
+    const orgHandler = (data: unknown) => {
+      const orgData = data as IOrganizationEventData & { balance?: number };
+      if (orgData?.balance !== undefined) {
+        setBalance(coerceFiniteBalance(orgData.balance));
+        refreshBreakdownRef.current();
+        scheduleTopbarBalanceRefresh();
+      }
+    };
+
+    const creditsHandler = (data: unknown) => {
+      const creditsData = data as ICreditsEventData;
+      if (creditsData?.balance !== undefined) {
+        setBalance(coerceFiniteBalance(creditsData.balance));
+        refreshBreakdownRef.current();
+        scheduleTopbarBalanceRefresh();
+      }
+    };
+
+    subscribe(organizationEvent, orgHandler);
+    subscribe(creditsEvent, creditsHandler);
+
+    return () => {
+      unsubscribe(organizationEvent, orgHandler);
+      unsubscribe(creditsEvent, creditsHandler);
+    };
+  }, [
+    organizationId,
+    showCredits,
+    subscribe,
+    unsubscribe,
+    scheduleTopbarBalanceRefresh,
+  ]);
 
   useEffect(
     () => clearTopbarBalanceRefreshTimeout,
@@ -182,6 +195,11 @@ export default function TopbarCreditsBar() {
       ? APP_ROUTES.SETTINGS.BILLING
       : APP_ROUTES.SETTINGS.CREDITS,
   );
+
+  // Desktop / pure BYOK shell: no Genfeed credit wallet in chrome.
+  if (!showCredits) {
+    return null;
+  }
 
   return (
     <CreditsBarTrigger

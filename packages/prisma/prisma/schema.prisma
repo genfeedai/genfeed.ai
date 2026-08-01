@@ -95,14 +95,14 @@ enum ContentRating {
   NSFW
 }
 
-enum DarkroomReviewStatus {
+enum FleetReviewStatus {
   PENDING
   APPROVED
   REJECTED
   NEEDS_REVISION
 }
 
-enum DarkroomAssetLabel {
+enum FleetAssetLabel {
   HERO
   FILLER
   BTS
@@ -829,7 +829,7 @@ model Brand {
   isDefault                Boolean      @default(false)
   isDeleted                Boolean      @default(false)
   isHighlighted            Boolean      @default(false)
-  isDarkroomEnabled        Boolean      @default(false)
+  isFleetEnabled        Boolean      @default(false)
   defaultVideoModel        String?
   defaultImageModel        String?
   defaultImageToVideoModel String?
@@ -1219,7 +1219,7 @@ model OrganizationSetting {
   isVoiceControlEnabled         Boolean           @default(false)
   isNotificationsDiscordEnabled Boolean           @default(false)
   isNotificationsEmailEnabled   Boolean           @default(true)
-  isDarkroomNsfwVisible         Boolean           @default(false)
+  isFleetNsfwVisible         Boolean           @default(false)
   isWatermarkEnabled            Boolean           @default(true)
   isVerifyScriptEnabled         Boolean           @default(true)
   isVerifyIngredientEnabled     Boolean           @default(true)
@@ -1527,8 +1527,8 @@ model Ingredient {
   cdnUrl                String?
   personaSlug           String?
   contentRating         ContentRating?
-  reviewStatus          DarkroomReviewStatus?
-  assetLabel            DarkroomAssetLabel?
+  reviewStatus          FleetReviewStatus?
+  assetLabel            FleetAssetLabel?
   generationSource      String?
   campaign              String?
   campaignWeek          Int?

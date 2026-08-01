@@ -15,7 +15,7 @@ import { TransactionModule } from '@api/helpers/utils/transaction/transaction.mo
 import { CreditDeductionModule } from '@api/queues/credit-deduction/credit-deduction.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
-import { isEEEnabled } from '@genfeedai/config';
+import { usesMeteredCredits } from '@genfeedai/config';
 import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
 
@@ -41,8 +41,13 @@ import { forwardRef, Module } from '@nestjs/common';
     CreditBalanceService,
     CreditTransactionsService,
     {
+      // SaaS (GENFEED_CLOUD) and licensed EE self-host: real ledger + gates.
+      // Community/Desktop: OSS infinite stub (BYOK free, zero Genfeed wallet).
+      // Never gate this on GENFEED_LICENSE_KEY alone — Cloud has no license key.
       provide: CreditsUtilsService,
-      useClass: isEEEnabled() ? CreditsUtilsService : OssCreditsUtilsService,
+      useClass: usesMeteredCredits()
+        ? CreditsUtilsService
+        : OssCreditsUtilsService,
     },
     TopbarBalancesService,
   ],

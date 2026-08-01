@@ -226,16 +226,16 @@ function bootstrapPayload() {
       isOnboardingCompleted: true,
       lastName: 'User',
     },
-    darkroomCapabilities: {
+    fleetCapabilities: {
       isByokEnabled: false,
-      isDarkroomAvailable: false,
+      isFleetAvailable: false,
     },
     settings: {
       defaultAvatarIngredientId: null,
       defaultVoiceId: null,
       id: 'org-settings-1',
       isAdvancedMode: false,
-      isDarkroomNsfwVisible: false,
+      isFleetNsfwVisible: false,
     },
     streak: null,
   };
@@ -377,9 +377,9 @@ async function startMockApiServer(): Promise<Server | null> {
       return;
     }
 
-    if (url.includes('/darkroom-capabilities')) {
+    if (url.includes('/fleet-capabilities')) {
       jsonResponse(response, {
-        data: { attributes: bootstrapPayload().darkroomCapabilities },
+        data: { attributes: bootstrapPayload().fleetCapabilities },
       });
       return;
     }

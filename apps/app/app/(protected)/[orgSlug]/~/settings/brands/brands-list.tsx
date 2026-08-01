@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { createBrandAppRoute } from '@genfeedai/constants';
+import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import type { IQueryParams } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -56,7 +56,9 @@ function BrandsListContent() {
         return;
       }
 
-      push(createBrandAppRoute(orgSlug, brand.slug, '/settings'));
+      push(
+        createBrandAppRoute(orgSlug, brand.slug, APP_ROUTES.SETTINGS.PROFILE),
+      );
     },
     [notificationsService, orgSlug, push],
   );

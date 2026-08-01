@@ -1,13 +1,17 @@
-import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import AnalyticsOrganizationOverview from '@pages/analytics/organization-overview/analytics-organization-overview';
-import { OrganizationWorkspaceOverviewSurfaceAdapter } from '@/features/workspace-overview/workspace-overview-surface-adapters';
+import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
+import { permanentRedirect } from 'next/navigation';
 
-export const generateMetadata = createPageMetadata('Organization Overview');
-
-export default function OrgOverviewPage() {
-  return (
-    <OrganizationWorkspaceOverviewSurfaceAdapter>
-      <AnalyticsOrganizationOverview />
-    </OrganizationWorkspaceOverviewSurfaceAdapter>
+/**
+ * Legacy org overview path. Workspace home is the complete
+ * `/workspace/overview` path for brand and brand-less scopes alike.
+ */
+export default async function OrgOverviewLegacyPage({
+  params,
+}: {
+  params: Promise<{ orgSlug: string }>;
+}) {
+  const { orgSlug } = await params;
+  permanentRedirect(
+    createOrganizationAppRoute(orgSlug, APP_ROUTES.WORKSPACE.OVERVIEW),
   );
 }

@@ -14,7 +14,6 @@ import AppTable from '@ui/display/table/Table';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
-import Tabs from '@ui/navigation/tabs/Tabs';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import { LayoutGrid } from 'lucide-react';
@@ -30,7 +29,6 @@ import {
 } from './workspace-dashboard';
 import { workspaceInboxTableColumns } from './workspace-inbox-columns';
 import { WorkspaceOverviewSidebar } from './workspace-overview-sidebar';
-import WorkspaceSnapshotSection from './workspace-snapshot-section';
 import {
   DEFAULT_REVIEW_INBOX,
   EMPTY_AGENT_RUNS,
@@ -101,8 +99,6 @@ function WorkspacePageContentContent({
     shouldShowComposer,
     shouldShowHistory,
     shouldShowInbox,
-    shouldShowSectionSnapshot,
-    summaryItems,
     unreadInboxTasks,
     visibleInboxTasks,
     sectionCopy,
@@ -170,7 +166,7 @@ function WorkspacePageContentContent({
 
   const workspaceHeaderActions = useMemo(
     () => (
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2.5">
         {shouldShowComposer ? (
           <Button
             data-testid="workspace-new-task"
@@ -198,7 +194,7 @@ function WorkspacePageContentContent({
   const inboxEmpty =
     section === 'inbox' && defaultInboxView === 'unread'
       ? {
-          description: 'New items land here when the workspace routes work.',
+          description: 'Items waiting for your attention will show up here.',
           label: 'No unread items',
         }
       : section === 'inbox' && defaultInboxView === 'recent'
@@ -210,6 +206,52 @@ function WorkspacePageContentContent({
             description: 'Review and approval items will show up here.',
             label: 'No inbox items yet',
           };
+
+  // Unread / Recent / All live in Container header chrome so Tasks and Inbox
+  // share the same topbar → toolbar spacing (py-5 + mb-4/pb-3).
+  const inboxHeaderTabs = useMemo(
+    () =>
+      isInboxSection
+        ? {
+            activeTab: defaultInboxView,
+            fullWidth: false as const,
+            items: INBOX_VIEW_OPTIONS.map((option) => {
+              const count =
+                option.id === 'unread'
+                  ? unreadInboxTasks.length
+                  : option.id === 'recent'
+                    ? recentInboxTasks.length
+                    : queueTasks.length;
+              return {
+                badge: isWorkspaceTasksLoading ? (
+                  <Skeleton
+                    variant="text"
+                    width={14}
+                    height={12}
+                    className="opacity-70"
+                  />
+                ) : (
+                  <span className="text-[11px] opacity-70">{count}</span>
+                ),
+                href: href(`/workspace/inbox/${option.id}`),
+                id: option.id,
+                label: option.label,
+              };
+            }),
+            size: 'sm' as const,
+            variant: 'underline' as const,
+          }
+        : undefined,
+    [
+      defaultInboxView,
+      href,
+      isInboxSection,
+      isWorkspaceTasksLoading,
+      queueTasks.length,
+      recentInboxTasks.length,
+      unreadInboxTasks.length,
+    ],
+  );
 
   const inboxTable = (
     <AppTable<Task>
@@ -236,9 +278,8 @@ function WorkspacePageContentContent({
       icon={LayoutGrid}
       fullWidth
       titleVisibility="sr-only"
-      right={
-        isOverviewSection || isInboxSection ? undefined : workspaceHeaderActions
-      }
+      headerTabs={inboxHeaderTabs}
+      right={isOverviewSection ? undefined : workspaceHeaderActions}
     >
       {workspaceActionError ? (
         <Alert type={AlertCategory.ERROR} className="mb-4">
@@ -276,47 +317,6 @@ function WorkspacePageContentContent({
           trendsHref={href('/research/discovery')}
           trendItems={trendItems}
           workspaceTasks={workspaceTasks}
-        />
-      ) : null}
-
-      {shouldShowSectionSnapshot ? (
-        <WorkspaceSnapshotSection
-          actions={
-            <>
-              <Tabs
-                activeTab={defaultInboxView}
-                fullWidth={false}
-                items={INBOX_VIEW_OPTIONS.map((option) => {
-                  const count =
-                    option.id === 'unread'
-                      ? unreadInboxTasks.length
-                      : option.id === 'recent'
-                        ? recentInboxTasks.length
-                        : queueTasks.length;
-                  return {
-                    badge: isWorkspaceTasksLoading ? (
-                      <Skeleton
-                        variant="text"
-                        width={14}
-                        height={12}
-                        className="opacity-70"
-                      />
-                    ) : (
-                      <span className="text-[11px] opacity-70">{count}</span>
-                    ),
-                    href: href(`/workspace/inbox/${option.id}`),
-                    id: option.id,
-                    label: option.label,
-                  };
-                })}
-                size="sm"
-                variant="underline"
-              />
-              {workspaceHeaderActions}
-            </>
-          }
-          isLoading={isWorkspaceTasksLoading}
-          summaryItems={summaryItems}
         />
       ) : null}
 

@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import type {
   ResolvedWorkspaceShellRoute,
   WorkspaceShellAccessPolicy,
@@ -144,10 +145,10 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/analytics/trends/detail/:id': 'Trend Detail',
   '/:orgSlug/:brandSlug/analytics/trends/platforms/:platform':
     ':platform Trends',
-  '/:orgSlug/:brandSlug/analytics': 'Overview',
+  '/:orgSlug/:brandSlug/analytics/overview': 'Overview',
   '/:orgSlug/:brandSlug/editor': 'Projects',
   '/:orgSlug/:brandSlug/editor/:id': 'Project',
-  '/:orgSlug/:brandSlug/library': 'Overview',
+  '/:orgSlug/:brandSlug/library/overview': 'Overview',
   '/:orgSlug/:brandSlug/library/avatars': 'Assets',
   '/:orgSlug/:brandSlug/library/captions': 'Assets',
   '/:orgSlug/:brandSlug/library/gifs': 'Assets',
@@ -155,10 +156,17 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/library/music': 'Assets',
   '/:orgSlug/:brandSlug/library/videos': 'Assets',
   '/:orgSlug/:brandSlug/library/voices': 'Assets',
-  '/:orgSlug/:brandSlug/orchestration': 'Overview',
-  '/:orgSlug/:brandSlug/workspace': 'Overview',
-  '/:orgSlug/~/analytics': 'Overview',
-  '/:orgSlug/~/orchestration': 'Overview',
+  '/:orgSlug/:brandSlug/orchestration/overview': 'Overview',
+  '/:orgSlug/:brandSlug/workspace/overview': 'Overview',
+  '/:orgSlug/:brandSlug/workspace/activity': 'Activity',
+  '/:orgSlug/:brandSlug/workspace/inbox/:view': 'Inbox',
+  '/:orgSlug/:brandSlug/workspace/tasks': 'Tasks',
+  '/:orgSlug/~/workspace/overview': 'Overview',
+  '/:orgSlug/~/workspace/activity': 'Activity',
+  '/:orgSlug/~/workspace/inbox/:view': 'Inbox',
+  '/:orgSlug/~/workspace/tasks': 'Tasks',
+  '/:orgSlug/~/analytics/overview': 'Overview',
+  '/:orgSlug/~/orchestration/overview': 'Overview',
   '/:orgSlug/:brandSlug/orchestration/:agentId': 'Agent',
   '/:orgSlug/:brandSlug/orchestration/content-runs/:runId': 'Content Run',
   '/:orgSlug/:brandSlug/orchestration/library/:type': ':type',
@@ -171,7 +179,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/posts/outreach-campaigns/:id': 'Outreach Campaign',
   '/:orgSlug/:brandSlug/research/:platform': ':platform',
   '/:orgSlug/~/research/:platform': ':platform',
-  '/:orgSlug/:brandSlug/settings': 'General',
+  '/:orgSlug/:brandSlug/settings/profile': 'Profile',
   '/:orgSlug/:brandSlug/studio/:type': ':type',
   '/:orgSlug/:brandSlug/studio/:type/:id': ':type',
   '/:orgSlug/:brandSlug/workspace/tasks/:id': 'Task',
@@ -189,12 +197,15 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/editor': 'Projects',
   '/:orgSlug/~/editor/:id': 'Project',
   '/:orgSlug/~/library/:type': ':type',
-  '/:orgSlug/~/settings': 'General',
+  // Org home leaf is General at the complete /settings/profile path.
+  '/:orgSlug/~/settings/profile': 'General',
+  '/:orgSlug/~/settings/usage': 'Usage',
+  '/:orgSlug/~/settings/policy': 'Agents',
   '/:orgSlug/~/settings/models/:type': ':type',
   '/:orgSlug/~/studio/:type': ':type',
 
   '/:orgSlug/~/write/:segment': ':segment',
-  '/admin': 'Dashboard',
+  '/admin': 'Overview',
   '/admin/automation/models/:type': ':type Models',
   '/admin/automation/trainings/:id/images': 'Training Images',
   '/admin/automation/trainings/:id/sources': 'Training Sources',
@@ -208,7 +219,9 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/admin/overview/analytics/brands/:id/platforms/:platform': ':platform',
   '/admin/overview/analytics/organizations/:id': 'Organization Details',
   '/admin/videos/:id': 'Video',
-  '/settings': 'General',
+  // Unscoped settings leaves (personal shell). Org/brand use the scoped keys above.
+  [APP_ROUTES.SETTINGS.PROFILE]: 'General',
+  [APP_ROUTES.SETTINGS.POLICY]: 'Agents',
 } as const satisfies Readonly<Record<string, string>>);
 
 const BREADCRUMB_PARENT_OVERRIDES = Object.freeze({
@@ -216,6 +229,32 @@ const BREADCRUMB_PARENT_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/research/ads/meta': 'Ads',
   '/:orgSlug/~/research/ads/google': 'Ads',
   '/:orgSlug/~/research/ads/meta': 'Ads',
+  // Brand settings: Settings / :brandSlug / <page>. Runtime replaces
+  // parentLabel with the brand display label when available.
+  '/:orgSlug/:brandSlug/settings/profile': ':brandSlug',
+  '/:orgSlug/:brandSlug/settings/kit': ':brandSlug',
+  '/:orgSlug/:brandSlug/settings/social': ':brandSlug',
+  '/:orgSlug/:brandSlug/settings/voice': ':brandSlug',
+  '/:orgSlug/:brandSlug/settings/harness': ':brandSlug',
+  '/:orgSlug/:brandSlug/settings/interview': ':brandSlug',
+  '/:orgSlug/:brandSlug/settings/publishing': ':brandSlug',
+  '/:orgSlug/:brandSlug/settings/agent-defaults': ':brandSlug',
+  // Org settings: Settings / :orgSlug / <page>. Runtime replaces parent with
+  // the organization display label when available. Home leaf is profile path.
+  '/:orgSlug/~/settings/profile': ':orgSlug',
+  '/:orgSlug/~/settings/personal': ':orgSlug',
+  '/:orgSlug/~/settings/help': ':orgSlug',
+  '/:orgSlug/~/settings/members': ':orgSlug',
+  '/:orgSlug/~/settings/billing': ':orgSlug',
+  '/:orgSlug/~/settings/credits': ':orgSlug',
+  '/:orgSlug/~/settings/usage': ':orgSlug',
+  '/:orgSlug/~/settings/api-keys': ':orgSlug',
+  '/:orgSlug/~/settings/webhooks': ':orgSlug',
+  '/:orgSlug/~/settings/policy': ':orgSlug',
+  '/:orgSlug/~/settings/brands': ':orgSlug',
+  '/:orgSlug/~/settings/models': ':orgSlug',
+  '/:orgSlug/~/settings/models/:type': ':orgSlug',
+  '/:orgSlug/~/settings/elements/scenes': ':orgSlug',
 } as const satisfies Readonly<Record<string, string>>);
 
 function humanizeBreadcrumbLabel(value: string): string {
@@ -387,30 +426,58 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     surfaceKey: 'connect-genfeed',
     telemetryClass: 'management',
   }),
-  ...registerRoutes(['/:orgSlug/~/overview'], {
-    adapter: {
-      key: 'organization-workspace-overview',
-      status: 'embedded',
+  ...registerRoutes(
+    [
+      '/:orgSlug/~/workspace',
+      '/:orgSlug/~/workspace/overview',
+      // Legacy org overview path permanently redirects onto workspace overview.
+      '/:orgSlug/~/overview',
+    ],
+    {
+      adapter: {
+        key: 'organization-workspace-overview',
+        status: 'embedded',
+      },
+      fallback: '/:orgSlug/~/workspace/overview',
+      mode: 'canvas',
+      productClass: 'control-plane',
+      scope: 'organization',
+      surfaceKey: 'organization-overview',
+      switcherItems: ['workspace', 'messages', 'research'],
+      telemetryClass: 'product',
     },
-    fallback: '/:orgSlug/~/overview',
-    mode: 'canvas',
-    productClass: 'control-plane',
-    scope: 'organization',
-    surfaceKey: 'organization-overview',
-    switcherItems: ['workspace', 'messages', 'research'],
-    telemetryClass: 'product',
-  }),
-  ...registerRoutes(['/:orgSlug/~/orchestration'], {
-    fallback: '/:orgSlug/~/orchestration',
-    mode: 'canvas',
-    productClass: 'control-plane',
-    scope: 'organization',
-    surfaceKey: 'orchestration',
-    switcherItems: ['automate'],
-    telemetryClass: 'product',
-  }),
+  ),
+  ...registerRoutes(
+    [
+      '/:orgSlug/~/workspace/inbox/:view',
+      '/:orgSlug/~/workspace/activity',
+      '/:orgSlug/~/workspace/tasks',
+      '/:orgSlug/~/workspace/tasks/:id',
+    ],
+    {
+      fallback: '/:orgSlug/~/workspace/overview',
+      mode: 'canvas',
+      productClass: 'control-plane',
+      scope: 'organization',
+      surfaceKey: 'workspace',
+      switcherItems: ['workspace'],
+      telemetryClass: 'product',
+    },
+  ),
+  ...registerRoutes(
+    ['/:orgSlug/~/orchestration', '/:orgSlug/~/orchestration/overview'],
+    {
+      fallback: '/:orgSlug/~/orchestration/overview',
+      mode: 'canvas',
+      productClass: 'control-plane',
+      scope: 'organization',
+      surfaceKey: 'orchestration',
+      switcherItems: ['automate'],
+      telemetryClass: 'product',
+    },
+  ),
   ...registerRoutes(['/:orgSlug'], {
-    fallback: '/:orgSlug/~/overview',
+    fallback: '/:orgSlug/~/workspace/overview',
     mode: 'canvas',
     productClass: 'control-plane',
     scope: 'organization',
@@ -420,7 +487,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     ['/:orgSlug/~/analytics', '/:orgSlug/~/analytics/overview'],
     {
-      fallback: '/:orgSlug/~/analytics',
+      fallback: '/:orgSlug/~/analytics/overview',
       mode: 'canvas',
       productClass: 'visual-data',
       scope: 'organization',
@@ -492,11 +559,13 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/:orgSlug/~/settings',
+      '/:orgSlug/~/settings/profile',
       '/:orgSlug/~/settings/personal',
       '/:orgSlug/~/settings/help',
       '/:orgSlug/~/settings/members',
       '/:orgSlug/~/settings/billing',
       '/:orgSlug/~/settings/credits',
+      '/:orgSlug/~/settings/usage',
       '/:orgSlug/~/settings/api-keys',
       '/:orgSlug/~/settings/webhooks',
       '/:orgSlug/~/settings/policy',
@@ -506,7 +575,8 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       '/:orgSlug/~/settings/elements/scenes',
     ],
     {
-      fallback: '/:orgSlug/~/settings',
+      // Complete-path home (matches bare→profile permanent redirect).
+      fallback: '/:orgSlug/~/settings/profile',
       mode: 'canvas',
       productClass: 'control-plane',
       scope: 'organization',
@@ -594,7 +664,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
         key: 'brand-workspace-overview',
         status: 'embedded',
       },
-      fallback: '/:orgSlug/:brandSlug/workspace',
+      fallback: '/:orgSlug/:brandSlug/workspace/overview',
       mode: 'canvas',
       productClass: 'control-plane',
       scope: 'brand',
@@ -612,7 +682,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/overview/activities',
     ],
     {
-      fallback: '/:orgSlug/:brandSlug/workspace',
+      fallback: '/:orgSlug/:brandSlug/workspace/overview',
       mode: 'canvas',
       productClass: 'control-plane',
       scope: 'brand',
@@ -763,7 +833,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/library/moodboard',
     ],
     {
-      fallback: '/:orgSlug/:brandSlug/library',
+      fallback: '/:orgSlug/:brandSlug/library/overview',
       mode: 'canvas',
       productClass: 'control-plane',
       scope: 'brand',
@@ -846,7 +916,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
         key: 'analytics',
         status: 'ready',
       },
-      fallback: '/:orgSlug/:brandSlug/analytics',
+      fallback: '/:orgSlug/:brandSlug/analytics/overview',
       mode: 'canvas',
       productClass: 'visual-data',
       scope: 'brand',
@@ -871,7 +941,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/orchestration/workflows/executions/:id',
     ],
     {
-      fallback: '/:orgSlug/:brandSlug/orchestration',
+      fallback: '/:orgSlug/:brandSlug/orchestration/overview',
       mode: 'canvas',
       productClass: 'control-plane',
       scope: 'brand',
@@ -905,7 +975,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/orchestration/library/:type',
     ],
     {
-      fallback: '/:orgSlug/:brandSlug/orchestration',
+      fallback: '/:orgSlug/:brandSlug/orchestration/overview',
       mode: 'canvas',
       productClass: 'control-plane',
       scope: 'brand',
@@ -916,7 +986,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ),
   ...registerRoutes(
     [
-      '/:orgSlug/:brandSlug/settings',
+      '/:orgSlug/:brandSlug/settings/profile',
       '/:orgSlug/:brandSlug/settings/kit',
       '/:orgSlug/:brandSlug/settings/social',
       '/:orgSlug/:brandSlug/settings/voice',
@@ -926,7 +996,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/settings/agent-defaults',
     ],
     {
-      fallback: '/:orgSlug/:brandSlug/settings',
+      fallback: '/:orgSlug/:brandSlug/settings/profile',
       mode: 'canvas',
       productClass: 'control-plane',
       scope: 'brand',
@@ -942,7 +1012,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/lab/twitter-engage',
     ],
     {
-      fallback: '/:orgSlug/:brandSlug/workspace',
+      fallback: '/:orgSlug/:brandSlug/workspace/overview',
       mode: 'canvas',
       productClass: 'control-plane',
       scope: 'brand',
@@ -1039,8 +1109,9 @@ const ADMIN_ROUTE_REGISTRATIONS = [
 /**
  * Canonical application-owned inventory for the protected route patterns
  * accepted in ADR-CONVERSATION-SHELL-CONTRACTS v1.0.0 plus routes added after
- * its 206-route snapshot. The two intentional hard cuts (`/:orgSlug/~/workspace/*` and
- * `/:orgSlug/~/settings/organization/*`) are deliberately absent.
+ * its 206-route snapshot. The intentional hard cut
+ * (`/:orgSlug/~/settings/organization/*`) is deliberately absent. Org Workspace
+ * lives under `/:orgSlug/~/workspace/*` (complete path, brand-less home).
  */
 export const PROTECTED_ROUTE_INVENTORY = Object.freeze([
   ...PERSONAL_ROUTE_REGISTRATIONS,

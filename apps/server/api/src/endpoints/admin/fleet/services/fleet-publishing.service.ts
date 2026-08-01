@@ -8,7 +8,7 @@ import { InstagramService } from '@api/services/integrations/instagram/services/
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import {
   CredentialPlatform,
-  DarkroomReviewStatus as DarkroomReviewStatusEnum,
+  FleetReviewStatus as FleetReviewStatusEnum,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -69,7 +69,7 @@ export class AdminFleetPublishingService {
     if (
       !AdminFleetValueReader.hasReviewStatus(
         ingredient.reviewStatus,
-        DarkroomReviewStatusEnum.APPROVED,
+        FleetReviewStatusEnum.APPROVED,
       )
     ) {
       throw new BadRequestException(

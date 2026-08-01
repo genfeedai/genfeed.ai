@@ -58,12 +58,15 @@ export class BrandInterviewService extends HTTPBaseService {
   public async submitAnswer(
     interviewId: string,
     answer: string,
-    signal?: AbortSignal,
+    opts?: { fieldKey?: string; signal?: AbortSignal },
   ): Promise<IBrandInterviewAnswerResult> {
     const response = await this.instance.post<IBrandInterviewAnswerResult>(
       `/interview/${interviewId}/answer`,
-      { answer },
-      { signal },
+      {
+        answer,
+        ...(opts?.fieldKey ? { fieldKey: opts.fieldKey } : {}),
+      },
+      { signal: opts?.signal },
     );
 
     return response.data;

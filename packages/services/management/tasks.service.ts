@@ -110,6 +110,8 @@ export interface CreateTaskInput {
 export interface ListTasksParams {
   assigneeAgentId?: string;
   assigneeUserId?: string;
+  /** When set, scopes the list to one brand. Omit for org-wide (all brands). */
+  brand?: string;
   limit?: number;
   page?: number;
   parentId?: string;

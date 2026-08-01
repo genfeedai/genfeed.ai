@@ -1807,7 +1807,7 @@
             "description": "Whether this brand is currently active",
             "type": "boolean"
           },
-          "isDarkroomEnabled": {
+          "isFleetEnabled": {
             "default": false,
             "description": "Whether this brand can access darkroom fleet features and assets",
             "type": "boolean"
@@ -3121,7 +3121,7 @@
           "reviewStatus": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/DarkroomReviewStatus"
+                "$ref": "#/components/schemas/FleetReviewStatus"
               }
             ],
             "description": "Darkroom review status for moderated assets"
@@ -3681,7 +3681,7 @@
           "reviewStatus": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/DarkroomReviewStatus"
+                "$ref": "#/components/schemas/FleetReviewStatus"
               }
             ],
             "description": "Darkroom review status for moderated assets"
@@ -5388,7 +5388,7 @@
           "reviewStatus": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/DarkroomReviewStatus"
+                "$ref": "#/components/schemas/FleetReviewStatus"
               }
             ],
             "description": "Darkroom review status for moderated assets"
@@ -5872,7 +5872,7 @@
         },
         "type": "object"
       },
-      "DarkroomReviewStatus": {
+      "FleetReviewStatus": {
         "description": "Darkroom review status for moderated assets",
         "enum": [
           "pending",
@@ -11496,7 +11496,7 @@
             "description": "Whether this brand is currently active",
             "type": "boolean"
           },
-          "isDarkroomEnabled": {
+          "isFleetEnabled": {
             "default": false,
             "description": "Whether this brand can access darkroom fleet features and assets",
             "type": "boolean"
@@ -12546,7 +12546,7 @@
           "reviewStatus": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/DarkroomReviewStatus"
+                "$ref": "#/components/schemas/FleetReviewStatus"
               }
             ],
             "description": "Darkroom review status for moderated assets"
@@ -13055,7 +13055,7 @@
             "description": "Whether BYOK (Bring Your Own Key) mode is enabled for AI providers",
             "type": "boolean"
           },
-          "isDarkroomNsfwVisible": {
+          "isFleetNsfwVisible": {
             "default": false,
             "description": "Whether NSFW darkroom assets can be revealed in brand-scoped library surfaces",
             "type": "boolean"
@@ -35086,9 +35086,9 @@
         ]
       }
     },
-    "/organizations/{organizationId}/brands/{brandId}/darkroom-capabilities": {
+    "/organizations/{organizationId}/brands/{brandId}/fleet-capabilities": {
       "get": {
-        "operationId": "OrganizationsSettingsController.getDarkroomCapabilities",
+        "operationId": "OrganizationsSettingsController.getFleetCapabilities",
         "parameters": [
           {
             "in": "path",
@@ -35117,7 +35117,7 @@
             "bearer": []
           }
         ],
-        "summary": "getDarkroomCapabilities",
+        "summary": "getFleetCapabilities",
         "tags": [
           "organizations"
         ]

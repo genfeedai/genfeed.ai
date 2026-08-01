@@ -1,5 +1,6 @@
 'use client';
 
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
@@ -12,8 +13,8 @@ import {
 } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
+import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import {
   Dialog,
@@ -275,6 +276,7 @@ function issuesListReducer(
 }
 
 export default function IssuesList() {
+  const { brandId } = useBrand();
   const [state, dispatch] = useReducer(
     issuesListReducer,
     initialIssuesListState,
@@ -305,8 +307,11 @@ export default function IssuesList() {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const service = await getTasksService();
-      const params = statusFilter ? { status: statusFilter } : {};
-      const result = await service.list(params);
+      const result = await service.list({
+        ...(statusFilter ? { status: statusFilter } : {}),
+        // Brand selected → filter. Brand cleared on org Workspace → all brands.
+        ...(brandId ? { brand: brandId } : {}),
+      });
       if (!controller.signal.aborted) {
         dispatch({ type: 'SET_ISSUES', payload: result });
       }
@@ -319,7 +324,7 @@ export default function IssuesList() {
         dispatch({ type: 'SET_LOADING', payload: false });
       }
     }
-  }, [getTasksService, statusFilter]);
+  }, [brandId, getTasksService, statusFilter]);
 
   const handleCreateIssue = useCallback(async () => {
     if (!createTitle.trim() || isCreating) return;
@@ -372,72 +377,106 @@ export default function IssuesList() {
     {} as Record<TaskStatus, Task[]>,
   );
 
-  return (
-    <Container>
-      <div className="mb-6 flex items-center justify-end">
-        <h1 className="sr-only">Tasks</h1>
-        <div className="flex items-center gap-3">
-          <Button
-            variant={ButtonVariant.DEFAULT}
-            size={ButtonSize.SM}
-            className="inline-flex items-center gap-1.5"
-            onClick={() =>
-              dispatch({ type: 'SET_SHOW_CREATE_DIALOG', payload: true })
-            }
-          >
-            <CirclePlus className="size-3.5" />
-            New Task
-          </Button>
-          <Select
-            value={statusFilter || 'all'}
-            onValueChange={(value) =>
-              dispatch({
-                type: 'SET_STATUS_FILTER',
-                payload: value === 'all' ? '' : (value as TaskStatus),
-              })
-            }
-          >
-            <SelectTrigger className="w-auto text-xs">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              {STATUS_ORDER.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {STATUS_LABELS[s]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <ViewToggle
-            activeView={viewMode}
-            onChange={(nextView) =>
-              dispatch({ type: 'SET_VIEW_MODE', payload: nextView })
-            }
-            options={[
-              {
-                ariaLabel: 'List view',
-                icon: <List aria-hidden="true" className="size-4" />,
-                label: 'List view',
-                type: ViewType.LIST,
-              },
-              {
-                ariaLabel: 'Kanban view',
-                icon: <Columns2 aria-hidden="true" className="size-4" />,
-                label: 'Kanban view',
-                type: ViewType.KANBAN,
-              },
-            ]}
-          />
-        </div>
-      </div>
+  const isFiltered = statusFilter.length > 0;
+  const hasItems = issues.length > 0;
+  const isEmpty = !isLoading && !hasItems;
+  // Zero tasks and no status filter: start empty — no action bar, CTA in card.
+  const isStartEmpty = isEmpty && !isFiltered;
+  // Never flash the action bar on first load of an empty unfiltered list
+  // (that clip was toolbar → empty card). Show toolbar only when filtered or
+  // when we already have rows.
+  const showToolbar = isFiltered || hasItems;
 
+  const openCreateDialog = useCallback(() => {
+    dispatch({ type: 'SET_SHOW_CREATE_DIALOG', payload: true });
+  }, []);
+
+  // Same Container header chrome as Inbox (mb-4 pb-3 under py-5).
+  const toolbar = showToolbar ? (
+    <div className="flex flex-wrap items-center justify-end gap-2.5">
+      {hasItems ? (
+        <Button
+          variant={ButtonVariant.DEFAULT}
+          size={ButtonSize.SM}
+          className="inline-flex items-center gap-1.5"
+          onClick={openCreateDialog}
+        >
+          <CirclePlus className="size-3.5" aria-hidden="true" />
+          New Task
+        </Button>
+      ) : null}
+      <Select
+        value={statusFilter || 'all'}
+        onValueChange={(value) =>
+          dispatch({
+            type: 'SET_STATUS_FILTER',
+            payload: value === 'all' ? '' : (value as TaskStatus),
+          })
+        }
+      >
+        <SelectTrigger className="w-auto text-xs">
+          <SelectValue placeholder="All Statuses" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Statuses</SelectItem>
+          {STATUS_ORDER.map((s) => (
+            <SelectItem key={s} value={s}>
+              {STATUS_LABELS[s]}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {hasItems ? (
+        <ViewToggle
+          activeView={viewMode}
+          onChange={(nextView) =>
+            dispatch({ type: 'SET_VIEW_MODE', payload: nextView })
+          }
+          options={[
+            {
+              ariaLabel: 'List view',
+              icon: <List aria-hidden="true" className="size-4" />,
+              label: 'List view',
+              type: ViewType.LIST,
+            },
+            {
+              ariaLabel: 'Kanban view',
+              icon: <Columns2 aria-hidden="true" className="size-4" />,
+              label: 'Kanban view',
+              type: ViewType.KANBAN,
+            },
+          ]}
+        />
+      ) : null}
+    </div>
+  ) : undefined;
+
+  return (
+    <Container
+      fullWidth
+      label="Tasks"
+      titleVisibility="sr-only"
+      right={toolbar}
+    >
       {isLoading ? (
-        <LazyLoadingFallback variant="minimal" />
-      ) : issues.length === 0 ? (
+        <SkeletonTable rows={6} columns={4} />
+      ) : isEmpty ? (
         <CardEmpty
-          label="No tasks yet"
-          description="Create a task to start tracking work in this workspace."
+          label={isFiltered ? 'No matching tasks' : 'No tasks yet'}
+          description={
+            isFiltered
+              ? 'Try a different status, or clear the filter to see every task.'
+              : 'Create a task to start tracking work in this workspace.'
+          }
+          action={
+            isStartEmpty
+              ? {
+                  label: 'New Task',
+                  onClick: openCreateDialog,
+                  variant: ButtonVariant.DEFAULT,
+                }
+              : undefined
+          }
         />
       ) : viewMode === ViewType.LIST ? (
         <Card>

@@ -20,7 +20,7 @@ export const brandAttributes = createEntityAttributes([
   'scope',
   'isActive',
   'isHighlighted',
-  'isDarkroomEnabled',
+  'isFleetEnabled',
   'isDefault',
   'logoUrl',
   'bannerUrl',

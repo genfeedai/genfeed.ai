@@ -25,7 +25,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: 'Overview',
     href: APP_ROUTES.ADMIN.ROOT,
-    label: 'Dashboard',
+    label: 'Overview',
     matchPaths: [APP_ROUTES.ADMIN.ROOT, APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD],
     outline: ChartColumn,
     solid: ChartColumn,

@@ -68,6 +68,7 @@ const FLAT_PATH_REDIRECTS = new Map<string, string>([
   [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
   [APP_ROUTES.COMPOSE.ROOT, APP_ROUTES.COMPOSE.ARTICLE],
   [APP_ROUTE_PREFIXES.LIBRARY, APP_ROUTES.LIBRARY.OVERVIEW],
+  [APP_ROUTES.ORCHESTRATION.ROOT, APP_ROUTES.ORCHESTRATION.OVERVIEW],
   [APP_ROUTES.RESEARCH.ROOT, APP_ROUTES.RESEARCH.DISCOVERY],
   [APP_ROUTES.STUDIO.ROOT, APP_ROUTES.STUDIO.IMAGE],
   [LEGACY_APP_ROUTES.TASKS, APP_ROUTES.WORKSPACE.TASKS],
@@ -593,7 +594,7 @@ function createOrgScopedCanonicalPath(
   const topLevelSegment = getTopLevelSegment(canonicalPath);
 
   if (topLevelSegment === 'workspace' || topLevelSegment === 'overview') {
-    return `/${orgSlug}/~/overview`;
+    return `/${orgSlug}/~/workspace/overview`;
   }
 
   if (topLevelSegment === 'compose') {

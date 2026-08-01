@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { describe, expect, it } from 'vitest';
 import {
   buildSettingsMenuItems,
@@ -42,10 +43,11 @@ describe('buildSettingsMenuItems', () => {
         'Members',
         'Brands',
         'Models',
+        'Agents',
         'Credits',
+        'Usage',
         'API Keys',
         'Webhooks',
-        'Policy',
       ]);
     });
 
@@ -60,15 +62,16 @@ describe('buildSettingsMenuItems', () => {
         'Members',
         'Brands',
         'Models',
+        'Agents',
         'Billing',
         'Credits',
+        'Usage',
         'API Keys',
         'Webhooks',
-        'Policy',
       ]);
     });
 
-    it('uses two meaningful groups: Organization and Access', () => {
+    it('uses Organization, Billing, and Developer groups', () => {
       expect(
         buildSettingsMenuItems({ scope: 'organization' }).map((item) => [
           item.label,
@@ -79,10 +82,11 @@ describe('buildSettingsMenuItems', () => {
         ['Members', 'Organization'],
         ['Brands', 'Organization'],
         ['Models', 'Organization'],
-        ['Credits', 'Access'],
-        ['API Keys', 'Access'],
-        ['Webhooks', 'Access'],
-        ['Policy', 'Access'],
+        ['Agents', 'Organization'],
+        ['Credits', 'Billing'],
+        ['Usage', 'Billing'],
+        ['API Keys', 'Developer'],
+        ['Webhooks', 'Developer'],
       ]);
     });
 
@@ -95,7 +99,21 @@ describe('buildSettingsMenuItems', () => {
         true,
       );
       expect(items.find((i) => i.label === 'General')?.isExactMatch).toBe(true);
-      expect(items.find((i) => i.label === 'General')?.href).toBe('/settings');
+      expect(items.find((i) => i.label === 'General')?.href).toBe(
+        APP_ROUTES.SETTINGS.PROFILE,
+      );
+    });
+
+    it('hides Credits and Usage when showCredits is false (desktop BYOK-only)', () => {
+      const items = buildSettingsMenuItems({
+        scope: 'organization',
+        showCredits: false,
+      });
+      expect(items.find((i) => i.label === 'Credits')).toBeUndefined();
+      expect(items.find((i) => i.label === 'Usage')).toBeUndefined();
+      expect(items.find((i) => i.label === 'API Keys')?.href).toBe(
+        '/settings/api-keys',
+      );
     });
 
     it('points Brands and Models at their hubs (prefix-active, not exact)', () => {
@@ -131,7 +149,9 @@ describe('buildSettingsMenuItems', () => {
     it('scopes every entry to the brand and marks Profile exact', () => {
       expect(items.every((item) => item.hrefScope === 'brand')).toBe(true);
       expect(items.find((i) => i.label === 'Profile')?.isExactMatch).toBe(true);
-      expect(items.find((i) => i.label === 'Profile')?.href).toBe('/settings');
+      expect(items.find((i) => i.label === 'Profile')?.href).toBe(
+        APP_ROUTES.SETTINGS.PROFILE,
+      );
       expect(items.find((i) => i.label === 'Social')?.href).toBe(
         '/settings/social',
       );

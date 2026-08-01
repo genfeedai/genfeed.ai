@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   AssetScope,
   ContentRating,
-  DarkroomAssetLabel,
-  DarkroomReviewStatus,
+  FleetAssetLabel,
+  FleetReviewStatus,
   IngredientAvatarCategory,
   IngredientCategory,
   IngredientExtension,
@@ -121,31 +121,31 @@ describe('ingredient.enum', () => {
     });
   });
 
-  describe('DarkroomReviewStatus', () => {
+  describe('FleetReviewStatus', () => {
     it('should have 4 members', () => {
-      expect(Object.values(DarkroomReviewStatus)).toHaveLength(4);
+      expect(Object.values(FleetReviewStatus)).toHaveLength(4);
     });
 
     it('should have correct values', () => {
-      expect(DarkroomReviewStatus.PENDING).toBe('pending');
-      expect(DarkroomReviewStatus.APPROVED).toBe('approved');
-      expect(DarkroomReviewStatus.REJECTED).toBe('rejected');
-      expect(DarkroomReviewStatus.NEEDS_REVISION).toBe('needs-revision');
+      expect(FleetReviewStatus.PENDING).toBe('pending');
+      expect(FleetReviewStatus.APPROVED).toBe('approved');
+      expect(FleetReviewStatus.REJECTED).toBe('rejected');
+      expect(FleetReviewStatus.NEEDS_REVISION).toBe('needs-revision');
     });
   });
 
-  describe('DarkroomAssetLabel', () => {
+  describe('FleetAssetLabel', () => {
     it('should have 6 members', () => {
-      expect(Object.values(DarkroomAssetLabel)).toHaveLength(6);
+      expect(Object.values(FleetAssetLabel)).toHaveLength(6);
     });
 
     it('should have correct values', () => {
-      expect(DarkroomAssetLabel.HERO).toBe('hero');
-      expect(DarkroomAssetLabel.FILLER).toBe('filler');
-      expect(DarkroomAssetLabel.BTS).toBe('bts');
-      expect(DarkroomAssetLabel.PROMO).toBe('promo');
-      expect(DarkroomAssetLabel.LIFESTYLE).toBe('lifestyle');
-      expect(DarkroomAssetLabel.EDITORIAL).toBe('editorial');
+      expect(FleetAssetLabel.HERO).toBe('hero');
+      expect(FleetAssetLabel.FILLER).toBe('filler');
+      expect(FleetAssetLabel.BTS).toBe('bts');
+      expect(FleetAssetLabel.PROMO).toBe('promo');
+      expect(FleetAssetLabel.LIFESTYLE).toBe('lifestyle');
+      expect(FleetAssetLabel.EDITORIAL).toBe('editorial');
     });
   });
 

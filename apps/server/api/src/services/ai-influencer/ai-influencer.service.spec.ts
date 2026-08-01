@@ -66,7 +66,7 @@ describe('AiInfluencerService', () => {
         tone: 'casual and fun',
         topics: ['fashion', 'travel', 'wellness'],
       },
-      isDarkroomCharacter: true,
+      isFleetCharacter: true,
       isDeleted: false,
       label: 'Luna AI',
       loraModelPath: 's3://models/luna-lora.safetensors',
@@ -176,7 +176,7 @@ describe('AiInfluencerService', () => {
       ).rejects.toThrow(NotFoundException);
 
       expect(personasService.findOne).toHaveBeenCalledWith({
-        isDarkroomCharacter: true,
+        isFleetCharacter: true,
         isDeleted: false,
         slug: 'non-existent',
       });
@@ -199,7 +199,7 @@ describe('AiInfluencerService', () => {
 
       expect(result.personaSlug).toBe('luna-ai');
       expect(personasService.findOne).toHaveBeenCalledWith({
-        isDarkroomCharacter: true,
+        isFleetCharacter: true,
         isDeleted: false,
         slug: 'luna-ai',
       });
@@ -819,7 +819,7 @@ describe('AiInfluencerService', () => {
         {
           where: {
             isAutopilotEnabled: true,
-            isDarkroomCharacter: true,
+            isFleetCharacter: true,
             isDeleted: false,
           },
         },
@@ -857,7 +857,7 @@ describe('AiInfluencerService', () => {
         {
           where: {
             isAutopilotEnabled: true,
-            isDarkroomCharacter: true,
+            isFleetCharacter: true,
             isDeleted: false,
             organizationId: 'org-1',
           },

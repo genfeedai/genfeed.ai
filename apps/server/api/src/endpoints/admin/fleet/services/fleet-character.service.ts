@@ -27,7 +27,7 @@ export class AdminFleetCharacterService {
     organizationId: string,
   ): Promise<PersonaDocument | null> {
     return this.personasService.findOne({
-      isDarkroomCharacter: true,
+      isFleetCharacter: true,
       isDeleted: false,
       organization: organizationId,
       slug,
@@ -51,14 +51,14 @@ export class AdminFleetCharacterService {
   }
 
   /**
-   * Get all fleet characters (personas with isDarkroomCharacter: true)
+   * Get all fleet characters (personas with isFleetCharacter: true)
    */
   getCharacters(organizationId: string): Promise<PersonaDocument[]> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(caller, { organizationId });
 
     return this.personasService.findAllByOrganization(organizationId, {
-      isDarkroomCharacter: true,
+      isFleetCharacter: true,
     });
   }
 
@@ -90,7 +90,7 @@ export class AdminFleetCharacterService {
 
     return this.personasService.create({
       ...data,
-      isDarkroomCharacter: true,
+      isFleetCharacter: true,
     } as Parameters<PersonasService['create']>[0]);
   }
 

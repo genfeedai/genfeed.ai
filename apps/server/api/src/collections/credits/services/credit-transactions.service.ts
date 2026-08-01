@@ -149,8 +149,17 @@ export class CreditTransactionsService extends BaseService<
     organizationId: string,
     limit: number = 100,
     skip: number = 0,
+    filters?: {
+      brandId?: string;
+      category?: string;
+      source?: string;
+    },
   ): Promise<CreditTransactionsDocument[]> {
     try {
+      const brandId = filters?.brandId?.trim();
+      const category = filters?.category?.trim();
+      const source = filters?.source?.trim();
+
       const results = await this.delegate.findMany({
         orderBy: { createdAt: 'desc' },
         skip,
@@ -158,6 +167,17 @@ export class CreditTransactionsService extends BaseService<
         where: {
           isDeleted: { not: true },
           organizationId,
+          ...(category ? { category } : {}),
+          ...(source ? { source } : {}),
+          // brandId is stored on ledger metadata when callers pass it through.
+          ...(brandId
+            ? {
+                metadata: {
+                  path: ['brandId'],
+                  equals: brandId,
+                },
+              }
+            : {}),
         },
       });
       return this.normalizeDocuments(results as unknown[]);
@@ -166,6 +186,7 @@ export class CreditTransactionsService extends BaseService<
         `${this.constructorName} getOrganizationTransactions failed`,
         {
           error,
+          filters,
           limit,
           organizationId,
           skip,
@@ -277,6 +298,9 @@ export class CreditTransactionsService extends BaseService<
     usage30Days: number;
     trendPercentage: number;
     breakdown: Array<{ source: string; amount: number; count: number }>;
+    dailySeries: Array<{ date: string; amount: number }>;
+    weeklySeries: Array<{ date: string; amount: number }>;
+    monthlySeries: Array<{ date: string; amount: number }>;
   }> {
     try {
       this.logger.debug(`${this.constructorName} getUsageMetrics`, {
@@ -290,36 +314,48 @@ export class CreditTransactionsService extends BaseService<
       const now = new Date();
       const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      // Look back a year so monthly/weekly charts have enough buckets.
+      const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
 
-      // Get all deductions in last 30 days
       const deductions = this.normalizeDocuments(
         (await this.delegate.findMany({
           where: {
-            createdAt: { gte: thirtyDaysAgo },
+            category: CreditTransactionCategory.DEDUCT,
+            createdAt: { gte: yearAgo },
             isDeleted: { not: true },
             organizationId,
           },
         })) as unknown[],
-      ).filter(
-        (transaction) =>
-          transaction.category === CreditTransactionCategory.DEDUCT,
       );
 
       let usage7Days = 0;
       let usage30Days = 0;
       const sourceMap = new Map<string, { amount: number; count: number }>();
+      const byDay = new Map<string, number>();
 
       for (const d of deductions) {
-        const absAmount = Math.abs(d.amount);
-        usage30Days += absAmount;
-        if (d.createdAt >= sevenDaysAgo) {
+        const absAmount = Math.abs(Number(d.amount) || 0);
+        const createdAt =
+          d.createdAt instanceof Date ? d.createdAt : new Date(d.createdAt);
+
+        if (createdAt >= thirtyDaysAgo) {
+          usage30Days += absAmount;
+        }
+        if (createdAt >= sevenDaysAgo) {
           usage7Days += absAmount;
         }
-        const src = d.source || 'Unknown';
-        const existing = sourceMap.get(src) || { amount: 0, count: 0 };
-        existing.amount += absAmount;
-        existing.count += 1;
-        sourceMap.set(src, existing);
+
+        // Source breakdown is still a 30-day window for the cards.
+        if (createdAt >= thirtyDaysAgo) {
+          const src = d.source || 'Unknown';
+          const existing = sourceMap.get(src) || { amount: 0, count: 0 };
+          existing.amount += absAmount;
+          existing.count += 1;
+          sourceMap.set(src, existing);
+        }
+
+        const dayKey = this.toUtcDayKey(createdAt);
+        byDay.set(dayKey, (byDay.get(dayKey) ?? 0) + absAmount);
       }
 
       const breakdown = Array.from(sourceMap.entries())
@@ -340,9 +376,12 @@ export class CreditTransactionsService extends BaseService<
       return {
         breakdown,
         currentBalance,
+        dailySeries: this.buildDailySeries(byDay, now, 30),
+        monthlySeries: this.buildMonthlySeries(byDay, now, 12),
         trendPercentage: Math.round(trendPercentage * 100) / 100,
-        usage7Days,
         usage30Days,
+        usage7Days,
+        weeklySeries: this.buildWeeklySeries(byDay, now, 12),
       };
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} getUsageMetrics failed`, {
@@ -351,6 +390,88 @@ export class CreditTransactionsService extends BaseService<
       });
       throw error;
     }
+  }
+
+  private toUtcDayKey(date: Date): string {
+    return date.toISOString().slice(0, 10);
+  }
+
+  private startOfUtcDay(date: Date): Date {
+    return new Date(
+      Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+    );
+  }
+
+  private buildDailySeries(
+    byDay: Map<string, number>,
+    now: Date,
+    days: number,
+  ): Array<{ date: string; amount: number }> {
+    const series: Array<{ date: string; amount: number }> = [];
+    const start = this.startOfUtcDay(now);
+
+    for (let offset = days - 1; offset >= 0; offset -= 1) {
+      const day = new Date(start.getTime() - offset * 24 * 60 * 60 * 1000);
+      const key = this.toUtcDayKey(day);
+      series.push({ amount: byDay.get(key) ?? 0, date: key });
+    }
+
+    return series;
+  }
+
+  private buildWeeklySeries(
+    byDay: Map<string, number>,
+    now: Date,
+    weeks: number,
+  ): Array<{ date: string; amount: number }> {
+    const series: Array<{ date: string; amount: number }> = [];
+    const end = this.startOfUtcDay(now);
+    // Align week start to Monday UTC.
+    const endDay = end.getUTCDay();
+    const daysSinceMonday = (endDay + 6) % 7;
+    const currentWeekStart = new Date(
+      end.getTime() - daysSinceMonday * 24 * 60 * 60 * 1000,
+    );
+
+    for (let offset = weeks - 1; offset >= 0; offset -= 1) {
+      const weekStart = new Date(
+        currentWeekStart.getTime() - offset * 7 * 24 * 60 * 60 * 1000,
+      );
+      let amount = 0;
+      for (let day = 0; day < 7; day += 1) {
+        const key = this.toUtcDayKey(
+          new Date(weekStart.getTime() + day * 24 * 60 * 60 * 1000),
+        );
+        amount += byDay.get(key) ?? 0;
+      }
+      series.push({ amount, date: this.toUtcDayKey(weekStart) });
+    }
+
+    return series;
+  }
+
+  private buildMonthlySeries(
+    byDay: Map<string, number>,
+    now: Date,
+    months: number,
+  ): Array<{ date: string; amount: number }> {
+    const series: Array<{ date: string; amount: number }> = [];
+    const year = now.getUTCFullYear();
+    const month = now.getUTCMonth();
+
+    for (let offset = months - 1; offset >= 0; offset -= 1) {
+      const cursor = new Date(Date.UTC(year, month - offset, 1));
+      const keyPrefix = cursor.toISOString().slice(0, 7); // YYYY-MM
+      let amount = 0;
+      for (const [dayKey, dayAmount] of byDay.entries()) {
+        if (dayKey.startsWith(keyPrefix)) {
+          amount += dayAmount;
+        }
+      }
+      series.push({ amount, date: `${keyPrefix}-01` });
+    }
+
+    return series;
   }
 
   async getLastPurchaseBaseline(organizationId: string): Promise<{

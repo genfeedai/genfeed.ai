@@ -5,7 +5,7 @@ import {
 } from '@api/common/services/redis-cache-snapshot.helper';
 import type {
   IBrand,
-  IDarkroomCapabilities,
+  IFleetCapabilities,
   IOrganizationSetting,
   IUser,
 } from '@genfeedai/interfaces';
@@ -33,7 +33,7 @@ export interface AccessBootstrapCachePayload {
   access: AccessBootstrapStatePayload;
   brands: IBrand[];
   currentUser: IUser | null;
-  darkroomCapabilities: IDarkroomCapabilities | null;
+  fleetCapabilities: IFleetCapabilities | null;
   settings: IOrganizationSetting | null;
   streak: IStreakSummary | null;
 }
