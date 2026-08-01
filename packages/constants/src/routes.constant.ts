@@ -161,6 +161,8 @@ export const APP_ROUTES = {
      * is a complete path (same pattern as workspace/overview).
      */
     OVERVIEW: '/orchestration/overview',
+    /** Throttled social reply drip campaigns (Automate surface). */
+    REPLY_CAMPAIGNS: '/orchestration/reply-campaigns',
     ROOT: '/orchestration',
     RUNS: '/orchestration/runs',
     SKILLS: '/orchestration/skills',

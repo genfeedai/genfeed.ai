@@ -1,6 +1,13 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
-import { CirclePlay, Rocket, Settings, Sparkles, Wrench } from 'lucide-react';
+import {
+  CirclePlay,
+  Megaphone,
+  Rocket,
+  Settings,
+  Sparkles,
+  Wrench,
+} from 'lucide-react';
 
 export const WORKFLOWS_MENU_ITEMS: MenuItemConfig[] = [
   {
@@ -18,6 +25,14 @@ export const WORKFLOWS_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [APP_ROUTES.ORCHESTRATION.WORKFLOWS],
     outline: Wrench,
     solid: Wrench,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.ORCHESTRATION.REPLY_CAMPAIGNS,
+    label: 'Reply Campaigns',
+    matchPaths: [APP_ROUTES.ORCHESTRATION.REPLY_CAMPAIGNS],
+    outline: Megaphone,
+    solid: Megaphone,
   },
   {
     group: '',

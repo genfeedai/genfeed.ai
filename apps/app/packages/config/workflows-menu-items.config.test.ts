@@ -34,6 +34,7 @@ describe('WORKFLOWS_MENU_ITEMS', () => {
   it.each([
     ['Autopilot', '/orchestration/autopilot'],
     ['Configuration', '/orchestration/configuration'],
+    ['Reply Campaigns', '/orchestration/reply-campaigns'],
     ['Workflows', '/orchestration/workflows'],
   ])(
     'uses the canonical orchestration route for %s',

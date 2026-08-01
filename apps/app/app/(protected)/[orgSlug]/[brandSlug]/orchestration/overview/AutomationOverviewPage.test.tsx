@@ -86,6 +86,7 @@ describe('AutomationOverviewPage', () => {
       );
     }
     expect(screen.getByText('Workflows')).toBeInTheDocument();
+    expect(screen.getByText('Reply Campaigns')).toBeInTheDocument();
   });
 
   it('uses the darker tinted quick-action icon palette', () => {

@@ -52,9 +52,19 @@ export default function AutomationOverviewPage() {
       description:
         'Run fixed automation graphs for repeatable content pipelines',
       href: href(APP_ROUTES.ORCHESTRATION.WORKFLOWS),
-      icon: Megaphone,
+      icon: Zap,
       id: 'workflows',
       label: 'Workflows',
+    },
+    {
+      color: 'bg-rose-500/12 text-rose-300',
+      cta: 'Open Reply Campaigns',
+      description:
+        'Throttle social replies and DMs so they drip one recipient at a time',
+      href: href(APP_ROUTES.ORCHESTRATION.REPLY_CAMPAIGNS),
+      icon: Megaphone,
+      id: 'reply-campaigns',
+      label: 'Reply Campaigns',
     },
     {
       color: 'bg-blue-500/12 text-blue-300',
