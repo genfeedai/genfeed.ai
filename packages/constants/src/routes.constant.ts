@@ -86,8 +86,11 @@ export const APP_ROUTES = {
     BRANDS: '/analytics/brands',
     HOOKS: '/analytics/hooks',
     INSIGHTS: '/analytics/insights',
-    /** Canonical app home is ROOT; OVERVIEW is an alias for call sites. */
-    OVERVIEW: '/analytics',
+    /**
+     * Canonical analytics home. Bare ROOT permanently redirects here so Overview
+     * is a complete path (same pattern as workspace/overview).
+     */
+    OVERVIEW: '/analytics/overview',
     PERFORMANCE_LAB: '/analytics/performance-lab',
     POSTS: '/analytics/posts',
     STREAKS: '/analytics/streaks',
@@ -124,8 +127,11 @@ export const APP_ROUTES = {
     INGREDIENTS: '/library/ingredients',
     MOODBOARD: '/library/moodboard',
     MUSIC: '/library/music',
-    /** Canonical app home is ROOT; OVERVIEW is an alias for call sites. */
-    OVERVIEW: '/library',
+    /**
+     * Canonical library home. Bare ROOT permanently redirects here so Overview
+     * is a complete path (same pattern as workspace/overview).
+     */
+    OVERVIEW: '/library/overview',
     ROOT: '/library',
     VIDEOS: '/library/videos',
     VOICES: '/library/voices',
@@ -150,8 +156,11 @@ export const APP_ROUTES = {
     LIBRARY: '/orchestration/library',
     NEW: '/orchestration/new',
     ORCHESTRATOR: '/orchestration/orchestrator',
-    /** Canonical app home is ROOT; OVERVIEW is an alias for call sites. */
-    OVERVIEW: '/orchestration',
+    /**
+     * Canonical automate home. Bare ROOT permanently redirects here so Overview
+     * is a complete path (same pattern as workspace/overview).
+     */
+    OVERVIEW: '/orchestration/overview',
     ROOT: '/orchestration',
     RUNS: '/orchestration/runs',
     SKILLS: '/orchestration/skills',
@@ -210,8 +219,14 @@ export const APP_ROUTES = {
     ORGANIZATION_POLICY: '/settings/organization/policy',
     PERSONAL: '/settings/personal',
     POLICY: '/settings/policy',
+    /**
+     * Complete-path settings home (org: General content; brand: Profile content).
+     * Bare ROOT permanently redirects here for brand and org scopes.
+     */
+    PROFILE: '/settings/profile',
     PUBLISHING: '/settings/publishing',
     ROOT: '/settings',
+    USAGE: '/settings/usage',
     WEBHOOKS: '/settings/webhooks',
   },
   STUDIO: {
@@ -232,8 +247,12 @@ export const APP_ROUTES = {
     INBOX_ALL: '/workspace/inbox/all',
     INBOX_RECENT: '/workspace/inbox/recent',
     INBOX_UNREAD: '/workspace/inbox/unread',
-    /** Canonical app home is ROOT; OVERVIEW is an alias for call sites. */
-    OVERVIEW: '/workspace',
+    /**
+     * Canonical workspace home. Bare ROOT (`/workspace`) permanently redirects
+     * here so the Overview menu item has a complete path that does not prefix-
+     * match Activity/Tasks/Inbox.
+     */
+    OVERVIEW: '/workspace/overview',
     ROOT: '/workspace',
     TASKS: '/workspace/tasks',
   },

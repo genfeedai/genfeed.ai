@@ -58,13 +58,15 @@ describe('routes.constant', () => {
   });
 
   it('builds scoped brand and organization routes', () => {
+    expect(APP_ROUTES.WORKSPACE.ROOT).toBe('/workspace');
+    expect(APP_ROUTES.WORKSPACE.OVERVIEW).toBe('/workspace/overview');
     expect(
       createBrandAppRoute(
         'genfeed-ai',
         'paperclip',
         APP_ROUTES.WORKSPACE.OVERVIEW,
       ),
-    ).toBe('/genfeed-ai/paperclip/workspace');
+    ).toBe('/genfeed-ai/paperclip/workspace/overview');
     expect(createBrandAppRoute('genfeed-ai', 'paperclip', 'studio/image')).toBe(
       '/genfeed-ai/paperclip/studio/image',
     );
@@ -81,5 +83,22 @@ describe('routes.constant', () => {
       '/genfeed-ai/~/billing',
     );
     expect(createOrganizationAppRoute('genfeed-ai')).toBe('/genfeed-ai/~');
+  });
+
+  it('uses complete-path OVERVIEW homes (not bare ROOT aliases)', () => {
+    expect(APP_ROUTES.ANALYTICS.OVERVIEW).toBe('/analytics/overview');
+    expect(APP_ROUTES.LIBRARY.OVERVIEW).toBe('/library/overview');
+    expect(APP_ROUTES.ORCHESTRATION.OVERVIEW).toBe('/orchestration/overview');
+    expect(APP_ROUTES.WORKSPACE.OVERVIEW).toBe('/workspace/overview');
+    expect(APP_ROUTES.ANALYTICS.ROOT).not.toBe(APP_ROUTES.ANALYTICS.OVERVIEW);
+    expect(APP_ROUTES.LIBRARY.ROOT).not.toBe(APP_ROUTES.LIBRARY.OVERVIEW);
+    expect(APP_ROUTES.ORCHESTRATION.ROOT).not.toBe(
+      APP_ROUTES.ORCHESTRATION.OVERVIEW,
+    );
+  });
+
+  it('exports settings profile as the complete-path settings home', () => {
+    expect(APP_ROUTES.SETTINGS.PROFILE).toBe('/settings/profile');
+    expect(APP_ROUTES.SETTINGS.ROOT).not.toBe(APP_ROUTES.SETTINGS.PROFILE);
   });
 });
