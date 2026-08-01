@@ -12,44 +12,6 @@ type RuntimeProfileOverrides = Omit<Partial<Profile>, 'agent'> & {
   agent?: Partial<Profile['agent']>;
 };
 
-/**
- * Migrate legacy config keys before zod parsing (which strips unknown keys).
- * Without this, users with custom `gpuHost` values silently lose them.
- */
-function migrateConfig(raw: Record<string, unknown>): Record<string, unknown> {
-  const profiles = raw.profiles as Record<string, Record<string, unknown>> | undefined;
-  if (!profiles) return raw;
-
-  for (const profile of Object.values(profiles)) {
-    if ('gpuHost' in profile) {
-      profile.fleetHost = profile.gpuHost;
-      delete profile.gpuHost;
-    }
-    if ('gpuApiPort' in profile) {
-      profile.fleetApiPort = profile.gpuApiPort;
-      delete profile.gpuApiPort;
-    }
-    // Legacy Darkroom keys (pre-Fleet rename)
-    if ('darkroomHost' in profile) {
-      profile.fleetHost = profile.darkroomHost;
-      delete profile.darkroomHost;
-    }
-    if ('darkroomApiPort' in profile) {
-      profile.fleetApiPort = profile.darkroomApiPort;
-      delete profile.darkroomApiPort;
-    }
-    if ('agentModel' in profile) {
-      const existingAgent = profile.agent;
-      profile.agent = {
-        ...(typeof existingAgent === 'object' && existingAgent !== null ? existingAgent : {}),
-        model: profile.agentModel,
-      };
-      delete profile.agentModel;
-    }
-  }
-  return raw;
-}
-
 function mergeAgentConfig(
   profileAgent: Profile['agent'],
   runtimeAgent: Partial<Profile['agent']> | undefined
@@ -68,7 +30,7 @@ export async function loadConfig(): Promise<Config> {
   try {
     const content = await readFile(CONFIG_PATH, 'utf8');
     const parsed = JSON.parse(content);
-    cachedConfig = configSchema.parse(migrateConfig(parsed));
+    cachedConfig = configSchema.parse(parsed);
     return cachedConfig;
   } catch {
     cachedConfig = structuredClone(defaultConfig);
@@ -129,12 +91,9 @@ export function readRuntimeOverrides(): RuntimeProfileOverrides {
   if (process.env.GENFEED_ORGANIZATION_ID)
     overrides.organizationId = process.env.GENFEED_ORGANIZATION_ID;
   if (process.env.GENFEED_USER_ID) overrides.userId = process.env.GENFEED_USER_ID;
-  // Prefer GF_FLEET_*; accept legacy GF_DARKROOM_* for one release of local env files.
-  if (process.env.GF_FLEET_HOST || process.env.GF_DARKROOM_HOST) {
-    overrides.fleetHost = process.env.GF_FLEET_HOST ?? process.env.GF_DARKROOM_HOST;
-  }
-  if (process.env.GF_FLEET_PORT || process.env.GF_DARKROOM_PORT) {
-    overrides.fleetApiPort = Number(process.env.GF_FLEET_PORT ?? process.env.GF_DARKROOM_PORT);
+  if (process.env.GF_FLEET_HOST) overrides.fleetHost = process.env.GF_FLEET_HOST;
+  if (process.env.GF_FLEET_PORT) {
+    overrides.fleetApiPort = Number(process.env.GF_FLEET_PORT);
   }
   if (process.env.GENFEED_AGENT_MODEL) {
     overrides.agent = {

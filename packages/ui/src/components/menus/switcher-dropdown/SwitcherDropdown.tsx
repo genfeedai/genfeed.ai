@@ -156,7 +156,7 @@ export default function SwitcherDropdown({
 
       <PopoverPanelContent
         align="start"
-        className="py-1"
+        className="p-0"
         style={{
           width: `max(var(--radix-popover-trigger-width), ${minWidth}px)`,
         }}
@@ -177,7 +177,7 @@ export default function SwitcherDropdown({
             />
           )}
 
-          <CommandList className="max-h-64 py-0.5">
+          <CommandList className="max-h-64 p-0">
             <CommandEmpty>{isLoading ? 'Loading…' : emptyMessage}</CommandEmpty>
 
             {filteredItems.map((item) => (
@@ -196,7 +196,7 @@ export default function SwitcherDropdown({
 
         {/* Footer */}
         {resolvedFooterActions.length > 0 && (
-          <div className="border-t border-foreground/[0.08] mt-1 pt-1">
+          <div className="border-t border-foreground/[0.08]">
             {resolvedFooterActions.map((action) => {
               const ActionIcon = action.icon;
 
@@ -241,12 +241,12 @@ function SwitcherItem({
   return (
     <div
       className={cn(
-        'group mx-1 flex min-h-9 w-[calc(100%-0.5rem)] items-center rounded-sm transition-colors duration-150',
-        // Active = only persistent "selected" wash. Keyboard cursor on an
-        // inactive row is a quieter ring, never a second selected wash.
+        'group flex min-h-9 w-full items-center transition-colors duration-150',
+        // Active = wash + check only. No ring/border. Keyboard cursor on an
+        // inactive row is a quieter wash, never a second selected treatment.
         item.isActive
           ? 'bg-foreground/[0.08]'
-          : 'hover:bg-foreground/[0.04] has-[[data-selected=true]]:bg-foreground/[0.03] has-[[data-selected=true]]:ring-1 has-[[data-selected=true]]:ring-inset has-[[data-selected=true]]:ring-foreground/10',
+          : 'hover:bg-foreground/[0.04] has-[[data-selected=true]]:bg-foreground/[0.05]',
       )}
     >
       {/* Active stays selectable so cmdk can keep the keyboard cursor on it
@@ -257,7 +257,7 @@ function SwitcherItem({
         onSelect={() => onSelect(item.id)}
         aria-current={item.isActive ? 'true' : undefined}
         className={cn(
-          'flex min-w-0 flex-1 items-center gap-2.5 rounded-sm bg-transparent py-2 pl-2 text-sm transition-colors duration-150 data-[selected=true]:bg-transparent data-[disabled=true]:opacity-100',
+          'flex min-w-0 flex-1 items-center gap-2.5 rounded-none bg-transparent py-2 pl-3 text-sm transition-colors duration-150 data-[selected=true]:bg-transparent data-[disabled=true]:opacity-100',
           item.trailingAction ? 'pr-1' : 'pr-3',
           item.isActive
             ? 'cursor-default font-medium text-foreground'
@@ -266,12 +266,7 @@ function SwitcherItem({
       >
         {/* Avatar */}
         {item.imageUrl ? (
-          <div
-            className={cn(
-              'flex size-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-md bg-background',
-              item.isActive && 'ring-1 ring-primary/40',
-            )}
-          >
+          <div className="flex size-5 flex-shrink-0 items-center justify-center overflow-hidden rounded-md bg-background">
             <Image
               src={item.imageUrl}
               alt={item.label}
@@ -315,7 +310,7 @@ function SwitcherItem({
           ariaLabel={item.trailingAction.ariaLabel}
           onClick={onAction}
           className={cn(
-            'mr-1 flex size-7 flex-shrink-0 items-center justify-center rounded text-foreground/38 transition-colors duration-150',
+            'mr-1.5 flex size-7 flex-shrink-0 items-center justify-center rounded text-foreground/38 transition-colors duration-150',
             'group-hover:text-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-0',
           )}
         >

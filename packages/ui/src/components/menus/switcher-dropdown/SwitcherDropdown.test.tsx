@@ -72,7 +72,7 @@ describe('SwitcherDropdown', () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
-  it('exposes listbox/option roles and marks the active row non-selectable', () => {
+  it('exposes listbox/option roles and marks the active row with aria-current', () => {
     renderDropdown();
     fireEvent.click(screen.getByText('Open'));
 
@@ -81,11 +81,13 @@ describe('SwitcherDropdown', () => {
     const options = screen.getAllByRole('option');
     expect(options).toHaveLength(3);
 
-    // The active row (Alpha) is disabled and shows the check.
+    // Active stays selectable (so cmdk keyboard cursor can rest on it) and
+    // shows the check — never a disabled skip that lights the next brand.
     const activeOption = options.find((option) =>
       option.textContent?.includes('Alpha'),
     );
-    expect(activeOption).toHaveAttribute('aria-disabled', 'true');
+    expect(activeOption).toHaveAttribute('aria-current', 'true');
+    expect(activeOption).not.toHaveAttribute('aria-disabled', 'true');
     expect(activeOption?.querySelector('svg')).not.toBeNull();
   });
 
