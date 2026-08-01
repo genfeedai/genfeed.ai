@@ -578,19 +578,17 @@ export default function SettingsUsagePage() {
 
       {metrics?.breakdown && metrics.breakdown.length > 0 ? (
         <Card bodyClassName="gap-3 p-4">
-          <Heading size="md" className="mb-3">
-            By source (30 days)
-          </Heading>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <Heading size="md">By source (30 days)</Heading>
+          <div className="divide-y divide-border/60">
             {metrics.breakdown.slice(0, 9).map((item) => (
               <div
                 key={item.source}
-                className="rounded border border-border bg-muted/30 px-3 py-2"
+                className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
               >
                 <Text size="sm" weight="medium">
                   {item.source}
                 </Text>
-                <Text size="xs" color="muted">
+                <Text size="xs" color="muted" className="shrink-0 tabular-nums">
                   {item.amount.toLocaleString()} credits · {item.count} events
                 </Text>
               </div>
@@ -599,10 +597,9 @@ export default function SettingsUsagePage() {
         </Card>
       ) : null}
 
-      <Card bodyClassName="gap-3 p-4">
-        <Heading size="md" className="mb-4">
-          Ledger
-        </Heading>
+      {/* AppTable owns its own card shell — do not wrap in Card (nested chrome). */}
+      <div className="space-y-3">
+        <Heading size="md">Ledger</Heading>
         <AppTable
           columns={columns}
           items={transactionsQuery.data ?? []}
@@ -611,7 +608,7 @@ export default function SettingsUsagePage() {
           emptyLabel={USAGE_EMPTY_TITLE}
           emptyDescription={USAGE_EMPTY_DESCRIPTION}
         />
-      </Card>
+      </div>
     </VStack>
   );
 }

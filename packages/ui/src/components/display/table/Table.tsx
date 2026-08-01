@@ -104,10 +104,12 @@ export default function AppTable<T>({
   );
 
   if (isLoading) {
+    // Shared list loading contract: table skeleton in the same card chrome as
+    // empty/list so height does not clip when the fetch settles.
     return (
       <SkeletonTable
         rows={Math.max(items?.length ?? 0, 6)}
-        columns={columns.length}
+        columns={Math.max(columns.length, 1)}
       />
     );
   }
@@ -116,19 +118,23 @@ export default function AppTable<T>({
     if (emptyState) {
       return <>{emptyState}</>;
     }
+    // Same single shell as the populated table — never a second nested CardEmpty.
     return (
-      <div className="w-full min-h-[12rem]">
+      <div
+        className="relative min-h-[12rem] w-full overflow-hidden rounded-card bg-card shadow-border"
+        data-testid="table-empty"
+      >
         <CardEmptyContent
-          className="min-h-[12rem] w-full py-12"
           label={emptyLabel}
           description={emptyDescription}
+          className="min-h-[12rem] w-full"
         />
       </div>
     );
   }
 
   return (
-    <div className="relative overflow-hidden rounded bg-card shadow-border">
+    <div className="relative overflow-hidden rounded-card bg-card shadow-border">
       <div className="overflow-x-auto rounded">
         <table className="w-full caption-bottom">
           <thead
