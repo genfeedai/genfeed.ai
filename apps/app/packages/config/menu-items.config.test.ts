@@ -79,7 +79,7 @@ describe('APP_MENU_ITEMS', () => {
       [],
     );
 
-    // Only /posts/analytics is allowed — no /analytics/* items
+    // Analytics destinations belong to the Analytics module's own sidebar
     expect(analyticsGroupHrefs).toHaveLength(0);
   });
 
