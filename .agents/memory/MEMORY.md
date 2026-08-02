@@ -10,8 +10,6 @@ Keep it that way: this file is auto-loaded into every request.
 - [end_to_end_implementation](end_to_end_implementation.md) — wire the full user path, never half-architecture
 - [ui_primitives](ui_primitives.md) — no raw HTML controls; enforced by `scripts/ui/control-guard.ts`
 - [proxy_middleware](proxy_middleware.md) — Next.js 16 renamed `middleware.ts` → `proxy.ts`
-- [codex_adversarial_review](codex_adversarial_review.md) — mandatory before ExitPlanMode
-- [gh_issue_worktree_workflow](gh_issue_worktree_workflow.md) — assigned issues use worktrees off master
 - [ready_pr_default](ready_pr_default.md) — ready PRs by default; draft only on request
 - [no_external_symlinks](no_external_symlinks.md) — internal symlinks only (public repo)
 - [p0_priority_not_label](p0_priority_not_label.md) — priority lives in Project #12, not labels
@@ -21,18 +19,14 @@ Keep it that way: this file is auto-loaded into every request.
 - [epic_status_on_child_start](epic_status_on_child_start.md) — epics go In Progress when a child starts
 - [positive_memory_framing](positive_memory_framing.md) — write memory as target state
 - [shared_checkout_automation](shared_checkout_automation.md) — path-scope `git add`; checkout state moves
-- [gpu_instances_off_by_default](gpu_instances_off_by_default.md) — keep GPU/Fleet instances off
 - [inference_servers_private_boundary](inference_servers_private_boundary.md) — inference impls stay private
 - [genfeedai_managed_provider](genfeedai_managed_provider.md) — managed inference is `provider=genfeedai`
-- [console_managed_inference_control_plane](console_managed_inference_control_plane.md) — console owns assignment
 - [system_workflows_content_os](system_workflows_content_os.md) — automation via immutable system workflows
 - [curated_agent_mcp_actions](curated_agent_mcp_actions.md) — one reviewed action catalog; OpenAPI ≠ tool parity
 - [pricing_output_meter](pricing_output_meter.md) — credits throttle usage; no hard product caps
 - [release_tag_after_green_deploy](release_tag_after_green_deploy.md) — one manual stable release ships community + SaaS from one SHA; failed deploys reuse the same version
 - [feedback_release_e2e_board_signal](feedback_release_e2e_board_signal.md) — release E2E red → Project Priority P0 + auto-close on green; never prose-only triage
-- [production_deploy_master_only](production_deploy_master_only.md) — never deploy a non-master ref to production unless Vincent explicitly overrides; master CI only
 - [feedback_vercel_release_gate](feedback_vercel_release_gate.md) — Vercel deploys only via the release workflow
-- [feedback_no_local_vercel_cli](feedback_no_local_vercel_cli.md) — never `vercel link`/`pull`/`deploy` locally; agents wipe `.env.local`
 - [feedback_library_information_architecture](feedback_library_information_architecture.md) — Library destinations live in nav; folders and asset types are filters
 
 ## Rules (via the `.claude/rules` symlink)
