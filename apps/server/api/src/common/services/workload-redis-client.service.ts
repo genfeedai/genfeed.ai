@@ -20,6 +20,14 @@ import Redis from 'ioredis';
  * Provides resilient exponential-backoff reconnect, readiness tracking (so
  * fail-open callers can cheaply gate on `isReady`), and graceful teardown with a
  * force-close fallback if `quit()` hangs.
+ *
+ * **Reconnection never gives up.** ioredis treats a non-number from
+ * `retryStrategy` as "stop", which parks the client at `status: 'end'` for the
+ * lifetime of the process: `isReady` stays false, no further errors are emitted,
+ * and a Redis that comes back is never reconnected to. For a fail-open caller
+ * that is the worst shape available — the degradation is permanent *and* silent.
+ * Backoff therefore plateaus at {@link MAX_RECONNECT_DELAY_MS} and keeps going;
+ * what is bounded is the logging, not the recovery.
  */
 export abstract class WorkloadRedisClientService
   implements OnModuleInit, OnModuleDestroy
@@ -27,10 +35,20 @@ export abstract class WorkloadRedisClientService
   protected readonly client: Redis;
   private readonly constructorName = this.constructor.name;
 
-  private static readonly MAX_RECONNECT_RETRIES = 10;
+  /** Reconnect attempts logged one line each before the summary takes over. */
+  private static readonly VERBOSE_RECONNECT_ATTEMPTS = 10;
   private static readonly MAX_RECONNECT_DELAY_MS = 30_000;
+  /** Gap between log lines once an outage has stopped being news. */
+  private static readonly SUSTAINED_OUTAGE_LOG_INTERVAL_MS = 60_000;
   private static readonly DISCONNECT_TIMEOUT_MS = 3_000;
   private static readonly FORCE_DISCONNECT_TIMEOUT_MS = 500;
+
+  /** Consecutive reconnect attempts; reset when the client reaches `ready`. */
+  private reconnectAttempts = 0;
+  /** When the sustained-outage line last went out; `null` while healthy. */
+  private lastOutageLogAt: number | null = null;
+  /** Connection errors swallowed by the outage-log throttle since that line. */
+  private suppressedErrorCount = 0;
 
   protected constructor(
     configService: ConfigService,
@@ -42,27 +60,25 @@ export abstract class WorkloadRedisClientService
     this.client = new Redis(
       buildIoRedisClientOptions(config, {
         connectTimeout: 3_000,
+        // Always a number: see the class doc on why this must never stop.
         retryStrategy: (retries: number) => {
-          if (retries >= WorkloadRedisClientService.MAX_RECONNECT_RETRIES) {
-            this.logger.error(
-              `${this.constructorName} max reconnect attempts reached (${retries}), giving up`,
-            );
-            return null;
-          }
+          this.reconnectAttempts = retries + 1;
           const delay = Math.min(
             100 * 2 ** retries,
             WorkloadRedisClientService.MAX_RECONNECT_DELAY_MS,
           );
-          this.logger.warn(
-            `${this.constructorName} reconnecting in ${delay}ms (attempt ${retries + 1}/${WorkloadRedisClientService.MAX_RECONNECT_RETRIES})`,
-          );
+          if (retries < WorkloadRedisClientService.VERBOSE_RECONNECT_ATTEMPTS) {
+            this.logger.warn(
+              `${this.constructorName} reconnecting in ${delay}ms (attempt ${retries + 1})`,
+            );
+          }
           return delay;
         },
       }),
     );
 
     this.client.on('error', (error: Error) => {
-      this.logger.error(`${this.constructorName} Redis client error`, error);
+      this.logConnectionError(error);
     });
 
     this.client.on('connect', () => {
@@ -70,8 +86,53 @@ export abstract class WorkloadRedisClientService
     });
 
     this.client.on('ready', () => {
-      this.logger.log(`${this.constructorName} Redis client ready`);
+      const attemptsToRecover = this.reconnectAttempts;
+      this.reconnectAttempts = 0;
+      this.lastOutageLogAt = null;
+      this.suppressedErrorCount = 0;
+      this.logger.log(
+        attemptsToRecover > 0
+          ? `${this.constructorName} Redis client ready (recovered after ${attemptsToRecover} reconnect attempts)`
+          : `${this.constructorName} Redis client ready`,
+      );
     });
+  }
+
+  /**
+   * Full detail while an outage is still news, then one summary line per
+   * {@link SUSTAINED_OUTAGE_LOG_INTERVAL_MS} carrying what it swallowed.
+   *
+   * ioredis emits an error per failed connection attempt, and this client now
+   * retries forever — so the un-throttled path would write a line every 30
+   * seconds for as long as Redis is down. The previous code kept that bounded
+   * only by abandoning the connection, which is the behavior this replaces.
+   */
+  private logConnectionError(error: Error): void {
+    if (
+      this.reconnectAttempts <=
+      WorkloadRedisClientService.VERBOSE_RECONNECT_ATTEMPTS
+    ) {
+      this.logger.error(`${this.constructorName} Redis client error`, error);
+      return;
+    }
+
+    const now = Date.now();
+    const isThrottled =
+      this.lastOutageLogAt !== null &&
+      now - this.lastOutageLogAt <
+        WorkloadRedisClientService.SUSTAINED_OUTAGE_LOG_INTERVAL_MS;
+    if (isThrottled) {
+      this.suppressedErrorCount += 1;
+      return;
+    }
+
+    const suppressedSinceLastLog = this.suppressedErrorCount;
+    this.lastOutageLogAt = now;
+    this.suppressedErrorCount = 0;
+    this.logger.error(
+      `${this.constructorName} Redis still unreachable after ${this.reconnectAttempts} reconnect attempts (${suppressedSinceLastLog} errors suppressed since the last line), retrying every ${WorkloadRedisClientService.MAX_RECONNECT_DELAY_MS}ms`,
+      error,
+    );
   }
 
   get isReady(): boolean {
