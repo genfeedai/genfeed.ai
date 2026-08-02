@@ -9,7 +9,7 @@ import { expect, test } from '../../fixtures/auth.fixture';
 /**
  * E2E Tests for Posts Sub-Routes (Content Types)
  *
- * Covers: /compose, /compose/article, /publish/newsletters,
+ * Covers: /edit/:type/:id, /publish/newsletters,
  *         /publish/remix, /publish/review
  *
  * CRITICAL: All tests use mocked API responses.
@@ -22,14 +22,6 @@ test.describe('Posts — Content Types', () => {
       plan: 'pro',
     });
     await mockPostsList(authenticatedPage);
-  });
-
-  test('article composer loads at /compose/article', async ({
-    authenticatedPage,
-  }) => {
-    await authenticatedPage.goto(APP_ROUTES.COMPOSE.ARTICLE);
-
-    await expect(authenticatedPage).toHaveURL(/compose\/article/);
   });
 
   test('newsletters page loads newsletter list', async ({
@@ -60,18 +52,6 @@ test.describe('Posts — Content Types', () => {
     ).toBeVisible();
   });
 
-  test('composer page opens with editor visible', async ({
-    authenticatedPage,
-  }) => {
-    await authenticatedPage.goto(APP_ROUTES.COMPOSE.ROOT);
-
-    // /compose redirects to /compose/article
-    await expect(authenticatedPage).toHaveURL(/\/compose\/article/);
-    await expect(
-      authenticatedPage.getByText(/article|compose|editor|write/i).first(),
-    ).toBeVisible();
-  });
-
   test('remix page loads remix interface', async ({ authenticatedPage }) => {
     await authenticatedPage.goto(APP_ROUTES.PUBLISH.REMIX);
 
@@ -97,7 +77,7 @@ test.describe('Posts — Content Types', () => {
   test('unauthenticated user is redirected from posts routes', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.COMPOSE.ROOT);
+    await unauthenticatedPage.goto(APP_ROUTES.PUBLISH.ROOT);
 
     // Should redirect to login
     await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {

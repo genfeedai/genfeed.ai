@@ -50,7 +50,6 @@ let hasWarnedAboutHostedModeMisconfiguration = false;
 const BRAND_SCOPED_PREFIXES = [
   APP_ROUTE_PREFIXES.ANALYTICS.slice(1),
   APP_ROUTE_PREFIXES.AGENT.slice(1),
-  APP_ROUTE_PREFIXES.COMPOSE.slice(1),
   LEGACY_APP_ROUTES.TASKS.slice(1),
   APP_ROUTE_PREFIXES.LIBRARY.slice(1),
   APP_ROUTE_PREFIXES.AUTOMATE.slice(1),
@@ -65,7 +64,6 @@ const ORG_SCOPED_PREFIXES = [APP_ROUTE_PREFIXES.SETTINGS.slice(1)] as const;
 
 const FLAT_PATH_REDIRECTS = new Map<string, string>([
   [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
-  [APP_ROUTES.COMPOSE.ROOT, APP_ROUTES.COMPOSE.ARTICLE],
   [APP_ROUTE_PREFIXES.LIBRARY, APP_ROUTES.LIBRARY.OVERVIEW],
   [APP_ROUTES.DISCOVER.ROOT, APP_ROUTES.DISCOVER.DISCOVERY],
   [APP_ROUTES.STUDIO.ROOT, APP_ROUTES.STUDIO.STORYBOARD],
@@ -577,7 +575,6 @@ type CanonicalResolution = {
 const ORG_ROOT_APP_PREFIXES = [
   'analytics',
   'agent',
-  'compose',
   'library',
   'publish',
   'settings',
@@ -592,10 +589,6 @@ function createOrgScopedCanonicalPath(
 
   if (topLevelSegment === 'workspace' || topLevelSegment === 'overview') {
     return `/${orgSlug}/~/overview`;
-  }
-
-  if (topLevelSegment === 'compose') {
-    return `/${orgSlug}/~/publish`;
   }
 
   // Automate has one org-scoped surface — the cross-brand overview. Deeper

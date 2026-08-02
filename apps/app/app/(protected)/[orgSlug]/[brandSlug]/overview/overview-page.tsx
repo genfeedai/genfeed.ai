@@ -1,10 +1,11 @@
 'use client';
 
-import { APP_ROUTES, COMPOSE_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
 import type { OverviewCard } from '@genfeedai/interfaces/ui/overview-card.interface';
 import type { AgentRunStats } from '@genfeedai/types';
+import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
@@ -59,6 +60,12 @@ const OVERVIEW_SOCIAL_PLATFORMS: SocialPlatform[] = [
   'pinterest',
   'medium',
 ];
+
+// Creating content starts in the Agent — there is no standalone composer to
+// send operators to any more.
+const CREATE_CONTENT_AGENT_HREF = buildAgentPromptHref(
+  'Help me create new content for my brand — a post, an article, or a campaign asset.',
+);
 
 const EMPTY_AGENT_RUNS: IAgentRun[] = [];
 const EMPTY_TIME_SERIES: PlatformTimeSeriesDataPoint[] = [];
@@ -364,7 +371,7 @@ export default function OverviewPageContent({
         color: 'bg-secondary text-muted-foreground',
         cta: 'Create Posts',
         description: 'Draft new posts, articles, and campaign assets',
-        href: COMPOSE_ROUTES.ROOT,
+        href: CREATE_CONTENT_AGENT_HREF,
         icon: MessageSquare,
         id: 'create',
         label: 'Posts',

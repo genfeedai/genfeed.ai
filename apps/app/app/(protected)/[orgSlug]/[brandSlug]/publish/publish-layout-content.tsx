@@ -5,6 +5,7 @@ import {
   type RefreshFunction,
 } from '@contexts/posts/posts-layout-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
@@ -20,13 +21,16 @@ import { Suspense, useCallback, useMemo, useReducer } from 'react';
 const KNOWN_SUB_ROUTES = [
   'analytics',
   'calendar',
-  'composer',
   'newsletters',
   'published',
   'remix',
   'review',
   'scheduled',
 ];
+
+const NEW_RELEASE_AGENT_HREF = buildAgentPromptHref(
+  'Help me put together a new release — draft the posts and pick the channels to publish them on.',
+);
 
 type PublishLayoutState = {
   refreshFn: RefreshFunction | (() => RefreshFunction) | null;
@@ -210,7 +214,7 @@ function PublishLayoutContentContent({ children }: { children: ReactNode }) {
               variant={ButtonVariant.DEFAULT}
               withWrapper={false}
             >
-              <Link href={href('/publish/composer')}>
+              <Link href={href(NEW_RELEASE_AGENT_HREF)}>
                 <Plus className="size-4" />
                 New release
               </Link>

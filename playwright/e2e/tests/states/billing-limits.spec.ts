@@ -27,7 +27,7 @@ const ORG_BRAND = '/test-org/brand-1';
 // Studio's standalone one-off tabs are retired; the storyboard surface
 // carries the inline composer that these failure paths exercise.
 const STORYBOARD_ROUTE = `${ORG_BRAND}/studio/storyboard`;
-const COMPOSE_ROUTE = `${ORG_BRAND}/compose/post`;
+const WRITE_ROUTE = `${ORG_BRAND}/agent/new`;
 const AUTOMATE_ROUTE = `${ORG_BRAND}/automate`;
 
 type Page = Parameters<typeof mockInsufficientCredits>[0];
@@ -76,11 +76,11 @@ test.describe('Billing limits — credit and subscription gating', () => {
     await assertHealthy(authenticatedPage);
   });
 
-  test('compose surface stays healthy on insufficient credits', async ({
+  test('writing surface stays healthy on insufficient credits', async ({
     authenticatedPage,
   }) => {
     await mockInsufficientCredits(authenticatedPage);
-    await authenticatedPage.goto(COMPOSE_ROUTE, {
+    await authenticatedPage.goto(WRITE_ROUTE, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -92,11 +92,11 @@ test.describe('Billing limits — credit and subscription gating', () => {
     await assertHealthy(authenticatedPage);
   });
 
-  test('compose surface stays healthy under an expired subscription', async ({
+  test('writing surface stays healthy under an expired subscription', async ({
     authenticatedPage,
   }) => {
     await mockExpiredSubscription(authenticatedPage);
-    await authenticatedPage.goto(COMPOSE_ROUTE, {
+    await authenticatedPage.goto(WRITE_ROUTE, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);

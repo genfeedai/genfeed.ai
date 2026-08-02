@@ -153,11 +153,7 @@ export default async function OrgRootAppPage({
     redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.NEW));
   }
 
-  if (
-    orgRootApp === 'publish' ||
-    orgRootApp === 'write' ||
-    orgRootApp === 'compose'
-  ) {
+  if (orgRootApp === 'publish') {
     const postsListPage = await renderPostsListPage({
       searchParams: searchParams ?? Promise.resolve({}),
       scope: PageScope.ORGANIZATION,

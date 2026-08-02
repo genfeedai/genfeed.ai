@@ -4,6 +4,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { isDesktopClient } from '@genfeedai/config/deployment';
 import type { IGenfeedDesktopBridge } from '@genfeedai/desktop-contracts';
 import { ButtonVariant, CredentialPlatform } from '@genfeedai/enums';
+import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { PostsService } from '@services/content/posts.service';
@@ -80,10 +81,11 @@ function TrendRemixPageContent() {
   );
 
   useEffect(() => {
+    const controller = new AbortController();
     const desktop = isDesktopClient();
 
     if ((!isReady && !desktop) || hasStartedRef.current) {
-      return;
+      return () => controller.abort();
     }
 
     hasStartedRef.current = true;
@@ -95,7 +97,7 @@ function TrendRemixPageContent() {
       setError(nextError);
       setIsSubmitting(false);
       notificationsService.error(nextError);
-      return;
+      return () => controller.abort();
     }
 
     const remixTopic = buildTwitterRemixTopic({
@@ -113,16 +115,23 @@ function TrendRemixPageContent() {
             mode,
             topic: remixTopic,
           });
+          if (controller.signal.aborted) {
+            return;
+          }
           notificationsService.success(
             mode === 'thread'
               ? 'Thread remix draft created'
               : 'Tweet remix draft created',
           );
-          const params = new URLSearchParams({
-            description: generated.content,
-            title: topic || 'Twitter remix',
-          });
-          replace(href(`/compose/post?${params.toString()}`));
+          // The desktop bridge produced the draft locally — hand it to the
+          // Agent to polish and publish, since the composer is gone.
+          replace(
+            href(
+              buildAgentPromptHref(
+                `Polish and publish this Twitter remix draft. Topic: "${topic || 'Twitter remix'}". Draft: "${generated.content}".`,
+              ),
+            ),
+          );
           return;
         }
 
@@ -158,6 +167,10 @@ function TrendRemixPageContent() {
           });
         }
 
+        if (controller.signal.aborted) {
+          return;
+        }
+
         notificationsService.success(
           mode === 'thread'
             ? 'Thread remix draft created'
@@ -165,6 +178,9 @@ function TrendRemixPageContent() {
         );
         replace(href('/publish?platform=twitter'));
       } catch (runError) {
+        if (controller.signal.aborted) {
+          return;
+        }
         logger.error('Failed to create trend remix draft', runError);
         setError('Failed to create the remix draft.');
         setIsSubmitting(false);
@@ -175,6 +191,8 @@ function TrendRemixPageContent() {
     run().catch(() => {
       /* handled above */
     });
+
+    return () => controller.abort();
   }, [
     getPostsService,
     href,

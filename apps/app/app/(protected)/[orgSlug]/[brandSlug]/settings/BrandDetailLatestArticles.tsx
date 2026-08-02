@@ -1,6 +1,9 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { BrandDetailLatestArticlesProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import Card from '@ui/card/Card';
@@ -8,9 +11,16 @@ import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import NextLink from 'next/link';
 
+// Writing starts in the Agent; the artifact editor takes over once a draft exists.
+const WRITE_ARTICLE_AGENT_HREF = buildAgentPromptHref(
+  'Help me write a new long-form article for my brand.',
+);
+
 export default function BrandDetailLatestArticles({
   articles,
 }: BrandDetailLatestArticlesProps) {
+  const { href } = useOrgUrl();
+
   return (
     <Card
       label="Latest Articles"
@@ -22,7 +32,9 @@ export default function BrandDetailLatestArticles({
           variant={ButtonVariant.GHOST}
           withWrapper={false}
         >
-          <NextLink href={`${EnvironmentService.apps.app}/compose/article`}>
+          <NextLink
+            href={`${EnvironmentService.apps.app}${APP_ROUTES.LAB.ARTICLES}`}
+          >
             View all
           </NextLink>
         </Button>
@@ -87,7 +99,9 @@ export default function BrandDetailLatestArticles({
             variant={ButtonVariant.GHOST}
             withWrapper={false}
           >
-            <NextLink href={`${EnvironmentService.apps.app}/compose/article`}>
+            <NextLink
+              href={`${EnvironmentService.apps.app}${href(WRITE_ARTICLE_AGENT_HREF)}`}
+            >
               Create an article
             </NextLink>
           </Button>

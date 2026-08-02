@@ -75,7 +75,6 @@ The protected shell currently recognizes these app contexts:
 - `publish`
 - `analytics`
 - `workflows`
-- `compose`
 - `editor`
 - `admin`
 
@@ -85,7 +84,6 @@ Sidebar surfaces currently resolved by `AppProtectedLayoutSidebar`:
 - Library
 - Studio
 - Admin
-- Compose
 - Workflows
 - Editor
 - Analytics
@@ -168,10 +166,6 @@ Organization catch-all module pages served by `/:orgSlug/~/:orgRootApp/[[...segm
 - `/:orgSlug/~/publish`
 - `/:orgSlug/~/publish/published`
 - `/:orgSlug/~/publish/scheduled`
-- `/:orgSlug/~/write`
-- `/:orgSlug/~/write/:segment`
-- `/:orgSlug/~/compose`
-- `/:orgSlug/~/compose/:segment`
 - `/:orgSlug/~/studio/edit`
 - `/:orgSlug/~/studio/edit/projects`
 - `/:orgSlug/~/studio/edit/new`
@@ -251,11 +245,11 @@ Studio:
 - `/:orgSlug/:brandSlug/studio/edit/new`
 - `/:orgSlug/:brandSlug/studio/edit/:id`
 
-Create/compose:
+Focused artifact editing:
 
-- `/:orgSlug/:brandSlug/compose/article`
-- `/:orgSlug/:brandSlug/compose/post`
-- `/:orgSlug/:brandSlug/compose/newsletter`
+- `/:orgSlug/:brandSlug/edit/article/:id`
+- `/:orgSlug/:brandSlug/edit/newsletter/:id`
+- `/:orgSlug/:brandSlug/edit/post/:id`
 
 Library:
 
@@ -280,7 +274,6 @@ Publish:
 - `/:orgSlug/:brandSlug/publish`
 - `/:orgSlug/:brandSlug/publish/:id`
 - `/:orgSlug/:brandSlug/publish/calendar`
-- `/:orgSlug/:brandSlug/publish/composer`
 - `/:orgSlug/:brandSlug/publish/newsletters`
 - `/:orgSlug/:brandSlug/publish/published`
 - `/:orgSlug/:brandSlug/publish/remix`
@@ -447,4 +440,4 @@ Admin organization/administration:
 - `Repeat` is not a top-level page concept. It should be a contextual feature/action inside Research, Publish, Analytics, Studio, or Library output views.
 - `Discovery`, `Socials`, and `Ads` are Research internal pages.
 - `Batch` is Studio internal navigation when the Studio capability is enabled.
-- `Compose` is a creation surface and should not appear as a primary app-switcher module unless product taxonomy changes. The Remotion editor is no longer a module at all — it is Studio's `Edit` surface (#2309).
+- Creation starts in the Agent. Focused `/edit/:type/:id` artifact editors belong to Publish, while the Remotion project editor is Studio's `Edit` surface.

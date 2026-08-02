@@ -45,7 +45,6 @@ const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   agent: 'Agent',
   analytics: 'Analytics',
   automate: 'Automate',
-  compose: 'Compose',
   library: 'Library',
   messages: 'Messages',
   publish: 'Publish',

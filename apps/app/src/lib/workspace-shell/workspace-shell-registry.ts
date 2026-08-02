@@ -112,7 +112,6 @@ const BREADCRUMB_ROOT_LABELS = Object.freeze({
   agent: 'Agent',
   analytics: 'Analytics',
   automate: 'Automate',
-  compose: 'Compose',
   edit: 'Edit',
   lab: 'Lab',
   library: 'Library',
@@ -123,7 +122,6 @@ const BREADCRUMB_ROOT_LABELS = Object.freeze({
   settings: 'Settings',
   studio: 'Studio',
   workspace: 'Workspace',
-  write: 'Compose',
 } as const satisfies Readonly<Record<string, string>>);
 
 const BREADCRUMB_WORD_LABELS = Object.freeze({
@@ -187,14 +185,12 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/agent/:id': 'Conversation',
   '/:orgSlug/~/agent/new': 'New Conversation',
   '/:orgSlug/~/agent/onboarding/:threadId': 'Onboarding',
-  '/:orgSlug/~/compose/:segment': ':segment',
   '/:orgSlug/~/library/:type': ':type',
   '/:orgSlug/~/settings': 'General',
   '/:orgSlug/~/settings/models/:type': ':type',
   '/:orgSlug/~/studio/edit': 'Edit',
   '/:orgSlug/~/studio/edit/:id': 'Project',
 
-  '/:orgSlug/~/write/:segment': ':segment',
   '/admin': 'Dashboard',
   '/admin/automation/models/:type': ':type Models',
   '/admin/automation/trainings/:id/images': 'Training Images',
@@ -540,23 +536,6 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       telemetryClass: 'product',
     },
   ),
-  ...registerRoutes(['/:orgSlug/~/write', '/:orgSlug/~/write/:segment'], {
-    fallback: '/:orgSlug/~/compose',
-    mode: 'canvas',
-    productClass: 'compatibility-only',
-    scope: 'organization',
-    surfaceKey: 'compose',
-    telemetryClass: 'product',
-  }),
-  ...registerRoutes(['/:orgSlug/~/compose', '/:orgSlug/~/compose/:segment'], {
-    fallback: '/:orgSlug/~/compose',
-    mode: 'canvas',
-    productClass: 'contextual-action',
-    scope: 'organization',
-    surfaceKey: 'compose',
-    telemetryClass: 'product',
-  }),
-
   ...registerRoutes(
     [
       '/:orgSlug/~/studio/edit',
@@ -699,21 +678,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ),
   ...registerRoutes(
     [
-      '/:orgSlug/:brandSlug/compose/article',
-      '/:orgSlug/:brandSlug/compose/post',
-      '/:orgSlug/:brandSlug/compose/newsletter',
-    ],
-    {
-      fallback: '/:orgSlug/:brandSlug/compose/post',
-      mode: 'canvas',
-      productClass: 'contextual-action',
-      scope: 'brand',
-      surfaceKey: 'compose',
-      telemetryClass: 'product',
-    },
-  ),
-  ...registerRoutes(
-    [
       '/:orgSlug/:brandSlug/edit/article/:id',
       '/:orgSlug/:brandSlug/edit/newsletter/:id',
       '/:orgSlug/:brandSlug/edit/post/:id',
@@ -801,14 +765,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
     surfaceKey: 'publish',
     switcherItems: ['publish'],
     telemetryClass: 'product',
-  }),
-  ...registerRoutes(['/:orgSlug/:brandSlug/publish/composer'], {
-    fallback: '/:orgSlug/:brandSlug/publish',
-    mode: 'canvas',
-    productClass: 'contextual-action',
-    scope: 'brand',
-    surfaceKey: 'post-composer',
-    telemetryClass: 'management',
   }),
   ...registerRoutes(
     [

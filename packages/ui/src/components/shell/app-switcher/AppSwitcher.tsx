@@ -74,7 +74,7 @@ function createScopedAppRoute({
 
 /**
  * Flat ordered launcher (no section chrome). Order encodes product flow:
- * Operate tools → Create assets → Trends → Publish (+ compose) → Analytics.
+ * Operate tools → Create assets → Trends → Publish → Analytics.
  */
 const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
   {
@@ -165,10 +165,8 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.discover,
       },
       {
-        // Compose and focused artifact editors are Publish-adjacent. The
-        // Remotion project editor lives under Studio's Edit surface.
-        activePathRoots: ['/publish', '/compose', '/edit'],
-        description: 'Drafts, posts, compose, and artifact editing.',
+        activePathRoots: ['/publish'],
+        description: 'Drafts and posts.',
         icon: Send,
         id: 'publish',
         itemKey: 'publish',

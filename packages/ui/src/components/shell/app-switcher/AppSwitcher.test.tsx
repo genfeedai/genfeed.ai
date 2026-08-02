@@ -543,18 +543,17 @@ describe('AppSwitcher', () => {
     );
   });
 
-  it('highlights Publish for compose paths', () => {
+  it('does not classify focused artifact editors as Publish', () => {
     render(
       <AppSwitcher
         orgSlug="acme"
         brandSlug="my-brand"
-        currentPath="/acme/my-brand/compose/article"
+        currentPath="/acme/my-brand/edit/article/article-1"
       />,
     );
 
-    expect(screen.getByRole('link', { name: 'Publish' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Publish' })).not.toHaveAttribute(
       'aria-current',
-      'page',
     );
   });
 

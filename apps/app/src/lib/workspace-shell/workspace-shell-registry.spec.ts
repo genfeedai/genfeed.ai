@@ -31,11 +31,11 @@ function materializeRoutePattern(pattern: string): string {
 
 describe('workspace shell trusted registry', () => {
   it('owns the complete accepted protected-route denominator', () => {
-    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(213);
+    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(205);
     expect(
       new Set(PROTECTED_ROUTE_INVENTORY.map((route) => route.canonicalUrl))
         .size,
-    ).toBe(213);
+    ).toBe(205);
 
     for (const route of PROTECTED_ROUTE_INVENTORY) {
       expect(route.accessPolicy).toMatch(
@@ -64,7 +64,7 @@ describe('workspace shell trusted registry', () => {
             : 'dedicated-route',
       );
       expect(route.productClass).toMatch(
-        /^(compatibility-only|contextual-action|control-plane|removable|visual-data)$/,
+        /^(contextual-action|control-plane|removable|visual-data)$/,
       );
       expect(route.safeFallback).toMatch(/^\//);
       expect(route.surfaceKey).not.toHaveLength(0);
@@ -276,16 +276,24 @@ describe('workspace shell trusted registry', () => {
       resolveWorkspaceShellRoute('/acme/moonrise/studio/image'),
     ).toBeNull();
     // The Automate hard-cut folded autopilot and configuration into the
-    // first-class automate family; /write is the surviving compat alias.
+    // first-class automate family. Compose's `/write` alias retired with it.
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automate/autopilot'),
     ).toMatchObject({ productClass: 'control-plane' });
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automate/configuration'),
     ).toMatchObject({ productClass: 'control-plane' });
-    expect(resolveWorkspaceShellRoute('/acme/~/write')).toMatchObject({
-      productClass: 'compatibility-only',
-    });
+    expect(resolveWorkspaceShellRoute('/acme/~/write')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/acme/~/compose')).toBeNull();
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/compose/article'),
+    ).toBeNull();
+    expect(
+      PROTECTED_ROUTE_INVENTORY.some(
+        (route) =>
+          route.canonicalUrl === '/:orgSlug/:brandSlug/publish/composer',
+      ),
+    ).toBe(false);
   });
 
   it('keeps the two accepted hard-cut families outside the registry', () => {

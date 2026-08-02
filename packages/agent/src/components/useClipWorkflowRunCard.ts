@@ -6,8 +6,9 @@ import {
   buildAgentGenerationRequestBody,
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
-import { APP_ROUTES, COMPOSE_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
+import { buildClipDraftAgentHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { useCallback, useMemo, useState } from 'react';
 
 export type StepKey =
@@ -124,13 +125,11 @@ export function useClipWorkflowRunCard({
       return null;
     }
 
-    const params = new URLSearchParams({
+    return buildClipDraftAgentHref({
       description: prompt,
       ingredientId: finalVideoId,
       title: action.title || 'Generated clip draft',
     });
-
-    return `${COMPOSE_ROUTES.POST}?${params.toString()}`;
   }, [action.title, finalVideoId, prompt]);
 
   const setStep = useCallback((key: StepKey, status: StepStatus) => {

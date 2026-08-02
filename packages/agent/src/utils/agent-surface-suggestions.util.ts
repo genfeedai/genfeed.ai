@@ -52,7 +52,7 @@ export function resolveAgentPromptSurface(
   if (pathname.startsWith('/publish')) return 'review';
   if (
     pathname.startsWith('/studio') ||
-    pathname.startsWith('/compose') ||
+    pathname.startsWith('/edit') ||
     pathname.startsWith('/articles')
   ) {
     return 'studio';

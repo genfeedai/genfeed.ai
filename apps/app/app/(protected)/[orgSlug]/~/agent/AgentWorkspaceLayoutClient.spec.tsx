@@ -194,6 +194,34 @@ describe('AgentWorkspaceLayoutClient', () => {
     });
   });
 
+  it('turns workspace task query context into an Agent prefill', async () => {
+    navigationState.pathname = '/org-123/~/agent/new';
+    navigationState.searchParams = new URLSearchParams({
+      taskExecutionPath: 'caption_generation',
+      taskId: 'task-42',
+      taskOutputType: 'newsletter',
+      taskSource: 'workspace',
+      taskTitle: 'Draft the weekly update',
+    });
+
+    render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await waitFor(() => {
+      expect(sendMessage).toHaveBeenCalledWith(
+        'Continue the workspace task "Draft the weekly update". Task id: task-42. Requested output: newsletter. Execution path: caption_generation.',
+        {
+          forceNewThread: true,
+          signal: expect.any(AbortSignal),
+          source: 'agent',
+        },
+      );
+    });
+  });
+
   it('navigates to the onboarding thread route after /agent/onboarding produces a different active thread id', async () => {
     navigationState.pathname = '/agent/onboarding';
     const view = render(

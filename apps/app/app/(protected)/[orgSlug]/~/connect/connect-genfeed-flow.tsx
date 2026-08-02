@@ -14,6 +14,7 @@ import type {
 } from '@genfeedai/interfaces';
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { hasApiAccess } from '@genfeedai/pricing';
+import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
@@ -68,6 +69,10 @@ const CLIENTS: readonly ConnectGenfeedClientOption[] = [
 
 const FIRST_ACTION_PROMPT =
   'List my Genfeed brands, then create a draft social post for review. Do not publish it.';
+
+const DRAFT_POST_AGENT_HREF = buildAgentPromptHref(
+  'Draft a social post for my brand and hold it for review — do not publish it.',
+);
 
 function hasRequiredMcpScopes(apiKey: ApiKey): boolean {
   return API_KEY_SCOPE_PRESETS.mcp.every((scope) =>
@@ -318,7 +323,7 @@ export default function ConnectGenfeedFlow() {
   const publishingHref =
     verification?.status === 'connected' && verification.publishing.isReady
       ? firstBrandSlug
-        ? `/${params.orgSlug}/${firstBrandSlug}/compose/post`
+        ? `/${params.orgSlug}/${firstBrandSlug}${DRAFT_POST_AGENT_HREF}`
         : `/${params.orgSlug}/~/publish`
       : `/${params.orgSlug}/~/settings/brands`;
 
@@ -681,7 +686,9 @@ export default function ConnectGenfeedFlow() {
                 onClick={() => trackStep('publishing_handoff', 'success')}
               >
                 {verification.publishing.isReady
-                  ? 'Open draft composer'
+                  ? firstBrandSlug
+                    ? 'Draft a post with the Agent'
+                    : 'Open publishing workspace'
                   : 'Connect publishing integration'}
                 <ArrowRight aria-hidden="true" className="size-4" />
               </Link>

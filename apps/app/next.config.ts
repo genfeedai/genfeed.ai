@@ -67,7 +67,6 @@ const selfHostedBrandRoutePrefixes = [
   APP_ROUTE_PREFIXES.AGENT,
   APP_ROUTE_PREFIXES.STUDIO,
   APP_ROUTE_PREFIXES.PUBLISH,
-  APP_ROUTE_PREFIXES.COMPOSE,
   APP_ROUTE_PREFIXES.ANALYTICS,
   APP_ROUTE_PREFIXES.AUTOMATE,
   APP_ROUTE_PREFIXES.LIBRARY,
@@ -289,11 +288,6 @@ const config = createAppNextConfig({
       destination: APP_ROUTES.SETTINGS.ROOT,
       permanent: false,
       source: APP_ROUTES.SETTINGS.PERSONAL,
-    },
-    {
-      destination: APP_ROUTES.COMPOSE.ARTICLE,
-      permanent: false,
-      source: APP_ROUTES.COMPOSE.ROOT,
     },
     {
       destination: APP_ROUTES.STUDIO.STORYBOARD,

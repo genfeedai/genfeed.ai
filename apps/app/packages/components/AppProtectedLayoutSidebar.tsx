@@ -3,7 +3,6 @@
 import { ADMIN_LOGO_HREF } from '@app-config/admin-menu-items.config';
 import { ANALYTICS_LOGO_HREF } from '@app-config/analytics-menu-items.config';
 import { AUTOMATE_LOGO_HREF } from '@app-config/automate-menu-items.config';
-import { COMPOSE_LOGO_HREF } from '@app-config/compose-menu-items.config';
 import { DISCOVER_LOGO_HREF } from '@app-config/discover-menu-items.config';
 import { LIBRARY_LOGO_HREF } from '@app-config/library-menu-items.config';
 import { APP_LOGO_HREF } from '@app-config/menu-items.config';
@@ -53,7 +52,6 @@ type Props = {
   onToggleCollapse?: MenuSharedProps['onToggleCollapse'];
   isAdminRoute: boolean;
   isAnalyticsRoute: boolean;
-  isComposeRoute: boolean;
   isConversationRoute: boolean;
   isFocusedOnboardingRoute: boolean;
   isLibraryRoute: boolean;
@@ -68,7 +66,6 @@ type Props = {
   settingsScope?: SettingsScope;
   adminMenuItems: MenuItemConfig[];
   analyticsMenuItems: MenuItemConfig[];
-  composeMenuItems: MenuItemConfig[];
   libraryMenuItems: MenuItemConfig[];
   menuItems: MenuItemConfig[];
   orgMenuItems: MenuItemConfig[];
@@ -95,7 +92,6 @@ export default function AppProtectedLayoutSidebar({
   onToggleCollapse,
   isAdminRoute,
   isAnalyticsRoute,
-  isComposeRoute,
   isConversationRoute,
   isFocusedOnboardingRoute,
   isLibraryRoute,
@@ -109,7 +105,6 @@ export default function AppProtectedLayoutSidebar({
   settingsScope: _settingsScope = 'personal',
   adminMenuItems,
   analyticsMenuItems,
-  composeMenuItems,
   libraryMenuItems,
   menuItems,
   orgMenuItems,
@@ -188,14 +183,6 @@ export default function AppProtectedLayoutSidebar({
         items: adminMenuItems,
         logoHref: ADMIN_LOGO_HREF,
         showUserProfile: true,
-      },
-      {
-        active: isComposeRoute,
-        currentApp,
-        items: composeMenuItems,
-        logoHref: buildHref(COMPOSE_LOGO_HREF),
-        sectionLabel: 'Compose',
-        showOrgSwitcher: true,
       },
       {
         active: isPublishRoute,

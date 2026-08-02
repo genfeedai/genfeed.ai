@@ -3,7 +3,6 @@ import {
   APP_ROUTE_PREFIXES,
   APP_ROUTE_TEMPLATES,
   APP_ROUTES,
-  COMPOSE_ROUTES,
   createArtifactEditorRoute,
   createBrandAppRoute,
   createOrganizationAppRoute,
@@ -35,14 +34,6 @@ describe('routes.constant', () => {
     for (const routePrefix of Object.values(APP_ROUTE_PREFIXES)) {
       expect(routePrefix.startsWith('/')).toBe(true);
     }
-  });
-
-  it('keeps compose routes compatible with the previous constant shape', () => {
-    expect(COMPOSE_ROUTES).toBe(APP_ROUTES.COMPOSE);
-    expect(COMPOSE_ROUTES.ARTICLE).toBe('/compose/article');
-    expect(COMPOSE_ROUTES.NEWSLETTER).toBe('/compose/newsletter');
-    expect(COMPOSE_ROUTES.POST).toBe('/compose/post');
-    expect(COMPOSE_ROUTES.ROOT).toBe('/compose');
   });
 
   it('exposes dedicated artifact editor routes separate from the project editor', () => {

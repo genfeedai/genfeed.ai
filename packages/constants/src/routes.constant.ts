@@ -122,12 +122,6 @@ export const APP_ROUTES = {
     WORKFLOWS_NEW: '/automate/workflows/new',
     WORKFLOWS_TEMPLATES: '/automate/workflows/templates',
   },
-  COMPOSE: {
-    ARTICLE: '/compose/article',
-    NEWSLETTER: '/compose/newsletter',
-    POST: '/compose/post',
-    ROOT: '/compose',
-  },
   DISCOVER: {
     ADS: '/discover/ads',
     ADS_GOOGLE: '/discover/ads/google',
@@ -255,7 +249,6 @@ export const APP_ROUTE_PREFIXES = {
   ANALYTICS: APP_ROUTES.ANALYTICS.ROOT,
   AGENT: APP_ROUTES.AGENT.ROOT,
   AUTOMATE: APP_ROUTES.AUTOMATE.ROOT,
-  COMPOSE: APP_ROUTES.COMPOSE.ROOT,
   DISCOVER: APP_ROUTES.DISCOVER.ROOT,
   EDIT: APP_ROUTES.EDIT.ROOT,
   LIBRARY: '/library',
@@ -279,8 +272,6 @@ export const LEGACY_APP_ROUTES = {
   /** @deprecated Use APP_ROUTES.WORKSPACE.TASKS. */
   TASKS: '/tasks',
 } as const;
-
-export const COMPOSE_ROUTES = APP_ROUTES.COMPOSE;
 
 /** Artifact type → dedicated editor route root. */
 export const ARTIFACT_EDITOR_ROUTES = {
@@ -306,7 +297,6 @@ type NestedRouteValue<T> = T extends string
 export type AppRoute = NestedRouteValue<typeof APP_ROUTES>;
 export type AppRoutePrefix =
   (typeof APP_ROUTE_PREFIXES)[keyof typeof APP_ROUTE_PREFIXES];
-export type ComposeRoute = (typeof COMPOSE_ROUTES)[keyof typeof COMPOSE_ROUTES];
 
 function normalizeScopedRoutePath(path: string): string {
   if (path.length === 0 || path === APP_ROUTES.ROOT) {

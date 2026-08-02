@@ -1,4 +1,4 @@
-import { APP_ROUTES, COMPOSE_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { Task } from '@services/management/tasks.service';
 
 export type TaskLaunchMode =
@@ -26,7 +26,6 @@ const KNOWN_PROTECTED_PREFIXES = [
   'library',
   'agent',
   'messages',
-  'compose',
   'discover',
   'overview',
   'ingredients',
@@ -64,7 +63,7 @@ export function normalizeProtectedPathname(rawPathname: string): string {
  * Covers the five product sections plus their canonical route aliases: Workspace
  * (`/workspace`, `/overview`), Library, Analytics, Automate
  * (`/automate`, including merged workflows), and the Calendar
- * (`/publish/calendar`). The agent, settings, studio, compose, discover,
+ * (`/publish/calendar`). The agent, settings, studio, discover,
  * messages, and admin surfaces are intentionally NOT gated — nor is the rest of
  * Publish outside its Calendar.
  */
@@ -213,13 +212,7 @@ function getTaskLaunchPath(
   capabilities: TaskLaunchCapabilities,
 ): string {
   if (mode === 'write') {
-    if (task.outputType === 'newsletter') {
-      return COMPOSE_ROUTES.NEWSLETTER;
-    }
-
-    return task.outputType === 'caption' || task.outputType === 'post'
-      ? COMPOSE_ROUTES.POST
-      : COMPOSE_ROUTES.ARTICLE;
+    return APP_ROUTES.AGENT.NEW;
   }
 
   // One-off media generation is Agent-first: Studio no longer has standalone
@@ -239,9 +232,7 @@ function getTaskLaunchPath(
 
   switch (task.executionPathUsed) {
     case 'caption_generation':
-      return task.outputType === 'newsletter'
-        ? COMPOSE_ROUTES.NEWSLETTER
-        : COMPOSE_ROUTES.POST;
+      return APP_ROUTES.AGENT.NEW;
     case 'image_generation':
     case 'video_generation':
       return APP_ROUTES.AGENT.NEW;

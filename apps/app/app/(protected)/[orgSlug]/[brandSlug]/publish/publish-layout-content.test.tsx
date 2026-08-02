@@ -43,10 +43,9 @@ describe('PublishLayoutContent', () => {
     );
 
     expect(screen.getByText('child content')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /new release/i })).toHaveAttribute(
-      'href',
-      '/acme-org/acme-creator/publish/composer',
-    );
+    expect(
+      screen.getByRole('link', { name: /new release/i }).getAttribute('href'),
+    ).toContain('/acme-org/acme-creator/agent/new?prompt=');
     expect(
       screen.queryByRole('link', { name: /drafts/i }),
     ).not.toBeInTheDocument();

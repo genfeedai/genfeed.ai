@@ -3,7 +3,6 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   APP_ROUTES,
-  COMPOSE_ROUTES,
   createArtifactEditorRoute,
   withArtifactEditorReturn,
 } from '@genfeedai/constants';
@@ -13,6 +12,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/enums';
 import type { IArticle, IReleaseGroup } from '@genfeedai/interfaces';
+import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -37,6 +37,13 @@ import { Calendar, FileText, List } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+
+const WRITE_ARTICLE_AGENT_HREF = buildAgentPromptHref(
+  'Help me write a new long-form article for my brand.',
+);
+const CREATE_POST_AGENT_HREF = buildAgentPromptHref(
+  'Help me draft a new post for my brand.',
+);
 
 import EvergreenSeriesControls from './evergreen-series-controls';
 import ReleaseCalendarFilters, {
@@ -431,7 +438,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
         <List />
       </Link>
       <Link
-        href={COMPOSE_ROUTES.ARTICLE}
+        href={href(WRITE_ARTICLE_AGENT_HREF)}
         aria-label="Write an article"
         className="inline-flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-secondary/80 size-9 transition-colors"
       >
@@ -465,7 +472,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
         description="Plan and schedule your first post to see it on the calendar."
         action={{
           label: 'Create a post',
-          onClick: () => push(COMPOSE_ROUTES.POST),
+          onClick: () => push(href(CREATE_POST_AGENT_HREF)),
         }}
       />
     ) : undefined;

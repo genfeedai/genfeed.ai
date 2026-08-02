@@ -80,7 +80,7 @@ describe('SidebarNavigationProvider', () => {
       'Insights',
     ],
     ['/acme/brand/workspace/inbox', '/workspace', '/workspace/inbox', 'Inbox'],
-    ['/acme/brand/compose/post', '/compose', '/compose/post', 'Post'],
+    ['/acme/brand/edit/post/post-1', '/edit', '/edit/post', 'Post'],
   ])(
     'prefers the most specific match for %s',
     (pathname, rootPath, childPath, childLabel) => {

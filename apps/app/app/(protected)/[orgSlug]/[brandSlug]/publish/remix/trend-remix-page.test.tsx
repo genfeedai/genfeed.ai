@@ -119,7 +119,12 @@ describe('TrendRemixPage', () => {
     });
 
     expect(replaceMock).toHaveBeenCalledWith(
-      '/moonrise-org/moonrise-studio/compose/post?description=Generated+desktop+remix&title=AI+operating+systems',
+      expect.stringContaining(
+        '/moonrise-org/moonrise-studio/agent/new?prompt=',
+      ),
+    );
+    expect(replaceMock).toHaveBeenCalledWith(
+      expect.stringContaining('Generated+desktop+remix'),
     );
     expect(notificationSuccessMock).toHaveBeenCalledWith(
       'Tweet remix draft created',

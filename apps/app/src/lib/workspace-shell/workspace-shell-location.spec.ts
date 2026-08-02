@@ -32,7 +32,7 @@ describe('workspace shell URL restoration', () => {
 
   it.each([
     '/acme/moonrise/analytics',
-    '/acme/moonrise/compose/post',
+    '/acme/moonrise/edit/post/post-1',
     '/acme/moonrise/library/moodboard',
     '/acme/moonrise/messages',
     '/acme/~/messages',
@@ -44,7 +44,6 @@ describe('workspace shell URL restoration', () => {
     '/acme/moonrise/workspace/tasks/task-1',
     '/acme/moonrise/automate/workflows/templates',
     '/acme/moonrise/workspace/inbox/all',
-    '/acme/~/write',
   ])('registers the protected product family %s as canvas', (pathname) => {
     expect(
       restoreWorkspaceShellLocation({
