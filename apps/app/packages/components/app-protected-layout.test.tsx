@@ -413,7 +413,7 @@ vi.mock('@providers/protected-providers/protected-providers', () => ({
 }));
 
 vi.mock('@genfeedai/config/license', () => ({
-  hasOrganizationBilling: () => true,
+  hasOrganizationBillingHint: () => true,
 }));
 
 vi.mock('@genfeedai/config/deployment', () => ({

@@ -11,8 +11,8 @@
  *   1. Build-time — webpack only aliases `@billing-providers` to THIS file when
  *      `ee/packages/billing/src` exists on disk. The community image never sees
  *      it; it gets `billing.providers.oss.ts` instead.
- *   2. Runtime — `isEEEnabled()` (license key present) decides only what the
- *      shared string token resolves to. The real EE service class is ALWAYS
+ *   2. Runtime — `isEEEnabled()` (cached signature verdict) decides only what
+ *      the shared string token resolves to. The real EE service class is ALWAYS
  *      registered as a provider so the EE controllers (which inject the class
  *      token directly) keep working; the string token that the rest of the api
  *      tree injects points at the real service when licensed, or the OSS no-op

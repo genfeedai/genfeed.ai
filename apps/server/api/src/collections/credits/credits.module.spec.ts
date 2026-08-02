@@ -1,12 +1,21 @@
 import { OssCreditsUtilsService } from '@api/common/credits/oss-credits-utils.service';
 import { isEEEnabled } from '@genfeedai/config';
+import {
+  resetLicenseVerificationForTests,
+  setLicenseVerificationVerdictForTests,
+} from '@genfeedai/config/license-server';
 import { Test } from '@nestjs/testing';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const CREDITS_UTILS_TOKEN = 'CreditsUtilsService';
 
 describe('CreditsModule', () => {
+  beforeEach(() => {
+    resetLicenseVerificationForTests();
+  });
+
   afterEach(() => {
+    resetLicenseVerificationForTests();
     vi.unstubAllEnvs();
   });
 
@@ -28,13 +37,13 @@ describe('CreditsModule', () => {
     expect(service).toBeInstanceOf(OssCreditsUtilsService);
   });
 
-  it('isEEEnabled returns false without license key', () => {
-    vi.stubEnv('GENFEED_LICENSE_KEY', '');
+  it('isEEEnabled rejects an unverified license value', () => {
+    vi.stubEnv('GENFEED_LICENSE_KEY', 'garbage');
     expect(isEEEnabled()).toBe(false);
   });
 
-  it('isEEEnabled returns true with license key', () => {
-    vi.stubEnv('GENFEED_LICENSE_KEY', 'test-key-123');
+  it('isEEEnabled returns the cached verification verdict', () => {
+    setLicenseVerificationVerdictForTests(true);
     expect(isEEEnabled()).toBe(true);
   });
 });

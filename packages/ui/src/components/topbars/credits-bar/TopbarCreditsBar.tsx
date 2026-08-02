@@ -1,6 +1,6 @@
 'use client';
 
-import { hasOrganizationBilling } from '@genfeedai/config/license';
+import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
@@ -178,7 +178,7 @@ export default function TopbarCreditsBar() {
   // Remaining percentage for the fill bar (how much is left)
   const remainingPercent = planLimit > 0 ? (planBalance / planLimit) * 100 : 0;
   const billingHref = orgHref(
-    hasOrganizationBilling()
+    hasOrganizationBillingHint()
       ? APP_ROUTES.SETTINGS.BILLING
       : APP_ROUTES.SETTINGS.CREDITS,
   );

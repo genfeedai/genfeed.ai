@@ -19,7 +19,7 @@ describe('agent-page-content.tsx', () => {
 
     expect(source).toContain("'/settings/credits'");
     expect(source).not.toContain(
-      "hasOrganizationBilling() ? '/settings/billing' : '/settings/api-keys'",
+      "hasOrganizationBillingHint() ? '/settings/billing' : '/settings/api-keys'",
     );
   });
 });

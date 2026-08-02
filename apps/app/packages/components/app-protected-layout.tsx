@@ -4,7 +4,7 @@ import LibrarySidebarNav from '@app/(protected)/[orgSlug]/[brandSlug]/library/li
 import StreakNotificationsBridge from '@app-components/streaks/StreakNotificationsBridge';
 import { CommandPaletteProvider } from '@contexts/features/command-palette.provider';
 import type { AgentThreadListProps } from '@genfeedai/agent';
-import { hasOrganizationBilling } from '@genfeedai/config/license';
+import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import type { SidebarNavPanel } from '@genfeedai/props/navigation/menu.props';
 import { useAgentThreadCommands } from '@hooks/commands/use-agent-thread-commands/use-agent-thread-commands';
 import type { LayoutProps } from '@props/layout/layout.props';
@@ -375,7 +375,7 @@ function AppLayoutWithDynamicMenu({
                     ? orgMenuItems
                     : menuItems;
   const lowCreditsBanner =
-    hasOrganizationBilling() &&
+    hasOrganizationBillingHint() &&
     isLowCreditsBannerEnabled &&
     !isFocusedOnboardingRoute &&
     !isPromptBarRoute &&
