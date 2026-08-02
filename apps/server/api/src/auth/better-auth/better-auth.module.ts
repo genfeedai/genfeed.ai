@@ -10,6 +10,8 @@ import { NotificationsModule } from '@api/services/notifications/notifications.m
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import { ConfigService } from '@libs/config/config.service';
+// Value import: consumed through the `inject` array below, not just as a type.
+import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Module } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PassportModule } from '@nestjs/passport';
@@ -25,6 +27,7 @@ import {
 } from './better-auth.config';
 import {
   BETTER_AUTH_INSTANCE,
+  BETTER_AUTH_RATE_LIMIT_LOG_SERVICE,
   BETTER_AUTH_USER_CREATED_EVENT,
 } from './better-auth.constants';
 import {
@@ -75,6 +78,7 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
         BetterAuthMailerService,
         EventEmitter2,
         RateLimitClientService,
+        LoggerService,
       ],
       provide: BETTER_AUTH_INSTANCE,
       useFactory: (
@@ -83,6 +87,7 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
         mailer: BetterAuthMailerService,
         eventEmitter: EventEmitter2,
         rateLimitClient: RateLimitClientService,
+        logger: LoggerService,
       ): BetterAuthInstance | null => {
         // Enabled by default; explicit offline/local runs can set
         // BETTER_AUTH_ENABLED=false to skip the auth handler.
@@ -103,7 +108,37 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
         // (or dedicated instance) so a queue backlog or cache-invalidation storm
         // can't add latency to the hot auth path. Fails open — a Redis outage
         // degrades cross-instance limiting rather than breaking authentication.
-        const rateLimitStore = buildRedisRateLimitStore(rateLimitClient);
+        //
+        // That fail-open is deliberate (#738 criterion 7) and silent, which is
+        // exactly why it needs a voice: while it is engaged, `/auth/*` keeps
+        // answering 200 with brute-force throttling switched off, so nothing
+        // else in the system reports the outage. Signals are throttled inside
+        // the store — one line per minute, carrying how many were suppressed —
+        // because every auth request degrades during an outage.
+        const rateLimitStore = buildRedisRateLimitStore(rateLimitClient, {
+          onDegraded: ({ error, operation, reason, suppressedCount }) => {
+            logger.error(
+              'Better Auth rate-limit store degraded: failing open, cross-instance brute-force throttling is NOT being enforced',
+              error,
+              {
+                operation,
+                reason,
+                service: BETTER_AUTH_RATE_LIMIT_LOG_SERVICE,
+                suppressedCount,
+              },
+            );
+          },
+          onRecovered: ({ degradedCount, operation }) => {
+            logger.log(
+              'Better Auth rate-limit store recovered: brute-force throttling is enforcing again',
+              {
+                degradedCount,
+                operation,
+                service: BETTER_AUTH_RATE_LIMIT_LOG_SERVICE,
+              },
+            );
+          },
+        });
 
         return createBetterAuthInstance({
           apiKey: config.get('BETTER_AUTH_API_KEY'),
