@@ -364,7 +364,7 @@ export function resolveArtifactEditorBackHref(
   returnTo: string | null | undefined,
   fallbackHref: string,
 ): string {
-  const normalizedReturnTo = returnTo?.replaceAll('\\', '/');
+  const normalizedReturnTo = returnTo?.replace(/\\/g, '/');
 
   if (
     !normalizedReturnTo?.startsWith('/') ||
