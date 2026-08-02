@@ -1,3 +1,10 @@
+---
+description: Hook-set `User` columns must be declared in Better Auth `user.additionalFields`.
+paths:
+  - "apps/server/api/src/auth/**"
+  - "packages/prisma/prisma/schema.prisma"
+---
+
 # Better Auth: hook-set `User` columns must be declared in `user.additionalFields`
 
 **last_verified: 2026-07-26** · Shipped in #1576

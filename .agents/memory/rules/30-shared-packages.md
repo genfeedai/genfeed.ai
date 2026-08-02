@@ -1,6 +1,6 @@
 ---
 description: Shared package constraints for genfeed.ai packages.
-globs:
+paths:
   - "packages/**"
   - "ee/packages/**"
 ---

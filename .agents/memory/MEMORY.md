@@ -32,14 +32,22 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_release_e2e_board_signal](feedback_release_e2e_board_signal.md) — release E2E red → Project Priority P0 + auto-close on green; never prose-only triage
 - [production_deploy_master_only](production_deploy_master_only.md) — never deploy a non-master ref to production unless Vincent explicitly overrides; master CI only
 - [feedback_vercel_release_gate](feedback_vercel_release_gate.md) — Vercel deploys only via the release workflow
+- [feedback_no_local_vercel_cli](feedback_no_local_vercel_cli.md) — never `vercel link`/`pull`/`deploy` locally; agents wipe `.env.local`
 - [feedback_library_information_architecture](feedback_library_information_architecture.md) — Library destinations live in nav; folders and asset types are filters
 
-## Rules (auto-loaded via `.claude/rules` symlink)
+## Rules (via the `.claude/rules` symlink)
 
-These are already in context every request — do not re-read them to "check".
+Always in context — repo-wide prohibitions, do not re-read them to "check":
 
-- [prd_pass_verify_state_first](rules/prd_pass_verify_state_first.md) · [prisma_legacy_alias_fields](rules/prisma_legacy_alias_fields.md) · [nestjs_value_imports_for_di](rules/nestjs_value_imports_for_di.md) · [better_auth_additional_fields](rules/better_auth_additional_fields.md) · [server_not_core](rules/server_not_core.md) · [worktree_env_sync](rules/worktree_env_sync.md) · [local_development_host](rules/local_development_host.md)
-- Scoped: [00-security](rules/00-security.md) · [10-backend-services](rules/10-backend-services.md) · [20-web-apps](rules/20-web-apps.md) · [30-shared-packages](rules/30-shared-packages.md)
+- [prisma_legacy_alias_fields](rules/prisma_legacy_alias_fields.md) · [server_not_core](rules/server_not_core.md)
+
+Scoped by `paths` frontmatter — load only when the matching files are in play:
+
+- [00-security](rules/00-security.md) · [10-backend-services](rules/10-backend-services.md) · [20-web-apps](rules/20-web-apps.md) · [30-shared-packages](rules/30-shared-packages.md) · [nestjs_value_imports_for_di](rules/nestjs_value_imports_for_di.md) (`apps/server/**`) · [better_auth_additional_fields](rules/better_auth_additional_fields.md) (`apps/server/api/src/auth/**`)
+
+On-demand skills — invoked by task, formerly always-loaded rules:
+
+- [local-development-host](../skills/local-development-host/SKILL.md) · [prd-pass-verify-state](../skills/prd-pass-verify-state/SKILL.md) · [worktree-env-sync](../skills/worktree-env-sync/SKILL.md)
 
 ## Architecture decisions
 

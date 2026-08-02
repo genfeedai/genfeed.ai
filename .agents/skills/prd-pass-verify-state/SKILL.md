@@ -1,6 +1,13 @@
-# PRD pass: verify issue state and audit code before trusting the epic body
+---
+name: prd-pass-verify-state
+description: Verify real GitHub issue state and audit the code before trusting an epic body. Use when writing or rewriting a PRD, doing a PRD pass over an epic and its children, or grooming issues — epic bodies list closed cards as open and quote stale surface counts.
+metadata:
+  version: "1.0.0"
+  tags: "prd, github-issues, epics, planning, audit"
+  last_verified: "2026-07-26"
+---
 
-**last_verified: 2026-07-26**
+# PRD pass: verify issue state and audit code before trusting the epic body
 
 An epic body is a stale narrative, not ground truth. Before writing anything:
 

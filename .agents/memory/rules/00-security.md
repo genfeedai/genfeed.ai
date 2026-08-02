@@ -1,6 +1,6 @@
 ---
 description: Security baseline for genfeed.ai monorepo edits.
-globs:
+paths:
   - "**/*"
 ---
 
