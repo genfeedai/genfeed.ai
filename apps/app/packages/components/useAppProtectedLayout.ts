@@ -1,6 +1,7 @@
 import { ADMIN_MENU_ITEMS } from '@app-config/admin-menu-items.config';
 import { ANALYTICS_MENU_ITEMS } from '@app-config/analytics-menu-items.config';
 import { COMPOSE_MENU_ITEMS } from '@app-config/compose-menu-items.config';
+import { DISCOVER_MENU_ITEMS } from '@app-config/discover-menu-items.config';
 import { LIBRARY_MENU_ITEMS } from '@app-config/library-menu-items.config';
 import {
   APP_MENU_ITEMS,
@@ -9,7 +10,6 @@ import {
 } from '@app-config/menu-items.config';
 import { ORG_MENU_ITEMS } from '@app-config/org-menu-items.config';
 import { POSTS_MENU_ITEMS } from '@app-config/posts-menu-items.config';
-import { RESEARCH_MENU_ITEMS } from '@app-config/research-menu-items.config';
 import {
   buildSettingsMenuItems,
   type SettingsScope,
@@ -100,9 +100,9 @@ export function useAppProtectedLayout(
     APP_ROUTES.AGENT.ONBOARDING,
   );
   const isComposeRoute = pathname.startsWith(COMPOSE_ROUTES.ROOT);
-  const isResearchRoute =
-    pathname === APP_ROUTES.RESEARCH.ROOT ||
-    pathname.startsWith(`${APP_ROUTES.RESEARCH.ROOT}/`);
+  const isDiscoverRoute =
+    pathname === APP_ROUTES.DISCOVER.ROOT ||
+    pathname.startsWith(`${APP_ROUTES.DISCOVER.ROOT}/`);
   const isLibraryLandingRoute = pathname === APP_ROUTES.LIBRARY.OVERVIEW;
   const isLibraryRoute = pathname.startsWith(APP_ROUTE_PREFIXES.LIBRARY);
   const isMessagesRoute = pathname.startsWith(APP_ROUTE_PREFIXES.MESSAGES);
@@ -144,7 +144,7 @@ export function useAppProtectedLayout(
       !isComposeRoute &&
       !isStudioRoute &&
       !isLibraryRoute &&
-      !isResearchRoute &&
+      !isDiscoverRoute &&
       !isWorkflowsRoute &&
       !isMessagesRoute &&
       !isEditorRoute
@@ -161,8 +161,8 @@ export function useAppProtectedLayout(
     ? 'studio'
     : isLibraryRoute
       ? 'library'
-      : isResearchRoute
-        ? 'research'
+      : isDiscoverRoute
+        ? 'discover'
         : isPostsRoute
           ? 'posts'
           : isComposeRoute
@@ -377,9 +377,9 @@ export function useAppProtectedLayout(
     [taskContextSearchParams],
   );
 
-  const researchMenuItems = useMemo(
+  const discoverMenuItems = useMemo(
     () =>
-      RESEARCH_MENU_ITEMS.map(
+      DISCOVER_MENU_ITEMS.map(
         (item): MenuItemConfig => ({
           ...item,
           href: withTaskContextHref(item.href, taskContextSearchParams),
@@ -455,7 +455,7 @@ export function useAppProtectedLayout(
     isOrgRoute,
     isPostsRoute,
     isPromptBarRoute,
-    isResearchRoute,
+    isDiscoverRoute,
     isSettingsRoute,
     isStudioRoute,
     isWorkflowsRoute,
@@ -480,7 +480,7 @@ export function useAppProtectedLayout(
     menuItems,
     orgMenuItems,
     postsMenuItems,
-    researchMenuItems,
+    discoverMenuItems,
     secondaryMenuItems,
     settingsMenuItems,
     studioMenuItems,

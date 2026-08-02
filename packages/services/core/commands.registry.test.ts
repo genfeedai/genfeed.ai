@@ -149,16 +149,16 @@ describe('commands.registry', () => {
       );
     });
 
-    it('research action should navigate to brand-scoped research URL', () => {
+    it('discover action should navigate to brand-scoped discover URL', () => {
       const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-      const researchCmd = navigationCommands.find(
-        (c) => c.id === 'nav-research',
+      const discoverCmd = navigationCommands.find(
+        (c) => c.id === 'nav-discover',
       );
 
-      researchCmd?.action();
+      discoverCmd?.action();
 
       expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/research/discovery`,
+        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/discover/discovery`,
       );
     });
 

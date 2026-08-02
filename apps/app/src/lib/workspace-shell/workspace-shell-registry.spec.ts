@@ -86,8 +86,8 @@ describe('workspace shell trusted registry', () => {
   it.each([
     ['/acme/~/settings/api-keys', 'Settings', 'API Keys'],
     ['/acme/~/orchestration', 'Automate', 'Overview'],
-    ['/acme/moonrise/research/following', 'Research', 'Following'],
-    ['/acme/moonrise/research/instagram', 'Research', 'Instagram'],
+    ['/acme/moonrise/discover/following', 'Discover', 'Following'],
+    ['/acme/moonrise/discover/instagram', 'Discover', 'Instagram'],
     ['/acme/moonrise/library', 'Library', 'Overview'],
     ['/acme/moonrise/library/videos', 'Library', 'Assets'],
     ['/acme/moonrise/library/voices', 'Library', 'Assets'],
@@ -135,15 +135,15 @@ describe('workspace shell trusted registry', () => {
   );
 
   it.each([
-    ['/acme/moonrise/research/ads/google', 'Google'],
-    ['/acme/moonrise/research/ads/meta', 'Meta'],
+    ['/acme/moonrise/discover/ads/google', 'Google'],
+    ['/acme/moonrise/discover/ads/meta', 'Meta'],
   ] as const)(
     'keeps Ads in the breadcrumb hierarchy for %s',
     (pathname, leafLabel) => {
       expect(resolveWorkspaceShellRoute(pathname)?.breadcrumb).toEqual({
         leafLabel,
         parentLabel: 'Ads',
-        rootLabel: 'Research',
+        rootLabel: 'Discover',
       });
     },
   );
@@ -209,7 +209,7 @@ describe('workspace shell trusted registry', () => {
 
   it('preserves visual-data and control-plane families from route retirement', () => {
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/research/ads/meta'),
+      resolveWorkspaceShellRoute('/acme/moonrise/discover/ads/meta'),
     ).toMatchObject({ productClass: 'visual-data' });
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/analytics/trends'),
@@ -362,18 +362,18 @@ describe('workspace shell trusted registry', () => {
     );
   });
 
-  it('registers organization-scoped Research as an embedded surface', () => {
-    const route = resolveWorkspaceShellRoute('/acme/~/research/discovery');
+  it('registers organization-scoped Discover as an embedded surface', () => {
+    const route = resolveWorkspaceShellRoute('/acme/~/discover/discovery');
 
     expect(route).toMatchObject({
-      adapter: { key: 'research', status: 'embedded' },
-      canonicalUrl: '/:orgSlug/~/research/discovery',
-      safeFallback: '/:orgSlug/~/research/discovery',
+      adapter: { key: 'discover', status: 'embedded' },
+      canonicalUrl: '/:orgSlug/~/discover/discovery',
+      safeFallback: '/:orgSlug/~/discover/discovery',
       scope: 'organization',
-      surfaceKey: 'research',
+      surfaceKey: 'discover',
     });
     expect(route && resolveWorkspaceShellSafeFallback(route)).toBe(
-      '/acme/~/research/discovery',
+      '/acme/~/discover/discovery',
     );
   });
 
@@ -383,19 +383,19 @@ describe('workspace shell trusted registry', () => {
     ).toEqual({ key: 'analytics', status: 'ready' });
   });
 
-  it('registers Research as an embedded adapter with its canonical fallback', () => {
+  it('registers Discover as an embedded adapter with its canonical fallback', () => {
     const route = resolveWorkspaceShellRoute(
-      '/acme/moonrise/research/ads/google',
+      '/acme/moonrise/discover/ads/google',
     );
 
     expect(route).toMatchObject({
-      adapter: { key: 'research', status: 'embedded' },
+      adapter: { key: 'discover', status: 'embedded' },
       mode: 'canvas',
-      safeFallback: '/:orgSlug/:brandSlug/research/discovery',
-      surfaceKey: 'research',
+      safeFallback: '/:orgSlug/:brandSlug/discover/discovery',
+      surfaceKey: 'discover',
     });
     expect(route && resolveWorkspaceShellSafeFallback(route)).toBe(
-      '/acme/moonrise/research/discovery',
+      '/acme/moonrise/discover/discovery',
     );
   });
 

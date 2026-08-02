@@ -23,12 +23,12 @@ export const CONVERSATION_COMPOSER_ACTIONS = [
     route: APP_ROUTES.POSTS.REMIX,
   },
   {
-    description: 'Open the research workspace',
+    description: 'Open the discover workspace',
     isConsequentialProposal: false,
-    label: 'Research',
-    name: 'research',
+    label: 'Discover',
+    name: 'discover',
     requiredScope: 'brand',
-    route: APP_ROUTES.RESEARCH.ROOT,
+    route: APP_ROUTES.DISCOVER.ROOT,
   },
   {
     description: 'Open deterministic workflows',

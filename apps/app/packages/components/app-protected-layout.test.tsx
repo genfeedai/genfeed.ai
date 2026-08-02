@@ -226,12 +226,12 @@ vi.mock('@app-config/menu-items.config', () => ({
   POSTS_INSERT_AFTER_LABEL: 'Posts',
 }));
 
-vi.mock('@app-config/research-menu-items.config', () => ({
-  RESEARCH_LOGO_HREF: '/research/discovery',
-  RESEARCH_MENU_ITEMS: [
-    { href: '/research/discovery', label: 'Discovery' },
-    { href: '/research/socials', label: 'Socials' },
-    { href: '/research/ads', label: 'Ads' },
+vi.mock('@app-config/discover-menu-items.config', () => ({
+  DISCOVER_LOGO_HREF: '/discover/discovery',
+  DISCOVER_MENU_ITEMS: [
+    { href: '/discover/discovery', label: 'Discovery' },
+    { href: '/discover/socials', label: 'Socials' },
+    { href: '/discover/ads', label: 'Ads' },
   ],
 }));
 
@@ -827,7 +827,7 @@ describe('AppProtectedLayout', () => {
     ['/workspace', 'Workspace'],
     ['/studio/storyboard', 'Storyboard'],
     ['/library/images', 'Assets'],
-    ['/research/discovery', 'Discovery'],
+    ['/discover/discovery', 'Discovery'],
     ['/analytics', 'Overview'],
     ['/orchestration/workflows/executions', 'Runs'],
     ['/admin', 'Dashboard'],
@@ -856,7 +856,7 @@ describe('AppProtectedLayout', () => {
 
   it.each([
     ['/org-123/~/settings/api-keys', 'Settings', 'API Keys'],
-    ['/org-123/brand-123/research/following', 'Research', 'Following'],
+    ['/org-123/brand-123/discover/following', 'Discover', 'Following'],
     ['/org-123/brand-123/library', 'Library', 'Overview'],
     ['/org-123/brand-123/library/videos', 'Library', 'Assets'],
     ['/org-123/brand-123/library/moodboard', 'Library', 'Moodboard'],
@@ -1236,7 +1236,7 @@ describe('AppProtectedLayout', () => {
         isLibraryRoute
         isOrgRoute={false}
         isPostsRoute={false}
-        isResearchRoute={false}
+        isDiscoverRoute={false}
         isSettingsRoute={false}
         isStudioRoute={false}
         isWorkflowsRoute={false}
@@ -1247,7 +1247,7 @@ describe('AppProtectedLayout', () => {
         menuItems={[]}
         orgMenuItems={[]}
         postsMenuItems={[]}
-        researchMenuItems={[]}
+        discoverMenuItems={[]}
         secondaryMenuItems={[]}
         settingsMenuItems={[]}
         studioMenuItems={[]}
@@ -1281,7 +1281,7 @@ describe('AppProtectedLayout', () => {
         isLibraryRoute
         isOrgRoute={false}
         isPostsRoute={false}
-        isResearchRoute={false}
+        isDiscoverRoute={false}
         isSettingsRoute={false}
         isStudioRoute={false}
         isWorkflowsRoute={false}
@@ -1292,7 +1292,7 @@ describe('AppProtectedLayout', () => {
         menuItems={[]}
         orgMenuItems={[]}
         postsMenuItems={[]}
-        researchMenuItems={[]}
+        discoverMenuItems={[]}
         secondaryMenuItems={[]}
         settingsMenuItems={[]}
         studioMenuItems={[]}
@@ -1354,8 +1354,8 @@ describe('AppProtectedLayout', () => {
     }
   });
 
-  it('renders a dedicated research sidebar on research routes', () => {
-    mockPathname.value = '/research/discovery';
+  it('renders a dedicated discover sidebar on discover routes', () => {
+    mockPathname.value = '/discover/discovery';
 
     render(
       <AppProtectedLayout>
@@ -1365,13 +1365,13 @@ describe('AppProtectedLayout', () => {
 
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        currentApp: 'research',
+        currentApp: 'discover',
         items: [
-          { href: '/research/discovery', label: 'Discovery' },
-          { href: '/research/socials', label: 'Socials' },
-          { href: '/research/ads', label: 'Ads' },
+          { href: '/discover/discovery', label: 'Discovery' },
+          { href: '/discover/socials', label: 'Socials' },
+          { href: '/discover/ads', label: 'Ads' },
         ],
-        sectionLabel: 'Research',
+        sectionLabel: 'Discover',
         shellChromeVariant: 'default',
       }),
     );

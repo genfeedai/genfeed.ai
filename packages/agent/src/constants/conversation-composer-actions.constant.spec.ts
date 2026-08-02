@@ -12,7 +12,7 @@ describe('conversation composer action registry', () => {
     expect(CONVERSATION_COMPOSER_ACTIONS.map((action) => action.name)).toEqual([
       'create',
       'remix',
-      'research',
+      'discover',
       'workflow',
       'schedule',
       'publish',
@@ -50,10 +50,10 @@ describe('conversation composer action registry', () => {
         }),
       },
       {
-        name: 'research',
+        name: 'discover',
         resolved: expect.objectContaining({
           requiredScope: 'brand',
-          route: APP_ROUTES.RESEARCH.ROOT,
+          route: APP_ROUTES.DISCOVER.ROOT,
         }),
       },
       {
@@ -95,9 +95,9 @@ describe('conversation composer action registry', () => {
   });
 
   it('parses only an explicit leading allowlisted command', () => {
-    expect(parseConversationComposerCommand('/research competitors')).toEqual({
+    expect(parseConversationComposerCommand('/discover competitors')).toEqual({
       invocation: {
-        action: getConversationComposerAction('research'),
+        action: getConversationComposerAction('discover'),
         arguments: 'competitors',
       },
       kind: 'action',

@@ -84,7 +84,7 @@ describe('operator-shell helpers', () => {
       expect(isAssetGateSectionPath(gated)).toBe(true);
     }
 
-    // Never gated: agent, settings, studio, research, publish base, messages,
+    // Never gated: agent, settings, studio, discover, publish base, messages,
     // admin — and a look-alike prefix must not false-match.
     for (const open of [
       '/agent',
@@ -92,7 +92,7 @@ describe('operator-shell helpers', () => {
       '/settings',
       '/settings/organization',
       '/studio/storyboard',
-      '/research/discovery',
+      '/discover/discovery',
       '/posts',
       '/messages',
       '/admin',

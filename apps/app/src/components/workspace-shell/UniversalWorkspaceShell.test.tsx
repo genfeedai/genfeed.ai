@@ -337,7 +337,23 @@ import {
 } from '@/features/analytics/work-surface/analytics-workspace-surface-adapter-context';
 
 vi.mock('@/features/workflows/workspace/WorkflowSurfaceInspector', () => ({
-  WorkflowSurfaceInspector: () => <div>Workflow surface inspector</div>,
+  WorkflowSurfaceInspector: ({
+    contextVersion,
+    pathname,
+    threadId,
+  }: {
+    contextVersion?: number;
+    pathname: string;
+    threadId: string | null;
+  }) => (
+    <div
+      data-inspector-context-version={String(contextVersion)}
+      data-inspector-pathname={pathname}
+      data-inspector-thread={String(threadId)}
+    >
+      Workflow surface inspector
+    </div>
+  ),
 }));
 
 vi.mock('@/features/workflows/workspace/WorkflowPickerOverlay', () => ({
@@ -976,6 +992,52 @@ describe('UniversalWorkspaceShell', () => {
     );
     expect(screen.getByText('Workflow graph editor')).toBeInTheDocument();
     expect(screen.queryByTestId('workspace-dialog')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['/acme/moonrise/orchestration/workflows/new'],
+    ['/acme/moonrise/orchestration/workflows/workflow-1'],
+    ['/acme/moonrise/orchestration/workflows'],
+    ['/acme/moonrise/orchestration/workflows/templates'],
+    ['/acme/moonrise/orchestration/workflows/executions'],
+    ['/acme/moonrise/orchestration/workflows/executions/run-1'],
+  ])('renders the workflow inspector on %s', (pathname) => {
+    navigation.pathname = pathname;
+    navigation.searchParams = new URLSearchParams();
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Workflow canvas</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    const inspector = screen.getByText('Workflow surface inspector');
+    expect(inspector).toBeInTheDocument();
+    // The inspector resolves its own selection from the raw pathname, so the
+    // shell must hand it the untouched route plus the retained thread scope.
+    expect(inspector).toHaveAttribute('data-inspector-pathname', pathname);
+    expect(inspector).toHaveAttribute('data-inspector-thread', 'thread-1');
+    expect(inspector).toHaveAttribute('data-inspector-context-version', '3');
+  });
+
+  it.each([
+    ['/acme/moonrise/orchestration'],
+    ['/acme/moonrise/orchestration/runs'],
+    ['/acme/moonrise/orchestration/skills'],
+    ['/acme/moonrise/orchestration/library'],
+  ])('keeps the generic inspector on %s', (pathname) => {
+    navigation.pathname = pathname;
+    navigation.searchParams = new URLSearchParams();
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Automate canvas</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    expect(
+      screen.queryByText('Workflow surface inspector'),
+    ).not.toBeInTheDocument();
   });
 
   it('dispatches Remix through the authorized no-parameter Library overlay', () => {
