@@ -49,7 +49,7 @@ const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   editor: 'Editor',
   library: 'Library',
   messages: 'Messages',
-  posts: 'Posts',
+  publish: 'Publish',
   discover: 'Discover',
   studio: 'Studio',
   workspace: 'Workspace',
