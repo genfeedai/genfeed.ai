@@ -2,7 +2,6 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import {
   Calendar,
-  ChartColumn,
   ClipboardCheck,
   FileText,
   List,
@@ -13,6 +12,9 @@ import {
   Sparkles,
 } from 'lucide-react';
 
+// No Analytics entry: the Analytics module owns every analytics surface, and
+// this module's former `/posts/analytics` page is retired in favor of
+// `/analytics/posts`.
 export const POSTS_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
@@ -79,14 +81,6 @@ export const POSTS_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [APP_ROUTES.POSTS.NEWSLETTERS],
     outline: Mail,
     solid: Mail,
-  },
-  {
-    group: '',
-    href: APP_ROUTES.POSTS.ANALYTICS,
-    label: 'Analytics',
-    matchPaths: [APP_ROUTES.POSTS.ANALYTICS],
-    outline: ChartColumn,
-    solid: ChartColumn,
   },
   {
     group: '',

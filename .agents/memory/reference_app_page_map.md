@@ -281,7 +281,6 @@ Publish/posts:
 
 - `/:orgSlug/:brandSlug/posts`
 - `/:orgSlug/:brandSlug/posts/:id`
-- `/:orgSlug/:brandSlug/posts/analytics`
 - `/:orgSlug/:brandSlug/posts/calendar`
 - `/:orgSlug/:brandSlug/posts/composer`
 - `/:orgSlug/:brandSlug/posts/newsletters`
@@ -305,6 +304,12 @@ Analytics:
 - `/:orgSlug/:brandSlug/analytics/trends/platforms/:platform`
 - `/:orgSlug/:brandSlug/analytics/trend-turnover`
 - `/:orgSlug/:brandSlug/analytics/streaks`
+
+Analytics owns every analytics surface — the Publish/posts module no longer has
+its own `/posts/analytics` page. The sidebar groups these under **Performance**
+(Overview, Posts, Brands) · **Intelligence** (Insights, Hooks, Performance Lab,
+Trends, Trend Turnover) · **Habits** (Streaks); the `trends/detail` and
+`trends/platforms` routes are drilldowns reached from Trends.
 
 Workflows and orchestration:
 
