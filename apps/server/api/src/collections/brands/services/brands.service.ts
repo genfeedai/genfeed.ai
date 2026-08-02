@@ -212,7 +212,7 @@ export class BrandsService extends BaseService<
               ? { organizationId: resolvedOrganizationId }
               : {}),
             ...(resolvedUserId ? { userId: resolvedUserId } : {}),
-          }) as CreateBrandDto,
+          }) as unknown as CreateBrandDto,
         );
         if (attempt > 0) {
           this.logger.warn('Brand slug race recovered with suffix', {
