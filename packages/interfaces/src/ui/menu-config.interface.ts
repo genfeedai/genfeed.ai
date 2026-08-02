@@ -8,10 +8,9 @@ export type AppContext =
   | 'discover'
   | 'library'
   | 'messages'
-  | 'posts'
+  | 'publish'
   | 'studio'
   | 'automate'
-  | 'editor'
   | 'compose'
   | 'analytics';
 

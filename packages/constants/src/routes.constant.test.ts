@@ -4,9 +4,12 @@ import {
   APP_ROUTE_TEMPLATES,
   APP_ROUTES,
   COMPOSE_ROUTES,
+  createArtifactEditorRoute,
   createBrandAppRoute,
   createOrganizationAppRoute,
   LEGACY_APP_ROUTES,
+  resolveArtifactEditorBackHref,
+  withArtifactEditorReturn,
 } from './routes.constant';
 
 function collectRouteValues(value: unknown): string[] {
@@ -40,6 +43,86 @@ describe('routes.constant', () => {
     expect(COMPOSE_ROUTES.NEWSLETTER).toBe('/compose/newsletter');
     expect(COMPOSE_ROUTES.POST).toBe('/compose/post');
     expect(COMPOSE_ROUTES.ROOT).toBe('/compose');
+  });
+
+  it('exposes dedicated artifact editor routes separate from the project editor', () => {
+    expect(APP_ROUTES.EDIT.ROOT).toBe('/edit');
+    expect(APP_ROUTES.EDIT.ARTICLE).toBe('/edit/article');
+    expect(APP_ROUTES.EDIT.NEWSLETTER).toBe('/edit/newsletter');
+    expect(APP_ROUTES.EDIT.POST).toBe('/edit/post');
+    expect(APP_ROUTES.STUDIO.EDIT).toBe('/studio/edit');
+  });
+
+  it('builds deep-linkable artifact editor paths', () => {
+    expect(createArtifactEditorRoute('article', 'article-1')).toBe(
+      '/edit/article/article-1',
+    );
+    expect(createArtifactEditorRoute('newsletter', 'newsletter-1')).toBe(
+      '/edit/newsletter/newsletter-1',
+    );
+    expect(createArtifactEditorRoute('post', 'post-1')).toBe(
+      '/edit/post/post-1',
+    );
+    expect(
+      createBrandAppRoute(
+        'genfeed-ai',
+        'paperclip',
+        createArtifactEditorRoute('post', 'post-1'),
+      ),
+    ).toBe('/genfeed-ai/paperclip/edit/post/post-1');
+  });
+
+  it('round-trips the originating list through the return parameter', () => {
+    expect(
+      withArtifactEditorReturn(
+        '/genfeed-ai/paperclip/edit/post/post-1',
+        '/genfeed-ai/paperclip/publish?status=draft',
+      ),
+    ).toBe(
+      '/genfeed-ai/paperclip/edit/post/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish%3Fstatus%3Ddraft',
+    );
+    expect(
+      resolveArtifactEditorBackHref(
+        '/genfeed-ai/paperclip/publish?status=draft',
+        '/genfeed-ai/paperclip/publish',
+      ),
+    ).toBe('/genfeed-ai/paperclip/publish?status=draft');
+
+    expect(
+      withArtifactEditorReturn(
+        '/genfeed-ai/paperclip/edit/post/post-1?mode=focus',
+        '/genfeed-ai/paperclip/publish',
+      ),
+    ).toBe(
+      '/genfeed-ai/paperclip/edit/post/post-1?mode=focus&returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish',
+    );
+  });
+
+  it('falls back to the owning list for unusable return targets', () => {
+    const fallbackHref = '/genfeed-ai/paperclip/publish';
+
+    expect(resolveArtifactEditorBackHref(null, fallbackHref)).toBe(
+      fallbackHref,
+    );
+    expect(resolveArtifactEditorBackHref(undefined, fallbackHref)).toBe(
+      fallbackHref,
+    );
+    expect(resolveArtifactEditorBackHref('', fallbackHref)).toBe(fallbackHref);
+    expect(resolveArtifactEditorBackHref('//evil.com', fallbackHref)).toBe(
+      fallbackHref,
+    );
+    expect(resolveArtifactEditorBackHref('/\\evil.com', fallbackHref)).toBe(
+      fallbackHref,
+    );
+    expect(resolveArtifactEditorBackHref('/\\\\evil.com', fallbackHref)).toBe(
+      fallbackHref,
+    );
+    expect(
+      resolveArtifactEditorBackHref('https://evil.com/posts', fallbackHref),
+    ).toBe(fallbackHref);
+    expect(resolveArtifactEditorBackHref('posts', fallbackHref)).toBe(
+      fallbackHref,
+    );
   });
 
   it('documents canonical settings route templates', () => {

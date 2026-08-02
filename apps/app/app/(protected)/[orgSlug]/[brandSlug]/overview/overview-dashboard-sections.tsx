@@ -294,7 +294,7 @@ function formatReviewItemLabel(item: ReviewInboxItem): string {
 }
 
 export function OverviewPublishingInboxSection({
-  inboxHref = '/posts/review',
+  inboxHref = '/publish/review',
   readyCount,
   recentItems,
 }: {
@@ -349,7 +349,7 @@ export function OverviewPublishingInboxSection({
                   <Link
                     href={
                       item.postId
-                        ? `/posts/review?batch=${item.batchId}&item=${item.id}`
+                        ? `/publish/review?batch=${item.batchId}&item=${item.id}`
                         : inboxHref
                     }
                   >

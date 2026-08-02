@@ -56,7 +56,7 @@ test.describe('Posts — Management', () => {
     await postsPage.gotoDrafts();
 
     await postsPage.assertOnDraftsTab();
-    await expect(authenticatedPage).toHaveURL(/posts\/drafts/);
+    await expect(authenticatedPage).toHaveURL(/publish\/drafts/);
   });
 
   test('should navigate between post tabs', async ({ authenticatedPage }) => {
@@ -141,7 +141,7 @@ test.describe('Posts — Management', () => {
     await authenticatedPage.waitForTimeout(500);
 
     // Page should remain on drafts
-    await expect(authenticatedPage).toHaveURL(/posts\/drafts/);
+    await expect(authenticatedPage).toHaveURL(/publish\/drafts/);
   });
 
   test('should navigate to post detail', async ({ authenticatedPage }) => {
@@ -169,7 +169,7 @@ test.describe('Posts — Management', () => {
       // Should navigate to post detail page
       const url = authenticatedPage.url();
       const isOnPostPage =
-        url.includes('/posts/') || url.includes('/posts/drafts');
+        url.includes('/publish/') || url.includes('/publish/drafts');
       expect(isOnPostPage).toBe(true);
     }
   });
@@ -181,7 +181,7 @@ test.describe('Posts — Management', () => {
     await postsPage.gotoEngage();
 
     await postsPage.assertOnEngageTab();
-    await expect(authenticatedPage).toHaveURL(/posts\/engage/);
+    await expect(authenticatedPage).toHaveURL(/publish\/engage/);
   });
 
   test('should toggle between grid and table view', async ({
@@ -224,6 +224,6 @@ test.describe('Posts — Management', () => {
     await postsPage.gotoScheduled();
 
     await postsPage.assertOnScheduledTab();
-    await expect(authenticatedPage).toHaveURL(/posts\/scheduled/);
+    await expect(authenticatedPage).toHaveURL(/publish\/scheduled/);
   });
 });

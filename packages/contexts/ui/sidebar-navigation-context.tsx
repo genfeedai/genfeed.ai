@@ -64,7 +64,6 @@ function stripOrgPrefix(path: string): string {
       'library',
       'chat',
       'compose',
-      'editor',
       'discover',
       'issues',
       'overview',

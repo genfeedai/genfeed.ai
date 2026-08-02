@@ -48,8 +48,8 @@ export function resolveAgentPromptSurface(
   if (pathname.startsWith('/calendar')) return 'calendar';
   if (pathname.startsWith('/library')) return 'library';
   if (pathname.startsWith('/discover')) return 'discover';
-  if (pathname.startsWith('/posts/review')) return 'review';
-  if (pathname.startsWith('/posts')) return 'review';
+  if (pathname.startsWith('/publish/review')) return 'review';
+  if (pathname.startsWith('/publish')) return 'review';
   if (
     pathname.startsWith('/studio') ||
     pathname.startsWith('/compose') ||

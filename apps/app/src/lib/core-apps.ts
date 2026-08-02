@@ -5,7 +5,7 @@ import {
   type AppSwitcherFeatureFlagKey,
 } from '@genfeedai/constants';
 
-export type CoreAppId = 'agent' | 'automate' | 'studio' | 'editor';
+export type CoreAppId = 'agent' | 'automate' | 'studio';
 export type CoreAppFeatureFlagKey = 'studio' | AppSwitcherFeatureFlagKey;
 
 export interface CoreAppDefinition {
@@ -39,7 +39,7 @@ export const CORE_APPS: CoreAppDefinition[] = [
   },
   {
     description:
-      'Produce storyboards, clips, batches, and fastlane runs at production scale.',
+      'Produce storyboards, clips, batches, fastlane runs, and timeline edits at production scale.',
     featureFlag: {
       isEnabledByDefault: () => true,
       key: 'studio',
@@ -48,14 +48,6 @@ export const CORE_APPS: CoreAppDefinition[] = [
     id: 'studio',
     label: 'Studio',
     shortLabel: 'Studio',
-  },
-  {
-    description:
-      'Compose and export media from generated assets using a Remotion-based editor.',
-    href: APP_ROUTES.EDITOR.ROOT,
-    id: 'editor',
-    label: 'Editor',
-    shortLabel: 'Editor',
   },
 ];
 

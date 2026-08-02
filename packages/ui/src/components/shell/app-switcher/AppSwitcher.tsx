@@ -44,7 +44,7 @@ import {
 type LifecycleAppSwitcherItemConfig = AppSwitcherItemConfig & {
   /**
    * Product path roots that activate this app (menu-style). Matched against the
-   * brand/org-stripped pathname, e.g. `/studio`, `/posts`, `/automate`.
+   * brand/org-stripped pathname, e.g. `/studio`, `/publish`, `/automate`.
    * Longest root wins; no match → nothing highlighted (settings, onboarding, …).
    */
   activePathRoots: readonly string[];
@@ -74,7 +74,7 @@ function createScopedAppRoute({
 
 /**
  * Flat ordered launcher (no section chrome). Order encodes product flow:
- * Operate tools → Create assets → Trends → Publish (+ compose/editor) → Analytics.
+ * Operate tools → Create assets → Trends → Publish (+ compose) → Analytics.
  */
 const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
   {
@@ -128,13 +128,13 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
       },
       {
         activePathRoots: ['/studio'],
-        description: 'Produce storyboards, clips, and batches.',
+        description: 'Produce storyboards, clips, batches, and timeline edits.',
         icon: LayoutGrid,
         id: 'studio',
         itemKey: 'studio',
         label: 'Studio',
-        // Studio is brand-scoped production tooling; without a brand the org
-        // route hands off to the Agent, which owns one-off generation.
+        // Studio production tools require a brand. The org route hands one-off
+        // generation to Agent while preserving a stable switcher destination.
         route: createScopedAppRoute({
           brandPath: '/studio/storyboard',
           organizationPath: '/studio',
@@ -165,15 +165,16 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.discover,
       },
       {
-        // Compose + Editor are publish-adjacent create surfaces, not Studio.
-        activePathRoots: ['/posts', '/compose', '/editor'],
-        description: 'Drafts, posts, compose, and editor.',
+        // Compose and focused artifact editors are Publish-adjacent. The
+        // Remotion project editor lives under Studio's Edit surface.
+        activePathRoots: ['/publish', '/compose', '/edit'],
+        description: 'Drafts, posts, compose, and artifact editing.',
         icon: Send,
-        id: 'posts',
+        id: 'publish',
         itemKey: 'publish',
         label: 'Publish',
-        route: createScopedAppRoute({ brandPath: '/posts' }),
-        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.posts,
+        route: createScopedAppRoute({ brandPath: '/publish' }),
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.publish,
       },
       {
         activePathRoots: ['/analytics'],
@@ -275,8 +276,8 @@ function useAppSwitcherVisibility(): Record<
     [APP_SWITCHER_FEATURE_FLAGS.library]: useFeatureFlag(
       APP_SWITCHER_FEATURE_FLAGS.library,
     ),
-    [APP_SWITCHER_FEATURE_FLAGS.posts]: useFeatureFlag(
-      APP_SWITCHER_FEATURE_FLAGS.posts,
+    [APP_SWITCHER_FEATURE_FLAGS.publish]: useFeatureFlag(
+      APP_SWITCHER_FEATURE_FLAGS.publish,
     ),
     [APP_SWITCHER_FEATURE_FLAGS.analytics]: useFeatureFlag(
       APP_SWITCHER_FEATURE_FLAGS.analytics,

@@ -70,7 +70,7 @@ vi.mock('@ui/guards/feature/FeatureGate', () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
-vi.mock('../../../[brandSlug]/editor/[id]/page', () => ({
+vi.mock('../../../[brandSlug]/studio/edit/[id]/page', () => ({
   default: async ({
     params,
   }: {
@@ -83,22 +83,22 @@ vi.mock('../../../[brandSlug]/editor/[id]/page', () => ({
   },
 }));
 
-vi.mock('../../../[brandSlug]/editor/new/page', () => ({
+vi.mock('../../../[brandSlug]/studio/edit/new/page', () => ({
   default: () => <div data-testid="editor-new-page" />,
 }));
 
-vi.mock('../../../[brandSlug]/editor/editor-projects-page', () => ({
+vi.mock('../../../[brandSlug]/studio/edit/editor-projects-page', () => ({
   default: () => <div data-testid="editor-projects-page" />,
 }));
 
-vi.mock('../../../[brandSlug]/posts/posts-list-page', () => ({
+vi.mock('../../../[brandSlug]/publish/publish-list-page', () => ({
   renderPostsListPage: (args: unknown) => {
     renderPostsListPageMock(args);
     return <div data-testid="posts-list-page" />;
   },
 }));
 
-vi.mock('../../../[brandSlug]/posts/posts-layout-content', () => ({
+vi.mock('../../../[brandSlug]/publish/publish-layout-content', () => ({
   default: ({ children }: { children: ReactNode }) => (
     <section data-testid="posts-layout-content">{children}</section>
   ),
@@ -175,9 +175,6 @@ describe('OrgRootAppPage', () => {
   });
 
   it('hands org-scoped /studio/:type off to the Agent', async () => {
-    // The org-scoped studio surface was the retired one-off generate page.
-    // Studio is brand-scoped production tooling now, so the catch-all sends
-    // one-off generation to the Agent instead of leaving an orphan route.
     await expect(
       OrgRootAppPage({
         params: Promise.resolve({
@@ -188,13 +185,14 @@ describe('OrgRootAppPage', () => {
       }),
     ).rejects.toThrow('NEXT_REDIRECT:/acme/~/agent/new');
     expect(redirectMock).toHaveBeenCalledWith('/acme/~/agent/new');
+    expect(screen.queryByTestId('ingredients-list')).not.toBeInTheDocument();
   });
 
-  it('renders org posts with published status for /posts/published', async () => {
+  it('renders org posts with published status for /publish/published', async () => {
     const searchParams = Promise.resolve({ page: '2' });
     const element = await OrgRootAppPage({
       params: Promise.resolve({
-        orgRootApp: 'posts',
+        orgRootApp: 'publish',
         orgSlug: 'acme',
         segments: ['published'],
       }),
@@ -257,11 +255,12 @@ describe('OrgRootAppPage', () => {
     expect(notFoundMock).not.toHaveBeenCalled();
   });
 
-  it('renders org editor projects', async () => {
+  it('renders the studio edit projects surface', async () => {
     const element = await OrgRootAppPage({
       params: Promise.resolve({
-        orgRootApp: 'editor',
+        orgRootApp: 'studio',
         orgSlug: 'acme',
+        segments: ['edit'],
       }),
     });
 
@@ -270,12 +269,12 @@ describe('OrgRootAppPage', () => {
     expect(screen.getByTestId('editor-projects-page')).toBeInTheDocument();
   });
 
-  it('renders org editor projects for the reserved projects segment', async () => {
+  it('renders the studio edit projects surface for the reserved projects segment', async () => {
     const element = await OrgRootAppPage({
       params: Promise.resolve({
-        orgRootApp: 'editor',
+        orgRootApp: 'studio',
         orgSlug: 'acme',
-        segments: ['projects'],
+        segments: ['edit', 'projects'],
       }),
     });
 
@@ -284,12 +283,12 @@ describe('OrgRootAppPage', () => {
     expect(screen.getByTestId('editor-projects-page')).toBeInTheDocument();
   });
 
-  it('renders org editor new and detail pages', async () => {
+  it('renders the studio edit new and detail surfaces', async () => {
     const newElement = await OrgRootAppPage({
       params: Promise.resolve({
-        orgRootApp: 'editor',
+        orgRootApp: 'studio',
         orgSlug: 'acme',
-        segments: ['new'],
+        segments: ['edit', 'new'],
       }),
     });
     const { unmount } = render(newElement);
@@ -300,9 +299,9 @@ describe('OrgRootAppPage', () => {
 
     const detailElement = await OrgRootAppPage({
       params: Promise.resolve({
-        orgRootApp: 'editor',
+        orgRootApp: 'studio',
         orgSlug: 'acme',
-        segments: ['project-1'],
+        segments: ['edit', 'project-1'],
       }),
     });
     render(detailElement);
@@ -311,6 +310,19 @@ describe('OrgRootAppPage', () => {
       'data-id',
       'project-1',
     );
+  });
+
+  it('returns not found for the retired org editor root', async () => {
+    await expect(
+      OrgRootAppPage({
+        params: Promise.resolve({
+          orgRootApp: 'editor',
+          orgSlug: 'acme',
+        }),
+      }),
+    ).rejects.toThrow('NEXT_NOT_FOUND');
+
+    expect(notFoundMock).toHaveBeenCalled();
   });
 
   it('returns not found for unknown org-root routes', async () => {

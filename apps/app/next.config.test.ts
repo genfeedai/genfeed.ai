@@ -169,17 +169,17 @@ describe('app next.config', () => {
     const redirects = await config.redirects?.();
 
     expect(redirects).toContainEqual({
-      destination: APP_ROUTES.POSTS.CAMPAIGNS,
+      destination: APP_ROUTES.PUBLISH.CAMPAIGNS,
       permanent: true,
       source: '/automate/campaigns',
     });
     expect(redirects).toContainEqual({
-      destination: `${APP_ROUTES.POSTS.CAMPAIGNS}/:path*`,
+      destination: `${APP_ROUTES.PUBLISH.CAMPAIGNS}/:path*`,
       permanent: true,
       source: '/automate/campaigns/:path*',
     });
     expect(redirects).toContainEqual({
-      destination: APP_ROUTES.POSTS.OUTREACH_CAMPAIGNS,
+      destination: APP_ROUTES.PUBLISH.OUTREACH_CAMPAIGNS,
       permanent: true,
       source: '/automate/outreach-campaigns',
     });
@@ -187,7 +187,7 @@ describe('app next.config', () => {
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.POSTS.CAMPAIGNS,
+        APP_ROUTES.PUBLISH.CAMPAIGNS,
       ),
       permanent: true,
       source: createBrandAppRoute(

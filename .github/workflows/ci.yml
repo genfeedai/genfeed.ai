@@ -793,20 +793,20 @@ jobs:
       - name: Stage app coverage shard
         if: always()
         run: |
-          mkdir -p .coverage-shard
+          mkdir -p coverage-shard
           # Timing is taken here rather than inside the run step so that an
           # over-budget shard still reports its true wall clock: the step it
           # would otherwise have been recorded in is the one that got killed.
-          echo "$(( $(date +%s) - COVERAGE_STARTED ))" > .coverage-shard/seconds
-          echo '${{ steps.coverage.outcome }}' > .coverage-shard/outcome
-          cp apps/app/coverage/lcov.info .coverage-shard/lcov.info || true
+          echo "$(( $(date +%s) - COVERAGE_STARTED ))" > coverage-shard/seconds
+          echo '${{ steps.coverage.outcome }}' > coverage-shard/outcome
+          cp apps/app/coverage/lcov.info coverage-shard/lcov.info || true
       - name: Upload app lcov
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: changed-code-coverage-lcov-app-${{ github.event.pull_request.number }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
-          path: .coverage-shard
-          if-no-files-found: ignore
+          path: coverage-shard
+          if-no-files-found: warn
           retention-days: 7
 
   coverage-changed-api:
@@ -853,17 +853,17 @@ jobs:
       - name: Stage api coverage shard
         if: always()
         run: |
-          mkdir -p .coverage-shard
-          echo "$(( $(date +%s) - COVERAGE_STARTED ))" > .coverage-shard/seconds
-          echo '${{ steps.coverage.outcome }}' > .coverage-shard/outcome
-          cp apps/server/api/coverage/lcov.info .coverage-shard/lcov.info || true
+          mkdir -p coverage-shard
+          echo "$(( $(date +%s) - COVERAGE_STARTED ))" > coverage-shard/seconds
+          echo '${{ steps.coverage.outcome }}' > coverage-shard/outcome
+          cp apps/server/api/coverage/lcov.info coverage-shard/lcov.info || true
       - name: Upload api lcov
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: changed-code-coverage-lcov-api-${{ github.event.pull_request.number }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
-          path: .coverage-shard
-          if-no-files-found: ignore
+          path: coverage-shard
+          if-no-files-found: warn
           retention-days: 7
 
   coverage-changed-report:

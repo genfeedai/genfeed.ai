@@ -128,7 +128,7 @@ export function createNavigationCommands(
     },
     {
       action: () => {
-        navigate(`${brandPath}/posts`);
+        navigate(`${brandPath}/publish`);
       },
       category: 'navigation',
       condition: () => EnvironmentService.currentApp !== 'app',

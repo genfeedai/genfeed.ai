@@ -139,6 +139,20 @@ describe('IngredientDetailVideo', () => {
     expect(screen.getByTestId('ingredient-quick-actions')).toBeInTheDocument();
   });
 
+  it('offers an org-scoped Edit in Studio entry for the video', () => {
+    // #2309: the editor is Studio's Edit surface, reached artifact-first.
+    render(
+      <IngredientDetailVideo
+        video={video}
+        childIngredients={childIngredients}
+      />,
+    );
+
+    expect(
+      screen.getByRole('link', { name: /Edit in Studio/ }),
+    ).toHaveAttribute('href', '/acme/brand-slug/studio/edit/new?video=video-1');
+  });
+
   it('should apply correct styles and classes', () => {
     render(
       <IngredientDetailVideo

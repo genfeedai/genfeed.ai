@@ -76,20 +76,17 @@ export const ORGANIZATION_CATCH_ALL_PAGE = '/:orgSlug/~/:orgRootApp/*segments?';
 export const ORGANIZATION_CATCH_ALL_EXPANSIONS = Object.freeze([
   '/:orgSlug/~/library',
   '/:orgSlug/~/library/:type',
-  // Studio is brand-scoped production tooling. Its org-scoped surface was the
-  // retired one-off generate page, so the catch-all now redirects to the Agent
-  // rather than expanding into a registered product route.
-  '/:orgSlug/~/posts',
-  '/:orgSlug/~/posts/published',
-  '/:orgSlug/~/posts/scheduled',
+  '/:orgSlug/~/studio/edit',
+  '/:orgSlug/~/studio/edit/projects',
+  '/:orgSlug/~/studio/edit/new',
+  '/:orgSlug/~/studio/edit/:id',
+  '/:orgSlug/~/publish',
+  '/:orgSlug/~/publish/published',
+  '/:orgSlug/~/publish/scheduled',
   '/:orgSlug/~/write',
   '/:orgSlug/~/write/:segment',
   '/:orgSlug/~/compose',
   '/:orgSlug/~/compose/:segment',
-  '/:orgSlug/~/editor',
-  '/:orgSlug/~/editor/projects',
-  '/:orgSlug/~/editor/new',
-  '/:orgSlug/~/editor/:id',
 ] as const);
 
 export const PROTECTED_HARD_CUT_PREFIXES = Object.freeze([

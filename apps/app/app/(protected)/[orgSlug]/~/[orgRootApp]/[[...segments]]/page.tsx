@@ -2,14 +2,16 @@ import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
 import { PageScope, PostStatus } from '@genfeedai/enums';
 import IngredientsLayout from '@pages/ingredients/layout/ingredients-layout';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
+import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
+import FeatureGate from '@ui/guards/feature/FeatureGate';
 import { SkeletonLoadingFallback } from '@ui/loading/skeleton/SkeletonFallbacks';
 import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
-import EditorDetailPage from '../../../[brandSlug]/editor/[id]/page';
-import EditorProjectsPage from '../../../[brandSlug]/editor/editor-projects-page';
-import EditorNewPage from '../../../[brandSlug]/editor/new/page';
-import PostsLayoutContent from '../../../[brandSlug]/posts/posts-layout-content';
-import { renderPostsListPage } from '../../../[brandSlug]/posts/posts-list-page';
+import PublishLayoutContent from '../../../[brandSlug]/publish/publish-layout-content';
+import { renderPostsListPage } from '../../../[brandSlug]/publish/publish-list-page';
+import EditorDetailPage from '../../../[brandSlug]/studio/edit/[id]/page';
+import EditorProjectsPage from '../../../[brandSlug]/studio/edit/editor-projects-page';
+import EditorNewPage from '../../../[brandSlug]/studio/edit/new/page';
 
 const ORG_LIBRARY_TYPE_BY_SEGMENT: Record<string, string> = {
   avatar: 'avatars',
@@ -85,6 +87,27 @@ function getOrgPostsStatusOverride(segments?: string[]) {
   return undefined;
 }
 
+// Async because the detail surface is an async server component: it has to be
+// awaited here, not handed to the tree as an unresolved promise child.
+async function renderStudioEditSurface(section?: string) {
+  if (section === 'new') {
+    return <EditorNewPage />;
+  }
+
+  // Reserved index segment: /~/studio/edit/projects mirrors the edit root
+  // (projects). Without this guard it would fall into the detail branch below
+  // and request an editor project with id 'projects'.
+  if (section === 'projects') {
+    return <EditorProjectsPage />;
+  }
+
+  if (section) {
+    return EditorDetailPage({ params: Promise.resolve({ id: section }) });
+  }
+
+  return <EditorProjectsPage />;
+}
+
 export default async function OrgRootAppPage({
   params,
   searchParams,
@@ -113,14 +136,25 @@ export default async function OrgRootAppPage({
   }
 
   if (orgRootApp === 'studio') {
-    // Studio is brand-scoped production tooling only; its former org-scoped
-    // surface was the retired one-off generate page. One-off generation now
-    // lives in the Agent, which is org-scoped.
+    // `edit` is Studio's timeline surface, not a generate type. It mirrors the
+    // brand-scoped static `studio/edit` segment, which wins over `studio/[type]`.
+    if (segments?.[0] === 'edit') {
+      const editSurface = await renderStudioEditSurface(segments[1]);
+
+      return (
+        <FeatureGate flagKey="studio">
+          <ErrorBoundary>{editSurface}</ErrorBoundary>
+        </FeatureGate>
+      );
+    }
+
+    // Studio's org-scoped one-off generation surface was retired. Studio
+    // production tooling is brand-scoped; org-scoped generation lives in Agent.
     redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.NEW));
   }
 
   if (
-    orgRootApp === 'posts' ||
+    orgRootApp === 'publish' ||
     orgRootApp === 'write' ||
     orgRootApp === 'compose'
   ) {
@@ -130,30 +164,7 @@ export default async function OrgRootAppPage({
       statusOverride: getOrgPostsStatusOverride(segments),
     });
 
-    return <PostsLayoutContent>{postsListPage}</PostsLayoutContent>;
-  }
-
-  if (orgRootApp === 'editor') {
-    const section = segments?.[0];
-
-    if (section === 'new') {
-      return <EditorNewPage />;
-    }
-
-    // Reserved index segment: /~/editor/projects mirrors the editor root
-    // (projects). Without this guard it would fall into the detail branch
-    // below and request an editor project with id 'projects'.
-    if (section === 'projects') {
-      return <EditorProjectsPage />;
-    }
-
-    if (section) {
-      return EditorDetailPage({
-        params: Promise.resolve({ id: section }),
-      });
-    }
-
-    return <EditorProjectsPage />;
+    return <PublishLayoutContent>{postsListPage}</PublishLayoutContent>;
   }
 
   notFound();

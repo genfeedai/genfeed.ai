@@ -104,6 +104,8 @@ export const APP_ROUTES = {
     ANALYTICS: '/automate/analytics',
     AUTOPILOT: '/automate/autopilot',
     CONFIGURATION: '/automate/configuration',
+    /** Content-run history: briefs handed off from Discover through publish. */
+    CONTENT_RUNS: '/automate/content-runs',
     HIRE: '/automate/hire',
     LIBRARY: '/automate/library',
     NEW: '/automate/new',
@@ -135,9 +137,17 @@ export const APP_ROUTES = {
     ROOT: '/discover',
     SOCIALS: '/discover/socials',
   },
-  EDITOR: {
-    NEW: '/editor/new',
-    ROOT: '/editor',
+  /**
+   * Dedicated artifact editor pages. Refinement belongs to the artifact, not to
+   * a module — every text artifact gets a focused, deep-linkable editor at
+   * `/edit/{type}/{id}`. Distinct from EDITOR, which is the Remotion project
+   * canvas.
+   */
+  EDIT: {
+    ARTICLE: '/edit/article',
+    NEWSLETTER: '/edit/newsletter',
+    POST: '/edit/post',
+    ROOT: '/edit',
   },
   LAB: {
     ARTICLES: '/lab/articles',
@@ -175,20 +185,20 @@ export const APP_ROUTES = {
     ACTIVITIES: '/overview/activities',
     ROOT: '/overview',
   },
-  POSTS: {
-    CALENDAR: '/posts/calendar',
+  PUBLISH: {
+    CALENDAR: '/publish/calendar',
     /** Agent-driven content campaigns (Publish surface). */
-    CAMPAIGNS: '/posts/campaigns',
-    CAMPAIGNS_NEW: '/posts/campaigns/new',
-    NEWSLETTERS: '/posts/newsletters',
+    CAMPAIGNS: '/publish/campaigns',
+    CAMPAIGNS_NEW: '/publish/campaigns/new',
+    NEWSLETTERS: '/publish/newsletters',
     /** Outreach / growth campaigns (Publish surface). */
-    OUTREACH_CAMPAIGNS: '/posts/outreach-campaigns',
-    OUTREACH_CAMPAIGNS_NEW: '/posts/outreach-campaigns/new',
-    PUBLISHED: '/posts/published',
-    REMIX: '/posts/remix',
-    REVIEW: '/posts/review',
-    ROOT: '/posts',
-    SCHEDULED: '/posts/scheduled',
+    OUTREACH_CAMPAIGNS: '/publish/outreach-campaigns',
+    OUTREACH_CAMPAIGNS_NEW: '/publish/outreach-campaigns/new',
+    PUBLISHED: '/publish/published',
+    REMIX: '/publish/remix',
+    REVIEW: '/publish/review',
+    ROOT: '/publish',
+    SCHEDULED: '/publish/scheduled',
   },
   SETTINGS: {
     API_KEYS: '/settings/api-keys',
@@ -221,6 +231,8 @@ export const APP_ROUTES = {
   STUDIO: {
     BATCH: '/studio/batch',
     CLIPS: '/studio/clips',
+    EDIT: '/studio/edit',
+    EDIT_NEW: '/studio/edit/new',
     FASTLANE: '/studio/fastlane',
     ROOT: '/studio',
     STORYBOARD: '/studio/storyboard',
@@ -245,11 +257,11 @@ export const APP_ROUTE_PREFIXES = {
   AUTOMATE: APP_ROUTES.AUTOMATE.ROOT,
   COMPOSE: APP_ROUTES.COMPOSE.ROOT,
   DISCOVER: APP_ROUTES.DISCOVER.ROOT,
-  EDITOR: APP_ROUTES.EDITOR.ROOT,
+  EDIT: APP_ROUTES.EDIT.ROOT,
   LIBRARY: '/library',
   MESSAGES: APP_ROUTES.MESSAGES.ROOT,
   OVERVIEW: APP_ROUTES.OVERVIEW.ROOT,
-  POSTS: APP_ROUTES.POSTS.ROOT,
+  PUBLISH: APP_ROUTES.PUBLISH.ROOT,
   SETTINGS: APP_ROUTES.SETTINGS.ROOT,
   STUDIO: APP_ROUTES.STUDIO.ROOT,
   WORKSPACE: APP_ROUTES.WORKSPACE.ROOT,
@@ -269,6 +281,21 @@ export const LEGACY_APP_ROUTES = {
 } as const;
 
 export const COMPOSE_ROUTES = APP_ROUTES.COMPOSE;
+
+/** Artifact type → dedicated editor route root. */
+export const ARTIFACT_EDITOR_ROUTES = {
+  article: APP_ROUTES.EDIT.ARTICLE,
+  newsletter: APP_ROUTES.EDIT.NEWSLETTER,
+  post: APP_ROUTES.EDIT.POST,
+} as const;
+
+export type ArtifactEditorType = keyof typeof ARTIFACT_EDITOR_ROUTES;
+
+/**
+ * Query parameter carrying the list an artifact editor was opened from, so
+ * back-navigation returns to that list instead of a hardcoded default.
+ */
+export const ARTIFACT_EDITOR_RETURN_PARAM = 'returnTo';
 
 type NestedRouteValue<T> = T extends string
   ? T
@@ -302,4 +329,48 @@ export function createOrganizationAppRoute(
   path: string = APP_ROUTES.ROOT,
 ): string {
   return `/${orgSlug}/~${normalizeScopedRoutePath(path)}`;
+}
+
+/**
+ * Build the brand-relative path to an artifact's dedicated editor page.
+ * Pass the result through `useOrgUrl().href()` to scope it to org + brand.
+ */
+export function createArtifactEditorRoute(
+  artifactType: ArtifactEditorType,
+  artifactId: string,
+): string {
+  return `${ARTIFACT_EDITOR_ROUTES[artifactType]}/${artifactId}`;
+}
+
+/** Append the originating list to an artifact editor href. */
+export function withArtifactEditorReturn(
+  editorHref: string,
+  returnTo: string,
+): string {
+  const separator = editorHref.includes('?') ? '&' : '?';
+
+  return `${editorHref}${separator}${ARTIFACT_EDITOR_RETURN_PARAM}=${encodeURIComponent(returnTo)}`;
+}
+
+/**
+ * Resolve an artifact editor's back destination.
+ *
+ * Only same-origin absolute paths are honoured — a protocol-relative or
+ * absolute-URL value would turn the editor into an open redirect, so anything
+ * that is not a single-slash-prefixed path falls back to the owning list.
+ */
+export function resolveArtifactEditorBackHref(
+  returnTo: string | null | undefined,
+  fallbackHref: string,
+): string {
+  const normalizedReturnTo = returnTo?.replace(/\\/g, '/');
+
+  if (
+    !normalizedReturnTo?.startsWith('/') ||
+    normalizedReturnTo.startsWith('//')
+  ) {
+    return fallbackHref;
+  }
+
+  return normalizedReturnTo;
 }

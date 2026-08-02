@@ -2766,7 +2766,7 @@ describe('AgentOrchestratorService', () => {
       creditsUsed: 0,
       nextActions: [
         {
-          ctas: [{ href: '/posts/drafts', label: 'View all drafts' }],
+          ctas: [{ href: '/publish/drafts', label: 'View all drafts' }],
           id: 'content-preview-1',
           images: ['https://cdn.example.com/generated-1.png'],
           title: 'Generated drafts',
@@ -2806,7 +2806,7 @@ describe('AgentOrchestratorService', () => {
             }),
           ]),
           primaryCta: expect.objectContaining({
-            href: '/posts/drafts',
+            href: '/publish/drafts',
             label: 'Review Draft',
           }),
           summaryText: 'Generated content for this request.',

@@ -77,7 +77,6 @@ const ROUTE_ROOTS = [
   'analytics',
   'compose',
   'discover',
-  'editor',
   'lab',
   'library',
   'login',

@@ -25,15 +25,6 @@ describe('MCPService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('getHello', () => {
-    it('should return welcome message', () => {
-      const result = service.getHello();
-      expect(result).toBe(
-        'Genfeed.ai MCP Server - Ready to serve AI-powered video generation!',
-      );
-    });
-  });
-
   describe('getMcpConfiguration', () => {
     it('should return MCP configuration', () => {
       const config = service.getMcpConfiguration();

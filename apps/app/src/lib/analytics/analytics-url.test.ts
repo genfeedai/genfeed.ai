@@ -37,17 +37,17 @@ describe('normalizeAnalyticsPathname', () => {
   });
 
   it('collapses uuid, numeric, and cuid-like id segments to :id', () => {
-    expect(normalizeAnalyticsPathname(`/acme/brand/editor/${UUID}`)).toBe(
-      '/:org/:brand/editor/:id',
+    expect(normalizeAnalyticsPathname(`/acme/brand/studio/edit/${UUID}`)).toBe(
+      '/:org/:brand/studio/edit/:id',
     );
-    expect(normalizeAnalyticsPathname('/acme/brand/posts/1234567')).toBe(
-      '/:org/:brand/posts/:id',
+    expect(normalizeAnalyticsPathname('/acme/brand/publish/1234567')).toBe(
+      '/:org/:brand/publish/:id',
     );
     expect(
       normalizeAnalyticsPathname(
-        '/acme/brand/posts/clh3k2j9p0001qa9b8c7d6e5f4',
+        '/acme/brand/publish/clh3k2j9p0001qa9b8c7d6e5f4',
       ),
-    ).toBe('/:org/:brand/posts/:id');
+    ).toBe('/:org/:brand/publish/:id');
   });
 
   it('preserves a long all-alpha slug (no digit -> not an id)', () => {
@@ -83,13 +83,13 @@ describe('sanitizeAnalyticsUrl', () => {
 
   it('normalizes ids inside an absolute URL path', () => {
     expect(
-      sanitizeAnalyticsUrl(`https://app.genfeed.ai/acme/brand/posts/${UUID}`),
-    ).toBe('https://app.genfeed.ai/:org/:brand/posts/:id');
+      sanitizeAnalyticsUrl(`https://app.genfeed.ai/acme/brand/publish/${UUID}`),
+    ).toBe('https://app.genfeed.ai/:org/:brand/publish/:id');
   });
 
   it('sanitizes a path-relative value', () => {
-    expect(sanitizeAnalyticsUrl(`/acme/brand/editor/${UUID}?zoom=2`)).toBe(
-      '/:org/:brand/editor/:id',
+    expect(sanitizeAnalyticsUrl(`/acme/brand/studio/edit/${UUID}?zoom=2`)).toBe(
+      '/:org/:brand/studio/edit/:id',
     );
   });
 
@@ -101,7 +101,7 @@ describe('sanitizeAnalyticsUrl', () => {
 
   it('never lets a query string survive on any value', () => {
     const values = [
-      'https://app.genfeed.ai/acme/brand/posts/x?title=Leak',
+      'https://app.genfeed.ai/acme/brand/publish/x?title=Leak',
       '/acme/brand/compose/post?description=Leak',
     ];
     for (const value of values) {

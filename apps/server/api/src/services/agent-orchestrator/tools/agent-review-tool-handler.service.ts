@@ -117,7 +117,7 @@ export class AgentReviewToolHandler {
             id: `review-queue-${String(batch.id)}`,
             outcomeBullets,
             primaryCta: {
-              href: `/posts/review?batch=${String(batch.id)}&filter=ready`,
+              href: `/publish/review?batch=${String(batch.id)}&filter=ready`,
               label: 'Open review queue',
             },
             status: 'completed',
@@ -185,7 +185,7 @@ export class AgentReviewToolHandler {
           {
             id: `review-queue-approval-${batchId}`,
             primaryCta: {
-              href: `/posts/review?batch=${batchId}&filter=ready`,
+              href: `/publish/review?batch=${batchId}&filter=ready`,
               label: 'Review exact versions',
             },
             status: 'pending',

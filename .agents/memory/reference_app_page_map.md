@@ -6,9 +6,9 @@ type: reference
 
 # App Page Map
 
-Last audited: 2026-08-02.
+Last audited: 2026-07-27.
 
-The current executable protected denominator is 209 canonical patterns. Two
+The current executable protected denominator is 216 canonical patterns. Two
 intentional hard-cut families remain outside the denominator. The app switcher
 is only a discovery subset.
 
@@ -24,7 +24,7 @@ Source of truth:
 - Sidebar resolver in `apps/app/packages/components/AppProtectedLayoutSidebar.tsx`
 - App switcher in `packages/ui/src/components/shell/app-switcher/AppSwitcher.tsx`
 
-The application registry mirrors all 209 parity-eligible patterns below and
+The application registry mirrors all 216 parity-eligible patterns below and
 keeps Notifications plus trusted pickers as explicit non-route surfaces. The
 two hard-cut families remain outside it.
 
@@ -72,7 +72,7 @@ The protected shell currently recognizes these app contexts:
 - `research`
 - `studio`
 - `library`
-- `posts`
+- `publish`
 - `analytics`
 - `workflows`
 - `compose`
@@ -165,17 +165,17 @@ Organization catch-all module pages served by `/:orgSlug/~/:orgRootApp/[[...segm
 
 - `/:orgSlug/~/library`
 - `/:orgSlug/~/library/:type`
-- `/:orgSlug/~/posts`
-- `/:orgSlug/~/posts/published`
-- `/:orgSlug/~/posts/scheduled`
+- `/:orgSlug/~/publish`
+- `/:orgSlug/~/publish/published`
+- `/:orgSlug/~/publish/scheduled`
 - `/:orgSlug/~/write`
 - `/:orgSlug/~/write/:segment`
 - `/:orgSlug/~/compose`
 - `/:orgSlug/~/compose/:segment`
-- `/:orgSlug/~/editor`
-- `/:orgSlug/~/editor/projects`
-- `/:orgSlug/~/editor/new`
-- `/:orgSlug/~/editor/:id`
+- `/:orgSlug/~/studio/edit`
+- `/:orgSlug/~/studio/edit/projects`
+- `/:orgSlug/~/studio/edit/new`
+- `/:orgSlug/~/studio/edit/:id`
 
 Automate at org scope is a real static page, not a catch-all module:
 
@@ -240,22 +240,22 @@ Research:
 - `/:orgSlug/:brandSlug/research/ads/meta`
 - `/:orgSlug/:brandSlug/research/:platform`
 
-Studio (production surfaces only — the standalone one-off image/video/avatar/music
-tabs were retired in #2308; one-off generation runs through the Agent):
+Studio:
 
-- `/:orgSlug/:brandSlug/studio/storyboard`
+- `/:orgSlug/:brandSlug/studio/:type`
+- `/:orgSlug/:brandSlug/studio/:type/:id`
 - `/:orgSlug/:brandSlug/studio/batch`
 - `/:orgSlug/:brandSlug/studio/clips`
 - `/:orgSlug/:brandSlug/studio/fastlane`
+- `/:orgSlug/:brandSlug/studio/edit`
+- `/:orgSlug/:brandSlug/studio/edit/new`
+- `/:orgSlug/:brandSlug/studio/edit/:id`
 
-Create/compose/editor:
+Create/compose:
 
 - `/:orgSlug/:brandSlug/compose/article`
 - `/:orgSlug/:brandSlug/compose/post`
 - `/:orgSlug/:brandSlug/compose/newsletter`
-- `/:orgSlug/:brandSlug/editor`
-- `/:orgSlug/:brandSlug/editor/new`
-- `/:orgSlug/:brandSlug/editor/:id`
 
 Library:
 
@@ -275,17 +275,17 @@ The remaining Library type routes encode the selected asset-type filter as
 shareable deep links; they are not separate sidebar modules. Folder selection
 is a URL-backed secondary sidebar filter.
 
-Publish/posts:
+Publish:
 
-- `/:orgSlug/:brandSlug/posts`
-- `/:orgSlug/:brandSlug/posts/:id`
-- `/:orgSlug/:brandSlug/posts/calendar`
-- `/:orgSlug/:brandSlug/posts/composer`
-- `/:orgSlug/:brandSlug/posts/newsletters`
-- `/:orgSlug/:brandSlug/posts/published`
-- `/:orgSlug/:brandSlug/posts/remix`
-- `/:orgSlug/:brandSlug/posts/review`
-- `/:orgSlug/:brandSlug/posts/scheduled`
+- `/:orgSlug/:brandSlug/publish`
+- `/:orgSlug/:brandSlug/publish/:id`
+- `/:orgSlug/:brandSlug/publish/calendar`
+- `/:orgSlug/:brandSlug/publish/composer`
+- `/:orgSlug/:brandSlug/publish/newsletters`
+- `/:orgSlug/:brandSlug/publish/published`
+- `/:orgSlug/:brandSlug/publish/remix`
+- `/:orgSlug/:brandSlug/publish/review`
+- `/:orgSlug/:brandSlug/publish/scheduled`
 
 Analytics:
 
@@ -303,8 +303,8 @@ Analytics:
 - `/:orgSlug/:brandSlug/analytics/trend-turnover`
 - `/:orgSlug/:brandSlug/analytics/streaks`
 
-Analytics owns every analytics surface — the Publish/posts module no longer has
-its own `/posts/analytics` page. The sidebar groups these under **Performance**
+Analytics owns every analytics surface — the Publish module no longer has its
+own `/publish/analytics` page. The sidebar groups these under **Performance**
 (Overview, Posts, Brands) · **Intelligence** (Insights, Hooks, Performance Lab,
 Trends, Trend Turnover) · **Habits** (Streaks); the `trends/detail` and
 `trends/platforms` routes are drilldowns reached from Trends.
@@ -328,6 +328,7 @@ Workflows and automate:
 - `/:orgSlug/:brandSlug/automate/orchestrator`
 - `/:orgSlug/:brandSlug/automate/runs`
 - `/:orgSlug/:brandSlug/automate/skills`
+- `/:orgSlug/:brandSlug/automate/content-runs`
 - `/:orgSlug/:brandSlug/automate/content-runs/:runId`
 - `/:orgSlug/:brandSlug/automate/campaigns`
 - `/:orgSlug/:brandSlug/automate/campaigns/new`
@@ -442,8 +443,8 @@ Admin organization/administration:
 - `Messages` is intentionally a full app/module for global social DM.
 - `Remix` is not a top-level page concept. It is a contextual action inside
   Research, Publish, Analytics, Library, and authorized content-run outputs;
-  `/posts/remix` remains a canonical Publish child route for typed handoffs.
+  `/publish/remix` remains a canonical Publish child route for typed handoffs.
 - `Repeat` is not a top-level page concept. It should be a contextual feature/action inside Research, Publish, Analytics, Studio, or Library output views.
 - `Discovery`, `Socials`, and `Ads` are Research internal pages.
 - `Batch` is Studio internal navigation when the Studio capability is enabled.
-- `Compose` and `Editor` are creation/editor surfaces but should not appear as primary app-switcher modules unless product taxonomy changes.
+- `Compose` is a creation surface and should not appear as a primary app-switcher module unless product taxonomy changes. The Remotion editor is no longer a module at all — it is Studio's `Edit` surface (#2309).

@@ -38,6 +38,7 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [
       APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS,
       APP_ROUTES.AUTOMATE.RUNS,
+      APP_ROUTES.AUTOMATE.CONTENT_RUNS,
     ],
     outline: CirclePlay,
     solid: CirclePlay,

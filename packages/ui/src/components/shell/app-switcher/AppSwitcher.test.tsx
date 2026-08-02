@@ -143,7 +143,7 @@ vi.mock('@genfeedai/constants', () => {
       discover: 'app_switcher_discover',
       studio: 'app_switcher_studio',
       library: 'app_switcher_library',
-      posts: 'app_switcher_posts',
+      publish: 'app_switcher_posts',
       analytics: 'app_switcher_analytics',
     },
     createBrandAppRoute: (
@@ -328,7 +328,7 @@ describe('AppSwitcher', () => {
       <AppSwitcher
         orgSlug="acme"
         brandSlug="my-brand"
-        currentPath="/acme/my-brand/posts/review"
+        currentPath="/acme/my-brand/publish/review"
       />,
     );
     const activeButton = screen.getByRole('link', { name: 'Publish' });
@@ -515,7 +515,7 @@ describe('AppSwitcher', () => {
       <AppSwitcher
         orgSlug="acme"
         brandSlug="my-brand"
-        currentPath="/acme/my-brand/posts/remix"
+        currentPath="/acme/my-brand/publish/remix"
       />,
     );
 
@@ -543,8 +543,8 @@ describe('AppSwitcher', () => {
     );
   });
 
-  it('highlights Publish for compose and editor paths', () => {
-    const { rerender } = render(
+  it('highlights Publish for compose paths', () => {
+    render(
       <AppSwitcher
         orgSlug="acme"
         brandSlug="my-brand"
@@ -556,18 +556,24 @@ describe('AppSwitcher', () => {
       'aria-current',
       'page',
     );
+  });
 
-    rerender(
+  it('highlights Studio for the merged edit surface', () => {
+    // #2309: the editor is no longer a publish-adjacent surface.
+    render(
       <AppSwitcher
         orgSlug="acme"
         brandSlug="my-brand"
-        currentPath="/acme/my-brand/editor/new"
+        currentPath="/acme/my-brand/studio/edit/new"
       />,
     );
 
-    expect(screen.getByRole('link', { name: 'Publish' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
       'aria-current',
       'page',
+    );
+    expect(screen.getByRole('link', { name: 'Publish' })).not.toHaveAttribute(
+      'aria-current',
     );
   });
 
@@ -631,7 +637,7 @@ describe('AppSwitcher', () => {
         ['Studio', '/acme/~/studio'],
         ['Library', '/acme/~/library'],
         ['Discover', '/acme/~/discover/discovery'],
-        ['Publish', '/acme/~/posts'],
+        ['Publish', '/acme/~/publish'],
         ['Analytics', '/acme/~/analytics'],
       ] as const) {
         expect(screen.getByRole('link', { name: label })).toHaveAttribute(
@@ -684,7 +690,7 @@ describe('AppSwitcher', () => {
       );
       expect(screen.getByRole('link', { name: 'Publish' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/posts',
+        '/acme/my-brand/publish',
       );
       expect(screen.getByRole('link', { name: 'Analytics' })).toHaveAttribute(
         'href',
@@ -713,7 +719,7 @@ describe('AppSwitcher', () => {
 
       expect(screen.getByRole('link', { name: 'Publish' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/posts',
+        '/acme/my-brand/publish',
       );
     });
 

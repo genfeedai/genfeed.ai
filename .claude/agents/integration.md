@@ -1,35 +1,8 @@
 ---
 name: integration
-description: |
-  Platform integration module creation in Genfeed.ai. Knows the OAuth connect/verify
-  pattern, CredentialPlatform enum, credential save flow, and integration module structure.
-
-  <example>
-  Context: User needs new OAuth integration
-  user: "Add a Mastodon OAuth integration with connect and verify endpoints"
-  assistant: "I'll use the integration agent to scaffold this."
-  <commentary>
-  New OAuth platform integration — use integration agent.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs API key integration
-  user: "Add a Beehiiv API key integration with connect and verify"
-  assistant: "I'll use the integration agent to create this integration."
-  <commentary>
-  API key integration module — use integration agent.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs webhook integration
-  user: "Add Ghost webhook integration with signature validation"
-  assistant: "I'll use the integration agent to implement this."
-  <commentary>
-  Webhook integration — use integration agent.
-  </commentary>
-  </example>
+description: >-
+  Platform integration modules in Genfeed.ai (OAuth, API key, or webhook). Knows the
+  connect/verify pattern, CredentialPlatform enum, credential save flow, and module structure.
 model: sonnet
 ---
 

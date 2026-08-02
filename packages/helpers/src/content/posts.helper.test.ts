@@ -38,32 +38,32 @@ describe('PostsHelper', () => {
   });
 
   it('should build canonical publisher post hrefs', () => {
-    expect(PostsHelper.getPublisherPostsHref()).toBe('/posts');
+    expect(PostsHelper.getPublisherPostsHref()).toBe('/publish');
     expect(
       PostsHelper.getPublisherPostsHref({ platform: 'all', status: 'draft' }),
-    ).toBe('/posts');
+    ).toBe('/publish');
     expect(PostsHelper.getPublisherPostsHref({ status: 'scheduled' })).toBe(
-      '/posts',
+      '/publish',
     );
     expect(
       PostsHelper.getPublisherPostsHref({
         platform: Platform.YOUTUBE,
         status: 'public',
       }),
-    ).toBe('/posts/published?platform=youtube');
+    ).toBe('/publish/published?platform=youtube');
   });
 
   it('should infer publisher status from canonical post paths', () => {
     expect(
-      PostsHelper.getPublisherPostsStatusFromPathname('/posts/scheduled'),
+      PostsHelper.getPublisherPostsStatusFromPathname('/publish/scheduled'),
     ).toBe('scheduled');
     expect(
       PostsHelper.getPublisherPostsStatusFromPathname(
-        '/acme/brand/posts/published?platform=youtube',
+        '/acme/brand/publish/published?platform=youtube',
       ),
     ).toBe('public');
     expect(
-      PostsHelper.getPublisherPostsStatusFromPathname('/posts'),
+      PostsHelper.getPublisherPostsStatusFromPathname('/publish'),
     ).toBeNull();
   });
 

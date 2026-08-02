@@ -343,7 +343,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [APP_ROUTES.POSTS.ROOT]: {
+  [APP_ROUTES.PUBLISH.ROOT]: {
     placeholder: 'Ask about your posts...',
     suggestedActions: [
       {
@@ -369,7 +369,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [`${APP_ROUTES.POSTS.ROOT}/`]: {
+  [`${APP_ROUTES.PUBLISH.ROOT}/`]: {
     placeholder: 'Ask about this post...',
     suggestedActions: [
       {
@@ -390,7 +390,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [APP_ROUTES.POSTS.REVIEW]: {
+  [APP_ROUTES.PUBLISH.REVIEW]: {
     placeholder: 'Ask about content review...',
     suggestedActions: [
       {

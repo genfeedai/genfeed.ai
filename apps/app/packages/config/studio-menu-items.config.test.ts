@@ -32,12 +32,33 @@ describe('STUDIO_MENU_ITEMS', () => {
 
   it('carries no ungrouped one-off generation modes', () => {
     // The standalone Image/Video/Avatar/Music tabs are retired — one-off
-    // generation runs through the Agent, so Automation is the whole menu.
-    const ungrouped = STUDIO_MENU_ITEMS.filter(
-      (item) => item.group !== 'Automation',
-    );
+    // generation runs through the Agent. Edit remains a production surface.
+    const ungrouped = STUDIO_MENU_ITEMS.filter((item) => item.group === '');
 
     expect(ungrouped).toEqual([]);
+  });
+
+  it('exposes the merged editor as the Edit timeline entry', () => {
+    // #2309: the Remotion editor stopped being a core app; Studio's nav is now
+    // its only menu entry.
+    const editItems = STUDIO_MENU_ITEMS.filter((item) => item.group === 'Edit');
+
+    expect(editItems.map((item) => item.label)).toEqual(['Timeline']);
+    expect(editItems[0]).toMatchObject({
+      hasDividerAbove: true,
+      href: '/studio/edit',
+      matchPaths: ['/studio/edit'],
+    });
+  });
+
+  it('places Edit before Automation', () => {
+    expect(STUDIO_MENU_ITEMS.map((item) => item.group)).toEqual([
+      'Edit',
+      'Automation',
+      'Automation',
+      'Automation',
+      'Automation',
+    ]);
   });
 
   it('keeps the studio logo href pointed at the library overview', () => {

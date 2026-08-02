@@ -14,7 +14,7 @@ import { tryClick } from '../../utils/route-assertions';
  * specs raise code coverage without becoming brittle.
  */
 
-const BASE = '/test-org/brand-1/posts';
+const BASE = '/test-org/brand-1/publish';
 
 test.describe('Posts — deep interactions', () => {
   test.setTimeout(90_000);
@@ -104,7 +104,7 @@ test.describe('Posts — deep interactions', () => {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
-    await expect(authenticatedPage).toHaveURL(/posts\/mock-id/);
+    await expect(authenticatedPage).toHaveURL(/publish\/mock-id/);
 
     // Exercise any detail tabs / action buttons that render.
     await tryClick(authenticatedPage, '[role="tab"]');
@@ -242,7 +242,7 @@ test.describe('Posts — deep interactions', () => {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
-    await expect(authenticatedPage).toHaveURL(/posts\/analytics/);
+    await expect(authenticatedPage).toHaveURL(/publish\/analytics/);
 
     await tryClick(authenticatedPage, '[role="tab"]');
     await settle(authenticatedPage);

@@ -121,7 +121,6 @@ function AppLayoutWithDynamicMenu({
     isComposeRoute,
     isConversationRoute,
     isEditorCanvasRoute,
-    isEditorRoute,
     isFocusedOnboardingRoute,
     isLibraryLandingRoute,
     isLibraryRoute,
@@ -146,13 +145,13 @@ function AppLayoutWithDynamicMenu({
     libraryMenuItems,
     menuItems,
     orgMenuItems,
-    postsMenuItems,
+    publishMenuItems,
     discoverMenuItems,
     secondaryMenuItems,
     settingsMenuItems,
     studioMenuItems,
     automateMenuItems,
-    isPostsRoute,
+    isPublishRoute,
     taskContextSearchParams,
     handleNavigate,
     handleOpenCommandPalette,
@@ -295,12 +294,11 @@ function AppLayoutWithDynamicMenu({
         isAnalyticsRoute={isAnalyticsRoute}
         isComposeRoute={isComposeRoute}
         isConversationRoute={isConversationRoute}
-        isEditorRoute={isEditorRoute}
         isFocusedOnboardingRoute={isFocusedOnboardingRoute}
         isLibraryRoute={isLibraryRoute}
         isMessagesRoute={isMessagesRoute}
         isOrgRoute={isOrgRoute}
-        isPostsRoute={isPostsRoute}
+        isPublishRoute={isPublishRoute}
         isDiscoverRoute={isDiscoverRoute}
         isSettingsRoute={isSettingsRoute}
         isStudioRoute={isStudioRoute}
@@ -312,7 +310,7 @@ function AppLayoutWithDynamicMenu({
         libraryMenuItems={libraryMenuItems}
         menuItems={menuItems}
         orgMenuItems={orgMenuItems}
-        postsMenuItems={postsMenuItems}
+        publishMenuItems={publishMenuItems}
         discoverMenuItems={discoverMenuItems}
         secondaryMenuItems={secondaryMenuItems}
         settingsMenuItems={settingsMenuItems}
@@ -334,12 +332,11 @@ function AppLayoutWithDynamicMenu({
     isComposeRoute,
     isConversationRoute,
     isEditorCanvasRoute,
-    isEditorRoute,
     isFocusedOnboardingRoute,
     isLibraryRoute,
     isMessagesRoute,
     isOrgRoute,
-    isPostsRoute,
+    isPublishRoute,
     isDiscoverRoute,
     isSettingsRoute,
     isStudioRoute,
@@ -347,7 +344,7 @@ function AppLayoutWithDynamicMenu({
     libraryMenuItems,
     menuItems,
     orgMenuItems,
-    postsMenuItems,
+    publishMenuItems,
     discoverMenuItems,
     secondaryMenuItems,
     settingsMenuItems,

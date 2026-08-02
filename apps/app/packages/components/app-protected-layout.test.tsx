@@ -223,7 +223,7 @@ vi.mock('@app-config/menu-items.config', () => ({
           { href: '/settings', hrefScope: 'brand', label: 'Settings' },
         ]
       : [{ href: '/workspace/activity', label: 'Activity' }],
-  POSTS_INSERT_AFTER_LABEL: 'Posts',
+  PUBLISH_INSERT_AFTER_LABEL: 'Posts',
 }));
 
 vi.mock('@app-config/discover-menu-items.config', () => ({
@@ -534,8 +534,8 @@ describe('AppProtectedLayout', () => {
     expect(lowCreditsBannerSpy).not.toHaveBeenCalled();
   });
 
-  it('keeps the shell low credits banner on editor routes', () => {
-    mockPathname.value = '/editor/new';
+  it('keeps the shell low credits banner on the studio edit surface', () => {
+    mockPathname.value = '/studio/edit/new';
     render(<AppProtectedLayout />);
     expect(lowCreditsBannerSpy).toHaveBeenCalledTimes(1);
   });
@@ -873,12 +873,13 @@ describe('AppProtectedLayout', () => {
       'Templates',
     ],
     ['/org-123/brand-123/automate/workflows/new', 'Automate', 'New Workflow'],
+    ['/org-123/brand-123/automate/content-runs', 'Automate', 'Content Runs'],
     [
       '/org-123/brand-123/automate/content-runs/run-1',
       'Automate',
       'Content Run',
     ],
-    ['/org-123/brand-123/posts/campaigns/campaign-1', 'Publish', 'Campaign'],
+    ['/org-123/brand-123/publish/campaigns/campaign-1', 'Publish', 'Campaign'],
   ] as const)(
     'feeds canonical root and leaf breadcrumb metadata on %s',
     (pathname, rootLabel, leafLabel) => {
@@ -900,7 +901,7 @@ describe('AppProtectedLayout', () => {
   it.each([
     '/org-123/brand-123/automate/workflows/new',
     '/org-123/brand-123/automate/workflows/wf-123',
-    '/org-123/brand-123/editor/new',
+    '/org-123/brand-123/studio/edit/new',
   ])('hides module sidebar on editor canvas route %s', (pathname) => {
     mockPathname.value = pathname;
 
@@ -944,7 +945,7 @@ describe('AppProtectedLayout', () => {
     // Canvas routes still own the left rail, while the application keeps the
     // shared topbar visible during this boot window.
     shellState.isAuthLoaded = false;
-    mockPathname.value = '/org-123/brand-123/editor/new';
+    mockPathname.value = '/org-123/brand-123/studio/edit/new';
 
     render(
       <AppProtectedLayout>
@@ -1158,7 +1159,7 @@ describe('AppProtectedLayout', () => {
     ['/org-123/brand-123/library', 'library', 'Library'],
     ['/org-123/brand-123/analytics', 'analytics', 'Analytics'],
     ['/org-123/brand-123/automate/workflows', 'automate', 'Automate'],
-    ['/org-123/brand-123/posts/remix', 'posts', 'Publish'],
+    ['/org-123/brand-123/publish/remix', 'publish', 'Publish'],
   ])(
     'keeps the %s app-switcher surface on its own module nav',
     (pathname, currentApp, sectionLabel) => {
@@ -1227,11 +1228,10 @@ describe('AppProtectedLayout', () => {
         isAnalyticsRoute={false}
         isComposeRoute={false}
         isConversationRoute={false}
-        isEditorRoute={false}
         isFocusedOnboardingRoute={false}
         isLibraryRoute
         isOrgRoute={false}
-        isPostsRoute={false}
+        isPublishRoute={false}
         isDiscoverRoute={false}
         isSettingsRoute={false}
         isStudioRoute={false}
@@ -1242,7 +1242,7 @@ describe('AppProtectedLayout', () => {
         libraryMenuItems={[{ href: '/library/images', label: 'Images' }]}
         menuItems={[]}
         orgMenuItems={[]}
-        postsMenuItems={[]}
+        publishMenuItems={[]}
         discoverMenuItems={[]}
         secondaryMenuItems={[]}
         settingsMenuItems={[]}
@@ -1272,11 +1272,10 @@ describe('AppProtectedLayout', () => {
         isAnalyticsRoute={false}
         isComposeRoute={false}
         isConversationRoute={false}
-        isEditorRoute={false}
         isFocusedOnboardingRoute={false}
         isLibraryRoute
         isOrgRoute={false}
-        isPostsRoute={false}
+        isPublishRoute={false}
         isDiscoverRoute={false}
         isSettingsRoute={false}
         isStudioRoute={false}
@@ -1287,7 +1286,7 @@ describe('AppProtectedLayout', () => {
         libraryMenuItems={[{ href: '/library/images', label: 'Images' }]}
         menuItems={[]}
         orgMenuItems={[]}
-        postsMenuItems={[]}
+        publishMenuItems={[]}
         discoverMenuItems={[]}
         secondaryMenuItems={[]}
         settingsMenuItems={[]}
@@ -1402,8 +1401,8 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('keeps editor routes inside the workspace shell while skipping editor-only providers', () => {
-    mockPathname.value = '/org-123/brand-123/editor/new';
+  it('keeps the studio edit surface inside the workspace shell while skipping editor-only providers', () => {
+    mockPathname.value = '/org-123/brand-123/studio/edit/new';
 
     render(
       <AppProtectedLayout>

@@ -7,10 +7,10 @@ import { LIBRARY_MENU_ITEMS } from '@app-config/library-menu-items.config';
 import {
   APP_MENU_ITEMS,
   getAppSecondaryMenuItems,
-  POSTS_INSERT_AFTER_LABEL,
+  PUBLISH_INSERT_AFTER_LABEL,
 } from '@app-config/menu-items.config';
 import { ORG_MENU_ITEMS } from '@app-config/org-menu-items.config';
-import { POSTS_MENU_ITEMS } from '@app-config/posts-menu-items.config';
+import { PUBLISH_MENU_ITEMS } from '@app-config/publish-menu-items.config';
 import {
   buildSettingsMenuItems,
   type SettingsScope,
@@ -58,8 +58,8 @@ const AUTOMATE_WORKFLOW_RESERVED = new Set(['executions', 'new', 'templates']);
 
 export function isProtectedEditorCanvasRoute(pathname: string): boolean {
   return (
-    pathname === APP_ROUTES.EDITOR.NEW ||
-    /^\/editor\/[^/]+$/.test(pathname) ||
+    pathname === APP_ROUTES.STUDIO.EDIT_NEW ||
+    /^\/studio\/edit\/[^/]+$/.test(pathname) ||
     pathname === APP_ROUTES.AUTOMATE.WORKFLOWS_NEW ||
     (/^\/automate\/workflows\/([^/]+)$/.test(pathname) &&
       !AUTOMATE_WORKFLOW_RESERVED.has(pathname.split('/')[3] ?? ''))
@@ -107,14 +107,14 @@ export function useAppProtectedLayout(
   const isStudioPromptBarRoute =
     /^\/studio\/(batch|clips|fastlane|storyboard)(?:\/|$)/.test(pathname);
   const isStudioRoute = pathname.startsWith(APP_ROUTE_PREFIXES.STUDIO);
-  const isPostsPromptBarRoute = pathname === APP_ROUTES.POSTS.ROOT;
-  const isPostsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.POSTS);
+  const isPublishPromptBarRoute = pathname === APP_ROUTES.PUBLISH.ROOT;
+  const isPublishRoute = pathname.startsWith(APP_ROUTE_PREFIXES.PUBLISH);
   const isMissionControlPromptBarRoute =
     pathname === APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS ||
     pathname === APP_ROUTES.AUTOMATE.RUNS;
   const isPromptBarRoute =
     isStudioPromptBarRoute ||
-    isPostsPromptBarRoute ||
+    isPublishPromptBarRoute ||
     isMissionControlPromptBarRoute;
   const isSettingsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.SETTINGS);
   const hasSecondaryTopbar =
@@ -122,26 +122,24 @@ export function useAppProtectedLayout(
   const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);
   const isMoodboardRoute = pathname === APP_ROUTES.LIBRARY.MOODBOARD;
   const isAutomateRoute = pathname.startsWith(APP_ROUTE_PREFIXES.AUTOMATE);
-  const isEditorRoute = pathname.startsWith(APP_ROUTE_PREFIXES.EDITOR);
   const isAnalyticsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.ANALYTICS);
   // Org shell only for true org destinations (overview, etc.). Module routes
-  // under `/:org/~/posts|studio|…` keep their own app sidebars — otherwise
-  // Publish/posts steals the Organization menu.
+  // under `/:org/~/publish|studio|…` keep their own app sidebars — otherwise
+  // Publish steals the Organization menu.
   const isOrgRoute = (() => {
     const parts = rawPathname.split('/').filter(Boolean);
     return (
       parts[1] === '~' &&
       !pathname.startsWith(APP_ROUTE_PREFIXES.SETTINGS) &&
       !isConversationRoute &&
-      !isPostsRoute &&
+      !isPublishRoute &&
       !isAnalyticsRoute &&
       !isComposeRoute &&
       !isStudioRoute &&
       !isLibraryRoute &&
       !isDiscoverRoute &&
       !isAutomateRoute &&
-      !isMessagesRoute &&
-      !isEditorRoute
+      !isMessagesRoute
     );
   })();
   const workspaceShellRoute = useMemo(
@@ -157,21 +155,19 @@ export function useAppProtectedLayout(
       ? 'library'
       : isDiscoverRoute
         ? 'discover'
-        : isPostsRoute
-          ? 'posts'
+        : isPublishRoute
+          ? 'publish'
           : isComposeRoute
             ? 'compose'
             : isAutomateRoute
               ? 'automate'
-              : isEditorRoute
-                ? 'editor'
-                : isAnalyticsRoute
-                  ? 'analytics'
-                  : isMessagesRoute
-                    ? 'messages'
-                    : isAgentRoute
-                      ? 'agent'
-                      : 'workspace';
+              : isAnalyticsRoute
+                ? 'analytics'
+                : isMessagesRoute
+                  ? 'messages'
+                  : isAgentRoute
+                    ? 'agent'
+                    : 'workspace';
 
   const shouldInitAgentApiService =
     isConversationRoute || isUniversalWorkspaceShell;
@@ -200,7 +196,7 @@ export function useAppProtectedLayout(
   }, [getToken]);
 
   const dynamicMenuItems = useMenuItems({
-    insertAfterLabel: POSTS_INSERT_AFTER_LABEL,
+    insertAfterLabel: PUBLISH_INSERT_AFTER_LABEL,
     items: APP_MENU_ITEMS,
   });
   const { orgSlug, brandSlug } = useOrgUrl();
@@ -327,9 +323,9 @@ export function useAppProtectedLayout(
     [taskContextSearchParams],
   );
 
-  const postsMenuItems = useMemo(
+  const publishMenuItems = useMemo(
     () =>
-      POSTS_MENU_ITEMS.map(
+      PUBLISH_MENU_ITEMS.map(
         (item): MenuItemConfig => ({
           ...item,
           href: withTaskContextHref(item.href, taskContextSearchParams),
@@ -440,14 +436,13 @@ export function useAppProtectedLayout(
     isComposeRoute,
     isConversationRoute,
     isEditorCanvasRoute,
-    isEditorRoute,
     isFocusedOnboardingRoute,
     isLibraryLandingRoute,
     isLibraryRoute,
     isMessagesRoute,
     isMoodboardRoute,
     isOrgRoute,
-    isPostsRoute,
+    isPublishRoute,
     isPromptBarRoute,
     isDiscoverRoute,
     isSettingsRoute,
@@ -473,7 +468,7 @@ export function useAppProtectedLayout(
     libraryMenuItems,
     menuItems,
     orgMenuItems,
-    postsMenuItems,
+    publishMenuItems,
     discoverMenuItems,
     secondaryMenuItems,
     settingsMenuItems,

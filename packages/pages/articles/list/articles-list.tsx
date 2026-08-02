@@ -1,13 +1,18 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { COMPOSE_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/constants';
+import {
+  createArtifactEditorRoute,
+  ITEMS_PER_PAGE,
+  withArtifactEditorReturn,
+} from '@genfeedai/constants';
 import { ModalEnum } from '@genfeedai/enums';
 import type { IQueryParams } from '@genfeedai/interfaces';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { capitalize } from '@helpers/formatting/format/format.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Article } from '@models/content/article.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { ArticlesService } from '@services/content/articles.service';
@@ -19,7 +24,7 @@ import AppTable from '@ui/display/table/Table';
 import { LazyModalArticle } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Newspaper } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
 interface ArticlesListProps {
@@ -30,7 +35,10 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
   const notificationsService = NotificationsService.getInstance();
   const { brandId, organizationId } = useBrand();
   const router = useRouter();
+  const { href } = useOrgUrl();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
+  const searchParamsString = searchParams?.toString() ?? '';
   const currentPage = Number(searchParams?.get('page')) || 1;
 
   const getArticlesService = useAuthedService(
@@ -109,8 +117,14 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
     findAllArticles();
   }, [findAllArticles]);
 
+  /** Refinement belongs to the artifact — open the article's own editor page. */
   function handleRowClick(article: Article): void {
-    router.push(`${COMPOSE_ROUTES.ARTICLE}?id=${article.id}`);
+    router.push(
+      withArtifactEditorReturn(
+        href(createArtifactEditorRoute('article', article.id)),
+        searchParamsString ? `${pathname}?${searchParamsString}` : pathname,
+      ),
+    );
   }
 
   function handleArticleCreated(): void {

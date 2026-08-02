@@ -692,9 +692,22 @@ test('coverage runs are sharded by the planner, like the tests they mirror', () 
     // Each shard carries its own outcome and wall clock: a matrix job's outputs
     // are last-writer-wins, and step-level continue-on-error hides a failed step
     // from the job result.
-    assert.match(job, /\.coverage-shard\/outcome/);
-    assert.match(job, /\.coverage-shard\/seconds/);
+    assert.match(job, /(?<!\.)coverage-shard\/outcome/);
+    assert.match(job, /(?<!\.)coverage-shard\/seconds/);
     assert.match(job, /-shard-\$\{\{ matrix\.shard \}\}\n/);
+
+    // The staging directory must not be hidden. `upload-artifact` defaults
+    // `include-hidden-files: false`, so a leading dot makes it skip every
+    // staged file, and `if-no-files-found: ignore` swallows the warning: the
+    // shards run green, upload nothing, and the report silently falls back to
+    // the job result with no lcov and no latency. Cost one full CI round on
+    // #2326 to find, because that PR's own diff was entirely excluded files so
+    // the empty report looked legitimate.
+    assert.doesNotMatch(
+      job,
+      /path: \./,
+      `${name} must stage shards outside the hidden namespace`,
+    );
   }
 });
 
