@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 describe('AdsAgentCards', () => {
   it('renders ads search results with item metadata and links', () => {
     const action: AgentUiAction = {
-      ctas: [{ href: '/research/ads/meta', label: 'Open Meta ads' }],
+      ctas: [{ href: '/discover/ads/meta', label: 'Open Meta ads' }],
       description: 'Top public and connected ads for the current niche.',
       id: 'ads-search-1',
       items: [
@@ -38,7 +38,7 @@ describe('AdsAgentCards', () => {
     expect(screen.getByText('High intent search ad')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Open Meta ads' })).toHaveAttribute(
       'href',
-      '/research/ads/meta',
+      '/discover/ads/meta',
     );
   });
 
@@ -63,9 +63,7 @@ describe('AdsAgentCards', () => {
 
   it('renders launch prep review state', () => {
     const action: AgentUiAction = {
-      ctas: [
-        { href: '/orchestration/workflows/wf-ads-1', label: 'Open workflow' },
-      ],
+      ctas: [{ href: '/automate/workflows/wf-ads-1', label: 'Open workflow' }],
       data: {
         channel: 'youtube',
         platform: 'google',
@@ -85,7 +83,7 @@ describe('AdsAgentCards', () => {
     ).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Open workflow' })).toHaveAttribute(
       'href',
-      '/orchestration/workflows/wf-ads-1',
+      '/automate/workflows/wf-ads-1',
     );
   });
 });

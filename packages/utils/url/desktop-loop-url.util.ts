@@ -91,7 +91,7 @@ export function buildTrendSourceTwitterDraftHref(
   source: TrendSourceItem,
   isThread: boolean = false,
 ): string {
-  return `/posts/remix${buildQuery({
+  return `/publish/remix${buildQuery({
     mode: isThread ? 'thread' : 'tweet',
     platform: 'twitter',
     sourceAuthor: source.authorHandle,

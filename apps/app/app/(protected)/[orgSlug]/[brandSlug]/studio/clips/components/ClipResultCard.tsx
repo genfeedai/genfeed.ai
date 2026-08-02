@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import { buildClipDraftAgentHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { downloadUrl } from '@helpers/media/download/download.helper';
@@ -109,7 +110,7 @@ export default function ClipResultCard({
 
       push(href(handoff.editorPath));
     } catch {
-      push(href('/editor'));
+      push(href(APP_ROUTES.STUDIO.EDIT));
     }
   }, [clip._id, projectId, videoUrl, clipsService, href, push]);
 
@@ -248,7 +249,7 @@ export default function ClipResultCard({
               variant={ButtonVariant.UNSTYLED}
               className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg bg-secondary px-3 py-2 text-xs font-medium text-secondary-foreground transition-colors hover:bg-accent sm:min-h-8"
               onClick={handleEdit}
-              title="Edit in video editor"
+              title="Edit in Studio"
             >
               <SquarePen className="size-3.5" />
               <span>Edit</span>

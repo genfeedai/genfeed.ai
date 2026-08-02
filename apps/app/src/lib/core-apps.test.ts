@@ -1,5 +1,19 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getCoreAppFeatureFlagFallbacks } from './core-apps';
+import { CORE_APPS, getCoreAppFeatureFlagFallbacks } from './core-apps';
+
+describe('CORE_APPS', () => {
+  it('exposes exactly Agent, Automate, and Studio', () => {
+    expect(CORE_APPS.map((app) => app.id)).toEqual([
+      'agent',
+      'automate',
+      'studio',
+    ]);
+  });
+
+  it('has no standalone editor app — editing lives inside Studio', () => {
+    expect(CORE_APPS.some((app) => app.href.startsWith('/editor'))).toBe(false);
+  });
+});
 
 describe('getCoreAppFeatureFlagFallbacks', () => {
   afterEach(() => {
@@ -18,7 +32,7 @@ describe('getCoreAppFeatureFlagFallbacks', () => {
       app_switcher_library: false,
       app_switcher_messages: false,
       app_switcher_posts: false,
-      app_switcher_research: false,
+      app_switcher_discover: false,
       app_switcher_studio: false,
       app_switcher_workspace: false,
       studio: true,
@@ -37,7 +51,7 @@ describe('getCoreAppFeatureFlagFallbacks', () => {
       app_switcher_library: true,
       app_switcher_messages: true,
       app_switcher_posts: true,
-      app_switcher_research: true,
+      app_switcher_discover: true,
       app_switcher_studio: true,
       app_switcher_workspace: true,
       studio: true,
@@ -56,7 +70,7 @@ describe('getCoreAppFeatureFlagFallbacks', () => {
       app_switcher_library: true,
       app_switcher_messages: true,
       app_switcher_posts: true,
-      app_switcher_research: true,
+      app_switcher_discover: true,
       app_switcher_studio: true,
       app_switcher_workspace: true,
       studio: true,

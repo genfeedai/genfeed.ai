@@ -1,4 +1,4 @@
-import { APP_ROUTES, buildArtifactEditorRoute } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockActiveSubscription,
   mockPostsList,
@@ -9,8 +9,8 @@ import { expect, test } from '../../fixtures/auth.fixture';
 /**
  * E2E Tests for Posts Sub-Routes (Content Types)
  *
- * Covers: /artifacts/:type/:id, /posts/newsletters,
- *         /posts/remix, /posts/review
+ * Covers: /edit/:type/:id, /publish/newsletters,
+ *         /publish/remix, /publish/review
  *
  * CRITICAL: All tests use mocked API responses.
  * No real backend calls occur.
@@ -24,14 +24,12 @@ test.describe('Posts — Content Types', () => {
     await mockPostsList(authenticatedPage);
   });
 
-  test('article artifact editor loads at /artifacts/article/:id', async ({
+  test('article editor loads at /edit/article/:id', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(
-      buildArtifactEditorRoute('article', 'article-1'),
-    );
+    await authenticatedPage.goto('/edit/article/article-1');
 
-    await expect(authenticatedPage).toHaveURL(/artifacts\/article\/article-1/);
+    await expect(authenticatedPage).toHaveURL(/edit\/article\/article-1/);
   });
 
   test('newsletters page loads newsletter list', async ({
@@ -53,34 +51,30 @@ test.describe('Posts — Content Types', () => {
       await route.continue();
     });
 
-    await authenticatedPage.goto(APP_ROUTES.POSTS.NEWSLETTERS);
+    await authenticatedPage.goto(APP_ROUTES.PUBLISH.NEWSLETTERS);
 
-    await expect(authenticatedPage).toHaveURL(/posts\/newsletters/);
+    await expect(authenticatedPage).toHaveURL(/publish\/newsletters/);
     // Page should render newsletter-specific content
     await expect(
       authenticatedPage.getByText(/newsletter/i).first(),
     ).toBeVisible();
   });
 
-  test('newsletter artifact editor opens with the editor visible', async ({
+  test('newsletter editor opens with editor visible', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(
-      buildArtifactEditorRoute('newsletter', 'newsletter-1'),
-    );
+    await authenticatedPage.goto('/edit/newsletter/newsletter-1');
 
-    await expect(authenticatedPage).toHaveURL(
-      /artifacts\/newsletter\/newsletter-1/,
-    );
+    await expect(authenticatedPage).toHaveURL(/edit\/newsletter\/newsletter-1/);
     await expect(
-      authenticatedPage.getByText(/newsletter|editor|write/i).first(),
+      authenticatedPage.getByText(/article|compose|editor|write/i).first(),
     ).toBeVisible();
   });
 
   test('remix page loads remix interface', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto(APP_ROUTES.POSTS.REMIX);
+    await authenticatedPage.goto(APP_ROUTES.PUBLISH.REMIX);
 
-    await expect(authenticatedPage).toHaveURL(/posts\/remix/);
+    await expect(authenticatedPage).toHaveURL(/publish\/remix/);
     // Remix page should render its interface
     await expect(
       authenticatedPage.getByText(/remix|trend/i).first(),
@@ -90,9 +84,9 @@ test.describe('Posts — Content Types', () => {
   test('review page shows review queue', async ({ authenticatedPage }) => {
     await mockReviewQueue(authenticatedPage);
 
-    await authenticatedPage.goto(APP_ROUTES.POSTS.REVIEW);
+    await authenticatedPage.goto(APP_ROUTES.PUBLISH.REVIEW);
 
-    await expect(authenticatedPage).toHaveURL(/posts\/review/);
+    await expect(authenticatedPage).toHaveURL(/publish\/review/);
     // Review queue should display batch/review UI
     await expect(
       authenticatedPage.getByText(/review|queue|batch|approve/i).first(),
@@ -102,7 +96,7 @@ test.describe('Posts — Content Types', () => {
   test('unauthenticated user is redirected from posts routes', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.POSTS.ROOT);
+    await unauthenticatedPage.goto(APP_ROUTES.PUBLISH.ROOT);
 
     // Should redirect to login
     await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {

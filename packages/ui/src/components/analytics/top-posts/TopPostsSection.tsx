@@ -36,7 +36,7 @@ export interface TopPostsSectionProps {
 export default function TopPostsSection({
   posts,
   isLoading = false,
-  basePath = '/posts',
+  basePath = '/publish',
   className = '',
 }: TopPostsSectionProps) {
   if (isLoading) {

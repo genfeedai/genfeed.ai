@@ -46,7 +46,7 @@ describe('APP_MENU_ITEMS', () => {
     const hrefs = APP_MENU_ITEMS.map((item) => item.href);
 
     expect(groups).toEqual([]);
-    expect(hrefs).not.toContain('/posts');
+    expect(hrefs).not.toContain('/publish');
   });
 
   it('gives workspace first-class subroutes in the main sidebar', () => {
@@ -79,7 +79,7 @@ describe('APP_MENU_ITEMS', () => {
       [],
     );
 
-    // Only /posts/analytics is allowed — no /analytics/* items
+    // Analytics destinations belong to the Analytics module's own sidebar
     expect(analyticsGroupHrefs).toHaveLength(0);
   });
 
@@ -96,18 +96,18 @@ describe('APP_MENU_ITEMS', () => {
 
     expect(hrefs).not.toContain('/mission-control');
     expect(hrefs).not.toContain('/automations');
-    expect(hrefs).not.toContain('/orchestration/activities');
-    expect(hrefs).not.toContain('/orchestration/reply-bots');
-    expect(hrefs).not.toContain('/orchestration/bots');
-    expect(hrefs).not.toContain('/posts/campaigns');
-    expect(hrefs).not.toContain('/orchestration/runs');
-    expect(hrefs).not.toContain('/orchestration/workflows');
-    expect(hrefs).not.toContain('/orchestration/autopilot');
-    expect(hrefs).not.toContain('/orchestration/configuration');
+    expect(hrefs).not.toContain('/automate/activities');
+    expect(hrefs).not.toContain('/automate/reply-bots');
+    expect(hrefs).not.toContain('/automate/bots');
+    expect(hrefs).not.toContain('/publish/campaigns');
+    expect(hrefs).not.toContain('/automate/runs');
+    expect(hrefs).not.toContain('/automate/workflows');
+    expect(hrefs).not.toContain('/automate/autopilot');
+    expect(hrefs).not.toContain('/automate/configuration');
     expect(hrefs).not.toContain('/agent');
-    expect(hrefs).not.toContain('/posts/composer');
-    expect(hrefs).not.toContain('/posts/articles');
-    expect(hrefs).not.toContain('/posts/newsletters');
+    expect(hrefs).not.toContain('/publish/composer');
+    expect(hrefs).not.toContain('/publish/articles');
+    expect(hrefs).not.toContain('/publish/newsletters');
     expect(groups).not.toContain('Automations');
     expect(groups).not.toContain('Chat');
     expect(groups).not.toContain('Content');
@@ -119,7 +119,7 @@ describe('APP_MENU_ITEMS', () => {
   it('does not expose Operations or Create groups (workflows now live in their own sidebar)', () => {
     const hrefs = APP_MENU_ITEMS.map((item) => item.href);
 
-    expect(hrefs).not.toContain('/orchestration/workflows/executions');
+    expect(hrefs).not.toContain('/automate/workflows/executions');
     expect(hrefs).not.toContain('/compose/post');
   });
 });

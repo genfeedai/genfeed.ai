@@ -115,6 +115,17 @@ const INSPECTOR_TRANSITION_DURATION_MS = 300;
 const INSPECTOR_TRANSITION_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
 const INSPECTOR_RAIL_TRANSITION = `width ${INSPECTOR_TRANSITION_DURATION_MS}ms ${INSPECTOR_TRANSITION_EASING}, min-width ${INSPECTOR_TRANSITION_DURATION_MS}ms ${INSPECTOR_TRANSITION_EASING}`;
 
+// The workflow inspector belongs to the Automate module's workflow family: the
+// graph canvas (`workflows/new`, `workflows/:id`) plus the list, templates and
+// executions routes that share the module surface key. Both keys are checked
+// because the canvas routes are registered as their own surface; the pathname
+// still has to carry a `workflows` segment so sibling Automate routes (runs,
+// skills, autopilot) keep the generic inspector.
+const WORKFLOW_INSPECTOR_SURFACE_KEYS: ReadonlySet<string> = new Set([
+  'automate',
+  'automate-workflows-editor',
+]);
+
 type WorkspaceInspectorTab = 'context' | 'conversation';
 
 type UniversalWorkspaceShellProps = {
@@ -311,6 +322,9 @@ function UniversalWorkspaceShellContent({
       ),
     [rawPathname, searchParamsString],
   );
+  const isWorkflowInspectorSurface =
+    WORKFLOW_INSPECTOR_SURFACE_KEYS.has(surfaceKey) &&
+    workflowSurfaceRoute.workflowBaseHref !== null;
   // The composer follows the conversation surface. `/agent/*` owns the canvas,
   // so its composer stays there. Every product route keeps its canvas clear and
   // hosts the composer with the conversation in the inspector. Registered
@@ -714,7 +728,7 @@ function UniversalWorkspaceShellContent({
       }
 
       const destinationHref = buildLibraryRemixIntentHref(
-        href(APP_ROUTES.POSTS.REMIX),
+        href(APP_ROUTES.PUBLISH.REMIX),
         reference,
       );
       const launch = resolveWorkspaceSurfaceLaunch({
@@ -760,8 +774,8 @@ function UniversalWorkspaceShellContent({
     (workflow?: WorkflowSummary) => {
       const destinationHref = href(
         workflow
-          ? `${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/${workflow._id}`
-          : APP_ROUTES.ORCHESTRATION.WORKFLOWS,
+          ? `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow._id}`
+          : APP_ROUTES.AUTOMATE.WORKFLOWS,
       );
       const launch = resolveWorkspaceSurfaceLaunch({
         currentHref,
@@ -975,7 +989,7 @@ function UniversalWorkspaceShellContent({
               {conversationScope.inspectorScope}
               {productSurfaceAdapter ? (
                 productSurfaceAdapter.renderInspector()
-              ) : surfaceKey === 'workflows' ? (
+              ) : isWorkflowInspectorSurface ? (
                 <WorkflowSurfaceInspector
                   contextVersion={activeThread?.contextVersion}
                   pathname={rawPathname}

@@ -12,7 +12,7 @@ describe('conversation composer action registry', () => {
     expect(CONVERSATION_COMPOSER_ACTIONS.map((action) => action.name)).toEqual([
       'create',
       'remix',
-      'research',
+      'discover',
       'workflow',
       'schedule',
       'publish',
@@ -24,7 +24,7 @@ describe('conversation composer action registry', () => {
   it('maps publish to review without granting publish authority', () => {
     expect(getConversationComposerAction('publish')).toMatchObject({
       isConsequentialProposal: true,
-      route: APP_ROUTES.POSTS.REVIEW,
+      route: APP_ROUTES.PUBLISH.REVIEW,
     });
   });
 
@@ -46,35 +46,35 @@ describe('conversation composer action registry', () => {
         name: 'remix',
         resolved: expect.objectContaining({
           requiredScope: 'brand',
-          route: APP_ROUTES.POSTS.REMIX,
+          route: APP_ROUTES.PUBLISH.REMIX,
         }),
       },
       {
-        name: 'research',
+        name: 'discover',
         resolved: expect.objectContaining({
           requiredScope: 'brand',
-          route: APP_ROUTES.RESEARCH.ROOT,
+          route: APP_ROUTES.DISCOVER.ROOT,
         }),
       },
       {
         name: 'workflow',
         resolved: expect.objectContaining({
           requiredScope: 'brand',
-          route: APP_ROUTES.ORCHESTRATION.WORKFLOWS,
+          route: APP_ROUTES.AUTOMATE.WORKFLOWS,
         }),
       },
       {
         name: 'schedule',
         resolved: expect.objectContaining({
           requiredScope: 'brand',
-          route: APP_ROUTES.POSTS.CALENDAR,
+          route: APP_ROUTES.PUBLISH.CALENDAR,
         }),
       },
       {
         name: 'publish',
         resolved: expect.objectContaining({
           requiredScope: 'brand',
-          route: APP_ROUTES.POSTS.REVIEW,
+          route: APP_ROUTES.PUBLISH.REVIEW,
         }),
       },
       {
@@ -95,9 +95,9 @@ describe('conversation composer action registry', () => {
   });
 
   it('parses only an explicit leading allowlisted command', () => {
-    expect(parseConversationComposerCommand('/research competitors')).toEqual({
+    expect(parseConversationComposerCommand('/discover competitors')).toEqual({
       invocation: {
-        action: getConversationComposerAction('research'),
+        action: getConversationComposerAction('discover'),
         arguments: 'competitors',
       },
       kind: 'action',

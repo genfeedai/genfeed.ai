@@ -51,7 +51,7 @@ export class AgentCampaignToolHandler {
         {
           ctas: [
             {
-              href: `/posts/outreach-campaigns/${campaignId}`,
+              href: `/publish/outreach-campaigns/${campaignId}`,
               label: 'Open campaign',
             },
             {
@@ -158,7 +158,7 @@ export class AgentCampaignToolHandler {
         {
           ctas: [
             {
-              href: `/posts/outreach-campaigns/${campaignId}`,
+              href: `/publish/outreach-campaigns/${campaignId}`,
               label: 'Open campaign',
             },
           ],

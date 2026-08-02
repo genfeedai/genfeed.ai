@@ -222,7 +222,7 @@ function buildSectionSummaries(
     },
     {
       color: 'text-muted-foreground',
-      href: APP_ROUTES.ORCHESTRATION.OVERVIEW,
+      href: APP_ROUTES.AUTOMATE.OVERVIEW,
       icon: Settings,
       kicker: 'Automate',
       label: 'Automation',
@@ -360,12 +360,12 @@ export default function OverviewPageContent({
     () => [
       {
         color: 'bg-secondary text-muted-foreground',
-        cta: 'Open Research',
+        cta: 'Open Discover',
         description: 'Start with the strongest live signals',
-        href: APP_ROUTES.RESEARCH.DISCOVERY,
+        href: APP_ROUTES.DISCOVER.DISCOVERY,
         icon: TrendingUp,
         id: 'trends',
-        label: 'Research',
+        label: 'Discover',
       },
       {
         color: 'bg-secondary text-muted-foreground',
@@ -383,7 +383,7 @@ export default function OverviewPageContent({
           reviewInbox.readyCount > 0
             ? `${reviewInbox.readyCount} items are ready to review before posting`
             : 'No assets are waiting for review right now',
-        href: APP_ROUTES.POSTS.REVIEW,
+        href: APP_ROUTES.PUBLISH.REVIEW,
         icon: ClipboardCheck,
         id: 'review',
         label: 'Publishing Inbox',
@@ -392,7 +392,7 @@ export default function OverviewPageContent({
         color: 'bg-secondary text-muted-foreground',
         cta: 'Open Schedule',
         description: 'Manage drafts, scheduled posts, and publishing windows',
-        href: APP_ROUTES.POSTS.SCHEDULED,
+        href: APP_ROUTES.PUBLISH.SCHEDULED,
         icon: Calendar,
         id: 'schedule',
         label: 'Schedule',
@@ -410,7 +410,7 @@ export default function OverviewPageContent({
         color: 'bg-secondary text-muted-foreground',
         cta: 'Open Agents',
         description: 'Monitor agent runs, workflows, and brand operations',
-        href: APP_ROUTES.ORCHESTRATION.RUNS,
+        href: APP_ROUTES.AUTOMATE.RUNS,
         icon: Sparkles,
         id: 'automations',
         label: 'Agents',
@@ -449,7 +449,7 @@ export default function OverviewPageContent({
           <OverviewTrendsPanel
             trends={trends}
             isLoading={isTrendsLoading}
-            viewAllHref={href('/research/discovery')}
+            viewAllHref={href('/discover/discovery')}
           />
         </div>
       </div>

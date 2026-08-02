@@ -149,16 +149,16 @@ describe('commands.registry', () => {
       );
     });
 
-    it('research action should navigate to brand-scoped research URL', () => {
+    it('discover action should navigate to brand-scoped discover URL', () => {
       const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-      const researchCmd = navigationCommands.find(
-        (c) => c.id === 'nav-research',
+      const discoverCmd = navigationCommands.find(
+        (c) => c.id === 'nav-discover',
       );
 
-      researchCmd?.action();
+      discoverCmd?.action();
 
       expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/research/discovery`,
+        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/discover/discovery`,
       );
     });
 
@@ -173,14 +173,14 @@ describe('commands.registry', () => {
       );
     });
 
-    it('agents action should navigate to brand-scoped orchestration workflows URL', () => {
+    it('agents action should navigate to brand-scoped automate workflows URL', () => {
       const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
       const agentsCmd = navigationCommands.find((c) => c.id === 'nav-agents');
 
       agentsCmd?.action();
 
       expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/orchestration/workflows`,
+        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/automate/workflows`,
       );
     });
 
@@ -191,7 +191,7 @@ describe('commands.registry', () => {
       postsCmd?.action();
 
       expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/posts`,
+        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/publish`,
       );
     });
 

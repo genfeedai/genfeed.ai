@@ -67,9 +67,9 @@ describe('Research work surface URL contract', () => {
     ).toBeNull();
     expect(
       buildResearchWorkSurfaceHref(
-        '/acme/moonrise/research/following',
+        '/acme/moonrise/discover/following',
         new URLSearchParams({ page: '2' }),
       ),
-    ).toBe('/acme/moonrise/research/following?page=2');
+    ).toBe('/acme/moonrise/discover/following?page=2');
   });
 });

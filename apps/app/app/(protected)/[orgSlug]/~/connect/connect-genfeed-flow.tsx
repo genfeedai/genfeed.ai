@@ -70,7 +70,6 @@ const CLIENTS: readonly ConnectGenfeedClientOption[] = [
 const FIRST_ACTION_PROMPT =
   'List my Genfeed brands, then create a draft social post for review. Do not publish it.';
 
-// The in-app equivalent of the MCP first action: the Agent writes the draft.
 const DRAFT_POST_AGENT_HREF = buildAgentPromptHref(
   'Draft a social post for my brand and hold it for review — do not publish it.',
 );
@@ -325,7 +324,7 @@ export default function ConnectGenfeedFlow() {
     verification?.status === 'connected' && verification.publishing.isReady
       ? firstBrandSlug
         ? `/${params.orgSlug}/${firstBrandSlug}${DRAFT_POST_AGENT_HREF}`
-        : `/${params.orgSlug}/~/posts`
+        : `/${params.orgSlug}/~/publish`
       : `/${params.orgSlug}/~/settings/brands`;
 
   return (

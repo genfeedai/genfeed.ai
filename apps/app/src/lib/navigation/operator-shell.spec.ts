@@ -75,14 +75,14 @@ describe('operator-shell helpers', () => {
       '/overview',
       '/library',
       '/analytics',
-      '/orchestration',
-      '/orchestration/workflows',
-      '/posts/calendar',
+      '/automate',
+      '/automate/workflows',
+      '/publish/calendar',
     ]) {
       expect(isAssetGateSectionPath(gated)).toBe(true);
     }
 
-    // Never gated: agent, settings, studio, research, publish base, messages,
+    // Never gated: agent, settings, studio, discover, publish base, messages,
     // admin — and a look-alike prefix must not false-match.
     for (const open of [
       '/agent',
@@ -90,8 +90,8 @@ describe('operator-shell helpers', () => {
       '/settings',
       '/settings/organization',
       '/studio/image',
-      '/research/discovery',
-      '/posts',
+      '/discover/discovery',
+      '/publish',
       '/messages',
       '/admin',
       '/analytics-preview',
@@ -157,7 +157,20 @@ describe('operator-shell helpers', () => {
       '/agent/new?taskExecutionPath=caption_generation&taskId=task-42&taskOutputType=caption&taskSource=workspace&taskTitle=Draft+launch+hooks',
     );
     expect(buildTaskLaunchHref(task, 'edit')).toBe(
-      '/editor?taskExecutionPath=caption_generation&taskId=task-42&taskOutputType=caption&taskSource=workspace&taskTitle=Draft+launch+hooks',
+      '/studio/edit?taskExecutionPath=caption_generation&taskId=task-42&taskOutputType=caption&taskSource=workspace&taskTitle=Draft+launch+hooks',
+    );
+  });
+
+  it('routes edit tasks to Agent when Studio is unavailable', () => {
+    const task = {
+      executionPathUsed: 'video_generation',
+      id: 'task-101',
+      outputType: 'video',
+      title: 'Trim launch teaser',
+    } as Task;
+
+    expect(buildTaskLaunchHref(task, 'edit', { studio: false })).toBe(
+      '/agent/new?taskExecutionPath=video_generation&taskId=task-101&taskOutputType=video&taskSource=workspace&taskTitle=Trim+launch+teaser',
     );
   });
 

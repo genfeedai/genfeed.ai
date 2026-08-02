@@ -85,15 +85,15 @@ export function createNavigationCommands(
     },
     {
       action: () => {
-        navigate(`${brandPath}/research/discovery`);
+        navigate(`${brandPath}/discover/discovery`);
       },
       category: 'navigation',
       condition: () => EnvironmentService.currentApp !== 'app',
       description: 'Discover trends and research content ideas',
       icon: Search,
-      id: 'nav-research',
-      keywords: ['research', 'trends', 'discover', 'content'],
-      label: 'Go to Research',
+      id: 'nav-discover',
+      keywords: ['discover', 'research', 'trends', 'content'],
+      label: 'Go to Discover',
       priority: 10,
       shortcut: ['⌘', '2'],
     },
@@ -127,7 +127,7 @@ export function createNavigationCommands(
     },
     {
       action: () => {
-        navigate(`${brandPath}/posts`);
+        navigate(`${brandPath}/publish`);
       },
       category: 'navigation',
       condition: () => EnvironmentService.currentApp !== 'app',
@@ -155,7 +155,7 @@ export function createNavigationCommands(
     },
     {
       action: () => {
-        navigate(`${brandPath}/orchestration/workflows`);
+        navigate(`${brandPath}/automate/workflows`);
       },
       category: 'navigation',
       condition: () => EnvironmentService.currentApp !== 'app',

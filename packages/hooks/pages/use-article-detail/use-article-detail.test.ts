@@ -28,6 +28,15 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => getArticlesServiceMock),
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: vi.fn(() => ({
+    brandSlug: 'paperclip',
+    href: (path: string) => `/genfeed-ai/paperclip${path}`,
+    orgHref: (path: string) => `/genfeed-ai${path}`,
+    orgSlug: 'genfeed-ai',
+  })),
+}));
+
 vi.mock('@genfeedai/services/content/articles.service', () => ({
   ArticlesService: {
     getInstance: vi.fn(() => articlesServiceMock),
@@ -149,7 +158,7 @@ describe('useArticleDetail', () => {
     );
   });
 
-  it('navigates to the artifact editor after creating a new article', async () => {
+  it('navigates to the scoped article editor after creating a new article', async () => {
     const { result } = renderHook(() => useArticleDetail({}));
 
     act(() => {
@@ -164,7 +173,7 @@ describe('useArticleDetail', () => {
 
     await waitFor(() => {
       expect(pushMock).toHaveBeenCalledWith(
-        '/artifacts/article/article-created-1',
+        '/genfeed-ai/paperclip/edit/article/article-created-1',
       );
     });
   });

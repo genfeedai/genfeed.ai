@@ -45,7 +45,7 @@ export function useGlobalModalsState() {
   const handlePostCreated = useCallback(
     (postId: string) => {
       closeModal(ModalEnum.POST);
-      router.push(href(`/posts/${postId}`));
+      router.push(href(`/publish/${postId}`));
     },
     [router, href],
   );

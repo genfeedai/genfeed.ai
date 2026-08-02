@@ -50,14 +50,12 @@ let hasWarnedAboutHostedModeMisconfiguration = false;
 const BRAND_SCOPED_PREFIXES = [
   APP_ROUTE_PREFIXES.ANALYTICS.slice(1),
   APP_ROUTE_PREFIXES.AGENT.slice(1),
-  APP_ROUTE_PREFIXES.COMPOSE.slice(1),
-  APP_ROUTE_PREFIXES.EDITOR.slice(1),
   LEGACY_APP_ROUTES.TASKS.slice(1),
   APP_ROUTE_PREFIXES.LIBRARY.slice(1),
-  APP_ROUTE_PREFIXES.ORCHESTRATION.slice(1),
+  APP_ROUTE_PREFIXES.AUTOMATE.slice(1),
   APP_ROUTE_PREFIXES.OVERVIEW.slice(1),
-  APP_ROUTE_PREFIXES.POSTS.slice(1),
-  APP_ROUTE_PREFIXES.RESEARCH.slice(1),
+  APP_ROUTE_PREFIXES.PUBLISH.slice(1),
+  APP_ROUTE_PREFIXES.DISCOVER.slice(1),
   APP_ROUTE_PREFIXES.STUDIO.slice(1),
   APP_ROUTE_PREFIXES.WORKSPACE.slice(1),
 ] as const;
@@ -67,7 +65,7 @@ const ORG_SCOPED_PREFIXES = [APP_ROUTE_PREFIXES.SETTINGS.slice(1)] as const;
 const FLAT_PATH_REDIRECTS = new Map<string, string>([
   [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
   [APP_ROUTE_PREFIXES.LIBRARY, APP_ROUTES.LIBRARY.OVERVIEW],
-  [APP_ROUTES.RESEARCH.ROOT, APP_ROUTES.RESEARCH.DISCOVERY],
+  [APP_ROUTES.DISCOVER.ROOT, APP_ROUTES.DISCOVER.DISCOVERY],
   [APP_ROUTES.STUDIO.ROOT, APP_ROUTES.STUDIO.IMAGE],
   [LEGACY_APP_ROUTES.TASKS, APP_ROUTES.WORKSPACE.TASKS],
   [APP_ROUTES.WORKSPACE.ROOT, APP_ROUTES.WORKSPACE.OVERVIEW],
@@ -577,9 +575,8 @@ type CanonicalResolution = {
 const ORG_ROOT_APP_PREFIXES = [
   'analytics',
   'agent',
-  'editor',
   'library',
-  'posts',
+  'publish',
   'settings',
   'studio',
 ] as const;
@@ -594,17 +591,11 @@ function createOrgScopedCanonicalPath(
     return `/${orgSlug}/~/overview`;
   }
 
-  // Artifact editors are brand-scoped by construction — an artifact belongs to
-  // one brand. Dropping to org scope lands on the Publish list that owns them.
-  if (topLevelSegment === 'artifacts') {
-    return `/${orgSlug}/~/posts`;
-  }
-
   // Automate has one org-scoped surface — the cross-brand overview. Deeper
   // automation paths are brand-scoped, so they collapse onto that overview
   // rather than falling into the org catch-all and 404ing.
-  if (topLevelSegment === 'orchestration') {
-    return `/${orgSlug}/~/orchestration`;
+  if (topLevelSegment === 'automate') {
+    return `/${orgSlug}/~/automate`;
   }
 
   if (

@@ -3,6 +3,7 @@ import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interf
 import {
   CirclePlay,
   Clapperboard,
+  Film,
   Image,
   Layers,
   Music,
@@ -43,6 +44,17 @@ export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [APP_ROUTES.STUDIO.MUSIC],
     outline: Music,
     solid: Music,
+  },
+  {
+    // The Remotion timeline used to be a top-level "Editor" app with no nav of
+    // its own; it is now Studio's Edit surface.
+    group: 'Edit',
+    hasDividerAbove: true,
+    href: APP_ROUTES.STUDIO.EDIT,
+    label: 'Timeline',
+    matchPaths: [APP_ROUTES.STUDIO.EDIT],
+    outline: Film,
+    solid: Film,
   },
   {
     group: 'Automation',

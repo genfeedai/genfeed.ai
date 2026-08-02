@@ -110,7 +110,7 @@ export default function ModalPost({
         logger.info(`${url} success`);
         return result;
       } else {
-        const url = 'POST /posts';
+        const url = 'POST /publish';
         const result = await postsService.post({
           credential: formData.credential as unknown as ICredential,
           description: formData.description.trim(),

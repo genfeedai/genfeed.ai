@@ -78,13 +78,13 @@ export const ORGANIZATION_CATCH_ALL_EXPANSIONS = Object.freeze([
   '/:orgSlug/~/library/:type',
   '/:orgSlug/~/studio',
   '/:orgSlug/~/studio/:type',
-  '/:orgSlug/~/posts',
-  '/:orgSlug/~/posts/published',
-  '/:orgSlug/~/posts/scheduled',
-  '/:orgSlug/~/editor',
-  '/:orgSlug/~/editor/projects',
-  '/:orgSlug/~/editor/new',
-  '/:orgSlug/~/editor/:id',
+  '/:orgSlug/~/studio/edit',
+  '/:orgSlug/~/studio/edit/projects',
+  '/:orgSlug/~/studio/edit/new',
+  '/:orgSlug/~/studio/edit/:id',
+  '/:orgSlug/~/publish',
+  '/:orgSlug/~/publish/published',
+  '/:orgSlug/~/publish/scheduled',
 ] as const);
 
 export const PROTECTED_HARD_CUT_PREFIXES = Object.freeze([
@@ -191,6 +191,7 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
 ] as const satisfies readonly PublicRouteClassification[]);
 
 const PROTECTED_PRODUCT_CLASSES = new Set([
+  'compatibility-only',
   'contextual-action',
   'control-plane',
   'removable',

@@ -356,7 +356,7 @@ test.describe('Image Generation', () => {
       expect(
         url.includes('/g/image') ||
           url.includes('/studio') ||
-          url.includes('/editor'),
+          url.includes('/studio/edit'),
       ).toBe(true);
     });
   });

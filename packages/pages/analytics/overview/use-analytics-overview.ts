@@ -427,7 +427,7 @@ export function useAnalyticsOverview({
         description:
           'Setup is in place, but there is not enough tracked performance data yet to tell a useful story. Keep publishing and check back after the next sync window.',
         primaryAction: {
-          href: APP_ROUTES.POSTS.ROOT,
+          href: APP_ROUTES.PUBLISH.ROOT,
           label: 'Create content',
           variant: ButtonVariant.DEFAULT,
         },
@@ -458,7 +458,7 @@ export function useAnalyticsOverview({
       description:
         'Use this snapshot to see what moved in the selected range, which platforms are active, and which posts or brands are pulling ahead.',
       primaryAction: {
-        href: APP_ROUTES.POSTS.PUBLISHED,
+        href: APP_ROUTES.PUBLISH.PUBLISHED,
         label: 'View published posts',
         variant: ButtonVariant.DEFAULT,
       },

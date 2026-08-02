@@ -98,17 +98,17 @@ describe('TopbarBreadcrumbs', () => {
 
   it('renders a canonical parent segment for nested product routes', () => {
     mockNavigationState = {
-      activeGroupId: 'Research',
+      activeGroupId: 'Discover',
       activePageLabel: 'Google',
       breadcrumbPageLabel: 'Google',
       breadcrumbParentLabel: 'Ads',
-      breadcrumbRootLabel: 'Research',
+      breadcrumbRootLabel: 'Discover',
       exitNestedGroup: mockExitNestedGroup,
     };
 
     render(<TopbarBreadcrumbs />);
 
-    expect(screen.getByText('Research')).toBeInTheDocument();
+    expect(screen.getByText('Discover')).toBeInTheDocument();
     expect(screen.getByText('Ads')).toBeInTheDocument();
     expect(screen.getByText('Google')).toBeInTheDocument();
     expect(screen.getAllByText('/')).toHaveLength(2);

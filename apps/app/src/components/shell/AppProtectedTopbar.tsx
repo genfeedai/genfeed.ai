@@ -44,15 +44,12 @@ const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   admin: 'Admin',
   agent: 'Agent',
   analytics: 'Analytics',
-  editor: 'Editor',
+  automate: 'Automate',
   library: 'Library',
   messages: 'Messages',
-  posts: 'Posts',
-  research: 'Research',
+  publish: 'Publish',
+  discover: 'Discover',
   studio: 'Studio',
-  automate: 'Automate',
-  orchestration: 'Automate',
-  workflows: 'Automate',
   workspace: 'Workspace',
 };
 

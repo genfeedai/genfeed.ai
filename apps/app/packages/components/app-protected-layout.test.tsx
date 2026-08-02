@@ -228,15 +228,15 @@ vi.mock('@app-config/menu-items.config', () => ({
           { href: '/settings', hrefScope: 'brand', label: 'Settings' },
         ]
       : [{ href: '/workspace/activity', label: 'Activity' }],
-  POSTS_INSERT_AFTER_LABEL: 'Posts',
+  PUBLISH_INSERT_AFTER_LABEL: 'Posts',
 }));
 
-vi.mock('@app-config/research-menu-items.config', () => ({
-  RESEARCH_LOGO_HREF: '/research/discovery',
-  RESEARCH_MENU_ITEMS: [
-    { href: '/research/discovery', label: 'Discovery' },
-    { href: '/research/socials', label: 'Socials' },
-    { href: '/research/ads', label: 'Ads' },
+vi.mock('@app-config/discover-menu-items.config', () => ({
+  DISCOVER_LOGO_HREF: '/discover/discovery',
+  DISCOVER_MENU_ITEMS: [
+    { href: '/discover/discovery', label: 'Discovery' },
+    { href: '/discover/socials', label: 'Socials' },
+    { href: '/discover/ads', label: 'Ads' },
   ],
 }));
 
@@ -566,8 +566,8 @@ describe('AppProtectedLayout', () => {
     expect(lowCreditsBannerSpy).not.toHaveBeenCalled();
   });
 
-  it('keeps the shell low credits banner on editor routes', () => {
-    mockPathname.value = '/editor/new';
+  it('keeps the shell low credits banner on the studio edit surface', () => {
+    mockPathname.value = '/studio/edit/new';
     render(<AppProtectedLayout />);
     expect(lowCreditsBannerSpy).toHaveBeenCalledTimes(1);
   });
@@ -859,9 +859,9 @@ describe('AppProtectedLayout', () => {
     ['/workspace', 'Workspace'],
     ['/studio/image', 'Image'],
     ['/library/images', 'Assets'],
-    ['/research/discovery', 'Discovery'],
+    ['/discover/discovery', 'Discovery'],
     ['/analytics', 'Overview'],
-    ['/orchestration/workflows/executions', 'Runs'],
+    ['/automate/workflows/executions', 'Runs'],
     ['/admin', 'Dashboard'],
     ['/agent/new', 'New conversation'],
   ])(
@@ -888,7 +888,7 @@ describe('AppProtectedLayout', () => {
 
   it.each([
     ['/org-123/~/settings/api-keys', 'Settings', 'API Keys'],
-    ['/org-123/brand-123/research/following', 'Research', 'Following'],
+    ['/org-123/brand-123/discover/following', 'Discover', 'Following'],
     ['/org-123/brand-123/library', 'Library', 'Overview'],
     ['/org-123/brand-123/library/videos', 'Library', 'Assets'],
     ['/org-123/brand-123/library/moodboard', 'Library', 'Moodboard'],
@@ -900,21 +900,18 @@ describe('AppProtectedLayout', () => {
       'Trend Detail',
     ],
     [
-      '/org-123/brand-123/orchestration/workflows/templates',
+      '/org-123/brand-123/automate/workflows/templates',
       'Automate',
       'Templates',
     ],
+    ['/org-123/brand-123/automate/workflows/new', 'Automate', 'New Workflow'],
+    ['/org-123/brand-123/automate/content-runs', 'Automate', 'Content Runs'],
     [
-      '/org-123/brand-123/orchestration/workflows/new',
-      'Automate',
-      'New Workflow',
-    ],
-    [
-      '/org-123/brand-123/orchestration/content-runs/run-1',
+      '/org-123/brand-123/automate/content-runs/run-1',
       'Automate',
       'Content Run',
     ],
-    ['/org-123/brand-123/posts/campaigns/campaign-1', 'Publish', 'Campaign'],
+    ['/org-123/brand-123/publish/campaigns/campaign-1', 'Publish', 'Campaign'],
   ] as const)(
     'feeds canonical root and leaf breadcrumb metadata on %s',
     (pathname, rootLabel, leafLabel) => {
@@ -934,9 +931,9 @@ describe('AppProtectedLayout', () => {
   );
 
   it.each([
-    '/org-123/brand-123/orchestration/workflows/new',
-    '/org-123/brand-123/orchestration/workflows/wf-123',
-    '/org-123/brand-123/editor/new',
+    '/org-123/brand-123/automate/workflows/new',
+    '/org-123/brand-123/automate/workflows/wf-123',
+    '/org-123/brand-123/studio/edit/new',
   ])('hides module sidebar on editor canvas route %s', (pathname) => {
     mockPathname.value = pathname;
 
@@ -980,7 +977,7 @@ describe('AppProtectedLayout', () => {
     // Canvas routes still own the left rail, while the application keeps the
     // shared topbar visible during this boot window.
     shellState.isAuthLoaded = false;
-    mockPathname.value = '/org-123/brand-123/editor/new';
+    mockPathname.value = '/org-123/brand-123/studio/edit/new';
 
     render(
       <AppProtectedLayout>
@@ -1148,7 +1145,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it('gives workflow routes their own nav column', () => {
-    mockPathname.value = '/org-123/brand-123/orchestration/workflows';
+    mockPathname.value = '/org-123/brand-123/automate/workflows';
 
     render(
       <AppProtectedLayout>
@@ -1193,8 +1190,8 @@ describe('AppProtectedLayout', () => {
     ['/org-123/brand-123/studio/image', 'studio', 'Studio'],
     ['/org-123/brand-123/library', 'library', 'Library'],
     ['/org-123/brand-123/analytics', 'analytics', 'Analytics'],
-    ['/org-123/brand-123/orchestration/workflows', 'automate', 'Automate'],
-    ['/org-123/brand-123/posts/remix', 'posts', 'Publish'],
+    ['/org-123/brand-123/automate/workflows', 'automate', 'Automate'],
+    ['/org-123/brand-123/publish/remix', 'publish', 'Publish'],
   ])(
     'keeps the %s app-switcher surface on its own module nav',
     (pathname, currentApp, sectionLabel) => {
@@ -1263,26 +1260,25 @@ describe('AppProtectedLayout', () => {
         isAnalyticsRoute={false}
         isArtifactsRoute={false}
         isConversationRoute={false}
-        isEditorRoute={false}
         isFocusedOnboardingRoute={false}
         isLibraryRoute
         isOrgRoute={false}
-        isPostsRoute={false}
-        isResearchRoute={false}
+        isPublishRoute={false}
+        isDiscoverRoute={false}
         isSettingsRoute={false}
         isStudioRoute={false}
-        isWorkflowsRoute={false}
+        isAutomateRoute={false}
         adminMenuItems={[]}
         analyticsMenuItems={[]}
         libraryMenuItems={[{ href: '/library/images', label: 'Images' }]}
         menuItems={[]}
         orgMenuItems={[]}
-        postsMenuItems={[]}
-        researchMenuItems={[]}
+        publishMenuItems={[]}
+        discoverMenuItems={[]}
         secondaryMenuItems={[]}
         settingsMenuItems={[]}
         studioMenuItems={[]}
-        workflowsMenuItems={[]}
+        automateMenuItems={[]}
         onOpenCommandPalette={vi.fn()}
       />,
     );
@@ -1307,26 +1303,25 @@ describe('AppProtectedLayout', () => {
         isAnalyticsRoute={false}
         isArtifactsRoute={false}
         isConversationRoute={false}
-        isEditorRoute={false}
         isFocusedOnboardingRoute={false}
         isLibraryRoute
         isOrgRoute={false}
-        isPostsRoute={false}
-        isResearchRoute={false}
+        isPublishRoute={false}
+        isDiscoverRoute={false}
         isSettingsRoute={false}
         isStudioRoute={false}
-        isWorkflowsRoute={false}
+        isAutomateRoute={false}
         adminMenuItems={[]}
         analyticsMenuItems={[]}
         libraryMenuItems={[{ href: '/library/images', label: 'Images' }]}
         menuItems={[]}
         orgMenuItems={[]}
-        postsMenuItems={[]}
-        researchMenuItems={[]}
+        publishMenuItems={[]}
+        discoverMenuItems={[]}
         secondaryMenuItems={[]}
         settingsMenuItems={[]}
         studioMenuItems={[]}
-        workflowsMenuItems={[]}
+        automateMenuItems={[]}
         navPanel={{
           render: () => <div data-testid="module-nav-panel" />,
           sectionLabel: 'Collections',
@@ -1370,8 +1365,8 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('renders a dedicated research sidebar on research routes', () => {
-    mockPathname.value = '/research/discovery';
+  it('renders a dedicated discover sidebar on discover routes', () => {
+    mockPathname.value = '/discover/discovery';
 
     render(
       <AppProtectedLayout>
@@ -1381,13 +1376,13 @@ describe('AppProtectedLayout', () => {
 
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        currentApp: 'research',
+        currentApp: 'discover',
         items: [
-          { href: '/research/discovery', label: 'Discovery' },
-          { href: '/research/socials', label: 'Socials' },
-          { href: '/research/ads', label: 'Ads' },
+          { href: '/discover/discovery', label: 'Discovery' },
+          { href: '/discover/socials', label: 'Socials' },
+          { href: '/discover/ads', label: 'Ads' },
         ],
-        sectionLabel: 'Research',
+        sectionLabel: 'Discover',
         shellChromeVariant: 'default',
       }),
     );
@@ -1422,8 +1417,8 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('keeps editor routes inside the workspace shell while skipping editor-only providers', () => {
-    mockPathname.value = '/org-123/brand-123/editor/new';
+  it('keeps the studio edit surface inside the workspace shell while skipping editor-only providers', () => {
+    mockPathname.value = '/org-123/brand-123/studio/edit/new';
 
     render(
       <AppProtectedLayout>
@@ -1452,8 +1447,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it('keeps workflow editor detail routes inside the workspace shell', () => {
-    mockPathname.value =
-      '/org-123/brand-123/orchestration/workflows/workflow-123';
+    mockPathname.value = '/org-123/brand-123/automate/workflows/workflow-123';
 
     render(
       <AppProtectedLayout>

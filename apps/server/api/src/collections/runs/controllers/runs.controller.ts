@@ -38,9 +38,19 @@ import {
 } from '@nestjs/swagger';
 import type { Request } from 'express';
 
-@ApiTags('Runs')
+/**
+ * Cross-surface action ledger.
+ *
+ * Mounted at `action-runs`, not `runs`: `AgentRunsController` owns `runs` for
+ * the `AgentRun` model, and both controllers are registered in `AppModule`.
+ * Express matches the first-registered route, so every path this controller
+ * shared with that one (`POST /runs`, `GET /runs`, `GET /runs/:runId`,
+ * `PATCH /runs/:runId`) resolved to `AgentRunsController` and returned an
+ * `AgentRun` to callers expecting a `Run`. Keep the two prefixes distinct.
+ */
+@ApiTags('Action Runs')
 @ApiBearerAuth()
-@Controller('runs')
+@Controller('action-runs')
 export class RunsController {
   constructor(private readonly runsService: RunsService) {}
 

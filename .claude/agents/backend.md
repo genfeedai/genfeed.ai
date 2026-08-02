@@ -1,35 +1,8 @@
 ---
 name: backend
-description: |
-  NestJS collection creation and modification in Genfeed.ai. Use for any backend service,
-  controller, DTO, or module work inside apps/server/api/src/collections/.
-
-  <example>
-  Context: User needs a new CRUD collection
-  user: "Create a content-notes collection with CRUD endpoints"
-  assistant: "I'll use the backend agent to scaffold the collection."
-  <commentary>
-  New NestJS collection with full CRUD — use backend agent.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs a custom service method
-  user: "Add a findBySlug method to the ArticlesService"
-  assistant: "I'll use the backend agent to implement this service method."
-  <commentary>
-  Backend service modification — use backend agent.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs DTOs for a new entity
-  user: "Create the DTO, service, controller, and module for watchlist-items"
-  assistant: "I'll use the backend agent to create the full collection."
-  <commentary>
-  Full collection scaffolding — use backend agent.
-  </commentary>
-  </example>
+description: >-
+  NestJS collection creation and modification in Genfeed.ai — any backend service,
+  controller, DTO, entity, or module work inside apps/server/api/src/collections/.
 model: sonnet
 ---
 

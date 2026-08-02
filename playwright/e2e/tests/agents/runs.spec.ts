@@ -18,11 +18,11 @@ test.describe('Agents Runs', () => {
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(
-      `${APP_ROUTES.ORCHESTRATION.RUNS}?q=trend&sort=credits&range=30d`,
+      `${APP_ROUTES.AUTOMATE.RUNS}?q=trend&sort=credits&range=30d`,
     );
 
     await expect(authenticatedPage).toHaveURL(
-      /orchestration\/runs\?q=trend&sort=credits&range=30d/,
+      /automate\/runs\?q=trend&sort=credits&range=30d/,
     );
     await expect(
       authenticatedPage.getByRole('heading', { name: 'Agent Runs' }),
@@ -42,7 +42,7 @@ test.describe('Agents Runs', () => {
   test('redirects unauthenticated users from the runs page', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.ORCHESTRATION.RUNS);
+    await unauthenticatedPage.goto(APP_ROUTES.AUTOMATE.RUNS);
 
     try {
       await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
@@ -54,7 +54,7 @@ test.describe('Agents Runs', () => {
       // Local keyless dev mode intentionally skips auth enforcement.
     }
 
-    await expect(unauthenticatedPage).toHaveURL(/orchestration\/runs/);
+    await expect(unauthenticatedPage).toHaveURL(/automate\/runs/);
     await expect(
       unauthenticatedPage.getByRole('heading', { name: 'Agent Runs' }),
     ).toBeVisible();

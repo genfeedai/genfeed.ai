@@ -1,6 +1,6 @@
 'use client';
 
-import { APP_ROUTES, buildArtifactEditorRoute } from '@genfeedai/constants';
+import { APP_ROUTES, createArtifactEditorRoute } from '@genfeedai/constants';
 import { useBackgroundTaskContext } from '@genfeedai/contexts/ui/background-task-context';
 import type { IBackgroundTaskUpdateEvent } from '@genfeedai/interfaces';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
@@ -23,16 +23,15 @@ function buildBackgroundTaskHref(event: IBackgroundTaskUpdateEvent): string {
     label.includes('batch content')
   ) {
     return targetId
-      ? `${APP_ROUTES.ORCHESTRATION.WORKFLOWS_EXECUTIONS}/${targetId}`
-      : APP_ROUTES.ORCHESTRATION.WORKFLOWS_EXECUTIONS;
+      ? `${APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS}/${targetId}`
+      : APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS;
   }
 
   if (resultType === 'article' || label.includes('article')) {
-    // Without a result id there is no artifact to open, so the toast falls back
-    // to Publish rather than a blank composer that no longer exists.
+    // A finished article is an artifact — send it to its own editor page.
     return event.resultId
-      ? buildArtifactEditorRoute('article', event.resultId)
-      : APP_ROUTES.POSTS.ROOT;
+      ? createArtifactEditorRoute('article', event.resultId)
+      : APP_ROUTES.PUBLISH.ROOT;
   }
 
   if (

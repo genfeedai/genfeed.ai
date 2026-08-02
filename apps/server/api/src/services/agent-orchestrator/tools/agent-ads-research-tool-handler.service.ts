@@ -70,10 +70,10 @@ export class AgentAdsResearchToolHandler {
     );
     const platformHref =
       result.summary.selectedPlatform === 'google'
-        ? '/research/ads/google'
+        ? '/discover/ads/google'
         : result.summary.selectedPlatform === 'meta'
-          ? '/research/ads/meta'
-          : '/research/ads';
+          ? '/discover/ads/meta'
+          : '/discover/ads';
 
     return {
       creditsUsed: 0,
@@ -87,7 +87,7 @@ export class AgentAdsResearchToolHandler {
         {
           ctas: [
             { href: platformHref, label: 'Open ads hub' },
-            { href: '/research/ads', label: 'Open all ads' },
+            { href: '/discover/ads', label: 'Open all ads' },
           ],
           description: `Found ${result.summary.publicCount} public winners and ${result.summary.connectedCount} connected-account ads. Public winners stay first, and every workflow or launch prep remains paused for review.`,
           id: `ads-search-results-${Date.now()}`,
@@ -162,11 +162,11 @@ export class AgentAdsResearchToolHandler {
             {
               href:
                 detail.platform === 'google'
-                  ? '/research/ads/google'
-                  : '/research/ads/meta',
+                  ? '/discover/ads/google'
+                  : '/discover/ads/meta',
               label: 'Open platform ads',
             },
-            { href: '/research/ads', label: 'Open ads hub' },
+            { href: '/discover/ads', label: 'Open ads hub' },
           ],
           data: {
             campaignName: detail.campaignName,
@@ -281,7 +281,7 @@ export class AgentAdsResearchToolHandler {
       },
       nextActions: [
         {
-          ctas: [{ href: '/research/ads', label: 'Open ads hub' }],
+          ctas: [{ href: '/discover/ads', label: 'Open ads hub' }],
           data: {
             explanation: adPack.assetCreativeBrief,
             headline: adPack.headlines[0],
@@ -341,7 +341,7 @@ export class AgentAdsResearchToolHandler {
                   },
                 ]
               : []),
-            { href: '/research/ads', label: 'Open ads hub' },
+            { href: '/discover/ads', label: 'Open ads hub' },
           ],
           data: {
             channel: launchPrep.channel,

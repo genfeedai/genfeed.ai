@@ -9,8 +9,8 @@ export type AgentPromptSurface =
   | 'automation'
   | 'calendar'
   | 'conversation'
+  | 'discover'
   | 'library'
-  | 'research'
   | 'review'
   | 'studio';
 
@@ -47,12 +47,12 @@ export function resolveAgentPromptSurface(
   if (pathname.startsWith('/automation')) return 'automation';
   if (pathname.startsWith('/calendar')) return 'calendar';
   if (pathname.startsWith('/library')) return 'library';
-  if (pathname.startsWith('/research')) return 'research';
-  if (pathname.startsWith('/posts/review')) return 'review';
-  if (pathname.startsWith('/posts')) return 'review';
+  if (pathname.startsWith('/discover')) return 'discover';
+  if (pathname.startsWith('/publish/review')) return 'review';
+  if (pathname.startsWith('/publish')) return 'review';
   if (
     pathname.startsWith('/studio') ||
-    pathname.startsWith('/artifacts') ||
+    pathname.startsWith('/edit') ||
     pathname.startsWith('/articles')
   ) {
     return 'studio';
@@ -170,7 +170,7 @@ function buildSurfaceSuggestions(
           `Suggest how to organize my library around ${first.topic}, ${second.topic}, and ${third.topic}.`,
         ),
       ];
-    case 'research':
+    case 'discover':
       return [
         buildSuggestion(
           'analyze',

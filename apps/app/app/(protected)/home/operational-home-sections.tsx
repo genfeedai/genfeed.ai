@@ -186,7 +186,7 @@ function ApprovalsSurface({
     APP_ROUTES.SETTINGS.BRANDS,
   );
   const reviewHref = brandSlug
-    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.POSTS.REVIEW)
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISH.REVIEW)
     : brandSetupHref;
 
   return (
@@ -300,7 +300,7 @@ function PublishingSurface({
     APP_ROUTES.SETTINGS.BRANDS,
   );
   const postsHref = brandSlug
-    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.POSTS.ROOT)
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISH.ROOT)
     : brandSetupHref;
   const recentRuns = [...activeRuns, ...runs]
     .filter(

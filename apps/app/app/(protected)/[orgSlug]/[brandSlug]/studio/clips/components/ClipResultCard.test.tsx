@@ -47,7 +47,7 @@ function makeClip(overrides?: Partial<ClipResult>): ClipResult {
 describe('ClipResultCard', () => {
   const clipsService = {
     createEditorHandoff: vi.fn().mockResolvedValue({
-      editorPath: '/editor/editor-1',
+      editorPath: '/studio/edit/editor-1',
       editorProjectId: 'editor-1',
       videoUrl: 'https://cdn.example.com/video.mp4',
     }),
@@ -197,7 +197,7 @@ describe('ClipResultCard', () => {
     );
   });
 
-  it('should create editor handoff before navigating to the editor project', async () => {
+  it('should create editor handoff before navigating to the studio edit project', async () => {
     render(
       <ClipResultCard
         clip={makeClip({
@@ -224,7 +224,7 @@ describe('ClipResultCard', () => {
         'clip-1',
       ),
     );
-    expect(pushSpy).toHaveBeenCalledWith('/acme/brand/editor/editor-1');
+    expect(pushSpy).toHaveBeenCalledWith('/acme/brand/studio/edit/editor-1');
   });
 
   it('should respect ready actions when readiness metadata is present', () => {

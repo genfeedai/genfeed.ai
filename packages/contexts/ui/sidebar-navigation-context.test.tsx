@@ -75,12 +75,7 @@ describe('SidebarNavigationProvider', () => {
       'Insights',
     ],
     ['/acme/brand/workspace/inbox', '/workspace', '/workspace/inbox', 'Inbox'],
-    [
-      '/acme/brand/artifacts/post/post-1',
-      '/artifacts',
-      '/artifacts/post',
-      'Post',
-    ],
+    ['/acme/brand/edit/post/post-1', '/edit', '/edit/post', 'Post'],
   ])(
     'prefers the most specific match for %s',
     (pathname, rootPath, childPath, childLabel) => {
@@ -154,14 +149,14 @@ describe('SidebarNavigationProvider', () => {
   });
 
   it('forwards the optional canonical breadcrumb parent', () => {
-    pathnameState.value = '/acme/brand/research/ads/google';
+    pathnameState.value = '/acme/brand/discover/ads/google';
 
     render(
       <SidebarNavigationProvider
         breadcrumb={{
           leafLabel: 'Google',
           parentLabel: 'Ads',
-          rootLabel: 'Research',
+          rootLabel: 'Discover',
         }}
         items={[]}
       >

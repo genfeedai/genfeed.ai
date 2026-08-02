@@ -31,11 +31,11 @@ function materializeRoutePattern(pattern: string): string {
 
 describe('workspace shell trusted registry', () => {
   it('owns the complete accepted protected-route denominator', () => {
-    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(214);
+    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(209);
     expect(
       new Set(PROTECTED_ROUTE_INVENTORY.map((route) => route.canonicalUrl))
         .size,
-    ).toBe(214);
+    ).toBe(209);
 
     for (const route of PROTECTED_ROUTE_INVENTORY) {
       expect(route.accessPolicy).toMatch(
@@ -85,15 +85,18 @@ describe('workspace shell trusted registry', () => {
 
   it.each([
     ['/acme/~/settings/api-keys', 'Settings', 'API Keys'],
-    ['/acme/~/orchestration', 'Automate', 'Overview'],
-    ['/acme/moonrise/research/following', 'Research', 'Following'],
-    ['/acme/moonrise/research/instagram', 'Research', 'Instagram'],
+    ['/acme/~/automate', 'Automate', 'Overview'],
+    ['/acme/moonrise/discover/following', 'Discover', 'Following'],
+    ['/acme/moonrise/discover/instagram', 'Discover', 'Instagram'],
     ['/acme/moonrise/library', 'Library', 'Overview'],
     ['/acme/moonrise/library/videos', 'Library', 'Assets'],
     ['/acme/moonrise/library/voices', 'Library', 'Assets'],
     ['/acme/moonrise/library/moodboard', 'Library', 'Moodboard'],
     ['/acme/moonrise/studio/clips', 'Studio', 'Clips'],
     ['/acme/moonrise/studio/video/asset-1', 'Studio', 'Video'],
+    ['/acme/moonrise/studio/edit', 'Studio', 'Edit'],
+    ['/acme/moonrise/studio/edit/project-1', 'Studio', 'Project'],
+    ['/acme/~/studio/edit', 'Studio', 'Edit'],
     ['/acme/moonrise/analytics/trends', 'Analytics', 'Trends'],
     [
       '/acme/moonrise/analytics/trends/detail/trend-1',
@@ -105,25 +108,17 @@ describe('workspace shell trusted registry', () => {
       'Analytics',
       'Instagram Trends',
     ],
-    [
-      '/acme/moonrise/orchestration/workflows/templates',
-      'Automate',
-      'Templates',
-    ],
-    ['/acme/moonrise/orchestration/workflows/new', 'Automate', 'New Workflow'],
-    [
-      '/acme/moonrise/orchestration/workflows/workflow-1',
-      'Automate',
-      'Workflow',
-    ],
-    ['/acme/moonrise/orchestration', 'Automate', 'Overview'],
-    [
-      '/acme/moonrise/orchestration/content-runs/run-1',
-      'Automate',
-      'Content Run',
-    ],
-    ['/acme/moonrise/posts/campaigns/campaign-1', 'Publish', 'Campaign'],
-    ['/acme/moonrise/orchestration/library/images', 'Automate', 'Images'],
+    ['/acme/moonrise/automate/workflows/templates', 'Automate', 'Templates'],
+    ['/acme/moonrise/automate/workflows/new', 'Automate', 'New Workflow'],
+    ['/acme/moonrise/automate/workflows/workflow-1', 'Automate', 'Workflow'],
+    ['/acme/moonrise/automate', 'Automate', 'Overview'],
+    ['/acme/moonrise/automate/content-runs', 'Automate', 'Content Runs'],
+    ['/acme/moonrise/automate/content-runs/run-1', 'Automate', 'Content Run'],
+    ['/acme/moonrise/publish/campaigns/campaign-1', 'Publish', 'Campaign'],
+    ['/acme/moonrise/automate/library/images', 'Automate', 'Images'],
+    ['/acme/moonrise/edit/article/article-1', 'Edit', 'Article'],
+    ['/acme/moonrise/edit/newsletter/newsletter-1', 'Edit', 'Newsletter'],
+    ['/acme/moonrise/edit/post/post-1', 'Edit', 'Post'],
   ] as const)(
     'resolves canonical breadcrumb metadata for %s',
     (pathname, rootLabel, leafLabel) => {
@@ -135,23 +130,23 @@ describe('workspace shell trusted registry', () => {
   );
 
   it.each([
-    ['/acme/moonrise/research/ads/google', 'Google'],
-    ['/acme/moonrise/research/ads/meta', 'Meta'],
+    ['/acme/moonrise/discover/ads/google', 'Google'],
+    ['/acme/moonrise/discover/ads/meta', 'Meta'],
   ] as const)(
     'keeps Ads in the breadcrumb hierarchy for %s',
     (pathname, leafLabel) => {
       expect(resolveWorkspaceShellRoute(pathname)?.breadcrumb).toEqual({
         leafLabel,
         parentLabel: 'Ads',
-        rootLabel: 'Research',
+        rootLabel: 'Discover',
       });
     },
   );
 
   it.each([
-    ['/:orgSlug/:brandSlug/posts/calendar', 'canvas'],
+    ['/:orgSlug/:brandSlug/publish/calendar', 'canvas'],
     ['/:orgSlug/:brandSlug/library/moodboard', 'canvas'],
-    ['/:orgSlug/:brandSlug/orchestration/skills', 'canvas'],
+    ['/:orgSlug/:brandSlug/automate/skills', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/batch', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/clips', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/fastlane', 'canvas'],
@@ -164,15 +159,34 @@ describe('workspace shell trusted registry', () => {
     ).toBe(mode);
   });
 
-  it('keeps legacy workflow aliases aligned with their canonical orchestration owners', () => {
+  it.each([
+    '/acme/moonrise/edit/article/article-1',
+    '/acme/moonrise/edit/newsletter/newsletter-1',
+    '/acme/moonrise/edit/post/post-1',
+  ] as const)(
+    'registers the dedicated artifact editor %s as a focused Publish surface',
+    (pathname) => {
+      expect(resolveWorkspaceShellRoute(pathname)).toMatchObject({
+        mode: 'canvas',
+        productClass: 'contextual-action',
+        safeFallback: '/:orgSlug/:brandSlug/publish',
+        surfaceKey: 'artifact-editor',
+      });
+      expect(resolveWorkspaceShellRoute(pathname)?.switcherItems).toEqual([
+        'publish',
+      ]);
+    },
+  );
+
+  it('keeps legacy workflow aliases aligned with their canonical automate owners', () => {
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/orchestration/autopilot'),
-    ).toMatchObject({ mode: 'canvas', surfaceKey: 'orchestration' });
+      resolveWorkspaceShellRoute('/acme/moonrise/automate/autopilot'),
+    ).toMatchObject({ mode: 'canvas', surfaceKey: 'automate' });
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/orchestration/configuration'),
+      resolveWorkspaceShellRoute('/acme/moonrise/automate/configuration'),
     ).toMatchObject({
       mode: 'canvas',
-      surfaceKey: 'orchestration-management',
+      surfaceKey: 'automate-management',
     });
   });
 
@@ -192,19 +206,40 @@ describe('workspace shell trusted registry', () => {
     });
   });
 
+  it('resolves the merged edit surface ahead of the studio generate types', () => {
+    // #2309: `edit` is a static Studio surface, not a generate type. Its
+    // registration has to outrank `/studio/:type` in both scopes.
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/studio/edit'),
+    ).toMatchObject({ mode: 'canvas', surfaceKey: 'studio-edit' });
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/studio/edit/project-1'),
+    ).toMatchObject({ mode: 'canvas', surfaceKey: 'studio-edit' });
+    expect(resolveWorkspaceShellRoute('/acme/~/studio/edit')).toMatchObject({
+      scope: 'organization',
+      surfaceKey: 'studio-edit',
+    });
+  });
+
+  it('has no standalone editor route left in the inventory', () => {
+    expect(resolveWorkspaceShellRoute('/acme/moonrise/editor')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/acme/moonrise/editor/new')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/acme/~/editor')).toBeNull();
+  });
+
   it('keeps contextual Remix routes inside the Publish switcher module', () => {
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/posts/remix'),
+      resolveWorkspaceShellRoute('/acme/moonrise/publish/remix'),
     ).toMatchObject({
       productClass: 'contextual-action',
       surfaceKey: 'publish',
-      switcherItems: ['posts'],
+      switcherItems: ['publish'],
     });
   });
 
   it('preserves visual-data and control-plane families from route retirement', () => {
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/research/ads/meta'),
+      resolveWorkspaceShellRoute('/acme/moonrise/discover/ads/meta'),
     ).toMatchObject({ productClass: 'visual-data' });
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/analytics/trends'),
@@ -215,9 +250,9 @@ describe('workspace shell trusted registry', () => {
 
     for (const pathname of [
       '/acme/moonrise/library/images',
-      '/acme/moonrise/posts/calendar',
-      '/acme/moonrise/posts/review',
-      '/acme/moonrise/orchestration/workflows/executions/run-1',
+      '/acme/moonrise/publish/calendar',
+      '/acme/moonrise/publish/review',
+      '/acme/moonrise/automate/workflows/executions/run-1',
       '/acme/moonrise/settings/publishing',
       '/acme/~/settings/api-keys',
       '/acme/~/settings/billing',
@@ -239,13 +274,12 @@ describe('workspace shell trusted registry', () => {
       resolveWorkspaceShellRoute('/acme/moonrise/studio/image'),
     ).toMatchObject({ productClass: 'contextual-action' });
     // The Automate hard-cut folded autopilot and configuration into the
-    // first-class orchestration family. Compose's `/write` compat alias went
-    // with the module — writing starts in the Agent now.
+    // first-class automate family. Compose's `/write` alias retired with it.
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/orchestration/autopilot'),
+      resolveWorkspaceShellRoute('/acme/moonrise/automate/autopilot'),
     ).toMatchObject({ productClass: 'control-plane' });
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/orchestration/configuration'),
+      resolveWorkspaceShellRoute('/acme/moonrise/automate/configuration'),
     ).toMatchObject({ productClass: 'control-plane' });
     expect(resolveWorkspaceShellRoute('/acme/~/write')).toBeNull();
     expect(resolveWorkspaceShellRoute('/acme/~/compose')).toBeNull();
@@ -253,23 +287,8 @@ describe('workspace shell trusted registry', () => {
       resolveWorkspaceShellRoute('/acme/moonrise/compose/article'),
     ).toBeNull();
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/posts/composer'),
+      resolveWorkspaceShellRoute('/acme/moonrise/publish/composer'),
     ).toBeNull();
-  });
-
-  it('registers the focused artifact editor under Publish', () => {
-    expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/artifacts/newsletter/draft-1'),
-    ).toMatchObject({
-      breadcrumb: {
-        leafLabel: 'Newsletter',
-        rootLabel: 'Editor',
-      },
-      params: { brandSlug: 'moonrise', id: 'draft-1', type: 'newsletter' },
-      safeFallback: '/:orgSlug/:brandSlug/posts',
-      scope: 'brand',
-      surfaceKey: 'artifact-editor',
-    });
   });
 
   it('keeps the two accepted hard-cut families outside the registry', () => {
@@ -328,11 +347,11 @@ describe('workspace shell trusted registry', () => {
 
   it('does not treat reserved application prefixes as scoped routes', () => {
     expect(resolveWorkspaceShellRoute('/connect/~/overview')).toBeNull();
-    expect(resolveWorkspaceShellRoute('/connect/example/posts')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/connect/example/publish')).toBeNull();
     expect(resolveWorkspaceShellRoute('/settings/~/overview')).toBeNull();
-    expect(resolveWorkspaceShellRoute('/settings/example/posts')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/settings/example/publish')).toBeNull();
     expect(resolveWorkspaceShellRoute('/admin/~/overview')).toBeNull();
-    expect(resolveWorkspaceShellRoute('/admin/example/posts')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/admin/example/publish')).toBeNull();
   });
 
   it('interpolates a safe fallback without widening scope', () => {
@@ -378,18 +397,18 @@ describe('workspace shell trusted registry', () => {
     );
   });
 
-  it('registers organization-scoped Research as an embedded surface', () => {
-    const route = resolveWorkspaceShellRoute('/acme/~/research/discovery');
+  it('registers organization-scoped Discover as an embedded surface', () => {
+    const route = resolveWorkspaceShellRoute('/acme/~/discover/discovery');
 
     expect(route).toMatchObject({
-      adapter: { key: 'research', status: 'embedded' },
-      canonicalUrl: '/:orgSlug/~/research/discovery',
-      safeFallback: '/:orgSlug/~/research/discovery',
+      adapter: { key: 'discover', status: 'embedded' },
+      canonicalUrl: '/:orgSlug/~/discover/discovery',
+      safeFallback: '/:orgSlug/~/discover/discovery',
       scope: 'organization',
-      surfaceKey: 'research',
+      surfaceKey: 'discover',
     });
     expect(route && resolveWorkspaceShellSafeFallback(route)).toBe(
-      '/acme/~/research/discovery',
+      '/acme/~/discover/discovery',
     );
   });
 
@@ -399,19 +418,19 @@ describe('workspace shell trusted registry', () => {
     ).toEqual({ key: 'analytics', status: 'ready' });
   });
 
-  it('registers Research as an embedded adapter with its canonical fallback', () => {
+  it('registers Discover as an embedded adapter with its canonical fallback', () => {
     const route = resolveWorkspaceShellRoute(
-      '/acme/moonrise/research/ads/google',
+      '/acme/moonrise/discover/ads/google',
     );
 
     expect(route).toMatchObject({
-      adapter: { key: 'research', status: 'embedded' },
+      adapter: { key: 'discover', status: 'embedded' },
       mode: 'canvas',
-      safeFallback: '/:orgSlug/:brandSlug/research/discovery',
-      surfaceKey: 'research',
+      safeFallback: '/:orgSlug/:brandSlug/discover/discovery',
+      surfaceKey: 'discover',
     });
     expect(route && resolveWorkspaceShellSafeFallback(route)).toBe(
-      '/acme/moonrise/research/discovery',
+      '/acme/moonrise/discover/discovery',
     );
   });
 

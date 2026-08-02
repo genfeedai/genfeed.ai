@@ -1,6 +1,6 @@
 'use client';
 
-import { APP_ROUTES, buildArtifactEditorRoute } from '@genfeedai/constants';
+import { APP_ROUTES, createArtifactEditorRoute } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { ArticleCategory, ArticleStatus } from '@genfeedai/enums';
 import type { Article } from '@genfeedai/models/content/article.model';
@@ -9,6 +9,7 @@ import { ArticlesService } from '@genfeedai/services/content/articles.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -64,6 +65,7 @@ export function useArticleDetail({
   articleId,
 }: UseArticleDetailOptions): UseArticleDetailReturn {
   const router = useRouter();
+  const { href } = useOrgUrl();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { organizationId } = useBrand();
@@ -180,7 +182,7 @@ export function useArticleDetail({
         setArticle(created);
         initialFormRef.current = { ...form };
         notificationsService.success('Article created');
-        router.push(buildArtifactEditorRoute('article', created.id));
+        router.push(href(createArtifactEditorRoute('article', created.id)));
       }
     } catch (err) {
       logger.error('Failed to save article', err);
@@ -191,6 +193,7 @@ export function useArticleDetail({
   }, [
     isSaving,
     form,
+    href,
     resolvedId,
     getArticlesService,
     notificationsService,
@@ -241,14 +244,12 @@ export function useArticleDetail({
       const service = await getArticlesService();
       await service.delete(resolvedId);
       notificationsService.success('Article deleted');
-      // The artifact is gone, so there is no editor left to sit on — Publish
-      // owns the artifact editors and is the surface behind them.
-      router.push(APP_ROUTES.POSTS.ROOT);
+      router.push(href(APP_ROUTES.PUBLISH.ROOT));
     } catch (err) {
       logger.error('Failed to delete article', err);
       notificationsService.error('Failed to delete article');
     }
-  }, [resolvedId, getArticlesService, notificationsService, router]);
+  }, [resolvedId, getArticlesService, href, notificationsService, router]);
 
   const handleEnhance = useCallback(
     async (prompt: string) => {
