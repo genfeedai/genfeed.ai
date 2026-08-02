@@ -1,4 +1,3 @@
-import { COMPOSE_ROUTES } from '@genfeedai/constants';
 import {
   CredentialPlatform,
   ReleaseStatus,
@@ -329,7 +328,7 @@ describe('ContentCalendarPage', () => {
     expect(pushMock).not.toHaveBeenCalled();
   });
 
-  it('sends an article to the composer rather than the release drawer', async () => {
+  it('sends an article to its dedicated editor rather than the release drawer', async () => {
     findArticlesMock.mockResolvedValue([
       {
         createdAt: '2026-03-11T10:00:00.000Z',
@@ -344,7 +343,7 @@ describe('ContentCalendarPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'open:article-9' }));
 
     expect(pushMock).toHaveBeenCalledWith(
-      `${COMPOSE_ROUTES.ARTICLE}?id=article-9`,
+      '/acme-org/acme-creator/edit/article/article-9?returnTo=%2Facme-org%2Facme-creator%2Fposts%2Fcalendar',
     );
     expect(screen.getByTestId('drawer-release')).toHaveTextContent('closed');
   });

@@ -1,7 +1,12 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { COMPOSE_ROUTES } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  COMPOSE_ROUTES,
+  createArtifactEditorRoute,
+  withArtifactEditorReturn,
+} from '@genfeedai/constants';
 import {
   ArticleStatus,
   formatPlatformLabel,
@@ -288,14 +293,20 @@ export default function ContentCalendarPage(): React.JSX.Element {
   const handleEventClick = useCallback(
     (item: ContentCalendarItem) => {
       if (item.itemType === 'article') {
-        push(`${COMPOSE_ROUTES.ARTICLE}?id=${item.article.id}`);
+        // Refinement belongs to the artifact — open the article's editor page.
+        push(
+          withArtifactEditorReturn(
+            href(createArtifactEditorRoute('article', item.article.id)),
+            href(APP_ROUTES.POSTS.CALENDAR),
+          ),
+        );
         return;
       }
 
       setDrawerError(null);
       setSelectedReleaseId(item.release.id);
     },
-    [push],
+    [href, push],
   );
 
   const handleDatesChange = useCallback(

@@ -1,16 +1,10 @@
+'use client';
+
+import { formatNewsletterStatusLabel } from '@helpers/content/newsletters.helper';
 import type { Newsletter } from '@models/content/newsletter.model';
+import type { NewsletterContextPreview } from '@props/content/artifact-editor.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
-import type { NewsletterContextPreview } from './newsletters-page';
-
-function statusLabel(status: Newsletter['status']): string {
-  switch (status) {
-    case 'ready_for_review':
-      return 'Ready For Review';
-    default:
-      return status.replace(/_/g, ' ');
-  }
-}
 
 type Props = {
   contextPreview: NewsletterContextPreview | null;
@@ -42,7 +36,9 @@ export default function NewsletterContextReview({ contextPreview }: Props) {
                         {item.label}
                       </div>
                       <Badge status={item.status}>
-                        {statusLabel(item.status as Newsletter['status'])}
+                        {formatNewsletterStatusLabel(
+                          item.status as Newsletter['status'],
+                        )}
                       </Badge>
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">

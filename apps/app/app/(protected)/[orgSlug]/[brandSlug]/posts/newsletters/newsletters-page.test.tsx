@@ -34,6 +34,9 @@ vi.mock('@/lib/analytics', () => ({
   captureAnalyticsEvent: mocks.captureAnalyticsEvent,
 }));
 
+const NEWSLETTER_1_EDITOR_HREF =
+  '/acme/main/edit/newsletter/newsletter-1?returnTo=%2Facme%2Fmain%2Fposts%2Fnewsletters';
+
 const newsletters = [
   {
     angle: 'Operator lessons',
@@ -214,54 +217,21 @@ describe('NewslettersPage', () => {
       });
     });
     await waitFor(() => {
-      expect(mocks.getContext).toHaveBeenCalledWith('newsletter-1');
+      expect(mocks.push).toHaveBeenCalledWith(NEWSLETTER_1_EDITOR_HREF);
     });
     expect(mocks.success).toHaveBeenCalledWith(
       'Newsletter draft ready for review',
     );
   });
 
-  it('loads context, edits, saves, approves, publishes, and archives a newsletter', async () => {
+  it('opens the dedicated newsletter editor from the archive list', () => {
     render(<NewslettersPage />);
 
     fireEvent.click(screen.getByRole('button', { name: /Issue 1/i }));
 
-    await waitFor(() => {
-      expect(mocks.getContext).toHaveBeenCalledWith('newsletter-1');
-    });
-    expect(await screen.findByText('Brand voice')).toBeVisible();
-
-    fireEvent.change(screen.getByPlaceholderText('Newsletter label'), {
-      target: { value: 'Issue 1 revised' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
-
-    await waitFor(() => {
-      expect(mocks.patch).toHaveBeenCalledWith('newsletter-1', {
-        angle: 'Operator lessons',
-        content: 'Draft body',
-        label: 'Issue 1 revised',
-        summary: 'Draft summary',
-        topic: 'AI workflows',
-      });
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Publish' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Archive' }));
-
-    await waitFor(() => {
-      expect(mocks.approve).toHaveBeenCalledWith('newsletter-1');
-      expect(mocks.publish).toHaveBeenCalledWith('newsletter-1');
-      expect(mocks.archive).toHaveBeenCalledWith('newsletter-1');
-    });
-    expect(mocks.captureAnalyticsEvent).toHaveBeenCalledWith(
-      'first_successful_publish',
-      {
-        platform: 'newsletter',
-        surface: 'newsletter',
-      },
-    );
+    expect(mocks.push).toHaveBeenCalledWith(NEWSLETTER_1_EDITOR_HREF);
+    expect(mocks.getContext).not.toHaveBeenCalled();
+    expect(mocks.patch).not.toHaveBeenCalled();
   });
 
   it('shows validation errors and routes empty-state actions to workflows', async () => {

@@ -2,7 +2,11 @@
 
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
+import {
+  createArtifactEditorRoute,
+  ITEMS_PER_PAGE,
+  withArtifactEditorReturn,
+} from '@genfeedai/constants';
 import {
   ModelCategory,
   PageScope,
@@ -39,7 +43,6 @@ import type { ContentProps } from '@props/layout/content.props';
 import {
   useConfirmDeleteModal,
   useIngredientOverlay,
-  usePostMetadataOverlay,
   usePostRemixModal,
 } from '@providers/global-modals/global-modals.provider';
 import { PostsService } from '@services/content/posts.service';
@@ -114,7 +117,6 @@ export function usePostsList({
   );
 
   const { openIngredientOverlay } = useIngredientOverlay();
-  const { openPostMetadataOverlay } = usePostMetadataOverlay();
   const { openConfirmDelete } = useConfirmDeleteModal();
   const { openPostRemixModal } = usePostRemixModal();
 
@@ -430,11 +432,20 @@ export function usePostsList({
     [openConfirmDelete, getPostsService, findAllPosts, notificationsService],
   );
 
+  /**
+   * Editing belongs to the artifact, so a draft opens its own editor page and
+   * carries the current list URL back with it.
+   */
   const handleEditPost = useCallback(
     (post: IPost) => {
-      openPostMetadataOverlay(post, () => findAllPosts());
+      router.push(
+        withArtifactEditorReturn(
+          href(createArtifactEditorRoute('post', post.id)),
+          searchParamsString ? `${pathname}?${searchParamsString}` : pathname,
+        ),
+      );
     },
-    [findAllPosts, openPostMetadataOverlay],
+    [href, pathname, router, searchParamsString],
   );
 
   const handleOpenPostDetail = useCallback((post: IPost) => {

@@ -40,7 +40,7 @@ vi.mock('@ui/articles/type-selector/ArticleTypeSelector', () => ({
   default: () => <div data-testid="article-type-selector" />,
 }));
 
-vi.mock('./article-detail', () => ({
+vi.mock('../../edit/article/article-detail', () => ({
   default: (props: unknown) => {
     articleDetailMock(props);
     return <div data-testid="article-detail" />;

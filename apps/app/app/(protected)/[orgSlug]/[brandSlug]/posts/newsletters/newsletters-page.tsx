@@ -2,6 +2,7 @@
 
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
+import { formatNewsletterStatusLabel } from '@helpers/content/newsletters.helper';
 import type { Newsletter } from '@models/content/newsletter.model';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
@@ -11,12 +12,8 @@ import { Input } from '@ui/primitives/input';
 import { Mail, Search } from 'lucide-react';
 import { Suspense } from 'react';
 
-import NewsletterContextReview from './newsletters-context-review';
-import NewsletterEditor from './newsletters-editor';
 import NewsletterGeneratePanel from './newsletters-generate-panel';
 import { useNewslettersPage } from './useNewslettersPage';
-
-export type { NewsletterContextPreview } from './useNewslettersPage';
 
 const STATUS_FILTERS: Array<{
   label: string;
@@ -29,39 +26,22 @@ const STATUS_FILTERS: Array<{
   { label: 'Archived', value: 'archived' },
 ];
 
-function statusLabel(status: Newsletter['status']): string {
-  switch (status) {
-    case 'ready_for_review':
-      return 'Ready For Review';
-    default:
-      return status.replace(/_/g, ' ');
-  }
-}
-
 function NewslettersPageContent() {
   const {
-    contextPreview,
-    editorDirty,
-    editorState,
     filteredNewsletters,
     href,
     instructions,
-    isApproving,
-    isArchiving,
     isGeneratingDraft,
     isGeneratingTopics,
     isLoading,
-    isPublishing,
-    isSaving,
     manualAngle,
     manualTopic,
+    openNewsletterEditor,
     proposals,
     publishedNewsletters,
     push,
     search,
     selectedContextSet,
-    selectedNewsletter,
-    selectedNewsletterId,
     selectedProposal,
     setSelectedProposal,
     setInstructions,
@@ -71,61 +51,49 @@ function NewslettersPageContent() {
     setSelectedContextIds,
     setStatusFilter,
     statusFilter,
-    handleApprove,
-    handleArchive,
     handleGenerateDraft,
     handleGenerateTopics,
-    handlePublish,
-    handleRegenerate,
-    handleSave,
-    loadContext,
-    setEditorState,
-    setSelectedNewsletterId,
   } = useNewslettersPage();
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6 p-6">
       <h1 className="sr-only">Newsletters</h1>
 
-      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <NewsletterGeneratePanel
-          instructions={instructions}
-          isGeneratingDraft={isGeneratingDraft}
-          isGeneratingTopics={isGeneratingTopics}
-          manualAngle={manualAngle}
-          manualTopic={manualTopic}
-          proposals={proposals}
-          publishedNewsletters={publishedNewsletters}
-          selectedContextSet={selectedContextSet}
-          selectedProposal={selectedProposal}
-          onGenerateDraft={handleGenerateDraft}
-          onGenerateTopics={handleGenerateTopics}
-          onInstructionsChange={setInstructions}
-          onManualAngleChange={setManualAngle}
-          onManualTopicChange={setManualTopic}
-          onSelectProposal={setSelectedProposal}
-          onToggleContext={(id, checked) => {
-            setSelectedContextIds((prev) =>
-              checked ? [...prev, id] : prev.filter((item) => item !== id),
-            );
-          }}
-        />
-
-        <NewsletterContextReview contextPreview={contextPreview} />
-      </div>
+      <NewsletterGeneratePanel
+        instructions={instructions}
+        isGeneratingDraft={isGeneratingDraft}
+        isGeneratingTopics={isGeneratingTopics}
+        manualAngle={manualAngle}
+        manualTopic={manualTopic}
+        proposals={proposals}
+        publishedNewsletters={publishedNewsletters}
+        selectedContextSet={selectedContextSet}
+        selectedProposal={selectedProposal}
+        onGenerateDraft={handleGenerateDraft}
+        onGenerateTopics={handleGenerateTopics}
+        onInstructionsChange={setInstructions}
+        onManualAngleChange={setManualAngle}
+        onManualTopicChange={setManualTopic}
+        onSelectProposal={setSelectedProposal}
+        onToggleContext={(id, checked) => {
+          setSelectedContextIds((prev) =>
+            checked ? [...prev, id] : prev.filter((item) => item !== id),
+          );
+        }}
+      />
 
       <Card className="p-5">
         <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h2 className="text-lg font-semibold">Newsletter archive</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="font-semibold text-lg">Newsletter archive</h2>
+            <p className="text-muted-foreground text-sm">
               Review-ready issues stay separate from articles and social posts.
             </p>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 className="pl-9"
                 placeholder="Search newsletters"
@@ -168,87 +136,46 @@ function NewslettersPageContent() {
             }}
           />
         ) : (
-          <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">
-                  {isLoading
-                    ? 'Loading archive…'
-                    : `${filteredNewsletters.length} issues`}
-                </div>
-                <Badge status={isLoading ? 'processing' : 'active'}>
-                  {isLoading ? 'Loading' : 'Loaded'}
-                </Badge>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="text-muted-foreground text-sm">
+                {isLoading
+                  ? 'Loading archive…'
+                  : `${filteredNewsletters.length} issues`}
               </div>
+              <Badge status={isLoading ? 'processing' : 'active'}>
+                {isLoading ? 'Loading' : 'Loaded'}
+              </Badge>
+            </div>
 
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {filteredNewsletters.map((newsletter) => (
                 <Button
                   key={newsletter.id}
                   variant={ButtonVariant.UNSTYLED}
                   withWrapper={false}
-                  className={`w-full rounded-lg p-4 text-left transition-colors ${
-                    newsletter.id === selectedNewsletterId
-                      ? 'shadow-border-strong bg-tertiary'
-                      : 'bg-tertiary/50 hover:bg-tertiary'
-                  }`}
-                  onClick={async () => {
-                    setSelectedNewsletterId(newsletter.id);
-                    await loadContext(newsletter.id);
-                  }}
+                  className="w-full rounded-lg bg-tertiary/50 p-4 text-left transition-colors hover:bg-tertiary"
+                  onClick={() => openNewsletterEditor(newsletter.id)}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="font-medium text-foreground">
                       {newsletter.label}
                     </div>
                     <Badge status={newsletter.status}>
-                      {statusLabel(newsletter.status)}
+                      {formatNewsletterStatusLabel(newsletter.status)}
                     </Badge>
                   </div>
-                  <div className="mt-2 text-sm text-muted-foreground">
+                  <div className="mt-2 text-muted-foreground text-sm">
                     {newsletter.topic}
                   </div>
                   {newsletter.summary ? (
-                    <div className="mt-2 line-clamp-2 text-xs text-muted-foreground">
+                    <div className="mt-2 line-clamp-2 text-muted-foreground text-xs">
                       {newsletter.summary}
                     </div>
                   ) : null}
                 </Button>
               ))}
             </div>
-
-            {selectedNewsletter ? (
-              <NewsletterEditor
-                editorDirty={editorDirty}
-                editorState={editorState}
-                loadingAction={
-                  isApproving
-                    ? 'approving'
-                    : isArchiving
-                      ? 'archiving'
-                      : isGeneratingDraft
-                        ? 'generatingDraft'
-                        : isPublishing
-                          ? 'publishing'
-                          : isSaving
-                            ? 'saving'
-                            : null
-                }
-                selectedNewsletter={selectedNewsletter}
-                onApprove={handleApprove}
-                onArchive={handleArchive}
-                onEditorChange={(patch) =>
-                  setEditorState((prev) => ({ ...prev, ...patch }))
-                }
-                onPublish={handlePublish}
-                onRegenerate={handleRegenerate}
-                onSave={handleSave}
-              />
-            ) : (
-              <div className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
-                Select a newsletter to edit content, revise context, and move it
-                through review and publish states.
-              </div>
-            )}
           </div>
         )}
       </Card>

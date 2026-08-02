@@ -23,7 +23,8 @@ const postFixture = {
 let resourceData: IPost[] = [];
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/content/posts',
+  useParams: () => ({ brandSlug: 'paperclip', orgSlug: 'genfeed-ai' }),
+  usePathname: () => '/genfeed-ai/paperclip/posts',
   useRouter: () => ({
     push: pushMock,
     replace: replaceMock,
@@ -88,9 +89,6 @@ vi.mock('@providers/global-modals/global-modals.provider', () => ({
   useIngredientOverlay: () => ({
     openIngredientOverlay: vi.fn(),
   }),
-  usePostMetadataOverlay: () => ({
-    openPostMetadataOverlay: vi.fn(),
-  }),
   usePostRemixModal: () => ({
     openPostRemixModal: vi.fn(),
   }),
@@ -147,22 +145,40 @@ vi.mock('@pages/posts/list/components/PostsListToolbar', () => ({
 vi.mock('@ui/display/table/Table', () => ({
   __esModule: true,
   default: ({
+    actions,
     items,
     onRowClick,
   }: {
+    actions?: { onClick: (post: IPost) => void; tooltip?: string }[];
     items: IPost[];
     onRowClick?: (post: IPost) => void;
   }) => (
-    <button
-      type="button"
-      onClick={() => {
-        if (items[0]) {
-          onRowClick?.(items[0]);
-        }
-      }}
-    >
-      Open table row
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          if (items[0]) {
+            onRowClick?.(items[0]);
+          }
+        }}
+      >
+        Open table row
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          const editAction = actions?.find(
+            (action) => action.tooltip === 'Edit Post',
+          );
+
+          if (items[0] && editAction) {
+            editAction.onClick(items[0]);
+          }
+        }}
+      >
+        Edit table row
+      </button>
+    </>
   ),
 }));
 
@@ -213,6 +229,24 @@ describe('PostsList', () => {
 
     expect(screen.getByTestId('post-detail-overlay')).toHaveTextContent(
       'post-1',
+    );
+  });
+
+  it('opens the dedicated post editor and carries the list back with it', () => {
+    resourceData = [postFixture];
+
+    render(
+      <PostsList
+        scope={PageScope.PUBLISHER}
+        platform="all"
+        status={PostStatus.DRAFT}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /edit table row/i }));
+
+    expect(pushMock).toHaveBeenCalledWith(
+      '/genfeed-ai/paperclip/edit/post/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fposts',
     );
   });
 });
