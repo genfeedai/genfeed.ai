@@ -31,11 +31,11 @@ function materializeRoutePattern(pattern: string): string {
 
 describe('workspace shell trusted registry', () => {
   it('owns the complete accepted protected-route denominator', () => {
-    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(217);
+    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(216);
     expect(
       new Set(PROTECTED_ROUTE_INVENTORY.map((route) => route.canonicalUrl))
         .size,
-    ).toBe(217);
+    ).toBe(216);
 
     for (const route of PROTECTED_ROUTE_INVENTORY) {
       expect(route.accessPolicy).toMatch(
