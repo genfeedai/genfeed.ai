@@ -4,14 +4,14 @@ import { testPosts } from '../../fixtures/test-data.fixture';
 import { PostsPage } from '../../pages/posts.page';
 
 /**
- * E2E Tests for Post Detail (parameterized /posts/[id])
+ * E2E Tests for Post Detail (parameterized /publish/[id])
  *
  * CRITICAL: All tests use mocked API responses.
  * No real backend calls occur during tests.
  *
  * Tests verify that navigating to a specific post by ID loads correctly.
  */
-test.describe('Post Detail — /posts/[id]', () => {
+test.describe('Post Detail — /publish/[id]', () => {
   const post = testPosts[0];
 
   test.beforeEach(async ({ authenticatedPage }) => {
@@ -222,7 +222,7 @@ test.describe('Post Detail — Unauthenticated Access', () => {
   test('should redirect post detail page to login', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(`/posts/${testPosts[0].id}`, {
+    await unauthenticatedPage.goto(`/publish/${testPosts[0].id}`, {
       timeout: 30000,
       waitUntil: 'domcontentloaded',
     });

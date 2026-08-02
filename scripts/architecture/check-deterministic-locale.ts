@@ -131,12 +131,12 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     1,
   ),
   legacyUiAllowance(
-    'apps/app/app/(protected)/[orgSlug]/[brandSlug]/posts/composer/cross-post-composer-page.tsx',
+    'apps/app/app/(protected)/[orgSlug]/[brandSlug]/publish/composer/cross-post-composer-page.tsx',
     'intl-date-time-format',
     1,
   ),
   legacyUiAllowance(
-    'apps/app/app/(protected)/[orgSlug]/[brandSlug]/posts/review/components/ReviewItemCard.tsx',
+    'apps/app/app/(protected)/[orgSlug]/[brandSlug]/publish/review/components/ReviewItemCard.tsx',
     'to-locale-string',
     1,
   ),

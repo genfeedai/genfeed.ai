@@ -155,7 +155,7 @@ export function usePostsWritePage() {
           platform: selectedCredential.platform,
         },
       );
-      push(href(`/posts/${createdPost.id}`));
+      push(href(`/publish/${createdPost.id}`));
     } catch {
       setError('Failed to create draft. Please try again.');
     } finally {
@@ -282,7 +282,7 @@ export function usePostsWritePage() {
         generationType,
         outcome: 'success',
       });
-      push(href(`/posts/${rootPost.id}`));
+      push(href(`/publish/${rootPost.id}`));
     } catch {
       captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_COMPLETED, {
         generationType,

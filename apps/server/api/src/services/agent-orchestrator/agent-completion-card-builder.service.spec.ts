@@ -95,7 +95,7 @@ describe('AgentCompletionCardBuilderService', () => {
   it('preserves content counts, output order, the four-variant cap, and the review CTA label', () => {
     const contentAction: AgentUiAction = {
       audio: ['https://cdn.example.com/audio.mp3'],
-      ctas: [{ href: '/posts/drafts', label: 'View all drafts' }],
+      ctas: [{ href: '/publish/drafts', label: 'View all drafts' }],
       id: 'content-preview-1',
       images: [
         'https://cdn.example.com/image-1.png',
@@ -159,7 +159,7 @@ describe('AgentCompletionCardBuilderService', () => {
           },
         ],
         primaryCta: {
-          href: '/posts/drafts',
+          href: '/publish/drafts',
           label: 'Review Draft',
         },
         summaryText: 'Generated content for this request.',

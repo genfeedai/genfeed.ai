@@ -45,7 +45,7 @@ const CONTRACTS: PageContextContract[] = [
     sidebarLabels: ['Timeline'],
   },
   {
-    route: `${BRAND_BASE}/posts`,
+    route: `${BRAND_BASE}/publish`,
     currentApp: 'posts',
     // App shell labels the posts surface "Publish" (workspace-shell-registry +
     // AppProtectedLayoutSidebar). "Workspace" was a stale contract after the

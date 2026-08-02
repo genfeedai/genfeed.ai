@@ -141,7 +141,7 @@ describe('AgentCampaignsPage', () => {
     expect(screen.getByText('Agent Campaigns')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /new campaign/i })).toHaveAttribute(
       'href',
-      '/posts/campaigns/new',
+      '/publish/campaigns/new',
     );
   });
 

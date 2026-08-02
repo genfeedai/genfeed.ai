@@ -60,6 +60,7 @@ describe('AUTOMATE_MENU_ITEMS', () => {
   });
 
   it.each([
+    '/automate/content-runs',
     '/automate/hire',
     '/automate/orchestrator',
     '/automate/new',

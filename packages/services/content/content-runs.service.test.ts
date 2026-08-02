@@ -1,13 +1,21 @@
+import { ContentRunStatus } from '@genfeedai/enums';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockDeserializeResource, mockGet, mockPost } = vi.hoisted(() => ({
+const {
+  mockDeserializeCollection,
+  mockDeserializeResource,
+  mockGet,
+  mockPost,
+} = vi.hoisted(() => ({
+  mockDeserializeCollection: vi.fn(),
   mockDeserializeResource: vi.fn(),
   mockGet: vi.fn(),
   mockPost: vi.fn(),
 }));
 
 vi.mock('@services/core/json-api', () => ({
+  deserializeCollection: mockDeserializeCollection,
   deserializeResource: mockDeserializeResource,
 }));
 
@@ -98,6 +106,49 @@ describe('ContentRunsService', () => {
         sourceUrl: 'https://x.com/builderx/status/1',
       },
     });
+  });
+
+  it('lists brand content runs without filter params by default', async () => {
+    mockGet.mockResolvedValue({ data: { data: [] } });
+    mockDeserializeCollection.mockReturnValue([]);
+
+    const service = new ContentRunsService('token');
+    const result = await service.list('brand-1');
+
+    expect(mockGet).toHaveBeenCalledWith('/brands/brand-1/content-runs', {
+      params: {},
+    });
+    expect(result).toEqual([]);
+  });
+
+  it('forwards status and skillSlug filters when listing brand content runs', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        data: [
+          {
+            attributes: { skillSlug: 'trend-remix', status: 'completed' },
+            id: 'run-1',
+            type: 'content-runs',
+          },
+        ],
+      },
+    });
+    mockDeserializeCollection.mockReturnValue([
+      { _id: 'run-1', skillSlug: 'trend-remix', status: 'completed' },
+    ]);
+
+    const service = new ContentRunsService('token');
+    const result = await service.list('brand-1', {
+      skillSlug: 'trend-remix',
+      status: ContentRunStatus.COMPLETED,
+    });
+
+    expect(mockGet).toHaveBeenCalledWith('/brands/brand-1/content-runs', {
+      params: { skillSlug: 'trend-remix', status: 'completed' },
+    });
+    expect(result).toEqual([
+      { _id: 'run-1', skillSlug: 'trend-remix', status: 'completed' },
+    ]);
   });
 
   it('fetches a single content run by id', async () => {

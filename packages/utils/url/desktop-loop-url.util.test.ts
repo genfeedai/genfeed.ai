@@ -49,7 +49,7 @@ describe('desktop-loop-url.util', () => {
 
     const href = buildTrendSourceTwitterDraftHref(trend, source);
 
-    expect(href).toContain('/posts/remix?');
+    expect(href).toContain('/publish/remix?');
     expect(href).toContain('trendId=trend-1');
     expect(href).toContain('sourceReferenceId=source-reference-1');
     expect(href).toContain(

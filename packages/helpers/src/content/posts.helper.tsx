@@ -137,23 +137,23 @@ export function getPublisherPostsStatusPath(
   const normalizedStatus = normalizePublisherPostsStatus(status);
 
   if (normalizedStatus === PostStatus.PUBLIC) {
-    return APP_ROUTES.POSTS.PUBLISHED;
+    return APP_ROUTES.PUBLISH.PUBLISHED;
   }
 
-  return APP_ROUTES.POSTS.ROOT;
+  return APP_ROUTES.PUBLISH.ROOT;
 }
 
 export function getPublisherPostsStatusFromPathname(
   pathname?: string | null,
 ): PublisherPostsStatus | null {
   const segments = (pathname ?? '').split('?')[0].split('/').filter(Boolean);
-  const postsIndex = segments.lastIndexOf('posts');
+  const publishIndex = segments.lastIndexOf('publish');
 
-  if (postsIndex === -1) {
+  if (publishIndex === -1) {
     return null;
   }
 
-  const statusSegment = segments[postsIndex + 1];
+  const statusSegment = segments[publishIndex + 1];
   if (statusSegment === 'scheduled') {
     return PostStatus.SCHEDULED;
   }

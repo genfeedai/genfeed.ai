@@ -66,7 +66,7 @@ const selfHostedBrandRoutePrefixes = [
   APP_ROUTE_PREFIXES.WORKSPACE,
   APP_ROUTE_PREFIXES.AGENT,
   APP_ROUTE_PREFIXES.STUDIO,
-  APP_ROUTE_PREFIXES.POSTS,
+  APP_ROUTE_PREFIXES.PUBLISH,
   APP_ROUTE_PREFIXES.COMPOSE,
   APP_ROUTE_PREFIXES.ANALYTICS,
   APP_ROUTE_PREFIXES.AUTOMATE,
@@ -253,10 +253,10 @@ const config = createAppNextConfig({
     ...appOverviewToHomeRedirects(APP_ROUTES.LIBRARY.ROOT),
     ...appOverviewToHomeRedirects(APP_ROUTES.ANALYTICS.ROOT),
     // Campaigns / outreach moved from Automate → Publish (hard cut).
-    ...legacyPathRedirects('/automate/campaigns', APP_ROUTES.POSTS.CAMPAIGNS),
+    ...legacyPathRedirects('/automate/campaigns', APP_ROUTES.PUBLISH.CAMPAIGNS),
     ...legacyPathRedirects(
       '/automate/outreach-campaigns',
-      APP_ROUTES.POSTS.OUTREACH_CAMPAIGNS,
+      APP_ROUTES.PUBLISH.OUTREACH_CAMPAIGNS,
     ),
   ],
   sentryProject: 'app-genfeed-ai',

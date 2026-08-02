@@ -106,7 +106,7 @@ test.describe('App surfaces — empty data states', () => {
     authenticatedPage,
   }) => {
     await mockEmptyCollection(authenticatedPage, '**/posts**');
-    const route = `${ORG_BRAND}/posts`;
+    const route = `${ORG_BRAND}/publish`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
@@ -116,7 +116,7 @@ test.describe('App surfaces — empty data states', () => {
     authenticatedPage,
   }) => {
     await mockEmptyCollection(authenticatedPage, '**/posts**');
-    const route = `${ORG_BRAND}/posts?status=scheduled`;
+    const route = `${ORG_BRAND}/publish?status=scheduled`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
@@ -126,7 +126,7 @@ test.describe('App surfaces — empty data states', () => {
     authenticatedPage,
   }) => {
     await mockEmptyCollection(authenticatedPage, '**/posts**');
-    const route = `${ORG_BRAND}/posts/review`;
+    const route = `${ORG_BRAND}/publish/review`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);

@@ -44,7 +44,7 @@ import {
 type LifecycleAppSwitcherItemConfig = AppSwitcherItemConfig & {
   /**
    * Product path roots that activate this app (menu-style). Matched against the
-   * brand/org-stripped pathname, e.g. `/studio`, `/posts`, `/automate`.
+   * brand/org-stripped pathname, e.g. `/studio`, `/publish`, `/automate`.
    * Longest root wins; no match → nothing highlighted (settings, onboarding, …).
    */
   activePathRoots: readonly string[];
@@ -160,16 +160,16 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.discover,
       },
       {
-        // Compose is a publish-adjacent create surface, not Studio. The
-        // Remotion editor moved the other way — it is Studio's Edit surface.
-        activePathRoots: ['/posts', '/compose'],
-        description: 'Drafts, posts, and compose.',
+        // Compose and focused artifact editors are Publish-adjacent. The
+        // Remotion project editor lives under Studio's Edit surface.
+        activePathRoots: ['/publish', '/compose', '/edit'],
+        description: 'Drafts, posts, compose, and artifact editing.',
         icon: Send,
-        id: 'posts',
+        id: 'publish',
         itemKey: 'publish',
         label: 'Publish',
-        route: createScopedAppRoute({ brandPath: '/posts' }),
-        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.posts,
+        route: createScopedAppRoute({ brandPath: '/publish' }),
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.publish,
       },
       {
         activePathRoots: ['/analytics'],
@@ -271,8 +271,8 @@ function useAppSwitcherVisibility(): Record<
     [APP_SWITCHER_FEATURE_FLAGS.library]: useFeatureFlag(
       APP_SWITCHER_FEATURE_FLAGS.library,
     ),
-    [APP_SWITCHER_FEATURE_FLAGS.posts]: useFeatureFlag(
-      APP_SWITCHER_FEATURE_FLAGS.posts,
+    [APP_SWITCHER_FEATURE_FLAGS.publish]: useFeatureFlag(
+      APP_SWITCHER_FEATURE_FLAGS.publish,
     ),
     [APP_SWITCHER_FEATURE_FLAGS.analytics]: useFeatureFlag(
       APP_SWITCHER_FEATURE_FLAGS.analytics,

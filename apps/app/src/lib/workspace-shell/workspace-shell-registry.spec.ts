@@ -31,11 +31,11 @@ function materializeRoutePattern(pattern: string): string {
 
 describe('workspace shell trusted registry', () => {
   it('owns the complete accepted protected-route denominator', () => {
-    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(213);
+    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(217);
     expect(
       new Set(PROTECTED_ROUTE_INVENTORY.map((route) => route.canonicalUrl))
         .size,
-    ).toBe(213);
+    ).toBe(217);
 
     for (const route of PROTECTED_ROUTE_INVENTORY) {
       expect(route.accessPolicy).toMatch(
@@ -112,9 +112,13 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/automate/workflows/new', 'Automate', 'New Workflow'],
     ['/acme/moonrise/automate/workflows/workflow-1', 'Automate', 'Workflow'],
     ['/acme/moonrise/automate', 'Automate', 'Overview'],
+    ['/acme/moonrise/automate/content-runs', 'Automate', 'Content Runs'],
     ['/acme/moonrise/automate/content-runs/run-1', 'Automate', 'Content Run'],
-    ['/acme/moonrise/posts/campaigns/campaign-1', 'Publish', 'Campaign'],
+    ['/acme/moonrise/publish/campaigns/campaign-1', 'Publish', 'Campaign'],
     ['/acme/moonrise/automate/library/images', 'Automate', 'Images'],
+    ['/acme/moonrise/edit/article/article-1', 'Edit', 'Article'],
+    ['/acme/moonrise/edit/newsletter/newsletter-1', 'Edit', 'Newsletter'],
+    ['/acme/moonrise/edit/post/post-1', 'Edit', 'Post'],
   ] as const)(
     'resolves canonical breadcrumb metadata for %s',
     (pathname, rootLabel, leafLabel) => {
@@ -140,7 +144,7 @@ describe('workspace shell trusted registry', () => {
   );
 
   it.each([
-    ['/:orgSlug/:brandSlug/posts/calendar', 'canvas'],
+    ['/:orgSlug/:brandSlug/publish/calendar', 'canvas'],
     ['/:orgSlug/:brandSlug/library/moodboard', 'canvas'],
     ['/:orgSlug/:brandSlug/automate/skills', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/batch', 'canvas'],
@@ -154,6 +158,25 @@ describe('workspace shell trusted registry', () => {
       resolveWorkspaceShellRoute(materializeRoutePattern(pattern))?.mode,
     ).toBe(mode);
   });
+
+  it.each([
+    '/acme/moonrise/edit/article/article-1',
+    '/acme/moonrise/edit/newsletter/newsletter-1',
+    '/acme/moonrise/edit/post/post-1',
+  ] as const)(
+    'registers the dedicated artifact editor %s as a focused Publish surface',
+    (pathname) => {
+      expect(resolveWorkspaceShellRoute(pathname)).toMatchObject({
+        mode: 'canvas',
+        productClass: 'contextual-action',
+        safeFallback: '/:orgSlug/:brandSlug/publish',
+        surfaceKey: 'artifact-editor',
+      });
+      expect(resolveWorkspaceShellRoute(pathname)?.switcherItems).toEqual([
+        'publish',
+      ]);
+    },
+  );
 
   it('keeps legacy workflow aliases aligned with their canonical automate owners', () => {
     expect(
@@ -206,11 +229,11 @@ describe('workspace shell trusted registry', () => {
 
   it('keeps contextual Remix routes inside the Publish switcher module', () => {
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/posts/remix'),
+      resolveWorkspaceShellRoute('/acme/moonrise/publish/remix'),
     ).toMatchObject({
       productClass: 'contextual-action',
       surfaceKey: 'publish',
-      switcherItems: ['posts'],
+      switcherItems: ['publish'],
     });
   });
 
@@ -227,8 +250,8 @@ describe('workspace shell trusted registry', () => {
 
     for (const pathname of [
       '/acme/moonrise/library/images',
-      '/acme/moonrise/posts/calendar',
-      '/acme/moonrise/posts/review',
+      '/acme/moonrise/publish/calendar',
+      '/acme/moonrise/publish/review',
       '/acme/moonrise/automate/workflows/executions/run-1',
       '/acme/moonrise/settings/publishing',
       '/acme/~/settings/api-keys',
@@ -319,11 +342,11 @@ describe('workspace shell trusted registry', () => {
 
   it('does not treat reserved application prefixes as scoped routes', () => {
     expect(resolveWorkspaceShellRoute('/connect/~/overview')).toBeNull();
-    expect(resolveWorkspaceShellRoute('/connect/example/posts')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/connect/example/publish')).toBeNull();
     expect(resolveWorkspaceShellRoute('/settings/~/overview')).toBeNull();
-    expect(resolveWorkspaceShellRoute('/settings/example/posts')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/settings/example/publish')).toBeNull();
     expect(resolveWorkspaceShellRoute('/admin/~/overview')).toBeNull();
-    expect(resolveWorkspaceShellRoute('/admin/example/posts')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/admin/example/publish')).toBeNull();
   });
 
   it('interpolates a safe fallback without widening scope', () => {

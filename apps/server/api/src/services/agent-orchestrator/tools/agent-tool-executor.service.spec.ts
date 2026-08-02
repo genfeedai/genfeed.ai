@@ -3256,7 +3256,7 @@ describe('AgentToolExecutorService', () => {
           'LinkedIn · image · approved',
         ],
         primaryCta: {
-          href: '/posts/review?batch=69c2d469368c4314a3cfff32&filter=ready',
+          href: '/publish/review?batch=69c2d469368c4314a3cfff32&filter=ready',
           label: 'Open review queue',
         },
         status: 'completed',
@@ -3288,7 +3288,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.error).toContain('cannot grant publish approval');
     expect(batchGenerationService.approveItems).not.toHaveBeenCalled();
     expect(result.nextActions?.[0]?.primaryCta).toEqual({
-      href: '/posts/review?batch=batch-1&filter=ready',
+      href: '/publish/review?batch=batch-1&filter=ready',
       label: 'Review exact versions',
     });
   });

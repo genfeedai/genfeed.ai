@@ -21,7 +21,7 @@ const KNOWN_PROTECTED_PREFIXES = [
   'studio',
   'settings',
   'agents',
-  'posts',
+  'publish',
   'analytics',
   'library',
   'agent',
@@ -64,8 +64,9 @@ export function normalizeProtectedPathname(rawPathname: string): string {
  * Covers the five product sections plus their canonical route aliases: Workspace
  * (`/workspace`, `/overview`), Library, Analytics, Automate
  * (`/automate`, including merged workflows), and the Calendar
- * (`/posts/calendar`). The agent, settings, studio, compose, discover, publish,
- * messages, and admin surfaces are intentionally NOT gated.
+ * (`/publish/calendar`). The agent, settings, studio, compose, discover,
+ * messages, and admin surfaces are intentionally NOT gated — nor is the rest of
+ * Publish outside its Calendar.
  */
 const ASSET_GATE_SECTION_PREFIXES = [
   '/workspace',
@@ -73,7 +74,7 @@ const ASSET_GATE_SECTION_PREFIXES = [
   '/library',
   '/analytics',
   '/automate',
-  '/posts/calendar',
+  '/publish/calendar',
 ] as const;
 
 export function isAssetGateSectionPath(normalizedPathname: string): boolean {

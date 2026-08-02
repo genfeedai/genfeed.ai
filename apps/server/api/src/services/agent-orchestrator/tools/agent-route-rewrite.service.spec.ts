@@ -45,7 +45,7 @@ describe('AgentRouteRewriteService', () => {
               label: 'Open workflow',
             },
           ],
-          editorUrl: '/posts/review?filter=ready',
+          editorUrl: '/publish/review?filter=ready',
           title: 'Review',
           type: 'content_preview_card',
         },
@@ -64,7 +64,7 @@ describe('AgentRouteRewriteService', () => {
           ctaHref: '/genfeed-ai/launch-brand/automations/editor/workflow-1',
         },
       ],
-      editorUrl: '/genfeed-ai/launch-brand/posts/review?filter=ready',
+      editorUrl: '/genfeed-ai/launch-brand/publish/review?filter=ready',
     });
   });
 
@@ -127,7 +127,7 @@ describe('AgentRouteRewriteService', () => {
     const scoped = await service.scopeToolResultHrefs(
       {
         data: {
-          href: '/posts/review',
+          href: '/publish/review',
           url: '/media/generated-image.png',
         },
         success: true,
@@ -136,7 +136,7 @@ describe('AgentRouteRewriteService', () => {
     );
 
     expect(scoped.data).toEqual({
-      href: '/genfeed-ai/launch-brand/posts/review',
+      href: '/genfeed-ai/launch-brand/publish/review',
       url: '/media/generated-image.png',
     });
   });

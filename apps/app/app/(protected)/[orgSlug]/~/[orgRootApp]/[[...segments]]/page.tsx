@@ -7,8 +7,8 @@ import FeatureGate from '@ui/guards/feature/FeatureGate';
 import { SkeletonLoadingFallback } from '@ui/loading/skeleton/SkeletonFallbacks';
 import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
-import PostsLayoutContent from '../../../[brandSlug]/posts/posts-layout-content';
-import { renderPostsListPage } from '../../../[brandSlug]/posts/posts-list-page';
+import PublishLayoutContent from '../../../[brandSlug]/publish/publish-layout-content';
+import { renderPostsListPage } from '../../../[brandSlug]/publish/publish-list-page';
 import StudioPageContent from '../../../[brandSlug]/studio/[type]/StudioPageContent';
 import { canonicalizeStudioType } from '../../../[brandSlug]/studio/[type]/studio-route';
 import EditorDetailPage from '../../../[brandSlug]/studio/edit/[id]/page';
@@ -164,7 +164,7 @@ export default async function OrgRootAppPage({
   }
 
   if (
-    orgRootApp === 'posts' ||
+    orgRootApp === 'publish' ||
     orgRootApp === 'write' ||
     orgRootApp === 'compose'
   ) {
@@ -174,7 +174,7 @@ export default async function OrgRootAppPage({
       statusOverride: getOrgPostsStatusOverride(segments),
     });
 
-    return <PostsLayoutContent>{postsListPage}</PostsLayoutContent>;
+    return <PublishLayoutContent>{postsListPage}</PublishLayoutContent>;
   }
 
   notFound();

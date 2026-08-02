@@ -1,3 +1,4 @@
+import type { ContentRunStatus } from '@genfeedai/enums';
 import type { ContentRunBrief } from '@genfeedai/interfaces';
 import type {
   ContentRunAnalyticsSummary,
@@ -8,6 +9,7 @@ import type {
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
+  deserializeCollection,
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
@@ -57,6 +59,11 @@ export interface ContentRunRecord {
   variants?: ContentRunVariant[];
 }
 
+export interface ListContentRunsFilters {
+  skillSlug?: string;
+  status?: ContentRunStatus;
+}
+
 export class ContentRunsService extends HTTPBaseService {
   constructor(token: string) {
     super(EnvironmentService.apiEndpoint, token);
@@ -67,6 +74,23 @@ export class ContentRunsService extends HTTPBaseService {
       ContentRunsService,
       token,
     ) as ContentRunsService;
+  }
+
+  async list(
+    brandId: string,
+    filters: ListContentRunsFilters = {},
+  ): Promise<ContentRunRecord[]> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      `/brands/${brandId}/content-runs`,
+      {
+        params: {
+          ...(filters.skillSlug ? { skillSlug: filters.skillSlug } : {}),
+          ...(filters.status ? { status: filters.status } : {}),
+        },
+      },
+    );
+
+    return deserializeCollection<ContentRunRecord>(response.data);
   }
 
   async createResearchBriefRun(

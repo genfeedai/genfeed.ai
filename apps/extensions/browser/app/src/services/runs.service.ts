@@ -45,7 +45,7 @@ interface CreateAndExecuteOptions {
 
 export class RunsService extends HTTPBaseService {
   constructor(token: string) {
-    super(`${EnvironmentService.apiEndpoint}/runs`, token);
+    super(`${EnvironmentService.apiEndpoint}/action-runs`, token);
   }
 
   async createRun(

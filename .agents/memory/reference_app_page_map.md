@@ -72,7 +72,7 @@ The protected shell currently recognizes these app contexts:
 - `research`
 - `studio`
 - `library`
-- `posts`
+- `publish`
 - `analytics`
 - `workflows`
 - `compose`
@@ -167,9 +167,9 @@ Organization catch-all module pages served by `/:orgSlug/~/:orgRootApp/[[...segm
 - `/:orgSlug/~/library/:type`
 - `/:orgSlug/~/studio`
 - `/:orgSlug/~/studio/:type`
-- `/:orgSlug/~/posts`
-- `/:orgSlug/~/posts/published`
-- `/:orgSlug/~/posts/scheduled`
+- `/:orgSlug/~/publish`
+- `/:orgSlug/~/publish/published`
+- `/:orgSlug/~/publish/scheduled`
 - `/:orgSlug/~/write`
 - `/:orgSlug/~/write/:segment`
 - `/:orgSlug/~/compose`
@@ -277,17 +277,17 @@ The remaining Library type routes encode the selected asset-type filter as
 shareable deep links; they are not separate sidebar modules. Folder selection
 is a URL-backed secondary sidebar filter.
 
-Publish/posts:
+Publish:
 
-- `/:orgSlug/:brandSlug/posts`
-- `/:orgSlug/:brandSlug/posts/:id`
-- `/:orgSlug/:brandSlug/posts/calendar`
-- `/:orgSlug/:brandSlug/posts/composer`
-- `/:orgSlug/:brandSlug/posts/newsletters`
-- `/:orgSlug/:brandSlug/posts/published`
-- `/:orgSlug/:brandSlug/posts/remix`
-- `/:orgSlug/:brandSlug/posts/review`
-- `/:orgSlug/:brandSlug/posts/scheduled`
+- `/:orgSlug/:brandSlug/publish`
+- `/:orgSlug/:brandSlug/publish/:id`
+- `/:orgSlug/:brandSlug/publish/calendar`
+- `/:orgSlug/:brandSlug/publish/composer`
+- `/:orgSlug/:brandSlug/publish/newsletters`
+- `/:orgSlug/:brandSlug/publish/published`
+- `/:orgSlug/:brandSlug/publish/remix`
+- `/:orgSlug/:brandSlug/publish/review`
+- `/:orgSlug/:brandSlug/publish/scheduled`
 
 Analytics:
 
@@ -305,8 +305,8 @@ Analytics:
 - `/:orgSlug/:brandSlug/analytics/trend-turnover`
 - `/:orgSlug/:brandSlug/analytics/streaks`
 
-Analytics owns every analytics surface — the Publish/posts module no longer has
-its own `/posts/analytics` page. The sidebar groups these under **Performance**
+Analytics owns every analytics surface — the Publish module no longer has its
+own `/publish/analytics` page. The sidebar groups these under **Performance**
 (Overview, Posts, Brands) · **Intelligence** (Insights, Hooks, Performance Lab,
 Trends, Trend Turnover) · **Habits** (Streaks); the `trends/detail` and
 `trends/platforms` routes are drilldowns reached from Trends.
@@ -330,6 +330,7 @@ Workflows and automate:
 - `/:orgSlug/:brandSlug/automate/orchestrator`
 - `/:orgSlug/:brandSlug/automate/runs`
 - `/:orgSlug/:brandSlug/automate/skills`
+- `/:orgSlug/:brandSlug/automate/content-runs`
 - `/:orgSlug/:brandSlug/automate/content-runs/:runId`
 - `/:orgSlug/:brandSlug/automate/campaigns`
 - `/:orgSlug/:brandSlug/automate/campaigns/new`
@@ -444,7 +445,7 @@ Admin organization/administration:
 - `Messages` is intentionally a full app/module for global social DM.
 - `Remix` is not a top-level page concept. It is a contextual action inside
   Research, Publish, Analytics, Library, and authorized content-run outputs;
-  `/posts/remix` remains a canonical Publish child route for typed handoffs.
+  `/publish/remix` remains a canonical Publish child route for typed handoffs.
 - `Repeat` is not a top-level page concept. It should be a contextual feature/action inside Research, Publish, Analytics, Studio, or Library output views.
 - `Discovery`, `Socials`, and `Ads` are Research internal pages.
 - `Batch` is Studio internal navigation when the Studio capability is enabled.
