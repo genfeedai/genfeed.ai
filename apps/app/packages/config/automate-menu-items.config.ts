@@ -11,6 +11,15 @@ import {
   Wrench,
 } from 'lucide-react';
 
+/**
+ * Automate module nav — grouped by product surface (not a flat dump).
+ *
+ * - Home: Overview
+ * - Build: pipelines + run history
+ * - Campaigns: reply drip (and future campaign types)
+ * - Agents: team, skills, autopilot strategies
+ * - Insights / Settings: analytics + module config
+ */
 export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
@@ -21,7 +30,7 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
     solid: Sparkles,
   },
   {
-    group: '',
+    group: 'Build',
     href: APP_ROUTES.AUTOMATE.WORKFLOWS,
     label: 'Workflows',
     matchPaths: [
@@ -33,15 +42,7 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
     solid: Wrench,
   },
   {
-    group: '',
-    href: APP_ROUTES.AUTOMATE.REPLY_CAMPAIGNS,
-    label: 'Reply Campaigns',
-    matchPaths: [APP_ROUTES.AUTOMATE.REPLY_CAMPAIGNS],
-    outline: Megaphone,
-    solid: Megaphone,
-  },
-  {
-    group: '',
+    group: 'Build',
     href: APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS,
     label: 'Runs',
     matchPaths: [
@@ -53,7 +54,15 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
     solid: CirclePlay,
   },
   {
-    group: '',
+    group: 'Campaigns',
+    href: APP_ROUTES.AUTOMATE.REPLY_CAMPAIGNS,
+    label: 'Reply Campaigns',
+    matchPaths: [APP_ROUTES.AUTOMATE.REPLY_CAMPAIGNS],
+    outline: Megaphone,
+    solid: Megaphone,
+  },
+  {
+    group: 'Agents',
     href: APP_ROUTES.AUTOMATE.LIBRARY,
     label: 'Team',
     matchPaths: [
@@ -66,7 +75,7 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
     solid: Users,
   },
   {
-    group: '',
+    group: 'Agents',
     href: APP_ROUTES.AUTOMATE.SKILLS,
     label: 'Skills',
     matchPaths: [APP_ROUTES.AUTOMATE.SKILLS],
@@ -74,7 +83,7 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
     solid: Sparkles,
   },
   {
-    group: '',
+    group: 'Agents',
     href: APP_ROUTES.AUTOMATE.AUTOPILOT,
     label: 'Autopilot',
     matchPaths: [APP_ROUTES.AUTOMATE.AUTOPILOT, APP_ROUTES.AUTOMATE.STRATEGIES],
@@ -82,7 +91,7 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
     solid: Rocket,
   },
   {
-    group: '',
+    group: 'Insights',
     href: APP_ROUTES.AUTOMATE.ANALYTICS,
     label: 'Analytics',
     matchPaths: [APP_ROUTES.AUTOMATE.ANALYTICS],
@@ -90,7 +99,7 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
     solid: ChartColumn,
   },
   {
-    group: '',
+    group: 'Settings',
     href: APP_ROUTES.AUTOMATE.CONFIGURATION,
     label: 'Configuration',
     matchPaths: [APP_ROUTES.AUTOMATE.CONFIGURATION],

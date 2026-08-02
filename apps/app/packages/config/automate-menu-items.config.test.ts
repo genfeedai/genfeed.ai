@@ -10,7 +10,7 @@ describe('AUTOMATE_MENU_ITEMS', () => {
   });
 
   it("has a logo href pointing back to Automate's own overview", () => {
-    expect(AUTOMATE_LOGO_HREF).toBe('/automate');
+    expect(AUTOMATE_LOGO_HREF).toBe('/automate/overview');
   });
 
   it('has no duplicate hrefs', () => {
@@ -72,5 +72,22 @@ describe('AUTOMATE_MENU_ITEMS', () => {
     );
 
     expect(isCovered).toBe(true);
+  });
+
+  it('groups product surfaces (Build / Campaigns / Agents / Insights / Settings)', () => {
+    const byGroup = new Map<string, string[]>();
+    for (const item of AUTOMATE_MENU_ITEMS) {
+      const group = item.group ?? '';
+      const labels = byGroup.get(group) ?? [];
+      labels.push(item.label);
+      byGroup.set(group, labels);
+    }
+
+    expect(byGroup.get('')).toEqual(['Overview']);
+    expect(byGroup.get('Build')).toEqual(['Workflows', 'Runs']);
+    expect(byGroup.get('Campaigns')).toEqual(['Reply Campaigns']);
+    expect(byGroup.get('Agents')).toEqual(['Team', 'Skills', 'Autopilot']);
+    expect(byGroup.get('Insights')).toEqual(['Analytics']);
+    expect(byGroup.get('Settings')).toEqual(['Configuration']);
   });
 });
