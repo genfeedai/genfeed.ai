@@ -8,7 +8,7 @@ type: reference
 
 Last audited: 2026-08-02.
 
-The current executable protected denominator is 210 canonical patterns. Two
+The current executable protected denominator is 209 canonical patterns. Two
 intentional hard-cut families remain outside the denominator. The app switcher
 is only a discovery subset.
 
@@ -24,7 +24,7 @@ Source of truth:
 - Sidebar resolver in `apps/app/packages/components/AppProtectedLayoutSidebar.tsx`
 - App switcher in `packages/ui/src/components/shell/app-switcher/AppSwitcher.tsx`
 
-The application registry mirrors all 210 parity-eligible patterns below and
+The application registry mirrors all 209 parity-eligible patterns below and
 keeps Notifications plus trusted pickers as explicit non-route surfaces. The
 two hard-cut families remain outside it.
 
@@ -279,7 +279,6 @@ Publish/posts:
 
 - `/:orgSlug/:brandSlug/posts`
 - `/:orgSlug/:brandSlug/posts/:id`
-- `/:orgSlug/:brandSlug/posts/analytics`
 - `/:orgSlug/:brandSlug/posts/calendar`
 - `/:orgSlug/:brandSlug/posts/composer`
 - `/:orgSlug/:brandSlug/posts/newsletters`
@@ -303,6 +302,12 @@ Analytics:
 - `/:orgSlug/:brandSlug/analytics/trends/platforms/:platform`
 - `/:orgSlug/:brandSlug/analytics/trend-turnover`
 - `/:orgSlug/:brandSlug/analytics/streaks`
+
+Analytics owns every analytics surface — the Publish/posts module no longer has
+its own `/posts/analytics` page. The sidebar groups these under **Performance**
+(Overview, Posts, Brands) · **Intelligence** (Insights, Hooks, Performance Lab,
+Trends, Trend Turnover) · **Habits** (Streaks); the `trends/detail` and
+`trends/platforms` routes are drilldowns reached from Trends.
 
 Workflows and orchestration:
 

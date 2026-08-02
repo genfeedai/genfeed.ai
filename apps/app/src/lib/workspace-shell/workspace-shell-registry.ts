@@ -770,15 +770,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
       telemetryClass: 'product',
     },
   ),
-  ...registerRoutes(['/:orgSlug/:brandSlug/posts/analytics'], {
-    fallback: '/:orgSlug/:brandSlug/posts',
-    mode: 'canvas',
-    productClass: 'visual-data',
-    scope: 'brand',
-    surfaceKey: 'publish',
-    switcherItems: ['posts'],
-    telemetryClass: 'product',
-  }),
   ...registerRoutes(['/:orgSlug/:brandSlug/posts/remix'], {
     fallback: '/:orgSlug/:brandSlug/posts',
     mode: 'canvas',

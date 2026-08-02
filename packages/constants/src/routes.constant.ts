@@ -176,7 +176,6 @@ export const APP_ROUTES = {
     ROOT: '/overview',
   },
   POSTS: {
-    ANALYTICS: '/posts/analytics',
     CALENDAR: '/posts/calendar',
     /** Agent-driven content campaigns (Publish surface). */
     CAMPAIGNS: '/posts/campaigns',

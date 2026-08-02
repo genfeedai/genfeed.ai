@@ -102,6 +102,54 @@ export interface IBetterAuthRateLimitStorage {
   set: (key: string, value: RateLimit) => Promise<void>;
 }
 
+/** Which Redis command the rate-limit store was running when it degraded. */
+export type BetterAuthRateLimitOperation = 'get' | 'set';
+
+/** Why a rate-limit operation failed open instead of consulting Redis. */
+export type BetterAuthRateLimitDegradationReason =
+  /** The client reported `isReady === false`, so no command was issued. */
+  | 'client-unavailable'
+  /** A command was issued and threw. */
+  | 'command-failed';
+
+/** Emitted (throttled) whenever the store fails open instead of enforcing. */
+export interface IBetterAuthRateLimitDegradedEvent {
+  operation: BetterAuthRateLimitOperation;
+  reason: BetterAuthRateLimitDegradationReason;
+  /** The thrown value. Present only for `command-failed`. */
+  error?: unknown;
+  /** Degraded operations swallowed by the throttle since the previous event. */
+  suppressedCount: number;
+}
+
+/** Emitted once when a Redis command succeeds after a reported outage. */
+export interface IBetterAuthRateLimitRecoveredEvent {
+  operation: BetterAuthRateLimitOperation;
+  /** Total operations that failed open during the outage that just ended. */
+  degradedCount: number;
+}
+
+/** Observability options for `buildRedisRateLimitStore`. */
+export interface IBuildRedisRateLimitStoreOptions {
+  /**
+   * Minimum gap between two emitted {@link IBetterAuthRateLimitDegradedEvent}s.
+   * A sustained outage degrades every single auth request, so the raw signal is
+   * as hot as the auth path itself; it is collapsed into one event per window
+   * carrying `suppressedCount` instead. Defaults to one minute.
+   */
+  degradationSignalIntervalMs?: number;
+  /**
+   * Shortest gap the throttle may be wound back to when the store recovers.
+   * Recovery re-arms the window so a new outage is not silenced by the previous
+   * one, and this floor stops a flapping client from turning that re-arm into
+   * an unthrottled signal per failed operation. Defaults to five seconds, and
+   * is clamped to {@link degradationSignalIntervalMs}.
+   */
+  recoveryRearmFloorMs?: number;
+  onDegraded?: (event: IBetterAuthRateLimitDegradedEvent) => void;
+  onRecovered?: (event: IBetterAuthRateLimitRecoveredEvent) => void;
+}
+
 /**
  * Structural view of {@link RateLimitClientService} used by the rate-limit store
  * adapter. Narrowed to `isReady` + the two commands so the fail-open behavior is

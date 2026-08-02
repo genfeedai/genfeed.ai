@@ -2,7 +2,7 @@ import { CacheClientService } from '@api/services/cache/services/cache-client.se
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /* ---------- mock ioredis ---------- */
 const mockPipeline = { exec: vi.fn().mockResolvedValue([]) };
@@ -54,6 +54,27 @@ describe('CacheClientService', () => {
     service = module.get<CacheClientService>(CacheClientService);
   });
 
+  // Fake timers leak into every later test in the file when the test that
+  // installed them fails before restoring them, turning one failure into a
+  // cascade of unrelated timeouts.
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /**
+   * The listener the service registered for `event`, so a test can drive the
+   * connection lifecycle without standing up a real ioredis connection.
+   */
+  function getClientHandler(event: string): (...args: unknown[]) => void {
+    const registration = mockRedisClient.on.mock.calls.find(
+      (call: [string, (...args: unknown[]) => void]) => call[0] === event,
+    );
+    if (!registration) {
+      throw new Error(`No "${event}" handler registered on the Redis client`);
+    }
+    return registration[1];
+  }
+
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
@@ -97,14 +118,91 @@ describe('CacheClientService', () => {
     expect(delay as number).toBeLessThanOrEqual(30_000);
   });
 
-  it('retry strategy returns null after max retries', () => {
-    const result = capturedRetryStrategy?.(10);
-    expect(result).toBeNull();
-  });
-
   it('retry strategy caps delay at 30 seconds', () => {
     const delay = capturedRetryStrategy?.(8);
     expect(delay as number).toBeLessThanOrEqual(30_000);
+  });
+
+  it('retry strategy never gives up on the connection', () => {
+    // Returning a non-number permanently stops ioredis from reconnecting: the
+    // client parks at `status: 'end'`, `isReady` stays false forever, and every
+    // fail-open caller degrades silently with nothing left to log. Redis coming
+    // back must be reconnected to, however long the outage ran.
+    expect(capturedRetryStrategy?.(10)).toBe(30_000);
+    expect(capturedRetryStrategy?.(100)).toBe(30_000);
+    expect(capturedRetryStrategy?.(10_000)).toBe(30_000);
+  });
+
+  it('stops logging every reconnect attempt once the outage is no longer news', () => {
+    // Unbounded retries mean unbounded log lines unless the verbose window is
+    // bounded — one warning every 30 seconds forever buries the signal.
+    for (let retries = 0; retries < 10; retries += 1) {
+      capturedRetryStrategy?.(retries);
+    }
+    expect(mockLogger.warn).toHaveBeenCalledTimes(10);
+
+    mockLogger.warn.mockClear();
+    for (let retries = 10; retries < 30; retries += 1) {
+      capturedRetryStrategy?.(retries);
+    }
+    expect(mockLogger.warn).not.toHaveBeenCalled();
+  });
+
+  it('logs every connection error while an outage is new, then throttles', () => {
+    vi.useFakeTimers();
+    const handleError = getClientHandler('error');
+    const outageError = new Error('ECONNREFUSED');
+
+    for (let retries = 0; retries < 10; retries += 1) {
+      capturedRetryStrategy?.(retries);
+      handleError(outageError);
+    }
+    expect(mockLogger.error).toHaveBeenCalledTimes(10);
+
+    mockLogger.error.mockClear();
+    for (let retries = 10; retries < 20; retries += 1) {
+      capturedRetryStrategy?.(retries);
+      handleError(outageError);
+    }
+    expect(mockLogger.error).toHaveBeenCalledTimes(1);
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining('still unreachable'),
+      outageError,
+    );
+
+    mockLogger.error.mockClear();
+    vi.advanceTimersByTime(60_000);
+    handleError(outageError);
+    expect(mockLogger.error).toHaveBeenCalledTimes(1);
+    // The throttled errors are accounted for, so the line reports outage volume
+    // rather than reading as the second failure in a minute.
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining('9 errors suppressed'),
+      outageError,
+    );
+    vi.useRealTimers();
+  });
+
+  it('reports how many reconnect attempts a recovery took, then resets', () => {
+    const handleReady = getClientHandler('ready');
+    const handleError = getClientHandler('error');
+    const outageError = new Error('ECONNREFUSED');
+
+    capturedRetryStrategy?.(4);
+    mockLogger.log.mockClear();
+    handleReady();
+    expect(mockLogger.log).toHaveBeenCalledWith(
+      expect.stringContaining('recovered after 5 reconnect attempts'),
+    );
+
+    // Reset, so the next outage gets full detail rather than inheriting the
+    // previous one's throttle.
+    mockLogger.error.mockClear();
+    handleError(outageError);
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining('Redis client error'),
+      outageError,
+    );
   });
 
   /* ---------- onModuleInit ---------- */

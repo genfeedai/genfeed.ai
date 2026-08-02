@@ -6,51 +6,27 @@
  * lookalike.
  */
 import type {
+  BetterAuthRateLimitDegradationReason,
+  BetterAuthRateLimitOperation,
   IBetterAuthRateLimitRedisClient,
   IBetterAuthRateLimitStore,
+  IBuildRedisRateLimitStoreOptions,
 } from './better-auth.types';
-
-/** Which Redis command the store was running when it degraded. */
-export type BetterAuthRateLimitOperation = 'get' | 'set';
-
-/** Why a rate-limit operation failed open instead of consulting Redis. */
-export type BetterAuthRateLimitDegradationReason =
-  /** The client reported `isReady === false`, so no command was issued. */
-  | 'client-unavailable'
-  /** A command was issued and threw. */
-  | 'command-failed';
-
-/** Emitted (throttled) whenever the store fails open instead of enforcing. */
-export interface IBetterAuthRateLimitDegradedEvent {
-  operation: BetterAuthRateLimitOperation;
-  reason: BetterAuthRateLimitDegradationReason;
-  /** The thrown value. Present only for `command-failed`. */
-  error?: unknown;
-  /** Degraded operations swallowed by the throttle since the previous event. */
-  suppressedCount: number;
-}
-
-/** Emitted once when a Redis command succeeds after a degraded run. */
-export interface IBetterAuthRateLimitRecoveredEvent {
-  operation: BetterAuthRateLimitOperation;
-  /** Total operations that failed open during the outage that just ended. */
-  degradedCount: number;
-}
-
-export interface IBuildRedisRateLimitStoreOptions {
-  /**
-   * Minimum gap between two emitted {@link IBetterAuthRateLimitDegradedEvent}s.
-   * A sustained outage degrades every single auth request, so the raw signal is
-   * as hot as the auth path itself; it is collapsed into one event per window
-   * carrying `suppressedCount` instead. Defaults to one minute.
-   */
-  degradationSignalIntervalMs?: number;
-  onDegraded?: (event: IBetterAuthRateLimitDegradedEvent) => void;
-  onRecovered?: (event: IBetterAuthRateLimitRecoveredEvent) => void;
-}
 
 /** One signal per minute is enough to alert on, cheap enough to never flood. */
 const DEFAULT_DEGRADATION_SIGNAL_INTERVAL_MS = 60_000;
+
+/**
+ * Floor on how soon a fresh outage may signal after a recovery.
+ *
+ * Recovery re-arms the throttle so a genuinely new outage is not silenced by a
+ * window the previous one opened. Re-arming outright, though, hands a flapping
+ * client an unthrottled channel: alternating success/failure clears the window
+ * on every success, so every failure signals — one line per operation on the
+ * hot auth path, which is precisely the flood the throttle exists to prevent.
+ * The floor bounds that worst case to one signal per interval below.
+ */
+const DEFAULT_RECOVERY_REARM_FLOOR_MS = 5_000;
 
 /**
  * Observers are diagnostics, not control flow. A throwing observer must never
@@ -87,14 +63,28 @@ export function buildRedisRateLimitStore(
     degradationSignalIntervalMs = DEFAULT_DEGRADATION_SIGNAL_INTERVAL_MS,
     onDegraded,
     onRecovered,
+    recoveryRearmFloorMs = DEFAULT_RECOVERY_REARM_FLOOR_MS,
   }: IBuildRedisRateLimitStoreOptions = {},
 ): IBetterAuthRateLimitStore {
+  // A floor longer than the window itself would extend the throttle on recovery
+  // rather than shorten it, inverting the option's meaning.
+  const rearmFloorMs = Math.min(
+    recoveryRearmFloorMs,
+    degradationSignalIntervalMs,
+  );
+
   /** When an event last reached `onDegraded`; `null` before the first one. */
   let lastSignalledAt: number | null = null;
   /** Degraded operations swallowed by the throttle since that event. */
   let suppressedCount = 0;
   /** Degraded operations across the current outage, for the recovery event. */
   let degradedCount = 0;
+  /**
+   * Whether the current outage ever reached `onDegraded`. Recovery is only
+   * worth reporting if the degradation was — otherwise a flapping client emits
+   * a stream of "recovered" lines for outages nothing ever announced.
+   */
+  let hasReportedDegradation = false;
 
   function signalDegraded(
     operation: BetterAuthRateLimitOperation,
@@ -119,6 +109,7 @@ export function buildRedisRateLimitStore(
     const suppressedSinceLastSignal = suppressedCount;
     lastSignalledAt = now;
     suppressedCount = 0;
+    hasReportedDegradation = true;
     invokeObserver(() =>
       onDegraded({
         operation,
@@ -135,13 +126,20 @@ export function buildRedisRateLimitStore(
     }
 
     const outageSize = degradedCount;
+    const wasReported = hasReportedDegradation;
     degradedCount = 0;
     suppressedCount = 0;
-    // Cleared so the next outage signals immediately instead of waiting out a
-    // throttle window opened by the previous one.
-    lastSignalledAt = null;
+    hasReportedDegradation = false;
+    // Wound back so the throttle expires `rearmFloorMs` from now: a genuinely
+    // new outage signals promptly instead of waiting out a window the previous
+    // one opened, while a flapping client — which recovers between every
+    // failure — still cannot signal more than once per floor.
+    lastSignalledAt = Date.now() - degradationSignalIntervalMs + rearmFloorMs;
 
-    if (onRecovered) {
+    // Nothing announced this outage, so there is nothing to announce the end of.
+    // Without this a flapping client emits a "recovered" line per successful
+    // operation while every matching degradation is being throttled away.
+    if (onRecovered && wasReported) {
       invokeObserver(() =>
         onRecovered({ degradedCount: outageSize, operation }),
       );
