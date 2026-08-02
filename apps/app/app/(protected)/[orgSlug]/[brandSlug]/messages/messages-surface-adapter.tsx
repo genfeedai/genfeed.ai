@@ -11,7 +11,10 @@ import { Link, ShieldCheck } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { type ReactNode, useEffect, useMemo } from 'react';
 
-import { useRegisterWorkspaceSurfacePresentationAdapter } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
+import {
+  useRegisterWorkspaceSurfacePresentationAdapter,
+  type WorkspaceSurfacePresentationAdapter,
+} from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
 import { getSocialInboxReferenceKey } from './messages-surface.helpers';
 
 interface MessagesSurfaceAdapterParams {
@@ -139,7 +142,7 @@ export function useMessagesSurfaceAdapter({
       selectedConversation,
     ],
   );
-  const adapter = useMemo(
+  const adapter = useMemo<WorkspaceSurfacePresentationAdapter>(
     () => ({
       contextLabel:
         references.length > 0

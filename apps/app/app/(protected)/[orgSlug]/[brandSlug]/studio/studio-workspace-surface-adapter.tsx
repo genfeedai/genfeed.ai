@@ -5,7 +5,10 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { IngredientStatus } from '@genfeedai/enums';
 import type { IGenerationItem, IIngredient } from '@genfeedai/interfaces';
 import { type ReactNode, useCallback, useMemo } from 'react';
-import { useRegisterWorkspaceSurfaceAdapter } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
+import {
+  type ProductWorkspaceSurfaceAdapter,
+  useRegisterWorkspaceSurfaceAdapter,
+} from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
 
 interface StudioWorkspaceSurfaceAdapterProps {
   error?: string | null;
@@ -332,7 +335,7 @@ export default function StudioWorkspaceSurfaceAdapter({
       versions,
     ],
   );
-  const registration = useMemo(
+  const registration = useMemo<ProductWorkspaceSurfaceAdapter>(
     () => ({
       contextLabel: activeCanonicalAsset
         ? `Studio · ${titleCase(mode)} · ${selectedLabel}`
@@ -343,7 +346,7 @@ export default function StudioWorkspaceSurfaceAdapter({
         ...(brandId ? { brandId } : {}),
         organizationId,
       },
-      surfaceKey: 'studio',
+      surfaceKey: 'studio-specialized',
     }),
     [
       brandId,

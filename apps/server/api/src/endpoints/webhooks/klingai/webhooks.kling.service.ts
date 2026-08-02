@@ -3,7 +3,7 @@ import { KlingAIWebhookPayload } from '@libs/interfaces/webhook-payload.interfac
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 type MediaUrls = {
   videoUrls: string[];
@@ -78,6 +78,10 @@ export class KlingWebhookService {
   async handleCallback(body: KlingAIWebhookPayload) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`, { body });
+
+    if (body == null || typeof body !== 'object') {
+      throw new BadRequestException('Webhook body is required');
+    }
 
     try {
       const { task_id, task_status, task_result, custom_id } = body;

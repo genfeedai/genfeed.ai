@@ -18,7 +18,7 @@ import { reserveIdempotentJob } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
 
 export const SOCIAL_REPLY_CAMPAIGN_JOB_NAME = 'dispatch-social-reply-campaign';
@@ -36,9 +36,8 @@ export class SocialReplyCampaignQueueService {
 
   constructor(
     @InjectQueue(SOCIAL_REPLY_CAMPAIGN_QUEUE)
-    @Optional()
     private readonly queue: Queue<SocialReplyCampaignJobData>,
-    @Optional() private readonly logger: LoggerService,
+    private readonly logger: LoggerService,
   ) {}
 
   /**

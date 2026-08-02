@@ -28,7 +28,8 @@ import { isPlatformSuperAdmin } from './better-auth-access.util';
  * refresh their TTL on each write, so the TTL only reclaims idle counters.
  */
 const RATE_LIMIT_KEY_PREFIX = 'ba:ratelimit:';
-const RATE_LIMIT_TTL_SECONDS = 86_400;
+/** Exported so integration tests assert the real production TTL is forwarded. */
+export const RATE_LIMIT_TTL_SECONDS = 86_400;
 const BETTER_AUTH_CREATOR_ROLE = 'admin';
 const BETTER_AUTH_DEFAULT_ORGANIZATION_CATEGORY = 'BUSINESS';
 const BETTER_AUTH_MAGIC_LINK_EXPIRES_IN_SECONDS = 300;

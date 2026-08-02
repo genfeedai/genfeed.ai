@@ -7,7 +7,7 @@ import { MicroservicesService } from '@api/services/microservices/microservices.
 import { HeygenWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class HeygenWebhookService {
@@ -34,6 +34,10 @@ export class HeygenWebhookService {
   async handleCallback(body: HeygenWebhookPayload) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`, { body });
+
+    if (body == null || typeof body !== 'object') {
+      throw new BadRequestException('Webhook body is required');
+    }
 
     try {
       const { event_data, event_type } = body;

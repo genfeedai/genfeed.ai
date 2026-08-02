@@ -7,7 +7,14 @@ import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Body, Controller, HttpCode, Post, Req } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  HttpCode,
+  Post,
+  Req,
+} from '@nestjs/common';
 import { assertWebhookToken } from '@server/webhooks/webhook-token.util';
 import type { Request } from 'express';
 
@@ -42,10 +49,14 @@ export class OpusProWebhookController {
       url,
     });
 
+    if (payload == null || typeof payload !== 'object') {
+      throw new BadRequestException('Webhook body is required');
+    }
+
     try {
       this.loggerService.log(`${url} received`, payload);
 
-      const callbackId = payload?.callback_id;
+      const callbackId = payload.callback_id;
       if (callbackId) {
         await this.opusProWebhookService.handleCallback(payload);
       }

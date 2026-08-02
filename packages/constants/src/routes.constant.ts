@@ -43,15 +43,12 @@ export const APP_ROUTES = {
       TAGS_ALL: '/admin/configuration/tags/all',
     },
     CONTENT: {
-      ANALYTICS: '/admin/content/analytics',
-      COMPANIES: '/admin/content/companies',
+      // Ghost CRM routes (analytics/companies/leads/tasks) removed — no pages.
       INGREDIENTS: '/admin/content/ingredients',
       INGREDIENTS_VIDEOS: '/admin/content/ingredients/videos',
-      LEADS: '/admin/content/leads',
       POSTS: '/admin/content/posts',
       PROMPTS: '/admin/content/prompts',
       PROMPTS_LIST: '/admin/content/prompts/list',
-      TASKS: '/admin/content/tasks',
       TEMPLATES: '/admin/content/templates',
     },
     FLEET: {

@@ -264,6 +264,35 @@ describe('BrandsService', () => {
         accessBootstrapCacheService.invalidateForOrganization,
       ).toHaveBeenCalledWith('org-1');
     });
+
+    it('omits undefined DTO fields so Prisma never receives undefined write keys', async () => {
+      const existing = {
+        id: 'brand-1',
+        label: 'Default Brand',
+        organizationId: 'org-1',
+        slug: 'default',
+      };
+      delegate.findFirst.mockResolvedValue(existing);
+      delegate.update.mockResolvedValue({
+        ...existing,
+        label: 'Renamed',
+      });
+
+      await service.patch('brand-1', {
+        description: undefined,
+        label: 'Renamed',
+        primaryColor: undefined,
+        user: 'user-session-id',
+      } as never);
+
+      const updateCall = delegate.update.mock.calls.at(-1)?.[0] as
+        | { data: Record<string, unknown> }
+        | undefined;
+      expect(updateCall?.data).toEqual({ label: 'Renamed' });
+      expect(updateCall?.data).not.toHaveProperty('description');
+      expect(updateCall?.data).not.toHaveProperty('primaryColor');
+      expect(updateCall?.data).not.toHaveProperty('user');
+    });
   });
 
   it('resolves legacy mongo ids before selecting a brand', async () => {

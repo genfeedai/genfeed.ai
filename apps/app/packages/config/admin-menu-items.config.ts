@@ -24,6 +24,7 @@ export const ADMIN_LOGO_HREF = APP_ROUTES.ADMIN.ROOT;
 export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: 'Overview',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.ROOT,
     label: 'Dashboard',
     matchPaths: [APP_ROUTES.ADMIN.ROOT, APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD],
@@ -32,6 +33,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Overview',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ALL,
     label: 'Analytics',
     matchPaths: [APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS],
@@ -40,6 +42,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Overview',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.OVERVIEW.ACTIVITIES,
     label: 'Activities',
     matchPaths: [APP_ROUTES.ADMIN.OVERVIEW.ACTIVITIES],
@@ -48,6 +51,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Content',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.CONTENT.POSTS,
     label: 'Posts',
     matchPaths: [APP_ROUTES.ADMIN.CONTENT.POSTS],
@@ -56,6 +60,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Content',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.CONTENT.TEMPLATES,
     label: 'Templates',
     matchPaths: [APP_ROUTES.ADMIN.CONTENT.TEMPLATES],
@@ -64,6 +69,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Content',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.CONTENT.PROMPTS_LIST,
     label: 'Prompts',
     matchPaths: [APP_ROUTES.ADMIN.CONTENT.PROMPTS],
@@ -72,6 +78,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Content',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.CONTENT.INGREDIENTS_VIDEOS,
     label: 'Ingredients',
     matchPaths: [APP_ROUTES.ADMIN.CONTENT.INGREDIENTS],
@@ -80,6 +87,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'AI & Automation',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.AUTOMATION.MODELS_ALL,
     label: 'Models',
     matchPaths: [APP_ROUTES.ADMIN.AUTOMATION.MODELS],
@@ -88,6 +96,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'AI & Automation',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.AUTOMATION.TRAININGS,
     label: 'Trainings',
     matchPaths: [APP_ROUTES.ADMIN.AUTOMATION.TRAININGS],
@@ -96,6 +105,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'AI & Automation',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.AUTOMATION.BOTS,
     label: 'Bots',
     matchPaths: [APP_ROUTES.ADMIN.AUTOMATION.BOTS],
@@ -104,6 +114,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'AI & Automation',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.LIBRARY.VOICES,
     label: 'Voice Library',
     matchPaths: [APP_ROUTES.ADMIN.LIBRARY.VOICES],
@@ -112,6 +123,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'AI & Automation',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.AUTOMATION.WORKFLOWS,
     label: 'Workflows',
     matchPaths: [APP_ROUTES.ADMIN.AUTOMATION.WORKFLOWS],
@@ -120,6 +132,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Configuration',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS_BLACKLISTS,
     label: 'Elements',
     matchPaths: [APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS],
@@ -128,6 +141,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Configuration',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.CONFIGURATION.PRESETS,
     label: 'Presets',
     matchPaths: [APP_ROUTES.ADMIN.CONFIGURATION.PRESETS],
@@ -136,6 +150,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Configuration',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.CONFIGURATION.FONT_FAMILIES,
     label: 'Font Families',
     matchPaths: [APP_ROUTES.ADMIN.CONFIGURATION.FONT_FAMILIES],
@@ -144,6 +159,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Configuration',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.CONFIGURATION.TAGS_ALL,
     label: 'Tags',
     matchPaths: [APP_ROUTES.ADMIN.CONFIGURATION.TAGS],
@@ -152,6 +168,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Administration',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.ORGANIZATION,
     label: 'Organizations',
     matchPaths: [APP_ROUTES.ADMIN.ORGANIZATION],
@@ -160,6 +177,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Administration',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.ADMINISTRATION.USERS,
     label: 'Users',
     matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.USERS],
@@ -168,6 +186,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Administration',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.ADMINISTRATION.WARMUP_ACCOUNTS,
     label: 'Warm-up accounts',
     matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.WARMUP_ACCOUNTS],
@@ -176,6 +195,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Administration',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.ADMINISTRATION.ROLES,
     label: 'Roles',
     matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.ROLES],
@@ -184,6 +204,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Administration',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.ADMINISTRATION.SUBSCRIPTIONS,
     label: 'Subscriptions',
     matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.SUBSCRIPTIONS],
@@ -192,6 +213,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Administration',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.ADMINISTRATION.CREDIT_USAGE,
     label: 'Credit Usage',
     matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.CREDIT_USAGE],
@@ -200,6 +222,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Administration',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.ADMINISTRATION.ANNOUNCEMENTS,
     label: 'Announcements',
     matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.ANNOUNCEMENTS],
@@ -208,6 +231,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Administration',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.ADMINISTRATION.SYSTEM_EMAILS,
     label: 'System Emails',
     matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.SYSTEM_EMAILS],
@@ -216,6 +240,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Administration',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.ADMINISTRATION.PLATFORM_SETTINGS,
     label: 'Platform Settings',
     matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.PLATFORM_SETTINGS],
@@ -225,6 +250,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: 'Fleet',
     hasDividerAbove: true,
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.FLEET.CHARACTERS,
     label: 'Characters',
     matchPaths: [APP_ROUTES.ADMIN.FLEET.CHARACTERS],
@@ -233,6 +259,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Fleet',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.FLEET.GALLERY,
     label: 'Gallery',
     matchPaths: [APP_ROUTES.ADMIN.FLEET.GALLERY],
@@ -241,6 +268,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Fleet',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.FLEET.TRAINING,
     label: 'Training',
     matchPaths: [APP_ROUTES.ADMIN.FLEET.TRAINING],
@@ -249,6 +277,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Fleet',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.FLEET.PIPELINE,
     label: 'Pipeline',
     matchPaths: [APP_ROUTES.ADMIN.FLEET.PIPELINE],
@@ -257,6 +286,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Fleet',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.FLEET.GENERATE,
     label: 'Generate',
     matchPaths: [APP_ROUTES.ADMIN.FLEET.GENERATE],
@@ -265,6 +295,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Fleet',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.FLEET.LIP_SYNC,
     label: 'Lip Sync',
     matchPaths: [APP_ROUTES.ADMIN.FLEET.LIP_SYNC],
@@ -273,6 +304,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Fleet',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.FLEET.VOICES,
     label: 'Voices',
     matchPaths: [APP_ROUTES.ADMIN.FLEET.VOICES],
@@ -281,6 +313,7 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Fleet',
+    hrefScope: 'global',
     href: APP_ROUTES.ADMIN.FLEET.INFRASTRUCTURE,
     label: 'Infrastructure',
     matchPaths: [APP_ROUTES.ADMIN.FLEET.INFRASTRUCTURE],

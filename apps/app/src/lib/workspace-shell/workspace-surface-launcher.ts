@@ -2,6 +2,7 @@ import type {
   ResolvedWorkspaceShellRoute,
   ResolveWorkspaceSurfaceLaunchParams,
   WorkspaceShellRouteMode,
+  WorkspaceShellSurfaceKey,
   WorkspaceSurfaceLaunch,
 } from '@genfeedai/interfaces/ui/workspace-shell.interface';
 import { resolveWorkspaceShellRoute } from './workspace-shell-registry';
@@ -141,7 +142,7 @@ function applyDestinationPolicy(
 }
 
 function formatAnnouncement(
-  surfaceKey: string,
+  surfaceKey: WorkspaceShellSurfaceKey,
   mode: WorkspaceShellRouteMode,
 ): string {
   const label = surfaceKey.replaceAll('-', ' ');

@@ -337,8 +337,9 @@ describe('AgentThreadsController', () => {
       });
 
       expect(service.archiveAllThreads).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
+        'user_current',
+        'org_current',
+        undefined,
       );
     });
 

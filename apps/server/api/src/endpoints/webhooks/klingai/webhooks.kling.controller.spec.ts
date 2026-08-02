@@ -4,7 +4,7 @@ import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 vi.mock('@libs/utils/caller/caller.util', () => ({
@@ -188,6 +188,17 @@ describe('KlingWebhookController', () => {
       expect(loggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('KLINGAI_WEBHOOK_SECRET'),
       );
+      expect(klingWebhookService.handleCallback).not.toHaveBeenCalled();
+    });
+
+    it('rejects callbacks with a missing body instead of TypeError on task_id', async () => {
+      await expect(
+        controller.handleCallback(
+          mockTokenRequest(WEBHOOK_SECRET),
+          undefined as never,
+        ),
+      ).rejects.toThrow(BadRequestException);
+
       expect(klingWebhookService.handleCallback).not.toHaveBeenCalled();
     });
   });

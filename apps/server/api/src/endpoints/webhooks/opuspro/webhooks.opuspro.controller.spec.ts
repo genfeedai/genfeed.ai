@@ -6,7 +6,7 @@ import { IngredientCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import type { OpusProWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
-import { UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 const WEBHOOK_SECRET = 'opuspro-webhook-secret';
@@ -189,6 +189,17 @@ describe('OpusProWebhookController', () => {
       expect(webhooksService.handleFailedGeneration).not.toHaveBeenCalled();
 
       expect(result).toEqual({ detail: 'Webhook received' });
+    });
+
+    it('rejects callbacks with a missing body instead of TypeError on status', async () => {
+      await expect(
+        controller.handleCallback(
+          mockTokenRequest(WEBHOOK_SECRET),
+          undefined as never,
+        ),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(opusProWebhookService.handleCallback).not.toHaveBeenCalled();
     });
 
     it('should handle completed webhook without video URL', async () => {

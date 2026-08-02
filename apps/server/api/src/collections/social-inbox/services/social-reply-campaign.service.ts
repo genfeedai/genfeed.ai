@@ -117,43 +117,47 @@ export class SocialReplyCampaignService {
       input.platform,
     );
 
-    const campaign = await this.prisma.socialReplyCampaign.create({
-      data: {
-        bodyTemplate,
-        brandId: scope.brandId ?? null,
-        description: input.description ?? null,
-        maxPerDay: input.maxPerDay ?? 50,
-        maxPerHour: input.maxPerHour ?? 10,
-        messageType: input.messageType ?? SocialMessageType.REPLY,
-        minDelaySeconds: input.minDelaySeconds ?? 60,
-        name: input.name,
-        organizationId: scope.organizationId,
-        platform: input.platform,
-        status: SocialReplyCampaignStatus.DRAFT,
-        userId: scope.userId ?? null,
-      },
-    });
+    // Campaign + enrollment must land together. A partial create left orphan
+    // campaigns with `totalRecipients: 0` that operators could never start.
+    const withTotals = await this.prisma.$transaction(async (tx) => {
+      const campaign = await tx.socialReplyCampaign.create({
+        data: {
+          bodyTemplate,
+          brandId: scope.brandId ?? null,
+          description: input.description ?? null,
+          maxPerDay: input.maxPerDay ?? 50,
+          maxPerHour: input.maxPerHour ?? 10,
+          messageType: input.messageType ?? SocialMessageType.REPLY,
+          minDelaySeconds: input.minDelaySeconds ?? 60,
+          name: input.name,
+          organizationId: scope.organizationId,
+          platform: input.platform,
+          status: SocialReplyCampaignStatus.DRAFT,
+          userId: scope.userId ?? null,
+        },
+      });
 
-    // Order is the caller's enrollment order: `position` freezes it so a
-    // resumed campaign continues exactly where it stopped.
-    const created = await this.prisma.socialReplyCampaignRecipient.createMany({
-      data: conversations.map((conversation, index) => ({
-        campaignId: campaign.id,
-        conversationId: conversation.id,
-        idempotencyKey: buildRecipientIdempotencyKey(
-          campaign.id,
-          conversation.id,
-        ),
-        organizationId: scope.organizationId,
-        position: index,
-        status: SocialReplyCampaignRecipientStatus.PENDING,
-      })),
-      skipDuplicates: true,
-    });
+      // Order is the caller's enrollment order: `position` freezes it so a
+      // resumed campaign continues exactly where it stopped.
+      const created = await tx.socialReplyCampaignRecipient.createMany({
+        data: conversations.map((conversation, index) => ({
+          campaignId: campaign.id,
+          conversationId: conversation.id,
+          idempotencyKey: buildRecipientIdempotencyKey(
+            campaign.id,
+            conversation.id,
+          ),
+          organizationId: scope.organizationId,
+          position: index,
+          status: SocialReplyCampaignRecipientStatus.PENDING,
+        })),
+        skipDuplicates: true,
+      });
 
-    const withTotals = await this.prisma.socialReplyCampaign.update({
-      data: { totalRecipients: created.count },
-      where: scopedWhere(scope.organizationId, { id: campaign.id }),
+      return tx.socialReplyCampaign.update({
+        data: { totalRecipients: created.count },
+        where: scopedWhere(scope.organizationId, { id: campaign.id }),
+      });
     });
 
     return toCampaignDocument(withTotals);
@@ -266,8 +270,15 @@ export class SocialReplyCampaignService {
         return this.activate(campaign, [SocialReplyCampaignStatus.PAUSED]);
       case 'pause':
         return this.pause(campaign);
-      default:
+      case 'cancel':
         return this.cancel(campaign);
+      default: {
+        // Exhaustiveness guard: a new transition must be handled above.
+        const _exhaustive: never = transition;
+        throw new BadRequestException(
+          `Unsupported campaign transition: ${String(_exhaustive)}`,
+        );
+      }
     }
   }
 
@@ -293,10 +304,10 @@ export class SocialReplyCampaignService {
       );
     }
 
-    // Bumping the cursor mints a fresh job id, so the delayed tick a pause left
-    // behind can never be mistaken for the new one.
+    // Conditional update is the claim: two concurrent starts cannot both win
+    // the cursor bump and double-enqueue a tick.
     const dispatchCursor = campaign.dispatchCursor + 1;
-    const activated = await this.prisma.socialReplyCampaign.update({
+    const activated = await this.prisma.socialReplyCampaign.updateMany({
       data: {
         dispatchCursor,
         lastError: null,
@@ -305,16 +316,33 @@ export class SocialReplyCampaignService {
         startedAt: campaign.startedAt ?? new Date(),
         status: SocialReplyCampaignStatus.RUNNING,
       },
-      where: scopedWhere(campaign.organizationId, { id: campaign.id }),
+      where: scopedWhere(campaign.organizationId, {
+        dispatchCursor: campaign.dispatchCursor,
+        id: campaign.id,
+        status: { in: allowedFrom },
+      }),
     });
+
+    if (activated.count !== 1) {
+      throw new BadRequestException(
+        `Cannot start a ${campaign.status} campaign`,
+      );
+    }
 
     await this.queueService.enqueueTick({
-      campaignId: activated.id,
+      campaignId: campaign.id,
       dispatchCursor,
-      organizationId: activated.organizationId,
+      organizationId: campaign.organizationId,
     });
 
-    return toCampaignDocument(activated);
+    return this.get(
+      {
+        brandId: campaign.brandId ?? undefined,
+        organizationId: campaign.organizationId,
+        userId: campaign.userId ?? undefined,
+      },
+      campaign.id,
+    );
   }
 
   private async pause(
@@ -326,17 +354,34 @@ export class SocialReplyCampaignService {
       );
     }
 
-    const paused = await this.prisma.socialReplyCampaign.update({
+    const paused = await this.prisma.socialReplyCampaign.updateMany({
       data: {
         nextRunAt: null,
         pausedAt: new Date(),
         status: SocialReplyCampaignStatus.PAUSED,
       },
-      where: scopedWhere(campaign.organizationId, { id: campaign.id }),
+      where: scopedWhere(campaign.organizationId, {
+        id: campaign.id,
+        status: SocialReplyCampaignStatus.RUNNING,
+      }),
     });
+
+    if (paused.count !== 1) {
+      throw new BadRequestException(
+        `Cannot pause a ${campaign.status} campaign`,
+      );
+    }
+
     await this.queueService.removeTick(campaign.id, campaign.dispatchCursor);
 
-    return toCampaignDocument(paused);
+    return this.get(
+      {
+        brandId: campaign.brandId ?? undefined,
+        organizationId: campaign.organizationId,
+        userId: campaign.userId ?? undefined,
+      },
+      campaign.id,
+    );
   }
 
   private async cancel(
@@ -348,14 +393,32 @@ export class SocialReplyCampaignService {
       );
     }
 
-    const cancelled = await this.prisma.socialReplyCampaign.update({
+    // Exclude terminal statuses so a concurrent complete/cancel cannot both
+    // rewrite the row and double-count recipient releases.
+    const cancelled = await this.prisma.socialReplyCampaign.updateMany({
       data: {
         completedAt: new Date(),
         nextRunAt: null,
         status: SocialReplyCampaignStatus.CANCELLED,
       },
-      where: scopedWhere(campaign.organizationId, { id: campaign.id }),
+      where: scopedWhere(campaign.organizationId, {
+        id: campaign.id,
+        status: {
+          in: [
+            SocialReplyCampaignStatus.DRAFT,
+            SocialReplyCampaignStatus.PAUSED,
+            SocialReplyCampaignStatus.RUNNING,
+          ],
+        },
+      }),
     });
+
+    if (cancelled.count !== 1) {
+      throw new BadRequestException(
+        `Campaign is already ${campaign.status.toLowerCase()}`,
+      );
+    }
+
     await this.prisma.socialReplyCampaignRecipient.updateMany({
       data: { status: SocialReplyCampaignRecipientStatus.CANCELLED },
       where: scopedWhere(campaign.organizationId, {
@@ -365,7 +428,14 @@ export class SocialReplyCampaignService {
     });
     await this.queueService.removeTick(campaign.id, campaign.dispatchCursor);
 
-    return toCampaignDocument(cancelled);
+    return this.get(
+      {
+        brandId: campaign.brandId ?? undefined,
+        organizationId: campaign.organizationId,
+        userId: campaign.userId ?? undefined,
+      },
+      campaign.id,
+    );
   }
 
   private isTerminal(status: string): boolean {

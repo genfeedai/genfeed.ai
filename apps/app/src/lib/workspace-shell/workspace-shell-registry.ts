@@ -11,6 +11,7 @@ import type {
   WorkspaceShellRouteMode,
   WorkspaceShellRouteRegistration,
   WorkspaceShellScopeRequirement,
+  WorkspaceShellSurfaceKey,
 } from '@genfeedai/interfaces/ui/workspace-shell.interface';
 
 export type {
@@ -30,6 +31,7 @@ export type {
   WorkspaceShellRouteMode,
   WorkspaceShellRouteRegistration,
   WorkspaceShellScopeRequirement,
+  WorkspaceShellSurfaceKey,
   WorkspaceShellSurfaceMode,
 } from '@genfeedai/interfaces/ui/workspace-shell.interface';
 
@@ -40,7 +42,7 @@ type RouteGroupConfig = {
   readonly mode: WorkspaceShellRouteMode;
   readonly productClass: WorkspaceShellProductClass;
   readonly scope: WorkspaceShellScopeRequirement;
-  readonly surfaceKey: string;
+  readonly surfaceKey: WorkspaceShellSurfaceKey;
   readonly switcherItems?: readonly string[];
   readonly telemetryClass: WorkspaceShellRouteRegistration['telemetryClass'];
 };
@@ -908,11 +910,13 @@ const ADMIN_CONTROL_PLANE_ROUTE_PATTERNS = [
   '/admin/content/templates',
   '/admin/content/templates/:id',
   '/admin/content/prompts/list',
+  '/admin/content/ingredients',
   '/admin/content/ingredients/:type',
   '/admin/folders',
   '/admin/images/:id',
   '/admin/videos/:id',
   '/admin/automation/bots',
+  '/admin/automation/models',
   '/admin/automation/models/:type',
   '/admin/automation/trainings',
   '/admin/automation/trainings/:id/images',

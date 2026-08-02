@@ -250,6 +250,31 @@ describe('MusicsController', () => {
       );
     });
 
+    it('updates only music owned by the canonical caller', async () => {
+      const updatedMusic = { ...music, isDeleted: true };
+      musicsService.findOne.mockResolvedValue(music);
+      musicsService.patch.mockResolvedValue(updatedMusic);
+
+      await controller.patch(request, user, musicId, { isDeleted: true });
+
+      expect(musicsService.findOne).toHaveBeenCalledWith({ _id: musicId }, []);
+      expect(musicsService.patch).toHaveBeenCalledWith(
+        musicId,
+        expect.objectContaining({
+          brand: brandId,
+          isDeleted: true,
+          organization: organizationId,
+          user: userId,
+        }),
+        expect.any(Array),
+      );
+      expect(serializeSingle).toHaveBeenCalledWith(
+        request,
+        MusicSerializer,
+        updatedMusic,
+      );
+    });
+
     it('soft-deletes only music owned by the canonical caller', async () => {
       musicsService.findOne.mockResolvedValue(music);
       musicsService.remove.mockResolvedValue({ ...music, isDeleted: true });

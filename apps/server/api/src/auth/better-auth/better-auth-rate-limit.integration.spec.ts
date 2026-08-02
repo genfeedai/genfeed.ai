@@ -11,14 +11,14 @@
  * Why this is worth an integration test rather than a config assertion: the
  * NestJS `RateLimitGuard` does NOT cover `/auth/*` (Better Auth mounts as a raw
  * Express handler via `toNodeHandler`, `better-auth.service.ts`), so throttling
- * is owned entirely by Better Auth's built-in mechanism. Passing
- * `rateLimit: { enabled: true }` silently activates built-in per-path rules that
- * override the global 100/10s bucket — `/sign-in/*` is capped at **3 requests
- * per 10 seconds** (`better-auth/dist/api/rate-limiter`, `getDefaultSpecialRules`).
- * At that cap, correct per-IP keying is load-bearing: if client-IP resolution
- * collapses every caller onto one address, the platform-wide sign-in ceiling
- * becomes 3 requests per 10 seconds for all users at once. Criterion 6 is
- * therefore asserted as *isolation*, not merely as "a 429 eventually appears".
+ * is owned entirely by Better Auth's built-in mechanism. This harness sets an
+ * explicit `customRules` entry for `/sign-in/*` at **3 requests per 10 seconds**
+ * (matching Better Auth's documented default special rule) so the suite owns
+ * the contract it asserts rather than depending on library internals. At that
+ * cap, correct per-IP keying is load-bearing: if client-IP resolution collapses
+ * every caller onto one address, the platform-wide sign-in ceiling becomes 3
+ * requests per 10 seconds for all users at once. Criterion 6 is therefore
+ * asserted as *isolation*, not merely as "a 429 eventually appears".
  */
 
 import { betterAuth } from 'better-auth';
@@ -29,6 +29,7 @@ import { BETTER_AUTH_BASE_PATH } from './better-auth.constants';
 import {
   buildBetterAuthAdvancedOptions,
   buildRateLimitStorage,
+  RATE_LIMIT_TTL_SECONDS,
 } from './better-auth.factory';
 import type {
   IBetterAuthRateLimitRedisClient,
@@ -41,8 +42,12 @@ const AUTH_SECRET =
   'better-auth-rate-limit-integration-secret-with-sufficient-entropy';
 const SIGN_IN_PATH = '/sign-in/email';
 const SIGN_UP_PATH = '/sign-up/email';
-/** Better Auth's built-in special rule for `/sign-in/*`: 3 requests / 10 s. */
+/**
+ * Harness-owned `/sign-in/*` cap. Declared explicitly via `customRules` so the
+ * suite does not depend on Better Auth's internal `getDefaultSpecialRules`.
+ */
 const SIGN_IN_MAX_REQUESTS = 3;
+const SIGN_IN_WINDOW_SECONDS = 10;
 /** Namespace applied by {@link buildRateLimitStorage} before hitting Redis. */
 const RATE_LIMIT_KEY_PREFIX = 'ba:ratelimit:';
 const FORWARDED_FOR_HEADER = 'x-forwarded-for';
@@ -55,6 +60,7 @@ const HTTP_SERVER_ERROR_FLOOR = 500;
 
 interface IRecordingRateLimitStore extends IBetterAuthRateLimitStore {
   readonly entries: Map<string, string>;
+  readonly setCalls: Array<{ key: string; value: string; ttlSeconds: number }>;
 }
 
 interface ICreateRateLimitHarnessOptions {
@@ -80,12 +86,16 @@ interface ISignInAttemptOptions {
 /** In-memory stand-in for the Redis KV behind the rate-limit counters. */
 function createRecordingRateLimitStore(): IRecordingRateLimitStore {
   const entries = new Map<string, string>();
+  const setCalls: Array<{ key: string; value: string; ttlSeconds: number }> =
+    [];
   return {
     entries,
     get: async (key) => entries.get(key) ?? null,
-    set: async (key, value) => {
+    set: async (key, value, ttlSeconds) => {
       entries.set(key, value);
+      setCalls.push({ key, ttlSeconds, value });
     },
+    setCalls,
   };
 }
 
@@ -94,8 +104,9 @@ function createEmptyMemoryDatabase(): MemoryDB {
 }
 
 /**
- * A Better Auth instance wired exactly like production: the same base path, the
- * same `advanced.ipAddress` builder, and the same shared-storage adapter.
+ * A Better Auth instance wired like production: the same base path, the same
+ * `advanced.ipAddress` builder, the same shared-storage adapter, and an
+ * explicit `/sign-in/*` custom rule (3 / 10s) owned by this harness.
  */
 function createRateLimitHarness({
   database = createEmptyMemoryDatabase(),
@@ -109,6 +120,14 @@ function createRateLimitHarness({
     database: memoryAdapter(database),
     emailAndPassword: { enabled: true },
     rateLimit: {
+      customRules: {
+        // Own the contract this suite asserts — do not depend on Better Auth's
+        // internal default special rules for `/sign-in/*`.
+        '/sign-in/*': {
+          max: SIGN_IN_MAX_REQUESTS,
+          window: SIGN_IN_WINDOW_SECONDS,
+        },
+      },
       customStorage: buildRateLimitStorage(store),
       enabled: true,
     },
@@ -174,7 +193,7 @@ function getRateLimitKeys(store: IRecordingRateLimitStore): string[] {
 }
 
 describe('Better Auth `/auth/*` brute-force throttling (criterion 6)', () => {
-  it('starts returning 429 once repeated failed sign-ins from one client IP exceed the built-in cap', async () => {
+  it('starts returning 429 once repeated failed sign-ins from one client IP exceed the harness cap', async () => {
     const store = createRecordingRateLimitStore();
     const harness = createRateLimitHarness({ store });
 
@@ -191,6 +210,19 @@ describe('Better Auth `/auth/*` brute-force throttling (criterion 6)', () => {
     expect(throttled.headers.get('X-Retry-After')).not.toBeNull();
   });
 
+  it('forwards RATE_LIMIT_TTL_SECONDS on every counter write', async () => {
+    const store = createRecordingRateLimitStore();
+    const harness = createRateLimitHarness({ store });
+
+    await attemptSignIn(harness, { clientIp: NOISY_CLIENT_IP });
+
+    expect(store.setCalls.length).toBeGreaterThan(0);
+    for (const call of store.setCalls) {
+      expect(call.ttlSeconds).toBe(RATE_LIMIT_TTL_SECONDS);
+      expect(call.key).toContain(RATE_LIMIT_KEY_PREFIX);
+    }
+  });
+
   it('isolates counters per client IP so one address cannot exhaust the platform-wide sign-in budget', async () => {
     const store = createRecordingRateLimitStore();
     const harness = createRateLimitHarness({ store });
@@ -202,8 +234,9 @@ describe('Better Auth `/auth/*` brute-force throttling (criterion 6)', () => {
 
     // The regression this guards: if IP resolution is misconfigured behind the
     // load balancer and every request resolves to the same proxy address, the
-    // 3-per-10s `/sign-in/*` cap becomes a platform-wide ceiling and this
-    // bystander — a different user, first attempt — is thrown a 429.
+    // harness's 3-per-10s `/sign-in/*` custom rule becomes a platform-wide
+    // ceiling and this bystander — a different user, first attempt — is
+    // thrown a 429.
     expect(noisy[SIGN_IN_MAX_REQUESTS].status).toBe(HTTP_TOO_MANY_REQUESTS);
     expect(bystander.status).not.toBe(HTTP_TOO_MANY_REQUESTS);
     expect(bystander.status).toBeLessThan(HTTP_SERVER_ERROR_FLOOR);

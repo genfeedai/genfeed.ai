@@ -846,16 +846,21 @@ export class WorkflowApiService extends HTTPBaseService {
 
   /**
    * List code-owned system workflow catalog entries for the active org.
-   * Uses the workflows collection with a source filter (#2176).
+   *
+   * Contract (plain payload, not JSON:API resources — #2176 / #2259):
+   * `GET /workflows?source=system-catalog` → `{ data: SystemWorkflowCatalogEntry[] }`
+   * where each item already carries `installed` / `installedWorkflowId` at the
+   * top level (not under `attributes`). Do not run this through the JSON:API
+   * collection deserializer.
    */
   async listSystemCatalog(): Promise<SystemWorkflowCatalogEntry[]> {
     try {
       const response = await this.instance.get<{
-        data: SystemWorkflowCatalogEntry[];
+        data: unknown;
       }>('', {
         params: { source: 'system-catalog' },
       });
-      return response.data.data;
+      return this.normalizeSystemCatalogEntries(response.data.data);
     } catch (error) {
       logger.error('Failed to list system workflow catalog', { error });
       throw error;
@@ -958,6 +963,64 @@ export class WorkflowApiService extends HTTPBaseService {
         ? new Date(data.lastTriggeredAt).toISOString()
         : null,
     };
+  }
+
+  /**
+   * Map the plain catalog list payload into a stable client shape.
+   * Preserves `installed` / `installedWorkflowId` even if a field is missing
+   * or loosely typed at the wire boundary.
+   */
+  private normalizeSystemCatalogEntries(
+    payload: unknown,
+  ): SystemWorkflowCatalogEntry[] {
+    if (!Array.isArray(payload)) {
+      return [];
+    }
+
+    return payload.flatMap((entry) => {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+        return [];
+      }
+
+      const record = entry as Record<string, unknown>;
+      const canonicalId =
+        typeof record.canonicalId === 'string' ? record.canonicalId : '';
+      if (!canonicalId) {
+        return [];
+      }
+
+      const installedWorkflowId =
+        typeof record.installedWorkflowId === 'string'
+          ? record.installedWorkflowId
+          : null;
+
+      return [
+        {
+          canonicalId,
+          category:
+            typeof record.category === 'string' ? record.category : 'system',
+          changeSummary:
+            typeof record.changeSummary === 'string'
+              ? record.changeSummary
+              : '',
+          description:
+            typeof record.description === 'string' ? record.description : '',
+          family: typeof record.family === 'string' ? record.family : 'product',
+          ...(typeof record.icon === 'string' ? { icon: record.icon } : {}),
+          installable: record.installable !== false,
+          installed: record.installed === true,
+          installedWorkflowId,
+          isScheduleEnabled: record.isScheduleEnabled === true,
+          label: typeof record.label === 'string' ? record.label : canonicalId,
+          ...(typeof record.schedule === 'string'
+            ? { schedule: record.schedule }
+            : {}),
+          sourceIssue:
+            typeof record.sourceIssue === 'number' ? record.sourceIssue : 0,
+          version: typeof record.version === 'number' ? record.version : 0,
+        } satisfies SystemWorkflowCatalogEntry,
+      ];
+    });
   }
 
   // ---------------------------------------------------------------------------

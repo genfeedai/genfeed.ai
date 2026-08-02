@@ -18,6 +18,7 @@ import { ButtonSize, ButtonVariant, CardEmptySize } from '@genfeedai/enums';
 import type {
   AgentArtifactReference,
   WorkspaceShellOverlayRequest,
+  WorkspaceShellSurfaceKey,
 } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -121,10 +122,8 @@ const INSPECTOR_RAIL_TRANSITION = `width ${INSPECTOR_TRANSITION_DURATION_MS}ms $
 // because the canvas routes are registered as their own surface; the pathname
 // still has to carry a `workflows` segment so sibling Automate routes (runs,
 // skills, autopilot) keep the generic inspector.
-const WORKFLOW_INSPECTOR_SURFACE_KEYS: ReadonlySet<string> = new Set([
-  'automate',
-  'automate-workflows-editor',
-]);
+const WORKFLOW_INSPECTOR_SURFACE_KEYS: ReadonlySet<WorkspaceShellSurfaceKey> =
+  new Set(['automate', 'automate-workflows-editor']);
 
 type WorkspaceInspectorTab = 'context' | 'conversation';
 

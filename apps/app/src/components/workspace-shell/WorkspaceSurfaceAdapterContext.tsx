@@ -4,6 +4,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import type {
   AgentArtifactRecordKind,
   AgentArtifactReference,
+  WorkspaceShellSurfaceKey,
 } from '@genfeedai/interfaces';
 import {
   createContext,
@@ -20,7 +21,7 @@ import {
 export interface WorkspaceSurfacePresentationAdapter {
   readonly contextLabel: string;
   readonly inspector: ReactNode;
-  readonly surfaceKey: string;
+  readonly surfaceKey: WorkspaceShellSurfaceKey;
 }
 
 export interface WorkspaceSurfaceAdapterRegistration {
@@ -53,7 +54,7 @@ export interface ProductWorkspaceSurfaceAdapter {
     readonly brandId?: string;
     readonly organizationId: string;
   };
-  readonly surfaceKey: string;
+  readonly surfaceKey: WorkspaceShellSurfaceKey;
 }
 
 type ProductWorkspaceSurfaceAdapterRegistrar = (

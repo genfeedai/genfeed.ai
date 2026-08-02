@@ -37,4 +37,13 @@ describe('ADMIN_MENU_ITEMS', () => {
       expect.objectContaining({ drillDown: true }),
     );
   });
+
+  it('marks every admin nav item as global so hrefs stay under /admin', () => {
+    expect(ADMIN_MENU_ITEMS.every((item) => item.hrefScope === 'global')).toBe(
+      true,
+    );
+    expect(ADMIN_MENU_ITEMS.some((item) => item.href.includes('/crm/'))).toBe(
+      false,
+    );
+  });
 });
