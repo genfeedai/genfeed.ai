@@ -1,3 +1,9 @@
+---
+description: NestJS DI and DTO params must be value imports, never `import type`.
+paths:
+  - "apps/server/**"
+---
+
 # NestJS: never `import type` a class consumed via decorator metadata
 
 **last_verified: 2026-07-26** · Enforced by `bun run check:di-value-imports`

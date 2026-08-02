@@ -1,6 +1,15 @@
+---
+name: worktree-env-sync
+description: A fresh `git worktree add` has no `.env*` and nothing boots there — sync it with `git wt` or `bun run wt:sync`. Use when creating, entering, or debugging a git worktree, or when a worktree's dev servers fail to start on missing env.
+metadata:
+  version: "1.0.0"
+  tags: "git-worktree, environment, dev-setup"
+  last_verified: "2026-07-26"
+---
+
 # New worktrees need env copied — use `git wt` or `bun run wt:sync`
 
-**last_verified: 2026-07-26** · Shipped in #1578
+Shipped in #1578.
 
 `.env*` is gitignored, so a fresh `git worktree add` has **no env** and nothing boots there.
 `git worktree add` has no post-add hook, so the copy is **not automatic**. Do one of:

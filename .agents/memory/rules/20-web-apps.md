@@ -1,6 +1,6 @@
 ---
 description: Frontend standards for Next.js apps.
-globs:
+paths:
   - "apps/app/**"
   - "apps/docs/**"
   - "apps/website/**"

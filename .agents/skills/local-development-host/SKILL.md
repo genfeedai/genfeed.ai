@@ -1,11 +1,13 @@
 ---
-name: Canonical local development host
-description: Clean Portless HTTPS routes and runtime-derived environment values are the local-development contract
-type: feedback
-status: active
-last_verified: 2026-07-29
-topics: [development, environment, configuration]
+name: local-development-host
+description: The local-development host contract — clean Portless HTTPS routes (`https://<service>.genfeed.localhost`) and endpoints derived from `PORTLESS_URL`, never fixed-port URLs. Use when running or debugging local dev servers, editing `.env` examples or `scripts/dev/*`, changing dev commands, or diagnosing local auth/cookie/magic-link failures.
+metadata:
+  version: "1.0.0"
+  tags: "development, environment, configuration, portless, local-https"
+  last_verified: "2026-07-29"
 ---
+
+# Canonical local development host
 
 **Rule:** use the repository's clean Portless HTTPS routes for interactive local
 development. Runtime domains and endpoints derive from each process's worktree-aware
