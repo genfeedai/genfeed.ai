@@ -88,6 +88,20 @@ describe('AutomationOverviewPage', () => {
     expect(screen.getByText('Workflows')).toBeInTheDocument();
   });
 
+  it('links to the content-runs index so the detail page is reachable', () => {
+    render(<AutomationOverviewPage />);
+
+    const contentRunsLink = screen.getByRole('link', {
+      name: /open content runs/i,
+    });
+
+    expect(contentRunsLink).toHaveAttribute(
+      'href',
+      '/acme-org/acme-creator/automate/content-runs',
+    );
+    expect(screen.getByText('Content Runs')).toBeInTheDocument();
+  });
+
   it('uses the darker tinted quick-action icon palette', () => {
     const { container } = render(<AutomationOverviewPage />);
 

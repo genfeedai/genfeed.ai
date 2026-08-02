@@ -905,6 +905,7 @@ describe('AppProtectedLayout', () => {
       'Templates',
     ],
     ['/org-123/brand-123/automate/workflows/new', 'Automate', 'New Workflow'],
+    ['/org-123/brand-123/automate/content-runs', 'Automate', 'Content Runs'],
     [
       '/org-123/brand-123/automate/content-runs/run-1',
       'Automate',

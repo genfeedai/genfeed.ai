@@ -109,6 +109,7 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/automate/workflows/new', 'Automate', 'New Workflow'],
     ['/acme/moonrise/automate/workflows/workflow-1', 'Automate', 'Workflow'],
     ['/acme/moonrise/automate', 'Automate', 'Overview'],
+    ['/acme/moonrise/automate/content-runs', 'Automate', 'Content Runs'],
     ['/acme/moonrise/automate/content-runs/run-1', 'Automate', 'Content Run'],
     ['/acme/moonrise/posts/campaigns/campaign-1', 'Publish', 'Campaign'],
     ['/acme/moonrise/automate/library/images', 'Automate', 'Images'],

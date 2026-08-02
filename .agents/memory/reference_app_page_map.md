@@ -330,6 +330,7 @@ Workflows and automate:
 - `/:orgSlug/:brandSlug/automate/orchestrator`
 - `/:orgSlug/:brandSlug/automate/runs`
 - `/:orgSlug/:brandSlug/automate/skills`
+- `/:orgSlug/:brandSlug/automate/content-runs`
 - `/:orgSlug/:brandSlug/automate/content-runs/:runId`
 - `/:orgSlug/:brandSlug/automate/campaigns`
 - `/:orgSlug/:brandSlug/automate/campaigns/new`
