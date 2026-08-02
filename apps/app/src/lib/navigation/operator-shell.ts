@@ -1,4 +1,4 @@
-import { APP_ROUTES, COMPOSE_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { Task } from '@services/management/tasks.service';
 
 export type TaskLaunchMode =
@@ -26,7 +26,7 @@ const KNOWN_PROTECTED_PREFIXES = [
   'library',
   'agent',
   'messages',
-  'compose',
+  'artifacts',
   'editor',
   'research',
   'overview',
@@ -65,8 +65,8 @@ export function normalizeProtectedPathname(rawPathname: string): string {
  * Covers the five product sections plus their canonical route aliases: Workspace
  * (`/workspace`, `/overview`), Library, Analytics, Orchestration/Automate
  * (`/orchestration`, including merged workflows), and the Calendar
- * (`/posts/calendar`). The agent, settings, studio, compose, research, publish,
- * messages, and admin surfaces are intentionally NOT gated.
+ * (`/posts/calendar`). The agent, settings, studio, artifacts, research,
+ * publish, messages, and admin surfaces are intentionally NOT gated.
  */
 const ASSET_GATE_SECTION_PREFIXES = [
   '/workspace',
@@ -212,14 +212,11 @@ function getTaskLaunchPath(
   mode: TaskLaunchMode,
   capabilities: TaskLaunchCapabilities,
 ): string {
+  // Writing is Agent-first: there is no standalone composer to land on, so the
+  // task context rides into a new Agent thread and the draft it produces links
+  // out to `/artifacts/:type/:id`.
   if (mode === 'write') {
-    if (task.outputType === 'newsletter') {
-      return COMPOSE_ROUTES.NEWSLETTER;
-    }
-
-    return task.outputType === 'caption' || task.outputType === 'post'
-      ? COMPOSE_ROUTES.POST
-      : COMPOSE_ROUTES.ARTICLE;
+    return APP_ROUTES.AGENT.NEW;
   }
 
   if (mode === 'generate') {
@@ -242,9 +239,7 @@ function getTaskLaunchPath(
 
   switch (task.executionPathUsed) {
     case 'caption_generation':
-      return task.outputType === 'newsletter'
-        ? COMPOSE_ROUTES.NEWSLETTER
-        : COMPOSE_ROUTES.POST;
+      return APP_ROUTES.AGENT.NEW;
     case 'image_generation':
       return capabilities.studio
         ? APP_ROUTES.STUDIO.IMAGE

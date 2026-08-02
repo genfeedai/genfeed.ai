@@ -14,7 +14,6 @@ export type AppContext =
   | 'orchestration'
   | 'automate'
   | 'editor'
-  | 'compose'
   | 'analytics';
 
 export interface MenuItemConfig {

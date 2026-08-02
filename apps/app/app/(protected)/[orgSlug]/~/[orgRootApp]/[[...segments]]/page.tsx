@@ -132,11 +132,7 @@ export default async function OrgRootAppPage({
     );
   }
 
-  if (
-    orgRootApp === 'posts' ||
-    orgRootApp === 'write' ||
-    orgRootApp === 'compose'
-  ) {
+  if (orgRootApp === 'posts') {
     const postsListPage = await renderPostsListPage({
       searchParams: searchParams ?? Promise.resolve({}),
       scope: PageScope.ORGANIZATION,

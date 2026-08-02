@@ -66,7 +66,6 @@ const ORG_SCOPED_PREFIXES = [APP_ROUTE_PREFIXES.SETTINGS.slice(1)] as const;
 
 const FLAT_PATH_REDIRECTS = new Map<string, string>([
   [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
-  [APP_ROUTES.COMPOSE.ROOT, APP_ROUTES.COMPOSE.ARTICLE],
   [APP_ROUTE_PREFIXES.LIBRARY, APP_ROUTES.LIBRARY.OVERVIEW],
   [APP_ROUTES.RESEARCH.ROOT, APP_ROUTES.RESEARCH.DISCOVERY],
   [APP_ROUTES.STUDIO.ROOT, APP_ROUTES.STUDIO.IMAGE],
@@ -578,7 +577,6 @@ type CanonicalResolution = {
 const ORG_ROOT_APP_PREFIXES = [
   'analytics',
   'agent',
-  'compose',
   'editor',
   'library',
   'posts',
@@ -596,7 +594,9 @@ function createOrgScopedCanonicalPath(
     return `/${orgSlug}/~/overview`;
   }
 
-  if (topLevelSegment === 'compose') {
+  // Artifact editors are brand-scoped by construction — an artifact belongs to
+  // one brand. Dropping to org scope lands on the Publish list that owns them.
+  if (topLevelSegment === 'artifacts') {
     return `/${orgSlug}/~/posts`;
   }
 

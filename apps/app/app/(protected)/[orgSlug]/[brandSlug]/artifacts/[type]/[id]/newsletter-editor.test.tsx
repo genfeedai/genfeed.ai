@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import NewsletterComposerPanel from './newsletter-composer-panel';
+import NewsletterEditor from './newsletter-editor';
 import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -88,7 +88,7 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-describe('NewsletterComposerPanel', () => {
+describe('NewsletterEditor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -101,7 +101,7 @@ describe('NewsletterComposerPanel', () => {
       summary: 'Summary text',
     });
 
-    render(<NewsletterComposerPanel />);
+    render(<NewsletterEditor />);
 
     fireEvent.change(screen.getByLabelText('Topic'), {
       target: { value: 'AI workflows' },
@@ -125,7 +125,7 @@ describe('NewsletterComposerPanel', () => {
   });
 
   it('copies the generated newsletter content', async () => {
-    render(<NewsletterComposerPanel />);
+    render(<NewsletterEditor />);
 
     fireEvent.change(screen.getByLabelText('Draft label'), {
       target: { value: 'Issue 12' },
@@ -150,7 +150,7 @@ describe('NewsletterComposerPanel', () => {
       summary: 'Summary text',
     });
 
-    render(<NewsletterComposerPanel />);
+    render(<NewsletterEditor />);
 
     fireEvent.change(screen.getByLabelText('Topic'), {
       target: { value: 'AI workflows' },
@@ -166,7 +166,7 @@ describe('NewsletterComposerPanel', () => {
   });
 
   it('disables saving before a draft exists', () => {
-    render(<NewsletterComposerPanel />);
+    render(<NewsletterEditor />);
 
     expect(screen.getByRole('button', { name: 'Save draft' })).toBeDisabled();
     expect(patchMock).not.toHaveBeenCalled();

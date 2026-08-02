@@ -100,11 +100,13 @@ export const APP_ROUTES = {
     NEW: '/agent/new',
     ONBOARDING: '/agent/onboarding',
   },
-  COMPOSE: {
-    ARTICLE: '/compose/article',
-    NEWSLETTER: '/compose/newsletter',
-    POST: '/compose/post',
-    ROOT: '/compose',
+  /**
+   * Focused single-artifact editors. Every page under this prefix is addressed
+   * by id (`/artifacts/:type/:id`) — there is no artifact index, because
+   * browsing lives in Library and creating lives in the Agent.
+   */
+  ARTIFACTS: {
+    ROOT: '/artifacts',
   },
   EDITOR: {
     NEW: '/editor/new',
@@ -243,7 +245,7 @@ export const APP_ROUTE_PREFIXES = {
   ADMIN: APP_ROUTES.ADMIN.ROOT,
   ANALYTICS: APP_ROUTES.ANALYTICS.ROOT,
   AGENT: APP_ROUTES.AGENT.ROOT,
-  COMPOSE: APP_ROUTES.COMPOSE.ROOT,
+  ARTIFACTS: APP_ROUTES.ARTIFACTS.ROOT,
   EDITOR: APP_ROUTES.EDITOR.ROOT,
   LIBRARY: '/library',
   MESSAGES: APP_ROUTES.MESSAGES.ROOT,
@@ -269,7 +271,29 @@ export const LEGACY_APP_ROUTES = {
   TASKS: '/tasks',
 } as const;
 
-export const COMPOSE_ROUTES = APP_ROUTES.COMPOSE;
+export const ARTIFACT_ROUTES = APP_ROUTES.ARTIFACTS;
+
+/**
+ * Editable artifact types that own a dedicated editor page.
+ * Mirrors the `[type]` segment of `/:orgSlug/:brandSlug/artifacts/:type/:id`.
+ */
+export const ARTIFACT_EDITOR_TYPES = ['article', 'newsletter', 'post'] as const;
+
+export type ArtifactEditorType = (typeof ARTIFACT_EDITOR_TYPES)[number];
+
+export function isArtifactEditorType(
+  value: string,
+): value is ArtifactEditorType {
+  return (ARTIFACT_EDITOR_TYPES as readonly string[]).includes(value);
+}
+
+/** Deep link to the focused editor for a single artifact. */
+export function buildArtifactEditorRoute(
+  type: ArtifactEditorType,
+  id: string,
+): string {
+  return `${ARTIFACT_ROUTES.ROOT}/${type}/${encodeURIComponent(id)}`;
+}
 
 type NestedRouteValue<T> = T extends string
   ? T
@@ -280,7 +304,8 @@ type NestedRouteValue<T> = T extends string
 export type AppRoute = NestedRouteValue<typeof APP_ROUTES>;
 export type AppRoutePrefix =
   (typeof APP_ROUTE_PREFIXES)[keyof typeof APP_ROUTE_PREFIXES];
-export type ComposeRoute = (typeof COMPOSE_ROUTES)[keyof typeof COMPOSE_ROUTES];
+export type ArtifactRoute =
+  (typeof ARTIFACT_ROUTES)[keyof typeof ARTIFACT_ROUTES];
 
 function normalizeScopedRoutePath(path: string): string {
   if (path.length === 0 || path === APP_ROUTES.ROOT) {

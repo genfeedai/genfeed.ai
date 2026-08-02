@@ -41,7 +41,7 @@ vi.mock('next/navigation', () => ({
     brandSlug: 'brand-123',
     orgSlug: 'org-123',
   })),
-  usePathname: vi.fn(() => '/org-123/brand-123/compose/article'),
+  usePathname: vi.fn(() => '/org-123/brand-123/artifacts/article/article-1'),
   useRouter: vi.fn(() => ({
     push: pushMock,
   })),
@@ -84,7 +84,7 @@ const defaultArticleDetailState = () => ({
   isLoading: false,
   isScoringSeo: false,
   isSaving: false,
-  pathname: '/org-123/brand-123/compose/article',
+  pathname: '/org-123/brand-123/artifacts/article/article-1',
   setFormField: vi.fn(),
 });
 

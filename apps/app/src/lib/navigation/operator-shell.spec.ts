@@ -154,14 +154,14 @@ describe('operator-shell helpers', () => {
     } as Task;
 
     expect(buildTaskLaunchHref(task, 'auto')).toBe(
-      '/compose/post?taskExecutionPath=caption_generation&taskId=task-42&taskOutputType=caption&taskSource=workspace&taskTitle=Draft+launch+hooks',
+      '/agent/new?taskExecutionPath=caption_generation&taskId=task-42&taskOutputType=caption&taskSource=workspace&taskTitle=Draft+launch+hooks',
     );
     expect(buildTaskLaunchHref(task, 'edit')).toBe(
       '/editor?taskExecutionPath=caption_generation&taskId=task-42&taskOutputType=caption&taskSource=workspace&taskTitle=Draft+launch+hooks',
     );
   });
 
-  it('routes newsletter workspace tasks to the newsletter composer', () => {
+  it('routes newsletter workspace tasks to the Agent', () => {
     const task = {
       executionPathUsed: 'caption_generation',
       id: 'task-99',
@@ -170,8 +170,23 @@ describe('operator-shell helpers', () => {
     } as Task;
 
     expect(buildTaskLaunchHref(task, 'auto')).toBe(
-      '/compose/newsletter?taskExecutionPath=caption_generation&taskId=task-99&taskOutputType=newsletter&taskSource=workspace&taskTitle=Draft+weekly+founder+issue',
+      '/agent/new?taskExecutionPath=caption_generation&taskId=task-99&taskOutputType=newsletter&taskSource=workspace&taskTitle=Draft+weekly+founder+issue',
     );
+  });
+
+  it('routes every write-mode task to the Agent regardless of output type', () => {
+    for (const outputType of ['article', 'caption', 'newsletter', 'post']) {
+      const task = {
+        executionPathUsed: 'caption_generation',
+        id: 'task-write',
+        outputType,
+        title: 'Draft it',
+      } as Task;
+
+      expect(buildTaskLaunchHref(task, 'write')).toBe(
+        `/agent/new?taskExecutionPath=caption_generation&taskId=task-write&taskOutputType=${outputType}&taskSource=workspace&taskTitle=Draft+it`,
+      );
+    }
   });
 
   it('routes generation tasks to Agent when Studio is unavailable', () => {

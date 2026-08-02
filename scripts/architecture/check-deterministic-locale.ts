@@ -131,11 +131,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     1,
   ),
   legacyUiAllowance(
-    'apps/app/app/(protected)/[orgSlug]/[brandSlug]/posts/composer/cross-post-composer-page.tsx',
-    'intl-date-time-format',
-    1,
-  ),
-  legacyUiAllowance(
     'apps/app/app/(protected)/[orgSlug]/[brandSlug]/posts/review/components/ReviewItemCard.tsx',
     'to-locale-string',
     1,
@@ -350,11 +345,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
   ),
   legacyUiAllowance(
     'packages/ui/src/components/articles/x-article/XArticleAssetsBar.tsx',
-    'to-locale-string',
-    1,
-  ),
-  legacyUiAllowance(
-    'packages/ui/src/components/articles/x-article/XArticleGenerateForm.tsx',
     'to-locale-string',
     1,
   ),

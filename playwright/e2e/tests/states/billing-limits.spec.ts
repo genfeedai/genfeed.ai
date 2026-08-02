@@ -26,7 +26,7 @@ import { tryClick } from '../../utils/route-assertions';
 const ORG_BRAND = '/test-org/brand-1';
 const IMAGE_ROUTE = `${ORG_BRAND}/studio/image`;
 const VIDEO_ROUTE = `${ORG_BRAND}/studio/video`;
-const COMPOSE_ROUTE = `${ORG_BRAND}/compose/post`;
+const WRITE_ROUTE = `${ORG_BRAND}/agent/new`;
 const ORCHESTRATION_ROUTE = `${ORG_BRAND}/orchestration`;
 
 type Page = Parameters<typeof mockInsufficientCredits>[0];
@@ -103,11 +103,11 @@ test.describe('Billing limits — credit and subscription gating', () => {
     await assertHealthy(authenticatedPage);
   });
 
-  test('compose surface stays healthy on insufficient credits', async ({
+  test('writing surface stays healthy on insufficient credits', async ({
     authenticatedPage,
   }) => {
     await mockInsufficientCredits(authenticatedPage);
-    await authenticatedPage.goto(COMPOSE_ROUTE, {
+    await authenticatedPage.goto(WRITE_ROUTE, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -119,11 +119,11 @@ test.describe('Billing limits — credit and subscription gating', () => {
     await assertHealthy(authenticatedPage);
   });
 
-  test('compose surface stays healthy under an expired subscription', async ({
+  test('writing surface stays healthy under an expired subscription', async ({
     authenticatedPage,
   }) => {
     await mockExpiredSubscription(authenticatedPage);
-    await authenticatedPage.goto(COMPOSE_ROUTE, {
+    await authenticatedPage.goto(WRITE_ROUTE, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);

@@ -1,6 +1,6 @@
 'use client';
 
-import { APP_ROUTES, COMPOSE_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES, buildArtifactEditorRoute } from '@genfeedai/constants';
 import { useBackgroundTaskContext } from '@genfeedai/contexts/ui/background-task-context';
 import type { IBackgroundTaskUpdateEvent } from '@genfeedai/interfaces';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
@@ -28,9 +28,11 @@ function buildBackgroundTaskHref(event: IBackgroundTaskUpdateEvent): string {
   }
 
   if (resultType === 'article' || label.includes('article')) {
+    // Without a result id there is no artifact to open, so the toast falls back
+    // to Publish rather than a blank composer that no longer exists.
     return event.resultId
-      ? `${COMPOSE_ROUTES.ARTICLE}?id=${event.resultId}`
-      : COMPOSE_ROUTES.ARTICLE;
+      ? buildArtifactEditorRoute('article', event.resultId)
+      : APP_ROUTES.POSTS.ROOT;
   }
 
   if (

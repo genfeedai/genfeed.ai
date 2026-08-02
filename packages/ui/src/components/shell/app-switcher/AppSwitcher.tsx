@@ -160,9 +160,9 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.research,
       },
       {
-        // Compose + Editor are publish-adjacent create surfaces, not Studio.
-        activePathRoots: ['/posts', '/compose', '/editor'],
-        description: 'Drafts, posts, compose, and editor.',
+        // Artifact + media editors are publish-adjacent, not Studio.
+        activePathRoots: ['/posts', '/artifacts', '/editor'],
+        description: 'Drafts, posts, and editors.',
         icon: Send,
         id: 'posts',
         itemKey: 'publish',

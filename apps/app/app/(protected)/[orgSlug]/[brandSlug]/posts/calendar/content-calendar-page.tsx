@@ -1,13 +1,14 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { COMPOSE_ROUTES } from '@genfeedai/constants';
+import { buildArtifactEditorRoute } from '@genfeedai/constants';
 import {
   ArticleStatus,
   formatPlatformLabel,
   TargetExecutionState,
 } from '@genfeedai/enums';
 import type { IArticle, IReleaseGroup } from '@genfeedai/interfaces';
+import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -46,6 +47,15 @@ import {
   isReleaseReschedulable,
   releaseStatusBadge,
 } from './release-status.helpers';
+
+// Creating content starts in the Agent — the calendar only links to editors for
+// artifacts that already exist.
+const WRITE_ARTICLE_AGENT_HREF = buildAgentPromptHref(
+  'Help me write a new long-form article for my brand.',
+);
+const CREATE_POST_AGENT_HREF = buildAgentPromptHref(
+  'Help me draft a new post for my brand.',
+);
 
 const DEFAULT_COLOR = '#8b5cf6';
 const ARTICLE_STATUS_COLORS: Record<string, string> = {
@@ -288,14 +298,14 @@ export default function ContentCalendarPage(): React.JSX.Element {
   const handleEventClick = useCallback(
     (item: ContentCalendarItem) => {
       if (item.itemType === 'article') {
-        push(`${COMPOSE_ROUTES.ARTICLE}?id=${item.article.id}`);
+        push(href(buildArtifactEditorRoute('article', item.article.id)));
         return;
       }
 
       setDrawerError(null);
       setSelectedReleaseId(item.release.id);
     },
-    [push],
+    [href, push],
   );
 
   const handleDatesChange = useCallback(
@@ -420,7 +430,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
         <List />
       </Link>
       <Link
-        href={COMPOSE_ROUTES.ARTICLE}
+        href={href(WRITE_ARTICLE_AGENT_HREF)}
         aria-label="Write an article"
         className="inline-flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-secondary/80 size-9 transition-colors"
       >
@@ -454,7 +464,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
         description="Plan and schedule your first post to see it on the calendar."
         action={{
           label: 'Create a post',
-          onClick: () => push(COMPOSE_ROUTES.POST),
+          onClick: () => push(href(CREATE_POST_AGENT_HREF)),
         }}
       />
     ) : undefined;

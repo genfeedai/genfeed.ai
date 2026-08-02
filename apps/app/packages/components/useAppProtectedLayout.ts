@@ -1,6 +1,5 @@
 import { ADMIN_MENU_ITEMS } from '@app-config/admin-menu-items.config';
 import { ANALYTICS_MENU_ITEMS } from '@app-config/analytics-menu-items.config';
-import { COMPOSE_MENU_ITEMS } from '@app-config/compose-menu-items.config';
 import { LIBRARY_MENU_ITEMS } from '@app-config/library-menu-items.config';
 import {
   APP_MENU_ITEMS,
@@ -23,11 +22,7 @@ import {
 } from '@genfeedai/agent';
 import { isDesktopClient } from '@genfeedai/config/deployment';
 import { hasOrganizationBilling } from '@genfeedai/config/license';
-import {
-  APP_ROUTE_PREFIXES,
-  APP_ROUTES,
-  COMPOSE_ROUTES,
-} from '@genfeedai/constants';
+import { APP_ROUTE_PREFIXES, APP_ROUTES } from '@genfeedai/constants';
 import type { AppContext } from '@genfeedai/interfaces';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -103,7 +98,7 @@ export function useAppProtectedLayout(
   const isFocusedOnboardingRoute = pathname.startsWith(
     APP_ROUTES.AGENT.ONBOARDING,
   );
-  const isComposeRoute = pathname.startsWith(COMPOSE_ROUTES.ROOT);
+  const isArtifactsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.ARTIFACTS);
   const isResearchRoute =
     pathname === APP_ROUTES.RESEARCH.ROOT ||
     pathname.startsWith(`${APP_ROUTES.RESEARCH.ROOT}/`);
@@ -144,7 +139,7 @@ export function useAppProtectedLayout(
       !isConversationRoute &&
       !isPostsRoute &&
       !isAnalyticsRoute &&
-      !isComposeRoute &&
+      !isArtifactsRoute &&
       !isStudioRoute &&
       !isLibraryRoute &&
       !isResearchRoute &&
@@ -166,21 +161,19 @@ export function useAppProtectedLayout(
       ? 'library'
       : isResearchRoute
         ? 'research'
-        : isPostsRoute
+        : isPostsRoute || isArtifactsRoute
           ? 'posts'
-          : isComposeRoute
-            ? 'compose'
-            : isWorkflowsRoute
-              ? 'automate'
-              : isEditorRoute
-                ? 'editor'
-                : isAnalyticsRoute
-                  ? 'analytics'
-                  : isMessagesRoute
-                    ? 'messages'
-                    : isAgentRoute
-                      ? 'agent'
-                      : 'workspace';
+          : isWorkflowsRoute
+            ? 'automate'
+            : isEditorRoute
+              ? 'editor'
+              : isAnalyticsRoute
+                ? 'analytics'
+                : isMessagesRoute
+                  ? 'messages'
+                  : isAgentRoute
+                    ? 'agent'
+                    : 'workspace';
 
   const shouldInitAgentApiService =
     isConversationRoute || isUniversalWorkspaceShell;
@@ -361,17 +354,6 @@ export function useAppProtectedLayout(
     taskContextSearchParams,
   ]);
 
-  const composeMenuItems = useMemo(
-    () =>
-      COMPOSE_MENU_ITEMS.map(
-        (item): MenuItemConfig => ({
-          ...item,
-          href: withTaskContextHref(item.href, taskContextSearchParams),
-        }),
-      ),
-    [taskContextSearchParams],
-  );
-
   const postsMenuItems = useMemo(
     () =>
       POSTS_MENU_ITEMS.map(
@@ -482,7 +464,7 @@ export function useAppProtectedLayout(
     // route flags
     isAdminRoute,
     isAnalyticsRoute,
-    isComposeRoute,
+    isArtifactsRoute,
     isConversationRoute,
     isEditorCanvasRoute,
     isEditorRoute,
@@ -514,7 +496,6 @@ export function useAppProtectedLayout(
     agentMenuItems,
     adminMenuItems,
     analyticsMenuItems,
-    composeMenuItems,
     libraryMenuItems,
     menuItems,
     orgMenuItems,

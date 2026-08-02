@@ -1,6 +1,6 @@
 'use client';
 
-import { COMPOSE_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES, buildArtifactEditorRoute } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { ArticleCategory, ArticleStatus } from '@genfeedai/enums';
 import type { Article } from '@genfeedai/models/content/article.model';
@@ -180,7 +180,7 @@ export function useArticleDetail({
         setArticle(created);
         initialFormRef.current = { ...form };
         notificationsService.success('Article created');
-        router.push(`${COMPOSE_ROUTES.ARTICLE}?id=${created.id}`);
+        router.push(buildArtifactEditorRoute('article', created.id));
       }
     } catch (err) {
       logger.error('Failed to save article', err);
@@ -241,7 +241,9 @@ export function useArticleDetail({
       const service = await getArticlesService();
       await service.delete(resolvedId);
       notificationsService.success('Article deleted');
-      router.push(COMPOSE_ROUTES.ARTICLE);
+      // The artifact is gone, so there is no editor left to sit on — Publish
+      // owns the artifact editors and is the surface behind them.
+      router.push(APP_ROUTES.POSTS.ROOT);
     } catch (err) {
       logger.error('Failed to delete article', err);
       notificationsService.error('Failed to delete article');

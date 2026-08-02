@@ -46,7 +46,7 @@ async function assertRouteLoads(page: Page, route: string): Promise<void> {
 /**
  * Auth-dependent routes that 500'd / bounced to /login under the broken bypass
  * and must now render with a real session. Limited to routes with a direct
- * page.tsx — index-less segments (overview/library/compose) redirect to a
+ * page.tsx — index-less segments (overview/library) redirect to a
  * data-dependent child and are non-deterministic for a smoke. Slugs come from
  * the workspace the API provisioned for the freshly signed-up user.
  */

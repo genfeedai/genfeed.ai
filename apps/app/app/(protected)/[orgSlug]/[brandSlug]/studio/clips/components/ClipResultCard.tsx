@@ -1,7 +1,7 @@
 'use client';
 
-import { COMPOSE_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { buildClipDraftAgentHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { downloadUrl } from '@helpers/media/download/download.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
@@ -122,14 +122,16 @@ export default function ClipResultCard({
     const title = handoff.payload.metadata?.title ?? clip.title;
     const description =
       handoff.payload.metadata?.summary ?? asset?.caption ?? clip.summary;
-    const params = new URLSearchParams({
-      clipProjectId: projectId,
-      clipResultId: handoff.payload.metadata?.clipResultId ?? clip._id,
-      description,
-      mediaUrl: asset?.mediaUrl ?? videoUrl ?? '',
-      title,
-    });
-    push(`${href(COMPOSE_ROUTES.POST)}?${params.toString()}`);
+    push(
+      href(
+        buildClipDraftAgentHref({
+          description,
+          ingredientId: handoff.payload.metadata?.clipResultId ?? clip._id,
+          mediaUrl: asset?.mediaUrl ?? videoUrl ?? undefined,
+          title,
+        }),
+      ),
+    );
   }, [
     clip._id,
     clip.summary,

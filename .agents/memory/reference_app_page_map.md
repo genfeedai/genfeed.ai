@@ -75,7 +75,6 @@ The protected shell currently recognizes these app contexts:
 - `posts`
 - `analytics`
 - `workflows`
-- `compose`
 - `editor`
 - `admin`
 
@@ -85,7 +84,6 @@ Sidebar surfaces currently resolved by `AppProtectedLayoutSidebar`:
 - Library
 - Studio
 - Admin
-- Compose
 - Workflows
 - Editor
 - Analytics
@@ -170,10 +168,6 @@ Organization catch-all module pages served by `/:orgSlug/~/:orgRootApp/[[...segm
 - `/:orgSlug/~/posts`
 - `/:orgSlug/~/posts/published`
 - `/:orgSlug/~/posts/scheduled`
-- `/:orgSlug/~/write`
-- `/:orgSlug/~/write/:segment`
-- `/:orgSlug/~/compose`
-- `/:orgSlug/~/compose/:segment`
 - `/:orgSlug/~/editor`
 - `/:orgSlug/~/editor/projects`
 - `/:orgSlug/~/editor/new`
@@ -250,11 +244,9 @@ Studio:
 - `/:orgSlug/:brandSlug/studio/clips`
 - `/:orgSlug/:brandSlug/studio/fastlane`
 
-Create/compose/editor:
+Artifact editor/editor:
 
-- `/:orgSlug/:brandSlug/compose/article`
-- `/:orgSlug/:brandSlug/compose/post`
-- `/:orgSlug/:brandSlug/compose/newsletter`
+- `/:orgSlug/:brandSlug/artifacts/:type/:id`
 - `/:orgSlug/:brandSlug/editor`
 - `/:orgSlug/:brandSlug/editor/new`
 - `/:orgSlug/:brandSlug/editor/:id`
@@ -283,7 +275,6 @@ Publish/posts:
 - `/:orgSlug/:brandSlug/posts/:id`
 - `/:orgSlug/:brandSlug/posts/analytics`
 - `/:orgSlug/:brandSlug/posts/calendar`
-- `/:orgSlug/:brandSlug/posts/composer`
 - `/:orgSlug/:brandSlug/posts/newsletters`
 - `/:orgSlug/:brandSlug/posts/published`
 - `/:orgSlug/:brandSlug/posts/remix`
@@ -443,4 +434,4 @@ Admin organization/administration:
 - `Repeat` is not a top-level page concept. It should be a contextual feature/action inside Research, Publish, Analytics, Studio, or Library output views.
 - `Discovery`, `Socials`, and `Ads` are Research internal pages.
 - `Batch` is Studio internal navigation when the Studio capability is enabled.
-- `Compose` and `Editor` are creation/editor surfaces but should not appear as primary app-switcher modules unless product taxonomy changes.
+- Creation starts in the Agent; `/artifacts/:type/:id` and `Editor` are focused editing surfaces and should not appear as primary app-switcher modules unless product taxonomy changes.

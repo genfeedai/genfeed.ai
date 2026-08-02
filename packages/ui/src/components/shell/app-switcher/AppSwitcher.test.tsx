@@ -543,12 +543,12 @@ describe('AppSwitcher', () => {
     );
   });
 
-  it('highlights Publish for compose and editor paths', () => {
+  it('highlights Publish for artifact and editor paths', () => {
     const { rerender } = render(
       <AppSwitcher
         orgSlug="acme"
         brandSlug="my-brand"
-        currentPath="/acme/my-brand/compose/article"
+        currentPath="/acme/my-brand/artifacts/article/article-1"
       />,
     );
 

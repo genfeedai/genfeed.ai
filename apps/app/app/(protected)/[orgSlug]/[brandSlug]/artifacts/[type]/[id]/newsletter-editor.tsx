@@ -6,18 +6,20 @@ import {
 } from '@genfeedai/agent';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type { NewsletterEditorProps } from '@props/content/artifact-editor.props';
 import { NewslettersService } from '@services/content/newsletters.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
+import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Clipboard, Mail, RefreshCcw, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useCallback, useMemo, useReducer } from 'react';
+import { useCallback, useEffect, useMemo, useReducer } from 'react';
 
 function stripHtml(value?: string): string {
   if (!value) {
@@ -71,6 +73,7 @@ type ComposerState = {
   newsletterId: string;
   isGenerating: boolean;
   isSaving: boolean;
+  isLoading: boolean;
 };
 
 type ComposerAction =
@@ -90,12 +93,22 @@ type ComposerAction =
     }
   | { type: 'SET_GENERATING'; value: boolean }
   | { type: 'SET_SAVING'; value: boolean }
+  | { type: 'SET_LOADING'; value: boolean }
   | {
       type: 'APPLY_DRAFT';
       newsletterId: string;
       label: string;
       summary: string;
       content: string;
+    }
+  | {
+      type: 'LOAD_NEWSLETTER';
+      newsletterId: string;
+      label: string;
+      summary: string;
+      content: string;
+      topic: string;
+      angle: string;
     };
 
 const initialComposerState: ComposerState = {
@@ -108,6 +121,7 @@ const initialComposerState: ComposerState = {
   newsletterId: '',
   isGenerating: false,
   isSaving: false,
+  isLoading: false,
 };
 
 function composerReducer(
@@ -121,6 +135,8 @@ function composerReducer(
       return { ...state, isGenerating: action.value };
     case 'SET_SAVING':
       return { ...state, isSaving: action.value };
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.value };
     case 'APPLY_DRAFT':
       return {
         ...state,
@@ -128,6 +144,17 @@ function composerReducer(
         label: action.label,
         summary: action.summary,
         content: action.content,
+      };
+    case 'LOAD_NEWSLETTER':
+      return {
+        ...state,
+        angle: action.angle,
+        content: action.content,
+        isLoading: false,
+        label: action.label,
+        newsletterId: action.newsletterId,
+        summary: action.summary,
+        topic: action.topic,
       };
     default:
       return state;
@@ -137,11 +164,17 @@ function composerReducer(
 const FIELD_INPUT_CLASSNAME =
   'rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-white/20';
 
-export default function NewsletterComposerPanel() {
+export default function NewsletterEditor({
+  newsletterId: initialNewsletterId,
+}: NewsletterEditorProps) {
   const { push } = useRouter();
   const notificationsService = NotificationsService.getInstance();
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
-  const [state, dispatch] = useReducer(composerReducer, initialComposerState);
+  const [state, dispatch] = useReducer(composerReducer, {
+    ...initialComposerState,
+    isLoading: !!initialNewsletterId,
+    newsletterId: initialNewsletterId ?? '',
+  });
   const {
     topic,
     angle,
@@ -152,11 +185,59 @@ export default function NewsletterComposerPanel() {
     newsletterId,
     isGenerating,
     isSaving,
+    isLoading,
   } = state;
 
   const getService = useAuthedService((token: string) =>
     NewslettersService.getInstance(token),
   );
+
+  useEffect(() => {
+    if (!initialNewsletterId) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function loadNewsletter() {
+      dispatch({ type: 'SET_LOADING', value: true });
+
+      try {
+        const service = await getService();
+        const newsletter = await service.findOne(
+          initialNewsletterId,
+          {},
+          controller.signal,
+        );
+
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        dispatch({
+          angle: newsletter.angle ?? '',
+          content: newsletter.content ?? '',
+          label: newsletter.label ?? '',
+          newsletterId: newsletter.id,
+          summary: newsletter.summary ?? '',
+          topic: newsletter.topic ?? '',
+          type: 'LOAD_NEWSLETTER',
+        });
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        logger.error('Failed to load newsletter', error);
+        notificationsService.error('Failed to load newsletter');
+        dispatch({ type: 'SET_LOADING', value: false });
+      }
+    }
+
+    void loadNewsletter();
+
+    return () => controller.abort();
+  }, [initialNewsletterId, getService, notificationsService]);
   const handleApplyDraftSuggestion = useCallback(
     (payload: AgentDraftSuggestionPayload) => {
       dispatch({
@@ -262,6 +343,10 @@ export default function NewsletterComposerPanel() {
     }
 
     push(`/posts/newsletters?id=${newsletterId}`);
+  }
+
+  if (isLoading) {
+    return <SkeletonCard />;
   }
 
   return (

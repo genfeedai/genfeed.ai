@@ -239,11 +239,6 @@ const config = createAppNextConfig({
       source: APP_ROUTES.SETTINGS.PERSONAL,
     },
     {
-      destination: APP_ROUTES.COMPOSE.ARTICLE,
-      permanent: false,
-      source: APP_ROUTES.COMPOSE.ROOT,
-    },
-    {
       destination: APP_ROUTES.STUDIO.IMAGE,
       permanent: false,
       source: APP_ROUTES.STUDIO.ROOT,

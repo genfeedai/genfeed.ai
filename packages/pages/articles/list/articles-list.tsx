@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { COMPOSE_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/constants';
+import { buildArtifactEditorRoute, ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { ModalEnum } from '@genfeedai/enums';
 import type { IQueryParams } from '@genfeedai/interfaces';
 import { formatDate } from '@helpers/formatting/date/date.helper';
@@ -110,7 +110,7 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
   }, [findAllArticles]);
 
   function handleRowClick(article: Article): void {
-    router.push(`${COMPOSE_ROUTES.ARTICLE}?id=${article.id}`);
+    router.push(buildArtifactEditorRoute('article', article.id));
   }
 
   function handleArticleCreated(): void {

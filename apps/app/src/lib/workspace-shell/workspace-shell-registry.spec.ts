@@ -64,7 +64,7 @@ describe('workspace shell trusted registry', () => {
             : 'dedicated-route',
       );
       expect(route.productClass).toMatch(
-        /^(compatibility-only|contextual-action|control-plane|removable|visual-data)$/,
+        /^(contextual-action|control-plane|removable|visual-data)$/,
       );
       expect(route.safeFallback).toMatch(/^\//);
       expect(route.surfaceKey).not.toHaveLength(0);
@@ -239,15 +239,36 @@ describe('workspace shell trusted registry', () => {
       resolveWorkspaceShellRoute('/acme/moonrise/studio/image'),
     ).toMatchObject({ productClass: 'contextual-action' });
     // The Automate hard-cut folded autopilot and configuration into the
-    // first-class orchestration family; /write is the surviving compat alias.
+    // first-class orchestration family. Compose's `/write` compat alias went
+    // with the module — writing starts in the Agent now.
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/orchestration/autopilot'),
     ).toMatchObject({ productClass: 'control-plane' });
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/orchestration/configuration'),
     ).toMatchObject({ productClass: 'control-plane' });
-    expect(resolveWorkspaceShellRoute('/acme/~/write')).toMatchObject({
-      productClass: 'compatibility-only',
+    expect(resolveWorkspaceShellRoute('/acme/~/write')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/acme/~/compose')).toBeNull();
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/compose/article'),
+    ).toBeNull();
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/posts/composer'),
+    ).toBeNull();
+  });
+
+  it('registers the focused artifact editor under Publish', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/artifacts/newsletter/draft-1'),
+    ).toMatchObject({
+      breadcrumb: {
+        leafLabel: 'Newsletter',
+        rootLabel: 'Editor',
+      },
+      params: { brandSlug: 'moonrise', id: 'draft-1', type: 'newsletter' },
+      safeFallback: '/:orgSlug/:brandSlug/posts',
+      scope: 'brand',
+      surfaceKey: 'artifact-editor',
     });
   });
 

@@ -118,7 +118,7 @@ function AppLayoutWithDynamicMenu({
   const {
     isAdminRoute,
     isAnalyticsRoute,
-    isComposeRoute,
+    isArtifactsRoute,
     isConversationRoute,
     isEditorCanvasRoute,
     isEditorRoute,
@@ -142,7 +142,6 @@ function AppLayoutWithDynamicMenu({
     agentMenuItems,
     adminMenuItems,
     analyticsMenuItems,
-    composeMenuItems,
     libraryMenuItems,
     menuItems,
     orgMenuItems,
@@ -293,7 +292,7 @@ function AppLayoutWithDynamicMenu({
         currentApp={currentApp}
         isAdminRoute={isAdminRoute}
         isAnalyticsRoute={isAnalyticsRoute}
-        isComposeRoute={isComposeRoute}
+        isArtifactsRoute={isArtifactsRoute}
         isConversationRoute={isConversationRoute}
         isEditorRoute={isEditorRoute}
         isFocusedOnboardingRoute={isFocusedOnboardingRoute}
@@ -308,7 +307,6 @@ function AppLayoutWithDynamicMenu({
         settingsScope={settingsScope}
         adminMenuItems={adminMenuItems}
         analyticsMenuItems={analyticsMenuItems}
-        composeMenuItems={composeMenuItems}
         libraryMenuItems={libraryMenuItems}
         menuItems={menuItems}
         orgMenuItems={orgMenuItems}
@@ -325,13 +323,12 @@ function AppLayoutWithDynamicMenu({
   }, [
     adminMenuItems,
     analyticsMenuItems,
-    composeMenuItems,
     currentApp,
     activeNavPanel,
     handleOpenCommandPalette,
     isAdminRoute,
     isAnalyticsRoute,
-    isComposeRoute,
+    isArtifactsRoute,
     isConversationRoute,
     isEditorCanvasRoute,
     isEditorRoute,
@@ -374,17 +371,15 @@ function AppLayoutWithDynamicMenu({
           ? libraryMenuItems
           : isStudioRoute
             ? studioMenuItems
-            : isComposeRoute
-              ? composeMenuItems
-              : isWorkflowsRoute
-                ? workflowsMenuItems
-                : isAnalyticsRoute
-                  ? analyticsMenuItems
-                  : isResearchRoute
-                    ? researchMenuItems
-                    : isOrgRoute
-                      ? orgMenuItems
-                      : menuItems;
+            : isWorkflowsRoute
+              ? workflowsMenuItems
+              : isAnalyticsRoute
+                ? analyticsMenuItems
+                : isResearchRoute
+                  ? researchMenuItems
+                  : isOrgRoute
+                    ? orgMenuItems
+                    : menuItems;
   const lowCreditsBanner =
     hasOrganizationBilling() &&
     isLowCreditsBannerEnabled &&

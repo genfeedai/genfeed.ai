@@ -240,8 +240,10 @@ describe('ConnectGenfeedFlow', () => {
       ),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /open draft composer/i }),
-    ).toHaveAttribute('href', '/acme/main/compose/post');
+      screen
+        .getByRole('link', { name: /draft a post with the agent/i })
+        .getAttribute('href'),
+    ).toContain('/acme/main/agent/new?prompt=');
     expect(
       screen.getByRole('button', { name: 'Verify MCP connection' }),
     ).toBeEnabled();

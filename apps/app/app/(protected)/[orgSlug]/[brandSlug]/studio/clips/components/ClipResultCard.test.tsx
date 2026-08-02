@@ -160,7 +160,7 @@ describe('ClipResultCard', () => {
     );
   });
 
-  it('should create publish handoff before navigating to compose', async () => {
+  it('should create publish handoff before handing the draft to the Agent', async () => {
     render(
       <ClipResultCard
         clip={makeClip({
@@ -190,7 +190,10 @@ describe('ClipResultCard', () => {
       ),
     );
     expect(pushSpy).toHaveBeenCalledWith(
-      expect.stringContaining('/acme/brand/compose/post?'),
+      expect.stringContaining('/acme/brand/agent/new?prompt='),
+    );
+    expect(pushSpy).toHaveBeenCalledWith(
+      expect.stringContaining('My+Great+Clip'),
     );
   });
 

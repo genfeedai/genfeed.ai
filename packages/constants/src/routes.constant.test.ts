@@ -3,9 +3,12 @@ import {
   APP_ROUTE_PREFIXES,
   APP_ROUTE_TEMPLATES,
   APP_ROUTES,
-  COMPOSE_ROUTES,
+  ARTIFACT_EDITOR_TYPES,
+  ARTIFACT_ROUTES,
+  buildArtifactEditorRoute,
   createBrandAppRoute,
   createOrganizationAppRoute,
+  isArtifactEditorType,
   LEGACY_APP_ROUTES,
 } from './routes.constant';
 
@@ -34,12 +37,49 @@ describe('routes.constant', () => {
     }
   });
 
-  it('keeps compose routes compatible with the previous constant shape', () => {
-    expect(COMPOSE_ROUTES).toBe(APP_ROUTES.COMPOSE);
-    expect(COMPOSE_ROUTES.ARTICLE).toBe('/compose/article');
-    expect(COMPOSE_ROUTES.NEWSLETTER).toBe('/compose/newsletter');
-    expect(COMPOSE_ROUTES.POST).toBe('/compose/post');
-    expect(COMPOSE_ROUTES.ROOT).toBe('/compose');
+  it('exposes the artifact editor prefix without an index route', () => {
+    expect(ARTIFACT_ROUTES).toBe(APP_ROUTES.ARTIFACTS);
+    expect(ARTIFACT_ROUTES.ROOT).toBe('/artifacts');
+    expect(APP_ROUTE_PREFIXES.ARTIFACTS).toBe('/artifacts');
+    expect(collectRouteValues(APP_ROUTES.ARTIFACTS)).toEqual(['/artifacts']);
+  });
+
+  it('retires the compose surface', () => {
+    expect(
+      collectRouteValues(APP_ROUTES).filter((route) =>
+        route.startsWith('/compose'),
+      ),
+    ).toEqual([]);
+  });
+
+  it('builds deep links to a single artifact editor', () => {
+    expect(buildArtifactEditorRoute('article', 'article-1')).toBe(
+      '/artifacts/article/article-1',
+    );
+    expect(buildArtifactEditorRoute('newsletter', 'nl-2')).toBe(
+      '/artifacts/newsletter/nl-2',
+    );
+    expect(buildArtifactEditorRoute('post', 'post-3')).toBe(
+      '/artifacts/post/post-3',
+    );
+  });
+
+  it('encodes artifact ids in editor deep links', () => {
+    expect(buildArtifactEditorRoute('article', 'a b/c')).toBe(
+      '/artifacts/article/a%20b%2Fc',
+    );
+  });
+
+  it('recognizes only known artifact editor types', () => {
+    for (const type of ARTIFACT_EDITOR_TYPES) {
+      expect(isArtifactEditorType(type)).toBe(true);
+      expect(buildArtifactEditorRoute(type, 'id-1')).toBe(
+        `/artifacts/${type}/id-1`,
+      );
+    }
+
+    expect(isArtifactEditorType('compose')).toBe(false);
+    expect(isArtifactEditorType('video')).toBe(false);
   });
 
   it('documents canonical settings route templates', () => {

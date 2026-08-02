@@ -111,7 +111,7 @@ const BREADCRUMB_ROOT_LABELS = Object.freeze({
   admin: 'Admin',
   agent: 'Agent',
   analytics: 'Analytics',
-  compose: 'Compose',
+  artifacts: 'Editor',
   editor: 'Editor',
   lab: 'Lab',
   library: 'Library',
@@ -123,7 +123,6 @@ const BREADCRUMB_ROOT_LABELS = Object.freeze({
   settings: 'Settings',
   studio: 'Studio',
   workspace: 'Workspace',
-  write: 'Compose',
 } as const satisfies Readonly<Record<string, string>>);
 
 const BREADCRUMB_WORD_LABELS = Object.freeze({
@@ -145,6 +144,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/analytics/trends/platforms/:platform':
     ':platform Trends',
   '/:orgSlug/:brandSlug/analytics': 'Overview',
+  '/:orgSlug/:brandSlug/artifacts/:type/:id': ':type',
   '/:orgSlug/:brandSlug/editor': 'Projects',
   '/:orgSlug/:brandSlug/editor/:id': 'Project',
   '/:orgSlug/:brandSlug/library': 'Overview',
@@ -185,15 +185,12 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/agent/:id': 'Conversation',
   '/:orgSlug/~/agent/new': 'New Conversation',
   '/:orgSlug/~/agent/onboarding/:threadId': 'Onboarding',
-  '/:orgSlug/~/compose/:segment': ':segment',
   '/:orgSlug/~/editor': 'Projects',
   '/:orgSlug/~/editor/:id': 'Project',
   '/:orgSlug/~/library/:type': ':type',
   '/:orgSlug/~/settings': 'General',
   '/:orgSlug/~/settings/models/:type': ':type',
   '/:orgSlug/~/studio/:type': ':type',
-
-  '/:orgSlug/~/write/:segment': ':segment',
   '/admin': 'Dashboard',
   '/admin/automation/models/:type': ':type Models',
   '/admin/automation/trainings/:id/images': 'Training Images',
@@ -548,23 +545,6 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       telemetryClass: 'product',
     },
   ),
-  ...registerRoutes(['/:orgSlug/~/write', '/:orgSlug/~/write/:segment'], {
-    fallback: '/:orgSlug/~/compose',
-    mode: 'canvas',
-    productClass: 'compatibility-only',
-    scope: 'organization',
-    surfaceKey: 'compose',
-    telemetryClass: 'product',
-  }),
-  ...registerRoutes(['/:orgSlug/~/compose', '/:orgSlug/~/compose/:segment'], {
-    fallback: '/:orgSlug/~/compose',
-    mode: 'canvas',
-    productClass: 'contextual-action',
-    scope: 'organization',
-    surfaceKey: 'compose',
-    telemetryClass: 'product',
-  }),
-
   ...registerRoutes(
     [
       '/:orgSlug/~/editor',
@@ -719,21 +699,18 @@ const BRAND_ROUTE_REGISTRATIONS = [
       telemetryClass: 'product',
     },
   ),
-  ...registerRoutes(
-    [
-      '/:orgSlug/:brandSlug/compose/article',
-      '/:orgSlug/:brandSlug/compose/post',
-      '/:orgSlug/:brandSlug/compose/newsletter',
-    ],
-    {
-      fallback: '/:orgSlug/:brandSlug/compose/post',
-      mode: 'canvas',
-      productClass: 'contextual-action',
-      scope: 'brand',
-      surfaceKey: 'compose',
-      telemetryClass: 'product',
-    },
-  ),
+  // Focused single-artifact editors. Addressed by id only — creating lives in
+  // the Agent, browsing in Library, so there is no artifact index to fall back
+  // to and Publish owns the surface.
+  ...registerRoutes(['/:orgSlug/:brandSlug/artifacts/:type/:id'], {
+    fallback: '/:orgSlug/:brandSlug/posts',
+    mode: 'canvas',
+    productClass: 'contextual-action',
+    scope: 'brand',
+    surfaceKey: 'artifact-editor',
+    switcherItems: ['posts'],
+    telemetryClass: 'product',
+  }),
   ...registerRoutes(
     [
       '/:orgSlug/:brandSlug/editor',
@@ -815,14 +792,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
     surfaceKey: 'publish',
     switcherItems: ['posts'],
     telemetryClass: 'product',
-  }),
-  ...registerRoutes(['/:orgSlug/:brandSlug/posts/composer'], {
-    fallback: '/:orgSlug/:brandSlug/posts',
-    mode: 'canvas',
-    productClass: 'contextual-action',
-    scope: 'brand',
-    surfaceKey: 'post-composer',
-    telemetryClass: 'management',
   }),
   ...registerRoutes(
     [

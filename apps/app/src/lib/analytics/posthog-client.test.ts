@@ -120,14 +120,14 @@ describe('initAnalytics', () => {
     const capturedAt = new Date('2026-07-15T00:00:00.000Z');
     const originalProperties = {
       $current_url:
-        'https://app.genfeed.ai/acme/brand/compose/post?title=Secret%20Post&description=xyz',
+        'https://app.genfeed.ai/acme/brand/posts/review?title=Secret%20Post&description=xyz',
       $pathname: '/acme/brand/posts/3f2504e0-4f89-41d3-9a0c-0305e82c3301',
       $prev_pageview_pathname:
         '/acme/brand/editor/3f2504e0-4f89-41d3-9a0c-0305e82c3301',
       $referrer: 'https://app.genfeed.ai/acme/brand/posts/x?title=leak',
       $set_once: {
         $initial_current_url:
-          'https://app.genfeed.ai/acme/brand/compose/post?title=Secret%20Post',
+          'https://app.genfeed.ai/acme/brand/posts/review?title=Secret%20Post',
       },
       title: 'Secret Post — Genfeed',
       utm_term: 'a secret search phrase',
@@ -175,13 +175,13 @@ describe('initAnalytics', () => {
     expect(scrubbed.properties).not.toBe(originalProperties);
     // Tenant slugs templatized, ids collapsed — on top-level and nested bags.
     expect(props.$current_url).toBe(
-      'https://app.genfeed.ai/:org/:brand/compose/post',
+      'https://app.genfeed.ai/:org/:brand/posts/review',
     );
     expect(props.$pathname).toBe('/:org/:brand/posts/:id');
     expect(props.$prev_pageview_pathname).toBe('/:org/:brand/editor/:id');
     expect(
       (props.$set_once as Record<string, unknown>).$initial_current_url,
-    ).toBe('https://app.genfeed.ai/:org/:brand/compose/post');
+    ).toBe('https://app.genfeed.ai/:org/:brand/posts/review');
   });
 
   it('never constructs the client in self-hosted mode', async () => {

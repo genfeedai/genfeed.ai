@@ -1,4 +1,4 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES, buildArtifactEditorRoute } from '@genfeedai/constants';
 import {
   mockActiveSubscription,
   mockPostsList,
@@ -9,7 +9,7 @@ import { expect, test } from '../../fixtures/auth.fixture';
 /**
  * E2E Tests for Posts Sub-Routes (Content Types)
  *
- * Covers: /compose, /compose/article, /posts/newsletters,
+ * Covers: /artifacts/:type/:id, /posts/newsletters,
  *         /posts/remix, /posts/review
  *
  * CRITICAL: All tests use mocked API responses.
@@ -24,12 +24,14 @@ test.describe('Posts — Content Types', () => {
     await mockPostsList(authenticatedPage);
   });
 
-  test('article composer loads at /compose/article', async ({
+  test('article artifact editor loads at /artifacts/article/:id', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.COMPOSE.ARTICLE);
+    await authenticatedPage.goto(
+      buildArtifactEditorRoute('article', 'article-1'),
+    );
 
-    await expect(authenticatedPage).toHaveURL(/compose\/article/);
+    await expect(authenticatedPage).toHaveURL(/artifacts\/article\/article-1/);
   });
 
   test('newsletters page loads newsletter list', async ({
@@ -60,15 +62,18 @@ test.describe('Posts — Content Types', () => {
     ).toBeVisible();
   });
 
-  test('composer page opens with editor visible', async ({
+  test('newsletter artifact editor opens with the editor visible', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.COMPOSE.ROOT);
+    await authenticatedPage.goto(
+      buildArtifactEditorRoute('newsletter', 'newsletter-1'),
+    );
 
-    // /compose redirects to /compose/article
-    await expect(authenticatedPage).toHaveURL(/\/compose\/article/);
+    await expect(authenticatedPage).toHaveURL(
+      /artifacts\/newsletter\/newsletter-1/,
+    );
     await expect(
-      authenticatedPage.getByText(/article|compose|editor|write/i).first(),
+      authenticatedPage.getByText(/newsletter|editor|write/i).first(),
     ).toBeVisible();
   });
 
@@ -97,7 +102,7 @@ test.describe('Posts — Content Types', () => {
   test('unauthenticated user is redirected from posts routes', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.COMPOSE.ROOT);
+    await unauthenticatedPage.goto(APP_ROUTES.POSTS.ROOT);
 
     // Should redirect to login
     await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {

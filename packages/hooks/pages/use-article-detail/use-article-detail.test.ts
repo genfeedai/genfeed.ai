@@ -149,7 +149,7 @@ describe('useArticleDetail', () => {
     );
   });
 
-  it('navigates to the generic composer route after creating a new article', async () => {
+  it('navigates to the artifact editor after creating a new article', async () => {
     const { result } = renderHook(() => useArticleDetail({}));
 
     act(() => {
@@ -164,7 +164,7 @@ describe('useArticleDetail', () => {
 
     await waitFor(() => {
       expect(pushMock).toHaveBeenCalledWith(
-        '/compose/article?id=article-created-1',
+        '/artifacts/article/article-created-1',
       );
     });
   });

@@ -207,7 +207,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [APP_ROUTES.COMPOSE.ROOT]: {
+  [APP_ROUTES.ARTIFACTS.ROOT]: {
     placeholder: 'Ask the co-pilot to improve this draft...',
     suggestedActions: [
       {

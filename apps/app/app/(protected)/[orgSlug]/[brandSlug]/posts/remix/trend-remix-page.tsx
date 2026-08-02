@@ -4,6 +4,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { isDesktopClient } from '@genfeedai/config/deployment';
 import type { IGenfeedDesktopBridge } from '@genfeedai/desktop-contracts';
 import { ButtonVariant, CredentialPlatform } from '@genfeedai/enums';
+import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { PostsService } from '@services/content/posts.service';
@@ -118,11 +119,15 @@ function TrendRemixPageContent() {
               ? 'Thread remix draft created'
               : 'Tweet remix draft created',
           );
-          const params = new URLSearchParams({
-            description: generated.content,
-            title: topic || 'Twitter remix',
-          });
-          replace(href(`/compose/post?${params.toString()}`));
+          // The desktop bridge produced the draft locally — hand it to the
+          // Agent to polish and publish, since the composer is gone.
+          replace(
+            href(
+              buildAgentPromptHref(
+                `Polish and publish this Twitter remix draft. Topic: "${topic || 'Twitter remix'}". Draft: "${generated.content}".`,
+              ),
+            ),
+          );
           return;
         }
 
