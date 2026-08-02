@@ -13,19 +13,18 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
+  IBetterAuthRateLimitDegradedEvent,
+  IBetterAuthRateLimitRecoveredEvent,
   IBetterAuthRateLimitRedisClient,
   IBetterAuthRateLimitRedisCommands,
 } from './better-auth.types';
-import {
-  buildRedisRateLimitStore,
-  type IBetterAuthRateLimitDegradedEvent,
-  type IBetterAuthRateLimitRecoveredEvent,
-} from './better-auth-rate-limit.util';
+import { buildRedisRateLimitStore } from './better-auth-rate-limit.util';
 
 const KEY = 'ba:ratelimit:203.0.113.10|/sign-in/email';
 const VALUE = '{"count":1,"lastRequest":1}';
 const TTL_SECONDS = 60;
 const SIGNAL_INTERVAL_MS = 60_000;
+const REARM_FLOOR_MS = 5_000;
 
 /** A client whose commands always reject, as ioredis does when Redis is down. */
 function createThrowingClient(
@@ -179,7 +178,7 @@ describe('buildRedisRateLimitStore observability', () => {
     expect(onDegraded.mock.calls[1]?.[0].suppressedCount).toBe(10);
   });
 
-  it('signals recovery once, sized by the outage, and re-arms for the next one', async () => {
+  it('signals recovery once, sized by the outage, and re-arms after the floor', async () => {
     const onDegraded =
       vi.fn<(event: IBetterAuthRateLimitDegradedEvent) => void>();
     const onRecovered =
@@ -189,6 +188,7 @@ describe('buildRedisRateLimitStore observability', () => {
       degradationSignalIntervalMs: SIGNAL_INTERVAL_MS,
       onDegraded,
       onRecovered,
+      recoveryRearmFloorMs: REARM_FLOOR_MS,
     });
 
     client.isReady = false;
@@ -207,17 +207,86 @@ describe('buildRedisRateLimitStore observability', () => {
     await store.get(KEY);
     expect(onRecovered).toHaveBeenCalledTimes(1);
 
-    // …and the next outage must signal immediately rather than waiting out a
-    // throttle window opened by the previous one, even inside the same minute.
+    // …a fresh outage inside the re-arm floor is still throttled, which is what
+    // stops recovery from handing a flapping client an unthrottled channel…
     client.isReady = false;
+    await store.get(KEY);
+    expect(onDegraded).toHaveBeenCalledTimes(1);
+
+    // …and past the floor it signals, far sooner than the full window the first
+    // outage opened, so a genuinely new outage is not silenced by the old one.
+    vi.advanceTimersByTime(REARM_FLOOR_MS);
     await store.get(KEY);
 
     expect(onDegraded).toHaveBeenCalledTimes(2);
     expect(onDegraded.mock.calls[1]?.[0]).toEqual({
       operation: 'get',
       reason: 'client-unavailable',
-      suppressedCount: 0,
+      suppressedCount: 1,
     });
+  });
+
+  it('cannot be flooded by a client that flaps between failure and success', async () => {
+    // The throttle keys off the last emitted signal, so clearing it on recovery
+    // made alternating failure/success emit one line per failed operation — on
+    // the hot auth path, and precisely the flood the throttle exists to prevent.
+    const onDegraded =
+      vi.fn<(event: IBetterAuthRateLimitDegradedEvent) => void>();
+    const onRecovered =
+      vi.fn<(event: IBetterAuthRateLimitRecoveredEvent) => void>();
+    const client = createRecoverableClient();
+    const store = buildRedisRateLimitStore(client, {
+      degradationSignalIntervalMs: SIGNAL_INTERVAL_MS,
+      onDegraded,
+      onRecovered,
+      recoveryRearmFloorMs: REARM_FLOOR_MS,
+    });
+
+    for (let request = 0; request < 20; request += 1) {
+      client.isReady = false;
+      await store.get(KEY);
+      client.isReady = true;
+      await store.get(KEY);
+    }
+
+    expect(onDegraded).toHaveBeenCalledTimes(1);
+    // Recovery is only announced for an outage that was itself announced, so
+    // the throttled degradations do not each earn a matching "recovered" line.
+    expect(onRecovered).toHaveBeenCalledTimes(1);
+
+    // Throttling the signal must not have touched the data path.
+    await store.set(KEY, VALUE, TTL_SECONDS);
+    await expect(store.get(KEY)).resolves.toBe(VALUE);
+  });
+
+  it('clamps a re-arm floor longer than the window itself', async () => {
+    // A floor above the interval would push `lastSignalledAt` into the future,
+    // extending the throttle on recovery instead of shortening it.
+    const onDegraded =
+      vi.fn<(event: IBetterAuthRateLimitDegradedEvent) => void>();
+    const client = createRecoverableClient();
+    const store = buildRedisRateLimitStore(client, {
+      degradationSignalIntervalMs: SIGNAL_INTERVAL_MS,
+      onDegraded,
+      recoveryRearmFloorMs: SIGNAL_INTERVAL_MS * 10,
+    });
+
+    client.isReady = false;
+    await store.get(KEY);
+    client.isReady = true;
+    await store.get(KEY);
+
+    client.isReady = false;
+    await store.get(KEY);
+    expect(onDegraded).toHaveBeenCalledTimes(1);
+
+    // Clamped, so the wait after recovery is one whole window at worst. Left
+    // unclamped this floor would have pushed the next signal ten windows out —
+    // the option would delay the very signal it exists to hurry along.
+    vi.advanceTimersByTime(SIGNAL_INTERVAL_MS);
+    await store.get(KEY);
+
+    expect(onDegraded).toHaveBeenCalledTimes(2);
   });
 
   it('stays quiet and returns the stored value while Redis is healthy', async () => {
