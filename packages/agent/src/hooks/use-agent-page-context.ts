@@ -410,7 +410,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [APP_ROUTES.RESEARCH.ROOT]: {
+  [APP_ROUTES.DISCOVER.ROOT]: {
     placeholder: 'Ask about trends...',
     suggestedActions: [
       {
@@ -427,7 +427,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [APP_ROUTES.RESEARCH.ADS]: {
+  [APP_ROUTES.DISCOVER.ADS]: {
     placeholder: 'Ask about winning ads in your niche...',
     suggestedActions: [
       {
@@ -454,7 +454,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [APP_ROUTES.RESEARCH.ADS_GOOGLE]: {
+  [APP_ROUTES.DISCOVER.ADS_GOOGLE]: {
     placeholder: 'Ask about Google and YouTube ads...',
     suggestedActions: [
       {
@@ -473,7 +473,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [APP_ROUTES.RESEARCH.ADS_META]: {
+  [APP_ROUTES.DISCOVER.ADS_META]: {
     placeholder: 'Ask about Meta ad winners...',
     suggestedActions: [
       {

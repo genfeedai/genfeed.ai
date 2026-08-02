@@ -127,7 +127,7 @@ function AppLayoutWithDynamicMenu({
     isMessagesRoute,
     isOrgRoute,
     isPromptBarRoute,
-    isResearchRoute,
+    isDiscoverRoute,
     isSettingsRoute,
     isStudioRoute,
     isWorkflowsRoute,
@@ -146,7 +146,7 @@ function AppLayoutWithDynamicMenu({
     menuItems,
     orgMenuItems,
     postsMenuItems,
-    researchMenuItems,
+    discoverMenuItems,
     secondaryMenuItems,
     settingsMenuItems,
     studioMenuItems,
@@ -299,7 +299,7 @@ function AppLayoutWithDynamicMenu({
         isMessagesRoute={isMessagesRoute}
         isOrgRoute={isOrgRoute}
         isPostsRoute={isPostsRoute}
-        isResearchRoute={isResearchRoute}
+        isDiscoverRoute={isDiscoverRoute}
         isSettingsRoute={isSettingsRoute}
         isStudioRoute={isStudioRoute}
         isWorkflowsRoute={isWorkflowsRoute}
@@ -311,7 +311,7 @@ function AppLayoutWithDynamicMenu({
         menuItems={menuItems}
         orgMenuItems={orgMenuItems}
         postsMenuItems={postsMenuItems}
-        researchMenuItems={researchMenuItems}
+        discoverMenuItems={discoverMenuItems}
         secondaryMenuItems={secondaryMenuItems}
         settingsMenuItems={settingsMenuItems}
         studioMenuItems={studioMenuItems}
@@ -337,7 +337,7 @@ function AppLayoutWithDynamicMenu({
     isMessagesRoute,
     isOrgRoute,
     isPostsRoute,
-    isResearchRoute,
+    isDiscoverRoute,
     isSettingsRoute,
     isStudioRoute,
     isWorkflowsRoute,
@@ -345,7 +345,7 @@ function AppLayoutWithDynamicMenu({
     menuItems,
     orgMenuItems,
     postsMenuItems,
-    researchMenuItems,
+    discoverMenuItems,
     secondaryMenuItems,
     settingsMenuItems,
     settingsScope,
@@ -377,8 +377,8 @@ function AppLayoutWithDynamicMenu({
                 ? workflowsMenuItems
                 : isAnalyticsRoute
                   ? analyticsMenuItems
-                  : isResearchRoute
-                    ? researchMenuItems
+                  : isDiscoverRoute
+                    ? discoverMenuItems
                     : isOrgRoute
                       ? orgMenuItems
                       : menuItems;

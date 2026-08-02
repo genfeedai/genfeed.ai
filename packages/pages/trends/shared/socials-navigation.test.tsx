@@ -25,7 +25,7 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/research/socials',
+  usePathname: () => '/discover/socials',
   useRouter: () => ({
     prefetch: vi.fn(),
     push: vi.fn(),
@@ -41,35 +41,35 @@ describe('SocialsNavigation', () => {
 
     expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
       'href',
-      '/research/socials',
+      '/discover/socials',
     );
     expect(screen.getByRole('link', { name: 'X' })).toHaveAttribute(
       'href',
-      '/research/twitter',
+      '/discover/twitter',
     );
     expect(screen.getByRole('link', { name: 'Instagram' })).toHaveAttribute(
       'href',
-      '/research/instagram',
+      '/discover/instagram',
     );
     expect(screen.getByRole('link', { name: 'YouTube' })).toHaveAttribute(
       'href',
-      '/research/youtube',
+      '/discover/youtube',
     );
     expect(screen.getByRole('link', { name: 'TikTok' })).toHaveAttribute(
       'href',
-      '/research/tiktok',
+      '/discover/tiktok',
     );
     expect(screen.getByRole('link', { name: 'LinkedIn' })).toHaveAttribute(
       'href',
-      '/research/linkedin',
+      '/discover/linkedin',
     );
     expect(screen.getByRole('link', { name: 'Reddit' })).toHaveAttribute(
       'href',
-      '/research/reddit',
+      '/discover/reddit',
     );
     expect(screen.getByRole('link', { name: 'Pinterest' })).toHaveAttribute(
       'href',
-      '/research/pinterest',
+      '/discover/pinterest',
     );
   });
 

@@ -85,15 +85,15 @@ export function createNavigationCommands(
     },
     {
       action: () => {
-        navigate(`${brandPath}/research/discovery`);
+        navigate(`${brandPath}/discover/discovery`);
       },
       category: 'navigation',
       condition: () => EnvironmentService.currentApp !== 'app',
       description: 'Discover trends and research content ideas',
       icon: Search,
-      id: 'nav-research',
-      keywords: ['research', 'trends', 'discover', 'content'],
-      label: 'Go to Research',
+      id: 'nav-discover',
+      keywords: ['discover', 'research', 'trends', 'content'],
+      label: 'Go to Discover',
       priority: 10,
       shortcut: ['⌘', '2'],
     },

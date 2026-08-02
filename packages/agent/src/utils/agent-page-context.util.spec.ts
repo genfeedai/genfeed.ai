@@ -39,12 +39,12 @@ describe('toAgentRequestPageContext', () => {
       toAgentRequestPageContext({
         placeholder: 'UI-only placeholder',
         researchReferences,
-        route: '/acme/brand/research/discovery',
+        route: '/acme/brand/discover/discovery',
         suggestedActions: [],
       }),
     ).toEqual({
       researchReferences,
-      route: '/acme/brand/research/discovery',
+      route: '/acme/brand/discover/discovery',
     });
   });
 });

@@ -29,7 +29,7 @@ export class OverviewPage {
   // Activities link in sidebar
   readonly navActivities: Locator;
   readonly navStudio: Locator;
-  readonly navResearch: Locator;
+  readonly navDiscover: Locator;
   readonly navSettings: Locator;
 
   constructor(page: Page) {
@@ -64,8 +64,8 @@ export class OverviewPage {
     this.navStudio = page.locator(
       'a[href*="studio"], [data-testid="nav-studio"]',
     );
-    this.navResearch = page.locator(
-      'a[href*="research"], [data-testid="nav-research"]',
+    this.navDiscover = page.locator(
+      'a[href*="discover"], [data-testid="nav-discover"]',
     );
     this.navSettings = page.locator(
       'a[href*="settings"], [data-testid="nav-settings"]',

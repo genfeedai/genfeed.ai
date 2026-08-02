@@ -3,11 +3,11 @@
 import { ADMIN_LOGO_HREF } from '@app-config/admin-menu-items.config';
 import { ANALYTICS_LOGO_HREF } from '@app-config/analytics-menu-items.config';
 import { COMPOSE_LOGO_HREF } from '@app-config/compose-menu-items.config';
+import { DISCOVER_LOGO_HREF } from '@app-config/discover-menu-items.config';
 import { LIBRARY_LOGO_HREF } from '@app-config/library-menu-items.config';
 import { APP_LOGO_HREF } from '@app-config/menu-items.config';
 import { ORG_LOGO_HREF } from '@app-config/org-menu-items.config';
 import { POSTS_LOGO_HREF } from '@app-config/posts-menu-items.config';
-import { RESEARCH_LOGO_HREF } from '@app-config/research-menu-items.config';
 import {
   SETTINGS_LOGO_HREF,
   type SettingsScope,
@@ -60,7 +60,7 @@ type Props = {
   isMessagesRoute?: boolean;
   isOrgRoute: boolean;
   isPostsRoute: boolean;
-  isResearchRoute: boolean;
+  isDiscoverRoute: boolean;
   isSettingsRoute: boolean;
   isStudioRoute: boolean;
   isWorkflowsRoute: boolean;
@@ -73,7 +73,7 @@ type Props = {
   menuItems: MenuItemConfig[];
   orgMenuItems: MenuItemConfig[];
   postsMenuItems: MenuItemConfig[];
-  researchMenuItems: MenuItemConfig[];
+  discoverMenuItems: MenuItemConfig[];
   secondaryMenuItems: MenuItemConfig[];
   settingsMenuItems: MenuItemConfig[];
   studioMenuItems: MenuItemConfig[];
@@ -102,7 +102,7 @@ export default function AppProtectedLayoutSidebar({
   isMessagesRoute = false,
   isOrgRoute,
   isPostsRoute,
-  isResearchRoute,
+  isDiscoverRoute,
   isSettingsRoute,
   isStudioRoute,
   isWorkflowsRoute,
@@ -114,7 +114,7 @@ export default function AppProtectedLayoutSidebar({
   menuItems,
   orgMenuItems,
   postsMenuItems,
-  researchMenuItems,
+  discoverMenuItems,
   secondaryMenuItems,
   settingsMenuItems,
   studioMenuItems,
@@ -230,11 +230,11 @@ export default function AppProtectedLayoutSidebar({
         showOrgSwitcher: true,
       },
       {
-        active: isResearchRoute,
+        active: isDiscoverRoute,
         currentApp,
-        items: researchMenuItems,
-        logoHref: buildHref(RESEARCH_LOGO_HREF),
-        sectionLabel: 'Research',
+        items: discoverMenuItems,
+        logoHref: buildHref(DISCOVER_LOGO_HREF),
+        sectionLabel: 'Discover',
         showOrgSwitcher: true,
       },
       {

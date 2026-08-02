@@ -17,7 +17,7 @@ const featureFlags = vi.hoisted(() => ({
   app_switcher_library: true,
   app_switcher_messages: true,
   app_switcher_posts: true,
-  app_switcher_research: true,
+  app_switcher_discover: true,
   app_switcher_studio: true,
   app_switcher_workspace: true,
 }));
@@ -140,7 +140,7 @@ vi.mock('@genfeedai/constants', () => {
       agent: 'app_switcher_agent',
       messages: 'app_switcher_messages',
       automate: 'app_switcher_automate',
-      research: 'app_switcher_research',
+      discover: 'app_switcher_discover',
       studio: 'app_switcher_studio',
       library: 'app_switcher_library',
       posts: 'app_switcher_posts',
@@ -242,7 +242,7 @@ describe('AppSwitcher', () => {
       'Automate',
       'Studio',
       'Library',
-      'Trends',
+      'Discover',
       'Publish',
       'Analytics',
     ]) {
@@ -276,18 +276,18 @@ describe('AppSwitcher', () => {
   it('independently hides every module whose discovery flag is disabled', () => {
     featureFlags.app_switcher_messages = false;
     featureFlags.app_switcher_automate = false;
-    featureFlags.app_switcher_research = false;
+    featureFlags.app_switcher_discover = false;
     featureFlags.app_switcher_library = false;
     featureFlags.app_switcher_analytics = false;
 
     render(<AppSwitcher orgSlug="acme" />);
 
-    // 'Trends' is the research tile's label — asserting on 'Research' passed
+    // 'Discover' is the tile's label — asserting on 'Research' passed
     // vacuously because no tile carries that name any more.
     for (const label of [
       'Messages',
       'Automate',
-      'Trends',
+      'Discover',
       'Library',
       'Analytics',
     ]) {
@@ -415,7 +415,7 @@ describe('AppSwitcher', () => {
       'Automate',
       'Studio',
       'Library',
-      'Trends',
+      'Discover',
       'Publish',
       'Analytics',
     ]) {
@@ -636,7 +636,7 @@ describe('AppSwitcher', () => {
         ['Automate', '/acme/~/orchestration'],
         ['Studio', '/acme/~/studio/image'],
         ['Library', '/acme/~/library'],
-        ['Trends', '/acme/~/research/discovery'],
+        ['Discover', '/acme/~/discover/discovery'],
         ['Publish', '/acme/~/posts'],
         ['Analytics', '/acme/~/analytics'],
       ] as const) {
@@ -649,17 +649,17 @@ describe('AppSwitcher', () => {
 
     it('links to correct route for workspace app', () => {
       render(<AppSwitcher orgSlug="acme" />);
-      expect(screen.getByRole('link', { name: 'Trends' })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: 'Discover' })).toHaveAttribute(
         'href',
-        '/acme/~/research/discovery',
+        '/acme/~/discover/discovery',
       );
     });
 
     it('links to brand-scoped workspace when a brand is selected', () => {
       render(<AppSwitcher orgSlug="acme" brandSlug="my-brand" />);
-      expect(screen.getByRole('link', { name: 'Trends' })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: 'Discover' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/research/discovery',
+        '/acme/my-brand/discover/discovery',
       );
     });
 
@@ -684,9 +684,9 @@ describe('AppSwitcher', () => {
     it('links brand-scoped module surfaces to their canonical routes', () => {
       render(<AppSwitcher orgSlug="acme" brandSlug="my-brand" />);
 
-      expect(screen.getByRole('link', { name: 'Trends' })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: 'Discover' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/research/discovery',
+        '/acme/my-brand/discover/discovery',
       );
       expect(screen.getByRole('link', { name: 'Publish' })).toHaveAttribute(
         'href',
@@ -701,9 +701,9 @@ describe('AppSwitcher', () => {
     it('falls brand-only module surfaces back to org-level defaults', () => {
       render(<AppSwitcher orgSlug="acme" />);
 
-      expect(screen.getByRole('link', { name: 'Trends' })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: 'Discover' })).toHaveAttribute(
         'href',
-        '/acme/~/research/discovery',
+        '/acme/~/discover/discovery',
       );
       expect(
         screen.queryByRole('link', { name: 'Remix' }),

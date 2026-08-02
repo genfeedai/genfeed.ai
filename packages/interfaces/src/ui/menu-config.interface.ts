@@ -5,7 +5,7 @@ export type AppContext =
   | 'admin'
   | 'workspace'
   | 'agent'
-  | 'research'
+  | 'discover'
   | 'library'
   | 'messages'
   | 'posts'

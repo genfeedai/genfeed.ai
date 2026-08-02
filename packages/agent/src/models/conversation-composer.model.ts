@@ -15,7 +15,7 @@ export type ConversationComposerActionName =
   | 'publish'
   | 'remix'
   | 'reply'
-  | 'research'
+  | 'discover'
   | 'schedule'
   | 'workflow';
 

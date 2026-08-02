@@ -48,7 +48,7 @@ const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   library: 'Library',
   messages: 'Messages',
   posts: 'Posts',
-  research: 'Research',
+  discover: 'Discover',
   studio: 'Studio',
   automate: 'Automate',
   orchestration: 'Automate',

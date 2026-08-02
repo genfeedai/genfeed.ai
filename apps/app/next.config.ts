@@ -71,7 +71,7 @@ const selfHostedBrandRoutePrefixes = [
   APP_ROUTE_PREFIXES.ANALYTICS,
   APP_ROUTE_PREFIXES.ORCHESTRATION,
   APP_ROUTE_PREFIXES.LIBRARY,
-  APP_ROUTE_PREFIXES.RESEARCH,
+  APP_ROUTE_PREFIXES.DISCOVER,
 ] as const;
 
 const selfHostedRewrites = IS_LOCAL_APP_SHELL
@@ -197,21 +197,21 @@ const config = createAppNextConfig({
       ),
     },
     {
-      destination: APP_ROUTES.RESEARCH.DISCOVERY,
+      destination: APP_ROUTES.DISCOVER.DISCOVERY,
       permanent: false,
-      source: APP_ROUTES.RESEARCH.ROOT,
+      source: APP_ROUTES.DISCOVER.ROOT,
     },
     {
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.RESEARCH.DISCOVERY,
+        APP_ROUTES.DISCOVER.DISCOVERY,
       ),
       permanent: false,
       source: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.RESEARCH.ROOT,
+        APP_ROUTES.DISCOVER.ROOT,
       ),
     },
     {
