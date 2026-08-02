@@ -70,16 +70,6 @@ vi.mock('@ui/guards/feature/FeatureGate', () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
-vi.mock('../../../[brandSlug]/studio/[type]/StudioPageContent', () => ({
-  default: ({ typeOverride }: { typeOverride?: string }) => (
-    <div data-testid="studio-page-content" data-type={typeOverride} />
-  ),
-}));
-
-vi.mock('../../../[brandSlug]/studio/[type]/studio-route', () => ({
-  canonicalizeStudioType: (value?: string) => value ?? 'image',
-}));
-
 vi.mock('../../../[brandSlug]/studio/edit/[id]/page', () => ({
   default: async ({
     params,
@@ -184,22 +174,17 @@ describe('OrgRootAppPage', () => {
     );
   });
 
-  it('renders the studio generate surface for org /studio/:type (not library)', async () => {
-    const element = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'studio',
-        orgSlug: 'acme',
-        segments: ['music'],
+  it('hands org-scoped /studio/:type off to the Agent', async () => {
+    await expect(
+      OrgRootAppPage({
+        params: Promise.resolve({
+          orgRootApp: 'studio',
+          orgSlug: 'acme',
+          segments: ['music'],
+        }),
       }),
-    });
-
-    render(element);
-
-    expect(screen.getByTestId('studio-page-content')).toBeInTheDocument();
-    expect(screen.getByTestId('studio-page-content')).toHaveAttribute(
-      'data-type',
-      'music',
-    );
+    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/agent/new');
+    expect(redirectMock).toHaveBeenCalledWith('/acme/~/agent/new');
     expect(screen.queryByTestId('ingredients-list')).not.toBeInTheDocument();
   });
 
@@ -276,7 +261,6 @@ describe('OrgRootAppPage', () => {
     render(element);
 
     expect(screen.getByTestId('editor-projects-page')).toBeInTheDocument();
-    expect(screen.queryByTestId('studio-page-content')).not.toBeInTheDocument();
   });
 
   it('renders the studio edit projects surface for the reserved projects segment', async () => {

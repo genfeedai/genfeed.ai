@@ -138,7 +138,7 @@ export default function EditorProjectsPage() {
               }
               href={href(
                 isStudioEnabled
-                  ? APP_ROUTES.STUDIO.VIDEO
+                  ? APP_ROUTES.STUDIO.STORYBOARD
                   : APP_ROUTES.LIBRARY.ROOT,
               )}
             >

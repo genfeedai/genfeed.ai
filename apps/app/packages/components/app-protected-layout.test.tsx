@@ -53,11 +53,6 @@ const mockRouter = vi.hoisted(() => ({
   refresh: vi.fn(),
 }));
 
-const enabledCategoriesState = vi.hoisted(() => ({
-  enabledCategories: ['image', 'video', 'avatar'],
-  isLoading: false,
-}));
-
 function MessagesNavPanelProbe() {
   const workspaceNavPanel = useWorkspaceNavPanel();
 
@@ -398,31 +393,6 @@ vi.mock('@hooks/ui/use-menu-items', () => ({
   useMenuItems: () => [{ href: '/workspace', label: 'Workspace' }],
 }));
 
-vi.mock(
-  '@hooks/data/organization/use-enabled-categories/use-enabled-categories',
-  () => ({
-    STUDIO_CATEGORY_CONFIG: [
-      {
-        category: 'image',
-        param: 'image',
-        settingKey: 'isGenerateImagesEnabled',
-      },
-      {
-        category: 'video',
-        param: 'video',
-        settingKey: 'isGenerateVideosEnabled',
-      },
-      {
-        category: 'music',
-        param: 'music',
-        settingKey: 'isGenerateMusicEnabled',
-      },
-      { category: 'avatar', param: 'avatar', settingKey: null },
-    ],
-    useEnabledCategories: () => enabledCategoriesState,
-  }),
-);
-
 vi.mock('@hooks/feature-flags/use-feature-flag', () => ({
   useFeatureFlag: () => true,
 }));
@@ -522,8 +492,6 @@ describe('AppProtectedLayout', () => {
     mockBrandState.brandId = 'brand-123';
     mockRouteParams.brandSlug = 'brand-123';
     mockRouteParams.orgSlug = 'org-123';
-    enabledCategoriesState.enabledCategories = ['image', 'video', 'avatar'];
-    enabledCategoriesState.isLoading = false;
     appLayoutSpy.mockClear();
     appSidebarSpy.mockClear();
     agentThreadListSpy.mockClear();
@@ -561,7 +529,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it('hides the shell low credits banner on promptbar routes', () => {
-    mockPathname.value = '/studio/video';
+    mockPathname.value = '/studio/storyboard';
     render(<AppProtectedLayout />);
     expect(lowCreditsBannerSpy).not.toHaveBeenCalled();
   });
@@ -690,7 +658,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it('enables topbar chrome for Studio routes', () => {
-    mockPathname.value = '/studio/image';
+    mockPathname.value = '/studio/storyboard';
 
     render(
       <AppProtectedLayout>
@@ -708,7 +676,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it('mounts the universal shell without the legacy terminal dock', () => {
-    mockPathname.value = '/org-123/brand-123/studio/image';
+    mockPathname.value = '/org-123/brand-123/studio/storyboard';
 
     render(
       <AppProtectedLayout>
@@ -733,7 +701,7 @@ describe('AppProtectedLayout', () => {
 
   it('keeps render failures inside the protected shell error boundary', () => {
     shellState.isShellThrowing = true;
-    mockPathname.value = '/org-123/brand-123/studio/image';
+    mockPathname.value = '/org-123/brand-123/studio/storyboard';
     const consoleError = vi
       .spyOn(console, 'error')
       .mockImplementation(() => undefined);
@@ -857,7 +825,7 @@ describe('AppProtectedLayout', () => {
 
   it.each([
     ['/workspace', 'Workspace'],
-    ['/studio/image', 'Image'],
+    ['/studio/storyboard', 'Storyboard'],
     ['/library/images', 'Assets'],
     ['/discover/discovery', 'Discovery'],
     ['/analytics', 'Overview'],
@@ -1164,7 +1132,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it('gives Studio routes their own nav column', () => {
-    mockPathname.value = '/org-123/brand-123/studio/image';
+    mockPathname.value = '/org-123/brand-123/studio/storyboard';
 
     render(
       <AppProtectedLayout>
@@ -1187,7 +1155,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it.each([
-    ['/org-123/brand-123/studio/image', 'studio', 'Studio'],
+    ['/org-123/brand-123/studio/storyboard', 'studio', 'Studio'],
     ['/org-123/brand-123/library', 'library', 'Library'],
     ['/org-123/brand-123/analytics', 'analytics', 'Analytics'],
     ['/org-123/brand-123/automate/workflows', 'automate', 'Automate'],
@@ -1343,9 +1311,8 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('filters disabled studio categories from the dedicated studio sidebar', () => {
-    mockPathname.value = '/studio/image';
-    enabledCategoriesState.enabledCategories = ['image', 'video', 'avatar'];
+  it('keeps the studio sidebar to production surfaces only', () => {
+    mockPathname.value = '/studio/storyboard';
 
     render(
       <AppProtectedLayout>
@@ -1355,14 +1322,29 @@ describe('AppProtectedLayout', () => {
 
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        items: expect.not.arrayContaining([
-          expect.objectContaining({
-            href: '/studio/music',
-            label: 'Music',
-          }),
+        items: expect.arrayContaining([
+          expect.objectContaining({ href: '/studio/storyboard' }),
+          expect.objectContaining({ href: '/studio/clips' }),
+          expect.objectContaining({ href: '/studio/batch' }),
         ]),
       }),
     );
+
+    // One-off generation moved to the Agent — no standalone media tabs remain.
+    for (const retiredHref of [
+      '/studio/image',
+      '/studio/video',
+      '/studio/avatar',
+      '/studio/music',
+    ]) {
+      expect(appSidebarSpy).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          items: expect.arrayContaining([
+            expect.objectContaining({ href: retiredHref }),
+          ]),
+        }),
+      );
+    }
   });
 
   it('renders a dedicated discover sidebar on discover routes', () => {

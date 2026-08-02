@@ -468,8 +468,7 @@ describe('WorkspacePageContent', () => {
     expect(screen.getByText('Media')).toBeVisible();
     expect(screen.getByText('Audio + captions')).toBeVisible();
     expect(screen.getByText('Operator tools')).toBeVisible();
-    expect(screen.getByLabelText('Studio Image')).toBeVisible();
-    expect(screen.getByLabelText('Studio Video')).toBeVisible();
+    expect(screen.getByLabelText('Studio')).toBeVisible();
   });
 
   it('removes Studio from operator tools when the capability is disabled', async () => {
@@ -478,8 +477,7 @@ describe('WorkspacePageContent', () => {
     render(<WorkspacePageContent section="overview" />);
 
     expect(await screen.findByText('Operator tools')).toBeVisible();
-    expect(screen.queryByLabelText('Studio Image')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Studio Video')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Studio')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Agent')).toBeVisible();
     expect(screen.getByLabelText('Workflows')).toBeVisible();
   });

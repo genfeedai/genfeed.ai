@@ -39,12 +39,12 @@ export const CORE_APPS: CoreAppDefinition[] = [
   },
   {
     description:
-      'Generate image and video assets with a prompt bar, then compose and export them on the Edit timeline.',
+      'Produce storyboards, clips, batches, fastlane runs, and timeline edits at production scale.',
     featureFlag: {
       isEnabledByDefault: () => true,
       key: 'studio',
     },
-    href: APP_ROUTES.STUDIO.ROOT,
+    href: APP_ROUTES.STUDIO.STORYBOARD,
     id: 'studio',
     label: 'Studio',
     shortLabel: 'Studio',

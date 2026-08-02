@@ -13,8 +13,8 @@ import {
 
 describe('operator-shell helpers', () => {
   it('normalizes brand and org scoped protected routes', () => {
-    expect(normalizeProtectedPathname('/acme/brand-x/studio/video')).toBe(
-      '/studio/video',
+    expect(normalizeProtectedPathname('/acme/brand-x/studio/storyboard')).toBe(
+      '/studio/storyboard',
     );
     expect(normalizeProtectedPathname('/acme/~/settings')).toBe('/settings');
     expect(normalizeProtectedPathname('/acme/~/settings/organization')).toBe(
@@ -32,8 +32,8 @@ describe('operator-shell helpers', () => {
     expect(getCurrentBrandScopedPath('/acme/moonrise/workspace')).toBe(
       '/workspace',
     );
-    expect(getCurrentBrandScopedPath('/acme/moonrise/studio/video')).toBe(
-      '/studio/video',
+    expect(getCurrentBrandScopedPath('/acme/moonrise/studio/storyboard')).toBe(
+      '/studio/storyboard',
     );
     expect(getCurrentBrandScopedPath('/acme/~/overview')).toBe('/workspace');
     expect(getCurrentBrandScopedPath('/acme/~/agent/new')).toBe('/agent/new');
@@ -64,7 +64,9 @@ describe('operator-shell helpers', () => {
       '/settings/brands',
     );
     expect(resolveOrganizationScopePath('/agent/new')).toBe('/agent/new');
-    expect(resolveOrganizationScopePath('/studio/image')).toBe('/studio/image');
+    expect(resolveOrganizationScopePath('/studio/storyboard')).toBe(
+      '/studio/storyboard',
+    );
   });
 
   it('gates the first-asset unlock sections (and their subpaths) only', () => {
@@ -89,7 +91,7 @@ describe('operator-shell helpers', () => {
       '/agent/new',
       '/settings',
       '/settings/organization',
-      '/studio/image',
+      '/studio/storyboard',
       '/discover/discovery',
       '/publish',
       '/messages',
@@ -123,9 +125,9 @@ describe('operator-shell helpers', () => {
       getBrandSwitchHref({
         nextBrandSlug: 'sunrise',
         nextOrgSlug: 'acme',
-        pathname: '/acme/moonrise/studio/video',
+        pathname: '/acme/moonrise/studio/storyboard',
       }),
-    ).toBe('/acme/sunrise/studio/video');
+    ).toBe('/acme/sunrise/studio/storyboard');
   });
 
   it('picks and appends only task context params', () => {
@@ -140,8 +142,8 @@ describe('operator-shell helpers', () => {
     expect(params.toString()).toBe(
       'taskId=task-1&taskTitle=Draft+launch+brief',
     );
-    expect(appendSearchParamsToHref('/studio/image', params)).toBe(
-      '/studio/image?taskId=task-1&taskTitle=Draft+launch+brief',
+    expect(appendSearchParamsToHref('/studio/storyboard', params)).toBe(
+      '/studio/storyboard?taskId=task-1&taskTitle=Draft+launch+brief',
     );
   });
 
@@ -202,7 +204,7 @@ describe('operator-shell helpers', () => {
     }
   });
 
-  it('routes generation tasks to Agent when Studio is unavailable', () => {
+  it('routes generate-mode launches to the Agent unconditionally', () => {
     const task = {
       executionPathUsed: 'video_generation',
       id: 'task-100',
@@ -210,8 +212,33 @@ describe('operator-shell helpers', () => {
       title: 'Generate launch teaser',
     } as Task;
 
-    expect(buildTaskLaunchHref(task, 'generate', { studio: false })).toBe(
+    expect(buildTaskLaunchHref(task, 'generate')).toBe(
       '/agent/new?taskExecutionPath=video_generation&taskId=task-100&taskOutputType=video&taskSource=workspace&taskTitle=Generate+launch+teaser',
+    );
+  });
+
+  it('routes auto-mode media generation tasks to the Agent', () => {
+    // Studio no longer has standalone image/video tabs — the Agent owns one-offs.
+    const imageTask = {
+      executionPathUsed: 'image_generation',
+      id: 'task-101',
+      outputType: 'image',
+      title: 'Generate hero still',
+    } as Task;
+
+    expect(buildTaskLaunchHref(imageTask, 'auto')).toBe(
+      '/agent/new?taskExecutionPath=image_generation&taskId=task-101&taskOutputType=image&taskSource=workspace&taskTitle=Generate+hero+still',
+    );
+
+    const videoTask = {
+      executionPathUsed: 'video_generation',
+      id: 'task-102',
+      outputType: 'video',
+      title: 'Generate teaser cut',
+    } as Task;
+
+    expect(buildTaskLaunchHref(videoTask, 'auto')).toBe(
+      '/agent/new?taskExecutionPath=video_generation&taskId=task-102&taskOutputType=video&taskSource=workspace&taskTitle=Generate+teaser+cut',
     );
   });
 });

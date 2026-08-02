@@ -67,7 +67,12 @@ describe('SidebarNavigationProvider', () => {
   });
 
   it.each([
-    ['/acme/brand/studio/video', '/studio', '/studio/video', 'Video'],
+    [
+      '/acme/brand/studio/storyboard',
+      '/studio',
+      '/studio/storyboard',
+      'Storyboard',
+    ],
     [
       '/acme/brand/analytics/insights',
       '/analytics',

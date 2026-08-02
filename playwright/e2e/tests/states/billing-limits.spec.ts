@@ -24,8 +24,9 @@ import { tryClick } from '../../utils/route-assertions';
  */
 
 const ORG_BRAND = '/test-org/brand-1';
-const IMAGE_ROUTE = `${ORG_BRAND}/studio/image`;
-const VIDEO_ROUTE = `${ORG_BRAND}/studio/video`;
+// Studio's standalone one-off tabs are retired; the storyboard surface
+// carries the inline composer that these failure paths exercise.
+const STORYBOARD_ROUTE = `${ORG_BRAND}/studio/storyboard`;
 const WRITE_ROUTE = `${ORG_BRAND}/agent/new`;
 const AUTOMATE_ROUTE = `${ORG_BRAND}/automate`;
 
@@ -39,11 +40,11 @@ async function submitGeneration(page: Page): Promise<void> {
 test.describe('Billing limits — credit and subscription gating', () => {
   test.setTimeout(90_000);
 
-  test('image studio gates generation on insufficient credits', async ({
+  test('studio storyboard gates generation on insufficient credits', async ({
     authenticatedPage,
   }) => {
     await mockInsufficientCredits(authenticatedPage);
-    await authenticatedPage.goto(IMAGE_ROUTE, {
+    await authenticatedPage.goto(STORYBOARD_ROUTE, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -59,45 +60,17 @@ test.describe('Billing limits — credit and subscription gating', () => {
     await assertHealthy(authenticatedPage);
   });
 
-  test('video studio gates generation on insufficient credits', async ({
-    authenticatedPage,
-  }) => {
-    await mockInsufficientCredits(authenticatedPage);
-    await authenticatedPage.goto(VIDEO_ROUTE, {
-      waitUntil: 'domcontentloaded',
-    });
-    await settle(authenticatedPage);
-
-    await fillPrompt(authenticatedPage, 'A slow dolly shot of a city street');
-    await submitGeneration(authenticatedPage);
-    await settle(authenticatedPage);
-
-    await assertHealthy(authenticatedPage);
-  });
-
-  test('image studio renders under an expired subscription', async ({
+  test('studio storyboard renders under an expired subscription', async ({
     authenticatedPage,
   }) => {
     await mockExpiredSubscription(authenticatedPage);
-    await authenticatedPage.goto(IMAGE_ROUTE, {
+    await authenticatedPage.goto(STORYBOARD_ROUTE, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
 
     await tryClick(authenticatedPage, 'button:has-text("Upgrade")');
     await tryClick(authenticatedPage, 'a:has-text("Upgrade")');
-    await settle(authenticatedPage);
-
-    await assertHealthy(authenticatedPage);
-  });
-
-  test('video studio renders under an expired subscription', async ({
-    authenticatedPage,
-  }) => {
-    await mockExpiredSubscription(authenticatedPage);
-    await authenticatedPage.goto(VIDEO_ROUTE, {
-      waitUntil: 'domcontentloaded',
-    });
     await settle(authenticatedPage);
 
     await assertHealthy(authenticatedPage);
@@ -167,11 +140,11 @@ test.describe('Billing limits — credit and subscription gating', () => {
     await assertHealthy(authenticatedPage);
   });
 
-  test('insufficient credits surfaces an upgrade path on the image studio', async ({
+  test('insufficient credits surfaces an upgrade path on studio storyboard', async ({
     authenticatedPage,
   }) => {
     await mockInsufficientCredits(authenticatedPage);
-    await authenticatedPage.goto(IMAGE_ROUTE, {
+    await authenticatedPage.goto(STORYBOARD_ROUTE, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);

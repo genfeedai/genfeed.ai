@@ -24,7 +24,6 @@ import {
 } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useSpeechRecording } from '@genfeedai/hooks/media/use-speech-recording/use-speech-recording';
-import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { usePromptBarEnhancement } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-enhancement/use-prompt-bar-enhancement';
 import { usePromptBarFilters } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-filters/use-prompt-bar-filters';
 import { usePromptBarForm } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-form/use-prompt-bar-form';
@@ -47,7 +46,7 @@ import {
   getConfigForRoute,
 } from '@ui-constants/media.constant';
 import { RectangleHorizontal, RectangleVertical, Square } from 'lucide-react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWatch } from 'react-hook-form';
@@ -146,7 +145,6 @@ export function usePromptBarState({
   const isCollapsible = features.collapsible ?? true;
   const hasDragDrop = features.dragDrop ?? true;
   const pathname = usePathname();
-  const { push } = useRouter();
 
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
   const notificationsService = useMemo(
@@ -159,7 +157,6 @@ export function usePromptBarState({
   const { activeGenerations } = useAssetSelection();
   const { currentUser } = useCurrentUser();
   const { subscribe } = useSocketManager();
-  const { href: buildHref } = useOrgUrl();
   const getPromptsService = useAuthedService((token: string) =>
     PromptsService.getInstance(token),
   );
@@ -820,9 +817,6 @@ export function usePromptBarState({
     toggleVoice,
     isRecording,
     isProcessing,
-    // navigation for collapsed callbacks
-    push,
-    buildHref,
     watchedFormat,
   };
 }

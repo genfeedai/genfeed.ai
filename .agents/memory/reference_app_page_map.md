@@ -163,8 +163,6 @@ Organization catch-all module pages served by `/:orgSlug/~/:orgRootApp/[[...segm
 
 - `/:orgSlug/~/library`
 - `/:orgSlug/~/library/:type`
-- `/:orgSlug/~/studio`
-- `/:orgSlug/~/studio/:type`
 - `/:orgSlug/~/publish`
 - `/:orgSlug/~/publish/published`
 - `/:orgSlug/~/publish/scheduled`

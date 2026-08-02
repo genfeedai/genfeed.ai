@@ -431,7 +431,7 @@ describe('AppSwitcher', () => {
       <AppSwitcher
         orgSlug="acme"
         brandSlug="my-brand"
-        currentPath="/acme/my-brand/studio/video/asset-1"
+        currentPath="/acme/my-brand/studio/clips"
       />,
     );
 
@@ -475,7 +475,7 @@ describe('AppSwitcher', () => {
       <AppSwitcher
         orgSlug="acme"
         brandSlug="my-brand"
-        currentPath="/acme/my-brand/studio/image"
+        currentPath="/acme/my-brand/studio/storyboard"
       />,
     );
     const btn = screen.getByRole('link', { name: 'Studio' });
@@ -492,7 +492,7 @@ describe('AppSwitcher', () => {
       <AppSwitcher
         orgSlug="acme"
         brandSlug="my-brand"
-        currentPath="/acme/my-brand/studio/image"
+        currentPath="/acme/my-brand/studio/storyboard"
       />,
     );
 
@@ -582,7 +582,7 @@ describe('AppSwitcher', () => {
       render(<AppSwitcher orgSlug="acme" brandSlug="my-brand" />);
       expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/studio/image',
+        '/acme/my-brand/studio/storyboard',
       );
     });
 
@@ -624,7 +624,7 @@ describe('AppSwitcher', () => {
       render(<AppSwitcher orgSlug="acme" />);
       expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
         'href',
-        '/acme/~/studio/image',
+        '/acme/~/studio',
       );
     });
 
@@ -634,7 +634,7 @@ describe('AppSwitcher', () => {
       for (const [label, href] of [
         ['Messages', '/acme/~/messages'],
         ['Automate', '/acme/~/automate'],
-        ['Studio', '/acme/~/studio/image'],
+        ['Studio', '/acme/~/studio'],
         ['Library', '/acme/~/library'],
         ['Discover', '/acme/~/discover/discovery'],
         ['Publish', '/acme/~/publish'],

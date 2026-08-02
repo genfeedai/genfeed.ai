@@ -275,49 +275,28 @@ describe('commands.registry', () => {
       expect(avatarCmd?.keywords).toContain('avatar');
     });
 
-    it('video action should navigate to brand-scoped studio URL', () => {
-      const generationCommands = createGenerationCommands(TEST_ORG, TEST_BRAND);
-      const videoCmd = generationCommands.find((c) => c.id === 'gen-video');
+    it.each([
+      ['gen-video', 'Generate a new video for my brand.'],
+      ['gen-image', 'Generate a new image for my brand.'],
+      ['gen-music', 'Generate new music or audio for my brand.'],
+      ['gen-avatar', 'Generate a new AI avatar for my brand.'],
+    ])(
+      '%s action should open a seeded brand-scoped agent thread',
+      (id, prompt) => {
+        const generationCommands = createGenerationCommands(
+          TEST_ORG,
+          TEST_BRAND,
+        );
+        const command = generationCommands.find((c) => c.id === id);
 
-      videoCmd?.action();
+        command?.action();
 
-      expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/studio/video`,
-      );
-    });
-
-    it('image action should navigate to brand-scoped studio URL', () => {
-      const generationCommands = createGenerationCommands(TEST_ORG, TEST_BRAND);
-      const imageCmd = generationCommands.find((c) => c.id === 'gen-image');
-
-      imageCmd?.action();
-
-      expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/studio/image`,
-      );
-    });
-
-    it('music action should navigate to brand-scoped studio URL', () => {
-      const generationCommands = createGenerationCommands(TEST_ORG, TEST_BRAND);
-      const musicCmd = generationCommands.find((c) => c.id === 'gen-music');
-
-      musicCmd?.action();
-
-      expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/studio/music`,
-      );
-    });
-
-    it('avatar action should navigate to brand-scoped studio URL', () => {
-      const generationCommands = createGenerationCommands(TEST_ORG, TEST_BRAND);
-      const avatarCmd = generationCommands.find((c) => c.id === 'gen-avatar');
-
-      avatarCmd?.action();
-
-      expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/studio/avatar`,
-      );
-    });
+        // Studio's standalone one-off tabs are retired — the Agent owns them.
+        expect(window.location.href).toBe(
+          `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/agent/new?${new URLSearchParams({ prompt }).toString()}`,
+        );
+      },
+    );
   });
 
   describe('createContentCommands', () => {

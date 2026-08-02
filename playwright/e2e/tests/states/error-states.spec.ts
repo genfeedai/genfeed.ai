@@ -144,11 +144,13 @@ test.describe('App surfaces — fetch error states', () => {
     await assertHealthy(authenticatedPage, route);
   });
 
-  test('studio image list survives an images server error', async ({
+  test('library image list survives an images server error', async ({
     authenticatedPage,
   }) => {
+    // Studio's standalone image tab is retired — generated images land in the
+    // Library, which is now the surface that must survive the failure.
     await mockServerError(authenticatedPage, '**/images**');
-    const route = `${ORG_BRAND}/studio/image`;
+    const route = `${ORG_BRAND}/library/images`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);

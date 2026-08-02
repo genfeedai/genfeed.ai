@@ -84,7 +84,7 @@ test.describe('Core Content Loop', () => {
     );
   });
 
-  test('studio supports content-type switching and prompt entry', async ({
+  test('studio storyboard accepts inline prompt entry', async ({
     authenticatedPage,
   }) => {
     const studioPage = new StudioPage(authenticatedPage);
@@ -94,30 +94,20 @@ test.describe('Core Content Loop', () => {
       finalStatus: 'completed',
     });
 
-    await studioPage.gotoGenerationType('image');
+    // The standalone one-off tabs are retired — Studio's production surfaces
+    // each carry their own in-context prompt bar.
+    await studioPage.gotoSurface('storyboard');
 
-    await expect(authenticatedPage).toHaveURL(/\/studio\/image/);
+    await expect(authenticatedPage).toHaveURL(/\/studio\/storyboard/);
     await expect(
       studioPage.promptInput.or(studioPage.promptTextarea),
     ).toBeVisible();
-
-    if (
-      await studioPage.videoTab
-        .first()
-        .isVisible()
-        .catch(() => false)
-    ) {
-      await studioPage.videoTab.first().click();
-      await expect(authenticatedPage).toHaveURL(/\/studio\/video/);
-      await studioPage.imageTab.first().click();
-      await expect(authenticatedPage).toHaveURL(/\/studio\/image/);
-    }
 
     await studioPage.enterPrompt(
       'Create a launch-ready product still with soft shadows.',
     );
 
-    await expect(authenticatedPage).toHaveURL(/\/studio\/image/);
+    await expect(authenticatedPage).toHaveURL(/\/studio\/storyboard/);
     await expect(
       studioPage.promptInput.or(studioPage.promptTextarea),
     ).toHaveValue('Create a launch-ready product still with soft shadows.');

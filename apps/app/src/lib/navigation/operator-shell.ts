@@ -215,14 +215,10 @@ function getTaskLaunchPath(
     return APP_ROUTES.AGENT.NEW;
   }
 
+  // One-off media generation is Agent-first: Studio no longer has standalone
+  // image/video prompt-bar tabs, so every generate launch opens the Agent.
   if (mode === 'generate') {
-    if (!capabilities.studio) {
-      return APP_ROUTES.AGENT.NEW;
-    }
-
-    return task.executionPathUsed === 'video_generation'
-      ? APP_ROUTES.STUDIO.VIDEO
-      : APP_ROUTES.STUDIO.IMAGE;
+    return APP_ROUTES.AGENT.NEW;
   }
 
   if (mode === 'edit') {
@@ -238,13 +234,8 @@ function getTaskLaunchPath(
     case 'caption_generation':
       return APP_ROUTES.AGENT.NEW;
     case 'image_generation':
-      return capabilities.studio
-        ? APP_ROUTES.STUDIO.IMAGE
-        : APP_ROUTES.AGENT.NEW;
     case 'video_generation':
-      return capabilities.studio
-        ? APP_ROUTES.STUDIO.VIDEO
-        : APP_ROUTES.AGENT.NEW;
+      return APP_ROUTES.AGENT.NEW;
     default:
       return APP_ROUTES.AUTOMATE.WORKFLOWS;
   }

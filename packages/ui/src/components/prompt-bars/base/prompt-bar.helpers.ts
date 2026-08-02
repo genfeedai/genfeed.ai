@@ -1,20 +1,8 @@
-import { IngredientFormat } from '@genfeedai/enums';
 import type { IAsset, IImage, IIngredient } from '@genfeedai/interfaces';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import type { DragEvent } from 'react';
 
 export const EMPTY_ARRAY: never[] = [];
-
-export function getAspectRatioFromFormat(format: IngredientFormat): string {
-  switch (format) {
-    case IngredientFormat.PORTRAIT:
-      return '9:16';
-    case IngredientFormat.SQUARE:
-      return '1:1';
-    default:
-      return '16:9';
-  }
-}
 
 export function resizeTextarea(
   textarea: HTMLTextAreaElement | null,

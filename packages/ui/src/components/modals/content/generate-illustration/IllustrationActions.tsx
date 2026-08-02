@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import { useFeatureFlag } from '@genfeedai/hooks/feature-flags/use-feature-flag';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import { Button } from '@ui/primitives/button';
@@ -29,22 +28,19 @@ export default function IllustrationActions({
   onClose,
   onGenerate,
 }: Props) {
-  const isStudioEnabled = useFeatureFlag('studio');
-
   return (
     <ModalActions>
-      {isStudioEnabled ? (
-        <Button variant={ButtonVariant.SECONDARY} asChild>
-          <Link
-            href={`${EnvironmentService.apps.app}/studio/image`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <ExternalLink className="size-4" />
-            Studio
-          </Link>
-        </Button>
-      ) : null}
+      {/* One-off generation is Agent-first — Studio has no image prompt bar. */}
+      <Button variant={ButtonVariant.SECONDARY} asChild>
+        <Link
+          href={`${EnvironmentService.apps.app}/agent/new`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <ExternalLink className="size-4" />
+          Agent
+        </Link>
+      </Button>
 
       <div className="flex-1" />
 

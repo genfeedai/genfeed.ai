@@ -139,9 +139,9 @@ describe('routes.constant', () => {
         APP_ROUTES.WORKSPACE.OVERVIEW,
       ),
     ).toBe('/genfeed-ai/paperclip/workspace');
-    expect(createBrandAppRoute('genfeed-ai', 'paperclip', 'studio/image')).toBe(
-      '/genfeed-ai/paperclip/studio/image',
-    );
+    expect(
+      createBrandAppRoute('genfeed-ai', 'paperclip', 'studio/storyboard'),
+    ).toBe('/genfeed-ai/paperclip/studio/storyboard');
     expect(createBrandAppRoute('genfeed-ai', 'paperclip')).toBe(
       '/genfeed-ai/paperclip',
     );

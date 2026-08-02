@@ -22,7 +22,7 @@ export type IngredientsFilterOptions = {
 export type IngredientsLayoutConfig = {
   visibleFilters: IngredientsVisibleFilters;
   filterOptions: IngredientsFilterOptions;
-  showStudioLink: boolean;
+  showGenerateLink: boolean;
   showUpload: boolean;
   showViewToggle: boolean;
 };
@@ -46,7 +46,7 @@ export const INGREDIENT_CONFIGS: Record<string, IngredientsLayoutConfig> = {
         { label: 'Processing', value: IngredientStatus.PROCESSING },
       ],
     },
-    showStudioLink: false,
+    showGenerateLink: false,
     showUpload: false,
     showViewToggle: false,
     visibleFilters: {
@@ -75,7 +75,7 @@ export const INGREDIENT_CONFIGS: Record<string, IngredientsLayoutConfig> = {
         { label: 'Failed', value: IngredientStatus.FAILED },
       ],
     },
-    showStudioLink: false,
+    showGenerateLink: false,
     showUpload: false,
     showViewToggle: false,
     visibleFilters: {
@@ -110,7 +110,7 @@ export const INGREDIENT_CONFIGS: Record<string, IngredientsLayoutConfig> = {
         { label: 'Failed', value: IngredientStatus.FAILED },
       ],
     },
-    showStudioLink: true,
+    showGenerateLink: true,
     showUpload: true,
     showViewToggle: false,
     visibleFilters: {
@@ -141,7 +141,7 @@ export const INGREDIENT_CONFIGS: Record<string, IngredientsLayoutConfig> = {
         { label: 'Failed', value: IngredientStatus.FAILED },
       ],
     },
-    showStudioLink: true,
+    showGenerateLink: true,
     showUpload: false,
     showViewToggle: false,
     visibleFilters: {
@@ -178,7 +178,7 @@ export const INGREDIENT_CONFIGS: Record<string, IngredientsLayoutConfig> = {
         { label: 'Failed', value: IngredientStatus.FAILED },
       ],
     },
-    showStudioLink: true,
+    showGenerateLink: true,
     showUpload: true,
     showViewToggle: false,
     visibleFilters: {
@@ -213,7 +213,7 @@ export const INGREDIENT_CONFIGS: Record<string, IngredientsLayoutConfig> = {
         { label: 'Failed', value: IngredientStatus.FAILED },
       ],
     },
-    showStudioLink: false,
+    showGenerateLink: false,
     showUpload: true,
     showViewToggle: false,
     visibleFilters: {

@@ -91,14 +91,9 @@ export const ADVANCED_TOOLS = [
     label: 'Agent',
   },
   {
-    description: 'Manual image generation and creative edits.',
-    href: APP_ROUTES.STUDIO.IMAGE,
-    label: 'Studio Image',
-  },
-  {
-    description: 'Manual video generation and editing.',
-    href: APP_ROUTES.STUDIO.VIDEO,
-    label: 'Studio Video',
+    description: 'Storyboard, clips, and batch production surfaces.',
+    href: APP_ROUTES.STUDIO.STORYBOARD,
+    label: 'Studio',
   },
   {
     description: 'Workflow builder for repeatable automation.',
@@ -197,11 +192,8 @@ export function formatTaskStatus(task: Task): string {
   }
 }
 
-export function getAdvancedToolHref(
-  task: Task,
-  isStudioEnabled = true,
-): string {
-  return buildTaskLaunchHref(task, 'auto', { studio: isStudioEnabled });
+export function getAdvancedToolHref(task: Task): string {
+  return buildTaskLaunchHref(task, 'auto');
 }
 
 export function getTaskStateDotClass(task: Task): string {

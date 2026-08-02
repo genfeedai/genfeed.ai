@@ -31,11 +31,11 @@ function materializeRoutePattern(pattern: string): string {
 
 describe('workspace shell trusted registry', () => {
   it('owns the complete accepted protected-route denominator', () => {
-    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(209);
+    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(205);
     expect(
       new Set(PROTECTED_ROUTE_INVENTORY.map((route) => route.canonicalUrl))
         .size,
-    ).toBe(209);
+    ).toBe(205);
 
     for (const route of PROTECTED_ROUTE_INVENTORY) {
       expect(route.accessPolicy).toMatch(
@@ -93,7 +93,7 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/library/voices', 'Library', 'Assets'],
     ['/acme/moonrise/library/moodboard', 'Library', 'Moodboard'],
     ['/acme/moonrise/studio/clips', 'Studio', 'Clips'],
-    ['/acme/moonrise/studio/video/asset-1', 'Studio', 'Video'],
+    ['/acme/moonrise/studio/storyboard', 'Studio', 'Storyboard'],
     ['/acme/moonrise/studio/edit', 'Studio', 'Edit'],
     ['/acme/moonrise/studio/edit/project-1', 'Studio', 'Project'],
     ['/acme/~/studio/edit', 'Studio', 'Edit'],
@@ -190,25 +190,27 @@ describe('workspace shell trusted registry', () => {
     });
   });
 
-  it('activates the Studio adapter only for generation and canonical asset editing', () => {
-    expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/studio/image')?.adapter,
-    ).toEqual({ key: 'studio', status: 'ready' });
-    expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/studio/image/ingredient-1')
-        ?.adapter,
-    ).toEqual({ key: 'studio', status: 'ready' });
-    expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/studio/fastlane'),
-    ).toMatchObject({
-      adapter: { key: 'studio-specialized', status: 'placeholder' },
-      mode: 'canvas',
-    });
+  it('activates the Studio adapter across production surfaces only', () => {
+    for (const surface of ['batch', 'clips', 'fastlane', 'storyboard']) {
+      expect(
+        resolveWorkspaceShellRoute(`/acme/moonrise/studio/${surface}`),
+      ).toMatchObject({
+        adapter: { key: 'studio-specialized', status: 'ready' },
+        mode: 'canvas',
+      });
+    }
+
+    for (const retired of ['image', 'video', 'avatar', 'music']) {
+      expect(
+        resolveWorkspaceShellRoute(`/acme/moonrise/studio/${retired}`),
+      ).toBeNull();
+      expect(
+        resolveWorkspaceShellRoute(`/acme/moonrise/studio/${retired}/asset-1`),
+      ).toBeNull();
+    }
   });
 
-  it('resolves the merged edit surface ahead of the studio generate types', () => {
-    // #2309: `edit` is a static Studio surface, not a generate type. Its
-    // registration has to outrank `/studio/:type` in both scopes.
+  it('resolves the merged edit surface in brand and organization scope', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/studio/edit'),
     ).toMatchObject({ mode: 'canvas', surfaceKey: 'studio-edit' });
@@ -272,7 +274,7 @@ describe('workspace shell trusted registry', () => {
     ).toEqual([]);
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/studio/image'),
-    ).toMatchObject({ productClass: 'contextual-action' });
+    ).toBeNull();
     // The Automate hard-cut folded autopilot and configuration into the
     // first-class automate family. Compose's `/write` alias retired with it.
     expect(
