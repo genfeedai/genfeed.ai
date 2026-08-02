@@ -17,6 +17,7 @@ import {
 } from 'better-auth/plugins';
 import { BETTER_AUTH_BASE_PATH } from './better-auth.constants';
 import type {
+  IBetterAuthRateLimitStorage,
   IBetterAuthRateLimitStore,
   ICreateBetterAuthOptions,
 } from './better-auth.types';
@@ -106,10 +107,9 @@ function isStoredRateLimit(value: unknown): value is RateLimit {
  * failure — would surface as a 500 on sign-in. An unavailable counter must cost
  * rate limiting, never authentication.
  */
-export function buildRateLimitStorage(store: IBetterAuthRateLimitStore): {
-  get: (key: string) => Promise<RateLimit | null>;
-  set: (key: string, value: RateLimit) => Promise<void>;
-} {
+export function buildRateLimitStorage(
+  store: IBetterAuthRateLimitStore,
+): IBetterAuthRateLimitStorage {
   return {
     get: async (key) => {
       let raw: string | null;

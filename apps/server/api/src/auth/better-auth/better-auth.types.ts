@@ -2,6 +2,7 @@
  * Better Auth integration types (epic #735, Phase 1 — #736).
  */
 import type { PrismaClient } from '@genfeedai/prisma';
+import type { RateLimit } from 'better-auth';
 
 /** OAuth credentials for first-party social sign-in providers. */
 export interface IBetterAuthSocialProviderConfig {
@@ -87,6 +88,18 @@ export interface IBetterAuthRateLimitRedisCommands {
     expiryMode: 'EX',
     ttlSeconds: number,
   ): Promise<unknown>;
+}
+
+/**
+ * Better Auth's `rateLimit.customStorage` contract, adapted from
+ * {@link IBetterAuthRateLimitStore} by `buildRateLimitStorage`. Counters are the
+ * library's own `RateLimit` records — the JSON round trip and the fail-open
+ * guards stay inside the adapter, so consumers only ever see a parsed counter
+ * or `null`.
+ */
+export interface IBetterAuthRateLimitStorage {
+  get: (key: string) => Promise<RateLimit | null>;
+  set: (key: string, value: RateLimit) => Promise<void>;
 }
 
 /**
