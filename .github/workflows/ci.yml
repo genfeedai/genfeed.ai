@@ -646,6 +646,7 @@ jobs:
         run: |
           if ! cmp apps/server/api/openapi/openapi.json /tmp/openapi-emit-1.json; then
             echo "::error::apps/server/api/openapi/openapi.json is stale — regenerate with: bun run --filter=@genfeedai/api openapi:emit"
+            diff -u apps/server/api/openapi/openapi.json /tmp/openapi-emit-1.json || true
             exit 1
           fi
       - name: Validate spec (operationId coverage/uniqueness + allowlist)

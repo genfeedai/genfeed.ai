@@ -31,14 +31,7 @@ import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { RefreshCw } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import {
-  type ComponentType,
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const ALL_BRANDS_VALUE = '__all_brands__';
 const ALL_CATEGORIES_VALUE = '__all_categories__';
@@ -64,11 +57,7 @@ const CartesianGrid = dynamic(
 const ResponsiveContainer = dynamic(
   () => import('recharts').then((module) => module.ResponsiveContainer),
   { ssr: false },
-) as ComponentType<{
-  width: string | number;
-  height: number;
-  children?: ReactNode;
-}>;
+);
 const Tooltip = dynamic(
   () => import('recharts').then((module) => module.Tooltip),
   { ssr: false },
@@ -232,8 +221,8 @@ function UsageChart({
               color: 'hsl(var(--muted-foreground))',
               marginBottom: 4,
             }}
-            formatter={(value: number | string) => [
-              `${Number(value).toLocaleString()} credits`,
+            formatter={(value: unknown) => [
+              `${Number(value ?? 0).toLocaleString()} credits`,
               'Used',
             ]}
           />

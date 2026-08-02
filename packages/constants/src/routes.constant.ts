@@ -217,6 +217,7 @@ export const APP_ROUTES = {
     POLICY: '/settings/policy',
     PUBLISHING: '/settings/publishing',
     ROOT: '/settings',
+    USAGE: '/settings/usage',
     WEBHOOKS: '/settings/webhooks',
   },
   /**

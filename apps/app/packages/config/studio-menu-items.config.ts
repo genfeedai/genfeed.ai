@@ -55,4 +55,4 @@ export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
   },
 ];
 
-export const STUDIO_LOGO_HREF = APP_ROUTES.LIBRARY.OVERVIEW;
+export const STUDIO_LOGO_HREF = APP_ROUTES.LIBRARY.ROOT;

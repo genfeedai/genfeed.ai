@@ -56,9 +56,7 @@ function BrandsListContent() {
         return;
       }
 
-      push(
-        createBrandAppRoute(orgSlug, brand.slug, APP_ROUTES.SETTINGS.PROFILE),
-      );
+      push(createBrandAppRoute(orgSlug, brand.slug, APP_ROUTES.SETTINGS.ROOT));
     },
     [notificationsService, orgSlug, push],
   );

@@ -91,8 +91,8 @@ export function getCurrentBrandScopedPath(pathname: string): string {
   // app surface after the scope segments when switching brand selection.
   if (parts.length >= 3) {
     const rest = `/${parts.slice(2).join('/')}`;
-    // Legacy org overview alias normalizes to the complete workspace overview path.
-    if (rest === '/overview' || rest === '/workspace') {
+    // Org overview alias normalizes to the canonical workspace overview path.
+    if (rest === '/overview') {
       return APP_ROUTES.WORKSPACE.OVERVIEW;
     }
     return rest;

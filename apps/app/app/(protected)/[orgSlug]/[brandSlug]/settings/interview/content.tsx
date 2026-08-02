@@ -599,10 +599,10 @@ export default function BrandSettingsInterviewPage() {
 
   const brandContext = useMemo<BrandExampleContext>(
     () => ({
-      brandName: brand?.label || brand?.name || brand?.slug,
+      brandName: brand?.label || brand?.slug,
       description: brand?.description,
     }),
-    [brand?.description, brand?.label, brand?.name, brand?.slug],
+    [brand?.description, brand?.label, brand?.slug],
   );
 
   if (!hasBrandId || isLoading) {

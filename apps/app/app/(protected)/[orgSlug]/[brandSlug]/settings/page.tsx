@@ -1,7 +1,7 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
-import BrandDetail from '../brand-detail';
+import BrandDetail from './brand-detail';
 
 export const generateMetadata = createPageMetadata('Brand Profile');
 

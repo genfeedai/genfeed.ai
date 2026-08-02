@@ -5,10 +5,9 @@ import { ChartColumn, LayoutGrid, MessageSquare } from 'lucide-react';
 export const ORG_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
-    // Same complete Workspace overview path as brand scope.
-    href: APP_ROUTES.WORKSPACE.OVERVIEW,
+    href: APP_ROUTES.OVERVIEW.ROOT,
     label: 'Overview',
-    matchPaths: [APP_ROUTES.WORKSPACE.OVERVIEW, APP_ROUTES.OVERVIEW.ROOT],
+    matchPaths: [APP_ROUTES.OVERVIEW.ROOT],
     outline: LayoutGrid,
     solid: LayoutGrid,
   },
@@ -16,7 +15,7 @@ export const ORG_MENU_ITEMS: MenuItemConfig[] = [
     group: '',
     href: APP_ROUTES.ANALYTICS.OVERVIEW,
     label: 'Analytics',
-    matchPaths: [APP_ROUTES.ANALYTICS.OVERVIEW],
+    matchPaths: [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
     outline: ChartColumn,
     solid: ChartColumn,
   },
@@ -30,4 +29,4 @@ export const ORG_MENU_ITEMS: MenuItemConfig[] = [
   },
 ];
 
-export const ORG_LOGO_HREF = APP_ROUTES.WORKSPACE.OVERVIEW;
+export const ORG_LOGO_HREF = APP_ROUTES.OVERVIEW.ROOT;

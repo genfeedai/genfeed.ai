@@ -33,7 +33,7 @@ vi.mock('@genfeedai/constants', () => ({
       PUBLISHING: '/settings/publishing',
     },
     WORKSPACE: {
-      OVERVIEW: '/workspace/overview',
+      OVERVIEW: '/workspace',
     },
   },
   createBrandAppRoute: (orgSlug: string, brandSlug: string, routePath = '/') =>

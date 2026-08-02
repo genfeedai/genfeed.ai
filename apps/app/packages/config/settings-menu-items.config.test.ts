@@ -100,7 +100,7 @@ describe('buildSettingsMenuItems', () => {
       );
       expect(items.find((i) => i.label === 'General')?.isExactMatch).toBe(true);
       expect(items.find((i) => i.label === 'General')?.href).toBe(
-        APP_ROUTES.SETTINGS.PROFILE,
+        APP_ROUTES.SETTINGS.ROOT,
       );
     });
 
@@ -150,7 +150,7 @@ describe('buildSettingsMenuItems', () => {
       expect(items.every((item) => item.hrefScope === 'brand')).toBe(true);
       expect(items.find((i) => i.label === 'Profile')?.isExactMatch).toBe(true);
       expect(items.find((i) => i.label === 'Profile')?.href).toBe(
-        APP_ROUTES.SETTINGS.PROFILE,
+        APP_ROUTES.SETTINGS.ROOT,
       );
       expect(items.find((i) => i.label === 'Social')?.href).toBe(
         '/settings/social',

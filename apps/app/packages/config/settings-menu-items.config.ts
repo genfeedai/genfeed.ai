@@ -29,7 +29,7 @@ const BRAND_SETTINGS = {
   HARNESS: '/settings/harness',
   INTERVIEW: '/settings/interview',
   KIT: '/settings/kit',
-  PROFILE: APP_ROUTES.SETTINGS.PROFILE,
+  PROFILE: APP_ROUTES.SETTINGS.ROOT,
   PUBLISHING: '/settings/publishing',
   SOCIAL: '/settings/social',
   VOICE: '/settings/voice',
@@ -63,11 +63,9 @@ export interface BuildSettingsMenuItemsParams {
  * - Personal: Account · Support
  *
  * Naming / paths (deliberate):
- * - Complete-path homes: bare `/settings` permanently redirects to
- *   `/settings/profile` for **both** org and brand scopes (sidebar active-state).
- * - Org sidebar label is **General** (workspace defaults) at `/settings/profile`.
- * - Brand sidebar label is **Profile** (public brand identity) at the same
- *   relative path under the brand slug — different product surface.
+ * - `/settings` is the canonical home for both organization and brand scopes.
+ * - Org sidebar label is **General** (workspace defaults).
+ * - Brand sidebar label is **Profile** (public brand identity).
  * - Org **Agents** is agent/automation governance (not legal ToS). Route stays
  *   `/settings/policy`; sidebar label is Agents.
  */
@@ -100,9 +98,8 @@ function buildOrganizationMenuItems(
 ): MenuItemConfig[] {
   return [
     {
-      // Complete path (not bare /settings) so siblings are not prefix-active.
       group: 'Organization',
-      href: APP_ROUTES.SETTINGS.PROFILE,
+      href: APP_ROUTES.SETTINGS.ROOT,
       hrefScope: 'organization',
       isExactMatch: true,
       label: 'General',
