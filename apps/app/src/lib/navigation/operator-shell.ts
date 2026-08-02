@@ -203,7 +203,15 @@ export function withTaskContextHref(
   return appendSearchParamsToHref(href, searchParams);
 }
 
-function getTaskLaunchPath(task: Task, mode: TaskLaunchMode): string {
+type TaskLaunchCapabilities = {
+  studio: boolean;
+};
+
+function getTaskLaunchPath(
+  task: Task,
+  mode: TaskLaunchMode,
+  capabilities: TaskLaunchCapabilities,
+): string {
   if (mode === 'write') {
     if (task.outputType === 'newsletter') {
       return COMPOSE_ROUTES.NEWSLETTER;
@@ -245,6 +253,7 @@ function getTaskLaunchPath(task: Task, mode: TaskLaunchMode): string {
 export function buildTaskLaunchHref(
   task: Task,
   mode: TaskLaunchMode = 'auto',
+  capabilities: TaskLaunchCapabilities = { studio: true },
 ): string {
   const searchParams = new URLSearchParams({
     taskExecutionPath: task.executionPathUsed ?? '',
@@ -254,5 +263,8 @@ export function buildTaskLaunchHref(
     taskTitle: task.title,
   });
 
-  return appendSearchParamsToHref(getTaskLaunchPath(task, mode), searchParams);
+  return appendSearchParamsToHref(
+    getTaskLaunchPath(task, mode, capabilities),
+    searchParams,
+  );
 }
