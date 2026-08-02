@@ -151,7 +151,11 @@ describe('EditorProjectsController', () => {
       } as never);
 
       expect(editorProjectsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'New Project' }),
+        expect.objectContaining({
+          config: expect.objectContaining({ name: 'New Project' }),
+          organizationId: '507f191e810c19729de860ee',
+          userId: '507f191e810c19729de860ee',
+        }),
       );
       expect(result).toMatchObject({ data: project });
     });
@@ -179,7 +183,15 @@ describe('EditorProjectsController', () => {
         ingredient: videoId,
       });
       expect(editorProjectsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ tracks: expect.any(Array) }),
+        expect.objectContaining({
+          config: expect.objectContaining({
+            name: 'Video Project',
+            sourceVideoId: videoId,
+          }),
+          organizationId: '507f191e810c19729de860ee',
+          tracks: expect.any(Array),
+          userId: '507f191e810c19729de860ee',
+        }),
       );
       expect(result).toBeDefined();
     });

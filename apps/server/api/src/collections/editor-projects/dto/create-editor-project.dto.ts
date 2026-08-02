@@ -1,4 +1,3 @@
-import { OrganizationalCreateDto } from '@api/shared/dto/base/base.dto';
 import { IngredientFormat } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -65,7 +64,14 @@ export class EditorProjectSettingsDto {
   readonly backgroundColor?: string;
 }
 
-export class CreateEditorProjectDto extends OrganizationalCreateDto {
+/**
+ * Client body for POST /editor-projects.
+ *
+ * Ownership (`organizationId` / `userId` / `brandId`) is stamped from the
+ * authenticated session in the controller — never required on the request body
+ * (required `OrganizationalCreateDto` fields would 400 every Studio create).
+ */
+export class CreateEditorProjectDto {
   @IsOptional()
   @IsString()
   @ApiProperty({
