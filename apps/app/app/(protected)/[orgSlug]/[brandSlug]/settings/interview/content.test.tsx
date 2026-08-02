@@ -275,7 +275,12 @@ describe('BrandSettingsInterviewPage', () => {
 
     render(<BrandSettingsInterviewPage />);
 
-    expect(screen.getByText('What is the name of your brand?')).toBeVisible();
+    expect(
+      screen.getByRole('heading', {
+        level: 2,
+        name: 'What is the name of your brand?',
+      }),
+    ).toBeVisible();
     expect(screen.getByRole('button', { name: 'Continue' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Skip' })).toBeVisible();
     expect(
@@ -333,6 +338,7 @@ describe('BrandSettingsInterviewPage', () => {
     await waitFor(() => {
       expect(mocks.useBrandInterview.submitAnswer).toHaveBeenCalledWith(
         'Acme Corp',
+        undefined,
       );
       expect(mocks.draftClearAnswer).toHaveBeenCalledWith('brand-1', 'label');
     });

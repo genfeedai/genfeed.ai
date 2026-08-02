@@ -5,6 +5,7 @@ import {
   useRegisterWorkspaceSurfacePresentationAdapter,
   WorkspaceSurfaceAdapterRegistration,
   type WorkspaceSurfaceAdapterRegistration as WorkspaceSurfaceAdapterRegistrationContract,
+  type WorkspaceSurfacePresentationAdapter,
 } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
 
 interface WorkspaceOverviewSurfaceAdapterProps {
@@ -58,7 +59,7 @@ function AdapterInspector({
 export function OrganizationWorkspaceOverviewSurfaceAdapter({
   children,
 }: WorkspaceOverviewSurfaceAdapterProps): ReactElement {
-  const presentation = useMemo(
+  const presentation = useMemo<WorkspaceSurfacePresentationAdapter>(
     () => ({
       contextLabel: ORGANIZATION_WORKSPACE_OVERVIEW_ADAPTER.title,
       inspector: (
@@ -85,7 +86,7 @@ export function OrganizationWorkspaceOverviewSurfaceAdapter({
 export function BrandWorkspaceOverviewSurfaceAdapter({
   children,
 }: WorkspaceOverviewSurfaceAdapterProps): ReactElement {
-  const presentation = useMemo(
+  const presentation = useMemo<WorkspaceSurfacePresentationAdapter>(
     () => ({
       contextLabel: BRAND_WORKSPACE_OVERVIEW_ADAPTER.title,
       inspector: (
