@@ -230,6 +230,19 @@ const config = createAppNextConfig({
     ...selfHostedOrgRewrites,
   ],
   redirects: async () => [
+    // Platform admin home is the overview dashboard (complete path). Bare
+    // `/admin` and incomplete `/admin/overview` permanently redirect here.
+    {
+      destination: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
+      permanent: true,
+      source: APP_ROUTES.ADMIN.ROOT,
+    },
+    {
+      destination: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
+      permanent: true,
+      source: `${APP_ROUTES.ADMIN.ROOT}/overview`,
+    },
+
     {
       destination: APP_ROUTES.WORKSPACE.INBOX_UNREAD,
       permanent: false,

@@ -3,15 +3,16 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 describe('app/(protected)/admin/layout.tsx', () => {
-  it('guards the entire admin subtree behind cloud superadmin access', () => {
+  it('guards the entire admin subtree behind platform superadmin access', () => {
     const source = readFileSync(
       join(process.cwd(), 'app/(protected)/admin/layout.tsx'),
       'utf8',
     );
 
     expect(source).toContain('loadProtectedBootstrap');
-    expect(source).toContain('isSaaS');
     expect(source).toContain('bootstrap?.accessState?.isSuperAdmin');
     expect(source).toContain('notFound()');
+    // Self-host / local Portless superadmins must reach admin too.
+    expect(source).not.toContain('isSaaS');
   });
 });

@@ -968,7 +968,7 @@ const ADMIN_ANALYTICS_ROUTE_PATTERNS = [
 
 const ADMIN_ROUTE_REGISTRATIONS = [
   ...registerRoutes(ADMIN_CONTROL_PLANE_ROUTE_PATTERNS, {
-    fallback: '/admin',
+    fallback: '/admin/overview/dashboard',
     mode: 'canvas',
     productClass: 'control-plane',
     scope: 'platform-admin',
@@ -977,7 +977,7 @@ const ADMIN_ROUTE_REGISTRATIONS = [
     telemetryClass: 'management',
   }),
   ...registerRoutes(ADMIN_ANALYTICS_ROUTE_PATTERNS, {
-    fallback: '/admin',
+    fallback: '/admin/overview/dashboard',
     mode: 'canvas',
     productClass: 'visual-data',
     scope: 'platform-admin',

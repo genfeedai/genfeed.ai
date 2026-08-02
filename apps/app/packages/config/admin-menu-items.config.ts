@@ -19,13 +19,16 @@ import {
   Volume2,
 } from 'lucide-react';
 
-export const ADMIN_LOGO_HREF = APP_ROUTES.ADMIN.ROOT;
+/** Canonical admin home — complete path under Overview (not bare `/admin`). */
+export const ADMIN_LOGO_HREF = APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD;
 
 export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: 'Overview',
     hrefScope: 'global',
-    href: APP_ROUTES.ADMIN.ROOT,
+    // Real page is `/admin/overview/dashboard`. Bare `/admin` re-exports it and
+    // permanently redirects here; never link to `/admin/overview` (no page).
+    href: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
     label: 'Dashboard',
     matchPaths: [APP_ROUTES.ADMIN.ROOT, APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD],
     outline: ChartColumn,

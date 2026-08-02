@@ -2,13 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { ADMIN_LOGO_HREF, ADMIN_MENU_ITEMS } from './admin-menu-items.config';
 
 describe('ADMIN_MENU_ITEMS', () => {
-  it('exposes the cloud superadmin surface under /admin', () => {
-    expect(ADMIN_LOGO_HREF).toBe('/admin');
-    expect(ADMIN_MENU_ITEMS[0]?.href).toBe('/admin');
-    expect(ADMIN_MENU_ITEMS.some((item) => item.href === '/admin')).toBe(true);
+  it('exposes the platform admin surface with dashboard as complete-path home', () => {
+    expect(ADMIN_LOGO_HREF).toBe('/admin/overview/dashboard');
+    expect(ADMIN_MENU_ITEMS[0]?.href).toBe('/admin/overview/dashboard');
     expect(
       ADMIN_MENU_ITEMS.every((item) => item.href.startsWith('/admin')),
     ).toBe(true);
+    expect(ADMIN_MENU_ITEMS.some((item) => item.href === '/admin')).toBe(false);
+    expect(
+      ADMIN_MENU_ITEMS.some((item) => item.href === '/admin/overview'),
+    ).toBe(false);
     expect(ADMIN_MENU_ITEMS.some((item) => item.label === 'Agent')).toBe(false);
   });
 
