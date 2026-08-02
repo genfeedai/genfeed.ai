@@ -36,6 +36,7 @@ export default function MenuSharedGroupedItems({
             label={group.group}
             isDrillDown={group.items[0]?.drillDown === true}
             isCollapsible={group.items[0]?.isCollapsible === true}
+            forceExpanded={group.items.some((item) => isActiveItem(item))}
           >
             {group.items[0]?.drillDown ? (
               <DrillDownGroupRow

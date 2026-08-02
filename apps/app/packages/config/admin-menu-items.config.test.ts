@@ -49,4 +49,19 @@ describe('ADMIN_MENU_ITEMS', () => {
       false,
     );
   });
+
+  it('makes each named admin section collapsible (first item of the group)', () => {
+    const firstByGroup = new Map<string, (typeof ADMIN_MENU_ITEMS)[number]>();
+    for (const item of ADMIN_MENU_ITEMS) {
+      const group = item.group ?? '';
+      if (group && !firstByGroup.has(group)) {
+        firstByGroup.set(group, item);
+      }
+    }
+
+    expect(firstByGroup.size).toBeGreaterThan(0);
+    for (const [group, item] of firstByGroup) {
+      expect(item.isCollapsible, group).toBe(true);
+    }
+  });
 });

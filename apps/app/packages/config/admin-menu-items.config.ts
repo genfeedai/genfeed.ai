@@ -22,7 +22,24 @@ import {
 /** Canonical admin home — complete path under Overview (not bare `/admin`). */
 export const ADMIN_LOGO_HREF = APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD;
 
-export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
+/**
+ * Admin nav is long — mark the first item of each named group collapsible so
+ * CollapsibleGroup shows a chevron header. Other app shells leave
+ * `isCollapsible` unset and keep static section labels.
+ */
+function withAdminCollapsibleGroups(items: MenuItemConfig[]): MenuItemConfig[] {
+  const seenGroups = new Set<string>();
+  return items.map((item) => {
+    const group = item.group ?? '';
+    if (!group || seenGroups.has(group)) {
+      return item;
+    }
+    seenGroups.add(group);
+    return { ...item, isCollapsible: true };
+  });
+}
+
+export const ADMIN_MENU_ITEMS: MenuItemConfig[] = withAdminCollapsibleGroups([
   {
     group: 'Overview',
     hrefScope: 'global',
@@ -323,4 +340,4 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = [
     outline: Settings,
     solid: Settings,
   },
-];
+]);
