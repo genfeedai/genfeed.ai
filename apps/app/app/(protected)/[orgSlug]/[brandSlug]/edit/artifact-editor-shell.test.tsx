@@ -8,7 +8,7 @@ describe('ArtifactEditorShell', () => {
     render(
       <ArtifactEditorShell
         artifactLabel="Newsletter"
-        backHref="/acme/main/posts/newsletters?status=draft"
+        backHref="/acme/main/publish/newsletters?status=draft"
         backLabel="Back to newsletters"
         description="Draft, revise, approve."
         title="Issue 1"
@@ -25,14 +25,14 @@ describe('ArtifactEditorShell', () => {
     expect(screen.getByText('Editor body')).toBeVisible();
     expect(
       screen.getByRole('link', { name: 'Back to newsletters' }),
-    ).toHaveAttribute('href', '/acme/main/posts/newsletters?status=draft');
+    ).toHaveAttribute('href', '/acme/main/publish/newsletters?status=draft');
   });
 
   it('flags unsaved work only while the editor is dirty', () => {
     const { rerender } = render(
       <ArtifactEditorShell
         artifactLabel="Post"
-        backHref="/acme/main/posts"
+        backHref="/acme/main/publish"
         backLabel="Back to posts"
         title="Launch post"
       >
@@ -45,7 +45,7 @@ describe('ArtifactEditorShell', () => {
     rerender(
       <ArtifactEditorShell
         artifactLabel="Post"
-        backHref="/acme/main/posts"
+        backHref="/acme/main/publish"
         backLabel="Back to posts"
         isDirty
         title="Launch post"

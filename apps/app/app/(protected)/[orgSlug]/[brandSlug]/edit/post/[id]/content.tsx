@@ -26,7 +26,7 @@ export default function PostEditorContent({
 
   const backHref = resolveArtifactEditorBackHref(
     searchParams.get(ARTIFACT_EDITOR_RETURN_PARAM),
-    href(APP_ROUTES.POSTS.ROOT),
+    href(APP_ROUTES.PUBLISH.ROOT),
   );
 
   if (!post) {

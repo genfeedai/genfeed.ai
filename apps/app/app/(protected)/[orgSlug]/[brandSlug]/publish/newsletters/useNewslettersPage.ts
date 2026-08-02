@@ -124,7 +124,7 @@ export function useNewslettersPage() {
     (newsletterId: string) =>
       withArtifactEditorReturn(
         href(createArtifactEditorRoute('newsletter', newsletterId)),
-        href(APP_ROUTES.POSTS.NEWSLETTERS),
+        href(APP_ROUTES.PUBLISH.NEWSLETTERS),
       ),
     [href],
   );

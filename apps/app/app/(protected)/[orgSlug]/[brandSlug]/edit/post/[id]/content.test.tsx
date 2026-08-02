@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   findOne: vi.fn(),
   loggerError: vi.fn(),
   patch: vi.fn(),
-  returnTo: '/acme/main/posts?status=draft' as string | null,
+  returnTo: '/acme/main/publish?status=draft' as string | null,
   success: vi.fn(),
 }));
 
@@ -67,7 +67,7 @@ const post = {
 describe('PostEditorContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.returnTo = '/acme/main/posts?status=draft';
+    mocks.returnTo = '/acme/main/publish?status=draft';
     mocks.findOne.mockResolvedValue(post);
     mocks.patch.mockResolvedValue({ ...post, label: 'Launch post revised' });
   });
@@ -83,7 +83,7 @@ describe('PostEditorContent', () => {
     );
     expect(
       screen.getByRole('link', { name: /back to posts/i }),
-    ).toHaveAttribute('href', '/acme/main/posts?status=draft');
+    ).toHaveAttribute('href', '/acme/main/publish?status=draft');
   });
 
   it('falls back to the posts list when the return target is unusable', async () => {
@@ -94,7 +94,7 @@ describe('PostEditorContent', () => {
     expect(await screen.findByText('Launch post')).toBeVisible();
     expect(
       screen.getByRole('link', { name: /back to posts/i }),
-    ).toHaveAttribute('href', '/acme/main/posts');
+    ).toHaveAttribute('href', '/acme/main/publish');
   });
 
   it('saves edited metadata back to the artifact', async () => {

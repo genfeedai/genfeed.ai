@@ -40,7 +40,7 @@ export default function NewsletterEditorContent({
 
   const backHref = resolveArtifactEditorBackHref(
     searchParams.get(ARTIFACT_EDITOR_RETURN_PARAM),
-    href(APP_ROUTES.POSTS.NEWSLETTERS),
+    href(APP_ROUTES.PUBLISH.NEWSLETTERS),
   );
 
   if (!newsletter) {

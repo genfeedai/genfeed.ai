@@ -297,7 +297,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
         push(
           withArtifactEditorReturn(
             href(createArtifactEditorRoute('article', item.article.id)),
-            href(APP_ROUTES.POSTS.CALENDAR),
+            href(APP_ROUTES.PUBLISH.CALENDAR),
           ),
         );
         return;

@@ -80,7 +80,7 @@ const newsletter = {
 describe('NewsletterEditorContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.returnTo = '/acme/main/posts/newsletters?status=review';
+    mocks.returnTo = '/acme/main/publish/newsletters?status=review';
     mocks.findOne.mockResolvedValue(newsletter);
     mocks.getContext.mockResolvedValue({
       contextSources: [],
@@ -104,7 +104,7 @@ describe('NewsletterEditorContent', () => {
     expect(screen.getByText('Ready For Review')).toBeVisible();
     expect(
       screen.getByRole('link', { name: /back to newsletters/i }),
-    ).toHaveAttribute('href', '/acme/main/posts/newsletters?status=review');
+    ).toHaveAttribute('href', '/acme/main/publish/newsletters?status=review');
   });
 
   it('falls back to the newsletters archive without a usable return target', async () => {
@@ -117,7 +117,7 @@ describe('NewsletterEditorContent', () => {
     ).toBeVisible();
     expect(
       screen.getByRole('link', { name: /back to newsletters/i }),
-    ).toHaveAttribute('href', '/acme/main/posts/newsletters');
+    ).toHaveAttribute('href', '/acme/main/publish/newsletters');
   });
 
   it('enables saving only once the issue has been edited', async () => {

@@ -35,7 +35,7 @@ type MockTableProps = {
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'paperclip', orgSlug: 'genfeed-ai' }),
-  usePathname: () => '/genfeed-ai/paperclip/posts',
+  usePathname: () => '/genfeed-ai/paperclip/publish',
   useRouter: () => ({
     push: pushMock,
     replace: replaceMock,
@@ -249,7 +249,7 @@ describe('PostsList', () => {
     fireEvent.click(screen.getByRole('button', { name: /edit table row/i }));
 
     expect(pushMock).toHaveBeenCalledWith(
-      '/genfeed-ai/paperclip/edit/post/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fposts',
+      '/genfeed-ai/paperclip/edit/post/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish',
     );
   });
 
@@ -273,7 +273,7 @@ describe('PostsList', () => {
     fireEvent.click(screen.getByRole('button', { name: /edit table row/i }));
 
     expect(pushMock).toHaveBeenCalledWith(
-      '/owner-org/owner-brand/edit/post/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fposts',
+      '/owner-org/owner-brand/edit/post/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish',
     );
   });
 });

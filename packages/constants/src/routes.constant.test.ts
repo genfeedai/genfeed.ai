@@ -76,30 +76,30 @@ describe('routes.constant', () => {
     expect(
       withArtifactEditorReturn(
         '/genfeed-ai/paperclip/edit/post/post-1',
-        '/genfeed-ai/paperclip/posts?status=draft',
+        '/genfeed-ai/paperclip/publish?status=draft',
       ),
     ).toBe(
-      '/genfeed-ai/paperclip/edit/post/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fposts%3Fstatus%3Ddraft',
+      '/genfeed-ai/paperclip/edit/post/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish%3Fstatus%3Ddraft',
     );
     expect(
       resolveArtifactEditorBackHref(
-        '/genfeed-ai/paperclip/posts?status=draft',
-        '/genfeed-ai/paperclip/posts',
+        '/genfeed-ai/paperclip/publish?status=draft',
+        '/genfeed-ai/paperclip/publish',
       ),
-    ).toBe('/genfeed-ai/paperclip/posts?status=draft');
+    ).toBe('/genfeed-ai/paperclip/publish?status=draft');
 
     expect(
       withArtifactEditorReturn(
         '/genfeed-ai/paperclip/edit/post/post-1?mode=focus',
-        '/genfeed-ai/paperclip/posts',
+        '/genfeed-ai/paperclip/publish',
       ),
     ).toBe(
-      '/genfeed-ai/paperclip/edit/post/post-1?mode=focus&returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fposts',
+      '/genfeed-ai/paperclip/edit/post/post-1?mode=focus&returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish',
     );
   });
 
   it('falls back to the owning list for unusable return targets', () => {
-    const fallbackHref = '/genfeed-ai/paperclip/posts';
+    const fallbackHref = '/genfeed-ai/paperclip/publish';
 
     expect(resolveArtifactEditorBackHref(null, fallbackHref)).toBe(
       fallbackHref,
