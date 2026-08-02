@@ -10,6 +10,7 @@ import {
   parseTurboDryRun,
   parseVitestList,
   readChangedFiles,
+  selectCoverageShardCount,
   selectShardCount,
 } from './pr-test-plan.mjs';
 
@@ -103,6 +104,38 @@ test('selects bounded adaptive shard counts', () => {
   assert.equal(selectShardCount(250), 2);
   assert.equal(selectShardCount(251), 4);
   assert.equal(selectShardCount(737), 4);
+});
+
+test('coverage shard counts never collapse to nothing', () => {
+  // The coverage jobs key off the surface flag, not `*_tests`, so they run in
+  // cases where the test shards are skipped. A zero-shard matrix there would
+  // drop the measurement silently instead of reporting it.
+  assert.equal(selectCoverageShardCount(0), 1);
+  assert.equal(selectCoverageShardCount(1), 1);
+  assert.equal(selectCoverageShardCount(75), 1);
+  assert.equal(selectCoverageShardCount(76), 2);
+  assert.equal(selectCoverageShardCount(251), 4);
+
+  // Under a full-suite escalation the planner never lists the changed test
+  // files, so the count arrives as 0 while the `--changed` graph is at its
+  // widest — exactly the case that overran the budget unsharded. Read the
+  // missing count as unknown, not as small.
+  assert.equal(selectCoverageShardCount(0, true), 4);
+  assert.equal(selectCoverageShardCount(737, true), 4);
+});
+
+test('the plan carries a coverage matrix even when the test matrix is empty', () => {
+  const plan = createPrTestPlan({
+    base: 'base-sha',
+    changedFiles: ['.github/workflows/ci.yml'],
+    runHeavy: true,
+  });
+
+  assert.equal(plan.forceFull, true);
+  assert.deepEqual(plan.apiTests.matrix, { include: [] });
+  assert.equal(plan.apiTests.coverageShards, 4);
+  assert.equal(plan.apiTests.coverageMatrix.include.length, 4);
+  assert.equal(plan.appTests.coverageShards, 4);
 });
 
 test('creates deterministic matrix entries', () => {
@@ -237,4 +270,22 @@ test('keeps the workflow wired to exact changed selection and dynamic shards', (
     workflow,
     /name: Upload pull-request test plan[\s\S]*?actions\/upload-artifact@v7/,
   );
+
+  // The instrumented coverage runs shard off their own matrix rather than
+  // reusing the test matrix: that one is empty under a full-suite escalation,
+  // which is precisely when the coverage graph is widest.
+  for (const output of ['app_coverage_matrix', 'api_coverage_matrix']) {
+    assert.match(
+      workflow,
+      new RegExp(
+        `${output}: \\$\\{\\{ steps\\.plan\\.outputs\\.${output} \\}\\}`,
+      ),
+    );
+    assert.match(
+      workflow,
+      new RegExp(
+        `matrix: \\$\\{\\{ fromJSON\\(needs\\.test-scope\\.outputs\\.${output}\\) \\}\\}`,
+      ),
+    );
+  }
 });
