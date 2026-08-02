@@ -225,24 +225,18 @@ describe('OrgRootAppPage', () => {
     });
   });
 
-  it('renders write as the org posts list', async () => {
-    const element = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'write',
-        orgSlug: 'acme',
-      }),
-    });
+  it.each(['write', 'compose'])(
+    'returns not found for retired org %s route',
+    async (orgRootApp) => {
+      await expect(
+        OrgRootAppPage({
+          params: Promise.resolve({ orgRootApp, orgSlug: 'acme' }),
+        }),
+      ).rejects.toThrow('NEXT_NOT_FOUND');
 
-    render(element);
-
-    expect(screen.getByTestId('posts-layout-content')).toBeInTheDocument();
-    expect(screen.getByTestId('posts-list-page')).toBeInTheDocument();
-    expect(renderPostsListPageMock).toHaveBeenCalledWith({
-      scope: PageScope.ORGANIZATION,
-      searchParams: expect.any(Promise),
-      statusOverride: undefined,
-    });
-  });
+      expect(notFoundMock).toHaveBeenCalled();
+    },
+  );
 
   it('has no org-scoped /workflows route at all', async () => {
     await expect(

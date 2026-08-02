@@ -287,8 +287,11 @@ describe('workspace shell trusted registry', () => {
       resolveWorkspaceShellRoute('/acme/moonrise/compose/article'),
     ).toBeNull();
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/publish/composer'),
-    ).toBeNull();
+      PROTECTED_ROUTE_INVENTORY.some(
+        (route) =>
+          route.canonicalUrl === '/:orgSlug/:brandSlug/publish/composer',
+      ),
+    ).toBe(false);
   });
 
   it('keeps the two accepted hard-cut families outside the registry', () => {
