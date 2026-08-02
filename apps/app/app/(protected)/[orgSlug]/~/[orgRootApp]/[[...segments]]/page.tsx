@@ -89,7 +89,9 @@ function getOrgPostsStatusOverride(segments?: string[]) {
   return undefined;
 }
 
-function renderStudioEditSurface(section?: string) {
+// Async because the detail surface is an async server component: it has to be
+// awaited here, not handed to the tree as an unresolved promise child.
+async function renderStudioEditSurface(section?: string) {
   if (section === 'new') {
     return <EditorNewPage />;
   }
@@ -141,9 +143,11 @@ export default async function OrgRootAppPage({
     // `edit` is Studio's timeline surface, not a generate type. It mirrors the
     // brand-scoped static `studio/edit` segment, which wins over `studio/[type]`.
     if (segments?.[0] === 'edit') {
+      const editSurface = await renderStudioEditSurface(segments[1]);
+
       return (
         <FeatureGate flagKey="studio">
-          <ErrorBoundary>{renderStudioEditSurface(segments[1])}</ErrorBoundary>
+          <ErrorBoundary>{editSurface}</ErrorBoundary>
         </FeatureGate>
       );
     }
