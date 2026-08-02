@@ -101,12 +101,14 @@ describe('ArticleDetail', () => {
   });
 
   it('inserts agent suggestions containing replacement patterns verbatim', () => {
-    expect(
-      applyDraftSuggestionToHtml('<p>Original price</p>', {
-        selectedText: 'Original price',
-        text: 'Price is $&5',
-      }),
-    ).toBe('<p>Price is $&5</p>');
+    const html = applyDraftSuggestionToHtml('<p>Original price</p>', {
+      selectedText: 'Original price',
+      text: 'Price is $&5',
+    });
+    const container = document.createElement('div');
+    container.innerHTML = html;
+
+    expect(container.textContent).toBe('Price is $&5');
   });
 
   it('does not offer the generated-only X Article category manually', () => {
