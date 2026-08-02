@@ -38,7 +38,7 @@ const CONTRACTS: PageContextContract[] = [
     sectionLabel: 'Studio',
   },
   {
-    route: `${BRAND_BASE}/posts`,
+    route: `${BRAND_BASE}/publish`,
     currentApp: 'posts',
     // App shell labels the posts surface "Publish" (workspace-shell-registry +
     // AppProtectedLayoutSidebar). "Workspace" was a stale contract after the
@@ -47,7 +47,7 @@ const CONTRACTS: PageContextContract[] = [
     pageLabels: ['Not posted', 'New release'],
   },
   {
-    route: `${BRAND_BASE}/orchestration/library`,
+    route: `${BRAND_BASE}/automate/library`,
     currentApp: 'automate',
     sectionLabel: 'Automate',
   },

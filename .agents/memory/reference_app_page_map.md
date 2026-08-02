@@ -72,7 +72,7 @@ The protected shell currently recognizes these app contexts:
 - `research`
 - `studio`
 - `library`
-- `posts`
+- `publish`
 - `analytics`
 - `workflows`
 - `compose`
@@ -167,9 +167,9 @@ Organization catch-all module pages served by `/:orgSlug/~/:orgRootApp/[[...segm
 - `/:orgSlug/~/library/:type`
 - `/:orgSlug/~/studio`
 - `/:orgSlug/~/studio/:type`
-- `/:orgSlug/~/posts`
-- `/:orgSlug/~/posts/published`
-- `/:orgSlug/~/posts/scheduled`
+- `/:orgSlug/~/publish`
+- `/:orgSlug/~/publish/published`
+- `/:orgSlug/~/publish/scheduled`
 - `/:orgSlug/~/write`
 - `/:orgSlug/~/write/:segment`
 - `/:orgSlug/~/compose`
@@ -181,15 +181,15 @@ Organization catch-all module pages served by `/:orgSlug/~/:orgRootApp/[[...segm
 
 Automate at org scope is a real static page, not a catch-all module:
 
-- `/:orgSlug/~/orchestration` — cross-brand Automate overview, the destination for members with
-  no brand selected. Deeper `/:orgSlug/~/orchestration/*` paths redirect back to it, because every
+- `/:orgSlug/~/automate` — cross-brand Automate overview, the destination for members with
+  no brand selected. Deeper `/:orgSlug/~/automate/*` paths redirect back to it, because every
   other automation surface is brand-scoped.
 
 Hard cut:
 
 - `/:orgSlug/~/workspace/*` is intentionally unsupported and returns 404. Do not add legacy redirects for this route family.
 - `/workflows*` is gone everywhere in `apps/app` — no page, no constant, no compatibility redirect.
-  Automation lives under `/:orgSlug/:brandSlug/orchestration/workflows*`. In `apps/app/src/lib/api/*`
+  Automation lives under `/:orgSlug/:brandSlug/automate/workflows*`. In `apps/app/src/lib/api/*`
   `/workflows` still means the **backend API** endpoint; that is unrelated and unchanged.
 - `/:orgSlug/~/settings/organization/*` is intentionally unsupported and returns 404. Organization settings live directly under `/:orgSlug/~/settings/*`.
 
@@ -277,17 +277,17 @@ The remaining Library type routes encode the selected asset-type filter as
 shareable deep links; they are not separate sidebar modules. Folder selection
 is a URL-backed secondary sidebar filter.
 
-Publish/posts:
+Publish:
 
-- `/:orgSlug/:brandSlug/posts`
-- `/:orgSlug/:brandSlug/posts/:id`
-- `/:orgSlug/:brandSlug/posts/calendar`
-- `/:orgSlug/:brandSlug/posts/composer`
-- `/:orgSlug/:brandSlug/posts/newsletters`
-- `/:orgSlug/:brandSlug/posts/published`
-- `/:orgSlug/:brandSlug/posts/remix`
-- `/:orgSlug/:brandSlug/posts/review`
-- `/:orgSlug/:brandSlug/posts/scheduled`
+- `/:orgSlug/:brandSlug/publish`
+- `/:orgSlug/:brandSlug/publish/:id`
+- `/:orgSlug/:brandSlug/publish/calendar`
+- `/:orgSlug/:brandSlug/publish/composer`
+- `/:orgSlug/:brandSlug/publish/newsletters`
+- `/:orgSlug/:brandSlug/publish/published`
+- `/:orgSlug/:brandSlug/publish/remix`
+- `/:orgSlug/:brandSlug/publish/review`
+- `/:orgSlug/:brandSlug/publish/scheduled`
 
 Analytics:
 
@@ -305,40 +305,40 @@ Analytics:
 - `/:orgSlug/:brandSlug/analytics/trend-turnover`
 - `/:orgSlug/:brandSlug/analytics/streaks`
 
-Analytics owns every analytics surface — the Publish/posts module no longer has
-its own `/posts/analytics` page. The sidebar groups these under **Performance**
+Analytics owns every analytics surface — the Publish module no longer has its
+own `/publish/analytics` page. The sidebar groups these under **Performance**
 (Overview, Posts, Brands) · **Intelligence** (Insights, Hooks, Performance Lab,
 Trends, Trend Turnover) · **Habits** (Streaks); the `trends/detail` and
 `trends/platforms` routes are drilldowns reached from Trends.
 
-Workflows and orchestration:
+Workflows and automate:
 
-- `/:orgSlug/:brandSlug/orchestration/workflows`
-- `/:orgSlug/:brandSlug/orchestration/workflows/new`
-- `/:orgSlug/:brandSlug/orchestration/workflows/:id`
-- `/:orgSlug/:brandSlug/orchestration/workflows/templates`
-- `/:orgSlug/:brandSlug/orchestration/workflows/executions`
-- `/:orgSlug/:brandSlug/orchestration/workflows/executions/:id`
-- `/:orgSlug/:brandSlug/orchestration`
-- `/:orgSlug/:brandSlug/orchestration/:agentId`
-- `/:orgSlug/:brandSlug/orchestration/overview`
-- `/:orgSlug/:brandSlug/orchestration/new`
-- `/:orgSlug/:brandSlug/orchestration/analytics`
-- `/:orgSlug/:brandSlug/orchestration/autopilot`
-- `/:orgSlug/:brandSlug/orchestration/configuration`
-- `/:orgSlug/:brandSlug/orchestration/hire`
-- `/:orgSlug/:brandSlug/orchestration/orchestrator`
-- `/:orgSlug/:brandSlug/orchestration/runs`
-- `/:orgSlug/:brandSlug/orchestration/skills`
-- `/:orgSlug/:brandSlug/orchestration/content-runs/:runId`
-- `/:orgSlug/:brandSlug/orchestration/campaigns`
-- `/:orgSlug/:brandSlug/orchestration/campaigns/new`
-- `/:orgSlug/:brandSlug/orchestration/campaigns/:id`
-- `/:orgSlug/:brandSlug/orchestration/outreach-campaigns`
-- `/:orgSlug/:brandSlug/orchestration/outreach-campaigns/new`
-- `/:orgSlug/:brandSlug/orchestration/outreach-campaigns/:id`
-- `/:orgSlug/:brandSlug/orchestration/library`
-- `/:orgSlug/:brandSlug/orchestration/library/:type`
+- `/:orgSlug/:brandSlug/automate/workflows`
+- `/:orgSlug/:brandSlug/automate/workflows/new`
+- `/:orgSlug/:brandSlug/automate/workflows/:id`
+- `/:orgSlug/:brandSlug/automate/workflows/templates`
+- `/:orgSlug/:brandSlug/automate/workflows/executions`
+- `/:orgSlug/:brandSlug/automate/workflows/executions/:id`
+- `/:orgSlug/:brandSlug/automate`
+- `/:orgSlug/:brandSlug/automate/:agentId`
+- `/:orgSlug/:brandSlug/automate/overview`
+- `/:orgSlug/:brandSlug/automate/new`
+- `/:orgSlug/:brandSlug/automate/analytics`
+- `/:orgSlug/:brandSlug/automate/autopilot`
+- `/:orgSlug/:brandSlug/automate/configuration`
+- `/:orgSlug/:brandSlug/automate/hire`
+- `/:orgSlug/:brandSlug/automate/orchestrator`
+- `/:orgSlug/:brandSlug/automate/runs`
+- `/:orgSlug/:brandSlug/automate/skills`
+- `/:orgSlug/:brandSlug/automate/content-runs/:runId`
+- `/:orgSlug/:brandSlug/automate/campaigns`
+- `/:orgSlug/:brandSlug/automate/campaigns/new`
+- `/:orgSlug/:brandSlug/automate/campaigns/:id`
+- `/:orgSlug/:brandSlug/automate/outreach-campaigns`
+- `/:orgSlug/:brandSlug/automate/outreach-campaigns/new`
+- `/:orgSlug/:brandSlug/automate/outreach-campaigns/:id`
+- `/:orgSlug/:brandSlug/automate/library`
+- `/:orgSlug/:brandSlug/automate/library/:type`
 
 Brand settings:
 
@@ -444,7 +444,7 @@ Admin organization/administration:
 - `Messages` is intentionally a full app/module for global social DM.
 - `Remix` is not a top-level page concept. It is a contextual action inside
   Research, Publish, Analytics, Library, and authorized content-run outputs;
-  `/posts/remix` remains a canonical Publish child route for typed handoffs.
+  `/publish/remix` remains a canonical Publish child route for typed handoffs.
 - `Repeat` is not a top-level page concept. It should be a contextual feature/action inside Research, Publish, Analytics, Studio, or Library output views.
 - `Discovery`, `Socials`, and `Ads` are Research internal pages.
 - `Batch` is Studio internal navigation when the Studio capability is enabled.

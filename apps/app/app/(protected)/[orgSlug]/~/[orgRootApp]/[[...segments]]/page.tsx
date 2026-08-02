@@ -10,8 +10,8 @@ import { Suspense } from 'react';
 import EditorDetailPage from '../../../[brandSlug]/editor/[id]/page';
 import EditorProjectsPage from '../../../[brandSlug]/editor/editor-projects-page';
 import EditorNewPage from '../../../[brandSlug]/editor/new/page';
-import PostsLayoutContent from '../../../[brandSlug]/posts/posts-layout-content';
-import { renderPostsListPage } from '../../../[brandSlug]/posts/posts-list-page';
+import PublishLayoutContent from '../../../[brandSlug]/publish/publish-layout-content';
+import { renderPostsListPage } from '../../../[brandSlug]/publish/publish-list-page';
 import StudioPageContent from '../../../[brandSlug]/studio/[type]/StudioPageContent';
 import { canonicalizeStudioType } from '../../../[brandSlug]/studio/[type]/studio-route';
 
@@ -99,12 +99,10 @@ export default async function OrgRootAppPage({
     notFound();
   }
 
-  if (orgRootApp === 'orchestration') {
+  if (orgRootApp === 'automate') {
     // Automate's only org-scoped surface is the cross-brand overview at
-    // `/~/orchestration`; deeper automation paths are brand-scoped.
-    redirect(
-      createOrganizationAppRoute(orgSlug, APP_ROUTES.ORCHESTRATION.ROOT),
-    );
+    // `/~/automate`; deeper automation paths are brand-scoped.
+    redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.AUTOMATE.ROOT));
   }
 
   if (orgRootApp === 'library') {
@@ -133,7 +131,7 @@ export default async function OrgRootAppPage({
   }
 
   if (
-    orgRootApp === 'posts' ||
+    orgRootApp === 'publish' ||
     orgRootApp === 'write' ||
     orgRootApp === 'compose'
   ) {
@@ -143,7 +141,7 @@ export default async function OrgRootAppPage({
       statusOverride: getOrgPostsStatusOverride(segments),
     });
 
-    return <PostsLayoutContent>{postsListPage}</PostsLayoutContent>;
+    return <PublishLayoutContent>{postsListPage}</PublishLayoutContent>;
   }
 
   if (orgRootApp === 'editor') {

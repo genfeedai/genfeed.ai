@@ -146,7 +146,7 @@ describe('workspace dashboard sections', () => {
     expect(screen.getByText('Failed')).toBeVisible();
     expect(screen.getByText('View All')).toHaveAttribute(
       'href',
-      '/orchestration/runs',
+      '/automate/runs',
     );
 
     // Regression (#1229): agent-run cards must use the shared Card tokens,
@@ -206,7 +206,7 @@ describe('workspace dashboard sections', () => {
     // the live balance, so repeating it here read as a duplicate meter.
     expect(screen.queryByText('Credits Used')).toBeNull();
     expect(screen.queryByText('12.35')).toBeNull();
-    // The dense chart grid moved to orchestration/runs — see RunChartsGrid.
+    // The dense chart grid moved to automate/runs — see RunChartsGrid.
     expect(screen.queryByText('Run Activity')).toBeNull();
   });
 

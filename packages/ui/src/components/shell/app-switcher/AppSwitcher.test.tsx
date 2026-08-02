@@ -143,7 +143,7 @@ vi.mock('@genfeedai/constants', () => {
       discover: 'app_switcher_discover',
       studio: 'app_switcher_studio',
       library: 'app_switcher_library',
-      posts: 'app_switcher_posts',
+      publish: 'app_switcher_posts',
       analytics: 'app_switcher_analytics',
     },
     createBrandAppRoute: (
@@ -328,7 +328,7 @@ describe('AppSwitcher', () => {
       <AppSwitcher
         orgSlug="acme"
         brandSlug="my-brand"
-        currentPath="/acme/my-brand/posts/review"
+        currentPath="/acme/my-brand/publish/review"
       />,
     );
     const activeButton = screen.getByRole('link', { name: 'Publish' });
@@ -515,7 +515,7 @@ describe('AppSwitcher', () => {
       <AppSwitcher
         orgSlug="acme"
         brandSlug="my-brand"
-        currentPath="/acme/my-brand/posts/remix"
+        currentPath="/acme/my-brand/publish/remix"
       />,
     );
 
@@ -597,7 +597,7 @@ describe('AppSwitcher', () => {
       );
       expect(screen.getByRole('link', { name: 'Automate' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/orchestration',
+        '/acme/my-brand/automate',
       );
     });
 
@@ -627,11 +627,11 @@ describe('AppSwitcher', () => {
 
       for (const [label, href] of [
         ['Messages', '/acme/~/messages'],
-        ['Automate', '/acme/~/orchestration'],
+        ['Automate', '/acme/~/automate'],
         ['Studio', '/acme/~/studio/image'],
         ['Library', '/acme/~/library'],
         ['Discover', '/acme/~/discover/discovery'],
-        ['Publish', '/acme/~/posts'],
+        ['Publish', '/acme/~/publish'],
         ['Analytics', '/acme/~/analytics'],
       ] as const) {
         expect(screen.getByRole('link', { name: label })).toHaveAttribute(
@@ -684,7 +684,7 @@ describe('AppSwitcher', () => {
       );
       expect(screen.getByRole('link', { name: 'Publish' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/posts',
+        '/acme/my-brand/publish',
       );
       expect(screen.getByRole('link', { name: 'Analytics' })).toHaveAttribute(
         'href',
@@ -713,7 +713,7 @@ describe('AppSwitcher', () => {
 
       expect(screen.getByRole('link', { name: 'Publish' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/posts',
+        '/acme/my-brand/publish',
       );
     });
 

@@ -101,14 +101,14 @@ vi.mock('../../../[brandSlug]/editor/editor-projects-page', () => ({
   default: () => <div data-testid="editor-projects-page" />,
 }));
 
-vi.mock('../../../[brandSlug]/posts/posts-list-page', () => ({
+vi.mock('../../../[brandSlug]/publish/publish-list-page', () => ({
   renderPostsListPage: (args: unknown) => {
     renderPostsListPageMock(args);
     return <div data-testid="posts-list-page" />;
   },
 }));
 
-vi.mock('../../../[brandSlug]/posts/posts-layout-content', () => ({
+vi.mock('../../../[brandSlug]/publish/publish-layout-content', () => ({
   default: ({ children }: { children: ReactNode }) => (
     <section data-testid="posts-layout-content">{children}</section>
   ),
@@ -203,11 +203,11 @@ describe('OrgRootAppPage', () => {
     expect(screen.queryByTestId('ingredients-list')).not.toBeInTheDocument();
   });
 
-  it('renders org posts with published status for /posts/published', async () => {
+  it('renders org posts with published status for /publish/published', async () => {
     const searchParams = Promise.resolve({ page: '2' });
     const element = await OrgRootAppPage({
       params: Promise.resolve({
-        orgRootApp: 'posts',
+        orgRootApp: 'publish',
         orgSlug: 'acme',
         segments: ['published'],
       }),
@@ -261,12 +261,12 @@ describe('OrgRootAppPage', () => {
     await expect(
       OrgRootAppPage({
         params: Promise.resolve({
-          orgRootApp: 'orchestration',
+          orgRootApp: 'automate',
           orgSlug: 'acme',
           segments: ['workflows'],
         }),
       }),
-    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/orchestration');
+    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/automate');
     expect(notFoundMock).not.toHaveBeenCalled();
   });
 

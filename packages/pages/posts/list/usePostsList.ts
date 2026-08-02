@@ -480,7 +480,7 @@ export function usePostsList({
           label,
         );
         notificationsService.success('Remix post created as draft');
-        router.push(href(`/posts/${remixPost.id}`));
+        router.push(href(`/publish/${remixPost.id}`));
       });
     },
     [getPostsService, notificationsService, openPostRemixModal, router, href],
@@ -747,7 +747,8 @@ export function usePostsList({
       params.delete('page');
       params.delete('status');
       const queryString = params.toString();
-      const basePath = nextState === 'posted' ? '/posts/published' : '/posts';
+      const basePath =
+        nextState === 'posted' ? '/publish/published' : '/publish';
 
       router.replace(
         href(queryString ? `${basePath}?${queryString}` : basePath),

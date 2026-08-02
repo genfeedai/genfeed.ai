@@ -479,7 +479,7 @@ function NavigationPanel({
 }) {
   const { href } = useOrgUrl();
   const links = [
-    { href: href('/posts'), label: 'Publish', icon: Send },
+    { href: href('/publish'), label: 'Publish', icon: Send },
     { href: href('/analytics/posts'), label: 'Analytics', icon: ChartColumn },
   ];
 

@@ -131,7 +131,7 @@ function AppLayoutWithDynamicMenu({
     isDiscoverRoute,
     isSettingsRoute,
     isStudioRoute,
-    isWorkflowsRoute,
+    isAutomateRoute,
     hasSecondaryTopbar,
     currentApp,
     orgSlug,
@@ -146,13 +146,13 @@ function AppLayoutWithDynamicMenu({
     libraryMenuItems,
     menuItems,
     orgMenuItems,
-    postsMenuItems,
+    publishMenuItems,
     discoverMenuItems,
     secondaryMenuItems,
     settingsMenuItems,
     studioMenuItems,
-    workflowsMenuItems,
-    isPostsRoute,
+    automateMenuItems,
+    isPublishRoute,
     taskContextSearchParams,
     handleNavigate,
     handleOpenCommandPalette,
@@ -300,11 +300,11 @@ function AppLayoutWithDynamicMenu({
         isLibraryRoute={isLibraryRoute}
         isMessagesRoute={isMessagesRoute}
         isOrgRoute={isOrgRoute}
-        isPostsRoute={isPostsRoute}
+        isPublishRoute={isPublishRoute}
         isDiscoverRoute={isDiscoverRoute}
         isSettingsRoute={isSettingsRoute}
         isStudioRoute={isStudioRoute}
-        isWorkflowsRoute={isWorkflowsRoute}
+        isAutomateRoute={isAutomateRoute}
         settingsScope={settingsScope}
         adminMenuItems={adminMenuItems}
         analyticsMenuItems={analyticsMenuItems}
@@ -312,12 +312,12 @@ function AppLayoutWithDynamicMenu({
         libraryMenuItems={libraryMenuItems}
         menuItems={menuItems}
         orgMenuItems={orgMenuItems}
-        postsMenuItems={postsMenuItems}
+        publishMenuItems={publishMenuItems}
         discoverMenuItems={discoverMenuItems}
         secondaryMenuItems={secondaryMenuItems}
         settingsMenuItems={settingsMenuItems}
         studioMenuItems={studioMenuItems}
-        workflowsMenuItems={workflowsMenuItems}
+        automateMenuItems={automateMenuItems}
         navPanel={activeNavPanel}
         onOpenCommandPalette={handleOpenCommandPalette}
       />
@@ -339,15 +339,15 @@ function AppLayoutWithDynamicMenu({
     isLibraryRoute,
     isMessagesRoute,
     isOrgRoute,
-    isPostsRoute,
+    isPublishRoute,
     isDiscoverRoute,
     isSettingsRoute,
     isStudioRoute,
-    isWorkflowsRoute,
+    isAutomateRoute,
     libraryMenuItems,
     menuItems,
     orgMenuItems,
-    postsMenuItems,
+    publishMenuItems,
     discoverMenuItems,
     secondaryMenuItems,
     settingsMenuItems,
@@ -355,7 +355,7 @@ function AppLayoutWithDynamicMenu({
     shellChromeVariant,
     studioMenuItems,
     taskContextSearchParams,
-    workflowsMenuItems,
+    automateMenuItems,
   ]);
 
   const topbarComponent = isFocusedOnboardingRoute
@@ -376,8 +376,8 @@ function AppLayoutWithDynamicMenu({
             ? studioMenuItems
             : isComposeRoute
               ? composeMenuItems
-              : isWorkflowsRoute
-                ? workflowsMenuItems
+              : isAutomateRoute
+                ? automateMenuItems
                 : isAnalyticsRoute
                   ? analyticsMenuItems
                   : isDiscoverRoute

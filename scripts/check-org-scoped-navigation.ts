@@ -49,12 +49,12 @@ const ALLOWLISTED_ROOT_PATHS = new Set([
  * that start with '/' but are not composed through a variable.
  *
  * Examples that should be flagged:
- *   push('/orchestration')
+ *   push('/automate')
  *   replace('/studio')
  *   push('/chat/new?prompt=...')
  *
  * Examples that should NOT be flagged:
- *   push(href('/orchestration'))
+ *   push(href('/automate'))
  *   replace(orgHref('/chat/new'))
  *   push(someVar)
  */

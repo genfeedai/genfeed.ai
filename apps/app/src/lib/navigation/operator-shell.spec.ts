@@ -75,9 +75,9 @@ describe('operator-shell helpers', () => {
       '/overview',
       '/library',
       '/analytics',
-      '/orchestration',
-      '/orchestration/workflows',
-      '/posts/calendar',
+      '/automate',
+      '/automate/workflows',
+      '/publish/calendar',
     ]) {
       expect(isAssetGateSectionPath(gated)).toBe(true);
     }
@@ -91,7 +91,7 @@ describe('operator-shell helpers', () => {
       '/settings/organization',
       '/studio/image',
       '/discover/discovery',
-      '/posts',
+      '/publish',
       '/messages',
       '/admin',
       '/analytics-preview',

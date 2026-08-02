@@ -104,7 +104,7 @@ export class CalendarPage {
     );
 
     // Filter controls
-    this.listViewLink = page.locator(`a[href="${APP_ROUTES.POSTS.ROOT}"]`);
+    this.listViewLink = page.locator(`a[href="${APP_ROUTES.PUBLISH.ROOT}"]`);
 
     // Post modal
     this.postModal = page.locator('[role="dialog"]');
@@ -121,7 +121,7 @@ export class CalendarPage {
   // ── Navigation ──────────────────────────────────────────
 
   async gotoPosts(): Promise<void> {
-    await this.page.goto(APP_ROUTES.POSTS.CALENDAR);
+    await this.page.goto(APP_ROUTES.PUBLISH.CALENDAR);
     await this.waitForPageLoad();
   }
 

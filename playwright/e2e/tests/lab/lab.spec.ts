@@ -34,7 +34,7 @@ test.describe('Lab', () => {
 
     expect(response?.status() ?? 0).toBeLessThan(400);
     await expect(authenticatedPage).toHaveURL(
-      /\/test-org\/brand-1\/orchestration\/workflows(?:[?#].*)?$/,
+      /\/test-org\/brand-1\/automate\/workflows(?:[?#].*)?$/,
     );
     await expect(authenticatedPage.locator('body')).toBeVisible();
   });

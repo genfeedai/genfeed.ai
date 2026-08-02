@@ -102,7 +102,7 @@ vi.mock('@genfeedai/agent', () => ({
               label: 'Publish',
               name: 'publish',
               requiredScope: 'brand',
-              route: '/posts/review',
+              route: '/publish/review',
             },
             arguments: 'post-1',
           })
@@ -118,7 +118,7 @@ vi.mock('@genfeedai/agent', () => ({
               label: 'Workflow',
               name: 'workflow',
               requiredScope: 'brand',
-              route: '/orchestration/workflows',
+              route: '/automate/workflows',
             },
             arguments: '',
           })
@@ -134,7 +134,7 @@ vi.mock('@genfeedai/agent', () => ({
               label: 'Publish',
               name: 'publish',
               requiredScope: 'brand',
-              route: '/posts/calendar',
+              route: '/publish/calendar',
             },
             arguments: 'post-1',
           })
@@ -150,7 +150,7 @@ vi.mock('@genfeedai/agent', () => ({
               label: 'Remix',
               name: 'remix',
               requiredScope: 'brand',
-              route: '/posts/remix',
+              route: '/publish/remix',
             },
             arguments: '',
           })
@@ -180,7 +180,7 @@ vi.mock('@genfeedai/agent', () => ({
         label: name === 'publish' ? 'Publish' : 'Remix',
         name,
         requiredScope: 'brand',
-        route: name === 'publish' ? '/posts/review' : '/posts/remix',
+        route: name === 'publish' ? '/publish/review' : '/publish/remix',
       };
     }
     if (name === 'workflow') {
@@ -189,7 +189,7 @@ vi.mock('@genfeedai/agent', () => ({
         label: 'Workflow',
         name: 'workflow',
         requiredScope: 'brand',
-        route: '/orchestration/workflows',
+        route: '/automate/workflows',
       };
     }
     return null;
@@ -932,7 +932,7 @@ describe('UniversalWorkspaceShell', () => {
       screen.getByRole('button', { name: 'Dispatch publish action' }),
     );
 
-    expect(router.push).toHaveBeenCalledWith('/acme/moonrise/posts/review');
+    expect(router.push).toHaveBeenCalledWith('/acme/moonrise/publish/review');
   });
 
   it('opens and restores the trusted workflow picker without dialog graph UI', () => {
@@ -976,7 +976,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('gives canonical workflow editors focused canvas overflow ownership', () => {
-    navigation.pathname = '/acme/moonrise/orchestration/workflows/workflow-1';
+    navigation.pathname = '/acme/moonrise/automate/workflows/workflow-1';
     navigation.searchParams = new URLSearchParams();
 
     render(
@@ -993,12 +993,12 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it.each([
-    ['/acme/moonrise/orchestration/workflows/new'],
-    ['/acme/moonrise/orchestration/workflows/workflow-1'],
-    ['/acme/moonrise/orchestration/workflows'],
-    ['/acme/moonrise/orchestration/workflows/templates'],
-    ['/acme/moonrise/orchestration/workflows/executions'],
-    ['/acme/moonrise/orchestration/workflows/executions/run-1'],
+    ['/acme/moonrise/automate/workflows/new'],
+    ['/acme/moonrise/automate/workflows/workflow-1'],
+    ['/acme/moonrise/automate/workflows'],
+    ['/acme/moonrise/automate/workflows/templates'],
+    ['/acme/moonrise/automate/workflows/executions'],
+    ['/acme/moonrise/automate/workflows/executions/run-1'],
   ])('renders the workflow inspector on %s', (pathname) => {
     navigation.pathname = pathname;
     navigation.searchParams = new URLSearchParams();
@@ -1019,10 +1019,10 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it.each([
-    ['/acme/moonrise/orchestration'],
-    ['/acme/moonrise/orchestration/runs'],
-    ['/acme/moonrise/orchestration/skills'],
-    ['/acme/moonrise/orchestration/library'],
+    ['/acme/moonrise/automate'],
+    ['/acme/moonrise/automate/runs'],
+    ['/acme/moonrise/automate/skills'],
+    ['/acme/moonrise/automate/library'],
   ])('keeps the generic inspector on %s', (pathname) => {
     navigation.pathname = pathname;
     navigation.searchParams = new URLSearchParams();
@@ -1074,7 +1074,7 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(router.replace).toHaveBeenCalledWith(
-      '/acme/moonrise/posts/remix?sourceArtifact=ingredient%3Aingredient-1',
+      '/acme/moonrise/publish/remix?sourceArtifact=ingredient%3Aingredient-1',
     );
   });
 
@@ -1133,7 +1133,7 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(router.push).not.toHaveBeenCalledWith(
-      expect.stringContaining('/posts/review'),
+      expect.stringContaining('/publish/review'),
     );
   });
 
@@ -1151,7 +1151,7 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(router.push).not.toHaveBeenCalledWith(
-      expect.stringContaining('/posts/calendar'),
+      expect.stringContaining('/publish/calendar'),
     );
   });
 
@@ -1263,7 +1263,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('canonicalizes an unknown overlay without leaving the current route', () => {
-    navigation.pathname = '/acme/moonrise/posts/calendar';
+    navigation.pathname = '/acme/moonrise/publish/calendar';
     navigation.searchParams = new URLSearchParams({
       overlay: 'untrusted-output',
       taskId: 'task-1',
@@ -1276,7 +1276,7 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(router.replace).toHaveBeenCalledWith(
-      '/acme/moonrise/posts/calendar?taskId=task-1',
+      '/acme/moonrise/publish/calendar?taskId=task-1',
     );
   });
 });

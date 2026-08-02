@@ -868,13 +868,13 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const postsResponse = await proxy(
-      makeSignedInRequest('/posts'),
+      makeSignedInRequest('/publish'),
       {} as never,
     );
 
     expect(postsResponse.status).toBe(307);
     expect(postsResponse.headers.get('location')).toBe(
-      'http://localhost:3000/acme/~/posts',
+      'http://localhost:3000/acme/~/publish',
     );
 
     const workspaceResponse = await proxy(
@@ -921,23 +921,23 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const rootResponse = await proxy(
-      makeSignedInRequest('/orchestration'),
+      makeSignedInRequest('/automate'),
       {} as never,
     );
 
     expect(rootResponse.status).toBe(307);
     expect(rootResponse.headers.get('location')).toBe(
-      'http://localhost:3000/acme/~/orchestration',
+      'http://localhost:3000/acme/~/automate',
     );
 
     const workflowsResponse = await proxy(
-      makeSignedInRequest('/orchestration/workflows'),
+      makeSignedInRequest('/automate/workflows'),
       {} as never,
     );
 
     expect(workflowsResponse.status).toBe(307);
     expect(workflowsResponse.headers.get('location')).toBe(
-      'http://localhost:3000/acme/~/orchestration',
+      'http://localhost:3000/acme/~/automate',
     );
   });
 
@@ -1087,7 +1087,7 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      makeSignedInRequest('/acme/moonrise-studio/posts'),
+      makeSignedInRequest('/acme/moonrise-studio/publish'),
       {} as never,
     );
 
@@ -1444,7 +1444,7 @@ describe('proxy', () => {
     fetchMock.mockClear();
 
     const secondResponse = await proxy(
-      makeSignedInRequest('/posts', {
+      makeSignedInRequest('/publish', {
         extraCookies: { gf_ws: cookieValue ?? '' },
       }),
       {} as never,
@@ -1452,7 +1452,7 @@ describe('proxy', () => {
 
     expect(secondResponse.status).toBe(307);
     expect(secondResponse.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/posts',
+      'http://localhost:3000/acme/moonrise-studio/publish',
     );
     // The slug cookie caches org/brand slugs, but bootstrap is still required
     // so the onboarding gate can inspect completed steps before routing.

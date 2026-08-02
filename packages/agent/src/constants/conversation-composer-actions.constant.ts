@@ -20,7 +20,7 @@ export const CONVERSATION_COMPOSER_ACTIONS = [
     label: 'Remix',
     name: 'remix',
     requiredScope: 'brand',
-    route: APP_ROUTES.POSTS.REMIX,
+    route: APP_ROUTES.PUBLISH.REMIX,
   },
   {
     description: 'Open the discover workspace',
@@ -36,7 +36,7 @@ export const CONVERSATION_COMPOSER_ACTIONS = [
     label: 'Workflow',
     name: 'workflow',
     requiredScope: 'brand',
-    route: APP_ROUTES.ORCHESTRATION.WORKFLOWS,
+    route: APP_ROUTES.AUTOMATE.WORKFLOWS,
   },
   {
     description: 'Open scheduling controls',
@@ -44,7 +44,7 @@ export const CONVERSATION_COMPOSER_ACTIONS = [
     label: 'Schedule',
     name: 'schedule',
     requiredScope: 'brand',
-    route: APP_ROUTES.POSTS.CALENDAR,
+    route: APP_ROUTES.PUBLISH.CALENDAR,
   },
   {
     description: 'Open version-bound publish review',
@@ -52,7 +52,7 @@ export const CONVERSATION_COMPOSER_ACTIONS = [
     label: 'Publish',
     name: 'publish',
     requiredScope: 'brand',
-    route: APP_ROUTES.POSTS.REVIEW,
+    route: APP_ROUTES.PUBLISH.REVIEW,
   },
   {
     description: 'Open content analytics',

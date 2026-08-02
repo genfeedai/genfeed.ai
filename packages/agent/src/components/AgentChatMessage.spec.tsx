@@ -265,7 +265,7 @@ describe('AgentChatMessage', () => {
             uiActions: [
               {
                 ctas: [
-                  { href: '/posts', label: 'Open posts' },
+                  { href: '/publish', label: 'Open posts' },
                   {
                     href: '/analytics/posts?postId=post-1',
                     label: 'Open analytics',
@@ -283,7 +283,7 @@ describe('AgentChatMessage', () => {
 
     expect(screen.getByRole('link', { name: 'Open posts' })).toHaveAttribute(
       'href',
-      '/posts',
+      '/publish',
     );
     expect(
       screen.getByRole('link', { name: 'Open analytics' }),
@@ -367,7 +367,7 @@ describe('AgentChatMessage', () => {
                   },
                 ],
                 primaryCta: {
-                  href: '/posts/drafts',
+                  href: '/publish/drafts',
                   label: 'Review Draft',
                 },
                 secondaryCtas: [
@@ -402,7 +402,7 @@ describe('AgentChatMessage', () => {
     expect(screen.getByText('3 ad variations')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Review Draft' })).toHaveAttribute(
       'href',
-      '/posts/drafts',
+      '/publish/drafts',
     );
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
     expect(

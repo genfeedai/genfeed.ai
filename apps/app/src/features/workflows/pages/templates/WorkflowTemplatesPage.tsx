@@ -215,7 +215,7 @@ function WorkflowTemplatesPageContent() {
           if (!isCancelled) {
             replace(
               hrefRef.current(
-                `${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/${workflow._id}`,
+                `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow._id}`,
               ),
             );
           }
@@ -236,9 +236,7 @@ function WorkflowTemplatesPageContent() {
 
         if (!isCancelled) {
           replace(
-            hrefRef.current(
-              `${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/${workflow._id}`,
-            ),
+            hrefRef.current(`${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow._id}`),
           );
         }
       } catch (err) {
@@ -267,9 +265,7 @@ function WorkflowTemplatesPageContent() {
     async (entry: SystemWorkflowCatalogEntry) => {
       if (entry.installed && entry.installedWorkflowId) {
         replace(
-          href(
-            `${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/${entry.installedWorkflowId}`,
-          ),
+          href(`${APP_ROUTES.AUTOMATE.WORKFLOWS}/${entry.installedWorkflowId}`),
         );
         return;
       }
@@ -284,7 +280,7 @@ function WorkflowTemplatesPageContent() {
           canonicalId: entry.canonicalId,
           installedWorkflowId: workflow._id,
         });
-        replace(href(`${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/${workflow._id}`));
+        replace(href(`${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow._id}`));
       } catch (err) {
         logger.error('Failed to install system workflow', {
           canonicalId: entry.canonicalId,
@@ -526,7 +522,7 @@ function WorkflowTemplatesPageContent() {
                         </span>
                         <Link
                           href={href(
-                            `${APP_ROUTES.ORCHESTRATION.WORKFLOWS_TEMPLATES}?template=${template.id}`,
+                            `${APP_ROUTES.AUTOMATE.WORKFLOWS_TEMPLATES}?template=${template.id}`,
                           )}
                           className="bg-primary px-4 py-2 text-sm text-primary-foreground opacity-0 transition-opacity hover:bg-primary/90 group-hover:opacity-100"
                         >

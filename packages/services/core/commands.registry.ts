@@ -127,7 +127,7 @@ export function createNavigationCommands(
     },
     {
       action: () => {
-        navigate(`${brandPath}/posts`);
+        navigate(`${brandPath}/publish`);
       },
       category: 'navigation',
       condition: () => EnvironmentService.currentApp !== 'app',
@@ -155,7 +155,7 @@ export function createNavigationCommands(
     },
     {
       action: () => {
-        navigate(`${brandPath}/orchestration/workflows`);
+        navigate(`${brandPath}/automate/workflows`);
       },
       category: 'navigation',
       condition: () => EnvironmentService.currentApp !== 'app',

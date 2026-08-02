@@ -261,7 +261,7 @@ export default function NewsletterComposerPanel() {
       return;
     }
 
-    push(`/posts/newsletters?id=${newsletterId}`);
+    push(`/publish/newsletters?id=${newsletterId}`);
   }
 
   return (

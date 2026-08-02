@@ -976,19 +976,19 @@ export const testRoutes = {
   logout: '/logout',
   overview: '/overview',
   posts: {
-    detail: (id: string) => `/posts/${id}`,
-    drafts: '/posts/drafts',
-    engage: '/posts/engage',
-    published: '/posts/published',
-    scheduled: '/posts/scheduled',
+    detail: (id: string) => `/publish/${id}`,
+    drafts: '/publish/drafts',
+    engage: '/publish/engage',
+    published: '/publish/published',
+    scheduled: '/publish/scheduled',
   },
   settings: '/settings',
   studio: '/studio',
   workflow: {
-    editor: '/orchestration/workflows/new',
-    executions: '/orchestration/workflows/executions',
-    library: '/orchestration/workflows',
-    templates: '/orchestration/workflows/templates',
+    editor: '/automate/workflows/new',
+    executions: '/automate/workflows/executions',
+    library: '/automate/workflows',
+    templates: '/automate/workflows/templates',
   },
 };
 

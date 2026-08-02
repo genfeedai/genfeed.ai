@@ -2,18 +2,18 @@
 
 import { ADMIN_LOGO_HREF } from '@app-config/admin-menu-items.config';
 import { ANALYTICS_LOGO_HREF } from '@app-config/analytics-menu-items.config';
+import { AUTOMATE_LOGO_HREF } from '@app-config/automate-menu-items.config';
 import { COMPOSE_LOGO_HREF } from '@app-config/compose-menu-items.config';
 import { DISCOVER_LOGO_HREF } from '@app-config/discover-menu-items.config';
 import { LIBRARY_LOGO_HREF } from '@app-config/library-menu-items.config';
 import { APP_LOGO_HREF } from '@app-config/menu-items.config';
 import { ORG_LOGO_HREF } from '@app-config/org-menu-items.config';
-import { POSTS_LOGO_HREF } from '@app-config/posts-menu-items.config';
+import { PUBLISH_LOGO_HREF } from '@app-config/publish-menu-items.config';
 import {
   SETTINGS_LOGO_HREF,
   type SettingsScope,
 } from '@app-config/settings-menu-items.config';
 import { STUDIO_LOGO_HREF } from '@app-config/studio-menu-items.config';
-import { WORKFLOWS_LOGO_HREF } from '@app-config/workflows-menu-items.config';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
@@ -60,11 +60,11 @@ type Props = {
   isLibraryRoute: boolean;
   isMessagesRoute?: boolean;
   isOrgRoute: boolean;
-  isPostsRoute: boolean;
+  isPublishRoute: boolean;
   isDiscoverRoute: boolean;
   isSettingsRoute: boolean;
   isStudioRoute: boolean;
-  isWorkflowsRoute: boolean;
+  isAutomateRoute: boolean;
   /** Settings sidebar scope — brand routes omit the redundant "Settings" header. */
   settingsScope?: SettingsScope;
   adminMenuItems: MenuItemConfig[];
@@ -73,12 +73,12 @@ type Props = {
   libraryMenuItems: MenuItemConfig[];
   menuItems: MenuItemConfig[];
   orgMenuItems: MenuItemConfig[];
-  postsMenuItems: MenuItemConfig[];
+  publishMenuItems: MenuItemConfig[];
   discoverMenuItems: MenuItemConfig[];
   secondaryMenuItems: MenuItemConfig[];
   settingsMenuItems: MenuItemConfig[];
   studioMenuItems: MenuItemConfig[];
-  workflowsMenuItems: MenuItemConfig[];
+  automateMenuItems: MenuItemConfig[];
   /**
    * Supplied by the module that owns the active surface. When present its body
    * replaces that surface's menu items — today the conversation's thread list,
@@ -103,11 +103,11 @@ export default function AppProtectedLayoutSidebar({
   isLibraryRoute,
   isMessagesRoute = false,
   isOrgRoute,
-  isPostsRoute,
+  isPublishRoute,
   isDiscoverRoute,
   isSettingsRoute,
   isStudioRoute,
-  isWorkflowsRoute,
+  isAutomateRoute,
   settingsScope: _settingsScope = 'personal',
   adminMenuItems,
   analyticsMenuItems,
@@ -115,12 +115,12 @@ export default function AppProtectedLayoutSidebar({
   libraryMenuItems,
   menuItems,
   orgMenuItems,
-  postsMenuItems,
+  publishMenuItems,
   discoverMenuItems,
   secondaryMenuItems,
   settingsMenuItems,
   studioMenuItems,
-  workflowsMenuItems,
+  automateMenuItems,
   navPanel,
   onOpenCommandPalette,
 }: Props) {
@@ -200,18 +200,18 @@ export default function AppProtectedLayoutSidebar({
         showOrgSwitcher: true,
       },
       {
-        active: isPostsRoute,
+        active: isPublishRoute,
         currentApp,
-        items: postsMenuItems,
-        logoHref: buildHref(POSTS_LOGO_HREF),
+        items: publishMenuItems,
+        logoHref: buildHref(PUBLISH_LOGO_HREF),
         sectionLabel: 'Publish',
         showOrgSwitcher: true,
       },
       {
-        active: isWorkflowsRoute,
+        active: isAutomateRoute,
         currentApp,
-        items: workflowsMenuItems,
-        logoHref: buildHref(WORKFLOWS_LOGO_HREF),
+        items: automateMenuItems,
+        logoHref: buildHref(AUTOMATE_LOGO_HREF),
         sectionLabel: 'Automate',
         showOrgSwitcher: true,
       },

@@ -21,11 +21,11 @@ test.describe('Agents — Content Team', () => {
   test('content team landing page loads and shows core controls', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.ROOT, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.ROOT, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/orchestration$/);
+    await expect(authenticatedPage).toHaveURL(/\/automate$/);
     await expect(
       authenticatedPage.getByRole('heading', { name: 'Content Team' }),
     ).toBeVisible();
@@ -44,11 +44,11 @@ test.describe('Agents — Content Team', () => {
   });
 
   test('hire flow renders and submits', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.HIRE, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.HIRE, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/orchestration\/hire$/);
+    await expect(authenticatedPage).toHaveURL(/\/automate\/hire$/);
     await expect(authenticatedPage.locator('form').first()).toBeVisible();
 
     await authenticatedPage
@@ -59,17 +59,17 @@ test.describe('Agents — Content Team', () => {
       .fill('AI creator monetization');
     await authenticatedPage.getByRole('button', { name: 'Hire Agent' }).click();
 
-    await expect(authenticatedPage).toHaveURL(/\/orchestration$/);
+    await expect(authenticatedPage).toHaveURL(/\/automate$/);
   });
 
   test('orchestrator flow renders and submits a basic team launch', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.ORCHESTRATOR, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.ORCHESTRATOR, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/orchestration\/orchestrator$/);
+    await expect(authenticatedPage).toHaveURL(/\/automate\/orchestrator$/);
     await expect(authenticatedPage.locator('form').first()).toBeVisible();
 
     await authenticatedPage
@@ -83,13 +83,13 @@ test.describe('Agents — Content Team', () => {
       .getByRole('button', { name: 'Launch Team' })
       .click();
 
-    await expect(authenticatedPage).toHaveURL(/\/orchestration$/);
+    await expect(authenticatedPage).toHaveURL(/\/automate$/);
   });
 
   test('unauthenticated user is redirected from content team routes', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.ORCHESTRATION.ROOT, {
+    await unauthenticatedPage.goto(APP_ROUTES.AUTOMATE.ROOT, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -103,7 +103,7 @@ test.describe('Agents — Content Team', () => {
       // Local keyless dev mode intentionally skips auth enforcement.
     }
 
-    await expect(unauthenticatedPage).toHaveURL(/\/orchestration$/);
+    await expect(unauthenticatedPage).toHaveURL(/\/automate$/);
     await expect(
       unauthenticatedPage.getByRole('heading', { name: 'Content Team' }),
     ).toBeVisible();
