@@ -70,8 +70,8 @@ export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
             <NextLink
               href={
                 item.sourceActionId
-                  ? `/orchestration/${item.sourceWorkflowId}?opportunity=${item.sourceActionId}`
-                  : `/orchestration/${item.sourceWorkflowId}`
+                  ? `/automate/${item.sourceWorkflowId}?opportunity=${item.sourceActionId}`
+                  : `/automate/${item.sourceWorkflowId}`
               }
             >
               Open strategy

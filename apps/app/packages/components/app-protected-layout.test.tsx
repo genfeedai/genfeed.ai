@@ -829,7 +829,7 @@ describe('AppProtectedLayout', () => {
     ['/library/images', 'Assets'],
     ['/discover/discovery', 'Discovery'],
     ['/analytics', 'Overview'],
-    ['/orchestration/workflows/executions', 'Runs'],
+    ['/automate/workflows/executions', 'Runs'],
     ['/admin', 'Dashboard'],
     ['/agent/new', 'New conversation'],
   ])(
@@ -868,17 +868,13 @@ describe('AppProtectedLayout', () => {
       'Trend Detail',
     ],
     [
-      '/org-123/brand-123/orchestration/workflows/templates',
+      '/org-123/brand-123/automate/workflows/templates',
       'Automate',
       'Templates',
     ],
+    ['/org-123/brand-123/automate/workflows/new', 'Automate', 'New Workflow'],
     [
-      '/org-123/brand-123/orchestration/workflows/new',
-      'Automate',
-      'New Workflow',
-    ],
-    [
-      '/org-123/brand-123/orchestration/content-runs/run-1',
+      '/org-123/brand-123/automate/content-runs/run-1',
       'Automate',
       'Content Run',
     ],
@@ -902,8 +898,8 @@ describe('AppProtectedLayout', () => {
   );
 
   it.each([
-    '/org-123/brand-123/orchestration/workflows/new',
-    '/org-123/brand-123/orchestration/workflows/wf-123',
+    '/org-123/brand-123/automate/workflows/new',
+    '/org-123/brand-123/automate/workflows/wf-123',
     '/org-123/brand-123/editor/new',
   ])('hides module sidebar on editor canvas route %s', (pathname) => {
     mockPathname.value = pathname;
@@ -1116,7 +1112,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it('gives workflow routes their own nav column', () => {
-    mockPathname.value = '/org-123/brand-123/orchestration/workflows';
+    mockPathname.value = '/org-123/brand-123/automate/workflows';
 
     render(
       <AppProtectedLayout>
@@ -1161,7 +1157,7 @@ describe('AppProtectedLayout', () => {
     ['/org-123/brand-123/studio/storyboard', 'studio', 'Studio'],
     ['/org-123/brand-123/library', 'library', 'Library'],
     ['/org-123/brand-123/analytics', 'analytics', 'Analytics'],
-    ['/org-123/brand-123/orchestration/workflows', 'automate', 'Automate'],
+    ['/org-123/brand-123/automate/workflows', 'automate', 'Automate'],
     ['/org-123/brand-123/posts/remix', 'posts', 'Publish'],
   ])(
     'keeps the %s app-switcher surface on its own module nav',
@@ -1239,7 +1235,7 @@ describe('AppProtectedLayout', () => {
         isDiscoverRoute={false}
         isSettingsRoute={false}
         isStudioRoute={false}
-        isWorkflowsRoute={false}
+        isAutomateRoute={false}
         adminMenuItems={[]}
         analyticsMenuItems={[]}
         composeMenuItems={[]}
@@ -1251,7 +1247,7 @@ describe('AppProtectedLayout', () => {
         secondaryMenuItems={[]}
         settingsMenuItems={[]}
         studioMenuItems={[]}
-        workflowsMenuItems={[]}
+        automateMenuItems={[]}
         onOpenCommandPalette={vi.fn()}
       />,
     );
@@ -1284,7 +1280,7 @@ describe('AppProtectedLayout', () => {
         isDiscoverRoute={false}
         isSettingsRoute={false}
         isStudioRoute={false}
-        isWorkflowsRoute={false}
+        isAutomateRoute={false}
         adminMenuItems={[]}
         analyticsMenuItems={[]}
         composeMenuItems={[]}
@@ -1296,7 +1292,7 @@ describe('AppProtectedLayout', () => {
         secondaryMenuItems={[]}
         settingsMenuItems={[]}
         studioMenuItems={[]}
-        workflowsMenuItems={[]}
+        automateMenuItems={[]}
         navPanel={{
           render: () => <div data-testid="module-nav-panel" />,
           sectionLabel: 'Collections',
@@ -1436,8 +1432,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it('keeps workflow editor detail routes inside the workspace shell', () => {
-    mockPathname.value =
-      '/org-123/brand-123/orchestration/workflows/workflow-123';
+    mockPathname.value = '/org-123/brand-123/automate/workflows/workflow-123';
 
     render(
       <AppProtectedLayout>

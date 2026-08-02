@@ -63,9 +63,7 @@ describe('AdsAgentCards', () => {
 
   it('renders launch prep review state', () => {
     const action: AgentUiAction = {
-      ctas: [
-        { href: '/orchestration/workflows/wf-ads-1', label: 'Open workflow' },
-      ],
+      ctas: [{ href: '/automate/workflows/wf-ads-1', label: 'Open workflow' }],
       data: {
         channel: 'youtube',
         platform: 'google',
@@ -85,7 +83,7 @@ describe('AdsAgentCards', () => {
     ).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Open workflow' })).toHaveAttribute(
       'href',
-      '/orchestration/workflows/wf-ads-1',
+      '/automate/workflows/wf-ads-1',
     );
   });
 });

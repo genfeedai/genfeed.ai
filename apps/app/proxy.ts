@@ -54,7 +54,7 @@ const BRAND_SCOPED_PREFIXES = [
   APP_ROUTE_PREFIXES.EDITOR.slice(1),
   LEGACY_APP_ROUTES.TASKS.slice(1),
   APP_ROUTE_PREFIXES.LIBRARY.slice(1),
-  APP_ROUTE_PREFIXES.ORCHESTRATION.slice(1),
+  APP_ROUTE_PREFIXES.AUTOMATE.slice(1),
   APP_ROUTE_PREFIXES.OVERVIEW.slice(1),
   APP_ROUTE_PREFIXES.POSTS.slice(1),
   APP_ROUTE_PREFIXES.DISCOVER.slice(1),
@@ -603,8 +603,8 @@ function createOrgScopedCanonicalPath(
   // Automate has one org-scoped surface — the cross-brand overview. Deeper
   // automation paths are brand-scoped, so they collapse onto that overview
   // rather than falling into the org catch-all and 404ing.
-  if (topLevelSegment === 'orchestration') {
-    return `/${orgSlug}/~/orchestration`;
+  if (topLevelSegment === 'automate') {
+    return `/${orgSlug}/~/automate`;
   }
 
   if (

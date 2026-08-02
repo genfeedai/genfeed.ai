@@ -31,8 +31,8 @@ export const CORE_APPS: CoreAppDefinition[] = [
   },
   {
     description:
-      'Workflows, autopilot, skills, and content-team orchestration.',
-    href: APP_ROUTES.ORCHESTRATION.ROOT,
+      'Workflows, autopilot, skills, and your automated content team.',
+    href: APP_ROUTES.AUTOMATE.ROOT,
     id: 'automate',
     label: 'Automate',
     shortLabel: 'Automate',

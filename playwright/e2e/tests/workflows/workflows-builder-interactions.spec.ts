@@ -45,7 +45,7 @@ test.describe('Workflows builder & canvas interactions', () => {
   test('library lists workflows and supports searching', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -73,18 +73,16 @@ test.describe('Workflows builder & canvas interactions', () => {
   test('library exposes Templates and New Workflow entry points', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS, {
       waitUntil: 'domcontentloaded',
     });
 
     await expect(
-      authenticatedPage
-        .locator('a[href*="/orchestration/workflows/new"]')
-        .first(),
+      authenticatedPage.locator('a[href*="/automate/workflows/new"]').first(),
     ).toBeVisible();
     await expect(
       authenticatedPage
-        .locator('a[href*="/orchestration/workflows/templates"]')
+        .locator('a[href*="/automate/workflows/templates"]')
         .first(),
     ).toBeVisible();
 
@@ -95,17 +93,17 @@ test.describe('Workflows builder & canvas interactions', () => {
   test('opening a workflow from the library navigates to its builder', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS, {
       waitUntil: 'domcontentloaded',
     });
 
     const workflowLink = authenticatedPage
-      .locator(`a[href*="/orchestration/workflows/${testWorkflows[0].id}"]`)
+      .locator(`a[href*="/automate/workflows/${testWorkflows[0].id}"]`)
       .first();
     await workflowLink.click().catch(() => {});
     await authenticatedPage.waitForTimeout(600);
 
-    expect(authenticatedPage.url()).toContain('/orchestration/workflows');
+    expect(authenticatedPage.url()).toContain('/automate/workflows');
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
   });
@@ -113,13 +111,11 @@ test.describe('Workflows builder & canvas interactions', () => {
   test('new workflow builder renders the React Flow canvas', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS_NEW, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS_NEW, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(
-      /\/orchestration\/workflows\/new$/,
-    );
+    await expect(authenticatedPage).toHaveURL(/\/automate\/workflows\/new$/);
 
     const canvas = authenticatedPage.locator('.react-flow').first();
     await canvas.waitFor({ state: 'visible', timeout: 20_000 }).catch(() => {});
@@ -131,7 +127,7 @@ test.describe('Workflows builder & canvas interactions', () => {
   test('node palette can be searched in the new builder', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS_NEW, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS_NEW, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -162,7 +158,7 @@ test.describe('Workflows builder & canvas interactions', () => {
   test('builder toolbar exposes Run and draft lifecycle actions', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS_NEW, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS_NEW, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -185,12 +181,12 @@ test.describe('Workflows builder & canvas interactions', () => {
   }) => {
     const workflow = testWorkflows[0];
 
-    await authenticatedPage.goto(`/orchestration/workflows/${workflow.id}`, {
+    await authenticatedPage.goto(`/automate/workflows/${workflow.id}`, {
       waitUntil: 'domcontentloaded',
     });
 
     await expect(authenticatedPage).toHaveURL(
-      new RegExp(`/orchestration/workflows/${workflow.id}$`),
+      new RegExp(`/automate/workflows/${workflow.id}$`),
     );
 
     const canvas = authenticatedPage.locator('.react-flow').first();
@@ -209,7 +205,7 @@ test.describe('Workflows builder & canvas interactions', () => {
   }) => {
     const workflow = testWorkflows[0];
 
-    await authenticatedPage.goto(`/orchestration/workflows/${workflow.id}`, {
+    await authenticatedPage.goto(`/automate/workflows/${workflow.id}`, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -236,7 +232,7 @@ test.describe('Workflows builder & canvas interactions', () => {
   }) => {
     const workflow = testWorkflows[0];
 
-    await authenticatedPage.goto(`/orchestration/workflows/${workflow.id}`, {
+    await authenticatedPage.goto(`/automate/workflows/${workflow.id}`, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -273,12 +269,9 @@ test.describe('Workflows builder & canvas interactions', () => {
   test('canvas zoom and viewport controls are interactive', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(
-      `/orchestration/workflows/${testWorkflows[0].id}`,
-      {
-        waitUntil: 'domcontentloaded',
-      },
-    );
+    await authenticatedPage.goto(`/automate/workflows/${testWorkflows[0].id}`, {
+      waitUntil: 'domcontentloaded',
+    });
 
     await authenticatedPage
       .locator('.react-flow')
@@ -303,7 +296,7 @@ test.describe('Workflows builder & canvas interactions', () => {
   }) => {
     const workflow = testWorkflows[0];
 
-    await authenticatedPage.goto(`/orchestration/workflows/${workflow.id}`, {
+    await authenticatedPage.goto(`/automate/workflows/${workflow.id}`, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -330,8 +323,8 @@ test.describe('Workflows builder & canvas interactions', () => {
   test('empty library state renders without errors', async ({
     automationPage,
   }) => {
-    // automationPage bootstraps at /orchestration/workflows with empty workflow mocks.
-    await expect(automationPage).toHaveURL(/\/orchestration\/workflows/);
+    // automationPage bootstraps at /automate/workflows with empty workflow mocks.
+    await expect(automationPage).toHaveURL(/\/automate\/workflows/);
 
     await expect(automationPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(automationPage);

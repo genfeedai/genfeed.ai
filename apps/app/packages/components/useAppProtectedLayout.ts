@@ -1,5 +1,6 @@
 import { ADMIN_MENU_ITEMS } from '@app-config/admin-menu-items.config';
 import { ANALYTICS_MENU_ITEMS } from '@app-config/analytics-menu-items.config';
+import { AUTOMATE_MENU_ITEMS } from '@app-config/automate-menu-items.config';
 import { COMPOSE_MENU_ITEMS } from '@app-config/compose-menu-items.config';
 import { DISCOVER_MENU_ITEMS } from '@app-config/discover-menu-items.config';
 import { LIBRARY_MENU_ITEMS } from '@app-config/library-menu-items.config';
@@ -15,7 +16,6 @@ import {
   type SettingsScope,
 } from '@app-config/settings-menu-items.config';
 import { STUDIO_MENU_ITEMS } from '@app-config/studio-menu-items.config';
-import { WORKFLOWS_MENU_ITEMS } from '@app-config/workflows-menu-items.config';
 import {
   AgentApiService,
   useAgentChatStore,
@@ -54,19 +54,15 @@ import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
 import { resolveWorkspaceShellRoute } from '@/lib/workspace-shell/workspace-shell-registry';
 import { useCommandPaletteStore } from '@/store/commandPaletteStore';
 
-const ORCHESTRATION_WORKFLOW_RESERVED = new Set([
-  'executions',
-  'new',
-  'templates',
-]);
+const AUTOMATE_WORKFLOW_RESERVED = new Set(['executions', 'new', 'templates']);
 
 export function isProtectedEditorCanvasRoute(pathname: string): boolean {
   return (
     pathname === APP_ROUTES.EDITOR.NEW ||
     /^\/editor\/[^/]+$/.test(pathname) ||
-    pathname === APP_ROUTES.ORCHESTRATION.WORKFLOWS_NEW ||
-    (/^\/orchestration\/workflows\/([^/]+)$/.test(pathname) &&
-      !ORCHESTRATION_WORKFLOW_RESERVED.has(pathname.split('/')[3] ?? ''))
+    pathname === APP_ROUTES.AUTOMATE.WORKFLOWS_NEW ||
+    (/^\/automate\/workflows\/([^/]+)$/.test(pathname) &&
+      !AUTOMATE_WORKFLOW_RESERVED.has(pathname.split('/')[3] ?? ''))
   );
 }
 
@@ -114,8 +110,8 @@ export function useAppProtectedLayout(
   const isPostsPromptBarRoute = pathname === APP_ROUTES.POSTS.ROOT;
   const isPostsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.POSTS);
   const isMissionControlPromptBarRoute =
-    pathname === APP_ROUTES.ORCHESTRATION.WORKFLOWS_EXECUTIONS ||
-    pathname === APP_ROUTES.ORCHESTRATION.RUNS;
+    pathname === APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS ||
+    pathname === APP_ROUTES.AUTOMATE.RUNS;
   const isPromptBarRoute =
     isStudioPromptBarRoute ||
     isPostsPromptBarRoute ||
@@ -125,9 +121,7 @@ export function useAppProtectedLayout(
     !isAdminRoute && pathname.startsWith(APP_ROUTE_PREFIXES.STUDIO);
   const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);
   const isMoodboardRoute = pathname === APP_ROUTES.LIBRARY.MOODBOARD;
-  const isWorkflowsRoute = pathname.startsWith(
-    APP_ROUTE_PREFIXES.ORCHESTRATION,
-  );
+  const isAutomateRoute = pathname.startsWith(APP_ROUTE_PREFIXES.AUTOMATE);
   const isEditorRoute = pathname.startsWith(APP_ROUTE_PREFIXES.EDITOR);
   const isAnalyticsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.ANALYTICS);
   // Org shell only for true org destinations (overview, etc.). Module routes
@@ -145,7 +139,7 @@ export function useAppProtectedLayout(
       !isStudioRoute &&
       !isLibraryRoute &&
       !isDiscoverRoute &&
-      !isWorkflowsRoute &&
+      !isAutomateRoute &&
       !isMessagesRoute &&
       !isEditorRoute
     );
@@ -167,7 +161,7 @@ export function useAppProtectedLayout(
           ? 'posts'
           : isComposeRoute
             ? 'compose'
-            : isWorkflowsRoute
+            : isAutomateRoute
               ? 'automate'
               : isEditorRoute
                 ? 'editor'
@@ -355,9 +349,9 @@ export function useAppProtectedLayout(
     [taskContextSearchParams],
   );
 
-  const workflowsMenuItems = useMemo(
+  const automateMenuItems = useMemo(
     () =>
-      WORKFLOWS_MENU_ITEMS.map(
+      AUTOMATE_MENU_ITEMS.map(
         (item): MenuItemConfig => ({
           ...item,
           href: withTaskContextHref(item.href, taskContextSearchParams),
@@ -458,7 +452,7 @@ export function useAppProtectedLayout(
     isDiscoverRoute,
     isSettingsRoute,
     isStudioRoute,
-    isWorkflowsRoute,
+    isAutomateRoute,
     isWorkspaceRoute,
     isUniversalWorkspaceShell,
     workspaceShellRoute,
@@ -484,7 +478,7 @@ export function useAppProtectedLayout(
     secondaryMenuItems,
     settingsMenuItems,
     studioMenuItems,
-    workflowsMenuItems,
+    automateMenuItems,
     // task context
     taskContextSearchParams,
     // handlers

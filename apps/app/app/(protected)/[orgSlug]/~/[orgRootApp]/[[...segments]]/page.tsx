@@ -95,12 +95,10 @@ export default async function OrgRootAppPage({
     notFound();
   }
 
-  if (orgRootApp === 'orchestration') {
+  if (orgRootApp === 'automate') {
     // Automate's only org-scoped surface is the cross-brand overview at
-    // `/~/orchestration`; deeper automation paths are brand-scoped.
-    redirect(
-      createOrganizationAppRoute(orgSlug, APP_ROUTES.ORCHESTRATION.ROOT),
-    );
+    // `/~/automate`; deeper automation paths are brand-scoped.
+    redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.AUTOMATE.ROOT));
   }
 
   if (orgRootApp === 'library') {

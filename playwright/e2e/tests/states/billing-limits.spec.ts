@@ -28,7 +28,7 @@ const ORG_BRAND = '/test-org/brand-1';
 // carries the inline composer that these failure paths exercise.
 const STORYBOARD_ROUTE = `${ORG_BRAND}/studio/storyboard`;
 const COMPOSE_ROUTE = `${ORG_BRAND}/compose/post`;
-const ORCHESTRATION_ROUTE = `${ORG_BRAND}/orchestration`;
+const AUTOMATE_ROUTE = `${ORG_BRAND}/automate`;
 
 type Page = Parameters<typeof mockInsufficientCredits>[0];
 
@@ -107,11 +107,11 @@ test.describe('Billing limits — credit and subscription gating', () => {
     await assertHealthy(authenticatedPage);
   });
 
-  test('orchestration stays healthy on insufficient credits', async ({
+  test('automate stays healthy on insufficient credits', async ({
     authenticatedPage,
   }) => {
     await mockInsufficientCredits(authenticatedPage);
-    await authenticatedPage.goto(ORCHESTRATION_ROUTE, {
+    await authenticatedPage.goto(AUTOMATE_ROUTE, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -128,11 +128,11 @@ test.describe('Billing limits — credit and subscription gating', () => {
     await assertHealthy(authenticatedPage);
   });
 
-  test('orchestration stays healthy under an expired subscription', async ({
+  test('automate stays healthy under an expired subscription', async ({
     authenticatedPage,
   }) => {
     await mockExpiredSubscription(authenticatedPage);
-    await authenticatedPage.goto(ORCHESTRATION_ROUTE, {
+    await authenticatedPage.goto(AUTOMATE_ROUTE, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);

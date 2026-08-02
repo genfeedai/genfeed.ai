@@ -260,10 +260,10 @@ test.describe('Workspace', () => {
     ).toHaveAttribute('href', '/studio/storyboard');
     await expect(
       authenticatedPage.getByRole('link', { name: 'Workflows' }),
-    ).toHaveAttribute('href', '/orchestration/workflows');
+    ).toHaveAttribute('href', '/automate/workflows');
     await expect(
       authenticatedPage.getByRole('link', { name: 'Runs' }),
-    ).toHaveAttribute('href', '/orchestration/runs');
+    ).toHaveAttribute('href', '/automate/runs');
   });
 
   test('opens task-aware planning, reuses the canonical thread, and materializes follow-up tasks', async ({

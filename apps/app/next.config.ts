@@ -69,7 +69,7 @@ const selfHostedBrandRoutePrefixes = [
   APP_ROUTE_PREFIXES.POSTS,
   APP_ROUTE_PREFIXES.COMPOSE,
   APP_ROUTE_PREFIXES.ANALYTICS,
-  APP_ROUTE_PREFIXES.ORCHESTRATION,
+  APP_ROUTE_PREFIXES.AUTOMATE,
   APP_ROUTE_PREFIXES.LIBRARY,
   APP_ROUTE_PREFIXES.EDITOR,
   APP_ROUTE_PREFIXES.DISCOVER,
@@ -317,17 +317,14 @@ const config = createAppNextConfig({
     },
     ...retiredStudioTabRedirects(),
     // App homes live at `/[app]`; `/[app]/overview` is a permanent alias.
-    ...appOverviewToHomeRedirects(APP_ROUTES.ORCHESTRATION.ROOT),
+    ...appOverviewToHomeRedirects(APP_ROUTES.AUTOMATE.ROOT),
     ...appOverviewToHomeRedirects(APP_ROUTES.WORKSPACE.ROOT),
     ...appOverviewToHomeRedirects(APP_ROUTES.LIBRARY.ROOT),
     ...appOverviewToHomeRedirects(APP_ROUTES.ANALYTICS.ROOT),
     // Campaigns / outreach moved from Automate → Publish (hard cut).
+    ...legacyPathRedirects('/automate/campaigns', APP_ROUTES.POSTS.CAMPAIGNS),
     ...legacyPathRedirects(
-      '/orchestration/campaigns',
-      APP_ROUTES.POSTS.CAMPAIGNS,
-    ),
-    ...legacyPathRedirects(
-      '/orchestration/outreach-campaigns',
+      '/automate/outreach-campaigns',
       APP_ROUTES.POSTS.OUTREACH_CAMPAIGNS,
     ),
   ],

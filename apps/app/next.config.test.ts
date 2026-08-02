@@ -123,7 +123,7 @@ describe('app next.config', () => {
   });
 
   it.each([
-    APP_ROUTES.ORCHESTRATION.ROOT,
+    APP_ROUTES.AUTOMATE.ROOT,
     APP_ROUTES.WORKSPACE.ROOT,
     APP_ROUTES.LIBRARY.ROOT,
     APP_ROUTES.ANALYTICS.ROOT,
@@ -171,17 +171,17 @@ describe('app next.config', () => {
     expect(redirects).toContainEqual({
       destination: APP_ROUTES.POSTS.CAMPAIGNS,
       permanent: true,
-      source: '/orchestration/campaigns',
+      source: '/automate/campaigns',
     });
     expect(redirects).toContainEqual({
       destination: `${APP_ROUTES.POSTS.CAMPAIGNS}/:path*`,
       permanent: true,
-      source: '/orchestration/campaigns/:path*',
+      source: '/automate/campaigns/:path*',
     });
     expect(redirects).toContainEqual({
       destination: APP_ROUTES.POSTS.OUTREACH_CAMPAIGNS,
       permanent: true,
-      source: '/orchestration/outreach-campaigns',
+      source: '/automate/outreach-campaigns',
     });
     expect(redirects).toContainEqual({
       destination: createBrandAppRoute(
@@ -193,7 +193,7 @@ describe('app next.config', () => {
       source: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        '/orchestration/campaigns',
+        '/automate/campaigns',
       ),
     });
   });

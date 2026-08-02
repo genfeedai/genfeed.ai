@@ -187,7 +187,7 @@ describe('ReviewGrid', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open strategy' })).toHaveAttribute(
       'href',
-      '/orchestration/strategy-1?opportunity=opp-1',
+      '/automate/strategy-1?opportunity=opp-1',
     );
     expect(screen.getByRole('link', { name: 'Open draft' })).toHaveAttribute(
       'href',
