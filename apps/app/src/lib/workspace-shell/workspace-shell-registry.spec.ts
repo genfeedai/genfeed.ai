@@ -165,7 +165,7 @@ describe('workspace shell trusted registry', () => {
       expect(resolveWorkspaceShellRoute(pathname)).toMatchObject({
         mode: 'canvas',
         productClass: 'contextual-action',
-        safeFallback: '/:orgSlug/:brandSlug/posts',
+        safeFallback: '/:orgSlug/:brandSlug/publish',
         surfaceKey: 'artifact-editor',
       });
       expect(resolveWorkspaceShellRoute(pathname)?.switcherItems).toEqual([
