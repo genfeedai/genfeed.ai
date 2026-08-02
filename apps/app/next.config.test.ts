@@ -56,37 +56,6 @@ describe('app next.config', () => {
     );
   });
 
-  it('redirects bare /workspace to complete-path /workspace/overview', async () => {
-    const redirects = await config.redirects?.();
-
-    expect(redirects).toContainEqual({
-      destination: APP_ROUTES.WORKSPACE.OVERVIEW,
-      permanent: true,
-      source: APP_ROUTES.WORKSPACE.ROOT,
-    });
-    expect(redirects).toContainEqual({
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.WORKSPACE.OVERVIEW,
-      ),
-      permanent: true,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.WORKSPACE.ROOT,
-      ),
-    });
-    // Must not collapse /workspace/overview back onto bare /workspace.
-    expect(
-      redirects?.some(
-        (redirect) =>
-          redirect.source === APP_ROUTES.WORKSPACE.OVERVIEW &&
-          redirect.destination === APP_ROUTES.WORKSPACE.ROOT,
-      ),
-    ).toBe(false);
-  });
-
   it('redirects /workspace/inbox to /workspace/inbox/unread', async () => {
     const redirects = await config.redirects?.();
     const inboxRedirect = redirects?.find(
@@ -131,7 +100,7 @@ describe('app next.config', () => {
     const redirects = await config.redirects?.();
 
     expect(redirects).toContainEqual({
-      destination: APP_ROUTES.LIBRARY.ROOT,
+      destination: APP_ROUTES.LIBRARY.OVERVIEW,
       permanent: false,
       source: APP_ROUTES.LIBRARY.INGREDIENTS,
     });
@@ -139,7 +108,7 @@ describe('app next.config', () => {
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.LIBRARY.ROOT,
+        APP_ROUTES.LIBRARY.OVERVIEW,
       ),
       permanent: false,
       source: createBrandAppRoute(
@@ -151,46 +120,40 @@ describe('app next.config', () => {
   });
 
   it.each([
+    APP_ROUTES.WORKSPACE.ROOT,
     APP_ROUTES.AUTOMATE.ROOT,
     APP_ROUTES.LIBRARY.ROOT,
     APP_ROUTES.ANALYTICS.ROOT,
   ] as const)(
-    'permanently redirects %s/overview to the app home',
+    'permanently redirects bare %s to complete-path overview home',
     async (appRoot) => {
       const redirects = await config.redirects?.();
       const overviewPath = `${appRoot}/overview`;
 
       expect(redirects).toContainEqual({
-        destination: appRoot,
+        destination: overviewPath,
         permanent: true,
-        source: overviewPath,
+        source: appRoot,
       });
       expect(redirects).toContainEqual({
-        destination: createBrandAppRoute(':orgSlug', ':brandSlug', appRoot),
+        destination: createBrandAppRoute(
+          ':orgSlug',
+          ':brandSlug',
+          overviewPath,
+        ),
         permanent: true,
-        source: createBrandAppRoute(':orgSlug', ':brandSlug', overviewPath),
+        source: createBrandAppRoute(':orgSlug', ':brandSlug', appRoot),
       });
+      // Must not collapse overview back onto bare root.
+      expect(
+        redirects?.some(
+          (redirect) =>
+            redirect.source === overviewPath &&
+            redirect.destination === appRoot,
+        ),
+      ).toBe(false);
     },
   );
-
-  it('does not redirect app roots into a nested overview home', async () => {
-    const redirects = await config.redirects?.();
-
-    expect(
-      redirects?.some(
-        (redirect) =>
-          redirect.source === APP_ROUTES.LIBRARY.ROOT &&
-          redirect.destination.includes('/overview'),
-      ),
-    ).toBe(false);
-    expect(
-      redirects?.some(
-        (redirect) =>
-          redirect.source === APP_ROUTES.ANALYTICS.ROOT &&
-          redirect.destination.includes('/overview'),
-      ),
-    ).toBe(false);
-  });
 
   it('permanently hard-cuts Automate campaign routes into Publish', async () => {
     const redirects = await config.redirects?.();

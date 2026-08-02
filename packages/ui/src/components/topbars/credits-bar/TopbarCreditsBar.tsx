@@ -1,7 +1,10 @@
 'use client';
 
 import { isDesktopClient } from '@genfeedai/config/deployment';
-import { hasOrganizationBillingHint } from '@genfeedai/config/license';
+import {
+  hasOrganizationBillingHint,
+  shouldShowCreditsNav,
+} from '@genfeedai/config/license';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
@@ -27,9 +30,15 @@ interface OptionalBalanceRequestError {
   silent?: boolean;
 }
 
+/** Infinity from OSS stub can serialize as null/non-finite — never treat as wallet. */
+function coerceFiniteBalance(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
 function TopbarCreditsBarContent() {
   const { organizationId } = useBrand();
   const { orgHref } = useOrgUrl();
+  const showCredits = shouldShowCreditsNav();
 
   const getCreditsService = useAuthedService((token: string) =>
     CreditsService.getInstance(token),
@@ -55,7 +64,7 @@ function TopbarCreditsBarContent() {
   }, []);
 
   const findTopbarBalances = useCallback(async () => {
-    if (!organizationId) {
+    if (!showCredits || !organizationId) {
       return;
     }
 
@@ -67,11 +76,7 @@ function TopbarCreditsBarContent() {
         (segment) => segment.provider === 'genfeed',
       );
       setSegments(nextSegments);
-      setBalance(
-        typeof genfeedSegment?.balance === 'number'
-          ? genfeedSegment.balance
-          : 0,
-      );
+      setBalance(coerceFiniteBalance(genfeedSegment?.balance));
     } catch (error: unknown) {
       const requestError = error as OptionalBalanceRequestError;
       if (!requestError.isCancelled && !requestError.silent) {
@@ -81,7 +86,7 @@ function TopbarCreditsBarContent() {
         });
       }
     }
-  }, [organizationId, getCreditsService]);
+  }, [organizationId, getCreditsService, showCredits]);
 
   const scheduleTopbarBalanceRefresh = useCallback(() => {
     clearTopbarBalanceRefreshTimeout();
@@ -93,37 +98,45 @@ function TopbarCreditsBarContent() {
   }, [clearTopbarBalanceRefreshTimeout, findTopbarBalances]);
 
   useEffect(() => {
-    if (organizationId) {
-      const organizationEvent = `/organizations/${organizationId}`;
-      const creditsEvent = `/credits/${organizationId}`;
-
-      const orgHandler = (data: unknown) => {
-        const orgData = data as IOrganizationEventData & { balance?: number };
-        if (orgData?.balance !== undefined) {
-          setBalance(orgData.balance);
-          refreshBreakdownRef.current();
-          scheduleTopbarBalanceRefresh();
-        }
-      };
-
-      const creditsHandler = (data: unknown) => {
-        const creditsData = data as ICreditsEventData;
-        if (creditsData?.balance !== undefined) {
-          setBalance(creditsData.balance);
-          refreshBreakdownRef.current();
-          scheduleTopbarBalanceRefresh();
-        }
-      };
-
-      subscribe(organizationEvent, orgHandler);
-      subscribe(creditsEvent, creditsHandler);
-
-      return () => {
-        unsubscribe(organizationEvent, orgHandler);
-        unsubscribe(creditsEvent, creditsHandler);
-      };
+    if (!showCredits || !organizationId) {
+      return;
     }
-  }, [organizationId, subscribe, unsubscribe, scheduleTopbarBalanceRefresh]);
+
+    const organizationEvent = `/organizations/${organizationId}`;
+    const creditsEvent = `/credits/${organizationId}`;
+
+    const orgHandler = (data: unknown) => {
+      const orgData = data as IOrganizationEventData & { balance?: number };
+      if (orgData?.balance !== undefined) {
+        setBalance(coerceFiniteBalance(orgData.balance));
+        refreshBreakdownRef.current();
+        scheduleTopbarBalanceRefresh();
+      }
+    };
+
+    const creditsHandler = (data: unknown) => {
+      const creditsData = data as ICreditsEventData;
+      if (creditsData?.balance !== undefined) {
+        setBalance(coerceFiniteBalance(creditsData.balance));
+        refreshBreakdownRef.current();
+        scheduleTopbarBalanceRefresh();
+      }
+    };
+
+    subscribe(organizationEvent, orgHandler);
+    subscribe(creditsEvent, creditsHandler);
+
+    return () => {
+      unsubscribe(organizationEvent, orgHandler);
+      unsubscribe(creditsEvent, creditsHandler);
+    };
+  }, [
+    organizationId,
+    showCredits,
+    subscribe,
+    unsubscribe,
+    scheduleTopbarBalanceRefresh,
+  ]);
 
   useEffect(
     () => clearTopbarBalanceRefreshTimeout,
@@ -131,12 +144,10 @@ function TopbarCreditsBarContent() {
   );
 
   useEffect(() => {
-    if (organizationId) {
-      (async () => {
-        await findTopbarBalances();
-      })();
+    if (showCredits && organizationId) {
+      void findTopbarBalances();
     }
-  }, [organizationId, findTopbarBalances]);
+  }, [organizationId, findTopbarBalances, showCredits]);
 
   useEffect(() => {
     const handleRefresh = () => {
@@ -168,6 +179,10 @@ function TopbarCreditsBarContent() {
       planLimit: limit,
     };
   }, [creditsBreakdown, balance]);
+
+  if (!showCredits) {
+    return null;
+  }
 
   const compactBalance = formatCompactNumber(balance);
   const fullBalance = formatNumberWithCommas(balance);

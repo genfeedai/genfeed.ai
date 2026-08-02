@@ -83,8 +83,11 @@ export const APP_ROUTES = {
     BRANDS: '/analytics/brands',
     HOOKS: '/analytics/hooks',
     INSIGHTS: '/analytics/insights',
-    /** Canonical app home is ROOT; OVERVIEW is an alias for call sites. */
-    OVERVIEW: '/analytics',
+    /**
+     * Canonical analytics home. Bare ROOT permanently redirects here so Overview
+     * is a complete path (same pattern as workspace/overview).
+     */
+    OVERVIEW: '/analytics/overview',
     PERFORMANCE_LAB: '/analytics/performance-lab',
     POSTS: '/analytics/posts',
     STREAKS: '/analytics/streaks',
@@ -107,8 +110,11 @@ export const APP_ROUTES = {
     LIBRARY: '/automate/library',
     NEW: '/automate/new',
     ORCHESTRATOR: '/automate/orchestrator',
-    /** Canonical app home is ROOT; OVERVIEW is an alias for call sites. */
-    OVERVIEW: '/automate',
+    /**
+     * Canonical automate home. Bare ROOT permanently redirects here so Overview
+     * is a complete path (same pattern as workspace/overview).
+     */
+    OVERVIEW: '/automate/overview',
     ROOT: '/automate',
     RUNS: '/automate/runs',
     SKILLS: '/automate/skills',
@@ -156,8 +162,11 @@ export const APP_ROUTES = {
     INGREDIENTS: '/library/ingredients',
     MOODBOARD: '/library/moodboard',
     MUSIC: '/library/music',
-    /** Canonical app home is ROOT; OVERVIEW is an alias for call sites. */
-    OVERVIEW: '/library',
+    /**
+     * Canonical library home. Bare ROOT permanently redirects here so Overview
+     * is a complete path (same pattern as workspace/overview).
+     */
+    OVERVIEW: '/library/overview',
     ROOT: '/library',
     VIDEOS: '/library/videos',
     VOICES: '/library/voices',
