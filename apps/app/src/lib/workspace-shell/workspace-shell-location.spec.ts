@@ -39,8 +39,7 @@ describe('workspace shell URL restoration', () => {
     '/acme/~/discover/discovery',
     '/acme/moonrise/automate/skills',
     '/acme/moonrise/overview/activities',
-    '/acme/moonrise/posts/calendar',
-    '/acme/moonrise/discover/discovery',
+    '/acme/moonrise/publish/calendar',
     '/acme/moonrise/studio/image',
     '/acme/moonrise/workspace/tasks/task-1',
     '/acme/moonrise/automate/workflows/templates',
@@ -97,7 +96,7 @@ describe('workspace shell URL restoration', () => {
 
   it('removes invalid overlay state without changing scope or opaque queries', () => {
     const restored = restoreWorkspaceShellLocation({
-      pathname: '/acme/moonrise/posts/calendar',
+      pathname: '/acme/moonrise/publish/calendar',
       searchParams: new URLSearchParams({
         overlay: 'model-produced-surface',
         taskId: 'task-1',
@@ -177,7 +176,7 @@ describe('workspace shell URL restoration', () => {
   it('restores the no-parameter Library picker over the exact base route', () => {
     expect(
       restoreWorkspaceShellLocation({
-        pathname: '/acme/moonrise/posts/remix',
+        pathname: '/acme/moonrise/publish/remix',
         searchParams: new URLSearchParams({
           overlay: 'library-picker',
           thread: 'thread-1',

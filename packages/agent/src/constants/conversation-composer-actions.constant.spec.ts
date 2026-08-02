@@ -24,7 +24,7 @@ describe('conversation composer action registry', () => {
   it('maps publish to review without granting publish authority', () => {
     expect(getConversationComposerAction('publish')).toMatchObject({
       isConsequentialProposal: true,
-      route: APP_ROUTES.POSTS.REVIEW,
+      route: APP_ROUTES.PUBLISH.REVIEW,
     });
   });
 
@@ -46,7 +46,7 @@ describe('conversation composer action registry', () => {
         name: 'remix',
         resolved: expect.objectContaining({
           requiredScope: 'brand',
-          route: APP_ROUTES.POSTS.REMIX,
+          route: APP_ROUTES.PUBLISH.REMIX,
         }),
       },
       {
@@ -67,14 +67,14 @@ describe('conversation composer action registry', () => {
         name: 'schedule',
         resolved: expect.objectContaining({
           requiredScope: 'brand',
-          route: APP_ROUTES.POSTS.CALENDAR,
+          route: APP_ROUTES.PUBLISH.CALENDAR,
         }),
       },
       {
         name: 'publish',
         resolved: expect.objectContaining({
           requiredScope: 'brand',
-          route: APP_ROUTES.POSTS.REVIEW,
+          route: APP_ROUTES.PUBLISH.REVIEW,
         }),
       },
       {

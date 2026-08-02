@@ -319,7 +319,7 @@ export default function ConnectGenfeedFlow() {
     verification?.status === 'connected' && verification.publishing.isReady
       ? firstBrandSlug
         ? `/${params.orgSlug}/${firstBrandSlug}/compose/post`
-        : `/${params.orgSlug}/~/posts`
+        : `/${params.orgSlug}/~/publish`
       : `/${params.orgSlug}/~/settings/brands`;
 
   return (

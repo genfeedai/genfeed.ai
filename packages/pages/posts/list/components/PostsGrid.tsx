@@ -189,7 +189,7 @@ const PostsGrid = memo(
         return;
       }
 
-      router.push(href(`/posts/${post.id}`));
+      router.push(href(`/publish/${post.id}`));
     };
 
     if (posts.length === 0) {

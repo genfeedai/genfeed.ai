@@ -187,7 +187,9 @@ export default function ArticleDetail({
         );
 
         if (rootDraft?.id && params?.orgSlug && params?.brandSlug) {
-          push(`/${params.orgSlug}/${params.brandSlug}/posts/${rootDraft.id}`);
+          push(
+            `/${params.orgSlug}/${params.brandSlug}/publish/${rootDraft.id}`,
+          );
         }
       } catch (err) {
         logger.error('Failed to generate X Article teaser draft', err);

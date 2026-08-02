@@ -147,7 +147,7 @@ describe('ArticleDetail', () => {
       );
     });
 
-    expect(pushMock).toHaveBeenCalledWith('/org-123/brand-123/posts/post-1');
+    expect(pushMock).toHaveBeenCalledWith('/org-123/brand-123/publish/post-1');
   });
 
   it('forwards article SEO scoring from the sidebar', () => {

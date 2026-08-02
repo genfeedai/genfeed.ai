@@ -31,7 +31,7 @@ function materializeRoutePattern(pattern: string): string {
 
 describe('workspace shell trusted registry', () => {
   it('owns the complete accepted protected-route denominator', () => {
-    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(213);
+    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(214);
     expect(
       new Set(PROTECTED_ROUTE_INVENTORY.map((route) => route.canonicalUrl))
         .size,
@@ -111,7 +111,7 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/automate', 'Automate', 'Overview'],
     ['/acme/moonrise/automate/content-runs', 'Automate', 'Content Runs'],
     ['/acme/moonrise/automate/content-runs/run-1', 'Automate', 'Content Run'],
-    ['/acme/moonrise/posts/campaigns/campaign-1', 'Publish', 'Campaign'],
+    ['/acme/moonrise/publish/campaigns/campaign-1', 'Publish', 'Campaign'],
     ['/acme/moonrise/automate/library/images', 'Automate', 'Images'],
   ] as const)(
     'resolves canonical breadcrumb metadata for %s',
@@ -138,7 +138,7 @@ describe('workspace shell trusted registry', () => {
   );
 
   it.each([
-    ['/:orgSlug/:brandSlug/posts/calendar', 'canvas'],
+    ['/:orgSlug/:brandSlug/publish/calendar', 'canvas'],
     ['/:orgSlug/:brandSlug/library/moodboard', 'canvas'],
     ['/:orgSlug/:brandSlug/automate/skills', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/batch', 'canvas'],
@@ -183,11 +183,11 @@ describe('workspace shell trusted registry', () => {
 
   it('keeps contextual Remix routes inside the Publish switcher module', () => {
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/posts/remix'),
+      resolveWorkspaceShellRoute('/acme/moonrise/publish/remix'),
     ).toMatchObject({
       productClass: 'contextual-action',
       surfaceKey: 'publish',
-      switcherItems: ['posts'],
+      switcherItems: ['publish'],
     });
   });
 
@@ -204,8 +204,8 @@ describe('workspace shell trusted registry', () => {
 
     for (const pathname of [
       '/acme/moonrise/library/images',
-      '/acme/moonrise/posts/calendar',
-      '/acme/moonrise/posts/review',
+      '/acme/moonrise/publish/calendar',
+      '/acme/moonrise/publish/review',
       '/acme/moonrise/automate/workflows/executions/run-1',
       '/acme/moonrise/settings/publishing',
       '/acme/~/settings/api-keys',
@@ -296,11 +296,11 @@ describe('workspace shell trusted registry', () => {
 
   it('does not treat reserved application prefixes as scoped routes', () => {
     expect(resolveWorkspaceShellRoute('/connect/~/overview')).toBeNull();
-    expect(resolveWorkspaceShellRoute('/connect/example/posts')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/connect/example/publish')).toBeNull();
     expect(resolveWorkspaceShellRoute('/settings/~/overview')).toBeNull();
-    expect(resolveWorkspaceShellRoute('/settings/example/posts')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/settings/example/publish')).toBeNull();
     expect(resolveWorkspaceShellRoute('/admin/~/overview')).toBeNull();
-    expect(resolveWorkspaceShellRoute('/admin/example/posts')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/admin/example/publish')).toBeNull();
   });
 
   it('interpolates a safe fallback without widening scope', () => {
