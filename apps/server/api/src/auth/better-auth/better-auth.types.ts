@@ -2,6 +2,7 @@
  * Better Auth integration types (epic #735, Phase 1 — #736).
  */
 import type { PrismaClient } from '@genfeedai/prisma';
+import type { RateLimit } from 'better-auth';
 
 /** OAuth credentials for first-party social sign-in providers. */
 export interface IBetterAuthSocialProviderConfig {
@@ -75,6 +76,40 @@ export interface IBetterAuthResetPasswordParams {
 export interface IBetterAuthRateLimitStore {
   get: (key: string) => Promise<string | null>;
   set: (key: string, value: string, ttlSeconds: number) => Promise<void>;
+}
+
+/** The two Redis commands the rate-limit store issues, as ioredis spells them. */
+export interface IBetterAuthRateLimitRedisCommands {
+  get(key: string): Promise<string | null>;
+  set(key: string, value: string): Promise<unknown>;
+  set(
+    key: string,
+    value: string,
+    expiryMode: 'EX',
+    ttlSeconds: number,
+  ): Promise<unknown>;
+}
+
+/**
+ * Better Auth's `rateLimit.customStorage` contract, adapted from
+ * {@link IBetterAuthRateLimitStore} by `buildRateLimitStorage`. Counters are the
+ * library's own `RateLimit` records — the JSON round trip and the fail-open
+ * guards stay inside the adapter, so consumers only ever see a parsed counter
+ * or `null`.
+ */
+export interface IBetterAuthRateLimitStorage {
+  get: (key: string) => Promise<RateLimit | null>;
+  set: (key: string, value: RateLimit) => Promise<void>;
+}
+
+/**
+ * Structural view of {@link RateLimitClientService} used by the rate-limit store
+ * adapter. Narrowed to `isReady` + the two commands so the fail-open behavior is
+ * testable without standing up a real ioredis connection.
+ */
+export interface IBetterAuthRateLimitRedisClient {
+  readonly isReady: boolean;
+  readonly instance: IBetterAuthRateLimitRedisCommands;
 }
 
 /** Payload emitted after Better Auth creates a new user row. */
