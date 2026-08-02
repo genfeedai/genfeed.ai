@@ -281,7 +281,7 @@ export class BrandsService extends BaseService<
       organization?: unknown;
       organizationId?: string;
       user?: unknown;
-      userId?: string;
+      userId?: unknown;
     },
   ): Promise<BrandDocument> {
     this.logger.debug('Updating brand', {
@@ -297,6 +297,7 @@ export class BrandsService extends BaseService<
       brandId: _sessionBrandId,
       organization: _sessionOrganization,
       user: _sessionUser,
+      userId: _sessionUserId,
       ...brandFields
     } = updateBrandDto;
 

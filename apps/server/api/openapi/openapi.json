@@ -11572,10 +11572,6 @@
             "description": "Text prompt for content generation",
             "type": "string"
           },
-          "user": {
-            "description": "Owning user identifier",
-            "type": "string"
-          },
           "voice": {
             "description": "Optional voice ID to use for this brand",
             "type": "string"
