@@ -85,6 +85,13 @@ export class MusicsOperationsController {
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
+  // route-shadowing-ok: KNOWN DEFECT, not a false positive — tracked in #2334.
+  // `MusicsController` extends `BaseCRUDController` on this same `musics` prefix and
+  // `MusicsModule` registers it first, so its inherited generic `@Post()` wins and this
+  // handler never runs. Live `POST /musics` therefore charges no credits and skips
+  // SubscriptionGuard/ModelsGuard. The fix (drop `BaseCRUDController` from
+  // `MusicsController`, mirroring `ImagesController`) is out of scope for the PR that
+  // added this check; remove this annotation as part of #2334.
   @Post()
   @UseGuards(SubscriptionGuard, CreditsGuard, ModelsGuard)
   @Credits({
