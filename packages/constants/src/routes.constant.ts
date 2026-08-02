@@ -106,10 +106,6 @@ export const APP_ROUTES = {
     POST: '/compose/post',
     ROOT: '/compose',
   },
-  EDITOR: {
-    NEW: '/editor/new',
-    ROOT: '/editor',
-  },
   LAB: {
     ARTICLES: '/lab/articles',
     LIBRARY_PREVIEW: '/lab/library-preview',
@@ -218,6 +214,8 @@ export const APP_ROUTES = {
     AVATAR: '/studio/avatar',
     BATCH: '/studio/batch',
     CLIPS: '/studio/clips',
+    EDIT: '/studio/edit',
+    EDIT_NEW: '/studio/edit/new',
     FASTLANE: '/studio/fastlane',
     IMAGE: '/studio/image',
     IMAGES: '/studio/images',
@@ -244,7 +242,6 @@ export const APP_ROUTE_PREFIXES = {
   ANALYTICS: APP_ROUTES.ANALYTICS.ROOT,
   AGENT: APP_ROUTES.AGENT.ROOT,
   COMPOSE: APP_ROUTES.COMPOSE.ROOT,
-  EDITOR: APP_ROUTES.EDITOR.ROOT,
   LIBRARY: '/library',
   MESSAGES: APP_ROUTES.MESSAGES.ROOT,
   ORCHESTRATION: APP_ROUTES.ORCHESTRATION.ROOT,

@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
@@ -45,14 +46,14 @@ function NewEditorProjectPageContent() {
           return;
         }
 
-        replace(href(`/editor/${project.id}`));
+        replace(href(`${APP_ROUTES.STUDIO.EDIT}/${project.id}`));
       } catch (error) {
         if (controller.signal.aborted) {
           return;
         }
         logger.error('Failed to create editor project', error);
         creating.current = false;
-        replace(href('/editor'));
+        replace(href(APP_ROUTES.STUDIO.EDIT));
       }
     })();
 

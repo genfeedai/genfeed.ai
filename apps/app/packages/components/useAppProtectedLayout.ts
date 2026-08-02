@@ -66,8 +66,8 @@ const ORCHESTRATION_WORKFLOW_RESERVED = new Set([
 
 export function isProtectedEditorCanvasRoute(pathname: string): boolean {
   return (
-    pathname === APP_ROUTES.EDITOR.NEW ||
-    /^\/editor\/[^/]+$/.test(pathname) ||
+    pathname === APP_ROUTES.STUDIO.EDIT_NEW ||
+    /^\/studio\/edit\/[^/]+$/.test(pathname) ||
     pathname === APP_ROUTES.ORCHESTRATION.WORKFLOWS_NEW ||
     (/^\/orchestration\/workflows\/([^/]+)$/.test(pathname) &&
       !ORCHESTRATION_WORKFLOW_RESERVED.has(pathname.split('/')[3] ?? ''))
@@ -131,7 +131,6 @@ export function useAppProtectedLayout(
   const isWorkflowsRoute = pathname.startsWith(
     APP_ROUTE_PREFIXES.ORCHESTRATION,
   );
-  const isEditorRoute = pathname.startsWith(APP_ROUTE_PREFIXES.EDITOR);
   const isAnalyticsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.ANALYTICS);
   // Org shell only for true org destinations (overview, etc.). Module routes
   // under `/:org/~/posts|studio|…` keep their own app sidebars — otherwise
@@ -149,8 +148,7 @@ export function useAppProtectedLayout(
       !isLibraryRoute &&
       !isResearchRoute &&
       !isWorkflowsRoute &&
-      !isMessagesRoute &&
-      !isEditorRoute
+      !isMessagesRoute
     );
   })();
   const workspaceShellRoute = useMemo(
@@ -172,15 +170,13 @@ export function useAppProtectedLayout(
             ? 'compose'
             : isWorkflowsRoute
               ? 'automate'
-              : isEditorRoute
-                ? 'editor'
-                : isAnalyticsRoute
-                  ? 'analytics'
-                  : isMessagesRoute
-                    ? 'messages'
-                    : isAgentRoute
-                      ? 'agent'
-                      : 'workspace';
+              : isAnalyticsRoute
+                ? 'analytics'
+                : isMessagesRoute
+                  ? 'messages'
+                  : isAgentRoute
+                    ? 'agent'
+                    : 'workspace';
 
   const shouldInitAgentApiService =
     isConversationRoute || isUniversalWorkspaceShell;
@@ -485,7 +481,6 @@ export function useAppProtectedLayout(
     isComposeRoute,
     isConversationRoute,
     isEditorCanvasRoute,
-    isEditorRoute,
     isFocusedOnboardingRoute,
     isLibraryLandingRoute,
     isLibraryRoute,

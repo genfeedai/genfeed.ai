@@ -1,4 +1,5 @@
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   EditorTrackType,
   IngredientCategory,
@@ -518,12 +519,12 @@ export function useEditorPageContent(projectId: string) {
         message:
           'You have unsaved changes. Are you sure you want to leave? Your changes will be lost.',
         onConfirm: () => {
-          push(href('/editor'));
+          push(href(APP_ROUTES.STUDIO.EDIT));
         },
       });
       return;
     }
-    push(href('/editor'));
+    push(href(APP_ROUTES.STUDIO.EDIT));
   }, [state.isDirty, push, openConfirm, href]);
 
   const handleFrameChange = useCallback((frame: number) => {

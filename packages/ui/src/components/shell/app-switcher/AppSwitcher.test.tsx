@@ -543,8 +543,8 @@ describe('AppSwitcher', () => {
     );
   });
 
-  it('highlights Publish for compose and editor paths', () => {
-    const { rerender } = render(
+  it('highlights Publish for compose paths', () => {
+    render(
       <AppSwitcher
         orgSlug="acme"
         brandSlug="my-brand"
@@ -556,18 +556,24 @@ describe('AppSwitcher', () => {
       'aria-current',
       'page',
     );
+  });
 
-    rerender(
+  it('highlights Studio for the merged edit surface', () => {
+    // #2309: the editor is no longer a publish-adjacent surface.
+    render(
       <AppSwitcher
         orgSlug="acme"
         brandSlug="my-brand"
-        currentPath="/acme/my-brand/editor/new"
+        currentPath="/acme/my-brand/studio/edit/new"
       />,
     );
 
-    expect(screen.getByRole('link', { name: 'Publish' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
       'aria-current',
       'page',
+    );
+    expect(screen.getByRole('link', { name: 'Publish' })).not.toHaveAttribute(
+      'aria-current',
     );
   });
 

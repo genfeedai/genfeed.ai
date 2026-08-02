@@ -10,7 +10,6 @@ type PageContextContract = {
     | 'analytics'
     | 'automate'
     | 'compose'
-    | 'editor'
     | 'library'
     | 'posts'
     | 'studio'
@@ -36,6 +35,14 @@ const CONTRACTS: PageContextContract[] = [
     route: `${BRAND_BASE}/studio/image`,
     currentApp: 'studio',
     sectionLabel: 'Studio',
+  },
+  {
+    // #2309: the Remotion editor is Studio's Edit surface, so it renders the
+    // Studio sidebar instead of the old menu-less "Editor" shell.
+    route: `${BRAND_BASE}/studio/edit`,
+    currentApp: 'studio',
+    sectionLabel: 'Studio',
+    sidebarLabels: ['Timeline'],
   },
   {
     route: `${BRAND_BASE}/posts`,

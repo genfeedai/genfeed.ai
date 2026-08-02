@@ -121,7 +121,6 @@ function AppLayoutWithDynamicMenu({
     isComposeRoute,
     isConversationRoute,
     isEditorCanvasRoute,
-    isEditorRoute,
     isFocusedOnboardingRoute,
     isLibraryLandingRoute,
     isLibraryRoute,
@@ -295,7 +294,6 @@ function AppLayoutWithDynamicMenu({
         isAnalyticsRoute={isAnalyticsRoute}
         isComposeRoute={isComposeRoute}
         isConversationRoute={isConversationRoute}
-        isEditorRoute={isEditorRoute}
         isFocusedOnboardingRoute={isFocusedOnboardingRoute}
         isLibraryRoute={isLibraryRoute}
         isMessagesRoute={isMessagesRoute}
@@ -334,7 +332,6 @@ function AppLayoutWithDynamicMenu({
     isComposeRoute,
     isConversationRoute,
     isEditorCanvasRoute,
-    isEditorRoute,
     isFocusedOnboardingRoute,
     isLibraryRoute,
     isMessagesRoute,

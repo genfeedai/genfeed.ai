@@ -37,8 +37,8 @@ describe('normalizeAnalyticsPathname', () => {
   });
 
   it('collapses uuid, numeric, and cuid-like id segments to :id', () => {
-    expect(normalizeAnalyticsPathname(`/acme/brand/editor/${UUID}`)).toBe(
-      '/:org/:brand/editor/:id',
+    expect(normalizeAnalyticsPathname(`/acme/brand/studio/edit/${UUID}`)).toBe(
+      '/:org/:brand/studio/edit/:id',
     );
     expect(normalizeAnalyticsPathname('/acme/brand/posts/1234567')).toBe(
       '/:org/:brand/posts/:id',
@@ -88,8 +88,8 @@ describe('sanitizeAnalyticsUrl', () => {
   });
 
   it('sanitizes a path-relative value', () => {
-    expect(sanitizeAnalyticsUrl(`/acme/brand/editor/${UUID}?zoom=2`)).toBe(
-      '/:org/:brand/editor/:id',
+    expect(sanitizeAnalyticsUrl(`/acme/brand/studio/edit/${UUID}?zoom=2`)).toBe(
+      '/:org/:brand/studio/edit/:id',
     );
   });
 

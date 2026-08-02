@@ -174,10 +174,10 @@ Organization catch-all module pages served by `/:orgSlug/~/:orgRootApp/[[...segm
 - `/:orgSlug/~/write/:segment`
 - `/:orgSlug/~/compose`
 - `/:orgSlug/~/compose/:segment`
-- `/:orgSlug/~/editor`
-- `/:orgSlug/~/editor/projects`
-- `/:orgSlug/~/editor/new`
-- `/:orgSlug/~/editor/:id`
+- `/:orgSlug/~/studio/edit`
+- `/:orgSlug/~/studio/edit/projects`
+- `/:orgSlug/~/studio/edit/new`
+- `/:orgSlug/~/studio/edit/:id`
 
 Automate at org scope is a real static page, not a catch-all module:
 
@@ -249,15 +249,15 @@ Studio:
 - `/:orgSlug/:brandSlug/studio/batch`
 - `/:orgSlug/:brandSlug/studio/clips`
 - `/:orgSlug/:brandSlug/studio/fastlane`
+- `/:orgSlug/:brandSlug/studio/edit`
+- `/:orgSlug/:brandSlug/studio/edit/new`
+- `/:orgSlug/:brandSlug/studio/edit/:id`
 
-Create/compose/editor:
+Create/compose:
 
 - `/:orgSlug/:brandSlug/compose/article`
 - `/:orgSlug/:brandSlug/compose/post`
 - `/:orgSlug/:brandSlug/compose/newsletter`
-- `/:orgSlug/:brandSlug/editor`
-- `/:orgSlug/:brandSlug/editor/new`
-- `/:orgSlug/:brandSlug/editor/:id`
 
 Library:
 
@@ -443,4 +443,4 @@ Admin organization/administration:
 - `Repeat` is not a top-level page concept. It should be a contextual feature/action inside Research, Publish, Analytics, Studio, or Library output views.
 - `Discovery`, `Socials`, and `Ads` are Research internal pages.
 - `Batch` is Studio internal navigation when the Studio capability is enabled.
-- `Compose` and `Editor` are creation/editor surfaces but should not appear as primary app-switcher modules unless product taxonomy changes.
+- `Compose` is a creation surface and should not appear as a primary app-switcher module unless product taxonomy changes. The Remotion editor is no longer a module at all — it is Studio's `Edit` surface (#2309).

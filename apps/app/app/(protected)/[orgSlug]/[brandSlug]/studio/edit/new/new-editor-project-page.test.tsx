@@ -66,6 +66,6 @@ describe('NewEditorProjectPage', () => {
         sourceVideoId: undefined,
       });
     });
-    expect(mocks.replace).toHaveBeenCalledWith('/acme/~/editor/project-1');
+    expect(mocks.replace).toHaveBeenCalledWith('/acme/~/studio/edit/project-1');
   });
 });

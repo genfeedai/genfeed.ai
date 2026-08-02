@@ -74,7 +74,7 @@ function createScopedAppRoute({
 
 /**
  * Flat ordered launcher (no section chrome). Order encodes product flow:
- * Operate tools → Create assets → Trends → Publish (+ compose/editor) → Analytics.
+ * Operate tools → Create assets → Trends → Publish (+ compose) → Analytics.
  */
 const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
   {
@@ -128,7 +128,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
       },
       {
         activePathRoots: ['/studio'],
-        description: 'Generate media.',
+        description: 'Generate and edit media.',
         icon: LayoutGrid,
         id: 'studio',
         itemKey: 'studio',
@@ -160,9 +160,10 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.research,
       },
       {
-        // Compose + Editor are publish-adjacent create surfaces, not Studio.
-        activePathRoots: ['/posts', '/compose', '/editor'],
-        description: 'Drafts, posts, compose, and editor.',
+        // Compose is a publish-adjacent create surface, not Studio. The
+        // Remotion editor moved the other way — it is Studio's Edit surface.
+        activePathRoots: ['/posts', '/compose'],
+        description: 'Drafts, posts, and compose.',
         icon: Send,
         id: 'posts',
         itemKey: 'publish',

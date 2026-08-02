@@ -158,7 +158,7 @@ describe('EditorProjectsPage', () => {
     expect(await screen.findByText('Create Your First Project')).toBeVisible();
     expect(screen.getByText('Start New Project')).toHaveAttribute(
       'href',
-      '/acme/~/editor/new',
+      '/acme/~/studio/edit/new',
     );
     expect(screen.getByText('Timeline Editor')).toBeVisible();
     expect(screen.getByText('Effects & Transitions')).toBeVisible();

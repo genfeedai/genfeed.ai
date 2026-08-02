@@ -13,7 +13,6 @@ export type AppContext =
   | 'workflows'
   | 'orchestration'
   | 'automate'
-  | 'editor'
   | 'compose'
   | 'analytics';
 

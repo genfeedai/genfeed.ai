@@ -76,7 +76,6 @@ const ROUTE_ROOTS = [
   'agent',
   'analytics',
   'compose',
-  'editor',
   'lab',
   'library',
   'login',

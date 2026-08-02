@@ -94,6 +94,9 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/library/moodboard', 'Library', 'Moodboard'],
     ['/acme/moonrise/studio/clips', 'Studio', 'Clips'],
     ['/acme/moonrise/studio/video/asset-1', 'Studio', 'Video'],
+    ['/acme/moonrise/studio/edit', 'Studio', 'Edit'],
+    ['/acme/moonrise/studio/edit/project-1', 'Studio', 'Project'],
+    ['/acme/~/studio/edit', 'Studio', 'Edit'],
     ['/acme/moonrise/analytics/trends', 'Analytics', 'Trends'],
     [
       '/acme/moonrise/analytics/trends/detail/trend-1',
@@ -190,6 +193,27 @@ describe('workspace shell trusted registry', () => {
       adapter: { key: 'studio-specialized', status: 'placeholder' },
       mode: 'canvas',
     });
+  });
+
+  it('resolves the merged edit surface ahead of the studio generate types', () => {
+    // #2309: `edit` is a static Studio surface, not a generate type. Its
+    // registration has to outrank `/studio/:type` in both scopes.
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/studio/edit'),
+    ).toMatchObject({ mode: 'canvas', surfaceKey: 'studio-edit' });
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/studio/edit/project-1'),
+    ).toMatchObject({ mode: 'canvas', surfaceKey: 'studio-edit' });
+    expect(resolveWorkspaceShellRoute('/acme/~/studio/edit')).toMatchObject({
+      scope: 'organization',
+      surfaceKey: 'studio-edit',
+    });
+  });
+
+  it('has no standalone editor route left in the inventory', () => {
+    expect(resolveWorkspaceShellRoute('/acme/moonrise/editor')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/acme/moonrise/editor/new')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/acme/~/editor')).toBeNull();
   });
 
   it('keeps contextual Remix routes inside the Publish switcher module', () => {

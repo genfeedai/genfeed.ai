@@ -526,7 +526,7 @@ describe('EditorPageContent', () => {
     await renderLoadedEditor();
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    expect(mocks.push).toHaveBeenCalledWith('/org/acme/brand/demo/editor');
+    expect(mocks.push).toHaveBeenCalledWith('/org/acme/brand/demo/studio/edit');
 
     fireEvent.click(screen.getByRole('button', { name: 'Add Text Track' }));
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
@@ -538,7 +538,7 @@ describe('EditorPageContent', () => {
       }),
     );
     mocks.openConfirm.mock.calls.at(-1)?.[0].onConfirm();
-    expect(mocks.push).toHaveBeenCalledWith('/org/acme/brand/demo/editor');
+    expect(mocks.push).toHaveBeenCalledWith('/org/acme/brand/demo/studio/edit');
   });
 
   it('supports keyboard shortcuts without hijacking form inputs', async () => {
@@ -585,7 +585,7 @@ describe('EditorPageContent', () => {
 
     expect(await screen.findByText('Project not found')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
-    expect(mocks.push).toHaveBeenCalledWith('/org/acme/brand/demo/editor');
+    expect(mocks.push).toHaveBeenCalledWith('/org/acme/brand/demo/studio/edit');
   });
 
   it('shows the load failure state', async () => {

@@ -1,5 +1,19 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getCoreAppFeatureFlagFallbacks } from './core-apps';
+import { CORE_APPS, getCoreAppFeatureFlagFallbacks } from './core-apps';
+
+describe('CORE_APPS', () => {
+  it('exposes exactly Agent, Automate, and Studio', () => {
+    expect(CORE_APPS.map((app) => app.id)).toEqual([
+      'agent',
+      'automate',
+      'studio',
+    ]);
+  });
+
+  it('has no standalone editor app — editing lives inside Studio', () => {
+    expect(CORE_APPS.some((app) => app.href.startsWith('/editor'))).toBe(false);
+  });
+});
 
 describe('getCoreAppFeatureFlagFallbacks', () => {
   afterEach(() => {

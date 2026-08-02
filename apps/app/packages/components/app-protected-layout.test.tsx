@@ -566,8 +566,8 @@ describe('AppProtectedLayout', () => {
     expect(lowCreditsBannerSpy).not.toHaveBeenCalled();
   });
 
-  it('keeps the shell low credits banner on editor routes', () => {
-    mockPathname.value = '/editor/new';
+  it('keeps the shell low credits banner on the studio edit surface', () => {
+    mockPathname.value = '/studio/edit/new';
     render(<AppProtectedLayout />);
     expect(lowCreditsBannerSpy).toHaveBeenCalledTimes(1);
   });
@@ -936,7 +936,7 @@ describe('AppProtectedLayout', () => {
   it.each([
     '/org-123/brand-123/orchestration/workflows/new',
     '/org-123/brand-123/orchestration/workflows/wf-123',
-    '/org-123/brand-123/editor/new',
+    '/org-123/brand-123/studio/edit/new',
   ])('hides module sidebar on editor canvas route %s', (pathname) => {
     mockPathname.value = pathname;
 
@@ -980,7 +980,7 @@ describe('AppProtectedLayout', () => {
     // Canvas routes still own the left rail, while the application keeps the
     // shared topbar visible during this boot window.
     shellState.isAuthLoaded = false;
-    mockPathname.value = '/org-123/brand-123/editor/new';
+    mockPathname.value = '/org-123/brand-123/studio/edit/new';
 
     render(
       <AppProtectedLayout>
@@ -1263,7 +1263,6 @@ describe('AppProtectedLayout', () => {
         isAnalyticsRoute={false}
         isComposeRoute={false}
         isConversationRoute={false}
-        isEditorRoute={false}
         isFocusedOnboardingRoute={false}
         isLibraryRoute
         isOrgRoute={false}
@@ -1308,7 +1307,6 @@ describe('AppProtectedLayout', () => {
         isAnalyticsRoute={false}
         isComposeRoute={false}
         isConversationRoute={false}
-        isEditorRoute={false}
         isFocusedOnboardingRoute={false}
         isLibraryRoute
         isOrgRoute={false}
@@ -1424,8 +1422,8 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('keeps editor routes inside the workspace shell while skipping editor-only providers', () => {
-    mockPathname.value = '/org-123/brand-123/editor/new';
+  it('keeps the studio edit surface inside the workspace shell while skipping editor-only providers', () => {
+    mockPathname.value = '/org-123/brand-123/studio/edit/new';
 
     render(
       <AppProtectedLayout>
