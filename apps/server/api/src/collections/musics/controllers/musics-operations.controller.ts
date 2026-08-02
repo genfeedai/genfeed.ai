@@ -85,11 +85,6 @@ export class MusicsOperationsController {
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
-  // route-shadowing-ok: intentional dual claim — MusicsModule registers this
-  // controller before MusicsController so the guarded generation handler wins
-  // over BaseCRUD's inherited `@Post()` at runtime (#2334). Static analysis
-  // still sees both; keep this suppression until MusicsController drops
-  // BaseCRUD (images-style).
   @Post()
   @UseGuards(SubscriptionGuard, CreditsGuard, ModelsGuard)
   @Credits({
