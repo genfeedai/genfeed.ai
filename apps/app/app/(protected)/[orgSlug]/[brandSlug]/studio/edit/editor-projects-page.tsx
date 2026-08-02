@@ -4,21 +4,12 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/enums';
 import type { IEditorProject } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { EditorProjectsService } from '@services/editor/editor-projects.service';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import {
-  ArrowLeft,
-  Film,
-  Music,
-  Plus,
-  Scissors,
-  Sparkles,
-  Trash2,
-} from 'lucide-react';
+import { Film, Music, Plus, Scissors, Sparkles, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -78,7 +69,6 @@ function formatRelativeTime(dateStr: string): string {
 
 export default function EditorProjectsPage() {
   const { href } = useOrgUrl();
-  const isStudioEnabled = useFeatureFlag('studio');
   const [projects, setProjects] = useState<IEditorProject[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -124,33 +114,12 @@ export default function EditorProjectsPage() {
 
   return (
     <Container className="py-10">
-      <div className="mb-8 flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            asChild
-            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-foreground/40 transition-colors duration-150 hover:bg-white/[0.06] hover:text-foreground"
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          >
-            <Link
-              aria-label={
-                isStudioEnabled ? 'Back to Studio' : 'Back to Library'
-              }
-              href={href(
-                isStudioEnabled
-                  ? APP_ROUTES.STUDIO.STORYBOARD
-                  : APP_ROUTES.LIBRARY.ROOT,
-              )}
-            >
-              <ArrowLeft className="size-4" />
-            </Link>
-          </Button>
-          <h1 className="sr-only">Video Editor</h1>
-        </div>
+      <div className="mb-8 flex items-center justify-between">
+        <h1 className="sr-only">Video Editor</h1>
 
         <Button
           asChild
-          className="inline-flex items-center gap-2 bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          className="ml-auto inline-flex items-center gap-2 bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           variant={ButtonVariant.DEFAULT}
           withWrapper={false}
         >
