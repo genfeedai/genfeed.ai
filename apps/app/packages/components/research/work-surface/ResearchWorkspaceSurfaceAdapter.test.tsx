@@ -33,7 +33,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/acme/moonrise/research/discovery',
+  usePathname: () => '/acme/moonrise/discover/discovery',
 }));
 
 vi.mock('@pages/research/work-surface/ResearchFindingInspector', () => ({
@@ -86,14 +86,14 @@ describe('ResearchWorkspaceSurfaceAdapter', () => {
             organizationId: 'organization-1',
           },
         ],
-        route: '/acme/moonrise/research/discovery',
+        route: '/acme/moonrise/discover/discovery',
       });
     });
     expect(mocks.store.pageContext).not.toHaveProperty('title');
     expect(mocks.store.pageContext).not.toHaveProperty('metadata');
     expect(mocks.setEmbedded).toHaveBeenCalledWith(true);
     expect(mocks.registeredAdapter).toMatchObject({
-      surfaceKey: 'research',
+      surfaceKey: 'discover',
     });
   });
 });

@@ -16,7 +16,7 @@ import { expectNoErrorOverlay } from '../../utils/route-assertions';
  * bounce back to /login.
  *
  * Error mocks are scoped to resource endpoints only (posts, images, videos,
- * analytics, workflows, agents, research) so auth / bootstrap / users traffic
+ * analytics, workflows, agents, discover) so auth / bootstrap / users traffic
  * still succeeds and the session stays valid.
  */
 
@@ -136,11 +136,11 @@ test.describe('App surfaces — fetch error states', () => {
     await assertHealthy(authenticatedPage, route);
   });
 
-  test('research discovery survives a server error', async ({
+  test('discover discovery survives a server error', async ({
     authenticatedPage,
   }) => {
-    await mockServerError(authenticatedPage, '**/research**');
-    const route = `${ORG_BRAND}/research/discovery`;
+    await mockServerError(authenticatedPage, '**/discover**');
+    const route = `${ORG_BRAND}/discover/discovery`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);

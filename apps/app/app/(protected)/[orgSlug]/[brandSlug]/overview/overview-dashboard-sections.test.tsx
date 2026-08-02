@@ -325,7 +325,7 @@ describe('Overview dashboard sections', () => {
       <OverviewTrendsPanel
         isLoading={false}
         trends={trends}
-        viewAllHref="/research/discovery"
+        viewAllHref="/discover/discovery"
       />,
     );
 
@@ -333,7 +333,7 @@ describe('Overview dashboard sections', () => {
     expect(screen.getByText('Research Trends')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /view all/i })).toHaveAttribute(
       'href',
-      '/research/discovery',
+      '/discover/discovery',
     );
     expect(screen.getByText('Reels growth')).toBeInTheDocument();
     expect(screen.getByText('AI comedy skits')).toBeInTheDocument();
@@ -344,7 +344,7 @@ describe('Overview dashboard sections', () => {
       <OverviewTrendsPanel
         isLoading={false}
         trends={[]}
-        viewAllHref="/research/discovery"
+        viewAllHref="/discover/discovery"
       />,
     );
 

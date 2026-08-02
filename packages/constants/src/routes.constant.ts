@@ -106,6 +106,15 @@ export const APP_ROUTES = {
     POST: '/compose/post',
     ROOT: '/compose',
   },
+  DISCOVER: {
+    ADS: '/discover/ads',
+    ADS_GOOGLE: '/discover/ads/google',
+    ADS_META: '/discover/ads/meta',
+    DISCOVERY: '/discover/discovery',
+    FOLLOWING: '/discover/following',
+    ROOT: '/discover',
+    SOCIALS: '/discover/socials',
+  },
   /**
    * Dedicated artifact editor pages. Refinement belongs to the artifact, not to
    * a module — every text artifact gets a focused, deep-linkable editor at
@@ -194,15 +203,6 @@ export const APP_ROUTES = {
     ROOT: '/posts',
     SCHEDULED: '/posts/scheduled',
   },
-  RESEARCH: {
-    ADS: '/research/ads',
-    ADS_GOOGLE: '/research/ads/google',
-    ADS_META: '/research/ads/meta',
-    DISCOVERY: '/research/discovery',
-    FOLLOWING: '/research/following',
-    ROOT: '/research',
-    SOCIALS: '/research/socials',
-  },
   SETTINGS: {
     API_KEYS: '/settings/api-keys',
     BILLING: '/settings/billing',
@@ -256,6 +256,7 @@ export const APP_ROUTE_PREFIXES = {
   ANALYTICS: APP_ROUTES.ANALYTICS.ROOT,
   AGENT: APP_ROUTES.AGENT.ROOT,
   COMPOSE: APP_ROUTES.COMPOSE.ROOT,
+  DISCOVER: APP_ROUTES.DISCOVER.ROOT,
   EDIT: APP_ROUTES.EDIT.ROOT,
   EDITOR: APP_ROUTES.EDITOR.ROOT,
   LIBRARY: '/library',
@@ -263,7 +264,6 @@ export const APP_ROUTE_PREFIXES = {
   ORCHESTRATION: APP_ROUTES.ORCHESTRATION.ROOT,
   OVERVIEW: APP_ROUTES.OVERVIEW.ROOT,
   POSTS: APP_ROUTES.POSTS.ROOT,
-  RESEARCH: APP_ROUTES.RESEARCH.ROOT,
   SETTINGS: APP_ROUTES.SETTINGS.ROOT,
   STUDIO: APP_ROUTES.STUDIO.ROOT,
   WORKSPACE: APP_ROUTES.WORKSPACE.ROOT,
