@@ -3,6 +3,7 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { BrandDetailLatestArticlesProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import Card from '@ui/card/Card';
@@ -18,6 +19,8 @@ const WRITE_ARTICLE_AGENT_HREF = buildAgentPromptHref(
 export default function BrandDetailLatestArticles({
   articles,
 }: BrandDetailLatestArticlesProps) {
+  const { href } = useOrgUrl();
+
   return (
     <Card
       label="Latest Articles"
@@ -97,7 +100,7 @@ export default function BrandDetailLatestArticles({
             withWrapper={false}
           >
             <NextLink
-              href={`${EnvironmentService.apps.app}${WRITE_ARTICLE_AGENT_HREF}`}
+              href={`${EnvironmentService.apps.app}${href(WRITE_ARTICLE_AGENT_HREF)}`}
             >
               Create an article
             </NextLink>

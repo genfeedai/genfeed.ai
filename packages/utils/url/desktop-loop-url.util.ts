@@ -33,7 +33,6 @@ export function buildClipDraftAgentHref(clip: IClipDraftHandoff): string {
     'Draft a social post for this generated clip.',
     `Title: "${clip.title}".`,
     clip.description ? `Description: "${clip.description}".` : undefined,
-    clip.mediaUrl ? `Media URL: ${clip.mediaUrl}.` : undefined,
     clip.ingredientId ? `Ingredient id: ${clip.ingredientId}.` : undefined,
     'Write the caption, then suggest the best platform and schedule for it.',
   ]

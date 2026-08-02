@@ -165,10 +165,8 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.discover,
       },
       {
-        // Focused artifact editors are Publish-adjacent. The Remotion project
-        // editor lives under Studio's Edit surface.
-        activePathRoots: ['/publish', '/edit'],
-        description: 'Drafts, posts, and artifact editing.',
+        activePathRoots: ['/publish'],
+        description: 'Drafts and posts.',
         icon: Send,
         id: 'publish',
         itemKey: 'publish',

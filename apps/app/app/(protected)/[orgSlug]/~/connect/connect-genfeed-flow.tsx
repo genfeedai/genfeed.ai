@@ -686,7 +686,9 @@ export default function ConnectGenfeedFlow() {
                 onClick={() => trackStep('publishing_handoff', 'success')}
               >
                 {verification.publishing.isReady
-                  ? 'Draft a post with the Agent'
+                  ? firstBrandSlug
+                    ? 'Draft a post with the Agent'
+                    : 'Open publishing workspace'
                   : 'Connect publishing integration'}
                 <ArrowRight aria-hidden="true" className="size-4" />
               </Link>

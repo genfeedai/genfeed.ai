@@ -60,7 +60,31 @@ function AgentWorkspaceLayoutClientContent({
   const isStandardNewRoute =
     pathname === APP_ROUTES.AGENT.ROOT || pathname === APP_ROUTES.AGENT.NEW;
   const isUnthreadedRoute = isOnboardingEntryRoute || isStandardNewRoute;
-  const prefillPrompt = searchParams.get('prompt')?.trim() || '';
+  const explicitPrefillPrompt = searchParams.get('prompt')?.trim() || '';
+  const taskPrefillPrompt = useMemo(() => {
+    if (searchParams.get('taskSource') !== 'workspace') {
+      return '';
+    }
+
+    const taskId = searchParams.get('taskId')?.trim() || '';
+    const taskTitle = searchParams.get('taskTitle')?.trim() || '';
+    const outputType = searchParams.get('taskOutputType')?.trim() || '';
+    const executionPath = searchParams.get('taskExecutionPath')?.trim() || '';
+
+    if (!taskId && !taskTitle) {
+      return '';
+    }
+
+    return [
+      `Continue the workspace task "${taskTitle || taskId}".`,
+      taskId ? `Task id: ${taskId}.` : '',
+      outputType ? `Requested output: ${outputType}.` : '',
+      executionPath ? `Execution path: ${executionPath}.` : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
+  }, [searchParams]);
+  const prefillPrompt = explicitPrefillPrompt || taskPrefillPrompt;
   const effectiveIsLoaded = isLoaded || playwrightAuth?.isLoaded === true;
 
   const agentApiService = useMemo(

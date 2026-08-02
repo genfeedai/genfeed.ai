@@ -76,7 +76,7 @@ export default function SettingsProgressOverviewCard({
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
           >
-            <Link href={CREATE_SOMETHING_AGENT_HREF}>
+            <Link href={orgHref(CREATE_SOMETHING_AGENT_HREF)}>
               <Sparkles className="size-4" />
               Create something new
             </Link>

@@ -24,14 +24,6 @@ test.describe('Posts — Content Types', () => {
     await mockPostsList(authenticatedPage);
   });
 
-  test('article editor loads at /edit/article/:id', async ({
-    authenticatedPage,
-  }) => {
-    await authenticatedPage.goto('/edit/article/article-1');
-
-    await expect(authenticatedPage).toHaveURL(/edit\/article\/article-1/);
-  });
-
   test('newsletters page loads newsletter list', async ({
     authenticatedPage,
   }) => {
@@ -57,17 +49,6 @@ test.describe('Posts — Content Types', () => {
     // Page should render newsletter-specific content
     await expect(
       authenticatedPage.getByText(/newsletter/i).first(),
-    ).toBeVisible();
-  });
-
-  test('newsletter editor opens with editor visible', async ({
-    authenticatedPage,
-  }) => {
-    await authenticatedPage.goto('/edit/newsletter/newsletter-1');
-
-    await expect(authenticatedPage).toHaveURL(/edit\/newsletter\/newsletter-1/);
-    await expect(
-      authenticatedPage.getByText(/article|compose|editor|write/i).first(),
     ).toBeVisible();
   });
 

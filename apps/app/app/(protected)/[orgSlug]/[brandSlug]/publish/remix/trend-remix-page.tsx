@@ -81,10 +81,11 @@ function TrendRemixPageContent() {
   );
 
   useEffect(() => {
+    const controller = new AbortController();
     const desktop = isDesktopClient();
 
     if ((!isReady && !desktop) || hasStartedRef.current) {
-      return;
+      return () => controller.abort();
     }
 
     hasStartedRef.current = true;
@@ -96,7 +97,7 @@ function TrendRemixPageContent() {
       setError(nextError);
       setIsSubmitting(false);
       notificationsService.error(nextError);
-      return;
+      return () => controller.abort();
     }
 
     const remixTopic = buildTwitterRemixTopic({
@@ -114,6 +115,9 @@ function TrendRemixPageContent() {
             mode,
             topic: remixTopic,
           });
+          if (controller.signal.aborted) {
+            return;
+          }
           notificationsService.success(
             mode === 'thread'
               ? 'Thread remix draft created'
@@ -163,6 +167,10 @@ function TrendRemixPageContent() {
           });
         }
 
+        if (controller.signal.aborted) {
+          return;
+        }
+
         notificationsService.success(
           mode === 'thread'
             ? 'Thread remix draft created'
@@ -170,6 +178,9 @@ function TrendRemixPageContent() {
         );
         replace(href('/publish?platform=twitter'));
       } catch (runError) {
+        if (controller.signal.aborted) {
+          return;
+        }
         logger.error('Failed to create trend remix draft', runError);
         setError('Failed to create the remix draft.');
         setIsSubmitting(false);
@@ -180,6 +191,8 @@ function TrendRemixPageContent() {
     run().catch(() => {
       /* handled above */
     });
+
+    return () => controller.abort();
   }, [
     getPostsService,
     href,

@@ -543,7 +543,7 @@ describe('AppSwitcher', () => {
     );
   });
 
-  it('highlights Publish for focused artifact editor paths', () => {
+  it('does not classify focused artifact editors as Publish', () => {
     render(
       <AppSwitcher
         orgSlug="acme"
@@ -552,9 +552,8 @@ describe('AppSwitcher', () => {
       />,
     );
 
-    expect(screen.getByRole('link', { name: 'Publish' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Publish' })).not.toHaveAttribute(
       'aria-current',
-      'page',
     );
   });
 
