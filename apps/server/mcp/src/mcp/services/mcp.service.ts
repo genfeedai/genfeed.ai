@@ -37,10 +37,6 @@ export interface McpExample {
 
 @Injectable()
 export class MCPService {
-  getHello(): string {
-    return 'Genfeed.ai MCP Server - Ready to serve AI-powered video generation!';
-  }
-
   getMcpConfiguration(): McpConfiguration {
     const mcpUrl = getPublicMcpUrl();
 
