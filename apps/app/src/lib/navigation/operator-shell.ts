@@ -27,7 +27,6 @@ const KNOWN_PROTECTED_PREFIXES = [
   'agent',
   'messages',
   'compose',
-  'editor',
   'discover',
   'overview',
   'ingredients',
@@ -234,7 +233,8 @@ function getTaskLaunchPath(
   }
 
   if (mode === 'edit') {
-    return APP_ROUTES.EDITOR.ROOT;
+    // Edit is a Studio surface — it follows the same capability gate as generate.
+    return capabilities.studio ? APP_ROUTES.STUDIO.EDIT : APP_ROUTES.AGENT.NEW;
   }
 
   if (mode === 'automate') {

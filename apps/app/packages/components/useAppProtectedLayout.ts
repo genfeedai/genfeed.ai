@@ -62,8 +62,8 @@ const AUTOMATE_WORKFLOW_RESERVED = new Set(['executions', 'new', 'templates']);
 
 export function isProtectedEditorCanvasRoute(pathname: string): boolean {
   return (
-    pathname === APP_ROUTES.EDITOR.NEW ||
-    /^\/editor\/[^/]+$/.test(pathname) ||
+    pathname === APP_ROUTES.STUDIO.EDIT_NEW ||
+    /^\/studio\/edit\/[^/]+$/.test(pathname) ||
     pathname === APP_ROUTES.AUTOMATE.WORKFLOWS_NEW ||
     (/^\/automate\/workflows\/([^/]+)$/.test(pathname) &&
       !AUTOMATE_WORKFLOW_RESERVED.has(pathname.split('/')[3] ?? ''))
@@ -125,7 +125,6 @@ export function useAppProtectedLayout(
   const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);
   const isMoodboardRoute = pathname === APP_ROUTES.LIBRARY.MOODBOARD;
   const isAutomateRoute = pathname.startsWith(APP_ROUTE_PREFIXES.AUTOMATE);
-  const isEditorRoute = pathname.startsWith(APP_ROUTE_PREFIXES.EDITOR);
   const isAnalyticsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.ANALYTICS);
   // Org shell only for true org destinations (overview, etc.). Module routes
   // under `/:org/~/publish|studio|…` keep their own app sidebars — otherwise
@@ -143,8 +142,7 @@ export function useAppProtectedLayout(
       !isLibraryRoute &&
       !isDiscoverRoute &&
       !isAutomateRoute &&
-      !isMessagesRoute &&
-      !isEditorRoute
+      !isMessagesRoute
     );
   })();
   const workspaceShellRoute = useMemo(
@@ -166,15 +164,13 @@ export function useAppProtectedLayout(
             ? 'compose'
             : isAutomateRoute
               ? 'automate'
-              : isEditorRoute
-                ? 'editor'
-                : isAnalyticsRoute
-                  ? 'analytics'
-                  : isMessagesRoute
-                    ? 'messages'
-                    : isAgentRoute
-                      ? 'agent'
-                      : 'workspace';
+              : isAnalyticsRoute
+                ? 'analytics'
+                : isMessagesRoute
+                  ? 'messages'
+                  : isAgentRoute
+                    ? 'agent'
+                    : 'workspace';
 
   const shouldInitAgentApiService =
     isConversationRoute || isUniversalWorkspaceShell;
@@ -479,7 +475,6 @@ export function useAppProtectedLayout(
     isComposeRoute,
     isConversationRoute,
     isEditorCanvasRoute,
-    isEditorRoute,
     isFocusedOnboardingRoute,
     isLibraryLandingRoute,
     isLibraryRoute,

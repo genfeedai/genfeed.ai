@@ -4,15 +4,15 @@ import { expect, test } from '../../fixtures/auth.fixture';
 import { StudioPage } from '../../pages/studio.page';
 
 /**
- * E2E Tests for Editor
+ * E2E Tests for Studio Edit (the Remotion timeline, merged into Studio in #2309)
  *
  * CRITICAL: All tests use mocked API responses.
  * No real backend calls occur during tests.
  *
- * Tests verify editor page load, new project creation, toolbar visibility,
- * and save/publish controls.
+ * Tests verify the edit surface load, new project creation, toolbar
+ * visibility, and save/publish controls.
  */
-test.describe('Editor', () => {
+test.describe('Studio Edit', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockActiveSubscription(authenticatedPage, {
       credits: 1000,
@@ -20,18 +20,18 @@ test.describe('Editor', () => {
     });
   });
 
-  test.describe('Editor Projects Page', () => {
+  test.describe('Studio Edit Projects Page', () => {
     test('should load editor projects page', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto(APP_ROUTES.EDITOR.ROOT);
+      await authenticatedPage.goto(APP_ROUTES.STUDIO.EDIT);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
-      await expect(authenticatedPage).toHaveURL(/\/editor$/);
+      await expect(authenticatedPage).toHaveURL(/\/studio\/edit$/);
     });
 
     test('should display editor shell with main content', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(APP_ROUTES.EDITOR.ROOT);
+      await authenticatedPage.goto(APP_ROUTES.STUDIO.EDIT);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(
@@ -59,7 +59,7 @@ test.describe('Editor', () => {
         },
       );
 
-      await authenticatedPage.goto(APP_ROUTES.EDITOR.ROOT);
+      await authenticatedPage.goto(APP_ROUTES.STUDIO.EDIT);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(
@@ -67,25 +67,25 @@ test.describe('Editor', () => {
       );
       await expect(mainContent).toBeVisible({ timeout: 15000 });
 
-      await expect(authenticatedPage).toHaveURL(/\/editor$/);
+      await expect(authenticatedPage).toHaveURL(/\/studio\/edit$/);
     });
 
     test('should render on mobile viewport', async ({ authenticatedPage }) => {
       await authenticatedPage.setViewportSize({ height: 667, width: 375 });
 
-      await authenticatedPage.goto(APP_ROUTES.EDITOR.ROOT);
+      await authenticatedPage.goto(APP_ROUTES.STUDIO.EDIT);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
-      await expect(authenticatedPage).toHaveURL(/\/editor$/);
+      await expect(authenticatedPage).toHaveURL(/\/studio\/edit$/);
     });
 
     test('should render on tablet viewport', async ({ authenticatedPage }) => {
       await authenticatedPage.setViewportSize({ height: 1024, width: 768 });
 
-      await authenticatedPage.goto(APP_ROUTES.EDITOR.ROOT);
+      await authenticatedPage.goto(APP_ROUTES.STUDIO.EDIT);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
-      await expect(authenticatedPage).toHaveURL(/\/editor$/);
+      await expect(authenticatedPage).toHaveURL(/\/studio\/edit$/);
     });
   });
 
@@ -93,16 +93,16 @@ test.describe('Editor', () => {
     test('should load new editor project page', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(APP_ROUTES.EDITOR.NEW);
+      await authenticatedPage.goto(APP_ROUTES.STUDIO.EDIT_NEW);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
-      await expect(authenticatedPage).toHaveURL(/\/editor\/new$/);
+      await expect(authenticatedPage).toHaveURL(/\/studio\/edit\/new$/);
     });
 
     test('should display blank editor canvas', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(APP_ROUTES.EDITOR.NEW);
+      await authenticatedPage.goto(APP_ROUTES.STUDIO.EDIT_NEW);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(
@@ -114,7 +114,7 @@ test.describe('Editor', () => {
     test('should display editor toolbar or controls', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(APP_ROUTES.EDITOR.NEW);
+      await authenticatedPage.goto(APP_ROUTES.STUDIO.EDIT_NEW);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Look for toolbar, controls, or canvas elements
@@ -136,7 +136,7 @@ test.describe('Editor', () => {
     test('should display save or publish controls', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(APP_ROUTES.EDITOR.NEW);
+      await authenticatedPage.goto(APP_ROUTES.STUDIO.EDIT_NEW);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Look for save/publish/export buttons
@@ -150,14 +150,14 @@ test.describe('Editor', () => {
     test('should render on mobile viewport', async ({ authenticatedPage }) => {
       await authenticatedPage.setViewportSize({ height: 667, width: 375 });
 
-      await authenticatedPage.goto(APP_ROUTES.EDITOR.NEW);
+      await authenticatedPage.goto(APP_ROUTES.STUDIO.EDIT_NEW);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
-      await expect(authenticatedPage).toHaveURL(/\/editor\/new$/);
+      await expect(authenticatedPage).toHaveURL(/\/studio\/edit\/new$/);
     });
   });
 
-  test.describe('Editor Navigation', () => {
+  test.describe('Studio Edit Navigation', () => {
     test('should navigate from studio hub to editor', async ({
       authenticatedPage,
     }) => {
@@ -167,21 +167,21 @@ test.describe('Editor', () => {
       await studioPage.waitForPageLoad();
 
       // Navigate to editor
-      await authenticatedPage.goto(APP_ROUTES.EDITOR.ROOT);
+      await authenticatedPage.goto(APP_ROUTES.STUDIO.EDIT);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
-      await expect(authenticatedPage).toHaveURL(/\/editor$/);
+      await expect(authenticatedPage).toHaveURL(/\/studio\/edit$/);
     });
 
     test('should navigate from editor list to new project', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(APP_ROUTES.EDITOR.ROOT);
+      await authenticatedPage.goto(APP_ROUTES.STUDIO.EDIT);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Look for a "New" or "Create" button/link
       const newProjectLink = authenticatedPage.locator(
-        'a[href*="editor/new"], button:has-text("New"), button:has-text("Create"), [data-testid*="new-project"]',
+        'a[href*="studio/edit/new"], button:has-text("New"), button:has-text("Create"), [data-testid*="new-project"]',
       );
 
       const hasNewLink = await newProjectLink
@@ -192,12 +192,12 @@ test.describe('Editor', () => {
       if (hasNewLink) {
         await newProjectLink.first().click();
         await authenticatedPage.waitForLoadState('domcontentloaded');
-        await expect(authenticatedPage).toHaveURL(/\/editor(?:\/new)?/);
+        await expect(authenticatedPage).toHaveURL(/\/studio\/edit(?:\/new)?/);
       } else {
         // Direct navigation fallback
-        await authenticatedPage.goto(APP_ROUTES.EDITOR.NEW);
+        await authenticatedPage.goto(APP_ROUTES.STUDIO.EDIT_NEW);
         await authenticatedPage.waitForLoadState('domcontentloaded');
-        await expect(authenticatedPage).toHaveURL(/\/editor\/new$/);
+        await expect(authenticatedPage).toHaveURL(/\/studio\/edit\/new$/);
       }
     });
   });
@@ -219,20 +219,20 @@ test.describe('Editor', () => {
         },
       );
 
-      await authenticatedPage.goto(APP_ROUTES.EDITOR.ROOT);
+      await authenticatedPage.goto(APP_ROUTES.STUDIO.EDIT);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Page should handle error gracefully without crashing
-      await expect(authenticatedPage).toHaveURL(/\/editor$/);
+      await expect(authenticatedPage).toHaveURL(/\/studio\/edit$/);
     });
   });
 });
 
-test.describe('Editor — Unauthenticated Access', () => {
+test.describe('Studio Edit — Unauthenticated Access', () => {
   test('should redirect editor page to login', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.EDITOR.ROOT, {
+    await unauthenticatedPage.goto(APP_ROUTES.STUDIO.EDIT, {
       timeout: 30000,
       waitUntil: 'domcontentloaded',
     });
@@ -245,7 +245,7 @@ test.describe('Editor — Unauthenticated Access', () => {
   test('should redirect new editor page to login', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.EDITOR.NEW, {
+    await unauthenticatedPage.goto(APP_ROUTES.STUDIO.EDIT_NEW, {
       timeout: 30000,
       waitUntil: 'domcontentloaded',
     });
@@ -259,7 +259,7 @@ test.describe('Editor — Unauthenticated Access', () => {
     unauthenticatedPage,
   }) => {
     await unauthenticatedPage.goto(
-      `${APP_ROUTES.EDITOR.ROOT}/test-project-id`,
+      `${APP_ROUTES.STUDIO.EDIT}/test-project-id`,
       {
         timeout: 30000,
         waitUntil: 'domcontentloaded',

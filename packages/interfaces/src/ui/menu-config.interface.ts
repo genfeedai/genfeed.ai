@@ -11,7 +11,6 @@ export type AppContext =
   | 'publish'
   | 'studio'
   | 'automate'
-  | 'editor'
   | 'compose'
   | 'analytics';
 

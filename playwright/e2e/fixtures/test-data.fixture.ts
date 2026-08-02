@@ -964,7 +964,7 @@ export const testRoutes = {
     articles: '/calendar/articles',
     posts: '/calendar/posts',
   },
-  editor: '/editor',
+  editor: '/studio/edit',
   generation: {
     avatar: '/g/avatar',
     image: '/g/image',

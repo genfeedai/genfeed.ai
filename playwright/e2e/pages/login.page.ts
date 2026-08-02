@@ -212,7 +212,7 @@ export class LoginPage {
       '/overview',
       '/studio',
       '/g',
-      '/editor',
+      '/studio/edit',
       '/automate/workflows',
       '/',
     ];

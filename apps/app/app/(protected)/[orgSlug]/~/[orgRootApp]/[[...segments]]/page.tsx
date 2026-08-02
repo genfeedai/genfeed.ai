@@ -7,13 +7,13 @@ import FeatureGate from '@ui/guards/feature/FeatureGate';
 import { SkeletonLoadingFallback } from '@ui/loading/skeleton/SkeletonFallbacks';
 import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
-import EditorDetailPage from '../../../[brandSlug]/editor/[id]/page';
-import EditorProjectsPage from '../../../[brandSlug]/editor/editor-projects-page';
-import EditorNewPage from '../../../[brandSlug]/editor/new/page';
 import PublishLayoutContent from '../../../[brandSlug]/publish/publish-layout-content';
 import { renderPostsListPage } from '../../../[brandSlug]/publish/publish-list-page';
 import StudioPageContent from '../../../[brandSlug]/studio/[type]/StudioPageContent';
 import { canonicalizeStudioType } from '../../../[brandSlug]/studio/[type]/studio-route';
+import EditorDetailPage from '../../../[brandSlug]/studio/edit/[id]/page';
+import EditorProjectsPage from '../../../[brandSlug]/studio/edit/editor-projects-page';
+import EditorNewPage from '../../../[brandSlug]/studio/edit/new/page';
 
 const ORG_LIBRARY_TYPE_BY_SEGMENT: Record<string, string> = {
   avatar: 'avatars',
@@ -89,6 +89,27 @@ function getOrgPostsStatusOverride(segments?: string[]) {
   return undefined;
 }
 
+// Async because the detail surface is an async server component: it has to be
+// awaited here, not handed to the tree as an unresolved promise child.
+async function renderStudioEditSurface(section?: string) {
+  if (section === 'new') {
+    return <EditorNewPage />;
+  }
+
+  // Reserved index segment: /~/studio/edit/projects mirrors the edit root
+  // (projects). Without this guard it would fall into the detail branch below
+  // and request an editor project with id 'projects'.
+  if (section === 'projects') {
+    return <EditorProjectsPage />;
+  }
+
+  if (section) {
+    return EditorDetailPage({ params: Promise.resolve({ id: section }) });
+  }
+
+  return <EditorProjectsPage />;
+}
+
 export default async function OrgRootAppPage({
   params,
   searchParams,
@@ -117,6 +138,18 @@ export default async function OrgRootAppPage({
   }
 
   if (orgRootApp === 'studio') {
+    // `edit` is Studio's timeline surface, not a generate type. It mirrors the
+    // brand-scoped static `studio/edit` segment, which wins over `studio/[type]`.
+    if (segments?.[0] === 'edit') {
+      const editSurface = await renderStudioEditSurface(segments[1]);
+
+      return (
+        <FeatureGate flagKey="studio">
+          <ErrorBoundary>{editSurface}</ErrorBoundary>
+        </FeatureGate>
+      );
+    }
+
     // Studio generate surface — never the library ingredient browser.
     // Type comes from /~/studio/:type (e.g. music, video, image, avatar).
     const studioType = canonicalizeStudioType(segments?.[0]);
@@ -142,29 +175,6 @@ export default async function OrgRootAppPage({
     });
 
     return <PublishLayoutContent>{postsListPage}</PublishLayoutContent>;
-  }
-
-  if (orgRootApp === 'editor') {
-    const section = segments?.[0];
-
-    if (section === 'new') {
-      return <EditorNewPage />;
-    }
-
-    // Reserved index segment: /~/editor/projects mirrors the editor root
-    // (projects). Without this guard it would fall into the detail branch
-    // below and request an editor project with id 'projects'.
-    if (section === 'projects') {
-      return <EditorProjectsPage />;
-    }
-
-    if (section) {
-      return EditorDetailPage({
-        params: Promise.resolve({ id: section }),
-      });
-    }
-
-    return <EditorProjectsPage />;
   }
 
   notFound();

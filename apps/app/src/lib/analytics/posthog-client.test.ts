@@ -123,7 +123,7 @@ describe('initAnalytics', () => {
         'https://app.genfeed.ai/acme/brand/compose/post?title=Secret%20Post&description=xyz',
       $pathname: '/acme/brand/publish/3f2504e0-4f89-41d3-9a0c-0305e82c3301',
       $prev_pageview_pathname:
-        '/acme/brand/editor/3f2504e0-4f89-41d3-9a0c-0305e82c3301',
+        '/acme/brand/studio/edit/3f2504e0-4f89-41d3-9a0c-0305e82c3301',
       $referrer: 'https://app.genfeed.ai/acme/brand/publish/x?title=leak',
       $set_once: {
         $initial_current_url:
@@ -178,7 +178,7 @@ describe('initAnalytics', () => {
       'https://app.genfeed.ai/:org/:brand/compose/post',
     );
     expect(props.$pathname).toBe('/:org/:brand/publish/:id');
-    expect(props.$prev_pageview_pathname).toBe('/:org/:brand/editor/:id');
+    expect(props.$prev_pageview_pathname).toBe('/:org/:brand/studio/edit/:id');
     expect(
       (props.$set_once as Record<string, unknown>).$initial_current_url,
     ).toBe('https://app.genfeed.ai/:org/:brand/compose/post');

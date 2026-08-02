@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/enums';
 import type { IEditorProject } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -135,7 +136,11 @@ export default function EditorProjectsPage() {
               aria-label={
                 isStudioEnabled ? 'Back to Studio' : 'Back to Library'
               }
-              href={href(isStudioEnabled ? '/studio/video' : '/library')}
+              href={href(
+                isStudioEnabled
+                  ? APP_ROUTES.STUDIO.VIDEO
+                  : APP_ROUTES.LIBRARY.ROOT,
+              )}
             >
               <ArrowLeft className="size-4" />
             </Link>
@@ -149,7 +154,7 @@ export default function EditorProjectsPage() {
           variant={ButtonVariant.DEFAULT}
           withWrapper={false}
         >
-          <Link href={href('/editor/new')}>
+          <Link href={href(APP_ROUTES.STUDIO.EDIT_NEW)}>
             <Plus className="size-4" />
             New Project
           </Link>
@@ -196,7 +201,10 @@ export default function EditorProjectsPage() {
           </h3>
           <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
-              <Link key={project.id} href={href(`/editor/${project.id}`)}>
+              <Link
+                key={project.id}
+                href={href(`${APP_ROUTES.STUDIO.EDIT}/${project.id}`)}
+              >
                 <Card
                   variant={CardVariant.DEFAULT}
                   className="group cursor-pointer p-6 transition-shadow hover:ring-1 hover:ring-primary/30"
@@ -255,7 +263,7 @@ export default function EditorProjectsPage() {
             </p>
 
             <Button asChild variant={ButtonVariant.DEFAULT}>
-              <Link href={href('/editor/new')}>
+              <Link href={href(APP_ROUTES.STUDIO.EDIT_NEW)}>
                 <Plus className="size-5" />
                 Start New Project
               </Link>

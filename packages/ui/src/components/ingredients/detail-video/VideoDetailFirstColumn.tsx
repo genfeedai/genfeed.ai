@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   ButtonSize,
   ButtonVariant,
@@ -7,6 +8,7 @@ import {
   TransformationCategory,
 } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { IIngredient, IVideo } from '@genfeedai/interfaces';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import LoadingOverlay from '@ui/loading/overlay/LoadingOverlay';
@@ -89,6 +91,8 @@ export default function VideoDetailFirstColumn({
   isGeneratingCaptions,
   isAddingTextOverlay,
 }: VideoDetailFirstColumnProps) {
+  const { href } = useOrgUrl();
+
   return (
     <div className="space-y-4">
       <div
@@ -181,13 +185,14 @@ export default function VideoDetailFirstColumn({
         </div>
       )}
 
-      {/* Edit in Video Editor */}
+      {/* Artifact-first entry into Studio's Edit timeline. The link must stay
+          org/brand-scoped — an unscoped `/studio/edit/new` 404s outside the shell. */}
       <Link
-        href={`/editor/new?video=${currentVideo.id}`}
+        href={href(`${APP_ROUTES.STUDIO.EDIT_NEW}?video=${currentVideo.id}`)}
         className="inline-flex items-center gap-2 px-4 py-2 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm font-medium"
       >
         <Film className="size-4" />
-        Edit in Video Editor
+        Edit in Studio
       </Link>
 
       {/* Quick Actions */}

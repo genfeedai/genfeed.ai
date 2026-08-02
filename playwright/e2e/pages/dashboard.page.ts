@@ -87,7 +87,7 @@ export class DashboardPage {
       'a[href="/activities"], a[href*="activities"], [data-testid="nav-activities"]',
     );
     this.navEditor = page.locator(
-      'a[href="/editor"], a[href*="editor"], [data-testid="nav-editor"]',
+      'a[href="/studio/edit"], a[href*="studio/edit"], [data-testid="nav-editor"]',
     );
     this.navSettings = page.locator(
       'a[href="/settings"], a[href*="settings"], [data-testid="nav-settings"]',
@@ -254,7 +254,7 @@ export class DashboardPage {
 
   async navigateToEditor(): Promise<void> {
     await this.navEditor.click();
-    await this.page.waitForURL(/editor/);
+    await this.page.waitForURL(/studio\/edit/);
   }
 
   async navigateToSettings(): Promise<void> {

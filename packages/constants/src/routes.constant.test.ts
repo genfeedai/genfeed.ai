@@ -50,7 +50,7 @@ describe('routes.constant', () => {
     expect(APP_ROUTES.EDIT.ARTICLE).toBe('/edit/article');
     expect(APP_ROUTES.EDIT.NEWSLETTER).toBe('/edit/newsletter');
     expect(APP_ROUTES.EDIT.POST).toBe('/edit/post');
-    expect(APP_ROUTES.EDITOR.ROOT).toBe('/editor');
+    expect(APP_ROUTES.STUDIO.EDIT).toBe('/studio/edit');
   });
 
   it('builds deep-linkable artifact editor paths', () => {
