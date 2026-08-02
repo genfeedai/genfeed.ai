@@ -12875,6 +12875,220 @@
         },
         "type": "object"
       },
+      "UpdateMusicDto": {
+        "properties": {
+          "autoSelectModel": {
+            "default": false,
+            "description": "Automatically select the best model based on the prompt. If true, the model parameter will be ignored.",
+            "type": "boolean"
+          },
+          "brand": {
+            "type": "string"
+          },
+          "category": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IngredientCategory"
+              }
+            ],
+            "default": "image"
+          },
+          "classifierFreeGuidance": {
+            "default": 3,
+            "description": "Classifier free guidance strength",
+            "type": "number"
+          },
+          "contentRating": {
+            "description": "Moderation content rating for fleet assets",
+            "enum": [
+              "sfw",
+              "suggestive",
+              "nsfw"
+            ],
+            "type": "string"
+          },
+          "duration": {
+            "default": 10,
+            "description": "Duration in seconds",
+            "maximum": 90,
+            "minimum": 4,
+            "type": "number"
+          },
+          "folder": {
+            "description": "Folder ID for organizing ingredients",
+            "type": "string"
+          },
+          "groupId": {
+            "description": "Group ID for batch operations (e.g., interpolation pairs)",
+            "type": "string"
+          },
+          "groupIndex": {
+            "description": "Index within the group for ordering",
+            "type": "number"
+          },
+          "isDefault": {
+            "default": false,
+            "type": "boolean"
+          },
+          "isDeleted": {
+            "description": "Whether the music is marked as deleted",
+            "type": "boolean"
+          },
+          "isHighlighted": {
+            "default": false,
+            "type": "boolean"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/CreateMetadataDto"
+          },
+          "metadataId": {
+            "description": "Metadata ID — preferred over the legacy `metadata` field",
+            "type": "string"
+          },
+          "model": {
+            "description": "Model key or genfeedai/<id>",
+            "type": "string"
+          },
+          "modelVersion": {
+            "default": "melody",
+            "description": "Model version: melody, large, etc.",
+            "type": "string"
+          },
+          "order": {
+            "default": 0,
+            "type": "number"
+          },
+          "outputs": {
+            "default": 1,
+            "description": "Number of musics to generate",
+            "maximum": 4,
+            "minimum": 1,
+            "type": "number"
+          },
+          "parent": {
+            "description": "Parent ingredient ID (for tracking origin/hierarchy)",
+            "type": "string"
+          },
+          "prioritize": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RouterPriority"
+              }
+            ],
+            "default": "balanced",
+            "description": "Priority for auto model routing: quality, speed, cost, or balanced."
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "qualityFeedback": {
+            "description": "Quality feedback suggestions from auto-rating",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "qualityScore": {
+            "description": "Quality score from auto-rating (0-10)",
+            "type": "number"
+          },
+          "qualityStatus": {
+            "description": "Quality status: unrated, good, or needs_review",
+            "enum": [
+              "unrated",
+              "good",
+              "needs_review"
+            ],
+            "type": "string"
+          },
+          "references": {
+            "description": "References to asset(s) or ingredient image(s) for generation",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reviewStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FleetReviewStatus"
+              }
+            ],
+            "description": "Fleet review status for moderated assets"
+          },
+          "scope": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AssetScope"
+              }
+            ]
+          },
+          "seed": {
+            "description": "Random seed for generation",
+            "type": "number"
+          },
+          "sources": {
+            "description": "Source ingredient IDs (for tracking merged content)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IngredientStatus"
+              }
+            ]
+          },
+          "tags": {
+            "description": "Array of tag IDs for this ingredient",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "temperature": {
+            "default": 1,
+            "description": "Temperature for sampling",
+            "type": "number"
+          },
+          "text": {
+            "description": "Description of the music to generate",
+            "type": "string"
+          },
+          "topK": {
+            "default": 250,
+            "description": "Top-k sampling parameter",
+            "type": "number"
+          },
+          "topP": {
+            "default": 0,
+            "description": "Top-p sampling parameter",
+            "type": "number"
+          },
+          "training": {
+            "type": "string"
+          },
+          "transformations": {
+            "description": "Transformations applied to this ingredient",
+            "items": {
+              "$ref": "#/components/schemas/TransformationCategory"
+            },
+            "type": "array"
+          },
+          "version": {
+            "default": 1,
+            "type": "number"
+          },
+          "waitForCompletion": {
+            "default": false,
+            "description": "If true, wait for generation to complete before returning the result. Defaults to false (returns immediately with placeholder).",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
       "UpdateNewsletterDto": {
         "properties": {
           "action": {
@@ -33889,7 +34103,145 @@
     "/musics": {
       "get": {
         "operationId": "MusicsController.findAll",
-        "parameters": [],
+        "parameters": [
+          {
+            "description": "Page number for pagination",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Number of items per page",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Enable or disable pagination",
+            "in": "query",
+            "name": "pagination",
+            "required": false,
+            "schema": {
+              "default": true,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Filter by deleted status",
+            "in": "query",
+            "name": "isDeleted",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "createdAt: -1",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by organization ID",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by brand ID",
+            "in": "query",
+            "name": "brand",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by favorite status",
+            "in": "query",
+            "name": "isFavorite",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Search term for filtering results",
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by default status",
+            "in": "query",
+            "name": "isDefault",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Filter by scope/visibility level",
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/AssetScope"
+            }
+          },
+          {
+            "description": "Filter by status using repeated query keys (e.g., ?status=generated&status=processing).",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          {
+            "description": "Filter by format",
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by provider",
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -33996,6 +34348,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMusicDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
