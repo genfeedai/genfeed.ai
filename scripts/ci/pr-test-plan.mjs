@@ -67,6 +67,8 @@ export function classifyChangedFiles(changedFiles) {
   return { api, app, forceFull: false };
 }
 
+const MAX_SHARD_COUNT = 4;
+
 export function selectShardCount(testFileCount) {
   if (!Number.isSafeInteger(testFileCount) || testFileCount < 0) {
     throw new TypeError('testFileCount must be a non-negative integer');
@@ -74,7 +76,42 @@ export function selectShardCount(testFileCount) {
   if (testFileCount === 0) return 0;
   if (testFileCount <= 75) return 1;
   if (testFileCount <= 250) return 2;
-  return 4;
+  return MAX_SHARD_COUNT;
+}
+
+/**
+ * Shard count for a changed-code coverage surface (#1849).
+ *
+ * The coverage jobs re-execute the same `--changed` graph the changed-test
+ * shards run, with instrumentation on top, and are budgeted at 20 minutes. Run
+ * unsharded, a shared-package edit expands that graph to effectively the whole
+ * suite — measured on the API surface at ~35 minutes of work — and the job is
+ * cancelled mid-run without ever writing its lcov. Give coverage the same shard
+ * split the changed-test jobs get so each shard finishes inside the budget.
+ *
+ * @param {{applies: boolean, forceFull: boolean, testFileCount: number}} input
+ */
+export function selectCoverageShardCount({
+  applies,
+  forceFull,
+  testFileCount,
+}) {
+  if (typeof applies !== 'boolean') {
+    throw new TypeError('applies must be a boolean');
+  }
+  if (typeof forceFull !== 'boolean') {
+    throw new TypeError('forceFull must be a boolean');
+  }
+  if (!applies) return 0;
+  // A full-suite escalation skips the Vitest listing entirely, so there is no
+  // measured file count to size the split from. Assume the widest one: the
+  // coverage run still passes `--changed`, which bounds what each shard executes.
+  if (forceFull) return MAX_SHARD_COUNT;
+  // One shard is the floor for an in-scope surface. A surface whose changed
+  // graph pulls in no test file must still run and produce an empty report, so
+  // the report records `no-coverage` — an honest "instrumented nothing" — rather
+  // than the `not-applicable` that a skipped job would claim.
+  return Math.max(1, selectShardCount(testFileCount));
 }
 
 export function createShardMatrix(shardCount) {
@@ -188,6 +225,16 @@ export function createPrTestPlan({
   const api = forceAllSurfaces || forceFull || classification.api;
   const appShardCount = forceFull ? 0 : selectShardCount(appTests.length);
   const apiShardCount = forceFull ? 0 : selectShardCount(apiTests.length);
+  const appCoverageShardCount = selectCoverageShardCount({
+    applies: app,
+    forceFull,
+    testFileCount: appTests.length,
+  });
+  const apiCoverageShardCount = selectCoverageShardCount({
+    applies: api,
+    forceFull,
+    testFileCount: apiTests.length,
+  });
 
   const normalizedTurboTasks = Object.fromEntries(
     Object.keys(TURBO_TEST_GROUPS).map((group) => [
@@ -215,6 +262,19 @@ export function createPrTestPlan({
       files: [...apiTests],
       matrix: createShardMatrix(apiShardCount),
       shards: apiShardCount,
+    },
+    // Coverage keys off the surface, not the changed-test applicability: a
+    // full-suite escalation sets `{app,api}Tests.applicable` false while the
+    // surface stays true, and that diff is still worth measuring.
+    appCoverage: {
+      applicable: app,
+      matrix: createShardMatrix(appCoverageShardCount),
+      shards: appCoverageShardCount,
+    },
+    apiCoverage: {
+      applicable: api,
+      matrix: createShardMatrix(apiCoverageShardCount),
+      shards: apiCoverageShardCount,
     },
     turboTasks: normalizedTurboTasks,
     workspaceGroups: Object.fromEntries(
@@ -354,6 +414,10 @@ function writeOutputs(plan, manifestPath) {
     api_count: plan.apiTests.count,
     app_matrix: JSON.stringify(plan.appTests.matrix),
     api_matrix: JSON.stringify(plan.apiTests.matrix),
+    app_coverage: plan.appCoverage.applicable,
+    api_coverage: plan.apiCoverage.applicable,
+    app_coverage_matrix: JSON.stringify(plan.appCoverage.matrix),
+    api_coverage_matrix: JSON.stringify(plan.apiCoverage.matrix),
     force_full: plan.forceFull,
     packages: plan.workspaceGroups.packages,
     server_services: plan.workspaceGroups.server,
@@ -375,8 +439,18 @@ function writeSummary(plan) {
   if (!summaryPath) return;
 
   const rows = [
-    ['App changed tests', plan.appTests.count, plan.appTests.shards],
-    ['API changed tests', plan.apiTests.count, plan.apiTests.shards],
+    [
+      'App changed tests',
+      plan.appTests.count,
+      plan.appTests.shards,
+      plan.appCoverage.shards,
+    ],
+    [
+      'API changed tests',
+      plan.apiTests.count,
+      plan.apiTests.shards,
+      plan.apiCoverage.shards,
+    ],
   ];
   const groupRows = Object.entries(plan.workspaceGroups).map(
     ([group, applies]) => [group, applies ? 'run' : 'skip'],
@@ -387,10 +461,11 @@ function writeSummary(plan) {
     `- Base: \`${plan.base}\``,
     `- Full-suite escalation: ${plan.forceFull ? 'yes' : 'no'}`,
     '',
-    '| Surface | Affected files | Changed-test shards |',
-    '| --- | ---: | ---: |',
+    '| Surface | Affected files | Changed-test shards | Coverage shards |',
+    '| --- | ---: | ---: | ---: |',
     ...rows.map(
-      ([surface, count, shards]) => `| ${surface} | ${count} | ${shards} |`,
+      ([surface, count, shards, coverageShards]) =>
+        `| ${surface} | ${count} | ${shards} | ${coverageShards} |`,
     ),
     '',
     '| Workspace group | Plan |',

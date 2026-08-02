@@ -10,6 +10,7 @@ import {
   parseTurboDryRun,
   parseVitestList,
   readChangedFiles,
+  selectCoverageShardCount,
   selectShardCount,
 } from './pr-test-plan.mjs';
 
@@ -105,6 +106,73 @@ test('selects bounded adaptive shard counts', () => {
   assert.equal(selectShardCount(737), 4);
 });
 
+test('sizes coverage shards from the surface, not from applicability', () => {
+  // Out of scope: no matrix, so the coverage job never starts.
+  assert.equal(
+    selectCoverageShardCount({
+      applies: false,
+      forceFull: false,
+      testFileCount: 400,
+    }),
+    0,
+  );
+  // In scope with nothing listed still runs one shard: a skipped job reports
+  // `not-applicable`, and that is a different fact from "instrumented nothing".
+  assert.equal(
+    selectCoverageShardCount({
+      applies: true,
+      forceFull: false,
+      testFileCount: 0,
+    }),
+    1,
+  );
+  assert.equal(
+    selectCoverageShardCount({
+      applies: true,
+      forceFull: false,
+      testFileCount: 76,
+    }),
+    2,
+  );
+  assert.equal(
+    selectCoverageShardCount({
+      applies: true,
+      forceFull: false,
+      testFileCount: 251,
+    }),
+    4,
+  );
+  // An escalation never lists the graph, so there is no count to size from —
+  // assume the widest split rather than guess a narrow one.
+  assert.equal(
+    selectCoverageShardCount({
+      applies: true,
+      forceFull: true,
+      testFileCount: 0,
+    }),
+    4,
+  );
+
+  assert.throws(
+    () =>
+      selectCoverageShardCount({
+        applies: 'yes',
+        forceFull: false,
+        testFileCount: 1,
+      }),
+    /applies must be a boolean/,
+  );
+  assert.throws(
+    () =>
+      selectCoverageShardCount({
+        applies: true,
+        forceFull: 'no',
+        testFileCount: 1,
+      }),
+    /forceFull must be a boolean/,
+  );
+});
+
 test('creates deterministic matrix entries', () => {
   assert.deepEqual(createShardMatrix(0), { include: [] });
   assert.deepEqual(createShardMatrix(1), {
@@ -188,12 +256,53 @@ test('creates a fail-closed plan with explicit applicability', () => {
   assert.equal(plan.apiTests.applicable, true);
   assert.equal(plan.apiTests.count, 251);
   assert.equal(plan.apiTests.shards, 4);
+  assert.equal(plan.appCoverage.applicable, true);
+  assert.equal(plan.appCoverage.shards, 2);
+  assert.equal(plan.apiCoverage.applicable, true);
+  assert.equal(plan.apiCoverage.shards, 4);
+  assert.deepEqual(plan.apiCoverage.matrix, createShardMatrix(4));
   assert.deepEqual(plan.workspaceGroups, {
     extensions: false,
     packages: true,
     server: false,
     web: true,
   });
+});
+
+test('keeps coverage measurable when changed-test selection is dropped', () => {
+  const plan = createPrTestPlan({
+    base: 'base-sha',
+    changedFiles: ['package.json'],
+    appTests: [],
+    apiTests: [],
+    turboTasks: {},
+  });
+
+  assert.equal(plan.forceFull, true);
+  // The escalation hands both surfaces to the full suites, so changed-test
+  // selection is deliberately empty…
+  assert.equal(plan.appTests.applicable, false);
+  assert.deepEqual(plan.appTests.matrix, { include: [] });
+  // …while the diff still has coverage worth measuring, at the widest split.
+  assert.equal(plan.apiCoverage.applicable, true);
+  assert.equal(plan.apiCoverage.shards, 4);
+});
+
+test('never emits a coverage matrix for an out-of-scope surface', () => {
+  const plan = createPrTestPlan({
+    base: 'base-sha',
+    changedFiles: ['apps/app/src/components/example.tsx'],
+    appTests: ['apps/app/example.test.ts'],
+    apiTests: [],
+    turboTasks: {},
+  });
+
+  // An empty matrix is a workflow error, not an empty run — the coverage jobs
+  // gate on `applicable`, so the two must agree exactly.
+  assert.equal(plan.apiCoverage.applicable, false);
+  assert.deepEqual(plan.apiCoverage.matrix, { include: [] });
+  assert.equal(plan.appCoverage.applicable, true);
+  assert.deepEqual(plan.appCoverage.matrix, createShardMatrix(1));
 });
 
 test('keeps dormant extension tests out of full-suite plans', () => {
@@ -237,4 +346,43 @@ test('keeps the workflow wired to exact changed selection and dynamic shards', (
     workflow,
     /name: Upload pull-request test plan[\s\S]*?actions\/upload-artifact@v7/,
   );
+});
+
+test('sizes the coverage jobs from the same planner as the test jobs', () => {
+  const workflowPath = fileURLToPath(
+    new URL('../../.github/workflows/ci.yml', import.meta.url),
+  );
+  const workflow = readFileSync(workflowPath, 'utf8');
+
+  const planJob = workflow.slice(
+    workflow.indexOf('\n  test-scope:\n'),
+    workflow.indexOf('\n  test-packages:\n'),
+  );
+
+  for (const surface of ['app', 'api']) {
+    // A planner output that the job never forwards reads as the empty string
+    // downstream, and the coverage job silently stops running altogether.
+    for (const key of [`${surface}_coverage`, `${surface}_coverage_matrix`]) {
+      assert.ok(
+        planJob.includes(`${key}: \${{ steps.plan.outputs.${key} }}`),
+        `test-scope must expose ${key} as a job output`,
+      );
+    }
+    assert.match(
+      workflow,
+      new RegExp(
+        `matrix: \\$\\{\\{ fromJSON\\(needs\\.test-scope\\.outputs\\.${surface}_coverage_matrix\\) \\}\\}`,
+      ),
+      `coverage-changed-${surface} must shard on the planner's coverage matrix`,
+    );
+    // An empty matrix is an error, never an empty run: the gate and the matrix
+    // are two views of the same planner decision and must not drift apart.
+    assert.match(
+      workflow,
+      new RegExp(
+        `needs\\.test-scope\\.outputs\\.${surface}_coverage == 'true'`,
+      ),
+      `coverage-changed-${surface} must gate on its own applicability output`,
+    );
+  }
 });

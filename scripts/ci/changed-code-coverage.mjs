@@ -16,7 +16,9 @@ import { execFile } from 'node:child_process';
 import {
   appendFileSync,
   existsSync,
+  readdirSync,
   readFileSync,
+  statSync,
   writeFileSync,
 } from 'node:fs';
 import path from 'node:path';
@@ -36,6 +38,10 @@ const MAX_ANNOTATIONS = 40;
 const MAX_SUMMARY_FILE_ROWS = 30;
 
 const SURFACE_RESULTS = new Set(['success', 'failure', 'cancelled', 'skipped']);
+
+const SHARD_LCOV_FILENAME = 'lcov.info';
+const SHARD_OUTCOME_FILENAME = 'outcome.txt';
+const SHARD_SECONDS_FILENAME = 'seconds.txt';
 
 // ── Diff ────────────────────────────────────────────────────────────────────
 
@@ -298,6 +304,117 @@ export function measureChangedCoverage({ changedLinesByFile, coverageByFile }) {
       },
     },
   };
+}
+
+// ── Shards ──────────────────────────────────────────────────────────────────
+
+/**
+ * Aggregate one surface's per-shard step outcomes into a single job result.
+ *
+ * The coverage step is `continue-on-error`, so a shard whose Vitest run failed
+ * still reports job success — and `needs.<job>.outputs` is unusable under a
+ * matrix, because every shard writes the same output key and the last one to
+ * finish wins. Each shard therefore records its own step outcome beside its
+ * lcov, and the surface is only successful when no shard contradicts it.
+ *
+ * @param {{jobResult: string, shardOutcomes: readonly (string|null)[]}} input
+ * @returns {string}
+ */
+export function aggregateSurfaceResult({ jobResult, shardOutcomes }) {
+  if (jobResult !== 'success') return jobResult;
+  const contradicted = shardOutcomes.some(
+    (outcome) => typeof outcome === 'string' && outcome !== 'success',
+  );
+  return contradicted ? 'failure' : 'success';
+}
+
+/**
+ * Surface wall clock: shards run in parallel, so the surface costs its slowest
+ * shard, and the run costs its slowest surface. That is the number the
+ * baseline's 20-minute latency budget is measured against.
+ *
+ * @param {readonly {shards: readonly {seconds: number|null}[]}[]} surfaces
+ * @returns {number|null}
+ */
+export function resolveLatencySeconds(surfaces) {
+  const durations = surfaces.flatMap((surface) =>
+    surface.shards
+      .map((shard) => shard.seconds)
+      .filter((seconds) => typeof seconds === 'number'),
+  );
+  return durations.length === 0 ? null : Math.max(...durations);
+}
+
+function collectShardDirectories(root) {
+  const shardFilenames = new Set([
+    SHARD_LCOV_FILENAME,
+    SHARD_OUTCOME_FILENAME,
+    SHARD_SECONDS_FILENAME,
+  ]);
+  const directories = [];
+  const pending = [root];
+
+  while (pending.length > 0) {
+    const current = pending.pop();
+    let entries;
+    try {
+      entries = readdirSync(current, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+
+    let holdsShardFile = false;
+    for (const entry of entries) {
+      if (entry.isDirectory()) pending.push(path.join(current, entry.name));
+      else if (shardFilenames.has(entry.name)) holdsShardFile = true;
+    }
+    if (holdsShardFile) directories.push(current);
+  }
+
+  return directories.sort();
+}
+
+function readShardFile(directory, filename) {
+  const pathname = path.join(directory, filename);
+  if (!existsSync(pathname)) return null;
+  try {
+    return readFileSync(pathname, 'utf8').trim();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Read one surface's artifacts. `pathname` is either a directory holding the
+ * downloaded shard artifacts (one subdirectory per shard) or, for an unsharded
+ * surface, the lcov file itself. Shard reports are concatenated: `parseLcov`
+ * merges duplicate `SF:` records by summing hits, which is exactly the union
+ * coverage of a disjoint shard split.
+ *
+ * @param {string} pathname
+ * @returns {{lcov: string|null, shards: {name: string, outcome: string|null, seconds: number|null}[]}}
+ */
+export function readSurfaceArtifacts(pathname) {
+  if (!pathname || !existsSync(pathname)) return { lcov: null, shards: [] };
+
+  if (!statSync(pathname).isDirectory()) {
+    return { lcov: readFileSync(pathname, 'utf8'), shards: [] };
+  }
+
+  const reports = [];
+  const shards = collectShardDirectories(pathname).map((directory) => {
+    const lcov = readShardFile(directory, SHARD_LCOV_FILENAME);
+    if (lcov) reports.push(lcov);
+    const rawSeconds = readShardFile(directory, SHARD_SECONDS_FILENAME);
+    const seconds = Number.parseInt(rawSeconds ?? '', 10);
+    return {
+      name: path.relative(pathname, directory) || '.',
+      outcome: readShardFile(directory, SHARD_OUTCOME_FILENAME),
+      seconds: Number.isSafeInteger(seconds) ? seconds : null,
+    };
+  });
+
+  return { lcov: reports.length > 0 ? reports.join('\n') : null, shards };
 }
 
 // ── Surfaces ────────────────────────────────────────────────────────────────
@@ -658,7 +775,7 @@ function parseArguments(argv) {
       const [name, result, ...rest] = raw.split('=');
       if (!name || !result) {
         throw new Error(
-          `--surface expects <name>=<jobResult>[=<lcovPath>]; received "${raw}"`,
+          `--surface expects <name>=<jobResult>[=<lcovPathOrShardDirectory>]; received "${raw}"`,
         );
       }
       values.surfaces.push({ name, result, lcovPath: rest.join('=') });
@@ -695,11 +812,16 @@ async function runCli() {
   const changedFiles = parseUnifiedDiff(await readDiff(args.base, args.head));
 
   const surfaces = args.surfaces.map((surface) => {
-    const lcov =
-      surface.lcovPath && existsSync(surface.lcovPath)
-        ? readFileSync(surface.lcovPath, 'utf8')
-        : null;
-    return { ...classifySurface({ ...surface, lcov }), lcov };
+    const { lcov, shards } = readSurfaceArtifacts(surface.lcovPath);
+    const result = aggregateSurfaceResult({
+      jobResult: surface.result,
+      shardOutcomes: shards.map((shard) => shard.outcome),
+    });
+    return {
+      ...classifySurface({ ...surface, result, lcov }),
+      lcov,
+      shards,
+    };
   });
 
   const report = buildReport({
@@ -716,9 +838,11 @@ async function runCli() {
     runId: process.env.GITHUB_RUN_ID ?? null,
     runAttempt: process.env.GITHUB_RUN_ATTEMPT ?? null,
     startedAt: process.env.OBSERVATION_STARTED_AT ?? null,
-    latencySeconds: process.env.OBSERVATION_LATENCY_SECONDS
-      ? Number(process.env.OBSERVATION_LATENCY_SECONDS)
-      : null,
+    latencySeconds:
+      resolveLatencySeconds(surfaces) ??
+      (process.env.OBSERVATION_LATENCY_SECONDS
+        ? Number(process.env.OBSERVATION_LATENCY_SECONDS)
+        : null),
   };
 
   const summary = formatSummary(report);

@@ -325,6 +325,13 @@ jobs:
       api_count: ${{ steps.plan.outputs.api_count }}
       app_matrix: ${{ steps.plan.outputs.app_matrix }}
       api_matrix: ${{ steps.plan.outputs.api_matrix }}
+      # Coverage is sized separately from changed-test selection: it keeps a
+      # one-shard floor for an in-scope surface, and a full-suite escalation
+      # zeroes the test matrices while coverage still measures the diff.
+      app_coverage: ${{ steps.plan.outputs.app_coverage }}
+      api_coverage: ${{ steps.plan.outputs.api_coverage }}
+      app_coverage_matrix: ${{ steps.plan.outputs.app_coverage_matrix }}
+      api_coverage_matrix: ${{ steps.plan.outputs.api_coverage_matrix }}
       force_full: ${{ steps.plan.outputs.force_full }}
       packages: ${{ steps.plan.outputs.packages }}
       server_services: ${{ steps.plan.outputs.server_services }}
@@ -731,23 +738,35 @@ jobs:
   #
   # Full-repository coverage stays in the weekly Coverage workflow: its matrix
   # costs 21-24 minutes and must never enter pull-request CI. What runs here is
-  # the SAME already-affected scope the changed-shard jobs run, re-executed once
-  # with instrumentation and unsharded so one lcov covers the whole changed graph.
+  # the SAME already-affected scope the changed-shard jobs run, re-executed with
+  # instrumentation, and sharded on the planner's coverage matrix.
+  #
+  # Sharding is not an optimization — it is what makes the surface reachable at
+  # all. Unsharded, any edit to a widely-imported shared package (a one-line
+  # `packages/constants/` change is enough) expands the Vitest `--changed` graph
+  # to effectively the whole API suite: ~35 minutes of instrumented work inside a
+  # 20-minute budget. The job was cancelled mid-run, the lcov was never written,
+  # and the api surface reported `fail` on exactly the pull requests with the
+  # widest blast radius — silently, since these jobs are not required checks.
+  # Measured on PR #2315: coverage (api) cancelled at 20m, while the four
+  # changed-test shards covering the identical graph finished in 8-9m each.
   coverage-changed-app:
-    name: Changed Coverage (app)
+    name: Changed Coverage (app shard ${{ matrix.shard }}/${{ matrix.total }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [trust, test-scope]
-    # Keys off `app`, not `app_tests`: a planner escalation to the full suite
-    # sets app_tests=false while app stays true, and the diff is still worth
-    # measuring. `--changed` bounds the work either way.
+    # Keys off the surface, not `app_tests`: a planner escalation to the full
+    # suite sets app_tests=false while the surface stays true, and the diff is
+    # still worth measuring. `app_coverage` is true on exactly the runs whose
+    # `app_coverage_matrix` is non-empty, so the matrix never expands to zero.
     if: >-
       needs.trust.outputs.is-trusted == 'true'
       && github.event_name == 'pull_request'
-      && needs.test-scope.outputs.app == 'true'
-    outputs:
-      outcome: ${{ steps.coverage.outcome }}
-      seconds: ${{ steps.coverage.outputs.seconds }}
+      && needs.test-scope.outputs.app_coverage == 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.test-scope.outputs.app_coverage_matrix) }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -758,6 +777,9 @@ jobs:
           bun-version: '1.3.14'
       - name: Build app workspace
         run: bunx turbo run build --filter='./apps/app...'
+      - name: Record shard start
+        id: started
+        run: echo "at=$(date +%s)" >> "$GITHUB_OUTPUT"
       - name: Run changed app tests with coverage
         id: coverage
         # Never fails the job: a red surface is recorded as a surface result and
@@ -765,35 +787,47 @@ jobs:
         continue-on-error: true
         run: |
           BASE="${{ github.event.pull_request.base.sha }}"
-          STARTED=$(date +%s)
           cd apps/app && bunx vitest run --config ./vitest.config.mts \
             --maxWorkers=2 --passWithNoTests --changed "$BASE" \
+            --shard=${{ matrix.shard }}/${{ matrix.total }} \
             --coverage --coverage.enabled=true --coverage.provider=v8 \
             --coverage.all=false --coverage.reporter=lcovonly
-          echo "seconds=$(($(date +%s) - STARTED))" >> "$GITHUB_OUTPUT"
         env:
           NODE_ENV: test
+      - name: Record shard outcome
+        # `needs.<job>.outputs` is unusable under a matrix — every shard writes
+        # the same key and the last to finish wins. The shard's own outcome and
+        # wall clock travel with its lcov instead, and the report job aggregates.
+        if: always()
+        run: |
+          mkdir -p apps/app/coverage
+          printf '%s\n' '${{ steps.coverage.outcome }}' > apps/app/coverage/outcome.txt
+          printf '%s\n' "$(($(date +%s) - ${{ steps.started.outputs.at }}))" > apps/app/coverage/seconds.txt
       - name: Upload app lcov
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: changed-code-coverage-lcov-app-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
-          path: apps/app/coverage/lcov.info
+          name: changed-code-coverage-lcov-app-${{ github.event.pull_request.number }}-${{ github.run_attempt }}-${{ matrix.shard }}
+          path: |
+            apps/app/coverage/lcov.info
+            apps/app/coverage/outcome.txt
+            apps/app/coverage/seconds.txt
           if-no-files-found: ignore
           retention-days: 7
 
   coverage-changed-api:
-    name: Changed Coverage (api)
+    name: Changed Coverage (api shard ${{ matrix.shard }}/${{ matrix.total }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [trust, test-scope]
     if: >-
       needs.trust.outputs.is-trusted == 'true'
       && github.event_name == 'pull_request'
-      && needs.test-scope.outputs.api == 'true'
-    outputs:
-      outcome: ${{ steps.coverage.outcome }}
-      seconds: ${{ steps.coverage.outputs.seconds }}
+      && needs.test-scope.outputs.api_coverage == 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.test-scope.outputs.api_coverage_matrix) }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -804,16 +838,18 @@ jobs:
           bun-version: '1.3.14'
       - name: Build API dependencies
         run: bunx turbo run build --filter=./packages/**
+      - name: Record shard start
+        id: started
+        run: echo "at=$(date +%s)" >> "$GITHUB_OUTPUT"
       - name: Run changed API tests with coverage
         id: coverage
         continue-on-error: true
         run: |
           BASE="${{ github.event.pull_request.base.sha }}"
-          STARTED=$(date +%s)
           cd apps/server/api && bunx vitest run --config vitest.config.ts \
             --maxWorkers=2 --passWithNoTests --changed "$BASE" \
+            --shard=${{ matrix.shard }}/${{ matrix.total }} \
             --coverage --coverage.reporter=lcovonly
-          echo "seconds=$(($(date +%s) - STARTED))" >> "$GITHUB_OUTPUT"
         env:
           NODE_ENV: test
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
@@ -821,12 +857,21 @@ jobs:
           # describe the full suite; a diff-scoped subset would trip every one of
           # them and the failure would carry no information.
           CHANGED_CODE_COVERAGE: '1'
+      - name: Record shard outcome
+        if: always()
+        run: |
+          mkdir -p apps/server/api/coverage
+          printf '%s\n' '${{ steps.coverage.outcome }}' > apps/server/api/coverage/outcome.txt
+          printf '%s\n' "$(($(date +%s) - ${{ steps.started.outputs.at }}))" > apps/server/api/coverage/seconds.txt
       - name: Upload api lcov
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: changed-code-coverage-lcov-api-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
-          path: apps/server/api/coverage/lcov.info
+          name: changed-code-coverage-lcov-api-${{ github.event.pull_request.number }}-${{ github.run_attempt }}-${{ matrix.shard }}
+          path: |
+            apps/server/api/coverage/lcov.info
+            apps/server/api/coverage/outcome.txt
+            apps/server/api/coverage/seconds.txt
           if-no-files-found: ignore
           retention-days: 7
 
@@ -842,33 +887,42 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - name: Download surface lcov reports
+      # Downloaded per surface, not once for both: each surface is now a shard
+      # matrix, and the report merges a surface's shards into one lcov. Keeping
+      # them in separate directories is what makes "these shards belong to api"
+      # a directory fact rather than a filename-parsing exercise.
+      - name: Download app coverage shards
         # Both surfaces can legitimately be skipped (a docs-only or packages-only
         # diff), leaving nothing to download. A missing artifact is a surface
         # state the report already models, not a step failure.
         continue-on-error: true
         uses: actions/download-artifact@v8
         with:
-          pattern: changed-code-coverage-lcov-*-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
-          path: .changed-coverage
+          pattern: changed-code-coverage-lcov-app-${{ github.event.pull_request.number }}-${{ github.run_attempt }}-*
+          path: .changed-coverage/app
+      - name: Download api coverage shards
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          pattern: changed-code-coverage-lcov-api-${{ github.event.pull_request.number }}-${{ github.run_attempt }}-*
+          path: .changed-coverage/api
       - name: Intersect coverage with the pull-request diff
+        # Job results, not step outcomes: `needs.<job>.outputs` cannot survive a
+        # matrix. A matrix job result already aggregates its shards, and the
+        # per-shard `continue-on-error` outcomes travel inside the artifacts —
+        # the report reconciles the two, and derives surface wall clock (the
+        # baseline's 20-minute budget) from the slowest shard.
         env:
-          APP_RESULT: ${{ needs.coverage-changed-app.outputs.outcome || needs.coverage-changed-app.result }}
-          API_RESULT: ${{ needs.coverage-changed-api.outputs.outcome || needs.coverage-changed-api.result }}
-          APP_SECONDS: ${{ needs.coverage-changed-app.outputs.seconds || 0 }}
-          API_SECONDS: ${{ needs.coverage-changed-api.outputs.seconds || 0 }}
+          APP_RESULT: ${{ needs.coverage-changed-app.result }}
+          API_RESULT: ${{ needs.coverage-changed-api.result }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         shell: bash
         run: |
-          # Surface wall clock, not report wall clock — that is what the 20-minute
-          # budget in the baseline is measured against.
-          OBSERVATION_LATENCY_SECONDS=$(( APP_SECONDS > API_SECONDS ? APP_SECONDS : API_SECONDS ))
-          export OBSERVATION_LATENCY_SECONDS
           node scripts/ci/changed-code-coverage.mjs \
             --base "${{ github.event.pull_request.base.sha }}" \
             --head HEAD \
-            --surface "app=${APP_RESULT}=.changed-coverage/changed-code-coverage-lcov-app-${PR_NUMBER}-${{ github.run_attempt }}/lcov.info" \
-            --surface "api=${API_RESULT}=.changed-coverage/changed-code-coverage-lcov-api-${PR_NUMBER}-${{ github.run_attempt }}/lcov.info" \
+            --surface "app=${APP_RESULT}=.changed-coverage/app" \
+            --surface "api=${API_RESULT}=.changed-coverage/api" \
             --out changed-code-coverage.json \
             --annotate
       - name: Upload changed-code coverage report

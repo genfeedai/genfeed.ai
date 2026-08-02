@@ -1,9 +1,18 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { test } from 'node:test';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { after, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import {
+  aggregateSurfaceResult,
   buildReport,
   classifySurface,
   evaluateRatchet,
@@ -14,6 +23,8 @@ import {
   parseLcov,
   parseUnifiedDiff,
   readBaseline,
+  readSurfaceArtifacts,
+  resolveLatencySeconds,
 } from './changed-code-coverage.mjs';
 import { classifyChangedFile } from './changed-code-coverage.policy.mjs';
 
@@ -255,6 +266,163 @@ test('measurement counts only executable changed lines and reports unmeasured fi
   assert.deepEqual(measured.uncoveredLines, [2, 4]);
   assert.equal(unmeasured.status, 'unmeasured');
   assert.equal(unmeasured.lines.percent, null);
+});
+
+// ── Shard aggregation ───────────────────────────────────────────────────────
+
+const scratchRoots = [];
+after(() => {
+  for (const root of scratchRoots)
+    rmSync(root, { force: true, recursive: true });
+});
+
+/** Lay out a downloaded shard artifact tree and hand back its root. */
+function shardTree(shards) {
+  const root = mkdtempSync(path.join(tmpdir(), 'changed-coverage-'));
+  scratchRoots.push(root);
+  for (const [name, files] of Object.entries(shards)) {
+    const directory = path.join(root, name);
+    mkdirSync(directory, { recursive: true });
+    for (const [filename, contents] of Object.entries(files)) {
+      writeFileSync(path.join(directory, filename), contents);
+    }
+  }
+  return root;
+}
+
+test('a failing shard inside a successful matrix job still fails the surface', () => {
+  // The coverage step is `continue-on-error`, so the job goes green regardless
+  // — the shard's own outcome file is the only witness that it did not run.
+  assert.equal(
+    aggregateSurfaceResult({
+      jobResult: 'success',
+      shardOutcomes: ['success', 'failure', 'success'],
+    }),
+    'failure',
+  );
+  assert.equal(
+    aggregateSurfaceResult({
+      jobResult: 'success',
+      shardOutcomes: ['success', 'success'],
+    }),
+    'success',
+  );
+  // A shard whose artifact never uploaded contributes no verdict; the job
+  // result already covers a shard that died before writing anything.
+  assert.equal(
+    aggregateSurfaceResult({
+      jobResult: 'success',
+      shardOutcomes: [null, 'success'],
+    }),
+    'success',
+  );
+  // A non-success job result is authoritative and passes straight through, so
+  // `skipped` keeps producing `not-applicable` rather than a failure.
+  for (const jobResult of ['skipped', 'cancelled', 'failure']) {
+    assert.equal(
+      aggregateSurfaceResult({ jobResult, shardOutcomes: ['success'] }),
+      jobResult,
+    );
+  }
+});
+
+test('surface latency is the slowest shard, not the sum of the shards', () => {
+  const surfaces = [
+    { shards: [{ seconds: 640 }, { seconds: 590 }] },
+    { shards: [{ seconds: 720 }, { seconds: null }] },
+  ];
+
+  // Shards run in parallel: summing them would report 1950s against a
+  // 1200s budget for a run that actually finished in 12 minutes.
+  assert.equal(resolveLatencySeconds(surfaces), 720);
+  assert.equal(resolveLatencySeconds([{ shards: [] }]), null);
+  assert.equal(resolveLatencySeconds([]), null);
+});
+
+test('a surface merges its shard artifacts into one lcov', () => {
+  const root = shardTree({
+    'lcov-api-1': {
+      'lcov.info': [
+        'SF:/repo/apps/server/api/a.ts',
+        'DA:1,1',
+        'end_of_record',
+      ].join('\n'),
+      'outcome.txt': 'success\n',
+      'seconds.txt': '640\n',
+    },
+    'lcov-api-2': {
+      'lcov.info': [
+        'SF:/repo/apps/server/api/b.ts',
+        'DA:1,0',
+        'end_of_record',
+      ].join('\n'),
+      'outcome.txt': 'failure\n',
+      'seconds.txt': '712\n',
+    },
+  });
+
+  const { lcov, shards } = readSurfaceArtifacts(root);
+  const parsed = parseLcov(lcov);
+
+  assert.deepEqual([...parsed.keys()].sort(), [
+    '/repo/apps/server/api/a.ts',
+    '/repo/apps/server/api/b.ts',
+  ]);
+  assert.deepEqual(
+    shards.map((shard) => [shard.name, shard.outcome, shard.seconds]),
+    [
+      ['lcov-api-1', 'success', 640],
+      ['lcov-api-2', 'failure', 712],
+    ],
+  );
+});
+
+test('shard artifacts that never wrote an lcov leave the surface unmeasured', () => {
+  // A cancelled shard uploads its outcome and nothing else. That must read as
+  // "no coverage produced", not as an empty-but-valid report.
+  const root = shardTree({
+    'lcov-api-1': { 'outcome.txt': 'failure\n' },
+  });
+  const { lcov, shards } = readSurfaceArtifacts(root);
+
+  assert.equal(lcov, null);
+  assert.deepEqual(shards, [
+    { name: 'lcov-api-1', outcome: 'failure', seconds: null },
+  ]);
+  assert.equal(
+    surface(
+      'api',
+      aggregateSurfaceResult({
+        jobResult: 'success',
+        shardOutcomes: shards.map((shard) => shard.outcome),
+      }),
+      lcov,
+    ).status,
+    'infrastructure-failed',
+  );
+});
+
+test('a missing artifact directory is an absent surface, not a crash', () => {
+  assert.deepEqual(
+    readSurfaceArtifacts(path.join(tmpdir(), 'no-such-dir-x9')),
+    {
+      lcov: null,
+      shards: [],
+    },
+  );
+  assert.deepEqual(readSurfaceArtifacts(''), { lcov: null, shards: [] });
+});
+
+test('a surface pointed straight at an lcov file still reads', () => {
+  const root = shardTree({
+    plain: { 'lcov.info': 'SF:/repo/a.ts\nend_of_record' },
+  });
+  const { lcov, shards } = readSurfaceArtifacts(
+    path.join(root, 'plain', 'lcov.info'),
+  );
+
+  assert.match(lcov, /SF:\/repo\/a\.ts/);
+  assert.deepEqual(shards, []);
 });
 
 // ── Surfaces and disposition ────────────────────────────────────────────────
@@ -568,6 +736,75 @@ test('each coverage surface is budgeted and non-fatal', () => {
     assert.match(job, /--coverage/, `${name} must run instrumented`);
     // The affected scope is decided by the existing planner, not re-derived.
     assert.match(job, /needs: \[trust, test-scope\]/);
+  }
+});
+
+test('each coverage surface is sharded to fit inside its budget', () => {
+  for (const [name, key] of [
+    ['coverage-changed-app', 'app'],
+    ['coverage-changed-api', 'api'],
+  ]) {
+    const job = ciJob(name);
+    // Unsharded, a `packages/constants` edit expands the `--changed` graph to
+    // the whole API suite: ~35 minutes of instrumented work inside a 20-minute
+    // box, cancelled every time, lcov never written. Sharding is what makes
+    // this surface reachable at all.
+    assert.match(
+      job,
+      new RegExp(
+        `matrix: \\$\\{\\{ fromJSON\\(needs\\.test-scope\\.outputs\\.${key}_coverage_matrix\\) \\}\\}`,
+      ),
+      `${name} must shard on the planner's coverage matrix`,
+    );
+    assert.match(
+      job,
+      /--shard=\$\{\{ matrix\.shard \}\}\/\$\{\{ matrix\.total \}\}/,
+      `${name} must pass its shard to Vitest`,
+    );
+    assert.match(
+      job,
+      /fail-fast: false/,
+      `${name} must let every shard report, not stop at the first failure`,
+    );
+    // `needs.<job>.outputs` cannot survive a matrix — every shard writes the
+    // same key and the last to finish wins — so each shard's outcome and wall
+    // clock travel inside its own artifact instead.
+    for (const evidence of ['outcome.txt', 'seconds.txt']) {
+      assert.ok(
+        job.includes(evidence),
+        `${name} must record per-shard ${evidence}`,
+      );
+    }
+    assert.match(
+      job,
+      new RegExp(
+        `name: changed-code-coverage-lcov-${key}-[^\\n]*\\$\\{\\{ matrix\\.shard \\}\\}`,
+      ),
+      `${name} must upload one artifact per shard`,
+    );
+  }
+});
+
+test('the report collects every shard of every surface', () => {
+  const job = ciJob('coverage-changed-report');
+
+  for (const key of ['app', 'api']) {
+    assert.match(
+      job,
+      new RegExp(
+        `pattern: changed-code-coverage-lcov-${key}-[^\\n]*\\*\\n\\s+path: \\.changed-coverage/${key}`,
+      ),
+      `the report must download the ${key} shards into their own directory`,
+    );
+    // The surface's job result, not a step outcome: a matrix job result already
+    // aggregates its shards, and the per-shard outcomes ride in the artifacts.
+    assert.match(
+      job,
+      new RegExp(
+        `--surface "${key}=\\$\\{${key.toUpperCase()}_RESULT\\}=\\.changed-coverage/${key}"`,
+      ),
+      `the report must read the ${key} surface from its shard directory`,
+    );
   }
 });
 
