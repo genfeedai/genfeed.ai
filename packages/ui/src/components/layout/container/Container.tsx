@@ -47,11 +47,10 @@ export default function Container({
   const hasHeaderChrome = hasVisibleTitle || hasHeaderTabs || hasHeaderRight;
 
   // Trailing toolbar (tabs + primary actions) alignment:
-  // - tabs + actions → tabs left, actions right (justify-between)
-  // - actions only → right edge (justify-end) — main CTAs never sit left
-  // - tabs only → start
-  // With a visible title, the outer row already justify-betweens title | toolbar;
-  // when both tabs and actions exist, the toolbar itself also justify-betweens.
+  // - Visible title: title | tabs … actions (toolbar justify-between when both)
+  // - No visible title (breadcrumb owns identity, e.g. Workspace Inbox):
+  //   filter tabs + actions cluster on the **right** — never a lonely left tab strip
+  // - Actions only → right edge (justify-end) — main CTAs never sit left
   const toolbarClassName = cn(
     'flex min-w-0 flex-wrap items-center gap-2.5',
     !hasVisibleTitle && (hasHeaderTabs || hasHeaderRight) && 'w-full',
@@ -60,8 +59,8 @@ export default function Container({
       hasHeaderRight &&
       'flex-1 justify-between',
     hasVisibleTitle && !hasHeaderTabs && hasHeaderRight && 'ml-auto shrink-0',
-    !hasVisibleTitle && hasHeaderTabs && hasHeaderRight && 'justify-between',
-    !hasVisibleTitle && !hasHeaderTabs && hasHeaderRight && 'justify-end',
+    // Breadcrumb-only chrome: Unread/Recent/All + Refresh sit together on the right
+    !hasVisibleTitle && (hasHeaderTabs || hasHeaderRight) && 'justify-end',
   );
 
   return (
