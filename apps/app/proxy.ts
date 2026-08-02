@@ -56,7 +56,7 @@ const BRAND_SCOPED_PREFIXES = [
   APP_ROUTE_PREFIXES.LIBRARY.slice(1),
   APP_ROUTE_PREFIXES.AUTOMATE.slice(1),
   APP_ROUTE_PREFIXES.OVERVIEW.slice(1),
-  APP_ROUTE_PREFIXES.POSTS.slice(1),
+  APP_ROUTE_PREFIXES.PUBLISH.slice(1),
   APP_ROUTE_PREFIXES.DISCOVER.slice(1),
   APP_ROUTE_PREFIXES.STUDIO.slice(1),
   APP_ROUTE_PREFIXES.WORKSPACE.slice(1),
@@ -581,7 +581,7 @@ const ORG_ROOT_APP_PREFIXES = [
   'compose',
   'editor',
   'library',
-  'posts',
+  'publish',
   'settings',
   'studio',
 ] as const;
@@ -597,7 +597,7 @@ function createOrgScopedCanonicalPath(
   }
 
   if (topLevelSegment === 'compose') {
-    return `/${orgSlug}/~/posts`;
+    return `/${orgSlug}/~/publish`;
   }
 
   // Automate has one org-scoped surface — the cross-brand overview. Deeper

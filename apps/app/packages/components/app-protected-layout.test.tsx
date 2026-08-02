@@ -228,7 +228,7 @@ vi.mock('@app-config/menu-items.config', () => ({
           { href: '/settings', hrefScope: 'brand', label: 'Settings' },
         ]
       : [{ href: '/workspace/activity', label: 'Activity' }],
-  POSTS_INSERT_AFTER_LABEL: 'Posts',
+  PUBLISH_INSERT_AFTER_LABEL: 'Posts',
 }));
 
 vi.mock('@app-config/discover-menu-items.config', () => ({
@@ -910,7 +910,7 @@ describe('AppProtectedLayout', () => {
       'Automate',
       'Content Run',
     ],
-    ['/org-123/brand-123/posts/campaigns/campaign-1', 'Publish', 'Campaign'],
+    ['/org-123/brand-123/publish/campaigns/campaign-1', 'Publish', 'Campaign'],
   ] as const)(
     'feeds canonical root and leaf breadcrumb metadata on %s',
     (pathname, rootLabel, leafLabel) => {
@@ -1190,7 +1190,7 @@ describe('AppProtectedLayout', () => {
     ['/org-123/brand-123/library', 'library', 'Library'],
     ['/org-123/brand-123/analytics', 'analytics', 'Analytics'],
     ['/org-123/brand-123/automate/workflows', 'automate', 'Automate'],
-    ['/org-123/brand-123/posts/remix', 'posts', 'Publish'],
+    ['/org-123/brand-123/publish/remix', 'publish', 'Publish'],
   ])(
     'keeps the %s app-switcher surface on its own module nav',
     (pathname, currentApp, sectionLabel) => {
@@ -1263,7 +1263,7 @@ describe('AppProtectedLayout', () => {
         isFocusedOnboardingRoute={false}
         isLibraryRoute
         isOrgRoute={false}
-        isPostsRoute={false}
+        isPublishRoute={false}
         isDiscoverRoute={false}
         isSettingsRoute={false}
         isStudioRoute={false}
@@ -1274,7 +1274,7 @@ describe('AppProtectedLayout', () => {
         libraryMenuItems={[{ href: '/library/images', label: 'Images' }]}
         menuItems={[]}
         orgMenuItems={[]}
-        postsMenuItems={[]}
+        publishMenuItems={[]}
         discoverMenuItems={[]}
         secondaryMenuItems={[]}
         settingsMenuItems={[]}
@@ -1308,7 +1308,7 @@ describe('AppProtectedLayout', () => {
         isFocusedOnboardingRoute={false}
         isLibraryRoute
         isOrgRoute={false}
-        isPostsRoute={false}
+        isPublishRoute={false}
         isDiscoverRoute={false}
         isSettingsRoute={false}
         isStudioRoute={false}
@@ -1319,7 +1319,7 @@ describe('AppProtectedLayout', () => {
         libraryMenuItems={[{ href: '/library/images', label: 'Images' }]}
         menuItems={[]}
         orgMenuItems={[]}
-        postsMenuItems={[]}
+        publishMenuItems={[]}
         discoverMenuItems={[]}
         secondaryMenuItems={[]}
         settingsMenuItems={[]}

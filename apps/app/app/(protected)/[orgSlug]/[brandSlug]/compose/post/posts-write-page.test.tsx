@@ -149,7 +149,7 @@ describe('PostsWritePage', () => {
     });
 
     expect(pushMock).toHaveBeenCalledWith(
-      '/moonrise-org/moonrise-studio/posts/post-1',
+      '/moonrise-org/moonrise-studio/publish/post-1',
     );
     expect(captureAnalyticsEventMock).toHaveBeenCalledWith(
       ANALYTICS_EVENTS.CONTENT_WRITE_BLANK_DRAFT_STARTED,
@@ -205,7 +205,7 @@ describe('PostsWritePage', () => {
     });
 
     expect(pushMock).toHaveBeenCalledWith(
-      '/moonrise-org/moonrise-studio/posts/post-2',
+      '/moonrise-org/moonrise-studio/publish/post-2',
     );
   });
 
@@ -241,7 +241,7 @@ describe('PostsWritePage', () => {
     });
 
     expect(pushMock).toHaveBeenCalledWith(
-      '/moonrise-org/moonrise-studio/posts/generated-1',
+      '/moonrise-org/moonrise-studio/publish/generated-1',
     );
     expect(captureAnalyticsEventMock).toHaveBeenCalledWith(
       ANALYTICS_EVENTS.CONTENT_WRITE_PROMPT_GENERATED,
@@ -283,7 +283,7 @@ describe('PostsWritePage', () => {
     });
 
     expect(pushMock).toHaveBeenCalledWith(
-      '/moonrise-org/moonrise-studio/posts/thread-root',
+      '/moonrise-org/moonrise-studio/publish/thread-root',
     );
     expect(captureAnalyticsEventMock).toHaveBeenCalledWith(
       ANALYTICS_EVENTS.CONTENT_WRITE_PROMPT_GENERATED,

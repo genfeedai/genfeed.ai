@@ -69,7 +69,7 @@ export default function PostDetailOverlay({
                 label="Open page"
                 variant={ButtonVariant.SECONDARY}
                 icon={<ExternalLink className="size-4" />}
-                onClick={() => router.push(href(`/posts/${postId}`))}
+                onClick={() => router.push(href(`/publish/${postId}`))}
               />
             ) : null}
           </div>

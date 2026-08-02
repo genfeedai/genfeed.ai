@@ -137,10 +137,10 @@ export function getPublisherPostsStatusPath(
   const normalizedStatus = normalizePublisherPostsStatus(status);
 
   if (normalizedStatus === PostStatus.PUBLIC) {
-    return APP_ROUTES.POSTS.PUBLISHED;
+    return APP_ROUTES.PUBLISH.PUBLISHED;
   }
 
-  return APP_ROUTES.POSTS.ROOT;
+  return APP_ROUTES.PUBLISH.ROOT;
 }
 
 export function getPublisherPostsStatusFromPathname(

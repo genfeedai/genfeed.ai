@@ -44,7 +44,7 @@ import {
 type LifecycleAppSwitcherItemConfig = AppSwitcherItemConfig & {
   /**
    * Product path roots that activate this app (menu-style). Matched against the
-   * brand/org-stripped pathname, e.g. `/studio`, `/posts`, `/automate`.
+   * brand/org-stripped pathname, e.g. `/studio`, `/publish`, `/automate`.
    * Longest root wins; no match → nothing highlighted (settings, onboarding, …).
    */
   activePathRoots: readonly string[];
@@ -161,14 +161,14 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
       },
       {
         // Compose + Editor are publish-adjacent create surfaces, not Studio.
-        activePathRoots: ['/posts', '/compose', '/editor'],
+        activePathRoots: ['/publish', '/compose', '/editor'],
         description: 'Drafts, posts, compose, and editor.',
         icon: Send,
-        id: 'posts',
+        id: 'publish',
         itemKey: 'publish',
         label: 'Publish',
-        route: createScopedAppRoute({ brandPath: '/posts' }),
-        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.posts,
+        route: createScopedAppRoute({ brandPath: '/publish' }),
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.publish,
       },
       {
         activePathRoots: ['/analytics'],
@@ -270,8 +270,8 @@ function useAppSwitcherVisibility(): Record<
     [APP_SWITCHER_FEATURE_FLAGS.library]: useFeatureFlag(
       APP_SWITCHER_FEATURE_FLAGS.library,
     ),
-    [APP_SWITCHER_FEATURE_FLAGS.posts]: useFeatureFlag(
-      APP_SWITCHER_FEATURE_FLAGS.posts,
+    [APP_SWITCHER_FEATURE_FLAGS.publish]: useFeatureFlag(
+      APP_SWITCHER_FEATURE_FLAGS.publish,
     ),
     [APP_SWITCHER_FEATURE_FLAGS.analytics]: useFeatureFlag(
       APP_SWITCHER_FEATURE_FLAGS.analytics,

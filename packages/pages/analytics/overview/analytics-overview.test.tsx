@@ -351,7 +351,7 @@ describe('AnalyticsOverview', () => {
     expect(markup).toContain('Data is starting to come through');
     expect(markup).toContain('Warming up');
     expect(markup).toContain('Coverage so far');
-    expect(markup).toContain('/posts');
+    expect(markup).toContain('/publish');
     expect(markup).toContain('border-y border-white/[0.08]');
     expect(markup).not.toContain('rounded-2xl border');
     expect(markup).not.toContain('bg-black/10 p-4');

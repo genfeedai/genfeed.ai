@@ -8,7 +8,7 @@ import { DISCOVER_LOGO_HREF } from '@app-config/discover-menu-items.config';
 import { LIBRARY_LOGO_HREF } from '@app-config/library-menu-items.config';
 import { APP_LOGO_HREF } from '@app-config/menu-items.config';
 import { ORG_LOGO_HREF } from '@app-config/org-menu-items.config';
-import { POSTS_LOGO_HREF } from '@app-config/posts-menu-items.config';
+import { PUBLISH_LOGO_HREF } from '@app-config/publish-menu-items.config';
 import {
   SETTINGS_LOGO_HREF,
   type SettingsScope,
@@ -60,7 +60,7 @@ type Props = {
   isLibraryRoute: boolean;
   isMessagesRoute?: boolean;
   isOrgRoute: boolean;
-  isPostsRoute: boolean;
+  isPublishRoute: boolean;
   isDiscoverRoute: boolean;
   isSettingsRoute: boolean;
   isStudioRoute: boolean;
@@ -73,7 +73,7 @@ type Props = {
   libraryMenuItems: MenuItemConfig[];
   menuItems: MenuItemConfig[];
   orgMenuItems: MenuItemConfig[];
-  postsMenuItems: MenuItemConfig[];
+  publishMenuItems: MenuItemConfig[];
   discoverMenuItems: MenuItemConfig[];
   secondaryMenuItems: MenuItemConfig[];
   settingsMenuItems: MenuItemConfig[];
@@ -103,7 +103,7 @@ export default function AppProtectedLayoutSidebar({
   isLibraryRoute,
   isMessagesRoute = false,
   isOrgRoute,
-  isPostsRoute,
+  isPublishRoute,
   isDiscoverRoute,
   isSettingsRoute,
   isStudioRoute,
@@ -115,7 +115,7 @@ export default function AppProtectedLayoutSidebar({
   libraryMenuItems,
   menuItems,
   orgMenuItems,
-  postsMenuItems,
+  publishMenuItems,
   discoverMenuItems,
   secondaryMenuItems,
   settingsMenuItems,
@@ -200,10 +200,10 @@ export default function AppProtectedLayoutSidebar({
         showOrgSwitcher: true,
       },
       {
-        active: isPostsRoute,
+        active: isPublishRoute,
         currentApp,
-        items: postsMenuItems,
-        logoHref: buildHref(POSTS_LOGO_HREF),
+        items: publishMenuItems,
+        logoHref: buildHref(PUBLISH_LOGO_HREF),
         sectionLabel: 'Publish',
         showOrgSwitcher: true,
       },

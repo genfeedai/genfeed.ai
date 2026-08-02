@@ -162,7 +162,9 @@ describe('NewsletterComposerPanel', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Open newsletters' }));
-    expect(pushMock).toHaveBeenCalledWith('/posts/newsletters?id=newsletter-1');
+    expect(pushMock).toHaveBeenCalledWith(
+      '/publish/newsletters?id=newsletter-1',
+    );
   });
 
   it('disables saving before a draft exists', () => {

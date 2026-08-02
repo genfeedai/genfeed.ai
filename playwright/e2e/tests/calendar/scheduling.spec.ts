@@ -179,7 +179,8 @@ test.describe('Calendar — Scheduling', () => {
 
         // Should navigate to post detail page
         const url = authenticatedPage.url();
-        const isOnDetail = url.includes('/posts/') || url.includes('/calendar');
+        const isOnDetail =
+          url.includes('/publish/') || url.includes('/calendar');
         expect(isOnDetail).toBe(true);
       }
     } else {
@@ -212,13 +213,13 @@ test.describe('Calendar — Scheduling', () => {
     await mockCalendarPosts(authenticatedPage);
     await calendarPage.gotoPosts();
 
-    // The calendar page has a link to /posts (list view)
+    // The calendar page has a link to /publish (list view)
     const listLink = calendarPage.listViewLink;
     const isVisible = await listLink.isVisible().catch(() => false);
 
     // Link should be present in the UI
     if (isVisible) {
-      await expect(listLink).toHaveAttribute('href', '/posts');
+      await expect(listLink).toHaveAttribute('href', '/publish');
     }
 
     await expect(authenticatedPage).toHaveURL(/calendar/);

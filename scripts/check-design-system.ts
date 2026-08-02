@@ -77,7 +77,7 @@ const APP_CHROME_COLOR_SURFACES: Array<{
   fileNamePattern?: RegExp;
 }> = [
   {
-    root: 'apps/app/app/(protected)/[orgSlug]/[brandSlug]/posts/review',
+    root: 'apps/app/app/(protected)/[orgSlug]/[brandSlug]/publish/review',
   },
   {
     root: 'apps/app/app/(protected)/[orgSlug]/[brandSlug]/tasks',
