@@ -200,7 +200,7 @@ describe('WorkspaceSurfaceAdapterContext', () => {
       </WorkspaceSurfaceAdapterProvider>,
     );
 
-    expect(screen.getByText('Studio · Image · v3')).toBeInTheDocument();
+    expect(screen.getByText('Studio · Storyboard · v3')).toBeInTheDocument();
     expect(screen.getByText('Studio inspector')).toBeInTheDocument();
 
     rerender(

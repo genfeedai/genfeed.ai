@@ -70,16 +70,6 @@ vi.mock('@ui/guards/feature/FeatureGate', () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
-vi.mock('../../../[brandSlug]/studio/[type]/StudioPageContent', () => ({
-  default: ({ typeOverride }: { typeOverride?: string }) => (
-    <div data-testid="studio-page-content" data-type={typeOverride} />
-  ),
-}));
-
-vi.mock('../../../[brandSlug]/studio/[type]/studio-route', () => ({
-  canonicalizeStudioType: (value?: string) => value ?? 'image',
-}));
-
 vi.mock('../../../[brandSlug]/editor/[id]/page', () => ({
   default: async ({
     params,
@@ -184,23 +174,20 @@ describe('OrgRootAppPage', () => {
     );
   });
 
-  it('renders the studio generate surface for org /studio/:type (not library)', async () => {
-    const element = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'studio',
-        orgSlug: 'acme',
-        segments: ['music'],
+  it('hands org-scoped /studio/:type off to the Agent', async () => {
+    // The org-scoped studio surface was the retired one-off generate page.
+    // Studio is brand-scoped production tooling now, so the catch-all sends
+    // one-off generation to the Agent instead of leaving an orphan route.
+    await expect(
+      OrgRootAppPage({
+        params: Promise.resolve({
+          orgRootApp: 'studio',
+          orgSlug: 'acme',
+          segments: ['music'],
+        }),
       }),
-    });
-
-    render(element);
-
-    expect(screen.getByTestId('studio-page-content')).toBeInTheDocument();
-    expect(screen.getByTestId('studio-page-content')).toHaveAttribute(
-      'data-type',
-      'music',
-    );
-    expect(screen.queryByTestId('ingredients-list')).not.toBeInTheDocument();
+    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/agent/new');
+    expect(redirectMock).toHaveBeenCalledWith('/acme/~/agent/new');
   });
 
   it('renders org posts with published status for /posts/published', async () => {

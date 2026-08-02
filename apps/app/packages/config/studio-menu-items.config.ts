@@ -44,4 +44,4 @@ export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
   },
 ];
 
-export const STUDIO_LOGO_HREF = APP_ROUTES.STUDIO.ROOT;
+export const STUDIO_LOGO_HREF = APP_ROUTES.LIBRARY.ROOT;
