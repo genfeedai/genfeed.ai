@@ -379,4 +379,42 @@ describe('Better Auth rate-limit fail-open under a Redis outage (criterion 7)', 
       expect(response.status).toBeLessThan(HTTP_SERVER_ERROR_FLOOR);
     }
   });
+
+  it('does not lock an IP out permanently when a foreign value poisons its counter key', async () => {
+    // The Redis instance is shared, so a foreign writer can leave parseable JSON
+    // that is not a `RateLimit`. Better Auth's `decideConsume` then evaluates
+    // `now - undefined > windowMs` — NaN, always false — so the window-expiry
+    // reset branch can never fire, while `count >= max` stays true. That is a
+    // 429 with no escape hatch, persisted for the key's full 24h TTL: a
+    // permanent sign-in lockout for that IP. Fail open on the shape, not just
+    // on `JSON.parse`.
+    const store = createRecordingRateLimitStore();
+    store.entries.set(
+      `${RATE_LIMIT_KEY_PREFIX}${NOISY_CLIENT_IP}|${SIGN_IN_PATH}`,
+      JSON.stringify({ count: 9_999, unrelatedField: 'from another app' }),
+    );
+    const harness = createRateLimitHarness({ store });
+
+    const response = await attemptSignIn(harness, {
+      clientIp: NOISY_CLIENT_IP,
+    });
+
+    expect(response.status).not.toBe(HTTP_TOO_MANY_REQUESTS);
+    expect(response.status).toBeLessThan(HTTP_SERVER_ERROR_FLOOR);
+  });
+
+  it('still throttles normally after the poisoned counter key is discarded', async () => {
+    // Failing open on a malformed value must not disable throttling for that
+    // key — the next window is rebuilt from scratch and enforces as usual.
+    const store = createRecordingRateLimitStore();
+    store.entries.set(
+      `${RATE_LIMIT_KEY_PREFIX}${NOISY_CLIENT_IP}|${SIGN_IN_PATH}`,
+      JSON.stringify({ count: 'not-a-number', lastRequest: 'not-a-number' }),
+    );
+    const harness = createRateLimitHarness({ store });
+
+    const responses = await exhaustSignInBudget(harness, NOISY_CLIENT_IP);
+
+    expect(responses.at(-1)?.status).toBe(HTTP_TOO_MANY_REQUESTS);
+  });
 });

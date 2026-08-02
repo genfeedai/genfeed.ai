@@ -77,6 +77,24 @@ export function buildBetterAuthAdvancedOptions({
 }
 
 /**
+ * A parsed counter is only usable if both numeric fields survived the round
+ * trip. Better Auth's `decideConsume` does raw arithmetic on them
+ * (`now - lastRequest > windowMs`, `count >= max`), and `undefined`/string
+ * operands poison that arithmetic with `NaN` in both directions: the
+ * window-expiry reset can never fire (permanent 429 for the key's whole TTL),
+ * or `count` becomes `NaN` and never reaches `max` (throttling silently off).
+ */
+function isStoredRateLimit(value: unknown): value is RateLimit {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const candidate = value as Partial<Record<keyof RateLimit, unknown>>;
+  return (
+    Number.isFinite(candidate.count) && Number.isFinite(candidate.lastRequest)
+  );
+}
+
+/**
  * Adapt the shared Redis KV into Better Auth's `rateLimit.customStorage` shape
  * so all API instances share one counter window (per-process memory would let
  * the effective limit scale with instance count). Reads/writes are JSON.
@@ -103,14 +121,18 @@ export function buildRateLimitStorage(store: IBetterAuthRateLimitStore): {
       if (!raw) {
         return null;
       }
+      let parsed: unknown;
       try {
-        return JSON.parse(raw) as RateLimit;
+        parsed = JSON.parse(raw);
       } catch {
         // Corrupt or foreign value at this key (e.g. another app sharing the
         // Redis instance). Fail open — treat it as no existing window rather
         // than letting a SyntaxError surface from the rate limiter as a 500.
         return null;
       }
+      // Parseable but not a counter — same threat, one step further in. Discard
+      // it so the next write rebuilds a clean window and throttling resumes.
+      return isStoredRateLimit(parsed) ? parsed : null;
     },
     set: async (key, value) => {
       try {
