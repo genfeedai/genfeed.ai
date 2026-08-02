@@ -102,7 +102,9 @@ export function usePostEditor(postId: string): UsePostEditorReturn {
         const updated = await service.patch(postId, {
           description: values.description.trim(),
           label: values.label.trim(),
-          scheduledDate: values.scheduledDate,
+          ...(values.scheduledDate
+            ? { scheduledDate: values.scheduledDate }
+            : {}),
           status: values.status,
         });
 

@@ -44,7 +44,7 @@ export type NewsletterEditorLoadingAction =
   | null;
 
 export interface NewsletterEditorProps {
-  editorDirty: boolean;
+  isEditorDirty: boolean;
   editorState: NewsletterEditorState;
   loadingAction: NewsletterEditorLoadingAction;
   selectedNewsletter: Newsletter;

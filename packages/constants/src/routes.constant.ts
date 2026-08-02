@@ -348,7 +348,9 @@ export function withArtifactEditorReturn(
   editorHref: string,
   returnTo: string,
 ): string {
-  return `${editorHref}?${ARTIFACT_EDITOR_RETURN_PARAM}=${encodeURIComponent(returnTo)}`;
+  const separator = editorHref.includes('?') ? '&' : '?';
+
+  return `${editorHref}${separator}${ARTIFACT_EDITOR_RETURN_PARAM}=${encodeURIComponent(returnTo)}`;
 }
 
 /**
@@ -362,9 +364,14 @@ export function resolveArtifactEditorBackHref(
   returnTo: string | null | undefined,
   fallbackHref: string,
 ): string {
-  if (!returnTo?.startsWith('/') || returnTo.startsWith('//')) {
+  const normalizedReturnTo = returnTo?.replaceAll('\\', '/');
+
+  if (
+    !normalizedReturnTo?.startsWith('/') ||
+    normalizedReturnTo.startsWith('//')
+  ) {
     return fallbackHref;
   }
 
-  return returnTo;
+  return normalizedReturnTo;
 }

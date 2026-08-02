@@ -10,7 +10,7 @@ import type {
 import { NewslettersService } from '@services/content/newsletters.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 
 /** Newsletters publish to the email/newsletter channel rather than a social platform. */
@@ -18,7 +18,7 @@ const NEWSLETTER_PUBLISH_PLATFORM = 'newsletter';
 
 export interface UseNewsletterEditorReturn {
   contextPreview: NewsletterContextPreview | null;
-  editorDirty: boolean;
+  isEditorDirty: boolean;
   editorState: NewsletterEditorState;
   isLoading: boolean;
   loadingAction: NewsletterEditorLoadingAction;
@@ -78,6 +78,25 @@ export function useNewsletterEditor(
   const [isLoading, setIsLoading] = useState(true);
   const [loadingAction, setLoadingAction] =
     useState<NewsletterEditorLoadingAction>(null);
+  const actionInFlightRef = useRef(false);
+
+  const beginAction = useCallback(
+    (action: Exclude<NewsletterEditorLoadingAction, null>): boolean => {
+      if (actionInFlightRef.current) {
+        return false;
+      }
+
+      actionInFlightRef.current = true;
+      setLoadingAction(action);
+      return true;
+    },
+    [],
+  );
+
+  const finishAction = useCallback(() => {
+    actionInFlightRef.current = false;
+    setLoadingAction(null);
+  }, []);
 
   const getService = useAuthedService(
     useCallback((token: string) => NewslettersService.getInstance(token), []),
@@ -149,11 +168,9 @@ export function useNewsletterEditor(
   );
 
   const handleSave = useCallback(async () => {
-    if (!newsletter) {
+    if (!newsletter || !beginAction('saving')) {
       return;
     }
-
-    setLoadingAction('saving');
 
     try {
       const service = await getService();
@@ -171,18 +188,20 @@ export function useNewsletterEditor(
       logger.error('Failed to save newsletter', error);
       notificationsService.error('Failed to save newsletter');
     } finally {
-      setLoadingAction(null);
+      finishAction();
     }
   }, [
     applyNewsletter,
+    beginAction,
     editorState,
+    finishAction,
     getService,
     newsletter,
     notificationsService,
   ]);
 
   const handleRegenerate = useCallback(async () => {
-    if (!newsletter) {
+    if (!newsletter || actionInFlightRef.current) {
       return;
     }
 
@@ -191,7 +210,9 @@ export function useNewsletterEditor(
       return;
     }
 
-    setLoadingAction('generatingDraft');
+    if (!beginAction('generatingDraft')) {
+      return;
+    }
 
     try {
       const service = await getService();
@@ -212,12 +233,14 @@ export function useNewsletterEditor(
       logger.error('Failed to regenerate newsletter', error);
       notificationsService.error('Failed to regenerate newsletter');
     } finally {
-      setLoadingAction(null);
+      finishAction();
     }
   }, [
     applyNewsletter,
+    beginAction,
     contextPreview,
     editorState,
+    finishAction,
     getService,
     loadContext,
     newsletter,
@@ -226,7 +249,9 @@ export function useNewsletterEditor(
 
   const handleApprove = useCallback(
     async (id: string) => {
-      setLoadingAction('approving');
+      if (!newsletter || !beginAction('approving')) {
+        return;
+      }
 
       try {
         const service = await getService();
@@ -237,15 +262,25 @@ export function useNewsletterEditor(
         logger.error('Failed to approve newsletter', error);
         notificationsService.error('Failed to approve newsletter');
       } finally {
-        setLoadingAction(null);
+        finishAction();
       }
     },
-    [applyNewsletter, getService, loadContext, notificationsService],
+    [
+      applyNewsletter,
+      beginAction,
+      finishAction,
+      getService,
+      loadContext,
+      newsletter,
+      notificationsService,
+    ],
   );
 
   const handlePublish = useCallback(
     async (id: string) => {
-      setLoadingAction('publishing');
+      if (!newsletter || !beginAction('publishing')) {
+        return;
+      }
 
       try {
         const service = await getService();
@@ -263,15 +298,25 @@ export function useNewsletterEditor(
         logger.error('Failed to publish newsletter', error);
         notificationsService.error('Failed to publish newsletter');
       } finally {
-        setLoadingAction(null);
+        finishAction();
       }
     },
-    [applyNewsletter, getService, loadContext, notificationsService],
+    [
+      applyNewsletter,
+      beginAction,
+      finishAction,
+      getService,
+      loadContext,
+      newsletter,
+      notificationsService,
+    ],
   );
 
   const handleArchive = useCallback(
     async (id: string) => {
-      setLoadingAction('archiving');
+      if (!newsletter || !beginAction('archiving')) {
+        return;
+      }
 
       try {
         const service = await getService();
@@ -281,15 +326,22 @@ export function useNewsletterEditor(
         logger.error('Failed to archive newsletter', error);
         notificationsService.error('Failed to archive newsletter');
       } finally {
-        setLoadingAction(null);
+        finishAction();
       }
     },
-    [applyNewsletter, getService, notificationsService],
+    [
+      applyNewsletter,
+      beginAction,
+      finishAction,
+      getService,
+      newsletter,
+      notificationsService,
+    ],
   );
 
   return {
     contextPreview,
-    editorDirty: isEditorDirty(editorState, newsletter),
+    isEditorDirty: isEditorDirty(editorState, newsletter),
     editorState,
     handleApprove,
     handleArchive,

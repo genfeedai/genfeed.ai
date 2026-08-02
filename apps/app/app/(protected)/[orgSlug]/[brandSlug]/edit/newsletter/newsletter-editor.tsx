@@ -9,7 +9,7 @@ import { Archive, CircleCheck, Sparkles } from 'lucide-react';
 
 type NewsletterEditorActionsProps = Pick<
   NewsletterEditorProps,
-  | 'editorDirty'
+  | 'isEditorDirty'
   | 'loadingAction'
   | 'selectedNewsletter'
   | 'onApprove'
@@ -24,7 +24,7 @@ type NewsletterEditorActionsProps = Pick<
  * editor shell can host it in the page header alongside the back link.
  */
 export function NewsletterEditorActions({
-  editorDirty,
+  isEditorDirty,
   loadingAction,
   selectedNewsletter,
   onApprove,
@@ -34,6 +34,7 @@ export function NewsletterEditorActions({
   onSave,
 }: NewsletterEditorActionsProps) {
   const isPublished = selectedNewsletter.status === 'published';
+  const isActionInFlight = loadingAction !== null;
 
   return (
     <>
@@ -41,13 +42,14 @@ export function NewsletterEditorActions({
         label="Save"
         variant={ButtonVariant.SECONDARY}
         isLoading={loadingAction === 'saving'}
-        isDisabled={!editorDirty}
+        isDisabled={!isEditorDirty || isActionInFlight}
         onClick={onSave}
       />
       <Button
         label="Regenerate"
         variant={ButtonVariant.SECONDARY}
         isLoading={loadingAction === 'generatingDraft'}
+        isDisabled={isActionInFlight}
         onClick={onRegenerate}
       />
       <Button
@@ -55,7 +57,7 @@ export function NewsletterEditorActions({
         variant={ButtonVariant.SECONDARY}
         icon={<CircleCheck />}
         isLoading={loadingAction === 'approving'}
-        isDisabled={isPublished}
+        isDisabled={isPublished || isActionInFlight}
         onClick={() => onApprove(selectedNewsletter.id)}
       />
       <Button
@@ -63,15 +65,17 @@ export function NewsletterEditorActions({
         variant={ButtonVariant.SECONDARY}
         icon={<Sparkles />}
         isLoading={loadingAction === 'publishing'}
-        isDisabled={isPublished}
+        isDisabled={isPublished || isActionInFlight}
         onClick={() => onPublish(selectedNewsletter.id)}
       />
       <Button
         label="Archive"
         variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
         icon={<Archive />}
         className="rounded-lg border border-border px-3 py-2 text-sm"
         isLoading={loadingAction === 'archiving'}
+        isDisabled={isActionInFlight}
         onClick={() => onArchive(selectedNewsletter.id)}
       />
     </>

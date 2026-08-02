@@ -131,6 +131,32 @@ describe('PostEditorContent', () => {
     expect(mocks.success).toHaveBeenCalledWith('Post updated successfully');
   });
 
+  it('omits an empty scheduled date from the update payload', async () => {
+    mocks.findOne.mockResolvedValue({ ...post, scheduledDate: null });
+    const { container } = render(<PostEditorContent artifactId="post-1" />);
+
+    expect(await screen.findByText('Launch post')).toBeVisible();
+
+    fireEvent.change(screen.getByLabelText('Title'), {
+      target: { value: 'Launch post revised' },
+    });
+
+    const form = container.querySelector('#post-editor-form');
+    if (!form) {
+      throw new Error('Post editor form did not render');
+    }
+
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(mocks.patch).toHaveBeenCalledWith('post-1', {
+        description: 'Original body',
+        label: 'Launch post revised',
+        status: PostStatus.DRAFT,
+      });
+    });
+  });
+
   it('explains an artifact that could not be loaded', async () => {
     mocks.findOne.mockRejectedValue(new Error('gone'));
 

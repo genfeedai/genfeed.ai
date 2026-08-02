@@ -10,6 +10,7 @@ import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Mail, Search } from 'lucide-react';
+import Link from 'next/link';
 import { Suspense } from 'react';
 
 import NewsletterGeneratePanel from './newsletters-generate-panel';
@@ -29,6 +30,7 @@ const STATUS_FILTERS: Array<{
 function NewslettersPageContent() {
   const {
     filteredNewsletters,
+    getNewsletterEditorHref,
     href,
     instructions,
     isGeneratingDraft,
@@ -36,7 +38,6 @@ function NewslettersPageContent() {
     isLoading,
     manualAngle,
     manualTopic,
-    openNewsletterEditor,
     proposals,
     publishedNewsletters,
     push,
@@ -150,12 +151,10 @@ function NewslettersPageContent() {
 
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {filteredNewsletters.map((newsletter) => (
-                <Button
+                <Link
                   key={newsletter.id}
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
+                  href={getNewsletterEditorHref(newsletter.id)}
                   className="w-full rounded-lg bg-tertiary/50 p-4 text-left transition-colors hover:bg-tertiary"
-                  onClick={() => openNewsletterEditor(newsletter.id)}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="font-medium text-foreground">
@@ -173,7 +172,7 @@ function NewslettersPageContent() {
                       {newsletter.summary}
                     </div>
                   ) : null}
-                </Button>
+                </Link>
               ))}
             </div>
           </div>

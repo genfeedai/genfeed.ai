@@ -25,7 +25,7 @@ export default function NewsletterEditorContent({
   const searchParams = useSearchParams();
   const {
     contextPreview,
-    editorDirty,
+    isEditorDirty,
     editorState,
     handleApprove,
     handleArchive,
@@ -67,7 +67,7 @@ export default function NewsletterEditorContent({
     <ArtifactEditorShell
       actions={
         <NewsletterEditorActions
-          editorDirty={editorDirty}
+          isEditorDirty={isEditorDirty}
           loadingAction={loadingAction}
           selectedNewsletter={newsletter}
           onApprove={handleApprove}
@@ -86,7 +86,7 @@ export default function NewsletterEditorContent({
         </Badge>
       }
       description="Draft, revise, approve, then publish when the issue is ready."
-      isDirty={editorDirty}
+      isDirty={isEditorDirty}
       title={newsletter.label}
     >
       <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">

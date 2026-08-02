@@ -10,12 +10,15 @@ import { Input } from '@ui/primitives/input';
 import PromptBarContent from '@ui/prompt-bars/content/PromptBarContent';
 import type { ChangeEvent } from 'react';
 
-const ARTICLE_CATEGORY_OPTIONS = Object.values(ArticleCategory).map(
-  (value) => ({
+const ARTICLE_CATEGORY_OPTIONS = Object.values(ArticleCategory)
+  .filter((value) => value !== ArticleCategory.X_ARTICLE)
+  .map((value) => ({
     key: value,
-    label: value.charAt(0).toUpperCase() + value.slice(1),
-  }),
-);
+    label: value
+      .split(/[-_]/)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' '),
+  }));
 
 type ArticleEditFormProps = {
   form: ArticleFormState;
@@ -38,7 +41,7 @@ export default function ArticleEditForm({
   return (
     <>
       {/* Title */}
-      <Card className="space-y-4">
+      <Card bodyClassName="space-y-4">
         <FormControl label="Title">
           <Input
             name="articleTitle"

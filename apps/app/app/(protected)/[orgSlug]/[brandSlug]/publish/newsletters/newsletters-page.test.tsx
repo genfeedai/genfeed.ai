@@ -16,6 +16,8 @@ const mocks = vi.hoisted(() => ({
   patch: vi.fn(),
   publish: vi.fn(),
   push: vi.fn(),
+  replace: vi.fn(),
+  requestedNewsletterId: null as string | null,
   queryResult: {
     data: [] as unknown[],
     error: null as unknown,
@@ -114,9 +116,10 @@ vi.mock('@tanstack/react-query', () => ({
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mocks.push,
+    replace: mocks.replace,
   }),
   useSearchParams: () => ({
-    get: (key: string) => (key === 'id' ? null : null),
+    get: (key: string) => (key === 'id' ? mocks.requestedNewsletterId : null),
   }),
 }));
 
@@ -127,6 +130,7 @@ describe('NewslettersPage', () => {
     mocks.queryResult.error = null;
     mocks.queryResult.isLoading = false;
     mocks.queryResult.refetch = mocks.refetch;
+    mocks.requestedNewsletterId = null;
     mocks.findAll.mockResolvedValue(newsletters);
     mocks.refetch.mockResolvedValue({ data: newsletters });
     mocks.generateTopicProposals.mockResolvedValue([
@@ -224,14 +228,26 @@ describe('NewslettersPage', () => {
     );
   });
 
-  it('opens the dedicated newsletter editor from the archive list', () => {
+  it('links archive cards to the dedicated newsletter editor', () => {
     render(<NewslettersPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Issue 1/i }));
-
-    expect(mocks.push).toHaveBeenCalledWith(NEWSLETTER_1_EDITOR_HREF);
+    expect(screen.getByRole('link', { name: /Issue 1/i })).toHaveAttribute(
+      'href',
+      NEWSLETTER_1_EDITOR_HREF,
+    );
     expect(mocks.getContext).not.toHaveBeenCalled();
     expect(mocks.patch).not.toHaveBeenCalled();
+  });
+
+  it('replaces legacy newsletter query links with the dedicated editor route', async () => {
+    mocks.requestedNewsletterId = 'newsletter-1';
+
+    render(<NewslettersPage />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith(NEWSLETTER_1_EDITOR_HREF);
+    });
+    expect(mocks.push).not.toHaveBeenCalled();
   });
 
   it('shows validation errors and routes empty-state actions to workflows', async () => {

@@ -8,6 +8,7 @@ import {
 import { ButtonVariant, formatPlatformLabel } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ArtifactEditorPageProps } from '@props/content/artifact-editor.props';
+import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
 import { useSearchParams } from 'next/navigation';
@@ -64,12 +65,8 @@ export default function PostEditorContent({
       backLabel="Back to posts"
       badges={
         <>
-          <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-foreground/70 text-xs">
-            {formatPlatformLabel(post.platform) ?? post.platform}
-          </span>
-          <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-foreground/70 text-xs">
-            {post.status}
-          </span>
+          <Badge>{formatPlatformLabel(post.platform) ?? post.platform}</Badge>
+          <Badge status={post.status}>{post.status}</Badge>
         </>
       }
       description="Update the details for this scheduled post."

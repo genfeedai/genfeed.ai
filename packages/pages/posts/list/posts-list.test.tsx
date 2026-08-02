@@ -22,6 +22,17 @@ const postFixture = {
 
 let resourceData: IPost[] = [];
 
+type MockTableAction = {
+  onClick: (post: IPost) => void;
+  tooltip?: string;
+};
+
+type MockTableProps = {
+  actions?: MockTableAction[];
+  items: IPost[];
+  onRowClick?: (post: IPost) => void;
+};
+
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'paperclip', orgSlug: 'genfeed-ai' }),
   usePathname: () => '/genfeed-ai/paperclip/posts',
@@ -144,15 +155,7 @@ vi.mock('@pages/posts/list/components/PostsListToolbar', () => ({
 
 vi.mock('@ui/display/table/Table', () => ({
   __esModule: true,
-  default: ({
-    actions,
-    items,
-    onRowClick,
-  }: {
-    actions?: { onClick: (post: IPost) => void; tooltip?: string }[];
-    items: IPost[];
-    onRowClick?: (post: IPost) => void;
-  }) => (
+  default: ({ actions, items, onRowClick }: MockTableProps) => (
     <>
       <button
         type="button"
@@ -247,6 +250,30 @@ describe('PostsList', () => {
 
     expect(pushMock).toHaveBeenCalledWith(
       '/genfeed-ai/paperclip/edit/post/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fposts',
+    );
+  });
+
+  it('opens superadmin edits in the post owner scope', () => {
+    resourceData = [
+      {
+        ...postFixture,
+        brand: { slug: 'owner-brand' },
+        organization: { slug: 'owner-org' },
+      } as IPost,
+    ];
+
+    render(
+      <PostsList
+        scope={PageScope.SUPERADMIN}
+        platform="all"
+        status={PostStatus.DRAFT}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /edit table row/i }));
+
+    expect(pushMock).toHaveBeenCalledWith(
+      '/owner-org/owner-brand/edit/post/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fposts',
     );
   });
 });

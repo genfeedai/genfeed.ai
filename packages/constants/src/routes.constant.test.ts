@@ -87,6 +87,15 @@ describe('routes.constant', () => {
         '/genfeed-ai/paperclip/posts',
       ),
     ).toBe('/genfeed-ai/paperclip/posts?status=draft');
+
+    expect(
+      withArtifactEditorReturn(
+        '/genfeed-ai/paperclip/edit/post/post-1?mode=focus',
+        '/genfeed-ai/paperclip/posts',
+      ),
+    ).toBe(
+      '/genfeed-ai/paperclip/edit/post/post-1?mode=focus&returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fposts',
+    );
   });
 
   it('falls back to the owning list for unusable return targets', () => {
@@ -100,6 +109,12 @@ describe('routes.constant', () => {
     );
     expect(resolveArtifactEditorBackHref('', fallbackHref)).toBe(fallbackHref);
     expect(resolveArtifactEditorBackHref('//evil.com', fallbackHref)).toBe(
+      fallbackHref,
+    );
+    expect(resolveArtifactEditorBackHref('/\\evil.com', fallbackHref)).toBe(
+      fallbackHref,
+    );
+    expect(resolveArtifactEditorBackHref('/\\\\evil.com', fallbackHref)).toBe(
       fallbackHref,
     );
     expect(

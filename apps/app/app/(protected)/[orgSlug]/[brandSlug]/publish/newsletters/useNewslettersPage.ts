@@ -23,7 +23,7 @@ type TopicProposal = {
 };
 
 export function useNewslettersPage() {
-  const { push } = useRouter();
+  const { push, replace } = useRouter();
   const { href } = useOrgUrl();
   const searchParams = useSearchParams();
   const requestedNewsletterId = searchParams.get('id');
@@ -120,25 +120,27 @@ export function useNewslettersPage() {
     }
   }, [publishedNewsletters, selectedContextIds.length]);
 
+  const getNewsletterEditorHref = useCallback(
+    (newsletterId: string) =>
+      withArtifactEditorReturn(
+        href(createArtifactEditorRoute('newsletter', newsletterId)),
+        href(APP_ROUTES.POSTS.NEWSLETTERS),
+      ),
+    [href],
+  );
+
   /** Refinement lives on the artifact, so the list only opens the editor. */
   const openNewsletterEditor = useCallback(
-    (newsletterId: string) => {
-      push(
-        withArtifactEditorReturn(
-          href(createArtifactEditorRoute('newsletter', newsletterId)),
-          href(APP_ROUTES.POSTS.NEWSLETTERS),
-        ),
-      );
-    },
-    [href, push],
+    (newsletterId: string) => push(getNewsletterEditorHref(newsletterId)),
+    [getNewsletterEditorHref, push],
   );
 
   // Legacy `?id=` deep links selected a newsletter inline; send them to its page.
   useEffect(() => {
     if (requestedNewsletterId) {
-      openNewsletterEditor(requestedNewsletterId);
+      replace(getNewsletterEditorHref(requestedNewsletterId));
     }
-  }, [openNewsletterEditor, requestedNewsletterId]);
+  }, [getNewsletterEditorHref, replace, requestedNewsletterId]);
 
   async function handleGenerateTopics() {
     setIsGeneratingTopics(true);
@@ -205,6 +207,7 @@ export function useNewslettersPage() {
 
   return {
     filteredNewsletters,
+    getNewsletterEditorHref,
     href,
     instructions,
     isGeneratingDraft,

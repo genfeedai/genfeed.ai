@@ -4,6 +4,7 @@ import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   createArtifactEditorRoute,
+  createBrandAppRoute,
   ITEMS_PER_PAGE,
   withArtifactEditorReturn,
 } from '@genfeedai/constants';
@@ -438,14 +439,33 @@ export function usePostsList({
    */
   const handleEditPost = useCallback(
     (post: IPost) => {
+      const editorRoute = createArtifactEditorRoute('post', post.id);
+      const postOrganizationSlug =
+        post.organization &&
+        typeof post.organization === 'object' &&
+        'slug' in post.organization &&
+        typeof post.organization.slug === 'string'
+          ? post.organization.slug
+          : '';
+      const editorHref =
+        scope === PageScope.SUPERADMIN &&
+        postOrganizationSlug &&
+        post.brand?.slug
+          ? createBrandAppRoute(
+              postOrganizationSlug,
+              post.brand.slug,
+              editorRoute,
+            )
+          : href(editorRoute);
+
       router.push(
         withArtifactEditorReturn(
-          href(createArtifactEditorRoute('post', post.id)),
+          editorHref,
           searchParamsString ? `${pathname}?${searchParamsString}` : pathname,
         ),
       );
     },
-    [href, pathname, router, searchParamsString],
+    [href, pathname, router, scope, searchParamsString],
   );
 
   const handleOpenPostDetail = useCallback((post: IPost) => {
