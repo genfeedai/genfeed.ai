@@ -151,6 +151,59 @@ function legacyPathRedirects(fromPrefix: `/${string}`, toPrefix: `/${string}`) {
   ];
 }
 
+/**
+ * Standalone Studio one-off tabs are retired: prompt-bar surfaces hard-cut to
+ * the Agent, and their asset detail routes hard-cut to Library. Covers the
+ * canonical segments plus the plural aliases the old route accepted.
+ */
+const RETIRED_STUDIO_TAB_SEGMENTS = [
+  'avatar',
+  'avatars',
+  'image',
+  'images',
+  'music',
+  'video',
+  'videos',
+] as const;
+
+function retiredStudioTabRedirects() {
+  return RETIRED_STUDIO_TAB_SEGMENTS.flatMap((segment) => {
+    const tabPath = `${APP_ROUTES.STUDIO.ROOT}/${segment}` as const;
+    const detailPath = `${tabPath}/:assetId` as const;
+
+    return [
+      {
+        destination: APP_ROUTES.LIBRARY.ROOT,
+        permanent: true,
+        source: detailPath,
+      },
+      {
+        destination: createBrandAppRoute(
+          ':orgSlug',
+          ':brandSlug',
+          APP_ROUTES.LIBRARY.ROOT,
+        ),
+        permanent: true,
+        source: createBrandAppRoute(':orgSlug', ':brandSlug', detailPath),
+      },
+      {
+        destination: APP_ROUTES.AGENT.NEW,
+        permanent: true,
+        source: tabPath,
+      },
+      {
+        destination: createBrandAppRoute(
+          ':orgSlug',
+          ':brandSlug',
+          APP_ROUTES.AGENT.NEW,
+        ),
+        permanent: true,
+        source: createBrandAppRoute(':orgSlug', ':brandSlug', tabPath),
+      },
+    ];
+  });
+}
+
 const config = createAppNextConfig({
   // Defense in depth alongside app/robots.ts and the root layout metadata: the
   // header also covers responses that carry no HTML head (API routes, redirects,
@@ -243,10 +296,25 @@ const config = createAppNextConfig({
       source: APP_ROUTES.COMPOSE.ROOT,
     },
     {
-      destination: APP_ROUTES.STUDIO.IMAGE,
+      destination: APP_ROUTES.STUDIO.STORYBOARD,
       permanent: false,
       source: APP_ROUTES.STUDIO.ROOT,
     },
+    {
+      // Studio has no root page — Storyboard is the production landing surface.
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.STUDIO.STORYBOARD,
+      ),
+      permanent: false,
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.STUDIO.ROOT,
+      ),
+    },
+    ...retiredStudioTabRedirects(),
     // App homes live at `/[app]`; `/[app]/overview` is a permanent alias.
     ...appOverviewToHomeRedirects(APP_ROUTES.AUTOMATE.ROOT),
     ...appOverviewToHomeRedirects(APP_ROUTES.WORKSPACE.ROOT),

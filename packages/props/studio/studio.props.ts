@@ -3,7 +3,6 @@ import type {
   AssetScope,
   ComponentSize,
   IngredientCategory,
-  IngredientStatus,
 } from '@genfeedai/enums';
 import type {
   IElementBlacklist,
@@ -221,17 +220,4 @@ export interface StudioGenerateContentProps {
   generateLabel?: string;
   cost?: number;
   className?: string;
-}
-
-export interface StudioGeneratePageProps {
-  defaultCategoryType: IngredientCategory;
-  onCategoryChange?: (category: IngredientCategory) => void;
-}
-
-export interface StudioSelectionActionsBarProps {
-  count: number;
-  onClear: () => void;
-  onBulkDelete: () => void;
-  onBulkStatusChange: (status: IngredientStatus) => void;
-  isBulkUpdating?: boolean;
 }

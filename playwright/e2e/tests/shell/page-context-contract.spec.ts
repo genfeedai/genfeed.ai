@@ -32,7 +32,7 @@ const CONTRACTS: PageContextContract[] = [
     sectionLabel: 'Library',
   },
   {
-    route: `${BRAND_BASE}/studio/image`,
+    route: `${BRAND_BASE}/studio/storyboard`,
     currentApp: 'studio',
     sectionLabel: 'Studio',
   },

@@ -166,41 +166,17 @@ describe('media.constant', () => {
   });
 
   describe('getCategoryFromRoute', () => {
-    describe('standard /studio/ routes', () => {
-      it('should return IMAGE for /studio/image', () => {
-        expect(getCategoryFromRoute('/studio/image')).toBe(
-          IngredientCategory.IMAGE,
-        );
-      });
-
-      it('should return VIDEO for /studio/video', () => {
-        expect(getCategoryFromRoute('/studio/video')).toBe(
-          IngredientCategory.VIDEO,
-        );
-      });
-
-      it('should return MUSIC for /studio/music', () => {
-        expect(getCategoryFromRoute('/studio/music')).toBe(
-          IngredientCategory.MUSIC,
-        );
-      });
-
-      it('should return TEXT for /studio/text', () => {
-        expect(getCategoryFromRoute('/studio/text')).toBe(
-          IngredientCategory.TEXT,
-        );
-      });
-
-      it('should return VIDEO for /studio/avatar', () => {
-        expect(getCategoryFromRoute('/studio/avatar')).toBe(
-          IngredientCategory.VIDEO,
-        );
-      });
-
-      it('should default to VIDEO for unknown /studio/ routes', () => {
-        expect(getCategoryFromRoute('/studio/unknown')).toBe(
-          IngredientCategory.VIDEO,
-        );
+    describe('studio production surfaces', () => {
+      // The per-media-type tabs are retired; every surviving Studio surface is
+      // video-first and one-off generation happens in the Agent.
+      it.each([
+        '/studio',
+        '/studio/storyboard',
+        '/studio/clips',
+        '/studio/batch',
+        '/studio/fastlane',
+      ])('should return VIDEO for %s', (pathname) => {
+        expect(getCategoryFromRoute(pathname)).toBe(IngredientCategory.VIDEO);
       });
     });
 
@@ -270,27 +246,12 @@ describe('media.constant', () => {
 
   describe('getConfigForRoute', () => {
     describe('standard routes', () => {
-      it('should return video config for /studio/video', () => {
-        const config = getConfigForRoute('/studio/video');
+      it('should return video config for studio production surfaces', () => {
+        const config = getConfigForRoute('/studio/storyboard');
 
         expect(config.assetType).toBe('video');
         expect(config.buttons?.camera).toBe(true);
         expect(config.buttons?.sounds).toBe(true);
-      });
-
-      it('should return image config for /studio/image', () => {
-        const config = getConfigForRoute('/studio/image');
-
-        expect(config.assetType).toBe('image');
-        expect(config.buttons?.camera).toBe(false);
-        expect(config.buttons?.sounds).toBe(false);
-      });
-
-      it('should return music config for /studio/music', () => {
-        const config = getConfigForRoute('/studio/music');
-
-        expect(config.assetType).toBe('music');
-        expect(config.buttons?.format).toBe(false);
       });
     });
 

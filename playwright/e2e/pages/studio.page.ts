@@ -4,11 +4,15 @@ import { expect } from '@playwright/test';
 /**
  * Page Object Model for the Studio Page
  *
- * Provides an abstraction layer for interacting with the main Studio/Generation page.
- * Handles video, image, music, and avatar generation flows.
+ * Provides an abstraction layer for interacting with Studio's production
+ * surfaces (storyboard, clips, batch, fastlane), each of which carries its own
+ * inline prompt bar. The standalone one-off image/video/music/avatar tabs are
+ * retired — one-off generation happens in the Agent.
  *
  * @module studio.page
  */
+export type StudioSurface = 'storyboard' | 'clips' | 'batch' | 'fastlane';
+
 export class StudioPage {
   readonly page: Page;
   readonly url = '/studio';
@@ -17,12 +21,6 @@ export class StudioPage {
   readonly sidebar: Locator;
   readonly topbar: Locator;
   readonly mainContent: Locator;
-
-  // Generation type tabs/buttons
-  readonly videoTab: Locator;
-  readonly imageTab: Locator;
-  readonly musicTab: Locator;
-  readonly avatarTab: Locator;
 
   // Prompt input area
   readonly promptInput: Locator;
@@ -69,20 +67,6 @@ export class StudioPage {
     this.sidebar = page.locator('[data-testid="sidebar"], aside, nav');
     this.topbar = page.locator('[data-testid="topbar"], header');
     this.mainContent = page.locator('main, [data-testid="main-content"]');
-
-    // Generation tabs - common patterns
-    this.videoTab = page.locator(
-      '[data-testid="video-tab"], button:has-text("Video"), a[href*="video"]',
-    );
-    this.imageTab = page.locator(
-      '[data-testid="image-tab"], button:has-text("Image"), a[href*="image"]',
-    );
-    this.musicTab = page.locator(
-      '[data-testid="music-tab"], button:has-text("Music"), a[href*="music"]',
-    );
-    this.avatarTab = page.locator(
-      '[data-testid="avatar-tab"], button:has-text("Avatar"), a[href*="avatar"]',
-    );
 
     // Prompt area
     this.promptInput = page.locator(
@@ -172,12 +156,10 @@ export class StudioPage {
   }
 
   /**
-   * Navigate to specific generation type
+   * Navigate to a specific Studio production surface
    */
-  async gotoGenerationType(
-    type: 'video' | 'image' | 'music' | 'avatar',
-  ): Promise<void> {
-    await this.page.goto(`/studio/${type}`);
+  async gotoSurface(surface: StudioSurface): Promise<void> {
+    await this.page.goto(`${this.url}/${surface}`);
     await this.waitForPageLoad();
   }
 
@@ -208,23 +190,6 @@ export class StudioPage {
   async isDisplayed(): Promise<boolean> {
     const url = this.page.url();
     return url.includes('/studio');
-  }
-
-  /**
-   * Select a generation type tab
-   */
-  async selectGenerationType(
-    type: 'video' | 'image' | 'music' | 'avatar',
-  ): Promise<void> {
-    const tabMap = {
-      avatar: this.avatarTab,
-      image: this.imageTab,
-      music: this.musicTab,
-      video: this.videoTab,
-    };
-
-    await tabMap[type].click();
-    await this.page.waitForLoadState('domcontentloaded');
   }
 
   /**

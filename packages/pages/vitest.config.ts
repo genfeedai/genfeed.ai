@@ -353,8 +353,6 @@ export default defineConfig({
     include: [
       'packages/pages/analytics/overview/analytics-overview.test.tsx',
       'brands/components/**/*.test.tsx',
-      'studio/generate/StudioGenerateLayout.test.tsx',
-      'studio/generate/components/StudioComposer.test.tsx',
       'studio/generate/utils/**/*.test.ts',
       'studio/fastlane/**/*.test.ts',
       'studio/fastlane/**/*.test.tsx',

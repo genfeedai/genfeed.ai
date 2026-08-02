@@ -16,12 +16,10 @@ describe('STUDIO_MENU_ITEMS', () => {
       'Batch',
       'Fastlane',
     ]);
-    expect(automationItems[0]).toMatchObject({
-      hasDividerAbove: true,
-      href: '/studio/storyboard',
-    });
+    expect(automationItems[0]?.href).toBe('/studio/storyboard');
     expect(automationItems[1]?.href).toBe('/studio/clips');
     expect(automationItems[2]?.href).toBe('/studio/batch');
+    expect(automationItems[3]?.href).toBe('/studio/fastlane');
   });
 
   it('exposes every studio route that has a page behind a nav entry', () => {
@@ -32,12 +30,12 @@ describe('STUDIO_MENU_ITEMS', () => {
     expect(hrefs).toContain('/studio/clips');
   });
 
-  it('keeps generation modes ungrouped above Automation', () => {
-    const generationLabels = STUDIO_MENU_ITEMS.filter(
-      (item) => item.group === '',
-    ).map((item) => item.label);
+  it('carries no ungrouped one-off generation modes', () => {
+    // The standalone Image/Video/Avatar/Music tabs are retired — one-off
+    // generation runs through the Agent. Edit remains a production surface.
+    const ungrouped = STUDIO_MENU_ITEMS.filter((item) => item.group === '');
 
-    expect(generationLabels).toEqual(['Image', 'Video', 'Avatar', 'Music']);
+    expect(ungrouped).toEqual([]);
   });
 
   it('exposes the merged editor as the Edit timeline entry', () => {
@@ -53,12 +51,8 @@ describe('STUDIO_MENU_ITEMS', () => {
     });
   });
 
-  it('places Edit between the generation modes and Automation', () => {
+  it('places Edit before Automation', () => {
     expect(STUDIO_MENU_ITEMS.map((item) => item.group)).toEqual([
-      '',
-      '',
-      '',
-      '',
       'Edit',
       'Automation',
       'Automation',

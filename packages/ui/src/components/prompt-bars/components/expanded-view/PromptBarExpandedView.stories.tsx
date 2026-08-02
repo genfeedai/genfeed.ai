@@ -71,7 +71,7 @@ function createMockContext(
     normalizedWatchedModels: [],
     openGallery: () => {},
     openUpload: () => {},
-    pathname: '/studio/image',
+    pathname: '/studio/storyboard',
     previousPrompt: null,
     profiles: [],
     promptBarHeight: 0,

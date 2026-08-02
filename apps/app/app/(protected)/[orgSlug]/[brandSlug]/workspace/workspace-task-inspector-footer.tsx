@@ -9,7 +9,6 @@ import type { WorkspaceTaskLinkedIssueSummary } from './workspace-task-inspector
 
 interface WorkspaceTaskInspectorFooterProps {
   isBusy: boolean;
-  isStudioEnabled: boolean;
   linkedIssueSummary: WorkspaceTaskLinkedIssueSummary;
   onApprove: (taskId: string) => Promise<void>;
   onDismiss: (taskId: string) => Promise<void>;
@@ -23,7 +22,6 @@ interface WorkspaceTaskInspectorFooterProps {
 
 export function WorkspaceTaskInspectorFooter({
   isBusy,
-  isStudioEnabled,
   linkedIssueSummary,
   onApprove,
   onDismiss,
@@ -81,11 +79,7 @@ export function WorkspaceTaskInspectorFooter({
           <Link href={buildTaskLaunchHref(task, 'write')}>Open in Write</Link>
         </Button>
         <Button asChild variant={ButtonVariant.GHOST} size={ButtonSize.SM}>
-          <Link
-            href={buildTaskLaunchHref(task, 'generate', {
-              studio: isStudioEnabled,
-            })}
-          >
+          <Link href={buildTaskLaunchHref(task, 'generate')}>
             Open in Generate
           </Link>
         </Button>

@@ -7,8 +7,7 @@ import type { SectionTopbarProps } from '@genfeedai/props/ui/layout/section-topb
 /**
  * SectionTopbar — the shared sub-topbar for app section pages.
  *
- * Encodes the Studio section header contract (see
- * packages/pages/studio/generate/components/AssetControlsHeader.tsx) as a
+ * Encodes the Studio section header contract as a
  * reusable primitive: a full-bleed bar whose bottom border touches the shell
  * edges, with title, optional subtitle, right-aligned actions, and an
  * optional tab strip that lives inside the same bordered bar. Render it as

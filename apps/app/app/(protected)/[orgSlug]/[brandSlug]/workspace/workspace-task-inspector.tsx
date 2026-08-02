@@ -1,7 +1,6 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/constants';
-import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import type { Task } from '@services/management/tasks.service';
 import { Sheet, SheetContent } from '@ui/primitives/sheet';
 import { useMemo } from 'react';
@@ -41,7 +40,6 @@ export function WorkspaceTaskInspector({
   onUnkeepOutput,
   task,
 }: WorkspaceTaskInspectorProps) {
-  const isStudioEnabled = useFeatureFlag('studio');
   const isBusy = busyTaskId === task?.id;
   const showReviewActions = task?.reviewState === 'pending_approval';
   const linkedIssueSummary = useWorkspaceTaskLinkedIssue(task);
@@ -51,7 +49,7 @@ export function WorkspaceTaskInspector({
     task && linkedRunSummary.reportThreadId
       ? `${APP_ROUTES.AGENT.ROOT}/${linkedRunSummary.reportThreadId}`
       : task
-        ? getAdvancedToolHref(task, isStudioEnabled)
+        ? getAdvancedToolHref(task)
         : '/automate/runs';
   const taskToolLabel = linkedRunSummary.reportThreadId
     ? 'Open Report'
@@ -86,7 +84,6 @@ export function WorkspaceTaskInspector({
             />
             <WorkspaceTaskInspectorFooter
               isBusy={isBusy}
-              isStudioEnabled={isStudioEnabled}
               linkedIssueSummary={linkedIssueSummary}
               onApprove={onApprove}
               onDismiss={onDismiss}

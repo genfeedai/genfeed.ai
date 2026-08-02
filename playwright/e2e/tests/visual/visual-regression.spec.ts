@@ -65,7 +65,7 @@ test.describe('Visual Regression Tests - Desktop', () => {
       );
     });
 
-    test('Studio - Image Generation Page - should match baseline', async ({
+    test('Studio - Storyboard Page - should match baseline', async ({
       authenticatedPage,
     }) => {
       // Mock content library for consistency
@@ -79,28 +79,7 @@ test.describe('Visual Regression Tests - Desktop', () => {
 
       // Take full-page screenshot
       await expect(authenticatedPage).toHaveScreenshot(
-        'studio-image-desktop.png',
-        {
-          fullPage: true,
-        },
-      );
-    });
-
-    test('Studio - Video Generation Page - should match baseline', async ({
-      authenticatedPage,
-    }) => {
-      // Mock content library for consistency
-      await mockContentLibrary(authenticatedPage, 'videos', 6);
-
-      await authenticatedPage.goto(`${APP_ROUTES.STUDIO.ROOT}?tab=video`);
-
-      // Wait for video tab to load
-      await authenticatedPage.waitForLoadState('domcontentloaded');
-      await authenticatedPage.waitForTimeout(500);
-
-      // Take full-page screenshot
-      await expect(authenticatedPage).toHaveScreenshot(
-        'studio-video-desktop.png',
+        'studio-storyboard-desktop.png',
         {
           fullPage: true,
         },
@@ -205,7 +184,7 @@ test.describe('Visual Regression Tests - Mobile', () => {
 
       // Take full-page screenshot
       await expect(authenticatedPage).toHaveScreenshot(
-        'studio-image-mobile.png',
+        'studio-storyboard-mobile.png',
         {
           fullPage: true,
         },
@@ -271,7 +250,7 @@ test.describe('Visual Regression Tests - Critical UI Components', () => {
     await authenticatedPage.waitForTimeout(500);
 
     await expect(authenticatedPage).toHaveScreenshot(
-      'studio-empty-state-desktop.png',
+      'studio-storyboard-empty-state-desktop.png',
       {
         fullPage: true,
       },

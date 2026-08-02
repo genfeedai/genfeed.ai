@@ -31,7 +31,7 @@ export const APP_ROUTES = {
   });
 
   it('keeps path suffixes composed after APP_ROUTES references', () => {
-    const srcConcat = "APP_ROUTES.STUDIO.IMAGE + '/mock-id'";
+    const srcConcat = "APP_ROUTES.STUDIO.STORYBOARD + '/mock-id'";
     const matchConcat = srcConcat.match(/\bAPP_ROUTES(?:\.[A-Z][A-Z0-9_]*)+/);
     assert.ok(matchConcat);
     assert.equal(
@@ -50,9 +50,9 @@ export const APP_ROUTES = {
     );
 
     // biome-ignore lint/suspicious/noTemplateCurlyInString: fixture source is a template literal.
-    const srcTemplate = '`${APP_ROUTES.STUDIO.IMAGE}/mock-id`';
+    const srcTemplate = '`${APP_ROUTES.STUDIO.STORYBOARD}/mock-id`';
     // Match only the APP_ROUTES token, not the surrounding template bits.
-    const token = 'APP_ROUTES.STUDIO.IMAGE';
+    const token = 'APP_ROUTES.STUDIO.STORYBOARD';
     const idx = srcTemplate.indexOf(token);
     assert.equal(
       readAppRouteSuffix(srcTemplate, idx, token.length),
@@ -60,9 +60,9 @@ export const APP_ROUTES = {
     );
     assert.equal(
       canonicalize(
-        `/studio/image${readAppRouteSuffix(srcTemplate, idx, token.length)}`,
+        `/studio/storyboard${readAppRouteSuffix(srcTemplate, idx, token.length)}`,
       ),
-      '/studio/image/*',
+      '/studio/storyboard/*',
     );
   });
 });

@@ -192,6 +192,12 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
         visibleTo: ['owner', 'admin', 'creator'] as MemberRole[],
       },
       {
+        icon: createElement(Film, { className: 'size-5 text-foreground/50' }),
+        label: 'Video',
+        prompt: 'Help me plan and generate a short brand video.',
+        visibleTo: ['owner', 'admin', 'creator'] as MemberRole[],
+      },
+      {
         icon: createElement(Settings, {
           className: 'size-5 text-foreground/50',
         }),
@@ -527,54 +533,6 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
         }),
         label: 'Status',
         prompt: 'Show me the status of my model trainings',
-      },
-    ],
-  },
-  [APP_ROUTES.STUDIO.IMAGE]: {
-    placeholder: 'Ask about image generation...',
-    suggestedActions: [
-      {
-        icon: createElement(Sparkles, {
-          className: 'size-5 text-foreground/50',
-        }),
-        label: 'Better prompt',
-        prompt:
-          'Help me write a strong image generation prompt for what I want to create.',
-      },
-      {
-        icon: createElement(Paintbrush, {
-          className: 'size-5 text-foreground/50',
-        }),
-        label: 'Style ideas',
-        prompt:
-          'Suggest visual styles and lighting directions for this image session.',
-      },
-      {
-        icon: createElement(Settings, {
-          className: 'size-5 text-foreground/50',
-        }),
-        label: 'Which model?',
-        prompt:
-          'Which image models should I enable for this Studio format, and how should I pick between them?',
-      },
-    ],
-  },
-  [APP_ROUTES.STUDIO.VIDEO]: {
-    placeholder: 'Ask about video generation...',
-    suggestedActions: [
-      {
-        icon: createElement(Film, {
-          className: 'size-5 text-foreground/50',
-        }),
-        label: 'Shot list',
-        prompt: 'Help me plan a short video shot list and generation prompt.',
-      },
-      {
-        icon: createElement(Sparkles, {
-          className: 'size-5 text-foreground/50',
-        }),
-        label: 'Motion ideas',
-        prompt: 'Suggest camera motion and pacing for a short brand video.',
       },
     ],
   },

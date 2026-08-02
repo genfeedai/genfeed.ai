@@ -9,8 +9,6 @@ import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import PublishLayoutContent from '../../../[brandSlug]/publish/publish-layout-content';
 import { renderPostsListPage } from '../../../[brandSlug]/publish/publish-list-page';
-import StudioPageContent from '../../../[brandSlug]/studio/[type]/StudioPageContent';
-import { canonicalizeStudioType } from '../../../[brandSlug]/studio/[type]/studio-route';
 import EditorDetailPage from '../../../[brandSlug]/studio/edit/[id]/page';
 import EditorProjectsPage from '../../../[brandSlug]/studio/edit/editor-projects-page';
 import EditorNewPage from '../../../[brandSlug]/studio/edit/new/page';
@@ -150,17 +148,9 @@ export default async function OrgRootAppPage({
       );
     }
 
-    // Studio generate surface — never the library ingredient browser.
-    // Type comes from /~/studio/:type (e.g. music, video, image, avatar).
-    const studioType = canonicalizeStudioType(segments?.[0]);
-
-    return (
-      <FeatureGate flagKey="studio">
-        <ErrorBoundary>
-          <StudioPageContent typeOverride={studioType} />
-        </ErrorBoundary>
-      </FeatureGate>
-    );
+    // Studio's org-scoped one-off generation surface was retired. Studio
+    // production tooling is brand-scoped; org-scoped generation lives in Agent.
+    redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.NEW));
   }
 
   if (

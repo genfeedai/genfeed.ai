@@ -106,14 +106,6 @@ const ROUTE_TO_CATEGORY: Record<string, IngredientCategory> = {
   '/upscale': IngredientCategory.IMAGE,
 };
 
-const MEDIA_TYPE_TO_CATEGORY: Record<string, IngredientCategory> = {
-  avatar: IngredientCategory.VIDEO,
-  image: IngredientCategory.IMAGE,
-  music: IngredientCategory.MUSIC,
-  text: IngredientCategory.TEXT,
-  video: IngredientCategory.VIDEO,
-};
-
 const ROUTE_OVERRIDES: Record<string, Partial<MediaConfig>> = {
   '/avatars': {
     buttons: {
@@ -185,16 +177,12 @@ export function getConfigForRoute(pathname: string): MediaConfig {
   return baseConfig;
 }
 
+/**
+ * Studio's per-media-type segments are retired — one-off generation lives in the
+ * Agent now, and the surviving production surfaces are all video-first. Only the
+ * standalone tool routes still pin a category.
+ */
 export function getCategoryFromRoute(pathname: string): IngredientCategory {
-  if (pathname === '/studio') {
-    return IngredientCategory.VIDEO;
-  }
-
-  if (pathname.startsWith('/studio/')) {
-    const mediaType = pathname.split('/')[2] as string;
-    return MEDIA_TYPE_TO_CATEGORY[mediaType] ?? IngredientCategory.VIDEO;
-  }
-
   return ROUTE_TO_CATEGORY[pathname] ?? IngredientCategory.VIDEO;
 }
 

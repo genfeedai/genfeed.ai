@@ -36,7 +36,7 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
         'Connected channels unlock platform-aware workflows and publishing.',
     },
     {
-      ctaHref: '/studio/image',
+      ctaHref: '/agent/new',
       ctaLabel: 'Generate image',
       description: 'Create your first image to activate your visual workflow.',
       id: 'generate_first_image',
@@ -46,7 +46,7 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
         'Your first image proves the workflow works and gives the agent a concrete artifact to build on.',
     },
     {
-      ctaHref: '/studio/video',
+      ctaHref: '/agent/new',
       ctaLabel: 'Generate video',
       description:
         'Generate your first video to unlock richer content creation.',
