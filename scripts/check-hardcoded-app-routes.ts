@@ -85,7 +85,7 @@ const ROUTE_ROOTS = [
   'messages',
   'oauth',
   'onboarding',
-  'orchestration',
+  'automate',
   'overview',
   'posts',
   'request-access',

@@ -70,7 +70,7 @@ function stripOrgPrefix(path: string): string {
       'ingredients',
       'videos',
       'edit',
-      'orchestration',
+      'automate',
       'elements',
       'bots',
     ];

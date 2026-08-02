@@ -213,7 +213,7 @@ export class LoginPage {
       '/studio',
       '/g',
       '/studio/edit',
-      '/orchestration/workflows',
+      '/automate/workflows',
       '/',
     ];
     const currentUrl = this.page.url();

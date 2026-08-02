@@ -215,7 +215,7 @@ function buildSectionSummaries(
     },
     {
       color: 'text-muted-foreground',
-      href: APP_ROUTES.ORCHESTRATION.OVERVIEW,
+      href: APP_ROUTES.AUTOMATE.OVERVIEW,
       icon: Settings,
       kicker: 'Automate',
       label: 'Automation',
@@ -403,7 +403,7 @@ export default function OverviewPageContent({
         color: 'bg-secondary text-muted-foreground',
         cta: 'Open Agents',
         description: 'Monitor agent runs, workflows, and brand operations',
-        href: APP_ROUTES.ORCHESTRATION.RUNS,
+        href: APP_ROUTES.AUTOMATE.RUNS,
         icon: Sparkles,
         id: 'automations',
         label: 'Agents',

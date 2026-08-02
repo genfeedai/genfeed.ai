@@ -2,6 +2,7 @@
 
 import { ADMIN_LOGO_HREF } from '@app-config/admin-menu-items.config';
 import { ANALYTICS_LOGO_HREF } from '@app-config/analytics-menu-items.config';
+import { AUTOMATE_LOGO_HREF } from '@app-config/automate-menu-items.config';
 import { COMPOSE_LOGO_HREF } from '@app-config/compose-menu-items.config';
 import { DISCOVER_LOGO_HREF } from '@app-config/discover-menu-items.config';
 import { LIBRARY_LOGO_HREF } from '@app-config/library-menu-items.config';
@@ -13,7 +14,6 @@ import {
   type SettingsScope,
 } from '@app-config/settings-menu-items.config';
 import { STUDIO_LOGO_HREF } from '@app-config/studio-menu-items.config';
-import { WORKFLOWS_LOGO_HREF } from '@app-config/workflows-menu-items.config';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
@@ -63,7 +63,7 @@ type Props = {
   isDiscoverRoute: boolean;
   isSettingsRoute: boolean;
   isStudioRoute: boolean;
-  isWorkflowsRoute: boolean;
+  isAutomateRoute: boolean;
   /** Settings sidebar scope — brand routes omit the redundant "Settings" header. */
   settingsScope?: SettingsScope;
   adminMenuItems: MenuItemConfig[];
@@ -77,7 +77,7 @@ type Props = {
   secondaryMenuItems: MenuItemConfig[];
   settingsMenuItems: MenuItemConfig[];
   studioMenuItems: MenuItemConfig[];
-  workflowsMenuItems: MenuItemConfig[];
+  automateMenuItems: MenuItemConfig[];
   /**
    * Supplied by the module that owns the active surface. When present its body
    * replaces that surface's menu items — today the conversation's thread list,
@@ -105,7 +105,7 @@ export default function AppProtectedLayoutSidebar({
   isDiscoverRoute,
   isSettingsRoute,
   isStudioRoute,
-  isWorkflowsRoute,
+  isAutomateRoute,
   settingsScope: _settingsScope = 'personal',
   adminMenuItems,
   analyticsMenuItems,
@@ -118,7 +118,7 @@ export default function AppProtectedLayoutSidebar({
   secondaryMenuItems,
   settingsMenuItems,
   studioMenuItems,
-  workflowsMenuItems,
+  automateMenuItems,
   navPanel,
   onOpenCommandPalette,
 }: Props) {
@@ -206,10 +206,10 @@ export default function AppProtectedLayoutSidebar({
         showOrgSwitcher: true,
       },
       {
-        active: isWorkflowsRoute,
+        active: isAutomateRoute,
         currentApp,
-        items: workflowsMenuItems,
-        logoHref: buildHref(WORKFLOWS_LOGO_HREF),
+        items: automateMenuItems,
+        logoHref: buildHref(AUTOMATE_LOGO_HREF),
         sectionLabel: 'Automate',
         showOrgSwitcher: true,
       },

@@ -121,12 +121,12 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     1,
   ),
   legacyUiAllowance(
-    'apps/app/app/(protected)/[orgSlug]/[brandSlug]/orchestration/runs/RunRoutingInsights.tsx',
+    'apps/app/app/(protected)/[orgSlug]/[brandSlug]/automate/runs/RunRoutingInsights.tsx',
     'to-locale-string',
     1,
   ),
   legacyUiAllowance(
-    'apps/app/app/(protected)/[orgSlug]/[brandSlug]/orchestration/runs/RunStatsStrip.tsx',
+    'apps/app/app/(protected)/[orgSlug]/[brandSlug]/automate/runs/RunStatsStrip.tsx',
     'to-locale-string',
     1,
   ),

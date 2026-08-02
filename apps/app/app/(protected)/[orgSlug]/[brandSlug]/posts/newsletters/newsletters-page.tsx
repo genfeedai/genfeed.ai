@@ -163,7 +163,7 @@ function NewslettersPageContent() {
             description="Create or schedule newsletter workflows from Workflows, then review generated issues here."
             action={{
               label: 'Open Workflows',
-              onClick: () => push(href(APP_ROUTES.ORCHESTRATION.WORKFLOWS)),
+              onClick: () => push(href(APP_ROUTES.AUTOMATE.WORKFLOWS)),
               variant: ButtonVariant.SECONDARY,
             }}
           />

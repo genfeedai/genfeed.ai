@@ -3,7 +3,7 @@ import type { IAgentRun } from '@genfeedai/interfaces';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import AgentRunCard from '../app/(protected)/[orgSlug]/[brandSlug]/orchestration/runs/AgentRunCard';
+import AgentRunCard from '../app/(protected)/[orgSlug]/[brandSlug]/automate/runs/AgentRunCard';
 
 vi.mock('@ui/buttons/base/Button', () => ({
   default: ({

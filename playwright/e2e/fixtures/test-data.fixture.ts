@@ -985,10 +985,10 @@ export const testRoutes = {
   settings: '/settings',
   studio: '/studio',
   workflow: {
-    editor: '/orchestration/workflows/new',
-    executions: '/orchestration/workflows/executions',
-    library: '/orchestration/workflows',
-    templates: '/orchestration/workflows/templates',
+    editor: '/automate/workflows/new',
+    executions: '/automate/workflows/executions',
+    library: '/automate/workflows',
+    templates: '/automate/workflows/templates',
   },
 };
 

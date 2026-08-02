@@ -32,7 +32,7 @@ const KNOWN_PROTECTED_PREFIXES = [
   'ingredients',
   'videos',
   'edit',
-  'orchestration',
+  'automate',
   'elements',
   'bots',
   'admin',
@@ -62,8 +62,8 @@ export function normalizeProtectedPathname(rawPathname: string): string {
  * (post-{@link normalizeProtectedPathname}), so pass a normalized pathname.
  *
  * Covers the five product sections plus their canonical route aliases: Workspace
- * (`/workspace`, `/overview`), Library, Analytics, Orchestration/Automate
- * (`/orchestration`, including merged workflows), and the Calendar
+ * (`/workspace`, `/overview`), Library, Analytics, Automate
+ * (`/automate`, including merged workflows), and the Calendar
  * (`/posts/calendar`). The agent, settings, studio, compose, discover, publish,
  * messages, and admin surfaces are intentionally NOT gated.
  */
@@ -72,7 +72,7 @@ const ASSET_GATE_SECTION_PREFIXES = [
   '/overview',
   '/library',
   '/analytics',
-  '/orchestration',
+  '/automate',
   '/posts/calendar',
 ] as const;
 
@@ -237,7 +237,7 @@ function getTaskLaunchPath(
   }
 
   if (mode === 'automate') {
-    return APP_ROUTES.ORCHESTRATION.WORKFLOWS;
+    return APP_ROUTES.AUTOMATE.WORKFLOWS;
   }
 
   switch (task.executionPathUsed) {
@@ -254,7 +254,7 @@ function getTaskLaunchPath(
         ? APP_ROUTES.STUDIO.VIDEO
         : APP_ROUTES.AGENT.NEW;
     default:
-      return APP_ROUTES.ORCHESTRATION.WORKFLOWS;
+      return APP_ROUTES.AUTOMATE.WORKFLOWS;
   }
 }
 

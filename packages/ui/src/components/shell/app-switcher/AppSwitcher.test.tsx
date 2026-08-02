@@ -603,7 +603,7 @@ describe('AppSwitcher', () => {
       );
       expect(screen.getByRole('link', { name: 'Automate' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/orchestration',
+        '/acme/my-brand/automate',
       );
     });
 
@@ -633,7 +633,7 @@ describe('AppSwitcher', () => {
 
       for (const [label, href] of [
         ['Messages', '/acme/~/messages'],
-        ['Automate', '/acme/~/orchestration'],
+        ['Automate', '/acme/~/automate'],
         ['Studio', '/acme/~/studio/image'],
         ['Library', '/acme/~/library'],
         ['Discover', '/acme/~/discover/discovery'],

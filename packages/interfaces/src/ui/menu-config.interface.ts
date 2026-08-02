@@ -10,8 +10,6 @@ export type AppContext =
   | 'messages'
   | 'posts'
   | 'studio'
-  | 'workflows'
-  | 'orchestration'
   | 'automate'
   | 'compose'
   | 'analytics';
