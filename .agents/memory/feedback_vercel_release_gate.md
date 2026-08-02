@@ -15,5 +15,5 @@ topics: [deployment, production, vercel, ci]
 - Keep `git.deploymentEnabled` disabled for `master`, `staging`, and wildcard branches in each frontend `vercel.json`.
 - Deploy production frontends only from the reusable Vercel frontend workflow called after the production API/ECS deployment succeeds.
 - Do not add a standalone admin frontend to the deployment matrix unless there is a real monorepo build target and a deliberate reason to split it from `apps/app`.
-- Do not run local Vercel production deploys unless Vincent explicitly asks for an emergency exception.
+- Local Vercel CLI is forbidden for agent workspaces (host global rule). CI owns production frontend deploys.
 - When adding another Vercel app, wire it into the CI release chain before allowing any production domain to point at it.

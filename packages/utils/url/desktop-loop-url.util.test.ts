@@ -4,6 +4,7 @@ import type {
 } from '@genfeedai/props/trends/trends-page.props';
 import {
   buildAgentPromptHref,
+  buildClipDraftAgentHref,
   buildPostAnalyticsHref,
   buildTrendAgentHref,
   buildTrendSourceAgentHref,
@@ -15,6 +16,19 @@ describe('desktop-loop-url.util', () => {
     expect(buildAgentPromptHref('Test prompt')).toBe(
       '/agent/new?prompt=Test+prompt',
     );
+  });
+
+  it('keeps signed clip media URLs out of Agent prompts', () => {
+    const href = buildClipDraftAgentHref({
+      description: 'A launch clip',
+      ingredientId: 'ingredient-1',
+      mediaUrl: 'https://storage.example/clip.mp4?X-Goog-Signature=secret',
+      title: 'Launch',
+    });
+
+    expect(href).toContain('Ingredient+id%3A+ingredient-1');
+    expect(href).not.toContain('storage.example');
+    expect(href).not.toContain('secret');
   });
 
   it('builds a contextual agent handoff for a trend', () => {
@@ -49,7 +63,7 @@ describe('desktop-loop-url.util', () => {
 
     const href = buildTrendSourceTwitterDraftHref(trend, source);
 
-    expect(href).toContain('/posts/remix?');
+    expect(href).toContain('/publish/remix?');
     expect(href).toContain('trendId=trend-1');
     expect(href).toContain('sourceReferenceId=source-reference-1');
     expect(href).toContain(

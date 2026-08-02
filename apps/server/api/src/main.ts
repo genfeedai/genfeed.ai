@@ -8,7 +8,6 @@ import { timingSafeEqual } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { AppModule } from '@api/app.module';
 import { BetterAuthService } from '@api/auth/better-auth/better-auth.service';
 import { shouldBypassBetterAuthHandler } from '@api/auth/better-auth/better-auth-route-bypass.util';
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
@@ -32,6 +31,10 @@ import { buildOAuthAuthorizationServerMetadata } from '@api/oauth/oauth-metadata
 import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { ExpressAdapter } from '@bull-board/express';
+import {
+  initializeLicenseVerification,
+  reportLicenseVerificationWarning,
+} from '@genfeedai/config/license-server';
 import { ConfigService } from '@libs/config/config.service';
 import { getGenfeedCorsOptions } from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -92,6 +95,16 @@ async function main() {
   let logger: LoggerService | undefined;
 
   try {
+    await initializeLicenseVerification();
+    const { AppModule } = await import('@api/app.module');
+
+    // Hermetic boot-check gate (CI, on PRs): license verification and the
+    // dynamic AppModule import complete before this exit, so the full compiled
+    // provider graph still loads without requiring env, DB, or Redis.
+    if (process.env.BOOT_CHECK === '1') {
+      process.exit(0);
+    }
+
     bootstrapLogger.log('API bootstrap: creating Nest application');
     const app = await NestFactory.create<NestExpressApplication>(AppModule, {
       abortOnError: false,
@@ -108,6 +121,7 @@ async function main() {
 
     const configService = app.get(ConfigService);
     logger = app.get<LoggerService>(LoggerService);
+    reportLicenseVerificationWarning(logger);
     const port = configService.get('PORT');
     const apiListenTimeoutMs = parsePositiveTimeoutMs(
       configService.get('API_LISTEN_TIMEOUT_MS'),
@@ -407,19 +421,6 @@ async function main() {
     // handles remain open. Exit loudly so ECS and boot-smoke fail fast.
     process.exit(1);
   }
-}
-
-// Hermetic boot-check gate (CI, on PRs): by the time module evaluation reaches
-// here, every import above — including AppModule and its whole provider graph —
-// has loaded. A circular-import TDZ (e.g. #711's "Cannot access 'X' before
-// initialization") throws during that import and crashes the process before this
-// line, so exit 0 here means the compiled graph loads cleanly. We exit BEFORE
-// NestFactory/config so the check needs no env, DB, or Redis — unlike the
-// deploy-time boot-smoke ECS task, which boots the full listener against the
-// migrated DB. Note: vitest can't reproduce this TDZ (its SWC/ESM
-// resolution differs); only the compiled build does, which is what CI runs here.
-if (process.env.BOOT_CHECK === '1') {
-  process.exit(0);
 }
 
 void main();

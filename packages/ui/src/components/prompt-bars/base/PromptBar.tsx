@@ -1,7 +1,7 @@
 'use client';
 
 import { PromptBarInternalContext } from '@genfeedai/contexts/ui/prompt-bar-internal-context';
-import { IngredientCategory, IngredientFormat } from '@genfeedai/enums';
+import { IngredientCategory } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarProps } from '@genfeedai/props/studio/prompt-bar.props';
 import PromptBarCollapsedView from '@ui/prompt-bars/components/collapsed-view/PromptBarCollapsedView';
@@ -10,7 +10,7 @@ import PromptBarShell, {
   PROMPT_BAR_SURFACE_CLASS,
 } from '@ui/prompt-bars/components/shell/PromptBarShell';
 import { memo } from 'react';
-import { EMPTY_ARRAY, getAspectRatioFromFormat } from './prompt-bar.helpers';
+import { EMPTY_ARRAY } from './prompt-bar.helpers';
 import { usePromptBarState } from './use-prompt-bar-state';
 
 function PromptBar({
@@ -81,9 +81,6 @@ function PromptBar({
     toggleVoice,
     isRecording,
     isProcessing,
-    push,
-    buildHref,
-    watchedFormat,
   } = usePromptBarState({
     isDisabled,
     models,
@@ -172,41 +169,17 @@ function PromptBar({
                   }}
                   categoryType={categoryType}
                   currentModelCategory={currentModelCategory}
-                  onCreateVariation={
-                    categoryType === IngredientCategory.IMAGE
-                      ? (reference) => {
-                          if (!reference) {
-                            return;
-                          }
-                          const format =
-                            watchedFormat || IngredientFormat.PORTRAIT;
-                          push(
-                            buildHref(
-                              `/studio/image?referenceImageId=${reference.id}&format=${format}`,
-                            ),
-                          );
-                        }
-                      : undefined
-                  }
+                  // The collapsed format cycle used to navigate to the
+                  // standalone Studio generate route. That surface is retired,
+                  // so the format now changes in place on the active prompt bar.
                   onFormatChange={
                     categoryType === IngredientCategory.IMAGE ||
                     categoryType === IngredientCategory.VIDEO
                       ? (nextFormat) => {
-                          if (categoryType === IngredientCategory.IMAGE) {
-                            push(
-                              buildHref(`/studio/image?format=${nextFormat}`),
-                            );
-                          } else if (
-                            categoryType === IngredientCategory.VIDEO
-                          ) {
-                            const aspectRatio =
-                              getAspectRatioFromFormat(nextFormat);
-                            push(
-                              buildHref(
-                                `/studio/video?aspectRatio=${aspectRatio}`,
-                              ),
-                            );
-                          }
+                          form.setValue('format', nextFormat, {
+                            shouldValidate: true,
+                          });
+                          triggerConfigChange();
                         }
                       : undefined
                   }

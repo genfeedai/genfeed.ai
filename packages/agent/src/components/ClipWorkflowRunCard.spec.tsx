@@ -1,5 +1,6 @@
 import { ClipWorkflowRunCard } from '@genfeedai/agent/components/ClipWorkflowRunCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { buildClipDraftAgentHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Effect } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -87,11 +88,15 @@ describe('ClipWorkflowRunCard', () => {
 
     expect(reviewLink).toHaveAttribute(
       'href',
-      '/compose/post?description=Turn+this+launch+clip+into+a+polished+reel&ingredientId=video-portrait-123&title=Launch+clip',
+      buildClipDraftAgentHref({
+        description: 'Turn this launch clip into a polished reel',
+        ingredientId: 'video-portrait-123',
+        title: 'Launch clip',
+      }),
     );
     expect(
       screen.getByRole('link', { name: 'Open human review queue →' }),
-    ).toHaveAttribute('href', '/test-org/test-brand/posts/review');
+    ).toHaveAttribute('href', '/test-org/test-brand/publish/review');
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Open Supervised Review' }),
@@ -99,7 +104,7 @@ describe('ClipWorkflowRunCard', () => {
 
     await waitFor(() => {
       expect(locationMock.href).toBe(
-        '/posts/review?batch=batch-123&item=item-456',
+        '/publish/review?batch=batch-123&item=item-456',
       );
     });
   });

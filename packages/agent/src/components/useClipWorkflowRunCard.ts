@@ -6,8 +6,9 @@ import {
   buildAgentGenerationRequestBody,
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
-import { APP_ROUTES, COMPOSE_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
+import { buildClipDraftAgentHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { useCallback, useMemo, useState } from 'react';
 
 export type StepKey =
@@ -124,13 +125,11 @@ export function useClipWorkflowRunCard({
       return null;
     }
 
-    const params = new URLSearchParams({
+    return buildClipDraftAgentHref({
       description: prompt,
       ingredientId: finalVideoId,
       title: action.title || 'Generated clip draft',
     });
-
-    return `${COMPOSE_ROUTES.POST}?${params.toString()}`;
   }, [action.title, finalVideoId, prompt]);
 
   const setStep = useCallback((key: StepKey, status: StepStatus) => {
@@ -295,13 +294,13 @@ export function useClipWorkflowRunCard({
       if (firstItemId) {
         params.set('item', firstItemId);
       }
-      nextUrl = `/posts/review?${params.toString()}`;
+      nextUrl = `/publish/review?${params.toString()}`;
     }
 
     setStep('supervised_review', 'completed');
 
     if (typeof window !== 'undefined') {
-      window.location.href = nextUrl ?? '/posts/review';
+      window.location.href = nextUrl ?? '/publish/review';
     }
   }, [
     action.brandId,
@@ -411,8 +410,8 @@ export function useClipWorkflowRunCard({
     runOneStep,
     addAnotherClip,
     workflowExecutionUrl: hrefFn(
-      `${APP_ROUTES.ORCHESTRATION.WORKFLOWS_EXECUTIONS}/${workflowExecutionId ?? ''}`,
+      `${APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS}/${workflowExecutionId ?? ''}`,
     ),
-    humanReviewUrl: hrefFn('/posts/review'),
+    humanReviewUrl: hrefFn('/publish/review'),
   };
 }

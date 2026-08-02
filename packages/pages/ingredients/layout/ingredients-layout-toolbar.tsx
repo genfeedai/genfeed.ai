@@ -6,7 +6,6 @@ import type {
   IFilters,
   IFiltersState,
 } from '@genfeedai/interfaces/utils/filters.interface';
-import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
@@ -20,7 +19,6 @@ import LibraryAssetTypeFilter from './library-asset-type-filter';
 type IngredientsLayoutToolbarProps = {
   config: IngredientsLayoutConfig;
   filters: IFiltersState;
-  ingredientCategory: string | null;
   isRefreshing: boolean;
   scope: PageScope;
   onRefresh: () => void;
@@ -31,15 +29,12 @@ type IngredientsLayoutToolbarProps = {
 export default function IngredientsLayoutToolbar({
   config,
   filters,
-  ingredientCategory,
   isRefreshing,
   scope,
   onRefresh,
   onFiltersChange,
   onUpload,
 }: IngredientsLayoutToolbarProps) {
-  const isStudioEnabled = useFeatureFlag('studio');
-
   return (
     <div className="flex w-full min-w-0 items-center justify-between gap-3">
       <div className="flex min-w-0 items-center gap-2">
@@ -78,20 +73,20 @@ export default function IngredientsLayoutToolbar({
           </PrimitiveButton>
         )}
 
-        {isStudioEnabled &&
-          scope !== PageScope.SUPERADMIN &&
-          config.showStudioLink && (
-            <PrimitiveButton asChild variant={ButtonVariant.DEFAULT}>
-              <Link
-                href={`${EnvironmentService.apps.app}/studio/${ingredientCategory?.replace('s', '')?.toLowerCase()}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <ExternalLink />
-                Studio
-              </Link>
-            </PrimitiveButton>
-          )}
+        {/* One-off generation is Agent-first — the standalone Studio
+            image/video/avatar/music prompt bars are retired. */}
+        {scope !== PageScope.SUPERADMIN && config.showGenerateLink && (
+          <PrimitiveButton asChild variant={ButtonVariant.DEFAULT}>
+            <Link
+              href={`${EnvironmentService.apps.app}/agent/new`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ExternalLink />
+              Generate
+            </Link>
+          </PrimitiveButton>
+        )}
       </div>
     </div>
   );

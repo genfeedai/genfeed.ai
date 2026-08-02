@@ -14,7 +14,6 @@ import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/for
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { useFeatureFlag } from '@genfeedai/hooks/feature-flags/use-feature-flag';
 import { stopAndResetVideo } from '@genfeedai/hooks/media/video-utils/video.utils';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useIngredientActions } from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
@@ -50,7 +49,6 @@ export function useModalIngredient({
   const { push } = useRouter();
   const { href } = useOrgUrl();
   const { credentials } = useBrand();
-  const isStudioEnabled = useFeatureFlag('studio');
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const getIngredientsService = useAuthedService((token: string) =>
@@ -289,7 +287,7 @@ export function useModalIngredient({
       closeModal(ModalEnum.INGREDIENT);
       push(
         href(
-          buildContextualRemixHref(APP_ROUTES.POSTS.REMIX, {
+          buildContextualRemixHref(APP_ROUTES.PUBLISH.REMIX, {
             kind: 'ingredient',
             recordId: image.id,
             recordVersion: image.version?.toString(),
@@ -310,25 +308,12 @@ export function useModalIngredient({
         return notificationsService.info('No prompt available to use');
       }
 
-      if (!isStudioEnabled) {
-        closeModal(ModalEnum.INGREDIENT);
-        push(href(buildAgentPromptHref(ingredientToUse.promptText)));
-        return;
-      }
-
-      const isIngredientVideo =
-        ingredientToUse.category === IngredientCategory.VIDEO;
-      const targetRoute = isIngredientVideo ? '/studio/video' : '/studio/image';
-
-      import('@genfeedai/utils/url/prompt-config-url.util').then(
-        ({ buildUsePromptUrl }) => {
-          const url = buildUsePromptUrl(ingredientToUse, targetRoute);
-          closeModal(ModalEnum.INGREDIENT);
-          push(href(url));
-        },
-      );
+      // One-off generation is Agent-first — the standalone Studio image/video
+      // prompt bars are retired, so reusing a prompt opens a new Agent thread.
+      closeModal(ModalEnum.INGREDIENT);
+      push(href(buildAgentPromptHref(ingredientToUse.promptText)));
     },
-    [href, isStudioEnabled, notificationsService, push],
+    [href, notificationsService, push],
   );
 
   const getServiceForType = useCallback(

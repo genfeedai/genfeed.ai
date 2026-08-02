@@ -76,19 +76,13 @@ export const ORGANIZATION_CATCH_ALL_PAGE = '/:orgSlug/~/:orgRootApp/*segments?';
 export const ORGANIZATION_CATCH_ALL_EXPANSIONS = Object.freeze([
   '/:orgSlug/~/library',
   '/:orgSlug/~/library/:type',
-  '/:orgSlug/~/studio',
-  '/:orgSlug/~/studio/:type',
-  '/:orgSlug/~/posts',
-  '/:orgSlug/~/posts/published',
-  '/:orgSlug/~/posts/scheduled',
-  '/:orgSlug/~/write',
-  '/:orgSlug/~/write/:segment',
-  '/:orgSlug/~/compose',
-  '/:orgSlug/~/compose/:segment',
-  '/:orgSlug/~/editor',
-  '/:orgSlug/~/editor/projects',
-  '/:orgSlug/~/editor/new',
-  '/:orgSlug/~/editor/:id',
+  '/:orgSlug/~/studio/edit',
+  '/:orgSlug/~/studio/edit/projects',
+  '/:orgSlug/~/studio/edit/new',
+  '/:orgSlug/~/studio/edit/:id',
+  '/:orgSlug/~/publish',
+  '/:orgSlug/~/publish/published',
+  '/:orgSlug/~/publish/scheduled',
 ] as const);
 
 export const PROTECTED_HARD_CUT_PREFIXES = Object.freeze([

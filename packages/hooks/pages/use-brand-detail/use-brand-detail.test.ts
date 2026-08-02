@@ -10,6 +10,7 @@ const mockGetService = vi.fn();
 const mockCopyToClipboard = vi.fn();
 const mockOpenUpload = vi.fn();
 const mockNotifyError = vi.fn();
+const mockLoggerError = vi.fn();
 const mockFindPublicArticles = vi.fn();
 const mockFindPublicImages = vi.fn();
 const mockFindPublicVideos = vi.fn();
@@ -23,11 +24,6 @@ const mockPublicService = {
 
 const mockClipboardService = {
   copyToClipboard: mockCopyToClipboard,
-};
-
-const mockNotificationsService = {
-  error: mockNotifyError,
-  success: vi.fn(),
 };
 
 vi.mock('next/navigation', () => ({
@@ -89,15 +85,22 @@ vi.mock('@genfeedai/services/core/clipboard.service', () => ({
   },
 }));
 
-vi.mock('@genfeedai/services/core/notifications.service', () => ({
-  NotificationsService: {
-    getInstance: vi.fn(() => mockNotificationsService),
-  },
-}));
+vi.mock('@genfeedai/services/core/notifications.service', () => {
+  const notificationsService = {
+    error: (...args: unknown[]) => mockNotifyError(...args),
+    success: vi.fn(),
+  };
+
+  return {
+    NotificationsService: {
+      getInstance: vi.fn(() => notificationsService),
+    },
+  };
+});
 
 vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
-    error: vi.fn(),
+    error: (...args: unknown[]) => mockLoggerError(...args),
     info: vi.fn(),
   },
 }));
@@ -267,20 +270,72 @@ describe('useBrandDetail', () => {
     });
 
     it('rolls the optimistic scope back and notifies when the patch fails', async () => {
-      mockPatch.mockRejectedValueOnce(new Error('patch failed'));
+      const patchError = {
+        isAxiosError: true,
+        message: 'Request failed with status code 400',
+        response: {
+          data: { message: 'Validation failed' },
+          status: 400,
+        },
+      };
+      mockPatch.mockRejectedValueOnce(patchError);
 
       const result = await renderLoadedBrand();
 
       await act(async () => {
         await expect(
           result.current.handleUpdateAccount('scope', AssetScope.PUBLIC),
-        ).rejects.toThrow('patch failed');
+        ).rejects.toBe(patchError);
       });
 
       expect(result.current.brand?.scope).toBe(AssetScope.BRAND);
       expect(result.current.isUpdating).toBe(false);
       expect(mockNotifyError).toHaveBeenCalledWith(
+        'Some brand settings are invalid. Review them and try again.',
+      );
+      expect(mockLoggerError).toHaveBeenCalledWith(
         'PATCH /brands/brand-1 failed',
+        expect.objectContaining({
+          error: patchError,
+          reportToSentry: false,
+          tags: { surface: 'brand-settings' },
+        }),
+      );
+    });
+
+    it.each([
+      {
+        error: {
+          isAxiosError: true,
+          message: 'Request failed with status code 500',
+          response: { status: 500 },
+        },
+        failure: 'a server failure',
+      },
+      {
+        error: {
+          isAxiosError: true,
+          message: 'Network Error',
+        },
+        failure: 'a network failure',
+      },
+    ])('hides technical details for $failure', async ({ error }) => {
+      mockPatch.mockRejectedValueOnce(error);
+
+      const result = await renderLoadedBrand();
+
+      await act(async () => {
+        await expect(
+          result.current.handleUpdateAccount('scope', AssetScope.PUBLIC),
+        ).rejects.toBe(error);
+      });
+
+      expect(mockNotifyError).toHaveBeenCalledWith(
+        'Brand settings could not be saved. Please try again.',
+      );
+      expect(mockLoggerError).toHaveBeenCalledWith(
+        'PATCH /brands/brand-1 failed',
+        expect.objectContaining({ error, reportToSentry: false }),
       );
     });
   });

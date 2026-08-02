@@ -5,7 +5,8 @@
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/tools": "workspace:*",
-    "@genfeedai/ui": "workspace:*"
+    "@genfeedai/ui": "workspace:*",
+    "tsconfig-paths": "4.2.0"
   },
   "description": "Genfeed MCP Server",
   "main": "../dist/apps/mcp/main.js",

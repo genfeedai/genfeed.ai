@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import {
+  aggregateSurfaceShards,
   buildReport,
   classifySurface,
   evaluateRatchet,
@@ -14,6 +15,7 @@ import {
   parseLcov,
   parseUnifiedDiff,
   readBaseline,
+  worstResult,
 } from './changed-code-coverage.mjs';
 import { classifyChangedFile } from './changed-code-coverage.policy.mjs';
 
@@ -515,6 +517,82 @@ test('the ratchet history can only be appended to, never lowered', () => {
   }
 });
 
+// ── Shard aggregation ───────────────────────────────────────────────────────
+
+test('a surface is only clean when every one of its shards was', () => {
+  const clean = [{ outcome: 'success' }, { outcome: 'success' }];
+  assert.equal(aggregateSurfaceShards(clean).result, 'success');
+
+  // The exact regression: three shards finish, one overruns its step budget.
+  // Publishing that as a pass would report coverage for a suite that only
+  // partly ran, understating the uncovered lines in the diff.
+  const partial = [
+    { outcome: 'success' },
+    { outcome: 'failure' },
+    { outcome: 'success' },
+  ];
+  assert.equal(aggregateSurfaceShards(partial).result, 'failure');
+
+  assert.equal(
+    aggregateSurfaceShards([{ outcome: 'failure' }, { outcome: 'cancelled' }])
+      .result,
+    'cancelled',
+  );
+
+  // A shard that staged no outcome at all is a failure, never a pass.
+  assert.equal(aggregateSurfaceShards([{}]).result, 'failure');
+  assert.equal(aggregateSurfaceShards([]).result, null);
+});
+
+test('surface latency is the slowest shard, because shards run in parallel', () => {
+  // Summing would triple-count parallel work and blow the baseline's
+  // `latencyBudgetMinutesP95` on a run that finished comfortably inside it.
+  const merged = aggregateSurfaceShards([
+    { outcome: 'success', seconds: 240 },
+    { outcome: 'success', seconds: 610 },
+    { outcome: 'success', seconds: 180 },
+  ]);
+
+  assert.equal(merged.latencySeconds, 610);
+  assert.equal(
+    aggregateSurfaceShards([{ outcome: 'success' }]).latencySeconds,
+    null,
+  );
+});
+
+test('shard lcov reports concatenate into one merged surface report', () => {
+  const merged = aggregateSurfaceShards([
+    {
+      outcome: 'success',
+      lcov: 'SF:src/a.ts\nDA:1,1\nDA:2,0\nend_of_record\n',
+    },
+    {
+      outcome: 'success',
+      lcov: 'SF:src/a.ts\nDA:1,0\nDA:2,3\nend_of_record\n',
+    },
+  ]);
+
+  const records = parseLcov(merged.lcov);
+  assert.equal(records.size, 1);
+  // A line exercised by either shard is covered in the merged surface.
+  assert.deepEqual(
+    [...records.get('src/a.ts').lines],
+    [
+      [1, 1],
+      [2, 3],
+    ],
+  );
+});
+
+test('worst-of folds the job result together with the shard outcomes', () => {
+  // Step-level continue-on-error leaves the job `success` when a step failed…
+  assert.equal(worstResult('success', 'failure'), 'failure');
+  // …and a shard killed by the job backstop stages nothing, so only the job
+  // result carries the cancellation.
+  assert.equal(worstResult('cancelled', 'success'), 'cancelled');
+  assert.equal(worstResult('success', 'success'), 'success');
+});
+
 // ── Workflow contract ───────────────────────────────────────────────────────
 
 test('the coverage jobs live in CI and can never gate a merge', () => {
@@ -552,11 +630,6 @@ test('each coverage surface is budgeted and non-fatal', () => {
     const job = ciJob(name);
     assert.match(
       job,
-      /timeout-minutes: 20/,
-      `${name} must honour the 20-minute budget`,
-    );
-    assert.match(
-      job,
       /continue-on-error: true/,
       `${name} must never fail the pull request`,
     );
@@ -568,6 +641,94 @@ test('each coverage surface is budgeted and non-fatal', () => {
     assert.match(job, /--coverage/, `${name} must run instrumented`);
     // The affected scope is decided by the existing planner, not re-derived.
     assert.match(job, /needs: \[trust, test-scope\]/);
+  }
+});
+
+test('the 20-minute budget sits on the step, where it cannot cancel the job', () => {
+  // Two jobs were cancelled at a job-level `timeout-minutes: 20` on diffs that
+  // touched widely-imported shared packages. `continue-on-error` cannot absorb a
+  // job timeout — the job is cancelled outright and reports red — so an
+  // observation-only job showed a failing check on the pull request. The budget
+  // has to be a step timeout for the non-fatal contract to hold.
+  for (const name of ['coverage-changed-app', 'coverage-changed-api']) {
+    const job = ciJob(name);
+    const step = job.slice(job.indexOf('      - name: Run changed'));
+
+    assert.match(
+      step,
+      /timeout-minutes: 20\n\s+continue-on-error: true/,
+      `${name} must budget the coverage step at 20 minutes and absorb overruns`,
+    );
+
+    const jobTimeout = job.match(/^ {4}timeout-minutes: (\d+)$/m);
+    assert.ok(jobTimeout, `${name} must keep a job-level backstop`);
+    assert.ok(
+      Number(jobTimeout[1]) > 20,
+      `${name} job backstop must exceed the step budget, or it fires first`,
+    );
+  }
+});
+
+test('coverage runs are sharded by the planner, like the tests they mirror', () => {
+  for (const [name, surface] of [
+    ['coverage-changed-app', 'app'],
+    ['coverage-changed-api', 'api'],
+  ]) {
+    const job = ciJob(name);
+    assert.match(
+      job,
+      new RegExp(
+        `matrix: \\$\\{\\{ fromJSON\\(needs\\.test-scope\\.outputs\\.${surface}_coverage_matrix\\) \\}\\}`,
+      ),
+      `${name} must shard from the planner's coverage matrix`,
+    );
+    // One slow shard must not cancel its siblings and destroy their lcov.
+    assert.match(job, /fail-fast: false/, `${name} must not fail fast`);
+    assert.match(
+      job,
+      /--shard=\$\{\{ matrix\.shard \}\}\/\$\{\{ matrix\.total \}\}/,
+      `${name} must pass its shard through to vitest`,
+    );
+    // Each shard carries its own outcome and wall clock: a matrix job's outputs
+    // are last-writer-wins, and step-level continue-on-error hides a failed step
+    // from the job result.
+    assert.match(job, /(?<!\.)coverage-shard\/outcome/);
+    assert.match(job, /(?<!\.)coverage-shard\/seconds/);
+    assert.match(job, /-shard-\$\{\{ matrix\.shard \}\}\n/);
+
+    // The staging directory must not be hidden. `upload-artifact` defaults
+    // `include-hidden-files: false`, so a leading dot makes it skip every
+    // staged file, and `if-no-files-found: ignore` swallows the warning: the
+    // shards run green, upload nothing, and the report silently falls back to
+    // the job result with no lcov and no latency. Cost one full CI round on
+    // #2326 to find, because that PR's own diff was entirely excluded files so
+    // the empty report looked legitimate.
+    assert.doesNotMatch(
+      job,
+      /path: \./,
+      `${name} must stage shards outside the hidden namespace`,
+    );
+  }
+});
+
+test('the report reads each surface as its own directory of shards', () => {
+  const job = ciJob('coverage-changed-report');
+
+  for (const surface of ['app', 'api']) {
+    assert.match(
+      job,
+      new RegExp(
+        `pattern: changed-code-coverage-lcov-${surface}-[^\\n]*-shard-\\*`,
+      ),
+      `report must collect every ${surface} shard`,
+    );
+    assert.match(
+      job,
+      new RegExp(
+        `--surface "${surface}=\\$\\{${surface.toUpperCase()}_RESULT\\}=\\.changed-coverage/${surface}"`,
+      ),
+      `report must pass the ${surface} shard directory, not a single lcov`,
+    );
   }
 });
 

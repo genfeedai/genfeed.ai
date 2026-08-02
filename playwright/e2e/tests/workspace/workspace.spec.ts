@@ -251,17 +251,19 @@ test.describe('Workspace', () => {
     });
 
     await expect(
-      authenticatedPage.getByRole('link', { name: 'Chat' }),
+      authenticatedPage.getByRole('link', { name: 'Agent' }),
     ).toHaveAttribute('href', '/agent');
+    // Studio's one-off tabs are retired — the handoff points at the production
+    // surfaces instead.
     await expect(
-      authenticatedPage.getByRole('link', { name: 'Studio Image' }),
-    ).toHaveAttribute('href', '/studio/image');
+      authenticatedPage.getByRole('link', { name: 'Studio' }),
+    ).toHaveAttribute('href', '/studio/storyboard');
     await expect(
       authenticatedPage.getByRole('link', { name: 'Workflows' }),
-    ).toHaveAttribute('href', '/orchestration/workflows');
+    ).toHaveAttribute('href', '/automate/workflows');
     await expect(
       authenticatedPage.getByRole('link', { name: 'Runs' }),
-    ).toHaveAttribute('href', '/orchestration/runs');
+    ).toHaveAttribute('href', '/automate/runs');
   });
 
   test('opens task-aware planning, reuses the canonical thread, and materializes follow-up tasks', async ({

@@ -13,8 +13,8 @@ import {
 
 describe('operator-shell helpers', () => {
   it('normalizes brand and org scoped protected routes', () => {
-    expect(normalizeProtectedPathname('/acme/brand-x/studio/video')).toBe(
-      '/studio/video',
+    expect(normalizeProtectedPathname('/acme/brand-x/studio/storyboard')).toBe(
+      '/studio/storyboard',
     );
     expect(normalizeProtectedPathname('/acme/~/settings')).toBe('/settings');
     expect(normalizeProtectedPathname('/acme/~/settings/organization')).toBe(
@@ -32,8 +32,8 @@ describe('operator-shell helpers', () => {
     expect(getCurrentBrandScopedPath('/acme/moonrise/workspace')).toBe(
       '/workspace',
     );
-    expect(getCurrentBrandScopedPath('/acme/moonrise/studio/video')).toBe(
-      '/studio/video',
+    expect(getCurrentBrandScopedPath('/acme/moonrise/studio/storyboard')).toBe(
+      '/studio/storyboard',
     );
     expect(getCurrentBrandScopedPath('/acme/~/overview')).toBe(
       '/workspace/overview',
@@ -66,7 +66,9 @@ describe('operator-shell helpers', () => {
       '/settings/brands',
     );
     expect(resolveOrganizationScopePath('/agent/new')).toBe('/agent/new');
-    expect(resolveOrganizationScopePath('/studio/image')).toBe('/studio/image');
+    expect(resolveOrganizationScopePath('/studio/storyboard')).toBe(
+      '/studio/storyboard',
+    );
   });
 
   it('gates the first-asset unlock sections (and their subpaths) only', () => {
@@ -77,23 +79,23 @@ describe('operator-shell helpers', () => {
       '/overview',
       '/library',
       '/analytics',
-      '/orchestration',
-      '/orchestration/workflows',
-      '/posts/calendar',
+      '/automate',
+      '/automate/workflows',
+      '/publish/calendar',
     ]) {
       expect(isAssetGateSectionPath(gated)).toBe(true);
     }
 
-    // Never gated: agent, settings, studio, research, publish base, messages,
+    // Never gated: agent, settings, studio, discover, publish base, messages,
     // admin — and a look-alike prefix must not false-match.
     for (const open of [
       '/agent',
       '/agent/new',
       '/settings',
       '/settings/organization',
-      '/studio/image',
-      '/research/discovery',
-      '/posts',
+      '/studio/storyboard',
+      '/discover/discovery',
+      '/publish',
       '/messages',
       '/admin',
       '/analytics-preview',
@@ -125,9 +127,9 @@ describe('operator-shell helpers', () => {
       getBrandSwitchHref({
         nextBrandSlug: 'sunrise',
         nextOrgSlug: 'acme',
-        pathname: '/acme/moonrise/studio/video',
+        pathname: '/acme/moonrise/studio/storyboard',
       }),
-    ).toBe('/acme/sunrise/studio/video');
+    ).toBe('/acme/sunrise/studio/storyboard');
   });
 
   it('picks and appends only task context params', () => {
@@ -142,8 +144,8 @@ describe('operator-shell helpers', () => {
     expect(params.toString()).toBe(
       'taskId=task-1&taskTitle=Draft+launch+brief',
     );
-    expect(appendSearchParamsToHref('/studio/image', params)).toBe(
-      '/studio/image?taskId=task-1&taskTitle=Draft+launch+brief',
+    expect(appendSearchParamsToHref('/studio/storyboard', params)).toBe(
+      '/studio/storyboard?taskId=task-1&taskTitle=Draft+launch+brief',
     );
   });
 
@@ -156,14 +158,27 @@ describe('operator-shell helpers', () => {
     } as Task;
 
     expect(buildTaskLaunchHref(task, 'auto')).toBe(
-      '/compose/post?taskExecutionPath=caption_generation&taskId=task-42&taskOutputType=caption&taskSource=workspace&taskTitle=Draft+launch+hooks',
+      '/agent/new?taskExecutionPath=caption_generation&taskId=task-42&taskOutputType=caption&taskSource=workspace&taskTitle=Draft+launch+hooks',
     );
     expect(buildTaskLaunchHref(task, 'edit')).toBe(
-      '/editor?taskExecutionPath=caption_generation&taskId=task-42&taskOutputType=caption&taskSource=workspace&taskTitle=Draft+launch+hooks',
+      '/studio/edit?taskExecutionPath=caption_generation&taskId=task-42&taskOutputType=caption&taskSource=workspace&taskTitle=Draft+launch+hooks',
     );
   });
 
-  it('routes newsletter workspace tasks to the newsletter composer', () => {
+  it('routes edit tasks to Agent when Studio is unavailable', () => {
+    const task = {
+      executionPathUsed: 'video_generation',
+      id: 'task-101',
+      outputType: 'video',
+      title: 'Trim launch teaser',
+    } as Task;
+
+    expect(buildTaskLaunchHref(task, 'edit', { studio: false })).toBe(
+      '/agent/new?taskExecutionPath=video_generation&taskId=task-101&taskOutputType=video&taskSource=workspace&taskTitle=Trim+launch+teaser',
+    );
+  });
+
+  it('routes newsletter workspace tasks to the Agent', () => {
     const task = {
       executionPathUsed: 'caption_generation',
       id: 'task-99',
@@ -172,11 +187,26 @@ describe('operator-shell helpers', () => {
     } as Task;
 
     expect(buildTaskLaunchHref(task, 'auto')).toBe(
-      '/compose/newsletter?taskExecutionPath=caption_generation&taskId=task-99&taskOutputType=newsletter&taskSource=workspace&taskTitle=Draft+weekly+founder+issue',
+      '/agent/new?taskExecutionPath=caption_generation&taskId=task-99&taskOutputType=newsletter&taskSource=workspace&taskTitle=Draft+weekly+founder+issue',
     );
   });
 
-  it('routes generation tasks to Agent when Studio is unavailable', () => {
+  it('routes every write-mode task to the Agent regardless of output type', () => {
+    for (const outputType of ['article', 'caption', 'newsletter', 'post']) {
+      const task = {
+        executionPathUsed: 'caption_generation',
+        id: 'task-write',
+        outputType,
+        title: 'Draft it',
+      } as Task;
+
+      expect(buildTaskLaunchHref(task, 'write')).toBe(
+        `/agent/new?taskExecutionPath=caption_generation&taskId=task-write&taskOutputType=${outputType}&taskSource=workspace&taskTitle=Draft+it`,
+      );
+    }
+  });
+
+  it('routes generate-mode launches to the Agent unconditionally', () => {
     const task = {
       executionPathUsed: 'video_generation',
       id: 'task-100',
@@ -184,8 +214,33 @@ describe('operator-shell helpers', () => {
       title: 'Generate launch teaser',
     } as Task;
 
-    expect(buildTaskLaunchHref(task, 'generate', { studio: false })).toBe(
+    expect(buildTaskLaunchHref(task, 'generate')).toBe(
       '/agent/new?taskExecutionPath=video_generation&taskId=task-100&taskOutputType=video&taskSource=workspace&taskTitle=Generate+launch+teaser',
+    );
+  });
+
+  it('routes auto-mode media generation tasks to the Agent', () => {
+    // Studio no longer has standalone image/video tabs — the Agent owns one-offs.
+    const imageTask = {
+      executionPathUsed: 'image_generation',
+      id: 'task-101',
+      outputType: 'image',
+      title: 'Generate hero still',
+    } as Task;
+
+    expect(buildTaskLaunchHref(imageTask, 'auto')).toBe(
+      '/agent/new?taskExecutionPath=image_generation&taskId=task-101&taskOutputType=image&taskSource=workspace&taskTitle=Generate+hero+still',
+    );
+
+    const videoTask = {
+      executionPathUsed: 'video_generation',
+      id: 'task-102',
+      outputType: 'video',
+      title: 'Generate teaser cut',
+    } as Task;
+
+    expect(buildTaskLaunchHref(videoTask, 'auto')).toBe(
+      '/agent/new?taskExecutionPath=video_generation&taskId=task-102&taskOutputType=video&taskSource=workspace&taskTitle=Generate+teaser+cut',
     );
   });
 });

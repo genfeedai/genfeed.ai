@@ -939,7 +939,7 @@ describe('ClipProjectsController', () => {
     );
     expect(result).toEqual(
       expect.objectContaining({
-        editorPath: '/editor/editor-project-1',
+        editorPath: '/studio/edit/editor-project-1',
         editorProjectId: 'editor-project-1',
       }),
     );

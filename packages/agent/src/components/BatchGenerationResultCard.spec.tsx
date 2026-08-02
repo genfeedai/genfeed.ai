@@ -12,7 +12,7 @@ describe('BatchGenerationResultCard', () => {
           creditsUsed: 5,
           ctas: [
             {
-              href: '/posts/review?batch=batch-123&filter=ready',
+              href: '/publish/review?batch=batch-123&filter=ready',
               label: 'Open review queue',
             },
             { href: '/calendar/posts', label: 'Open calendar' },
@@ -39,7 +39,7 @@ describe('BatchGenerationResultCard', () => {
     expect(screen.getByText('X')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Open review queue' }),
-    ).toHaveAttribute('href', '/posts/review?batch=batch-123&filter=ready');
+    ).toHaveAttribute('href', '/publish/review?batch=batch-123&filter=ready');
     expect(screen.queryByText('batch-123')).not.toBeInTheDocument();
   });
 });

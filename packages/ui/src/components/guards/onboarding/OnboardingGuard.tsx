@@ -1,7 +1,7 @@
 'use client';
 
 import { isDesktopClient } from '@genfeedai/config/deployment';
-import { hasOrganizationBilling } from '@genfeedai/config/license';
+import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { getResumeStep, ONBOARDING_STEPS } from '@genfeedai/constants';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
@@ -36,7 +36,7 @@ function OnboardingGuardInner({ children }: OnboardingGuardProps) {
   const { replace } = useRouter();
   const pathname = usePathname();
   const isOnboardingRoute = pathname.startsWith('/onboarding');
-  const isBillingEnabled = hasOrganizationBilling();
+  const isBillingEnabled = hasOrganizationBillingHint();
 
   const redirectTarget = useMemo(() => {
     if (!effectiveIsAuthLoaded) {

@@ -86,11 +86,8 @@ export const APP_ROUTES = {
     BRANDS: '/analytics/brands',
     HOOKS: '/analytics/hooks',
     INSIGHTS: '/analytics/insights',
-    /**
-     * Canonical analytics home. Bare ROOT permanently redirects here so Overview
-     * is a complete path (same pattern as workspace/overview).
-     */
-    OVERVIEW: '/analytics/overview',
+    /** Canonical app home is ROOT; OVERVIEW is an alias for call sites. */
+    OVERVIEW: '/analytics',
     PERFORMANCE_LAB: '/analytics/performance-lab',
     POSTS: '/analytics/posts',
     STREAKS: '/analytics/streaks',
@@ -103,15 +100,50 @@ export const APP_ROUTES = {
     NEW: '/agent/new',
     ONBOARDING: '/agent/onboarding',
   },
-  COMPOSE: {
-    ARTICLE: '/compose/article',
-    NEWSLETTER: '/compose/newsletter',
-    POST: '/compose/post',
-    ROOT: '/compose',
+  AUTOMATE: {
+    ANALYTICS: '/automate/analytics',
+    AUTOPILOT: '/automate/autopilot',
+    CONFIGURATION: '/automate/configuration',
+    /** Content-run history: briefs handed off from Discover through publish. */
+    CONTENT_RUNS: '/automate/content-runs',
+    HIRE: '/automate/hire',
+    LIBRARY: '/automate/library',
+    NEW: '/automate/new',
+    ORCHESTRATOR: '/automate/orchestrator',
+    /** Canonical app home is ROOT; OVERVIEW is an alias for call sites. */
+    OVERVIEW: '/automate',
+    ROOT: '/automate',
+    RUNS: '/automate/runs',
+    SKILLS: '/automate/skills',
+    STRATEGIES: '/automate/strategies',
+    /** Throttled social reply drip campaigns. */
+    REPLY_CAMPAIGNS: '/automate/reply-campaigns',
+    /** Pipeline canvas library (merged former /workflows surface). */
+    WORKFLOWS: '/automate/workflows',
+    WORKFLOWS_EXECUTIONS: '/automate/workflows/executions',
+    WORKFLOWS_NEW: '/automate/workflows/new',
+    WORKFLOWS_TEMPLATES: '/automate/workflows/templates',
   },
-  EDITOR: {
-    NEW: '/editor/new',
-    ROOT: '/editor',
+  DISCOVER: {
+    ADS: '/discover/ads',
+    ADS_GOOGLE: '/discover/ads/google',
+    ADS_META: '/discover/ads/meta',
+    DISCOVERY: '/discover/discovery',
+    FOLLOWING: '/discover/following',
+    ROOT: '/discover',
+    SOCIALS: '/discover/socials',
+  },
+  /**
+   * Dedicated artifact editor pages. Refinement belongs to the artifact, not to
+   * a module — every text artifact gets a focused, deep-linkable editor at
+   * `/edit/{type}/{id}`. Distinct from EDITOR, which is the Remotion project
+   * canvas.
+   */
+  EDIT: {
+    ARTICLE: '/edit/article',
+    NEWSLETTER: '/edit/newsletter',
+    POST: '/edit/post',
+    ROOT: '/edit',
   },
   LAB: {
     ARTICLES: '/lab/articles',
@@ -127,11 +159,8 @@ export const APP_ROUTES = {
     INGREDIENTS: '/library/ingredients',
     MOODBOARD: '/library/moodboard',
     MUSIC: '/library/music',
-    /**
-     * Canonical library home. Bare ROOT permanently redirects here so Overview
-     * is a complete path (same pattern as workspace/overview).
-     */
-    OVERVIEW: '/library/overview',
+    /** Canonical app home is ROOT; OVERVIEW is an alias for call sites. */
+    OVERVIEW: '/library',
     ROOT: '/library',
     VIDEOS: '/library/videos',
     VOICES: '/library/voices',
@@ -148,59 +177,24 @@ export const APP_ROUTES = {
     SUCCESS: '/onboarding/success',
     SUMMARY: '/onboarding/summary',
   },
-  ORCHESTRATION: {
-    ANALYTICS: '/orchestration/analytics',
-    AUTOPILOT: '/orchestration/autopilot',
-    CONFIGURATION: '/orchestration/configuration',
-    HIRE: '/orchestration/hire',
-    LIBRARY: '/orchestration/library',
-    NEW: '/orchestration/new',
-    ORCHESTRATOR: '/orchestration/orchestrator',
-    /**
-     * Canonical automate home. Bare ROOT permanently redirects here so Overview
-     * is a complete path (same pattern as workspace/overview).
-     */
-    OVERVIEW: '/orchestration/overview',
-    /** Throttled social reply drip campaigns (Automate surface). */
-    REPLY_CAMPAIGNS: '/orchestration/reply-campaigns',
-    ROOT: '/orchestration',
-    RUNS: '/orchestration/runs',
-    SKILLS: '/orchestration/skills',
-    STRATEGIES: '/orchestration/strategies',
-    /** Pipeline canvas library (merged former /workflows surface). */
-    WORKFLOWS: '/orchestration/workflows',
-    WORKFLOWS_EXECUTIONS: '/orchestration/workflows/executions',
-    WORKFLOWS_NEW: '/orchestration/workflows/new',
-    WORKFLOWS_TEMPLATES: '/orchestration/workflows/templates',
-  },
   OVERVIEW: {
     ACTIVITIES: '/overview/activities',
     ROOT: '/overview',
   },
-  POSTS: {
-    ANALYTICS: '/posts/analytics',
-    CALENDAR: '/posts/calendar',
+  PUBLISH: {
+    CALENDAR: '/publish/calendar',
     /** Agent-driven content campaigns (Publish surface). */
-    CAMPAIGNS: '/posts/campaigns',
-    CAMPAIGNS_NEW: '/posts/campaigns/new',
-    NEWSLETTERS: '/posts/newsletters',
+    CAMPAIGNS: '/publish/campaigns',
+    CAMPAIGNS_NEW: '/publish/campaigns/new',
+    NEWSLETTERS: '/publish/newsletters',
     /** Outreach / growth campaigns (Publish surface). */
-    OUTREACH_CAMPAIGNS: '/posts/outreach-campaigns',
-    OUTREACH_CAMPAIGNS_NEW: '/posts/outreach-campaigns/new',
-    PUBLISHED: '/posts/published',
-    REMIX: '/posts/remix',
-    REVIEW: '/posts/review',
-    ROOT: '/posts',
-    SCHEDULED: '/posts/scheduled',
-  },
-  RESEARCH: {
-    ADS: '/research/ads',
-    ADS_GOOGLE: '/research/ads/google',
-    ADS_META: '/research/ads/meta',
-    DISCOVERY: '/research/discovery',
-    FOLLOWING: '/research/following',
-    ROOT: '/research',
-    SOCIALS: '/research/socials',
+    OUTREACH_CAMPAIGNS: '/publish/outreach-campaigns',
+    OUTREACH_CAMPAIGNS_NEW: '/publish/outreach-campaigns/new',
+    PUBLISHED: '/publish/published',
+    REMIX: '/publish/remix',
+    REVIEW: '/publish/review',
+    ROOT: '/publish',
+    SCHEDULED: '/publish/scheduled',
   },
   SETTINGS: {
     API_KEYS: '/settings/api-keys',
@@ -221,27 +215,23 @@ export const APP_ROUTES = {
     ORGANIZATION_POLICY: '/settings/organization/policy',
     PERSONAL: '/settings/personal',
     POLICY: '/settings/policy',
-    /**
-     * Complete-path settings home (org: General content; brand: Profile content).
-     * Bare ROOT permanently redirects here for brand and org scopes.
-     */
-    PROFILE: '/settings/profile',
     PUBLISHING: '/settings/publishing',
     ROOT: '/settings',
-    USAGE: '/settings/usage',
     WEBHOOKS: '/settings/webhooks',
   },
+  /**
+   * Studio is a production surface only. One-off "make me an image/video"
+   * generation lives in the Agent (`AGENT.NEW`) — the standalone
+   * image/video/avatar/music tabs were retired.
+   */
   STUDIO: {
-    AVATAR: '/studio/avatar',
     BATCH: '/studio/batch',
     CLIPS: '/studio/clips',
+    EDIT: '/studio/edit',
+    EDIT_NEW: '/studio/edit/new',
     FASTLANE: '/studio/fastlane',
-    IMAGE: '/studio/image',
-    IMAGES: '/studio/images',
-    MUSIC: '/studio/music',
     ROOT: '/studio',
     STORYBOARD: '/studio/storyboard',
-    VIDEO: '/studio/video',
   },
   WORKSPACE: {
     ACTIVITY: '/workspace/activity',
@@ -249,12 +239,8 @@ export const APP_ROUTES = {
     INBOX_ALL: '/workspace/inbox/all',
     INBOX_RECENT: '/workspace/inbox/recent',
     INBOX_UNREAD: '/workspace/inbox/unread',
-    /**
-     * Canonical workspace home. Bare ROOT (`/workspace`) permanently redirects
-     * here so the Overview menu item has a complete path that does not prefix-
-     * match Activity/Tasks/Inbox.
-     */
-    OVERVIEW: '/workspace/overview',
+    /** Canonical app home is ROOT; OVERVIEW is an alias for call sites. */
+    OVERVIEW: '/workspace',
     ROOT: '/workspace',
     TASKS: '/workspace/tasks',
   },
@@ -264,14 +250,13 @@ export const APP_ROUTE_PREFIXES = {
   ADMIN: APP_ROUTES.ADMIN.ROOT,
   ANALYTICS: APP_ROUTES.ANALYTICS.ROOT,
   AGENT: APP_ROUTES.AGENT.ROOT,
-  COMPOSE: APP_ROUTES.COMPOSE.ROOT,
-  EDITOR: APP_ROUTES.EDITOR.ROOT,
+  AUTOMATE: APP_ROUTES.AUTOMATE.ROOT,
+  DISCOVER: APP_ROUTES.DISCOVER.ROOT,
+  EDIT: APP_ROUTES.EDIT.ROOT,
   LIBRARY: '/library',
   MESSAGES: APP_ROUTES.MESSAGES.ROOT,
-  ORCHESTRATION: APP_ROUTES.ORCHESTRATION.ROOT,
   OVERVIEW: APP_ROUTES.OVERVIEW.ROOT,
-  POSTS: APP_ROUTES.POSTS.ROOT,
-  RESEARCH: APP_ROUTES.RESEARCH.ROOT,
+  PUBLISH: APP_ROUTES.PUBLISH.ROOT,
   SETTINGS: APP_ROUTES.SETTINGS.ROOT,
   STUDIO: APP_ROUTES.STUDIO.ROOT,
   WORKSPACE: APP_ROUTES.WORKSPACE.ROOT,
@@ -290,7 +275,20 @@ export const LEGACY_APP_ROUTES = {
   TASKS: '/tasks',
 } as const;
 
-export const COMPOSE_ROUTES = APP_ROUTES.COMPOSE;
+/** Artifact type → dedicated editor route root. */
+export const ARTIFACT_EDITOR_ROUTES = {
+  article: APP_ROUTES.EDIT.ARTICLE,
+  newsletter: APP_ROUTES.EDIT.NEWSLETTER,
+  post: APP_ROUTES.EDIT.POST,
+} as const;
+
+export type ArtifactEditorType = keyof typeof ARTIFACT_EDITOR_ROUTES;
+
+/**
+ * Query parameter carrying the list an artifact editor was opened from, so
+ * back-navigation returns to that list instead of a hardcoded default.
+ */
+export const ARTIFACT_EDITOR_RETURN_PARAM = 'returnTo';
 
 type NestedRouteValue<T> = T extends string
   ? T
@@ -301,7 +299,6 @@ type NestedRouteValue<T> = T extends string
 export type AppRoute = NestedRouteValue<typeof APP_ROUTES>;
 export type AppRoutePrefix =
   (typeof APP_ROUTE_PREFIXES)[keyof typeof APP_ROUTE_PREFIXES];
-export type ComposeRoute = (typeof COMPOSE_ROUTES)[keyof typeof COMPOSE_ROUTES];
 
 function normalizeScopedRoutePath(path: string): string {
   if (path.length === 0 || path === APP_ROUTES.ROOT) {
@@ -324,4 +321,48 @@ export function createOrganizationAppRoute(
   path: string = APP_ROUTES.ROOT,
 ): string {
   return `/${orgSlug}/~${normalizeScopedRoutePath(path)}`;
+}
+
+/**
+ * Build the brand-relative path to an artifact's dedicated editor page.
+ * Pass the result through `useOrgUrl().href()` to scope it to org + brand.
+ */
+export function createArtifactEditorRoute(
+  artifactType: ArtifactEditorType,
+  artifactId: string,
+): string {
+  return `${ARTIFACT_EDITOR_ROUTES[artifactType]}/${artifactId}`;
+}
+
+/** Append the originating list to an artifact editor href. */
+export function withArtifactEditorReturn(
+  editorHref: string,
+  returnTo: string,
+): string {
+  const separator = editorHref.includes('?') ? '&' : '?';
+
+  return `${editorHref}${separator}${ARTIFACT_EDITOR_RETURN_PARAM}=${encodeURIComponent(returnTo)}`;
+}
+
+/**
+ * Resolve an artifact editor's back destination.
+ *
+ * Only same-origin absolute paths are honoured — a protocol-relative or
+ * absolute-URL value would turn the editor into an open redirect, so anything
+ * that is not a single-slash-prefixed path falls back to the owning list.
+ */
+export function resolveArtifactEditorBackHref(
+  returnTo: string | null | undefined,
+  fallbackHref: string,
+): string {
+  const normalizedReturnTo = returnTo?.replace(/\\/g, '/');
+
+  if (
+    !normalizedReturnTo?.startsWith('/') ||
+    normalizedReturnTo.startsWith('//')
+  ) {
+    return fallbackHref;
+  }
+
+  return normalizedReturnTo;
 }

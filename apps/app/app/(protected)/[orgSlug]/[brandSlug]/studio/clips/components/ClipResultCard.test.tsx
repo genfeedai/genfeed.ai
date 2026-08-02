@@ -47,7 +47,7 @@ function makeClip(overrides?: Partial<ClipResult>): ClipResult {
 describe('ClipResultCard', () => {
   const clipsService = {
     createEditorHandoff: vi.fn().mockResolvedValue({
-      editorPath: '/editor/editor-1',
+      editorPath: '/studio/edit/editor-1',
       editorProjectId: 'editor-1',
       videoUrl: 'https://cdn.example.com/video.mp4',
     }),
@@ -160,7 +160,7 @@ describe('ClipResultCard', () => {
     );
   });
 
-  it('should create publish handoff before navigating to compose', async () => {
+  it('should create publish handoff before handing the draft to the Agent', async () => {
     render(
       <ClipResultCard
         clip={makeClip({
@@ -190,11 +190,14 @@ describe('ClipResultCard', () => {
       ),
     );
     expect(pushSpy).toHaveBeenCalledWith(
-      expect.stringContaining('/acme/brand/compose/post?'),
+      expect.stringContaining('/acme/brand/agent/new?prompt='),
+    );
+    expect(pushSpy).toHaveBeenCalledWith(
+      expect.stringContaining('My+Great+Clip'),
     );
   });
 
-  it('should create editor handoff before navigating to the editor project', async () => {
+  it('should create editor handoff before navigating to the studio edit project', async () => {
     render(
       <ClipResultCard
         clip={makeClip({
@@ -221,7 +224,7 @@ describe('ClipResultCard', () => {
         'clip-1',
       ),
     );
-    expect(pushSpy).toHaveBeenCalledWith('/acme/brand/editor/editor-1');
+    expect(pushSpy).toHaveBeenCalledWith('/acme/brand/studio/edit/editor-1');
   });
 
   it('should respect ready actions when readiness metadata is present', () => {

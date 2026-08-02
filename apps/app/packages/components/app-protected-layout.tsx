@@ -5,7 +5,7 @@ import StreakNotificationsBridge from '@app-components/streaks/StreakNotificatio
 import { CommandPaletteProvider } from '@contexts/features/command-palette.provider';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import type { AgentThreadListProps } from '@genfeedai/agent';
-import { hasOrganizationBilling } from '@genfeedai/config/license';
+import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import type { SidebarNavPanel } from '@genfeedai/props/navigation/menu.props';
 import { useAgentThreadCommands } from '@hooks/commands/use-agent-thread-commands/use-agent-thread-commands';
 import type { LayoutProps } from '@props/layout/layout.props';
@@ -120,20 +120,18 @@ function AppLayoutWithDynamicMenu({
   const {
     isAdminRoute,
     isAnalyticsRoute,
-    isComposeRoute,
     isConversationRoute,
     isEditorCanvasRoute,
-    isEditorRoute,
     isFocusedOnboardingRoute,
     isLibraryLandingRoute,
     isLibraryRoute,
     isMessagesRoute,
     isOrgRoute,
     isPromptBarRoute,
-    isResearchRoute,
+    isDiscoverRoute,
     isSettingsRoute,
     isStudioRoute,
-    isWorkflowsRoute,
+    isAutomateRoute,
     hasSecondaryTopbar,
     currentApp,
     orgSlug,
@@ -144,17 +142,16 @@ function AppLayoutWithDynamicMenu({
     agentMenuItems,
     adminMenuItems,
     analyticsMenuItems,
-    composeMenuItems,
     libraryMenuItems,
     menuItems,
     orgMenuItems,
-    postsMenuItems,
-    researchMenuItems,
+    publishMenuItems,
+    discoverMenuItems,
     secondaryMenuItems,
     settingsMenuItems,
     studioMenuItems,
-    workflowsMenuItems,
-    isPostsRoute,
+    automateMenuItems,
+    isPublishRoute,
     taskContextSearchParams,
     handleNavigate,
     handleOpenCommandPalette,
@@ -296,31 +293,28 @@ function AppLayoutWithDynamicMenu({
         currentApp={currentApp}
         isAdminRoute={isAdminRoute}
         isAnalyticsRoute={isAnalyticsRoute}
-        isComposeRoute={isComposeRoute}
         isConversationRoute={isConversationRoute}
-        isEditorRoute={isEditorRoute}
         isFocusedOnboardingRoute={isFocusedOnboardingRoute}
         isLibraryRoute={isLibraryRoute}
         isMessagesRoute={isMessagesRoute}
         isOrgRoute={isOrgRoute}
-        isPostsRoute={isPostsRoute}
-        isResearchRoute={isResearchRoute}
+        isPublishRoute={isPublishRoute}
+        isDiscoverRoute={isDiscoverRoute}
         isSettingsRoute={isSettingsRoute}
         isStudioRoute={isStudioRoute}
-        isWorkflowsRoute={isWorkflowsRoute}
+        isAutomateRoute={isAutomateRoute}
         settingsScope={settingsScope}
         adminMenuItems={adminMenuItems}
         analyticsMenuItems={analyticsMenuItems}
-        composeMenuItems={composeMenuItems}
         libraryMenuItems={libraryMenuItems}
         menuItems={menuItems}
         orgMenuItems={orgMenuItems}
-        postsMenuItems={postsMenuItems}
-        researchMenuItems={researchMenuItems}
+        publishMenuItems={publishMenuItems}
+        discoverMenuItems={discoverMenuItems}
         secondaryMenuItems={secondaryMenuItems}
         settingsMenuItems={settingsMenuItems}
         studioMenuItems={studioMenuItems}
-        workflowsMenuItems={workflowsMenuItems}
+        automateMenuItems={automateMenuItems}
         navPanel={activeNavPanel}
         onOpenCommandPalette={handleOpenCommandPalette}
       />
@@ -328,37 +322,34 @@ function AppLayoutWithDynamicMenu({
   }, [
     adminMenuItems,
     analyticsMenuItems,
-    composeMenuItems,
     currentApp,
     activeNavPanel,
     handleOpenCommandPalette,
     isAdminRoute,
     isAnalyticsRoute,
-    isComposeRoute,
     isConversationRoute,
     isEditorCanvasRoute,
-    isEditorRoute,
     isFocusedOnboardingRoute,
     isLibraryRoute,
     isMessagesRoute,
     isOrgRoute,
-    isPostsRoute,
-    isResearchRoute,
+    isPublishRoute,
+    isDiscoverRoute,
     isSettingsRoute,
     isStudioRoute,
-    isWorkflowsRoute,
+    isAutomateRoute,
     libraryMenuItems,
     menuItems,
     orgMenuItems,
-    postsMenuItems,
-    researchMenuItems,
+    publishMenuItems,
+    discoverMenuItems,
     secondaryMenuItems,
     settingsMenuItems,
     settingsScope,
     shellChromeVariant,
     studioMenuItems,
     taskContextSearchParams,
-    workflowsMenuItems,
+    automateMenuItems,
   ]);
 
   const topbarComponent = isFocusedOnboardingRoute
@@ -377,19 +368,17 @@ function AppLayoutWithDynamicMenu({
           ? libraryMenuItems
           : isStudioRoute
             ? studioMenuItems
-            : isComposeRoute
-              ? composeMenuItems
-              : isWorkflowsRoute
-                ? workflowsMenuItems
-                : isAnalyticsRoute
-                  ? analyticsMenuItems
-                  : isResearchRoute
-                    ? researchMenuItems
-                    : isOrgRoute
-                      ? orgMenuItems
-                      : menuItems;
+            : isAutomateRoute
+              ? automateMenuItems
+              : isAnalyticsRoute
+                ? analyticsMenuItems
+                : isDiscoverRoute
+                  ? discoverMenuItems
+                  : isOrgRoute
+                    ? orgMenuItems
+                    : menuItems;
   const lowCreditsBanner =
-    hasOrganizationBilling() &&
+    hasOrganizationBillingHint() &&
     isLowCreditsBannerEnabled &&
     !isFocusedOnboardingRoute &&
     !isPromptBarRoute &&

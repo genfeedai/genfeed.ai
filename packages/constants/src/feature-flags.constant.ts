@@ -2,12 +2,13 @@ export const APP_SWITCHER_FEATURE_FLAGS = {
   workspace: 'app_switcher_workspace',
   agent: 'app_switcher_agent',
   messages: 'app_switcher_messages',
-  research: 'app_switcher_research',
+  discover: 'app_switcher_discover',
   studio: 'app_switcher_studio',
   library: 'app_switcher_library',
-  posts: 'app_switcher_posts',
+  /** Publish surface — flag key kept as `app_switcher_posts` in PostHog. */
+  publish: 'app_switcher_posts',
   analytics: 'app_switcher_analytics',
-  /** Merged workflows + orchestration surface. */
+  /** Merged workflows + automation surface. */
   automate: 'app_switcher_automate',
 } as const;
 

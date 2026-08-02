@@ -7,7 +7,6 @@ import {
 } from '@helpers/data/cache/cache.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useIngredientServices } from '@hooks/data/ingredients/use-ingredient-services/use-ingredient-services';
-import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import useIngredientActions from '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import type { IngredientDetailProps } from '@props/content/ingredient.props';
 import {
@@ -18,6 +17,7 @@ import { IngredientsService } from '@services/content/ingredients.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { buildAgentPromptHref } from '@utils/url/desktop-loop-url.util';
 import { format } from 'date-fns';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -28,7 +28,6 @@ export function useIngredientDetail({ type, id }: IngredientDetailProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { brandId, credentials } = useBrand();
-  const isStudioEnabled = useFeatureFlag('studio');
 
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
   const notificationsService = useMemo(
@@ -99,13 +98,15 @@ export function useIngredientDetail({ type, id }: IngredientDetailProps) {
     onSeeDetails: (detailIngredient: IIngredient) => {
       openIngredientOverlay(detailIngredient);
     },
-    onUseAsVideoReference: isStudioEnabled
-      ? (refIngredient: IIngredient) => {
-          router.push(
-            `/studio/video?referenceImageId=${refIngredient.id}&format=${refIngredient.ingredientFormat}`,
-          );
-        }
-      : undefined,
+    // One-off generation is Agent-first — the standalone Studio video prompt
+    // bar is retired, so the reference is handed to a new Agent thread.
+    onUseAsVideoReference: (refIngredient: IIngredient) => {
+      router.push(
+        buildAgentPromptHref(
+          `Generate a video that uses library image ${refIngredient.id} as the reference frame, in ${refIngredient.ingredientFormat} format.`,
+        ),
+      );
+    },
   });
 
   const findChildIngredients = useCallback(

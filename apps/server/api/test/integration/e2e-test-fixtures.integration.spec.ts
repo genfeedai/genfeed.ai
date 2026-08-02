@@ -11,6 +11,7 @@ import { AccessBootstrapCacheService } from '@api/common/services/access-bootstr
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
+import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createTestUser } from '@api-test/e2e/e2e-test.utils';
 import {
@@ -20,6 +21,20 @@ import {
   TestDatabaseHelper,
 } from '@api-test/e2e-test.module';
 import { describe, expect, it, vi } from 'vitest';
+
+/**
+ * Nest accepts both `{ provide: Token, useValue }` objects and bare classes as
+ * providers, and a bare class IS its own token. Read both spellings so this
+ * contract tracks the fixture's collaborator set rather than one spelling of
+ * it — a real (unmocked) collaborator is registered as a bare class.
+ */
+function resolveProviderToken(provider: unknown): unknown {
+  return typeof provider === 'object' &&
+    provider !== null &&
+    'provide' in provider
+    ? provider.provide
+    : provider;
+}
 
 describe('E2E fixture contracts', () => {
   it('creates users with canonical Prisma fields', () => {
@@ -67,13 +82,12 @@ describe('E2E fixture contracts', () => {
       RequestContextCacheService,
       AccessBootstrapCacheService,
       BetterAuthIdentityCacheService,
+      UserAccessCacheService,
     ];
-    const configuredBrandTokens = BRAND_SERVICE_E2E_MOCK_PROVIDERS.map(
-      (provider) => provider.provide,
-    );
-    const configuredCollectionTokens = COLLECTION_E2E_MOCK_PROVIDERS.map(
-      (provider) => provider.provide,
-    );
+    const configuredBrandTokens =
+      BRAND_SERVICE_E2E_MOCK_PROVIDERS.map(resolveProviderToken);
+    const configuredCollectionTokens =
+      COLLECTION_E2E_MOCK_PROVIDERS.map(resolveProviderToken);
 
     expect(configuredBrandTokens).toEqual(expectedBrandTokens);
     expect(configuredCollectionTokens).toEqual(expectedCollectionTokens);
@@ -81,10 +95,8 @@ describe('E2E fixture contracts', () => {
     const moduleConfig = await E2ETestModule.forRoot({
       providers: [BrandGenerationService],
     });
-    const providerTokens = (moduleConfig.providers ?? []).map((provider) =>
-      typeof provider === 'object' && provider !== null && 'provide' in provider
-        ? provider.provide
-        : provider,
+    const providerTokens = (moduleConfig.providers ?? []).map(
+      resolveProviderToken,
     );
 
     expect(providerTokens).toEqual(

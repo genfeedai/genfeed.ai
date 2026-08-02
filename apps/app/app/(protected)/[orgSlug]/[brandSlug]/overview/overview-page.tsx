@@ -1,10 +1,11 @@
 'use client';
 
-import { APP_ROUTES, COMPOSE_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
 import type { OverviewCard } from '@genfeedai/interfaces/ui/overview-card.interface';
 import type { AgentRunStats } from '@genfeedai/types';
+import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
@@ -59,6 +60,12 @@ const OVERVIEW_SOCIAL_PLATFORMS: SocialPlatform[] = [
   'pinterest',
   'medium',
 ];
+
+// Creating content starts in the Agent — there is no standalone composer to
+// send operators to any more.
+const CREATE_CONTENT_AGENT_HREF = buildAgentPromptHref(
+  'Help me create new content for my brand — a post, an article, or a campaign asset.',
+);
 
 const EMPTY_AGENT_RUNS: IAgentRun[] = [];
 const EMPTY_TIME_SERIES: PlatformTimeSeriesDataPoint[] = [];
@@ -215,7 +222,7 @@ function buildSectionSummaries(
     },
     {
       color: 'text-muted-foreground',
-      href: APP_ROUTES.ORCHESTRATION.OVERVIEW,
+      href: APP_ROUTES.AUTOMATE.OVERVIEW,
       icon: Settings,
       kicker: 'Automate',
       label: 'Automation',
@@ -353,18 +360,18 @@ export default function OverviewPageContent({
     () => [
       {
         color: 'bg-secondary text-muted-foreground',
-        cta: 'Open Research',
+        cta: 'Open Discover',
         description: 'Start with the strongest live signals',
-        href: APP_ROUTES.RESEARCH.DISCOVERY,
+        href: APP_ROUTES.DISCOVER.DISCOVERY,
         icon: TrendingUp,
         id: 'trends',
-        label: 'Research',
+        label: 'Discover',
       },
       {
         color: 'bg-secondary text-muted-foreground',
         cta: 'Create Posts',
         description: 'Draft new posts, articles, and campaign assets',
-        href: COMPOSE_ROUTES.ROOT,
+        href: CREATE_CONTENT_AGENT_HREF,
         icon: MessageSquare,
         id: 'create',
         label: 'Posts',
@@ -376,7 +383,7 @@ export default function OverviewPageContent({
           reviewInbox.readyCount > 0
             ? `${reviewInbox.readyCount} items are ready to review before posting`
             : 'No assets are waiting for review right now',
-        href: APP_ROUTES.POSTS.REVIEW,
+        href: APP_ROUTES.PUBLISH.REVIEW,
         icon: ClipboardCheck,
         id: 'review',
         label: 'Publishing Inbox',
@@ -385,7 +392,7 @@ export default function OverviewPageContent({
         color: 'bg-secondary text-muted-foreground',
         cta: 'Open Schedule',
         description: 'Manage drafts, scheduled posts, and publishing windows',
-        href: APP_ROUTES.POSTS.SCHEDULED,
+        href: APP_ROUTES.PUBLISH.SCHEDULED,
         icon: Calendar,
         id: 'schedule',
         label: 'Schedule',
@@ -403,7 +410,7 @@ export default function OverviewPageContent({
         color: 'bg-secondary text-muted-foreground',
         cta: 'Open Agents',
         description: 'Monitor agent runs, workflows, and brand operations',
-        href: APP_ROUTES.ORCHESTRATION.RUNS,
+        href: APP_ROUTES.AUTOMATE.RUNS,
         icon: Sparkles,
         id: 'automations',
         label: 'Agents',
@@ -442,7 +449,7 @@ export default function OverviewPageContent({
           <OverviewTrendsPanel
             trends={trends}
             isLoading={isTrendsLoading}
-            viewAllHref={href('/research/discovery')}
+            viewAllHref={href('/discover/discovery')}
           />
         </div>
       </div>

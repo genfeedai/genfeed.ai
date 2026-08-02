@@ -15,6 +15,12 @@ export const BETTER_AUTH_BASE_PATH = '/v1/auth';
 export const BETTER_AUTH_INSTANCE = Symbol('BETTER_AUTH_INSTANCE');
 
 /**
+ * `service` tag on rate-limit store health logs. Stable on purpose — it is the
+ * field an alert on "brute-force throttling stopped enforcing" filters by.
+ */
+export const BETTER_AUTH_RATE_LIMIT_LOG_SERVICE = 'BetterAuthRateLimitStore';
+
+/**
  * Emitted (awaited via `emitAsync`) from the `user.create.after` hook so a new
  * user is provisioned before the create completes. Replaces the legacy auth provider
  * `user.created` webhook (epic #735, Phase 4).

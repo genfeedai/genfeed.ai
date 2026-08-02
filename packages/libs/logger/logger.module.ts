@@ -1,4 +1,5 @@
 import { join } from 'node:path';
+import { attachConsoleOutputErrorHandlers } from '@libs/logger/console-output-error-handler';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Global, Module } from '@nestjs/common';
 import {
@@ -28,18 +29,22 @@ function shouldFilterMessage(message: unknown): boolean {
   imports: [
     WinstonModule.forRootAsync({
       useFactory: () => {
+        const consoleTransport = new transports.Console({
+          format: combine(
+            timestamp(),
+            nestWinstonModuleUtilities.format.nestLike(),
+          ),
+          level: 'debug',
+        });
+
+        const detachConsoleOutputErrorHandlers =
+          attachConsoleOutputErrorHandlers(consoleTransport);
+        consoleTransport.once('close', detachConsoleOutputErrorHandlers);
+
         const configuredTransports: Array<
           | InstanceType<typeof transports.Console>
           | InstanceType<typeof transports.File>
-        > = [
-          new transports.Console({
-            format: combine(
-              timestamp(),
-              nestWinstonModuleUtilities.format.nestLike(),
-            ),
-            level: 'debug',
-          }),
-        ];
+        > = [consoleTransport];
 
         if (shouldEnableFileLogging()) {
           configuredTransports.push(

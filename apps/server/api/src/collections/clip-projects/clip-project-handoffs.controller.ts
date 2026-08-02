@@ -137,7 +137,8 @@ export class ClipProjectHandoffsController {
     return {
       clipProjectId: projectId,
       clipResultId: String(clipResult.id),
-      editorPath: `/editor/${editorProjectId}`,
+      // Brand/org-scoped by the client; the editor is Studio's Edit surface.
+      editorPath: `/studio/edit/${editorProjectId}`,
       editorProjectId,
       videoUrl,
     };

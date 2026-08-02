@@ -66,13 +66,11 @@ const selfHostedBrandRoutePrefixes = [
   APP_ROUTE_PREFIXES.WORKSPACE,
   APP_ROUTE_PREFIXES.AGENT,
   APP_ROUTE_PREFIXES.STUDIO,
-  APP_ROUTE_PREFIXES.POSTS,
-  APP_ROUTE_PREFIXES.COMPOSE,
+  APP_ROUTE_PREFIXES.PUBLISH,
   APP_ROUTE_PREFIXES.ANALYTICS,
-  APP_ROUTE_PREFIXES.ORCHESTRATION,
+  APP_ROUTE_PREFIXES.AUTOMATE,
   APP_ROUTE_PREFIXES.LIBRARY,
-  APP_ROUTE_PREFIXES.EDITOR,
-  APP_ROUTE_PREFIXES.RESEARCH,
+  APP_ROUTE_PREFIXES.DISCOVER,
 ] as const;
 
 const selfHostedRewrites = IS_LOCAL_APP_SHELL
@@ -93,29 +91,27 @@ const selfHostedOrgRewrites = IS_LOCAL_APP_SHELL
   : [];
 
 /**
- * Complete-path app home: bare `/[app]` permanently redirects to
- * `/[app]/overview` so Overview is a complete path that does not prefix-match
- * siblings (same pattern as workspace → overview, settings → profile).
- * Covers unscoped, brand-scoped, and org-scoped (`~/`) routes.
+ * Parent app home is `/[app]`, not `/[app]/overview`. Permanent redirects keep
+ * bookmarks and shared links working after the home path moved to root.
  */
-function appHomeToOverviewRedirects(appRoot: `/${string}`) {
+function appOverviewToHomeRedirects(appRoot: `/${string}`) {
   const overviewPath = `${appRoot}/overview` as const;
 
   return [
     {
-      destination: overviewPath,
+      destination: appRoot,
       permanent: true,
-      source: appRoot,
+      source: overviewPath,
     },
     {
-      destination: createBrandAppRoute(':orgSlug', ':brandSlug', overviewPath),
+      destination: createBrandAppRoute(':orgSlug', ':brandSlug', appRoot),
       permanent: true,
-      source: createBrandAppRoute(':orgSlug', ':brandSlug', appRoot),
+      source: createBrandAppRoute(':orgSlug', ':brandSlug', overviewPath),
     },
     {
-      destination: createOrganizationAppRoute(':orgSlug', overviewPath),
+      destination: createOrganizationAppRoute(':orgSlug', appRoot),
       permanent: true,
-      source: createOrganizationAppRoute(':orgSlug', appRoot),
+      source: createOrganizationAppRoute(':orgSlug', overviewPath),
     },
   ];
 }
@@ -152,6 +148,59 @@ function legacyPathRedirects(fromPrefix: `/${string}`, toPrefix: `/${string}`) {
       ),
     },
   ];
+}
+
+/**
+ * Standalone Studio one-off tabs are retired: prompt-bar surfaces hard-cut to
+ * the Agent, and their asset detail routes hard-cut to Library. Covers the
+ * canonical segments plus the plural aliases the old route accepted.
+ */
+const RETIRED_STUDIO_TAB_SEGMENTS = [
+  'avatar',
+  'avatars',
+  'image',
+  'images',
+  'music',
+  'video',
+  'videos',
+] as const;
+
+function retiredStudioTabRedirects() {
+  return RETIRED_STUDIO_TAB_SEGMENTS.flatMap((segment) => {
+    const tabPath = `${APP_ROUTES.STUDIO.ROOT}/${segment}` as const;
+    const detailPath = `${tabPath}/:assetId` as const;
+
+    return [
+      {
+        destination: APP_ROUTES.LIBRARY.ROOT,
+        permanent: true,
+        source: detailPath,
+      },
+      {
+        destination: createBrandAppRoute(
+          ':orgSlug',
+          ':brandSlug',
+          APP_ROUTES.LIBRARY.ROOT,
+        ),
+        permanent: true,
+        source: createBrandAppRoute(':orgSlug', ':brandSlug', detailPath),
+      },
+      {
+        destination: APP_ROUTES.AGENT.NEW,
+        permanent: true,
+        source: tabPath,
+      },
+      {
+        destination: createBrandAppRoute(
+          ':orgSlug',
+          ':brandSlug',
+          APP_ROUTES.AGENT.NEW,
+        ),
+        permanent: true,
+        source: createBrandAppRoute(':orgSlug', ':brandSlug', tabPath),
+      },
+    ];
+  });
 }
 
 const config = createAppNextConfig({
@@ -200,25 +249,25 @@ const config = createAppNextConfig({
       ),
     },
     {
-      destination: APP_ROUTES.RESEARCH.DISCOVERY,
+      destination: APP_ROUTES.DISCOVER.DISCOVERY,
       permanent: false,
-      source: APP_ROUTES.RESEARCH.ROOT,
+      source: APP_ROUTES.DISCOVER.ROOT,
     },
     {
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.RESEARCH.DISCOVERY,
+        APP_ROUTES.DISCOVER.DISCOVERY,
       ),
       permanent: false,
       source: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.RESEARCH.ROOT,
+        APP_ROUTES.DISCOVER.ROOT,
       ),
     },
     {
-      destination: APP_ROUTES.LIBRARY.OVERVIEW,
+      destination: APP_ROUTES.LIBRARY.ROOT,
       permanent: false,
       source: APP_ROUTES.LIBRARY.INGREDIENTS,
     },
@@ -226,7 +275,7 @@ const config = createAppNextConfig({
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.LIBRARY.OVERVIEW,
+        APP_ROUTES.LIBRARY.ROOT,
       ),
       permanent: false,
       source: createBrandAppRoute(
@@ -240,56 +289,36 @@ const config = createAppNextConfig({
       permanent: false,
       source: APP_ROUTES.SETTINGS.PERSONAL,
     },
-    // Brand settings home is Profile — bare `/settings` permanently lands there
-    // so the sidebar Profile item is a complete path (no prefix-match on siblings).
     {
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.SETTINGS.PROFILE,
-      ),
-      permanent: true,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.SETTINGS.ROOT,
-      ),
-    },
-    // Org settings home is also the complete `/settings/profile` path (workspace
-    // defaults / General content). Bare `~/settings` permanently redirects there
-    // so the sidebar home item does not prefix-match siblings — same pattern as
-    // brand settings and workspace → overview.
-    {
-      destination: createOrganizationAppRoute(
-        ':orgSlug',
-        APP_ROUTES.SETTINGS.PROFILE,
-      ),
-      permanent: true,
-      source: createOrganizationAppRoute(':orgSlug', APP_ROUTES.SETTINGS.ROOT),
-    },
-    {
-      destination: APP_ROUTES.COMPOSE.ARTICLE,
-      permanent: false,
-      source: APP_ROUTES.COMPOSE.ROOT,
-    },
-    {
-      destination: APP_ROUTES.STUDIO.IMAGE,
+      destination: APP_ROUTES.STUDIO.STORYBOARD,
       permanent: false,
       source: APP_ROUTES.STUDIO.ROOT,
     },
-    // Complete-path homes: bare `/[app]` → `/[app]/overview` (and scoped variants).
-    ...appHomeToOverviewRedirects(APP_ROUTES.ORCHESTRATION.ROOT),
-    ...appHomeToOverviewRedirects(APP_ROUTES.LIBRARY.ROOT),
-    ...appHomeToOverviewRedirects(APP_ROUTES.ANALYTICS.ROOT),
-    ...appHomeToOverviewRedirects(APP_ROUTES.WORKSPACE.ROOT),
+    {
+      // Studio has no root page — Storyboard is the production landing surface.
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.STUDIO.STORYBOARD,
+      ),
+      permanent: false,
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.STUDIO.ROOT,
+      ),
+    },
+    ...retiredStudioTabRedirects(),
+    // App homes live at `/[app]`; `/[app]/overview` is a permanent alias.
+    ...appOverviewToHomeRedirects(APP_ROUTES.AUTOMATE.ROOT),
+    ...appOverviewToHomeRedirects(APP_ROUTES.WORKSPACE.ROOT),
+    ...appOverviewToHomeRedirects(APP_ROUTES.LIBRARY.ROOT),
+    ...appOverviewToHomeRedirects(APP_ROUTES.ANALYTICS.ROOT),
     // Campaigns / outreach moved from Automate → Publish (hard cut).
+    ...legacyPathRedirects('/automate/campaigns', APP_ROUTES.PUBLISH.CAMPAIGNS),
     ...legacyPathRedirects(
-      '/orchestration/campaigns',
-      APP_ROUTES.POSTS.CAMPAIGNS,
-    ),
-    ...legacyPathRedirects(
-      '/orchestration/outreach-campaigns',
-      APP_ROUTES.POSTS.OUTREACH_CAMPAIGNS,
+      '/automate/outreach-campaigns',
+      APP_ROUTES.PUBLISH.OUTREACH_CAMPAIGNS,
     ),
   ],
   sentryProject: 'app-genfeed-ai',

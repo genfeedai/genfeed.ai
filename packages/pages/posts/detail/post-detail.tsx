@@ -143,7 +143,7 @@ export default function PostDetail({
         );
         notificationsService.success('Remix post created as draft');
         // Navigate to the new post
-        router.push(href(`/posts/${remixPost.id}`));
+        router.push(href(`/publish/${remixPost.id}`));
       } catch (error) {
         notificationsService.error('Failed to create remix post');
         throw error;
@@ -167,7 +167,7 @@ export default function PostDetail({
       const service = await getPostsService();
       const duplicated = await service.duplicate(post.id);
       notificationsService.success('Post duplicated as draft');
-      router.push(href(`/posts/${duplicated.id}`));
+      router.push(href(`/publish/${duplicated.id}`));
     } catch {
       notificationsService.error('Failed to duplicate post');
     }

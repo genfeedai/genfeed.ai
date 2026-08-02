@@ -16,7 +16,7 @@ import { expectNoErrorOverlay } from '../../utils/route-assertions';
  * bounce back to /login.
  *
  * Error mocks are scoped to resource endpoints only (posts, images, videos,
- * analytics, workflows, agents, research) so auth / bootstrap / users traffic
+ * analytics, workflows, agents, discover) so auth / bootstrap / users traffic
  * still succeeds and the session stays valid.
  */
 
@@ -35,7 +35,7 @@ test.describe('App surfaces — fetch error states', () => {
 
   test('posts list survives a server error', async ({ authenticatedPage }) => {
     await mockServerError(authenticatedPage, '**/posts**');
-    const route = `${ORG_BRAND}/posts`;
+    const route = `${ORG_BRAND}/publish`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
@@ -43,7 +43,7 @@ test.describe('App surfaces — fetch error states', () => {
 
   test('posts list survives a network error', async ({ authenticatedPage }) => {
     await mockNetworkError(authenticatedPage, '**/posts**');
-    const route = `${ORG_BRAND}/posts`;
+    const route = `${ORG_BRAND}/publish`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
@@ -99,7 +99,7 @@ test.describe('App surfaces — fetch error states', () => {
     authenticatedPage,
   }) => {
     await mockServerError(authenticatedPage, '**/workflows**');
-    const route = '/orchestration/workflows';
+    const route = '/automate/workflows';
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
@@ -109,48 +109,48 @@ test.describe('App surfaces — fetch error states', () => {
     authenticatedPage,
   }) => {
     await mockNetworkError(authenticatedPage, '**/workflows**');
-    const route = '/orchestration/workflows';
+    const route = '/automate/workflows';
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
   });
 
-  test('orchestration survives a server error', async ({
-    authenticatedPage,
-  }) => {
+  test('automate survives a server error', async ({ authenticatedPage }) => {
     await mockServerError(authenticatedPage, '**/agents**');
     await mockServerError(authenticatedPage, '**/tasks**');
-    const route = `${ORG_BRAND}/orchestration`;
+    const route = `${ORG_BRAND}/automate`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
   });
 
-  test('orchestration runs survive a network error', async ({
+  test('automate runs survive a network error', async ({
     authenticatedPage,
   }) => {
     await mockNetworkError(authenticatedPage, '**/agents**');
-    const route = `${ORG_BRAND}/orchestration/runs`;
+    const route = `${ORG_BRAND}/automate/runs`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
   });
 
-  test('research discovery survives a server error', async ({
+  test('discover discovery survives a server error', async ({
     authenticatedPage,
   }) => {
-    await mockServerError(authenticatedPage, '**/research**');
-    const route = `${ORG_BRAND}/research/discovery`;
+    await mockServerError(authenticatedPage, '**/discover**');
+    const route = `${ORG_BRAND}/discover/discovery`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
   });
 
-  test('studio image list survives an images server error', async ({
+  test('library image list survives an images server error', async ({
     authenticatedPage,
   }) => {
+    // Studio's standalone image tab is retired — generated images land in the
+    // Library, which is now the surface that must survive the failure.
     await mockServerError(authenticatedPage, '**/images**');
-    const route = `${ORG_BRAND}/studio/image`;
+    const route = `${ORG_BRAND}/library/images`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);

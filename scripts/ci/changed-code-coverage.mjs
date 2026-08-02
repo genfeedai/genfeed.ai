@@ -16,7 +16,9 @@ import { execFile } from 'node:child_process';
 import {
   appendFileSync,
   existsSync,
+  readdirSync,
   readFileSync,
+  statSync,
   writeFileSync,
 } from 'node:fs';
 import path from 'node:path';
@@ -36,6 +38,15 @@ const MAX_ANNOTATIONS = 40;
 const MAX_SUMMARY_FILE_ROWS = 30;
 
 const SURFACE_RESULTS = new Set(['success', 'failure', 'cancelled', 'skipped']);
+
+// Worst-of ordering for rolling shard outcomes up into one surface result. A
+// surface is only `success` when every one of its shards was.
+const RESULT_SEVERITY = {
+  success: 0,
+  skipped: 1,
+  failure: 2,
+  cancelled: 3,
+};
 
 // ── Diff ────────────────────────────────────────────────────────────────────
 
@@ -334,6 +345,118 @@ export function classifySurface({ name, result, lcovPath, lcov }) {
     return { ...base, status: 'no-coverage' };
   }
   return { ...base, status: 'reported' };
+}
+
+// ── Shards ──────────────────────────────────────────────────────────────────
+
+/** Worse of two surface/shard results, by `RESULT_SEVERITY`. */
+export function worstResult(left, right) {
+  const rank = (value) => RESULT_SEVERITY[value] ?? RESULT_SEVERITY.failure;
+  return rank(left) >= rank(right) ? left : right;
+}
+
+/**
+ * Roll a sharded surface's per-shard artifacts up into one surface.
+ *
+ * A surface used to be one unsharded job, so its GitHub job result carried both
+ * "did the measurement happen" and "how long did it take". Sharding breaks both:
+ * a matrix job's `outputs` are last-writer-wins across shards, and step-level
+ * `continue-on-error` (which is what stops a slow shard from cancelling the job)
+ * makes the job result `success` even when the coverage step failed. So each
+ * shard writes its own outcome and duration next to its lcov, and the surface is
+ * reconstructed from those instead.
+ *
+ *   - `result` is the **worst** shard outcome: a surface measured by three good
+ *     shards and one timed-out shard is a partial measurement, and publishing it
+ *     as a pass would understate uncovered lines.
+ *   - `latencySeconds` is the **max**, not the sum: shards run in parallel, so
+ *     the slowest one is the surface's wall clock — the number the baseline's
+ *     `latencyBudgetMinutesP95` is measured against.
+ *   - `lcov` is the concatenation. `parseLcov` merges repeated `SF:` records by
+ *     summing hits, which is exactly how shards of one suite combine.
+ *
+ * @param {Array<{outcome?: string, seconds?: number, lcov?: string|null}>} shards
+ */
+export function aggregateSurfaceShards(shards) {
+  if (shards.length === 0) {
+    return { result: null, latencySeconds: null, lcov: null };
+  }
+
+  let result = 'success';
+  let latencySeconds = null;
+
+  for (const shard of shards) {
+    const outcome = SURFACE_RESULTS.has(shard.outcome)
+      ? shard.outcome
+      : 'failure';
+    result = worstResult(result, outcome);
+
+    if (Number.isFinite(shard.seconds)) {
+      latencySeconds = Math.max(latencySeconds ?? 0, shard.seconds);
+    }
+  }
+
+  const reports = shards
+    .map((shard) => shard.lcov)
+    .filter((lcov) => typeof lcov === 'string' && lcov.trim().length > 0);
+
+  return {
+    result,
+    latencySeconds,
+    lcov: reports.length > 0 ? reports.join('\n') : null,
+  };
+}
+
+/**
+ * Read one shard directory as produced by the coverage jobs' staging step.
+ * A shard that was cancelled before staging leaves nothing behind; that absence
+ * is reported as a failed shard rather than skipped, so it cannot round up into
+ * a clean surface.
+ *
+ * @param {string} directory
+ */
+function readShardDirectory(directory) {
+  const read = (name) => {
+    const file = path.join(directory, name);
+    return existsSync(file) ? readFileSync(file, 'utf8').trim() : '';
+  };
+
+  const seconds = Number.parseInt(read('seconds'), 10);
+  return {
+    outcome: read('outcome') || 'failure',
+    seconds: Number.isSafeInteger(seconds) ? seconds : null,
+    lcov: existsSync(path.join(directory, 'lcov.info'))
+      ? readFileSync(path.join(directory, 'lcov.info'), 'utf8')
+      : null,
+  };
+}
+
+/**
+ * Resolve a `--surface` path into shards.
+ *
+ * A directory is the sharded layout: one subdirectory per uploaded shard
+ * artifact. A plain file is the single unsharded lcov the flag originally took,
+ * kept working so the script stays usable by hand and in fixtures.
+ *
+ * @param {string} lcovPath
+ */
+export function readSurfacePath(lcovPath) {
+  if (!lcovPath || !existsSync(lcovPath)) return [];
+
+  if (!statSync(lcovPath).isDirectory()) {
+    return [
+      {
+        outcome: 'success',
+        seconds: null,
+        lcov: readFileSync(lcovPath, 'utf8'),
+      },
+    ];
+  }
+
+  return readdirSync(lcovPath, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .map((entry) => readShardDirectory(path.join(lcovPath, entry.name)));
 }
 
 // ── Report ──────────────────────────────────────────────────────────────────
@@ -694,12 +817,37 @@ async function runCli() {
   const baseline = readBaseline();
   const changedFiles = parseUnifiedDiff(await readDiff(args.base, args.head));
 
+  let observedLatencySeconds = null;
   const surfaces = args.surfaces.map((surface) => {
-    const lcov =
-      surface.lcovPath && existsSync(surface.lcovPath)
-        ? readFileSync(surface.lcovPath, 'utf8')
-        : null;
-    return { ...classifySurface({ ...surface, lcov }), lcov };
+    const shards = readSurfacePath(surface.lcovPath);
+    const merged = aggregateSurfaceShards(shards);
+
+    if (Number.isFinite(merged.latencySeconds)) {
+      observedLatencySeconds = Math.max(
+        observedLatencySeconds ?? 0,
+        merged.latencySeconds,
+      );
+    }
+
+    // Neither signal alone is sufficient, so take the worse of the two.
+    //
+    // The shards' own outcomes are needed because step-level `continue-on-error`
+    // is what stops a slow shard from cancelling its job, and it leaves the job
+    // result `success` even when the coverage step failed.
+    //
+    // The job result is still needed because a shard killed by the job-level
+    // backstop stages nothing at all: it contributes no outcome file, and the
+    // surviving shards would otherwise round up to a clean surface built from a
+    // partial measurement.
+    const result =
+      surface.result === 'skipped' || merged.result === null
+        ? surface.result
+        : worstResult(surface.result, merged.result);
+
+    return {
+      ...classifySurface({ ...surface, result, lcov: merged.lcov }),
+      lcov: merged.lcov,
+    };
   });
 
   const report = buildReport({
@@ -716,9 +864,14 @@ async function runCli() {
     runId: process.env.GITHUB_RUN_ID ?? null,
     runAttempt: process.env.GITHUB_RUN_ATTEMPT ?? null,
     startedAt: process.env.OBSERVATION_STARTED_AT ?? null,
-    latencySeconds: process.env.OBSERVATION_LATENCY_SECONDS
-      ? Number(process.env.OBSERVATION_LATENCY_SECONDS)
-      : null,
+    // Surface wall clock, measured by the shards themselves. Matrix job outputs
+    // are last-writer-wins across shards and cannot carry this; the environment
+    // variable survives only as a fallback for an unsharded or hand-run report.
+    latencySeconds:
+      observedLatencySeconds ??
+      (process.env.OBSERVATION_LATENCY_SECONDS
+        ? Number(process.env.OBSERVATION_LATENCY_SECONDS)
+        : null),
   };
 
   const summary = formatSummary(report);

@@ -40,7 +40,7 @@ vi.mock('@helpers/auth/auth.helper', () => ({
 }));
 
 vi.mock('@genfeedai/config/license', () => ({
-  hasOrganizationBilling: vi.fn(() => false),
+  hasOrganizationBillingHint: vi.fn(() => false),
 }));
 
 vi.mock('@services/management/tasks.service', async () => {

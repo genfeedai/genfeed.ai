@@ -28,14 +28,14 @@ describe('useNavigationPrefetch', () => {
   });
 
   it('prefetches an internal route once on repeated interactions', () => {
-    render(<PrefetchProbe href="/acme/brand/posts" />);
+    render(<PrefetchProbe href="/acme/brand/publish" />);
 
     const button = screen.getByRole('button', { name: 'Prefetch' });
     fireEvent.mouseEnter(button);
     fireEvent.focus(button);
 
     expect(prefetchMock).toHaveBeenCalledTimes(1);
-    expect(prefetchMock).toHaveBeenCalledWith('/acme/brand/posts');
+    expect(prefetchMock).toHaveBeenCalledWith('/acme/brand/publish');
   });
 
   it('ignores external, hash-only, and protocol-relative hrefs', () => {

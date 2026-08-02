@@ -1,4 +1,5 @@
 import { APP_ROUTES } from '@genfeedai/constants';
+import type { IClipDraftHandoff } from '@genfeedai/interfaces';
 import type {
   TrendItem,
   TrendSourceItem,
@@ -20,6 +21,25 @@ function buildQuery(params: Record<string, string | undefined>): string {
 
 export function buildAgentPromptHref(prompt: string): string {
   return `${APP_ROUTES.AGENT.NEW}${buildQuery({ prompt })}`;
+}
+
+/**
+ * A finished clip used to hand off to the post composer with its media
+ * pre-attached. Writing now starts in the Agent, so the same context travels as
+ * a prompt instead of query params on a form.
+ */
+export function buildClipDraftAgentHref(clip: IClipDraftHandoff): string {
+  const prompt = [
+    'Draft a social post for this generated clip.',
+    `Title: "${clip.title}".`,
+    clip.description ? `Description: "${clip.description}".` : undefined,
+    clip.ingredientId ? `Ingredient id: ${clip.ingredientId}.` : undefined,
+    'Write the caption, then suggest the best platform and schedule for it.',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return buildAgentPromptHref(prompt);
 }
 
 export function buildTrendAgentHref(
@@ -70,7 +90,7 @@ export function buildTrendSourceTwitterDraftHref(
   source: TrendSourceItem,
   isThread: boolean = false,
 ): string {
-  return `/posts/remix${buildQuery({
+  return `/publish/remix${buildQuery({
     mode: isThread ? 'thread' : 'tweet',
     platform: 'twitter',
     sourceAuthor: source.authorHandle,

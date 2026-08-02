@@ -2,7 +2,6 @@ import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
   createBrandAppRoute,
-  createOrganizationAppRoute,
 } from '@genfeedai/constants';
 import { isCsrfOriginAllowed } from 'next/dist/server/app-render/csrf-protection.js';
 import { describe, expect, it } from 'vitest';
@@ -52,92 +51,12 @@ describe('app next.config', () => {
   it('does not define stale bare overview redirects', async () => {
     const redirects = await config.redirects?.();
     expect(redirects?.some((redirect) => redirect.source === '/')).toBe(false);
+    expect(
+      redirects?.some((redirect) => redirect.source === '/workspace'),
+    ).toBe(false);
     expect(redirects?.some((redirect) => redirect.source === '/overview')).toBe(
       false,
     );
-  });
-
-  it('permanently redirects bare app roots onto complete overview paths', async () => {
-    const redirects = await config.redirects?.();
-
-    for (const appRoot of [
-      APP_ROUTES.WORKSPACE.ROOT,
-      APP_ROUTES.ORCHESTRATION.ROOT,
-      APP_ROUTES.LIBRARY.ROOT,
-      APP_ROUTES.ANALYTICS.ROOT,
-    ] as const) {
-      const overviewPath = `${appRoot}/overview` as const;
-      expect(redirects).toContainEqual({
-        destination: overviewPath,
-        permanent: true,
-        source: appRoot,
-      });
-      expect(redirects).toContainEqual({
-        destination: createBrandAppRoute(
-          ':orgSlug',
-          ':brandSlug',
-          overviewPath,
-        ),
-        permanent: true,
-        source: createBrandAppRoute(':orgSlug', ':brandSlug', appRoot),
-      });
-      expect(redirects).toContainEqual({
-        destination: createOrganizationAppRoute(':orgSlug', overviewPath),
-        permanent: true,
-        source: createOrganizationAppRoute(':orgSlug', appRoot),
-      });
-    }
-  });
-
-  it('does not invert complete-path homes (overview must not redirect back to root)', async () => {
-    const redirects = await config.redirects?.();
-
-    for (const appRoot of [
-      APP_ROUTES.WORKSPACE.ROOT,
-      APP_ROUTES.ORCHESTRATION.ROOT,
-      APP_ROUTES.LIBRARY.ROOT,
-      APP_ROUTES.ANALYTICS.ROOT,
-    ] as const) {
-      const overviewPath = `${appRoot}/overview` as const;
-      expect(
-        redirects?.some(
-          (redirect) =>
-            redirect.source === overviewPath &&
-            redirect.destination === appRoot,
-        ),
-      ).toBe(false);
-    }
-  });
-
-  it('permanently redirects brand settings root onto /settings/profile', async () => {
-    const redirects = await config.redirects?.();
-
-    expect(redirects).toContainEqual({
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.SETTINGS.PROFILE,
-      ),
-      permanent: true,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.SETTINGS.ROOT,
-      ),
-    });
-  });
-
-  it('permanently redirects org settings root onto /settings/profile (complete path)', async () => {
-    const redirects = await config.redirects?.();
-
-    expect(redirects).toContainEqual({
-      destination: createOrganizationAppRoute(
-        ':orgSlug',
-        APP_ROUTES.SETTINGS.PROFILE,
-      ),
-      permanent: true,
-      source: createOrganizationAppRoute(':orgSlug', APP_ROUTES.SETTINGS.ROOT),
-    });
   });
 
   it('redirects /workspace/inbox to /workspace/inbox/unread', async () => {
@@ -204,7 +123,8 @@ describe('app next.config', () => {
   });
 
   it.each([
-    APP_ROUTES.ORCHESTRATION.ROOT,
+    APP_ROUTES.AUTOMATE.ROOT,
+    APP_ROUTES.WORKSPACE.ROOT,
     APP_ROUTES.LIBRARY.ROOT,
     APP_ROUTES.ANALYTICS.ROOT,
   ] as const)(
@@ -226,7 +146,7 @@ describe('app next.config', () => {
     },
   );
 
-  it('does not redirect library/analytics roots into a nested overview home', async () => {
+  it('does not redirect app roots into a nested overview home', async () => {
     const redirects = await config.redirects?.();
 
     expect(
@@ -245,47 +165,35 @@ describe('app next.config', () => {
     ).toBe(false);
   });
 
-  it('does not redirect /workspace/overview back to bare /workspace', async () => {
-    const redirects = await config.redirects?.();
-
-    expect(
-      redirects?.some(
-        (redirect) =>
-          redirect.source === APP_ROUTES.WORKSPACE.OVERVIEW &&
-          redirect.destination === APP_ROUTES.WORKSPACE.ROOT,
-      ),
-    ).toBe(false);
-  });
-
   it('permanently hard-cuts Automate campaign routes into Publish', async () => {
     const redirects = await config.redirects?.();
 
     expect(redirects).toContainEqual({
-      destination: APP_ROUTES.POSTS.CAMPAIGNS,
+      destination: APP_ROUTES.PUBLISH.CAMPAIGNS,
       permanent: true,
-      source: '/orchestration/campaigns',
+      source: '/automate/campaigns',
     });
     expect(redirects).toContainEqual({
-      destination: `${APP_ROUTES.POSTS.CAMPAIGNS}/:path*`,
+      destination: `${APP_ROUTES.PUBLISH.CAMPAIGNS}/:path*`,
       permanent: true,
-      source: '/orchestration/campaigns/:path*',
+      source: '/automate/campaigns/:path*',
     });
     expect(redirects).toContainEqual({
-      destination: APP_ROUTES.POSTS.OUTREACH_CAMPAIGNS,
+      destination: APP_ROUTES.PUBLISH.OUTREACH_CAMPAIGNS,
       permanent: true,
-      source: '/orchestration/outreach-campaigns',
+      source: '/automate/outreach-campaigns',
     });
     expect(redirects).toContainEqual({
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.POSTS.CAMPAIGNS,
+        APP_ROUTES.PUBLISH.CAMPAIGNS,
       ),
       permanent: true,
       source: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        '/orchestration/campaigns',
+        '/automate/campaigns',
       ),
     });
   });
@@ -330,55 +238,86 @@ describe('app next.config', () => {
     ).toBe(false);
   });
 
-  it('redirects org-scoped /research to /research/discovery', async () => {
+  it('redirects org-scoped /discover to /discover/discovery', async () => {
     const redirects = await config.redirects?.();
-    const researchRedirect = redirects?.find(
+    const discoverRedirect = redirects?.find(
       (redirect) =>
         redirect.source ===
-        createBrandAppRoute(':orgSlug', ':brandSlug', APP_ROUTES.RESEARCH.ROOT),
+        createBrandAppRoute(':orgSlug', ':brandSlug', APP_ROUTES.DISCOVER.ROOT),
     );
 
-    expect(researchRedirect).toEqual({
+    expect(discoverRedirect).toEqual({
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.RESEARCH.DISCOVERY,
+        APP_ROUTES.DISCOVER.DISCOVERY,
       ),
       permanent: false,
       source: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.RESEARCH.ROOT,
+        APP_ROUTES.DISCOVER.ROOT,
       ),
     });
   });
 
-  it('redirects /studio to /studio/image only', async () => {
+  it('redirects /studio to the storyboard production surface', async () => {
     const redirects = await config.redirects?.();
     const studioRedirect = redirects?.find(
       (redirect) => redirect.source === APP_ROUTES.STUDIO.ROOT,
     );
 
     expect(studioRedirect).toEqual({
-      destination: APP_ROUTES.STUDIO.IMAGE,
+      destination: APP_ROUTES.STUDIO.STORYBOARD,
       permanent: false,
       source: APP_ROUTES.STUDIO.ROOT,
     });
   });
 
+  it('hard-cuts every retired studio one-off tab to the agent', async () => {
+    const redirects = await config.redirects?.();
+
+    for (const segment of ['avatar', 'image', 'images', 'music', 'video']) {
+      expect(redirects).toContainEqual({
+        destination: APP_ROUTES.AGENT.NEW,
+        permanent: true,
+        source: `${APP_ROUTES.STUDIO.ROOT}/${segment}`,
+      });
+      expect(redirects).toContainEqual({
+        destination: createBrandAppRoute(
+          ':orgSlug',
+          ':brandSlug',
+          APP_ROUTES.AGENT.NEW,
+        ),
+        permanent: true,
+        source: createBrandAppRoute(
+          ':orgSlug',
+          ':brandSlug',
+          `${APP_ROUTES.STUDIO.ROOT}/${segment}`,
+        ),
+      });
+    }
+  });
+
+  it('hard-cuts retired studio asset detail routes to the library', async () => {
+    const redirects = await config.redirects?.();
+
+    expect(redirects).toContainEqual({
+      destination: APP_ROUTES.LIBRARY.ROOT,
+      permanent: true,
+      source: `${APP_ROUTES.STUDIO.ROOT}/image/:assetId`,
+    });
+  });
+
   it('does not define a broad studio wildcard redirect', async () => {
     const redirects = await config.redirects?.();
-    const studioRedirects = redirects?.filter((redirect) =>
-      redirect.source.startsWith(APP_ROUTE_PREFIXES.STUDIO),
+    const studioWildcards = redirects?.filter(
+      (redirect) =>
+        redirect.source.startsWith(APP_ROUTE_PREFIXES.STUDIO) &&
+        redirect.source.includes(':path*'),
     );
 
-    expect(studioRedirects).toEqual([
-      {
-        destination: APP_ROUTES.STUDIO.IMAGE,
-        permanent: false,
-        source: APP_ROUTES.STUDIO.ROOT,
-      },
-    ]);
+    expect(studioWildcards).toEqual([]);
   });
 
   it('sends X-Robots-Tag: noindex, nofollow on every studio route', async () => {

@@ -1,4 +1,4 @@
-import { APP_ROUTES, COMPOSE_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { Task } from '@services/management/tasks.service';
 
 export type TaskLaunchMode =
@@ -21,19 +21,17 @@ const KNOWN_PROTECTED_PREFIXES = [
   'studio',
   'settings',
   'agents',
-  'posts',
+  'publish',
   'analytics',
   'library',
   'agent',
   'messages',
-  'compose',
-  'editor',
-  'research',
+  'discover',
   'overview',
   'ingredients',
   'videos',
   'edit',
-  'orchestration',
+  'automate',
   'elements',
   'bots',
   'admin',
@@ -63,18 +61,19 @@ export function normalizeProtectedPathname(rawPathname: string): string {
  * (post-{@link normalizeProtectedPathname}), so pass a normalized pathname.
  *
  * Covers the five product sections plus their canonical route aliases: Workspace
- * (`/workspace`, `/overview`), Library, Analytics, Orchestration/Automate
- * (`/orchestration`, including merged workflows), and the Calendar
- * (`/posts/calendar`). The agent, settings, studio, compose, research, publish,
- * messages, and admin surfaces are intentionally NOT gated.
+ * (`/workspace`, `/overview`), Library, Analytics, Automate
+ * (`/automate`, including merged workflows), and the Calendar
+ * (`/publish/calendar`). The agent, settings, studio, discover,
+ * messages, and admin surfaces are intentionally NOT gated — nor is the rest of
+ * Publish outside its Calendar.
  */
 const ASSET_GATE_SECTION_PREFIXES = [
   '/workspace',
   '/overview',
   '/library',
   '/analytics',
-  '/orchestration',
-  '/posts/calendar',
+  '/automate',
+  '/publish/calendar',
 ] as const;
 
 export function isAssetGateSectionPath(normalizedPathname: string): boolean {
@@ -213,48 +212,32 @@ function getTaskLaunchPath(
   capabilities: TaskLaunchCapabilities,
 ): string {
   if (mode === 'write') {
-    if (task.outputType === 'newsletter') {
-      return COMPOSE_ROUTES.NEWSLETTER;
-    }
-
-    return task.outputType === 'caption' || task.outputType === 'post'
-      ? COMPOSE_ROUTES.POST
-      : COMPOSE_ROUTES.ARTICLE;
+    return APP_ROUTES.AGENT.NEW;
   }
 
+  // One-off media generation is Agent-first: Studio no longer has standalone
+  // image/video prompt-bar tabs, so every generate launch opens the Agent.
   if (mode === 'generate') {
-    if (!capabilities.studio) {
-      return APP_ROUTES.AGENT.NEW;
-    }
-
-    return task.executionPathUsed === 'video_generation'
-      ? APP_ROUTES.STUDIO.VIDEO
-      : APP_ROUTES.STUDIO.IMAGE;
+    return APP_ROUTES.AGENT.NEW;
   }
 
   if (mode === 'edit') {
-    return APP_ROUTES.EDITOR.ROOT;
+    // Edit is a Studio surface — it follows the same capability gate as generate.
+    return capabilities.studio ? APP_ROUTES.STUDIO.EDIT : APP_ROUTES.AGENT.NEW;
   }
 
   if (mode === 'automate') {
-    return APP_ROUTES.ORCHESTRATION.WORKFLOWS;
+    return APP_ROUTES.AUTOMATE.WORKFLOWS;
   }
 
   switch (task.executionPathUsed) {
     case 'caption_generation':
-      return task.outputType === 'newsletter'
-        ? COMPOSE_ROUTES.NEWSLETTER
-        : COMPOSE_ROUTES.POST;
+      return APP_ROUTES.AGENT.NEW;
     case 'image_generation':
-      return capabilities.studio
-        ? APP_ROUTES.STUDIO.IMAGE
-        : APP_ROUTES.AGENT.NEW;
     case 'video_generation':
-      return capabilities.studio
-        ? APP_ROUTES.STUDIO.VIDEO
-        : APP_ROUTES.AGENT.NEW;
+      return APP_ROUTES.AGENT.NEW;
     default:
-      return APP_ROUTES.ORCHESTRATION.WORKFLOWS;
+      return APP_ROUTES.AUTOMATE.WORKFLOWS;
   }
 }
 

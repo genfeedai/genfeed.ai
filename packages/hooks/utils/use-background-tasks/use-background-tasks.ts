@@ -1,6 +1,6 @@
 'use client';
 
-import { APP_ROUTES, COMPOSE_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES, createArtifactEditorRoute } from '@genfeedai/constants';
 import { useBackgroundTaskContext } from '@genfeedai/contexts/ui/background-task-context';
 import type { IBackgroundTaskUpdateEvent } from '@genfeedai/interfaces';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
@@ -23,14 +23,15 @@ function buildBackgroundTaskHref(event: IBackgroundTaskUpdateEvent): string {
     label.includes('batch content')
   ) {
     return targetId
-      ? `${APP_ROUTES.ORCHESTRATION.WORKFLOWS_EXECUTIONS}/${targetId}`
-      : APP_ROUTES.ORCHESTRATION.WORKFLOWS_EXECUTIONS;
+      ? `${APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS}/${targetId}`
+      : APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS;
   }
 
   if (resultType === 'article' || label.includes('article')) {
+    // A finished article is an artifact — send it to its own editor page.
     return event.resultId
-      ? `${COMPOSE_ROUTES.ARTICLE}?id=${event.resultId}`
-      : COMPOSE_ROUTES.ARTICLE;
+      ? createArtifactEditorRoute('article', event.resultId)
+      : APP_ROUTES.PUBLISH.ROOT;
   }
 
   if (

@@ -3,18 +3,6 @@ import type {
   IXArticleSection,
 } from '@genfeedai/interfaces';
 import type { Article } from '@genfeedai/models/content/article.model';
-import type { GenerateArticlesRequest } from '@genfeedai/services/content/articles.service';
-
-export interface XArticleTypeSelectorProps {
-  onSelect: (type: 'quick' | 'x-article') => void;
-}
-
-export interface XArticleGenerateFormProps {
-  credentialId?: string;
-  initialPrompt?: string;
-  onGenerate: (data: GenerateArticlesRequest) => void;
-  isGenerating: boolean;
-}
 
 export interface XArticleSectionCardProps {
   section: IXArticleSection;

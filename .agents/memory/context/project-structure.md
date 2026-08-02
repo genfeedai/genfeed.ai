@@ -7,13 +7,9 @@ full inventory; this file records only what `ls` cannot tell you.
 
 | path | what |
 |---|---|
-| `apps/server/*` | 12 backend service/server-tier workspaces (port table in CLAUDE.md) |
-| `apps/app`, `apps/docs`, `apps/website` | Next.js App Router apps |
-| `apps/desktop/app`, `apps/mobile/app` | Electron and Expo workspaces |
+| `apps/server/*` | backend service/server-tier workspaces (port table in CLAUDE.md) |
 | `apps/extensions/{browser,ide}/app` | browser + IDE extensions (v2 milestone) |
-| `packages/*` | 38 shared `@genfeedai/*` packages |
-| `ee/packages/{billing,harness}` | commercial-license packages |
-| `playwright/` `tests/` `scripts/` `tools/` `docker/` `docs/` | suites, tooling, deploy, docs |
+| `ee/packages/*` | commercial-license packages |
 | `.agents/` | agent memory, sessions, build skills |
 
 ## Non-obvious facts

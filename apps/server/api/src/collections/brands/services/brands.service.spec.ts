@@ -247,6 +247,7 @@ describe('BrandsService', () => {
         label: 'Renamed',
         organization: 'org-1',
         user: 'user-1',
+        userId: 'user-canonical-id',
       } as never);
 
       expect(result.label).toBe('Renamed');
@@ -258,6 +259,7 @@ describe('BrandsService', () => {
       expect(updateCall?.data).not.toHaveProperty('brandId');
       expect(updateCall?.data).not.toHaveProperty('organization');
       expect(updateCall?.data).not.toHaveProperty('user');
+      expect(updateCall?.data).not.toHaveProperty('userId');
       expect(
         accessBootstrapCacheService.invalidateForOrganization,
       ).toHaveBeenCalledWith('org-1');

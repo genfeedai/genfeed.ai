@@ -34,7 +34,6 @@ export type WorkspaceShellAccessPolicy =
   | 'platform-admin';
 
 export type WorkspaceShellProductClass =
-  | 'compatibility-only'
   | 'contextual-action'
   | 'control-plane'
   | 'removable'

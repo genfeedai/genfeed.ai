@@ -50,14 +50,12 @@ let hasWarnedAboutHostedModeMisconfiguration = false;
 const BRAND_SCOPED_PREFIXES = [
   APP_ROUTE_PREFIXES.ANALYTICS.slice(1),
   APP_ROUTE_PREFIXES.AGENT.slice(1),
-  APP_ROUTE_PREFIXES.COMPOSE.slice(1),
-  APP_ROUTE_PREFIXES.EDITOR.slice(1),
   LEGACY_APP_ROUTES.TASKS.slice(1),
   APP_ROUTE_PREFIXES.LIBRARY.slice(1),
-  APP_ROUTE_PREFIXES.ORCHESTRATION.slice(1),
+  APP_ROUTE_PREFIXES.AUTOMATE.slice(1),
   APP_ROUTE_PREFIXES.OVERVIEW.slice(1),
-  APP_ROUTE_PREFIXES.POSTS.slice(1),
-  APP_ROUTE_PREFIXES.RESEARCH.slice(1),
+  APP_ROUTE_PREFIXES.PUBLISH.slice(1),
+  APP_ROUTE_PREFIXES.DISCOVER.slice(1),
   APP_ROUTE_PREFIXES.STUDIO.slice(1),
   APP_ROUTE_PREFIXES.WORKSPACE.slice(1),
 ] as const;
@@ -66,11 +64,9 @@ const ORG_SCOPED_PREFIXES = [APP_ROUTE_PREFIXES.SETTINGS.slice(1)] as const;
 
 const FLAT_PATH_REDIRECTS = new Map<string, string>([
   [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
-  [APP_ROUTES.COMPOSE.ROOT, APP_ROUTES.COMPOSE.ARTICLE],
   [APP_ROUTE_PREFIXES.LIBRARY, APP_ROUTES.LIBRARY.OVERVIEW],
-  [APP_ROUTES.ORCHESTRATION.ROOT, APP_ROUTES.ORCHESTRATION.OVERVIEW],
-  [APP_ROUTES.RESEARCH.ROOT, APP_ROUTES.RESEARCH.DISCOVERY],
-  [APP_ROUTES.STUDIO.ROOT, APP_ROUTES.STUDIO.IMAGE],
+  [APP_ROUTES.DISCOVER.ROOT, APP_ROUTES.DISCOVER.DISCOVERY],
+  [APP_ROUTES.STUDIO.ROOT, APP_ROUTES.STUDIO.STORYBOARD],
   [LEGACY_APP_ROUTES.TASKS, APP_ROUTES.WORKSPACE.TASKS],
   [APP_ROUTES.WORKSPACE.ROOT, APP_ROUTES.WORKSPACE.OVERVIEW],
   [APP_ROUTES.WORKSPACE.INBOX, APP_ROUTES.WORKSPACE.INBOX_UNREAD],
@@ -579,10 +575,8 @@ type CanonicalResolution = {
 const ORG_ROOT_APP_PREFIXES = [
   'analytics',
   'agent',
-  'compose',
-  'editor',
   'library',
-  'posts',
+  'publish',
   'settings',
   'studio',
 ] as const;
@@ -594,18 +588,14 @@ function createOrgScopedCanonicalPath(
   const topLevelSegment = getTopLevelSegment(canonicalPath);
 
   if (topLevelSegment === 'workspace' || topLevelSegment === 'overview') {
-    return `/${orgSlug}/~/workspace/overview`;
-  }
-
-  if (topLevelSegment === 'compose') {
-    return `/${orgSlug}/~/posts`;
+    return `/${orgSlug}/~/overview`;
   }
 
   // Automate has one org-scoped surface — the cross-brand overview. Deeper
   // automation paths are brand-scoped, so they collapse onto that overview
   // rather than falling into the org catch-all and 404ing.
-  if (topLevelSegment === 'orchestration') {
-    return `/${orgSlug}/~/orchestration`;
+  if (topLevelSegment === 'automate') {
+    return `/${orgSlug}/~/automate`;
   }
 
   if (

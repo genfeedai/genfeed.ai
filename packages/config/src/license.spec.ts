@@ -1,15 +1,18 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   hasOrganizationBilling,
+  hasOrganizationBillingHint,
   isEEEnabled,
-  shouldShowCreditsNav,
-  usesMeteredCredits,
 } from './license';
+import {
+  resetLicenseVerificationForTests,
+  setLicenseVerificationVerdictForTests,
+} from './license-server';
 
 const ORIGINAL_ENV = { ...process.env };
 
-afterEach(() => {
-  process.env = { ...ORIGINAL_ENV };
+beforeEach(() => {
+  resetLicenseVerificationForTests();
   delete process.env.GENFEED_CLOUD;
   delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
   delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
@@ -17,85 +20,59 @@ afterEach(() => {
   delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
 });
 
+afterEach(() => {
+  process.env = { ...ORIGINAL_ENV };
+  resetLicenseVerificationForTests();
+});
+
 describe('isEEEnabled', () => {
-  it('is false without a license key', () => {
-    delete process.env.GENFEED_LICENSE_KEY;
-    delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
+  it('stays false for unverified server and public license values', () => {
+    process.env.GENFEED_LICENSE_KEY = 'garbage';
+    process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY = 'cosmetic-only';
+
     expect(isEEEnabled()).toBe(false);
   });
 
-  it('is true with a server or public license key', () => {
-    process.env.GENFEED_LICENSE_KEY = 'ee-key';
+  it('reads the cached server verification verdict synchronously', () => {
+    setLicenseVerificationVerdictForTests(true);
+
     expect(isEEEnabled()).toBe(true);
   });
 });
 
 describe('hasOrganizationBilling', () => {
-  it('is true on SaaS even without a license key', () => {
-    delete process.env.GENFEED_LICENSE_KEY;
-    delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
+  it('is true on SaaS without a license', () => {
     process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
-    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
+
     expect(hasOrganizationBilling()).toBe(true);
   });
 
-  it('is true on self-host when EE license is present', () => {
-    delete process.env.GENFEED_CLOUD;
-    delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
-    process.env.GENFEED_LICENSE_KEY = 'ee-key';
-    expect(hasOrganizationBilling()).toBe(true);
-  });
-
-  it('is false on self-host community without a license', () => {
-    delete process.env.GENFEED_CLOUD;
-    delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
-    delete process.env.GENFEED_LICENSE_KEY;
-    delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
+  it('is true on self-host only after server verification succeeds', () => {
+    process.env.GENFEED_LICENSE_KEY = 'garbage';
     expect(hasOrganizationBilling()).toBe(false);
+
+    setLicenseVerificationVerdictForTests(true);
+    expect(hasOrganizationBilling()).toBe(true);
   });
 
   it('is false on desktop shell even when cloud flags are set', () => {
     process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
     process.env.NEXT_PUBLIC_DESKTOP_SHELL = 'true';
-    delete process.env.GENFEED_LICENSE_KEY;
+
     expect(hasOrganizationBilling()).toBe(false);
   });
 });
 
-describe('usesMeteredCredits', () => {
-  it('matches hasOrganizationBilling (SaaS without license key is metered)', () => {
-    delete process.env.GENFEED_LICENSE_KEY;
-    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
-    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
-    expect(usesMeteredCredits()).toBe(true);
-    expect(usesMeteredCredits()).toBe(hasOrganizationBilling());
+describe('hasOrganizationBillingHint', () => {
+  it('uses the public license value as a cosmetic self-hosted UI hint', () => {
+    process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY = 'cosmetic-only';
+
+    expect(hasOrganizationBillingHint()).toBe(true);
   });
 
-  it('is false for community self-host (OSS infinite stub)', () => {
-    delete process.env.GENFEED_CLOUD;
-    delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
-    delete process.env.GENFEED_LICENSE_KEY;
-    expect(usesMeteredCredits()).toBe(false);
-  });
-});
+  it('never exposes the server-only license value to UI gating', () => {
+    process.env.GENFEED_LICENSE_KEY = 'server-only';
 
-describe('shouldShowCreditsNav', () => {
-  it('is true on SaaS', () => {
-    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
-    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
-    expect(shouldShowCreditsNav()).toBe(true);
-  });
-
-  it('is true on community self-host (managed Cloud credits purchase)', () => {
-    delete process.env.GENFEED_CLOUD;
-    delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
-    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
-    expect(shouldShowCreditsNav()).toBe(true);
-  });
-
-  it('is false on desktop BYOK-only shell', () => {
-    process.env.NEXT_PUBLIC_DESKTOP_SHELL = 'true';
-    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
-    expect(shouldShowCreditsNav()).toBe(false);
+    expect(hasOrganizationBillingHint()).toBe(false);
   });
 });

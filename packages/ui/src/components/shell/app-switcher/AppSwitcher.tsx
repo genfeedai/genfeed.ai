@@ -44,7 +44,7 @@ import {
 type LifecycleAppSwitcherItemConfig = AppSwitcherItemConfig & {
   /**
    * Product path roots that activate this app (menu-style). Matched against the
-   * brand/org-stripped pathname, e.g. `/studio`, `/posts`, `/orchestration`.
+   * brand/org-stripped pathname, e.g. `/studio`, `/publish`, `/automate`.
    * Longest root wins; no match → nothing highlighted (settings, onboarding, …).
    */
   activePathRoots: readonly string[];
@@ -74,7 +74,7 @@ function createScopedAppRoute({
 
 /**
  * Flat ordered launcher (no section chrome). Order encodes product flow:
- * Operate tools → Create assets → Trends → Publish (+ compose/editor) → Analytics.
+ * Operate tools → Create assets → Trends → Publish → Analytics.
  */
 const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
   {
@@ -115,25 +115,30 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.messages,
       },
       {
-        activePathRoots: ['/orchestration'],
+        activePathRoots: ['/automate'],
         description: 'Workflows, autopilot, and team ops.',
         icon: Workflow,
         id: 'automate',
         itemKey: 'automate',
         label: 'Automate',
         route: createScopedAppRoute({
-          brandPath: '/orchestration',
+          brandPath: '/automate',
         }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.automate,
       },
       {
         activePathRoots: ['/studio'],
-        description: 'Generate media.',
+        description: 'Produce storyboards, clips, batches, and timeline edits.',
         icon: LayoutGrid,
         id: 'studio',
         itemKey: 'studio',
         label: 'Studio',
-        route: createScopedAppRoute({ brandPath: '/studio/image' }),
+        // Studio production tools require a brand. The org route hands one-off
+        // generation to Agent while preserving a stable switcher destination.
+        route: createScopedAppRoute({
+          brandPath: '/studio/storyboard',
+          organizationPath: '/studio',
+        }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.studio,
       },
       {
@@ -150,25 +155,24 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.library,
       },
       {
-        activePathRoots: ['/research'],
+        activePathRoots: ['/discover'],
         description: 'Find winners.',
         icon: TrendingUp,
-        id: 'research',
-        itemKey: 'trends',
-        label: 'Trends',
-        route: createScopedAppRoute({ brandPath: '/research/discovery' }),
-        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.research,
+        id: 'discover',
+        itemKey: 'discover',
+        label: 'Discover',
+        route: createScopedAppRoute({ brandPath: '/discover/discovery' }),
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.discover,
       },
       {
-        // Compose + Editor are publish-adjacent create surfaces, not Studio.
-        activePathRoots: ['/posts', '/compose', '/editor'],
-        description: 'Drafts, posts, compose, and editor.',
+        activePathRoots: ['/publish'],
+        description: 'Drafts and posts.',
         icon: Send,
-        id: 'posts',
+        id: 'publish',
         itemKey: 'publish',
         label: 'Publish',
-        route: createScopedAppRoute({ brandPath: '/posts' }),
-        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.posts,
+        route: createScopedAppRoute({ brandPath: '/publish' }),
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.publish,
       },
       {
         activePathRoots: ['/analytics'],
@@ -261,8 +265,8 @@ function useAppSwitcherVisibility(): Record<
     [APP_SWITCHER_FEATURE_FLAGS.messages]: useFeatureFlag(
       APP_SWITCHER_FEATURE_FLAGS.messages,
     ),
-    [APP_SWITCHER_FEATURE_FLAGS.research]: useFeatureFlag(
-      APP_SWITCHER_FEATURE_FLAGS.research,
+    [APP_SWITCHER_FEATURE_FLAGS.discover]: useFeatureFlag(
+      APP_SWITCHER_FEATURE_FLAGS.discover,
     ),
     [APP_SWITCHER_FEATURE_FLAGS.studio]: useFeatureFlag(
       APP_SWITCHER_FEATURE_FLAGS.studio,
@@ -270,8 +274,8 @@ function useAppSwitcherVisibility(): Record<
     [APP_SWITCHER_FEATURE_FLAGS.library]: useFeatureFlag(
       APP_SWITCHER_FEATURE_FLAGS.library,
     ),
-    [APP_SWITCHER_FEATURE_FLAGS.posts]: useFeatureFlag(
-      APP_SWITCHER_FEATURE_FLAGS.posts,
+    [APP_SWITCHER_FEATURE_FLAGS.publish]: useFeatureFlag(
+      APP_SWITCHER_FEATURE_FLAGS.publish,
     ),
     [APP_SWITCHER_FEATURE_FLAGS.analytics]: useFeatureFlag(
       APP_SWITCHER_FEATURE_FLAGS.analytics,
@@ -295,7 +299,7 @@ function normalizePath(path?: string): string | undefined {
 
 /**
  * Strip tenant scope so matching is product-root based, like sidebar menus:
- * `/acme/default/studio/video` → `/studio/video`
+ * `/acme/default/studio/storyboard` → `/studio/storyboard`
  * `/acme/~/settings/brands` → `/settings/brands`
  * `/admin/users` → `/admin/users`
  */

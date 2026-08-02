@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import type { BrandDetailLatestVideosProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import Card from '@ui/card/Card';
@@ -12,8 +11,8 @@ import Link from 'next/link';
 export default function BrandDetailLatestVideos({
   videos,
 }: BrandDetailLatestVideosProps) {
-  const isStudioEnabled = useFeatureFlag('studio');
-  const createHref = `${EnvironmentService.apps.app}${isStudioEnabled ? '/studio/video' : '/agent/new'}`;
+  // One-off generation is Agent-first — Studio no longer has a media prompt bar.
+  const createHref = `${EnvironmentService.apps.app}/agent/new`;
 
   return (
     <Card

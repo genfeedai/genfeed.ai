@@ -1,7 +1,7 @@
 'use client';
 
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
-import { hasOrganizationBilling } from '@genfeedai/config/license';
+import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { EnvironmentService } from '@services/core/environment.service';
 import AddCreditsCard from '../billing/add-credits-card';
 import ManagedCreditsCheckoutCard from './managed-credits-checkout-card';
@@ -16,7 +16,9 @@ import ManagedCreditsCheckoutCard from './managed-credits-checkout-card';
 export default function SettingsCreditsPage() {
   const hasLocalPaygPrice = Boolean(EnvironmentService.plans.payg);
   const useManagedCloudCheckout =
-    isSelfHostedDeployment() && !hasOrganizationBilling() && !hasLocalPaygPrice;
+    isSelfHostedDeployment() &&
+    !hasOrganizationBillingHint() &&
+    !hasLocalPaygPrice;
 
   return (
     <div className="pb-10">

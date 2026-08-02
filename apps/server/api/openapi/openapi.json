@@ -11572,10 +11572,6 @@
             "description": "Text prompt for content generation",
             "type": "string"
           },
-          "user": {
-            "description": "Owning user identifier",
-            "type": "string"
-          },
           "voice": {
             "description": "Optional voice ID to use for this brand",
             "type": "string"
@@ -15194,6 +15190,308 @@
         },
         "tags": [
           "Invitations"
+        ]
+      }
+    },
+    "/action-runs": {
+      "get": {
+        "operationId": "RunsController.findAll",
+        "parameters": [
+          {
+            "description": "Filter by run status",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/RunStatus"
+            }
+          },
+          {
+            "description": "Filter by action type",
+            "in": "query",
+            "name": "actionType",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/RunActionType"
+            }
+          },
+          {
+            "description": "Filter by initiating surface",
+            "in": "query",
+            "name": "surface",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/RunSurface"
+            }
+          },
+          {
+            "description": "Page size",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Offset from newest record",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "List of runs"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List runs for the current organization",
+        "tags": [
+          "Action Runs"
+        ]
+      },
+      "post": {
+        "operationId": "RunsController.create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRunDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunEntity"
+                }
+              }
+            },
+            "description": "Run created successfully"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new run",
+        "tags": [
+          "Action Runs"
+        ]
+      }
+    },
+    "/action-runs/{runId}": {
+      "get": {
+        "operationId": "RunsController.findOne",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunEntity"
+                }
+              }
+            },
+            "description": "Run details"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a single run by ID",
+        "tags": [
+          "Action Runs"
+        ]
+      },
+      "patch": {
+        "operationId": "RunsController.update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRunDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunEntity"
+                }
+              }
+            },
+            "description": "Updated run"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update run status/output/progress (cancel via { status: cancelled })",
+        "tags": [
+          "Action Runs"
+        ]
+      }
+    },
+    "/action-runs/{runId}/events": {
+      "get": {
+        "operationId": "RunsController.getEvents",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RunEventEnvelopeDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Events sorted by creation timestamp"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get ordered run events",
+        "tags": [
+          "Action Runs"
+        ]
+      },
+      "post": {
+        "operationId": "RunsController.appendEvent",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppendRunEventDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunEntity"
+                }
+              }
+            },
+            "description": "Run with appended event"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Append an event to a run",
+        "tags": [
+          "Action Runs"
+        ]
+      }
+    },
+    "/action-runs/{runId}/execute": {
+      "post": {
+        "operationId": "RunsController.execute",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunEntity"
+                }
+              }
+            },
+            "description": "Run transitioned to running"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start run execution",
+        "tags": [
+          "Action Runs"
         ]
       }
     },
@@ -40443,104 +40741,199 @@
     },
     "/runs": {
       "get": {
-        "operationId": "RunsController.findAll",
+        "operationId": "AgentRunsController.findAll",
         "parameters": [
+          {
+            "description": "Page number for pagination",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Number of items per page",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Enable or disable pagination",
+            "in": "query",
+            "name": "pagination",
+            "required": false,
+            "schema": {
+              "default": true,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Filter by deleted status",
+            "in": "query",
+            "name": "isDeleted",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "createdAt: -1",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by organization ID",
+            "in": "query",
+            "name": "organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by brand id",
+            "in": "query",
+            "name": "brand",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by favorite status",
+            "in": "query",
+            "name": "isFavorite",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Exclude pending and running runs from the response",
+            "in": "query",
+            "name": "historyOnly",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Filter by requested or actual model",
+            "in": "query",
+            "name": "model",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Search label, objective, and routing metadata",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by routing policy metadata",
+            "in": "query",
+            "name": "routingPolicy",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sortMode",
+            "required": false,
+            "schema": {
+              "default": "latest",
+              "enum": [
+                "latest",
+                "credits",
+                "duration",
+                "model"
+              ],
+              "type": "string"
+            }
+          },
           {
             "description": "Filter by run status",
             "in": "query",
             "name": "status",
             "required": false,
             "schema": {
-              "$ref": "#/components/schemas/RunStatus"
+              "type": "string"
             }
           },
           {
-            "description": "Filter by action type",
+            "description": "Filter by agent strategy id",
             "in": "query",
-            "name": "actionType",
+            "name": "strategy",
             "required": false,
             "schema": {
-              "$ref": "#/components/schemas/RunActionType"
+              "type": "string"
             }
           },
           {
-            "description": "Filter by initiating surface",
+            "description": "Filter by trigger",
             "in": "query",
-            "name": "surface",
+            "name": "trigger",
             "required": false,
             "schema": {
-              "$ref": "#/components/schemas/RunSurface"
+              "type": "string"
             }
           },
           {
-            "description": "Page size",
+            "description": "Filter by web search flag",
             "in": "query",
-            "name": "limit",
+            "name": "webSearchEnabled",
             "required": false,
             "schema": {
-              "default": 20,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Offset from newest record",
-            "in": "query",
-            "name": "offset",
-            "required": false,
-            "schema": {
-              "default": 0,
-              "type": "number"
+              "type": "boolean"
             }
           }
         ],
         "responses": {
-          "default": {
-            "description": "List of runs"
+          "200": {
+            "description": "Runs returned"
           }
         },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "List runs for the current organization",
+        "summary": "List agent runs with filtering and sorting",
         "tags": [
-          "Runs"
+          "runs",
+          "Agent Runs"
         ]
       },
       "post": {
-        "operationId": "RunsController.create",
+        "operationId": "AgentRunsController.create",
         "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateRunDto"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RunEntity"
-                }
-              }
-            },
-            "description": "Run created successfully"
+          "200": {
+            "description": ""
           }
         },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Create a new run",
+        "summary": "create",
         "tags": [
-          "Runs"
+          "runs",
+          "Agent Runs"
         ]
       }
     },
@@ -40800,205 +41193,6 @@
         "tags": [
           "runs",
           "Agent Runs"
-        ]
-      }
-    },
-    "/runs/{runId}": {
-      "get": {
-        "operationId": "RunsController.findOne",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "runId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RunEntity"
-                }
-              }
-            },
-            "description": "Run details"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get a single run by ID",
-        "tags": [
-          "Runs"
-        ]
-      },
-      "patch": {
-        "operationId": "RunsController.update",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "runId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateRunDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RunEntity"
-                }
-              }
-            },
-            "description": "Updated run"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Update run status/output/progress (cancel via { status: cancelled })",
-        "tags": [
-          "Runs"
-        ]
-      }
-    },
-    "/runs/{runId}/events": {
-      "get": {
-        "operationId": "RunsController.getEvents",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "runId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/RunEventEnvelopeDto"
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "description": "Events sorted by creation timestamp"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get ordered run events",
-        "tags": [
-          "Runs"
-        ]
-      },
-      "post": {
-        "operationId": "RunsController.appendEvent",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "runId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AppendRunEventDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RunEntity"
-                }
-              }
-            },
-            "description": "Run with appended event"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Append an event to a run",
-        "tags": [
-          "Runs"
-        ]
-      }
-    },
-    "/runs/{runId}/execute": {
-      "post": {
-        "operationId": "RunsController.execute",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "runId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RunEntity"
-                }
-              }
-            },
-            "description": "Run transitioned to running"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Start run execution",
-        "tags": [
-          "Runs"
         ]
       }
     },

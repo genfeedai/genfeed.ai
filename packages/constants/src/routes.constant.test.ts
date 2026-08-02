@@ -3,10 +3,12 @@ import {
   APP_ROUTE_PREFIXES,
   APP_ROUTE_TEMPLATES,
   APP_ROUTES,
-  COMPOSE_ROUTES,
+  createArtifactEditorRoute,
   createBrandAppRoute,
   createOrganizationAppRoute,
   LEGACY_APP_ROUTES,
+  resolveArtifactEditorBackHref,
+  withArtifactEditorReturn,
 } from './routes.constant';
 
 function collectRouteValues(value: unknown): string[] {
@@ -34,12 +36,84 @@ describe('routes.constant', () => {
     }
   });
 
-  it('keeps compose routes compatible with the previous constant shape', () => {
-    expect(COMPOSE_ROUTES).toBe(APP_ROUTES.COMPOSE);
-    expect(COMPOSE_ROUTES.ARTICLE).toBe('/compose/article');
-    expect(COMPOSE_ROUTES.NEWSLETTER).toBe('/compose/newsletter');
-    expect(COMPOSE_ROUTES.POST).toBe('/compose/post');
-    expect(COMPOSE_ROUTES.ROOT).toBe('/compose');
+  it('exposes dedicated artifact editor routes separate from the project editor', () => {
+    expect(APP_ROUTES.EDIT.ROOT).toBe('/edit');
+    expect(APP_ROUTES.EDIT.ARTICLE).toBe('/edit/article');
+    expect(APP_ROUTES.EDIT.NEWSLETTER).toBe('/edit/newsletter');
+    expect(APP_ROUTES.EDIT.POST).toBe('/edit/post');
+    expect(APP_ROUTES.STUDIO.EDIT).toBe('/studio/edit');
+  });
+
+  it('builds deep-linkable artifact editor paths', () => {
+    expect(createArtifactEditorRoute('article', 'article-1')).toBe(
+      '/edit/article/article-1',
+    );
+    expect(createArtifactEditorRoute('newsletter', 'newsletter-1')).toBe(
+      '/edit/newsletter/newsletter-1',
+    );
+    expect(createArtifactEditorRoute('post', 'post-1')).toBe(
+      '/edit/post/post-1',
+    );
+    expect(
+      createBrandAppRoute(
+        'genfeed-ai',
+        'paperclip',
+        createArtifactEditorRoute('post', 'post-1'),
+      ),
+    ).toBe('/genfeed-ai/paperclip/edit/post/post-1');
+  });
+
+  it('round-trips the originating list through the return parameter', () => {
+    expect(
+      withArtifactEditorReturn(
+        '/genfeed-ai/paperclip/edit/post/post-1',
+        '/genfeed-ai/paperclip/publish?status=draft',
+      ),
+    ).toBe(
+      '/genfeed-ai/paperclip/edit/post/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish%3Fstatus%3Ddraft',
+    );
+    expect(
+      resolveArtifactEditorBackHref(
+        '/genfeed-ai/paperclip/publish?status=draft',
+        '/genfeed-ai/paperclip/publish',
+      ),
+    ).toBe('/genfeed-ai/paperclip/publish?status=draft');
+
+    expect(
+      withArtifactEditorReturn(
+        '/genfeed-ai/paperclip/edit/post/post-1?mode=focus',
+        '/genfeed-ai/paperclip/publish',
+      ),
+    ).toBe(
+      '/genfeed-ai/paperclip/edit/post/post-1?mode=focus&returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish',
+    );
+  });
+
+  it('falls back to the owning list for unusable return targets', () => {
+    const fallbackHref = '/genfeed-ai/paperclip/publish';
+
+    expect(resolveArtifactEditorBackHref(null, fallbackHref)).toBe(
+      fallbackHref,
+    );
+    expect(resolveArtifactEditorBackHref(undefined, fallbackHref)).toBe(
+      fallbackHref,
+    );
+    expect(resolveArtifactEditorBackHref('', fallbackHref)).toBe(fallbackHref);
+    expect(resolveArtifactEditorBackHref('//evil.com', fallbackHref)).toBe(
+      fallbackHref,
+    );
+    expect(resolveArtifactEditorBackHref('/\\evil.com', fallbackHref)).toBe(
+      fallbackHref,
+    );
+    expect(resolveArtifactEditorBackHref('/\\\\evil.com', fallbackHref)).toBe(
+      fallbackHref,
+    );
+    expect(
+      resolveArtifactEditorBackHref('https://evil.com/posts', fallbackHref),
+    ).toBe(fallbackHref);
+    expect(resolveArtifactEditorBackHref('posts', fallbackHref)).toBe(
+      fallbackHref,
+    );
   });
 
   it('documents canonical settings route templates', () => {
@@ -58,18 +132,16 @@ describe('routes.constant', () => {
   });
 
   it('builds scoped brand and organization routes', () => {
-    expect(APP_ROUTES.WORKSPACE.ROOT).toBe('/workspace');
-    expect(APP_ROUTES.WORKSPACE.OVERVIEW).toBe('/workspace/overview');
     expect(
       createBrandAppRoute(
         'genfeed-ai',
         'paperclip',
         APP_ROUTES.WORKSPACE.OVERVIEW,
       ),
-    ).toBe('/genfeed-ai/paperclip/workspace/overview');
-    expect(createBrandAppRoute('genfeed-ai', 'paperclip', 'studio/image')).toBe(
-      '/genfeed-ai/paperclip/studio/image',
-    );
+    ).toBe('/genfeed-ai/paperclip/workspace');
+    expect(
+      createBrandAppRoute('genfeed-ai', 'paperclip', 'studio/storyboard'),
+    ).toBe('/genfeed-ai/paperclip/studio/storyboard');
     expect(createBrandAppRoute('genfeed-ai', 'paperclip')).toBe(
       '/genfeed-ai/paperclip',
     );
@@ -83,22 +155,5 @@ describe('routes.constant', () => {
       '/genfeed-ai/~/billing',
     );
     expect(createOrganizationAppRoute('genfeed-ai')).toBe('/genfeed-ai/~');
-  });
-
-  it('uses complete-path OVERVIEW homes (not bare ROOT aliases)', () => {
-    expect(APP_ROUTES.ANALYTICS.OVERVIEW).toBe('/analytics/overview');
-    expect(APP_ROUTES.LIBRARY.OVERVIEW).toBe('/library/overview');
-    expect(APP_ROUTES.ORCHESTRATION.OVERVIEW).toBe('/orchestration/overview');
-    expect(APP_ROUTES.WORKSPACE.OVERVIEW).toBe('/workspace/overview');
-    expect(APP_ROUTES.ANALYTICS.ROOT).not.toBe(APP_ROUTES.ANALYTICS.OVERVIEW);
-    expect(APP_ROUTES.LIBRARY.ROOT).not.toBe(APP_ROUTES.LIBRARY.OVERVIEW);
-    expect(APP_ROUTES.ORCHESTRATION.ROOT).not.toBe(
-      APP_ROUTES.ORCHESTRATION.OVERVIEW,
-    );
-  });
-
-  it('exports settings profile as the complete-path settings home', () => {
-    expect(APP_ROUTES.SETTINGS.PROFILE).toBe('/settings/profile');
-    expect(APP_ROUTES.SETTINGS.ROOT).not.toBe(APP_ROUTES.SETTINGS.PROFILE);
   });
 });

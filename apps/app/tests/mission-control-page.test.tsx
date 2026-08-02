@@ -3,7 +3,7 @@ import type { IAgentRun } from '@genfeedai/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import MissionControl from '../app/(protected)/[orgSlug]/[brandSlug]/orchestration/runs/mission-control';
+import MissionControl from '../app/(protected)/[orgSlug]/[brandSlug]/automate/runs/mission-control';
 
 const replaceMock = vi.fn();
 let currentSearchParams = new URLSearchParams();
@@ -163,7 +163,7 @@ vi.mock('@ui/primitives/select', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/orchestration/runs',
+  usePathname: () => '/automate/runs',
   useRouter: () => ({
     replace: replaceMock,
   }),
@@ -179,14 +179,14 @@ vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
 }));
 
 vi.mock(
-  '../app/(protected)/[orgSlug]/[brandSlug]/orchestration/runs/ActiveRunsPanel',
+  '../app/(protected)/[orgSlug]/[brandSlug]/automate/runs/ActiveRunsPanel',
   () => ({
     default: () => <div data-testid="active-runs-panel" />,
   }),
 );
 
 vi.mock(
-  '../app/(protected)/[orgSlug]/[brandSlug]/orchestration/runs/RunHistoryList',
+  '../app/(protected)/[orgSlug]/[brandSlug]/automate/runs/RunHistoryList',
   () => ({
     default: ({ runs }: { runs: IAgentRun[] }) => (
       <div data-testid="run-history-list">
@@ -301,7 +301,7 @@ describe('MissionControl', () => {
       'Trend scan',
     );
     expect(replaceMock).toHaveBeenCalledWith(
-      '/orchestration/runs?model=anthropic%2Fclaude-sonnet-4-5&range=30d',
+      '/automate/runs?model=anthropic%2Fclaude-sonnet-4-5&range=30d',
       { scroll: false },
     );
   });
@@ -331,7 +331,7 @@ describe('MissionControl', () => {
       'Trend scan',
     );
     expect(replaceMock).toHaveBeenCalledWith(
-      '/orchestration/runs?q=trend&sort=credits',
+      '/automate/runs?q=trend&sort=credits',
       { scroll: false },
     );
   });

@@ -5,16 +5,12 @@ export type AppContext =
   | 'admin'
   | 'workspace'
   | 'agent'
-  | 'research'
+  | 'discover'
   | 'library'
   | 'messages'
-  | 'posts'
+  | 'publish'
   | 'studio'
-  | 'workflows'
-  | 'orchestration'
   | 'automate'
-  | 'editor'
-  | 'compose'
   | 'analytics';
 
 export interface MenuItemConfig {

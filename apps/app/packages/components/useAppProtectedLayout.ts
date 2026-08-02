@@ -1,44 +1,32 @@
 import { ADMIN_MENU_ITEMS } from '@app-config/admin-menu-items.config';
 import { ANALYTICS_MENU_ITEMS } from '@app-config/analytics-menu-items.config';
-import { COMPOSE_MENU_ITEMS } from '@app-config/compose-menu-items.config';
+import { AUTOMATE_MENU_ITEMS } from '@app-config/automate-menu-items.config';
+import { DISCOVER_MENU_ITEMS } from '@app-config/discover-menu-items.config';
 import { LIBRARY_MENU_ITEMS } from '@app-config/library-menu-items.config';
 import {
   APP_MENU_ITEMS,
   getAppSecondaryMenuItems,
-  POSTS_INSERT_AFTER_LABEL,
+  PUBLISH_INSERT_AFTER_LABEL,
 } from '@app-config/menu-items.config';
 import { ORG_MENU_ITEMS } from '@app-config/org-menu-items.config';
-import { POSTS_MENU_ITEMS } from '@app-config/posts-menu-items.config';
-import { RESEARCH_MENU_ITEMS } from '@app-config/research-menu-items.config';
+import { PUBLISH_MENU_ITEMS } from '@app-config/publish-menu-items.config';
 import {
   buildSettingsMenuItems,
   type SettingsScope,
 } from '@app-config/settings-menu-items.config';
 import { STUDIO_MENU_ITEMS } from '@app-config/studio-menu-items.config';
-import { WORKFLOWS_MENU_ITEMS } from '@app-config/workflows-menu-items.config';
 import {
   AgentApiService,
   useAgentChatStore,
   useAgentPageContext,
 } from '@genfeedai/agent';
 import { isDesktopClient } from '@genfeedai/config/deployment';
-import {
-  hasOrganizationBilling,
-  shouldShowCreditsNav,
-} from '@genfeedai/config/license';
-import {
-  APP_ROUTE_PREFIXES,
-  APP_ROUTES,
-  COMPOSE_ROUTES,
-} from '@genfeedai/constants';
+import { hasOrganizationBillingHint } from '@genfeedai/config/license';
+import { APP_ROUTE_PREFIXES, APP_ROUTES } from '@genfeedai/constants';
 import type { AppContext } from '@genfeedai/interfaces';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useUserRole } from '@hooks/auth/use-user-role';
-import {
-  STUDIO_CATEGORY_CONFIG,
-  useEnabledCategories,
-} from '@hooks/data/organization/use-enabled-categories/use-enabled-categories';
 import { useFastlaneEnabled } from '@hooks/data/organization/use-fastlane-enabled/use-fastlane-enabled';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -61,26 +49,21 @@ import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
 import { resolveWorkspaceShellRoute } from '@/lib/workspace-shell/workspace-shell-registry';
 import { useCommandPaletteStore } from '@/store/commandPaletteStore';
 
-const ORCHESTRATION_WORKFLOW_RESERVED = new Set([
-  'executions',
-  'new',
-  'templates',
-]);
+const AUTOMATE_WORKFLOW_RESERVED = new Set(['executions', 'new', 'templates']);
 
 export function isProtectedEditorCanvasRoute(pathname: string): boolean {
   return (
-    pathname === APP_ROUTES.EDITOR.NEW ||
-    /^\/editor\/[^/]+$/.test(pathname) ||
-    pathname === APP_ROUTES.ORCHESTRATION.WORKFLOWS_NEW ||
-    (/^\/orchestration\/workflows\/([^/]+)$/.test(pathname) &&
-      !ORCHESTRATION_WORKFLOW_RESERVED.has(pathname.split('/')[3] ?? ''))
+    pathname === APP_ROUTES.STUDIO.EDIT_NEW ||
+    /^\/studio\/edit\/[^/]+$/.test(pathname) ||
+    pathname === APP_ROUTES.AUTOMATE.WORKFLOWS_NEW ||
+    (/^\/automate\/workflows\/([^/]+)$/.test(pathname) &&
+      !AUTOMATE_WORKFLOW_RESERVED.has(pathname.split('/')[3] ?? ''))
   );
 }
 
 export function isProtectedWorkspaceRoute(pathname: string): boolean {
   return (
     pathname === APP_ROUTES.WORKSPACE.ROOT ||
-    pathname === APP_ROUTES.WORKSPACE.OVERVIEW ||
     pathname === APP_ROUTES.OVERVIEW.ROOT ||
     pathname.startsWith(`${APP_ROUTE_PREFIXES.WORKSPACE}/`)
   );
@@ -107,57 +90,49 @@ export function useAppProtectedLayout(
   const isFocusedOnboardingRoute = pathname.startsWith(
     APP_ROUTES.AGENT.ONBOARDING,
   );
-  const isComposeRoute = pathname.startsWith(COMPOSE_ROUTES.ROOT);
-  const isResearchRoute =
-    pathname === APP_ROUTES.RESEARCH.ROOT ||
-    pathname.startsWith(`${APP_ROUTES.RESEARCH.ROOT}/`);
+  const isDiscoverRoute =
+    pathname === APP_ROUTES.DISCOVER.ROOT ||
+    pathname.startsWith(`${APP_ROUTES.DISCOVER.ROOT}/`);
   const isLibraryLandingRoute = pathname === APP_ROUTES.LIBRARY.OVERVIEW;
   const isLibraryRoute = pathname.startsWith(APP_ROUTE_PREFIXES.LIBRARY);
   const isMessagesRoute = pathname.startsWith(APP_ROUTE_PREFIXES.MESSAGES);
+  // The retired one-off image/video/avatar/music tabs are gone; the surviving
+  // Studio production surfaces each carry their own inline prompt bar.
   const isStudioPromptBarRoute =
-    pathname === APP_ROUTES.STUDIO.ROOT ||
-    /^\/studio\/(avatar|image|music|video)(?:\/|$)/.test(pathname);
+    /^\/studio\/(batch|clips|fastlane|storyboard)(?:\/|$)/.test(pathname);
   const isStudioRoute = pathname.startsWith(APP_ROUTE_PREFIXES.STUDIO);
-  const isPostsPromptBarRoute = pathname === APP_ROUTES.POSTS.ROOT;
-  const isPostsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.POSTS);
+  const isPublishPromptBarRoute = pathname === APP_ROUTES.PUBLISH.ROOT;
+  const isPublishRoute = pathname.startsWith(APP_ROUTE_PREFIXES.PUBLISH);
   const isMissionControlPromptBarRoute =
-    pathname === APP_ROUTES.ORCHESTRATION.WORKFLOWS_EXECUTIONS ||
-    pathname === APP_ROUTES.ORCHESTRATION.RUNS;
+    pathname === APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS ||
+    pathname === APP_ROUTES.AUTOMATE.RUNS;
   const isPromptBarRoute =
     isStudioPromptBarRoute ||
-    isPostsPromptBarRoute ||
+    isPublishPromptBarRoute ||
     isMissionControlPromptBarRoute;
   const isSettingsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.SETTINGS);
   const hasSecondaryTopbar =
     !isAdminRoute && pathname.startsWith(APP_ROUTE_PREFIXES.STUDIO);
   const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);
   const isMoodboardRoute = pathname === APP_ROUTES.LIBRARY.MOODBOARD;
-  const isWorkflowsRoute = pathname.startsWith(
-    APP_ROUTE_PREFIXES.ORCHESTRATION,
-  );
-  const isEditorRoute = pathname.startsWith(APP_ROUTE_PREFIXES.EDITOR);
+  const isAutomateRoute = pathname.startsWith(APP_ROUTE_PREFIXES.AUTOMATE);
   const isAnalyticsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.ANALYTICS);
-  // Includes `/workspace` and legacy `/overview` so brand + brand-less Workspace
-  // share one app shell (never the Organization menu).
-  const isWorkspaceRoute = isProtectedWorkspaceRoute(pathname);
-  // Org shell only for true org destinations (connect, etc.). Module routes
-  // under `/:org/~/posts|studio|workspace|…` keep their own app sidebars.
+  // Org shell only for true org destinations (overview, etc.). Module routes
+  // under `/:org/~/publish|studio|…` keep their own app sidebars — otherwise
+  // Publish steals the Organization menu.
   const isOrgRoute = (() => {
     const parts = rawPathname.split('/').filter(Boolean);
     return (
       parts[1] === '~' &&
       !pathname.startsWith(APP_ROUTE_PREFIXES.SETTINGS) &&
       !isConversationRoute &&
-      !isPostsRoute &&
+      !isPublishRoute &&
       !isAnalyticsRoute &&
-      !isComposeRoute &&
       !isStudioRoute &&
       !isLibraryRoute &&
-      !isResearchRoute &&
-      !isWorkflowsRoute &&
-      !isMessagesRoute &&
-      !isEditorRoute &&
-      !isWorkspaceRoute
+      !isDiscoverRoute &&
+      !isAutomateRoute &&
+      !isMessagesRoute
     );
   })();
   const workspaceShellRoute = useMemo(
@@ -171,23 +146,19 @@ export function useAppProtectedLayout(
     ? 'studio'
     : isLibraryRoute
       ? 'library'
-      : isResearchRoute
-        ? 'research'
-        : isPostsRoute
-          ? 'posts'
-          : isComposeRoute
-            ? 'compose'
-            : isWorkflowsRoute
-              ? 'automate'
-              : isEditorRoute
-                ? 'editor'
-                : isAnalyticsRoute
-                  ? 'analytics'
-                  : isMessagesRoute
-                    ? 'messages'
-                    : isAgentRoute
-                      ? 'agent'
-                      : 'workspace';
+      : isDiscoverRoute
+        ? 'discover'
+        : isPublishRoute
+          ? 'publish'
+          : isAutomateRoute
+            ? 'automate'
+            : isAnalyticsRoute
+              ? 'analytics'
+              : isMessagesRoute
+                ? 'messages'
+                : isAgentRoute
+                  ? 'agent'
+                  : 'workspace';
 
   const shouldInitAgentApiService =
     isConversationRoute || isUniversalWorkspaceShell;
@@ -216,7 +187,7 @@ export function useAppProtectedLayout(
   }, [getToken]);
 
   const dynamicMenuItems = useMenuItems({
-    insertAfterLabel: POSTS_INSERT_AFTER_LABEL,
+    insertAfterLabel: PUBLISH_INSERT_AFTER_LABEL,
     items: APP_MENU_ITEMS,
   });
   const { orgSlug, brandSlug } = useOrgUrl();
@@ -277,8 +248,6 @@ export function useAppProtectedLayout(
   const threads = useAgentChatStore((s) => s.threads);
 
   const role = useUserRole();
-  const { enabledCategories, isLoading: isEnabledCategoriesLoading } =
-    useEnabledCategories();
   const { isEnabled: isFastlaneEnabled, isLoading: isFastlaneLoading } =
     useFastlaneEnabled();
 
@@ -312,27 +281,11 @@ export function useAppProtectedLayout(
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const studioMenuItems = useMemo(() => {
-    const categoryByHref = new Map(
-      STUDIO_CATEGORY_CONFIG.map(({ category, param, settingKey }) => [
-        `/studio/${param}`,
-        { category, settingKey },
-      ]),
-    );
-
-    return STUDIO_MENU_ITEMS.reduce<MenuItemConfig[]>((items, item) => {
-      if (!item.href) {
-        items.push({
-          ...item,
-          href: withTaskContextHref(item.href, taskContextSearchParams),
-        });
-        return items;
-      }
-
-      const studioCategory = categoryByHref.get(item.href);
-
-      if (!studioCategory) {
-        // Fastlane is not a generation category — gate it on its own org flag.
+  // Studio is production-only now — one-off generation moved to the Agent, so
+  // no menu item maps to a generation category. Fastlane keeps its own org flag.
+  const studioMenuItems = useMemo(
+    () =>
+      STUDIO_MENU_ITEMS.reduce<MenuItemConfig[]>((items, item) => {
         // Hide while the flag is still loading to avoid a flash of the item.
         if (
           item.href === APP_ROUTES.STUDIO.FASTLANE &&
@@ -346,42 +299,13 @@ export function useAppProtectedLayout(
           href: withTaskContextHref(item.href, taskContextSearchParams),
         });
         return items;
-      }
-
-      if (
-        enabledCategories.includes(studioCategory.category) &&
-        (!isEnabledCategoriesLoading || studioCategory.settingKey === null)
-      ) {
-        items.push({
-          ...item,
-          href: withTaskContextHref(item.href, taskContextSearchParams),
-        });
-      }
-
-      return items;
-    }, []);
-  }, [
-    enabledCategories,
-    isEnabledCategoriesLoading,
-    isFastlaneEnabled,
-    isFastlaneLoading,
-    taskContextSearchParams,
-  ]);
-
-  const composeMenuItems = useMemo(
-    () =>
-      COMPOSE_MENU_ITEMS.map(
-        (item): MenuItemConfig => ({
-          ...item,
-          href: withTaskContextHref(item.href, taskContextSearchParams),
-        }),
-      ),
-    [taskContextSearchParams],
+      }, []),
+    [isFastlaneEnabled, isFastlaneLoading, taskContextSearchParams],
   );
 
-  const postsMenuItems = useMemo(
+  const publishMenuItems = useMemo(
     () =>
-      POSTS_MENU_ITEMS.map(
+      PUBLISH_MENU_ITEMS.map(
         (item): MenuItemConfig => ({
           ...item,
           href: withTaskContextHref(item.href, taskContextSearchParams),
@@ -401,9 +325,9 @@ export function useAppProtectedLayout(
     [taskContextSearchParams],
   );
 
-  const workflowsMenuItems = useMemo(
+  const automateMenuItems = useMemo(
     () =>
-      WORKFLOWS_MENU_ITEMS.map(
+      AUTOMATE_MENU_ITEMS.map(
         (item): MenuItemConfig => ({
           ...item,
           href: withTaskContextHref(item.href, taskContextSearchParams),
@@ -423,9 +347,9 @@ export function useAppProtectedLayout(
     [taskContextSearchParams],
   );
 
-  const researchMenuItems = useMemo(
+  const discoverMenuItems = useMemo(
     () =>
-      RESEARCH_MENU_ITEMS.map(
+      DISCOVER_MENU_ITEMS.map(
         (item): MenuItemConfig => ({
           ...item,
           href: withTaskContextHref(item.href, taskContextSearchParams),
@@ -458,8 +382,7 @@ export function useAppProtectedLayout(
     () =>
       buildSettingsMenuItems({
         scope: settingsScope,
-        isEnterprise: hasOrganizationBilling(),
-        showCredits: shouldShowCreditsNav(),
+        isEnterprise: hasOrganizationBillingHint(),
       }).map(
         (item): MenuItemConfig => ({
           ...item,
@@ -481,6 +404,8 @@ export function useAppProtectedLayout(
     [taskContextSearchParams],
   );
 
+  const isWorkspaceRoute = isProtectedWorkspaceRoute(pathname);
+
   const isLowCreditsBannerEnabled = useFeatureFlag('low_credits_banner');
   const isDesktopShell = isDesktopClient();
 
@@ -488,22 +413,20 @@ export function useAppProtectedLayout(
     // route flags
     isAdminRoute,
     isAnalyticsRoute,
-    isComposeRoute,
     isConversationRoute,
     isEditorCanvasRoute,
-    isEditorRoute,
     isFocusedOnboardingRoute,
     isLibraryLandingRoute,
     isLibraryRoute,
     isMessagesRoute,
     isMoodboardRoute,
     isOrgRoute,
-    isPostsRoute,
+    isPublishRoute,
     isPromptBarRoute,
-    isResearchRoute,
+    isDiscoverRoute,
     isSettingsRoute,
     isStudioRoute,
-    isWorkflowsRoute,
+    isAutomateRoute,
     isWorkspaceRoute,
     isUniversalWorkspaceShell,
     workspaceShellRoute,
@@ -520,16 +443,15 @@ export function useAppProtectedLayout(
     agentMenuItems,
     adminMenuItems,
     analyticsMenuItems,
-    composeMenuItems,
     libraryMenuItems,
     menuItems,
     orgMenuItems,
-    postsMenuItems,
-    researchMenuItems,
+    publishMenuItems,
+    discoverMenuItems,
     secondaryMenuItems,
     settingsMenuItems,
     studioMenuItems,
-    workflowsMenuItems,
+    automateMenuItems,
     // task context
     taskContextSearchParams,
     // handlers

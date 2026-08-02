@@ -5,7 +5,6 @@ import { ButtonVariant } from '@genfeedai/enums';
 import type { IStreakMilestoneState } from '@genfeedai/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useStreak } from '@hooks/data/streaks/use-streak/use-streak';
-import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { STREAK_CELEBRATION_EVENT } from '@services/engagement/streak-events';
 import Badge from '@ui/display/badge/Badge';
 import KeyMetric from '@ui/display/key-metric/KeyMetric';
@@ -35,7 +34,6 @@ function rewardLabel(milestone: IStreakMilestoneState): string {
 
 export default function StreaksPage() {
   const { calendar, isLoading, streak } = useStreak();
-  const isStudioEnabled = useFeatureFlag('studio');
   const [isCelebrating, setIsCelebrating] = useState(false);
 
   useEffect(() => {
@@ -90,11 +88,8 @@ export default function StreaksPage() {
           <h1 className="sr-only">{heroTitle}</h1>
 
           <Button asChild variant={ButtonVariant.DEFAULT}>
-            <Link
-              href={
-                isStudioEnabled ? APP_ROUTES.STUDIO.IMAGE : APP_ROUTES.AGENT.NEW
-              }
-            >
+            {/* One-off generation is Agent-first. */}
+            <Link href={APP_ROUTES.AGENT.NEW}>
               <Sparkles className="size-4" />
               Create content now
             </Link>

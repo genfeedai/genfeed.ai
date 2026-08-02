@@ -20,9 +20,8 @@ export type { IEnvConfig } from './interfaces/env-config.interface';
 // License & Edition
 export {
   hasOrganizationBilling,
+  hasOrganizationBillingHint,
   isEEEnabled,
-  shouldShowCreditsNav,
-  usesMeteredCredits,
 } from './license';
 export type { PricingConfig } from './pricing';
 // Pricing

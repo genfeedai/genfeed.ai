@@ -15,7 +15,7 @@ vi.mock('@genfeedai/config/deployment', () => ({
 }));
 
 vi.mock('@genfeedai/config/license', () => ({
-  hasOrganizationBilling: () => hasOrganizationBillingMock(),
+  hasOrganizationBillingHint: () => hasOrganizationBillingMock(),
 }));
 
 vi.mock('@services/core/environment.service', () => ({

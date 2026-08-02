@@ -5,7 +5,7 @@ import {
   type AppSwitcherFeatureFlagKey,
 } from '@genfeedai/constants';
 
-export type CoreAppId = 'agent' | 'automate' | 'studio' | 'editor';
+export type CoreAppId = 'agent' | 'automate' | 'studio';
 export type CoreAppFeatureFlagKey = 'studio' | AppSwitcherFeatureFlagKey;
 
 export interface CoreAppDefinition {
@@ -31,31 +31,23 @@ export const CORE_APPS: CoreAppDefinition[] = [
   },
   {
     description:
-      'Workflows, autopilot, skills, and content-team orchestration.',
-    href: APP_ROUTES.ORCHESTRATION.OVERVIEW,
+      'Workflows, autopilot, skills, and your automated content team.',
+    href: APP_ROUTES.AUTOMATE.ROOT,
     id: 'automate',
     label: 'Automate',
     shortLabel: 'Automate',
   },
   {
     description:
-      'Generate image and video assets quickly with a prompt bar and Replicate models.',
+      'Produce storyboards, clips, batches, fastlane runs, and timeline edits at production scale.',
     featureFlag: {
       isEnabledByDefault: () => true,
       key: 'studio',
     },
-    href: APP_ROUTES.STUDIO.IMAGE,
+    href: APP_ROUTES.STUDIO.STORYBOARD,
     id: 'studio',
     label: 'Studio',
     shortLabel: 'Studio',
-  },
-  {
-    description:
-      'Compose and export media from generated assets using a Remotion-based editor.',
-    href: APP_ROUTES.EDITOR.ROOT,
-    id: 'editor',
-    label: 'Editor',
-    shortLabel: 'Editor',
   },
 ];
 

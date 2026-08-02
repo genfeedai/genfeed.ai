@@ -11,13 +11,12 @@
  *   1. Build-time — webpack only aliases `@billing-providers` to THIS file when
  *      `ee/packages/billing/src` exists on disk. The community image never sees
  *      it; it gets `billing.providers.oss.ts` instead.
- *   2. Runtime — `hasOrganizationBilling()` (SaaS via `GENFEED_CLOUD` **or**
- *      self-host `GENFEED_LICENSE_KEY`) decides what the shared string token
- *      resolves to. The real EE service class is ALWAYS registered as a provider
- *      so the EE controllers (which inject the class token directly) keep
- *      working; the string token that the rest of the api tree injects points at
- *      the real service when org billing is live, or the OSS no-op stub when not.
- *      Do not gate Cloud SaaS on license key alone — hosted has no license key.
+ *   2. Runtime — `isEEEnabled()` (cached signature verdict) decides only what
+ *      the shared string token resolves to. The real EE service class is ALWAYS
+ *      registered as a provider so the EE controllers (which inject the class
+ *      token directly) keep working; the string token that the rest of the api
+ *      tree injects points at the real service when licensed, or the OSS no-op
+ *      stub when not.
  *
  * The OSS counterpart lives at
  * `apps/server/api/src/common/subscriptions/billing.providers.oss.ts` and must
@@ -31,7 +30,7 @@ import type { BillingProviderFragment } from '@api/common/subscriptions/billing.
 import { OssSubscriptionAttributionsService } from '@api/common/subscriptions/oss-subscription-attributions.service';
 import { OssSubscriptionsService } from '@api/common/subscriptions/oss-subscriptions.service';
 import { OssUserSubscriptionsService } from '@api/common/subscriptions/oss-user-subscriptions.service';
-import { hasOrganizationBilling } from '@genfeedai/config';
+import { isEEEnabled } from '@genfeedai/config';
 import {
   SUBSCRIPTION_ATTRIBUTIONS_SERVICE,
   SUBSCRIPTIONS_SERVICE,
@@ -43,9 +42,6 @@ import { SubscriptionAttributionsService } from './subscription-attributions/ser
 import { SubscriptionsController } from './subscriptions/controllers/subscriptions.controller';
 import { SubscriptionsService } from './subscriptions/services/subscriptions.service';
 import { UserSubscriptionsService } from './user-subscriptions/services/user-subscriptions.service';
-
-/** SaaS (GENFEED_CLOUD) or licensed EE self-host — not license-key-only. */
-const isOrgBillingLive = (): boolean => hasOrganizationBilling();
 
 export const subscriptions: BillingProviderFragment = {
   controllers: [SubscriptionsController],
@@ -72,7 +68,7 @@ export const subscriptions: BillingProviderFragment = {
   ],
   providers: [
     SubscriptionsService,
-    isOrgBillingLive()
+    isEEEnabled()
       ? { provide: SUBSCRIPTIONS_SERVICE, useExisting: SubscriptionsService }
       : { provide: SUBSCRIPTIONS_SERVICE, useClass: OssSubscriptionsService },
   ],
@@ -84,7 +80,7 @@ export const userSubscriptions: BillingProviderFragment = {
   imports: [],
   providers: [
     UserSubscriptionsService,
-    isOrgBillingLive()
+    isEEEnabled()
       ? {
           provide: USER_SUBSCRIPTIONS_SERVICE,
           useExisting: UserSubscriptionsService,
@@ -102,7 +98,7 @@ export const subscriptionAttributions: BillingProviderFragment = {
   imports: [],
   providers: [
     SubscriptionAttributionsService,
-    isOrgBillingLive()
+    isEEEnabled()
       ? {
           provide: SUBSCRIPTION_ATTRIBUTIONS_SERVICE,
           useExisting: SubscriptionAttributionsService,

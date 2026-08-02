@@ -1,6 +1,6 @@
 ---
 description: Backend service guardrails for NestJS apps.
-globs:
+paths:
   - "apps/server/**"
 ---
 

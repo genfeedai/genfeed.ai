@@ -6,9 +6,6 @@
 @.agents/memory/context/project-style-guide.md
 @.agents/memory/context/skills-architecture.md
 
-TypeScript monorepo: 7 app workspaces, 12 backend service workspaces, 38 shared packages.
-Next.js + NestJS + PostgreSQL (Prisma) + Redis + BullMQ.
-
 > These five files plus `.claude/rules/*` load into **every request**. Keep additions short and
 > put detail in a linked file that loads on demand.
 
@@ -96,12 +93,6 @@ bun run test --filter=@genfeedai/[name]              # Test one package
 | `workers/` | 3013 | | `images/` | 3020 |
 | `mcp/` | 3014 | | `videos/` | 3021 |
 | | | | `voices/` | 3022 |
-
-Frontends: `apps/app` (studio), `apps/docs`, `apps/website`, `apps/desktop/app` (Electron),
-`apps/mobile/app` (Expo), `apps/extensions/{browser,ide}/app`.
-
-Infrastructure: PostgreSQL via `packages/prisma/` · Redis + BullMQ · Better Auth · Sentry ·
-GitHub Actions · Docker self-hosting (`docs/self-hosting.md`).
 
 ## Essential Reading
 

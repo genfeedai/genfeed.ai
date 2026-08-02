@@ -20,7 +20,7 @@ describe('workspace shell URL restoration', () => {
 
     expect(
       restoreWorkspaceShellLocation({
-        pathname: '/acme/moonrise/studio/image',
+        pathname: '/acme/moonrise/studio/storyboard',
         searchParams: new URLSearchParams({ thread: 'thread-1' }),
       }),
     ).toMatchObject({
@@ -32,21 +32,18 @@ describe('workspace shell URL restoration', () => {
 
   it.each([
     '/acme/moonrise/analytics',
-    '/acme/moonrise/compose/post',
+    '/acme/moonrise/edit/post/post-1',
     '/acme/moonrise/library/moodboard',
     '/acme/moonrise/messages',
     '/acme/~/messages',
-    '/acme/moonrise/research/discovery',
-    '/acme/~/research/discovery',
-    '/acme/moonrise/orchestration/skills',
+    '/acme/~/discover/discovery',
+    '/acme/moonrise/automate/skills',
     '/acme/moonrise/overview/activities',
-    '/acme/moonrise/posts/calendar',
-    '/acme/moonrise/research/discovery',
-    '/acme/moonrise/studio/image',
+    '/acme/moonrise/publish/calendar',
+    '/acme/moonrise/studio/storyboard',
     '/acme/moonrise/workspace/tasks/task-1',
-    '/acme/moonrise/orchestration/workflows/templates',
+    '/acme/moonrise/automate/workflows/templates',
     '/acme/moonrise/workspace/inbox/all',
-    '/acme/~/write',
   ])('registers the protected product family %s as canvas', (pathname) => {
     expect(
       restoreWorkspaceShellLocation({
@@ -82,7 +79,7 @@ describe('workspace shell URL restoration', () => {
   it('restores the workflow picker and canonical run URL', () => {
     expect(
       restoreWorkspaceShellLocation({
-        pathname: '/acme/moonrise/orchestration/workflows/executions/run-1',
+        pathname: '/acme/moonrise/automate/workflows/executions/run-1',
         searchParams: new URLSearchParams({
           overlay: 'workflow-picker',
           thread: 'thread-1',
@@ -90,8 +87,7 @@ describe('workspace shell URL restoration', () => {
       }),
     ).toMatchObject({
       overlay: { key: 'workflow-picker', parameters: {} },
-      routeKey:
-        'route:/:orgSlug/:brandSlug/orchestration/workflows/executions/:id',
+      routeKey: 'route:/:orgSlug/:brandSlug/automate/workflows/executions/:id',
       state: 'overlay',
       threadId: null,
     });
@@ -99,7 +95,7 @@ describe('workspace shell URL restoration', () => {
 
   it('removes invalid overlay state without changing scope or opaque queries', () => {
     const restored = restoreWorkspaceShellLocation({
-      pathname: '/acme/moonrise/posts/calendar',
+      pathname: '/acme/moonrise/publish/calendar',
       searchParams: new URLSearchParams({
         overlay: 'model-produced-surface',
         taskId: 'task-1',
@@ -179,7 +175,7 @@ describe('workspace shell URL restoration', () => {
   it('restores the no-parameter Library picker over the exact base route', () => {
     expect(
       restoreWorkspaceShellLocation({
-        pathname: '/acme/moonrise/posts/remix',
+        pathname: '/acme/moonrise/publish/remix',
         searchParams: new URLSearchParams({
           overlay: 'library-picker',
           thread: 'thread-1',
