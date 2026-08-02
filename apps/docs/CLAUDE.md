@@ -37,9 +37,8 @@ bun run start    # Start production server (Next.js default port 3000; set PORT 
 - `../../.agents/memory/` - Workspace-level architecture/rules/SOPs
 
 ## Vercel Deployments
-NEVER run any local Vercel CLI (`vercel`, `vercel link`, `vercel pull`, `vercel deploy`, `vercel build`).
-Production deploys are CI-only. Missing `.vercel/` is expected — do not recreate it.
-Agents must not overwrite `.env.local` via Vercel env pull.
+NEVER run `vercel` or `vercel deploy` without first confirming `.vercel/project.json` exists.
+If it doesn't exist, STOP and ask the user — do not run `vercel link` unattended.
 
 ## Learned Rules
 

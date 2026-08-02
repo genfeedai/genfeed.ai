@@ -32,7 +32,6 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_release_e2e_board_signal](feedback_release_e2e_board_signal.md) — release E2E red → Project Priority P0 + auto-close on green; never prose-only triage
 - [production_deploy_master_only](production_deploy_master_only.md) — never deploy a non-master ref to production unless Vincent explicitly overrides; master CI only
 - [feedback_vercel_release_gate](feedback_vercel_release_gate.md) — Vercel deploys only via the release workflow
-- [feedback_no_local_vercel_cli](feedback_no_local_vercel_cli.md) — never `vercel link`/`pull`/`deploy` locally; agents wipe `.env.local`
 - [feedback_library_information_architecture](feedback_library_information_architecture.md) — Library destinations live in nav; folders and asset types are filters
 
 ## Rules (auto-loaded via `.claude/rules` symlink)
