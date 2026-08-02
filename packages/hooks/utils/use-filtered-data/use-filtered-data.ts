@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 
 export interface UseFilteredDataOptions<T> {
   data: T[];
@@ -11,6 +11,12 @@ export function useFilteredData<T>({
   filter,
   filterFields,
 }: UseFilteredDataOptions<T>) {
+  // Callers often pass an inline `filterFields` arrow. Depending on that
+  // identity forces a new filtered array every render even when `data` and
+  // `filter` are stable — and any consumer that setStates from the result loops.
+  const filterFieldsRef = useRef(filterFields);
+  filterFieldsRef.current = filterFields;
+
   const filteredData = useMemo(() => {
     if (!filter) {
       return data;
@@ -19,10 +25,10 @@ export function useFilteredData<T>({
     const searchTerm = filter.toLowerCase();
 
     return data.filter((item) => {
-      const fields = filterFields(item);
+      const fields = filterFieldsRef.current(item);
       return fields.some((field) => field?.toLowerCase().includes(searchTerm));
     });
-  }, [data, filter, filterFields]);
+  }, [data, filter]);
 
   return filteredData;
 }
