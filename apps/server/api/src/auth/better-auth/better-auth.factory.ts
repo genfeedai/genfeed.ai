@@ -79,8 +79,14 @@ export function buildBetterAuthAdvancedOptions({
 /**
  * Adapt the shared Redis KV into Better Auth's `rateLimit.customStorage` shape
  * so all API instances share one counter window (per-process memory would let
- * the effective limit scale with instance count). Reads/writes are JSON; the
- * underlying store fails open, so a Redis blip degrades limiting, never auth.
+ * the effective limit scale with instance count). Reads/writes are JSON.
+ *
+ * This layer fails open independently of the injected store (#738, criterion 7).
+ * `buildRedisRateLimitStore` already swallows Redis errors, but Better Auth
+ * awaits `customStorage` directly on the `/auth/*` hot path, so *any* rejection
+ * here — a corrupt value, a foreign store implementation, a serialization
+ * failure — would surface as a 500 on sign-in. An unavailable counter must cost
+ * rate limiting, never authentication.
  */
 export function buildRateLimitStorage(store: IBetterAuthRateLimitStore): {
   get: (key: string) => Promise<RateLimit | null>;
@@ -88,7 +94,12 @@ export function buildRateLimitStorage(store: IBetterAuthRateLimitStore): {
 } {
   return {
     get: async (key) => {
-      const raw = await store.get(`${RATE_LIMIT_KEY_PREFIX}${key}`);
+      let raw: string | null;
+      try {
+        raw = await store.get(`${RATE_LIMIT_KEY_PREFIX}${key}`);
+      } catch {
+        return null;
+      }
       if (!raw) {
         return null;
       }
@@ -102,11 +113,17 @@ export function buildRateLimitStorage(store: IBetterAuthRateLimitStore): {
       }
     },
     set: async (key, value) => {
-      await store.set(
-        `${RATE_LIMIT_KEY_PREFIX}${key}`,
-        JSON.stringify(value),
-        RATE_LIMIT_TTL_SECONDS,
-      );
+      try {
+        await store.set(
+          `${RATE_LIMIT_KEY_PREFIX}${key}`,
+          JSON.stringify(value),
+          RATE_LIMIT_TTL_SECONDS,
+        );
+      } catch {
+        // Dropping the write loses the window, which lets the next request
+        // through. That is the correct trade: a 500 here would block sign-in.
+        return;
+      }
     },
   };
 }

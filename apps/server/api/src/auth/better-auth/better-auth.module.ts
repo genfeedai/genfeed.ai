@@ -32,7 +32,7 @@ import {
   createBetterAuthInstance,
 } from './better-auth.factory';
 import { BetterAuthService } from './better-auth.service';
-import type { IBetterAuthRateLimitStore } from './better-auth.types';
+import { buildRedisRateLimitStore } from './better-auth-rate-limit.util';
 import { UserProvisioningListener } from './listeners/user-provisioning.listener';
 import { BetterAuthStrategy } from './passport/better-auth.strategy';
 import { BetterAuthIdentityResolverService } from './services/better-auth-identity-resolver.service';
@@ -103,38 +103,7 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
         // (or dedicated instance) so a queue backlog or cache-invalidation storm
         // can't add latency to the hot auth path. Fails open — a Redis outage
         // degrades cross-instance limiting rather than breaking authentication.
-        const rateLimitStore: IBetterAuthRateLimitStore = {
-          get: async (key) => {
-            if (!rateLimitClient.isReady) {
-              return null;
-            }
-            try {
-              return (await rateLimitClient.instance.get(key)) ?? null;
-            } catch {
-              return null;
-            }
-          },
-          set: async (key, value, ttlSeconds) => {
-            if (!rateLimitClient.isReady) {
-              return;
-            }
-            try {
-              if (ttlSeconds === undefined) {
-                await rateLimitClient.instance.set(key, value);
-              } else {
-                await rateLimitClient.instance.set(
-                  key,
-                  value,
-                  'EX',
-                  ttlSeconds,
-                );
-              }
-            } catch {
-              // Fail open: never let a Redis error break auth rate limiting.
-              return;
-            }
-          },
-        };
+        const rateLimitStore = buildRedisRateLimitStore(rateLimitClient);
 
         return createBetterAuthInstance({
           apiKey: config.get('BETTER_AUTH_API_KEY'),

@@ -77,6 +77,28 @@ export interface IBetterAuthRateLimitStore {
   set: (key: string, value: string, ttlSeconds: number) => Promise<void>;
 }
 
+/** The two Redis commands the rate-limit store issues, as ioredis spells them. */
+export interface IBetterAuthRateLimitRedisCommands {
+  get(key: string): Promise<string | null>;
+  set(key: string, value: string): Promise<unknown>;
+  set(
+    key: string,
+    value: string,
+    expiryMode: 'EX',
+    ttlSeconds: number,
+  ): Promise<unknown>;
+}
+
+/**
+ * Structural view of {@link RateLimitClientService} used by the rate-limit store
+ * adapter. Narrowed to `isReady` + the two commands so the fail-open behavior is
+ * testable without standing up a real ioredis connection.
+ */
+export interface IBetterAuthRateLimitRedisClient {
+  readonly isReady: boolean;
+  readonly instance: IBetterAuthRateLimitRedisCommands;
+}
+
 /** Payload emitted after Better Auth creates a new user row. */
 export interface IBetterAuthUserCreatedEvent {
   userId: string;
