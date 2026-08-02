@@ -207,7 +207,7 @@ export default function EditorProjectsPage() {
               >
                 <Card
                   variant={CardVariant.DEFAULT}
-                  className="group cursor-pointer p-6 transition-shadow hover:ring-1 hover:ring-primary/30"
+                  className="group cursor-pointer p-3 transition-shadow hover:ring-1 hover:ring-primary/30"
                 >
                   <div className="mb-3 flex items-start justify-between">
                     <div className="min-w-0 flex-1">
@@ -246,25 +246,29 @@ export default function EditorProjectsPage() {
           </div>
         </>
       ) : (
-        <Card variant={CardVariant.DEFAULT} className="mb-8 p-8">
-          <div className="mx-auto max-w-2xl text-center">
-            <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-primary/10">
-              <Film className="size-8 text-primary" />
+        <Card variant={CardVariant.DEFAULT} className="mb-6 p-4">
+          <div className="mx-auto max-w-xl text-center">
+            <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-full bg-primary/10">
+              <Film className="size-5 text-primary" />
             </div>
 
-            <h2 className="mb-2 text-xl font-semibold">
+            <h2 className="mb-1 text-base font-semibold">
               Create Your First Project
             </h2>
 
-            <p className="mb-6 text-foreground/60">
+            <p className="mb-4 text-sm text-foreground/60">
               Start a new video editing project to arrange clips on a timeline,
               add audio tracks, and apply effects. Your generated videos from
               the Studio can be imported directly.
             </p>
 
-            <Button asChild variant={ButtonVariant.DEFAULT}>
+            <Button
+              asChild
+              size={ButtonSize.SM}
+              variant={ButtonVariant.DEFAULT}
+            >
               <Link href={href(APP_ROUTES.STUDIO.EDIT_NEW)}>
-                <Plus className="size-5" />
+                <Plus className="size-4" />
                 Start New Project
               </Link>
             </Button>
@@ -272,21 +276,21 @@ export default function EditorProjectsPage() {
         </Card>
       )}
 
-      <h3 className="mb-4 text-lg font-semibold">Features</h3>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <h3 className="mb-3 text-base font-semibold">Features</h3>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {features.map((feature) => (
           <Card
             key={feature.title}
             variant={CardVariant.DEFAULT}
-            className="p-6"
+            className="p-3"
           >
-            <div className="flex items-start gap-4">
-              <div className={`p-3 ${feature.color}`}>
-                <feature.icon className="size-6" />
+            <div className="flex items-start gap-3">
+              <div className={`rounded-md p-2 ${feature.color}`}>
+                <feature.icon className="size-4" />
               </div>
-              <div>
-                <h4 className="mb-1 font-semibold">{feature.title}</h4>
-                <p className="text-sm text-foreground/60">
+              <div className="min-w-0">
+                <h4 className="mb-0.5 text-sm font-medium">{feature.title}</h4>
+                <p className="text-xs text-foreground/60">
                   {feature.description}
                 </p>
               </div>

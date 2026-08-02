@@ -336,6 +336,11 @@ async function runApp(appName: string, once: boolean): Promise<void> {
     'node_modules/.bun/node_modules',
   );
 
+  // First successful rebuild is the initial boot (`rebuildAndRun`). Later
+  // watch rebuilds must restart the Node child or DTO/controller edits never
+  // load into the running process (esbuild only rewrites the outfile).
+  let hasStartedOnce = false;
+
   const context = await esbuild.context({
     absWorkingDir: WORKSPACE_ROOT,
     alias: aliases,
@@ -371,6 +376,37 @@ async function runApp(appName: string, once: boolean): Promise<void> {
             }
             // Force npm packages external even if packages:'external' misses one
             return { external: true, path: args.path };
+          });
+        },
+      },
+      {
+        name: 'restart-node-on-rebuild',
+        setup(build) {
+          build.onEnd((result) => {
+            if (result.errors.length > 0) {
+              return;
+            }
+            if (!hasStartedOnce || once) {
+              return;
+            }
+            void (async () => {
+              try {
+                patchEsmInterop();
+                console.log(
+                  `[nest-fast-dev:${app.name}] rebuild ok — restarting process`,
+                );
+                restarting = true;
+                await stopChild();
+                restarting = false;
+                startChild();
+              } catch (error) {
+                restarting = false;
+                console.error(
+                  `[nest-fast-dev:${app.name}] watch restart failed`,
+                  error,
+                );
+              }
+            })();
           });
         },
       },
@@ -431,7 +467,10 @@ async function runApp(appName: string, once: boolean): Promise<void> {
     }
   };
 
+  // Initial bundle + process start. Watch rebuilds restart via the
+  // `restart-node-on-rebuild` plugin (hasStartedOnce gates the first onEnd).
   await rebuildAndRun('initial');
+  hasStartedOnce = true;
 
   if (once) {
     await context.dispose();
