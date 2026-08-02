@@ -29,9 +29,11 @@ import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [
-    MusicsController,
+    // Operations first so POST /musics hits generation (credits/guards), not the
+    // generic BaseCRUD create inherited by MusicsController (#2334).
     MusicsOperationsController,
     MusicsUploadController,
+    MusicsController,
   ],
   exports: [MusicsService],
   imports: [

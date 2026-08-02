@@ -343,7 +343,7 @@ export default function StudioWorkspaceSurfaceAdapter({
         ...(brandId ? { brandId } : {}),
         organizationId,
       },
-      surfaceKey: 'studio',
+      surfaceKey: 'studio-specialized',
     }),
     [
       brandId,

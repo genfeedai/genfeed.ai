@@ -175,34 +175,6 @@ export class AdminPage {
     await this.waitForPageLoad();
   }
 
-  async gotoCrmLeads(): Promise<void> {
-    await this.page.goto(APP_ROUTES.ADMIN.CONTENT.LEADS, {
-      waitUntil: 'domcontentloaded',
-    });
-    await this.waitForPageLoad();
-  }
-
-  async gotoCrmCompanies(): Promise<void> {
-    await this.page.goto(APP_ROUTES.ADMIN.CONTENT.COMPANIES, {
-      waitUntil: 'domcontentloaded',
-    });
-    await this.waitForPageLoad();
-  }
-
-  async gotoCrmTasks(): Promise<void> {
-    await this.page.goto(APP_ROUTES.ADMIN.CONTENT.TASKS, {
-      waitUntil: 'domcontentloaded',
-    });
-    await this.waitForPageLoad();
-  }
-
-  async gotoCrmAnalytics(): Promise<void> {
-    await this.page.goto(APP_ROUTES.ADMIN.CONTENT.ANALYTICS, {
-      waitUntil: 'domcontentloaded',
-    });
-    await this.waitForPageLoad();
-  }
-
   async gotoAnalyticsAll(): Promise<void> {
     await this.page.goto(APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ALL, {
       waitUntil: 'domcontentloaded',

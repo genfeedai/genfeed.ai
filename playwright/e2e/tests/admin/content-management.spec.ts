@@ -1,11 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockAdminStats,
-  mockCrmAnalytics,
-  mockCrmCompanies,
-  mockCrmCompanyDetail,
-  mockCrmLeads,
-  mockCrmTasks,
   mockFleetCharacters,
   mockFleetGallery,
   mockFleetInfrastructure,
@@ -17,7 +12,8 @@ import { AdminPage } from '../../pages/admin.page';
 /**
  * E2E Tests for Admin Content Management
  *
- * Covers fleet, CRM, and Library sections.
+ * Covers fleet and Library sections. Ghost CRM admin routes were removed
+ * (no /admin/content/{leads,companies,tasks,analytics} pages).
  * All tests use adminPage fixture. All API calls are mocked.
  */
 test.describe('Admin Content Management', () => {
@@ -66,100 +62,15 @@ test.describe('Admin Content Management', () => {
     });
   });
 
-  test.describe('CRM', () => {
-    test('should show CRM leads list', async ({ adminPage }) => {
-      await mockCrmLeads(adminPage, 6);
-
-      const admin = new AdminPage(adminPage);
-      await admin.gotoCrmLeads();
-
-      await admin.assertPageVisible();
-      await expect(adminPage).toHaveURL(/crm\/leads/);
-    });
-
-    test('should display CRM companies', async ({ adminPage }) => {
-      await mockCrmCompanies(adminPage, 4);
-
-      const admin = new AdminPage(adminPage);
-      await admin.gotoCrmCompanies();
-
-      await admin.assertPageVisible();
-      await expect(adminPage).toHaveURL(/crm\/companies/);
-    });
-
-    test('should display CRM company detail surfaces', async ({
+  test.describe('Platform analytics', () => {
+    test('should open overview analytics all under /admin', async ({
       adminPage,
     }) => {
-      await mockCrmCompanyDetail(adminPage, 'company-1');
-      await mockCrmLeads(adminPage, 4);
-
-      await adminPage.goto(`${APP_ROUTES.ADMIN.CONTENT.COMPANIES}/company-1`);
       const admin = new AdminPage(adminPage);
+      await admin.gotoAnalyticsAll();
 
       await admin.assertPageVisible();
-      await expect(adminPage).toHaveURL(/crm\/companies\/company-1/);
-      await expect(
-        adminPage.locator('[data-testid="crm-company-profile-surface"]'),
-      ).toBeVisible();
-      await expect(
-        adminPage.locator('[data-testid="crm-company-linked-leads-surface"]'),
-      ).toBeVisible();
-    });
-
-    test('should display CRM tasks', async ({ adminPage }) => {
-      await mockCrmTasks(adminPage, 5);
-      await mockCrmLeads(adminPage, 3);
-      await mockCrmCompanies(adminPage, 3);
-
-      const admin = new AdminPage(adminPage);
-      await admin.gotoCrmTasks();
-
-      await admin.assertPageVisible();
-      await expect(adminPage).toHaveURL(/crm\/tasks/);
-      await expect(
-        adminPage.locator('[data-testid="crm-tasks-surface"]'),
-      ).toBeVisible();
-    });
-
-    test('should navigate between CRM sections', async ({ adminPage }) => {
-      await mockCrmLeads(adminPage);
-      await mockCrmCompanies(adminPage);
-      await mockCrmTasks(adminPage);
-      await mockCrmAnalytics(adminPage);
-
-      const admin = new AdminPage(adminPage);
-
-      // Start at leads
-      await admin.gotoCrmLeads();
-      await admin.assertPageVisible();
-      await expect(adminPage).toHaveURL(/crm\/leads/);
-
-      // Navigate to companies
-      await admin.gotoCrmCompanies();
-      await admin.assertPageVisible();
-      await expect(adminPage).toHaveURL(/crm\/companies/);
-
-      // Navigate to tasks
-      await admin.gotoCrmTasks();
-      await admin.assertPageVisible();
-      await expect(adminPage).toHaveURL(/crm\/tasks/);
-
-      // Navigate to CRM analytics
-      await admin.gotoCrmAnalytics();
-      await admin.assertPageVisible();
-      await expect(adminPage).toHaveURL(/crm\/analytics/);
-      await expect(
-        adminPage.locator('[data-testid="crm-analytics-funnel-surface"]'),
-      ).toBeVisible();
-      await expect(
-        adminPage.locator('[data-testid="crm-analytics-velocity-surface"]'),
-      ).toBeVisible();
-      await expect(
-        adminPage.locator('[data-testid="crm-analytics-source-surface"]'),
-      ).toBeVisible();
-      await expect(
-        adminPage.locator('[data-testid="crm-analytics-stage-surface"]'),
-      ).toBeVisible();
+      await expect(adminPage).toHaveURL(/\/admin\/overview\/analytics\/all/);
     });
   });
 
@@ -169,7 +80,7 @@ test.describe('Admin Content Management', () => {
     }) => {
       await mockOrganizationIdentityDefaults(adminPage);
 
-      await adminPage.goto(APP_ROUTES.LIBRARY.VOICES);
+      await adminPage.goto(APP_ROUTES.ADMIN.LIBRARY.VOICES);
       const admin = new AdminPage(adminPage);
 
       await admin.assertPageVisible();

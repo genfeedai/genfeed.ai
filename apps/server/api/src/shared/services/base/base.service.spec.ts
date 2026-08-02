@@ -1308,6 +1308,23 @@ describe('BaseService', () => {
       );
     });
 
+    it('drops undefined write keys so Prisma does not receive them', async () => {
+      const created = { id: 'ing_undefined_keys', label: 'kept' };
+      delegate.create.mockResolvedValue(created);
+
+      await service.create({
+        description: undefined,
+        label: 'kept',
+        primaryColor: undefined,
+      } as TestDocument);
+
+      expect(delegate.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { label: 'kept' },
+        }),
+      );
+    });
+
     it('remaps metadata string to metadataId on patch', async () => {
       getModelMetaMock.mockReturnValue(
         makeModelMeta('id', 'isDeleted', 'metadataId'),

@@ -80,6 +80,22 @@ function isMergeableRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
+ * Drops keys whose value is `undefined`.
+ *
+ * Nest's `plainToInstance` materializes every declared DTO field as an own
+ * property holding `undefined` when the request body omitted it. Prisma rejects
+ * those keys (`Argument X is missing` / invalid undefined), so write paths must
+ * never forward them.
+ */
+function omitUndefinedFields(
+  input: Record<string, unknown>,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(input).filter(([, value]) => value !== undefined),
+  );
+}
+
+/**
  * Copies the defined keys of `incoming` over `current`.
  *
  * `undefined` has to be skipped here for the same reason it is skipped at the
@@ -141,6 +157,8 @@ export class BrandsService extends BaseService<
     // BaseCRUD.enrichCreateDto always stamps session `brand` / `organization` /
     // `user` onto create payloads. Brand has no `brand` column — only
     // organizationId/userId FKs. Strip relation aliases before Prisma create.
+    // Map string aliases onto scalar FKs; never forward `user`/`organization` as
+    // nested relation inputs (Sentry API-GENFEED-AI-6T).
     const {
       brand: _sessionBrand,
       brandId: _sessionBrandId,
@@ -155,6 +173,9 @@ export class BrandsService extends BaseService<
       (typeof organization === 'string' ? organization : undefined);
     const resolvedUserId =
       userId ?? (typeof user === 'string' ? user : undefined);
+    const sanitizedBrandFields = omitUndefinedFields(
+      brandFields as Record<string, unknown>,
+    );
 
     const label =
       typeof createBrandDto.label === 'string' && createBrandDto.label.trim()
@@ -183,14 +204,16 @@ export class BrandsService extends BaseService<
           : nextSlugCandidate(preferredSlug, attempt);
 
       try {
-        brand = await super.create({
-          ...brandFields,
-          slug: candidate,
-          ...(resolvedOrganizationId
-            ? { organizationId: resolvedOrganizationId }
-            : {}),
-          ...(resolvedUserId ? { userId: resolvedUserId } : {}),
-        } as CreateBrandDto);
+        brand = await super.create(
+          omitUndefinedFields({
+            ...sanitizedBrandFields,
+            slug: candidate,
+            ...(resolvedOrganizationId
+              ? { organizationId: resolvedOrganizationId }
+              : {}),
+            ...(resolvedUserId ? { userId: resolvedUserId } : {}),
+          }) as CreateBrandDto,
+        );
         if (attempt > 0) {
           this.logger.warn('Brand slug race recovered with suffix', {
             attempt,
@@ -292,6 +315,9 @@ export class BrandsService extends BaseService<
 
     // BaseCRUD.enrichUpdateDto stamps session `brand` / `organization` / `user`
     // onto every PATCH. Brand has no `brand` column — same trap as create.
+    // Ownership is not mutable via brand PATCH (`UpdateBrandDto` forbids
+    // `user`/`userId`); drop both the session alias and any client-supplied
+    // scalar so Prisma never sees `data.user` (Sentry API-GENFEED-AI-6T).
     const {
       brand: _sessionBrand,
       brandId: _sessionBrandId,
@@ -301,7 +327,12 @@ export class BrandsService extends BaseService<
       ...brandFields
     } = updateBrandDto;
 
-    const brand = await super.patch(id, brandFields);
+    const brand = await super.patch(
+      id,
+      omitUndefinedFields(
+        brandFields as Record<string, unknown>,
+      ) as Partial<UpdateBrandDto>,
+    );
 
     if (!brand) {
       throw new NotFoundException('Brand', id);

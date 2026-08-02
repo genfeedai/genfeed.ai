@@ -578,6 +578,87 @@ describe('WorkflowApiService', () => {
     ]);
   });
 
+  it('lists system catalog entries from the plain (non-JSON:API) payload and preserves install state', async () => {
+    // GET /workflows?source=system-catalog returns `{ data: Entry[] }` where
+    // each entry already has installed / installedWorkflowId at the top level
+    // — not under JSON:API `attributes` (#2259).
+    mocks.get.mockResolvedValueOnce({
+      data: {
+        data: [
+          {
+            canonicalId: 'daily-trends-digest',
+            category: 'product',
+            changeSummary: 'Daily digest',
+            description: 'Trends digest',
+            family: 'product',
+            installable: true,
+            installed: true,
+            installedWorkflowId: 'wf-installed-1',
+            isScheduleEnabled: true,
+            label: 'Daily Trends Digest',
+            schedule: '0 7 * * *',
+            sourceIssue: 1011,
+            version: 1,
+          },
+          {
+            canonicalId: 'ad-optimization',
+            category: 'ads',
+            changeSummary: 'Ads',
+            description: 'Ad optimizer',
+            family: 'ads',
+            installable: true,
+            installed: false,
+            installedWorkflowId: null,
+            isScheduleEnabled: false,
+            label: 'Ad Optimization',
+            sourceIssue: 1011,
+            version: 1,
+          },
+          // Malformed / incomplete entries are dropped rather than poisoning
+          // the list with empty canonical ids.
+          { installed: true },
+        ],
+      },
+    });
+
+    await expect(service().listSystemCatalog()).resolves.toEqual([
+      {
+        canonicalId: 'daily-trends-digest',
+        category: 'product',
+        changeSummary: 'Daily digest',
+        description: 'Trends digest',
+        family: 'product',
+        installable: true,
+        installed: true,
+        installedWorkflowId: 'wf-installed-1',
+        isScheduleEnabled: true,
+        label: 'Daily Trends Digest',
+        schedule: '0 7 * * *',
+        sourceIssue: 1011,
+        version: 1,
+      },
+      {
+        canonicalId: 'ad-optimization',
+        category: 'ads',
+        changeSummary: 'Ads',
+        description: 'Ad optimizer',
+        family: 'ads',
+        installable: true,
+        installed: false,
+        installedWorkflowId: null,
+        isScheduleEnabled: false,
+        label: 'Ad Optimization',
+        sourceIssue: 1011,
+        version: 1,
+      },
+    ]);
+    expect(mocks.get).toHaveBeenCalledWith('', {
+      params: { source: 'system-catalog' },
+    });
+    // Must not go through the JSON:API collection deserializer.
+    expect(mocks.deserializeCollection).not.toHaveBeenCalled();
+  });
+
   it('creates service instances with the canonical workflows endpoint', () => {
     const instance = createWorkflowApiService('token-1');
 

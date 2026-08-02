@@ -117,7 +117,15 @@ export class BrandsController extends BaseCRUDController<
       userId?: unknown;
     };
 
-    return Promise.resolve(brandFields as UpdateBrandDto);
+    // Drop declared-but-absent DTO fields so Prisma never sees `undefined`
+    // values (class-field semantics materialize them on the instance).
+    const definedFields = Object.fromEntries(
+      Object.entries(brandFields as Record<string, unknown>).filter(
+        ([, value]) => value !== undefined,
+      ),
+    );
+
+    return Promise.resolve(definedFields as UpdateBrandDto);
   }
 
   /**

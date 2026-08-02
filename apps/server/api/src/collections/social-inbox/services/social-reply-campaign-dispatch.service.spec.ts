@@ -1,4 +1,7 @@
-import { SocialReplyCampaignDispatchService } from '@api/collections/social-inbox/services/social-reply-campaign-dispatch.service';
+import {
+  SOCIAL_REPLY_CAMPAIGN_MAX_ATTEMPTS,
+  SocialReplyCampaignDispatchService,
+} from '@api/collections/social-inbox/services/social-reply-campaign-dispatch.service';
 import {
   SocialMessageType,
   SocialReplyCampaignRecipientStatus,
@@ -170,28 +173,54 @@ function createContext(options: {
       }),
     },
     socialReplyCampaignRecipient: {
-      findFirst: vi
+      count: vi
         .fn()
         .mockImplementation(({ where }) =>
           Promise.resolve(
-            [...recipients]
-              .sort((left, right) => left.position - right.position)
-              .find((item) => matchesWhere(item, where)) ?? null,
+            recipients.filter((item) => matchesWhere(item, where)).length,
           ),
         ),
-      findMany: vi
-        .fn()
-        .mockImplementation(({ where }) =>
-          Promise.resolve(
-            recipients
-              .filter((item) => matchesWhere(item, where))
-              .sort(
-                (left, right) =>
-                  (left.sentAt?.getTime() ?? 0) -
-                  (right.sentAt?.getTime() ?? 0),
-              ),
-          ),
-        ),
+      findFirst: vi.fn().mockImplementation(({ where, orderBy }) => {
+        const sorted = [...recipients].sort((left, right) => {
+          if (Array.isArray(orderBy)) {
+            for (const clause of orderBy) {
+              const key = Object.keys(clause)[0] as keyof StoreRecipient;
+              const direction = clause[key] === 'desc' ? -1 : 1;
+              const leftValue = left[key];
+              const rightValue = right[key];
+              if (leftValue === rightValue) {
+                continue;
+              }
+              if (
+                typeof leftValue === 'number' &&
+                typeof rightValue === 'number'
+              ) {
+                return (leftValue - rightValue) * direction;
+              }
+              return (
+                String(leftValue).localeCompare(String(rightValue)) * direction
+              );
+            }
+            return 0;
+          }
+          return left.position - right.position;
+        });
+        return Promise.resolve(
+          sorted.find((item) => matchesWhere(item, where)) ?? null,
+        );
+      }),
+      findMany: vi.fn().mockImplementation(({ where, orderBy }) => {
+        let rows = recipients.filter((item) => matchesWhere(item, where));
+        if (orderBy && typeof orderBy === 'object' && 'sentAt' in orderBy) {
+          const direction = orderBy.sentAt === 'desc' ? -1 : 1;
+          rows = [...rows].sort(
+            (left, right) =>
+              ((left.sentAt?.getTime() ?? 0) - (right.sentAt?.getTime() ?? 0)) *
+              direction,
+          );
+        }
+        return Promise.resolve(rows);
+      }),
       updateMany: vi.fn().mockImplementation(({ data, where }) => {
         const matched = recipients.filter((item) => matchesWhere(item, where));
         for (const recipient of matched) {
@@ -388,7 +417,15 @@ describe('SocialReplyCampaignDispatchService', () => {
 
       const result = await context.service.dispatchTick(TICK);
 
+      expect(result.outcome).toBe('recipient-sent');
       expect(result.recipientId).toBe('recipient-early');
+      expect(
+        context.prisma.socialReplyCampaignRecipient.findFirst,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: [{ position: 'asc' }, { id: 'asc' }],
+        }),
+      );
     });
   });
 
@@ -498,7 +535,7 @@ describe('SocialReplyCampaignDispatchService', () => {
       );
     });
 
-    it('fails a recipient on a transient provider error and backs off', async () => {
+    it('requeues a recipient on a transient provider error under the attempt budget', async () => {
       const context = createContext({});
       context.actionService.postReply.mockRejectedValueOnce(
         new Error('provider unavailable'),
@@ -511,11 +548,13 @@ describe('SocialReplyCampaignDispatchService', () => {
         recipientId: 'recipient-1',
       });
       expect(context.recipients[0]).toMatchObject({
+        attemptCount: 1,
         failureReason: 'provider unavailable',
-        status: SocialReplyCampaignRecipientStatus.FAILED,
+        // Still drainable — a first 5xx must not permanently retire the row.
+        status: SocialReplyCampaignRecipientStatus.PENDING,
       });
       expect(context.campaigns[0]).toMatchObject({
-        failedCount: 1,
+        failedCount: 0,
         lastError: 'provider unavailable',
       });
       expect(context.queueService.enqueueTick).toHaveBeenCalledWith(
@@ -526,6 +565,35 @@ describe('SocialReplyCampaignDispatchService', () => {
         },
         60,
       );
+    });
+
+    it('permanently fails a recipient once the attempt budget is exhausted', async () => {
+      const context = createContext({
+        recipients: [
+          createRecipient({
+            attemptCount: SOCIAL_REPLY_CAMPAIGN_MAX_ATTEMPTS - 1,
+          }),
+        ],
+      });
+      context.actionService.postReply.mockRejectedValueOnce(
+        new Error('provider unavailable'),
+      );
+
+      const result = await context.service.dispatchTick(TICK);
+
+      expect(result).toEqual({
+        outcome: 'recipient-failed',
+        recipientId: 'recipient-1',
+      });
+      expect(context.recipients[0]).toMatchObject({
+        attemptCount: SOCIAL_REPLY_CAMPAIGN_MAX_ATTEMPTS,
+        failureReason: 'provider unavailable',
+        status: SocialReplyCampaignRecipientStatus.FAILED,
+      });
+      expect(context.campaigns[0]).toMatchObject({
+        failedCount: 1,
+        lastError: 'provider unavailable',
+      });
     });
 
     it('skips a recipient whose conversation disappeared', async () => {
@@ -560,6 +628,68 @@ describe('SocialReplyCampaignDispatchService', () => {
       );
       expect(sent).toHaveLength(1);
       expect(context.actionService.postReply).toHaveBeenCalledTimes(1);
+      // The loser must re-tick rather than complete the campaign early.
+      expect(context.campaigns[0].status).toBe(
+        SocialReplyCampaignStatus.RUNNING,
+      );
+      expect(
+        [first, second].some(
+          (result) => result.outcome === 'recipient-skipped',
+        ),
+      ).toBe(true);
+    });
+
+    it('does not complete the campaign on a lost claim race with remaining pending rows', async () => {
+      const context = createContext({
+        recipients: [
+          createRecipient({ id: 'recipient-1', position: 0 }),
+          createRecipient({
+            conversationId: 'conversation-1',
+            id: 'recipient-2',
+            position: 1,
+          }),
+        ],
+      });
+
+      // First claim wins; force a second claim against the same first candidate
+      // by simulating a concurrent update that already moved it out of PENDING.
+      let claimAttempts = 0;
+      const originalUpdateMany =
+        context.prisma.socialReplyCampaignRecipient.updateMany;
+      context.prisma.socialReplyCampaignRecipient.updateMany = vi
+        .fn()
+        .mockImplementation(async (args) => {
+          claimAttempts += 1;
+          if (
+            claimAttempts === 1 &&
+            args.where?.status === SocialReplyCampaignRecipientStatus.PENDING &&
+            args.data?.status === SocialReplyCampaignRecipientStatus.DISPATCHING
+          ) {
+            // Lose the race: another worker claimed this candidate first.
+            return { count: 0 };
+          }
+          return originalUpdateMany(args);
+        });
+
+      const result = await context.service.dispatchTick(TICK);
+
+      expect(result.outcome).toBe('recipient-skipped');
+      expect(context.campaigns[0].status).toBe(
+        SocialReplyCampaignStatus.RUNNING,
+      );
+      expect(
+        context.recipients.every(
+          (row) => row.status !== SocialReplyCampaignRecipientStatus.SENT,
+        ),
+      ).toBe(true);
+      expect(context.queueService.enqueueTick).toHaveBeenCalledWith(
+        {
+          campaignId: 'campaign-1',
+          dispatchCursor: 2,
+          organizationId: 'org-1',
+        },
+        0,
+      );
     });
 
     it('stops scheduling when a pause lands mid-tick', async () => {
@@ -574,6 +704,25 @@ describe('SocialReplyCampaignDispatchService', () => {
       expect(result.outcome).toBe('recipient-sent');
       expect(context.queueService.enqueueTick).not.toHaveBeenCalled();
       expect(context.campaigns[0].dispatchCursor).toBe(1);
+    });
+
+    it('defers completion while a concurrent tick still holds DISPATCHING', async () => {
+      const context = createContext({
+        recipients: [
+          createRecipient({
+            id: 'recipient-in-flight',
+            status: SocialReplyCampaignRecipientStatus.DISPATCHING,
+          }),
+        ],
+      });
+
+      const result = await context.service.dispatchTick(TICK);
+
+      expect(result.outcome).toBe('throttled');
+      expect(context.campaigns[0].status).toBe(
+        SocialReplyCampaignStatus.RUNNING,
+      );
+      expect(context.queueService.enqueueTick).toHaveBeenCalled();
     });
   });
 });

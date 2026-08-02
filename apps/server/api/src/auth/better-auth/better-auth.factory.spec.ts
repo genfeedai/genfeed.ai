@@ -6,6 +6,7 @@ import {
   buildBetterAuthUserDatabaseHooks,
   buildRateLimitStorage,
   createBetterAuthInstance,
+  RATE_LIMIT_TTL_SECONDS,
   resolveBetterAuthJwtAccess,
   resolveBetterAuthJwtIsSuperAdmin,
   resolveBetterAuthJwtOrganizationId,
@@ -535,7 +536,7 @@ describe('buildRateLimitStorage', () => {
     const [call] = store.setCalls;
     expect(call.key).toBe('ba:ratelimit:ip:1.2.3.4');
     expect(call.value).toBe(JSON.stringify(sampleRateLimit));
-    expect(call.ttlSeconds).toBeGreaterThan(0);
+    expect(call.ttlSeconds).toBe(RATE_LIMIT_TTL_SECONDS);
   });
 
   it('returns null when the counter is absent (fail-open path)', async () => {

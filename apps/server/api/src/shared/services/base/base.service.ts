@@ -660,6 +660,12 @@ export abstract class BaseService<
 
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(data)) {
+      // Nest DTO instances materialize omitted fields as own properties holding
+      // `undefined`. Prisma rejects those keys; drop them before write.
+      if (value === undefined) {
+        continue;
+      }
+
       // Belt-and-suspenders remap: legacy call sites on the ingredient↔metadata
       // relation write `{ metadata: someId }` (Mongo-style). The Prisma column is
       // `metadataId` (scalar FK). We remap ONLY the exact key `"metadata"` when

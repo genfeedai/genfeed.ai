@@ -3,7 +3,7 @@ import { MicroservicesService } from '@api/services/microservices/microservices.
 import { OpusProWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class OpusProWebhookService {
@@ -18,6 +18,10 @@ export class OpusProWebhookService {
   async handleCallback(body: OpusProWebhookPayload) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`, { body });
+
+    if (body == null || typeof body !== 'object') {
+      throw new BadRequestException('Webhook body is required');
+    }
 
     try {
       const { callback_id, status, videoUrl, video_url, error } = body;

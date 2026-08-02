@@ -3,7 +3,7 @@ import { HeygenWebhookService } from '@api/endpoints/webhooks/heygen/webhooks.he
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -149,6 +149,14 @@ describe('HeygenWebhookController', () => {
       expect(loggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('HEYGEN_WEBHOOK_SECRET'),
       );
+      expect(heygenWebhookService.handleCallback).not.toHaveBeenCalled();
+    });
+
+    it('rejects callbacks with a missing body instead of TypeError on destructure', async () => {
+      await expect(
+        controller.handleCallback(authenticatedRequest, undefined as never),
+      ).rejects.toThrow(BadRequestException);
+
       expect(heygenWebhookService.handleCallback).not.toHaveBeenCalled();
     });
   });

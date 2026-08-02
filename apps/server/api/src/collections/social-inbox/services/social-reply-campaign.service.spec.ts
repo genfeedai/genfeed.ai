@@ -74,6 +74,16 @@ function matchesWhere<T extends Record<string, unknown>>(
 function createContext(): {
   campaigns: StoreCampaign[];
   conversations: StoreConversation[];
+  prisma: {
+    $transaction: ReturnType<typeof vi.fn>;
+    socialReplyCampaign: {
+      create: ReturnType<typeof vi.fn>;
+      updateMany: ReturnType<typeof vi.fn>;
+    };
+    socialReplyCampaignRecipient: {
+      createMany: ReturnType<typeof vi.fn>;
+    };
+  };
   queueService: {
     enqueueTick: ReturnType<typeof vi.fn>;
     removeTick: ReturnType<typeof vi.fn>;
@@ -109,7 +119,145 @@ function createContext(): {
   let campaignCounter = 0;
   let recipientCounter = 0;
 
+  const socialReplyCampaign = {
+    count: vi
+      .fn()
+      .mockImplementation(({ where }) =>
+        Promise.resolve(
+          campaigns.filter((item) => matchesWhere(item, where)).length,
+        ),
+      ),
+    create: vi.fn().mockImplementation(({ data }) => {
+      const now = new Date();
+      const campaign: StoreCampaign = {
+        bodyTemplate: data.bodyTemplate,
+        brandId: data.brandId ?? null,
+        completedAt: null,
+        createdAt: now,
+        description: data.description ?? null,
+        dispatchCursor: 0,
+        failedCount: 0,
+        id: `campaign-${++campaignCounter}`,
+        isDeleted: false,
+        lastDispatchedAt: null,
+        lastError: null,
+        maxPerDay: data.maxPerDay,
+        maxPerHour: data.maxPerHour,
+        messageType: data.messageType,
+        metadata: {},
+        minDelaySeconds: data.minDelaySeconds,
+        name: data.name,
+        nextRunAt: null,
+        organizationId: data.organizationId,
+        pausedAt: null,
+        platform: data.platform,
+        sentCount: 0,
+        skippedCount: 0,
+        startedAt: null,
+        status: data.status,
+        totalRecipients: 0,
+        updatedAt: now,
+        userId: data.userId ?? null,
+        workflowExecutionId: null,
+        workflowId: null,
+      };
+      campaigns.push(campaign);
+      return Promise.resolve(campaign);
+    }),
+    findFirst: vi
+      .fn()
+      .mockImplementation(({ where }) =>
+        Promise.resolve(
+          campaigns.find((item) => matchesWhere(item, where)) ?? null,
+        ),
+      ),
+    findMany: vi
+      .fn()
+      .mockImplementation(({ where }) =>
+        Promise.resolve(campaigns.filter((item) => matchesWhere(item, where))),
+      ),
+    update: vi.fn().mockImplementation(({ data, where }) => {
+      const campaign = campaigns.find((item) => matchesWhere(item, where));
+      if (!campaign) {
+        throw new Error('campaign not found');
+      }
+      Object.assign(campaign, data, { updatedAt: new Date() });
+      return Promise.resolve(campaign);
+    }),
+    updateMany: vi.fn().mockImplementation(({ data, where }) => {
+      const matched = campaigns.filter((item) => matchesWhere(item, where));
+      for (const campaign of matched) {
+        Object.assign(campaign, data, { updatedAt: new Date() });
+      }
+      return Promise.resolve({ count: matched.length });
+    }),
+  };
+
+  const socialReplyCampaignRecipient = {
+    count: vi
+      .fn()
+      .mockImplementation(({ where }) =>
+        Promise.resolve(
+          recipients.filter((item) => matchesWhere(item, where)).length,
+        ),
+      ),
+    createMany: vi.fn().mockImplementation(({ data }) => {
+      let count = 0;
+      for (const row of data) {
+        if (
+          recipients.some(
+            (item) =>
+              item.campaignId === row.campaignId &&
+              item.conversationId === row.conversationId,
+          )
+        ) {
+          continue;
+        }
+        recipients.push({
+          attemptCount: 0,
+          body: null,
+          campaignId: row.campaignId,
+          conversationId: row.conversationId,
+          createdAt: new Date(),
+          dispatchedAt: null,
+          failureReason: null,
+          id: `recipient-${++recipientCounter}`,
+          idempotencyKey: row.idempotencyKey,
+          isDeleted: false,
+          messageId: null,
+          metadata: {},
+          organizationId: row.organizationId,
+          position: row.position,
+          scheduledAt: null,
+          sentAt: null,
+          status: row.status,
+          updatedAt: new Date(),
+        });
+        count += 1;
+      }
+      return Promise.resolve({ count });
+    }),
+    findMany: vi
+      .fn()
+      .mockImplementation(({ where }) =>
+        Promise.resolve(recipients.filter((item) => matchesWhere(item, where))),
+      ),
+    updateMany: vi.fn().mockImplementation(({ data, where }) => {
+      const matched = recipients.filter((item) => matchesWhere(item, where));
+      for (const recipient of matched) {
+        Object.assign(recipient, data, { updatedAt: new Date() });
+      }
+      return Promise.resolve({ count: matched.length });
+    }),
+  };
+
   const prisma = {
+    $transaction: vi
+      .fn()
+      .mockImplementation(
+        async (callback: (tx: typeof prisma) => Promise<unknown>) =>
+          callback(prisma),
+      ),
     socialConversation: {
       findMany: vi
         .fn()
@@ -121,133 +269,8 @@ function createContext(): {
           ),
         ),
     },
-    socialReplyCampaign: {
-      count: vi
-        .fn()
-        .mockImplementation(({ where }) =>
-          Promise.resolve(
-            campaigns.filter((item) => matchesWhere(item, where)).length,
-          ),
-        ),
-      create: vi.fn().mockImplementation(({ data }) => {
-        const now = new Date();
-        const campaign: StoreCampaign = {
-          bodyTemplate: data.bodyTemplate,
-          brandId: data.brandId ?? null,
-          completedAt: null,
-          createdAt: now,
-          description: data.description ?? null,
-          dispatchCursor: 0,
-          failedCount: 0,
-          id: `campaign-${++campaignCounter}`,
-          isDeleted: false,
-          lastDispatchedAt: null,
-          lastError: null,
-          maxPerDay: data.maxPerDay,
-          maxPerHour: data.maxPerHour,
-          messageType: data.messageType,
-          metadata: {},
-          minDelaySeconds: data.minDelaySeconds,
-          name: data.name,
-          nextRunAt: null,
-          organizationId: data.organizationId,
-          pausedAt: null,
-          platform: data.platform,
-          sentCount: 0,
-          skippedCount: 0,
-          startedAt: null,
-          status: data.status,
-          totalRecipients: 0,
-          updatedAt: now,
-          userId: data.userId ?? null,
-          workflowExecutionId: null,
-          workflowId: null,
-        };
-        campaigns.push(campaign);
-        return Promise.resolve(campaign);
-      }),
-      findFirst: vi
-        .fn()
-        .mockImplementation(({ where }) =>
-          Promise.resolve(
-            campaigns.find((item) => matchesWhere(item, where)) ?? null,
-          ),
-        ),
-      findMany: vi
-        .fn()
-        .mockImplementation(({ where }) =>
-          Promise.resolve(
-            campaigns.filter((item) => matchesWhere(item, where)),
-          ),
-        ),
-      update: vi.fn().mockImplementation(({ data, where }) => {
-        const campaign = campaigns.find((item) => matchesWhere(item, where));
-        if (!campaign) {
-          throw new Error('campaign not found');
-        }
-        Object.assign(campaign, data, { updatedAt: new Date() });
-        return Promise.resolve(campaign);
-      }),
-    },
-    socialReplyCampaignRecipient: {
-      count: vi
-        .fn()
-        .mockImplementation(({ where }) =>
-          Promise.resolve(
-            recipients.filter((item) => matchesWhere(item, where)).length,
-          ),
-        ),
-      createMany: vi.fn().mockImplementation(({ data }) => {
-        let count = 0;
-        for (const row of data) {
-          if (
-            recipients.some(
-              (item) =>
-                item.campaignId === row.campaignId &&
-                item.conversationId === row.conversationId,
-            )
-          ) {
-            continue;
-          }
-          recipients.push({
-            attemptCount: 0,
-            body: null,
-            campaignId: row.campaignId,
-            conversationId: row.conversationId,
-            createdAt: new Date(),
-            dispatchedAt: null,
-            failureReason: null,
-            id: `recipient-${++recipientCounter}`,
-            idempotencyKey: row.idempotencyKey,
-            isDeleted: false,
-            messageId: null,
-            metadata: {},
-            organizationId: row.organizationId,
-            position: row.position,
-            scheduledAt: null,
-            sentAt: null,
-            status: row.status,
-            updatedAt: new Date(),
-          });
-          count += 1;
-        }
-        return Promise.resolve({ count });
-      }),
-      findMany: vi
-        .fn()
-        .mockImplementation(({ where }) =>
-          Promise.resolve(
-            recipients.filter((item) => matchesWhere(item, where)),
-          ),
-        ),
-      updateMany: vi.fn().mockImplementation(({ data, where }) => {
-        const matched = recipients.filter((item) => matchesWhere(item, where));
-        for (const recipient of matched) {
-          Object.assign(recipient, data, { updatedAt: new Date() });
-        }
-        return Promise.resolve({ count: matched.length });
-      }),
-    },
+    socialReplyCampaign,
+    socialReplyCampaignRecipient,
   };
 
   const queueService = {
@@ -258,6 +281,7 @@ function createContext(): {
   return {
     campaigns,
     conversations,
+    prisma,
     queueService,
     recipients,
     service: new SocialReplyCampaignService(
@@ -469,6 +493,61 @@ describe('SocialReplyCampaignService', () => {
       await expect(
         context.service.transition(SCOPE, campaign.id, 'cancel'),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('lets only one concurrent start win the cursor and enqueue', async () => {
+      const context = createContext();
+      const campaign = await seedCampaign(context);
+
+      const [first, second] = await Promise.allSettled([
+        context.service.transition(SCOPE, campaign.id, 'start'),
+        context.service.transition(SCOPE, campaign.id, 'start'),
+      ]);
+
+      const fulfilled = [first, second].filter(
+        (result) => result.status === 'fulfilled',
+      );
+      const rejected = [first, second].filter(
+        (result) => result.status === 'rejected',
+      );
+
+      expect(fulfilled).toHaveLength(1);
+      expect(rejected).toHaveLength(1);
+      expect(context.queueService.enqueueTick).toHaveBeenCalledTimes(1);
+      expect(context.campaigns[0]).toMatchObject({
+        dispatchCursor: 1,
+        status: SocialReplyCampaignStatus.RUNNING,
+      });
+    });
+  });
+
+  describe('create atomicity', () => {
+    it('rolls back the campaign when recipient enrollment fails', async () => {
+      const context = createContext();
+
+      context.prisma.$transaction.mockImplementationOnce(
+        async (callback: (tx: typeof context.prisma) => Promise<unknown>) => {
+          try {
+            return await callback(context.prisma);
+          } catch (error) {
+            // Simulate transactional rollback: drop anything the callback wrote.
+            context.campaigns.length = 0;
+            context.recipients.length = 0;
+            throw error;
+          }
+        },
+      );
+      context.prisma.socialReplyCampaignRecipient.createMany.mockImplementationOnce(
+        () => {
+          throw new Error('enrollment failed');
+        },
+      );
+
+      await expect(seedCampaign(context, ['conversation-1'])).rejects.toThrow(
+        'enrollment failed',
+      );
+      expect(context.campaigns).toHaveLength(0);
+      expect(context.recipients).toHaveLength(0);
     });
   });
 

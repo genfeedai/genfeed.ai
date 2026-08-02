@@ -64,6 +64,38 @@ export type WorkspaceShellOverlayKey =
   | 'shell-preview'
   | 'workflow-picker';
 
+/**
+ * Canonical product-surface identifiers owned by the workspace-shell registry.
+ * Route renames and dead keys fail at compile time when registrations or
+ * adapters drift from this inventory.
+ */
+export type WorkspaceShellSurfaceKey =
+  | 'agent-conversation'
+  | 'agent-onboarding'
+  | 'analytics'
+  | 'artifact-editor'
+  | 'automate'
+  | 'automate-management'
+  | 'automate-workflows-editor'
+  | 'brand-settings'
+  | 'connect-genfeed'
+  | 'connect-genfeed-resolver'
+  | 'discover'
+  | 'lab'
+  | 'library'
+  | 'messages'
+  | 'organization-landing'
+  | 'organization-overview'
+  | 'organization-settings'
+  | 'personal-settings'
+  | 'platform-admin'
+  | 'protected-bootstrap'
+  | 'publish'
+  | 'studio-edit'
+  | 'studio-specialized'
+  | 'workspace'
+  | 'workspace-overview';
+
 export interface WorkspaceShellOverlayParameterMap {
   readonly 'library-picker': Readonly<Record<string, never>>;
   readonly notifications: Readonly<Record<string, never>>;
@@ -146,7 +178,7 @@ export interface WorkspaceShellRouteRegistration {
   readonly restoration: WorkspaceShellRestorationPolicy;
   readonly safeFallback: string;
   readonly scope: WorkspaceShellScopeRequirement;
-  readonly surfaceKey: string;
+  readonly surfaceKey: WorkspaceShellSurfaceKey;
   readonly switcherItems: readonly string[];
   readonly telemetryClass: 'agent' | 'management' | 'product';
 }
@@ -228,7 +260,7 @@ export interface WorkspaceShellLocation {
   readonly routeKey: string;
   readonly safeFallbackHref: string;
   readonly state: WorkspaceShellState;
-  readonly surfaceKey: string;
+  readonly surfaceKey: WorkspaceShellSurfaceKey;
   readonly threadId: string | null;
 }
 

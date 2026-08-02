@@ -46,8 +46,16 @@ export async function generateMetadata({
   }
 
   const articleImage = article.bannerUrl || metadata.cards.default;
-  const articleTitle = article.label;
-  const articleDescription = article.summary;
+  // Coerce missing strings so metadata helpers never see undefined values
+  // (GENFEED-AI-44: trim/string ops on absent article fields).
+  const articleTitle =
+    typeof article.label === 'string' && article.label.trim().length > 0
+      ? article.label.trim()
+      : 'Article';
+  const articleDescription =
+    typeof article.summary === 'string' && article.summary.trim().length > 0
+      ? article.summary.trim()
+      : articleTitle;
   const articleUrl = `${EnvironmentService.apps.website}/articles/${slug}`;
 
   return {
@@ -101,18 +109,31 @@ export default async function ArticleDetail({
   const articleJsonLd =
     article && article.id !== 'undefined'
       ? buildArticleJsonLd({
-          author: article.author || {
-            name: 'Genfeed',
-            url: 'https://genfeed.ai',
-          },
-          body: article.content,
+          author:
+            typeof article.author === 'string' &&
+            article.author.trim().length > 0
+              ? article.author.trim()
+              : {
+                  name: 'Genfeed',
+                  url: 'https://genfeed.ai',
+                },
+          body:
+            typeof article.content === 'string' ? article.content : undefined,
           dateModified: article.updatedAt || article.createdAt,
           datePublished: article.createdAt,
-          description: article.summary,
-          headline: article.label,
+          description:
+            typeof article.summary === 'string' ? article.summary : undefined,
+          headline:
+            typeof article.label === 'string' && article.label.trim().length > 0
+              ? article.label.trim()
+              : 'Article',
           imageUrls: [article.bannerUrl || metadata.cards.default],
           inLanguage: 'en-US',
-          keywords: article.tags?.map((tag) => tag.label),
+          keywords: article.tags
+            ?.map((tag) =>
+              typeof tag?.label === 'string' ? tag.label : undefined,
+            )
+            .filter((label): label is string => Boolean(label)),
           mainEntityUrl: `${EnvironmentService.apps.website}/articles/${slug}`,
           publisher: {
             logoUrl: 'https://cdn.genfeed.ai/assets/logo.png',

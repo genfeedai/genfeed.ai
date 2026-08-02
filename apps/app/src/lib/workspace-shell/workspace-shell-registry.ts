@@ -11,6 +11,7 @@ import type {
   WorkspaceShellRouteMode,
   WorkspaceShellRouteRegistration,
   WorkspaceShellScopeRequirement,
+  WorkspaceShellSurfaceKey,
 } from '@genfeedai/interfaces/ui/workspace-shell.interface';
 
 export type {
@@ -30,6 +31,7 @@ export type {
   WorkspaceShellRouteMode,
   WorkspaceShellRouteRegistration,
   WorkspaceShellScopeRequirement,
+  WorkspaceShellSurfaceKey,
   WorkspaceShellSurfaceMode,
 } from '@genfeedai/interfaces/ui/workspace-shell.interface';
 
@@ -40,7 +42,7 @@ type RouteGroupConfig = {
   readonly mode: WorkspaceShellRouteMode;
   readonly productClass: WorkspaceShellProductClass;
   readonly scope: WorkspaceShellScopeRequirement;
-  readonly surfaceKey: string;
+  readonly surfaceKey: WorkspaceShellSurfaceKey;
   readonly switcherItems?: readonly string[];
   readonly telemetryClass: WorkspaceShellRouteRegistration['telemetryClass'];
 };

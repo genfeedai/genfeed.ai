@@ -79,6 +79,8 @@ export class SystemWorkflowCatalogService {
       );
     }
 
+    // Soft-deleted installs are excluded by scopedWhere (`isDeleted: false`),
+    // so a deleted row does not short-circuit install or report as installed.
     const existing = await this.findExistingInstall(
       input.organizationId,
       entry.canonicalId,
@@ -90,6 +92,9 @@ export class SystemWorkflowCatalogService {
         organizationId: input.organizationId,
         workflowId: existing.id,
       });
+      // Re-sync on the existing path so a prior post-commit scheduler failure
+      // cannot permanently strand an installed workflow as unscheduled (#2259).
+      await this.syncInstallScheduler(existing);
       return existing as unknown as WorkflowDocument;
     }
 
@@ -118,15 +123,7 @@ export class SystemWorkflowCatalogService {
         { isolationLevel: 'Serializable' },
       );
 
-      await this.workflowExecutionQueueService?.syncWorkflowScheduler({
-        id: created.id,
-        isDeleted: created.isDeleted,
-        isScheduleEnabled: created.isScheduleEnabled,
-        metadata: created.metadata,
-        schedule: created.schedule,
-        status: created.status,
-        timezone: created.timezone,
-      });
+      await this.syncInstallScheduler(created);
 
       return created as unknown as WorkflowDocument;
     } catch (error) {
@@ -137,6 +134,7 @@ export class SystemWorkflowCatalogService {
           entry.canonicalId,
         );
         if (raced) {
+          await this.syncInstallScheduler(raced);
           return raced as unknown as WorkflowDocument;
         }
       }
@@ -144,9 +142,52 @@ export class SystemWorkflowCatalogService {
     }
   }
 
+  /**
+   * Best-effort BullMQ scheduler sync after install. Failures are logged and
+   * never fail the install — the workflow row is already committed. A later
+   * idempotent install re-enters this path to recover.
+   */
+  private async syncInstallScheduler(workflow: {
+    id: string;
+    isDeleted?: boolean;
+    isScheduleEnabled?: boolean | null;
+    metadata?: unknown;
+    schedule?: string | null;
+    status?: string | null;
+    timezone?: string | null;
+  }): Promise<void> {
+    if (!this.workflowExecutionQueueService) {
+      return;
+    }
+
+    try {
+      await this.workflowExecutionQueueService.syncWorkflowScheduler({
+        id: workflow.id,
+        isDeleted: workflow.isDeleted ?? false,
+        isScheduleEnabled: workflow.isScheduleEnabled,
+        metadata: workflow.metadata,
+        schedule: workflow.schedule,
+        status: workflow.status,
+        timezone: workflow.timezone,
+      });
+    } catch (error) {
+      // Defense in depth: the queue service already swallows errors, but a
+      // future regression must not turn a scheduler hiccup into a failed install.
+      this.logger?.error(
+        'Failed to sync scheduler after system catalog install',
+        {
+          error,
+          workflowId: workflow.id,
+        },
+      );
+    }
+  }
+
   private async findInstalledByCanonicalId(
     organizationId: string,
   ): Promise<Map<string, string>> {
+    // scopedWhere injects isDeleted: false — soft-deleted installs stay out of
+    // the "installed" map so the catalog UI can re-install.
     const workflows = await this.prisma.workflow.findMany({
       select: { id: true, metadata: true },
       where: scopedWhere(organizationId, {}),
@@ -168,6 +209,8 @@ export class SystemWorkflowCatalogService {
     organizationId: string,
     canonicalId: string,
   ) {
+    // scopedWhere injects isDeleted: false — a soft-deleted install is treated
+    // as absent so install creates a fresh usable row (#2259).
     return this.prisma.workflow.findFirst({
       where: scopedWhere(organizationId, {
         metadata: {
