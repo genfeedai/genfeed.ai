@@ -150,14 +150,14 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.library,
       },
       {
-        activePathRoots: ['/research'],
+        activePathRoots: ['/discover'],
         description: 'Find winners.',
         icon: TrendingUp,
-        id: 'research',
-        itemKey: 'trends',
-        label: 'Trends',
-        route: createScopedAppRoute({ brandPath: '/research/discovery' }),
-        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.research,
+        id: 'discover',
+        itemKey: 'discover',
+        label: 'Discover',
+        route: createScopedAppRoute({ brandPath: '/discover/discovery' }),
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.discover,
       },
       {
         // Compose + Editor are publish-adjacent create surfaces, not Studio.
@@ -261,8 +261,8 @@ function useAppSwitcherVisibility(): Record<
     [APP_SWITCHER_FEATURE_FLAGS.messages]: useFeatureFlag(
       APP_SWITCHER_FEATURE_FLAGS.messages,
     ),
-    [APP_SWITCHER_FEATURE_FLAGS.research]: useFeatureFlag(
-      APP_SWITCHER_FEATURE_FLAGS.research,
+    [APP_SWITCHER_FEATURE_FLAGS.discover]: useFeatureFlag(
+      APP_SWITCHER_FEATURE_FLAGS.discover,
     ),
     [APP_SWITCHER_FEATURE_FLAGS.studio]: useFeatureFlag(
       APP_SWITCHER_FEATURE_FLAGS.studio,

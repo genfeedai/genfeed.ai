@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUseTrendContent = vi.fn();
 const mockUseQuery = vi.fn();
-const mockUsePathname = vi.fn(() => '/research/socials');
+const mockUsePathname = vi.fn(() => '/discover/socials');
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => vi.fn()),
@@ -57,7 +57,7 @@ vi.mock('next/link', () => ({
 describe('TrendsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUsePathname.mockReturnValue('/research/socials');
+    mockUsePathname.mockReturnValue('/discover/socials');
 
     mockUseTrendContent.mockReturnValue({
       error: null,
@@ -154,7 +154,7 @@ describe('TrendsList', () => {
 
     expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
       'href',
-      '/research/socials',
+      '/discover/socials',
     );
     expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
       'data-state',
@@ -277,11 +277,11 @@ describe('TrendsList', () => {
 
     expect(screen.getByRole('link', { name: 'X' })).toHaveAttribute(
       'href',
-      '/research/twitter',
+      '/discover/twitter',
     );
     expect(screen.getByRole('link', { name: 'LinkedIn' })).toHaveAttribute(
       'href',
-      '/research/linkedin',
+      '/discover/linkedin',
     );
   });
 });

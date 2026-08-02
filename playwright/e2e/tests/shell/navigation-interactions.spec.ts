@@ -199,7 +199,7 @@ test.describe('Shell — navigation interactions', () => {
     for (const route of [
       `${BRAND_BASE}/workspace`,
       `${BRAND_BASE}/library`,
-      `${BRAND_BASE}/research/discovery`,
+      `${BRAND_BASE}/discover/discovery`,
     ]) {
       await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
       await settle(authenticatedPage);

@@ -4,7 +4,7 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import type { TrendPlatform } from '@pages/trends/shared/trends-platforms';
 import Tabs from '@ui/navigation/tabs/Tabs';
 
-export type SocialsNavigationBasePath = '/research' | '/analytics/trends';
+export type SocialsNavigationBasePath = '/discover' | '/analytics/trends';
 
 interface SocialsNavigationItem {
   href: string;
@@ -31,7 +31,7 @@ const PLATFORM_LABELS: Array<{
 function buildOverviewHref(basePath: SocialsNavigationBasePath): string {
   return basePath === '/analytics/trends'
     ? '/analytics/trends'
-    : '/research/socials';
+    : '/discover/socials';
 }
 
 function buildPlatformHref(
@@ -40,7 +40,7 @@ function buildPlatformHref(
 ): string {
   return basePath === '/analytics/trends'
     ? `/analytics/trends/platforms/${platform}`
-    : `/research/${platform}`;
+    : `/discover/${platform}`;
 }
 
 function buildSocialsNavItems(
@@ -61,14 +61,14 @@ function buildSocialsNavItems(
     return item;
   });
 
-  if (basePath !== '/research') {
+  if (basePath !== '/discover') {
     return platformItems;
   }
 
   return [
     platformItems[0],
     {
-      href: APP_ROUTES.RESEARCH.FOLLOWING,
+      href: APP_ROUTES.DISCOVER.FOLLOWING,
       id: 'following',
       label: 'Following',
     },
@@ -80,7 +80,7 @@ export type SocialsNavigationValue = 'overview' | 'following' | TrendPlatform;
 
 export function SocialsNavigation({
   active,
-  basePath = '/research',
+  basePath = '/discover',
 }: {
   active: SocialsNavigationValue;
   basePath?: SocialsNavigationBasePath;

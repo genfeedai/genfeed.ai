@@ -238,25 +238,25 @@ describe('app next.config', () => {
     ).toBe(false);
   });
 
-  it('redirects org-scoped /research to /research/discovery', async () => {
+  it('redirects org-scoped /discover to /discover/discovery', async () => {
     const redirects = await config.redirects?.();
-    const researchRedirect = redirects?.find(
+    const discoverRedirect = redirects?.find(
       (redirect) =>
         redirect.source ===
-        createBrandAppRoute(':orgSlug', ':brandSlug', APP_ROUTES.RESEARCH.ROOT),
+        createBrandAppRoute(':orgSlug', ':brandSlug', APP_ROUTES.DISCOVER.ROOT),
     );
 
-    expect(researchRedirect).toEqual({
+    expect(discoverRedirect).toEqual({
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.RESEARCH.DISCOVERY,
+        APP_ROUTES.DISCOVER.DISCOVERY,
       ),
       permanent: false,
       source: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.RESEARCH.ROOT,
+        APP_ROUTES.DISCOVER.ROOT,
       ),
     });
   });

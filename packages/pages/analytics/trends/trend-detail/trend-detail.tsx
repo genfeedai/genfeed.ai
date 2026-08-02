@@ -33,7 +33,7 @@ import TrendDetailHeader from './trend-detail-header';
 import TrendDetailRelatedTable from './trend-detail-related-table';
 
 export default function TrendDetail({
-  backHref = '/research/discovery',
+  backHref = '/discover/discovery',
   trendId,
 }: TrendDetailProps) {
   const router = useRouter();
@@ -226,7 +226,7 @@ export default function TrendDetail({
       {/* Cross-Platform Trends */}
       <TrendDetailRelatedTable
         relatedTrends={relatedTrends}
-        onRowClick={(item) => router.push(`/research/${item.id}`)}
+        onRowClick={(item) => router.push(`/discover/${item.id}`)}
       />
     </Container>
   );
