@@ -7,7 +7,7 @@ export const APP_SWITCHER_FEATURE_FLAGS = {
   library: 'app_switcher_library',
   posts: 'app_switcher_posts',
   analytics: 'app_switcher_analytics',
-  /** Merged workflows + orchestration surface. */
+  /** Merged workflows + automation surface. */
   automate: 'app_switcher_automate',
 } as const;
 

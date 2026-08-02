@@ -921,23 +921,23 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const rootResponse = await proxy(
-      makeSignedInRequest('/orchestration'),
+      makeSignedInRequest('/automate'),
       {} as never,
     );
 
     expect(rootResponse.status).toBe(307);
     expect(rootResponse.headers.get('location')).toBe(
-      'http://localhost:3000/acme/~/orchestration',
+      'http://localhost:3000/acme/~/automate',
     );
 
     const workflowsResponse = await proxy(
-      makeSignedInRequest('/orchestration/workflows'),
+      makeSignedInRequest('/automate/workflows'),
       {} as never,
     );
 
     expect(workflowsResponse.status).toBe(307);
     expect(workflowsResponse.headers.get('location')).toBe(
-      'http://localhost:3000/acme/~/orchestration',
+      'http://localhost:3000/acme/~/automate',
     );
   });
 

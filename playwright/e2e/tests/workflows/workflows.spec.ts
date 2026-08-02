@@ -16,12 +16,12 @@ import {
 } from '../../fixtures/test-data.fixture';
 
 /**
- * The editor toolbar back-link renders `href(APP_ROUTES.ORCHESTRATION.WORKFLOWS)`
+ * The editor toolbar back-link renders `href(APP_ROUTES.AUTOMATE.WORKFLOWS)`
  * — an org/brand-scoped href, so only the suffix is stable. Built from the route
  * constant so a route rename travels with it instead of leaving a literal that
  * silently matches nothing (as `a[href="/workflows"]` did before the migration).
  */
-const workflowsBackLinkSelector = `a[href$="${APP_ROUTES.ORCHESTRATION.WORKFLOWS}"]`;
+const workflowsBackLinkSelector = `a[href$="${APP_ROUTES.AUTOMATE.WORKFLOWS}"]`;
 
 test.describe('Workflows', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
@@ -41,12 +41,12 @@ test.describe('Workflows', () => {
   }) => {
     const workflow = testWorkflows[1];
 
-    await authenticatedPage.goto(`/orchestration/workflows/${workflow.id}`, {
+    await authenticatedPage.goto(`/automate/workflows/${workflow.id}`, {
       waitUntil: 'domcontentloaded',
     });
 
     await expect(authenticatedPage).toHaveURL(
-      new RegExp(`/orchestration/workflows/${workflow.id}$`),
+      new RegExp(`/automate/workflows/${workflow.id}$`),
     );
     await expect(
       authenticatedPage.locator(workflowsBackLinkSelector).first(),
@@ -68,13 +68,11 @@ test.describe('Workflows', () => {
   test('workflow creation route renders restored navigation and draft actions', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS_NEW, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS_NEW, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(
-      /\/orchestration\/workflows\/new$/,
-    );
+    await expect(authenticatedPage).toHaveURL(/\/automate\/workflows\/new$/);
     await expect(
       authenticatedPage.locator(workflowsBackLinkSelector).first(),
     ).toBeVisible();
@@ -92,15 +90,12 @@ test.describe('Workflows', () => {
   test('workflow executions route renders execution history shell', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(
-      APP_ROUTES.ORCHESTRATION.WORKFLOWS_EXECUTIONS,
-      {
-        waitUntil: 'domcontentloaded',
-      },
-    );
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS, {
+      waitUntil: 'domcontentloaded',
+    });
 
     await expect(authenticatedPage).toHaveURL(
-      /\/orchestration\/workflows\/executions$/,
+      /\/automate\/workflows\/executions$/,
     );
     await expect(
       authenticatedPage.getByRole('heading', { name: /execution history/i }),
@@ -110,7 +105,7 @@ test.describe('Workflows', () => {
   test('unauthenticated user is redirected away from workflow editor routes', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS_NEW, {
+    await unauthenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS_NEW, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -123,12 +118,9 @@ test.describe('Workflows', () => {
   test('unauthenticated user is redirected away from workflow executions', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(
-      APP_ROUTES.ORCHESTRATION.WORKFLOWS_EXECUTIONS,
-      {
-        waitUntil: 'domcontentloaded',
-      },
-    );
+    await unauthenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS, {
+      waitUntil: 'domcontentloaded',
+    });
 
     await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
       timeout: 15000,

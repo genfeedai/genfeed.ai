@@ -89,7 +89,7 @@ This decision was checked against the repository and live issue state on
 - Canonical URLs already encode personal, organization (`/:org/~`), brand
   (`/:org/:brand`), resource, and admin scope.
 - The app switcher exposes nine primary modules plus role-gated Admin. It does
-  not enumerate Workflows, Calendar, Moodboard, settings, orchestration Skills,
+  not enumerate Workflows, Calendar, Moodboard, settings, Automate Skills,
   Studio subroutes, or the full management and admin route set.
 - The former non-SaaS terminal dock was legacy shell chrome, not a route. The
   permanent agent-first cutover removes it from protected application chrome.
@@ -481,14 +481,14 @@ The app switcher is discovery for nine primary modules, not the inventory.
 | `/:orgSlug/:brandSlug/posts/**`                                        | Brand                   | Canvas; post detail may also register an overlay   | Detail, Composer, Analytics, Calendar, Newsletters, Published, Remix, Review, Scheduled.                                                                                             |
 | `/:orgSlug/:brandSlug/analytics/**`                                    | Brand                   | Canvas                                             | Posts, Brands/detail/platform, Insights, Hooks, Performance Lab, Trends/detail/platform, Trend Turnover, Streaks.                                                                    |
 | `/:orgSlug/:brandSlug/workflows/**`                                    | Brand                   | Canvas or focused editor                           | New/detail, Templates, Executions/detail. Workflows is not an app-switcher module.                                                                                                   |
-| `/:orgSlug/:brandSlug/orchestration/**`                                | Brand                   | Canvas                                             | Agent detail, overview, new, analytics, autopilot, configuration, hire, orchestrator, runs, Skills, content runs, campaigns/detail/new, outreach campaigns/detail/new, library/type. |
+| `/:orgSlug/:brandSlug/automate/**`                                | Brand                   | Canvas                                             | Agent detail, overview, new, analytics, autopilot, configuration, hire, orchestrator, runs, Skills, content runs, campaigns/detail/new, outreach campaigns/detail/new, library/type. |
 | `/:orgSlug/:brandSlug/settings/**`                                     | Brand                   | Canvas                                             | Voice, harness, interview, publishing, and agent defaults.                                                                                                                           |
 | `/:orgSlug/:brandSlug/lab/**`                                          | Brand                   | Canvas                                             | Articles, retired cron compatibility route, library preview, Twitter engage.                                                                                                         |
 | `/admin/**`                                                            | Platform-admin          | Canvas                                             | Agent, overview/analytics, content, automation, configuration, fleet, library, organization, administration, folders, image/video detail.                                            |
 
 Special inventory rules:
 
-- Calendar, Workflows, Moodboard, orchestration Skills, Studio Batch/Clips/Fastlane,
+- Calendar, Workflows, Moodboard, Automate Skills, Studio Batch/Clips/Fastlane,
   both overview dashboards, settings, and admin routes are mandatory despite not
   being primary switcher entries.
 - Notifications are a shell service/accessible live-region and may use a trusted

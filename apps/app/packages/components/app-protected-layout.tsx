@@ -131,7 +131,7 @@ function AppLayoutWithDynamicMenu({
     isDiscoverRoute,
     isSettingsRoute,
     isStudioRoute,
-    isWorkflowsRoute,
+    isAutomateRoute,
     hasSecondaryTopbar,
     currentApp,
     orgSlug,
@@ -151,7 +151,7 @@ function AppLayoutWithDynamicMenu({
     secondaryMenuItems,
     settingsMenuItems,
     studioMenuItems,
-    workflowsMenuItems,
+    automateMenuItems,
     isPostsRoute,
     taskContextSearchParams,
     handleNavigate,
@@ -304,7 +304,7 @@ function AppLayoutWithDynamicMenu({
         isDiscoverRoute={isDiscoverRoute}
         isSettingsRoute={isSettingsRoute}
         isStudioRoute={isStudioRoute}
-        isWorkflowsRoute={isWorkflowsRoute}
+        isAutomateRoute={isAutomateRoute}
         settingsScope={settingsScope}
         adminMenuItems={adminMenuItems}
         analyticsMenuItems={analyticsMenuItems}
@@ -317,7 +317,7 @@ function AppLayoutWithDynamicMenu({
         secondaryMenuItems={secondaryMenuItems}
         settingsMenuItems={settingsMenuItems}
         studioMenuItems={studioMenuItems}
-        workflowsMenuItems={workflowsMenuItems}
+        automateMenuItems={automateMenuItems}
         navPanel={activeNavPanel}
         onOpenCommandPalette={handleOpenCommandPalette}
       />
@@ -343,7 +343,7 @@ function AppLayoutWithDynamicMenu({
     isDiscoverRoute,
     isSettingsRoute,
     isStudioRoute,
-    isWorkflowsRoute,
+    isAutomateRoute,
     libraryMenuItems,
     menuItems,
     orgMenuItems,
@@ -355,7 +355,7 @@ function AppLayoutWithDynamicMenu({
     shellChromeVariant,
     studioMenuItems,
     taskContextSearchParams,
-    workflowsMenuItems,
+    automateMenuItems,
   ]);
 
   const topbarComponent = isFocusedOnboardingRoute
@@ -376,8 +376,8 @@ function AppLayoutWithDynamicMenu({
             ? studioMenuItems
             : isComposeRoute
               ? composeMenuItems
-              : isWorkflowsRoute
-                ? workflowsMenuItems
+              : isAutomateRoute
+                ? automateMenuItems
                 : isAnalyticsRoute
                   ? analyticsMenuItems
                   : isDiscoverRoute

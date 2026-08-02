@@ -774,8 +774,8 @@ function UniversalWorkspaceShellContent({
     (workflow?: WorkflowSummary) => {
       const destinationHref = href(
         workflow
-          ? `${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/${workflow._id}`
-          : APP_ROUTES.ORCHESTRATION.WORKFLOWS,
+          ? `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow._id}`
+          : APP_ROUTES.AUTOMATE.WORKFLOWS,
       );
       const launch = resolveWorkspaceSurfaceLaunch({
         currentHref,

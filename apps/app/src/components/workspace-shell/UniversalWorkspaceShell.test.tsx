@@ -118,7 +118,7 @@ vi.mock('@genfeedai/agent', () => ({
               label: 'Workflow',
               name: 'workflow',
               requiredScope: 'brand',
-              route: '/orchestration/workflows',
+              route: '/automate/workflows',
             },
             arguments: '',
           })
@@ -189,7 +189,7 @@ vi.mock('@genfeedai/agent', () => ({
         label: 'Workflow',
         name: 'workflow',
         requiredScope: 'brand',
-        route: '/orchestration/workflows',
+        route: '/automate/workflows',
       };
     }
     return null;
@@ -976,7 +976,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('gives canonical workflow editors focused canvas overflow ownership', () => {
-    navigation.pathname = '/acme/moonrise/orchestration/workflows/workflow-1';
+    navigation.pathname = '/acme/moonrise/automate/workflows/workflow-1';
     navigation.searchParams = new URLSearchParams();
 
     render(

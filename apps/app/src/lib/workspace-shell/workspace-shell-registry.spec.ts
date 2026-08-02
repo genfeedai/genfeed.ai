@@ -85,7 +85,7 @@ describe('workspace shell trusted registry', () => {
 
   it.each([
     ['/acme/~/settings/api-keys', 'Settings', 'API Keys'],
-    ['/acme/~/orchestration', 'Automate', 'Overview'],
+    ['/acme/~/automate', 'Automate', 'Overview'],
     ['/acme/moonrise/discover/following', 'Discover', 'Following'],
     ['/acme/moonrise/discover/instagram', 'Discover', 'Instagram'],
     ['/acme/moonrise/library', 'Library', 'Overview'],
@@ -105,25 +105,13 @@ describe('workspace shell trusted registry', () => {
       'Analytics',
       'Instagram Trends',
     ],
-    [
-      '/acme/moonrise/orchestration/workflows/templates',
-      'Automate',
-      'Templates',
-    ],
-    ['/acme/moonrise/orchestration/workflows/new', 'Automate', 'New Workflow'],
-    [
-      '/acme/moonrise/orchestration/workflows/workflow-1',
-      'Automate',
-      'Workflow',
-    ],
-    ['/acme/moonrise/orchestration', 'Automate', 'Overview'],
-    [
-      '/acme/moonrise/orchestration/content-runs/run-1',
-      'Automate',
-      'Content Run',
-    ],
+    ['/acme/moonrise/automate/workflows/templates', 'Automate', 'Templates'],
+    ['/acme/moonrise/automate/workflows/new', 'Automate', 'New Workflow'],
+    ['/acme/moonrise/automate/workflows/workflow-1', 'Automate', 'Workflow'],
+    ['/acme/moonrise/automate', 'Automate', 'Overview'],
+    ['/acme/moonrise/automate/content-runs/run-1', 'Automate', 'Content Run'],
     ['/acme/moonrise/posts/campaigns/campaign-1', 'Publish', 'Campaign'],
-    ['/acme/moonrise/orchestration/library/images', 'Automate', 'Images'],
+    ['/acme/moonrise/automate/library/images', 'Automate', 'Images'],
   ] as const)(
     'resolves canonical breadcrumb metadata for %s',
     (pathname, rootLabel, leafLabel) => {
@@ -151,7 +139,7 @@ describe('workspace shell trusted registry', () => {
   it.each([
     ['/:orgSlug/:brandSlug/posts/calendar', 'canvas'],
     ['/:orgSlug/:brandSlug/library/moodboard', 'canvas'],
-    ['/:orgSlug/:brandSlug/orchestration/skills', 'canvas'],
+    ['/:orgSlug/:brandSlug/automate/skills', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/batch', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/clips', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/fastlane', 'canvas'],
@@ -164,15 +152,15 @@ describe('workspace shell trusted registry', () => {
     ).toBe(mode);
   });
 
-  it('keeps legacy workflow aliases aligned with their canonical orchestration owners', () => {
+  it('keeps legacy workflow aliases aligned with their canonical automate owners', () => {
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/orchestration/autopilot'),
-    ).toMatchObject({ mode: 'canvas', surfaceKey: 'orchestration' });
+      resolveWorkspaceShellRoute('/acme/moonrise/automate/autopilot'),
+    ).toMatchObject({ mode: 'canvas', surfaceKey: 'automate' });
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/orchestration/configuration'),
+      resolveWorkspaceShellRoute('/acme/moonrise/automate/configuration'),
     ).toMatchObject({
       mode: 'canvas',
-      surfaceKey: 'orchestration-management',
+      surfaceKey: 'automate-management',
     });
   });
 
@@ -217,7 +205,7 @@ describe('workspace shell trusted registry', () => {
       '/acme/moonrise/library/images',
       '/acme/moonrise/posts/calendar',
       '/acme/moonrise/posts/review',
-      '/acme/moonrise/orchestration/workflows/executions/run-1',
+      '/acme/moonrise/automate/workflows/executions/run-1',
       '/acme/moonrise/settings/publishing',
       '/acme/~/settings/api-keys',
       '/acme/~/settings/billing',
@@ -239,12 +227,12 @@ describe('workspace shell trusted registry', () => {
       resolveWorkspaceShellRoute('/acme/moonrise/studio/image'),
     ).toMatchObject({ productClass: 'contextual-action' });
     // The Automate hard-cut folded autopilot and configuration into the
-    // first-class orchestration family; /write is the surviving compat alias.
+    // first-class automate family; /write is the surviving compat alias.
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/orchestration/autopilot'),
+      resolveWorkspaceShellRoute('/acme/moonrise/automate/autopilot'),
     ).toMatchObject({ productClass: 'control-plane' });
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/orchestration/configuration'),
+      resolveWorkspaceShellRoute('/acme/moonrise/automate/configuration'),
     ).toMatchObject({ productClass: 'control-plane' });
     expect(resolveWorkspaceShellRoute('/acme/~/write')).toMatchObject({
       productClass: 'compatibility-only',

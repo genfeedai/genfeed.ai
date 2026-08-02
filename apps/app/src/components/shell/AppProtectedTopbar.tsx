@@ -44,6 +44,7 @@ const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   admin: 'Admin',
   agent: 'Agent',
   analytics: 'Analytics',
+  automate: 'Automate',
   compose: 'Compose',
   editor: 'Editor',
   library: 'Library',
@@ -51,9 +52,6 @@ const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   posts: 'Posts',
   discover: 'Discover',
   studio: 'Studio',
-  automate: 'Automate',
-  orchestration: 'Automate',
-  workflows: 'Automate',
   workspace: 'Workspace',
 };
 

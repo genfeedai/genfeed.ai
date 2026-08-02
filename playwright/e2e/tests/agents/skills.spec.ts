@@ -17,13 +17,11 @@ test.describe('Agents Skills', () => {
   test('loads the skills catalog for authenticated users', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.SKILLS, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.SKILLS, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(
-      /\/orchestration\/skills(?:$|[?#])/,
-    );
+    await expect(authenticatedPage).toHaveURL(/\/automate\/skills(?:$|[?#])/);
     await expect(
       authenticatedPage.getByRole('heading', {
         name: 'Brand content behavior',
@@ -40,7 +38,7 @@ test.describe('Agents Skills', () => {
   test('redirects unauthenticated users from the skills route', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.ORCHESTRATION.SKILLS, {
+    await unauthenticatedPage.goto(APP_ROUTES.AUTOMATE.SKILLS, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -54,7 +52,7 @@ test.describe('Agents Skills', () => {
       // Local keyless dev mode intentionally skips auth enforcement.
     }
 
-    await expect(unauthenticatedPage).toHaveURL(/\/orchestration\/skills/);
+    await expect(unauthenticatedPage).toHaveURL(/\/automate\/skills/);
     await expect(
       unauthenticatedPage.getByRole('heading', {
         name: 'Brand content behavior',

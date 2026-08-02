@@ -44,7 +44,7 @@ import {
 type LifecycleAppSwitcherItemConfig = AppSwitcherItemConfig & {
   /**
    * Product path roots that activate this app (menu-style). Matched against the
-   * brand/org-stripped pathname, e.g. `/studio`, `/posts`, `/orchestration`.
+   * brand/org-stripped pathname, e.g. `/studio`, `/posts`, `/automate`.
    * Longest root wins; no match → nothing highlighted (settings, onboarding, …).
    */
   activePathRoots: readonly string[];
@@ -115,14 +115,14 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.messages,
       },
       {
-        activePathRoots: ['/orchestration'],
+        activePathRoots: ['/automate'],
         description: 'Workflows, autopilot, and team ops.',
         icon: Workflow,
         id: 'automate',
         itemKey: 'automate',
         label: 'Automate',
         route: createScopedAppRoute({
-          brandPath: '/orchestration',
+          brandPath: '/automate',
         }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.automate,
       },

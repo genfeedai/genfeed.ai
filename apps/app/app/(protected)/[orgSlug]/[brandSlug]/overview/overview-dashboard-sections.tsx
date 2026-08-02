@@ -127,7 +127,7 @@ export function OverviewTopStatStrip({
 }
 
 export function OverviewOperationsSection({
-  runsHref = '/orchestration/runs',
+  runsHref = '/automate/runs',
   runs,
 }: {
   runsHref?: string;

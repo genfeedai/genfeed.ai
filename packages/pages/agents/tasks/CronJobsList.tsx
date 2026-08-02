@@ -148,7 +148,7 @@ export default function CronJobsList() {
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
           >
-            <Link href={href(APP_ROUTES.ORCHESTRATION.WORKFLOWS)}>
+            <Link href={href(APP_ROUTES.AUTOMATE.WORKFLOWS)}>
               Open Workflows
             </Link>
           </Button>

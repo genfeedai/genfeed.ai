@@ -18,14 +18,14 @@ export default function EmptyWorkflowState() {
       description="Create your first workflow for a fixed, repeatable automation pipeline."
       actions={
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <Link href={href(APP_ROUTES.ORCHESTRATION.WORKFLOWS_TEMPLATES)}>
+          <Link href={href(APP_ROUTES.AUTOMATE.WORKFLOWS_TEMPLATES)}>
             <Button
               label="Browse Templates"
               variant={ButtonVariant.SECONDARY}
               icon={<Copy className="size-4" />}
             />
           </Link>
-          <Link href={href(APP_ROUTES.ORCHESTRATION.WORKFLOWS_NEW)}>
+          <Link href={href(APP_ROUTES.AUTOMATE.WORKFLOWS_NEW)}>
             <Button
               label="Create Workflow"
               variant={ButtonVariant.DEFAULT}
