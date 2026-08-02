@@ -21,7 +21,7 @@ export default function ArticlePreview({
 }: ArticlePreviewProps) {
   return (
     <>
-      <Card className="p-6">
+      <Card bodyClassName="p-6">
         <article className="prose prose-sm sm:prose lg:prose-lg max-w-none">
           <h1>{form.label || 'Untitled Article'}</h1>
           {form.summary && (

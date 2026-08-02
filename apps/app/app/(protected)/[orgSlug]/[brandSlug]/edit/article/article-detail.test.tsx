@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import ArticleDetail from './article-detail';
+import ArticleDetail, { applyDraftSuggestionToHtml } from './article-detail';
 import '@testing-library/jest-dom/vitest';
 
 const {
@@ -98,6 +98,25 @@ describe('ArticleDetail', () => {
   it('should render without crashing', () => {
     const { container } = render(<ArticleDetail />);
     expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('inserts agent suggestions containing replacement patterns verbatim', () => {
+    const html = applyDraftSuggestionToHtml('<p>Original price</p>', {
+      selectedText: 'Original price',
+      text: 'Price is $&5',
+    });
+    const container = document.createElement('div');
+    container.innerHTML = html;
+
+    expect(container.textContent).toBe('Price is $&5');
+  });
+
+  it('does not offer the generated-only X Article category manually', () => {
+    render(<ArticleDetail />);
+
+    expect(
+      screen.queryByRole('option', { name: 'X Article' }),
+    ).not.toBeInTheDocument();
   });
 
   it('generates publishable X teaser drafts from an account-aware X Article', async () => {

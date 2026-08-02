@@ -7,7 +7,7 @@
 ########################################
 
 ### Create a New Run
-POST {{apiBaseUrl}}/runs
+POST {{apiBaseUrl}}/action-runs
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -24,7 +24,7 @@ Content-Type: application/json
 
 
 ### Create Run with Correlation ID
-POST {{apiBaseUrl}}/runs
+POST {{apiBaseUrl}}/action-runs
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 X-Trace-ID: external-trace-abc-123
@@ -40,12 +40,12 @@ X-Trace-ID: external-trace-abc-123
 
 
 ### List All Runs
-GET {{apiBaseUrl}}/runs
+GET {{apiBaseUrl}}/action-runs
 Authorization: Bearer {{bearerToken}}
 
 
 ### List Runs with Filters
-GET {{apiBaseUrl}}/runs?status=running&type=video_generation&page=1&limit=20
+GET {{apiBaseUrl}}/action-runs?status=running&type=video_generation&page=1&limit=20
 Authorization: Bearer {{bearerToken}}
 
 
@@ -54,12 +54,12 @@ Authorization: Bearer {{bearerToken}}
 ########################################
 
 ### Get Run by ID
-GET {{apiBaseUrl}}/runs/{{testRunId}}
+GET {{apiBaseUrl}}/action-runs/{{testRunId}}
 Authorization: Bearer {{bearerToken}}
 
 
 ### Update Run Status/Output
-PATCH {{apiBaseUrl}}/runs/{{testRunId}}
+PATCH {{apiBaseUrl}}/action-runs/{{testRunId}}
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -74,12 +74,12 @@ Content-Type: application/json
 
 
 ### Execute Run (Start Processing)
-POST {{apiBaseUrl}}/runs/{{testRunId}}/execute
+POST {{apiBaseUrl}}/action-runs/{{testRunId}}/execute
 Authorization: Bearer {{bearerToken}}
 
 
 ### Cancel Run
-PATCH {{apiBaseUrl}}/runs/{{testRunId}}
+PATCH {{apiBaseUrl}}/action-runs/{{testRunId}}
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -93,12 +93,12 @@ Content-Type: application/json
 ########################################
 
 ### Get Run Events
-GET {{apiBaseUrl}}/runs/{{testRunId}}/events
+GET {{apiBaseUrl}}/action-runs/{{testRunId}}/events
 Authorization: Bearer {{bearerToken}}
 
 
 ### Append Event to Run
-POST {{apiBaseUrl}}/runs/{{testRunId}}/events
+POST {{apiBaseUrl}}/action-runs/{{testRunId}}/events
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -113,7 +113,7 @@ Content-Type: application/json
 
 
 ### Append Error Event
-POST {{apiBaseUrl}}/runs/{{testRunId}}/events
+POST {{apiBaseUrl}}/action-runs/{{testRunId}}/events
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -131,12 +131,12 @@ Content-Type: application/json
 ########################################
 
 ### Test: Run Not Found
-GET {{apiBaseUrl}}/runs/507f1f77bcf86cd799439011
+GET {{apiBaseUrl}}/action-runs/507f1f77bcf86cd799439011
 Authorization: Bearer {{bearerToken}}
 
 
 ### Test: Create Run Without Required Fields
-POST {{apiBaseUrl}}/runs
+POST {{apiBaseUrl}}/action-runs
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -146,7 +146,7 @@ Content-Type: application/json
 
 
 ### Test: Cancel Already Completed Run
-PATCH {{apiBaseUrl}}/runs/{{testRunId}}
+PATCH {{apiBaseUrl}}/action-runs/{{testRunId}}
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -156,4 +156,4 @@ Content-Type: application/json
 
 
 ### Test: Unauthorized Access
-GET {{apiBaseUrl}}/runs
+GET {{apiBaseUrl}}/action-runs

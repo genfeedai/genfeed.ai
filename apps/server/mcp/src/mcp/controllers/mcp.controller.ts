@@ -88,27 +88,6 @@ export class McpController {
     };
   }
 
-  @Public()
-  @Get('health')
-  getHealth() {
-    return {
-      endpoints: {
-        config: '/config',
-        docs: '/',
-        example: '/example',
-        health: '/health',
-        manifest: '/manifest',
-        mcpInfo: '/mcp-info',
-        streamableHttp: '/mcp',
-      },
-      message: this.mcpService.getHello(),
-      serverRunning: this.serverService.isServerRunning(),
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      version: '1.0.0',
-    };
-  }
-
   @Get('tools')
   getTools(@Req() request: AuthenticatedRequest) {
     const role: McpRole = request?.authContext?.role ?? 'user';

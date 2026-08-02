@@ -137,6 +137,18 @@ export const APP_ROUTES = {
     ROOT: '/discover',
     SOCIALS: '/discover/socials',
   },
+  /**
+   * Dedicated artifact editor pages. Refinement belongs to the artifact, not to
+   * a module — every text artifact gets a focused, deep-linkable editor at
+   * `/edit/{type}/{id}`. Distinct from EDITOR, which is the Remotion project
+   * canvas.
+   */
+  EDIT: {
+    ARTICLE: '/edit/article',
+    NEWSLETTER: '/edit/newsletter',
+    POST: '/edit/post',
+    ROOT: '/edit',
+  },
   EDITOR: {
     NEW: '/editor/new',
     ROOT: '/editor',
@@ -247,6 +259,7 @@ export const APP_ROUTE_PREFIXES = {
   AUTOMATE: APP_ROUTES.AUTOMATE.ROOT,
   COMPOSE: APP_ROUTES.COMPOSE.ROOT,
   DISCOVER: APP_ROUTES.DISCOVER.ROOT,
+  EDIT: APP_ROUTES.EDIT.ROOT,
   EDITOR: APP_ROUTES.EDITOR.ROOT,
   LIBRARY: '/library',
   MESSAGES: APP_ROUTES.MESSAGES.ROOT,
@@ -271,6 +284,21 @@ export const LEGACY_APP_ROUTES = {
 } as const;
 
 export const COMPOSE_ROUTES = APP_ROUTES.COMPOSE;
+
+/** Artifact type → dedicated editor route root. */
+export const ARTIFACT_EDITOR_ROUTES = {
+  article: APP_ROUTES.EDIT.ARTICLE,
+  newsletter: APP_ROUTES.EDIT.NEWSLETTER,
+  post: APP_ROUTES.EDIT.POST,
+} as const;
+
+export type ArtifactEditorType = keyof typeof ARTIFACT_EDITOR_ROUTES;
+
+/**
+ * Query parameter carrying the list an artifact editor was opened from, so
+ * back-navigation returns to that list instead of a hardcoded default.
+ */
+export const ARTIFACT_EDITOR_RETURN_PARAM = 'returnTo';
 
 type NestedRouteValue<T> = T extends string
   ? T
@@ -304,4 +332,48 @@ export function createOrganizationAppRoute(
   path: string = APP_ROUTES.ROOT,
 ): string {
   return `/${orgSlug}/~${normalizeScopedRoutePath(path)}`;
+}
+
+/**
+ * Build the brand-relative path to an artifact's dedicated editor page.
+ * Pass the result through `useOrgUrl().href()` to scope it to org + brand.
+ */
+export function createArtifactEditorRoute(
+  artifactType: ArtifactEditorType,
+  artifactId: string,
+): string {
+  return `${ARTIFACT_EDITOR_ROUTES[artifactType]}/${artifactId}`;
+}
+
+/** Append the originating list to an artifact editor href. */
+export function withArtifactEditorReturn(
+  editorHref: string,
+  returnTo: string,
+): string {
+  const separator = editorHref.includes('?') ? '&' : '?';
+
+  return `${editorHref}${separator}${ARTIFACT_EDITOR_RETURN_PARAM}=${encodeURIComponent(returnTo)}`;
+}
+
+/**
+ * Resolve an artifact editor's back destination.
+ *
+ * Only same-origin absolute paths are honoured — a protocol-relative or
+ * absolute-URL value would turn the editor into an open redirect, so anything
+ * that is not a single-slash-prefixed path falls back to the owning list.
+ */
+export function resolveArtifactEditorBackHref(
+  returnTo: string | null | undefined,
+  fallbackHref: string,
+): string {
+  const normalizedReturnTo = returnTo?.replace(/\\/g, '/');
+
+  if (
+    !normalizedReturnTo?.startsWith('/') ||
+    normalizedReturnTo.startsWith('//')
+  ) {
+    return fallbackHref;
+  }
+
+  return normalizedReturnTo;
 }

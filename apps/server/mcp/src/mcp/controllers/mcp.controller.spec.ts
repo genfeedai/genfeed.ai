@@ -98,7 +98,6 @@ describe('McpController', () => {
   );
 
   const mockMcpService = {
-    getHello: vi.fn().mockReturnValue('Genfeed MCP Server'),
     getMcpConfiguration: vi.fn().mockReturnValue({
       mcpServers: {
         genfeed: {
@@ -184,18 +183,6 @@ describe('McpController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
-  });
-
-  describe('getHealth', () => {
-    it('should return health status', () => {
-      const result = controller.getHealth();
-      expect(result).toHaveProperty('status', 'healthy');
-      expect(result).toHaveProperty('message', 'Genfeed MCP Server');
-      expect(result).toHaveProperty('timestamp');
-      expect(result).toHaveProperty('serverRunning', true);
-      expect(result).toHaveProperty('version', '1.0.0');
-      expect(result).toHaveProperty('endpoints');
-    });
   });
 
   describe('getMcpConfiguration', () => {

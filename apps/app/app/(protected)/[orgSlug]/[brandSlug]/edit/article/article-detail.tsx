@@ -36,7 +36,7 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
-function applyDraftSuggestionToHtml(
+export function applyDraftSuggestionToHtml(
   currentContent: string,
   payload: AgentDraftSuggestionPayload,
 ): string {
@@ -44,7 +44,7 @@ function applyDraftSuggestionToHtml(
   const selectedText = payload.selectedText?.trim();
 
   if (selectedText && currentContent.includes(selectedText)) {
-    return currentContent.replace(selectedText, escapeHtml(suggestion));
+    return currentContent.replace(selectedText, () => escapeHtml(suggestion));
   }
 
   const paragraph = `<p>${escapeHtml(suggestion)
@@ -229,7 +229,7 @@ export default function ArticleDetail({
   if (error && !article) {
     return (
       <div className="container mx-auto p-6">
-        <Card className="p-4">
+        <Card bodyClassName="p-4">
           <div className="text-error mb-4">{error}</div>
         </Card>
       </div>

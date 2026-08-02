@@ -191,7 +191,7 @@ export class ApiService {
   ): Promise<RunRecord> {
     const result = await this.request<{ reused: boolean; run: RunRecord }>(
       'POST',
-      '/runs',
+      '/action-runs',
       {
         actionType,
         campaign: options?.campaign,
@@ -207,11 +207,11 @@ export class ApiService {
   }
 
   executeRun(runId: string): Promise<RunRecord> {
-    return this.request<RunRecord>('POST', `/runs/${runId}/execute`);
+    return this.request<RunRecord>('POST', `/action-runs/${runId}/execute`);
   }
 
   getRun(runId: string): Promise<RunRecord> {
-    return this.request<RunRecord>('GET', `/runs/${runId}`);
+    return this.request<RunRecord>('GET', `/action-runs/${runId}`);
   }
 
   async listRuns(options?: {
@@ -231,7 +231,7 @@ export class ApiService {
     }
 
     const query = params.toString();
-    const endpoint = query ? `/runs?${query}` : '/runs';
+    const endpoint = query ? `/action-runs?${query}` : '/action-runs';
     const result = await this.request<
       ApiResponse<RunRecord[]> | { runs: RunRecord[] } | RunRecord[]
     >('GET', endpoint);
@@ -247,10 +247,15 @@ export class ApiService {
     return extractDataArray(result);
   }
 
+  // NOTE: the API exposes no `/timeline` route on either runs controller, so
+  // this 404s and `safeLoadTimeline` swallows it into an empty timeline. Moved
+  // under `action-runs` for namespace correctness only — wiring it to the
+  // existing `GET /action-runs/:runId/events` needs an envelope-to-event shape
+  // mapping and is tracked separately.
   async getRunTimeline(runId: string): Promise<RunTimelineEvent[]> {
     const result = await this.request<
       ApiResponse<RunTimelineEvent[]> | RunTimelineEvent[]
-    >('GET', `/runs/${runId}/timeline`);
+    >('GET', `/action-runs/${runId}/timeline`);
     return extractDataArray(result);
   }
 

@@ -31,11 +31,11 @@ function materializeRoutePattern(pattern: string): string {
 
 describe('workspace shell trusted registry', () => {
   it('owns the complete accepted protected-route denominator', () => {
-    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(214);
+    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(217);
     expect(
       new Set(PROTECTED_ROUTE_INVENTORY.map((route) => route.canonicalUrl))
         .size,
-    ).toBe(213);
+    ).toBe(217);
 
     for (const route of PROTECTED_ROUTE_INVENTORY) {
       expect(route.accessPolicy).toMatch(
@@ -113,6 +113,9 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/automate/content-runs/run-1', 'Automate', 'Content Run'],
     ['/acme/moonrise/publish/campaigns/campaign-1', 'Publish', 'Campaign'],
     ['/acme/moonrise/automate/library/images', 'Automate', 'Images'],
+    ['/acme/moonrise/edit/article/article-1', 'Edit', 'Article'],
+    ['/acme/moonrise/edit/newsletter/newsletter-1', 'Edit', 'Newsletter'],
+    ['/acme/moonrise/edit/post/post-1', 'Edit', 'Post'],
   ] as const)(
     'resolves canonical breadcrumb metadata for %s',
     (pathname, rootLabel, leafLabel) => {
@@ -152,6 +155,25 @@ describe('workspace shell trusted registry', () => {
       resolveWorkspaceShellRoute(materializeRoutePattern(pattern))?.mode,
     ).toBe(mode);
   });
+
+  it.each([
+    '/acme/moonrise/edit/article/article-1',
+    '/acme/moonrise/edit/newsletter/newsletter-1',
+    '/acme/moonrise/edit/post/post-1',
+  ] as const)(
+    'registers the dedicated artifact editor %s as a focused Publish surface',
+    (pathname) => {
+      expect(resolveWorkspaceShellRoute(pathname)).toMatchObject({
+        mode: 'canvas',
+        productClass: 'contextual-action',
+        safeFallback: '/:orgSlug/:brandSlug/publish',
+        surfaceKey: 'artifact-editor',
+      });
+      expect(resolveWorkspaceShellRoute(pathname)?.switcherItems).toEqual([
+        'publish',
+      ]);
+    },
+  );
 
   it('keeps legacy workflow aliases aligned with their canonical automate owners', () => {
     expect(
