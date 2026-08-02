@@ -31,11 +31,11 @@ function materializeRoutePattern(pattern: string): string {
 
 describe('workspace shell trusted registry', () => {
   it('owns the complete accepted protected-route denominator', () => {
-    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(216);
+    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(217);
     expect(
       new Set(PROTECTED_ROUTE_INVENTORY.map((route) => route.canonicalUrl))
         .size,
-    ).toBe(216);
+    ).toBe(217);
 
     for (const route of PROTECTED_ROUTE_INVENTORY) {
       expect(route.accessPolicy).toMatch(
@@ -109,6 +109,7 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/automate/workflows/new', 'Automate', 'New Workflow'],
     ['/acme/moonrise/automate/workflows/workflow-1', 'Automate', 'Workflow'],
     ['/acme/moonrise/automate', 'Automate', 'Overview'],
+    ['/acme/moonrise/automate/content-runs', 'Automate', 'Content Runs'],
     ['/acme/moonrise/automate/content-runs/run-1', 'Automate', 'Content Run'],
     ['/acme/moonrise/publish/campaigns/campaign-1', 'Publish', 'Campaign'],
     ['/acme/moonrise/automate/library/images', 'Automate', 'Images'],

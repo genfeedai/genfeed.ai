@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import type {
   ContentRunAnalyticsSummary,
@@ -17,6 +18,7 @@ import { Button } from '@ui/primitives/button';
 import {
   ChartColumn,
   CircleCheck,
+  CirclePlay,
   Clock,
   FileText,
   RefreshCw,
@@ -479,7 +481,12 @@ function NavigationPanel({
 }) {
   const { href } = useOrgUrl();
   const links = [
-    { href: href('/publish'), label: 'Publish', icon: Send },
+    {
+      href: href(APP_ROUTES.AUTOMATE.CONTENT_RUNS),
+      label: 'All Content Runs',
+      icon: CirclePlay,
+    },
+    { href: href(APP_ROUTES.PUBLISH.ROOT), label: 'Publish', icon: Send },
     { href: href('/analytics/posts'), label: 'Analytics', icon: ChartColumn },
   ];
 

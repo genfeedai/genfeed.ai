@@ -11,6 +11,7 @@ import OverviewLayout from '@ui/overview/OverviewLayout';
 import { Button } from '@ui/primitives/button';
 import {
   ChartLine,
+  CirclePlay,
   ClipboardList,
   Cpu,
   House as Home,
@@ -45,6 +46,16 @@ export default function AutomationOverviewPage() {
       icon: Cpu,
       id: 'runs',
       label: 'Runs',
+    },
+    {
+      color: 'bg-emerald-500/12 text-emerald-300',
+      cta: 'Open Content Runs',
+      description:
+        'Follow briefs from Discover through remix, publish, and analytics',
+      href: href(APP_ROUTES.AUTOMATE.CONTENT_RUNS),
+      icon: CirclePlay,
+      id: 'content-runs',
+      label: 'Content Runs',
     },
     {
       color: 'bg-indigo-500/12 text-indigo-300',

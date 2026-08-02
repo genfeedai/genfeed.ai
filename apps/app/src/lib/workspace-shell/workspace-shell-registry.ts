@@ -876,6 +876,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/automate/autopilot',
       '/:orgSlug/:brandSlug/automate/runs',
       '/:orgSlug/:brandSlug/automate/skills',
+      '/:orgSlug/:brandSlug/automate/content-runs',
       '/:orgSlug/:brandSlug/automate/content-runs/:runId',
       '/:orgSlug/:brandSlug/automate/workflows',
       '/:orgSlug/:brandSlug/automate/workflows/templates',

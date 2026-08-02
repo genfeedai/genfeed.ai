@@ -115,6 +115,9 @@ describe('ContentRunDetailPage', () => {
         name: 'Create remix pack from this content run',
       }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /All Content Runs/i }),
+    ).toHaveAttribute('href', '/acme/main/automate/content-runs');
     expect(screen.getByRole('link', { name: /Publish/i })).toHaveAttribute(
       'href',
       '/acme/main/publish',

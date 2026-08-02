@@ -104,6 +104,8 @@ export const APP_ROUTES = {
     ANALYTICS: '/automate/analytics',
     AUTOPILOT: '/automate/autopilot',
     CONFIGURATION: '/automate/configuration',
+    /** Content-run history: briefs handed off from Discover through publish. */
+    CONTENT_RUNS: '/automate/content-runs',
     HIRE: '/automate/hire',
     LIBRARY: '/automate/library',
     NEW: '/automate/new',
