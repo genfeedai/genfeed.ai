@@ -47,7 +47,7 @@ import TrendsPlatformStatBar from './components/trends-platform-stat-bar';
 
 export default function TrendsPlatformDetail({
   platform,
-  basePath = '/research',
+  basePath = '/discover',
 }: {
   platform: TrendPlatform;
   basePath?: SocialsNavigationBasePath;

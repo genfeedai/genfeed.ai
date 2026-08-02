@@ -111,7 +111,7 @@ describe('OverviewTrendsPanel', () => {
       <OverviewTrendsPanel
         isLoading={false}
         trends={TRENDS}
-        viewAllHref="/research/discovery"
+        viewAllHref="/discover/discovery"
       />,
     );
 
@@ -124,7 +124,7 @@ describe('OverviewTrendsPanel', () => {
       <OverviewTrendsPanel
         isLoading={false}
         trends={TRENDS}
-        viewAllHref="/research/discovery"
+        viewAllHref="/discover/discovery"
       />,
     );
 
@@ -140,7 +140,7 @@ describe('OverviewTrendsPanel', () => {
         isLoading={false}
         tone="default"
         trends={TRENDS}
-        viewAllHref="/research/discovery"
+        viewAllHref="/discover/discovery"
       />,
     );
 
@@ -155,13 +155,13 @@ describe('OverviewTrendsPanel', () => {
       <OverviewTrendsPanel
         isLoading={false}
         trends={TRENDS}
-        viewAllHref="/research/discovery"
+        viewAllHref="/discover/discovery"
       />,
     );
 
     expect(screen.getByRole('link', { name: /view all/i })).toHaveAttribute(
       'href',
-      '/research/discovery',
+      '/discover/discovery',
     );
   });
 
@@ -170,7 +170,7 @@ describe('OverviewTrendsPanel', () => {
       <OverviewTrendsPanel
         isLoading={false}
         trends={TRENDS}
-        viewAllHref="/research/discovery"
+        viewAllHref="/discover/discovery"
       />,
     );
 
@@ -191,7 +191,7 @@ describe('OverviewTrendsPanel', () => {
       <OverviewTrendsPanel
         isLoading={false}
         trends={TRENDS}
-        viewAllHref="/research/discovery"
+        viewAllHref="/discover/discovery"
       />,
     );
 
@@ -204,7 +204,7 @@ describe('OverviewTrendsPanel', () => {
       <OverviewTrendsPanel
         isLoading={true}
         trends={[]}
-        viewAllHref="/research/discovery"
+        viewAllHref="/discover/discovery"
       />,
     );
 
@@ -219,7 +219,7 @@ describe('OverviewTrendsPanel', () => {
       <OverviewTrendsPanel
         isLoading={false}
         trends={[]}
-        viewAllHref="/research/discovery"
+        viewAllHref="/discover/discovery"
       />,
     );
 

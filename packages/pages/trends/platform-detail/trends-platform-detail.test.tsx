@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUseTrendContent = vi.fn();
 const mockUseQuery = vi.fn();
-const mockUsePathname = vi.fn(() => '/research/tiktok');
+const mockUsePathname = vi.fn(() => '/discover/tiktok');
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => vi.fn()),
@@ -57,7 +57,7 @@ vi.mock('next/link', () => ({
 describe('TrendsPlatformDetail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUsePathname.mockReturnValue('/research/tiktok');
+    mockUsePathname.mockReturnValue('/discover/tiktok');
 
     mockUseTrendContent.mockReturnValue({
       error: null,
@@ -154,7 +154,7 @@ describe('TrendsPlatformDetail', () => {
     );
     expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
       'href',
-      '/research/socials',
+      '/discover/socials',
     );
     expect(screen.getByText('TikTok Trends')).toBeInTheDocument();
     expect(
@@ -197,7 +197,7 @@ describe('TrendsPlatformDetail', () => {
   });
 
   it('keeps LinkedIn on the public-reference feed when the feed is empty', () => {
-    mockUsePathname.mockReturnValue('/research/linkedin');
+    mockUsePathname.mockReturnValue('/discover/linkedin');
 
     mockUseTrendContent.mockReturnValue({
       error: null,
@@ -228,7 +228,7 @@ describe('TrendsPlatformDetail', () => {
   });
 
   it('activates the matching platform tab for reference-feed pages too', () => {
-    mockUsePathname.mockReturnValue('/research/linkedin');
+    mockUsePathname.mockReturnValue('/discover/linkedin');
 
     mockUseTrendContent.mockReturnValue({
       error: null,

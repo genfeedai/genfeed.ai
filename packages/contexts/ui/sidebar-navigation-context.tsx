@@ -65,7 +65,7 @@ function stripOrgPrefix(path: string): string {
       'chat',
       'compose',
       'editor',
-      'research',
+      'discover',
       'issues',
       'overview',
       'ingredients',
