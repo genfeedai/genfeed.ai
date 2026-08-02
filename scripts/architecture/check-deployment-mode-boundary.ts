@@ -30,6 +30,7 @@ const RAW_ENV_ALLOWLIST = new Set([
   'apps/app/next.config.ts',
   'packages/auth-client/src/config.ts',
   'packages/config/src/deployment.ts',
+  'packages/config/src/license-server.ts',
   'packages/config/src/license.ts',
 ]);
 

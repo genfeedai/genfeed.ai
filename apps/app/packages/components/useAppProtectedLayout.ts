@@ -21,7 +21,7 @@ import {
   useAgentPageContext,
 } from '@genfeedai/agent';
 import { isDesktopClient } from '@genfeedai/config/deployment';
-import { hasOrganizationBilling } from '@genfeedai/config/license';
+import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { APP_ROUTE_PREFIXES, APP_ROUTES } from '@genfeedai/constants';
 import type { AppContext } from '@genfeedai/interfaces';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
@@ -382,7 +382,7 @@ export function useAppProtectedLayout(
     () =>
       buildSettingsMenuItems({
         scope: settingsScope,
-        isEnterprise: hasOrganizationBilling(),
+        isEnterprise: hasOrganizationBillingHint(),
       }).map(
         (item): MenuItemConfig => ({
           ...item,

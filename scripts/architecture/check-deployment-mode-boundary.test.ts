@@ -57,6 +57,8 @@ describe('deployment mode boundary', () => {
         'export const desktop = process.env.NEXT_PUBLIC_DESKTOP_SHELL;',
       'packages/config/src/license.ts':
         'export const license = process.env.GENFEED_LICENSE_KEY;',
+      'packages/config/src/license-server.ts':
+        'export const serverLicense = process.env.GENFEED_LICENSE_KEY;',
       'packages/auth-client/src/config.ts':
         'export const auth = process.env.BETTER_AUTH_ENABLED;',
     });

@@ -154,7 +154,7 @@ vi.mock('@ui/primitives/button', () => ({
 }));
 
 vi.mock('@genfeedai/config/license', () => ({
-  hasOrganizationBilling: () => hasOrganizationBillingMock(),
+  hasOrganizationBillingHint: () => hasOrganizationBillingMock(),
 }));
 
 vi.mock('@genfeedai/config/deployment', () => ({

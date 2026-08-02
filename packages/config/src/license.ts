@@ -1,4 +1,5 @@
 import { isSaaS } from './deployment';
+import { getLicenseVerificationVerdict } from './license-state';
 
 /**
  * Enterprise Edition (EE) feature gating for **self-hosted** commercial builds.
@@ -10,10 +11,7 @@ import { isSaaS } from './deployment';
  * has org billing — use {@link hasOrganizationBilling}.
  */
 export function isEEEnabled(): boolean {
-  return Boolean(
-    process.env.GENFEED_LICENSE_KEY ??
-      process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY,
-  );
+  return getLicenseVerificationVerdict();
 }
 
 /**
@@ -25,4 +23,18 @@ export function isEEEnabled(): boolean {
  */
 export function hasOrganizationBilling(): boolean {
   return isSaaS() || isEEEnabled();
+}
+
+/**
+ * Cosmetic organization-billing hint for browser and Next.js UI code.
+ *
+ * The public env value is intentionally presence-only because public bundles
+ * cannot verify the server-only license token. Never use this helper for API,
+ * provider, authorization, or other enforcement decisions.
+ */
+export function hasOrganizationBillingHint(): boolean {
+  return (
+    hasOrganizationBilling() ||
+    Boolean(process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY?.trim())
+  );
 }

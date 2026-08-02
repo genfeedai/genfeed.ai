@@ -8,7 +8,7 @@ import {
 } from '@app/(onboarding)/onboarding/post-signup/post-signup-routing.util';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { isSaaS, isSelfHostedDeployment } from '@genfeedai/config/deployment';
-import { hasOrganizationBilling } from '@genfeedai/config/license';
+import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import {
   APP_ROUTES,
   createOrganizationAppRoute,
@@ -232,7 +232,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
           return;
         }
 
-        if (!hasOrganizationBilling()) {
+        if (!hasOrganizationBillingHint()) {
           await redirectToOnboarding();
           return;
         }
@@ -339,7 +339,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
           return;
         }
 
-        if (!hasOrganizationBilling()) {
+        if (!hasOrganizationBillingHint()) {
           await redirectToOnboarding();
           return;
         }
