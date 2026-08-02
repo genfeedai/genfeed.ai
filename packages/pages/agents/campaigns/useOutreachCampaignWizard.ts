@@ -179,7 +179,7 @@ export function useOutreachCampaignWizard() {
       const created = await service.post(campaignData);
 
       notificationsService.success('Campaign created successfully');
-      router.push(`${APP_ROUTES.POSTS.OUTREACH_CAMPAIGNS}/${created.id}`);
+      router.push(`${APP_ROUTES.PUBLISH.OUTREACH_CAMPAIGNS}/${created.id}`);
     } catch (error) {
       logger.error('Failed to create campaign', error);
       notificationsService.error('Failed to create campaign');

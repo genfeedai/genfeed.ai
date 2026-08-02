@@ -9,8 +9,8 @@ import { expect, test } from '../../fixtures/auth.fixture';
 /**
  * E2E Tests for Posts Sub-Routes (Content Types)
  *
- * Covers: /compose, /compose/article, /posts/newsletters,
- *         /posts/remix, /posts/review
+ * Covers: /compose, /compose/article, /publish/newsletters,
+ *         /publish/remix, /publish/review
  *
  * CRITICAL: All tests use mocked API responses.
  * No real backend calls occur.
@@ -51,9 +51,9 @@ test.describe('Posts — Content Types', () => {
       await route.continue();
     });
 
-    await authenticatedPage.goto(APP_ROUTES.POSTS.NEWSLETTERS);
+    await authenticatedPage.goto(APP_ROUTES.PUBLISH.NEWSLETTERS);
 
-    await expect(authenticatedPage).toHaveURL(/posts\/newsletters/);
+    await expect(authenticatedPage).toHaveURL(/publish\/newsletters/);
     // Page should render newsletter-specific content
     await expect(
       authenticatedPage.getByText(/newsletter/i).first(),
@@ -73,9 +73,9 @@ test.describe('Posts — Content Types', () => {
   });
 
   test('remix page loads remix interface', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto(APP_ROUTES.POSTS.REMIX);
+    await authenticatedPage.goto(APP_ROUTES.PUBLISH.REMIX);
 
-    await expect(authenticatedPage).toHaveURL(/posts\/remix/);
+    await expect(authenticatedPage).toHaveURL(/publish\/remix/);
     // Remix page should render its interface
     await expect(
       authenticatedPage.getByText(/remix|trend/i).first(),
@@ -85,9 +85,9 @@ test.describe('Posts — Content Types', () => {
   test('review page shows review queue', async ({ authenticatedPage }) => {
     await mockReviewQueue(authenticatedPage);
 
-    await authenticatedPage.goto(APP_ROUTES.POSTS.REVIEW);
+    await authenticatedPage.goto(APP_ROUTES.PUBLISH.REVIEW);
 
-    await expect(authenticatedPage).toHaveURL(/posts\/review/);
+    await expect(authenticatedPage).toHaveURL(/publish\/review/);
     // Review queue should display batch/review UI
     await expect(
       authenticatedPage.getByText(/review|queue|batch|approve/i).first(),

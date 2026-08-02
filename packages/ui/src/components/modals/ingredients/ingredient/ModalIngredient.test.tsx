@@ -186,7 +186,7 @@ describe('ModalIngredient', () => {
     );
 
     expect(navigation.push).toHaveBeenCalledWith(
-      '/acme-org/acme-brand/posts/remix?sourceArtifact=ingredient%3Aimage-ingredient&sourceVersion=7',
+      '/acme-org/acme-brand/publish/remix?sourceArtifact=ingredient%3Aimage-ingredient&sourceVersion=7',
     );
   });
 

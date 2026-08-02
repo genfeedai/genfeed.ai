@@ -295,13 +295,13 @@ export function useClipWorkflowRunCard({
       if (firstItemId) {
         params.set('item', firstItemId);
       }
-      nextUrl = `/posts/review?${params.toString()}`;
+      nextUrl = `/publish/review?${params.toString()}`;
     }
 
     setStep('supervised_review', 'completed');
 
     if (typeof window !== 'undefined') {
-      window.location.href = nextUrl ?? '/posts/review';
+      window.location.href = nextUrl ?? '/publish/review';
     }
   }, [
     action.brandId,
@@ -413,6 +413,6 @@ export function useClipWorkflowRunCard({
     workflowExecutionUrl: hrefFn(
       `${APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS}/${workflowExecutionId ?? ''}`,
     ),
-    humanReviewUrl: hrefFn('/posts/review'),
+    humanReviewUrl: hrefFn('/publish/review'),
   };
 }

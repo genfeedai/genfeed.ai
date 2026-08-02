@@ -35,7 +35,7 @@ test.describe('App surfaces — fetch error states', () => {
 
   test('posts list survives a server error', async ({ authenticatedPage }) => {
     await mockServerError(authenticatedPage, '**/posts**');
-    const route = `${ORG_BRAND}/posts`;
+    const route = `${ORG_BRAND}/publish`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
@@ -43,7 +43,7 @@ test.describe('App surfaces — fetch error states', () => {
 
   test('posts list survives a network error', async ({ authenticatedPage }) => {
     await mockNetworkError(authenticatedPage, '**/posts**');
-    const route = `${ORG_BRAND}/posts`;
+    const route = `${ORG_BRAND}/publish`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);

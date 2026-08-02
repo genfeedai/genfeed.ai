@@ -162,7 +162,7 @@ function CampaignCard({ campaign }: { campaign: AgentCampaign }) {
           className="opacity-0 transition-opacity group-hover:opacity-100"
         >
           <Link
-            href={`${APP_ROUTES.POSTS.CAMPAIGNS}/${campaign.id}`}
+            href={`${APP_ROUTES.PUBLISH.CAMPAIGNS}/${campaign.id}`}
             aria-label={`Open ${campaign.label}`}
           >
             <ArrowRight className="size-3.5" />
@@ -227,7 +227,7 @@ function ActiveCampaignCards({ campaigns }: { campaigns: AgentCampaign[] }) {
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.XS}
           >
-            <Link href={APP_ROUTES.POSTS.CAMPAIGNS}>View All</Link>
+            <Link href={APP_ROUTES.PUBLISH.CAMPAIGNS}>View All</Link>
           </Button>
         )}
       </div>
@@ -351,7 +351,7 @@ export default function AgentCampaignsPage() {
       icon={LayoutDashboard}
       right={
         <Button asChild variant={ButtonVariant.DEFAULT} size={ButtonSize.SM}>
-          <Link href={APP_ROUTES.POSTS.CAMPAIGNS_NEW}>
+          <Link href={APP_ROUTES.PUBLISH.CAMPAIGNS_NEW}>
             <Plus /> New Campaign
           </Link>
         </Button>
@@ -395,7 +395,7 @@ export default function AgentCampaignsPage() {
             </p>
           </div>
           <Button asChild variant={ButtonVariant.DEFAULT} size={ButtonSize.SM}>
-            <Link href={APP_ROUTES.POSTS.CAMPAIGNS_NEW}>
+            <Link href={APP_ROUTES.PUBLISH.CAMPAIGNS_NEW}>
               <Plus /> New Campaign
             </Link>
           </Button>

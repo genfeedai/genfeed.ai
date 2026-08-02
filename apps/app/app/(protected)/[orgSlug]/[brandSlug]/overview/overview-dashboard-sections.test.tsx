@@ -289,7 +289,7 @@ describe('Overview dashboard sections', () => {
     expect(screen.getByText('Weekly newsletter draft')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open Queue' })).toHaveAttribute(
       'href',
-      '/posts/review',
+      '/publish/review',
     );
   });
 

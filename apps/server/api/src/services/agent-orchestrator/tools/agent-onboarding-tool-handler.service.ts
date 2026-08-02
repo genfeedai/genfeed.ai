@@ -650,7 +650,7 @@ export class AgentOnboardingToolHandler {
         },
         nextActions: [
           {
-            ctas: [{ href: '/posts/drafts', label: 'View all drafts' }],
+            ctas: [{ href: '/publish/drafts', label: 'View all drafts' }],
             description: `Sample content generated for ${brandName}`,
             id: `onboarding-content-${Date.now()}`,
             images,

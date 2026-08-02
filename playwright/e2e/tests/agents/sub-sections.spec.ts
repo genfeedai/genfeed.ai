@@ -11,8 +11,8 @@ import { expect, test } from '../../fixtures/auth.fixture';
 /**
  * E2E Tests for Agents Sub-Routes
  *
- * Covers: /posts/campaigns, /posts/campaigns/new, /posts/outreach-campaigns,
- *         /posts/outreach-campaigns/new, /automate/runs, /automate/strategies,
+ * Covers: /publish/campaigns, /publish/campaigns/new, /publish/outreach-campaigns,
+ *         /publish/outreach-campaigns/new, /automate/runs, /automate/strategies,
  *         /workflows, /workflows/new, /workflows/templates
  *
  * CRITICAL: All tests use mocked API responses.
@@ -28,11 +28,11 @@ test.describe('Agents — Sub-Sections', () => {
 
   test('campaigns page loads campaigns list', async ({ authenticatedPage }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(APP_ROUTES.POSTS.CAMPAIGNS, {
+    await authenticatedPage.goto(APP_ROUTES.PUBLISH.CAMPAIGNS, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/posts\/campaigns/);
+    await expect(authenticatedPage).toHaveURL(/publish\/campaigns/);
     await expect(
       authenticatedPage.getByText(/campaign/i).first(),
     ).toBeVisible();
@@ -42,11 +42,11 @@ test.describe('Agents — Sub-Sections', () => {
     authenticatedPage,
   }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(APP_ROUTES.POSTS.CAMPAIGNS_NEW, {
+    await authenticatedPage.goto(APP_ROUTES.PUBLISH.CAMPAIGNS_NEW, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/posts\/campaigns\/new/);
+    await expect(authenticatedPage).toHaveURL(/publish\/campaigns\/new/);
     // Should show a creation form or wizard
     await expect(authenticatedPage.locator('form').first()).toBeVisible();
   });
@@ -55,9 +55,9 @@ test.describe('Agents — Sub-Sections', () => {
     authenticatedPage,
   }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(APP_ROUTES.POSTS.OUTREACH_CAMPAIGNS);
+    await authenticatedPage.goto(APP_ROUTES.PUBLISH.OUTREACH_CAMPAIGNS);
 
-    await expect(authenticatedPage).toHaveURL(/posts\/outreach-campaigns/);
+    await expect(authenticatedPage).toHaveURL(/publish\/outreach-campaigns/);
     await expect(
       authenticatedPage.getByText(/campaign/i).first(),
     ).toBeVisible();
@@ -67,9 +67,11 @@ test.describe('Agents — Sub-Sections', () => {
     authenticatedPage,
   }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(APP_ROUTES.POSTS.OUTREACH_CAMPAIGNS_NEW);
+    await authenticatedPage.goto(APP_ROUTES.PUBLISH.OUTREACH_CAMPAIGNS_NEW);
 
-    await expect(authenticatedPage).toHaveURL(/posts\/outreach-campaigns\/new/);
+    await expect(authenticatedPage).toHaveURL(
+      /publish\/outreach-campaigns\/new/,
+    );
     await expect(authenticatedPage.locator('form').first()).toBeVisible();
   });
 
@@ -150,7 +152,7 @@ test.describe('Agents — Sub-Sections', () => {
   test('unauthenticated user is redirected from agents routes', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.POSTS.CAMPAIGNS, {
+    await unauthenticatedPage.goto(APP_ROUTES.PUBLISH.CAMPAIGNS, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -164,7 +166,7 @@ test.describe('Agents — Sub-Sections', () => {
       // Local keyless dev mode intentionally skips auth enforcement.
     }
 
-    await expect(unauthenticatedPage).toHaveURL(/posts\/campaigns/);
+    await expect(unauthenticatedPage).toHaveURL(/publish\/campaigns/);
     await expect(
       unauthenticatedPage.getByRole('heading', { name: 'Agent Campaigns' }),
     ).toBeVisible();
@@ -173,7 +175,7 @@ test.describe('Agents — Sub-Sections', () => {
   test('unauthenticated user is redirected from outreach campaign routes', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.POSTS.OUTREACH_CAMPAIGNS);
+    await unauthenticatedPage.goto(APP_ROUTES.PUBLISH.OUTREACH_CAMPAIGNS);
 
     await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
       timeout: 15000,

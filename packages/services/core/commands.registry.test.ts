@@ -191,7 +191,7 @@ describe('commands.registry', () => {
       postsCmd?.action();
 
       expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/posts`,
+        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/publish`,
       );
     });
 

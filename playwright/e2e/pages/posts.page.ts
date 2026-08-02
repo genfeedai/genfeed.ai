@@ -90,13 +90,13 @@ export class PostsPage {
 
     // Tabs
     this.draftsTab = page.locator(
-      'a[href="/posts"], [role="tab"]:has-text("Drafts")',
+      'a[href="/publish"], [role="tab"]:has-text("Drafts")',
     );
     this.scheduledTab = page.locator(
-      'a[href="/posts/scheduled"], a[href$="/posts/scheduled"], a[href="/posts?status=scheduled"], [role="tab"]:has-text("Scheduled")',
+      'a[href="/publish/scheduled"], a[href$="/publish/scheduled"], a[href="/publish?status=scheduled"], [role="tab"]:has-text("Scheduled")',
     );
     this.publishedTab = page.locator(
-      'a[href="/posts/published"], a[href$="/posts/published"], a[href="/posts?status=public"], [role="tab"]:has-text("Published")',
+      'a[href="/publish/published"], a[href$="/publish/published"], a[href="/publish?status=public"], [role="tab"]:has-text("Published")',
     );
     this.engageTab = page.locator(
       'a[href="/analytics/posts"], [role="tab"]:has-text("Analytics")',
@@ -235,17 +235,17 @@ export class PostsPage {
   // ── Navigation ──────────────────────────────────────────
 
   async gotoDrafts(): Promise<void> {
-    await this.page.goto(APP_ROUTES.POSTS.ROOT);
+    await this.page.goto(APP_ROUTES.PUBLISH.ROOT);
     await this.waitForPageLoad();
   }
 
   async gotoScheduled(): Promise<void> {
-    await this.page.goto(APP_ROUTES.POSTS.SCHEDULED);
+    await this.page.goto(APP_ROUTES.PUBLISH.SCHEDULED);
     await this.waitForPageLoad();
   }
 
   async gotoPublished(): Promise<void> {
-    await this.page.goto(APP_ROUTES.POSTS.PUBLISHED);
+    await this.page.goto(APP_ROUTES.PUBLISH.PUBLISHED);
     await this.waitForPageLoad();
   }
 
@@ -255,17 +255,17 @@ export class PostsPage {
   }
 
   async gotoReview(): Promise<void> {
-    await this.page.goto(APP_ROUTES.POSTS.REVIEW);
+    await this.page.goto(APP_ROUTES.PUBLISH.REVIEW);
     await this.waitForPageLoad();
   }
 
   async gotoCalendar(): Promise<void> {
-    await this.page.goto(APP_ROUTES.POSTS.CALENDAR);
+    await this.page.goto(APP_ROUTES.PUBLISH.CALENDAR);
     await this.waitForPageLoad();
   }
 
   async gotoPostDetail(postId: string): Promise<void> {
-    await this.page.goto(`/posts/${postId}`);
+    await this.page.goto(`/publish/${postId}`);
     await this.waitForPageLoad();
   }
 
@@ -367,22 +367,22 @@ export class PostsPage {
   // ── Post detail helpers ────────────────────────────────
 
   async assertPostDetailVisible(): Promise<void> {
-    await expect(this.page).toHaveURL(/\/posts\/.+/);
+    await expect(this.page).toHaveURL(/\/publish\/.+/);
     await expect(this.breadcrumb.first()).toBeVisible();
   }
 
   // ── Assertions ─────────────────────────────────────────
 
   async assertOnDraftsTab(): Promise<void> {
-    await expect(this.page).toHaveURL(/\/posts(?:\?|$)/);
+    await expect(this.page).toHaveURL(/\/publish(?:\?|$)/);
   }
 
   async assertOnScheduledTab(): Promise<void> {
-    await expect(this.page).toHaveURL(/\/posts\/scheduled(?:\?|$)/);
+    await expect(this.page).toHaveURL(/\/publish\/scheduled(?:\?|$)/);
   }
 
   async assertOnPublishedTab(): Promise<void> {
-    await expect(this.page).toHaveURL(/\/posts\/published(?:\?|$)/);
+    await expect(this.page).toHaveURL(/\/publish\/published(?:\?|$)/);
   }
 
   async assertOnEngageTab(): Promise<void> {

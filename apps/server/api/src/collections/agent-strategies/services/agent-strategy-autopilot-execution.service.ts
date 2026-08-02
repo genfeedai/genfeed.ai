@@ -706,7 +706,7 @@ export class AgentStrategyAutopilotExecutionService {
     topic: string;
     userId: string;
   }): Promise<void> {
-    const href = `/posts/review?batch=${input.batchId}${
+    const href = `/publish/review?batch=${input.batchId}${
       input.reviewItemId ? `&item=${input.reviewItemId}` : ''
     }`;
     const label = `Autopilot ${input.format} ready for review`;
