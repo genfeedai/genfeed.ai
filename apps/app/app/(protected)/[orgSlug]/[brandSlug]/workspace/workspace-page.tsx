@@ -164,8 +164,22 @@ function WorkspacePageContentContent({
     };
   }, [isOverviewSection, selectedArtifactReferences, surfaceSelection]);
 
-  const workspaceHeaderActions = useMemo(
-    () => (
+  // Match Tasks: no header refresh chrome when the page is empty. Refresh only
+  // matters when there is something to re-fetch into the table.
+  const hasHeaderListItems =
+    section === 'activity'
+      ? activityItems.length > 0
+      : section === 'inbox'
+        ? visibleInboxTasks.length > 0
+        : false;
+  const showHeaderRefresh = hasHeaderListItems;
+
+  const workspaceHeaderActions = useMemo(() => {
+    if (!shouldShowComposer && !showHeaderRefresh) {
+      return undefined;
+    }
+
+    return (
       <div className="flex flex-wrap items-center justify-end gap-2.5">
         {shouldShowComposer ? (
           <Button
@@ -177,19 +191,21 @@ function WorkspacePageContentContent({
             New Task
           </Button>
         ) : null}
-        <ButtonRefresh
-          onClick={() => void refreshWorkspaceTasks()}
-          isRefreshing={isWorkspaceRefreshing}
-        />
+        {showHeaderRefresh ? (
+          <ButtonRefresh
+            onClick={() => void refreshWorkspaceTasks()}
+            isRefreshing={isWorkspaceRefreshing}
+          />
+        ) : null}
       </div>
-    ),
-    [
-      shouldShowComposer,
-      setTaskComposerOpen,
-      refreshWorkspaceTasks,
-      isWorkspaceRefreshing,
-    ],
-  );
+    );
+  }, [
+    shouldShowComposer,
+    setTaskComposerOpen,
+    refreshWorkspaceTasks,
+    isWorkspaceRefreshing,
+    showHeaderRefresh,
+  ]);
 
   const inboxEmpty =
     section === 'inbox' && defaultInboxView === 'unread'
