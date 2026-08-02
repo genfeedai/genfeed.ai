@@ -16,6 +16,8 @@ const mocks = vi.hoisted(() => ({
   patch: vi.fn(),
   publish: vi.fn(),
   push: vi.fn(),
+  replace: vi.fn(),
+  requestedNewsletterId: null as string | null,
   queryResult: {
     data: [] as unknown[],
     error: null as unknown,
@@ -33,6 +35,9 @@ vi.mock('@/lib/analytics', () => ({
   },
   captureAnalyticsEvent: mocks.captureAnalyticsEvent,
 }));
+
+const NEWSLETTER_1_EDITOR_HREF =
+  '/acme/main/edit/newsletter/newsletter-1?returnTo=%2Facme%2Fmain%2Fpublish%2Fnewsletters';
 
 const newsletters = [
   {
@@ -111,9 +116,10 @@ vi.mock('@tanstack/react-query', () => ({
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mocks.push,
+    replace: mocks.replace,
   }),
   useSearchParams: () => ({
-    get: (key: string) => (key === 'id' ? null : null),
+    get: (key: string) => (key === 'id' ? mocks.requestedNewsletterId : null),
   }),
 }));
 
@@ -124,6 +130,7 @@ describe('NewslettersPage', () => {
     mocks.queryResult.error = null;
     mocks.queryResult.isLoading = false;
     mocks.queryResult.refetch = mocks.refetch;
+    mocks.requestedNewsletterId = null;
     mocks.findAll.mockResolvedValue(newsletters);
     mocks.refetch.mockResolvedValue({ data: newsletters });
     mocks.generateTopicProposals.mockResolvedValue([
@@ -214,54 +221,33 @@ describe('NewslettersPage', () => {
       });
     });
     await waitFor(() => {
-      expect(mocks.getContext).toHaveBeenCalledWith('newsletter-1');
+      expect(mocks.push).toHaveBeenCalledWith(NEWSLETTER_1_EDITOR_HREF);
     });
     expect(mocks.success).toHaveBeenCalledWith(
       'Newsletter draft ready for review',
     );
   });
 
-  it('loads context, edits, saves, approves, publishes, and archives a newsletter', async () => {
+  it('links archive cards to the dedicated newsletter editor', () => {
     render(<NewslettersPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Issue 1/i }));
-
-    await waitFor(() => {
-      expect(mocks.getContext).toHaveBeenCalledWith('newsletter-1');
-    });
-    expect(await screen.findByText('Brand voice')).toBeVisible();
-
-    fireEvent.change(screen.getByPlaceholderText('Newsletter label'), {
-      target: { value: 'Issue 1 revised' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
-
-    await waitFor(() => {
-      expect(mocks.patch).toHaveBeenCalledWith('newsletter-1', {
-        angle: 'Operator lessons',
-        content: 'Draft body',
-        label: 'Issue 1 revised',
-        summary: 'Draft summary',
-        topic: 'AI workflows',
-      });
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Publish' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Archive' }));
-
-    await waitFor(() => {
-      expect(mocks.approve).toHaveBeenCalledWith('newsletter-1');
-      expect(mocks.publish).toHaveBeenCalledWith('newsletter-1');
-      expect(mocks.archive).toHaveBeenCalledWith('newsletter-1');
-    });
-    expect(mocks.captureAnalyticsEvent).toHaveBeenCalledWith(
-      'first_successful_publish',
-      {
-        platform: 'newsletter',
-        surface: 'newsletter',
-      },
+    expect(screen.getByRole('link', { name: /Issue 1/i })).toHaveAttribute(
+      'href',
+      NEWSLETTER_1_EDITOR_HREF,
     );
+    expect(mocks.getContext).not.toHaveBeenCalled();
+    expect(mocks.patch).not.toHaveBeenCalled();
+  });
+
+  it('replaces legacy newsletter query links with the dedicated editor route', async () => {
+    mocks.requestedNewsletterId = 'newsletter-1';
+
+    render(<NewslettersPage />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith(NEWSLETTER_1_EDITOR_HREF);
+    });
+    expect(mocks.push).not.toHaveBeenCalled();
   });
 
   it('shows validation errors and routes empty-state actions to workflows', async () => {

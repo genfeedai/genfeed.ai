@@ -2,7 +2,12 @@
 
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
+import {
+  createArtifactEditorRoute,
+  createBrandAppRoute,
+  ITEMS_PER_PAGE,
+  withArtifactEditorReturn,
+} from '@genfeedai/constants';
 import {
   ModelCategory,
   PageScope,
@@ -39,7 +44,6 @@ import type { ContentProps } from '@props/layout/content.props';
 import {
   useConfirmDeleteModal,
   useIngredientOverlay,
-  usePostMetadataOverlay,
   usePostRemixModal,
 } from '@providers/global-modals/global-modals.provider';
 import { PostsService } from '@services/content/posts.service';
@@ -114,7 +118,6 @@ export function usePostsList({
   );
 
   const { openIngredientOverlay } = useIngredientOverlay();
-  const { openPostMetadataOverlay } = usePostMetadataOverlay();
   const { openConfirmDelete } = useConfirmDeleteModal();
   const { openPostRemixModal } = usePostRemixModal();
 
@@ -430,11 +433,39 @@ export function usePostsList({
     [openConfirmDelete, getPostsService, findAllPosts, notificationsService],
   );
 
+  /**
+   * Editing belongs to the artifact, so a draft opens its own editor page and
+   * carries the current list URL back with it.
+   */
   const handleEditPost = useCallback(
     (post: IPost) => {
-      openPostMetadataOverlay(post, () => findAllPosts());
+      const editorRoute = createArtifactEditorRoute('post', post.id);
+      const postOrganizationSlug =
+        post.organization &&
+        typeof post.organization === 'object' &&
+        'slug' in post.organization &&
+        typeof post.organization.slug === 'string'
+          ? post.organization.slug
+          : '';
+      const editorHref =
+        scope === PageScope.SUPERADMIN &&
+        postOrganizationSlug &&
+        post.brand?.slug
+          ? createBrandAppRoute(
+              postOrganizationSlug,
+              post.brand.slug,
+              editorRoute,
+            )
+          : href(editorRoute);
+
+      router.push(
+        withArtifactEditorReturn(
+          editorHref,
+          searchParamsString ? `${pathname}?${searchParamsString}` : pathname,
+        ),
+      );
     },
-    [findAllPosts, openPostMetadataOverlay],
+    [href, pathname, router, scope, searchParamsString],
   );
 
   const handleOpenPostDetail = useCallback((post: IPost) => {

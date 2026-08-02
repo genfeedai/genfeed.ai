@@ -5,7 +5,7 @@ import ArticleTypeSelector from '@ui/articles/type-selector/ArticleTypeSelector'
 import XArticleGenerateForm from '@ui/articles/x-article/XArticleGenerateForm';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
-import ArticleDetail from './article-detail';
+import ArticleDetail from '../../edit/article/article-detail';
 
 function ArticleComposeContent() {
   const searchParams = useSearchParams();
