@@ -91,17 +91,13 @@ export class AgentThreadsService extends BaseService<
     organizationId: string,
     brandId?: string | null,
   ): Promise<number> {
-    const where: Record<string, unknown> = scopedWhere(organizationId, {
-      status: AgentThreadStatus.ACTIVE,
-      userId,
-    });
-    if (brandId) {
-      where.brandId = brandId;
-    }
-
     const result = await this.delegate.updateMany({
-      where,
       data: { status: AgentThreadStatus.ARCHIVED },
+      where: scopedWhere(organizationId, {
+        ...(brandId ? { brandId } : {}),
+        status: AgentThreadStatus.ACTIVE,
+        userId,
+      }),
     });
 
     return result.count ?? 0;
