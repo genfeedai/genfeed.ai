@@ -5,21 +5,22 @@ import {
 } from './studio-menu-items.config';
 
 describe('STUDIO_MENU_ITEMS', () => {
-  it('groups storyboard, clips, batch, and fastlane under Automation', () => {
-    const automationItems = STUDIO_MENU_ITEMS.filter(
-      (item) => item.group === 'Automation',
-    );
-
-    expect(automationItems.map((item) => item.label)).toEqual([
+  it('lists production surfaces in a single flat Studio group', () => {
+    expect(STUDIO_MENU_ITEMS.map((item) => item.label)).toEqual([
       'Storyboard',
       'Clips',
       'Batch',
       'Fastlane',
+      'Edit',
     ]);
-    expect(automationItems[0]?.href).toBe('/studio/storyboard');
-    expect(automationItems[1]?.href).toBe('/studio/clips');
-    expect(automationItems[2]?.href).toBe('/studio/batch');
-    expect(automationItems[3]?.href).toBe('/studio/fastlane');
+    expect(STUDIO_MENU_ITEMS.every((item) => item.group === '')).toBe(true);
+    expect(STUDIO_MENU_ITEMS.map((item) => item.href)).toEqual([
+      '/studio/storyboard',
+      '/studio/clips',
+      '/studio/batch',
+      '/studio/fastlane',
+      '/studio/edit',
+    ]);
   });
 
   it('exposes every studio route that has a page behind a nav entry', () => {
@@ -28,40 +29,30 @@ describe('STUDIO_MENU_ITEMS', () => {
     const hrefs = STUDIO_MENU_ITEMS.map((item) => item.href);
 
     expect(hrefs).toContain('/studio/clips');
+    expect(hrefs).toContain('/studio/edit');
   });
 
-  it('carries no ungrouped one-off generation modes', () => {
-    // The standalone Image/Video/Avatar/Music tabs are retired — one-off
-    // generation runs through the Agent. Edit remains a production surface.
-    const ungrouped = STUDIO_MENU_ITEMS.filter((item) => item.group === '');
-
-    expect(ungrouped).toEqual([]);
+  it('carries no Edit/Automation subgroup headers', () => {
+    expect(
+      STUDIO_MENU_ITEMS.some(
+        (item) => item.group === 'Edit' || item.group === 'Automation',
+      ),
+    ).toBe(false);
   });
 
-  it('exposes the merged editor as the Edit timeline entry', () => {
+  it('exposes the merged editor as Studio Edit (path /studio/edit)', () => {
     // #2309: the Remotion editor stopped being a core app; Studio's nav is now
-    // its only menu entry.
-    const editItems = STUDIO_MENU_ITEMS.filter((item) => item.group === 'Edit');
+    // its only menu entry. Label matches the URL segment.
+    const edit = STUDIO_MENU_ITEMS.find((item) => item.href === '/studio/edit');
 
-    expect(editItems.map((item) => item.label)).toEqual(['Timeline']);
-    expect(editItems[0]).toMatchObject({
-      hasDividerAbove: true,
+    expect(edit).toMatchObject({
       href: '/studio/edit',
-      matchPaths: ['/studio/edit'],
+      label: 'Edit',
+      matchPaths: ['/studio/edit', '/studio/edit/new'],
     });
   });
 
-  it('places Edit before Automation', () => {
-    expect(STUDIO_MENU_ITEMS.map((item) => item.group)).toEqual([
-      'Edit',
-      'Automation',
-      'Automation',
-      'Automation',
-      'Automation',
-    ]);
-  });
-
-  it('keeps the studio logo href pointed at the library overview', () => {
-    expect(STUDIO_LOGO_HREF).toBe('/library');
+  it('keeps the studio logo href pointed at the production home', () => {
+    expect(STUDIO_LOGO_HREF).toBe('/studio/storyboard');
   });
 });
