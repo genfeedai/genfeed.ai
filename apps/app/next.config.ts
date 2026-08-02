@@ -309,9 +309,37 @@ const config = createAppNextConfig({
       ),
     },
     ...retiredStudioTabRedirects(),
+    // Workspace Overview is the complete-path home (not bare `/workspace`).
+    // Bare ROOT permanently redirects here — opposite of automate/library/
+    // analytics, which still collapse `/overview` onto the app root.
+    {
+      destination: APP_ROUTES.WORKSPACE.OVERVIEW,
+      permanent: true,
+      source: APP_ROUTES.WORKSPACE.ROOT,
+    },
+    {
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.WORKSPACE.OVERVIEW,
+      ),
+      permanent: true,
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.WORKSPACE.ROOT,
+      ),
+    },
+    {
+      destination: createOrganizationAppRoute(
+        ':orgSlug',
+        APP_ROUTES.WORKSPACE.OVERVIEW,
+      ),
+      permanent: true,
+      source: createOrganizationAppRoute(':orgSlug', APP_ROUTES.WORKSPACE.ROOT),
+    },
     // App homes live at `/[app]`; `/[app]/overview` is a permanent alias.
     ...appOverviewToHomeRedirects(APP_ROUTES.AUTOMATE.ROOT),
-    ...appOverviewToHomeRedirects(APP_ROUTES.WORKSPACE.ROOT),
     ...appOverviewToHomeRedirects(APP_ROUTES.LIBRARY.ROOT),
     ...appOverviewToHomeRedirects(APP_ROUTES.ANALYTICS.ROOT),
     // Campaigns / outreach moved from Automate → Publish (hard cut).

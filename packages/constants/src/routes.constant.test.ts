@@ -132,13 +132,15 @@ describe('routes.constant', () => {
   });
 
   it('builds scoped brand and organization routes', () => {
+    expect(APP_ROUTES.WORKSPACE.OVERVIEW).toBe('/workspace/overview');
+    expect(APP_ROUTES.WORKSPACE.ROOT).toBe('/workspace');
     expect(
       createBrandAppRoute(
         'genfeed-ai',
         'paperclip',
         APP_ROUTES.WORKSPACE.OVERVIEW,
       ),
-    ).toBe('/genfeed-ai/paperclip/workspace');
+    ).toBe('/genfeed-ai/paperclip/workspace/overview');
     expect(
       createBrandAppRoute('genfeed-ai', 'paperclip', 'studio/storyboard'),
     ).toBe('/genfeed-ai/paperclip/studio/storyboard');

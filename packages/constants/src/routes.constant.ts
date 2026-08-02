@@ -237,8 +237,13 @@ export const APP_ROUTES = {
     INBOX_ALL: '/workspace/inbox/all',
     INBOX_RECENT: '/workspace/inbox/recent',
     INBOX_UNREAD: '/workspace/inbox/unread',
-    /** Canonical app home is ROOT; OVERVIEW is an alias for call sites. */
-    OVERVIEW: '/workspace',
+    /**
+     * Canonical workspace home. Bare ROOT (`/workspace`) redirects here so the
+     * Overview nav item is a complete path that does not prefix-match
+     * Activity/Tasks/Inbox (same pattern as Studio → Storyboard, Discover →
+     * Discovery).
+     */
+    OVERVIEW: '/workspace/overview',
     ROOT: '/workspace',
     TASKS: '/workspace/tasks',
   },

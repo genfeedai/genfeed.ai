@@ -51,12 +51,40 @@ describe('app next.config', () => {
   it('does not define stale bare overview redirects', async () => {
     const redirects = await config.redirects?.();
     expect(redirects?.some((redirect) => redirect.source === '/')).toBe(false);
-    expect(
-      redirects?.some((redirect) => redirect.source === '/workspace'),
-    ).toBe(false);
     expect(redirects?.some((redirect) => redirect.source === '/overview')).toBe(
       false,
     );
+  });
+
+  it('redirects bare /workspace to complete-path /workspace/overview', async () => {
+    const redirects = await config.redirects?.();
+
+    expect(redirects).toContainEqual({
+      destination: APP_ROUTES.WORKSPACE.OVERVIEW,
+      permanent: true,
+      source: APP_ROUTES.WORKSPACE.ROOT,
+    });
+    expect(redirects).toContainEqual({
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.WORKSPACE.OVERVIEW,
+      ),
+      permanent: true,
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.WORKSPACE.ROOT,
+      ),
+    });
+    // Must not collapse /workspace/overview back onto bare /workspace.
+    expect(
+      redirects?.some(
+        (redirect) =>
+          redirect.source === APP_ROUTES.WORKSPACE.OVERVIEW &&
+          redirect.destination === APP_ROUTES.WORKSPACE.ROOT,
+      ),
+    ).toBe(false);
   });
 
   it('redirects /workspace/inbox to /workspace/inbox/unread', async () => {
@@ -124,7 +152,6 @@ describe('app next.config', () => {
 
   it.each([
     APP_ROUTES.AUTOMATE.ROOT,
-    APP_ROUTES.WORKSPACE.ROOT,
     APP_ROUTES.LIBRARY.ROOT,
     APP_ROUTES.ANALYTICS.ROOT,
   ] as const)(
