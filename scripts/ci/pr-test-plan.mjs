@@ -67,6 +67,8 @@ export function classifyChangedFiles(changedFiles) {
   return { api, app, forceFull: false };
 }
 
+const MAX_SHARD_COUNT = 4;
+
 export function selectShardCount(testFileCount) {
   if (!Number.isSafeInteger(testFileCount) || testFileCount < 0) {
     throw new TypeError('testFileCount must be a non-negative integer');
@@ -75,6 +77,28 @@ export function selectShardCount(testFileCount) {
   if (testFileCount <= 75) return 1;
   if (testFileCount <= 250) return 2;
   return 4;
+}
+
+/**
+ * Shard count for the instrumented changed-coverage run of a surface.
+ *
+ * Differs from `selectShardCount` in two ways that matter, both learned from
+ * jobs cancelled at the 20-minute budget:
+ *
+ *   - **Never zero.** The coverage jobs key off the surface flag (`api`/`app`),
+ *     not `*_tests`, so they run in cases where the test shards are skipped.
+ *     A zero-shard matrix would silently drop the measurement entirely.
+ *   - **`forceFull` means unknown, not empty.** Under a full-suite escalation
+ *     the planner never lists the changed test files, so the count arrives as
+ *     0 while the actual `--changed` graph is at its widest. Assume the widest
+ *     fan-out rather than reading that 0 as "small".
+ *
+ * @param {number} testFileCount
+ * @param {boolean} forceFull
+ */
+export function selectCoverageShardCount(testFileCount, forceFull = false) {
+  if (forceFull) return MAX_SHARD_COUNT;
+  return Math.max(1, selectShardCount(testFileCount));
 }
 
 export function createShardMatrix(shardCount) {
@@ -188,6 +212,14 @@ export function createPrTestPlan({
   const api = forceAllSurfaces || forceFull || classification.api;
   const appShardCount = forceFull ? 0 : selectShardCount(appTests.length);
   const apiShardCount = forceFull ? 0 : selectShardCount(apiTests.length);
+  const appCoverageShardCount = selectCoverageShardCount(
+    appTests.length,
+    forceFull,
+  );
+  const apiCoverageShardCount = selectCoverageShardCount(
+    apiTests.length,
+    forceFull,
+  );
 
   const normalizedTurboTasks = Object.fromEntries(
     Object.keys(TURBO_TEST_GROUPS).map((group) => [
@@ -208,6 +240,8 @@ export function createPrTestPlan({
       files: [...appTests],
       matrix: createShardMatrix(appShardCount),
       shards: appShardCount,
+      coverageMatrix: createShardMatrix(appCoverageShardCount),
+      coverageShards: appCoverageShardCount,
     },
     apiTests: {
       applicable: api && !forceFull && apiTests.length > 0,
@@ -215,6 +249,8 @@ export function createPrTestPlan({
       files: [...apiTests],
       matrix: createShardMatrix(apiShardCount),
       shards: apiShardCount,
+      coverageMatrix: createShardMatrix(apiCoverageShardCount),
+      coverageShards: apiCoverageShardCount,
     },
     turboTasks: normalizedTurboTasks,
     workspaceGroups: Object.fromEntries(
@@ -354,6 +390,8 @@ function writeOutputs(plan, manifestPath) {
     api_count: plan.apiTests.count,
     app_matrix: JSON.stringify(plan.appTests.matrix),
     api_matrix: JSON.stringify(plan.apiTests.matrix),
+    app_coverage_matrix: JSON.stringify(plan.appTests.coverageMatrix),
+    api_coverage_matrix: JSON.stringify(plan.apiTests.coverageMatrix),
     force_full: plan.forceFull,
     packages: plan.workspaceGroups.packages,
     server_services: plan.workspaceGroups.server,
@@ -375,8 +413,18 @@ function writeSummary(plan) {
   if (!summaryPath) return;
 
   const rows = [
-    ['App changed tests', plan.appTests.count, plan.appTests.shards],
-    ['API changed tests', plan.apiTests.count, plan.apiTests.shards],
+    [
+      'App changed tests',
+      plan.appTests.count,
+      plan.appTests.shards,
+      plan.appTests.coverageShards,
+    ],
+    [
+      'API changed tests',
+      plan.apiTests.count,
+      plan.apiTests.shards,
+      plan.apiTests.coverageShards,
+    ],
   ];
   const groupRows = Object.entries(plan.workspaceGroups).map(
     ([group, applies]) => [group, applies ? 'run' : 'skip'],
@@ -387,10 +435,11 @@ function writeSummary(plan) {
     `- Base: \`${plan.base}\``,
     `- Full-suite escalation: ${plan.forceFull ? 'yes' : 'no'}`,
     '',
-    '| Surface | Affected files | Changed-test shards |',
-    '| --- | ---: | ---: |',
+    '| Surface | Affected files | Changed-test shards | Coverage shards |',
+    '| --- | ---: | ---: | ---: |',
     ...rows.map(
-      ([surface, count, shards]) => `| ${surface} | ${count} | ${shards} |`,
+      ([surface, count, shards, coverageShards]) =>
+        `| ${surface} | ${count} | ${shards} | ${coverageShards} |`,
     ),
     '',
     '| Workspace group | Plan |',
