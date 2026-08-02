@@ -83,7 +83,7 @@ export function useWorkflowLibraryPage() {
       try {
         const service = await getService();
         const duplicated = await service.duplicate(id);
-        push(href(`${APP_ROUTES.ORCHESTRATION.WORKFLOWS}/${duplicated._id}`));
+        push(href(`${APP_ROUTES.AUTOMATE.WORKFLOWS}/${duplicated._id}`));
       } catch (err) {
         logger.error('Failed to duplicate workflow', {
           error: err,

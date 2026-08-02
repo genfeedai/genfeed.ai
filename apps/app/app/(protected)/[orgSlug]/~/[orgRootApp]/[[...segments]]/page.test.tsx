@@ -261,12 +261,12 @@ describe('OrgRootAppPage', () => {
     await expect(
       OrgRootAppPage({
         params: Promise.resolve({
-          orgRootApp: 'orchestration',
+          orgRootApp: 'automate',
           orgSlug: 'acme',
           segments: ['workflows'],
         }),
       }),
-    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/orchestration');
+    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/automate');
     expect(notFoundMock).not.toHaveBeenCalled();
   });
 

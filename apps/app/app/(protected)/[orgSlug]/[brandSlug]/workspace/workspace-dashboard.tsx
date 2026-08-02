@@ -137,7 +137,7 @@ function AgentRunCard({ run }: { run: IAgentRun }) {
           className="opacity-0 transition-opacity group-hover:opacity-100"
         >
           <Link
-            href={`${APP_ROUTES.ORCHESTRATION.RUNS}/${run.id}`}
+            href={`${APP_ROUTES.AUTOMATE.RUNS}/${run.id}`}
             aria-label={`Open ${run.label}`}
           >
             <ArrowRight className="size-3.5" />
@@ -200,7 +200,7 @@ export function DashboardAgentCards({
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.XS}
           >
-            <Link href={APP_ROUTES.ORCHESTRATION.RUNS}>View All</Link>
+            <Link href={APP_ROUTES.AUTOMATE.RUNS}>View All</Link>
           </Button>
         )}
       </div>
@@ -628,7 +628,7 @@ export function WorkspaceDashboard({
 
   // Overview lives inside the conversation canvas, so it stays a centered,
   // hard-capped 3/6/9 card grid. The dense back-office chart grid now lives in
-  // the operations module (`orchestration/runs/RunChartsGrid`), not here.
+  // the operations module (`automate/runs/RunChartsGrid`), not here.
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
       <DashboardStatsStrip

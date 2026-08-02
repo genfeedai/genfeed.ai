@@ -118,7 +118,7 @@ vi.mock('@genfeedai/agent', () => ({
               label: 'Workflow',
               name: 'workflow',
               requiredScope: 'brand',
-              route: '/orchestration/workflows',
+              route: '/automate/workflows',
             },
             arguments: '',
           })
@@ -189,7 +189,7 @@ vi.mock('@genfeedai/agent', () => ({
         label: 'Workflow',
         name: 'workflow',
         requiredScope: 'brand',
-        route: '/orchestration/workflows',
+        route: '/automate/workflows',
       };
     }
     return null;
@@ -976,7 +976,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('gives canonical workflow editors focused canvas overflow ownership', () => {
-    navigation.pathname = '/acme/moonrise/orchestration/workflows/workflow-1';
+    navigation.pathname = '/acme/moonrise/automate/workflows/workflow-1';
     navigation.searchParams = new URLSearchParams();
 
     render(
@@ -993,12 +993,12 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it.each([
-    ['/acme/moonrise/orchestration/workflows/new'],
-    ['/acme/moonrise/orchestration/workflows/workflow-1'],
-    ['/acme/moonrise/orchestration/workflows'],
-    ['/acme/moonrise/orchestration/workflows/templates'],
-    ['/acme/moonrise/orchestration/workflows/executions'],
-    ['/acme/moonrise/orchestration/workflows/executions/run-1'],
+    ['/acme/moonrise/automate/workflows/new'],
+    ['/acme/moonrise/automate/workflows/workflow-1'],
+    ['/acme/moonrise/automate/workflows'],
+    ['/acme/moonrise/automate/workflows/templates'],
+    ['/acme/moonrise/automate/workflows/executions'],
+    ['/acme/moonrise/automate/workflows/executions/run-1'],
   ])('renders the workflow inspector on %s', (pathname) => {
     navigation.pathname = pathname;
     navigation.searchParams = new URLSearchParams();
@@ -1019,10 +1019,10 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it.each([
-    ['/acme/moonrise/orchestration'],
-    ['/acme/moonrise/orchestration/runs'],
-    ['/acme/moonrise/orchestration/skills'],
-    ['/acme/moonrise/orchestration/library'],
+    ['/acme/moonrise/automate'],
+    ['/acme/moonrise/automate/runs'],
+    ['/acme/moonrise/automate/skills'],
+    ['/acme/moonrise/automate/library'],
   ])('keeps the generic inspector on %s', (pathname) => {
     navigation.pathname = pathname;
     navigation.searchParams = new URLSearchParams();

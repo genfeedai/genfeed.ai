@@ -12,7 +12,7 @@ import { expect, test } from '../../fixtures/auth.fixture';
  * E2E Tests for Agents Sub-Routes
  *
  * Covers: /posts/campaigns, /posts/campaigns/new, /posts/outreach-campaigns,
- *         /posts/outreach-campaigns/new, /orchestration/runs, /orchestration/strategies,
+ *         /posts/outreach-campaigns/new, /automate/runs, /automate/strategies,
  *         /workflows, /workflows/new, /workflows/templates
  *
  * CRITICAL: All tests use mocked API responses.
@@ -75,11 +75,11 @@ test.describe('Agents — Sub-Sections', () => {
 
   test('runs page shows run history', async ({ authenticatedPage }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.RUNS, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.RUNS, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/orchestration\/runs/);
+    await expect(authenticatedPage).toHaveURL(/automate\/runs/);
     // Mission control / runs page
     await expect(
       authenticatedPage.getByText(/run|mission|history|control/i).first(),
@@ -90,11 +90,11 @@ test.describe('Agents — Sub-Sections', () => {
     authenticatedPage,
   }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.STRATEGIES, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.STRATEGIES, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/orchestration\/strategies/);
+    await expect(authenticatedPage).toHaveURL(/automate\/strategies/);
     await expect(authenticatedPage.getByText(/strateg/i).first()).toBeVisible();
   });
 
@@ -103,11 +103,11 @@ test.describe('Agents — Sub-Sections', () => {
     await mockWorkflowExecutions(authenticatedPage, []);
     await mockWorkflowTemplates(authenticatedPage, []);
 
-    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/orchestration\/workflows/);
+    await expect(authenticatedPage).toHaveURL(/automate\/workflows/);
     await expect(
       authenticatedPage.getByText(/automation|workflow/i).first(),
     ).toBeVisible();
@@ -120,11 +120,11 @@ test.describe('Agents — Sub-Sections', () => {
     await mockWorkflowExecutions(authenticatedPage, []);
     await mockWorkflowTemplates(authenticatedPage, []);
 
-    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS_NEW, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS_NEW, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/orchestration\/workflows\/new/);
+    await expect(authenticatedPage).toHaveURL(/automate\/workflows\/new/);
     await expect(
       authenticatedPage.getByText(/new|create|editor|workflow/i).first(),
     ).toBeVisible();
@@ -137,13 +137,11 @@ test.describe('Agents — Sub-Sections', () => {
     await mockWorkflowExecutions(authenticatedPage, []);
     await mockWorkflowTemplates(authenticatedPage, []);
 
-    await authenticatedPage.goto(APP_ROUTES.ORCHESTRATION.WORKFLOWS_TEMPLATES, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS_TEMPLATES, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(
-      /orchestration\/workflows\/templates/,
-    );
+    await expect(authenticatedPage).toHaveURL(/automate\/workflows\/templates/);
     await expect(
       authenticatedPage.getByText(/template/i).first(),
     ).toBeVisible();

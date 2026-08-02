@@ -105,9 +105,7 @@ test.describe('Workflow Editor', () => {
 
     await workflowPage.gotoEditor();
 
-    await expect(authenticatedPage).toHaveURL(
-      /\/orchestration\/workflows\/new/,
-    );
+    await expect(authenticatedPage).toHaveURL(/\/automate\/workflows\/new/);
     await expect(workflowPage.mainContent).toBeVisible();
   });
 
@@ -118,9 +116,7 @@ test.describe('Workflow Editor', () => {
 
     await workflowPage.gotoEditor();
 
-    await expect(authenticatedPage).toHaveURL(
-      /\/orchestration\/workflows\/new/,
-    );
+    await expect(authenticatedPage).toHaveURL(/\/automate\/workflows\/new/);
     // New workflow editor should render canvas or empty state
     const hasCanvas = await workflowPage.canvas
       .first()
@@ -189,7 +185,7 @@ test.describe('Workflow Editor', () => {
     await workflowPage.clickSave().catch(() => {});
 
     // Either save was called or we're still on editor page
-    await expect(authenticatedPage).toHaveURL(/\/orchestration\/workflows/);
+    await expect(authenticatedPage).toHaveURL(/\/automate\/workflows/);
   });
 
   test('should start executions through the workflow-executions endpoint', async ({
@@ -232,13 +228,13 @@ test.describe('Workflow Editor', () => {
     const execution = testWorkflowExecutions[0];
 
     await authenticatedPage.goto(
-      `/orchestration/workflows/${workflow.id}?execution=${execution.id}`,
+      `/automate/workflows/${workflow.id}?execution=${execution.id}`,
     );
     await workflowPage.waitForPageLoad();
 
     await expect(authenticatedPage).toHaveURL(
       new RegExp(
-        `/orchestration/workflows/${workflow.id}\\?execution=${execution.id}$`,
+        `/automate/workflows/${workflow.id}\\?execution=${execution.id}$`,
       ),
     );
   });
@@ -290,7 +286,7 @@ test.describe('Workflow Editor', () => {
     );
 
     await authenticatedPage.goto(
-      `/orchestration/workflows/${REVIEW_GATE_WORKFLOW.id}?execution=exec-review-001`,
+      `/automate/workflows/${REVIEW_GATE_WORKFLOW.id}?execution=exec-review-001`,
     );
     await workflowPage.waitForPageLoad();
 
@@ -362,7 +358,7 @@ test.describe('Workflow Editor', () => {
     );
 
     await authenticatedPage.goto(
-      `/orchestration/workflows/${REVIEW_GATE_WORKFLOW.id}?execution=exec-review-001`,
+      `/automate/workflows/${REVIEW_GATE_WORKFLOW.id}?execution=exec-review-001`,
     );
     await workflowPage.waitForPageLoad();
 
@@ -393,9 +389,7 @@ test.describe('Workflow Editor', () => {
 
     await workflowPage.gotoTemplates();
 
-    await expect(authenticatedPage).toHaveURL(
-      /orchestration\/workflows\/templates/,
-    );
+    await expect(authenticatedPage).toHaveURL(/automate\/workflows\/templates/);
     await expect(workflowPage.mainContent).toBeVisible();
   });
 
@@ -404,9 +398,7 @@ test.describe('Workflow Editor', () => {
 
     // Start at editor
     await workflowPage.gotoEditor();
-    await expect(authenticatedPage).toHaveURL(
-      /\/orchestration\/workflows\/new/,
-    );
+    await expect(authenticatedPage).toHaveURL(/\/automate\/workflows\/new/);
 
     // Navigate to library
     await workflowPage.navigateViaTab('library');
@@ -441,7 +433,7 @@ test.describe('Workflow Editor', () => {
 
     await workflowPage.gotoLibrary();
 
-    await expect(authenticatedPage).toHaveURL(/\/orchestration\/workflows$/);
+    await expect(authenticatedPage).toHaveURL(/\/automate\/workflows$/);
     await expect(workflowPage.mainContent).toBeVisible();
   });
 });

@@ -129,7 +129,7 @@ describe('useBackgroundTasks', () => {
     options.onAction();
 
     expect(pushMock).toHaveBeenCalledWith(
-      '/acme/brand-slug/orchestration/workflows/executions/exec-42',
+      '/acme/brand-slug/automate/workflows/executions/exec-42',
     );
   });
 
