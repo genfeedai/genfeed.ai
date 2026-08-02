@@ -17,7 +17,7 @@ const mockShellBootstrapPayload = {
   },
   brands: [{ id: 'brand_1', label: 'Alpha' }],
   currentUser: { id: 'user_123', name: 'Alice' },
-  darkroomCapabilities: null,
+  fleetCapabilities: null,
   settings: { organization: 'org_abc' },
   streak: { currentStreak: 5 },
 };

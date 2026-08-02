@@ -5,7 +5,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
-import { DarkroomReviewStatus } from '@genfeedai/enums';
+import { FleetReviewStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -20,7 +20,7 @@ describe('AdminFleetPublishingService', () => {
   const approvedAsset = {
     _id: { toString: () => 'asset-1' },
     cdnUrl: 'https://cdn/asset-1.jpg',
-    reviewStatus: DarkroomReviewStatus.APPROVED,
+    reviewStatus: FleetReviewStatus.APPROVED,
   };
 
   beforeEach(async () => {
@@ -56,7 +56,7 @@ describe('AdminFleetPublishingService', () => {
   it('refuses to publish an asset that is not approved', async () => {
     ingredientsService.findOne.mockResolvedValue({
       ...approvedAsset,
-      reviewStatus: DarkroomReviewStatus.PENDING,
+      reviewStatus: FleetReviewStatus.PENDING,
     });
 
     await expect(

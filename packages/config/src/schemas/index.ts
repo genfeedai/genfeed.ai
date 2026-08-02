@@ -2,9 +2,9 @@
 
 // AI providers
 export {
-  darkroomSchema,
   elevenlabsSchema,
   falSchema,
+  fleetSchema,
   generalAiSchema,
   hedraSchema,
   heygenSchema,

@@ -52,6 +52,11 @@ export class AgentThreadsService extends BaseService<
     userId: string,
     organizationId: string,
     status?: AgentThreadStatus,
+    /**
+     * When set, list is single-brand only. When omitted, list is full org
+     * (every brand + org-scoped threads) for the user.
+     */
+    brandId?: string | null,
   ): Promise<AgentThreadWithSummary[]> {
     const where: Record<string, unknown> = scopedWhere(organizationId, {
       userId,
@@ -61,6 +66,10 @@ export class AgentThreadsService extends BaseService<
       where.status = AgentThreadStatus.ACTIVE;
     } else if (status) {
       where.status = status;
+    }
+
+    if (brandId) {
+      where.brandId = brandId;
     }
 
     return this.findThreadsWithSnapshots(organizationId, where);
@@ -80,13 +89,15 @@ export class AgentThreadsService extends BaseService<
   async archiveAllThreads(
     userId: string,
     organizationId: string,
+    brandId?: string | null,
   ): Promise<number> {
     const result = await this.delegate.updateMany({
+      data: { status: AgentThreadStatus.ARCHIVED },
       where: scopedWhere(organizationId, {
+        ...(brandId ? { brandId } : {}),
         status: AgentThreadStatus.ACTIVE,
         userId,
       }),
-      data: { status: AgentThreadStatus.ARCHIVED },
     });
 
     return result.count ?? 0;

@@ -85,9 +85,9 @@ export function CardEmptyContent({
 }
 
 /**
- * CardEmpty — canonical list/page empty. No card chrome: one quiet centered
- * block everywhere (tables, tasks, inbox, activity). Prefer `EmptyStateCard`
- * when a bordered surface is intentional.
+ * CardEmpty — standalone page/region empty with its own card chrome.
+ * Never nest inside another Card or AppTable (those already provide a shell).
+ * Use `CardEmptyContent` when the host already owns the surface.
  */
 export default function CardEmpty({
   icon,
@@ -100,15 +100,23 @@ export default function CardEmpty({
   size = CardEmptySize.DEFAULT,
 }: CardEmptyProps) {
   return (
-    <CardEmptyContent
-      icon={icon}
-      iconClassName={iconClassName}
-      label={label}
-      description={description}
-      action={action}
-      actions={actions}
-      className={cn('min-h-[12rem] w-full', className)}
-      size={size}
-    />
+    <div
+      className={cn(
+        'relative min-h-[12rem] w-full overflow-hidden rounded-card bg-card text-card-foreground shadow-border',
+        className,
+      )}
+      data-testid="card-empty"
+    >
+      <CardEmptyContent
+        icon={icon}
+        iconClassName={iconClassName}
+        label={label}
+        description={description}
+        action={action}
+        actions={actions}
+        className="min-h-[12rem] w-full"
+        size={size}
+      />
+    </div>
   );
 }

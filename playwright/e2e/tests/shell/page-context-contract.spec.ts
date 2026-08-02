@@ -24,7 +24,7 @@ const CONTRACTS: PageContextContract[] = [
     route: `${BRAND_BASE}/workspace`,
     currentApp: 'workspace',
     sectionLabel: 'Workspace',
-    pageLabels: ['Dashboard'],
+    pageLabels: ['Overview'],
   },
   {
     route: `${BRAND_BASE}/library/images`,

@@ -173,8 +173,8 @@ const adminRouteBuckets: RouteBucket[] = [
   routeBucket('admin fleet', adminRoutes, (route) =>
     route.startsWith('/admin/fleet'),
   ),
-  routeBucket('admin darkroom library media', adminRoutes, (route) =>
-    /^\/admin\/(darkroom|folders|images|library|videos)(\/|$)/.test(route),
+  routeBucket('admin fleet library media', adminRoutes, (route) =>
+    /^\/admin\/(fleet|folders|images|library|videos)(\/|$)/.test(route),
   ),
   routeBucket('admin organization overview', adminRoutes, (route) =>
     /^\/admin\/(organization|overview)(\/|$)/.test(route),
@@ -226,16 +226,16 @@ function bootstrapPayload() {
       isOnboardingCompleted: true,
       lastName: 'User',
     },
-    darkroomCapabilities: {
+    fleetCapabilities: {
       isByokEnabled: false,
-      isDarkroomAvailable: false,
+      isFleetAvailable: false,
     },
     settings: {
       defaultAvatarIngredientId: null,
       defaultVoiceId: null,
       id: 'org-settings-1',
       isAdvancedMode: false,
-      isDarkroomNsfwVisible: false,
+      isFleetNsfwVisible: false,
     },
     streak: null,
   };
@@ -377,9 +377,9 @@ async function startMockApiServer(): Promise<Server | null> {
       return;
     }
 
-    if (url.includes('/darkroom-capabilities')) {
+    if (url.includes('/fleet-capabilities')) {
       jsonResponse(response, {
-        data: { attributes: bootstrapPayload().darkroomCapabilities },
+        data: { attributes: bootstrapPayload().fleetCapabilities },
       });
       return;
     }

@@ -138,7 +138,7 @@ describe('Admin Fleet split controllers', () => {
         methodName,
       ) as object;
 
-      // Dual darkroom mount removed — fleet is the only path.
+      // Dual fleet mount removed — fleet is the only path.
       expect(Reflect.getMetadata(PATH_METADATA, controllerClass)).toBe(
         'admin/fleet',
       );

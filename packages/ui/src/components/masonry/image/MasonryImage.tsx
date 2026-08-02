@@ -137,16 +137,16 @@ export default function MasonryImage({
   const imageSrc = getImageSrc(image?.ingredientUrl, imageError);
   const shouldShowBadges = isActionsEnabled && !isProcessing && !isFailed;
   const useDragDrop = isDragEnabled && onUpdateParent;
-  const isDarkroomSensitive =
-    selectedBrand?.isDarkroomEnabled &&
+  const isFleetNsfwSensitive =
+    selectedBrand?.isFleetEnabled &&
     !!image.personaSlug &&
     image.contentRating !== 'sfw';
-  const isDarkroomLocked =
-    Boolean(isDarkroomSensitive) && !settings?.isDarkroomNsfwVisible;
+  const isFleetNsfwLocked =
+    Boolean(isFleetNsfwSensitive) && !settings?.isFleetNsfwVisible;
 
   const handleContentClick = useCallback(
     (e: React.MouseEvent) => {
-      if (isDarkroomLocked) {
+      if (isFleetNsfwLocked) {
         return;
       }
 
@@ -157,7 +157,7 @@ export default function MasonryImage({
         onClickIngredient?.(image);
       }
     },
-    [isDarkroomLocked, onClickIngredient, image],
+    [isFleetNsfwLocked, onClickIngredient, image],
   );
 
   const content = (
@@ -180,7 +180,7 @@ export default function MasonryImage({
         isLoading={isLoading}
         imageError={imageError}
         isProcessing={isProcessing}
-        isDarkroomLocked={isDarkroomLocked}
+        isFleetNsfwLocked={isFleetNsfwLocked}
         isSquare={isSquare}
         aspectRatioStyle={aspectRatioStyle}
         imageSrc={imageSrc}

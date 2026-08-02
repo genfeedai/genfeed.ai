@@ -1,5 +1,6 @@
 'use client';
 
+import { isDesktopClient } from '@genfeedai/config/deployment';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
@@ -26,7 +27,7 @@ interface OptionalBalanceRequestError {
   silent?: boolean;
 }
 
-export default function TopbarCreditsBar() {
+function TopbarCreditsBarContent() {
   const { organizationId } = useBrand();
   const { orgHref } = useOrgUrl();
 
@@ -193,4 +194,8 @@ export default function TopbarCreditsBar() {
       remainingPercent={remainingPercent}
     />
   );
+}
+
+export default function TopbarCreditsBar() {
+  return isDesktopClient() ? null : <TopbarCreditsBarContent />;
 }

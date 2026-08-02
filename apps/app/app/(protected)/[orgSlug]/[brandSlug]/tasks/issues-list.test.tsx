@@ -12,6 +12,10 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
 
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ brandId: null }),
+}));
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
   useSearchParams: () => new URLSearchParams(),
@@ -33,7 +37,27 @@ describe('IssuesList view controls', () => {
     mocks.getService.mockResolvedValue({ list: mocks.list });
   });
 
-  it('names the view controls and exposes their selected state', async () => {
+  it('shows a table skeleton while loading before the empty card', async () => {
+    let resolveList: (value: unknown[]) => void = () => undefined;
+    mocks.list.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveList = resolve;
+      }),
+    );
+
+    render(<IssuesList />);
+
+    expect(screen.getByTestId('skeleton-table')).toBeVisible();
+    expect(screen.queryByText('No tasks yet')).not.toBeInTheDocument();
+    expect(screen.queryByText('All Statuses')).not.toBeInTheDocument();
+
+    resolveList([]);
+
+    expect(await screen.findByText('No tasks yet')).toBeVisible();
+    expect(screen.queryByTestId('skeleton-table')).not.toBeInTheDocument();
+  });
+
+  it('start-empty surface is only the empty card with a create CTA (no toolbar)', async () => {
     render(<IssuesList />);
 
     expect(await screen.findByText('No tasks yet')).toBeVisible();
@@ -45,6 +69,30 @@ describe('IssuesList view controls', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'Tasks' }),
     ).toHaveClass('sr-only');
+
+    // Primary CTA lives inside the empty card, not the action bar.
+    expect(screen.getByRole('button', { name: 'New Task' })).toBeVisible();
+    expect(
+      screen.queryByRole('group', { name: 'View' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('All Statuses')).not.toBeInTheDocument();
+  });
+
+  it('names the view controls and exposes their selected state once tasks exist', async () => {
+    mocks.list.mockResolvedValue([
+      {
+        id: 'task-1',
+        identifier: 'TASK-1',
+        priority: 'medium',
+        status: 'todo',
+        title: 'Ship empty-state CTA',
+        updatedAt: new Date().toISOString(),
+      },
+    ]);
+
+    render(<IssuesList />);
+
+    expect(await screen.findByText('Ship empty-state CTA')).toBeVisible();
 
     const listView = screen.getByRole('radio', { name: 'List view' });
     const kanbanView = screen.getByRole('radio', { name: 'Kanban view' });

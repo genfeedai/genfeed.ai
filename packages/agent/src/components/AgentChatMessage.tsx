@@ -255,11 +255,12 @@ export function AgentChatMessage({
           >
             <SafeMarkdown
               content={visibleMessageContent}
+              enhanceStructure={!isUser}
               className={cn(
-                'prose max-w-none break-words text-inherit prose-headings:text-inherit prose-p:text-inherit prose-strong:text-inherit prose-li:text-inherit prose-code:text-inherit prose-pre:bg-transparent',
+                'max-w-none break-words text-inherit',
                 isUser
-                  ? 'prose-sm prose-p:my-1.5 prose-p:leading-5'
-                  : 'prose-p:my-3 prose-p:leading-7 prose-headings:mb-3 prose-headings:mt-6 prose-ul:my-4 prose-ol:my-4 prose-li:my-1.5 prose-li:leading-7 prose-pre:px-0 prose-pre:py-0',
+                  ? 'text-[13px] leading-5 [&_p]:my-1.5'
+                  : 'text-[15px] leading-7 text-foreground/92',
               )}
             />
             {isMessageAnimating && !shouldTruncateContent ? (

@@ -1,4 +1,4 @@
-import { DarkroomReviewStatus as FleetReviewStatus } from '@genfeedai/enums';
+import { FleetReviewStatus } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum } from 'class-validator';
 

@@ -1,7 +1,7 @@
 import {
   ContentRating,
-  DarkroomAssetLabel as FleetAssetLabel,
-  DarkroomReviewStatus as FleetReviewStatus,
+  FleetAssetLabel,
+  FleetReviewStatus,
 } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';

@@ -3,6 +3,7 @@ import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interf
 import {
   ChartColumn,
   CirclePlay,
+  Megaphone,
   Rocket,
   Settings,
   Sparkles,
@@ -30,6 +31,14 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
     ],
     outline: Wrench,
     solid: Wrench,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.AUTOMATE.REPLY_CAMPAIGNS,
+    label: 'Reply Campaigns',
+    matchPaths: [APP_ROUTES.AUTOMATE.REPLY_CAMPAIGNS],
+    outline: Megaphone,
+    solid: Megaphone,
   },
   {
     group: '',

@@ -119,7 +119,7 @@ export default function IngredientsList({
   );
   const selectedCampaign = selectedIngredients[0]?.campaign;
   const canPublishCampaign =
-    Boolean(selectedBrand?.isDarkroomEnabled) &&
+    Boolean(selectedBrand?.isFleetEnabled) &&
     selectedIngredients.length >= 2 &&
     selectedIngredients.every(
       (ingredient) =>

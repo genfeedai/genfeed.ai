@@ -98,7 +98,7 @@ describe('Toolbar', () => {
     expect(screen.getByText('Saved')).toBeTruthy();
     expect(screen.getByText('Estimated Cost')).toBeTruthy();
     expect(screen.getByText('Lifecycle Actions')).toBeTruthy();
-    expect(screen.queryByTitle('Go to Dashboard')).toBeNull();
+    expect(screen.queryByTitle('Go to Overview')).toBeNull();
 
     fireEvent.click(screen.getByTitle('Keyboard shortcuts'));
     expect(stores.openModal).toHaveBeenCalledWith('shortcutHelp');
@@ -112,8 +112,8 @@ describe('Toolbar', () => {
       />,
     );
 
-    expect(screen.getByTitle('Go to Dashboard')).toBeTruthy();
-    expect(screen.getByTitle('Go to Dashboard').getAttribute('href')).toBe(
+    expect(screen.getByTitle('Go to Overview')).toBeTruthy();
+    expect(screen.getByTitle('Go to Overview').getAttribute('href')).toBe(
       '/workflows',
     );
   });

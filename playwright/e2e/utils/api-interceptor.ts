@@ -65,13 +65,13 @@ interface MockBrand {
   links: unknown[];
   createdAt: string;
   updatedAt: string;
-  isDarkroomEnabled: boolean;
+  isFleetEnabled: boolean;
 }
 
 interface MockOrganizationSettings {
   id: string;
   isAdvancedMode: boolean;
-  isDarkroomNsfwVisible: boolean;
+  isFleetNsfwVisible: boolean;
   defaultAvatarIngredientId: string | null;
   defaultVoiceId: string | null;
   defaultVoiceRef: {
@@ -80,9 +80,9 @@ interface MockOrganizationSettings {
   } | null;
 }
 
-interface MockDarkroomCapabilities {
+interface MockFleetCapabilities {
   isByokEnabled: boolean;
-  isDarkroomAvailable: boolean;
+  isFleetAvailable: boolean;
 }
 
 interface JsonApiDocument<T> {
@@ -179,7 +179,7 @@ export function generateMockBrand(
     description: 'Default mock brand',
     id: 'brand-1',
     imageUrl: 'https://cdn.genfeed.ai/mock/brands/brand-1.png',
-    isDarkroomEnabled: false,
+    isFleetEnabled: false,
     label: 'Brand 1',
     links: [],
     name: 'Brand 1',
@@ -199,17 +199,17 @@ export function generateMockOrganizationSettings(
     defaultVoiceRef: null,
     id: 'org-settings-1',
     isAdvancedMode: false,
-    isDarkroomNsfwVisible: false,
+    isFleetNsfwVisible: false,
     ...overrides,
   };
 }
 
-export function generateMockDarkroomCapabilities(
-  overrides: Partial<MockDarkroomCapabilities> = {},
-): MockDarkroomCapabilities {
+export function generateMockFleetCapabilities(
+  overrides: Partial<MockFleetCapabilities> = {},
+): MockFleetCapabilities {
   return {
     isByokEnabled: false,
-    isDarkroomAvailable: false,
+    isFleetAvailable: false,
     ...overrides,
   };
 }
@@ -299,7 +299,7 @@ function buildProtectedAppBootstrapPayload() {
     },
     brands: [generateMockBrand()],
     currentUser: generateMockApiUser(),
-    darkroomCapabilities: generateMockDarkroomCapabilities(),
+    fleetCapabilities: generateMockFleetCapabilities(),
     settings: generateMockOrganizationSettings(),
     streak: null,
   };
@@ -560,13 +560,13 @@ async function handleOrganizationRoutes(route: Route): Promise<void> {
     return;
   }
 
-  if (url.includes('/darkroom-capabilities')) {
+  if (url.includes('/fleet-capabilities')) {
     await route.fulfill({
       body: JSON.stringify(
         wrapInJsonApi(
-          generateMockDarkroomCapabilities(),
-          'darkroom-capabilities',
-          'mock-darkroom-capabilities',
+          generateMockFleetCapabilities(),
+          'fleet-capabilities',
+          'mock-fleet-capabilities',
         ),
       ),
       contentType: 'application/json',

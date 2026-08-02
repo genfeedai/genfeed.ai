@@ -74,6 +74,8 @@ describe('TopbarCreditsBar', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
+    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
     mockGetCreditsService.mockResolvedValue({
       getTopbarBalances: mockGetTopbarBalances,
     });
@@ -99,12 +101,47 @@ describe('TopbarCreditsBar', () => {
       expect(screen.getByText('Credits 42')).toBeInTheDocument();
     });
 
+    // SaaS (NEXT_PUBLIC_GENFEED_CLOUD) links to Billing, not bare Credits.
     expect(screen.getByTestId('credits-link')).toHaveAttribute(
       'href',
-      '/genfeed/settings/credits',
+      '/genfeed/settings/billing',
     );
     expect(mockLoggerError).not.toHaveBeenCalled();
     expect(mockLoggerWarn).not.toHaveBeenCalled();
+  });
+
+  it('renders nothing on desktop BYOK-only shell', async () => {
+    process.env.NEXT_PUBLIC_DESKTOP_SHELL = 'true';
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
+
+    const { container } = render(<TopbarCreditsBar />);
+
+    await waitFor(() => {
+      expect(mockGetTopbarBalances).not.toHaveBeenCalled();
+    });
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('coerces non-finite genfeed balance (OSS Infinity → JSON null) to 0', async () => {
+    mockGetTopbarBalances.mockResolvedValue({
+      generatedAt: '2026-06-17T00:00:00.000Z',
+      segments: [
+        {
+          balance: null,
+          currencyOrUnit: 'credits',
+          label: 'Genfeed',
+          lastSyncedAt: '2026-06-17T00:00:00.000Z',
+          provider: 'genfeed',
+          status: 'available',
+        },
+      ],
+    });
+
+    render(<TopbarCreditsBar />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Credits 0')).toBeInTheDocument();
+    });
   });
 
   it('links to billing when EE billing is enabled', async () => {

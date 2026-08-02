@@ -316,6 +316,27 @@ describe('SettingsApiKeysPage', () => {
     expect(mocks.findAllApiKeys).toHaveBeenCalledWith({ limit: 100 });
   });
 
+  it('switches scope presets and reflects the active preset', async () => {
+    render(<SettingsApiKeysPage />);
+
+    await screen.findByText('MCP Key');
+
+    const mcp = screen.getByRole('button', { name: 'MCP' });
+    const read = screen.getByRole('button', { name: 'Read' });
+    const content = screen.getByRole('button', { name: 'Content' });
+
+    expect(mcp).toHaveAttribute('aria-pressed', 'true');
+    expect(read).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(read);
+    expect(read).toHaveAttribute('aria-pressed', 'true');
+    expect(mcp).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(content);
+    expect(content).toHaveAttribute('aria-pressed', 'true');
+    expect(read).toHaveAttribute('aria-pressed', 'false');
+  });
+
   it('creates a Genfeed API key and shows the plain key once', async () => {
     render(<SettingsApiKeysPage />);
 

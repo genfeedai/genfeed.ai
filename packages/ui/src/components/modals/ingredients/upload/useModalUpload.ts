@@ -79,7 +79,7 @@ export function useModalUpload({
   openKey,
   formRef,
 }: UseModalUploadParams) {
-  const { selectedBrand, darkroomCapabilities } = useBrand();
+  const { selectedBrand, fleetCapabilities } = useBrand();
   const [error, setError] = useState<string | null>(null);
   const [dimensionWarning, setDimensionWarning] = useState<string | null>(null);
   const [fileStatuses, setFileStatuses] = useState<
@@ -113,8 +113,8 @@ export function useModalUpload({
     category === IngredientCategory.VOICE || category === 'voice';
 
   const isSelfHostedVoiceAvailable =
-    Boolean(selectedBrand?.isDarkroomEnabled) &&
-    Boolean(darkroomCapabilities?.fleet.voices);
+    Boolean(selectedBrand?.isFleetEnabled) &&
+    Boolean(fleetCapabilities?.fleet.voices);
 
   const {
     clearRecordedFile,

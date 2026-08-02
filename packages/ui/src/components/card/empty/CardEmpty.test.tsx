@@ -19,6 +19,11 @@ describe('CardEmpty', () => {
       <CardEmpty label="No tasks" description="Tasks will appear here." />,
     );
 
+    expect(screen.getByTestId('card-empty')).toHaveClass(
+      'rounded-card',
+      'bg-card',
+      'shadow-border',
+    );
     expect(screen.getByText('Tasks will appear here.')).not.toHaveClass('mb-3');
 
     rerender(

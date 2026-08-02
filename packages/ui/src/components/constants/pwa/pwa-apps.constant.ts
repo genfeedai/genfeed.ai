@@ -45,7 +45,7 @@ export const PWA_APPS: Record<PWAAppNameKey, PWAAppConfig> = {
   ),
   dashboard: createPWAConfig(
     'dashboard',
-    'Dashboard',
+    'Overview',
     'Overview of your Genfeed AI workspace',
   ),
   manager: createPWAConfig(

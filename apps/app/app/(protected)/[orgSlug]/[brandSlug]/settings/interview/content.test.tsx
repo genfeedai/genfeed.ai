@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   getInterviewService: vi.fn(),
   loggerError: vi.fn(),
   useBrandInterview: {
+    answeredFields: {} as Record<string, string | string[]>,
     completenessScore: 0,
     currentQuestion: null as null | Record<string, unknown>,
     error: null as string | null,
@@ -24,6 +25,7 @@ const mocks = vi.hoisted(() => ({
     skipQuestion: vi.fn(),
     startInterview: vi.fn(),
     status: 'idle' as 'idle' | 'in_progress' | 'complete',
+    steps: [] as Array<Record<string, unknown>>,
     submitAnswer: vi.fn(),
   },
   draftGet: vi.fn(() => ''),
@@ -60,38 +62,34 @@ vi.mock('@services/core/logger.service', () => ({
 vi.mock('@/store/brand-interview-draft.store', () => {
   const answers = new Map<string, string>();
   const keyOf = (brandId: string, fieldKey: string) => `${brandId}:${fieldKey}`;
+  const state = {
+    byBrandId: {},
+    clearAnswer: (brandId: string, fieldKey: string) => {
+      answers.delete(keyOf(brandId, fieldKey));
+      mocks.draftClearAnswer(brandId, fieldKey);
+    },
+    clearBrand: (brandId: string) => {
+      for (const key of answers.keys()) {
+        if (key.startsWith(`${brandId}:`)) {
+          answers.delete(key);
+        }
+      }
+      mocks.draftClearBrand(brandId);
+    },
+    getAnswer: (brandId: string, fieldKey: string) =>
+      answers.get(keyOf(brandId, fieldKey)) ?? mocks.draftGet(),
+    setAnswer: (brandId: string, fieldKey: string, value: string) => {
+      answers.set(keyOf(brandId, fieldKey), value);
+      mocks.draftSet(brandId, fieldKey, value);
+    },
+  };
+  const useBrandInterviewDraftStore = Object.assign(
+    (selector: (storeState: typeof state) => unknown) => selector(state),
+    { getState: () => state },
+  );
 
   return {
-    useBrandInterviewDraftStore: (
-      selector: (state: {
-        byBrandId: Record<string, { answerByFieldKey: Record<string, string> }>;
-        clearAnswer: (brandId: string, fieldKey: string) => void;
-        clearBrand: (brandId: string) => void;
-        getAnswer: (brandId: string, fieldKey: string) => string;
-        setAnswer: (brandId: string, fieldKey: string, value: string) => void;
-      }) => unknown,
-    ) =>
-      selector({
-        byBrandId: {},
-        clearAnswer: (brandId, fieldKey) => {
-          answers.delete(keyOf(brandId, fieldKey));
-          mocks.draftClearAnswer(brandId, fieldKey);
-        },
-        clearBrand: (brandId) => {
-          for (const key of answers.keys()) {
-            if (key.startsWith(`${brandId}:`)) {
-              answers.delete(key);
-            }
-          }
-          mocks.draftClearBrand(brandId);
-        },
-        getAnswer: (brandId, fieldKey) =>
-          answers.get(keyOf(brandId, fieldKey)) ?? mocks.draftGet(),
-        setAnswer: (brandId, fieldKey, value) => {
-          answers.set(keyOf(brandId, fieldKey), value);
-          mocks.draftSet(brandId, fieldKey, value);
-        },
-      }),
+    useBrandInterviewDraftStore,
   };
 });
 
@@ -188,6 +186,7 @@ describe('BrandSettingsInterviewPage', () => {
     };
 
     mocks.useBrandInterview = {
+      answeredFields: {},
       completenessScore: 0,
       currentQuestion: null,
       error: null,
@@ -197,6 +196,7 @@ describe('BrandSettingsInterviewPage', () => {
       skipQuestion: vi.fn(),
       startInterview: vi.fn(),
       status: 'idle',
+      steps: [],
       submitAnswer: vi.fn(),
     };
 
@@ -212,14 +212,16 @@ describe('BrandSettingsInterviewPage', () => {
   it('renders Start in idle state with credit note', () => {
     render(<BrandSettingsInterviewPage />);
 
-    expect(screen.getByRole('button', { name: 'Start' })).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Start interview' }),
+    ).toBeVisible();
     expect(screen.getByText(/10 credits/i)).toBeVisible();
   });
 
   it('calls startInterview when Start is clicked', async () => {
     render(<BrandSettingsInterviewPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Start interview' }));
 
     await waitFor(() => {
       expect(mocks.useBrandInterview.startInterview).toHaveBeenCalled();
@@ -227,20 +229,48 @@ describe('BrandSettingsInterviewPage', () => {
   });
 
   it('shows the current question inline without a Manage modal', () => {
+    const question = {
+      answerType: 'text',
+      fieldKey: 'label',
+      group: 'identity',
+      hint: 'The name of your brand',
+      isRequired: true,
+      questionText: 'What is the name of your brand?',
+      weight: 10,
+    };
+
     mocks.useBrandInterview = {
       ...mocks.useBrandInterview,
-      currentQuestion: {
-        answerType: 'text',
-        fieldKey: 'label',
-        group: 'identity',
-        hint: 'The name of your brand',
-        isRequired: true,
-        questionText: 'What is the name of your brand?',
-        weight: 10,
-      },
+      currentQuestion: question,
       interviewId: 'iv-123',
       progress: { answeredFields: 1, percentComplete: 10, totalFields: 10 },
       status: 'in_progress',
+      steps: [
+        {
+          answerPreview: undefined,
+          fieldKey: 'label',
+          group: 'identity',
+          isNavigable: true,
+          label: question.questionText,
+          question,
+          status: 'current',
+        },
+        {
+          fieldKey: 'tone',
+          group: 'voice',
+          isNavigable: false,
+          label: 'What is your brand tone?',
+          question: {
+            answerType: 'text',
+            fieldKey: 'tone',
+            group: 'voice',
+            isRequired: true,
+            questionText: 'What is your brand tone?',
+            weight: 8,
+          },
+          status: 'upcoming',
+        },
+      ],
     };
 
     render(<BrandSettingsInterviewPage />);
@@ -249,24 +279,38 @@ describe('BrandSettingsInterviewPage', () => {
     expect(screen.getByRole('button', { name: 'Continue' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Skip' })).toBeVisible();
     expect(
+      screen.getByRole('navigation', { name: 'Interview steps' }),
+    ).toBeVisible();
+    expect(
       screen.queryByRole('button', { name: 'Manage' }),
     ).not.toBeInTheDocument();
   });
 
   it('writes drafts to the zustand store and submits from persisted value', async () => {
+    const question = {
+      answerType: 'text',
+      fieldKey: 'label',
+      group: 'identity',
+      isRequired: true,
+      questionText: 'What is the name of your brand?',
+      weight: 10,
+    };
     mocks.useBrandInterview = {
       ...mocks.useBrandInterview,
-      currentQuestion: {
-        answerType: 'text',
-        fieldKey: 'label',
-        group: 'identity',
-        isRequired: true,
-        questionText: 'What is the name of your brand?',
-        weight: 10,
-      },
+      currentQuestion: question,
       interviewId: 'iv-123',
       progress: { answeredFields: 0, percentComplete: 0, totalFields: 5 },
       status: 'in_progress',
+      steps: [
+        {
+          fieldKey: 'label',
+          group: 'identity',
+          isNavigable: true,
+          label: question.questionText,
+          question,
+          status: 'current',
+        },
+      ],
     };
 
     const { rerender } = render(<BrandSettingsInterviewPage />);
@@ -294,54 +338,71 @@ describe('BrandSettingsInterviewPage', () => {
     });
   });
 
-  it('renders list answers as chip entry instead of a huge textarea first', () => {
+  it('renders list answers as a multi-line textarea with example chips', () => {
+    const question = {
+      answerType: 'list',
+      examples: ['We believe AI should be a co-creator'],
+      fieldKey: 'messagingPillars',
+      group: 'voice',
+      isRequired: true,
+      questionText: 'What are your key messaging pillars?',
+      weight: 10,
+    };
     mocks.useBrandInterview = {
       ...mocks.useBrandInterview,
-      currentQuestion: {
-        answerType: 'list',
-        examples: ['We believe AI should be a co-creator'],
-        fieldKey: 'messagingPillars',
-        group: 'voice',
-        isRequired: true,
-        questionText: 'What are your key messaging pillars?',
-        weight: 10,
-      },
+      currentQuestion: question,
       interviewId: 'iv-123',
       progress: { answeredFields: 0, percentComplete: 0, totalFields: 5 },
       status: 'in_progress',
+      steps: [
+        {
+          fieldKey: 'messagingPillars',
+          group: 'voice',
+          isNavigable: true,
+          label: question.questionText,
+          question,
+          status: 'current',
+        },
+      ],
     };
 
     render(<BrandSettingsInterviewPage />);
 
     expect(
-      screen.getByPlaceholderText('Type a pillar, press Enter to add…'),
+      screen.getByPlaceholderText('One item per line (or comma-separated)…'),
     ).toBeVisible();
     expect(
       screen.getByRole('button', {
         name: 'We believe AI should be a co-creator',
       }),
     ).toBeVisible();
-    expect(
-      screen.queryByPlaceholderText(
-        'Enter values separated by commas or new lines…',
-      ),
-    ).not.toBeInTheDocument();
   });
 
   it('calls skipQuestion when Skip is clicked', async () => {
+    const question = {
+      answerType: 'text',
+      fieldKey: 'label',
+      group: 'identity',
+      isRequired: false,
+      questionText: 'Optional question?',
+      weight: 5,
+    };
     mocks.useBrandInterview = {
       ...mocks.useBrandInterview,
-      currentQuestion: {
-        answerType: 'text',
-        fieldKey: 'label',
-        group: 'identity',
-        isRequired: false,
-        questionText: 'Optional question?',
-        weight: 5,
-      },
+      currentQuestion: question,
       interviewId: 'iv-123',
       progress: { answeredFields: 0, percentComplete: 0, totalFields: 5 },
       status: 'in_progress',
+      steps: [
+        {
+          fieldKey: 'label',
+          group: 'identity',
+          isNavigable: true,
+          label: question.questionText,
+          question,
+          status: 'current',
+        },
+      ],
     };
 
     render(<BrandSettingsInterviewPage />);
@@ -358,6 +419,7 @@ describe('BrandSettingsInterviewPage', () => {
       ...mocks.useBrandInterview,
       completenessScore: 85,
       status: 'complete',
+      steps: [],
     };
 
     render(<BrandSettingsInterviewPage />);
@@ -367,11 +429,78 @@ describe('BrandSettingsInterviewPage', () => {
     expect(screen.getAllByText(/85%/).length).toBeGreaterThan(0);
   });
 
+  it('lets users reopen an answered step from the steps rail', async () => {
+    const current = {
+      answerType: 'text',
+      fieldKey: 'style',
+      group: 'voice',
+      isRequired: false,
+      questionText: 'How would you describe your writing style?',
+      weight: 7,
+    };
+    const answered = {
+      answerType: 'text',
+      fieldKey: 'tone',
+      group: 'voice',
+      isRequired: true,
+      questionText:
+        "What is your brand's communication tone? Describe the overall feel of how your brand speaks.",
+      weight: 8,
+    };
+
+    mocks.useBrandInterview = {
+      ...mocks.useBrandInterview,
+      answeredFields: { tone: 'Professional yet warm' },
+      currentQuestion: current,
+      interviewId: 'iv-123',
+      progress: { answeredFields: 1, percentComplete: 10, totalFields: 10 },
+      status: 'in_progress',
+      steps: [
+        {
+          answerPreview: 'Professional yet warm',
+          fieldKey: 'tone',
+          group: 'voice',
+          isNavigable: true,
+          label: answered.questionText,
+          question: answered,
+          status: 'answered',
+        },
+        {
+          fieldKey: 'style',
+          group: 'voice',
+          isNavigable: true,
+          label: current.questionText,
+          question: current,
+          status: 'current',
+        },
+      ],
+    };
+
+    render(<BrandSettingsInterviewPage />);
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /What is your brand's communication tone/i,
+      }),
+    );
+
+    expect(
+      screen.getByText(
+        "What is your brand's communication tone? Describe the overall feel of how your brand speaks.",
+      ),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Save answer' })).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Back to current' }),
+    ).toBeVisible();
+  });
+
   it('clears drafts and refreshes brand when interview completes', async () => {
     mocks.useBrandInterview = {
       ...mocks.useBrandInterview,
       completenessScore: 85,
       status: 'complete',
+      steps: [],
     };
 
     render(<BrandSettingsInterviewPage />);

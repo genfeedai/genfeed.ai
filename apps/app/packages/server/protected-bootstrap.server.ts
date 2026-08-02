@@ -81,7 +81,7 @@ export const loadProtectedBootstrap = cache(
       brandId: bootstrap.access.brandId ?? '',
       brands: bootstrap.brands ?? [],
       currentUser: bootstrap.currentUser,
-      darkroomCapabilities: bootstrap.darkroomCapabilities,
+      fleetCapabilities: bootstrap.fleetCapabilities,
       organizationId: bootstrap.access.organizationId ?? '',
       settings: bootstrap.settings,
       streak: bootstrap.streak,

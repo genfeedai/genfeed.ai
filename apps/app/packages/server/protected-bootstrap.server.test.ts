@@ -66,7 +66,7 @@ describe('loadProtectedBootstrap', () => {
       },
       brands: [{ id: 'brand_123', label: 'Alpha' }],
       currentUser: { id: 'user_123' },
-      darkroomCapabilities: { brandEnabled: true },
+      fleetCapabilities: { brandEnabled: true },
       settings: { organization: 'org_123' },
       streak: { currentStreak: 6 },
     });
@@ -89,7 +89,7 @@ describe('loadProtectedBootstrap', () => {
       brandId: 'brand_123',
       brands: [{ id: 'brand_123', label: 'Alpha' }],
       currentUser: { id: 'user_123' },
-      darkroomCapabilities: { brandEnabled: true },
+      fleetCapabilities: { brandEnabled: true },
       organizationId: 'org_123',
       settings: { organization: 'org_123' },
       streak: { currentStreak: 6 },

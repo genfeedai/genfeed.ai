@@ -1,6 +1,6 @@
 import type {
   IBrand,
-  IDarkroomCapabilities,
+  IFleetCapabilities,
   IOrganizationSetting,
   IUser,
 } from '@genfeedai/interfaces';
@@ -13,7 +13,7 @@ export interface ProtectedBootstrapData {
   brandId: string;
   brands: IBrand[];
   currentUser: IUser | null;
-  darkroomCapabilities: IDarkroomCapabilities | null;
+  fleetCapabilities: IFleetCapabilities | null;
   organizationId: string;
   settings: IOrganizationSetting | null;
   streak: IStreakSummary | null;

@@ -173,7 +173,6 @@ describe('SettingsProgressPage', () => {
   it('renders the combined setup and streak review sections', () => {
     render(<SettingsProgressPage />);
 
-    expect(screen.getByText('Review setup and streaks')).toBeInTheDocument();
     expect(screen.getByText('Setup checklist')).toBeInTheDocument();
     expect(screen.getByText('Creation heatmap')).toBeInTheDocument();
     expect(screen.getByText('Earned streak rewards')).toBeInTheDocument();

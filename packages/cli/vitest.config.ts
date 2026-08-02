@@ -58,7 +58,7 @@ export default defineConfig({
       exclude: [
         'src/index.ts',
         'src/commands/**/*.ts',
-        'src/api/darkroom-api.ts',
+        'src/api/fleet-api.ts',
         'src/middleware/**/*.ts',
         'src/scripts/**/*.ts',
         'src/utils/helpers.ts',

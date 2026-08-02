@@ -44,11 +44,15 @@ export class AgentThreadsController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'List user agent threads' })
+  @ApiOperation({
+    summary:
+      'List user agent threads (optional brand scope for single-brand workspace chat)',
+  })
   async listThreads(
     @Req() req: Request,
     @CurrentUser() user: User,
     @Query('status') status?: string,
+    @Query('brand') brand?: string,
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
@@ -58,10 +62,13 @@ export class AgentThreadsController {
       )
         ? (status as AgentThreadStatus)
         : undefined;
+      // Brand selected → hard filter to that brand. Brand cleared → full org.
+      const brandId = brand?.trim() ? brand.trim() : undefined;
       const docs = await this.agentThreadsService.getUserThreads(
         dbUserId,
         organizationId,
         parsedStatus,
+        brandId,
       );
       return serializeCollection(req, AgentThreadSerializer, {
         docs,
@@ -235,12 +242,12 @@ export class AgentThreadsController {
       "Bulk-update the current user's threads by filter (currently archives all active threads)",
   })
   async bulkUpdateThreads(
-    @Body() body: { status?: AgentThreadStatus },
+    @Body() body: { status?: AgentThreadStatus; brandId?: string | null },
     @CurrentUser() user: User,
   ) {
     try {
-      // Mass-by-filter: no ids, acts on the caller's own ACTIVE threads.
-      // Only the archive transition is supported today.
+      // Mass-by-filter: no ids, acts on the caller's own ACTIVE threads
+      // (optionally brand-scoped). Only the archive transition is supported today.
       if (body.status !== AgentThreadStatus.ARCHIVED) {
         throw new BadRequestException(
           "Only { status: 'archived' } is supported for bulk thread updates",
@@ -249,11 +256,13 @@ export class AgentThreadsController {
 
       const organizationId = this.resolveOrganizationId(user);
       const dbUserId = await this.resolveMongoUserId(user);
+      const brandId = body.brandId?.trim() ? body.brandId.trim() : undefined;
 
       return {
         archivedCount: await this.agentThreadsService.archiveAllThreads(
           dbUserId,
           organizationId,
+          brandId,
         ),
       };
     } catch (error: unknown) {

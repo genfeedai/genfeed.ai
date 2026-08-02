@@ -31,15 +31,13 @@ export default function HarnessRightColumn({
   splitLines,
 }: HarnessRightColumnProps) {
   return (
-    <div className="space-y-6">
-      <Card className="p-6">
-        <div className="mb-4 space-y-1">
-          <h2 className="text-lg font-semibold">Structure</h2>
-          <p className="text-sm text-muted-foreground">
-            Format rules for one-liners, threads, and articles.
-          </p>
-        </div>
-        <div className="space-y-4">
+    <div className="space-y-4">
+      <Card
+        label="Structure"
+        description="Format rules for one-liners, threads, and articles."
+        bodyClassName="gap-3 p-4"
+      >
+        <div className="space-y-3">
           {(
             [
               'shortFormSkeleton',
@@ -64,15 +62,12 @@ export default function HarnessRightColumn({
         </div>
       </Card>
 
-      <Card className="p-6">
-        <div className="mb-4 space-y-1">
-          <h2 className="text-lg font-semibold">Examples</h2>
-          <p className="text-sm text-muted-foreground">
-            Paste one example per block. These are injected as reference
-            signals, not copied.
-          </p>
-        </div>
-        <div className="space-y-4">
+      <Card
+        label="Examples"
+        description="Paste one example per block. These are injected as reference signals, not copied."
+        bodyClassName="gap-3 p-4"
+      >
+        <div className="space-y-3">
           <div className="space-y-2">
             <Label htmlFor="harness-good">Good examples</Label>
             <Textarea

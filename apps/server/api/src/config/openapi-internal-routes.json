@@ -27,7 +27,7 @@
     },
     {
       "pathPrefix": "/admin/",
-      "reason": "Platform-admin infra (fleet/EC2/darkroom operations)"
+      "reason": "Platform-admin infra (fleet/EC2/fleet operations)"
     },
     {
       "pathPrefix": "/openapi.json",

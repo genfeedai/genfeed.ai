@@ -42,7 +42,7 @@ describe('AdminFleetCharacterService', () => {
       await service.findPersonaBySlug('alice', 'org-123');
 
       expect(personasService.findOne).toHaveBeenCalledWith({
-        isDarkroomCharacter: true,
+        isFleetCharacter: true,
         isDeleted: false,
         organization: 'org-123',
         slug: 'alice',
@@ -90,13 +90,13 @@ describe('AdminFleetCharacterService', () => {
 
       expect(personasService.findAllByOrganization).toHaveBeenCalledWith(
         'org-123',
-        { isDarkroomCharacter: true },
+        { isFleetCharacter: true },
       );
     });
   });
 
   describe('createCharacter', () => {
-    it('forces the isDarkroomCharacter flag', async () => {
+    it('forces the isFleetCharacter flag', async () => {
       await service.createCharacter({
         brand: 'brand-1',
         organization: 'org-123',
@@ -105,7 +105,7 @@ describe('AdminFleetCharacterService', () => {
       });
 
       expect(personasService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ isDarkroomCharacter: true, slug: 'alice' }),
+        expect.objectContaining({ isFleetCharacter: true, slug: 'alice' }),
       );
     });
   });

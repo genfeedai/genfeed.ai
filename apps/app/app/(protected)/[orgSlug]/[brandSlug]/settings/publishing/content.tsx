@@ -444,175 +444,166 @@ export default function BrandSettingsPublishingPage() {
 
   if (!brand) {
     return (
-      <Card className="p-5 sm:p-6">
+      <Card bodyClassName="gap-3 p-4">
         <p className="text-sm text-muted-foreground">Brand not found.</p>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-5 sm:space-y-6">
-      <Card className="p-5 sm:p-6">
-        <div className="space-y-5">
-          <div>
-            <h2 className="text-base font-semibold tracking-[-0.02em] text-foreground sm:text-lg">
-              Publishing defaults
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Recurring cadence and auto-publish rules for this brand.
-            </p>
-          </div>
+    <div className="space-y-4">
+      <Card
+        label="Publishing defaults"
+        description="Recurring cadence and auto-publish rules for this brand."
+        bodyClassName="gap-3 p-4"
+      >
+        <div className="space-y-3">
+          <SettingsToggleRow
+            description="Run this brand on a repeating cadence in the timezone below."
+            isChecked={isScheduleEnabled}
+            isDisabled={isSaving}
+            label="Recurring schedule"
+            onCheckedChange={(checked) =>
+              dispatch({ type: 'SET_SCHEDULE_ENABLED', value: checked })
+            }
+          />
 
-          <div className="space-y-4">
-            <SettingsToggleRow
-              description="Run this brand on a repeating cadence in the timezone below."
-              isChecked={isScheduleEnabled}
-              isDisabled={isSaving}
-              label="Recurring schedule"
-              onCheckedChange={(checked) =>
-                dispatch({ type: 'SET_SCHEDULE_ENABLED', value: checked })
-              }
-            />
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <label
-                  className="block text-sm font-medium text-foreground"
-                  htmlFor="publishing-cadence"
-                >
-                  Cadence
-                </label>
-                <Select
-                  disabled={isSaving || !isScheduleEnabled}
-                  value={scheduleSelectValue}
-                  onValueChange={(value) => {
-                    if (value === CUSTOM_SCHEDULE_VALUE) {
-                      setIsCustomSchedule(true);
-                      if (!cronExpression.trim()) {
-                        dispatch({
-                          type: 'SET_CRON',
-                          value: '0 9 * * 1-5',
-                        });
-                      }
-                      return;
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <label
+                className="block text-sm font-medium text-foreground"
+                htmlFor="publishing-cadence"
+              >
+                Cadence
+              </label>
+              <Select
+                disabled={isSaving || !isScheduleEnabled}
+                value={scheduleSelectValue}
+                onValueChange={(value) => {
+                  if (value === CUSTOM_SCHEDULE_VALUE) {
+                    setIsCustomSchedule(true);
+                    if (!cronExpression.trim()) {
+                      dispatch({
+                        type: 'SET_CRON',
+                        value: '0 9 * * 1-5',
+                      });
                     }
-                    setIsCustomSchedule(false);
-                    dispatch({ type: 'SET_CRON', value });
-                  }}
-                >
-                  <SelectTrigger aria-label="Cadence" id="publishing-cadence">
-                    <SelectValue placeholder="Choose when to run" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SCHEDULE_PRESETS.map((preset) => (
-                      <SelectItem key={preset.cron} value={preset.cron}>
-                        {preset.label}
-                      </SelectItem>
-                    ))}
-                    <SelectItem value={CUSTOM_SCHEDULE_VALUE}>
-                      Custom…
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                {isCustomSchedule ? (
-                  <div className="space-y-1.5 pt-2">
-                    <label
-                      className="block text-xs font-medium text-muted-foreground"
-                      htmlFor="publishing-custom-schedule"
-                    >
-                      Custom schedule
-                    </label>
-                    <Input
-                      aria-label="Custom schedule"
-                      disabled={isSaving || !isScheduleEnabled}
-                      id="publishing-custom-schedule"
-                      placeholder="e.g. weekdays at 9am → 0 9 * * 1-5"
-                      value={cronExpression}
-                      onChange={(event) =>
-                        dispatch({
-                          type: 'SET_CRON',
-                          value: event.target.value,
-                        })
-                      }
-                    />
-                    <p className="text-xs leading-5 text-muted-foreground">
-                      Advanced schedule format. Prefer a preset unless you need
-                      something specific.
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="space-y-1.5">
-                <label
-                  className="block text-sm font-medium text-foreground"
-                  htmlFor="publishing-timezone"
-                >
-                  Timezone
-                </label>
-                <Select
-                  disabled={isSaving || !isScheduleEnabled}
-                  value={timezone || 'UTC'}
-                  onValueChange={(value) =>
-                    dispatch({ type: 'SET_TIMEZONE', value })
+                    return;
                   }
-                >
-                  <SelectTrigger aria-label="Timezone" id="publishing-timezone">
-                    <SelectValue placeholder="Select timezone" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timezoneOptions.map((entry) => (
-                      <SelectItem key={entry.value} value={entry.value}>
-                        {entry.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  setIsCustomSchedule(false);
+                  dispatch({ type: 'SET_CRON', value });
+                }}
+              >
+                <SelectTrigger aria-label="Cadence" id="publishing-cadence">
+                  <SelectValue placeholder="Choose when to run" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SCHEDULE_PRESETS.map((preset) => (
+                    <SelectItem key={preset.cron} value={preset.cron}>
+                      {preset.label}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value={CUSTOM_SCHEDULE_VALUE}>Custom…</SelectItem>
+                </SelectContent>
+              </Select>
+              {isCustomSchedule ? (
+                <div className="space-y-1.5 pt-2">
+                  <label
+                    className="block text-xs font-medium text-muted-foreground"
+                    htmlFor="publishing-custom-schedule"
+                  >
+                    Custom schedule
+                  </label>
+                  <Input
+                    aria-label="Custom schedule"
+                    disabled={isSaving || !isScheduleEnabled}
+                    id="publishing-custom-schedule"
+                    placeholder="e.g. weekdays at 9am → 0 9 * * 1-5"
+                    value={cronExpression}
+                    onChange={(event) =>
+                      dispatch({
+                        type: 'SET_CRON',
+                        value: event.target.value,
+                      })
+                    }
+                  />
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    Advanced schedule format. Prefer a preset unless you need
+                    something specific.
+                  </p>
+                </div>
+              ) : null}
             </div>
-
-            <SettingsToggleRow
-              description="Publish approved outputs automatically when confidence clears the threshold."
-              isChecked={isAutoPublishEnabled}
-              isDisabled={isSaving}
-              label="Auto-publish"
-              onCheckedChange={(checked) =>
-                dispatch({
-                  type: 'SET_AUTO_PUBLISH_ENABLED',
-                  value: checked,
-                })
-              }
-            />
 
             <div className="space-y-1.5">
               <label
                 className="block text-sm font-medium text-foreground"
-                htmlFor="confidence-threshold"
+                htmlFor="publishing-timezone"
               >
-                Confidence threshold
+                Timezone
               </label>
-              <Input
-                aria-label="Confidence threshold"
-                disabled={isSaving || !isAutoPublishEnabled}
-                id="confidence-threshold"
-                inputMode="decimal"
-                placeholder="0.8"
-                value={confidenceThreshold}
-                onChange={(event) =>
-                  dispatch({
-                    type: 'SET_CONFIDENCE_THRESHOLD',
-                    value: event.target.value,
-                  })
+              <Select
+                disabled={isSaving || !isScheduleEnabled}
+                value={timezone || 'UTC'}
+                onValueChange={(value) =>
+                  dispatch({ type: 'SET_TIMEZONE', value })
                 }
-              />
-              <p className="text-xs leading-5 text-muted-foreground">
-                0–1 scale. Higher means only higher-confidence outputs publish
-                without review.
-              </p>
+              >
+                <SelectTrigger aria-label="Timezone" id="publishing-timezone">
+                  <SelectValue placeholder="Select timezone" />
+                </SelectTrigger>
+                <SelectContent>
+                  {timezoneOptions.map((entry) => (
+                    <SelectItem key={entry.value} value={entry.value}>
+                      {entry.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          <div className="flex justify-end border-t border-border pt-4">
+          <SettingsToggleRow
+            description="Publish approved outputs automatically when confidence clears the threshold."
+            isChecked={isAutoPublishEnabled}
+            isDisabled={isSaving}
+            label="Auto-publish"
+            onCheckedChange={(checked) =>
+              dispatch({
+                type: 'SET_AUTO_PUBLISH_ENABLED',
+                value: checked,
+              })
+            }
+          />
+
+          <div className="space-y-1.5">
+            <label
+              className="block text-sm font-medium text-foreground"
+              htmlFor="confidence-threshold"
+            >
+              Confidence threshold
+            </label>
+            <Input
+              aria-label="Confidence threshold"
+              disabled={isSaving || !isAutoPublishEnabled}
+              id="confidence-threshold"
+              inputMode="decimal"
+              placeholder="0.8"
+              value={confidenceThreshold}
+              onChange={(event) =>
+                dispatch({
+                  type: 'SET_CONFIDENCE_THRESHOLD',
+                  value: event.target.value,
+                })
+              }
+            />
+            <p className="text-xs leading-5 text-muted-foreground">
+              0–1 scale. Higher means only higher-confidence outputs publish
+              without review.
+            </p>
+          </div>
+
+          <div className="flex justify-end border-t border-border pt-3">
             <Button
               isDisabled={isSaving}
               withWrapper={false}
@@ -624,23 +615,17 @@ export default function BrandSettingsPublishingPage() {
         </div>
       </Card>
 
-      <Card className="p-5 sm:p-6">
-        <div>
-          <h2 className="text-base font-semibold tracking-[-0.02em] text-foreground sm:text-lg">
-            Connected account readiness
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Check provider credentials and setup before enabling automated
-            publishing.
-          </p>
-        </div>
-
+      <Card
+        label="Connected account readiness"
+        description="Check provider credentials and setup before enabling automated publishing."
+        bodyClassName="gap-3 p-4"
+      >
         {connectedCredentials.length === 0 ? (
-          <p className="mt-4 text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             No connected accounts are available for this brand.
           </p>
         ) : (
-          <div className="mt-4 space-y-3">
+          <div className="space-y-3">
             {connectedCredentials.map((credential) => {
               const context = publishingContexts.find(
                 (candidate) => candidate.account.id === credential.id,

@@ -5,9 +5,11 @@ import type { SocialPlatform } from '@genfeedai/interfaces';
 import type { SocialReplyCampaignModel } from '@genfeedai/models/social/social-reply-campaign.model';
 import type {
   ReplyCampaignDraft,
-  ReplyCampaignsPanelProps,
+  ReplyCampaignsPageProps,
 } from '@genfeedai/props/social/reply-campaigns-panel.props';
 import type { SocialReplyCampaignTransition } from '@services/social/reply-campaigns.service';
+import Card from '@ui/card/Card';
+import Container from '@ui/layout/container/Container';
 import type { BadgeProps } from '@ui/primitives/badge';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -20,17 +22,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@ui/primitives/sheet';
 import { Textarea } from '@ui/primitives/textarea';
 import { RefreshCw } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { formatMessageTime } from './messages-page.helpers';
+import { useReplyCampaigns } from './use-reply-campaigns';
 
 const EMPTY_DRAFT: ReplyCampaignDraft = {
   bodyTemplate: '',
@@ -59,10 +54,22 @@ const MESSAGE_TYPE_OPTIONS: Array<{
   { label: 'Direct message', value: 'dm' },
 ];
 
-/**
- * Transitions the campaign accepts right now. A terminal campaign accepts none,
- * which is why the row can end up with an empty action group.
- */
+const MESSAGE_TIME = new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+
+function formatRunTime(value?: string | null): string {
+  if (!value) {
+    return 'No activity';
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return 'No activity';
+  }
+  return MESSAGE_TIME.format(date);
+}
+
 function getAvailableTransitions(
   status: string,
 ): SocialReplyCampaignTransition[] {
@@ -101,7 +108,7 @@ function CampaignRow({
 }: {
   busyCampaignId: string | null;
   campaign: SocialReplyCampaignModel;
-  onTransition: ReplyCampaignsPanelProps['onTransition'];
+  onTransition: ReplyCampaignsPageProps['onTransition'];
 }) {
   const transitions = getAvailableTransitions(campaign.status);
   const isBusy = busyCampaignId === campaign.id;
@@ -131,7 +138,7 @@ function CampaignRow({
           {campaign.skippedCount} skipped · {campaign.failedCount} failed
         </span>
         {campaign.nextRunAt ? (
-          <span>Next tick {formatMessageTime(campaign.nextRunAt)}</span>
+          <span>Next tick {formatRunTime(campaign.nextRunAt)}</span>
         ) : null}
       </div>
 
@@ -161,19 +168,17 @@ function CampaignRow({
   );
 }
 
-export default function MessagesReplyCampaignsPanel({
+function ReplyCampaignsContent({
   busyCampaignId,
   campaigns,
   enrollableConversations,
   error,
   isCreating,
   isLoading,
-  isOpen,
   onCreate,
-  onOpenChange,
   onRefresh,
   onTransition,
-}: ReplyCampaignsPanelProps) {
+}: ReplyCampaignsPageProps) {
   const [draft, setDraft] = useState<ReplyCampaignDraft>(EMPTY_DRAFT);
 
   const platformOptions = useMemo(() => {
@@ -224,59 +229,55 @@ export default function MessagesReplyCampaignsPanel({
   }
 
   return (
-    <Sheet onOpenChange={onOpenChange} open={isOpen}>
-      <SheetContent
-        className="flex w-full flex-col gap-0 overflow-y-auto sm:max-w-md"
-        side="right"
-      >
-        <SheetHeader>
-          <SheetTitle>Reply campaigns</SheetTitle>
-          <SheetDescription>
-            Campaigns drip one reply at a time inside the pacing you set. Pause,
-            resume, or cancel at any point — a resumed campaign continues from
-            the recipient it stopped on.
-          </SheetDescription>
-        </SheetHeader>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-lg font-semibold text-foreground">
+          Reply campaigns
+        </h1>
+        <p className="mt-1 max-w-2xl text-sm text-foreground/55">
+          Campaigns drip one reply at a time inside the pacing you set. Pause,
+          resume, or cancel at any point — a resumed campaign continues from the
+          recipient it stopped on.
+        </p>
+      </div>
 
-        {error ? (
-          <p
-            className="mt-4 rounded-md bg-destructive/10 p-3 text-xs text-destructive"
-            data-testid="reply-campaigns-error"
-          >
-            {error}
-          </p>
-        ) : null}
+      {error ? (
+        <p
+          className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+          data-testid="reply-campaigns-error"
+          role="alert"
+        >
+          {error}
+        </p>
+      ) : null}
 
-        <div className="mt-6 space-y-3">
+      <Card label="New campaign" bodyClassName="gap-3 p-4">
+        <Input
+          label="Campaign name"
+          onChange={(event) => {
+            setDraft((current) => ({ ...current, name: event.target.value }));
+          }}
+          value={draft.name}
+        />
+
+        <div className="space-y-1.5">
           <p className="text-[11px] font-medium text-foreground/54">
-            New campaign
+            Reply body
           </p>
-
-          <Input
-            label="Campaign name"
+          <Textarea
             onChange={(event) => {
-              setDraft((current) => ({ ...current, name: event.target.value }));
+              setDraft((current) => ({
+                ...current,
+                bodyTemplate: event.target.value,
+              }));
             }}
-            value={draft.name}
+            placeholder="Thanks for watching — here is the link you asked for."
+            rows={4}
+            value={draft.bodyTemplate}
           />
+        </div>
 
-          <div className="space-y-1.5">
-            <p className="text-[11px] font-medium text-foreground/54">
-              Reply body
-            </p>
-            <Textarea
-              onChange={(event) => {
-                setDraft((current) => ({
-                  ...current,
-                  bodyTemplate: event.target.value,
-                }));
-              }}
-              placeholder="Thanks for watching — here is the link you asked for."
-              rows={4}
-              value={draft.bodyTemplate}
-            />
-          </div>
-
+        <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
             <p className="text-[11px] font-medium text-foreground/54">
               Platform
@@ -328,52 +329,54 @@ export default function MessagesReplyCampaignsPanel({
               </SelectContent>
             </Select>
           </div>
+        </div>
 
-          <div className="grid grid-cols-3 gap-2">
-            <Input
-              label="Per hour"
-              onChange={(event) => {
-                setDraft((current) => ({
-                  ...current,
-                  maxPerHour: event.target.value,
-                }));
-              }}
-              type="number"
-              value={draft.maxPerHour}
-            />
-            <Input
-              label="Per day"
-              onChange={(event) => {
-                setDraft((current) => ({
-                  ...current,
-                  maxPerDay: event.target.value,
-                }));
-              }}
-              type="number"
-              value={draft.maxPerDay}
-            />
-            <Input
-              label="Gap (s)"
-              onChange={(event) => {
-                setDraft((current) => ({
-                  ...current,
-                  minDelaySeconds: event.target.value,
-                }));
-              }}
-              type="number"
-              value={draft.minDelaySeconds}
-            />
-          </div>
+        <div className="grid grid-cols-3 gap-2">
+          <Input
+            label="Per hour"
+            onChange={(event) => {
+              setDraft((current) => ({
+                ...current,
+                maxPerHour: event.target.value,
+              }));
+            }}
+            type="number"
+            value={draft.maxPerHour}
+          />
+          <Input
+            label="Per day"
+            onChange={(event) => {
+              setDraft((current) => ({
+                ...current,
+                maxPerDay: event.target.value,
+              }));
+            }}
+            type="number"
+            value={draft.maxPerDay}
+          />
+          <Input
+            label="Gap (s)"
+            onChange={(event) => {
+              setDraft((current) => ({
+                ...current,
+                minDelaySeconds: event.target.value,
+              }));
+            }}
+            type="number"
+            value={draft.minDelaySeconds}
+          />
+        </div>
 
-          <p
-            className="text-xs text-white/38"
-            data-testid="reply-campaign-roster"
-          >
-            {enrolledIds.length} conversation
-            {enrolledIds.length === 1 ? '' : 's'} from the current filters will
-            be enrolled.
-          </p>
+        <p
+          className="text-xs text-white/38"
+          data-testid="reply-campaign-roster"
+        >
+          {enrolledIds.length} open conversation
+          {enrolledIds.length === 1 ? '' : 's'} on this brand
+          {selectedPlatform ? ` · ${selectedPlatform}` : ''} will be enrolled.
+        </p>
 
+        <div>
           <Button
             isDisabled={!canCreate}
             isLoading={isCreating}
@@ -385,11 +388,12 @@ export default function MessagesReplyCampaignsPanel({
             Create campaign
           </Button>
         </div>
+      </Card>
 
-        <div className="mt-8 flex items-center justify-between">
-          <p className="text-[11px] font-medium text-foreground/54">
-            Campaigns
-          </p>
+      <Card
+        label="Campaigns"
+        bodyClassName="gap-3 p-4"
+        headerAction={
           <Button
             icon={<RefreshCw className="size-4" />}
             isDisabled={isLoading}
@@ -400,26 +404,44 @@ export default function MessagesReplyCampaignsPanel({
           >
             Refresh
           </Button>
-        </div>
+        }
+      >
+        {campaigns.length === 0 && !isLoading ? (
+          <p className="text-xs text-white/38">
+            No campaigns yet. Sync messages so open conversations are available
+            to enroll, then create one above.
+          </p>
+        ) : null}
 
-        <div className="mt-3 space-y-3 pb-6">
-          {campaigns.length === 0 && !isLoading ? (
-            <p className="text-xs text-white/38">
-              No campaigns yet. Filter the inbox down to the conversations you
-              want to reach, then create one above.
-            </p>
-          ) : null}
+        {campaigns.map((campaign) => (
+          <CampaignRow
+            busyCampaignId={busyCampaignId}
+            campaign={campaign}
+            key={campaign.id}
+            onTransition={onTransition}
+          />
+        ))}
+      </Card>
+    </div>
+  );
+}
 
-          {campaigns.map((campaign) => (
-            <CampaignRow
-              busyCampaignId={busyCampaignId}
-              campaign={campaign}
-              key={campaign.id}
-              onTransition={onTransition}
-            />
-          ))}
-        </div>
-      </SheetContent>
-    </Sheet>
+export default function ReplyCampaignsPage() {
+  const replyCampaigns = useReplyCampaigns();
+
+  return (
+    <Container className="py-5 sm:py-6">
+      <ReplyCampaignsContent
+        busyCampaignId={replyCampaigns.busyCampaignId}
+        campaigns={replyCampaigns.campaigns}
+        enrollableConversations={replyCampaigns.enrollableConversations}
+        error={replyCampaigns.error}
+        isCreating={replyCampaigns.isCreating}
+        isLoading={replyCampaigns.isLoading}
+        onCreate={replyCampaigns.createCampaign}
+        onRefresh={replyCampaigns.refresh}
+        onTransition={replyCampaigns.transitionCampaign}
+      />
+    </Container>
   );
 }

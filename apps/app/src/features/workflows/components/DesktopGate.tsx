@@ -47,7 +47,7 @@ export function DesktopGate({ children }: DesktopGateProps) {
           href={href(APP_ROUTES.OVERVIEW.ROOT)}
           className="inline-block bg-primary px-6 py-3 text-primary-foreground hover:bg-primary/90"
         >
-          Go to Dashboard
+          Go to Overview
         </a>
       </div>
     </div>

@@ -11,7 +11,7 @@ export interface PersonaDocument
   avatarProvider?: AvatarProvider | string | null;
   brand?: string | null;
   triggerWord?: string | null;
-  darkroomSources?: Array<Record<string, unknown>>;
+  fleetSources?: Array<Record<string, unknown>>;
   organization?: string;
   user?: string;
   voiceExternalId?: string | null;

@@ -894,7 +894,13 @@ describe('AppProtectedLayout', () => {
       const layoutProps = appLayoutSpy.mock.lastCall?.[0] as {
         breadcrumb?: { leafLabel: string; rootLabel: string };
       };
-      expect(layoutProps.breadcrumb).toEqual({ leafLabel, rootLabel });
+      expect(layoutProps.breadcrumb).toEqual({
+        leafLabel,
+        ...(pathname === '/org-123/~/settings/api-keys'
+          ? { parentLabel: 'Org 123' }
+          : {}),
+        rootLabel,
+      });
     },
   );
 

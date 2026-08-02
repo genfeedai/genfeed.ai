@@ -81,7 +81,7 @@ const MOCK_TOOLS = [
   },
   // Mocked as admin-gated for the role-gate test below (its production tier is
   // user). It stands in for a role-gated tool that still dispatches to a live
-  // executor — the darkroom admin tools it previously stood in for were dropped
+  // executor — the fleet admin tools it previously stood in for were dropped
   // from the OSS MCP surface in PR 5/6.
   {
     name: 'get_workflow_status',

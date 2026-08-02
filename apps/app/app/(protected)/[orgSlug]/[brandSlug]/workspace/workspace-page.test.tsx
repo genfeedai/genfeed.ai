@@ -320,17 +320,10 @@ describe('WorkspacePageContent', () => {
 
     expect(await screen.findByText('Campaign image')).toBeVisible();
     expect(mocks.agentRunsList).not.toHaveBeenCalled();
-    const workspaceSnapshot = screen.getByTestId('workspace-snapshot');
-
-    expect(
-      within(workspaceSnapshot).queryByText('Workspace at a glance'),
-    ).not.toBeInTheDocument();
-    expect(
-      within(workspaceSnapshot).getByRole('link', { name: /unread/i }),
-    ).toBeVisible();
-    expect(
-      within(workspaceSnapshot).getByRole('button', { name: /refresh/i }),
-    ).toBeVisible();
+    // Inbox chrome is Container header (tabs + refresh), not the snapshot strip.
+    expect(screen.queryByTestId('workspace-snapshot')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /unread/i })).toBeVisible();
+    expect(screen.getByRole('button', { name: /refresh/i })).toBeVisible();
     expect(mocks.subscribe).toHaveBeenCalled();
 
     fireEvent.click(screen.getByText('Campaign image'));
@@ -452,7 +445,7 @@ describe('WorkspacePageContent', () => {
     expect(
       await screen.findByRole('heading', {
         level: 1,
-        name: 'Dashboard',
+        name: 'Overview',
       }),
     ).toHaveClass('sr-only');
     await waitFor(() =>
@@ -464,7 +457,7 @@ describe('WorkspacePageContent', () => {
     expect(screen.getByText('Approved hero image')).toBeVisible();
     expect(screen.getByText('Video needs edits')).toBeVisible();
     expect(screen.getByText('Library snapshot')).toBeVisible();
-    expect(screen.getByText('Overview')).toBeVisible();
+    expect(screen.getByText('Overview', { selector: 'p' })).toBeVisible();
     expect(screen.getByText('Media')).toBeVisible();
     expect(screen.getByText('Audio + captions')).toBeVisible();
     expect(screen.getByText('Operator tools')).toBeVisible();

@@ -67,7 +67,7 @@ export interface IBrand extends IBaseEntity {
 
   isVerified: boolean;
   isDefault: boolean;
-  isDarkroomEnabled: boolean;
+  isFleetEnabled: boolean;
   scope: AssetScope;
   isActive: boolean;
   isSelected: boolean;

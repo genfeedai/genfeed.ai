@@ -84,7 +84,7 @@ const createOrganizationSetting = (
   isAdvancedMode: false,
   isAutoEvaluateEnabled: false,
   isFastlaneEnabled: false,
-  isDarkroomNsfwVisible: false,
+  isFleetNsfwVisible: false,
   isGenerateArticlesEnabled: true,
   isGenerateImagesEnabled: true,
   isGenerateMusicEnabled: true,

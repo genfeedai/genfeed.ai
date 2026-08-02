@@ -23,14 +23,12 @@ export default function HarnessVoiceCard({
   splitLines,
 }: HarnessVoiceCardProps) {
   return (
-    <Card className="p-6">
-      <div className="mb-4 space-y-1">
-        <h2 className="text-lg font-semibold">Voice</h2>
-        <p className="text-sm text-muted-foreground">
-          The attitude and vocabulary the model should carry into every draft.
-        </p>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2">
+    <Card
+      label="Voice"
+      description="The attitude and vocabulary the model should carry into every draft."
+      bodyClassName="gap-3 p-4"
+    >
+      <div className="grid gap-3 md:grid-cols-2">
         {(['tone', 'style', 'stance', 'aggression', 'sarcasm'] as const).map(
           (key) => (
             <div className="space-y-2" key={key}>

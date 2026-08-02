@@ -43,7 +43,7 @@ export default function SettingsProgressPage({
   const nextSetupStep = steps.find((step) => !step.isCompleted) ?? null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {showOverviewCard && (
         <SettingsProgressOverviewCard
           completedCount={completedCount}
@@ -57,7 +57,7 @@ export default function SettingsProgressPage({
         />
       )}
 
-      <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+      <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
         <SettingsProgressChecklistCard
           completedCount={completedCount}
           steps={steps}
@@ -74,7 +74,7 @@ export default function SettingsProgressPage({
         />
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
+      <section className="grid gap-4 lg:grid-cols-[1.4fr_0.9fr]">
         <SettingsProgressHeatmapCard
           calendar={calendar}
           heatmapDays={heatmapDays}

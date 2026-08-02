@@ -155,9 +155,16 @@ export function SkeletonList({ count = 3 }: SkeletonListProps) {
 }
 
 export function SkeletonTable({ rows = 5, columns = 4 }: SkeletonTableProps) {
+  // Same card chrome as CardEmpty / AppTable so loading → empty/list does not clip.
   return (
-    <div className="w-full overflow-hidden rounded bg-card shadow-border p-4">
-      <div className="mb-4 border-b border-white/[0.08] pb-3">
+    <div
+      aria-busy="true"
+      aria-label="Loading table"
+      className="relative min-h-[12rem] w-full overflow-hidden rounded-card bg-card p-4 text-card-foreground shadow-border"
+      data-testid="skeleton-table"
+      role="status"
+    >
+      <div className="mb-4 border-b border-border pb-3">
         <div
           className="grid"
           style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}

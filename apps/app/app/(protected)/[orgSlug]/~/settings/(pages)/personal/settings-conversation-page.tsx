@@ -88,7 +88,13 @@ export default function SettingsConversationPage({
     async (value: string) => {
       setIsSavingReplyStyle(true);
       try {
-        await updateSettings('agentReplyStyle', value as AgentReplyStyle);
+        const normalized = value.trim().toUpperCase();
+        const resolved = Object.values(AgentReplyStyle).includes(
+          normalized as AgentReplyStyle,
+        )
+          ? (normalized as AgentReplyStyle)
+          : AgentReplyStyle.CONCISE;
+        await updateSettings('agentReplyStyle', resolved);
       } catch (error) {
         logger.error('Failed to update conversation reply style', error);
       } finally {
@@ -148,44 +154,44 @@ export default function SettingsConversationPage({
   const selectedModel = defaultAgentModel || AUTO_MODEL_SELECT_VALUE;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {showReplyStyle && (
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">
-            Conversation Preferences
-          </h2>
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm font-medium">Reply Style</p>
-              <Select
-                value={settings?.agentReplyStyle ?? AgentReplyStyle.CONCISE}
-                disabled={isSavingReplyStyle}
-                onValueChange={handleReplyStyleChange}
-              >
-                <SelectTrigger className="w-full mt-2 rounded">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {REPLY_STYLE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Controls how the interactive assistant talks to users in chat.
-              Brand persona and autonomous agent behavior now live in brand
-              settings and agent policy.
-            </p>
+        <Card
+          label="Conversation Preferences"
+          description="Controls how the interactive assistant talks to users in chat. Brand persona and autonomous agent behavior now live in brand settings and agent policy."
+          bodyClassName="gap-3 p-4"
+        >
+          <div>
+            <p className="text-sm font-medium">Reply Style</p>
+            <Select
+              value={
+                Object.values(AgentReplyStyle).includes(
+                  (settings?.agentReplyStyle?.toUpperCase() ??
+                    '') as AgentReplyStyle,
+                )
+                  ? (settings?.agentReplyStyle?.toUpperCase() as AgentReplyStyle)
+                  : AgentReplyStyle.CONCISE
+              }
+              disabled={isSavingReplyStyle}
+              onValueChange={handleReplyStyleChange}
+            >
+              <SelectTrigger className="w-full mt-2 rounded">
+                <SelectValue placeholder="Select a reply style" />
+              </SelectTrigger>
+              <SelectContent>
+                {REPLY_STYLE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </Card>
       )}
 
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Chat Defaults</h2>
-        <div className="space-y-4">
+      <Card label="Chat Defaults" bodyClassName="gap-3 p-4">
+        <div className="space-y-3">
           <div>
             <p className="text-sm font-medium">Generation Priority</p>
             <Select

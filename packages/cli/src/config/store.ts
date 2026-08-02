@@ -12,35 +12,6 @@ type RuntimeProfileOverrides = Omit<Partial<Profile>, 'agent'> & {
   agent?: Partial<Profile['agent']>;
 };
 
-/**
- * Migrate legacy config keys before zod parsing (which strips unknown keys).
- * Without this, users with custom `gpuHost` values silently lose them.
- */
-function migrateConfig(raw: Record<string, unknown>): Record<string, unknown> {
-  const profiles = raw.profiles as Record<string, Record<string, unknown>> | undefined;
-  if (!profiles) return raw;
-
-  for (const profile of Object.values(profiles)) {
-    if ('gpuHost' in profile) {
-      profile.darkroomHost = profile.gpuHost;
-      delete profile.gpuHost;
-    }
-    if ('gpuApiPort' in profile) {
-      profile.darkroomApiPort = profile.gpuApiPort;
-      delete profile.gpuApiPort;
-    }
-    if ('agentModel' in profile) {
-      const existingAgent = profile.agent;
-      profile.agent = {
-        ...(typeof existingAgent === 'object' && existingAgent !== null ? existingAgent : {}),
-        model: profile.agentModel,
-      };
-      delete profile.agentModel;
-    }
-  }
-  return raw;
-}
-
 function mergeAgentConfig(
   profileAgent: Profile['agent'],
   runtimeAgent: Partial<Profile['agent']> | undefined
@@ -59,7 +30,7 @@ export async function loadConfig(): Promise<Config> {
   try {
     const content = await readFile(CONFIG_PATH, 'utf8');
     const parsed = JSON.parse(content);
-    cachedConfig = configSchema.parse(migrateConfig(parsed));
+    cachedConfig = configSchema.parse(parsed);
     return cachedConfig;
   } catch {
     cachedConfig = structuredClone(defaultConfig);
@@ -102,8 +73,8 @@ export function mergeProfileWithRuntime(
     agent: mergeAgentConfig(profile.agent, runtime.agent),
     apiKey: runtime.apiKey ?? profile.apiKey,
     apiUrl: runtime.apiUrl ?? profile.apiUrl,
-    darkroomApiPort: runtime.darkroomApiPort ?? profile.darkroomApiPort,
-    darkroomHost: runtime.darkroomHost ?? profile.darkroomHost,
+    fleetApiPort: runtime.fleetApiPort ?? profile.fleetApiPort,
+    fleetHost: runtime.fleetHost ?? profile.fleetHost,
     organizationId: runtime.organizationId ?? profile.organizationId,
     role: runtime.role ?? profile.role,
     token: runtime.token ?? profile.token,
@@ -120,9 +91,10 @@ export function readRuntimeOverrides(): RuntimeProfileOverrides {
   if (process.env.GENFEED_ORGANIZATION_ID)
     overrides.organizationId = process.env.GENFEED_ORGANIZATION_ID;
   if (process.env.GENFEED_USER_ID) overrides.userId = process.env.GENFEED_USER_ID;
-  if (process.env.GF_DARKROOM_HOST) overrides.darkroomHost = process.env.GF_DARKROOM_HOST;
-  if (process.env.GF_DARKROOM_PORT)
-    overrides.darkroomApiPort = Number(process.env.GF_DARKROOM_PORT);
+  if (process.env.GF_FLEET_HOST) overrides.fleetHost = process.env.GF_FLEET_HOST;
+  if (process.env.GF_FLEET_PORT) {
+    overrides.fleetApiPort = Number(process.env.GF_FLEET_PORT);
+  }
   if (process.env.GENFEED_AGENT_MODEL) {
     overrides.agent = {
       ...(overrides.agent ?? {}),
@@ -156,14 +128,14 @@ export async function getActiveBrand(): Promise<string | undefined> {
   return profile.activeBrand;
 }
 
-export async function getDarkroomHost(): Promise<string> {
+export async function getFleetHost(): Promise<string> {
   const { profile } = await getActiveProfile();
-  return profile.darkroomHost;
+  return profile.fleetHost;
 }
 
-export async function getDarkroomApiPort(): Promise<number> {
+export async function getFleetApiPort(): Promise<number> {
   const { profile } = await getActiveProfile();
-  return profile.darkroomApiPort;
+  return profile.fleetApiPort;
 }
 
 export async function getRole(): Promise<string> {

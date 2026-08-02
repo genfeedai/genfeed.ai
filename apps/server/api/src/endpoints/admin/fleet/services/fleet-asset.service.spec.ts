@@ -2,7 +2,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { AdminFleetAssetService } from '@api/endpoints/admin/fleet/services/fleet-asset.service';
 import { AdminFleetTrainingService } from '@api/endpoints/admin/fleet/services/fleet-training.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { DarkroomReviewStatus, IngredientCategory } from '@genfeedai/enums';
+import { FleetReviewStatus, IngredientCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
@@ -20,7 +20,7 @@ describe('AdminFleetAssetService.reviewAsset', () => {
     cdnUrl: 'https://cdn/asset-1.jpg',
     generationPrompt: 'a portrait',
     personaSlug: 'alice',
-    reviewStatus: DarkroomReviewStatus.PENDING,
+    reviewStatus: FleetReviewStatus.PENDING,
   };
 
   beforeEach(async () => {
@@ -54,7 +54,7 @@ describe('AdminFleetAssetService.reviewAsset', () => {
     ingredientsService.findOne.mockResolvedValue(null);
 
     await expect(
-      service.reviewAsset('asset-1', 'org-1', DarkroomReviewStatus.APPROVED),
+      service.reviewAsset('asset-1', 'org-1', FleetReviewStatus.APPROVED),
     ).rejects.toThrow(NotFoundException);
     expect(ingredientsService.patch).not.toHaveBeenCalled();
   });
@@ -62,14 +62,10 @@ describe('AdminFleetAssetService.reviewAsset', () => {
   it('syncs a freshly-approved IMAGE asset into the training dataset', async () => {
     ingredientsService.findOne.mockResolvedValue(imageAsset);
 
-    await service.reviewAsset(
-      'asset-1',
-      'org-1',
-      DarkroomReviewStatus.APPROVED,
-    );
+    await service.reviewAsset('asset-1', 'org-1', FleetReviewStatus.APPROVED);
 
     expect(ingredientsService.patch).toHaveBeenCalledWith('asset-1', {
-      reviewStatus: DarkroomReviewStatus.APPROVED,
+      reviewStatus: FleetReviewStatus.APPROVED,
     });
     // image + caption uploads, then the dataset sync.
     expect(filesClientService.uploadToS3).toHaveBeenCalled();
@@ -87,11 +83,7 @@ describe('AdminFleetAssetService.reviewAsset', () => {
       category: IngredientCategory.VIDEO,
     });
 
-    await service.reviewAsset(
-      'asset-1',
-      'org-1',
-      DarkroomReviewStatus.APPROVED,
-    );
+    await service.reviewAsset('asset-1', 'org-1', FleetReviewStatus.APPROVED);
 
     expect(filesClientService.uploadToS3).not.toHaveBeenCalled();
     expect(adminFleetTrainingService.syncDataset).not.toHaveBeenCalled();
@@ -100,11 +92,7 @@ describe('AdminFleetAssetService.reviewAsset', () => {
   it('does not sync on rejection', async () => {
     ingredientsService.findOne.mockResolvedValue(imageAsset);
 
-    await service.reviewAsset(
-      'asset-1',
-      'org-1',
-      DarkroomReviewStatus.REJECTED,
-    );
+    await service.reviewAsset('asset-1', 'org-1', FleetReviewStatus.REJECTED);
 
     expect(filesClientService.uploadToS3).not.toHaveBeenCalled();
   });

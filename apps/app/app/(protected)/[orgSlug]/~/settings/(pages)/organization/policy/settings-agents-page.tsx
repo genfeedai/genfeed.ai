@@ -8,8 +8,7 @@ import { useOrganization } from '@hooks/data/organization/use-organization/use-o
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import Card from '@ui/card/Card';
-import { Button } from '@ui/primitives/button';
-import { useCallback, useEffect, useReducer } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 
 import AdvancedRoutingCard from './advanced-routing-card';
 import AgentPolicyCard from './agent-policy-card';
@@ -62,18 +61,8 @@ type PolicyFormState = {
 
 type PolicyFormAction =
   | { payload: PolicyFormState; type: 'INIT_FROM_SETTINGS' }
-  | { payload: string; type: 'SET_AGENT_DAILY_CREDIT_CAP' }
-  | { payload: boolean; type: 'SET_ALLOW_ADVANCED_OVERRIDES' }
-  | { payload: AgentAutonomyMode; type: 'SET_AUTONOMY_DEFAULT' }
-  | { payload: string; type: 'SET_BRAND_DAILY_CREDIT_CAP' }
-  | { payload: string; type: 'SET_GENERATION_MODEL_OVERRIDE' }
-  | { payload: boolean; type: 'SET_IS_SAVING' }
-  | {
-      payload: NonNullable<AgentPolicyState['qualityTierDefault']>;
-      type: 'SET_QUALITY_TIER_DEFAULT';
-    }
-  | { payload: string; type: 'SET_REVIEW_MODEL_OVERRIDE' }
-  | { payload: string; type: 'SET_THINKING_MODEL_OVERRIDE' };
+  | { payload: Partial<PolicyFormState>; type: 'MERGE' }
+  | { payload: boolean; type: 'SET_IS_SAVING' };
 
 const initialPolicyFormState: PolicyFormState = {
   agentDailyCreditCap: '',
@@ -94,27 +83,38 @@ function policyFormReducer(
   switch (action.type) {
     case 'INIT_FROM_SETTINGS':
       return { ...state, ...action.payload };
-    case 'SET_AGENT_DAILY_CREDIT_CAP':
-      return { ...state, agentDailyCreditCap: action.payload };
-    case 'SET_ALLOW_ADVANCED_OVERRIDES':
-      return { ...state, allowAdvancedOverrides: action.payload };
-    case 'SET_AUTONOMY_DEFAULT':
-      return { ...state, autonomyDefault: action.payload };
-    case 'SET_BRAND_DAILY_CREDIT_CAP':
-      return { ...state, brandDailyCreditCap: action.payload };
-    case 'SET_GENERATION_MODEL_OVERRIDE':
-      return { ...state, generationModelOverride: action.payload };
+    case 'MERGE':
+      return { ...state, ...action.payload };
     case 'SET_IS_SAVING':
       return { ...state, isSaving: action.payload };
-    case 'SET_QUALITY_TIER_DEFAULT':
-      return { ...state, qualityTierDefault: action.payload };
-    case 'SET_REVIEW_MODEL_OVERRIDE':
-      return { ...state, reviewModelOverride: action.payload };
-    case 'SET_THINKING_MODEL_OVERRIDE':
-      return { ...state, thinkingModelOverride: action.payload };
     default:
       return state;
   }
+}
+
+function buildAgentPolicyPayload(form: PolicyFormState): AgentPolicyState {
+  return {
+    allowAdvancedOverrides: form.allowAdvancedOverrides,
+    autonomyDefault: form.autonomyDefault,
+    creditGovernance: {
+      agentDailyCreditCap: toNumberOrNull(form.agentDailyCreditCap),
+      brandDailyCreditCap: toNumberOrNull(form.brandDailyCreditCap),
+      useOrganizationPool: true,
+    },
+    generationModelOverride:
+      form.allowAdvancedOverrides && form.generationModelOverride
+        ? form.generationModelOverride
+        : null,
+    qualityTierDefault: form.qualityTierDefault,
+    reviewModelOverride:
+      form.allowAdvancedOverrides && form.reviewModelOverride
+        ? form.reviewModelOverride
+        : null,
+    thinkingModelOverride:
+      form.allowAdvancedOverrides && form.thinkingModelOverride
+        ? form.thinkingModelOverride
+        : null,
+  };
 }
 
 export default function SettingsAgentsPage() {
@@ -123,6 +123,11 @@ export default function SettingsAgentsPage() {
   const [state, dispatch] = useReducer(
     policyFormReducer,
     initialPolicyFormState,
+  );
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const creditSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
   );
 
   const {
@@ -163,70 +168,73 @@ export default function SettingsAgentsPage() {
     });
   }, [settings?.agentPolicy]);
 
-  const handleSave = useCallback(async () => {
-    if (!organizationId) {
-      return;
-    }
+  useEffect(() => {
+    return () => {
+      if (creditSaveTimeoutRef.current) {
+        clearTimeout(creditSaveTimeoutRef.current);
+      }
+    };
+  }, []);
 
-    dispatch({ payload: true, type: 'SET_IS_SAVING' });
-    try {
-      const service = await getOrganizationsService();
-      await service.patchSettings(organizationId, {
-        agentPolicy: {
-          allowAdvancedOverrides,
-          autonomyDefault,
-          creditGovernance: {
-            agentDailyCreditCap: toNumberOrNull(agentDailyCreditCap),
-            brandDailyCreditCap: toNumberOrNull(brandDailyCreditCap),
-            useOrganizationPool: true,
-          },
-          generationModelOverride:
-            allowAdvancedOverrides && generationModelOverride
-              ? generationModelOverride
-              : null,
-          qualityTierDefault,
-          reviewModelOverride:
-            allowAdvancedOverrides && reviewModelOverride
-              ? reviewModelOverride
-              : null,
-          thinkingModelOverride:
-            allowAdvancedOverrides && thinkingModelOverride
-              ? thinkingModelOverride
-              : null,
-        },
-      });
-      await refresh();
-    } catch (error) {
-      logger.error('Failed to update agent policy settings', error);
-    } finally {
-      dispatch({ payload: false, type: 'SET_IS_SAVING' });
-    }
-  }, [
-    agentDailyCreditCap,
-    allowAdvancedOverrides,
-    autonomyDefault,
-    brandDailyCreditCap,
-    generationModelOverride,
-    getOrganizationsService,
-    organizationId,
-    qualityTierDefault,
-    refresh,
-    reviewModelOverride,
-    thinkingModelOverride,
-  ]);
+  const persistPolicy = useCallback(
+    async (next: PolicyFormState) => {
+      if (!organizationId) {
+        return;
+      }
+
+      dispatch({ payload: true, type: 'SET_IS_SAVING' });
+      try {
+        const service = await getOrganizationsService();
+        await service.patchSettings(organizationId, {
+          agentPolicy: buildAgentPolicyPayload(next),
+        });
+        await refresh();
+      } catch (error) {
+        logger.error('Failed to update agent policy settings', error);
+      } finally {
+        dispatch({ payload: false, type: 'SET_IS_SAVING' });
+      }
+    },
+    [getOrganizationsService, organizationId, refresh],
+  );
+
+  const updateAndPersist = useCallback(
+    (patch: Partial<PolicyFormState>) => {
+      const next = { ...stateRef.current, ...patch, isSaving: false };
+      dispatch({ payload: next, type: 'MERGE' });
+      void persistPolicy(next);
+    },
+    [persistPolicy],
+  );
+
+  const updateCreditField = useCallback(
+    (patch: Partial<PolicyFormState>) => {
+      const next = { ...stateRef.current, ...patch, isSaving: false };
+      dispatch({ payload: next, type: 'MERGE' });
+
+      if (creditSaveTimeoutRef.current) {
+        clearTimeout(creditSaveTimeoutRef.current);
+      }
+      // Debounce number fields so mid-typing does not spam PATCH.
+      creditSaveTimeoutRef.current = setTimeout(() => {
+        void persistPolicy({ ...stateRef.current, ...patch, isSaving: false });
+      }, 400);
+    },
+    [persistPolicy],
+  );
 
   const enabledModels = settings?.enabledModels ?? [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <AgentPolicyCard
         autonomyDefault={autonomyDefault}
         isSaving={isSaving}
         onAutonomyDefaultChange={(value) =>
-          dispatch({ payload: value, type: 'SET_AUTONOMY_DEFAULT' })
+          updateAndPersist({ autonomyDefault: value })
         }
         onQualityTierDefaultChange={(value) =>
-          dispatch({ payload: value, type: 'SET_QUALITY_TIER_DEFAULT' })
+          updateAndPersist({ qualityTierDefault: value })
         }
         qualityTierDefault={qualityTierDefault}
         qualityTierOptions={QUALITY_TIER_OPTIONS}
@@ -236,10 +244,10 @@ export default function SettingsAgentsPage() {
         agentDailyCreditCap={agentDailyCreditCap}
         brandDailyCreditCap={brandDailyCreditCap}
         onAgentDailyCreditCapChange={(value) =>
-          dispatch({ payload: value, type: 'SET_AGENT_DAILY_CREDIT_CAP' })
+          updateCreditField({ agentDailyCreditCap: value })
         }
         onBrandDailyCreditCapChange={(value) =>
-          dispatch({ payload: value, type: 'SET_BRAND_DAILY_CREDIT_CAP' })
+          updateCreditField({ brandDailyCreditCap: value })
         }
       />
 
@@ -249,39 +257,26 @@ export default function SettingsAgentsPage() {
         generationModelOverride={generationModelOverride}
         isSaving={isSaving}
         onAllowAdvancedOverridesChange={(value) =>
-          dispatch({ payload: value, type: 'SET_ALLOW_ADVANCED_OVERRIDES' })
+          updateAndPersist({ allowAdvancedOverrides: value })
         }
         onGenerationModelOverrideChange={(value) =>
-          dispatch({ payload: value, type: 'SET_GENERATION_MODEL_OVERRIDE' })
+          updateAndPersist({ generationModelOverride: value })
         }
         onReviewModelOverrideChange={(value) =>
-          dispatch({ payload: value, type: 'SET_REVIEW_MODEL_OVERRIDE' })
+          updateAndPersist({ reviewModelOverride: value })
         }
         onThinkingModelOverrideChange={(value) =>
-          dispatch({ payload: value, type: 'SET_THINKING_MODEL_OVERRIDE' })
+          updateAndPersist({ thinkingModelOverride: value })
         }
         reviewModelOverride={reviewModelOverride}
         thinkingModelOverride={thinkingModelOverride}
       />
 
-      <Card className="p-6">
-        <div className="space-y-2">
-          <h2 className="text-lg font-semibold">Brand-Level Profiles</h2>
-          <p className="text-sm text-muted-foreground">
-            Persona, voice, strategy, and platform overrides now live on each
-            brand detail page instead of generic settings.
-          </p>
-        </div>
-      </Card>
-
-      <div className="flex justify-end">
-        <Button
-          label="Save Agent Policy"
-          onClick={handleSave}
-          isLoading={isSaving}
-          isDisabled={isSaving}
-        />
-      </div>
+      <Card
+        label="Brand-Level Profiles"
+        description="Persona, voice, strategy, and platform overrides now live on each brand detail page instead of generic settings."
+        bodyClassName="gap-3 p-4"
+      />
     </div>
   );
 }

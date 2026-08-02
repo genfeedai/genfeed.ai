@@ -11,7 +11,7 @@ export const brandSchema = z.object({
   fontFamily: z.string().optional(),
   instagramHandle: z.string().optional(),
   isActive: z.boolean().optional(),
-  isDarkroomEnabled: z.boolean().optional(),
+  isFleetEnabled: z.boolean().optional(),
   label: z.string().min(1),
   primaryColor: z.string().optional(),
   scope: z.nativeEnum(AssetScope).optional(),

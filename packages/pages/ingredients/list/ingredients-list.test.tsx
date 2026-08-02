@@ -228,7 +228,7 @@ describe('IngredientsList', () => {
     expect(handleRefresh).toHaveBeenCalledWith(true);
   });
 
-  it('enables campaign publish for approved darkroom images in one campaign', () => {
+  it('enables campaign publish for approved fleet images in one campaign', () => {
     const selectedIngredients = [
       {
         campaign: 'spring-drop',
@@ -245,7 +245,7 @@ describe('IngredientsList', () => {
     ];
 
     mockUseBrand.mockReturnValue({
-      selectedBrand: { isDarkroomEnabled: true },
+      selectedBrand: { isFleetEnabled: true },
     });
     mockUseIngredientsList.mockReturnValue(
       buildIngredientsListReturn({
@@ -267,7 +267,7 @@ describe('IngredientsList', () => {
 
   it('disables campaign publish when assets are from different campaigns', () => {
     mockUseBrand.mockReturnValue({
-      selectedBrand: { isDarkroomEnabled: true },
+      selectedBrand: { isFleetEnabled: true },
     });
     mockUseIngredientsList.mockReturnValue(
       buildIngredientsListReturn({

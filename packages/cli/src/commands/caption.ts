@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { runCaption } from '@/api/darkroom-api';
+import { runCaption } from '@/api/fleet-api';
 import { requireAdmin } from '@/middleware/auth-guard';
 import { print, printJson } from '@/ui/theme';
 import { handleError } from '@/utils/errors';

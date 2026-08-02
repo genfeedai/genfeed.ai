@@ -1,7 +1,7 @@
 import {
-  darkroomSchema,
   elevenlabsSchema,
   falSchema,
+  fleetSchema,
   generalAiSchema,
   gpuFleetSchema,
   hedraSchema,
@@ -375,20 +375,20 @@ describe('Config Schemas', () => {
     });
   });
 
-  describe('darkroomSchema', () => {
+  describe('fleetSchema', () => {
     it('should be a non-empty object of Joi schemas', () => {
-      expect(typeof darkroomSchema).toBe('object');
-      const keys = Object.keys(darkroomSchema);
+      expect(typeof fleetSchema).toBe('object');
+      const keys = Object.keys(fleetSchema);
       expect(keys.length).toBeGreaterThan(0);
       for (const key of keys) {
         expect(
-          Joi.isSchema((darkroomSchema as Record<string, unknown>)[key]),
+          Joi.isSchema((fleetSchema as Record<string, unknown>)[key]),
         ).toBe(true);
       }
     });
 
     it('should validate with defaults when optional', () => {
-      const schema = Joi.object(darkroomSchema);
+      const schema = Joi.object(fleetSchema);
       const { error } = schema.validate({}, { allowUnknown: true });
       // Some schemas have required fields, so error is acceptable
       if (error) {
@@ -397,13 +397,13 @@ describe('Config Schemas', () => {
     });
 
     it('should allow an empty optional ComfyUI URL from env templates', () => {
-      const schema = Joi.object(darkroomSchema);
+      const schema = Joi.object(fleetSchema);
       const { error, value } = schema.validate({
-        DARKROOM_COMFYUI_URL: '',
+        FLEET_COMFYUI_URL: '',
       });
 
       expect(error).toBeUndefined();
-      expect(value.DARKROOM_COMFYUI_URL).toBe('');
+      expect(value.FLEET_COMFYUI_URL).toBe('');
     });
   });
 

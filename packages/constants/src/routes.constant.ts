@@ -116,6 +116,8 @@ export const APP_ROUTES = {
     RUNS: '/automate/runs',
     SKILLS: '/automate/skills',
     STRATEGIES: '/automate/strategies',
+    /** Throttled social reply drip campaigns. */
+    REPLY_CAMPAIGNS: '/automate/reply-campaigns',
     /** Pipeline canvas library (merged former /workflows surface). */
     WORKFLOWS: '/automate/workflows',
     WORKFLOWS_EXECUTIONS: '/automate/workflows/executions',
@@ -215,6 +217,7 @@ export const APP_ROUTES = {
     POLICY: '/settings/policy',
     PUBLISHING: '/settings/publishing',
     ROOT: '/settings',
+    USAGE: '/settings/usage',
     WEBHOOKS: '/settings/webhooks',
   },
   /**

@@ -7,12 +7,14 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivitySource } from '@genfeedai/enums';
 import { computeBrandCompleteness } from '@genfeedai/helpers';
 import type {
+  BrandInterviewAnswerValue,
   IActiveBrandInterview,
   IBrandInterviewAnswerResult,
   IBrandInterviewCompleteness,
   IBrandInterviewProgress,
   IBrandInterviewQuestion,
   IBrandInterviewStartResult,
+  IBrandInterviewStep,
 } from '@genfeedai/interfaces';
 import { type BrandInterview, Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
@@ -21,6 +23,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import {
   BRAND_FIELD_META,
   BRAND_INTERVIEW_CREDIT_COST,
+  BRAND_INTERVIEW_QUESTION_CATALOG,
   CATALOG_BY_FIELD_KEY,
   IN_SCOPE_FIELD_KEYS,
 } from '../constants/brand-interview-question-catalog.constant';
@@ -158,33 +161,69 @@ export class BrandInterviewService {
     organizationId: string,
     _userId: string,
     answer: string,
+    fieldKeyOverride?: string,
   ): Promise<IBrandInterviewAnswerResult> {
     const session = await this.loadActiveSession(interviewId, organizationId);
     const { brandId } = session;
+    const answeredFields = this.readAnsweredFields(session);
 
-    const fieldKey = session.currentFieldKey;
-    if (!fieldKey) {
+    const requestedKey = fieldKeyOverride?.trim() || session.currentFieldKey;
+    if (!requestedKey) {
       throw new BadRequestException(
         'No current question — this interview is already complete or has no remaining gaps.',
       );
     }
 
-    const question = CATALOG_BY_FIELD_KEY[fieldKey];
+    const isCurrent = requestedKey === session.currentFieldKey;
+    const isPastAnswer = Object.hasOwn(answeredFields, requestedKey);
+
+    if (!isCurrent && !isPastAnswer) {
+      throw new BadRequestException(
+        'You can only answer the current question or re-save a previously answered step.',
+      );
+    }
+
+    const question = CATALOG_BY_FIELD_KEY[requestedKey];
     if (!question) {
-      throw new BadRequestException(`Unknown field key: ${fieldKey}`);
+      throw new BadRequestException(`Unknown field key: ${requestedKey}`);
     }
 
     // Normalize the answer
     const normalized = this.normalizeAnswer(answer, question);
 
     // Write to brand
-    await this.writeFieldToBrand(brandId, organizationId, fieldKey, normalized);
+    await this.writeFieldToBrand(
+      brandId,
+      organizationId,
+      requestedKey,
+      normalized,
+    );
 
     // Update session state
-    const answeredFields =
-      (session.answeredFields as Record<string, unknown>) ?? {};
-    const updatedAnsweredFields = { ...answeredFields, [fieldKey]: normalized };
-    const askedFieldKeys = [...(session.askedFieldKeys ?? []), fieldKey];
+    const updatedAnsweredFields = {
+      ...answeredFields,
+      [requestedKey]: normalized,
+    };
+
+    // Re-saving a past answer updates brand + ledger but keeps the session
+    // cursor on the frontier so the user can return via the steps sidebar.
+    if (!isCurrent) {
+      const updated = await this.prisma.brandInterview.update({
+        data: {
+          answeredFields: updatedAnsweredFields as Prisma.InputJsonValue,
+        },
+        where: scopedWhere(organizationId, { id: interviewId }),
+      });
+
+      return this.buildAnswerResult(updated, {
+        completenessScore: session.completenessBefore,
+        isComplete: false,
+        nextFieldKey: session.currentFieldKey,
+        status: 'in_progress',
+      });
+    }
+
+    const askedFieldKeys = [...(session.askedFieldKeys ?? []), requestedKey];
 
     // Reload brand to recompute completeness after write
     const updatedBrand = await this.prisma.brand.findFirst({
@@ -228,18 +267,12 @@ export class BrandInterviewService {
       where: { id: interviewId },
     });
 
-    const progress = this.buildProgress(updated);
-
-    return {
+    return this.buildAnswerResult(updated, {
       completenessScore: completeness.overallScore,
-      interviewId,
       isComplete,
-      nextQuestion: nextFieldKey
-        ? (CATALOG_BY_FIELD_KEY[nextFieldKey] ?? null)
-        : null,
-      progress,
+      nextFieldKey,
       status: newStatus,
-    };
+    });
   }
 
   async skipField(
@@ -294,18 +327,12 @@ export class BrandInterviewService {
       where: { id: interviewId },
     });
 
-    const progress = this.buildProgress(updated);
-
-    return {
+    return this.buildAnswerResult(updated, {
       completenessScore: completeness.overallScore,
-      interviewId,
       isComplete,
-      nextQuestion: nextFieldKey
-        ? (CATALOG_BY_FIELD_KEY[nextFieldKey] ?? null)
-        : null,
-      progress,
+      nextFieldKey,
       status: newStatus,
-    };
+    });
   }
 
   async abandon(
@@ -503,16 +530,105 @@ export class BrandInterviewService {
     );
   }
 
+  private readAnsweredFields(
+    session: BrandInterview,
+  ): Record<string, BrandInterviewAnswerValue> {
+    const raw = (session.answeredFields as Record<string, unknown>) ?? {};
+    const out: Record<string, BrandInterviewAnswerValue> = {};
+
+    for (const [key, value] of Object.entries(raw)) {
+      if (typeof value === 'string') {
+        out[key] = value;
+        continue;
+      }
+      if (
+        Array.isArray(value) &&
+        value.every((item) => typeof item === 'string')
+      ) {
+        out[key] = value;
+      }
+    }
+
+    return out;
+  }
+
+  private formatAnswerPreview(value: BrandInterviewAnswerValue): string {
+    if (Array.isArray(value)) {
+      return value.filter(Boolean).join(', ');
+    }
+    return value.trim();
+  }
+
+  private buildSteps(session: BrandInterview): IBrandInterviewStep[] {
+    const answeredFields = this.readAnsweredFields(session);
+    const answeredKeys = new Set(Object.keys(answeredFields));
+    const askedKeys = new Set(session.askedFieldKeys ?? []);
+    const currentKey = session.currentFieldKey;
+
+    return BRAND_INTERVIEW_QUESTION_CATALOG.map((question) => {
+      const isCurrent = question.fieldKey === currentKey;
+      const isAnswered = answeredKeys.has(question.fieldKey);
+      const isSkipped =
+        !isCurrent && !isAnswered && askedKeys.has(question.fieldKey);
+
+      let status: IBrandInterviewStep['status'] = 'upcoming';
+      if (isCurrent) {
+        status = 'current';
+      } else if (isAnswered) {
+        status = 'answered';
+      } else if (isSkipped) {
+        status = 'skipped';
+      }
+
+      const answer = answeredFields[question.fieldKey];
+      const answerPreview =
+        answer === undefined
+          ? undefined
+          : this.formatAnswerPreview(answer).slice(0, 120);
+
+      return {
+        answerPreview: answerPreview || undefined,
+        fieldKey: question.fieldKey,
+        group: question.group,
+        isNavigable: isCurrent || isAnswered,
+        label: question.questionText,
+        question,
+        status,
+      };
+    });
+  }
+
   private buildProgress(session: BrandInterview): IBrandInterviewProgress {
-    const answered = Object.keys(
-      (session.answeredFields as Record<string, unknown>) ?? {},
-    ).length;
+    const answered = Object.keys(this.readAnsweredFields(session)).length;
     const total = IN_SCOPE_FIELD_KEYS.length;
 
     return {
       answeredFields: answered,
       percentComplete: total > 0 ? Math.round((answered / total) * 100) : 100,
       totalFields: total,
+    };
+  }
+
+  private buildAnswerResult(
+    session: BrandInterview,
+    opts: {
+      completenessScore: number;
+      isComplete: boolean;
+      nextFieldKey: string | null;
+      status: IBrandInterviewAnswerResult['status'];
+    },
+  ): IBrandInterviewAnswerResult {
+    return {
+      answeredFields: this.readAnsweredFields(session),
+      completenessScore: opts.completenessScore,
+      interviewId: session.id,
+      isComplete: opts.isComplete,
+      nextQuestion: opts.nextFieldKey
+        ? (CATALOG_BY_FIELD_KEY[opts.nextFieldKey] ?? null)
+        : null,
+      progress: this.buildProgress(session),
+      status: opts.status,
+      steps: this.buildSteps(session),
     };
   }
 
@@ -528,6 +644,7 @@ export class BrandInterviewService {
     const progress = this.buildProgress(session);
 
     return {
+      answeredFields: this.readAnsweredFields(session),
       brandId: session.brandId,
       completenessScore: session.completenessBefore,
       creditsCharged,
@@ -535,6 +652,7 @@ export class BrandInterviewService {
       interviewId: session.id,
       progress,
       status: session.status as IBrandInterviewStartResult['status'],
+      steps: this.buildSteps(session),
     };
   }
 
@@ -549,17 +667,17 @@ export class BrandInterviewService {
         ? (CATALOG_BY_FIELD_KEY[session.currentFieldKey] ?? null)
         : null;
 
-    const answeredCount = Object.keys(
-      (session.answeredFields as Record<string, unknown>) ?? {},
-    ).length;
+    const answeredFields = this.readAnsweredFields(session);
 
     return {
-      answeredCount,
+      answeredCount: Object.keys(answeredFields).length,
+      answeredFields,
       brandId: session.brandId,
       completenessScore: session.completenessBefore,
       currentQuestion,
       id: session.id,
       status: session.status as IActiveBrandInterview['status'],
+      steps: this.buildSteps(session),
       totalCount: IN_SCOPE_FIELD_KEYS.length,
     };
   }

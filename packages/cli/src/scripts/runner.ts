@@ -18,7 +18,7 @@ interface RunScriptResult {
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SCRIPTS_DIR = path.resolve(__dirname, '../../../../scripts/darkroom');
+const SCRIPTS_DIR = path.resolve(__dirname, '../../../../scripts/fleet');
 
 export function getScriptPath(name: string): string {
   return path.join(SCRIPTS_DIR, name);

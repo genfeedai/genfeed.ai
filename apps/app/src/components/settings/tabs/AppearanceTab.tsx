@@ -27,7 +27,7 @@ export function AppearanceTab() {
     useSettingsStore();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <SettingsField
         label="Show Minimap"
         description="Display a miniature overview of the workflow canvas"

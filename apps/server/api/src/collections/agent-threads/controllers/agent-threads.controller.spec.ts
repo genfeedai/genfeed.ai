@@ -147,6 +147,7 @@ describe('AgentThreadsController', () => {
         mockUser.publicMetadata.user,
         mockUser.publicMetadata.organization,
         undefined,
+        undefined,
       );
     });
 
@@ -175,6 +176,7 @@ describe('AgentThreadsController', () => {
         resolvedUserId,
         expect.any(String),
         undefined,
+        undefined,
       );
     });
 
@@ -198,6 +200,20 @@ describe('AgentThreadsController', () => {
         resolvedMongoUserId,
         expect.any(String),
         undefined,
+        undefined,
+      );
+    });
+
+    it('should hard-filter threads by brand when brand query is set', async () => {
+      service.getUserThreads.mockResolvedValue([]);
+
+      await controller.listThreads({} as never, mockUser, 'active', 'brand-1');
+
+      expect(service.getUserThreads).toHaveBeenCalledWith(
+        mockUser.publicMetadata.user,
+        mockUser.publicMetadata.organization,
+        'active',
+        'brand-1',
       );
     });
   });

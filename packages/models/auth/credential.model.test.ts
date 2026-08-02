@@ -90,7 +90,7 @@ const createOrganizationSetting = (
   brandsLimit: 1,
   isAdvancedMode: false,
   isAutoEvaluateEnabled: false,
-  isDarkroomNsfwVisible: false,
+  isFleetNsfwVisible: false,
   isGenerateArticlesEnabled: true,
   isGenerateImagesEnabled: true,
   isGenerateMusicEnabled: true,

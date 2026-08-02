@@ -99,7 +99,7 @@ function inferCategory(name: string): ToolCategory {
   )
     return 'ads';
   if (
-    name.includes('darkroom') ||
+    name.includes('fleet') ||
     name.includes('training') ||
     name.includes('dataset') ||
     name.includes('comfyui') ||

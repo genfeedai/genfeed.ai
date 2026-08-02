@@ -218,6 +218,8 @@ export class AgentApiService extends AgentBaseApiService {
       page?: number;
       limit?: number;
       status?: AgentThreadStatus;
+      /** When set, list is single-brand only. Omit for full org. */
+      brandId?: string | null;
     },
     signal?: AbortSignal,
   ): Effect.Effect<AgentThread[], AgentApiError> {
@@ -231,6 +233,9 @@ export class AgentApiService extends AgentBaseApiService {
     if (params?.status) {
       qs.set('status', params.status);
     }
+    if (params?.brandId) {
+      qs.set('brand', params.brandId);
+    }
     const queryString = qs.toString();
     return this.fetchCollectionEffect<AgentThread>(
       `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}${
@@ -243,12 +248,16 @@ export class AgentApiService extends AgentBaseApiService {
   }
 
   archiveAllThreadsEffect(
+    brandId?: string | null,
     signal?: AbortSignal,
   ): Effect.Effect<{ archivedCount: number }, AgentApiError> {
     return this.fetchJsonEffect<{ archivedCount: number }>(
       `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}`,
       {
-        body: JSON.stringify({ status: AgentThreadStatus.ARCHIVED }),
+        body: JSON.stringify({
+          status: AgentThreadStatus.ARCHIVED,
+          ...(brandId ? { brandId } : {}),
+        }),
         method: 'PATCH',
         signal,
       },

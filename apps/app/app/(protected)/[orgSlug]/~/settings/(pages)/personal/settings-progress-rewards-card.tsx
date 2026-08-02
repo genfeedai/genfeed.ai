@@ -28,15 +28,12 @@ export default function SettingsProgressRewardsCard({
   milestoneStates,
 }: Props) {
   return (
-    <Card className="border-white/10 bg-card p-5">
-      <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
-        Badge progress
-      </p>
-      <h2 className="mt-1 text-xl font-semibold text-foreground">
-        Earned streak rewards
-      </h2>
-
-      <div className="mt-4 flex flex-wrap gap-2">
+    <Card
+      label="Earned streak rewards"
+      description="Badge milestones unlock at 30, 100, and 365 days."
+      bodyClassName="gap-3 p-4"
+    >
+      <div className="flex flex-wrap gap-2">
         {badgeMilestones.length > 0 ? (
           badgeMilestones.map((milestone) => (
             <Badge
@@ -49,13 +46,11 @@ export default function SettingsProgressRewardsCard({
             </Badge>
           ))
         ) : (
-          <span className="text-sm text-foreground/60">
-            Badge milestones unlock at 30, 100, and 365 days.
-          </span>
+          <span className="text-sm text-foreground/60">No badges yet.</span>
         )}
       </div>
 
-      <div className="mt-6 divide-y divide-white/10">
+      <div className="divide-y divide-white/10">
         {milestoneStates.map((milestone) => (
           <div
             key={milestone.days}

@@ -68,10 +68,9 @@ export default function SettingsProfilePage() {
       ?.isVideoNotificationsEmail ?? false;
 
   return (
-    <div className="space-y-6">
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Profile Information</h2>
-        <div className="space-y-4">
+    <div className="space-y-4">
+      <Card label="Profile Information" bodyClassName="gap-3 p-4">
+        <div className="space-y-3">
           <div>
             <p className="text-sm text-muted-foreground">Name</p>
             <p className="font-medium">{user?.fullName || 'Not set'}</p>
@@ -85,8 +84,7 @@ export default function SettingsProfilePage() {
         </div>
       </Card>
 
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Features</h2>
+      <Card label="Features" bodyClassName="gap-3 p-4">
         <Switch
           label="Advanced Mode"
           description="Show studio, workflow editor, automation tools, and individual generation pages. Recommended for power users."
@@ -96,9 +94,8 @@ export default function SettingsProfilePage() {
         />
       </Card>
 
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Email Notifications</h2>
-        <div className="space-y-4">
+      <Card label="Email Notifications" bodyClassName="gap-3 p-4">
+        <div className="space-y-3">
           <Switch
             label="Workflow Emails"
             description="Send an email when a workflow completes or fails."

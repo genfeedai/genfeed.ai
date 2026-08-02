@@ -16,7 +16,7 @@ export const organizationSettingsAttributes = createEntityAttributes([
   'isFastlaneEnabled',
   'isNotificationsDiscordEnabled',
   'isNotificationsEmailEnabled',
-  'isDarkroomNsfwVisible',
+  'isFleetNsfwVisible',
   'isWebhookEnabled',
   'webhookEndpoint',
   'webhookSecret',

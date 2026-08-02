@@ -12,7 +12,7 @@ type MasonryVideoMediaAreaProps = {
   metadata: IMetadata | null;
   isUnavailable: boolean;
   isProcessing: boolean;
-  isDarkroomLocked: boolean;
+  isFleetNsfwLocked: boolean;
   isDragEnabled: boolean;
   hasUpdateParent: boolean;
   placeholderImageUrl: string;
@@ -40,7 +40,7 @@ export default function MasonryVideoMediaArea({
   metadata,
   isUnavailable,
   isProcessing,
-  isDarkroomLocked,
+  isFleetNsfwLocked,
   isDragEnabled,
   hasUpdateParent,
   placeholderImageUrl,
@@ -62,14 +62,14 @@ export default function MasonryVideoMediaArea({
     onDragStartCapture: handleMediaDragStart,
     style: getAspectRatioStyle(metadata),
     onClick: () => {
-      if (!isDarkroomLocked) {
+      if (!isFleetNsfwLocked) {
         onClickIngredient?.(video);
       }
     },
     onKeyDown: (e: React.KeyboardEvent) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        if (!isDarkroomLocked) {
+        if (!isFleetNsfwLocked) {
           onClickIngredient?.(video);
         }
       }
@@ -102,7 +102,7 @@ export default function MasonryVideoMediaArea({
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className={cn(
               'object-cover object-center',
-              isDarkroomLocked && 'blur-sm',
+              isFleetNsfwLocked && 'blur-sm',
             )}
             loading="lazy"
             onLoad={() => onImageLoad?.()}
@@ -131,10 +131,10 @@ export default function MasonryVideoMediaArea({
         </div>
       )}
 
-      {isDarkroomLocked && (
+      {isFleetNsfwLocked && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/35 backdrop-blur-sm px-4 text-center">
           <div className="rounded-full border border-white/20 bg-black/50 px-3 py-1 text-xs font-medium text-white">
-            Sensitive darkroom asset
+            Sensitive fleet asset
           </div>
         </div>
       )}

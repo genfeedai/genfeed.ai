@@ -114,7 +114,7 @@ describe('BrandProvider', () => {
       },
     ],
     currentUser: null,
-    darkroomCapabilities: {
+    fleetCapabilities: {
       brandEnabled: true,
       brandId: 'brand_123',
       fleet: {
@@ -123,7 +123,7 @@ describe('BrandProvider', () => {
         videos: true,
         voices: true,
       },
-      id: 'darkroom-capabilities:org_123:brand_123',
+      id: 'fleet-capabilities:org_123:brand_123',
       organizationId: 'org_123',
     },
     organizationId: 'org_123',
@@ -164,15 +164,10 @@ describe('BrandProvider', () => {
     });
   });
 
-  it('hydrates brand, settings, and darkroom state from the bootstrap payload', () => {
+  it('hydrates brand, settings, and fleet state from the bootstrap payload', () => {
     function Consumer() {
-      const {
-        brandId,
-        brands,
-        darkroomCapabilities,
-        organizationId,
-        settings,
-      } = useBrand();
+      const { brandId, brands, fleetCapabilities, organizationId, settings } =
+        useBrand();
 
       return (
         <div>
@@ -185,8 +180,8 @@ describe('BrandProvider', () => {
           <span data-testid="enabled-model-id">
             {String(settings?.enabledModels?.[0] ?? '')}
           </span>
-          <span data-testid="darkroom-brand-enabled">
-            {String(darkroomCapabilities?.brandEnabled)}
+          <span data-testid="fleet-brand-enabled">
+            {String(fleetCapabilities?.brandEnabled)}
           </span>
         </div>
       );
@@ -209,9 +204,7 @@ describe('BrandProvider', () => {
     expect(screen.getByTestId('enabled-model-id')).toHaveTextContent(
       '507f1f77bcf86cd799439011',
     );
-    expect(screen.getByTestId('darkroom-brand-enabled')).toHaveTextContent(
-      'true',
-    );
+    expect(screen.getByTestId('fleet-brand-enabled')).toHaveTextContent('true');
   });
 
   it('uses bootstrap data without triggering service calls on mount', () => {
@@ -246,7 +239,7 @@ describe('BrandProvider', () => {
       ...initialBootstrap,
       brandId: '',
       brands: [],
-      darkroomCapabilities: null,
+      fleetCapabilities: null,
       organizationId: '',
       settings: null,
     };

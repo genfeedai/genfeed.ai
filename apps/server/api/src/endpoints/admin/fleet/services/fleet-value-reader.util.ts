@@ -8,7 +8,7 @@ import type {
 import type { AdminFleetSourceRecord } from '@api/endpoints/admin/fleet/interfaces/fleet-ingest.interface';
 import {
   ContentIntelligencePlatform,
-  DarkroomReviewStatus as DarkroomReviewStatusEnum,
+  FleetReviewStatus as FleetReviewStatusEnum,
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/enums';
@@ -80,8 +80,8 @@ export const AdminFleetValueReader = {
   },
 
   getEnabledFleetSources(persona: PersonaDocument): AdminFleetSourceRecord[] {
-    const sources = Array.isArray(persona.darkroomSources)
-      ? persona.darkroomSources
+    const sources = Array.isArray(persona.fleetSources)
+      ? persona.fleetSources
       : [];
 
     return sources.flatMap((source) => {
@@ -105,7 +105,7 @@ export const AdminFleetValueReader = {
     return AdminFleetValueReader.readString(value) === expected;
   },
 
-  hasReviewStatus(value: unknown, expected: DarkroomReviewStatusEnum): boolean {
+  hasReviewStatus(value: unknown, expected: FleetReviewStatusEnum): boolean {
     return AdminFleetValueReader.readString(value) === expected;
   },
 
@@ -115,7 +115,7 @@ export const AdminFleetValueReader = {
   > {
     return {
       contentRating: undefined,
-      reviewStatus: DarkroomReviewStatusEnum.PENDING,
+      reviewStatus: FleetReviewStatusEnum.PENDING,
     };
   },
 

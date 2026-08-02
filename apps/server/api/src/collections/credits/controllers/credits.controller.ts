@@ -11,17 +11,21 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
-import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import {
+  serializeCollection,
+  serializeSingle,
+} from '@api/helpers/utils/response/response.util';
 import { ByokBillingService } from '@api/services/byok-billing/byok-billing.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import {
   ByokUsageSummarySerializer,
+  CreditTransactionSerializer,
   CreditUsageSerializer,
   LastPurchaseBaselineSerializer,
   TopbarBalancesSerializer,
 } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Controller, Get, Optional, Req } from '@nestjs/common';
+import { Controller, Get, Optional, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -55,6 +59,47 @@ export class CreditsController {
       await this.creditTransactionsService.getUsageMetrics(organizationId);
 
     return serializeSingle(req, CreditUsageSerializer, data);
+  }
+
+  /**
+   * Org credit ledger for Settings → Usage. Optional brandId filters rows that
+   * recorded brandId in transaction metadata (agent/gen call sites).
+   */
+  @Get('transactions')
+  @RateLimit({ limit: 30, scope: 'user', windowMs: 60000 })
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async listTransactions(
+    @Req() req: RequestWithContext,
+    @CurrentUser() user: User,
+    @Query('brandId') brandId?: string,
+    @Query('category') category?: string,
+    @Query('source') source?: string,
+    @Query('limit') limitRaw?: string,
+    @Query('skip') skipRaw?: string,
+  ) {
+    const publicMetadata = getPublicMetadata(user);
+    const organizationId =
+      req.context?.organizationId ?? publicMetadata.organization.toString();
+
+    const limit = Math.min(
+      Math.max(Number.parseInt(limitRaw ?? '50', 10) || 50, 1),
+      200,
+    );
+    const skip = Math.max(Number.parseInt(skipRaw ?? '0', 10) || 0, 0);
+
+    const docs =
+      await this.creditTransactionsService.getOrganizationTransactions(
+        organizationId,
+        limit,
+        skip,
+        {
+          brandId: brandId?.trim() || undefined,
+          category: category?.trim() || undefined,
+          source: source?.trim() || undefined,
+        },
+      );
+
+    return serializeCollection(req, CreditTransactionSerializer, { docs });
   }
 
   @Get('byok-usage-summary')

@@ -42,22 +42,12 @@ export default function SettingsProgressOverviewCard({
   orgHref,
 }: Props) {
   return (
-    <Card className="border-white/10 bg-card p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="max-w-3xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-            Progress
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold text-foreground">
-            Review setup and streaks
-          </h2>
-          <p className="mt-3 text-sm leading-6 text-foreground/65">
-            Check setup progress, streak status, milestone rewards, and the
-            sidebar module preference in one place.
-          </p>
-        </div>
-
-        {nextSetupStep ? (
+    <Card
+      label="Progress"
+      description="Check setup progress, streak status, milestone rewards, and the sidebar module preference in one place."
+      bodyClassName="gap-3 p-4"
+      headerAction={
+        nextSetupStep ? (
           <Button
             asChild
             className="inline-flex items-center gap-2 rounded-full border border-orange-400/25 bg-orange-400/10 px-4 py-2 text-sm font-medium text-orange-100 transition-colors hover:bg-orange-400/15"
@@ -81,10 +71,10 @@ export default function SettingsProgressOverviewCard({
               Create something new
             </Link>
           </Button>
-        )}
-      </div>
-
-      <div className="mt-6 grid gap-4 md:grid-cols-4">
+        )
+      }
+    >
+      <div className="grid gap-3 md:grid-cols-4">
         <KeyMetric label="Setup" value={`${completedCount}/${totalCount}`} />
         <KeyMetric
           label="Current streak"

@@ -25,5 +25,5 @@ export const personaAttributes = createEntityAttributes([
   'loraModelPath',
   'niche',
   'emoji',
-  'darkroomSources',
+  'fleetSources',
 ]);

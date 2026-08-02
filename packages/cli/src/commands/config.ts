@@ -18,8 +18,8 @@ const SETTABLE_KEYS: Record<string, keyof Profile> = {
   'api-key': 'apiKey',
   'api-url': 'apiUrl',
   brand: 'activeBrand',
-  'darkroom-host': 'darkroomHost',
-  'darkroom-port': 'darkroomApiPort',
+  'fleet-host': 'fleetHost',
+  'fleet-port': 'fleetApiPort',
   'org-id': 'organizationId',
   persona: 'activePersona',
   role: 'role',
@@ -52,8 +52,8 @@ configCommand
       print(formatLabel('Role', profile.role));
       print(formatLabel('Image Model', profile.defaults.imageModel));
       print(formatLabel('Video Model', profile.defaults.videoModel));
-      print(formatLabel('Darkroom Host', profile.darkroomHost));
-      print(formatLabel('Darkroom Port', String(profile.darkroomApiPort)));
+      print(formatLabel('Fleet Host', profile.fleetHost));
+      print(formatLabel('Fleet Port', String(profile.fleetApiPort)));
     } catch (error) {
       handleError(error);
     }
@@ -81,7 +81,7 @@ configCommand
       }
 
       let coerced: Profile[typeof profileKey] | string | number = value;
-      if (profileKey === 'darkroomApiPort') {
+      if (profileKey === 'fleetApiPort') {
         coerced = Number.parseInt(value, 10);
         if (Number.isNaN(coerced)) {
           print(chalk.red('Port must be a number'));

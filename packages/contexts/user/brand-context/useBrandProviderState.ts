@@ -103,8 +103,7 @@ export function useBrandProviderState({
         : null,
     [initialBootstrap?.settings],
   );
-  const initialDarkroomCapabilities =
-    initialBootstrap?.darkroomCapabilities ?? null;
+  const initialFleetCapabilities = initialBootstrap?.fleetCapabilities ?? null;
   const initialDataUpdatedAt = useMemo(() => Date.now(), []);
 
   const [brandId, setBrandId] = useState(
@@ -305,12 +304,12 @@ export function useBrandProviderState({
   const scopedOrganizationId = isScopeReady ? effectiveOrganizationId : '';
   const shouldFetchSettings =
     effectiveIsAuthLoaded && effectiveIsSignedIn && !!scopedOrganizationId;
-  const shouldFetchDarkroom =
+  const shouldFetchFleet =
     effectiveIsAuthLoaded &&
     effectiveIsSignedIn &&
     !!scopedOrganizationId &&
     !!scopedBrandId &&
-    effectiveSelectedBrand?.isDarkroomEnabled === true;
+    effectiveSelectedBrand?.isFleetEnabled === true;
   const {
     data: settings = null,
     isLoading: settingsLoading,
@@ -365,30 +364,30 @@ export function useBrandProviderState({
   }, [refetchSettings]);
 
   const {
-    data: darkroomCapabilities = null,
-    isLoading: darkroomCapabilitiesLoading,
+    data: fleetCapabilities = null,
+    isLoading: fleetCapabilitiesLoading,
   } = useQuery({
-    enabled: shouldFetchDarkroom && !!scopedOrganizationId && !!scopedBrandId,
-    initialData: initialDarkroomCapabilities ?? undefined,
+    enabled: shouldFetchFleet && !!scopedOrganizationId && !!scopedBrandId,
+    initialData: initialFleetCapabilities ?? undefined,
     initialDataUpdatedAt:
-      initialDarkroomCapabilities != null ? initialDataUpdatedAt : undefined,
+      initialFleetCapabilities != null ? initialDataUpdatedAt : undefined,
     queryFn: async () => {
-      if (!shouldFetchDarkroom || !scopedOrganizationId || !scopedBrandId) {
+      if (!shouldFetchFleet || !scopedOrganizationId || !scopedBrandId) {
         return null;
       }
 
       try {
         const service = await getOrganizationsService();
-        return await service.getDarkroomCapabilities(
+        return await service.getFleetCapabilities(
           scopedOrganizationId,
           scopedBrandId,
         );
       } catch (error) {
-        logger.error('Failed to fetch darkroom capabilities', error);
+        logger.error('Failed to fetch fleet capabilities', error);
         return null;
       }
     },
-    queryKey: ['brand-context-darkroom', scopedOrganizationId, scopedBrandId],
+    queryKey: ['brand-context-fleet', scopedOrganizationId, scopedBrandId],
     staleTime: BRAND_CONTEXT_CACHE_TTL_MS,
   });
 
@@ -458,8 +457,8 @@ export function useBrandProviderState({
     credentials,
     credentialsError,
     credentialsLoading,
-    darkroomCapabilities,
-    darkroomCapabilitiesLoading,
+    fleetCapabilities,
+    fleetCapabilitiesLoading,
     isReady,
     organizationId: scopedOrganizationId,
     refreshBrands,

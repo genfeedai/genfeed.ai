@@ -1807,9 +1807,9 @@
             "description": "Whether this brand is currently active",
             "type": "boolean"
           },
-          "isDarkroomEnabled": {
+          "isFleetEnabled": {
             "default": false,
-            "description": "Whether this brand can access darkroom fleet features and assets",
+            "description": "Whether this brand can access Fleet features and assets",
             "type": "boolean"
           },
           "isHighlighted": {
@@ -2986,7 +2986,7 @@
             "default": "image"
           },
           "contentRating": {
-            "description": "Moderation content rating for darkroom assets",
+            "description": "Moderation content rating for fleet assets",
             "enum": [
               "sfw",
               "suggestive",
@@ -3121,10 +3121,10 @@
           "reviewStatus": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/DarkroomReviewStatus"
+                "$ref": "#/components/schemas/FleetReviewStatus"
               }
             ],
-            "description": "Darkroom review status for moderated assets"
+            "description": "Fleet review status for moderated assets"
           },
           "scene": {
             "description": "The scene for image generation",
@@ -3573,7 +3573,7 @@
             "type": "number"
           },
           "contentRating": {
-            "description": "Moderation content rating for darkroom assets",
+            "description": "Moderation content rating for fleet assets",
             "enum": [
               "sfw",
               "suggestive",
@@ -3681,10 +3681,10 @@
           "reviewStatus": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/DarkroomReviewStatus"
+                "$ref": "#/components/schemas/FleetReviewStatus"
               }
             ],
-            "description": "Darkroom review status for moderated assets"
+            "description": "Fleet review status for moderated assets"
           },
           "scope": {
             "allOf": [
@@ -5214,7 +5214,7 @@
             "default": "image"
           },
           "contentRating": {
-            "description": "Moderation content rating for darkroom assets",
+            "description": "Moderation content rating for fleet assets",
             "enum": [
               "sfw",
               "suggestive",
@@ -5388,10 +5388,10 @@
           "reviewStatus": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/DarkroomReviewStatus"
+                "$ref": "#/components/schemas/FleetReviewStatus"
               }
             ],
-            "description": "Darkroom review status for moderated assets"
+            "description": "Fleet review status for moderated assets"
           },
           "scene": {
             "description": "The scene for video generation",
@@ -5872,16 +5872,6 @@
         },
         "type": "object"
       },
-      "DarkroomReviewStatus": {
-        "description": "Darkroom review status for moderated assets",
-        "enum": [
-          "pending",
-          "approved",
-          "rejected",
-          "needs-revision"
-        ],
-        "type": "string"
-      },
       "DefaultVoiceRefDto": {
         "properties": {
           "externalVoiceId": {
@@ -6224,6 +6214,7 @@
         "type": "string"
       },
       "FleetReviewStatus": {
+        "description": "Fleet review status for moderated assets",
         "enum": [
           "pending",
           "approved",
@@ -10120,6 +10111,11 @@
             "description": "The answer to the current interview question. For list fields, separate items with newlines or commas.",
             "example": "Professional yet warm, with a touch of wit.",
             "type": "string"
+          },
+          "fieldKey": {
+            "description": "Optional field key when re-saving an already-answered step from the steps sidebar. Defaults to the session current field.",
+            "example": "tone",
+            "type": "string"
           }
         },
         "required": [
@@ -11496,13 +11492,13 @@
             "description": "Whether this brand is currently active",
             "type": "boolean"
           },
-          "isDarkroomEnabled": {
-            "default": false,
-            "description": "Whether this brand can access darkroom fleet features and assets",
-            "type": "boolean"
-          },
           "isDeleted": {
             "description": "Whether the brand is marked as deleted",
+            "type": "boolean"
+          },
+          "isFleetEnabled": {
+            "default": false,
+            "description": "Whether this brand can access Fleet features and assets",
             "type": "boolean"
           },
           "isHighlighted": {
@@ -12432,7 +12428,7 @@
             "type": "string"
           },
           "contentRating": {
-            "description": "Moderation content rating for darkroom assets",
+            "description": "Moderation content rating for fleet assets",
             "enum": [
               "sfw",
               "suggestive",
@@ -12542,10 +12538,10 @@
           "reviewStatus": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/DarkroomReviewStatus"
+                "$ref": "#/components/schemas/FleetReviewStatus"
               }
             ],
-            "description": "Darkroom review status for moderated assets"
+            "description": "Fleet review status for moderated assets"
           },
           "s3Key": {
             "description": "Storage key for the generated asset",
@@ -12958,13 +12954,13 @@
             "description": "Default autonomous agent policy for the organization"
           },
           "agentReplyStyle": {
-            "default": "concise",
+            "default": "CONCISE",
             "description": "Agent reply style preference",
             "enum": [
-              "concise",
-              "detailed",
-              "friendly",
-              "professional"
+              "CONCISE",
+              "DETAILED",
+              "FRIENDLY",
+              "PROFESSIONAL"
             ],
             "type": "string"
           },
@@ -13051,11 +13047,6 @@
             "description": "Whether BYOK (Bring Your Own Key) mode is enabled for AI providers",
             "type": "boolean"
           },
-          "isDarkroomNsfwVisible": {
-            "default": false,
-            "description": "Whether NSFW darkroom assets can be revealed in brand-scoped library surfaces",
-            "type": "boolean"
-          },
           "isDeleted": {
             "description": "Whether the style is marked as deleted",
             "type": "boolean"
@@ -13067,6 +13058,11 @@
           },
           "isFirstLogin": {
             "description": "Whether this is the org owner’s first login. Set to false to mark onboarding complete.",
+            "type": "boolean"
+          },
+          "isFleetNsfwVisible": {
+            "default": false,
+            "description": "Whether NSFW fleet assets can be revealed in brand-scoped library surfaces",
             "type": "boolean"
           },
           "isGenerateArticlesEnabled": {
@@ -18069,6 +18065,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "brand",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -18076,7 +18080,7 @@
             "description": ""
           }
         },
-        "summary": "List user agent threads",
+        "summary": "List user agent threads (optional brand scope for single-brand workspace chat)",
         "tags": [
           "Agent Threads"
         ]
@@ -26764,6 +26768,62 @@
         ]
       }
     },
+    "/credits/transactions": {
+      "get": {
+        "operationId": "CreditsController.listTransactions",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "brandId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "listTransactions",
+        "tags": [
+          "credits"
+        ]
+      }
+    },
     "/credits/usage": {
       "get": {
         "operationId": "CreditsController.getUsageMetrics",
@@ -35384,9 +35444,9 @@
         ]
       }
     },
-    "/organizations/{organizationId}/brands/{brandId}/darkroom-capabilities": {
+    "/organizations/{organizationId}/brands/{brandId}/fleet-capabilities": {
       "get": {
-        "operationId": "OrganizationsSettingsController.getDarkroomCapabilities",
+        "operationId": "OrganizationsSettingsController.getFleetCapabilities",
         "parameters": [
           {
             "in": "path",
@@ -35415,7 +35475,7 @@
             "bearer": []
           }
         ],
-        "summary": "getDarkroomCapabilities",
+        "summary": "getFleetCapabilities",
         "tags": [
           "organizations"
         ]

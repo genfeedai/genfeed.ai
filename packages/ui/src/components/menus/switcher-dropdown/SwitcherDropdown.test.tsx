@@ -72,7 +72,7 @@ describe('SwitcherDropdown', () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
-  it('exposes listbox/option roles and marks the active row non-selectable', () => {
+  it('exposes listbox/option roles and marks the active row with aria-current', () => {
     renderDropdown();
     fireEvent.click(screen.getByText('Open'));
 
@@ -81,11 +81,13 @@ describe('SwitcherDropdown', () => {
     const options = screen.getAllByRole('option');
     expect(options).toHaveLength(3);
 
-    // The active row (Alpha) is disabled and shows the check.
+    // Active stays selectable (so cmdk keyboard cursor can rest on it) and
+    // shows the check — never a disabled skip that lights the next brand.
     const activeOption = options.find((option) =>
       option.textContent?.includes('Alpha'),
     );
-    expect(activeOption).toHaveAttribute('aria-disabled', 'true');
+    expect(activeOption).toHaveAttribute('aria-current', 'true');
+    expect(activeOption).not.toHaveAttribute('aria-disabled', 'true');
     expect(activeOption?.querySelector('svg')).not.toBeNull();
   });
 
@@ -105,13 +107,24 @@ describe('SwitcherDropdown', () => {
     fireEvent.click(screen.getByText('Open'));
 
     const input = screen.getByPlaceholderText('Search…');
-    // Active row (Alpha) is skipped by cmdk, so the initial highlight is Beta.
-    // ArrowDown moves it to Gamma; Enter selects the highlighted item.
+    // Cursor starts on active Alpha. ArrowDown → Beta; Enter selects Beta.
     fireEvent.keyDown(input, { key: 'ArrowDown' });
     fireEvent.keyDown(input, { key: 'Enter' });
 
     expect(onSelect).toHaveBeenCalledTimes(1);
-    expect(onSelect).toHaveBeenCalledWith('3');
+    expect(onSelect).toHaveBeenCalledWith('2');
+  });
+
+  it('does not re-fire onSelect when confirming the already-active item', () => {
+    const onSelect = vi.fn();
+    renderDropdown({ hasSearch: true, onSelect });
+    fireEvent.click(screen.getByText('Open'));
+
+    const input = screen.getByPlaceholderText('Search…');
+    // Cursor starts on active Alpha; Enter should only close.
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(onSelect).not.toHaveBeenCalled();
   });
 
   it('calls onOpenChange when opening', () => {
@@ -242,8 +255,8 @@ describe('SwitcherDropdown', () => {
       screen.getByTestId('switcher-item-active-check'),
     ).toBeInTheDocument();
 
-    // Inactive row: lighter hover / keyboard highlight only
-    expect(betaRow).toHaveClass('hover:bg-foreground/[0.05]');
+    // Inactive row: hover only — never the active selected wash
+    expect(betaRow).toHaveClass('hover:bg-foreground/[0.04]');
     expect(betaRow).not.toHaveClass('bg-foreground/[0.08]');
     expect(screen.queryAllByTestId('switcher-item-active-check')).toHaveLength(
       1,

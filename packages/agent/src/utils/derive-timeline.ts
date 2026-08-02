@@ -476,12 +476,13 @@ export function deriveTimeline(
     });
   }
 
-  // 6. Sort all entries by createdAt, with tie-break: work-group before assistant-message
+  // 6. Sort by createdAt. Chronological tool work lands before the answer so
+  // live runs show tools first; step 7 flips settled work *after* the answer
+  // so the "Worked for …" summary sits at the end of the turn (T3-style).
   entries.sort((a, b) => {
     const timeDiff = a.createdAt.localeCompare(b.createdAt);
     if (timeDiff !== 0) return timeDiff;
 
-    // Tie-break: work-group sorts before assistant-message
     const kindOrder = (kind: string) => {
       if (kind === 'user-message') return 0;
       if (kind === 'work-group') return 1;
@@ -491,14 +492,17 @@ export function deriveTimeline(
     return kindOrder(a.kind) - kindOrder(b.kind);
   });
 
-  // 7. Append streaming entry if active
+  // 7. Settled work summary after the answer for that turn
+  const ordered = placeWorkGroupsAfterAnswers(entries);
+
+  // 8. Append streaming entry if active (always last while live)
   if (
     isStreamActive ||
     streamState.activeToolCalls.length > 0 ||
     streamState.streamingContent ||
     streamState.streamingReasoning
   ) {
-    entries.push({
+    ordered.push({
       createdAt: new Date().toISOString(),
       id: 'streaming-current',
       kind: 'streaming',
@@ -508,5 +512,48 @@ export function deriveTimeline(
     });
   }
 
-  return entries;
+  return ordered;
+}
+
+/**
+ * When a run finished and the assistant reply exists, render the answer first
+ * and the collapsible "Worked for …" / step log immediately after it.
+ * Live work with no answer yet stays above (tools still in flight).
+ */
+export function placeWorkGroupsAfterAnswers(
+  entries: TimelineEntry[],
+): TimelineEntry[] {
+  const result: TimelineEntry[] = [];
+  let index = 0;
+
+  while (index < entries.length) {
+    const current = entries[index];
+    if (current?.kind !== 'work-group') {
+      result.push(current);
+      index += 1;
+      continue;
+    }
+
+    let end = index;
+    while (end < entries.length && entries[end]?.kind === 'work-group') {
+      end += 1;
+    }
+
+    const following = entries[end];
+    if (following?.kind === 'assistant-message') {
+      result.push(following);
+      for (let workIndex = index; workIndex < end; workIndex += 1) {
+        result.push(entries[workIndex]);
+      }
+      index = end + 1;
+      continue;
+    }
+
+    for (let workIndex = index; workIndex < end; workIndex += 1) {
+      result.push(entries[workIndex]);
+    }
+    index = end;
+  }
+
+  return result;
 }

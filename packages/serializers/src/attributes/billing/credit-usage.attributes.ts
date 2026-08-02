@@ -6,4 +6,7 @@ export const creditUsageAttributes = createEntityAttributes([
   'usage30Days',
   'trendPercentage',
   'breakdown',
+  'dailySeries',
+  'weeklySeries',
+  'monthlySeries',
 ]);

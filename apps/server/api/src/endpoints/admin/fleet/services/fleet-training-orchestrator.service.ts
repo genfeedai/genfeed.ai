@@ -9,7 +9,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
-  DarkroomReviewStatus as DarkroomReviewStatusEnum,
+  FleetReviewStatus as FleetReviewStatusEnum,
   LoraStatus,
   TrainingCategory,
   TrainingProvider,
@@ -144,7 +144,7 @@ export class AdminFleetTrainingOrchestratorService {
               {
                 isDeleted: false,
                 persona: persona.id,
-                reviewStatus: DarkroomReviewStatusEnum.APPROVED,
+                reviewStatus: FleetReviewStatusEnum.APPROVED,
               },
             )
           ).map((ingredient) => ingredient.id.toString());

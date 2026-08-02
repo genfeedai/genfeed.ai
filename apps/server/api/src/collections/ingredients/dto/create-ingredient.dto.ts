@@ -3,7 +3,7 @@ import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   AssetScope,
   ContentRating,
-  DarkroomReviewStatus,
+  FleetReviewStatus,
   IngredientAvatarCategory,
   IngredientCategory,
   IngredientStatus,
@@ -227,18 +227,18 @@ export class CreateIngredientDto {
   @IsEnum(ContentRating)
   @IsOptional()
   @ApiProperty({
-    description: 'Moderation content rating for darkroom assets',
+    description: 'Moderation content rating for fleet assets',
     required: false,
   })
   readonly contentRating?: ContentRating;
 
-  @IsEnum(DarkroomReviewStatus)
+  @IsEnum(FleetReviewStatus)
   @IsOptional()
   @ApiProperty({
-    description: 'Darkroom review status for moderated assets',
-    enum: DarkroomReviewStatus,
-    enumName: 'DarkroomReviewStatus',
+    description: 'Fleet review status for moderated assets',
+    enum: FleetReviewStatus,
+    enumName: 'FleetReviewStatus',
     required: false,
   })
-  readonly reviewStatus?: DarkroomReviewStatus;
+  readonly reviewStatus?: FleetReviewStatus;
 }

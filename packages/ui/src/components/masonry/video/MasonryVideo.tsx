@@ -56,7 +56,7 @@ export default function MasonryVideo({
     isHovered,
     isProcessing,
     isUnavailable,
-    isDarkroomLocked,
+    isFleetNsfwLocked,
     isInteractionBlocked,
     placeholderImageUrl,
     thumbnailImageUrl,
@@ -101,7 +101,7 @@ export default function MasonryVideo({
         isScrollFocused && SCROLL_FOCUS_SURFACE_CLASS,
         video.aspectRatio,
         isSelected && 'border-primary',
-        isDarkroomLocked && 'cursor-not-allowed',
+        isFleetNsfwLocked && 'cursor-not-allowed',
         isFormatCompatible ? '' : 'opacity-50',
       )}
     >
@@ -129,7 +129,7 @@ export default function MasonryVideo({
           metadata={metadata}
           isUnavailable={isUnavailable}
           isProcessing={isProcessing}
-          isDarkroomLocked={isDarkroomLocked}
+          isFleetNsfwLocked={isFleetNsfwLocked}
           isDragEnabled={isDragEnabled}
           hasUpdateParent={!!onUpdateParent}
           placeholderImageUrl={placeholderImageUrl}

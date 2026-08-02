@@ -17,9 +17,8 @@ export default function CreditGovernanceCard({
   onBrandDailyCreditCapChange,
 }: CreditGovernanceCardProps) {
   return (
-    <Card className="p-6">
-      <h2 className="text-lg font-semibold mb-4">Credit Governance</h2>
-      <div className="grid gap-4 md:grid-cols-2">
+    <Card label="Credit Governance" bodyClassName="gap-3 p-4">
+      <div className="grid gap-3 md:grid-cols-2">
         <div>
           <label
             htmlFor="brand-daily-credit-cap"

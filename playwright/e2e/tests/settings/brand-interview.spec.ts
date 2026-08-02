@@ -43,6 +43,22 @@ const audienceQuestion = {
   weight: 0.35,
 };
 
+function buildSteps(currentFieldKey: string, answered: Record<string, string>) {
+  return [toneQuestion, audienceQuestion].map((question) => {
+    const isCurrent = question.fieldKey === currentFieldKey;
+    const isAnswered = Object.hasOwn(answered, question.fieldKey);
+    return {
+      answerPreview: isAnswered ? answered[question.fieldKey] : undefined,
+      fieldKey: question.fieldKey,
+      group: question.group,
+      isNavigable: isCurrent || isAnswered,
+      label: question.questionText,
+      question,
+      status: isCurrent ? 'current' : isAnswered ? 'answered' : 'upcoming',
+    };
+  });
+}
+
 async function mockBrandResolution(route: Route): Promise<void> {
   await route.fulfill({
     contentType: 'application/json',
@@ -132,6 +148,7 @@ test.describe('Brand Context Interview (settings stepper)', () => {
           contentType: 'application/json',
           status: 201,
           body: JSON.stringify({
+            answeredFields: {},
             brandId: brand.id,
             completenessScore: 40,
             creditsCharged: 10,
@@ -143,6 +160,7 @@ test.describe('Brand Context Interview (settings stepper)', () => {
               totalFields: 13,
             },
             status: 'in_progress',
+            steps: buildSteps('tone', {}),
           }),
         });
       },
@@ -161,6 +179,9 @@ test.describe('Brand Context Interview (settings stepper)', () => {
     await expect(
       authenticatedPage.getByText(toneQuestion.questionText),
     ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('navigation', { name: 'Interview steps' }),
+    ).toBeVisible();
   });
 
   test('submits an answer and advances, then completes', async ({
@@ -174,6 +195,7 @@ test.describe('Brand Context Interview (settings stepper)', () => {
           contentType: 'application/json',
           status: 201,
           body: JSON.stringify({
+            answeredFields: {},
             brandId: brand.id,
             completenessScore: 40,
             creditsCharged: 10,
@@ -185,6 +207,7 @@ test.describe('Brand Context Interview (settings stepper)', () => {
               totalFields: 13,
             },
             status: 'in_progress',
+            steps: buildSteps('tone', {}),
           }),
         });
       },
@@ -196,10 +219,18 @@ test.describe('Brand Context Interview (settings stepper)', () => {
       async (route) => {
         answerCalls += 1;
         const isComplete = answerCalls >= 2;
+        const answered =
+          answerCalls === 1
+            ? { tone: 'Bold, witty, and direct' }
+            : {
+                audience: 'Founders, indie hackers',
+                tone: 'Bold, witty, and direct',
+              };
         await route.fulfill({
           contentType: 'application/json',
           status: 201,
           body: JSON.stringify({
+            answeredFields: answered,
             completenessScore: isComplete ? 75 : 55,
             interviewId: 'interview_1',
             isComplete,
@@ -210,6 +241,9 @@ test.describe('Brand Context Interview (settings stepper)', () => {
               totalFields: 13,
             },
             status: isComplete ? 'completed' : 'in_progress',
+            steps: isComplete
+              ? buildSteps('audience', answered)
+              : buildSteps('audience', answered),
           }),
         });
       },
@@ -230,7 +264,7 @@ test.describe('Brand Context Interview (settings stepper)', () => {
       .getByRole('textbox')
       .first()
       .fill('Bold, witty, and direct');
-    await authenticatedPage.getByRole('button', { name: /submit/i }).click();
+    await authenticatedPage.getByRole('button', { name: /continue/i }).click();
     await expect(
       authenticatedPage.getByText(audienceQuestion.questionText),
     ).toBeVisible();
@@ -240,7 +274,7 @@ test.describe('Brand Context Interview (settings stepper)', () => {
       .getByRole('textbox')
       .first()
       .fill('Founders, indie hackers');
-    await authenticatedPage.getByRole('button', { name: /submit/i }).click();
+    await authenticatedPage.getByRole('button', { name: /continue/i }).click();
 
     await expect(authenticatedPage.getByText(/complete/i)).toBeVisible();
   });

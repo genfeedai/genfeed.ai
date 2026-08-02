@@ -36,7 +36,7 @@ export class Brand extends BaseEntity implements IBrand {
   public declare isVerified: boolean;
   public declare isActive: boolean;
   public declare isDefault: boolean;
-  public declare isDarkroomEnabled: boolean;
+  public declare isFleetEnabled: boolean;
   public declare isHighlighted?: boolean;
   public declare agentConfig?: IBrandAgentConfig;
 

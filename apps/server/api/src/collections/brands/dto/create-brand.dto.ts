@@ -129,11 +129,10 @@ export class CreateBrandDto {
   @IsOptional()
   @ApiProperty({
     default: false,
-    description:
-      'Whether this brand can access darkroom fleet features and assets',
+    description: 'Whether this brand can access Fleet features and assets',
     required: false,
   })
-  readonly isDarkroomEnabled?: boolean;
+  readonly isFleetEnabled?: boolean;
 
   @IsString()
   @IsOptional()

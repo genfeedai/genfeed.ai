@@ -18,6 +18,11 @@ import { useAgentThreadList } from './useAgentThreadList';
 export type AgentThreadListProps = {
   apiService: AgentApiService;
   isActive?: boolean;
+  /**
+   * When set, list is hard-filtered to this brand. When null/omitted, full org
+   * conversations (brand dropdown cleared).
+   */
+  brandId?: string | null;
   onNavigate?: (path: string) => void;
   searchAction?: ReactNode;
   /**
@@ -34,6 +39,7 @@ export { AGENT_REFRESH_CONVERSATIONS_EVENT };
 export function AgentThreadList({
   apiService,
   isActive = true,
+  brandId = null,
   onNavigate,
   searchAction,
   showTitle = true,
@@ -75,7 +81,7 @@ export function AgentThreadList({
     handleThreadContextMenu,
     handleToggleView,
     handleRetryLoad,
-  } = useAgentThreadList({ apiService, isActive, onNavigate });
+  } = useAgentThreadList({ apiService, isActive, brandId, onNavigate });
 
   const groups = useMemo(
     () =>

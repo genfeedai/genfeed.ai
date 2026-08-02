@@ -27,7 +27,7 @@ export function mapProtectedBootstrapPayload(
     brandId: payload.access.brandId ?? '',
     brands: payload.brands ?? [],
     currentUser: payload.currentUser,
-    darkroomCapabilities: payload.darkroomCapabilities,
+    fleetCapabilities: payload.fleetCapabilities,
     organizationId: payload.access.organizationId ?? '',
     settings: payload.settings,
     streak: payload.streak,

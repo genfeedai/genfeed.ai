@@ -15,7 +15,7 @@ import {
   resolveRelationId,
 } from '@api/shared/utils/relation-id/relation-id.util';
 import {
-  DarkroomReviewStatus,
+  FleetReviewStatus,
   IngredientStatus,
   LoraStatus,
 } from '@genfeedai/enums';
@@ -253,7 +253,7 @@ export class AiInfluencerService {
       {
         where: {
           isAutopilotEnabled: true,
-          isDarkroomCharacter: true,
+          isFleetCharacter: true,
           isDeleted: false,
           ...(options?.organizationId
             ? { organizationId: options.organizationId }
@@ -364,7 +364,7 @@ export class AiInfluencerService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     const persona = await this.personasService.findOne({
-      isDarkroomCharacter: true,
+      isFleetCharacter: true,
       isDeleted: false,
       slug,
     });
@@ -587,7 +587,7 @@ export class AiInfluencerService {
       ),
       persona: persona.id,
       personaSlug: persona.slug,
-      reviewStatus: DarkroomReviewStatus.APPROVED,
+      reviewStatus: FleetReviewStatus.APPROVED,
       status: IngredientStatus.GENERATED,
       user: requireRelationId(
         persona.userId,

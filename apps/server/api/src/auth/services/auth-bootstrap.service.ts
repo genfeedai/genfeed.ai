@@ -297,7 +297,7 @@ export class AuthBootstrapService {
     if (base.cachedPayload) {
       return {
         ...base.cachedPayload,
-        darkroomCapabilities: null,
+        fleetCapabilities: null,
       };
     }
 
@@ -310,7 +310,7 @@ export class AuthBootstrapService {
       access: base.access,
       brands: base.brands,
       currentUser: base.currentUser,
-      darkroomCapabilities: null,
+      fleetCapabilities: null,
       settings: base.settings,
       streak,
     };

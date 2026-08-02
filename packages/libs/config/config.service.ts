@@ -7,9 +7,9 @@ import {
   baseSchema,
   betterAuthSchema,
   conditionalRequired,
-  darkroomSchema,
   elevenlabsSchema,
   falSchema,
+  fleetSchema,
   // AI
   generalAiSchema,
   // Genfeed
@@ -139,7 +139,7 @@ const apiSchema = Joi.object({
   ...opusProSchema,
   ...hedraSchema,
   ...newsApiSchema,
-  ...darkroomSchema,
+  ...fleetSchema,
   ...trainingPricingSchema,
   ...allSocialSchema,
   ...apiSpecificSchema,

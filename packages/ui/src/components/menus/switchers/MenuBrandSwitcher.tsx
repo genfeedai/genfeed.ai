@@ -114,7 +114,7 @@ export default function MenuBrandSwitcher({
 
   const items = [
     ...brands.map((b) => {
-      const label = `${b.label ?? 'Untitled'}${b.isDarkroomEnabled ? ' · Darkroom' : ''}`;
+      const label = `${b.label ?? 'Untitled'}${b.isFleetEnabled ? ' · Fleet' : ''}`;
       const orgSlug = getBrandOrganizationSlug(b);
 
       return {

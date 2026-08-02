@@ -171,6 +171,13 @@ export class TasksController extends BaseCRUDController<
       organization: publicMetadata.organization,
     };
 
+    // Optional brand filter from the request only. Omit for org-wide inbox
+    // (all brands under the org). Session brand must not force a filter —
+    // brand-less `/~/workspace/inbox` is intentionally cross-brand.
+    if (query.brand) {
+      match.brandId = query.brand;
+    }
+
     if (query.status) {
       match.status = query.status;
     }

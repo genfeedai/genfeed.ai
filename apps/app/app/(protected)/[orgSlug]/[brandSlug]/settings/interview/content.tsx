@@ -1,16 +1,20 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { IBrandInterviewQuestion } from '@genfeedai/interfaces';
+import { personalizeBrandInterviewExamples } from '@genfeedai/helpers';
+import type {
+  BrandInterviewAnswerValue,
+  BrandInterviewGroup,
+  IBrandInterviewQuestion,
+  IBrandInterviewStep,
+} from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import { useBrandInterview } from '@hooks/utils/use-brand-interview/use-brand-interview';
 import { BrandInterviewService } from '@services/social/brand-interview.service';
 import Card from '@ui/card/Card';
-import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
 import {
   Select,
   SelectContent,
@@ -19,10 +23,9 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { Sparkles } from 'lucide-react';
+import { Check, Circle, Sparkles } from 'lucide-react';
 import {
   type FormEvent,
-  type KeyboardEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -31,6 +34,17 @@ import {
 import { useBrandInterviewDraftStore } from '@/store/brand-interview-draft.store';
 
 const INTERVIEW_CREDIT_COST = 10;
+
+const GROUP_LABELS: Record<BrandInterviewGroup, string> = {
+  identity: 'Identity',
+  strategy: 'Strategy',
+  voice: 'Voice',
+};
+
+type BrandExampleContext = {
+  brandName?: string | null;
+  description?: string | null;
+};
 
 function parseListDraft(value: string): string[] {
   return value
@@ -41,6 +55,18 @@ function parseListDraft(value: string): string[] {
 
 function serializeListDraft(items: string[]): string {
   return items.join('\n');
+}
+
+function answerValueToDraft(
+  value: BrandInterviewAnswerValue | undefined,
+): string {
+  if (value === undefined) {
+    return '';
+  }
+  if (Array.isArray(value)) {
+    return serializeListDraft(value);
+  }
+  return value;
 }
 
 function ProgressBar({ label, percent }: { label: string; percent: number }) {
@@ -64,31 +90,18 @@ function InlineListAnswer({
   onChange,
   examples,
   isDisabled,
-  onSubmit,
+  brandContext,
 }: {
   value: string;
   onChange: (next: string) => void;
   examples?: string[];
   isDisabled?: boolean;
-  onSubmit: () => void;
+  brandContext: BrandExampleContext;
 }) {
   const chips = useMemo(() => parseListDraft(value), [value]);
-  const [chipDraft, setChipDraft] = useState('');
-
-  const commitChip = useCallback(
-    (raw: string) => {
-      const next = raw.trim();
-      if (!next) {
-        return;
-      }
-      if (chips.some((chip) => chip.toLowerCase() === next.toLowerCase())) {
-        setChipDraft('');
-        return;
-      }
-      onChange(serializeListDraft([...chips, next]));
-      setChipDraft('');
-    },
-    [chips, onChange],
+  const personalizedExamples = useMemo(
+    () => personalizeBrandInterviewExamples(examples, brandContext),
+    [brandContext, examples],
   );
 
   const removeChip = useCallback(
@@ -98,8 +111,18 @@ function InlineListAnswer({
     [chips, onChange],
   );
 
+  const appendExample = useCallback(
+    (example: string) => {
+      if (chips.some((chip) => chip.toLowerCase() === example.toLowerCase())) {
+        return;
+      }
+      onChange(serializeListDraft([...chips, example]));
+    },
+    [chips, onChange],
+  );
+
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
       {chips.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
           {chips.map((chip) => (
@@ -122,23 +145,19 @@ function InlineListAnswer({
         </div>
       ) : null}
 
-      <Input
+      <Textarea
+        id="interview-answer-list"
         aria-label="Interview list answer"
-        placeholder="Type a pillar, press Enter to add…"
-        value={chipDraft}
+        placeholder="One item per line (or comma-separated)…"
+        className="min-h-32 text-sm"
+        value={value}
         disabled={isDisabled}
-        onChange={(event) => setChipDraft(event.target.value)}
-        onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
-          if (event.key === 'Enter') {
-            event.preventDefault();
-            commitChip(chipDraft);
-          }
-        }}
+        onChange={(event) => onChange(event.target.value)}
       />
 
-      {examples && examples.length > 0 ? (
+      {personalizedExamples.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
-          {examples.map((example) => {
+          {personalizedExamples.map((example) => {
             const isSelected = chips.some(
               (chip) => chip.toLowerCase() === example.toLowerCase(),
             );
@@ -150,26 +169,13 @@ function InlineListAnswer({
                 variant={ButtonVariant.SECONDARY}
                 isDisabled={isDisabled || isSelected}
                 className="h-7 max-w-full truncate px-2 text-[11px]"
-                onClick={() => commitChip(example)}
+                onClick={() => appendExample(example)}
               >
                 {example}
               </Button>
             );
           })}
         </div>
-      ) : null}
-
-      {chips.length > 0 ? (
-        <Button
-          type="button"
-          size={ButtonSize.SM}
-          variant={ButtonVariant.GHOST}
-          className="h-7 self-start px-1 text-xs text-muted-foreground"
-          isDisabled={isDisabled}
-          onClick={onSubmit}
-        >
-          Continue with {chips.length} item{chips.length === 1 ? '' : 's'} →
-        </Button>
       ) : null}
     </div>
   );
@@ -180,14 +186,19 @@ function InlineAnswer({
   value,
   onChange,
   isDisabled,
-  onSubmit,
+  brandContext,
 }: {
   question: IBrandInterviewQuestion;
   value: string;
   onChange: (val: string) => void;
   isDisabled?: boolean;
-  onSubmit: () => void;
+  brandContext: BrandExampleContext;
 }) {
+  const personalizedExamples = useMemo(
+    () => personalizeBrandInterviewExamples(question.examples, brandContext),
+    [brandContext, question.examples],
+  );
+
   if (question.answerType === 'enum' && question.enumOptions?.length) {
     return (
       <Select
@@ -220,37 +231,35 @@ function InlineAnswer({
         onChange={onChange}
         examples={question.examples}
         isDisabled={isDisabled}
-        onSubmit={onSubmit}
+        brandContext={brandContext}
       />
     );
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <Input
+    <div className="flex flex-col gap-3">
+      <Textarea
         id="interview-answer-text"
         aria-label="Interview answer"
-        placeholder="Type your answer…"
+        placeholder={
+          personalizedExamples[0] ||
+          'Write a full answer — longer answers help agents sound like this brand.'
+        }
+        className="min-h-40 text-sm"
         value={value}
         disabled={isDisabled}
         onChange={(event) => onChange(event.target.value)}
-        onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
-          if (event.key === 'Enter' && value.trim()) {
-            event.preventDefault();
-            onSubmit();
-          }
-        }}
       />
-      {question.examples && question.examples.length > 0 ? (
+      {personalizedExamples.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
-          {question.examples.map((example) => (
+          {personalizedExamples.map((example) => (
             <Button
               key={example}
               type="button"
               size={ButtonSize.SM}
               variant={ButtonVariant.SECONDARY}
               isDisabled={isDisabled}
-              className="h-7 max-w-full truncate px-2 text-[11px]"
+              className="h-auto max-w-full whitespace-normal px-2 py-1 text-left text-[11px] leading-snug"
               onClick={() => onChange(example)}
             >
               {example}
@@ -262,9 +271,134 @@ function InlineAnswer({
   );
 }
 
+function StepStatusIcon({ status }: { status: IBrandInterviewStep['status'] }) {
+  if (status === 'answered') {
+    return <Check className="size-3.5 text-primary" aria-hidden />;
+  }
+  if (status === 'current') {
+    return (
+      <span
+        className="size-2.5 rounded-full bg-primary shadow-[0_0_0_3px_color-mix(in_oklab,var(--primary)_25%,transparent)]"
+        aria-hidden
+      />
+    );
+  }
+  if (status === 'skipped') {
+    return <Circle className="size-3.5 text-muted-foreground/50" aria-hidden />;
+  }
+  return <Circle className="size-3.5 text-muted-foreground/30" aria-hidden />;
+}
+
+function InterviewStepsSidebar({
+  steps,
+  selectedFieldKey,
+  onSelect,
+  isDisabled,
+}: {
+  steps: IBrandInterviewStep[];
+  selectedFieldKey: string | null;
+  onSelect: (fieldKey: string) => void;
+  isDisabled?: boolean;
+}) {
+  const groups = useMemo(() => {
+    const order: BrandInterviewGroup[] = ['identity', 'voice', 'strategy'];
+    return order
+      .map((group) => ({
+        group,
+        items: steps.filter((step) => step.group === group),
+      }))
+      .filter((entry) => entry.items.length > 0);
+  }, [steps]);
+
+  if (steps.length === 0) {
+    return null;
+  }
+
+  return (
+    <Card className="xl:sticky xl:top-4" bodyClassName="gap-3 p-4">
+      <div className="mb-3 space-y-1">
+        <h2 className="text-sm font-semibold">Steps</h2>
+        <p className="text-xs text-muted-foreground">
+          Jump back to answered steps anytime. Upcoming stays locked until you
+          reach them.
+        </p>
+      </div>
+
+      <nav aria-label="Interview steps" className="space-y-4">
+        {groups.map(({ group, items }) => (
+          <div key={group} className="space-y-1.5">
+            <p className="px-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              {GROUP_LABELS[group]}
+            </p>
+            <ul className="space-y-1">
+              {items.map((step, index) => {
+                const isSelected = step.fieldKey === selectedFieldKey;
+                const isClickable = step.isNavigable && !isDisabled;
+
+                return (
+                  <li key={step.fieldKey}>
+                    <Button
+                      type="button"
+                      variant={ButtonVariant.UNSTYLED}
+                      withWrapper={false}
+                      isDisabled={!isClickable}
+                      onClick={() => {
+                        if (isClickable) {
+                          onSelect(step.fieldKey);
+                        }
+                      }}
+                      className={[
+                        'flex w-full items-start gap-2 rounded-md px-2 py-2 text-left transition-colors',
+                        isSelected
+                          ? 'bg-primary/10 text-foreground'
+                          : 'text-muted-foreground hover:bg-muted/40 hover:text-foreground',
+                        !step.isNavigable ? 'cursor-default opacity-60' : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                      ariaLabel={`${GROUP_LABELS[group]} step ${index + 1}: ${step.label}`}
+                    >
+                      <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center">
+                        <StepStatusIcon status={step.status} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-xs font-medium leading-snug text-foreground">
+                          {step.label.length > 72
+                            ? `${step.label.slice(0, 72)}…`
+                            : step.label}
+                        </span>
+                        {step.answerPreview ? (
+                          <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
+                            {step.answerPreview}
+                          </span>
+                        ) : null}
+                        {step.status === 'current' ? (
+                          <span className="mt-0.5 block text-[10px] font-medium uppercase tracking-wide text-primary">
+                            Current
+                          </span>
+                        ) : null}
+                        {step.status === 'skipped' ? (
+                          <span className="mt-0.5 block text-[10px] uppercase tracking-wide text-muted-foreground">
+                            Skipped
+                          </span>
+                        ) : null}
+                      </span>
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </nav>
+    </Card>
+  );
+}
+
 /**
- * Brand interview — one question at a time, inline controls, drafts in Zustand
- * (localStorage) so a refresh does not wipe the answer mid-type.
+ * Brand interview — one question at a time on the full main canvas, with a
+ * secondary steps rail for revisiting answers. Drafts live in Zustand
+ * (localStorage) so a refresh does not wipe mid-type answers.
  */
 export default function BrandSettingsInterviewPage() {
   const { brand, brandId, hasBrandId, isLoading, handleRefreshBrand } =
@@ -277,6 +411,8 @@ export default function BrandSettingsInterviewPage() {
     completenessScore,
     isLoading: isInterviewLoading,
     error,
+    steps,
+    answeredFields,
     startInterview,
     submitAnswer,
     skipQuestion,
@@ -286,7 +422,39 @@ export default function BrandSettingsInterviewPage() {
     BrandInterviewService.getInstance(token),
   );
 
-  const fieldKey = currentQuestion?.fieldKey;
+  const [selectedFieldKey, setSelectedFieldKey] = useState<string | null>(null);
+  const [idleScore, setIdleScore] = useState<number | null>(null);
+
+  const frontierFieldKey = currentQuestion?.fieldKey ?? null;
+
+  useEffect(() => {
+    if (!frontierFieldKey) {
+      return;
+    }
+
+    setSelectedFieldKey((previous) => {
+      if (!previous) {
+        return frontierFieldKey;
+      }
+      const stillNavigable = steps.some(
+        (step) => step.fieldKey === previous && step.isNavigable,
+      );
+      return stillNavigable ? previous : frontierFieldKey;
+    });
+  }, [frontierFieldKey, steps]);
+
+  const selectedStep = useMemo(
+    () => steps.find((step) => step.fieldKey === selectedFieldKey) ?? null,
+    [selectedFieldKey, steps],
+  );
+
+  const activeQuestion = selectedStep?.question ?? currentQuestion ?? null;
+  const fieldKey = activeQuestion?.fieldKey;
+  const isEditingPastAnswer =
+    Boolean(fieldKey) &&
+    Boolean(frontierFieldKey) &&
+    fieldKey !== frontierFieldKey;
+
   const answerValue = useBrandInterviewDraftStore((state) =>
     brandId && fieldKey ? state.getAnswer(brandId, fieldKey) : '',
   );
@@ -300,7 +468,22 @@ export default function BrandSettingsInterviewPage() {
     (state) => state.clearBrand,
   );
 
-  const [idleScore, setIdleScore] = useState<number | null>(null);
+  // Seed drafts from server answers when opening a past step with an empty draft.
+  useEffect(() => {
+    if (!brandId || !fieldKey) {
+      return;
+    }
+    const existingDraft = useBrandInterviewDraftStore
+      .getState()
+      .getAnswer(brandId, fieldKey);
+    if (existingDraft.trim()) {
+      return;
+    }
+    const saved = answerValueToDraft(answeredFields[fieldKey]);
+    if (saved) {
+      setDraftAnswer(brandId, fieldKey, saved);
+    }
+  }, [answeredFields, brandId, fieldKey, setDraftAnswer]);
 
   const setAnswerValue = useCallback(
     (value: string) => {
@@ -359,24 +542,48 @@ export default function BrandSettingsInterviewPage() {
   }, [status, handleInterviewComplete]);
 
   const handleSubmit = useCallback(async () => {
-    if (!brandId || !currentQuestion) {
+    if (!brandId || !activeQuestion) {
       return;
     }
     const trimmed = answerValue.trim();
     if (!trimmed) {
       return;
     }
-    await submitAnswer(trimmed);
-    clearDraftAnswer(brandId, currentQuestion.fieldKey);
-  }, [answerValue, brandId, clearDraftAnswer, currentQuestion, submitAnswer]);
+
+    const submitFieldKey = isEditingPastAnswer
+      ? activeQuestion.fieldKey
+      : undefined;
+
+    await submitAnswer(trimmed, submitFieldKey);
+    clearDraftAnswer(brandId, activeQuestion.fieldKey);
+
+    if (isEditingPastAnswer) {
+      // Stay on this step so the user can confirm the saved answer; frontier
+      // remains available in the steps rail under Current.
+      setSelectedFieldKey(activeQuestion.fieldKey);
+    }
+  }, [
+    activeQuestion,
+    answerValue,
+    brandId,
+    clearDraftAnswer,
+    isEditingPastAnswer,
+    submitAnswer,
+  ]);
 
   const handleSkip = useCallback(async () => {
-    if (!brandId || !currentQuestion) {
+    if (!brandId || !currentQuestion || isEditingPastAnswer) {
       return;
     }
     await skipQuestion();
     clearDraftAnswer(brandId, currentQuestion.fieldKey);
-  }, [brandId, clearDraftAnswer, currentQuestion, skipQuestion]);
+  }, [
+    brandId,
+    clearDraftAnswer,
+    currentQuestion,
+    isEditingPastAnswer,
+    skipQuestion,
+  ]);
 
   const handleFormSubmit = useCallback(
     (event: FormEvent) => {
@@ -386,147 +593,169 @@ export default function BrandSettingsInterviewPage() {
     [handleSubmit],
   );
 
+  const handleSelectStep = useCallback((nextFieldKey: string) => {
+    setSelectedFieldKey(nextFieldKey);
+  }, []);
+
+  const brandContext = useMemo<BrandExampleContext>(
+    () => ({
+      brandName: brand?.label || brand?.slug,
+      description: brand?.description,
+    }),
+    [brand?.description, brand?.label, brand?.slug],
+  );
+
   if (!hasBrandId || isLoading) {
     return <Loading isFullSize={false} />;
   }
 
   if (!brand) {
     return (
-      <Container>
-        <Card>
-          <p className="text-sm text-muted-foreground">Brand not found.</p>
-        </Card>
-      </Container>
+      <Card bodyClassName="gap-3 p-4">
+        <p className="text-sm text-muted-foreground">Brand not found.</p>
+      </Card>
     );
   }
 
   if (status === 'idle') {
     return (
-      <Container>
-        <div className="mx-auto flex max-w-xl flex-col gap-3">
-          <Card
-            label="Interview"
-            description="A few short questions. Answers land on brand voice and strategy so agents write like you."
-            headerAction={
-              <Button
-                size={ButtonSize.SM}
-                className="h-8 gap-1.5 px-2.5 text-xs"
-                isDisabled={isInterviewLoading}
-                isLoading={isInterviewLoading}
-                onClick={() => {
-                  void startInterview();
-                }}
-                icon={<Sparkles className="size-3.5" />}
-              >
-                Start
-              </Button>
-            }
-          >
+      <div className="space-y-4">
+        <Card bodyClassName="gap-3 p-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="space-y-2">
+              <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                Brand context
+              </p>
+              <h1 className="text-xl font-semibold tracking-tight">
+                Interview {brand.label || 'this brand'}
+              </h1>
+              <p className="max-w-2xl text-sm text-muted-foreground">
+                Fill identity, voice, and strategy gaps one question at a time.
+                Answers update brand context so agents write like you.
+              </p>
+            </div>
+            <Button
+              size={ButtonSize.SM}
+              className="h-9 shrink-0 gap-1.5 px-3 text-xs"
+              isDisabled={isInterviewLoading}
+              isLoading={isInterviewLoading}
+              onClick={() => {
+                void startInterview();
+              }}
+              icon={<Sparkles className="size-3.5" />}
+            >
+              Start interview
+            </Button>
+          </div>
+
+          <div className="mt-6 max-w-xl space-y-3">
             {idleScore !== null ? (
               <ProgressBar label={`${idleScore}%`} percent={idleScore} />
             ) : null}
-            <p className="mt-3 text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               New interview: {INTERVIEW_CREDIT_COST} credits. Resume is free.
             </p>
             {error ? (
-              <p className="mt-2 text-sm text-destructive" role="alert">
+              <p className="text-sm text-destructive" role="alert">
                 {error}
               </p>
             ) : null}
-          </Card>
-        </div>
-      </Container>
+          </div>
+        </Card>
+      </div>
     );
   }
 
   if (status === 'complete') {
     return (
-      <Container>
-        <div className="mx-auto flex max-w-xl flex-col gap-3">
-          <Card
-            label="Interview complete"
-            description={`Brand context is updated. Completeness is ${completenessScore}%.`}
-            headerAction={
-              <Button
-                size={ButtonSize.SM}
-                className="h-8 px-2.5 text-xs"
-                onClick={() => {
-                  window.location.reload();
-                }}
-              >
-                Run again
-              </Button>
-            }
-          >
+      <div className="space-y-4">
+        <Card bodyClassName="gap-3 p-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="space-y-2">
+              <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                Brand context
+              </p>
+              <h1 className="text-xl font-semibold tracking-tight">
+                Interview complete
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Brand context is updated. Completeness is {completenessScore}%.
+              </p>
+            </div>
+            <Button
+              size={ButtonSize.SM}
+              className="h-9 px-3 text-xs"
+              onClick={() => {
+                window.location.reload();
+              }}
+            >
+              Run again
+            </Button>
+          </div>
+          <div className="mt-6 max-w-xl">
             <ProgressBar
               label={`${completenessScore}%`}
               percent={completenessScore}
             />
-          </Card>
-        </div>
-      </Container>
+          </div>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <Container>
-      <div className="mx-auto flex max-w-xl flex-col gap-3">
-        <Card
-          label="Interview"
-          description={
-            progress
-              ? `${progress.answeredFields} of ${progress.totalFields} answered`
-              : 'One question at a time. Drafts survive refresh.'
-          }
-        >
-          {progress ? (
-            <div className="mb-4">
+    <div className="space-y-4">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.75fr)]">
+        <Card bodyClassName="gap-3 p-4">
+          <div className="mb-6 space-y-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-1">
+                <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                  Brand context
+                </p>
+                <h1 className="text-xl font-semibold tracking-tight">
+                  {brand.label || 'Brand interview'}
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {progress
+                    ? `${progress.answeredFields} of ${progress.totalFields} answered`
+                    : 'One question at a time. Drafts survive refresh.'}
+                  {isEditingPastAnswer ? ' · Editing a previous answer' : ''}
+                </p>
+              </div>
+            </div>
+            {progress ? (
               <ProgressBar
                 label={`${progress.percentComplete}%`}
                 percent={progress.percentComplete}
               />
-            </div>
-          ) : null}
+            ) : null}
+          </div>
 
-          {currentQuestion ? (
-            <form className="flex flex-col gap-3" onSubmit={handleFormSubmit}>
-              <div>
+          {activeQuestion ? (
+            <form className="flex flex-col gap-5" onSubmit={handleFormSubmit}>
+              <div className="space-y-2">
                 <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                  {currentQuestion.group}
-                  {currentQuestion.isRequired ? ' · required' : ''}
+                  {GROUP_LABELS[activeQuestion.group] ?? activeQuestion.group}
+                  {activeQuestion.isRequired ? ' · required' : ''}
                 </p>
-                <h2 className="mt-1 text-sm font-medium leading-snug text-foreground">
-                  {currentQuestion.questionText}
+                <h2 className="text-lg font-semibold leading-snug text-foreground">
+                  {activeQuestion.questionText}
                 </h2>
-                {currentQuestion.hint ? (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {currentQuestion.hint}
+                {activeQuestion.hint ? (
+                  <p className="max-w-3xl text-sm text-muted-foreground">
+                    {activeQuestion.hint}
                   </p>
                 ) : null}
               </div>
 
               <InlineAnswer
-                question={currentQuestion}
+                question={activeQuestion}
                 value={answerValue}
                 onChange={setAnswerValue}
                 isDisabled={isInterviewLoading}
-                onSubmit={() => {
-                  void handleSubmit();
-                }}
+                brandContext={brandContext}
               />
-
-              {/* Keep a compact freeform editor for long list pastes */}
-              {currentQuestion.answerType === 'list' &&
-              answerValue.includes('\n') &&
-              answerValue.length > 80 ? (
-                <Textarea
-                  aria-label="Edit full list"
-                  className="min-h-[72px] text-xs"
-                  value={answerValue}
-                  disabled={isInterviewLoading}
-                  onChange={(event) => setAnswerValue(event.target.value)}
-                />
-              ) : null}
 
               {error ? (
                 <p className="text-sm text-destructive" role="alert">
@@ -534,35 +763,59 @@ export default function BrandSettingsInterviewPage() {
                 </p>
               ) : null}
 
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex flex-wrap items-center gap-2 pt-1">
                 <Button
                   type="submit"
                   size={ButtonSize.SM}
-                  className="h-8 px-3 text-xs"
+                  className="h-9 px-4 text-xs"
                   isDisabled={isInterviewLoading || !answerValue.trim()}
                   isLoading={isInterviewLoading}
                 >
-                  Continue
+                  {isEditingPastAnswer ? 'Save answer' : 'Continue'}
                 </Button>
-                <Button
-                  type="button"
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
-                  className="h-8 px-2 text-xs"
-                  isDisabled={isInterviewLoading}
-                  onClick={() => {
-                    void handleSkip();
-                  }}
-                >
-                  Skip
-                </Button>
+                {!isEditingPastAnswer ? (
+                  <Button
+                    type="button"
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.GHOST}
+                    className="h-9 px-3 text-xs"
+                    isDisabled={isInterviewLoading}
+                    onClick={() => {
+                      void handleSkip();
+                    }}
+                  >
+                    Skip
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.GHOST}
+                    className="h-9 px-3 text-xs"
+                    isDisabled={isInterviewLoading || !frontierFieldKey}
+                    onClick={() => {
+                      if (frontierFieldKey) {
+                        setSelectedFieldKey(frontierFieldKey);
+                      }
+                    }}
+                  >
+                    Back to current
+                  </Button>
+                )}
               </div>
             </form>
           ) : (
             <Loading isFullSize={false} />
           )}
         </Card>
+
+        <InterviewStepsSidebar
+          steps={steps}
+          selectedFieldKey={selectedFieldKey}
+          onSelect={handleSelectStep}
+          isDisabled={isInterviewLoading}
+        />
       </div>
-    </Container>
+    </div>
   );
 }

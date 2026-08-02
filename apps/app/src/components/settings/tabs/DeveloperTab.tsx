@@ -9,7 +9,7 @@ export function DeveloperTab() {
   const { debugMode, setDebugMode } = useSettingsStore();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
         Developer tools for debugging and testing workflows.
       </p>

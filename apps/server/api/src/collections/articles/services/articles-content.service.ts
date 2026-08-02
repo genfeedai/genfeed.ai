@@ -852,8 +852,8 @@ export class ArticlesContentService {
         typeof personaRecord.bio === 'string' ? personaRecord.bio : undefined,
       contentStrategy:
         personaRecord.contentStrategy as NonNullable<HarnessPersonaInput>['contentStrategy'],
-      darkroomSources: Array.isArray(personaRecord.darkroomSources)
-        ? (personaRecord.darkroomSources as NonNullable<HarnessPersonaInput>['darkroomSources'])
+      fleetSources: Array.isArray(personaRecord.fleetSources)
+        ? (personaRecord.fleetSources as NonNullable<HarnessPersonaInput>['fleetSources'])
         : undefined,
       handle:
         typeof personaRecord.handle === 'string'

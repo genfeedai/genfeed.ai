@@ -140,7 +140,7 @@ export class AdminFleetTrainingService {
 
   /**
    * Auto-tune hyperparameters based on dataset size.
-   * Ported from others/darkroom/dashboard/scripts/generate-training-config.py
+   * Ported from others/fleet/dashboard/scripts/generate-training-config.py
    */
   autoTuneHyperparameters(imageCount: number): TrainingHyperparams {
     if (imageCount < 10) {
@@ -466,7 +466,7 @@ export class AdminFleetTrainingService {
   ): Promise<void> {
     const persona = await this.personasService.findOne({
       ...(organizationId ? { organization: organizationId } : {}),
-      isDarkroomCharacter: true,
+      isFleetCharacter: true,
       isDeleted: false,
       slug: personaSlug,
     });

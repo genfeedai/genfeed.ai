@@ -8,8 +8,8 @@ import { captionCommand } from './commands/caption';
 import { chatCommand } from './commands/chat';
 import { configCommand } from './commands/config';
 import { creditsCommand } from './commands/credits';
-import { darkroomCommand } from './commands/darkroom';
 import { datasetCommand } from './commands/dataset';
+import { fleetCommand } from './commands/fleet';
 import { generateCommand } from './commands/generate/index';
 import { insightsCommand } from './commands/insights';
 import { keysCommand } from './commands/keys';
@@ -72,7 +72,7 @@ program
   .addCommand(toolsCommand);
 
 program
-  .addCommand(darkroomCommand)
+  .addCommand(fleetCommand)
   .addCommand(trainCommand)
   .addCommand(personasCommand)
   .addCommand(captionCommand)
@@ -122,7 +122,7 @@ async function printHelp(): Promise<void> {
   if (role === 'admin') {
     print();
     print(formatHeader('Admin Commands:\n'));
-    print('  darkroom       Darkroom infrastructure (health, comfy, loras)');
+    print('  fleet       Fleet infrastructure (health, comfy, loras)');
     print('  train          LoRA training (start, status)');
     print('  personas       List and manage personas');
     print('  caption        Run Florence-2 auto-captioning');

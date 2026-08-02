@@ -38,9 +38,8 @@ export default function AdvancedRoutingCard({
   thinkingModelOverride,
 }: AdvancedRoutingCardProps) {
   return (
-    <Card className="p-6">
-      <h2 className="text-lg font-semibold mb-4">Advanced Routing</h2>
-      <div className="space-y-4">
+    <Card label="Advanced Routing" bodyClassName="gap-3 p-4">
+      <div className="space-y-3">
         <Switch
           label="Expose Raw Model Overrides"
           description="Enable explicit planner, generation, and review model routing controls for advanced operators."
@@ -52,7 +51,7 @@ export default function AdvancedRoutingCard({
         />
 
         {allowAdvancedOverrides ? (
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-3">
             <div>
               <p className="text-sm font-medium">Thinking Model</p>
               <Select

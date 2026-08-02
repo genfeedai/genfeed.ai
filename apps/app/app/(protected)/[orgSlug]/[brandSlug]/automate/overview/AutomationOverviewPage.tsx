@@ -68,6 +68,16 @@ export default function AutomationOverviewPage() {
       label: 'Workflows',
     },
     {
+      color: 'bg-rose-500/12 text-rose-300',
+      cta: 'Open Reply Campaigns',
+      description:
+        'Throttle social replies and DMs so they drip one recipient at a time',
+      href: href(APP_ROUTES.AUTOMATE.REPLY_CAMPAIGNS),
+      icon: Megaphone,
+      id: 'reply-campaigns',
+      label: 'Reply Campaigns',
+    },
+    {
       color: 'bg-blue-500/12 text-blue-300',
       cta: 'Open Autopilot',
       description:

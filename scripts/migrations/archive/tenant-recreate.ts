@@ -625,8 +625,8 @@ async function recreateBrands(
               isDeleted: (doc.isDeleted as boolean | undefined) ?? false,
               isHighlighted:
                 (doc.isHighlighted as boolean | undefined) ?? false,
-              isDarkroomEnabled:
-                (doc.isDarkroomEnabled as boolean | undefined) ?? false,
+              isFleetEnabled:
+                (doc.isFleetEnabled as boolean | undefined) ?? false,
               defaultVideoModel:
                 (doc.defaultVideoModel as string | undefined) ?? null,
               defaultImageModel:

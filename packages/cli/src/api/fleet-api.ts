@@ -1,7 +1,7 @@
 import { getActiveProfile } from '@/config/store';
-import { DarkroomApiError } from '@/utils/errors';
+import { FleetApiError } from '@/utils/errors';
 
-interface DarkroomHealthResponse {
+interface FleetHealthResponse {
   status: string;
   gpu: {
     name: string;
@@ -126,13 +126,13 @@ interface PersonasResponse {
   personas: PersonaInfo[];
 }
 
-async function getDarkroomBaseUrl(): Promise<string> {
+async function getFleetBaseUrl(): Promise<string> {
   const { profile } = await getActiveProfile();
-  return `http://${profile.darkroomHost}:${profile.darkroomApiPort}`;
+  return `http://${profile.fleetHost}:${profile.fleetApiPort}`;
 }
 
-async function darkroomRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const baseUrl = await getDarkroomBaseUrl();
+async function fleetRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const baseUrl = await getFleetBaseUrl();
   const url = `${baseUrl}${path}`;
 
   try {
@@ -144,55 +144,53 @@ async function darkroomRequest<T>(method: string, path: string, body?: unknown):
 
     if (!response.ok) {
       const text = await response.text();
-      throw new DarkroomApiError(
-        `Darkroom API ${method} ${path} failed: ${response.status} ${text}`
-      );
+      throw new FleetApiError(`Fleet API ${method} ${path} failed: ${response.status} ${text}`);
     }
 
     const raw = await response.text();
     if (!raw) {
-      throw new DarkroomApiError(`Darkroom API ${method} ${path} returned empty response`);
+      throw new FleetApiError(`Fleet API ${method} ${path} returned empty response`);
     }
     return JSON.parse(raw) as T;
   } catch (error) {
-    if (error instanceof DarkroomApiError) throw error;
+    if (error instanceof FleetApiError) throw error;
 
     const message = error instanceof Error ? error.message : String(error);
-    throw new DarkroomApiError(
-      `Cannot reach Darkroom API at ${baseUrl}: ${message}`,
-      'Ensure the darkroom instance is running and darkroom-api service is active'
+    throw new FleetApiError(
+      `Cannot reach Fleet API at ${baseUrl}: ${message}`,
+      'Ensure the fleet instance is running and fleet-api service is active'
     );
   }
 }
 
-export async function getDarkroomHealth(): Promise<DarkroomHealthResponse> {
-  return darkroomRequest<DarkroomHealthResponse>('GET', '/health');
+export async function getFleetHealth(): Promise<FleetHealthResponse> {
+  return fleetRequest<FleetHealthResponse>('GET', '/health');
 }
 
 export async function getDataset(persona: string): Promise<DatasetResponse> {
-  return darkroomRequest<DatasetResponse>('GET', `/datasets/${persona}`);
+  return fleetRequest<DatasetResponse>('GET', `/datasets/${persona}`);
 }
 
 export async function startTraining(request: TrainRequest): Promise<TrainResponse> {
-  return darkroomRequest<TrainResponse>('POST', '/train', request);
+  return fleetRequest<TrainResponse>('POST', '/train', request);
 }
 
 export async function getTrainingStatus(jobId: string): Promise<TrainStatusResponse> {
-  return darkroomRequest<TrainStatusResponse>('GET', `/train/${jobId}`);
+  return fleetRequest<TrainStatusResponse>('GET', `/train/${jobId}`);
 }
 
 export async function runCaption(request: CaptionRequest): Promise<CaptionResponse> {
-  return darkroomRequest<CaptionResponse>('POST', '/caption', request);
+  return fleetRequest<CaptionResponse>('POST', '/caption', request);
 }
 
 export async function listLoras(): Promise<LorasResponse> {
-  return darkroomRequest<LorasResponse>('GET', '/loras');
+  return fleetRequest<LorasResponse>('GET', '/loras');
 }
 
 export async function comfyAction(
   action: 'start' | 'stop' | 'restart' | 'status'
 ): Promise<ComfyActionResponse> {
-  return darkroomRequest<ComfyActionResponse>('POST', `/comfyui/${action}`);
+  return fleetRequest<ComfyActionResponse>('POST', `/comfyui/${action}`);
 }
 
 export async function uploadDataset(
@@ -201,7 +199,7 @@ export async function uploadDataset(
 ): Promise<DatasetUploadResponse> {
   const { readFile } = await import('node:fs/promises');
   const { basename } = await import('node:path');
-  const baseUrl = await getDarkroomBaseUrl();
+  const baseUrl = await getFleetBaseUrl();
   const url = `${baseUrl}/datasets/${persona}/upload`;
 
   const formData = new FormData();
@@ -216,18 +214,18 @@ export async function uploadDataset(
 
     if (!response.ok) {
       const text = await response.text();
-      throw new DarkroomApiError(
-        `Darkroom API POST /datasets/${persona}/upload failed: ${response.status} ${text}`
+      throw new FleetApiError(
+        `Fleet API POST /datasets/${persona}/upload failed: ${response.status} ${text}`
       );
     }
 
     return (await response.json()) as DatasetUploadResponse;
   } catch (error) {
-    if (error instanceof DarkroomApiError) throw error;
+    if (error instanceof FleetApiError) throw error;
     const message = error instanceof Error ? error.message : String(error);
-    throw new DarkroomApiError(
-      `Cannot reach Darkroom API at ${baseUrl}: ${message}`,
-      'Ensure the darkroom instance is running and darkroom-api service is active'
+    throw new FleetApiError(
+      `Cannot reach Fleet API at ${baseUrl}: ${message}`,
+      'Ensure the fleet instance is running and fleet-api service is active'
     );
   }
 }
@@ -239,7 +237,7 @@ export async function downloadDataset(persona: string, outDir: string): Promise<
   const { join } = await import('node:path');
   const execFileAsync = promisify(execFile);
 
-  const baseUrl = await getDarkroomBaseUrl();
+  const baseUrl = await getFleetBaseUrl();
   const url = `${baseUrl}/datasets/${persona}/download`;
 
   try {
@@ -247,8 +245,8 @@ export async function downloadDataset(persona: string, outDir: string): Promise<
 
     if (!response.ok) {
       const text = await response.text();
-      throw new DarkroomApiError(
-        `Darkroom API GET /datasets/${persona}/download failed: ${response.status} ${text}`
+      throw new FleetApiError(
+        `Fleet API GET /datasets/${persona}/download failed: ${response.status} ${text}`
       );
     }
 
@@ -260,28 +258,28 @@ export async function downloadDataset(persona: string, outDir: string): Promise<
     await execFileAsync('tar', ['xzf', tarPath, '-C', outDir]);
     await unlink(tarPath);
   } catch (error) {
-    if (error instanceof DarkroomApiError) throw error;
+    if (error instanceof FleetApiError) throw error;
     const message = error instanceof Error ? error.message : String(error);
-    throw new DarkroomApiError(
-      `Cannot reach Darkroom API at ${baseUrl}: ${message}`,
-      'Ensure the darkroom instance is running and darkroom-api service is active'
+    throw new FleetApiError(
+      `Cannot reach Fleet API at ${baseUrl}: ${message}`,
+      'Ensure the fleet instance is running and fleet-api service is active'
     );
   }
 }
 
 export async function deleteDataset(persona: string): Promise<DatasetDeleteResponse> {
-  return darkroomRequest<DatasetDeleteResponse>('DELETE', `/datasets/${persona}`);
+  return fleetRequest<DatasetDeleteResponse>('DELETE', `/datasets/${persona}`);
 }
 
 export async function listPersonas(): Promise<PersonasResponse> {
-  return darkroomRequest<PersonasResponse>('GET', '/personas');
+  return fleetRequest<PersonasResponse>('GET', '/personas');
 }
 
 export async function startFaceTest(
   handle: string,
   personaConfig?: Record<string, unknown>
 ): Promise<GenerateResponse> {
-  return darkroomRequest<GenerateResponse>('POST', '/generate/face-test', {
+  return fleetRequest<GenerateResponse>('POST', '/generate/face-test', {
     handle,
     persona_config: personaConfig,
   });
@@ -292,7 +290,7 @@ export async function startBootstrap(
   promptCount?: number,
   personaConfig?: Record<string, unknown>
 ): Promise<GenerateResponse> {
-  return darkroomRequest<GenerateResponse>('POST', '/generate/bootstrap', {
+  return fleetRequest<GenerateResponse>('POST', '/generate/bootstrap', {
     handle,
     persona_config: personaConfig,
     prompt_count: promptCount ?? 50,
@@ -304,7 +302,7 @@ export async function startPulid(
   mode: string = 'scenes',
   personaConfig?: Record<string, unknown>
 ): Promise<GenerateResponse> {
-  return darkroomRequest<GenerateResponse>('POST', '/generate/pulid', {
+  return fleetRequest<GenerateResponse>('POST', '/generate/pulid', {
     handle,
     mode,
     persona_config: personaConfig,
@@ -315,24 +313,24 @@ export async function startContentGenerate(
   handle: string,
   personaConfig?: Record<string, unknown>
 ): Promise<GenerateResponse> {
-  return darkroomRequest<GenerateResponse>('POST', '/generate/content', {
+  return fleetRequest<GenerateResponse>('POST', '/generate/content', {
     handle,
     persona_config: personaConfig,
   });
 }
 
 export async function getGenerateStatus(jobId: string): Promise<GenerateStatusResponse> {
-  return darkroomRequest<GenerateStatusResponse>('GET', `/generate/${jobId}`);
+  return fleetRequest<GenerateStatusResponse>('GET', `/generate/${jobId}`);
 }
 
 export type {
   CaptionRequest,
   CaptionResponse,
   ComfyActionResponse,
-  DarkroomHealthResponse,
   DatasetDeleteResponse,
   DatasetResponse,
   DatasetUploadResponse,
+  FleetHealthResponse,
   GenerateResponse,
   GenerateStatusResponse,
   LoraInfo,

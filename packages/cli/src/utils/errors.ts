@@ -33,10 +33,10 @@ export class NoBrandError extends GenfeedError {
   }
 }
 
-export class DarkroomApiError extends GenfeedError {
+export class FleetApiError extends GenfeedError {
   constructor(message: string, suggestion?: string) {
-    super(message, suggestion ?? 'Check darkroom connectivity with `gf darkroom health`');
-    this.name = 'DarkroomApiError';
+    super(message, suggestion ?? 'Check fleet connectivity with `gf fleet health`');
+    this.name = 'FleetApiError';
   }
 }
 

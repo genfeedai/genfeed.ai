@@ -9,8 +9,8 @@ import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
-  DarkroomReviewStatus as DarkroomReviewStatusEnum,
   FileInputType,
+  FleetReviewStatus as FleetReviewStatusEnum,
   IngredientStatus,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -119,7 +119,7 @@ export class AdminFleetGenerationService {
 
     // Upload image buffer to S3 via files microservice
     const s3Meta = await this.filesClientService.uploadToS3(
-      `darkroom/${personaSlug}/${filename}`,
+      `fleet/${personaSlug}/${filename}`,
       'images',
       {
         contentType: 'image/png',
@@ -129,7 +129,7 @@ export class AdminFleetGenerationService {
     );
     const cdnUrl =
       s3Meta.publicUrl ??
-      `https://cdn.genfeed.ai/darkroom/${personaSlug}/${filename}`;
+      `https://cdn.genfeed.ai/fleet/${personaSlug}/${filename}`;
 
     const ingredient =
       options.ingredientId === undefined
@@ -142,7 +142,7 @@ export class AdminFleetGenerationService {
             organization: EntityIdUtil.toValidId(organizationId)!,
             persona: persona.id,
             personaSlug,
-            s3Key: `darkroom/${personaSlug}/${filename}`,
+            s3Key: `fleet/${personaSlug}/${filename}`,
             status: IngredientStatus.GENERATED,
             user: EntityIdUtil.toValidId(userId)!,
           } as Parameters<IngredientsService['create']>[0])
@@ -154,8 +154,8 @@ export class AdminFleetGenerationService {
             generationSource: model,
             generationStage: 'completed',
             modelUsed: model,
-            reviewStatus: DarkroomReviewStatusEnum.PENDING,
-            s3Key: `darkroom/${personaSlug}/${filename}`,
+            reviewStatus: FleetReviewStatusEnum.PENDING,
+            s3Key: `fleet/${personaSlug}/${filename}`,
             status: IngredientStatus.GENERATED,
           });
 

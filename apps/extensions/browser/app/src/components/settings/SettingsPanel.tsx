@@ -11,7 +11,7 @@ export function SettingsPanel(): ReactElement {
         <h2 className="text-sm font-semibold text-foreground">Settings</h2>
       </div>
 
-      <div className="space-y-6 p-4">
+      <div className="space-y-4 p-4">
         <section>
           <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Active Brand

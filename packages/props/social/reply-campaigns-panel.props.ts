@@ -6,9 +6,9 @@ import type { SocialReplyCampaignModel } from '@genfeedai/models/social/social-r
 import type { SocialReplyCampaignTransition } from '@genfeedai/services/social/reply-campaigns.service';
 
 /**
- * A conversation the open inbox filters currently match. The platform travels
- * with it because a campaign runs on exactly one platform — the API rejects an
- * enrollment that mixes them.
+ * A conversation available for enrollment. The platform travels with it
+ * because a campaign runs on exactly one platform — the API rejects mixed
+ * enrollments.
  */
 export interface ReplyCampaignEnrollableConversation {
   id: string;
@@ -26,20 +26,17 @@ export interface ReplyCampaignDraft {
   platform: SocialPlatform | '';
 }
 
-export interface ReplyCampaignsPanelProps {
+export interface ReplyCampaignsPageProps {
   busyCampaignId: string | null;
   campaigns: SocialReplyCampaignModel[];
   /**
-   * Conversations currently matching the inbox filters. Creating a campaign
-   * enrols the ones on the selected platform, in the order they are listed.
+   * Conversations available for enrollment on the selected platform.
    */
   enrollableConversations: ReplyCampaignEnrollableConversation[];
   error: string | null;
   isCreating: boolean;
   isLoading: boolean;
-  isOpen: boolean;
   onCreate: (input: SocialReplyCampaignInput) => Promise<void> | void;
-  onOpenChange: (isOpen: boolean) => void;
   onRefresh: () => void;
   onTransition: (
     campaignId: string,

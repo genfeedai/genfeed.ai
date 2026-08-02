@@ -85,8 +85,8 @@ export const DEFAULT_BRAND_CONTEXT: BrandContextType = {
   credentials: [],
   credentialsError: null,
   credentialsLoading: false,
-  darkroomCapabilities: null,
-  darkroomCapabilitiesLoading: false,
+  fleetCapabilities: null,
+  fleetCapabilitiesLoading: false,
   isReady: false,
   organizationId: '',
   refreshBrands: async () => {

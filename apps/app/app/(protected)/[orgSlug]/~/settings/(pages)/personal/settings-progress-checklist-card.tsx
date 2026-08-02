@@ -19,22 +19,17 @@ export default function SettingsProgressChecklistCard({
   steps,
 }: Props) {
   return (
-    <Card className="border-border bg-card p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
-            Setup checklist
-          </p>
-          <h2 className="mt-1 text-xl font-semibold text-foreground">
-            Review every setup step
-          </h2>
-        </div>
+    <Card
+      label="Setup checklist"
+      description="Review every setup step"
+      bodyClassName="gap-3 p-4"
+      headerAction={
         <Badge variant="outline" className="px-3 py-1 text-xs font-medium">
           {completedCount}/{totalCount} complete
         </Badge>
-      </div>
-
-      <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
+      }
+    >
+      <div className="h-2 overflow-hidden rounded-full bg-muted">
         <div
           className="h-full rounded-full bg-primary transition-[width]"
           style={{
@@ -43,7 +38,7 @@ export default function SettingsProgressChecklistCard({
         />
       </div>
 
-      <div className="mt-5 space-y-3">
+      <div className="space-y-3">
         {steps.map((step) => (
           <div
             key={step.key}

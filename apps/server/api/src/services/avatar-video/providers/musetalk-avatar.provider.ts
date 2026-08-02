@@ -7,9 +7,9 @@ import type { AvatarVideoProviderName } from '@genfeedai/queue-contracts';
 import { Injectable, NotImplementedException } from '@nestjs/common';
 
 /**
- * MuseTalk — self-hosted avatar generation via Darkroom/ComfyUI.
+ * MuseTalk — self-hosted avatar generation via Fleet/ComfyUI.
  *
- * When Darkroom ComfyUI endpoint is available this will route to it.
+ * When Fleet ComfyUI endpoint is available this will route to it.
  * For now: stub.
  */
 @Injectable()

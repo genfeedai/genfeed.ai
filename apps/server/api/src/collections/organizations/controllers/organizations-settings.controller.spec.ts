@@ -315,17 +315,17 @@ describe('OrganizationsSettingsController', () => {
     });
   });
 
-  describe('getDarkroomCapabilities', () => {
+  describe('getFleetCapabilities', () => {
     const organizationId = '507f1f77bcf86cd799439012';
     const brandId = '507f1f77bcf86cd799439013';
 
     it('should return brand flag without probing managed fleet runtime', async () => {
       mockBrandsService.findOne.mockResolvedValue({
         _id: brandId,
-        isDarkroomEnabled: true,
+        isFleetEnabled: true,
       });
 
-      const result = await controller.getDarkroomCapabilities(
+      const result = await controller.getFleetCapabilities(
         mockReq,
         organizationId,
         brandId,
@@ -340,7 +340,7 @@ describe('OrganizationsSettingsController', () => {
         'none',
       );
       expect(result).toMatchObject({
-        _id: `darkroom-capabilities:${organizationId}:${brandId}`,
+        _id: `fleet-capabilities:${organizationId}:${brandId}`,
         brandEnabled: true,
         brandId,
         fleet: {
@@ -356,10 +356,10 @@ describe('OrganizationsSettingsController', () => {
     it('uses the repaired request context organization id for brand lookups', async () => {
       mockBrandsService.findOne.mockResolvedValue({
         _id: brandId,
-        isDarkroomEnabled: false,
+        isFleetEnabled: false,
       });
 
-      const result = await controller.getDarkroomCapabilities(
+      const result = await controller.getFleetCapabilities(
         {
           context: {
             organizationId: 'org_current',

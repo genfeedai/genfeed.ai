@@ -14,7 +14,7 @@ import type { McpTool } from '@mcp/shared/interfaces/mcp-server.interface';
  * The tools below are synthetic fixtures chosen to exercise each role tier:
  * `list_posts` (real user tool) and `resolve_approval` (real superadmin tool),
  * plus a synthetic admin-tier tool (the OSS MCP surface currently has no
- * admin-only tool after the darkroom/fleet tools were dropped in PR 5/6).
+ * admin-only tool after the fleet tools were dropped in PR 5/6).
  */
 
 const USER_TOOL = {

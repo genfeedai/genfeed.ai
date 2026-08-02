@@ -20,7 +20,7 @@ const payload = {
   },
   brands: [{ id: 'brand_123', label: 'Alpha' }],
   currentUser: { id: 'user_123' },
-  darkroomCapabilities: null,
+  fleetCapabilities: null,
   settings: { organization: 'org_123' },
   streak: null,
 };
@@ -36,7 +36,7 @@ describe('client protected bootstrap cache', () => {
       brandId: 'brand_123',
       brands: payload.brands,
       currentUser: payload.currentUser,
-      darkroomCapabilities: null,
+      fleetCapabilities: null,
       organizationId: 'org_123',
       settings: payload.settings,
       streak: null,

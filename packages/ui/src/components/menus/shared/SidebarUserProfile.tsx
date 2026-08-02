@@ -5,6 +5,31 @@ import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
 
 import UserDropdown from '@ui/menus/user-dropdown/UserDropdown';
 
+function resolveDisplayName(
+  fullName: string | null | undefined,
+  firstName: string | null | undefined,
+  lastName: string | null | undefined,
+  emailAddress: string,
+): string {
+  const trimmedFull = fullName?.trim();
+  if (trimmedFull) {
+    return trimmedFull;
+  }
+
+  const composed = [firstName?.trim(), lastName?.trim()]
+    .filter(Boolean)
+    .join(' ');
+  if (composed) {
+    return composed;
+  }
+
+  if (emailAddress.includes('@')) {
+    return emailAddress.split('@')[0] || 'User';
+  }
+
+  return emailAddress || 'User';
+}
+
 export default function SidebarUserProfile({
   isCollapsed = false,
 }: {
@@ -18,10 +43,13 @@ export default function SidebarUserProfile({
   }
 
   const emailAddress = user.primaryEmailAddress?.emailAddress ?? '';
-  // The footer shows an identity, not a contact card: prefer the real name and
-  // fall back to the email's local part rather than painting the full address.
-  const displayName =
-    user.fullName ?? (emailAddress ? emailAddress.split('@')[0] : 'User');
+  // Identity chrome: human display name first, never a bare slug when name exists.
+  const displayName = resolveDisplayName(
+    user.fullName,
+    user.firstName,
+    user.lastName,
+    emailAddress,
+  );
 
   if (isCollapsed) {
     return (
@@ -44,9 +72,14 @@ export default function SidebarUserProfile({
           userEmail={emailAddress}
         />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-foreground/88">
+          <p className="truncate text-sm font-medium text-foreground">
             {displayName}
           </p>
+          {emailAddress ? (
+            <p className="truncate text-xs text-muted-foreground">
+              {emailAddress}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

@@ -38,8 +38,8 @@ export default function HarnessIdentityCard({
   splitLines,
 }: HarnessIdentityCardProps) {
   return (
-    <Card className="p-6">
-      <div className="grid gap-4 md:grid-cols-2">
+    <Card label="Identity" bodyClassName="gap-3 p-4">
+      <div className="grid gap-3 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="harness-label">Label</Label>
           <Input

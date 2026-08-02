@@ -2,6 +2,7 @@ export * from './aspect-ratio.helper';
 export * from './asset-scope.helper';
 export * from './async/sleep.helper';
 export * from './auth/auth.helper';
+export * from './brand/brand-interview-examples.helper';
 export * from './brand-completeness.helper';
 export * from './brand-kit-contract.helper';
 export * from './business/pricing/pricing.helper';
