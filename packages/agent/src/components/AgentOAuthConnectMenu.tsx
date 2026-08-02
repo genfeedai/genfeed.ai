@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { type ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { OAUTH_CONNECT_PLATFORMS } from '@ui/constants/oauth-connect-platforms';
 import { Button } from '@ui/primitives/button';
@@ -14,6 +14,12 @@ import { type ReactElement, useCallback, useState } from 'react';
 
 interface AgentOAuthConnectMenuProps {
   onOAuthConnect?: (platform: string) => void | Promise<void>;
+  /** Trigger label. Defaults to the compact agent "Connect" control. */
+  triggerLabel?: string;
+  triggerVariant?: ButtonVariant;
+  triggerSize?: ButtonSize;
+  /** Hide the leading link icon (e.g. full empty-state CTA). */
+  hideIcon?: boolean;
 }
 
 const CONNECT_ERROR_MESSAGE =
@@ -21,6 +27,10 @@ const CONNECT_ERROR_MESSAGE =
 
 export function AgentOAuthConnectMenu({
   onOAuthConnect,
+  triggerLabel = 'Connect',
+  triggerVariant = ButtonVariant.UNSTYLED,
+  triggerSize,
+  hideIcon = false,
 }: AgentOAuthConnectMenuProps): ReactElement | null {
   const [open, setOpen] = useState(false);
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(
@@ -55,19 +65,32 @@ export function AgentOAuthConnectMenu({
     return null;
   }
 
+  const isShellControl = triggerVariant === ButtonVariant.UNSTYLED;
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant={ButtonVariant.UNSTYLED}
+          variant={triggerVariant}
+          size={triggerSize}
           withWrapper={false}
-          className="gen-shell-control flex items-center gap-1 rounded-md px-2 py-1 text-left"
+          className={
+            isShellControl
+              ? 'gen-shell-control flex items-center gap-1 rounded-md px-2 py-1 text-left'
+              : undefined
+          }
           data-active={open ? 'true' : 'false'}
           ariaLabel="Connect a social channel"
         >
-          <Link className="size-3.5 text-foreground/55" />
-          <span className="text-[11px] font-medium text-foreground">
-            Connect
+          {!hideIcon ? <Link className="size-3.5 text-foreground/55" /> : null}
+          <span
+            className={
+              isShellControl
+                ? 'text-[11px] font-medium text-foreground'
+                : undefined
+            }
+          >
+            {triggerLabel}
           </span>
           <ChevronDown
             className={cn(

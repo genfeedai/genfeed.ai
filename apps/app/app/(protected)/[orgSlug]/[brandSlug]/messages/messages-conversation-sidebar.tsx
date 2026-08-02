@@ -1,5 +1,6 @@
 'use client';
 
+import { AgentOAuthConnectMenu } from '@genfeedai/agent/components/AgentOAuthConnectMenu';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { SocialPlatform } from '@genfeedai/interfaces';
 import type { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
@@ -32,7 +33,6 @@ import {
   RefreshCw,
   SlidersHorizontal,
 } from 'lucide-react';
-import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 export type MessagesInboxView =
@@ -216,7 +216,6 @@ export type MessagesBrandFilterOption = {
 };
 
 interface MessagesConversationSidebarProps {
-  accountsHref: string;
   advancedFilters: ReactNode;
   brandFilter: string;
   brandOptions: readonly MessagesBrandFilterOption[];
@@ -226,6 +225,7 @@ interface MessagesConversationSidebarProps {
   isLoading: boolean;
   onBrandFilterChange: (brandId: string) => void;
   onNextPage: () => void;
+  onOAuthConnect: (platform: string) => void | Promise<void>;
   onPlatformChange: (platform: SocialPlatform | 'all') => void;
   onPreviousPage: () => void;
   onSearchChange: (search: string) => void;
@@ -240,7 +240,6 @@ interface MessagesConversationSidebarProps {
 }
 
 export function MessagesConversationSidebar({
-  accountsHref,
   advancedFilters,
   brandFilter,
   brandOptions,
@@ -250,6 +249,7 @@ export function MessagesConversationSidebar({
   isLoading,
   onBrandFilterChange,
   onNextPage,
+  onOAuthConnect,
   onPlatformChange,
   onPreviousPage,
   onSearchChange,
@@ -412,13 +412,13 @@ export function MessagesConversationSidebar({
               </p>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-              <Button
-                asChild
-                size={ButtonSize.SM}
-                variant={ButtonVariant.SECONDARY}
-              >
-                <Link href={accountsHref}>Connect accounts</Link>
-              </Button>
+              <AgentOAuthConnectMenu
+                hideIcon
+                onOAuthConnect={onOAuthConnect}
+                triggerLabel="Connect accounts"
+                triggerSize={ButtonSize.SM}
+                triggerVariant={ButtonVariant.SECONDARY}
+              />
               <Button
                 isDisabled={Boolean(busyAction) && busyAction !== 'sync'}
                 isLoading={busyAction === 'sync'}

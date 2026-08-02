@@ -1,11 +1,8 @@
 'use client';
 
 import { useAgentChatStore } from '@genfeedai/agent';
-import {
-  APP_ROUTES,
-  createBrandAppRoute,
-  createOrganizationAppRoute,
-} from '@genfeedai/constants';
+import { AgentOAuthConnectMenu } from '@genfeedai/agent/components/AgentOAuthConnectMenu';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
@@ -16,6 +13,7 @@ import type {
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { usePlatformOAuthConnect } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { SocialMessagesService } from '@services/social/messages.service';
 import Container from '@ui/layout/container/Container';
@@ -388,13 +386,12 @@ export default function MessagesPage() {
       />
     </div>
   );
-  const accountsHref = brandSlug
-    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.SETTINGS.PUBLISHING)
-    : createOrganizationAppRoute(orgSlug, APP_ROUTES.SETTINGS.BRANDS);
+  // In-place OAuth connect — return to this messages surface after verify.
+  const handleOAuthConnect = usePlatformOAuthConnect();
 
   const conversationNavPanel = (
     <MessagesConversationSidebar
-      accountsHref={accountsHref}
+      onOAuthConnect={handleOAuthConnect}
       advancedFilters={advancedFilters}
       brandFilter={filters.brandFilter}
       brandOptions={brandOptions}
@@ -688,13 +685,13 @@ export default function MessagesPage() {
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-                    <Button
-                      asChild
-                      size={ButtonSize.SM}
-                      variant={ButtonVariant.SECONDARY}
-                    >
-                      <Link href={accountsHref}>Connect accounts</Link>
-                    </Button>
+                    <AgentOAuthConnectMenu
+                      hideIcon
+                      onOAuthConnect={handleOAuthConnect}
+                      triggerLabel="Connect accounts"
+                      triggerSize={ButtonSize.SM}
+                      triggerVariant={ButtonVariant.SECONDARY}
+                    />
                     <Button
                       isDisabled={Boolean(busyAction) && busyAction !== 'sync'}
                       isLoading={busyAction === 'sync'}
