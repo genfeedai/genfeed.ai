@@ -122,8 +122,8 @@ const INSPECTOR_RAIL_TRANSITION = `width ${INSPECTOR_TRANSITION_DURATION_MS}ms $
 // still has to carry a `workflows` segment so sibling Automate routes (runs,
 // skills, autopilot) keep the generic inspector.
 const WORKFLOW_INSPECTOR_SURFACE_KEYS: ReadonlySet<string> = new Set([
-  'orchestration',
-  'orchestration-workflows-editor',
+  'automate',
+  'automate-workflows-editor',
 ]);
 
 type WorkspaceInspectorTab = 'context' | 'conversation';
