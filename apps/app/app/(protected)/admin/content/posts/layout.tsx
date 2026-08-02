@@ -189,39 +189,44 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
     );
   }
 
+  const listActions = (
+    <div className="flex shrink-0 flex-wrap items-center gap-2">
+      {viewToggleNode}
+      {filtersNode}
+      {exportNode}
+      {scheduleActionsNode}
+      <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
+    </div>
+  );
+
   return (
     <PostsLayoutContext.Provider value={mainContextValue}>
       <Container
         label="Posts"
         description="View and manage published content across all connected accounts"
         icon={Newspaper}
+        titleVisibility="sr-only"
         right={
-          <div className="flex items-center gap-2">
-            {viewToggleNode}
-
-            {filtersNode}
-
-            {exportNode}
-
-            {scheduleActionsNode}
-
-            <ButtonRefresh
-              onClick={handleRefresh}
-              isRefreshing={isRefreshing}
-            />
-          </div>
+          isListRoute ? (
+            // One toolbar row: platform filters left, list actions right.
+            // Never split tabs into the body under a right-only action strip.
+            <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              <Tabs
+                activeTab={activeTab}
+                className="min-w-0"
+                fullWidth={false}
+                onTabChange={handleTabChange}
+                size="sm"
+                tabs={getPostPlatformTabs()}
+                variant="underline"
+              />
+              {listActions}
+            </div>
+          ) : (
+            listActions
+          )
         }
       >
-        {isListRoute && (
-          <div className="mb-6">
-            <Tabs
-              activeTab={activeTab}
-              onTabChange={handleTabChange}
-              tabs={getPostPlatformTabs()}
-            />
-          </div>
-        )}
-
         {children}
       </Container>
     </PostsLayoutContext.Provider>

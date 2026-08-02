@@ -39,7 +39,7 @@ export default function PostsListToolbar({
 }: PostsListToolbarProps) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="w-56 xl:w-72">
+      <div className="w-48 sm:w-56 xl:w-64">
         <FormSearchbar
           value={searchValue}
           onChange={(event: ChangeEvent<HTMLInputElement>) =>
@@ -47,9 +47,10 @@ export default function PostsListToolbar({
           }
           onClear={() => onSearchChange('')}
           placeholder="Search posts"
-          size={ComponentSize.MD}
+          // SM keeps the control on the same 32px shell row as ViewToggle + refresh.
+          size={ComponentSize.SM}
           className="w-full"
-          inputClassName="rounded-lg border-white/10 bg-white/[0.03] text-white/90 focus:border-white/20 focus:outline-none"
+          inputClassName="h-8 rounded-md border-white/10 bg-white/[0.03] text-white/90 focus:border-white/20 focus:outline-none"
         />
       </div>
 
@@ -62,7 +63,7 @@ export default function PostsListToolbar({
         >
           <SelectTrigger
             aria-label="Publishing state"
-            className="h-10 w-36 rounded-lg border-white/10 bg-white/[0.03]"
+            className="h-8 w-32 rounded-md border-white/10 bg-white/[0.03]"
           >
             <SelectValue />
           </SelectTrigger>
@@ -78,7 +79,7 @@ export default function PostsListToolbar({
         value={sortValue}
         options={sortOptions}
         onChange={(_name, value) => onSortChange(value)}
-        className="h-10 rounded-lg border border-white/10 bg-white/[0.03] px-3 text-white/80 hover:bg-white/[0.06] hover:text-white"
+        className="h-8 rounded-md border border-white/10 bg-white/[0.03] px-3 text-sm text-white/80 hover:bg-white/[0.06] hover:text-white"
       />
     </div>
   );
