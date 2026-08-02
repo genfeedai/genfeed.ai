@@ -31,7 +31,7 @@ const SERIALIZER_ROOT = 'packages/serializers/src';
  * coverage grows — running `bun run check:serializer-drift` prints the current
  * "Matched schema/serializer pairs" count.
  */
-const SERIALIZER_MATCH_FLOOR = 103;
+const SERIALIZER_MATCH_FLOOR = 104;
 
 const SCHEMA_TO_SERIALIZER_BASENAME_OVERRIDES: Record<string, string> = {
   analytic: 'analytics',
@@ -183,6 +183,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'source',
     'variants',
   ],
+  'credit-transactions:CreditTransaction': [],
   'credential:Credential': ['accountHealth'],
   'cron-run:CronRun': ['endedAt'],
   'distribution:Distribution': ['errorMessage', 'publishedAt'],
@@ -824,7 +825,6 @@ export const INTENTIONALLY_UNSERIALIZED_SCHEMAS: Record<string, string> = {
   'creative-pattern:CreativePattern': ANALYTICS_MODEL_REASON,
   'creator-analysis:CreatorAnalysis': ANALYTICS_MODEL_REASON,
   'credit-balance:CreditBalance': OPERATIONAL_MODEL_REASON,
-  'credit-transactions:CreditTransaction': OPERATIONAL_MODEL_REASON,
   'customer-instance:CustomerInstance': INTERNAL_MODEL_REASON,
   'customer:Customer': INTERNAL_MODEL_REASON,
   'forecast:Forecast': ANALYTICS_MODEL_REASON,
