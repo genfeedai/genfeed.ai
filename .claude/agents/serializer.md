@@ -1,35 +1,8 @@
 ---
 name: serializer
-description: |
-  Serializer triplet creation for Genfeed.ai. Knows the exact three-file pattern:
-  attributes -> config -> serializer. Use only for serializer work.
-
-  <example>
-  Context: User needs serializer for new entity
-  user: "Create the serializer triplet for WatchlistItem in management domain"
-  assistant: "I'll use the serializer agent to create the triplet."
-  <commentary>
-  New serializer triplet — use serializer agent.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs to modify serializer attributes
-  user: "Add the notes field to the bookmark serializer"
-  assistant: "I'll use the serializer agent to update the attributes."
-  <commentary>
-  Serializer attribute modification — use serializer agent.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs a list-view serializer variant
-  user: "Create a minimal list serializer for posts"
-  assistant: "I'll use the serializer agent to add the list config and serializer."
-  <commentary>
-  List-view serializer variant — use serializer agent.
-  </commentary>
-  </example>
+description: >-
+  Serializer work in Genfeed.ai — creating or modifying the three-file triplet
+  (attributes -> config -> serializer) in packages/serializers/. Use only for serializer work.
 model: sonnet
 ---
 
