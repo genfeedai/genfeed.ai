@@ -457,7 +457,7 @@ describe('WorkspacePageContent', () => {
     expect(screen.getByText('Approved hero image')).toBeVisible();
     expect(screen.getByText('Video needs edits')).toBeVisible();
     expect(screen.getByText('Library snapshot')).toBeVisible();
-    expect(screen.getByText('Overview')).toBeVisible();
+    expect(screen.getByText('Overview', { selector: 'p' })).toBeVisible();
     expect(screen.getByText('Media')).toBeVisible();
     expect(screen.getByText('Audio + captions')).toBeVisible();
     expect(screen.getByText('Operator tools')).toBeVisible();

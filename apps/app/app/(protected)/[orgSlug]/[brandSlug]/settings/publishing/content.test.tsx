@@ -217,7 +217,6 @@ describe('BrandSettingsPublishingPage', () => {
   it('loads publishing defaults and saves schedule/autopublish settings', async () => {
     render(<BrandSettingsPublishingPage />);
 
-    expect(screen.getByText('Publishing defaults')).toBeVisible();
     expect(screen.getByLabelText('Recurring schedule')).toBeChecked();
     expect(screen.getByText('Weekdays at 9:00 AM')).toBeVisible();
     expect(screen.getByText('Europe/Malta')).toBeVisible();

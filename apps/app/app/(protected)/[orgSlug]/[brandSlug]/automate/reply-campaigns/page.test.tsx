@@ -2,7 +2,7 @@ import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
 import { describe, expect, it } from 'vitest';
 
 assertSourceHasExport(
-  'app/(protected)/[orgSlug]/[brandSlug]/orchestration/reply-campaigns/page.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/automate/reply-campaigns/page.tsx',
 );
 
 describe('ReplyCampaignsRoute source contract', () => {

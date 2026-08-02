@@ -62,38 +62,34 @@ vi.mock('@services/core/logger.service', () => ({
 vi.mock('@/store/brand-interview-draft.store', () => {
   const answers = new Map<string, string>();
   const keyOf = (brandId: string, fieldKey: string) => `${brandId}:${fieldKey}`;
+  const state = {
+    byBrandId: {},
+    clearAnswer: (brandId: string, fieldKey: string) => {
+      answers.delete(keyOf(brandId, fieldKey));
+      mocks.draftClearAnswer(brandId, fieldKey);
+    },
+    clearBrand: (brandId: string) => {
+      for (const key of answers.keys()) {
+        if (key.startsWith(`${brandId}:`)) {
+          answers.delete(key);
+        }
+      }
+      mocks.draftClearBrand(brandId);
+    },
+    getAnswer: (brandId: string, fieldKey: string) =>
+      answers.get(keyOf(brandId, fieldKey)) ?? mocks.draftGet(),
+    setAnswer: (brandId: string, fieldKey: string, value: string) => {
+      answers.set(keyOf(brandId, fieldKey), value);
+      mocks.draftSet(brandId, fieldKey, value);
+    },
+  };
+  const useBrandInterviewDraftStore = Object.assign(
+    (selector: (storeState: typeof state) => unknown) => selector(state),
+    { getState: () => state },
+  );
 
   return {
-    useBrandInterviewDraftStore: (
-      selector: (state: {
-        byBrandId: Record<string, { answerByFieldKey: Record<string, string> }>;
-        clearAnswer: (brandId: string, fieldKey: string) => void;
-        clearBrand: (brandId: string) => void;
-        getAnswer: (brandId: string, fieldKey: string) => string;
-        setAnswer: (brandId: string, fieldKey: string, value: string) => void;
-      }) => unknown,
-    ) =>
-      selector({
-        byBrandId: {},
-        clearAnswer: (brandId, fieldKey) => {
-          answers.delete(keyOf(brandId, fieldKey));
-          mocks.draftClearAnswer(brandId, fieldKey);
-        },
-        clearBrand: (brandId) => {
-          for (const key of answers.keys()) {
-            if (key.startsWith(`${brandId}:`)) {
-              answers.delete(key);
-            }
-          }
-          mocks.draftClearBrand(brandId);
-        },
-        getAnswer: (brandId, fieldKey) =>
-          answers.get(keyOf(brandId, fieldKey)) ?? mocks.draftGet(),
-        setAnswer: (brandId, fieldKey, value) => {
-          answers.set(keyOf(brandId, fieldKey), value);
-          mocks.draftSet(brandId, fieldKey, value);
-        },
-      }),
+    useBrandInterviewDraftStore,
   };
 });
 

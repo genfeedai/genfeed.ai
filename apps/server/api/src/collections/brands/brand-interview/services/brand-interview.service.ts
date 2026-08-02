@@ -212,7 +212,7 @@ export class BrandInterviewService {
         data: {
           answeredFields: updatedAnsweredFields as Prisma.InputJsonValue,
         },
-        where: { id: interviewId },
+        where: scopedWhere(organizationId, { id: interviewId }),
       });
 
       return this.buildAnswerResult(updated, {
