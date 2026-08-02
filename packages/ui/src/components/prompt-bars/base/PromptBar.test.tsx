@@ -53,7 +53,7 @@ let speechHandlers: { onTranscription?: (result: any) => void } = {};
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/studio/image',
+  usePathname: () => '/studio/storyboard',
   useParams: () => ({
     brandSlug: 'test-brand',
     orgSlug: 'test-org',
@@ -761,7 +761,7 @@ describe('PromptBar', () => {
       vi.useRealTimers();
     });
 
-    it('routes image format changes', () => {
+    it('applies format changes in place instead of navigating', () => {
       render(<PromptBar {...(defaultProps as any)} />);
 
       const props = collapsedViewProps as {
@@ -773,29 +773,16 @@ describe('PromptBar', () => {
         props.onFormatChange?.(IngredientFormat.LANDSCAPE);
       });
 
-      expect(mockPush).toHaveBeenCalledWith(
-        '/test-org/test-brand/studio/image?format=landscape',
+      expect(mockForm.setValue).toHaveBeenCalledWith(
+        'format',
+        IngredientFormat.LANDSCAPE,
+        { shouldValidate: true },
       );
+      // The standalone studio tabs are retired — nothing to navigate to.
+      expect(mockPush).not.toHaveBeenCalled();
     });
 
-    it('routes image variations from references', () => {
-      render(<PromptBar {...(defaultProps as any)} />);
-
-      const props = collapsedViewProps as {
-        onCreateVariation?: (reference?: { id: string }) => void;
-      };
-      expect(props?.onCreateVariation).toBeDefined();
-
-      act(() => {
-        props.onCreateVariation?.({ id: 'ref-123' });
-      });
-
-      expect(mockPush).toHaveBeenCalledWith(
-        '/test-org/test-brand/studio/image?referenceImageId=ref-123&format=portrait',
-      );
-    });
-
-    it('routes video format changes with aspect ratio', () => {
+    it('applies video format changes in place too', () => {
       render(
         <PromptBar
           {...(defaultProps as any)}
@@ -812,9 +799,12 @@ describe('PromptBar', () => {
         props.onFormatChange?.(IngredientFormat.SQUARE);
       });
 
-      expect(mockPush).toHaveBeenCalledWith(
-        '/test-org/test-brand/studio/video?aspectRatio=1:1',
+      expect(mockForm.setValue).toHaveBeenCalledWith(
+        'format',
+        IngredientFormat.SQUARE,
+        { shouldValidate: true },
       );
+      expect(mockPush).not.toHaveBeenCalled();
     });
 
     it('updates outputs through the collapsed view handler', () => {

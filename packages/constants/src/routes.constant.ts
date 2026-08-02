@@ -214,17 +214,17 @@ export const APP_ROUTES = {
     ROOT: '/settings',
     WEBHOOKS: '/settings/webhooks',
   },
+  /**
+   * Studio is a production surface only. One-off "make me an image/video"
+   * generation lives in the Agent (`AGENT.NEW`) — the standalone
+   * image/video/avatar/music tabs were retired.
+   */
   STUDIO: {
-    AVATAR: '/studio/avatar',
     BATCH: '/studio/batch',
     CLIPS: '/studio/clips',
     FASTLANE: '/studio/fastlane',
-    IMAGE: '/studio/image',
-    IMAGES: '/studio/images',
-    MUSIC: '/studio/music',
     ROOT: '/studio',
     STORYBOARD: '/studio/storyboard',
-    VIDEO: '/studio/video',
   },
   WORKSPACE: {
     ACTIVITY: '/workspace/activity',

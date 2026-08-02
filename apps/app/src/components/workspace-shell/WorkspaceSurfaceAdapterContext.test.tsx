@@ -99,14 +99,14 @@ function SelectionProbe(): null {
 function ProductRegistration(): null {
   const registration = useMemo(
     () => ({
-      contextLabel: 'Studio · Image · v3',
+      contextLabel: 'Studio · Storyboard · v3',
       references: [],
       renderInspector: () => <p>Studio inspector</p>,
       scope: {
         brandId: 'brand-1',
         organizationId: 'organization-1',
       },
-      surfaceKey: 'studio',
+      surfaceKey: 'studio-specialized',
     }),
     [],
   );

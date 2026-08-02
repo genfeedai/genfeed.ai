@@ -32,10 +32,6 @@ import type { AppContext } from '@genfeedai/interfaces';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useUserRole } from '@hooks/auth/use-user-role';
-import {
-  STUDIO_CATEGORY_CONFIG,
-  useEnabledCategories,
-} from '@hooks/data/organization/use-enabled-categories/use-enabled-categories';
 import { useFastlaneEnabled } from '@hooks/data/organization/use-fastlane-enabled/use-fastlane-enabled';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -110,9 +106,10 @@ export function useAppProtectedLayout(
   const isLibraryLandingRoute = pathname === APP_ROUTES.LIBRARY.OVERVIEW;
   const isLibraryRoute = pathname.startsWith(APP_ROUTE_PREFIXES.LIBRARY);
   const isMessagesRoute = pathname.startsWith(APP_ROUTE_PREFIXES.MESSAGES);
+  // The retired one-off image/video/avatar/music tabs are gone; the surviving
+  // Studio production surfaces each carry their own inline prompt bar.
   const isStudioPromptBarRoute =
-    pathname === APP_ROUTES.STUDIO.ROOT ||
-    /^\/studio\/(avatar|image|music|video)(?:\/|$)/.test(pathname);
+    /^\/studio\/(batch|clips|fastlane|storyboard)(?:\/|$)/.test(pathname);
   const isStudioRoute = pathname.startsWith(APP_ROUTE_PREFIXES.STUDIO);
   const isPostsPromptBarRoute = pathname === APP_ROUTES.POSTS.ROOT;
   const isPostsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.POSTS);
@@ -270,8 +267,6 @@ export function useAppProtectedLayout(
   const threads = useAgentChatStore((s) => s.threads);
 
   const role = useUserRole();
-  const { enabledCategories, isLoading: isEnabledCategoriesLoading } =
-    useEnabledCategories();
   const { isEnabled: isFastlaneEnabled, isLoading: isFastlaneLoading } =
     useFastlaneEnabled();
 
@@ -305,27 +300,11 @@ export function useAppProtectedLayout(
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const studioMenuItems = useMemo(() => {
-    const categoryByHref = new Map(
-      STUDIO_CATEGORY_CONFIG.map(({ category, param, settingKey }) => [
-        `/studio/${param}`,
-        { category, settingKey },
-      ]),
-    );
-
-    return STUDIO_MENU_ITEMS.reduce<MenuItemConfig[]>((items, item) => {
-      if (!item.href) {
-        items.push({
-          ...item,
-          href: withTaskContextHref(item.href, taskContextSearchParams),
-        });
-        return items;
-      }
-
-      const studioCategory = categoryByHref.get(item.href);
-
-      if (!studioCategory) {
-        // Fastlane is not a generation category — gate it on its own org flag.
+  // Studio is production-only now — one-off generation moved to the Agent, so
+  // no menu item maps to a generation category. Fastlane keeps its own org flag.
+  const studioMenuItems = useMemo(
+    () =>
+      STUDIO_MENU_ITEMS.reduce<MenuItemConfig[]>((items, item) => {
         // Hide while the flag is still loading to avoid a flash of the item.
         if (
           item.href === APP_ROUTES.STUDIO.FASTLANE &&
@@ -339,27 +318,9 @@ export function useAppProtectedLayout(
           href: withTaskContextHref(item.href, taskContextSearchParams),
         });
         return items;
-      }
-
-      if (
-        enabledCategories.includes(studioCategory.category) &&
-        (!isEnabledCategoriesLoading || studioCategory.settingKey === null)
-      ) {
-        items.push({
-          ...item,
-          href: withTaskContextHref(item.href, taskContextSearchParams),
-        });
-      }
-
-      return items;
-    }, []);
-  }, [
-    enabledCategories,
-    isEnabledCategoriesLoading,
-    isFastlaneEnabled,
-    isFastlaneLoading,
-    taskContextSearchParams,
-  ]);
+      }, []),
+    [isFastlaneEnabled, isFastlaneLoading, taskContextSearchParams],
+  );
 
   const composeMenuItems = useMemo(
     () =>

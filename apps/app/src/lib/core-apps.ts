@@ -39,12 +39,12 @@ export const CORE_APPS: CoreAppDefinition[] = [
   },
   {
     description:
-      'Generate image and video assets quickly with a prompt bar and Replicate models.',
+      'Produce storyboards, clips, batches, and fastlane runs at production scale.',
     featureFlag: {
       isEnabledByDefault: () => true,
       key: 'studio',
     },
-    href: APP_ROUTES.STUDIO.ROOT,
+    href: APP_ROUTES.STUDIO.STORYBOARD,
     id: 'studio',
     label: 'Studio',
     shortLabel: 'Studio',

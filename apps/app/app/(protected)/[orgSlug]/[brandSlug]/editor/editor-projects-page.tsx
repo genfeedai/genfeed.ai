@@ -3,7 +3,6 @@
 import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/enums';
 import type { IEditorProject } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { EditorProjectsService } from '@services/editor/editor-projects.service';
 import Card from '@ui/card/Card';
@@ -77,7 +76,6 @@ function formatRelativeTime(dateStr: string): string {
 
 export default function EditorProjectsPage() {
   const { href } = useOrgUrl();
-  const isStudioEnabled = useFeatureFlag('studio');
   const [projects, setProjects] = useState<IEditorProject[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -131,12 +129,7 @@ export default function EditorProjectsPage() {
             variant={ButtonVariant.GHOST}
             withWrapper={false}
           >
-            <Link
-              aria-label={
-                isStudioEnabled ? 'Back to Studio' : 'Back to Library'
-              }
-              href={href(isStudioEnabled ? '/studio/video' : '/library')}
-            >
+            <Link aria-label="Back to Library" href={href('/library')}>
               <ArrowLeft className="size-4" />
             </Link>
           </Button>

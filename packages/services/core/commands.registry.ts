@@ -10,6 +10,7 @@
 
 import { hasOrganizationBilling } from '@genfeedai/config/license';
 import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
+import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { CommandPaletteService } from '@services/core/command-palette.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import {
@@ -194,11 +195,16 @@ export function createGenerationCommands(
   const appBase = EnvironmentService.apps.app;
   const brandPath = `${appBase}/${orgSlug}/${brandSlug}`;
 
+  // One-off generation is Agent-first: Studio no longer has standalone
+  // image/video/avatar/music prompt bars, so each command opens a new Agent
+  // thread seeded with the matching intent.
+  const generateInAgent = (prompt: string) => () => {
+    navigate(`${brandPath}${buildAgentPromptHref(prompt)}`);
+  };
+
   return [
     {
-      action: () => {
-        navigate(`${brandPath}/studio/video`);
-      },
+      action: generateInAgent('Generate a new video for my brand.'),
       category: 'generation',
       description: 'Create a new AI video',
       icon: Video,
@@ -209,9 +215,7 @@ export function createGenerationCommands(
       shortcut: ['⌘', 'Shift', 'V'],
     },
     {
-      action: () => {
-        navigate(`${brandPath}/studio/image`);
-      },
+      action: generateInAgent('Generate a new image for my brand.'),
       category: 'generation',
       description: 'Create a new AI image',
       icon: Image,
@@ -222,9 +226,7 @@ export function createGenerationCommands(
       shortcut: ['⌘', 'Shift', 'I'],
     },
     {
-      action: () => {
-        navigate(`${brandPath}/studio/music`);
-      },
+      action: generateInAgent('Generate new music or audio for my brand.'),
       category: 'generation',
       description: 'Create AI music and audio',
       icon: Music,
@@ -235,9 +237,7 @@ export function createGenerationCommands(
       shortcut: ['⌘', 'Shift', 'M'],
     },
     {
-      action: () => {
-        navigate(`${brandPath}/studio/avatar`);
-      },
+      action: generateInAgent('Generate a new AI avatar for my brand.'),
       category: 'generation',
       description: 'Create AI avatars',
       icon: CircleUser,

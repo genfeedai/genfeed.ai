@@ -6,9 +6,9 @@ type: reference
 
 # App Page Map
 
-Last audited: 2026-07-27.
+Last audited: 2026-08-02.
 
-The current executable protected denominator is 216 canonical patterns. Two
+The current executable protected denominator is 210 canonical patterns. Two
 intentional hard-cut families remain outside the denominator. The app switcher
 is only a discovery subset.
 
@@ -24,7 +24,7 @@ Source of truth:
 - Sidebar resolver in `apps/app/packages/components/AppProtectedLayoutSidebar.tsx`
 - App switcher in `packages/ui/src/components/shell/app-switcher/AppSwitcher.tsx`
 
-The application registry mirrors all 216 parity-eligible patterns below and
+The application registry mirrors all 210 parity-eligible patterns below and
 keeps Notifications plus trusted pickers as explicit non-route surfaces. The
 two hard-cut families remain outside it.
 
@@ -165,8 +165,6 @@ Organization catch-all module pages served by `/:orgSlug/~/:orgRootApp/[[...segm
 
 - `/:orgSlug/~/library`
 - `/:orgSlug/~/library/:type`
-- `/:orgSlug/~/studio`
-- `/:orgSlug/~/studio/:type`
 - `/:orgSlug/~/posts`
 - `/:orgSlug/~/posts/published`
 - `/:orgSlug/~/posts/scheduled`
@@ -242,10 +240,10 @@ Research:
 - `/:orgSlug/:brandSlug/research/ads/meta`
 - `/:orgSlug/:brandSlug/research/:platform`
 
-Studio:
+Studio (production surfaces only — the standalone one-off image/video/avatar/music
+tabs were retired in #2308; one-off generation runs through the Agent):
 
-- `/:orgSlug/:brandSlug/studio/:type`
-- `/:orgSlug/:brandSlug/studio/:type/:id`
+- `/:orgSlug/:brandSlug/studio/storyboard`
 - `/:orgSlug/:brandSlug/studio/batch`
 - `/:orgSlug/:brandSlug/studio/clips`
 - `/:orgSlug/:brandSlug/studio/fastlane`

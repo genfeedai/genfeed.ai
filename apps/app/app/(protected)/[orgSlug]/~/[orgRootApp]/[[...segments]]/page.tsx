@@ -2,8 +2,6 @@ import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
 import { PageScope, PostStatus } from '@genfeedai/enums';
 import IngredientsLayout from '@pages/ingredients/layout/ingredients-layout';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
-import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
-import FeatureGate from '@ui/guards/feature/FeatureGate';
 import { SkeletonLoadingFallback } from '@ui/loading/skeleton/SkeletonFallbacks';
 import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
@@ -12,8 +10,6 @@ import EditorProjectsPage from '../../../[brandSlug]/editor/editor-projects-page
 import EditorNewPage from '../../../[brandSlug]/editor/new/page';
 import PostsLayoutContent from '../../../[brandSlug]/posts/posts-layout-content';
 import { renderPostsListPage } from '../../../[brandSlug]/posts/posts-list-page';
-import StudioPageContent from '../../../[brandSlug]/studio/[type]/StudioPageContent';
-import { canonicalizeStudioType } from '../../../[brandSlug]/studio/[type]/studio-route';
 
 const ORG_LIBRARY_TYPE_BY_SEGMENT: Record<string, string> = {
   avatar: 'avatars',
@@ -119,17 +115,10 @@ export default async function OrgRootAppPage({
   }
 
   if (orgRootApp === 'studio') {
-    // Studio generate surface — never the library ingredient browser.
-    // Type comes from /~/studio/:type (e.g. music, video, image, avatar).
-    const studioType = canonicalizeStudioType(segments?.[0]);
-
-    return (
-      <FeatureGate flagKey="studio">
-        <ErrorBoundary>
-          <StudioPageContent typeOverride={studioType} />
-        </ErrorBoundary>
-      </FeatureGate>
-    );
+    // Studio is brand-scoped production tooling only; its former org-scoped
+    // surface was the retired one-off generate page. One-off generation now
+    // lives in the Agent, which is org-scoped.
+    redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.NEW));
   }
 
   if (

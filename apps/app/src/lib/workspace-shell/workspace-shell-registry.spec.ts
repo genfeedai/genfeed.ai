@@ -31,11 +31,11 @@ function materializeRoutePattern(pattern: string): string {
 
 describe('workspace shell trusted registry', () => {
   it('owns the complete accepted protected-route denominator', () => {
-    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(214);
+    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(210);
     expect(
       new Set(PROTECTED_ROUTE_INVENTORY.map((route) => route.canonicalUrl))
         .size,
-    ).toBe(214);
+    ).toBe(210);
 
     for (const route of PROTECTED_ROUTE_INVENTORY) {
       expect(route.accessPolicy).toMatch(
@@ -93,7 +93,7 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/library/voices', 'Library', 'Assets'],
     ['/acme/moonrise/library/moodboard', 'Library', 'Moodboard'],
     ['/acme/moonrise/studio/clips', 'Studio', 'Clips'],
-    ['/acme/moonrise/studio/video/asset-1', 'Studio', 'Video'],
+    ['/acme/moonrise/studio/storyboard', 'Studio', 'Storyboard'],
     ['/acme/moonrise/analytics/trends', 'Analytics', 'Trends'],
     [
       '/acme/moonrise/analytics/trends/detail/trend-1',
@@ -176,20 +176,25 @@ describe('workspace shell trusted registry', () => {
     });
   });
 
-  it('activates the Studio adapter only for generation and canonical asset editing', () => {
-    expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/studio/image')?.adapter,
-    ).toEqual({ key: 'studio', status: 'ready' });
-    expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/studio/image/ingredient-1')
-        ?.adapter,
-    ).toEqual({ key: 'studio', status: 'ready' });
-    expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/studio/fastlane'),
-    ).toMatchObject({
-      adapter: { key: 'studio-specialized', status: 'placeholder' },
-      mode: 'canvas',
-    });
+  it('activates the Studio adapter across the production surfaces only', () => {
+    for (const surface of ['batch', 'clips', 'fastlane', 'storyboard']) {
+      expect(
+        resolveWorkspaceShellRoute(`/acme/moonrise/studio/${surface}`),
+      ).toMatchObject({
+        adapter: { key: 'studio-specialized', status: 'ready' },
+        mode: 'canvas',
+      });
+    }
+
+    // The standalone one-off tabs are retired — nothing resolves for them.
+    for (const retired of ['image', 'video', 'avatar', 'music']) {
+      expect(
+        resolveWorkspaceShellRoute(`/acme/moonrise/studio/${retired}`),
+      ).toBeNull();
+      expect(
+        resolveWorkspaceShellRoute(`/acme/moonrise/studio/${retired}/asset-1`),
+      ).toBeNull();
+    }
   });
 
   it('keeps contextual Remix routes inside the Publish switcher module', () => {
@@ -236,7 +241,7 @@ describe('workspace shell trusted registry', () => {
       ),
     ).toEqual([]);
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/studio/image'),
+      resolveWorkspaceShellRoute('/acme/moonrise/studio/storyboard'),
     ).toMatchObject({ productClass: 'contextual-action' });
     // The Automate hard-cut folded autopilot and configuration into the
     // first-class orchestration family; /write is the surviving compat alias.

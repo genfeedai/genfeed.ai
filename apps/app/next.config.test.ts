@@ -261,32 +261,63 @@ describe('app next.config', () => {
     });
   });
 
-  it('redirects /studio to /studio/image only', async () => {
+  it('redirects /studio to the storyboard production surface', async () => {
     const redirects = await config.redirects?.();
     const studioRedirect = redirects?.find(
       (redirect) => redirect.source === APP_ROUTES.STUDIO.ROOT,
     );
 
     expect(studioRedirect).toEqual({
-      destination: APP_ROUTES.STUDIO.IMAGE,
+      destination: APP_ROUTES.STUDIO.STORYBOARD,
       permanent: false,
       source: APP_ROUTES.STUDIO.ROOT,
     });
   });
 
+  it('hard-cuts every retired studio one-off tab to the agent', async () => {
+    const redirects = await config.redirects?.();
+
+    for (const segment of ['avatar', 'image', 'images', 'music', 'video']) {
+      expect(redirects).toContainEqual({
+        destination: APP_ROUTES.AGENT.NEW,
+        permanent: true,
+        source: `${APP_ROUTES.STUDIO.ROOT}/${segment}`,
+      });
+      expect(redirects).toContainEqual({
+        destination: createBrandAppRoute(
+          ':orgSlug',
+          ':brandSlug',
+          APP_ROUTES.AGENT.NEW,
+        ),
+        permanent: true,
+        source: createBrandAppRoute(
+          ':orgSlug',
+          ':brandSlug',
+          `${APP_ROUTES.STUDIO.ROOT}/${segment}`,
+        ),
+      });
+    }
+  });
+
+  it('hard-cuts retired studio asset detail routes to the library', async () => {
+    const redirects = await config.redirects?.();
+
+    expect(redirects).toContainEqual({
+      destination: APP_ROUTES.LIBRARY.ROOT,
+      permanent: true,
+      source: `${APP_ROUTES.STUDIO.ROOT}/image/:assetId`,
+    });
+  });
+
   it('does not define a broad studio wildcard redirect', async () => {
     const redirects = await config.redirects?.();
-    const studioRedirects = redirects?.filter((redirect) =>
-      redirect.source.startsWith(APP_ROUTE_PREFIXES.STUDIO),
+    const studioWildcards = redirects?.filter(
+      (redirect) =>
+        redirect.source.startsWith(APP_ROUTE_PREFIXES.STUDIO) &&
+        redirect.source.includes(':path*'),
     );
 
-    expect(studioRedirects).toEqual([
-      {
-        destination: APP_ROUTES.STUDIO.IMAGE,
-        permanent: false,
-        source: APP_ROUTES.STUDIO.ROOT,
-      },
-    ]);
+    expect(studioWildcards).toEqual([]);
   });
 
   it('sends X-Robots-Tag: noindex, nofollow on every studio route', async () => {

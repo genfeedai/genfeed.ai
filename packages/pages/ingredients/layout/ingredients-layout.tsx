@@ -30,7 +30,6 @@ export default function IngredientsLayout({
     handleRefresh,
     handleUpload,
     headerMeta,
-    ingredientCategory,
     ingredientType,
     isRefreshing,
     setHeaderMeta,
@@ -80,7 +79,6 @@ export default function IngredientsLayout({
             <IngredientsLayoutToolbar
               config={config}
               filters={filters}
-              ingredientCategory={ingredientCategory}
               isRefreshing={isRefreshing}
               scope={scope}
               onRefresh={handleRefresh}

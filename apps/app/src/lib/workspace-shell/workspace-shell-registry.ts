@@ -172,8 +172,6 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/research/:platform': ':platform',
   '/:orgSlug/~/research/:platform': ':platform',
   '/:orgSlug/:brandSlug/settings': 'General',
-  '/:orgSlug/:brandSlug/studio/:type': ':type',
-  '/:orgSlug/:brandSlug/studio/:type/:id': ':type',
   '/:orgSlug/:brandSlug/workspace/tasks/:id': 'Task',
   '/:orgSlug/:brandSlug/orchestration/workflows/:id': 'Workflow',
   '/:orgSlug/:brandSlug/orchestration/workflows/executions/:id': 'Run',
@@ -191,8 +189,6 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/library/:type': ':type',
   '/:orgSlug/~/settings': 'General',
   '/:orgSlug/~/settings/models/:type': ':type',
-  '/:orgSlug/~/studio/:type': ':type',
-
   '/:orgSlug/~/write/:segment': ':segment',
   '/admin': 'Dashboard',
   '/admin/automation/models/:type': ':type Models',
@@ -523,15 +519,6 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     switcherItems: ['library'],
     telemetryClass: 'product',
   }),
-  ...registerRoutes(['/:orgSlug/~/studio', '/:orgSlug/~/studio/:type'], {
-    fallback: '/:orgSlug/~/studio',
-    mode: 'canvas',
-    productClass: 'contextual-action',
-    scope: 'organization',
-    surfaceKey: 'studio',
-    switcherItems: ['studio'],
-    telemetryClass: 'product',
-  }),
   ...registerRoutes(
     [
       '/:orgSlug/~/posts',
@@ -688,29 +675,14 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ),
   ...registerRoutes(
     [
-      '/:orgSlug/:brandSlug/studio/:type',
-      '/:orgSlug/:brandSlug/studio/:type/:id',
-    ],
-    {
-      adapterStatus: 'ready',
-      fallback: '/:orgSlug/:brandSlug/studio/image',
-      mode: 'canvas',
-      productClass: 'contextual-action',
-      scope: 'brand',
-      surfaceKey: 'studio',
-      switcherItems: ['studio'],
-      telemetryClass: 'product',
-    },
-  ),
-  ...registerRoutes(
-    [
       '/:orgSlug/:brandSlug/studio/batch',
       '/:orgSlug/:brandSlug/studio/clips',
       '/:orgSlug/:brandSlug/studio/fastlane',
       '/:orgSlug/:brandSlug/studio/storyboard',
     ],
     {
-      fallback: '/:orgSlug/:brandSlug/studio/image',
+      adapterStatus: 'ready',
+      fallback: '/:orgSlug/:brandSlug/studio/storyboard',
       mode: 'canvas',
       productClass: 'contextual-action',
       scope: 'brand',

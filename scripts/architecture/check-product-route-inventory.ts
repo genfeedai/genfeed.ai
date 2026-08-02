@@ -76,8 +76,9 @@ export const ORGANIZATION_CATCH_ALL_PAGE = '/:orgSlug/~/:orgRootApp/*segments?';
 export const ORGANIZATION_CATCH_ALL_EXPANSIONS = Object.freeze([
   '/:orgSlug/~/library',
   '/:orgSlug/~/library/:type',
-  '/:orgSlug/~/studio',
-  '/:orgSlug/~/studio/:type',
+  // Studio is brand-scoped production tooling. Its org-scoped surface was the
+  // retired one-off generate page, so the catch-all now redirects to the Agent
+  // rather than expanding into a registered product route.
   '/:orgSlug/~/posts',
   '/:orgSlug/~/posts/published',
   '/:orgSlug/~/posts/scheduled',

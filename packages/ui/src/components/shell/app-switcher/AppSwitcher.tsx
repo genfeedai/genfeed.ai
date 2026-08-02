@@ -128,12 +128,17 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
       },
       {
         activePathRoots: ['/studio'],
-        description: 'Generate media.',
+        description: 'Produce storyboards, clips, and batches.',
         icon: LayoutGrid,
         id: 'studio',
         itemKey: 'studio',
         label: 'Studio',
-        route: createScopedAppRoute({ brandPath: '/studio/image' }),
+        // Studio is brand-scoped production tooling; without a brand the org
+        // route hands off to the Agent, which owns one-off generation.
+        route: createScopedAppRoute({
+          brandPath: '/studio/storyboard',
+          organizationPath: '/studio',
+        }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.studio,
       },
       {
@@ -295,7 +300,7 @@ function normalizePath(path?: string): string | undefined {
 
 /**
  * Strip tenant scope so matching is product-root based, like sidebar menus:
- * `/acme/default/studio/video` → `/studio/video`
+ * `/acme/default/studio/storyboard` → `/studio/storyboard`
  * `/acme/~/settings/brands` → `/settings/brands`
  * `/admin/users` → `/admin/users`
  */

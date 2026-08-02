@@ -435,13 +435,13 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('synchronizes a Studio adapter scope and exposes its typed reference', async () => {
-    navigation.pathname = '/acme/moonrise/studio/image';
+    navigation.pathname = '/acme/moonrise/studio/storyboard';
     navigation.searchParams = new URLSearchParams();
     agentState.threads[0].brandId = 'brand-previous';
 
     function StudioSurface() {
       useRegisterWorkspaceSurfaceAdapter({
-        contextLabel: 'Studio · Image · Launch visual',
+        contextLabel: 'Studio · Storyboard · Launch visual',
         references: [
           {
             label: 'Launch visual · v2',
@@ -459,7 +459,7 @@ describe('UniversalWorkspaceShell', () => {
           brandId: 'brand-studio',
           organizationId: 'org-acme',
         },
-        surfaceKey: 'studio',
+        surfaceKey: 'studio-specialized',
       });
       return <div>Studio canvas</div>;
     }
@@ -520,7 +520,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('keeps a conversation created from Studio out of the canonical URL', () => {
-    navigation.pathname = '/acme/moonrise/studio/image';
+    navigation.pathname = '/acme/moonrise/studio/storyboard';
     navigation.searchParams = new URLSearchParams();
     agentState.activeThreadId = null;
 
@@ -854,7 +854,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('restores an allowlisted temporary overlay above the canvas', () => {
-    navigation.pathname = '/acme/moonrise/studio/image';
+    navigation.pathname = '/acme/moonrise/studio/storyboard';
     navigation.searchParams = new URLSearchParams({
       overlay: 'shell-preview',
     });
@@ -899,7 +899,9 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(router.back).not.toHaveBeenCalled();
-    expect(router.replace).toHaveBeenCalledWith('/acme/moonrise/studio/image');
+    expect(router.replace).toHaveBeenCalledWith(
+      '/acme/moonrise/studio/storyboard',
+    );
   });
 
   it('dispatches publish only as a trusted brand-scoped review route', () => {

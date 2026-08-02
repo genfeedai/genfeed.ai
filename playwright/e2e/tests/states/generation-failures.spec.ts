@@ -24,8 +24,9 @@ import { tryClick } from '../../utils/route-assertions';
  */
 
 const ORG_BRAND = '/test-org/brand-1';
-const IMAGE_ROUTE = `${ORG_BRAND}/studio/image`;
-const VIDEO_ROUTE = `${ORG_BRAND}/studio/video`;
+// Studio's standalone one-off tabs are retired; the storyboard surface
+// carries the inline composer that these failure paths exercise.
+const STORYBOARD_ROUTE = `${ORG_BRAND}/studio/storyboard`;
 const BATCH_ROUTE = `${ORG_BRAND}/studio/batch`;
 
 type Page = Parameters<typeof mockImageGenerationFailure>[0];
@@ -38,11 +39,11 @@ async function submitGeneration(page: Page): Promise<void> {
 test.describe('Studio — generation failure handling', () => {
   test.setTimeout(90_000);
 
-  test('image generation failure keeps the composer healthy', async ({
+  test('image generation failure keeps the storyboard composer healthy', async ({
     authenticatedPage,
   }) => {
     await mockImageGenerationFailure(authenticatedPage);
-    await authenticatedPage.goto(IMAGE_ROUTE, {
+    await authenticatedPage.goto(STORYBOARD_ROUTE, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -61,7 +62,7 @@ test.describe('Studio — generation failure handling', () => {
       authenticatedPage,
       'Image generation failed due to content policy violation',
     );
-    await authenticatedPage.goto(IMAGE_ROUTE, {
+    await authenticatedPage.goto(STORYBOARD_ROUTE, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -73,11 +74,11 @@ test.describe('Studio — generation failure handling', () => {
     await assertHealthy(authenticatedPage);
   });
 
-  test('image composer recovers after a retry following failure', async ({
+  test('storyboard composer recovers from an image failure', async ({
     authenticatedPage,
   }) => {
     await mockImageGenerationFailure(authenticatedPage);
-    await authenticatedPage.goto(IMAGE_ROUTE, {
+    await authenticatedPage.goto(STORYBOARD_ROUTE, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -95,27 +96,11 @@ test.describe('Studio — generation failure handling', () => {
     await assertHealthy(authenticatedPage);
   });
 
-  test('image generation failure with URL-provided prompt is handled', async ({
-    authenticatedPage,
-  }) => {
-    await mockImageGenerationFailure(authenticatedPage);
-    await authenticatedPage.goto(
-      `${IMAGE_ROUTE}?text=${encodeURIComponent('A neon skyline at night')}`,
-      { waitUntil: 'domcontentloaded' },
-    );
-    await settle(authenticatedPage);
-
-    await submitGeneration(authenticatedPage);
-    await settle(authenticatedPage);
-
-    await assertHealthy(authenticatedPage);
-  });
-
-  test('video generation failure keeps the composer healthy', async ({
+  test('video generation failure keeps the storyboard composer healthy', async ({
     authenticatedPage,
   }) => {
     await mockVideoGenerationFailure(authenticatedPage);
-    await authenticatedPage.goto(VIDEO_ROUTE, {
+    await authenticatedPage.goto(STORYBOARD_ROUTE, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -134,7 +119,7 @@ test.describe('Studio — generation failure handling', () => {
       authenticatedPage,
       'Generation failed due to content policy violation',
     );
-    await authenticatedPage.goto(VIDEO_ROUTE, {
+    await authenticatedPage.goto(STORYBOARD_ROUTE, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -146,11 +131,11 @@ test.describe('Studio — generation failure handling', () => {
     await assertHealthy(authenticatedPage);
   });
 
-  test('video composer recovers after a retry following failure', async ({
+  test('storyboard composer recovers from a video failure', async ({
     authenticatedPage,
   }) => {
     await mockVideoGenerationFailure(authenticatedPage);
-    await authenticatedPage.goto(VIDEO_ROUTE, {
+    await authenticatedPage.goto(STORYBOARD_ROUTE, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
