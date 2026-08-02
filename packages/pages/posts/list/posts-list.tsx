@@ -25,7 +25,7 @@ import PromptBarContent from '@ui/prompt-bars/content/PromptBarContent';
 import PromptBarSurfaceRenderer from '@ui/prompt-bars/surface/PromptBarSurfaceRenderer';
 import { POSTS_PROMPT_BAR_SURFACE } from '@ui/prompt-bars/surface/prompt-bar-surface.config';
 import { LayoutGrid, Table } from 'lucide-react';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 export interface PostsListProps extends ContentProps {
   initialPostPresets?: IPreset[];
@@ -92,6 +92,22 @@ export default function PostsList({
     status: statusProp,
   });
 
+  // Keep latest filter bag for toolbar handlers without re-portaling on every
+  // object identity change (that looped: setFiltersNode → layout dispatch →
+  // re-render → new filters ref → setFiltersNode → … Maximum update depth).
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+
+  const handleToolbarSortChange = useCallback(
+    (sortValue: string) => {
+      handleFiltersChange({
+        ...filtersRef.current,
+        sort: sortValue,
+      });
+    },
+    [handleFiltersChange],
+  );
+
   // Pass ViewToggle to layout header (renders JSX — stays in component)
   useEffect(() => {
     setViewToggleNode(
@@ -112,8 +128,11 @@ export default function PostsList({
         onChange={setViewType}
       />,
     );
-    return () => setViewToggleNode(null);
   }, [viewType, setViewToggleNode, setViewType]);
+
+  useEffect(() => {
+    return () => setViewToggleNode(null);
+  }, [setViewToggleNode]);
 
   useEffect(() => {
     setFiltersNode(
@@ -124,21 +143,13 @@ export default function PostsList({
         publicationState={publicationState}
         onPublicationStateChange={handlePublicationStateChange}
         onSearchChange={setToolbarSearchValue}
-        onSortChange={(sortValue) =>
-          handleFiltersChange({
-            ...filters,
-            sort: sortValue,
-          })
-        }
+        onSortChange={handleToolbarSortChange}
       />,
     );
-
-    return () => setFiltersNode(null);
   }, [
     filterSort,
-    filters,
-    handleFiltersChange,
     handlePublicationStateChange,
+    handleToolbarSortChange,
     publicationState,
     setFiltersNode,
     setToolbarSearchValue,
@@ -146,6 +157,10 @@ export default function PostsList({
     status,
     toolbarSearchValue,
   ]);
+
+  useEffect(() => {
+    return () => setFiltersNode(null);
+  }, [setFiltersNode]);
 
   return (
     <div className={scope === PageScope.PUBLISHER ? 'pb-24 md:pb-32' : ''}>

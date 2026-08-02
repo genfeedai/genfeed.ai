@@ -59,17 +59,29 @@ function postsLayoutReducer(
 ): PostsLayoutState {
   switch (action.type) {
     case 'SET_REFRESH_FN':
-      return { ...state, refreshFn: action.payload };
+      return state.refreshFn === action.payload
+        ? state
+        : { ...state, refreshFn: action.payload };
     case 'SET_IS_REFRESHING':
-      return { ...state, isRefreshing: action.payload };
+      return state.isRefreshing === action.payload
+        ? state
+        : { ...state, isRefreshing: action.payload };
     case 'SET_FILTERS_NODE':
-      return { ...state, filtersNode: action.payload };
+      return state.filtersNode === action.payload
+        ? state
+        : { ...state, filtersNode: action.payload };
     case 'SET_EXPORT_NODE':
-      return { ...state, exportNode: action.payload };
+      return state.exportNode === action.payload
+        ? state
+        : { ...state, exportNode: action.payload };
     case 'SET_VIEW_TOGGLE_NODE':
-      return { ...state, viewToggleNode: action.payload };
+      return state.viewToggleNode === action.payload
+        ? state
+        : { ...state, viewToggleNode: action.payload };
     case 'SET_SCHEDULE_ACTIONS_NODE':
-      return { ...state, scheduleActionsNode: action.payload };
+      return state.scheduleActionsNode === action.payload
+        ? state
+        : { ...state, scheduleActionsNode: action.payload };
   }
 }
 
