@@ -23,6 +23,17 @@ import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { type ChangeEvent, useEffect, useState } from 'react';
 
+const LINK_CATEGORY_OPTIONS: Array<{ label: string; value: LinkCategory }> = [
+  { label: 'Website', value: LinkCategory.WEBSITE },
+  { label: 'X / Twitter', value: LinkCategory.TWITTER },
+  { label: 'Instagram', value: LinkCategory.INSTAGRAM },
+  { label: 'YouTube', value: LinkCategory.YOUTUBE },
+  { label: 'LinkedIn', value: LinkCategory.LINKEDIN },
+  { label: 'TikTok', value: LinkCategory.TIKTOK },
+  { label: 'Facebook', value: LinkCategory.FACEBOOK },
+  { label: 'Other', value: LinkCategory.OTHER },
+];
+
 export default function ModalBrandLink({
   brandId,
   link,
@@ -50,7 +61,6 @@ export default function ModalBrandLink({
     schema: linkSchema,
     serviceFactory: (token) => LinksService.getInstance(token),
     transformSubmitData: (formData) => {
-      // For POST operations, ensure brandId is included
       if (!link && brandId) {
         return { ...formData, brand: brandId };
       }
@@ -58,7 +68,6 @@ export default function ModalBrandLink({
     },
   });
 
-  // Populate form when editing
   useEffect(() => {
     if (link) {
       form.setValue('brand', brandId ?? '', { shouldValidate: true });
@@ -82,20 +91,20 @@ export default function ModalBrandLink({
   return (
     <Modal
       id={ModalEnum.BRAND_LINK}
-      title={link ? 'Edit Link' : 'Add Link'}
+      title={link ? 'Edit link' : 'Add link'}
       error={validationError}
       onClose={() => setValidationError(null)}
     >
-      <form ref={formRef} onSubmit={onSubmit}>
-        {hasFormErrors(form.formState.errors) && (
-          <Alert type={AlertCategory.ERROR} className="mb-4">
+      <form ref={formRef} className="flex flex-col gap-4" onSubmit={onSubmit}>
+        {hasFormErrors(form.formState.errors) ? (
+          <Alert type={AlertCategory.ERROR}>
             <div className="space-y-1">
               {parseFormErrors(form.formState.errors).map((error) => (
                 <div key={error}>{error}</div>
               ))}
             </div>
           </Alert>
-        )}
+        ) : null}
 
         <FormControl label="Label">
           <Input
@@ -103,26 +112,28 @@ export default function ModalBrandLink({
             name="label"
             control={form.control}
             onChange={updateModalBrandLink}
-            placeholder="Enter link label"
-            isRequired={true}
+            placeholder="Homepage, Docs, Blog…"
+            isRequired
             isDisabled={isSubmitting}
           />
         </FormControl>
 
-        <div className="grid grid-cols-1 gap-4 mb-4">
+        <FormControl label="Category">
           <SelectField
             name="category"
             control={form.control}
             onChange={updateModalBrandLink}
             isDisabled={isSubmitting}
+            isRequired
+            placeholder="Choose a category"
           >
-            {Object.values(LinkCategory).map((category: LinkCategory) => (
-              <option key={category} value={category}>
-                {category}
+            {LINK_CATEGORY_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </SelectField>
-        </div>
+        </FormControl>
 
         <FormControl label="URL">
           <Input
@@ -130,37 +141,38 @@ export default function ModalBrandLink({
             name="url"
             control={form.control}
             onChange={updateModalBrandLink}
-            placeholder="https://genfeed.ai"
-            isRequired={true}
+            placeholder="https://example.com"
+            isRequired
             isDisabled={isSubmitting}
           />
         </FormControl>
 
-        <ModalActions className="mt-6">
+        <ModalActions className="mt-2">
           <Button
+            type="button"
             label="Cancel"
             variant={ButtonVariant.SECONDARY}
-            size={ButtonSize.LG}
-            className="md:h-9 md:px-4 md:py-2 mb-4 md:mb-0"
-            isLoading={isSubmitting}
+            size={ButtonSize.SM}
+            isDisabled={isSubmitting}
             onClick={() => closeModal()}
           />
 
-          {link && deleteModalBrandLink && (
+          {link && deleteModalBrandLink ? (
             <Button
+              type="button"
               label="Delete"
               variant={ButtonVariant.DESTRUCTIVE}
-              size={ButtonSize.LG}
-              className="md:h-9 md:px-4 md:py-2 mb-4 md:mb-0"
+              size={ButtonSize.SM}
               onClick={deleteModalBrandLink}
               isLoading={isSubmitting}
             />
-          )}
+          ) : null}
 
           <Button
             type="submit"
-            label={link ? 'Update' : 'Add'}
+            label={link ? 'Save' : 'Add link'}
             variant={ButtonVariant.DEFAULT}
+            size={ButtonSize.SM}
             isLoading={isSubmitting}
             isDisabled={isSubmitting || !form.formState.isValid}
           />
