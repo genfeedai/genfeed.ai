@@ -281,6 +281,27 @@ export interface IBrandKitAssetImportResponse extends IBrandKitResource {
   diagnostics: IBrandKitDiagnostic[];
 }
 
+/**
+ * A brand asset read back from storage.
+ *
+ * Logo/banner/reference are `Asset` rows keyed by `parentBrandId` — the Brand
+ * table has no logo/banner column — so every consumer that wants a usable URL
+ * has to resolve them. This is the shape that resolution returns.
+ */
+export interface IBrandKitResolvedAsset {
+  id: string;
+  role: BrandKitAssetRole;
+  url: string;
+  label?: string;
+  mimeType?: string;
+}
+
+export interface IBrandKitResolvedAssets {
+  logo?: IBrandKitResolvedAsset;
+  banner?: IBrandKitResolvedAsset;
+  references: IBrandKitResolvedAsset[];
+}
+
 export type IBrandKitVoiceSnapshot = IBrandAgentVoice;
 
 export type IBrandKitStrategySnapshot = IBrandAgentStrategy;

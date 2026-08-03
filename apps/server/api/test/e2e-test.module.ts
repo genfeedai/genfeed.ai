@@ -185,7 +185,10 @@ export const BRAND_SERVICE_E2E_MOCK_PROVIDERS = [
   },
   {
     provide: BrandKitAssetsService,
-    useValue: { importBrandKitAssets: () => Promise.resolve(null) },
+    useValue: {
+      importBrandKitAssets: () => Promise.resolve(null),
+      resolveBrandKitAssets: () => Promise.resolve({ references: [] }),
+    },
   },
   {
     provide: BrandKitDraftService,

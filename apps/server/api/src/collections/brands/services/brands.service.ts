@@ -40,6 +40,7 @@ import type {
   IBrandKitAssetImportRequest,
   IBrandKitAssetImportResponse,
   IBrandKitDraft,
+  IBrandKitResolvedAssets,
 } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
@@ -478,6 +479,21 @@ export class BrandsService extends BaseService<
       userId,
       dto,
       (criteria) => this.findOne(criteria),
+    );
+  }
+
+  /**
+   * Live logo/banner/reference assets for a brand, with absolute CDN URLs.
+   *
+   * There is no `brand.logo` — see `BrandKitAssetsService.resolveBrandKitAssets`.
+   */
+  async resolveBrandKitAssets(
+    brandId: string,
+    organizationId: string,
+  ): Promise<IBrandKitResolvedAssets> {
+    return this.brandKitAssetsService.resolveBrandKitAssets(
+      brandId,
+      organizationId,
     );
   }
 
