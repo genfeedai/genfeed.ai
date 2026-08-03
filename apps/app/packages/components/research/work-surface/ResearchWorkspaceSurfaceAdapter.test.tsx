@@ -33,7 +33,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/acme/moonrise/discover/discovery',
+  usePathname: () => '/acme/moonrise/discover/overview',
 }));
 
 vi.mock('@pages/research/work-surface/ResearchFindingInspector', () => ({
@@ -86,7 +86,7 @@ describe('ResearchWorkspaceSurfaceAdapter', () => {
             organizationId: 'organization-1',
           },
         ],
-        route: '/acme/moonrise/discover/discovery',
+        route: '/acme/moonrise/discover/overview',
       });
     });
     expect(mocks.store.pageContext).not.toHaveProperty('title');

@@ -605,7 +605,7 @@ export function WorkspaceDashboard({
   reviewInbox,
   runs,
   stats,
-  trendsHref = APP_ROUTES.DISCOVER.DISCOVERY,
+  trendsHref = APP_ROUTES.DISCOVER.OVERVIEW,
   trendItems = [],
   workspaceTasks,
 }: DashboardProps) {

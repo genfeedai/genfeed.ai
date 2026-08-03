@@ -245,11 +245,17 @@ export abstract class HTTPBaseService {
     setErrorDebugInfo(debugInfo);
 
     if (!EnvironmentService.isProduction) {
+      // Expected client outcomes (missing resource, auth, validation) should
+      // not interrupt the page with the Error Debug beta modal — surfaces own
+      // empty/not-found UI. Keep modal for 5xx and unexpected 4xx (e.g. 409).
+      const status = response?.status;
+      const isExpectedClientStatus =
+        status === 401 || status === 403 || status === 404 || status === 422;
       const shouldShowDebugModal =
         typeof window !== 'undefined' &&
-        response?.status &&
-        response.status >= 400 &&
-        response.status !== 422;
+        typeof status === 'number' &&
+        status >= 400 &&
+        !isExpectedClientStatus;
 
       if (shouldShowDebugModal) {
         openModal(ModalEnum.ERROR_DEBUG);

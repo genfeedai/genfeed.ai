@@ -9,7 +9,6 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import { Platform } from '@genfeedai/enums';
 import { getPostPlatformTabs } from '@helpers/content/posts.helper';
 import Container from '@ui/layout/container/Container';
-import Tabs from '@ui/navigation/tabs/Tabs';
 import { Newspaper } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
@@ -218,26 +217,19 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
         description="View and manage published content across all connected accounts"
         icon={Newspaper}
         titleVisibility="sr-only"
-        right={
-          isListRoute ? (
-            // One toolbar row: platform filters left, list actions right.
-            // Never split tabs into the body under a right-only action strip.
-            <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
-              <Tabs
-                activeTab={activeTab}
-                className="min-w-0"
-                fullWidth={false}
-                onTabChange={handleTabChange}
-                size="sm"
-                tabs={getPostPlatformTabs()}
-                variant="underline"
-              />
-              {listActions}
-            </div>
-          ) : (
-            listActions
-          )
+        headerTabs={
+          isListRoute
+            ? {
+                activeTab,
+                fullWidth: false,
+                onTabChange: handleTabChange,
+                size: 'sm',
+                tabs: getPostPlatformTabs(),
+                variant: 'underline',
+              }
+            : undefined
         }
+        right={listActions}
       >
         {children}
       </Container>

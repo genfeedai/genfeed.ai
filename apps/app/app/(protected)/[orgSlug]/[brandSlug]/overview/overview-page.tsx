@@ -362,7 +362,7 @@ export default function OverviewPageContent({
         color: 'bg-secondary text-muted-foreground',
         cta: 'Open Discover',
         description: 'Start with the strongest live signals',
-        href: APP_ROUTES.DISCOVER.DISCOVERY,
+        href: APP_ROUTES.DISCOVER.OVERVIEW,
         icon: TrendingUp,
         id: 'trends',
         label: 'Discover',
@@ -449,7 +449,7 @@ export default function OverviewPageContent({
           <OverviewTrendsPanel
             trends={trends}
             isLoading={isTrendsLoading}
-            viewAllHref={href('/discover/discovery')}
+            viewAllHref={href('/discover/overview')}
           />
         </div>
       </div>

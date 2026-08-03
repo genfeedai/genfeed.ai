@@ -1,4 +1,4 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTE_PREFIXES, APP_ROUTES } from '@genfeedai/constants';
 import type { Task } from '@services/management/tasks.service';
 
 export type TaskLaunchMode =
@@ -37,8 +37,34 @@ const KNOWN_PROTECTED_PREFIXES = [
   'admin',
 ] as const;
 
+/**
+ * First path segment of every global (non org/brand-scoped) route root.
+ * `/admin/overview/analytics/...` must NOT be rewritten as
+ * `/:org/:brand/analytics/...` just because segment[2] is a known module.
+ */
+const RESERVED_GLOBAL_ROOT_SEGMENTS = new Set(
+  [
+    ...Object.values(APP_ROUTE_PREFIXES).map(
+      (prefix) => prefix.replace(/^\//, '').split('/')[0] ?? '',
+    ),
+    APP_ROUTES.CONNECT.replace(/^\//, ''),
+    APP_ROUTES.LOGIN.replace(/^\//, ''),
+    APP_ROUTES.LOGOUT.replace(/^\//, ''),
+    APP_ROUTES.SIGN_UP.replace(/^\//, ''),
+    APP_ROUTES.OAUTH.replace(/^\//, ''),
+    'managed-credits',
+  ].filter(Boolean),
+);
+
 export function normalizeProtectedPathname(rawPathname: string): string {
   const parts = rawPathname.split('/').filter(Boolean);
+
+  // Platform / product roots keep their full path. Without this,
+  // `/admin/overview/analytics/all` collapses to `/analytics/all` and the
+  // shell swaps the Admin control plane for brand Analytics chrome.
+  if (parts[0] && RESERVED_GLOBAL_ROOT_SEGMENTS.has(parts[0])) {
+    return `/${parts.join('/')}`;
+  }
 
   if (parts.length >= 3) {
     const thirdSegment = parts[2];
@@ -108,10 +134,13 @@ export function getCurrentBrandScopedPath(pathname: string): string {
  */
 const BRAND_ONLY_SETTINGS_PREFIXES = [
   APP_ROUTES.SETTINGS.PUBLISHING,
+  APP_ROUTES.SETTINGS.SOCIAL,
+  APP_ROUTES.SETTINGS.LINKS,
   '/settings/voice',
   '/settings/interview',
   '/settings/harness',
   '/settings/agent-defaults',
+  '/settings/kit',
 ] as const;
 
 /**

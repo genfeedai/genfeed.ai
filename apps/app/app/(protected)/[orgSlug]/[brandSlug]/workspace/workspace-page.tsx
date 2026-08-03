@@ -330,7 +330,7 @@ function WorkspacePageContentContent({
           reviewInbox={initialReviewInbox}
           runs={initialRuns}
           stats={initialStats}
-          trendsHref={href('/discover/discovery')}
+          trendsHref={href('/discover/overview')}
           trendItems={trendItems}
           workspaceTasks={workspaceTasks}
         />

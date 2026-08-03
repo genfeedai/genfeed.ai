@@ -58,8 +58,6 @@ import { v4 as uuidv4 } from 'uuid';
 @Controller('editor-projects')
 @UseGuards(RolesGuard)
 export class EditorProjectsController {
-  private readonly constructorName: string = String(this.constructor.name);
-
   constructor(
     readonly _loggerService: LoggerService,
     private readonly configService: ConfigService,
@@ -202,9 +200,9 @@ export class EditorProjectsController {
 
     const aggregate = {
       where: {
-        ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
+        ...(publicMetadata.brand ? { brandId: publicMetadata.brand } : {}),
         isDeleted: false,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       },
       orderBy: query.sort
         ? handleQuerySort(query.sort)
@@ -225,15 +223,17 @@ export class EditorProjectsController {
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
 
+    // Org-scoped id lookup only — do not require brandId match. Projects are
+    // often opened from the org shell (`/:org/~`) even when created under a
+    // brand; brand-filtering here caused false 404s ("Controller doesn't exist").
     const data = await this.editorProjectsService.findOne({
-      ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
-      _id: id,
+      id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!data) {
-      return returnNotFound(this.constructorName, id);
+      return returnNotFound('Editor project', id);
     }
 
     return serializeSingle(request, EditorProjectSerializer, data);
@@ -250,14 +250,13 @@ export class EditorProjectsController {
     const publicMetadata = getPublicMetadata(user);
 
     const existing = await this.editorProjectsService.findOne({
-      ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
-      _id: id,
+      id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!existing) {
-      return returnNotFound(this.constructorName, id);
+      return returnNotFound('Editor project', id);
     }
 
     const data: EditorProjectDocument = await this.editorProjectsService.patch(
@@ -278,14 +277,13 @@ export class EditorProjectsController {
     const publicMetadata = getPublicMetadata(user);
 
     const existing = await this.editorProjectsService.findOne({
-      ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
-      _id: id,
+      id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!existing) {
-      return returnNotFound(this.constructorName, id);
+      return returnNotFound('Editor project', id);
     }
 
     const data: EditorProjectDocument = await this.editorProjectsService.patch(

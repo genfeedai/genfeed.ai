@@ -444,6 +444,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
   }),
   ...registerRoutes(
     [
+      '/:orgSlug/~/discover/overview',
       '/:orgSlug/~/discover/discovery',
       '/:orgSlug/~/discover/following',
       '/:orgSlug/~/discover/socials',
@@ -454,7 +455,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     ],
     {
       adapter: { key: 'discover', status: 'embedded' },
-      fallback: '/:orgSlug/~/discover/discovery',
+      fallback: '/:orgSlug/~/discover/overview',
       mode: 'canvas',
       productClass: 'visual-data',
       scope: 'organization',
@@ -644,6 +645,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
   }),
   ...registerRoutes(
     [
+      '/:orgSlug/:brandSlug/discover/overview',
       '/:orgSlug/:brandSlug/discover/discovery',
       '/:orgSlug/:brandSlug/discover/following',
       '/:orgSlug/:brandSlug/discover/socials',
@@ -654,7 +656,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     ],
     {
       adapter: { key: 'discover', status: 'embedded' },
-      fallback: '/:orgSlug/:brandSlug/discover/discovery',
+      fallback: '/:orgSlug/:brandSlug/discover/overview',
       mode: 'canvas',
       productClass: 'visual-data',
       scope: 'brand',
@@ -807,6 +809,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/automate',
       '/:orgSlug/:brandSlug/automate/:agentId',
       '/:orgSlug/:brandSlug/automate/overview',
+      // /automate/analytics permanently redirects to Analytics Overview
       '/:orgSlug/:brandSlug/automate/analytics',
       '/:orgSlug/:brandSlug/automate/autopilot',
       '/:orgSlug/:brandSlug/automate/runs',
@@ -868,6 +871,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/settings',
       '/:orgSlug/:brandSlug/settings/kit',
       '/:orgSlug/:brandSlug/settings/social',
+      '/:orgSlug/:brandSlug/settings/links',
       '/:orgSlug/:brandSlug/settings/voice',
       '/:orgSlug/:brandSlug/settings/harness',
       '/:orgSlug/:brandSlug/settings/interview',

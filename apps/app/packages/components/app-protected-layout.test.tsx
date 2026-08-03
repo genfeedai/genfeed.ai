@@ -227,10 +227,11 @@ vi.mock('@app-config/menu-items.config', () => ({
 }));
 
 vi.mock('@app-config/discover-menu-items.config', () => ({
-  DISCOVER_LOGO_HREF: '/discover/discovery',
+  DISCOVER_LOGO_HREF: '/discover/overview',
   DISCOVER_MENU_ITEMS: [
-    { href: '/discover/discovery', label: 'Discovery' },
+    { href: '/discover/overview', label: 'Overview' },
     { href: '/discover/socials', label: 'Socials' },
+    { href: '/discover/following', label: 'Following' },
     { href: '/discover/ads', label: 'Ads' },
   ],
 }));
@@ -827,7 +828,7 @@ describe('AppProtectedLayout', () => {
     ['/workspace', 'Workspace'],
     ['/studio/storyboard', 'Storyboard'],
     ['/library/images', 'Assets'],
-    ['/discover/discovery', 'Discovery'],
+    ['/discover/overview', 'Discovery'],
     ['/analytics', 'Overview'],
     ['/automate/workflows/executions', 'Runs'],
     ['/admin', 'Dashboard'],
@@ -1354,7 +1355,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it('renders a dedicated discover sidebar on discover routes', () => {
-    mockPathname.value = '/discover/discovery';
+    mockPathname.value = '/discover/overview';
 
     render(
       <AppProtectedLayout>
@@ -1366,7 +1367,7 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({
         currentApp: 'discover',
         items: [
-          { href: '/discover/discovery', label: 'Discovery' },
+          { href: '/discover/overview', label: 'Overview' },
           { href: '/discover/socials', label: 'Socials' },
           { href: '/discover/ads', label: 'Ads' },
         ],

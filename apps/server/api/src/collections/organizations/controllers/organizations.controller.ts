@@ -189,7 +189,11 @@ export class OrganizationsController extends BaseCRUDController<
       return this.findMine(user);
     }
 
-    if (!getIsSuperAdmin(user)) {
+    // Must pass request: self-host hydrates `context.isSuperAdmin`, while
+    // JWT `publicMetadata.isSuperAdmin` is derived from users.platformRole.
+    // Checking user alone 403s platform admins who only have the context bit
+    // (local Portless / self-host) — same split that SuperAdminGuard avoids.
+    if (!getIsSuperAdmin(user, request)) {
       throw new HttpException(
         {
           detail: 'Platform superadmin access is required',

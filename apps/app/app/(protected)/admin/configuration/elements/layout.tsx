@@ -138,17 +138,20 @@ export default function ElementsLayout({ children }: LayoutProps) {
         label={currentElement.label}
         description={currentElement.description}
         icon={Tag}
-        tabs={Object.keys(ELEMENT_LABELS).reduce<
-          Array<{ href: string; label: string }>
-        >((tabs, type) => {
-          if (type !== 'font-families') {
-            tabs.push({
-              href: `${APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS}/${type}`,
-              label: ELEMENT_LABELS[type].label,
-            });
-          }
-          return tabs;
-        }, [])}
+        headerTabs={{
+          fullWidth: false,
+          tabs: Object.keys(ELEMENT_LABELS).reduce<
+            Array<{ href: string; label: string }>
+          >((tabs, type) => {
+            if (type !== 'font-families') {
+              tabs.push({
+                href: `${APP_ROUTES.ADMIN.CONFIGURATION.ELEMENTS}/${type}`,
+                label: ELEMENT_LABELS[type].label,
+              });
+            }
+            return tabs;
+          }, []),
+        }}
         right={
           <div className="flex items-center gap-2">
             <FiltersButton

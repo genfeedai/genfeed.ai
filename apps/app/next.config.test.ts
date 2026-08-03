@@ -228,7 +228,7 @@ describe('app next.config', () => {
     ).toBe(false);
   });
 
-  it('redirects org-scoped /discover to /discover/discovery', async () => {
+  it('redirects org-scoped /discover to /discover/overview', async () => {
     const redirects = await config.redirects?.();
     const discoverRedirect = redirects?.find(
       (redirect) =>
@@ -240,7 +240,7 @@ describe('app next.config', () => {
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.DISCOVER.DISCOVERY,
+        APP_ROUTES.DISCOVER.OVERVIEW,
       ),
       permanent: false,
       source: createBrandAppRoute(

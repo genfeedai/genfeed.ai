@@ -219,34 +219,37 @@ export default function TrainingDetail({
       </Container>
 
       <Container
-        tabs={[
-          {
-            badge:
-              training.totalGeneratedImages !== undefined ? (
-                <Badge
-                  value={training.totalGeneratedImages}
-                  variant="info"
-                  size={ComponentSize.SM}
-                />
-              ) : undefined,
-            href: `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/${trainingId}/images`,
-            icon: Image,
-            label: 'Images',
-          },
-          {
-            badge:
-              training.totalSources !== undefined ? (
-                <Badge
-                  value={training.totalSources}
-                  variant="secondary"
-                  size={ComponentSize.SM}
-                />
-              ) : undefined,
-            href: `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/${trainingId}/sources`,
-            icon: Database,
-            label: 'Sources',
-          },
-        ]}
+        headerTabs={{
+          fullWidth: false,
+          tabs: [
+            {
+              badge:
+                training.totalGeneratedImages !== undefined ? (
+                  <Badge
+                    value={training.totalGeneratedImages}
+                    variant="info"
+                    size={ComponentSize.SM}
+                  />
+                ) : undefined,
+              href: `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/${trainingId}/images`,
+              icon: Image,
+              label: 'Images',
+            },
+            {
+              badge:
+                training.totalSources !== undefined ? (
+                  <Badge
+                    value={training.totalSources}
+                    variant="secondary"
+                    size={ComponentSize.SM}
+                  />
+                ) : undefined,
+              href: `${APP_ROUTES.ADMIN.AUTOMATION.TRAININGS}/${trainingId}/sources`,
+              icon: Database,
+              label: 'Sources',
+            },
+          ],
+        }}
       >
         {children}
       </Container>

@@ -31,11 +31,11 @@ function materializeRoutePattern(pattern: string): string {
 
 describe('workspace shell trusted registry', () => {
   it('owns the complete accepted protected-route denominator', () => {
-    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(209);
+    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(211);
     expect(
       new Set(PROTECTED_ROUTE_INVENTORY.map((route) => route.canonicalUrl))
         .size,
-    ).toBe(209);
+    ).toBe(211);
 
     for (const route of PROTECTED_ROUTE_INVENTORY) {
       expect(route.accessPolicy).toMatch(
@@ -403,17 +403,17 @@ describe('workspace shell trusted registry', () => {
   });
 
   it('registers organization-scoped Discover as an embedded surface', () => {
-    const route = resolveWorkspaceShellRoute('/acme/~/discover/discovery');
+    const route = resolveWorkspaceShellRoute('/acme/~/discover/overview');
 
     expect(route).toMatchObject({
       adapter: { key: 'discover', status: 'embedded' },
-      canonicalUrl: '/:orgSlug/~/discover/discovery',
-      safeFallback: '/:orgSlug/~/discover/discovery',
+      canonicalUrl: '/:orgSlug/~/discover/overview',
+      safeFallback: '/:orgSlug/~/discover/overview',
       scope: 'organization',
       surfaceKey: 'discover',
     });
     expect(route && resolveWorkspaceShellSafeFallback(route)).toBe(
-      '/acme/~/discover/discovery',
+      '/acme/~/discover/overview',
     );
   });
 
@@ -431,11 +431,11 @@ describe('workspace shell trusted registry', () => {
     expect(route).toMatchObject({
       adapter: { key: 'discover', status: 'embedded' },
       mode: 'canvas',
-      safeFallback: '/:orgSlug/:brandSlug/discover/discovery',
+      safeFallback: '/:orgSlug/:brandSlug/discover/overview',
       surfaceKey: 'discover',
     });
     expect(route && resolveWorkspaceShellSafeFallback(route)).toBe(
-      '/acme/moonrise/discover/discovery',
+      '/acme/moonrise/discover/overview',
     );
   });
 

@@ -264,7 +264,7 @@ const config = createAppNextConfig({
       ),
     },
     {
-      destination: APP_ROUTES.DISCOVER.DISCOVERY,
+      destination: APP_ROUTES.DISCOVER.OVERVIEW,
       permanent: false,
       source: APP_ROUTES.DISCOVER.ROOT,
     },
@@ -272,13 +272,31 @@ const config = createAppNextConfig({
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.DISCOVER.DISCOVERY,
+        APP_ROUTES.DISCOVER.OVERVIEW,
       ),
       permanent: false,
       source: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
         APP_ROUTES.DISCOVER.ROOT,
+      ),
+    },
+    {
+      destination: APP_ROUTES.DISCOVER.OVERVIEW,
+      permanent: true,
+      source: APP_ROUTES.DISCOVER.DISCOVERY,
+    },
+    {
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.DISCOVER.OVERVIEW,
+      ),
+      permanent: true,
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.DISCOVER.DISCOVERY,
       ),
     },
     {

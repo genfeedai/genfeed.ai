@@ -16,11 +16,12 @@ import {
  * Analytics is the single home for measurement — the Publish module no longer
  * carries its own analytics page.
  *
- * Menu grouping rules (headers separate the three questions the module answers):
- * - Performance: what happened (Overview, Posts, Brands)
- * - Intelligence: why it happened and what is next (Insights, Hooks,
- *   Performance Lab, Trends, Trend Turnover)
- * - Habits: how consistently you show up (Streaks)
+ * Two usage groups only (no single-item Habit/Insights headers):
+ * - Performance: what happened (Overview, Posts, Brands, Streaks)
+ * - Intelligence: why it happened / what next (Insights, Hooks, Lab, Trends)
+ *
+ * Streaks stays in Performance — posting consistency is a performance signal,
+ * not a third top-level product area. Route kept; not a separate Habits surface.
  *
  * Every icon is unique — a repeated glyph makes two rows read as one entry.
  */
@@ -50,6 +51,14 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     solid: Building2,
   },
   {
+    group: 'Performance',
+    href: APP_ROUTES.ANALYTICS.STREAKS,
+    label: 'Streaks',
+    matchPaths: [APP_ROUTES.ANALYTICS.STREAKS],
+    outline: Flame,
+    solid: Flame,
+  },
+  {
     group: 'Intelligence',
     href: APP_ROUTES.ANALYTICS.INSIGHTS,
     label: 'Insights',
@@ -66,8 +75,7 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     solid: Magnet,
   },
   {
-    // Pattern mining (hook/CTA/structure formulas), so it sits with Hooks
-    // rather than under Performance despite the label.
+    // Pattern mining (hook/CTA/structure formulas) sits with Hooks / Insights.
     group: 'Intelligence',
     href: APP_ROUTES.ANALYTICS.PERFORMANCE_LAB,
     label: 'Performance Lab',
@@ -76,8 +84,6 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     solid: FlaskConical,
   },
   {
-    // `/analytics/trends` shipped a page, drilldowns, and workspace-shell
-    // breadcrumbs but never a nav entry — same orphan pattern as `/studio/clips`.
     group: 'Intelligence',
     href: APP_ROUTES.ANALYTICS.TRENDS,
     label: 'Trends',
@@ -92,14 +98,6 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [APP_ROUTES.ANALYTICS.TREND_TURNOVER],
     outline: Repeat,
     solid: Repeat,
-  },
-  {
-    group: 'Habits',
-    href: APP_ROUTES.ANALYTICS.STREAKS,
-    label: 'Streaks',
-    matchPaths: [APP_ROUTES.ANALYTICS.STREAKS],
-    outline: Flame,
-    solid: Flame,
   },
 ];
 

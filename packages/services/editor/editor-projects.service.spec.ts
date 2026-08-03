@@ -155,6 +155,23 @@ describe('EditorProjectsService', () => {
     expect(result).toBeNull();
   });
 
+  it('findById returns null on JSON:API 404 without treating it as a hard error', async () => {
+    // Dev interceptor throws response.data (JSON:API body), not AxiosError.
+    mockInstance.get.mockRejectedValue({
+      errors: [
+        {
+          code: '404',
+          detail: "EditorProjectsController proj-missing doesn't exist",
+          title: 'EditorProjectsController not found',
+        },
+      ],
+    });
+
+    const result = await service.findById('proj-missing');
+
+    expect(result).toBeNull();
+  });
+
   it('findById returns null on other errors and logs', async () => {
     mockInstance.get.mockRejectedValue(new Error('Internal'));
 

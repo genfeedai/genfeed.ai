@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import type { IBrand, IOrganization } from '@genfeedai/interfaces';
+import type { IBrand } from '@genfeedai/interfaces';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { useQuery } from '@tanstack/react-query';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
@@ -28,7 +28,9 @@ export default function AdminOrgBrandFilter({
     queryKey: ['admin-organizations'],
     queryFn: async () => {
       const service = await getOrganizationsService();
-      return service.findAll({ pagination: false });
+      // Platform-wide superadmin list. Pages at limit≤100 (BaseQueryDto max)
+      // and returns slim { id, label, slug } rows for the picker.
+      return service.getAllOrganizations();
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -48,7 +50,7 @@ export default function AdminOrgBrandFilter({
   const orgOptions = useMemo(
     () => [
       { label: 'All Organizations', value: '' },
-      ...organizations.map((org: IOrganization) => ({
+      ...organizations.map((org) => ({
         label: org.label || org.id,
         value: org.id,
       })),
