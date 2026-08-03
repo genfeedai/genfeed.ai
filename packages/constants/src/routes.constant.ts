@@ -246,7 +246,8 @@ export const APP_ROUTES = {
      */
     SOCIAL: '/settings/social',
     /**
-     * Brand-scoped external website / profile links (not OAuth integrations).
+     * @deprecated External links edit on Brand Profile via ModalBrandLink.
+     * Route permanently redirects to SETTINGS.ROOT.
      */
     LINKS: '/settings/links',
     USAGE: '/settings/usage',

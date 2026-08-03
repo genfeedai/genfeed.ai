@@ -1,14 +1,18 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
-import { Suspense } from 'react';
-import BrandSettingsLinksPage from './content';
+import { redirect } from 'next/navigation';
 
 export const generateMetadata = createPageMetadata('Links');
 
-export default function BrandSettingsLinksRoute() {
-  return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-      <BrandSettingsLinksPage />
-    </Suspense>
-  );
+/**
+ * External links live on Brand Profile (list + ModalBrandLink).
+ * Keep this route as a permanent redirect for old bookmarks/menu links.
+ */
+export default async function BrandSettingsLinksRoute({
+  params,
+}: {
+  params: Promise<{ orgSlug: string; brandSlug: string }>;
+}) {
+  const { orgSlug, brandSlug } = await params;
+  redirect(`/${orgSlug}/${brandSlug}${APP_ROUTES.SETTINGS.ROOT}`);
 }

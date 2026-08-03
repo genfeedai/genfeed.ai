@@ -8,7 +8,7 @@ import Loading from '@ui/loading/default/Loading';
 
 /**
  * Brand Social settings — OAuth / connected platform accounts only.
- * External website links live at /settings/links.
+ * External website links live on Brand Profile via ModalBrandLink.
  */
 export default function BrandSettingsSocialPage() {
   const {

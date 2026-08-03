@@ -89,19 +89,18 @@ describe('BrandDetailSidebar', () => {
     expect(screen.queryByText('Social Summary Card')).not.toBeInTheDocument();
   });
 
-  it('renders social and links summaries when manage hrefs are set', () => {
+  it('renders social summary and inline links when only social manage href is set', () => {
     render(
       <BrandDetailSidebar
         {...props}
         manageSocialHref="/org/brand/settings/social"
-        manageLinksHref="/org/brand/settings/links"
       />,
     );
 
     expect(screen.getByText('Account Settings Card')).toBeInTheDocument();
     expect(screen.getByText('Social Summary Card')).toBeInTheDocument();
-    expect(screen.getByText('Links Summary Card')).toBeInTheDocument();
+    expect(screen.getByText('External Links Card')).toBeInTheDocument();
     expect(screen.queryByText('Social Media Card')).not.toBeInTheDocument();
-    expect(screen.queryByText('External Links Card')).not.toBeInTheDocument();
+    expect(screen.queryByText('Links Summary Card')).not.toBeInTheDocument();
   });
 });

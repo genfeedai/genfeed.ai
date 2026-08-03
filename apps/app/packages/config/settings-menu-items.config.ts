@@ -29,7 +29,6 @@ const BRAND_SETTINGS = {
   HARNESS: '/settings/harness',
   INTERVIEW: '/settings/interview',
   KIT: '/settings/kit',
-  LINKS: '/settings/links',
   PROFILE: APP_ROUTES.SETTINGS.ROOT,
   PUBLISHING: '/settings/publishing',
   SOCIAL: '/settings/social',
@@ -212,14 +211,6 @@ function buildBrandMenuItems(): MenuItemConfig[] {
       label: 'Social',
       outline: Share2,
       solid: Share2,
-    },
-    {
-      group: 'Brand',
-      href: BRAND_SETTINGS.LINKS,
-      hrefScope: 'brand',
-      label: 'Links',
-      outline: Link,
-      solid: Link,
     },
     {
       group: 'Brand',

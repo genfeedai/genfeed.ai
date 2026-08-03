@@ -65,7 +65,10 @@ export interface BrandDetailSidebarProps {
   isUpdatingPublicProfile?: boolean;
   /** When set, sidebar shows a Social accounts summary linking to /settings/social. */
   manageSocialHref?: string;
-  /** When set, sidebar shows an external Links summary linking to /settings/links. */
+  /**
+   * @deprecated Prefer inline External Links card + ModalBrandLink on Profile.
+   * When set, still shows a summary link (legacy). Prefer leaving unset.
+   */
   manageLinksHref?: string;
   onTogglePublicProfile: (isPublic: boolean) => void;
   onRefreshBrand: () => Promise<void>;

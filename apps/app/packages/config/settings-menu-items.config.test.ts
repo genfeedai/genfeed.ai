@@ -156,9 +156,7 @@ describe('buildSettingsMenuItems', () => {
       expect(items.find((i) => i.label === 'Social')?.href).toBe(
         '/settings/social',
       );
-      expect(items.find((i) => i.label === 'Links')?.href).toBe(
-        '/settings/links',
-      );
+      expect(items.find((i) => i.label === 'Links')).toBeUndefined();
       expect(items.find((i) => i.label === 'Brand Kit')?.href).toBe(
         '/settings/kit',
       );
@@ -171,7 +169,6 @@ describe('buildSettingsMenuItems', () => {
       expect(items.map((item) => [item.label, item.group])).toEqual([
         ['Profile', 'Brand'],
         ['Social', 'Brand'],
-        ['Links', 'Brand'],
         ['Brand Kit', 'Brand'],
         ['Brand voice', 'Brand'],
         ['Interview', 'Brand'],

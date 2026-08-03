@@ -12,7 +12,7 @@ function formatConnected(count: number): string {
 
 /**
  * Profile-sidebar summary for OAuth / social integrations only.
- * External website links live on the Links summary + /settings/links.
+ * External website links live on Brand Profile (inline list + ModalBrandLink).
  */
 export default function BrandDetailSocialSummaryCard({
   connectedPlatformsCount,
