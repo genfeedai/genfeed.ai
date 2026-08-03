@@ -11,7 +11,7 @@
     "@nestjs/axios": "4.0.1",
     "@nestjs/bullmq": "11.0.4",
     "@nestjs/common": "11.1.28",
-    "bullmq": "5.81.3",
+    "bullmq": "6.0.6",
     "jsonwebtoken": "9.0.3",
     "rxjs": "7.8.2"
   },
