@@ -7,6 +7,7 @@ import {
   flushBufferedEventsForThread,
 } from '@genfeedai/agent/hooks/agent-chat-stream.helpers';
 import { restoreThreadFromSnapshot as restoreThreadFromSnapshotFn } from '@genfeedai/agent/hooks/agent-chat-stream.restore';
+import { attachAgentStreamSubscriptions } from '@genfeedai/agent/hooks/agent-chat-stream.subscriptions';
 import type {
   BufferedThreadEvent,
   PendingStreamCompletion,
@@ -17,22 +18,7 @@ import type {
 import { STREAM_COMPLETION_POLL_INTERVAL_MS } from '@genfeedai/agent/hooks/agent-chat-stream.types';
 import type {
   AgentChatMessage,
-  AgentInputRequestPayload,
-  AgentInputResolvedPayload,
-  AgentStreamDonePayload,
-  AgentStreamErrorPayload,
-  AgentStreamReasoningPayload,
-  AgentStreamStartPayload,
-  AgentStreamTokenPayload,
-  AgentStreamToolCompletePayload,
-  AgentStreamToolStartPayload,
-  AgentStreamUIBlocksPayload,
   AgentThread,
-  AgentWorkEventPayload,
-} from '@genfeedai/agent/models/agent-chat.model';
-import {
-  AgentWorkEventStatus,
-  AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
@@ -571,331 +557,35 @@ export function useAgentChatStream(
       }));
 
       try {
-        const filterByThread =
-          (handler: (data: unknown) => void) => (data: unknown) => {
-            const payload = data as { threadId?: string };
-
-            if (!activeStreamThreadRef.current) {
-              bufferedEventsRef.current.push({
-                data,
-                handler,
-                threadId: payload.threadId,
-              });
-              return;
-            }
-
-            if (payload.threadId === activeStreamThreadRef.current) {
-              handler(data);
-            }
-          };
-
         unsubscribersRef.current.push(
-          subscribe<AgentStreamStartPayload>(
-            'agent:stream_start',
-            filterByThread((data) => {
-              const payload = data as AgentStreamStartPayload;
-              touchCompletionWatchdog();
-              markThreadRunning(payload.threadId, {
-                lastActivityAt: payload.startedAt ?? new Date().toISOString(),
-              });
-
-              if (payload.runId && isThreadVisible(payload.threadId)) {
-                setActiveRun(payload.runId, {
-                  startedAt: payload.startedAt ?? null,
-                  status: 'running',
-                });
-              }
-
-              if (payload.startedAt && isThreadVisible(payload.threadId)) {
-                setRunStartedAt(payload.startedAt);
-              }
-            }),
-          ),
-        );
-
-        unsubscribersRef.current.push(
-          subscribe<AgentStreamTokenPayload>(
-            'agent:token',
-            filterByThread((data) => {
-              const payload = data as AgentStreamTokenPayload;
-              touchCompletionWatchdog();
-              markThreadRunning(payload.threadId);
-              if (isThreadVisible(payload.threadId)) {
-                appendStreamToken(payload.token);
-              }
-            }),
-          ),
-        );
-
-        unsubscribersRef.current.push(
-          subscribe<AgentStreamReasoningPayload>(
-            'agent:reasoning',
-            filterByThread((data) => {
-              const payload = data as AgentStreamReasoningPayload;
-              touchCompletionWatchdog();
-              markThreadRunning(payload.threadId);
-              if (isThreadVisible(payload.threadId)) {
-                setStreamingReasoning(payload.content);
-              }
-            }),
-          ),
-        );
-
-        unsubscribersRef.current.push(
-          subscribe<AgentStreamToolStartPayload>(
-            'agent:tool_start',
-            filterByThread((data) => {
-              const payload = data as AgentStreamToolStartPayload;
-              touchCompletionWatchdog();
-              markThreadRunning(payload.threadId);
-              if (isThreadVisible(payload.threadId)) {
-                addActiveToolCall({
-                  arguments: payload.parameters,
-                  detail: payload.detail,
-                  id: payload.toolCallId,
-                  label: payload.label,
-                  name: payload.toolName,
-                  parameters: payload.parameters,
-                  phase: payload.phase,
-                  progress: payload.progress,
-                  startedAt: payload.startedAt ?? payload.timestamp,
-                  status: 'running',
-                });
-              }
-            }),
-          ),
-        );
-
-        unsubscribersRef.current.push(
-          subscribe<AgentStreamToolCompletePayload>(
-            'agent:tool_complete',
-            filterByThread((data) => {
-              const payload = data as AgentStreamToolCompletePayload;
-              touchCompletionWatchdog();
-              markThreadRunning(payload.threadId);
-              if (isThreadVisible(payload.threadId)) {
-                updateActiveToolCall(payload.toolCallId, {
-                  debug: payload.debug,
-                  detail: payload.detail,
-                  error: payload.error,
-                  estimatedDurationMs: payload.estimatedDurationMs,
-                  label: payload.label,
-                  phase: payload.phase,
-                  progress: payload.progress,
-                  remainingDurationMs: payload.remainingDurationMs,
-                  resultSummary: payload.resultSummary,
-                  status: payload.status,
-                });
-                if (payload.uiActions?.length) {
-                  addPendingUiActions(payload.uiActions);
-                }
-              }
-            }),
-          ),
-        );
-
-        unsubscribersRef.current.push(
-          subscribe<AgentStreamDonePayload>(
-            'agent:done',
-            filterByThread((data) => {
-              const payload = data as AgentStreamDonePayload;
-
-              pendingCompletionRef.current = null;
-              clearCompletionWatchdog();
-
-              const assistantMessage: AgentChatMessage = {
-                content: payload.fullContent,
-                createdAt: new Date().toISOString(),
-                id: `assistant-${Date.now()}`,
-                metadata: {
-                  ...payload.metadata,
-                  toolCalls: payload.toolCalls.map(mapToolCallResponse),
-                },
-                role: 'assistant',
-                threadId: payload.threadId,
-              };
-
-              updateThreadSummary(payload.threadId, {
-                attentionState: isThreadVisible(payload.threadId)
-                  ? null
-                  : 'updated',
-                lastActivityAt: assistantMessage.createdAt,
-                lastAssistantPreview: payload.fullContent.slice(0, 280),
-                pendingInputCount: 0,
-                runStatus: 'completed',
-              });
-              if (isThreadVisible(payload.threadId)) {
-                finalizeStream(assistantMessage);
-                setActiveRun(payload.runId ?? null, {
-                  startedAt: payload.startedAt ?? null,
-                  status: 'completed',
-                });
-                setCreditsRemaining(payload.creditsRemaining);
-                clearPendingInputRequest();
-              }
-              cleanupSubscriptions();
-
-              Promise.resolve(
-                completeOnboardingIfNeeded(payload.toolCalls),
-              ).catch(() => {
-                // Intentionally swallowed — onboarding completion is fire-and-forget
-              });
-            }),
-          ),
-        );
-
-        unsubscribersRef.current.push(
-          subscribe<AgentStreamErrorPayload>(
-            'agent:error',
-            filterByThread((data) => {
-              const payload = data as AgentStreamErrorPayload;
-
-              pendingCompletionRef.current = null;
-              clearCompletionWatchdog();
-              const nextStatus =
-                payload.error === 'Agent run cancelled'
-                  ? 'cancelled'
-                  : 'failed';
-              updateThreadSummary(payload.threadId, {
-                attentionState: isThreadVisible(payload.threadId)
-                  ? null
-                  : 'updated',
-                lastActivityAt: new Date().toISOString(),
-                pendingInputCount: 0,
-                runStatus: nextStatus,
-              });
-              if (isThreadVisible(payload.threadId)) {
-                setError(payload.error);
-                setActiveRunStatus(nextStatus);
-                resetStreamState();
-              }
-              cleanupSubscriptions();
-            }),
-          ),
-        );
-
-        unsubscribersRef.current.push(
-          subscribe<AgentStreamUIBlocksPayload>(
-            'agent:ui_blocks',
-            filterByThread((data) => {
-              const payload = data as AgentStreamUIBlocksPayload;
-              touchCompletionWatchdog();
-              markThreadRunning(payload.threadId);
-              if (isThreadVisible(payload.threadId)) {
-                applyDashboardOperation(
-                  payload.operation,
-                  payload.blocks,
-                  payload.blockIds,
-                );
-              }
-            }),
-          ),
-        );
-
-        unsubscribersRef.current.push(
-          subscribe<AgentWorkEventPayload>(
-            'agent:work_event',
-            filterByThread((data) => {
-              const payload = data as AgentWorkEventPayload;
-              touchCompletionWatchdog();
-              markThreadRunning(payload.threadId, {
-                lastActivityAt: payload.timestamp,
-              });
-              if (isThreadVisible(payload.threadId)) {
-                addWorkEvent({
-                  createdAt: payload.timestamp,
-                  debug: payload.debug,
-                  detail: payload.detail,
-                  estimatedDurationMs: payload.estimatedDurationMs,
-                  event: payload.event,
-                  id: `${payload.event}-${payload.toolCallId ?? payload.inputRequestId ?? payload.timestamp}`,
-                  inputRequestId: payload.inputRequestId,
-                  label: payload.label,
-                  parameters: payload.parameters,
-                  phase: payload.phase,
-                  progress: payload.progress,
-                  remainingDurationMs: payload.remainingDurationMs,
-                  resultSummary: payload.resultSummary,
-                  runId: payload.runId,
-                  startedAt: payload.startedAt,
-                  status: payload.status,
-                  threadId: payload.threadId,
-                  toolCallId: payload.toolCallId,
-                  toolName: payload.toolName,
-                });
-              }
-            }),
-          ),
-        );
-
-        unsubscribersRef.current.push(
-          subscribe<AgentInputRequestPayload>(
-            'agent:input_request',
-            filterByThread((data) => {
-              const payload = data as AgentInputRequestPayload;
-              touchCompletionWatchdog();
-              updateThreadSummary(payload.threadId, {
-                attentionState: 'needs-input',
-                lastActivityAt: payload.timestamp,
-                pendingInputCount: 1,
-                runStatus: 'waiting_input',
-              });
-              if (isThreadVisible(payload.threadId)) {
-                setPendingInputRequest({
-                  allowFreeText: payload.allowFreeText,
-                  fieldId: payload.fieldId,
-                  inputRequestId: payload.inputRequestId,
-                  metadata: payload.metadata,
-                  options: payload.options,
-                  prompt: payload.prompt,
-                  recommendedOptionId: payload.recommendedOptionId,
-                  runId: payload.runId,
-                  threadId: payload.threadId,
-                  title: payload.title,
-                });
-                addWorkEvent({
-                  createdAt: payload.timestamp,
-                  detail: payload.prompt,
-                  event: AgentWorkEventType.INPUT_REQUESTED,
-                  id: `input-request-${payload.inputRequestId}`,
-                  inputRequestId: payload.inputRequestId,
-                  label: payload.title,
-                  runId: payload.runId,
-                  status: AgentWorkEventStatus.PENDING,
-                  threadId: payload.threadId,
-                });
-              }
-            }),
-          ),
-        );
-
-        unsubscribersRef.current.push(
-          subscribe<AgentInputResolvedPayload>(
-            'agent:input_resolved',
-            filterByThread((data) => {
-              const payload = data as AgentInputResolvedPayload;
-              touchCompletionWatchdog();
-              markThreadRunning(payload.threadId, {
-                lastActivityAt: payload.timestamp,
-                pendingInputCount: 0,
-                runStatus: 'running',
-              });
-              if (isThreadVisible(payload.threadId)) {
-                clearPendingInputRequest();
-                addWorkEvent({
-                  createdAt: payload.timestamp,
-                  detail: payload.answer,
-                  event: AgentWorkEventType.INPUT_SUBMITTED,
-                  id: `input-resolved-${payload.inputRequestId}`,
-                  inputRequestId: payload.inputRequestId,
-                  label: 'User input submitted',
-                  runId: payload.runId,
-                  status: AgentWorkEventStatus.COMPLETED,
-                  threadId: payload.threadId,
-                });
-              }
-            }),
-          ),
+          ...attachAgentStreamSubscriptions({
+            activeStreamThreadRef,
+            addActiveToolCall,
+            addPendingUiActions,
+            addWorkEvent,
+            appendStreamToken,
+            bufferedEventsRef,
+            cleanupSubscriptions,
+            clearCompletionWatchdog,
+            clearPendingInputRequest,
+            completeOnboardingIfNeeded,
+            finalizeStream,
+            isThreadVisible,
+            markThreadRunning,
+            pendingCompletionRef,
+            resetStreamState,
+            setActiveRun,
+            setActiveRunStatus,
+            setCreditsRemaining,
+            setError,
+            setPendingInputRequest,
+            setRunStartedAt,
+            setStreamingReasoning,
+            subscribe,
+            touchCompletionWatchdog,
+            updateActiveToolCall,
+            updateThreadSummary,
+          }),
         );
 
         const resolvedModel = model?.trim() || DEFAULT_RUNTIME_AGENT_MODEL;

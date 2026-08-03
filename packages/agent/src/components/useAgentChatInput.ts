@@ -1,4 +1,11 @@
 import type { AgentChatReferenceItem } from '@genfeedai/agent/components/AgentChatInputAttachmentTray';
+import {
+  areAgentChatMentionReferencesEqual,
+  buildMentionSuggestion,
+  extractMentions,
+  mapMentionsToReferences,
+  SendOnEnter,
+} from '@genfeedai/agent/components/agent-chat-input.mentions';
 import { BrandMentionList } from '@genfeedai/agent/components/BrandMentionList';
 import { ContentMentionList } from '@genfeedai/agent/components/ContentMentionList';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
@@ -38,16 +45,13 @@ import type {
   DragHandlers,
   DragState,
 } from '@genfeedai/props/ui/attachments.props';
-import { type Editor, Extension, type JSONContent } from '@tiptap/core';
-import type { MentionNodeAttrs } from '@tiptap/extension-mention';
+import type { Editor } from '@tiptap/core';
 import Placeholder from '@tiptap/extension-placeholder';
 import { Fragment, Slice } from '@tiptap/pm/model';
-import { ReactRenderer, useEditor } from '@tiptap/react';
+import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import type { SuggestionProps } from '@tiptap/suggestion';
 import {
   type ClipboardEvent,
-  type ComponentType,
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
@@ -56,7 +60,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import tippy, { type Instance } from 'tippy.js';
 import type { ExtractedMention } from './AgentChatInput';
 
 const EMPTY_SURFACE_ARTIFACT_REFERENCES: readonly (
@@ -77,210 +80,11 @@ function normalizeSurfaceArtifactReference(
   };
 }
 
-// ---------------------------------------------------------------------------
-// Pure helpers (no JSX — safe in .ts file)
-// ---------------------------------------------------------------------------
-
-function extractMentions(json: JSONContent): ExtractedMention[] {
-  const result: ExtractedMention[] = [];
-
-  function walk(node: JSONContent) {
-    if (node.attrs) {
-      switch (node.type) {
-        case 'brandMention':
-          result.push({
-            brandName: node.attrs.brandName as string,
-            brandSlug: node.attrs.brandSlug as string,
-            id: node.attrs.brandId as string,
-            type: 'brand',
-          });
-          break;
-        case 'teamMention':
-          result.push({
-            displayName: node.attrs.displayName as string,
-            id: node.attrs.userId as string,
-            isAgent: node.attrs.isAgent as boolean,
-            role: node.attrs.role as string,
-            type: 'team',
-          });
-          break;
-        case 'credentialMention':
-          result.push({
-            handle: node.attrs.handle as string,
-            id: node.attrs.id as string,
-            platform: node.attrs.platform as string,
-            type: 'credential',
-          });
-          break;
-        case 'contentMention':
-          result.push({
-            contentTitle: node.attrs.contentTitle as string,
-            contentType: node.attrs.contentType as string,
-            id: node.attrs.contentId as string,
-            type: 'content',
-          });
-          break;
-      }
-    }
-    if (node.content) {
-      for (const child of node.content) {
-        walk(child);
-      }
-    }
-  }
-
-  walk(json);
-  return result;
-}
-
-function mapMentionsToReferences(
-  mentions: readonly ExtractedMention[],
-): AgentChatReferenceItem[] {
-  return mentions.map((mention) => ({
-    id: mention.id,
-    label:
-      mention.type === 'brand'
-        ? `#${mention.brandName}`
-        : mention.type === 'team'
-          ? `@${mention.displayName}`
-          : mention.type === 'credential'
-            ? `!${mention.handle}`
-            : `^${mention.contentTitle}`,
-    type: mention.type,
-  }));
-}
-
-/** True when mention chip lists are equivalent (order-sensitive). */
-export function areAgentChatMentionReferencesEqual(
-  previous: readonly AgentChatReferenceItem[],
-  next: readonly AgentChatReferenceItem[],
-): boolean {
-  if (previous.length !== next.length) {
-    return false;
-  }
-
-  for (let index = 0; index < previous.length; index += 1) {
-    const left = previous[index];
-    const right = next[index];
-    if (
-      !left ||
-      !right ||
-      left.id !== right.id ||
-      left.label !== right.label ||
-      left.type !== right.type
-    ) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-interface SendOnEnterOptions {
-  onEnter: () => boolean;
-}
-
-// Enter submits the message (mirroring the Send button); Shift+Enter falls
-// through to the HardBreak newline. Declared before the mention/slash
-// extensions so their Suggestion plugins keep Enter-to-select while a popup is
-// open, but ahead of the core newline keymap when no popup is active. The IME
-// guard prevents committing an in-progress composition (critical for CJK).
-const SendOnEnter = Extension.create<SendOnEnterOptions>({
-  addKeyboardShortcuts() {
-    return {
-      Enter: ({ editor }) => {
-        if (editor.view.composing) {
-          return false;
-        }
-        return this.options.onEnter();
-      },
-    };
-  },
-  addOptions() {
-    return {
-      onEnter: () => false,
-    };
-  },
-  name: 'sendOnEnter',
-});
-
-type MentionSuggestionRenderProps = SuggestionProps<unknown, MentionNodeAttrs>;
-
-function getMentionClientRect(
-  props: MentionSuggestionRenderProps,
-): () => DOMRect {
-  return () => props.clientRect?.() ?? new DOMRect();
-}
-
-function buildMentionSuggestion<T>({
-  component,
-  getItems,
-}: {
-  component: ComponentType<{ items: T[]; command: (item: T) => void }>;
-  getItems: (query: string) => T[];
-}) {
-  return {
-    items: ({ query }: { query: string }) => getItems(query),
-    render: () => {
-      let reactRenderer: ReactRenderer;
-      let popup: Instance[];
-
-      return {
-        onExit: () => {
-          if (popup[0]) {
-            popup[0].destroy();
-          }
-          reactRenderer.destroy();
-        },
-        onKeyDown: (props: { event: KeyboardEvent }) => {
-          if (props.event.key === 'Escape') {
-            if (popup[0]) {
-              popup[0].hide();
-            }
-            return true;
-          }
-          return (
-            (
-              reactRenderer.ref as {
-                onKeyDown: (p: { event: KeyboardEvent }) => boolean;
-              }
-            )?.onKeyDown(props) ?? false
-          );
-        },
-        onStart: (props: MentionSuggestionRenderProps) => {
-          reactRenderer = new ReactRenderer(
-            component as ComponentType<Record<string, unknown>>,
-            {
-              editor: props.editor,
-              props,
-            },
-          );
-          popup = tippy('body', {
-            appendTo: () => document.body,
-            content: reactRenderer.element,
-            getReferenceClientRect: getMentionClientRect(props),
-            interactive: true,
-            placement: 'bottom-start',
-            showOnCreate: true,
-            trigger: 'manual',
-          });
-        },
-        onUpdate: (props: MentionSuggestionRenderProps) => {
-          reactRenderer.updateProps(props);
-          if (popup[0]) {
-            popup[0].setProps({
-              getReferenceClientRect: getMentionClientRect(props),
-            });
-          }
-        },
-      };
-    },
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Hook params — mirror the public props that drive logic
-// ---------------------------------------------------------------------------
+export {
+  areAgentChatMentionReferencesEqual,
+  extractMentions,
+  mapMentionsToReferences,
+};
 
 interface UseAgentChatInputParams {
   onSend: (
@@ -302,10 +106,6 @@ interface UseAgentChatInputParams {
   getCompletedAttachments?: () => ChatAttachment[];
   clearAllAttachments?: () => void;
 }
-
-// ---------------------------------------------------------------------------
-// Hook
-// ---------------------------------------------------------------------------
 
 export function useAgentChatInput({
   onSend,
@@ -644,7 +444,7 @@ export function useAgentChatInput({
       return;
     }
     editor.view.dispatch(editor.state.tr);
-  }, [editor, placeholder]);
+  }, [editor]);
 
   const handleSend = useCallback(async () => {
     if (!editor || disabled) {
