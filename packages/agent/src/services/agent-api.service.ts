@@ -1,51 +1,9 @@
-import type {
-  AgentChatMessage,
-  AgentChatPayload,
-  AgentChatResponse,
-  AgentChatStreamResponse,
-  AgentCreditsInfo,
-  AgentMemoryEntry,
-  AgentRunPage,
-  AgentRunSummary,
-  AgentThread,
-  AgentThreadSnapshot,
-  CreateThreadPayload,
-  SendMessagePayload,
-  UpdateAgentThreadContextPayload,
-} from '@genfeedai/agent/models/agent-chat.model';
-import type {
-  AgentClonedVoice,
-  AgentInstallReadiness,
-  CredentialMentionItem,
-  GenerateIngredientResult,
-  GenerationModel,
-  ManualReviewBatchPayload,
-  PresignedUploadResponse,
-  WorkflowInterfaceField,
-  WorkflowInterfaceSchema,
-  WorkflowTriggerScope,
-} from '@genfeedai/agent/services/agent-api.types';
-import {
-  type AgentApiError,
-  AgentApiRequestError,
-} from '@genfeedai/agent/services/agent-api-error';
+import * as mediaApi from '@genfeedai/agent/services/agent-api/agent-api.media';
+import * as mentionsApi from '@genfeedai/agent/services/agent-api/agent-api.mentions';
+import * as runsApi from '@genfeedai/agent/services/agent-api/agent-api.runs';
+import * as threadsApi from '@genfeedai/agent/services/agent-api/agent-api.threads';
+import * as workflowsApi from '@genfeedai/agent/services/agent-api/agent-api.workflows';
 import { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
-import {
-  buildAgentRunBrandQuery,
-  buildAgentRunsQuery,
-  createAgentRunPage,
-  type ListAgentRunsParams,
-} from '@genfeedai/agent/services/agent-run-api.helpers';
-import { AgentThreadStatus } from '@genfeedai/enums';
-import type {
-  AgentContentMentionsResponse,
-  AgentScopePayload,
-  AgentTeamMentionsResponse,
-  AgentContentMentionItem as ContentMentionItem,
-  AgentTeamMentionItem as TeamMentionItem,
-} from '@genfeedai/interfaces';
-import type { JsonApiResponseDocument } from '@helpers/data/json-api/json-api.helper';
-import { Effect } from 'effect';
 
 export type {
   AgentClonedVoice,
@@ -61,8 +19,11 @@ export type {
 export type { AgentApiConfig } from '@genfeedai/agent/services/agent-base-api.service';
 export type { ListAgentRunsParams } from '@genfeedai/agent/services/agent-run-api.helpers';
 
-const AGENT_THREADS_ENDPOINT = '/agent/threads';
-
+/**
+ * Thin facade over domain API modules (threads, runs, mentions, media, workflows).
+ * Call sites keep `apiService.methodEffect(...)` — implementations live in
+ * `services/agent-api/*`.
+ */
 export class AgentApiService extends AgentBaseApiService {
   get baseUrl(): string {
     return this.config.baseUrl;
@@ -72,785 +33,76 @@ export class AgentApiService extends AgentBaseApiService {
     return this.config.getToken(options);
   }
 
-  createThreadEffect(
-    payload: CreateThreadPayload,
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentThread, AgentApiError> {
-    return this.fetchResourceEffect<AgentThread>(
-      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}`,
-      { body: JSON.stringify(payload), method: 'POST', signal },
-      'Failed to create thread',
-      'Failed to deserialize thread',
-    );
-  }
+  // Threads / chat
+  createThreadEffect = threadsApi.createThreadEffect.bind(null, this);
+  sendMessageEffect = threadsApi.sendMessageEffect.bind(null, this);
+  chatEffect = threadsApi.chatEffect.bind(null, this);
+  chatStreamEffect = threadsApi.chatStreamEffect.bind(null, this);
+  getThreadsEffect = threadsApi.getThreadsEffect.bind(null, this);
+  archiveAllThreadsEffect = threadsApi.archiveAllThreadsEffect.bind(null, this);
+  archiveThreadEffect = threadsApi.archiveThreadEffect.bind(null, this);
+  unarchiveThreadEffect = threadsApi.unarchiveThreadEffect.bind(null, this);
+  getThreadEffect = threadsApi.getThreadEffect.bind(null, this);
+  getThreadSnapshotEffect = threadsApi.getThreadSnapshotEffect.bind(null, this);
+  updateThreadEffect = threadsApi.updateThreadEffect.bind(null, this);
+  updateThreadContextEffect = threadsApi.updateThreadContextEffect.bind(
+    null,
+    this,
+  );
+  branchThreadEffect = threadsApi.branchThreadEffect.bind(null, this);
+  respondToInputRequestEffect = threadsApi.respondToInputRequestEffect.bind(
+    null,
+    this,
+  );
+  respondToUiActionEffect = threadsApi.respondToUiActionEffect.bind(null, this);
+  pinThreadEffect = threadsApi.pinThreadEffect.bind(null, this);
+  unpinThreadEffect = threadsApi.unpinThreadEffect.bind(null, this);
+  getMessagesEffect = threadsApi.getMessagesEffect.bind(null, this);
 
-  sendMessageEffect(
-    payload: SendMessagePayload,
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentChatMessage, AgentApiError> {
-    const { threadId, ...body } = payload;
-    return this.fetchResourceEffect<AgentChatMessage>(
-      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/messages`,
-      { body: JSON.stringify(body), method: 'POST', signal },
-      'Failed to send message',
-      'Failed to deserialize thread message',
-    ).pipe(
-      Effect.map((message) => ({
-        ...message,
-        threadId,
-      })),
-    );
-  }
+  // Runs / credits / readiness
+  getInstallReadinessEffect = runsApi.getInstallReadinessEffect.bind(
+    null,
+    this,
+  );
+  getCreditsInfoEffect = runsApi.getCreditsInfoEffect.bind(null, this);
+  getActiveRunsEffect = runsApi.getActiveRunsEffect.bind(null, this);
+  listRunsEffect = runsApi.listRunsEffect.bind(null, this);
+  getRunEffect = runsApi.getRunEffect.bind(null, this);
+  cancelRunEffect = runsApi.cancelRunEffect.bind(null, this);
+  retryRunEffect = runsApi.retryRunEffect.bind(null, this);
 
-  chatEffect(
-    payload: AgentChatPayload,
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentChatResponse, AgentApiError> {
-    const { threadId, ...body } = payload;
-    const endpoint = threadId
-      ? `${AGENT_THREADS_ENDPOINT}/${threadId}/turns`
-      : `${AGENT_THREADS_ENDPOINT}/turns`;
+  // Mentions / memory
+  getMentionsEffect = mentionsApi.getMentionsEffect.bind(null, this);
+  getTeamMentionsEffect = mentionsApi.getTeamMentionsEffect.bind(null, this);
+  getContentMentionsEffect = mentionsApi.getContentMentionsEffect.bind(
+    null,
+    this,
+  );
+  listMemoriesEffect = mentionsApi.listMemoriesEffect.bind(null, this);
+  createMemoryEffect = mentionsApi.createMemoryEffect.bind(null, this);
+  deleteMemoryEffect = mentionsApi.deleteMemoryEffect.bind(null, this);
 
-    return this.fetchJsonEffect<AgentChatResponse>(
-      `${this.config.baseUrl}${endpoint}`,
-      { body: JSON.stringify(body), method: 'POST', signal },
-      'Agent chat failed',
-    );
-  }
+  // Media / generation
+  getModelsEffect = mediaApi.getModelsEffect.bind(null, this);
+  mergeVideosEffect = mediaApi.mergeVideosEffect.bind(null, this);
+  reframeVideoEffect = mediaApi.reframeVideoEffect.bind(null, this);
+  resizeVideoEffect = mediaApi.resizeVideoEffect.bind(null, this);
+  createPromptEffect = mediaApi.createPromptEffect.bind(null, this);
+  generateIngredientEffect = mediaApi.generateIngredientEffect.bind(null, this);
+  cloneVoiceEffect = mediaApi.cloneVoiceEffect.bind(null, this);
+  getClonedVoicesEffect = mediaApi.getClonedVoicesEffect.bind(null, this);
+  setBrandVoiceDefaultsEffect = mediaApi.setBrandVoiceDefaultsEffect.bind(
+    null,
+    this,
+  );
+  uploadAttachmentEffect = mediaApi.uploadAttachmentEffect.bind(null, this);
 
-  chatStreamEffect(
-    payload: AgentChatPayload,
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentChatStreamResponse, AgentApiError> {
-    const { threadId, ...body } = payload;
-    const endpoint = threadId
-      ? `${AGENT_THREADS_ENDPOINT}/${threadId}/turns/stream`
-      : `${AGENT_THREADS_ENDPOINT}/turns/stream`;
-
-    return this.fetchJsonEffect<AgentChatStreamResponse>(
-      `${this.config.baseUrl}${endpoint}`,
-      { body: JSON.stringify(body), method: 'POST', signal },
-      'Agent chat stream failed',
-    );
-  }
-
-  getThreadsEffect(
-    params?: {
-      page?: number;
-      limit?: number;
-      status?: AgentThreadStatus;
-      /** When set, list is single-brand only. Omit for full org. */
-      brandId?: string | null;
-    },
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentThread[], AgentApiError> {
-    const qs = new URLSearchParams();
-    if (params?.page) {
-      qs.set('page', String(params.page));
-    }
-    if (params?.limit) {
-      qs.set('limit', String(params.limit));
-    }
-    if (params?.status) {
-      qs.set('status', params.status);
-    }
-    if (params?.brandId) {
-      qs.set('brand', params.brandId);
-    }
-    const queryString = qs.toString();
-    return this.fetchCollectionEffect<AgentThread>(
-      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}${
-        queryString ? `?${queryString}` : ''
-      }`,
-      { signal },
-      'Failed to fetch threads',
-      'Failed to deserialize thread collection',
-    );
-  }
-
-  archiveAllThreadsEffect(
-    brandId?: string | null,
-    signal?: AbortSignal,
-  ): Effect.Effect<{ archivedCount: number }, AgentApiError> {
-    return this.fetchJsonEffect<{ archivedCount: number }>(
-      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}`,
-      {
-        body: JSON.stringify({
-          status: AgentThreadStatus.ARCHIVED,
-          ...(brandId ? { brandId } : {}),
-        }),
-        method: 'PATCH',
-        signal,
-      },
-      'Failed to archive all threads',
-    );
-  }
-
-  archiveThreadEffect(
-    threadId: string,
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentThread, AgentApiError> {
-    return this.updateThreadEffect(
-      threadId,
-      { status: AgentThreadStatus.ARCHIVED },
-      signal,
-    );
-  }
-
-  unarchiveThreadEffect(
-    threadId: string,
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentThread, AgentApiError> {
-    return this.updateThreadEffect(
-      threadId,
-      { status: AgentThreadStatus.ACTIVE },
-      signal,
-    );
-  }
-
-  getThreadEffect(
-    threadId: string,
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentThread, AgentApiError> {
-    return this.fetchResourceEffect<AgentThread>(
-      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}`,
-      { signal },
-      'Failed to fetch thread',
-      'Failed to deserialize thread',
-    );
-  }
-
-  getThreadSnapshotEffect(
-    threadId: string,
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentThreadSnapshot, AgentApiError> {
-    return this.fetchJsonEffect<AgentThreadSnapshot>(
-      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/snapshot`,
-      { signal },
-      'Failed to fetch thread snapshot',
-    );
-  }
-
-  updateThreadEffect(
-    threadId: string,
-    payload: {
-      isPinned?: boolean;
-      planModeEnabled?: boolean;
-      requestedModel?: string;
-      runtimeKey?: string;
-      title?: string;
-      systemPrompt?: string;
-      memoryEntryIds?: string[];
-      status?: AgentThreadStatus;
-    },
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentThread, AgentApiError> {
-    return this.fetchResourceEffect<AgentThread>(
-      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}`,
-      { body: JSON.stringify(payload), method: 'PATCH', signal },
-      'Failed to update thread',
-      'Failed to deserialize thread',
-    );
-  }
-
-  updateThreadContextEffect(
-    threadId: string,
-    payload: UpdateAgentThreadContextPayload,
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentThread, AgentApiError> {
-    return this.fetchResourceEffect<AgentThread>(
-      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/context`,
-      { body: JSON.stringify(payload), method: 'PATCH', signal },
-      'Failed to update thread context',
-      'Failed to deserialize thread context',
-    );
-  }
-
-  getInstallReadinessEffect(
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentInstallReadiness, AgentApiError> {
-    return this.fetchJsonEffect<AgentInstallReadiness>(
-      `${this.config.baseUrl}/onboarding/install-readiness`,
-      { signal },
-      'Failed to fetch local install readiness',
-    );
-  }
-
-  branchThreadEffect(
-    threadId: string,
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentThread, AgentApiError> {
-    return this.fetchResourceEffect<AgentThread>(
-      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/branches`,
-      { method: 'POST', signal },
-      'Failed to branch thread',
-      'Failed to deserialize thread branch',
-    );
-  }
-
-  respondToInputRequestEffect(
-    threadId: string,
-    requestId: string,
-    answer: string,
-    signal?: AbortSignal,
-    scope?: AgentScopePayload,
-  ): Effect.Effect<
-    {
-      answer: string | null;
-      requestId: string;
-      resolvedAt: string | null;
-      status: string;
-      threadId: string;
-    },
-    AgentApiError
-  > {
-    return this.fetchJsonEffect<{
-      answer: string | null;
-      requestId: string;
-      resolvedAt: string | null;
-      status: string;
-      threadId: string;
-    }>(
-      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/input-requests/${requestId}/responses`,
-      {
-        body: JSON.stringify({ answer, ...(scope ?? {}) }),
-        method: 'POST',
-        signal,
-      },
-      'Failed to respond to input request',
-    );
-  }
-
-  respondToUiActionEffect(
-    threadId: string,
-    action: string,
-    payload?: Record<string, unknown>,
-    signal?: AbortSignal,
-    scope?: AgentScopePayload,
-  ): Effect.Effect<AgentChatResponse, AgentApiError> {
-    return this.fetchJsonEffect<AgentChatResponse>(
-      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/ui-actions`,
-      {
-        body: JSON.stringify({ action, payload, ...(scope ?? {}) }),
-        method: 'POST',
-        signal,
-      },
-      'Failed to respond to UI action',
-    );
-  }
-
-  pinThreadEffect(
-    threadId: string,
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentThread, AgentApiError> {
-    return this.updateThreadEffect(threadId, { isPinned: true }, signal);
-  }
-
-  unpinThreadEffect(
-    threadId: string,
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentThread, AgentApiError> {
-    return this.updateThreadEffect(threadId, { isPinned: false }, signal);
-  }
-
-  getCreditsInfoEffect(
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentCreditsInfo, AgentApiError> {
-    return this.fetchJsonEffect<AgentCreditsInfo>(
-      `${this.config.baseUrl}/agent/credits`,
-      { signal },
-      'Failed to fetch credits info',
-    );
-  }
-
-  getActiveRunsEffect(
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentRunSummary[], AgentApiError> {
-    return this.fetchCollectionEffect<AgentRunSummary>(
-      `${this.config.baseUrl}/runs/active`,
-      { signal },
-      'Failed to fetch active agent runs',
-      'Failed to deserialize active runs',
-    );
-  }
-
-  listRunsEffect(
-    params: ListAgentRunsParams = {},
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentRunPage, AgentApiError> {
-    return this.fetchJsonEffect<JsonApiResponseDocument>(
-      `${this.config.baseUrl}/runs?${buildAgentRunsQuery(params)}`,
-      { signal },
-      'Failed to fetch agent runs',
-    ).pipe(
-      Effect.flatMap((document) =>
-        this.deserializeCollectionEffect<AgentRunSummary>(
-          document,
-          'Failed to deserialize agent runs',
-        ).pipe(
-          Effect.map((runs) => createAgentRunPage(document, runs, params)),
-        ),
-      ),
-    );
-  }
-
-  getRunEffect(
-    runId: string,
-    brandId?: string,
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentRunSummary, AgentApiError> {
-    return this.fetchResourceEffect<AgentRunSummary>(
-      `${this.config.baseUrl}/runs/${runId}${buildAgentRunBrandQuery(brandId)}`,
-      { signal },
-      'Failed to fetch agent run',
-      'Failed to deserialize agent run',
-    );
-  }
-
-  cancelRunEffect(
-    runId: string,
-    signal?: AbortSignal,
-    brandId?: string,
-  ): Effect.Effect<AgentRunSummary, AgentApiError> {
-    return this.fetchResourceEffect<AgentRunSummary>(
-      `${this.config.baseUrl}/runs/${runId}/cancellations${buildAgentRunBrandQuery(brandId)}`,
-      { method: 'POST', signal },
-      'Failed to cancel active agent run',
-      'Failed to deserialize agent run',
-    );
-  }
-
-  retryRunEffect(
-    runId: string,
-    signal?: AbortSignal,
-    brandId?: string,
-  ): Effect.Effect<AgentRunSummary, AgentApiError> {
-    return this.fetchResourceEffect<AgentRunSummary>(
-      `${this.config.baseUrl}/runs/${runId}/retries${buildAgentRunBrandQuery(brandId)}`,
-      { method: 'POST', signal },
-      'Failed to retry agent run',
-      'Failed to deserialize agent run',
-    );
-  }
-
-  getMentionsEffect(
-    signal?: AbortSignal,
-  ): Effect.Effect<CredentialMentionItem[], AgentApiError> {
-    return this.fetchJsonEffect<{ mentions: CredentialMentionItem[] }>(
-      `${this.config.baseUrl}/credentials/mentions`,
-      { signal },
-      'Failed to fetch mentions',
-    ).pipe(Effect.map((json) => json.mentions));
-  }
-
-  getTeamMentionsEffect(
-    signal?: AbortSignal,
-  ): Effect.Effect<TeamMentionItem[], AgentApiError> {
-    return this.fetchJsonEffect<AgentTeamMentionsResponse>(
-      `${this.config.baseUrl}/team/mentions`,
-      { signal },
-      'Failed to fetch team mentions',
-    ).pipe(Effect.map((json) => json.mentions));
-  }
-
-  getContentMentionsEffect(
-    signal?: AbortSignal,
-  ): Effect.Effect<ContentMentionItem[], AgentApiError> {
-    return this.fetchJsonEffect<AgentContentMentionsResponse>(
-      `${this.config.baseUrl}/content/mentions`,
-      { signal },
-      'Failed to fetch content mentions',
-    ).pipe(Effect.map((json) => json.mentions));
-  }
-
-  listMemoriesEffect(
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentMemoryEntry[], AgentApiError> {
-    return this.fetchJsonEffect<AgentMemoryEntry[]>(
-      `${this.config.baseUrl}/agent/memories`,
-      { signal },
-      'Failed to list memories',
-    );
-  }
-
-  createMemoryEffect(
-    payload: {
-      content: string;
-      summary?: string;
-      tags?: string[];
-      sourceMessageId?: string;
-      kind?: string;
-      scope?: string;
-      contentType?: string;
-      brandId?: string;
-      platform?: string;
-      sourceType?: string;
-      sourceUrl?: string;
-      sourceContentId?: string;
-      importance?: number;
-      confidence?: number;
-      performanceSnapshot?: Record<string, unknown>;
-      saveToContextMemory?: boolean;
-    },
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentMemoryEntry, AgentApiError> {
-    return this.fetchJsonEffect<AgentMemoryEntry>(
-      `${this.config.baseUrl}/agent/memories`,
-      { body: JSON.stringify(payload), method: 'POST', signal },
-      'Failed to create memory',
-    );
-  }
-
-  deleteMemoryEffect(
-    memoryId: string,
-    signal?: AbortSignal,
-  ): Effect.Effect<{ status: string }, AgentApiError> {
-    return this.fetchJsonEffect<{ status: string }>(
-      `${this.config.baseUrl}/agent/memories/${memoryId}`,
-      { method: 'DELETE', signal },
-      'Failed to delete memory',
-    );
-  }
-
-  getMessagesEffect(
-    threadId: string,
-    params?: { page?: number; limit?: number },
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentChatMessage[], AgentApiError> {
-    const qs = new URLSearchParams();
-    if (params?.page) {
-      qs.set('page', String(params.page));
-    }
-    if (params?.limit) {
-      qs.set('limit', String(params.limit));
-    }
-    const queryString = qs.toString();
-    return this.fetchCollectionEffect<AgentChatMessage>(
-      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/messages${
-        queryString ? `?${queryString}` : ''
-      }`,
-      { signal },
-      'Failed to fetch messages',
-      'Failed to deserialize thread messages',
-    ).pipe(
-      Effect.map((messages) =>
-        messages.map((message) => ({
-          ...message,
-          threadId,
-        })),
-      ),
-    );
-  }
-
-  getModelsEffect(
-    signal?: AbortSignal,
-  ): Effect.Effect<GenerationModel[], AgentApiError> {
-    return this.fetchCollectionEffect<GenerationModel>(
-      `${this.config.baseUrl}/models?isActive=true&pagination=false`,
-      { signal },
-      'Failed to fetch models',
-      'Failed to deserialize models',
-    );
-  }
-
-  getWorkflowInterfaceEffect(
-    workflowId: string,
-    signal?: AbortSignal,
-  ): Effect.Effect<WorkflowInterfaceSchema, AgentApiError> {
-    return this.fetchJsonEffect<{
-      data?: WorkflowInterfaceSchema;
-      inputs?: Record<string, WorkflowInterfaceField>;
-      outputs?: Record<string, WorkflowInterfaceField>;
-    }>(
-      `${this.config.baseUrl}/workflows/${workflowId}/interface`,
-      { signal },
-      'Failed to fetch workflow interface',
-    ).pipe(
-      Effect.map(
-        (json) =>
-          json.data ?? {
-            inputs: json.inputs ?? {},
-            outputs: json.outputs ?? {},
-          },
-      ),
-    );
-  }
-
-  triggerWorkflowEffect(
-    workflowId: string,
-    inputValues?: Record<string, unknown>,
-    signal?: AbortSignal,
-    scope?: WorkflowTriggerScope,
-  ): Effect.Effect<{ id: string; status: string }, AgentApiError> {
-    return this.fetchJsonEffect<{ id: string; status: string }>(
-      `${this.config.baseUrl}/workflow-executions`,
-      {
-        body: JSON.stringify({
-          inputValues: inputValues ?? {},
-          ...(scope ?? {}),
-          workflow: workflowId,
-        }),
-        method: 'POST',
-        signal,
-      },
-      'Failed to trigger workflow',
-    );
-  }
-
-  createManualReviewBatchEffect(
-    payload: ManualReviewBatchPayload,
-    signal?: AbortSignal,
-  ): Effect.Effect<
-    {
-      id: string;
-      items: Array<{ id: string; postId?: string }>;
-    },
-    AgentApiError
-  > {
-    return this.fetchJsonEffect<{
-      id: string;
-      items: Array<{ id: string; postId?: string }>;
-    }>(
-      `${this.config.baseUrl}/batches/manual-review`,
-      {
-        body: JSON.stringify(payload),
-        method: 'POST',
-        signal,
-      },
-      'Failed to create manual review batch',
-    );
-  }
-
-  mergeVideosEffect(
-    ids: string[],
-    options?: {
-      isMuteVideoAudio?: boolean;
-      isResizeEnabled?: boolean;
-      transition?: string;
-      transitionDuration?: number;
-    },
-    signal?: AbortSignal,
-  ): Effect.Effect<{ id: string; status: string }, AgentApiError> {
-    return this.fetchJsonEffect<{ id: string; status: string }>(
-      `${this.config.baseUrl}/videos/merge`,
-      {
-        body: JSON.stringify({
-          category: 'video',
-          ids,
-          isMuteVideoAudio: options?.isMuteVideoAudio ?? true,
-          isResizeEnabled: options?.isResizeEnabled ?? false,
-          transition: options?.transition ?? 'none',
-          transitionDuration: options?.transitionDuration ?? 0.5,
-        }),
-        method: 'POST',
-        signal,
-      },
-      'Failed to merge videos',
-    );
-  }
-
-  reframeVideoEffect(
-    videoId: string,
-    payload?: {
-      format?: 'landscape' | 'portrait' | 'square';
-      height?: number;
-      prompt?: string;
-      text?: string;
-      width?: number;
-    },
-    signal?: AbortSignal,
-  ): Effect.Effect<{ id: string; status: string }, AgentApiError> {
-    return this.fetchJsonEffect<{ id: string; status: string }>(
-      `${this.config.baseUrl}/videos/${videoId}/reframe`,
-      {
-        body: JSON.stringify({
-          format: payload?.format ?? 'portrait',
-          height: payload?.height,
-          text: payload?.text ?? payload?.prompt,
-          width: payload?.width,
-        }),
-        method: 'POST',
-        signal,
-      },
-      'Failed to reframe video',
-    );
-  }
-
-  resizeVideoEffect(
-    videoId: string,
-    width: number,
-    height: number,
-    signal?: AbortSignal,
-  ): Effect.Effect<{ id: string; status: string }, AgentApiError> {
-    return this.fetchJsonEffect<{ id: string; status: string }>(
-      `${this.config.baseUrl}/videos/${videoId}/resize`,
-      {
-        body: JSON.stringify({ height, width }),
-        method: 'POST',
-        signal,
-      },
-      'Failed to resize video',
-    );
-  }
-
-  createPromptEffect(
-    body: {
-      category: string;
-      original: string;
-      model?: string;
-      ratio?: string;
-      duration?: number;
-      isSkipEnhancement?: boolean;
-    },
-    signal?: AbortSignal,
-  ): Effect.Effect<{ id: string }, AgentApiError> {
-    return this.fetchJsonEffect<{
-      data: { id: string };
-    }>(
-      `${this.config.baseUrl}/prompts`,
-      {
-        body: JSON.stringify(body),
-        method: 'POST',
-        signal,
-      },
-      'Failed to create prompt',
-    ).pipe(Effect.map((res) => ({ id: res.data.id })));
-  }
-
-  generateIngredientEffect(
-    type: 'image' | 'video',
-    body: Record<string, unknown>,
-    signal?: AbortSignal,
-  ): Effect.Effect<GenerateIngredientResult, AgentApiError> {
-    const endpoint = type === 'video' ? '/videos' : '/images';
-    return this.fetchJsonEffect<GenerateIngredientResult>(
-      `${this.config.baseUrl}${endpoint}`,
-      {
-        body: JSON.stringify({ ...body, waitForCompletion: true }),
-        method: 'POST',
-        signal,
-      },
-      'Generation failed',
-    );
-  }
-
-  cloneVoiceEffect(
-    formData: FormData,
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentClonedVoice, AgentApiError> {
-    return this.fetchResourceEffect<AgentClonedVoice>(
-      `${this.config.baseUrl}/voices/clone`,
-      {
-        body: formData,
-        method: 'POST',
-        signal,
-      },
-      'Failed to clone voice',
-      'Failed to deserialize cloned voice',
-    );
-  }
-
-  getClonedVoicesEffect(
-    signal?: AbortSignal,
-  ): Effect.Effect<AgentClonedVoice[], AgentApiError> {
-    return this.fetchCollectionEffect<AgentClonedVoice>(
-      `${this.config.baseUrl}/voices/cloned`,
-      { signal },
-      'Failed to fetch cloned voices',
-      'Failed to deserialize cloned voices',
-    );
-  }
-
-  setBrandVoiceDefaultsEffect(
-    brandId: string,
-    payload: {
-      defaultVoiceId?: string;
-      defaultAvatarPhotoUrl?: string;
-      defaultAvatarIngredientId?: string;
-    },
-    signal?: AbortSignal,
-  ): Effect.Effect<void, AgentApiError> {
-    return this.fetchJsonEffect<JsonApiResponseDocument>(
-      `${this.config.baseUrl}/brands/${brandId}/agent-config`,
-      {
-        body: JSON.stringify(payload),
-        method: 'PATCH',
-        signal,
-      },
-      'Failed to update brand voice defaults',
-    ).pipe(Effect.as(undefined));
-  }
-
-  uploadAttachmentEffect(
-    file: File,
-    onProgress?: (pct: number) => void,
-  ): Effect.Effect<{ ingredientId: string; url: string }, AgentApiError> {
-    return Effect.gen(this, function* () {
-      const presigned = yield* this.fetchJsonEffect<PresignedUploadResponse>(
-        `${this.config.baseUrl}/images/upload/presigned`,
-        {
-          body: JSON.stringify({
-            contentType: file.type,
-            filename: file.name,
-            type: 'image',
-          }),
-          method: 'POST',
-        },
-        'Failed to get presigned upload URL',
-      );
-
-      const { id } = presigned.data;
-      const { uploadUrl, publicUrl } = presigned.data.attributes;
-
-      yield* this.uploadFileToPresignedUrlEffect(file, uploadUrl, onProgress);
-      yield* this.fetchJsonEffect(
-        `${this.config.baseUrl}/images/upload/confirm/${id}`,
-        { method: 'POST' },
-        'Failed to confirm upload',
-      );
-
-      return { ingredientId: id, url: publicUrl };
-    }) as Effect.Effect<{ ingredientId: string; url: string }, AgentApiError>;
-  }
-
-  private uploadFileToPresignedUrlEffect(
-    file: File,
-    uploadUrl: string,
-    onProgress?: (pct: number) => void,
-  ): Effect.Effect<void, AgentApiRequestError> {
-    return Effect.tryPromise({
-      catch: (cause) =>
-        new AgentApiRequestError({
-          detail: cause instanceof Error ? cause.message : undefined,
-          message: cause instanceof Error ? cause.message : 'S3 upload failed',
-          status: 0,
-        }),
-      try: () =>
-        new Promise<void>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.open('PUT', uploadUrl);
-          xhr.setRequestHeader('Content-Type', file.type);
-
-          xhr.upload.addEventListener('progress', (event) => {
-            if (event.lengthComputable && onProgress) {
-              onProgress(Math.round((event.loaded * 100) / event.total));
-            }
-          });
-
-          xhr.addEventListener('load', () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              resolve();
-              return;
-            }
-
-            reject(new Error(`S3 upload failed: ${xhr.status}`));
-          });
-
-          xhr.addEventListener('error', () =>
-            reject(new Error('S3 upload failed')),
-          );
-          xhr.send(file);
-        }),
-    });
-  }
+  // Workflows / batches
+  getWorkflowInterfaceEffect = workflowsApi.getWorkflowInterfaceEffect.bind(
+    null,
+    this,
+  );
+  triggerWorkflowEffect = workflowsApi.triggerWorkflowEffect.bind(null, this);
+  createManualReviewBatchEffect =
+    workflowsApi.createManualReviewBatchEffect.bind(null, this);
 }

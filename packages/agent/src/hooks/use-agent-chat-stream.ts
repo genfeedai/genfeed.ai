@@ -1,6 +1,20 @@
 'use client';
 
 import { DEFAULT_RUNTIME_AGENT_MODEL } from '@genfeedai/agent/constants/agent-runtime-model.constant';
+import { resolveStreamFromMessages as resolveStreamFromMessagesFn } from '@genfeedai/agent/hooks/agent-chat-stream.completion';
+import {
+  collectAssistantMessageIds,
+  flushBufferedEventsForThread,
+} from '@genfeedai/agent/hooks/agent-chat-stream.helpers';
+import { restoreThreadFromSnapshot as restoreThreadFromSnapshotFn } from '@genfeedai/agent/hooks/agent-chat-stream.restore';
+import type {
+  BufferedThreadEvent,
+  PendingStreamCompletion,
+  SendStreamMessageOptions,
+  UseAgentChatStreamOptions,
+  UseAgentChatStreamReturn,
+} from '@genfeedai/agent/hooks/agent-chat-stream.types';
+import { STREAM_COMPLETION_POLL_INTERVAL_MS } from '@genfeedai/agent/hooks/agent-chat-stream.types';
 import type {
   AgentChatMessage,
   AgentInputRequestPayload,
@@ -20,70 +34,23 @@ import {
   AgentWorkEventStatus,
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
-import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   mergeComposerModeIntoPageContext,
   toAgentRequestPageContext,
 } from '@genfeedai/agent/utils/agent-page-context.util';
-import {
-  buildThreadSummaryFromSnapshot,
-  mapSnapshotPendingInputRequest,
-  mapSnapshotRunStatus,
-  mapSnapshotWorkEvents,
-} from '@genfeedai/agent/utils/agent-thread-snapshot.util';
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
 import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
 import { AgentThreadStatus } from '@genfeedai/enums';
-import type { AgentArtifactReference } from '@genfeedai/interfaces';
-import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { useCallback, useEffect, useRef } from 'react';
 
-interface UseAgentChatStreamOptions {
-  apiService: AgentApiService;
-  model?: string;
-  onOnboardingCompleted?: () => void | Promise<void>;
-}
-
-interface SendStreamMessageOptions {
-  artifactReferences?: AgentArtifactReference[];
-  forceNewThread?: boolean;
-  source?: 'agent' | 'proactive' | 'onboarding';
-  signal?: AbortSignal;
-  attachments?: ChatAttachment[];
-  brandId?: string;
-  composerMode?: 'chat' | 'image' | 'video' | 'voice';
-  generationModelKey?: string | null;
-  planModeEnabled?: boolean;
-}
-
-interface UseAgentChatStreamReturn {
-  sendMessage: (
-    content: string,
-    options?: SendStreamMessageOptions,
-  ) => Promise<void>;
-  clearChat: () => void;
-  isStreaming: boolean;
-}
-
-interface BufferedThreadEvent {
-  threadId?: string;
-  data: unknown;
-  handler: (data: unknown) => void;
-}
-
-interface PendingStreamCompletion {
-  initiatedAt: number;
-  preAssistantIds: Set<string>;
-  runId: string | null;
-  startedAt: string | null;
-  threadId: string;
-}
-
-const STREAM_COMPLETION_POLL_INTERVAL_MS = 10_000;
-const STREAM_COMPLETION_GRACE_PERIOD_MS = 90_000;
+export type {
+  SendStreamMessageOptions,
+  UseAgentChatStreamOptions,
+  UseAgentChatStreamReturn,
+} from '@genfeedai/agent/hooks/agent-chat-stream.types';
 
 export function useAgentChatStream(
   options: UseAgentChatStreamOptions,
@@ -161,18 +128,10 @@ export function useAgentChatStream(
   }, []);
 
   const flushBufferedEvents = useCallback((threadId: string) => {
-    const remainingEvents: BufferedThreadEvent[] = [];
-
-    for (const event of bufferedEventsRef.current) {
-      if (event.threadId === threadId) {
-        event.handler(event.data);
-        continue;
-      }
-
-      remainingEvents.push(event);
-    }
-
-    bufferedEventsRef.current = remainingEvents;
+    bufferedEventsRef.current = flushBufferedEventsForThread(
+      bufferedEventsRef.current,
+      threadId,
+    );
   }, []);
 
   useEffect(() => {
@@ -230,56 +189,26 @@ export function useAgentChatStream(
 
   const restoreThreadFromSnapshot = useCallback(
     async (threadId: string) => {
-      const [snapshot, messages] = await Promise.all([
-        runAgentApiEffect(apiService.getThreadSnapshotEffect(threadId)),
-        runAgentApiEffect(
-          apiService.getMessagesEffect(threadId, { limit: 100 }),
-        ),
-      ]);
-
-      const state = useAgentChatStore.getState();
-      const existingThread = state.threads.find(
-        (thread) => thread.id === threadId,
-      );
-      const isVisible = state.activeThreadId === threadId;
-
-      updateThreadSummary(threadId, {
-        ...buildThreadSummaryFromSnapshot(snapshot, {
-          existingThread,
-          isVisible,
-        }),
+      await restoreThreadFromSnapshotFn(threadId, {
+        apiService,
+        clearCompletionWatchdog,
+        clearPendingCompletionIfThread: (id) => {
+          if (pendingCompletionRef.current?.threadId === id) {
+            pendingCompletionRef.current = null;
+            clearCompletionWatchdog();
+          }
+        },
+        clearPendingInputRequest,
+        resetStreamState,
+        setActiveRun,
+        setError,
+        setLatestProposedPlan,
+        setMessages,
+        setPendingInputRequest,
+        setRunStartedAt,
+        setWorkEvents,
+        updateThreadSummary,
       });
-
-      if (
-        !snapshot.activeRun &&
-        pendingCompletionRef.current?.threadId === threadId
-      ) {
-        pendingCompletionRef.current = null;
-        clearCompletionWatchdog();
-      }
-
-      if (!isVisible) {
-        return;
-      }
-
-      const pendingInputRequest = mapSnapshotPendingInputRequest(snapshot);
-
-      setMessages(messages);
-      setLatestProposedPlan(snapshot.latestProposedPlan ?? null);
-      setPendingInputRequest(pendingInputRequest);
-      setWorkEvents(mapSnapshotWorkEvents(snapshot));
-      setActiveRun(snapshot.activeRun?.runId ?? null, {
-        startedAt: snapshot.activeRun?.startedAt ?? null,
-        status: mapSnapshotRunStatus(snapshot.activeRun?.status),
-      });
-      setRunStartedAt(snapshot.activeRun?.startedAt ?? null);
-
-      if (!snapshot.activeRun && !pendingInputRequest) {
-        resetStreamState();
-        clearPendingInputRequest();
-      }
-
-      setError(null);
     },
     [
       apiService,
@@ -514,83 +443,27 @@ export function useAgentChatStream(
 
   const resolveStreamFromMessages = useCallback(
     async (pending: PendingStreamCompletion) => {
-      const hasExceededGracePeriod =
-        Date.now() - pending.initiatedAt >= STREAM_COMPLETION_GRACE_PERIOD_MS;
-
-      try {
-        const messages = await runAgentApiEffect(
-          apiService.getMessagesEffect(pending.threadId, {
-            limit: 100,
-          }),
-        );
-
-        const recoveredAssistantMessage = [...messages]
-          .reverse()
-          .find(
-            (message) =>
-              message.role === 'assistant' &&
-              !pending.preAssistantIds.has(message.id),
-          );
-
-        if (!recoveredAssistantMessage) {
-          if (!hasExceededGracePeriod) {
-            scheduleCompletionWatchdog();
-            return;
+      await resolveStreamFromMessagesFn(pending, {
+        apiService,
+        cleanupSubscriptions,
+        clearCompletionWatchdog,
+        clearPendingInputRequest,
+        clearPendingCompletion: (threadId) => {
+          if (pendingCompletionRef.current?.threadId === threadId) {
+            pendingCompletionRef.current = null;
           }
-
-          throw new Error(
-            'Agent run did not finish before the recovery timeout.',
-          );
-        }
-
-        resetStreamState();
-        setMessages(messages);
-        updateThreadSummary(pending.threadId, {
-          attentionState: isThreadVisible(pending.threadId) ? null : 'updated',
-          lastActivityAt:
-            recoveredAssistantMessage.createdAt ?? new Date().toISOString(),
-          lastAssistantPreview: recoveredAssistantMessage.content.slice(0, 280),
-          pendingInputCount: 0,
-          runStatus: 'completed',
-        });
-        if (isThreadVisible(pending.threadId)) {
-          setError(null);
-          clearPendingInputRequest();
-          setActiveRun(pending.runId, {
-            startedAt: pending.startedAt,
-            status: 'completed',
-          });
-        }
-      } catch (error) {
-        if (!hasExceededGracePeriod) {
-          scheduleCompletionWatchdog();
-          return;
-        }
-
-        updateThreadSummary(pending.threadId, {
-          attentionState: isThreadVisible(pending.threadId) ? null : 'updated',
-          lastActivityAt: new Date().toISOString(),
-          runStatus: 'failed',
-        });
-        if (isThreadVisible(pending.threadId)) {
-          setError(
-            error instanceof Error
-              ? error.message
-              : 'Agent run did not finish before the recovery timeout.',
-          );
-          setActiveRunStatus('failed');
-          resetStreamState();
-        }
-      } finally {
-        const isCurrentPendingThread =
-          pendingCompletionRef.current?.threadId === pending.threadId;
-
-        if (isCurrentPendingThread && hasExceededGracePeriod) {
-          pendingCompletionRef.current = null;
-          clearCompletionWatchdog();
-          cleanupSubscriptions();
-        }
-      }
+        },
+        isCurrentPendingThread: (threadId) =>
+          pendingCompletionRef.current?.threadId === threadId,
+        isThreadVisible,
+        resetStreamState,
+        scheduleCompletionWatchdog,
+        setActiveRun,
+        setActiveRunStatus,
+        setError,
+        setMessages,
+        updateThreadSummary,
+      });
     },
     [
       apiService,
@@ -630,15 +503,8 @@ export function useAgentChatStream(
         ? null
         : useAgentChatStore.getState().activeThreadId;
 
-      const preAssistantIds = new Set(
-        useAgentChatStore
-          .getState()
-          .messages.reduce<string[]>((acc, message) => {
-            if (message.role === 'assistant') {
-              acc.push(message.id);
-            }
-            return acc;
-          }, []),
+      const preAssistantIds = collectAssistantMessageIds(
+        useAgentChatStore.getState().messages,
       );
 
       const userMessage: AgentChatMessage = {
