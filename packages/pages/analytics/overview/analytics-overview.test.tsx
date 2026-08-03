@@ -38,49 +38,54 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
-vi.mock('@genfeedai/enums', () => ({
-  AlertCategory: {
-    ERROR: 'error',
-    INFO: 'info',
-    SUCCESS: 'success',
-    WARNING: 'warning',
-  },
-  AnalyticsMetric: {
-    COMMENTS: 'comments',
-    ENGAGEMENT: 'engagement',
-    ENGAGEMENT_RATE: 'engagement_rate',
-    LIKES: 'likes',
-    POSTS: 'posts',
-    SAVES: 'saves',
-    SHARES: 'shares',
-    VIEWS: 'views',
-  },
-  ButtonSize: {
-    LG: 'lg',
-    MD: 'md',
-    SM: 'sm',
-    XS: 'xs',
-  },
-  ButtonVariant: {
-    DEFAULT: 'default',
-    DESTRUCTIVE: 'destructive',
-    GHOST: 'ghost',
-    LINK: 'link',
-    OUTLINE: 'outline',
-    SECONDARY: 'secondary',
-    UNSTYLED: 'unstyled',
-  },
-  CardVariant: {
-    DEFAULT: 'default',
-    GHOST: 'ghost',
-    OUTLINE: 'outline',
-  },
-  PageScope: {
-    BRAND: 'brand',
-    ORGANIZATION: 'organization',
-    PERSONAL: 'personal',
-  },
-}));
+vi.mock('@genfeedai/enums', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/enums')>();
+  return {
+    ...actual,
+    AlertCategory: {
+      ERROR: 'error',
+      INFO: 'info',
+      SUCCESS: 'success',
+      WARNING: 'warning',
+    },
+    AnalyticsMetric: {
+      COMMENTS: 'comments',
+      ENGAGEMENT: 'engagement',
+      ENGAGEMENT_RATE: 'engagement_rate',
+      LIKES: 'likes',
+      POSTS: 'posts',
+      SAVES: 'saves',
+      SHARES: 'shares',
+      VIEWS: 'views',
+    },
+    ButtonSize: {
+      LG: 'lg',
+      MD: 'md',
+      SM: 'sm',
+      XS: 'xs',
+    },
+    ButtonVariant: {
+      DEFAULT: 'default',
+      DESTRUCTIVE: 'destructive',
+      GHOST: 'ghost',
+      LINK: 'link',
+      OUTLINE: 'outline',
+      SECONDARY: 'secondary',
+      UNSTYLED: 'unstyled',
+    },
+    CardVariant: {
+      DEFAULT: 'default',
+      GHOST: 'ghost',
+      OUTLINE: 'outline',
+    },
+    PageScope: {
+      BRAND: 'brand',
+      ORGANIZATION: 'organization',
+      PERSONAL: 'personal',
+      SUPERADMIN: 'superadmin',
+    },
+  };
+});
 
 const mockAnalyticsContext = {
   dateRange: {
@@ -297,13 +302,17 @@ describe('AnalyticsOverview', () => {
   it('renders first-run guidance when no analytics data exists', () => {
     const markup = renderOverview();
 
-    expect(markup).toContain('Coverage so far');
-    expect(markup).toContain('Your analytics home is ready');
     expect(markup).toContain('First run');
+    expect(markup).toContain('Connect accounts');
     expect(markup).toContain('/acme/~/settings/api-keys');
     expect(markup).toContain(
       'Trend lines will appear here once performance data lands',
     );
+    // Breadcrumb owns page identity — no in-page H1 / section marketing titles.
+    expect(markup).not.toContain('Your analytics home is ready');
+    expect(markup).not.toContain('Coverage so far');
+    expect(markup).not.toContain('Setup progress');
+    expect(markup).not.toContain('font-serif');
   });
 
   it('renders the grid skeleton while analytics data is loading', () => {
@@ -348,11 +357,12 @@ describe('AnalyticsOverview', () => {
 
     const markup = renderOverview();
 
-    expect(markup).toContain('Data is starting to come through');
     expect(markup).toContain('Warming up');
-    expect(markup).toContain('Coverage so far');
     expect(markup).toContain('/publish');
-    expect(markup).toContain('border-y border-white/[0.08]');
+    expect(markup).not.toContain('Data is starting to come through');
+    expect(markup).not.toContain('Coverage so far');
+    expect(markup).not.toContain('Setup progress');
+    expect(markup).not.toContain('font-serif');
     expect(markup).not.toContain('rounded-2xl border');
     expect(markup).not.toContain('bg-black/10 p-4');
   });
@@ -403,8 +413,9 @@ describe('AnalyticsOverview', () => {
     const markup = renderOverview();
 
     expect(markup).toContain('Top brands');
-    expect(markup).toContain('Performance snapshot');
-    expect(markup).toContain('What moved in this range');
+    expect(markup).not.toContain('Performance snapshot');
+    expect(markup).not.toContain('What moved in this range');
+    expect(markup).not.toContain('First run');
     expect(markup).toContain('platform-time-series-chart');
     expect(markup).toContain('top-posts-section');
   });

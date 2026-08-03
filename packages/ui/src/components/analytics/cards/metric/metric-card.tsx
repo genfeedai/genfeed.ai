@@ -1,31 +1,22 @@
 'use client';
 
-import { TrendDirection } from '@genfeedai/enums';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import {
-  formatCompactNumberIntl,
-  formatPercentage,
-} from '@genfeedai/helpers/formatting/format/format.helper';
+import type { TrendDirection } from '@genfeedai/enums';
+import { formatCompactNumberIntl } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
-import { Minus, TrendingDown, TrendingUp } from 'lucide-react';
-
-const TREND_ICONS = {
-  [TrendDirection.DOWN]: TrendingDown,
-  [TrendDirection.STABLE]: Minus,
-  [TrendDirection.UP]: TrendingUp,
-} as const;
+import MetricCardCanonical from '@ui/cards/metric-card/MetricCard';
+import type { ReactElement } from 'react';
 
 export interface MetricCardProps {
-  title: string;
-  value: string | number;
   change?: number;
-  trend?: TrendDirection;
+  className?: string;
   icon?: IconType;
   iconColor?: string;
   isLoading?: boolean;
-  className?: string;
-  subtitle?: string;
   onClick?: () => void;
+  subtitle?: string;
+  title: string;
+  trend?: TrendDirection;
+  value: string | number;
 }
 
 function formatValue(val: string | number): string {
@@ -35,103 +26,31 @@ function formatValue(val: string | number): string {
   return val;
 }
 
-function getChangeColor(change: number | undefined): string {
-  if (change === undefined || change === 0) {
-    return 'text-muted-foreground';
-  }
-  return change > 0 ? 'text-success' : 'text-destructive';
-}
-
-const BASE_CARD_CLASSES =
-  'w-full rounded-xl bg-card shadow-border p-6 text-left';
-const CLICKABLE_CLASSES =
-  'cursor-pointer hover:shadow-border-strong transition-all';
-
+/**
+ * @deprecated Prefer `@ui/cards/metric-card/MetricCard`.
+ * Analytics alias — maps title/change API onto the shared MetricCard.
+ */
 export function MetricCard({
+  change,
+  className = '',
+  icon,
+  iconColor,
+  isLoading = false,
+  subtitle,
   title,
   value,
-  change,
-  trend,
-  icon: Icon,
-  iconColor = 'text-muted-foreground',
-  isLoading = false,
-  className = '',
-  subtitle,
-  onClick,
-}: MetricCardProps) {
-  const cardClasses = cn(
-    BASE_CARD_CLASSES,
-    onClick && CLICKABLE_CLASSES,
-    className,
-  );
-
-  const Component = onClick ? 'button' : 'div';
-
-  if (isLoading) {
-    return (
-      <Component
-        type={onClick ? 'button' : undefined}
-        className={cardClasses}
-        onClick={onClick}
-      >
-        <div className="animate-pulse">
-          <div className="flex items-start justify-between mb-4">
-            <div className="h-4 bg-muted w-24" />
-            <div className="size-10 rounded-full bg-muted" />
-          </div>
-          <div className="h-8 bg-muted w-32 mb-2" />
-          <div className="h-4 bg-muted w-20" />
-        </div>
-      </Component>
-    );
-  }
-
-  const TrendIcon = trend ? TREND_ICONS[trend] : null;
-
+}: MetricCardProps): ReactElement {
   return (
-    <Component
-      type={onClick ? 'button' : undefined}
-      className={cardClasses}
-      onClick={onClick}
-    >
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
-          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-            {title}
-          </p>
-        </div>
-        {Icon && (
-          <div className={cn('rounded-md bg-muted p-2', iconColor)}>
-            <Icon className="size-6" />
-          </div>
-        )}
-      </div>
-
-      {/* Value */}
-      <div className="mb-2">
-        <p className="text-3xl font-bold text-foreground">
-          {formatValue(value)}
-        </p>
-      </div>
-
-      {/* Change & Trend */}
-      <div className="flex items-center gap-3">
-        {change !== undefined && (
-          <div
-            className={cn(
-              'flex items-center gap-2 text-sm font-medium',
-              getChangeColor(change),
-            )}
-          >
-            {TrendIcon && <TrendIcon className="size-4" />}
-            <span>{formatPercentage(change)}</span>
-          </div>
-        )}
-        {subtitle && (
-          <p className="text-sm text-muted-foreground">{subtitle}</p>
-        )}
-      </div>
-    </Component>
+    <MetricCardCanonical
+      className={className}
+      description={subtitle}
+      icon={icon}
+      iconClassName={iconColor}
+      isLoading={isLoading}
+      label={title}
+      size="md"
+      trend={change}
+      value={formatValue(value)}
+    />
   );
 }

@@ -7,7 +7,6 @@ import type {
   DashboardScopePreferences,
   IAnalytics,
 } from '@genfeedai/interfaces';
-import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAnalytics } from '@hooks/data/analytics/use-analytics/use-analytics';
@@ -48,17 +47,10 @@ interface HeroAction {
   variant: ButtonVariant;
 }
 
-interface ProgressMetric {
-  label: string;
-  value: string;
-}
-
 interface DashboardHeroContent {
   badge: string;
   description: string;
   primaryAction: HeroAction;
-  progressItems: ProgressMetric[];
-  title: string;
 }
 
 const DB_DASHBOARD_SCOPE_KEY = 'organization';
@@ -360,64 +352,24 @@ export function useAnalyticsOverview({
     hasViews,
   ]);
 
-  const heroContent = useMemo<DashboardHeroContent>(() => {
+  const heroContent = useMemo<DashboardHeroContent | null>(() => {
+    // Active dashboards need no status strip — metrics and charts carry the page.
+    // Empty / warming_up keep a compact badge + next-action row (no in-page H1;
+    // the shell breadcrumb owns page identity).
     if (scope === PageScope.SUPERADMIN) {
-      return {
-        badge: 'Network view',
-        description:
-          'Track platform health, network activity, and where momentum is building across organizations.',
-        primaryAction: {
-          href: `${basePath}/organizations`,
-          label: 'Review organizations',
-          variant: ButtonVariant.DEFAULT,
-        },
-        progressItems: [
-          {
-            label: 'Subscriptions',
-            value: formatCompactNumberIntl(analytics?.totalSubscriptions || 0),
-          },
-          {
-            label: 'Users',
-            value: formatCompactNumberIntl(analytics?.totalUsers || 0),
-          },
-          {
-            label: 'Brands',
-            value: formatCompactNumberIntl(analytics?.totalBrands || 0),
-          },
-        ],
-        title: 'Analytics overview',
-      };
+      return null;
     }
 
     if (dashboardState === 'empty') {
       return {
         badge: 'First run',
         description:
-          'This view will start surfacing winners, trends, and rankings once at least one social account is connected and content is published into the selected date range.',
+          'Connect a social account and publish into this date range to surface winners, trends, and rankings.',
         primaryAction: {
           href: orgHref('/settings/api-keys'),
           label: 'Connect accounts',
           variant: ButtonVariant.DEFAULT,
         },
-        progressItems: [
-          {
-            label: 'Connected accounts',
-            value: formatCompactNumberIntl(
-              analytics?.totalCredentialsConnected || 0,
-            ),
-          },
-          {
-            label: 'Published posts',
-            value: formatCompactNumberIntl(analytics?.totalPosts || 0),
-          },
-          {
-            label: 'Tracked platforms',
-            value: formatCompactNumberIntl(
-              analytics?.activePlatforms?.length || 0,
-            ),
-          },
-        ],
-        title: 'Your analytics home is ready',
       };
     }
 
@@ -425,62 +377,17 @@ export function useAnalyticsOverview({
       return {
         badge: 'Warming up',
         description:
-          'Setup is in place, but there is not enough tracked performance data yet to tell a useful story. Keep publishing and check back after the next sync window.',
+          'Accounts are connected, but there is not enough tracked performance yet. Keep publishing and check back after the next sync.',
         primaryAction: {
           href: APP_ROUTES.PUBLISH.ROOT,
           label: 'Create content',
           variant: ButtonVariant.DEFAULT,
         },
-        progressItems: [
-          {
-            label: 'Connected accounts',
-            value: formatCompactNumberIntl(
-              analytics?.totalCredentialsConnected || 0,
-            ),
-          },
-          {
-            label: 'Posts in range',
-            value: formatCompactNumberIntl(analytics?.totalPosts || 0),
-          },
-          {
-            label: 'Active platforms',
-            value: formatCompactNumberIntl(
-              analytics?.activePlatforms?.length || 0,
-            ),
-          },
-        ],
-        title: 'Data is starting to come through',
       };
     }
 
-    return {
-      badge: 'Active',
-      description:
-        'Use this snapshot to see what moved in the selected range, which platforms are active, and which posts or brands are pulling ahead.',
-      primaryAction: {
-        href: APP_ROUTES.PUBLISH.PUBLISHED,
-        label: 'View published posts',
-        variant: ButtonVariant.DEFAULT,
-      },
-      progressItems: [
-        {
-          label: 'Views',
-          value: formatCompactNumberIntl(analytics?.totalViews || 0),
-        },
-        {
-          label: 'Engagement',
-          value: formatCompactNumberIntl(analytics?.totalEngagement || 0),
-        },
-        {
-          label: 'Platforms',
-          value: formatCompactNumberIntl(
-            analytics?.activePlatforms?.length || 0,
-          ),
-        },
-      ],
-      title: 'Performance snapshot',
-    };
-  }, [analytics, basePath, dashboardState, orgHref, scope]);
+    return null;
+  }, [dashboardState, orgHref, scope]);
 
   const primaryKpiItems = useMemo(() => {
     if (scope === PageScope.SUPERADMIN) {

@@ -2,7 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { buttonVariants } from '@ui/primitives/button.variants';
-import { CircleCheck, Info, LayoutGrid, TrendingUp } from 'lucide-react';
+import { CircleCheck, Info, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 
 type DashboardState = 'empty' | 'warming_up' | 'active';
@@ -13,17 +13,10 @@ interface HeroAction {
   variant: ButtonVariant;
 }
 
-interface ProgressMetric {
-  label: string;
-  value: string;
-}
-
 interface DashboardHeroContent {
   badge: string;
   description: string;
   primaryAction: HeroAction;
-  progressItems: ProgressMetric[];
-  title: string;
 }
 
 type AnalyticsOverviewHeroProps = {
@@ -32,15 +25,20 @@ type AnalyticsOverviewHeroProps = {
   orgHref: (path: string) => string;
 };
 
+/**
+ * First-run / warming-up status strip only.
+ * Page identity lives in the shell breadcrumb — no in-page H1.
+ * Metrics live in KPISection MetricCards.
+ */
 export default function AnalyticsOverviewHero({
   dashboardState,
   heroContent,
   orgHref,
 }: AnalyticsOverviewHeroProps) {
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1.7fr)_minmax(280px,0.9fr)]">
-      <div className="space-y-5">
-        <div className="inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-foreground/60 shadow-border">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+        <div className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full bg-secondary px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-foreground/60 shadow-border">
           {dashboardState === 'active' ? (
             <CircleCheck className="size-4 text-success" />
           ) : dashboardState === 'warming_up' ? (
@@ -50,60 +48,31 @@ export default function AnalyticsOverviewHero({
           )}
           {heroContent.badge}
         </div>
-
-        <h1 className="sr-only">{heroContent.title}</h1>
-
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href={heroContent.primaryAction.href}
-            className={buttonVariants({
-              size: ButtonSize.SM,
-              variant: heroContent.primaryAction.variant,
-            })}
-          >
-            {heroContent.primaryAction.label}
-          </Link>
-          <Link
-            href={orgHref('/settings/api-keys')}
-            className={buttonVariants({
-              size: ButtonSize.SM,
-              variant: ButtonVariant.SECONDARY,
-            })}
-          >
-            Manage connections
-          </Link>
-        </div>
+        <p className="min-w-0 text-sm leading-5 text-foreground/65">
+          {heroContent.description}
+        </p>
       </div>
 
-      <aside className="border-t border-white/[0.08] pt-5 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <div className="text-sm font-medium text-foreground">
-              Setup progress
-            </div>
-            <div className="text-xs text-foreground/55">
-              What this date range can currently support
-            </div>
-          </div>
-          <LayoutGrid className="size-5 text-foreground/45" />
-        </div>
-
-        <div className="mt-4 divide-y divide-white/[0.08]">
-          {heroContent.progressItems.map((item) => (
-            <div
-              key={item.label}
-              className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4 py-4 first:pt-0 last:pb-0 lg:block"
-            >
-              <div className="text-xs uppercase tracking-[0.22em] text-foreground/40 lg:mb-2">
-                {item.label}
-              </div>
-              <div className="text-3xl font-serif text-foreground">
-                {item.value}
-              </div>
-            </div>
-          ))}
-        </div>
-      </aside>
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <Link
+          href={heroContent.primaryAction.href}
+          className={buttonVariants({
+            size: ButtonSize.SM,
+            variant: heroContent.primaryAction.variant,
+          })}
+        >
+          {heroContent.primaryAction.label}
+        </Link>
+        <Link
+          href={orgHref('/settings/api-keys')}
+          className={buttonVariants({
+            size: ButtonSize.SM,
+            variant: ButtonVariant.SECONDARY,
+          })}
+        >
+          Manage connections
+        </Link>
+      </div>
     </div>
   );
 }

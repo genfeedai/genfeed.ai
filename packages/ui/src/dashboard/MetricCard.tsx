@@ -1,96 +1,38 @@
-import { ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@genfeedai/helpers/formatting/cn';
-import type { ComponentType, ReactNode } from 'react';
-import { Button } from '../primitives/button';
+import MetricCardCanonical from '@ui/cards/metric-card/MetricCard';
+import type { ComponentType, ReactElement, ReactNode } from 'react';
 
-interface MetricCardProps {
-  icon: ComponentType<{ className?: string }>;
-  value: string | number;
-  label: string;
+type LegacyDashboardMetricCardProps = {
   description?: ReactNode;
   href?: string;
-  onClick?: () => void;
+  icon: ComponentType<{ className?: string }>;
+  label: string;
   linkComponent?: ComponentType<{
-    href: string;
-    className: string;
-    onClick?: () => void;
     children: ReactNode;
+    className: string;
+    href: string;
+    onClick?: () => void;
   }>;
-}
+  onClick?: () => void;
+  value: string | number;
+};
 
+/**
+ * @deprecated Prefer `@ui/cards/metric-card/MetricCard`.
+ * Dashboard package alias — maps legacy icon-required API onto MetricCard.
+ */
 export function MetricCard({
-  icon: Icon,
-  value,
-  label,
   description,
-  href,
-  onClick,
-  linkComponent: LinkComponent,
-}: MetricCardProps) {
-  const isClickable = !!(href || onClick);
-
-  const inner = (
-    <div
-      className={cn(
-        'h-full rounded-card bg-card px-4 py-4 shadow-border transition-[border-color,background-color] duration-150 ease-out sm:px-5 sm:py-5',
-        isClickable && 'cursor-pointer hover:bg-accent/50',
-      )}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl">
-            {value}
-          </p>
-          <p className="mt-1 text-xs font-medium text-muted-foreground sm:text-sm">
-            {label}
-          </p>
-          {description && (
-            <div className="mt-1.5 hidden text-xs text-muted-foreground/70 sm:block">
-              {description}
-            </div>
-          )}
-        </div>
-        <Icon className="mt-1.5 size-4 shrink-0 text-muted-foreground/50" />
-      </div>
-    </div>
+  icon,
+  label,
+  value,
+}: LegacyDashboardMetricCardProps): ReactElement {
+  return (
+    <MetricCardCanonical
+      description={description}
+      icon={icon}
+      label={label}
+      size="md"
+      value={value}
+    />
   );
-
-  if (href && LinkComponent) {
-    return (
-      <LinkComponent
-        href={href}
-        className="h-full text-inherit no-underline"
-        onClick={onClick}
-      >
-        {inner}
-      </LinkComponent>
-    );
-  }
-
-  if (href) {
-    return (
-      <a
-        href={href}
-        className="h-full text-inherit no-underline"
-        onClick={onClick}
-      >
-        {inner}
-      </a>
-    );
-  }
-
-  if (onClick) {
-    return (
-      <Button
-        variant={ButtonVariant.UNSTYLED}
-        withWrapper={false}
-        className="size-full text-left"
-        onClick={onClick}
-      >
-        {inner}
-      </Button>
-    );
-  }
-
-  return inner;
 }
