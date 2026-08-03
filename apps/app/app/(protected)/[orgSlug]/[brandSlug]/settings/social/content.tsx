@@ -36,11 +36,12 @@ export default function BrandSettingsSocialPage() {
 
   return (
     <Container>
-      <div className="mx-auto flex max-w-3xl flex-col gap-3">
+      <div className="mx-auto flex max-w-5xl flex-col gap-3">
         <BrandDetailSocialMediaCard
           brandId={brandId}
           connections={socialConnections}
           connectedPlatformsCount={connectedPlatformsCount}
+          variant="page"
         />
       </div>
     </Container>

@@ -177,6 +177,32 @@ describe('BrandDetailSocialMediaCard', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders full integration cards on the page variant without a modal gate', () => {
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[]}
+        connectedPlatformsCount={0}
+        variant="page"
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'Connect' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Manage' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Social networks')).toBeInTheDocument();
+    expect(screen.getByText('Video')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Connect Twitter' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Connect YouTube' }),
+    ).toBeInTheDocument();
+  });
+
   it('renders connected social links', () => {
     render(
       <BrandDetailSocialMediaCard

@@ -96,6 +96,11 @@ export interface BrandDetailSocialMediaCardProps {
   brandId: string;
   connections: BrandDetailSocialConnection[];
   connectedPlatformsCount: number;
+  /**
+   * `compact` — summary card + connect modal (sidebar / embed).
+   * `page` — full categorized integration card list (settings/social).
+   */
+  variant?: 'compact' | 'page';
 }
 
 export interface BrandDetailExternalLinksCardProps {
