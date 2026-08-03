@@ -109,6 +109,13 @@ export interface BrandDetailSocialMediaCardProps {
 export interface BrandDetailExternalLinksCardProps {
   links: ILink[];
   onOpenLinkModal: (link?: ILink) => void;
+  /**
+   * Connected OAuth accounts — shown as read-only profile rows.
+   * Social presence is owned by /settings/social, not manual Link CRUD.
+   */
+  socialConnections?: BrandDetailSocialConnection[];
+  /** Deep link to the Social connect page when connections are empty. */
+  manageSocialHref?: string;
 }
 
 export interface BrandDetailDefaultModelsCardProps {

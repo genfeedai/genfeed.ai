@@ -59,6 +59,8 @@ export default function BrandDetailSidebar({
       ) : (
         <BrandDetailExternalLinksCard
           links={links}
+          socialConnections={socialConnections}
+          manageSocialHref={manageSocialHref}
           onOpenLinkModal={onOpenLinkModal}
         />
       )}

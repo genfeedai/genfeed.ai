@@ -23,14 +23,13 @@ import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { type ChangeEvent, useEffect, useState } from 'react';
 
+/**
+ * Manual brand links are non-OAuth destinations only.
+ * Social profiles (X, IG, YouTube, …) come from connected accounts on
+ * /settings/social — not free-typed Link rows.
+ */
 const LINK_CATEGORY_OPTIONS: Array<{ label: string; value: LinkCategory }> = [
   { label: 'Website', value: LinkCategory.WEBSITE },
-  { label: 'X / Twitter', value: LinkCategory.TWITTER },
-  { label: 'Instagram', value: LinkCategory.INSTAGRAM },
-  { label: 'YouTube', value: LinkCategory.YOUTUBE },
-  { label: 'LinkedIn', value: LinkCategory.LINKEDIN },
-  { label: 'TikTok', value: LinkCategory.TIKTOK },
-  { label: 'Facebook', value: LinkCategory.FACEBOOK },
   { label: 'Other', value: LinkCategory.OTHER },
 ];
 
@@ -70,11 +69,13 @@ export default function ModalBrandLink({
 
   useEffect(() => {
     if (link) {
+      const category =
+        link.category === LinkCategory.OTHER
+          ? LinkCategory.OTHER
+          : LinkCategory.WEBSITE;
       form.setValue('brand', brandId ?? '', { shouldValidate: true });
       form.setValue('label', link.label, { shouldValidate: true });
-      form.setValue('category', link.category || LinkCategory.WEBSITE, {
-        shouldValidate: true,
-      });
+      form.setValue('category', category, { shouldValidate: true });
       form.setValue('url', link.url, { shouldValidate: true });
     }
   }, [link, brandId, form]);
@@ -91,13 +92,13 @@ export default function ModalBrandLink({
   return (
     <Modal
       id={ModalEnum.BRAND_LINK}
-      title={link ? 'Edit link' : 'Add link'}
+      title={link ? 'Edit Link' : 'Add Link'}
       error={validationError}
       onClose={() => setValidationError(null)}
     >
-      <form ref={formRef} className="flex flex-col gap-4" onSubmit={onSubmit}>
+      <form ref={formRef} onSubmit={onSubmit}>
         {hasFormErrors(form.formState.errors) ? (
-          <Alert type={AlertCategory.ERROR}>
+          <Alert type={AlertCategory.ERROR} className="mb-4">
             <div className="space-y-1">
               {parseFormErrors(form.formState.errors).map((error) => (
                 <div key={error}>{error}</div>
@@ -113,7 +114,7 @@ export default function ModalBrandLink({
             control={form.control}
             onChange={updateModalBrandLink}
             placeholder="Homepage, Docs, Blog…"
-            isRequired
+            isRequired={true}
             isDisabled={isSubmitting}
           />
         </FormControl>
@@ -123,9 +124,9 @@ export default function ModalBrandLink({
             name="category"
             control={form.control}
             onChange={updateModalBrandLink}
+            isRequired={true}
             isDisabled={isSubmitting}
-            isRequired
-            placeholder="Choose a category"
+            placeholder="Select a category"
           >
             {LINK_CATEGORY_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -133,6 +134,10 @@ export default function ModalBrandLink({
               </option>
             ))}
           </SelectField>
+          <p className="mt-1 text-xs text-muted-foreground">
+            X, Instagram, YouTube, and other socials are connected under Social
+            — not as manual links.
+          </p>
         </FormControl>
 
         <FormControl label="URL">
@@ -142,17 +147,18 @@ export default function ModalBrandLink({
             control={form.control}
             onChange={updateModalBrandLink}
             placeholder="https://example.com"
-            isRequired
+            isRequired={true}
             isDisabled={isSubmitting}
           />
         </FormControl>
 
-        <ModalActions className="mt-2">
+        <ModalActions>
           <Button
             type="button"
             label="Cancel"
             variant={ButtonVariant.SECONDARY}
-            size={ButtonSize.SM}
+            size={ButtonSize.LG}
+            className="md:h-9 md:px-4 md:py-2 mb-4 md:mb-0"
             isDisabled={isSubmitting}
             onClick={() => closeModal()}
           />
@@ -162,7 +168,8 @@ export default function ModalBrandLink({
               type="button"
               label="Delete"
               variant={ButtonVariant.DESTRUCTIVE}
-              size={ButtonSize.SM}
+              size={ButtonSize.LG}
+              className="md:h-9 md:px-4 md:py-2 mb-4 md:mb-0"
               onClick={deleteModalBrandLink}
               isLoading={isSubmitting}
             />
@@ -170,9 +177,10 @@ export default function ModalBrandLink({
 
           <Button
             type="submit"
-            label={link ? 'Save' : 'Add link'}
+            label={link ? 'Update' : 'Add'}
             variant={ButtonVariant.DEFAULT}
-            size={ButtonSize.SM}
+            size={ButtonSize.LG}
+            className="md:h-9 md:px-4 md:py-2"
             isLoading={isSubmitting}
             isDisabled={isSubmitting || !form.formState.isValid}
           />
