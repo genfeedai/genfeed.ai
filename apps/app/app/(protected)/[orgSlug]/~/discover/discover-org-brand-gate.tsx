@@ -18,11 +18,15 @@ function getDiscoverScopedPath(pathname: string, orgSlug: string): string {
   const index = pathname.indexOf(marker);
 
   if (index === -1) {
-    return '/discover/discovery';
+    return '/discover/overview';
   }
 
   const rest = pathname.slice(index + marker.length);
-  return rest ? `/discover${rest}` : '/discover/discovery';
+  // Collapse legacy /discovery segment to canonical /overview.
+  if (rest === '/discovery' || rest.startsWith('/discovery/')) {
+    return `/discover/overview${rest.slice('/discovery'.length)}`;
+  }
+  return rest ? `/discover${rest}` : '/discover/overview';
 }
 
 /**
