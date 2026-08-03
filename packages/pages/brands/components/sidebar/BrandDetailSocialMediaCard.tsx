@@ -11,6 +11,7 @@ import { ServicesService } from '@services/external/services.service';
 import { CredentialsService } from '@services/organization/credentials.service';
 import Card from '@ui/card/Card';
 import {
+  groupOAuthConnectPlatforms,
   OAUTH_CONNECT_PLATFORMS,
   type OAuthConnectPlatform,
 } from '@ui/constants/oauth-connect-platforms';
@@ -168,6 +169,14 @@ export default function BrandDetailSocialMediaCard({
         (p) => !connectedPlatforms.has(p.platform),
       ),
     [connectedPlatforms],
+  );
+  const unconnectedPlatformGroups = useMemo(
+    () => groupOAuthConnectPlatforms(unconnectedPlatforms),
+    [unconnectedPlatforms],
+  );
+  const allPlatformGroups = useMemo(
+    () => groupOAuthConnectPlatforms(OAUTH_CONNECT_PLATFORMS),
+    [],
   );
   const connectionHealth = useMemo(
     () =>
@@ -402,14 +411,21 @@ export default function BrandDetailSocialMediaCard({
                 ))}
               </div>
 
-              {unconnectedPlatforms.length > 0 ? (
-                <div className="space-y-3 border-t border-border pt-4">
+              {unconnectedPlatformGroups.length > 0 ? (
+                <div className="space-y-4 border-t border-border pt-4">
                   <p className="text-sm text-muted-foreground">
                     Add more channels for this brand.
                   </p>
-                  <div className="flex flex-wrap gap-2">
-                    {unconnectedPlatforms.map(renderConnectButton)}
-                  </div>
+                  {unconnectedPlatformGroups.map((group) => (
+                    <div key={group.id} className="space-y-2">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        {group.label}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {group.platforms.map(renderConnectButton)}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : null}
             </div>
@@ -418,9 +434,16 @@ export default function BrandDetailSocialMediaCard({
               <p className="text-sm text-muted-foreground">
                 Connect your social media accounts to display them here.
               </p>
-              <div className="flex flex-wrap gap-2">
-                {OAUTH_CONNECT_PLATFORMS.map(renderConnectButton)}
-              </div>
+              {allPlatformGroups.map((group) => (
+                <div key={group.id} className="space-y-2">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {group.label}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {group.platforms.map(renderConnectButton)}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </DialogContent>

@@ -155,6 +155,28 @@ describe('BrandDetailSocialMediaCard', () => {
     ).toBeInTheDocument();
   });
 
+  it('groups connect platforms by category in the dialog', () => {
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[]}
+        connectedPlatformsCount={0}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Connect' }));
+
+    expect(screen.getByText('Social networks')).toBeInTheDocument();
+    expect(screen.getByText('Video')).toBeInTheDocument();
+    expect(screen.getByText('Advertising')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /twitter/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /youtube/i }),
+    ).toBeInTheDocument();
+  });
+
   it('renders connected social links', () => {
     render(
       <BrandDetailSocialMediaCard
