@@ -148,7 +148,7 @@ export default function ModalBrandLink({
           />
         </FormControl>
 
-        <ModalActions className="mt-2">
+        <ModalActions>
           <Button
             type="button"
             label="Cancel"
