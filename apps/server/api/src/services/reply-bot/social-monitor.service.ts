@@ -23,6 +23,7 @@ import type {
   ApifyYouTubeVideo,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import {
   ReplyBotPlatform,
   ReplyBotType,
@@ -30,7 +31,7 @@ import {
 } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 /**
  * Unified social content data structure
@@ -68,7 +69,18 @@ export interface SocialContentData {
 export interface FetchContentOptions {
   limit?: number;
   sinceId?: string;
+  /** When true, keep replies in the timeline (Following feed). Default false. */
   includeReplies?: boolean;
+  /** When true, keep pure retweets. Default false. */
+  includeReposts?: boolean;
+  /**
+   * Prefer official X API when available (Following). Falls back to Apify.
+   * Default true for Twitter timelines.
+   */
+  preferOfficialApi?: boolean;
+  /** Brand scope for OAuth-first X user token lookup. */
+  brandId?: string;
+  organizationId?: string;
 }
 
 @Injectable()
@@ -80,6 +92,7 @@ export class SocialMonitorService {
     private readonly loggerService: LoggerService,
     private readonly processedTweetsService: ProcessedTweetsService,
     private readonly apifyService: ApifyService,
+    @Optional() private readonly twitterService?: TwitterService,
   ) {}
 
   /**
@@ -190,7 +203,7 @@ export class SocialMonitorService {
       platform,
       {
         [ReplyBotPlatform.TWITTER]: () =>
-          this.getTwitterTimeline(username, limit, options.sinceId),
+          this.getTwitterTimeline(username, limit, options),
         [ReplyBotPlatform.INSTAGRAM]: () =>
           this.getInstagramTimeline(username, limit),
         [ReplyBotPlatform.TIKTOK]: () =>
@@ -201,7 +214,12 @@ export class SocialMonitorService {
           this.getRedditTimeline(username, limit),
       },
       {
-        logData: { postCount: 0, username },
+        logData: {
+          includeReplies: Boolean(options.includeReplies),
+          includeReposts: Boolean(options.includeReposts),
+          postCount: 0,
+          username,
+        },
         method: 'getUserTimeline',
       },
     );
@@ -386,17 +404,88 @@ export class SocialMonitorService {
   private async getTwitterTimeline(
     username: string,
     limit: number,
-    sinceId?: string,
+    options: FetchContentOptions = {},
   ): Promise<SocialContentData[]> {
+    const includeReplies = Boolean(options.includeReplies);
+    const includeReposts = Boolean(options.includeReposts);
+    const preferOfficialApi = options.preferOfficialApi !== false;
+    const sinceId = options.sinceId;
+
+    if (preferOfficialApi && this.twitterService) {
+      let brandAccessToken: string | null = null;
+      if (options.brandId && options.organizationId) {
+        brandAccessToken =
+          await this.twitterService.resolveBrandUserAccessToken(
+            options.organizationId,
+            options.brandId,
+          );
+      }
+
+      // Prefer brand-connected X user token, then app bearer, then Apify.
+      const tokenAttempts: Array<string | undefined> = brandAccessToken
+        ? [brandAccessToken, undefined]
+        : [undefined];
+
+      for (const accessToken of tokenAttempts) {
+        try {
+          const officialTweets =
+            await this.twitterService.getUserTimelineByUsername(username, {
+              accessToken,
+              excludeReplies: !includeReplies,
+              excludeRetweets: !includeReposts,
+              maxResults: limit,
+              sinceId,
+            });
+          this.loggerService.log(
+            `${this.constructorName} getTwitterTimeline via official X API`,
+            {
+              count: officialTweets.length,
+              source: accessToken ? 'brand-oauth' : 'app-bearer',
+              username,
+            },
+          );
+          return officialTweets.map((tweet) => ({
+            authorDisplayName: tweet.authorName,
+            authorFollowersCount: tweet.authorFollowersCount,
+            authorId: tweet.authorId ?? '',
+            authorUsername: tweet.authorUsername ?? username,
+            contentType: SocialContentType.TWEET,
+            contentUrl: `https://x.com/${tweet.authorUsername ?? username}/status/${tweet.id}`,
+            createdAt: tweet.createdAt ?? new Date(),
+            id: tweet.id,
+            inReplyToId: tweet.inReplyToId ?? undefined,
+            isRepost: tweet.isRetweet,
+            metrics: tweet.metrics,
+            platform: ReplyBotPlatform.TWITTER,
+            text: tweet.text,
+          }));
+        } catch (error: unknown) {
+          this.loggerService.warn(
+            `${this.constructorName} official X timeline failed — trying next source`,
+            {
+              error: (error as Error)?.message,
+              source: accessToken ? 'brand-oauth' : 'app-bearer',
+              username,
+            },
+          );
+        }
+      }
+    }
+
     const apifyTweets = await this.apifyService.getTwitterUserTimeline(
       username,
       { limit, sinceId },
     );
-    // Filter out retweets and replies
-    const originalTweets = apifyTweets.filter(
-      (t: ApifyNormalizedTweet) => !t.isRetweet && !t.inReplyToTweetId,
-    );
-    return this.convertTwitterToSocialContent(originalTweets);
+    const filtered = apifyTweets.filter((tweet: ApifyNormalizedTweet) => {
+      if (!includeReposts && tweet.isRetweet) {
+        return false;
+      }
+      if (!includeReplies && tweet.inReplyToTweetId) {
+        return false;
+      }
+      return true;
+    });
+    return this.convertTwitterToSocialContent(filtered);
   }
 
   private async searchTwitter(

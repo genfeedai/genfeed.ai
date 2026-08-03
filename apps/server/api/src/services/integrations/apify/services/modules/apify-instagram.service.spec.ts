@@ -9,6 +9,7 @@ describe('ApifyInstagramService', () => {
     calculateEngagementMetrics: ReturnType<typeof vi.fn>;
     calculateGrowthRate: ReturnType<typeof vi.fn>;
     calculateViralityScore: ReturnType<typeof vi.fn>;
+    getApiToken: ReturnType<typeof vi.fn>;
     loggerService: {
       error: ReturnType<typeof vi.fn>;
       log: ReturnType<typeof vi.fn>;
@@ -54,6 +55,7 @@ describe('ApifyInstagramService', () => {
         INSTAGRAM_HASHTAG: 'apify/instagram-hashtag-scraper',
         INSTAGRAM_SCRAPER: 'apify/instagram-scraper',
       },
+      getApiToken: vi.fn().mockReturnValue('test-token'),
       calculateEngagementMetrics: vi.fn().mockReturnValue({
         engagementRate: 2.1,
         velocity: 2083,
@@ -179,10 +181,16 @@ describe('ApifyInstagramService', () => {
     );
   });
 
-  it('getInstagramUserPosts returns empty on error', async () => {
+  it('getInstagramUserPosts throws when Apify token is missing', async () => {
+    baseService.getApiToken.mockReturnValue(null);
+    await expect(service.getInstagramUserPosts('user')).rejects.toThrow(
+      /APIFY_API_TOKEN/,
+    );
+  });
+
+  it('getInstagramUserPosts rethrows actor failures', async () => {
     baseService.runActor.mockRejectedValue(new Error('fail'));
-    const result = await service.getInstagramUserPosts('user');
-    expect(result).toEqual([]);
+    await expect(service.getInstagramUserPosts('user')).rejects.toThrow('fail');
   });
 
   it('searchInstagramByHashtag strips # prefix', async () => {

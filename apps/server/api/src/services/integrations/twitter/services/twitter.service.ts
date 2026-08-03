@@ -259,6 +259,172 @@ export class TwitterService {
   }
 
   /**
+   * Resolve a brand-scoped X OAuth2 user access token when connected.
+   * Returns null when no usable credential exists (caller should fall back).
+   */
+  public async resolveBrandUserAccessToken(
+    organizationId: string,
+    brandId: string,
+  ): Promise<string | null> {
+    try {
+      const credentials = await this.credentialsService.findOne({
+        brand: brandId,
+        isDeleted: false,
+        organization: organizationId,
+        platform: CredentialPlatform.TWITTER,
+      });
+      if (!credentials?.accessToken || credentials.isConnected === false) {
+        return null;
+      }
+      try {
+        return EncryptionUtil.decrypt(credentials.accessToken);
+      } catch {
+        // Token may already be plain in some test/local paths.
+        return credentials.accessToken;
+      }
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        `${this.constructorName} resolveBrandUserAccessToken failed`,
+        { brandId, error: (error as Error)?.message, organizationId },
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Public user timeline via official X API v2.
+   * Prefer brand OAuth2 user token when provided, else app bearer.
+   */
+  public async getUserTimelineByUsername(
+    username: string,
+    options: {
+      maxResults?: number;
+      excludeReplies?: boolean;
+      excludeRetweets?: boolean;
+      sinceId?: string;
+      /** Decrypted OAuth2 user access token (brand credential). */
+      accessToken?: string;
+    } = {},
+  ): Promise<
+    Array<{
+      id: string;
+      text: string;
+      createdAt?: Date;
+      authorId?: string;
+      authorUsername?: string;
+      authorName?: string;
+      authorFollowersCount?: number;
+      isRetweet: boolean;
+      inReplyToId: string | null;
+      metrics?: {
+        likes: number;
+        comments: number;
+        shares: number;
+      };
+    }>
+  > {
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const cleanUsername = username.replace(/^@/, '');
+    const maxResults = Math.min(Math.max(options.maxResults ?? 25, 5), 100);
+    const client = options.accessToken
+      ? new TwitterApi(options.accessToken)
+      : this.twitterClient;
+
+    try {
+      const userResult = (await client.v2.get(
+        `users/by/username/${encodeURIComponent(cleanUsername)}`,
+        { 'user.fields': 'public_metrics' },
+      )) as TwitterUserResponse;
+      const user = this.responseMapper.mapUser(userResult);
+      if (!user) {
+        return [];
+      }
+
+      const exclude: string[] = [];
+      if (options.excludeReplies) {
+        exclude.push('replies');
+      }
+      if (options.excludeRetweets) {
+        exclude.push('retweets');
+      }
+
+      const params: Record<string, string | number | string[]> = {
+        expansions: 'author_id',
+        max_results: maxResults,
+        'tweet.fields':
+          'created_at,public_metrics,author_id,referenced_tweets,in_reply_to_user_id',
+        'user.fields': 'username,name,public_metrics',
+      };
+      if (exclude.length > 0) {
+        params.exclude = exclude;
+      }
+      if (options.sinceId) {
+        params.since_id = options.sinceId;
+      }
+
+      const result = (await client.v2.get(
+        `users/${user.id}/tweets`,
+        params,
+      )) as {
+        data?: Array<{
+          id: string;
+          text?: string;
+          created_at?: string;
+          author_id?: string;
+          in_reply_to_user_id?: string;
+          referenced_tweets?: Array<{ type: string; id: string }>;
+          public_metrics?: {
+            like_count?: number;
+            reply_count?: number;
+            retweet_count?: number;
+          };
+        }>;
+        includes?: {
+          users?: Array<{
+            id: string;
+            username?: string;
+            name?: string;
+            public_metrics?: { followers_count?: number };
+          }>;
+        };
+      };
+
+      const authors = new Map(
+        (result.includes?.users ?? []).map((author) => [author.id, author]),
+      );
+
+      return (result.data ?? []).map((tweet) => {
+        const author = authors.get(tweet.author_id ?? user.id);
+        const isRetweet = Boolean(
+          tweet.referenced_tweets?.some((ref) => ref.type === 'retweeted'),
+        );
+        return {
+          authorFollowersCount:
+            author?.public_metrics?.followers_count ?? user.followersCount,
+          authorId: tweet.author_id ?? user.id,
+          authorName: author?.name ?? user.name,
+          authorUsername: author?.username ?? user.username,
+          createdAt: tweet.created_at ? new Date(tweet.created_at) : undefined,
+          id: tweet.id,
+          inReplyToId: tweet.in_reply_to_user_id ?? null,
+          isRetweet,
+          metrics: tweet.public_metrics
+            ? {
+                comments: tweet.public_metrics.reply_count ?? 0,
+                likes: tweet.public_metrics.like_count ?? 0,
+                shares: tweet.public_metrics.retweet_count ?? 0,
+              }
+            : undefined,
+          text: tweet.text ?? '',
+        };
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(`${caller} failed for @${cleanUsername}`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Get followers for a Twitter user.
    */
   public async getFollowers(
