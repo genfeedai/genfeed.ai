@@ -1,27 +1,27 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { BrandDetailSocialSummaryCardProps } from '@props/pages/brand-detail.props';
+import type { BrandDetailLinksSummaryCardProps } from '@props/pages/brand-detail.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 
-function formatConnected(count: number): string {
-  return `${count} connected`;
+function formatLinks(count: number): string {
+  return `${count} ${count === 1 ? 'link' : 'links'}`;
 }
 
 /**
- * Profile-sidebar summary for OAuth / social integrations only.
- * External website links live on the Links summary + /settings/links.
+ * Profile-sidebar summary for external website / profile URLs.
+ * OAuth social accounts live on Social summary + /settings/social.
  */
-export default function BrandDetailSocialSummaryCard({
-  connectedPlatformsCount,
+export default function BrandDetailLinksSummaryCard({
+  linksCount,
   manageHref,
-}: BrandDetailSocialSummaryCardProps) {
+}: BrandDetailLinksSummaryCardProps) {
   return (
     <Card
-      label="Social accounts"
-      description="Connected platforms used for publishing and ads."
+      label="Links"
+      description="Websites and public profiles shown on this brand."
       headerAction={
         <Button
           asChild
@@ -35,10 +35,10 @@ export default function BrandDetailSocialSummaryCard({
     >
       <div className="rounded-md bg-background-secondary/50 px-3 py-2.5">
         <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          Accounts
+          External
         </p>
         <p className="mt-1 text-sm text-foreground/90">
-          {formatConnected(connectedPlatformsCount)}
+          {formatLinks(linksCount)}
         </p>
       </div>
     </Card>

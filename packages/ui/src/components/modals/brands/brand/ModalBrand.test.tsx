@@ -29,6 +29,12 @@ const crawlBrandKitMock = vi.fn().mockResolvedValue({
       role: 'banner',
       sourceUrl: 'https://acme.test/og.jpg',
     },
+    {
+      candidateId: 'logo-1',
+      label: 'Website logo',
+      role: 'logo',
+      sourceUrl: 'https://acme.test/logo.png',
+    },
   ],
 });
 const importBrandKitAssetsMock = vi.fn().mockResolvedValue({
@@ -390,7 +396,7 @@ describe('ModalBrand', () => {
     });
   });
 
-  it('stores and imports a website banner when creating a brand', async () => {
+  it('stores and imports website banner + logo when creating a brand', async () => {
     formValues.current = {
       label: 'Acme',
       slug: 'acme',
@@ -419,6 +425,12 @@ describe('ModalBrand', () => {
             replaceExisting: false,
             role: 'banner',
             sourceUrl: 'https://acme.test/og.jpg',
+          }),
+          expect.objectContaining({
+            candidateId: 'logo-1',
+            replaceExisting: false,
+            role: 'logo',
+            sourceUrl: 'https://acme.test/logo.png',
           }),
         ],
       });

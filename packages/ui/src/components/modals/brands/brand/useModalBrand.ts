@@ -630,24 +630,24 @@ export function useModalBrand(
                 createdBrand.id,
                 { url: normalizedWebsiteUrl },
               );
-              const bannerCandidate = draft.assetCandidates.find(
-                (candidate) => candidate.role === 'banner',
-              );
+              const assetsToImport = draft.assetCandidates
+                .filter(
+                  (candidate) =>
+                    candidate.role === 'banner' || candidate.role === 'logo',
+                )
+                .map((candidate) => ({
+                  candidateId: candidate.candidateId,
+                  label: candidate.label,
+                  mimeType: candidate.mimeType,
+                  replaceExisting: false,
+                  role: candidate.role,
+                  sourceType: 'website' as const,
+                  sourceUrl: candidate.sourceUrl ?? candidate.url,
+                }));
 
-              if (bannerCandidate) {
+              if (assetsToImport.length > 0) {
                 await service.importBrandKitAssets(createdBrand.id, {
-                  assets: [
-                    {
-                      candidateId: bannerCandidate.candidateId,
-                      label: bannerCandidate.label,
-                      mimeType: bannerCandidate.mimeType,
-                      replaceExisting: false,
-                      role: 'banner',
-                      sourceType: 'website',
-                      sourceUrl:
-                        bannerCandidate.sourceUrl ?? bannerCandidate.url,
-                    },
-                  ],
+                  assets: assetsToImport,
                 });
               }
             } catch (enrichmentError) {

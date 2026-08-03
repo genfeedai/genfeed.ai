@@ -300,7 +300,7 @@ export default function BrandDetailSocialMediaCard({
   return (
     <>
       <Card
-        label="Social Media"
+        label="Connected accounts"
         description={socialDescription}
         headerAction={
           <Button

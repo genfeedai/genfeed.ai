@@ -3,7 +3,7 @@ import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
 import BrandSettingsHarnessPage from './content';
 
-export const generateMetadata = createPageMetadata('Brand Harness');
+export const generateMetadata = createPageMetadata('Brand harness');
 
 export default function BrandSettingsHarnessRoute() {
   return (

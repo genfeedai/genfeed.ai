@@ -21,8 +21,8 @@ import BrandDetailLatestVideos from './BrandDetailLatestVideos';
 
 /**
  * Brand public profile surface — banner, logo, name/description, visibility,
- * social summary, and latest public content. Full Social & Links management
- * lives at /settings/social. Kit / voice / publishing / agent config in nav.
+ * social/links summaries, and latest public content. OAuth accounts:
+ * /settings/social. External links: /settings/links.
  */
 export default function BrandDetail() {
   const {
@@ -57,6 +57,10 @@ export default function BrandDetail() {
     orgSlug && brandSlug
       ? `/${orgSlug}/${brandSlug}/settings/social`
       : '/settings/social';
+  const manageLinksHref =
+    orgSlug && brandSlug
+      ? `/${orgSlug}/${brandSlug}/settings/links`
+      : '/settings/links';
 
   const { imageModels } = useElements();
 
@@ -142,6 +146,7 @@ export default function BrandDetail() {
             deletingRefId={null}
             isUpdatingPublicProfile={isUpdating}
             manageSocialHref={manageSocialHref}
+            manageLinksHref={manageLinksHref}
             onTogglePublicProfile={(isPublic) => {
               // Fire-and-forget: the hook already reverts and toasts on failure.
               void handleUpdateAccount(

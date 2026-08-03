@@ -73,4 +73,28 @@ describe('Switch', () => {
     expect(calls).toEqual([true]);
     expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true');
   });
+
+  it('places the control after the label and centers the row', () => {
+    const { container } = render(
+      <Switch
+        label="Public Profile"
+        description="Make your profile visible"
+        aria-label="Public Profile"
+      />,
+    );
+
+    const row = container.firstElementChild as HTMLElement;
+    expect(row.className).toContain('items-center');
+    expect(row.className).toContain('justify-between');
+
+    const switchEl = screen.getByRole('switch');
+    const label = screen.getByText('Public Profile');
+    // Label text precedes the switch in DOM (toggle sits on the right).
+    expect(
+      Boolean(
+        label.compareDocumentPosition(switchEl) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ),
+    ).toBe(true);
+  });
 });

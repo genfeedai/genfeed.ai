@@ -198,7 +198,7 @@ const GROUP_META: Array<{
   weight: number;
 }> = [
   { key: 'identity', label: 'Identity', weight: 0.25 },
-  { key: 'voice', label: 'Voice', weight: 0.35 },
+  { key: 'voice', label: 'Brand voice', weight: 0.35 },
   { key: 'strategy', label: 'Strategy', weight: 0.2 },
   { key: 'visual', label: 'Visual', weight: 0.2 },
 ];

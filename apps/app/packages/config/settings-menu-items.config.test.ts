@@ -137,8 +137,9 @@ describe('buildSettingsMenuItems', () => {
       expect(items.map((item) => item.label)).toEqual([
         'Profile',
         'Social',
+        'Links',
         'Brand Kit',
-        'Voice',
+        'Brand voice',
         'Interview',
         'Harness',
         'Publishing',
@@ -155,10 +156,13 @@ describe('buildSettingsMenuItems', () => {
       expect(items.find((i) => i.label === 'Social')?.href).toBe(
         '/settings/social',
       );
+      expect(items.find((i) => i.label === 'Links')?.href).toBe(
+        '/settings/links',
+      );
       expect(items.find((i) => i.label === 'Brand Kit')?.href).toBe(
         '/settings/kit',
       );
-      expect(items.find((i) => i.label === 'Voice')?.href).toBe(
+      expect(items.find((i) => i.label === 'Brand voice')?.href).toBe(
         '/settings/voice',
       );
     });
@@ -167,8 +171,9 @@ describe('buildSettingsMenuItems', () => {
       expect(items.map((item) => [item.label, item.group])).toEqual([
         ['Profile', 'Brand'],
         ['Social', 'Brand'],
+        ['Links', 'Brand'],
         ['Brand Kit', 'Brand'],
-        ['Voice', 'Brand'],
+        ['Brand voice', 'Brand'],
         ['Interview', 'Brand'],
         ['Harness', 'Automation'],
         ['Publishing', 'Automation'],

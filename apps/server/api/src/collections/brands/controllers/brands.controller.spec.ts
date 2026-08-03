@@ -24,6 +24,7 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import {
   BrandKitApplySerializer,
@@ -172,6 +173,12 @@ describe('BrandsController', () => {
             addReferenceImages: vi.fn(),
             setupBrand: vi.fn(),
             updateBrandNameById: vi.fn(),
+          },
+        },
+        {
+          provide: BrandScraperService,
+          useValue: {
+            scrapeWebsite: vi.fn(),
           },
         },
       ],

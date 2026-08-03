@@ -4,14 +4,15 @@ import { isPublicAssetScope } from '@genfeedai/helpers';
 
 import BrandDetailAccountSettingsCard from '@pages/brands/components/sidebar/BrandDetailAccountSettingsCard';
 import BrandDetailExternalLinksCard from '@pages/brands/components/sidebar/BrandDetailExternalLinksCard';
+import BrandDetailLinksSummaryCard from '@pages/brands/components/sidebar/BrandDetailLinksSummaryCard';
 import BrandDetailSocialMediaCard from '@pages/brands/components/sidebar/BrandDetailSocialMediaCard';
 import BrandDetailSocialSummaryCard from '@pages/brands/components/sidebar/BrandDetailSocialSummaryCard';
 import type { BrandDetailSidebarProps } from '@props/pages/brand-detail.props';
 
 /**
- * Public-profile column: visibility + social/links.
- * Settings Profile passes `manageSocialHref` → summary only.
- * Modal/overlay leaves it unset → full Social + Links editors.
+ * Public-profile column: visibility + social accounts + external links.
+ * Settings Profile passes manage hrefs → summary cards.
+ * Modal/overlay leaves them unset → full Social + Links editors.
  */
 export default function BrandDetailSidebar({
   brand,
@@ -20,10 +21,12 @@ export default function BrandDetailSidebar({
   connectedPlatformsCount,
   isUpdatingPublicProfile = false,
   manageSocialHref,
+  manageLinksHref,
   onTogglePublicProfile,
   onOpenLinkModal,
 }: BrandDetailSidebarProps) {
   const isPublic = isPublicAssetScope(brand.scope);
+  const showSummaries = Boolean(manageSocialHref || manageLinksHref);
 
   return (
     <div className="flex flex-col gap-3 lg:sticky lg:top-4 lg:self-start">
@@ -33,12 +36,21 @@ export default function BrandDetailSidebar({
         onToggle={onTogglePublicProfile}
       />
 
-      {manageSocialHref ? (
-        <BrandDetailSocialSummaryCard
-          connectedPlatformsCount={connectedPlatformsCount}
-          linksCount={links?.length ?? 0}
-          manageHref={manageSocialHref}
-        />
+      {showSummaries ? (
+        <>
+          {manageSocialHref ? (
+            <BrandDetailSocialSummaryCard
+              connectedPlatformsCount={connectedPlatformsCount}
+              manageHref={manageSocialHref}
+            />
+          ) : null}
+          {manageLinksHref ? (
+            <BrandDetailLinksSummaryCard
+              linksCount={links?.length ?? 0}
+              manageHref={manageLinksHref}
+            />
+          ) : null}
+        </>
       ) : (
         <>
           <BrandDetailSocialMediaCard

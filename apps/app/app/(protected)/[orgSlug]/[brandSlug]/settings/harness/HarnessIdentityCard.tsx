@@ -50,7 +50,7 @@ export default function HarnessIdentityCard({
         </div>
         <div className="space-y-2">
           <Label htmlFor="harness-scope">Scope</Label>
-          <Select onValueChange={onScopeChange} value={draft.scope ?? 'brand'}>
+          <Select disabled onValueChange={onScopeChange} value="brand">
             <SelectTrigger id="harness-scope">
               <SelectValue />
             </SelectTrigger>
@@ -62,6 +62,9 @@ export default function HarnessIdentityCard({
               ))}
             </SelectContent>
           </Select>
+          <p className="text-[11px] text-muted-foreground">
+            Locked to brand on this settings page.
+          </p>
         </div>
         <div className="space-y-2 md:col-span-2">
           <Label htmlFor="harness-description">Description</Label>

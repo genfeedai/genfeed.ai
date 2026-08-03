@@ -40,7 +40,7 @@ export default function BrandIdentityVoiceField({
         htmlFor="brand-default-voice-ref"
         className="mb-1 block text-sm font-medium"
       >
-        Default Voice
+        Default speaking voice
       </label>
       <Select
         disabled={isLoadingCatalog}

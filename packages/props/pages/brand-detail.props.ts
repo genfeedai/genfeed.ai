@@ -63,8 +63,10 @@ export interface BrandDetailSidebarProps {
   connectedPlatformsCount: number;
   deletingRefId: string | null;
   isUpdatingPublicProfile?: boolean;
-  /** When set, sidebar shows a Social summary that links to full settings page. */
+  /** When set, sidebar shows a Social accounts summary linking to /settings/social. */
   manageSocialHref?: string;
+  /** When set, sidebar shows an external Links summary linking to /settings/links. */
+  manageLinksHref?: string;
   onTogglePublicProfile: (isPublic: boolean) => void;
   onRefreshBrand: () => Promise<void>;
   onOpenLinkModal: (link?: ILink) => void;
@@ -82,6 +84,10 @@ export interface BrandDetailAccountSettingsCardProps {
 
 export interface BrandDetailSocialSummaryCardProps {
   connectedPlatformsCount: number;
+  manageHref: string;
+}
+
+export interface BrandDetailLinksSummaryCardProps {
   linksCount: number;
   manageHref: string;
 }

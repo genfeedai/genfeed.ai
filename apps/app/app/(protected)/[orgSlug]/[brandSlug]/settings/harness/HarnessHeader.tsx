@@ -19,7 +19,8 @@ export default function HarnessHeader({
 }: HarnessHeaderProps) {
   return (
     <Card
-      label="Harness Profile"
+      label="Brand harness"
+      description="This brand’s agent runtime profile — structure, delivery knobs, and examples. Scoped to the brand (not org-wide)."
       bodyClassName="gap-3 p-4"
       headerAction={
         <Button
@@ -37,7 +38,12 @@ export default function HarnessHeader({
         <Badge variant={draft.status === 'active' ? 'success' : 'warning'}>
           {draft.status ?? 'active'}
         </Badge>
+        <Badge variant="outline">scope: {draft.scope ?? 'brand'}</Badge>
       </div>
+      <p className="text-xs leading-5 text-muted-foreground">
+        Writing brand voice (tone pillars) lives under Brand voice. Harness owns
+        how drafts are shaped and delivered once that voice is set.
+      </p>
     </Card>
   );
 }

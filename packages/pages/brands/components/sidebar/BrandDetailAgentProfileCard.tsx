@@ -19,8 +19,8 @@ import AgentProfileVoiceFields from './AgentProfileVoiceFields';
 import { useBrandDetailAgentProfileCard } from './useBrandDetailAgentProfileCard';
 
 /**
- * Full-page brand voice + agent profile editor (settings/voice).
- * No modal — fields live on the page. One-click Generate fills + saves via AI.
+ * Full-page brand writing voice + agent profile editor (`/settings/voice`).
+ * Not speech/TTS — see Agent Defaults identity for default speaking voice.
  */
 export default function BrandDetailAgentProfileCard({
   brand,
@@ -46,8 +46,8 @@ export default function BrandDetailAgentProfileCard({
     <Container>
       <div className="mx-auto flex max-w-3xl flex-col gap-3">
         <Card
-          label="Voice"
-          description="How agents write as this brand. Generate from the brand website and kit, then tweak anything."
+          label="Brand voice"
+          description="How agents write as this brand — tone, style, and messaging. Not the spoken TTS voice."
           headerAction={
             <div className="flex shrink-0 items-center gap-2">
               <Button
@@ -66,8 +66,9 @@ export default function BrandDetailAgentProfileCard({
         >
           <p className="text-xs leading-5 text-muted-foreground">
             Generate scans this brand (website when available, otherwise name /
-            description / guidance) and fills tone, style, audience, pillars,
-            and more. Inline edits save automatically.
+            description / guidance) and fills writing tone, style, audience, and
+            pillars. Inline edits save automatically. For speech/video audio,
+            set a default speaking voice under Agent Defaults.
           </p>
         </Card>
 

@@ -101,6 +101,10 @@ export const APP_ROUTES = {
     ONBOARDING: '/agent/onboarding',
   },
   AUTOMATE: {
+    /**
+     * @deprecated Legacy path — permanently redirects to Analytics Overview.
+     * Prefer APP_ROUTES.ANALYTICS.OVERVIEW for links.
+     */
     ANALYTICS: '/automate/analytics',
     AUTOPILOT: '/automate/autopilot',
     CONFIGURATION: '/automate/configuration',
@@ -131,8 +135,17 @@ export const APP_ROUTES = {
     ADS: '/discover/ads',
     ADS_GOOGLE: '/discover/ads/google',
     ADS_META: '/discover/ads/meta',
+    /**
+     * @deprecated Use OVERVIEW. Bare `/discover/discovery` permanently redirects
+     * to `/discover/overview` (same pattern as workspace/analytics/automate).
+     */
     DISCOVERY: '/discover/discovery',
     FOLLOWING: '/discover/following',
+    /**
+     * Canonical Discover home. Bare ROOT permanently redirects here so Overview
+     * is a complete path (same pattern as workspace/overview).
+     */
+    OVERVIEW: '/discover/overview',
     ROOT: '/discover',
     SOCIALS: '/discover/socials',
   },
@@ -217,12 +230,25 @@ export const APP_ROUTES = {
     ORGANIZATION: '/settings/organization',
     ORGANIZATION_API_KEYS: '/settings/organization/api-keys',
     ORGANIZATION_BILLING: '/settings/organization/billing',
+    /**
+     * @deprecated Dead path — no page shipped. Brand OAuth (Facebook / Google Ads
+     * / social) lives at SETTINGS.SOCIAL. Prefer that; legacy URLs redirect.
+     */
     ORGANIZATION_CREDENTIALS: '/settings/organization/credentials',
     ORGANIZATION_POLICY: '/settings/organization/policy',
     PERSONAL: '/settings/personal',
     POLICY: '/settings/policy',
     PUBLISHING: '/settings/publishing',
     ROOT: '/settings',
+    /**
+     * Brand-scoped social + ad OAuth connect surface (Facebook → Meta Ads,
+     * Google Ads, Twitter, etc.). Canonical home for "connect accounts".
+     */
+    SOCIAL: '/settings/social',
+    /**
+     * Brand-scoped external website / profile links (not OAuth integrations).
+     */
+    LINKS: '/settings/links',
     USAGE: '/settings/usage',
     WEBHOOKS: '/settings/webhooks',
   },

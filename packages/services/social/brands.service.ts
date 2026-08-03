@@ -425,6 +425,36 @@ export class BrandsService extends BaseService<Brand> {
   }
 
   /**
+   * Prefill create-brand fields from a public website.
+   * Backs `POST /brands/website-preview` (no brand id required).
+   */
+  public async previewWebsite(websiteUrl: string): Promise<{
+    label?: string;
+    slug?: string;
+    description?: string;
+    websiteUrl?: string;
+    sourceUrl?: string;
+    logoUrl?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+  }> {
+    return await this.instance
+      .post<{
+        data: {
+          label?: string;
+          slug?: string;
+          description?: string;
+          websiteUrl?: string;
+          sourceUrl?: string;
+          logoUrl?: string;
+          primaryColor?: string;
+          secondaryColor?: string;
+        };
+      }>('/website-preview', { websiteUrl })
+      .then((res) => res.data?.data ?? {});
+  }
+
+  /**
    * Scrape the brand's website/socials, analyze with AI, and populate canonical
    * brand guidance. Backs `POST /brands/:id/scrape` (renamed from the dissolved
    * `POST /onboarding/brand-setup`, REST audit #1354). Returns the plain

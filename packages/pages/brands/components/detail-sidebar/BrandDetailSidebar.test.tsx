@@ -32,6 +32,10 @@ vi.mock(
   }),
 );
 
+vi.mock('@pages/brands/components/sidebar/BrandDetailLinksSummaryCard', () => ({
+  default: () => <div>Links Summary Card</div>,
+}));
+
 vi.mock(
   '@pages/brands/components/sidebar/BrandDetailDefaultModelsCard',
   () => ({
@@ -85,16 +89,18 @@ describe('BrandDetailSidebar', () => {
     expect(screen.queryByText('Social Summary Card')).not.toBeInTheDocument();
   });
 
-  it('renders social summary instead of full cards when manage href is set', () => {
+  it('renders social and links summaries when manage hrefs are set', () => {
     render(
       <BrandDetailSidebar
         {...props}
         manageSocialHref="/org/brand/settings/social"
+        manageLinksHref="/org/brand/settings/links"
       />,
     );
 
     expect(screen.getByText('Account Settings Card')).toBeInTheDocument();
     expect(screen.getByText('Social Summary Card')).toBeInTheDocument();
+    expect(screen.getByText('Links Summary Card')).toBeInTheDocument();
     expect(screen.queryByText('Social Media Card')).not.toBeInTheDocument();
     expect(screen.queryByText('External Links Card')).not.toBeInTheDocument();
   });

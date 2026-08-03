@@ -237,6 +237,8 @@ export default function BrandSettingsHarnessPage() {
         isDefault: draft.isDefault ?? true,
         label: draft.label || `${brand?.label ?? 'Brand'} Harness`,
         profileType: 'harness' as const,
+        // Brand settings harness is always brand-scoped (channel/founder profiles later).
+        scope: 'brand' as const,
         status: draft.status ?? 'active',
       };
       const saved = profileRef.current?.id

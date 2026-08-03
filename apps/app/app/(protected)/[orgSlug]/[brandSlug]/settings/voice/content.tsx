@@ -7,8 +7,9 @@ import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 
 /**
- * Brand voice settings — full page form (no modal). Generate with AI or edit
- * fields directly; same surface as Agent Profile.
+ * Brand writing voice for agents (tone, style, audience, pillars).
+ * Not TTS/speech library voices — those live under Agent Defaults → speech voice
+ * and Library → Voices.
  */
 export default function BrandSettingsVoicePage() {
   const { brand, brandId, hasBrandId, isLoading, handleRefreshBrand } =
