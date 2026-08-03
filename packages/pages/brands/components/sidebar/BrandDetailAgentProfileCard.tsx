@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type { BrandDetailAgentProfileCardProps } from '@props/pages/brand-detail.props';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
@@ -14,7 +15,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Sparkles } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import AgentProfilePlatformOverride from './AgentProfilePlatformOverride';
 import AgentProfileVoiceFields from './AgentProfileVoiceFields';
 import {
@@ -50,8 +51,6 @@ export default function BrandDetailAgentProfileCard({
   const [selectedPlatform, setSelectedPlatform] = useState(
     PLATFORM_OPTIONS[0]?.value ?? 'twitter',
   );
-  /** Expand the override editor only when customizing or already configured. */
-  const [isPlatformEditorOpen, setIsPlatformEditorOpen] = useState(false);
 
   const selectedPlatformOption = useMemo(
     () =>
@@ -76,15 +75,6 @@ export default function BrandDetailAgentProfileCard({
       }),
     [form.platformOverrides],
   );
-
-  // Auto-open the editor when the selected channel already has overrides.
-  useEffect(() => {
-    if (isSelectedConfigured) {
-      setIsPlatformEditorOpen(true);
-    } else {
-      setIsPlatformEditorOpen(false);
-    }
-  }, [isSelectedConfigured, selectedPlatform]);
 
   return (
     <Container>
@@ -267,13 +257,13 @@ export default function BrandDetailAgentProfileCard({
           label="Platform overrides"
           description={
             populatedPlatformCount > 0
-              ? `${populatedPlatformCount} platform override${populatedPlatformCount === 1 ? '' : 's'} configured. Pick a channel to edit.`
-              : 'Optional. Most brands inherit the brand voice above — open a channel only when it needs a different tone or model.'
+              ? `${populatedPlatformCount} platform override${populatedPlatformCount === 1 ? '' : 's'} configured. Empty fields inherit brand voice.`
+              : 'Optional. Leave fields empty to inherit the brand voice above for that channel.'
           }
         >
-          <div className="space-y-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div className="min-w-0 flex-1 sm:max-w-sm">
+          <div className="grid gap-4 lg:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)] lg:items-start">
+            <div className="space-y-3">
+              <div>
                 <label
                   className="mb-1 block text-sm font-medium"
                   htmlFor="brand-agent-platform-override-select"
@@ -290,7 +280,19 @@ export default function BrandDetailAgentProfileCard({
                     aria-label="Platform override channel"
                     className="w-full"
                   >
-                    <SelectValue placeholder="Select a platform" />
+                    <SelectValue placeholder="Select a platform">
+                      {selectedPlatformOption ? (
+                        <span className="flex min-w-0 items-center gap-2">
+                          {getPlatformIcon(
+                            selectedPlatformOption.value,
+                            'size-4 shrink-0',
+                          )}
+                          <span className="truncate">
+                            {selectedPlatformOption.label}
+                          </span>
+                        </span>
+                      ) : null}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {PLATFORM_OPTIONS.map((platform) => {
@@ -299,16 +301,26 @@ export default function BrandDetailAgentProfileCard({
                       );
                       return (
                         <SelectItem key={platform.value} value={platform.value}>
-                          {platform.label}
-                          {isConfigured ? ' · configured' : ''}
+                          <span className="flex min-w-0 items-center gap-2">
+                            {getPlatformIcon(platform.value, 'size-4 shrink-0')}
+                            <span className="truncate">
+                              {platform.label}
+                              {isConfigured ? ' · configured' : ''}
+                            </span>
+                          </span>
                         </SelectItem>
                       );
                     })}
                   </SelectContent>
                 </Select>
               </div>
+              <p className="text-xs text-muted-foreground">
+                {isSelectedConfigured
+                  ? `${selectedPlatformOption?.label ?? 'This channel'} has overrides.`
+                  : `${selectedPlatformOption?.label ?? 'This channel'} inherits brand voice until you edit a field.`}
+              </p>
               {configuredPlatforms.length > 0 ? (
-                <p className="text-xs text-muted-foreground sm:pb-2">
+                <p className="text-xs text-muted-foreground">
                   Configured:{' '}
                   {configuredPlatforms
                     .map((platform) => platform.label)
@@ -317,7 +329,7 @@ export default function BrandDetailAgentProfileCard({
               ) : null}
             </div>
 
-            {selectedPlatformOption && isPlatformEditorOpen ? (
+            {selectedPlatformOption ? (
               <AgentProfilePlatformOverride
                 key={selectedPlatformOption.value}
                 enabledModels={enabledModels}
@@ -329,27 +341,6 @@ export default function BrandDetailAgentProfileCard({
                 onSave={handlePlatformOverrideSave}
                 onSelectChange={handlePlatformOverrideSelectChange}
               />
-            ) : selectedPlatformOption ? (
-              <div className="flex flex-col gap-3 rounded-lg bg-background-secondary p-4 shadow-border sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium">
-                    {selectedPlatformOption.label} inherits brand voice
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    No channel-specific overrides. Customize only if this
-                    platform should sound or route differently.
-                  </p>
-                </div>
-                <Button
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.SECONDARY}
-                  className="h-8 shrink-0 px-2.5 text-xs"
-                  isDisabled={isGenerating}
-                  onClick={() => setIsPlatformEditorOpen(true)}
-                >
-                  Customize {selectedPlatformOption.label}
-                </Button>
-              </div>
             ) : null}
           </div>
         </Card>
