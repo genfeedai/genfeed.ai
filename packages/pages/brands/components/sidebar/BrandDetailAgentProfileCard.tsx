@@ -14,9 +14,14 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Sparkles } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import AgentProfilePlatformOverride from './AgentProfilePlatformOverride';
 import AgentProfileVoiceFields from './AgentProfileVoiceFields';
-import { useBrandDetailAgentProfileCard } from './useBrandDetailAgentProfileCard';
+import {
+  hasPlatformOverrideContent,
+  PLATFORM_OPTIONS,
+  useBrandDetailAgentProfileCard,
+} from './useBrandDetailAgentProfileCard';
 
 /**
  * Full-page brand writing voice + agent profile editor (`/settings/voice`).
@@ -38,13 +43,33 @@ export default function BrandDetailAgentProfileCard({
     handlePlatformOverrideSave,
     handlePlatformOverrideSelectChange,
     isGenerating,
-    PLATFORM_OPTIONS,
     populatedPlatformCount,
   } = useBrandDetailAgentProfileCard({ brand, brandId, onRefreshBrand });
 
+  const [selectedPlatform, setSelectedPlatform] = useState(
+    PLATFORM_OPTIONS[0]?.value ?? 'twitter',
+  );
+
+  const selectedPlatformOption = useMemo(
+    () =>
+      PLATFORM_OPTIONS.find(
+        (platform) => platform.value === selectedPlatform,
+      ) ?? PLATFORM_OPTIONS[0],
+    [selectedPlatform],
+  );
+
+  const configuredPlatforms = useMemo(
+    () =>
+      PLATFORM_OPTIONS.filter((platform) => {
+        const override = form.platformOverrides[platform.value];
+        return override ? hasPlatformOverrideContent(override) : false;
+      }),
+    [form.platformOverrides],
+  );
+
   return (
     <Container>
-      <div className="mx-auto flex max-w-3xl flex-col gap-3">
+      <div className="mx-auto flex max-w-5xl flex-col gap-3">
         <Card
           label="Brand voice"
           description="How agents write as this brand — tone, style, and messaging. Not the spoken TTS voice."
@@ -72,53 +97,55 @@ export default function BrandDetailAgentProfileCard({
           </p>
         </Card>
 
-        <Card label="Persona" description="What agents optimize for.">
-          <EditableText
-            ariaLabel="Persona"
-            className="w-full"
-            displayClassName="text-sm leading-6"
-            isDisabled={isGenerating}
-            isMultiline
-            onSave={(value) => handleFieldSave('persona', value)}
-            placeholder="What should this brand's agents optimize for?"
-            value={form.persona}
-          />
-        </Card>
-
-        <Card
-          label="Content model"
-          description="Optional brand override for content generation."
-        >
-          <Select
-            value={form.defaultModel || AUTO_MODEL_SELECT_VALUE}
-            onValueChange={(value) =>
-              handleDefaultModelChange(
-                value === AUTO_MODEL_SELECT_VALUE ? '' : value,
-              )
-            }
-            disabled={isGenerating}
-          >
-            <SelectTrigger
-              id="brand-agent-default-model"
-              aria-label="Brand Content Generation Model Override"
+        <div className="grid gap-3 lg:grid-cols-2">
+          <Card label="Persona" description="What agents optimize for.">
+            <EditableText
+              ariaLabel="Persona"
               className="w-full"
+              displayClassName="text-sm leading-6"
+              isDisabled={isGenerating}
+              isMultiline
+              onSave={(value) => handleFieldSave('persona', value)}
+              placeholder="What should this brand's agents optimize for?"
+              value={form.persona}
+            />
+          </Card>
+
+          <Card
+            label="Content model"
+            description="Optional brand override for content generation."
+          >
+            <Select
+              value={form.defaultModel || AUTO_MODEL_SELECT_VALUE}
+              onValueChange={(value) =>
+                handleDefaultModelChange(
+                  value === AUTO_MODEL_SELECT_VALUE ? '' : value,
+                )
+              }
+              disabled={isGenerating}
             >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={AUTO_MODEL_SELECT_VALUE}>Auto</SelectItem>
-              {enabledModels.map((model) => (
-                <SelectItem key={model} value={model}>
-                  {model}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Auto inherits the organization content model. Override only when
-            this brand needs a different baseline.
-          </p>
-        </Card>
+              <SelectTrigger
+                id="brand-agent-default-model"
+                aria-label="Brand Content Generation Model Override"
+                className="w-full"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={AUTO_MODEL_SELECT_VALUE}>Auto</SelectItem>
+                {enabledModels.map((model) => (
+                  <SelectItem key={model} value={model}>
+                    {model}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Auto inherits the organization content model. Override only when
+              this brand needs a different baseline.
+            </p>
+          </Card>
+        </div>
 
         <Card label="Voice fields" description="Canonical writing system.">
           <AgentProfileVoiceFields
@@ -226,18 +253,64 @@ export default function BrandDetailAgentProfileCard({
           }
         >
           <div className="space-y-4">
-            {PLATFORM_OPTIONS.map((platform) => (
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div className="min-w-0 flex-1 sm:max-w-sm">
+                <label
+                  className="mb-1 block text-sm font-medium"
+                  htmlFor="brand-agent-platform-override-select"
+                >
+                  Platform
+                </label>
+                <Select
+                  value={selectedPlatform}
+                  onValueChange={setSelectedPlatform}
+                  disabled={isGenerating}
+                >
+                  <SelectTrigger
+                    id="brand-agent-platform-override-select"
+                    aria-label="Platform override channel"
+                    className="w-full"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PLATFORM_OPTIONS.map((platform) => {
+                      const isConfigured = configuredPlatforms.some(
+                        (entry) => entry.value === platform.value,
+                      );
+                      return (
+                        <SelectItem key={platform.value} value={platform.value}>
+                          {platform.label}
+                          {isConfigured ? ' · configured' : ''}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              {configuredPlatforms.length > 0 ? (
+                <p className="text-xs text-muted-foreground sm:pb-2">
+                  Configured:{' '}
+                  {configuredPlatforms
+                    .map((platform) => platform.label)
+                    .join(', ')}
+                </p>
+              ) : null}
+            </div>
+
+            {selectedPlatformOption ? (
               <AgentProfilePlatformOverride
-                key={platform.value}
+                key={selectedPlatformOption.value}
                 enabledModels={enabledModels}
-                label={platform.label}
-                override={form.platformOverrides[platform.value]}
-                platformValue={platform.value}
+                label={selectedPlatformOption.label}
+                override={form.platformOverrides[selectedPlatformOption.value]}
+                platformValue={selectedPlatformOption.value}
                 isDisabled={isGenerating}
+                showHeader={false}
                 onSave={handlePlatformOverrideSave}
                 onSelectChange={handlePlatformOverrideSelectChange}
               />
-            ))}
+            ) : null}
           </div>
         </Card>
 

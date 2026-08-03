@@ -205,6 +205,8 @@ export interface AgentProfilePlatformOverrideProps {
   ) => void;
   override: AgentProfilePlatformOverrideFormState;
   platformValue: string;
+  /** When false, omit the per-platform title (parent already shows a platform select). */
+  showHeader?: boolean;
 }
 
 export interface AgentProfilePlatformOverrideFieldsProps {

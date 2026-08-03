@@ -188,6 +188,11 @@ describe('BrandDetailAgentProfileCard', () => {
       />,
     );
 
+    // Platform overrides use a channel select; Twitter/X is the default.
+    expect(
+      screen.getByRole('combobox', { name: 'Platform override channel' }),
+    ).toBeInTheDocument();
+
     await user.click(
       screen.getByRole('button', {
         name: 'twitter Messaging Pillars Override',

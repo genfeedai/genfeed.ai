@@ -167,7 +167,7 @@ function buildStrategy(
   };
 }
 
-function hasPlatformOverrideContent(
+export function hasPlatformOverrideContent(
   override: AgentProfilePlatformOverrideFormState,
 ): boolean {
   return Boolean(
