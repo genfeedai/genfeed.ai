@@ -4,14 +4,9 @@ import {
   GoogleIcon,
   InstagramIcon,
   LinkedinIcon,
-  MastodonIcon,
-  PinterestIcon,
   RedditIcon,
-  ShopifyIcon,
-  SnapchatIcon,
   ThreadsIcon,
   TiktokIcon,
-  WordpressIcon,
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
@@ -23,7 +18,6 @@ export type OAuthConnectPlatformCategoryId =
   | 'video'
   | 'communities'
   | 'creator'
-  | 'publishing'
   | 'ads';
 
 export interface OAuthConnectPlatformCategory {
@@ -48,16 +42,19 @@ export const OAUTH_CONNECT_PLATFORM_CATEGORIES: OAuthConnectPlatformCategory[] =
     { id: 'social', label: 'Social networks' },
     { id: 'video', label: 'Video' },
     { id: 'communities', label: 'Communities' },
-    { id: 'creator', label: 'Creator & commerce' },
-    { id: 'publishing', label: 'Publishing' },
+    { id: 'creator', label: 'Creator' },
     { id: 'ads', label: 'Advertising' },
   ];
 
 /**
- * Ordered list of OAuth-connectable social platforms, shared by the brand social
- * media card (`BrandDetailSocialMediaCard`) and the agent setup panel
- * (`AgentSetupPanel`). Keep additions/removals here so every connect surface
- * stays in sync.
+ * Platforms with a brand OAuth `POST services/{path}/connect` endpoint that the
+ * settings Connect button actually calls.
+ *
+ * Not listed (service helpers exist, but no UI-compatible connect route yet):
+ * Mastodon, Snapchat, Pinterest, Shopify, WordPress.
+ *
+ * Shared by brand social settings + agent connect menu. Only add a platform
+ * here when `POST /v1/services/<path>/connect` is live.
  */
 export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
   {
@@ -91,12 +88,6 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
     platform: CredentialPlatform.THREADS,
   },
   {
-    category: 'social',
-    icon: <MastodonIcon className="mr-1.5 size-3.5" />,
-    label: 'Mastodon',
-    platform: CredentialPlatform.MASTODON,
-  },
-  {
     category: 'video',
     icon: <YoutubeIcon className="mr-1.5 size-3.5" />,
     label: 'YouTube',
@@ -109,40 +100,16 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
     platform: CredentialPlatform.TIKTOK,
   },
   {
-    category: 'video',
-    icon: <SnapchatIcon className="mr-1.5 size-3.5" />,
-    label: 'Snapchat',
-    platform: CredentialPlatform.SNAPCHAT,
-  },
-  {
     category: 'communities',
     icon: <RedditIcon className="mr-1.5 size-3.5" />,
     label: 'Reddit',
     platform: CredentialPlatform.REDDIT,
   },
   {
-    category: 'communities',
-    icon: <PinterestIcon className="mr-1.5 size-3.5" />,
-    label: 'Pinterest',
-    platform: CredentialPlatform.PINTEREST,
-  },
-  {
     category: 'creator',
     icon: <Star className="mr-1.5 size-3.5" />,
     label: 'Fanvue',
     platform: CredentialPlatform.FANVUE,
-  },
-  {
-    category: 'creator',
-    icon: <ShopifyIcon className="mr-1.5 size-3.5" />,
-    label: 'Shopify',
-    platform: CredentialPlatform.SHOPIFY,
-  },
-  {
-    category: 'publishing',
-    icon: <WordpressIcon className="mr-1.5 size-3.5" />,
-    label: 'WordPress',
-    platform: CredentialPlatform.WORDPRESS,
   },
   {
     category: 'ads',

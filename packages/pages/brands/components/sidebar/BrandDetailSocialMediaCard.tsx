@@ -379,6 +379,12 @@ export default function BrandDetailSocialMediaCard({
           >
             {isConnected ? `Reconnect ${item.label}` : `Connect ${item.label}`}
           </Button>
+          {isConnected ? (
+            <p className="mt-1.5 text-center text-[11px] leading-4 text-muted-foreground">
+              One {item.label} account per brand for now — reconnect replaces
+              the linked profile.
+            </p>
+          ) : null}
         </div>
       </div>
     );
