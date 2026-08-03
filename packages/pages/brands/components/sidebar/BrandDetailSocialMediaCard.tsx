@@ -319,7 +319,11 @@ export default function BrandDetailSocialMediaCard({
   const renderIntegrationCard = (item: OAuthConnectPlatform) => {
     const platformConnections = connectionsByPlatform.get(item.platform) ?? [];
     const isConnected = platformConnections.length > 0;
-    const primary = platformConnections[0];
+    const platformIcon = getPlatformIcon(
+      item.platform,
+      // block + equal size so FA-style viewBoxes center in the tile
+      'block size-4 shrink-0',
+    );
 
     return (
       <div
@@ -328,8 +332,11 @@ export default function BrandDetailSocialMediaCard({
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-background shadow-border">
-              {getPlatformIcon(item.platform, 'size-4') ?? item.icon}
+            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-background shadow-border">
+              {/* Square tile: force SVG to a fixed box so FA 448×512 glyphs center. */}
+              <span className="inline-flex size-4 items-center justify-center overflow-hidden leading-none [&_svg]:block [&_svg]:size-4">
+                {platformIcon}
+              </span>
             </span>
             <div className="min-w-0">
               <p className="truncate text-sm font-medium">{item.label}</p>
@@ -348,7 +355,7 @@ export default function BrandDetailSocialMediaCard({
           ) : null}
         </div>
 
-        {isConnected && primary ? (
+        {isConnected ? (
           <div className="space-y-2">
             {platformConnections.map((connection) => (
               <ConnectedAccount
@@ -357,11 +364,7 @@ export default function BrandDetailSocialMediaCard({
               />
             ))}
           </div>
-        ) : (
-          <p className="text-xs leading-5 text-muted-foreground">
-            Connect {item.label} to publish and sync as this brand.
-          </p>
-        )}
+        ) : null}
 
         <div className="mt-auto pt-1">
           <Button
@@ -488,17 +491,6 @@ export default function BrandDetailSocialMediaCard({
     return (
       <>
         <div className="space-y-6">
-          <Card
-            label="Social accounts"
-            description="OAuth channels for publishing, sync, and ads. Connect each integration below — no extra modal on this page."
-          >
-            <p className="text-xs text-muted-foreground">
-              {connectedPlatformsCount > 0
-                ? `${connectedPlatformsCount} connected · ${unconnectedPlatforms.length} still available`
-                : 'No channels connected yet. Pick a platform to start OAuth.'}
-            </p>
-          </Card>
-
           {allPlatformGroups.map((group) => (
             <section key={group.id} className="space-y-3">
               <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">

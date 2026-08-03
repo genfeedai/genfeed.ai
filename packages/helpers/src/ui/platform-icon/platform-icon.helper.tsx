@@ -1,8 +1,16 @@
 import {
   FacebookIcon,
+  GoogleIcon,
   InstagramIcon,
   LinkedinIcon,
+  MastodonIcon,
+  PinterestIcon,
+  RedditIcon,
+  ShopifyIcon,
+  SnapchatIcon,
+  ThreadsIcon,
   TiktokIcon,
+  WordpressIcon,
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
@@ -28,6 +36,11 @@ const PLATFORM_ICONS: Record<string, PlatformIconConfig> = {
     displayName: 'FanvueIcon',
     Icon: Star,
   },
+  google_ads: {
+    colorClass: 'text-foreground',
+    displayName: 'GoogleAdsIcon',
+    Icon: GoogleIcon,
+  },
   instagram: {
     colorClass: 'text-pink-500',
     displayName: 'InstagramIcon',
@@ -38,6 +51,36 @@ const PLATFORM_ICONS: Record<string, PlatformIconConfig> = {
     displayName: 'LinkedInIcon',
     Icon: LinkedinIcon,
   },
+  mastodon: {
+    colorClass: 'text-foreground',
+    displayName: 'MastodonIcon',
+    Icon: MastodonIcon,
+  },
+  pinterest: {
+    colorClass: 'text-red-600',
+    displayName: 'PinterestIcon',
+    Icon: PinterestIcon,
+  },
+  reddit: {
+    colorClass: 'text-orange-500',
+    displayName: 'RedditIcon',
+    Icon: RedditIcon,
+  },
+  shopify: {
+    colorClass: 'text-green-600',
+    displayName: 'ShopifyIcon',
+    Icon: ShopifyIcon,
+  },
+  snapchat: {
+    colorClass: 'text-yellow-400',
+    displayName: 'SnapchatIcon',
+    Icon: SnapchatIcon,
+  },
+  threads: {
+    colorClass: 'text-foreground',
+    displayName: 'ThreadsIcon',
+    Icon: ThreadsIcon,
+  },
   tiktok: {
     colorClass: 'text-foreground',
     displayName: 'TikTokIcon',
@@ -47,6 +90,11 @@ const PLATFORM_ICONS: Record<string, PlatformIconConfig> = {
     colorClass: 'text-foreground',
     displayName: 'TwitterIcon',
     Icon: XTwitterIcon,
+  },
+  wordpress: {
+    colorClass: 'text-blue-500',
+    displayName: 'WordPressIcon',
+    Icon: WordpressIcon,
   },
   x: {
     colorClass: 'text-foreground',
