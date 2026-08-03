@@ -1,13 +1,15 @@
+export { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 export type {
   AgentClonedVoice,
+  AgentInstallReadiness,
   CredentialMentionItem,
   GenerateIngredientResult,
   GenerationModel,
-  ListAgentRunsParams,
+  ManualReviewBatchPayload,
   WorkflowInterfaceField,
   WorkflowInterfaceSchema,
-} from '@genfeedai/agent/services/agent-api.service';
-export { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+  WorkflowTriggerScope,
+} from '@genfeedai/agent/services/agent-api.types';
 export type { AgentApiError } from '@genfeedai/agent/services/agent-api-error';
 export {
   AgentApiAuthError,
@@ -22,5 +24,6 @@ export {
   AgentBaseApiService,
   runAgentApiEffect,
 } from '@genfeedai/agent/services/agent-base-api.service';
+export type { ListAgentRunsParams } from '@genfeedai/agent/services/agent-run-api.helpers';
 
 export { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';

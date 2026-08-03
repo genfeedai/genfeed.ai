@@ -612,15 +612,16 @@ export function useAgentCliTerminal(
         withCredentials: true,
       });
       socketRef.current = socket;
+      const liveSocket = socket;
 
       const handleConnect = () => {
         setStatus('connected');
 
         // T2: request existing sessions for rehydration
-        socket.emit('terminal:list');
+        liveSocket.emit('terminal:list');
       };
-      socket.on('connect', handleConnect);
-      detachConnectHandler = () => socket.off('connect', handleConnect);
+      liveSocket.on('connect', handleConnect);
+      detachConnectHandler = () => liveSocket.off('connect', handleConnect);
 
       detachSocketHandlers = attachTerminalSocketHandlers({
         fitAndSyncSize,
@@ -652,7 +653,7 @@ export function useAgentCliTerminal(
             sessionIdRef.current = preferredId;
             setActiveTerminalSession(currentKey, preferredId);
             setStatus('attaching...');
-            socket.emit('terminal:attach', { sessionId: preferredId });
+            liveSocket.emit('terminal:attach', { sessionId: preferredId });
           } else {
             // No existing session — boot a fresh one for this thread
             startSession('shell');
@@ -847,11 +848,11 @@ export function AgentCliTerminalBody({
         </div>
       )}
 
+      {/* react-doctor-disable-next-line react-doctor/prefer-tag-over-role -- xterm mounts into a div host, not a native <input>. */}
       <div
         ref={containerRef}
         aria-label="Genfeed terminal"
         className="min-h-0 flex-1 overflow-hidden bg-[#050806] px-3 py-2 text-[13px] text-foreground/78 outline-none focus-visible:ring-1 focus-visible:ring-emerald-300/35 [&_.xterm-screen]:outline-none [&_.xterm-viewport]:overflow-y-auto"
-        // Interactive host for xterm; textbox role allows keyboard focus.
         role="textbox"
         tabIndex={0}
       />

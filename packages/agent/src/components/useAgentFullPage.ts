@@ -312,9 +312,11 @@ export function useAgentFullPage({
 
   // When the URL has no thread, clear conversation state during render so
   // the empty state never flashes the previous thread's data.
-  const [clearedForThreadId, setClearedForThreadId] = useState(threadId);
-  if (authReady && !threadId && clearedForThreadId !== null) {
-    setClearedForThreadId(null);
+  const [clearedForThreadId, setClearedForThreadId] = useState<
+    string | undefined
+  >(threadId);
+  if (authReady && !threadId && clearedForThreadId !== undefined) {
+    setClearedForThreadId(undefined);
     setIsLoadingThread(false);
     setActiveThreadStatus(null);
     setWorkspacePlanningTaskId(null);

@@ -4,7 +4,6 @@
     "rules": [
       "react-doctor/nextjs-no-img-element",
       "react-doctor/no-many-boolean-props",
-      "react-doctor/no-giant-component",
       "react-doctor/prefer-useReducer",
       "react-doctor/prefer-dynamic-import"
     ],

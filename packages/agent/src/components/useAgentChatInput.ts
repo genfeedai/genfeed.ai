@@ -4,12 +4,7 @@ import { ContentMentionList } from '@genfeedai/agent/components/ContentMentionLi
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { CredentialMentionList } from '@genfeedai/agent/components/CredentialMentionList';
 import { TeamMentionList } from '@genfeedai/agent/components/TeamMentionList';
-import {
-  type ComposerMode,
-  DEFAULT_COMPOSER_MODE,
-  getComposerModeDefinition,
-  isGenerationComposerMode,
-} from '@genfeedai/agent/constants/composer-mode.constant';
+import { isGenerationComposerMode } from '@genfeedai/agent/constants/composer-mode.constant';
 import { parseConversationComposerCommand } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
 import { BrandMention } from '@genfeedai/agent/extensions/brand-mention.extension';
 import { ContentMention } from '@genfeedai/agent/extensions/content-mention.extension';
@@ -17,6 +12,7 @@ import { CredentialMention } from '@genfeedai/agent/extensions/credential-mentio
 import { SlashCommands } from '@genfeedai/agent/extensions/slash-commands.extension';
 import { TeamMention } from '@genfeedai/agent/extensions/team-mention.extension';
 import { useBrandMentions } from '@genfeedai/agent/hooks/use-brand-mentions';
+import { useComposerModeState } from '@genfeedai/agent/hooks/use-composer-mode-state';
 import { useContentMentions } from '@genfeedai/agent/hooks/use-content-mentions';
 import { useCredentialMentions } from '@genfeedai/agent/hooks/use-credential-mentions';
 import { useMicrophoneInput } from '@genfeedai/agent/hooks/use-microphone-input';
@@ -26,11 +22,7 @@ import type {
   ConversationComposerArtifactReference,
   ConversationComposerSendOptions,
 } from '@genfeedai/agent/models/conversation-composer.model';
-import type {
-  AgentApiService,
-  GenerationModel,
-} from '@genfeedai/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
+import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   clearConversationComposerDraft,
@@ -338,74 +330,21 @@ export function useAgentChatInput({
   );
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
   const composerSeed = useAgentChatStore((s) => s.composerSeed);
-  const [composerMode, setComposerMode] = useState<ComposerMode>(
-    DEFAULT_COMPOSER_MODE,
-  );
-  const [generationModelKey, setGenerationModelKey] = useState<string | null>(
-    null,
-  );
-  const [generationModels, setGenerationModels] = useState<GenerationModel[]>(
-    [],
-  );
-  const [isGenerationModelsLoading, setIsGenerationModelsLoading] =
-    useState(false);
-
-  const modeDefinition = getComposerModeDefinition(composerMode);
-  const placeholder =
-    placeholderOverride ??
-    modeDefinition.placeholder ??
-    'Type # brands, @ team, ! accounts, ^ content, / commands';
+  const {
+    composerMode,
+    generationModelKey,
+    generationModels,
+    handleComposerModeChange,
+    isGenerationModelsLoading,
+    modePlaceholder: placeholder,
+    setGenerationModelKey,
+  } = useComposerModeState(apiService, placeholderOverride);
   const placeholderRef = useRef(placeholder);
   // TipTap reads this on each placeholder paint — sync after commit only.
   useLayoutEffect(() => {
     placeholderRef.current = placeholder;
   }, [placeholder]);
 
-  const handleComposerModeChange = useCallback((mode: ComposerMode) => {
-    setComposerMode(mode);
-    // Reset gen model when leaving a generation mode or switching modality.
-    setGenerationModelKey(null);
-  }, []);
-
-  // Load generation models when a non-chat mode is active.
-  useEffect(() => {
-    if (!apiService || !isGenerationComposerMode(composerMode)) {
-      // Only write when state actually needs clearing — avoid thrashing
-      // with a fresh `[]` on every chat-mode effect pass.
-      setGenerationModels((current) => (current.length === 0 ? current : []));
-      setIsGenerationModelsLoading(false);
-      return;
-    }
-
-    const controller = new AbortController();
-    const category = getComposerModeDefinition(composerMode).modelCategory;
-    setIsGenerationModelsLoading(true);
-
-    void runAgentApiEffect(apiService.getModelsEffect(controller.signal))
-      .then((models) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-        const filtered = category
-          ? models.filter((model) => model.category === category)
-          : models;
-        setGenerationModels(filtered);
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) {
-          setGenerationModels((current) =>
-            current.length === 0 ? current : [],
-          );
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setIsGenerationModelsLoading(false);
-        }
-      });
-
-    return () => controller.abort();
-  }, [apiService, composerMode]);
   const clearComposerSeed = useAgentChatStore((s) => s.clearComposerSeed);
 
   const { mentions: credentialMentions } = useCredentialMentions(

@@ -218,7 +218,7 @@ function AgentRunSteps({ run }: { run: AgentRunSummary }): ReactElement {
           {run.steps.map((step, index) => {
             const stepKey =
               step.id ||
-              `${run.id}:${step.label || 'step'}:${step.status || 'unknown'}:${String(step.durationMs ?? '')}:${step.startedAt ?? ''}:${step.endedAt ?? ''}`;
+              `${run.id}:${step.label || 'step'}:${step.status || 'unknown'}:${String(step.durationMs ?? '')}:${step.startedAt ?? ''}`;
             return (
               <li
                 className="border-l-2 border-border pl-3 text-sm"
