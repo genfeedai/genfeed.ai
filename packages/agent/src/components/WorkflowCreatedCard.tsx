@@ -69,7 +69,10 @@ export function WorkflowCreatedCard({
           ) : null}
           {action.nextRunAt ? (
             <p className="mt-1 text-xs text-muted-foreground">
-              Next run: {new Date(action.nextRunAt).toLocaleString()}
+              Next run:{' '}
+              {new Date(action.nextRunAt).toLocaleString('en-US', {
+                timeZone: 'UTC',
+              })}
             </p>
           ) : null}
         </div>

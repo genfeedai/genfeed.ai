@@ -31,7 +31,8 @@ function formatRunTime(dateStr: string): string {
   if (diffDays < 7) {
     return `${diffDays}d ago`;
   }
-  return date.toLocaleDateString();
+  // Explicit locale + timeZone so SSR and the browser never disagree.
+  return date.toLocaleDateString('en-US', { timeZone: 'UTC' });
 }
 
 function getStatusBadge(status: AgentStrategyRun['status']): {

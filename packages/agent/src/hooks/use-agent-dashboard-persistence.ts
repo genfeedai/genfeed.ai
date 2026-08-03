@@ -71,6 +71,8 @@ export function useAgentDashboardPersistence({
     }
   }, [currentUser, disabled, getLocalSnapshot, hydrateState]);
 
+  // Hydrates store from user prefs / localStorage — parent owns fetch; this
+  // bridge mirrors external store into zustand once per mount.
   useEffect(() => {
     if (disabled || hasResolvedPersistenceRef.current || !currentUser) {
       return;
@@ -84,6 +86,7 @@ export function useAgentDashboardPersistence({
         blocks: dbScopePreference.blocks || [],
         isAgentModified: Boolean(dbScopePreference.isAgentModified),
       };
+      // react-doctor-disable-next-line react-doctor/no-pass-data-to-parent
       hydrateState(nextState);
       lastPersistedSnapshotRef.current = JSON.stringify(nextState);
       hasResolvedPersistenceRef.current = true;

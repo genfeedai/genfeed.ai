@@ -13,6 +13,7 @@ import {
   type ReactNode,
   useCallback,
   useContext,
+  useLayoutEffect,
   useMemo,
   useRef,
 } from 'react';
@@ -65,10 +66,13 @@ export function ConversationComposerShellProvider({
   // scopeControls is often an inline fragment from the shell. Hold it in a
   // ref so identity churn there does not rebuild the whole context value and
   // force every composer consumer to re-render on unrelated shell updates.
+  // Sync in layout effect — never mutate refs during render (Strict Mode safe).
   const scopeControlsRef = useRef(scopeControls);
-  scopeControlsRef.current = scopeControls;
   const dispatchActionRef = useRef(dispatchAction);
-  dispatchActionRef.current = dispatchAction;
+  useLayoutEffect(() => {
+    scopeControlsRef.current = scopeControls;
+    dispatchActionRef.current = dispatchAction;
+  });
   const hasDispatchAction = dispatchAction != null;
 
   const stableDispatchAction = useCallback(

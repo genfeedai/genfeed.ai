@@ -1,50 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { toAgentRequestPageContext } from './agent-page-context.util';
+import { mergeComposerModeIntoPageContext } from './agent-page-context.util';
 
-describe('toAgentRequestPageContext', () => {
-  it('copies typed social selectors only into the current request context', () => {
-    const socialReferences = [
-      {
-        brandId: 'brand-1',
-        conversationId: 'conversation-1',
-        kind: 'social-conversation' as const,
-        organizationId: 'organization-1',
-      },
-    ];
-
-    expect(
-      toAgentRequestPageContext({
-        placeholder: 'UI-only placeholder',
-        route: '/acme/brand/messages',
-        socialReferences,
-        suggestedActions: [],
-      }),
-    ).toEqual({
-      route: '/acme/brand/messages',
-      socialReferences,
-    });
+describe('mergeComposerModeIntoPageContext', () => {
+  it('returns base context for chat mode', () => {
+    const base = { route: '/agent', draftInstructions: 'Keep brand voice' };
+    expect(mergeComposerModeIntoPageContext(base, 'chat', null)).toEqual(base);
   });
 
-  it('forwards scoped Research selectors without UI-only composer metadata', () => {
-    const researchReferences = [
-      {
-        brandId: 'brand-1',
-        id: 'trend-1',
-        kind: 'research-trend-video' as const,
-        organizationId: 'organization-1',
-      },
-    ];
+  it('injects contentFormat and mode instructions for image mode', () => {
+    const merged = mergeComposerModeIntoPageContext(
+      { route: '/agent', draftInstructions: 'Keep brand voice' },
+      'image',
+      'nano-banana',
+    );
 
-    expect(
-      toAgentRequestPageContext({
-        placeholder: 'UI-only placeholder',
-        researchReferences,
-        route: '/acme/brand/discover/overview',
-        suggestedActions: [],
-      }),
-    ).toEqual({
-      researchReferences,
-      route: '/acme/brand/discover/overview',
-    });
+    expect(merged?.contentFormat).toBe('image');
+    expect(merged?.draftInstructions).toContain('Keep brand voice');
+    expect(merged?.draftInstructions).toContain(
+      'Composer mode for this turn: Image',
+    );
+    expect(merged?.draftInstructions).toContain('nano-banana');
   });
 });

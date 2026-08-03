@@ -48,6 +48,7 @@ function TopbarCreditsBarContent() {
 
   const [balance, setBalance] = useState<number>(0);
   const [segments, setSegments] = useState<ITopbarBalanceSegment[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const refreshBreakdownRef = useRef(refreshCreditsBreakdown);
   const balanceRefreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -164,21 +165,40 @@ function TopbarCreditsBarContent() {
     };
   }, [findTopbarBalances]);
 
-  const { planLimit, planBalance } = useMemo(() => {
-    const limit = creditsBreakdown?.planLimit ?? 0;
+  const { planLimit, planBalance, extraBalance, planUsagePercent } =
+    useMemo(() => {
+      const limit = creditsBreakdown?.planLimit ?? 0;
 
-    if (limit === 0) {
+      if (limit === 0) {
+        return {
+          extraBalance: balance,
+          planBalance: 0,
+          planLimit: 0,
+          planUsagePercent: 0,
+        };
+      }
+
+      const nextPlanBalance = Math.min(balance, limit);
+      const nextExtraBalance = Math.max(0, balance - limit);
+      const usagePercent = ((limit - nextPlanBalance) / limit) * 100;
+
       return {
-        planBalance: 0,
-        planLimit: 0,
+        extraBalance: nextExtraBalance,
+        planBalance: nextPlanBalance,
+        planLimit: limit,
+        planUsagePercent: Math.min(usagePercent, 100),
       };
-    }
+    }, [creditsBreakdown, balance]);
 
-    return {
-      planBalance: Math.min(balance, limit),
-      planLimit: limit,
-    };
-  }, [creditsBreakdown, balance]);
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await findTopbarBalances();
+      await refreshCreditsBreakdown();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [findTopbarBalances, refreshCreditsBreakdown]);
 
   if (!showCredits) {
     return null;
@@ -191,8 +211,6 @@ function TopbarCreditsBarContent() {
   );
   const visibleProviderSegments = providerSegments.slice(0, 2);
 
-  // Remaining percentage for the fill bar (how much is left)
-  const remainingPercent = planLimit > 0 ? (planBalance / planLimit) * 100 : 0;
   const billingHref = orgHref(
     hasOrganizationBillingHint()
       ? APP_ROUTES.SETTINGS.BILLING
@@ -201,12 +219,17 @@ function TopbarCreditsBarContent() {
 
   return (
     <CreditsBarTrigger
+      balance={balance}
       billingHref={billingHref}
       fullBalance={fullBalance}
       compactBalance={compactBalance}
       visibleProviderSegments={visibleProviderSegments}
       planLimit={planLimit}
-      remainingPercent={remainingPercent}
+      planBalance={planBalance}
+      extraBalance={extraBalance}
+      planUsagePercent={planUsagePercent}
+      isRefreshing={isRefreshing}
+      onRefresh={handleRefresh}
     />
   );
 }

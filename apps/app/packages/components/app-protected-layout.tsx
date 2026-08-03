@@ -43,6 +43,10 @@ import {
 } from '@/lib/workspace-shell/workspace-shell-telemetry';
 import AgentSidebarContent from './AppProtectedLayoutAgentSidebar';
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
+import {
+  extractAgentConversationId,
+  truncateBreadcrumbLabel,
+} from './app-protected-layout.breadcrumb';
 import AssetGateGuard from './asset-gate-guard';
 import {
   isProtectedEditorCanvasRoute,
@@ -394,6 +398,8 @@ function AppLayoutWithDynamicMenu({
   // Brand settings: Settings / <brand label> / <page>.
   // Org settings: Settings / <org label> / <page> (General vs brand Profile).
   // Registry seeds parent as :brandSlug / :orgSlug; prefer live display names.
+  // Agent conversation: Agent / <thread title, 25 chars>.
+  const rawPathname = usePathname();
   const layoutBreadcrumb = useMemo(() => {
     const breadcrumb = workspaceShellRoute?.breadcrumb;
     if (!breadcrumb) {
@@ -449,12 +455,27 @@ function AppLayoutWithDynamicMenu({
         };
       }
     }
+    if (workspaceShellRoute?.surfaceKey === 'agent-conversation') {
+      const conversationId = extractAgentConversationId(rawPathname);
+      if (conversationId) {
+        const thread = threads.find((item) => item.id === conversationId);
+        const title = thread?.title?.trim();
+        if (title) {
+          return {
+            ...breadcrumb,
+            leafLabel: truncateBreadcrumbLabel(title, 25),
+          };
+        }
+      }
+    }
     return breadcrumb;
   }, [
     brands,
     organizationId,
     orgSlug,
+    rawPathname,
     selectedBrand?.label,
+    threads,
     workspaceShellRoute,
   ]);
 

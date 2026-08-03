@@ -479,7 +479,10 @@ export function useAgentCliTerminal(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeThreadId]);
 
-  // Boot effect — mounts xterm, establishes socket, lists existing sessions
+  // Boot effect — mounts xterm, establishes socket, lists existing sessions.
+  // Cleanup owns ResizeObserver, socket, terminal, rAF, and socket handlers
+  // via effect-scoped locals (async boot cannot return cleanup itself).
+  // react-doctor-disable-next-line react-doctor/effect-needs-cleanup,react-doctor/no-set-state-after-await-in-effect
   useEffect(() => {
     if (hostedCloud) {
       return undefined;
@@ -493,6 +496,12 @@ export function useAgentCliTerminal(
     let disposed = false;
     let detachSocketHandlers: (() => void) | null = null;
     let detachConnectHandler: (() => void) | null = null;
+    // Declared in effect scope so cleanup can always disconnect (async boot).
+    let resizeObserver: ResizeObserver | null = null;
+    let socket: Socket | null = null;
+    let terminal: XtermTerminal | null = null;
+    let dataDisposable: XtermDisposable | null = null;
+    let rafId: number | null = null;
 
     async function bootTerminal(): Promise<void> {
       const [{ Terminal }, { FitAddon }, { SearchAddon }, { WebLinksAddon }] =
@@ -507,7 +516,7 @@ export function useAgentCliTerminal(
         return;
       }
 
-      const terminal = new Terminal({
+      terminal = new Terminal({
         allowProposedApi: false,
         convertEol: true,
         cursorBlink: true,
@@ -554,25 +563,26 @@ export function useAgentCliTerminal(
       fitAddonRef.current = fitAddon;
       searchAddonRef.current = searchAddon;
 
-      dataDisposableRef.current = terminal.onData((data) => {
-        const socket = socketRef.current;
-        if (!socket || !sessionIdRef.current) {
+      dataDisposable = terminal.onData((data) => {
+        const liveSocket = socketRef.current;
+        if (!liveSocket || !sessionIdRef.current) {
           return;
         }
 
-        socket.emit('terminal:write', {
+        liveSocket.emit('terminal:write', {
           data,
           sessionId: sessionIdRef.current,
         });
       });
+      dataDisposableRef.current = dataDisposable;
 
-      requestAnimationFrame(() => {
+      rafId = requestAnimationFrame(() => {
         fitAndSyncSize();
-        terminal.focus();
+        terminal?.focus();
       });
 
-      if (typeof ResizeObserver !== 'undefined') {
-        const resizeObserver = new ResizeObserver(() => fitAndSyncSize());
+      if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
+        resizeObserver = new ResizeObserver(() => fitAndSyncSize());
         resizeObserver.observe(containerRef.current);
         resizeObserverRef.current = resizeObserver;
       }
@@ -589,7 +599,11 @@ export function useAgentCliTerminal(
         return;
       }
 
-      const socket = io(`${resolveTerminalEndpoint()}/terminal`, {
+      if (disposed) {
+        return;
+      }
+
+      socket = io(`${resolveTerminalEndpoint()}/terminal`, {
         auth: { token },
         extraHeaders: { Authorization: `Bearer ${token}` },
         reconnectionAttempts: 3,
@@ -664,19 +678,28 @@ export function useAgentCliTerminal(
 
     return () => {
       disposed = true;
-      const socket = socketRef.current;
 
       if (sessionIdRef.current) {
         socket?.emit('terminal:kill', { sessionId: sessionIdRef.current });
+        socketRef.current?.emit('terminal:kill', {
+          sessionId: sessionIdRef.current,
+        });
       }
 
+      if (rafId != null) {
+        cancelAnimationFrame(rafId);
+      }
+      resizeObserver?.disconnect();
       resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
       detachConnectHandler?.();
       detachSocketHandlers?.();
+      dataDisposable?.dispose();
       dataDisposableRef.current?.dispose();
+      terminal?.dispose();
       terminalRef.current?.dispose();
       socket?.disconnect();
-      resizeObserverRef.current = null;
+      socketRef.current?.disconnect();
       dataDisposableRef.current = null;
       fitAddonRef.current = null;
       searchAddonRef.current = null;
@@ -828,6 +851,7 @@ export function AgentCliTerminalBody({
         ref={containerRef}
         aria-label="Genfeed terminal"
         className="min-h-0 flex-1 overflow-hidden bg-[#050806] px-3 py-2 text-[13px] text-foreground/78 outline-none focus-visible:ring-1 focus-visible:ring-emerald-300/35 [&_.xterm-screen]:outline-none [&_.xterm-viewport]:overflow-y-auto"
+        // Interactive host for xterm; textbox role allows keyboard focus.
         role="textbox"
         tabIndex={0}
       />

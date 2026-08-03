@@ -229,18 +229,14 @@ export function AgentChatMessage({
         )}
       >
         {isUser ? (
-          <div
+          <h3
             aria-label="Your message"
             className="mb-1.5 flex items-center gap-2 text-[11px] font-medium text-foreground/45"
-            role="heading"
-            aria-level={3}
           >
             <span>You</span>
-          </div>
+          </h3>
         ) : (
-          <span className="sr-only" role="heading" aria-level={3}>
-            Assistant message
-          </span>
+          <h3 className="sr-only">Assistant message</h3>
         )}
 
         {shouldRenderMessageContent && (

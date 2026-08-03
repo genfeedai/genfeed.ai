@@ -310,30 +310,21 @@ export function useAgentFullPage({
     return () => controller.abort();
   }, [apiService, authReady, setCreditsRemaining, setModelCosts]);
 
-  // Load thread from URL param
-  useEffect(() => {
-    if (!authReady) {
-      return;
-    }
-
-    if (!threadId) {
-      setIsLoadingThread(false);
-      setActiveThreadStatus(null);
-      setWorkspacePlanningTaskId(null);
-      setActiveThread(null);
-      setDraftPlanModeEnabled(false);
-      setLatestProposedPlan(null);
-      resetActiveConversationState();
-      return;
-    }
-  }, [
-    authReady,
-    threadId,
-    setActiveThread,
-    setDraftPlanModeEnabled,
-    setLatestProposedPlan,
-    resetActiveConversationState,
-  ]);
+  // When the URL has no thread, clear conversation state during render so
+  // the empty state never flashes the previous thread's data.
+  const [clearedForThreadId, setClearedForThreadId] = useState(threadId);
+  if (authReady && !threadId && clearedForThreadId !== null) {
+    setClearedForThreadId(null);
+    setIsLoadingThread(false);
+    setActiveThreadStatus(null);
+    setWorkspacePlanningTaskId(null);
+    setActiveThread(null);
+    setDraftPlanModeEnabled(false);
+    setLatestProposedPlan(null);
+    resetActiveConversationState();
+  } else if (threadId && clearedForThreadId !== threadId) {
+    setClearedForThreadId(threadId);
+  }
 
   useEffect(() => {
     if (!authReady || !threadId) {

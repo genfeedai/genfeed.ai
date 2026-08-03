@@ -215,4 +215,32 @@ describe('TimelineWorkGroup', () => {
     expect(screen.getByText('Worked for 2s')).toBeTruthy();
     expect(screen.getByText('Failed')).toBeTruthy();
   });
+
+  it('keeps duration neutral on failed runs (only Failed is semantic red)', () => {
+    render(
+      <TimelineWorkGroup
+        entry={{
+          ...buildSettledEntry(1),
+          events: [
+            {
+              createdAt: '2026-03-18T10:00:00.000Z',
+              event: AgentWorkEventType.FAILED,
+              id: 'e-failed',
+              label: 'Run Failed',
+              status: AgentWorkEventStatus.FAILED,
+              threadId: 't1',
+            },
+          ],
+          totalDurationMs: 547,
+        }}
+      />,
+    );
+
+    const group = screen.getByTestId('timeline-work-group');
+    expect(group.className).not.toMatch(/destructive/);
+    expect(screen.getByText('Worked for 547ms').className).toMatch(
+      /text-foreground\/70/,
+    );
+    expect(screen.getByText('Failed').className).toMatch(/text-destructive/);
+  });
 });

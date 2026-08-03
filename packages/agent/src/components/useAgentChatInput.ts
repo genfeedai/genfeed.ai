@@ -4,6 +4,12 @@ import { ContentMentionList } from '@genfeedai/agent/components/ContentMentionLi
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { CredentialMentionList } from '@genfeedai/agent/components/CredentialMentionList';
 import { TeamMentionList } from '@genfeedai/agent/components/TeamMentionList';
+import {
+  type ComposerMode,
+  DEFAULT_COMPOSER_MODE,
+  getComposerModeDefinition,
+  isGenerationComposerMode,
+} from '@genfeedai/agent/constants/composer-mode.constant';
 import { parseConversationComposerCommand } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
 import { BrandMention } from '@genfeedai/agent/extensions/brand-mention.extension';
 import { ContentMention } from '@genfeedai/agent/extensions/content-mention.extension';
@@ -20,7 +26,11 @@ import type {
   ConversationComposerArtifactReference,
   ConversationComposerSendOptions,
 } from '@genfeedai/agent/models/conversation-composer.model';
-import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import type {
+  AgentApiService,
+  GenerationModel,
+} from '@genfeedai/agent/services/agent-api.service';
+import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   clearConversationComposerDraft,
@@ -49,6 +59,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -307,7 +318,7 @@ interface UseAgentChatInputParams {
 export function useAgentChatInput({
   onSend,
   disabled,
-  placeholder = 'Type # brands, @ team, ! accounts, ^ content, / commands',
+  placeholder: placeholderOverride,
   apiService,
   showStop = false,
   attachments = [],
@@ -327,6 +338,74 @@ export function useAgentChatInput({
   );
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
   const composerSeed = useAgentChatStore((s) => s.composerSeed);
+  const [composerMode, setComposerMode] = useState<ComposerMode>(
+    DEFAULT_COMPOSER_MODE,
+  );
+  const [generationModelKey, setGenerationModelKey] = useState<string | null>(
+    null,
+  );
+  const [generationModels, setGenerationModels] = useState<GenerationModel[]>(
+    [],
+  );
+  const [isGenerationModelsLoading, setIsGenerationModelsLoading] =
+    useState(false);
+
+  const modeDefinition = getComposerModeDefinition(composerMode);
+  const placeholder =
+    placeholderOverride ??
+    modeDefinition.placeholder ??
+    'Type # brands, @ team, ! accounts, ^ content, / commands';
+  const placeholderRef = useRef(placeholder);
+  // TipTap reads this on each placeholder paint — sync after commit only.
+  useLayoutEffect(() => {
+    placeholderRef.current = placeholder;
+  }, [placeholder]);
+
+  const handleComposerModeChange = useCallback((mode: ComposerMode) => {
+    setComposerMode(mode);
+    // Reset gen model when leaving a generation mode or switching modality.
+    setGenerationModelKey(null);
+  }, []);
+
+  // Load generation models when a non-chat mode is active.
+  useEffect(() => {
+    if (!apiService || !isGenerationComposerMode(composerMode)) {
+      // Only write when state actually needs clearing — avoid thrashing
+      // with a fresh `[]` on every chat-mode effect pass.
+      setGenerationModels((current) => (current.length === 0 ? current : []));
+      setIsGenerationModelsLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const category = getComposerModeDefinition(composerMode).modelCategory;
+    setIsGenerationModelsLoading(true);
+
+    void runAgentApiEffect(apiService.getModelsEffect(controller.signal))
+      .then((models) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+        const filtered = category
+          ? models.filter((model) => model.category === category)
+          : models;
+        setGenerationModels(filtered);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setGenerationModels((current) =>
+            current.length === 0 ? current : [],
+          );
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsGenerationModelsLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [apiService, composerMode]);
   const clearComposerSeed = useAgentChatStore((s) => s.clearComposerSeed);
 
   const { mentions: credentialMentions } = useCredentialMentions(
@@ -451,7 +530,7 @@ export function useAgentChatInput({
         orderedList: false,
       }),
       Placeholder.configure({
-        placeholder,
+        placeholder: () => placeholderRef.current,
       }),
       SendOnEnter.configure({
         onEnter: () => {
@@ -620,6 +699,14 @@ export function useAgentChatInput({
     }
   }, [editor, disabled]);
 
+  // Refresh empty-state placeholder when composer mode changes.
+  useEffect(() => {
+    if (!editor?.isEmpty) {
+      return;
+    }
+    editor.view.dispatch(editor.state.tr);
+  }, [editor, placeholder]);
+
   const handleSend = useCallback(async () => {
     if (!editor || disabled) {
       return;
@@ -673,6 +760,10 @@ export function useAgentChatInput({
             }
           : {}),
         ...(composerShell?.brandId ? { brandId: composerShell.brandId } : {}),
+        composerMode,
+        generationModelKey: isGenerationComposerMode(composerMode)
+          ? generationModelKey
+          : null,
         planModeEnabled: false,
       },
     );
@@ -680,10 +771,12 @@ export function useAgentChatInput({
     clearAllAttachments?.();
     clearConversationComposerDraft(draftScopeKey);
   }, [
+    composerMode,
     composerShell,
     draftScopeKey,
     editor,
     disabled,
+    generationModelKey,
     onSend,
     hasCompletedAttachments,
     getCompletedAttachments,
@@ -824,7 +917,11 @@ export function useAgentChatInput({
   return {
     actionFeedback,
     canSendMessage,
+    composerMode,
     editor,
+    generationModelKey,
+    generationModels,
+    handleComposerModeChange,
     handlePasteImages,
     handleRemoveAttachment,
     handleInsertReference,
@@ -833,9 +930,11 @@ export function useAgentChatInput({
     handleShellPointerDown,
     hasAttachments,
     isDragActive,
+    isGenerationModelsLoading,
     isListening,
     isTranscribing,
     references: displayedReferences,
+    setGenerationModelKey,
     shouldShowSendButton,
     shouldShowVoiceInput,
     startListening,

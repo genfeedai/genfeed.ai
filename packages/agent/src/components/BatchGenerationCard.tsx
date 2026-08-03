@@ -25,7 +25,7 @@ export function BatchGenerationCard({
   const suggestedPlatforms = action.platforms ?? [];
   const [count, setCount] = useState(action.batchCount ?? 5);
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(
-    new Set(suggestedPlatforms),
+    () => new Set(suggestedPlatforms),
   );
   const [isGenerated, setIsGenerated] = useState(false);
 

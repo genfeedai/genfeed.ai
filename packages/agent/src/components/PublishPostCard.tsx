@@ -8,6 +8,7 @@ import {
   type ChangeEvent,
   type ReactElement,
   useCallback,
+  useMemo,
   useState,
 } from 'react';
 
@@ -37,13 +38,21 @@ export function PublishPostCard({
   action,
   onUiAction,
 }: PublishPostCardProps): ReactElement {
-  const availablePlatforms = Array.isArray(action.data?.availablePlatforms)
-    ? (action.data.availablePlatforms as string[])
-    : (action.platforms ?? []);
+  const availablePlatforms = useMemo(
+    () =>
+      Array.isArray(action.data?.availablePlatforms)
+        ? (action.data.availablePlatforms as string[])
+        : (action.platforms ?? []),
+    [action.data?.availablePlatforms, action.platforms],
+  );
+  const availablePlatformSet = useMemo(
+    () => new Set(availablePlatforms),
+    [availablePlatforms],
+  );
   const initialPlatforms =
     action.platforms && action.platforms.length > 0
       ? action.platforms.filter((platform) =>
-          availablePlatforms.includes(platform),
+          availablePlatformSet.has(platform),
         )
       : availablePlatforms;
 
@@ -55,13 +64,21 @@ export function PublishPostCard({
     useState<string[]>(initialPlatforms);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const selectedPlatformSet = useMemo(
+    () => new Set(selectedPlatforms),
+    [selectedPlatforms],
+  );
 
   const togglePlatform = useCallback((platform: string) => {
-    setSelectedPlatforms((current) =>
-      current.includes(platform)
-        ? current.filter((value) => value !== platform)
-        : [...current, platform],
-    );
+    setSelectedPlatforms((current) => {
+      const next = new Set(current);
+      if (next.has(platform)) {
+        next.delete(platform);
+      } else {
+        next.add(platform);
+      }
+      return [...next];
+    });
   }, []);
 
   const handleCaptionChange = useCallback(
@@ -175,7 +192,7 @@ export function PublishPostCard({
         </span>
         <div className="flex flex-wrap gap-2">
           {availablePlatforms.map((platform) => {
-            const selected = selectedPlatforms.includes(platform);
+            const selected = selectedPlatformSet.has(platform);
 
             return (
               <Button

@@ -94,4 +94,39 @@ describe('AgentModelSelector', () => {
     expect(screen.getByRole('button', { name: 'Select model' })).toBeDisabled();
     expect(screen.queryByLabelText('Search models')).not.toBeInTheDocument();
   });
+
+  it('renders an override model catalog (generation modes)', async () => {
+    const user = userEvent.setup();
+    const onModelChange = vi.fn();
+
+    render(
+      <AgentModelSelector
+        creditsAvailable={null}
+        models={[
+          {
+            brandSlug: 'auto',
+            description: 'Router picks',
+            key: '__auto_model__',
+            label: 'Auto',
+          },
+          {
+            brandSlug: 'replicate',
+            description: 'Image generator',
+            key: 'replicate/flux',
+            label: 'Flux',
+          },
+        ]}
+        onModelChange={onModelChange}
+        selectedModel="__auto_model__"
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Select model' }),
+    ).toHaveTextContent('Auto');
+
+    await user.click(screen.getByRole('button', { name: 'Select model' }));
+    await user.click(screen.getByRole('button', { name: /flux/i }));
+    expect(onModelChange).toHaveBeenCalledWith('replicate/flux');
+  });
 });

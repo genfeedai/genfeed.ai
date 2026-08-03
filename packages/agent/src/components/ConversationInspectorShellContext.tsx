@@ -1,7 +1,14 @@
 'use client';
 
 import type { ReactElement, ReactNode } from 'react';
-import { createContext, useCallback, useContext, useMemo, useRef } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from 'react';
 
 /**
  * Mounted by the workspace shell so the agent conversation can hand its
@@ -47,9 +54,11 @@ export function ConversationInspectorShellProvider({
   // Keep setHasPanel identity stable even if the parent re-creates the
   // callback each render — consumers use it in useEffect deps.
   const onPanelPresenceChangeRef = useRef(onPanelPresenceChange);
-  onPanelPresenceChangeRef.current = onPanelPresenceChange;
+  useLayoutEffect(() => {
+    onPanelPresenceChangeRef.current = onPanelPresenceChange;
+  });
   const setHasPanel = useCallback((hasPanel: boolean) => {
-    onPanelPresenceChangeRef.current(hasPanel);
+    onPanelPresenceChangeRef.current?.(hasPanel);
   }, []);
 
   const value = useMemo<ConversationInspectorShellContextValue>(

@@ -18,7 +18,6 @@ import { ChevronUp, Lock, Search, Sparkles } from 'lucide-react';
 import {
   type ChangeEvent,
   type ReactElement,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -33,6 +32,13 @@ type AgentModelSelectorProps = {
   density?: 'compact' | 'default';
   /** When true, block model switching (read-only / busy / blocked composer). */
   isDisabled?: boolean;
+  /**
+   * Optional override list. When set (e.g. image/video/voice gen models),
+   * replaces the default AGENT_MODELS LLM catalog.
+   */
+  models?: readonly AgentModelOption[];
+  isLoading?: boolean;
+  ariaLabel?: string;
 };
 
 type ModelRowProps = {
@@ -69,47 +75,61 @@ export function AgentModelSelector({
   onBuyCredits,
   density = 'default',
   isDisabled = false,
+  models: modelsOverride,
+  isLoading = false,
+  ariaLabel = 'Select model',
 }: AgentModelSelectorProps): ReactElement {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const models = modelsOverride ?? AGENT_MODELS;
+  const modelsIdentity = models.map((model) => model.key).join('\0');
+  const [catalogKey, setCatalogKey] = useState(modelsIdentity);
 
-  // Drop leftover open state when the selector is disabled so re-enable cannot
-  // immediately reopen a menu that was open when the busy state began.
-  useEffect(() => {
-    if (isDisabled) {
-      setOpen(false);
+  // Adjust state during render when props change — no effect flash.
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  if (isDisabled && open) {
+    setOpen(false);
+    if (searchTerm !== '') {
       setSearchTerm('');
     }
-  }, [isDisabled]);
+  }
+  if (catalogKey !== modelsIdentity) {
+    setCatalogKey(modelsIdentity);
+    if (searchTerm !== '') {
+      setSearchTerm('');
+    }
+  }
 
-  const current = AGENT_MODELS.find((m) => m.key === selectedModel);
+  const current = models.find((m) => m.key === selectedModel);
   const hasLockedModels =
     creditsAvailable != null &&
-    AGENT_MODELS.some(
-      (m) => m.creditCost != null && m.creditCost > creditsAvailable,
-    );
+    models.some((m) => m.creditCost != null && m.creditCost > creditsAvailable);
   const isCompact = density === 'compact';
   const currentCost = costTierDisplay(current?.costTier);
 
   const filteredModels = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
     if (!query) {
-      return AGENT_MODELS;
+      return models;
     }
 
-    return AGENT_MODELS.filter((model) => {
+    return models.filter((model) => {
       const haystack =
         `${model.label} ${model.description} ${model.key}`.toLowerCase();
       return haystack.includes(query);
     });
-  }, [searchTerm]);
+  }, [models, searchTerm]);
+
+  const triggerLabel = isLoading
+    ? 'Loading…'
+    : (current?.label ?? (models.length === 0 ? 'No models' : 'Select model'));
 
   return (
     <Popover
-      open={isDisabled ? false : open}
+      open={isDisabled || isLoading ? false : open}
       onOpenChange={(isPopoverOpen) => {
-        if (isDisabled) {
+        if (isDisabled || isLoading) {
           return;
         }
         setOpen(isPopoverOpen);
@@ -120,11 +140,11 @@ export function AgentModelSelector({
     >
       <PopoverTrigger asChild>
         <Button
-          ariaLabel="Select model"
+          ariaLabel={ariaLabel}
           variant={ButtonVariant.GHOST}
           withWrapper={false}
           textTransform="none"
-          isDisabled={isDisabled}
+          isDisabled={isDisabled || isLoading}
           className={cn(
             'inline-flex min-w-0 max-w-full items-center gap-1 rounded-lg text-xs text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground',
             isCompact
@@ -135,9 +155,7 @@ export function AgentModelSelector({
           {current?.isReasoning && (
             <Sparkles className="size-3 shrink-0 text-purple-400" />
           )}
-          <span className="min-w-0 truncate">
-            {current?.label ?? 'Select model'}
-          </span>
+          <span className="min-w-0 truncate">{triggerLabel}</span>
           {currentCost ? (
             <span
               className={cn(
@@ -158,10 +176,11 @@ export function AgentModelSelector({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        align="start"
+        align="end"
         side="top"
         sideOffset={8}
-        className="flex w-80 flex-col gap-0 overflow-hidden border border-border bg-background p-0 text-foreground"
+        collisionPadding={12}
+        className="flex w-80 max-w-[calc(100vw-1.5rem)] flex-col gap-0 overflow-hidden border border-border bg-background p-0 text-foreground"
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           searchInputRef.current?.focus();
@@ -190,7 +209,9 @@ export function AgentModelSelector({
         >
           {filteredModels.length === 0 ? (
             <p className="px-2.5 py-6 text-center text-xs text-muted-foreground">
-              No models match “{searchTerm.trim()}”
+              {searchTerm.trim()
+                ? `No models match “${searchTerm.trim()}”`
+                : 'No models available'}
             </p>
           ) : (
             filteredModels.map((model) => {

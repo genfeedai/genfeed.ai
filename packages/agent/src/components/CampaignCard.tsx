@@ -6,6 +6,27 @@ interface CampaignCardProps {
   action: AgentUiAction;
 }
 
+const CAMPAIGN_STATUS_CONFIG: Record<
+  string,
+  { color: string; icon: ReactElement; label: string }
+> = {
+  active: {
+    color: 'text-green-500',
+    icon: <Play className="size-4" />,
+    label: 'Active',
+  },
+  completed: {
+    color: 'text-blue-500',
+    icon: <CircleCheck className="size-4" />,
+    label: 'Completed',
+  },
+  paused: {
+    color: 'text-yellow-500',
+    icon: <Pause className="size-4" />,
+    label: 'Paused',
+  },
+};
+
 export function CampaignCreateCard({
   action,
 }: CampaignCardProps): ReactElement {
@@ -43,29 +64,8 @@ export function CampaignControlCard({
   action,
 }: CampaignCardProps): ReactElement {
   const status = action.status || 'active';
-
-  const statusConfig: Record<
-    string,
-    { color: string; icon: ReactElement; label: string }
-  > = {
-    active: {
-      color: 'text-green-500',
-      icon: <Play className="size-4" />,
-      label: 'Active',
-    },
-    completed: {
-      color: 'text-blue-500',
-      icon: <CircleCheck className="size-4" />,
-      label: 'Completed',
-    },
-    paused: {
-      color: 'text-yellow-500',
-      icon: <Pause className="size-4" />,
-      label: 'Paused',
-    },
-  };
-
-  const config = statusConfig[status] || statusConfig.active;
+  const config =
+    CAMPAIGN_STATUS_CONFIG[status] || CAMPAIGN_STATUS_CONFIG.active;
 
   return (
     <div className="border border-border bg-background p-4 my-2">

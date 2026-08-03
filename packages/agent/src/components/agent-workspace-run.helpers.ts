@@ -13,6 +13,11 @@ const RUN_STATUS_CLASS_NAMES: Readonly<Record<string, string>> = {
 
 const CANCELLABLE_RUN_STATUSES = new Set(['PENDING', 'RUNNING']);
 const RETRYABLE_RUN_STATUSES = new Set(['CANCELLED', 'FAILED']);
+const RUN_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+  timeZone: 'UTC',
+});
 
 export type AgentRunAction = 'cancel' | 'retry';
 
@@ -66,10 +71,7 @@ export function formatRunTimestamp(timestamp?: string): string {
     return 'Unknown time';
   }
 
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
+  return RUN_TIME_FORMATTER.format(date);
 }
 
 export function formatRunDuration(durationMs?: number): string {

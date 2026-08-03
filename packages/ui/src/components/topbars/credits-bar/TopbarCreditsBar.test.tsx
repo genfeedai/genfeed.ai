@@ -58,15 +58,21 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
 
 vi.mock('./CreditsBarTrigger', () => ({
   default: ({
+    balance,
     billingHref,
     fullBalance,
   }: {
+    balance: number;
     billingHref: string;
     fullBalance: string;
   }) => (
-    <a href={billingHref} data-testid="credits-link">
-      Credits {fullBalance}
-    </a>
+    <div data-testid="credits-trigger">
+      <span data-testid="credits-balance">{fullBalance}</span>
+      <span data-testid="credits-numeric">{balance}</span>
+      <a href={billingHref} data-testid="credits-link">
+        top-up
+      </a>
+    </div>
   ),
 }));
 
@@ -98,7 +104,7 @@ describe('TopbarCreditsBar', () => {
     render(<TopbarCreditsBar />);
 
     await waitFor(() => {
-      expect(screen.getByText('Credits 42')).toBeInTheDocument();
+      expect(screen.getByTestId('credits-balance')).toHaveTextContent('42');
     });
 
     // SaaS (NEXT_PUBLIC_GENFEED_CLOUD) links to Billing, not bare Credits.
@@ -140,7 +146,8 @@ describe('TopbarCreditsBar', () => {
     render(<TopbarCreditsBar />);
 
     await waitFor(() => {
-      expect(screen.getByText('Credits 0')).toBeInTheDocument();
+      expect(screen.getByTestId('credits-numeric')).toHaveTextContent('0');
+      expect(screen.getByTestId('credits-balance')).toHaveTextContent('0');
     });
   });
 
@@ -150,7 +157,7 @@ describe('TopbarCreditsBar', () => {
     render(<TopbarCreditsBar />);
 
     await waitFor(() => {
-      expect(screen.getByText('Credits 42')).toBeInTheDocument();
+      expect(screen.getByTestId('credits-balance')).toHaveTextContent('42');
     });
 
     expect(screen.getByTestId('credits-link')).toHaveAttribute(

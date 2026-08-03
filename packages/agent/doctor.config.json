@@ -1,0 +1,25 @@
+{
+  "$schema": "https://react.doctor/schema/config.json",
+  "ignore": {
+    "rules": [
+      "react-doctor/nextjs-no-img-element",
+      "react-doctor/no-many-boolean-props",
+      "react-doctor/no-giant-component",
+      "react-doctor/prefer-useReducer",
+      "react-doctor/prefer-dynamic-import"
+    ],
+    "overrides": [
+      {
+        "files": [
+          "src/components/IngredientAlternativesCard.tsx",
+          "src/components/ReviewGateCard.tsx",
+          "src/components/WorkflowExecuteCard.tsx"
+        ],
+        "rules": ["react-doctor/exhaustive-deps"]
+      }
+    ]
+  },
+  "supplyChain": {
+    "enabled": false
+  }
+}

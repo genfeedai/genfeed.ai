@@ -12,6 +12,9 @@ import type {
 } from '@genfeedai/interfaces';
 
 const DEFAULT_OPERATION: AgentDashboardOperation = 'replace';
+const COMPACT_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
+  notation: 'compact',
+});
 
 export const DASHBOARD_KPI_CATALOG: DashboardKpiDefinition[] = [
   {
@@ -206,9 +209,7 @@ function formatKpiValue(
     return `${value.toFixed(2)}%`;
   }
   if (format === 'compact') {
-    return new Intl.NumberFormat('en-US', { notation: 'compact' }).format(
-      value,
-    );
+    return COMPACT_NUMBER_FORMATTER.format(value);
   }
   return Math.round(value * 100) / 100;
 }

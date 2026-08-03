@@ -18,6 +18,9 @@ import PromptBarShell, {
 } from '@ui/prompt-bars/components/shell/PromptBarShell';
 import { type ReactElement, useCallback, useMemo } from 'react';
 
+// Stable default so memoized children do not see a new [] every render.
+const EMPTY_CHAT_ATTACHMENTS: AttachmentItem[] = [];
+
 export type ExtractedMention =
   | { type: 'brand'; id: string; brandName: string; brandSlug: string }
   | {
@@ -77,7 +80,7 @@ export function AgentChatInput({
   placeholder,
   apiService,
   showStop = false,
-  attachments = [],
+  attachments = EMPTY_CHAT_ATTACHMENTS,
   isUploading = false,
   dragState,
   dragHandlers,
@@ -96,7 +99,11 @@ export function AgentChatInput({
   const {
     actionFeedback,
     canSendMessage,
+    composerMode,
     editor,
+    generationModelKey,
+    generationModels,
+    handleComposerModeChange,
     handlePasteImages,
     handleRemoveAttachment,
     handleInsertReference,
@@ -105,9 +112,11 @@ export function AgentChatInput({
     handleShellPointerDown,
     hasAttachments,
     isDragActive,
+    isGenerationModelsLoading,
     isListening,
     isTranscribing,
     references,
+    setGenerationModelKey,
     shouldShowSendButton,
     shouldShowVoiceInput,
     startListening,
@@ -192,14 +201,20 @@ export function AgentChatInput({
 
           <AgentChatInputToolbar
             canSendMessage={canSendMessage}
+            composerMode={composerMode}
             creditsAvailable={creditsAvailable}
             disabled={disabled}
+            generationModelKey={generationModelKey}
+            generationModels={generationModels}
             hasEditor={Boolean(editor)}
+            isGenerationModelsLoading={isGenerationModelsLoading}
             isListening={isListening}
             isTranscribing={isTranscribing}
             isUploading={isUploading}
             onAddFiles={addFiles}
             onBuyCredits={onBuyCredits}
+            onComposerModeChange={handleComposerModeChange}
+            onGenerationModelChange={setGenerationModelKey}
             onInsertReference={handleInsertReference}
             onModelChange={onModelChange}
             onSelectAction={handleSelectAction}

@@ -2,7 +2,11 @@ import { parseAgentDashboardBlocks } from '@genfeedai/agent/dashboard/dashboard-
 import type { AgentUIBlock } from '@genfeedai/interfaces';
 import { create } from 'zustand';
 
-export const AGENT_DASHBOARD_STORAGE_KEY = 'genfeed-agent-dashboard-blocks';
+/** Versioned key so shape changes don't crash old sessions. */
+export const AGENT_DASHBOARD_STORAGE_KEY = 'genfeed-agent-dashboard-blocks:v1';
+const LEGACY_AGENT_DASHBOARD_STORAGE_KEYS = [
+  'genfeed-agent-dashboard-blocks',
+] as const;
 
 export interface StoredDashboardState {
   blocks: AgentUIBlock[];
@@ -38,7 +42,11 @@ function getStoredDashboardState(): StoredDashboardState {
     return { blocks: [], isAgentModified: false };
   }
   try {
-    const stored = localStorage.getItem(AGENT_DASHBOARD_STORAGE_KEY);
+    const stored =
+      localStorage.getItem(AGENT_DASHBOARD_STORAGE_KEY) ??
+      LEGACY_AGENT_DASHBOARD_STORAGE_KEYS.map((key) =>
+        localStorage.getItem(key),
+      ).find((value) => value != null);
     if (!stored) {
       return { blocks: [], isAgentModified: false };
     }

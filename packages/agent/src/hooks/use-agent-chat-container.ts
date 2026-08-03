@@ -341,6 +341,8 @@ export function useAgentChatContainer({
         artifactReferences: options?.artifactReferences,
         attachments,
         ...(options?.brandId ? { brandId: options.brandId } : {}),
+        composerMode: options?.composerMode,
+        generationModelKey: options?.generationModelKey,
         planModeEnabled: options?.planModeEnabled ?? false,
       });
     },
@@ -777,7 +779,7 @@ export function useAgentChatContainer({
     return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Scroll-to-bottom when thread load completes
+  // Scroll-to-bottom when thread load completes (imperative DOM, not derived UI).
   useEffect(() => {
     if (
       wasLoadingThreadRef.current &&
@@ -785,6 +787,7 @@ export function useAgentChatContainer({
       messages.length > 0
     ) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change
       setIsAtBottom(true);
     }
 
