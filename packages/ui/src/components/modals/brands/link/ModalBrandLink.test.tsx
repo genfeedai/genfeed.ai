@@ -134,7 +134,6 @@ describe('ModalBrandLink', () => {
 
     expect(screen.getByTestId('modal-title')).toHaveTextContent('Add Link');
     expect(screen.getByRole('button', { name: 'Add' })).toBeInTheDocument();
-    expect(screen.getByText(/connected under Social/i)).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Delete' }),
     ).not.toBeInTheDocument();

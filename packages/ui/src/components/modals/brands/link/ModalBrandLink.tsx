@@ -96,9 +96,9 @@ export default function ModalBrandLink({
       error={validationError}
       onClose={() => setValidationError(null)}
     >
-      <form ref={formRef} onSubmit={onSubmit}>
+      <form ref={formRef} className="flex flex-col gap-4" onSubmit={onSubmit}>
         {hasFormErrors(form.formState.errors) ? (
-          <Alert type={AlertCategory.ERROR} className="mb-4">
+          <Alert type={AlertCategory.ERROR}>
             <div className="space-y-1">
               {parseFormErrors(form.formState.errors).map((error) => (
                 <div key={error}>{error}</div>
@@ -134,10 +134,6 @@ export default function ModalBrandLink({
               </option>
             ))}
           </SelectField>
-          <p className="mt-1 text-xs text-muted-foreground">
-            X, Instagram, YouTube, and other socials are connected under Social
-            — not as manual links.
-          </p>
         </FormControl>
 
         <FormControl label="URL">
@@ -152,13 +148,12 @@ export default function ModalBrandLink({
           />
         </FormControl>
 
-        <ModalActions>
+        <ModalActions className="mt-2">
           <Button
             type="button"
             label="Cancel"
             variant={ButtonVariant.SECONDARY}
-            size={ButtonSize.LG}
-            className="md:h-9 md:px-4 md:py-2 mb-4 md:mb-0"
+            size={ButtonSize.SM}
             isDisabled={isSubmitting}
             onClick={() => closeModal()}
           />
@@ -168,8 +163,7 @@ export default function ModalBrandLink({
               type="button"
               label="Delete"
               variant={ButtonVariant.DESTRUCTIVE}
-              size={ButtonSize.LG}
-              className="md:h-9 md:px-4 md:py-2 mb-4 md:mb-0"
+              size={ButtonSize.SM}
               onClick={deleteModalBrandLink}
               isLoading={isSubmitting}
             />
@@ -179,8 +173,7 @@ export default function ModalBrandLink({
             type="submit"
             label={link ? 'Update' : 'Add'}
             variant={ButtonVariant.DEFAULT}
-            size={ButtonSize.LG}
-            className="md:h-9 md:px-4 md:py-2"
+            size={ButtonSize.SM}
             isLoading={isSubmitting}
             isDisabled={isSubmitting || !form.formState.isValid}
           />
