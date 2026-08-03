@@ -188,10 +188,14 @@ describe('BrandDetailAgentProfileCard', () => {
       />,
     );
 
-    // Platform overrides use a channel select; Twitter/X is the default.
+    // Platform overrides use a channel select; Twitter/X is the default and
+    // stays collapsed until customized when empty.
     expect(
       screen.getByRole('combobox', { name: 'Platform override channel' }),
     ).toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: /Customize Twitter/i }),
+    );
 
     await user.click(
       screen.getByRole('button', {

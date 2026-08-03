@@ -45,6 +45,26 @@ function parseList(value: string): string[] {
     .filter(Boolean);
 }
 
+export const EMPTY_PLATFORM_OVERRIDE: AgentProfilePlatformOverrideFormState = {
+  approvedHooks: '',
+  audience: '',
+  bannedPhrases: '',
+  canonicalSource: '',
+  contentTypes: '',
+  defaultModel: '',
+  doNotSoundLike: '',
+  exemplarTexts: '',
+  frequency: '',
+  goals: '',
+  messagingPillars: '',
+  persona: '',
+  sampleOutput: '',
+  style: '',
+  tone: '',
+  values: '',
+  writingRules: '',
+};
+
 function toPlatformOverrideFormState(
   override?: IBrandAgentPlatformOverride,
 ): AgentProfilePlatformOverrideFormState {

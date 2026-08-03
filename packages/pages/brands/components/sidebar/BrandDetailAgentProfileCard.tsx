@@ -14,10 +14,11 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Sparkles } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import AgentProfilePlatformOverride from './AgentProfilePlatformOverride';
 import AgentProfileVoiceFields from './AgentProfileVoiceFields';
 import {
+  EMPTY_PLATFORM_OVERRIDE,
   hasPlatformOverrideContent,
   PLATFORM_OPTIONS,
   useBrandDetailAgentProfileCard,
@@ -49,6 +50,8 @@ export default function BrandDetailAgentProfileCard({
   const [selectedPlatform, setSelectedPlatform] = useState(
     PLATFORM_OPTIONS[0]?.value ?? 'twitter',
   );
+  /** Expand the override editor only when customizing or already configured. */
+  const [isPlatformEditorOpen, setIsPlatformEditorOpen] = useState(false);
 
   const selectedPlatformOption = useMemo(
     () =>
@@ -58,6 +61,13 @@ export default function BrandDetailAgentProfileCard({
     [selectedPlatform],
   );
 
+  const selectedOverride =
+    (selectedPlatformOption &&
+      form.platformOverrides[selectedPlatformOption.value]) ||
+    EMPTY_PLATFORM_OVERRIDE;
+
+  const isSelectedConfigured = hasPlatformOverrideContent(selectedOverride);
+
   const configuredPlatforms = useMemo(
     () =>
       PLATFORM_OPTIONS.filter((platform) => {
@@ -66,6 +76,15 @@ export default function BrandDetailAgentProfileCard({
       }),
     [form.platformOverrides],
   );
+
+  // Auto-open the editor when the selected channel already has overrides.
+  useEffect(() => {
+    if (isSelectedConfigured) {
+      setIsPlatformEditorOpen(true);
+    } else {
+      setIsPlatformEditorOpen(false);
+    }
+  }, [isSelectedConfigured, selectedPlatform]);
 
   return (
     <Container>
@@ -97,7 +116,7 @@ export default function BrandDetailAgentProfileCard({
           </p>
         </Card>
 
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2">
           <Card label="Persona" description="What agents optimize for.">
             <EditableText
               ariaLabel="Persona"
@@ -248,8 +267,8 @@ export default function BrandDetailAgentProfileCard({
           label="Platform overrides"
           description={
             populatedPlatformCount > 0
-              ? `${populatedPlatformCount} platform override${populatedPlatformCount === 1 ? '' : 's'} configured. Optional per-channel tweaks.`
-              : 'Optional. Tune persona, tone, and routing per channel when needed.'
+              ? `${populatedPlatformCount} platform override${populatedPlatformCount === 1 ? '' : 's'} configured. Pick a channel to edit.`
+              : 'Optional. Most brands inherit the brand voice above — open a channel only when it needs a different tone or model.'
           }
         >
           <div className="space-y-4">
@@ -271,7 +290,7 @@ export default function BrandDetailAgentProfileCard({
                     aria-label="Platform override channel"
                     className="w-full"
                   >
-                    <SelectValue />
+                    <SelectValue placeholder="Select a platform" />
                   </SelectTrigger>
                   <SelectContent>
                     {PLATFORM_OPTIONS.map((platform) => {
@@ -298,18 +317,39 @@ export default function BrandDetailAgentProfileCard({
               ) : null}
             </div>
 
-            {selectedPlatformOption ? (
+            {selectedPlatformOption && isPlatformEditorOpen ? (
               <AgentProfilePlatformOverride
                 key={selectedPlatformOption.value}
                 enabledModels={enabledModels}
                 label={selectedPlatformOption.label}
-                override={form.platformOverrides[selectedPlatformOption.value]}
+                override={selectedOverride}
                 platformValue={selectedPlatformOption.value}
                 isDisabled={isGenerating}
                 showHeader={false}
                 onSave={handlePlatformOverrideSave}
                 onSelectChange={handlePlatformOverrideSelectChange}
               />
+            ) : selectedPlatformOption ? (
+              <div className="flex flex-col gap-3 rounded-lg bg-background-secondary p-4 shadow-border sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">
+                    {selectedPlatformOption.label} inherits brand voice
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    No channel-specific overrides. Customize only if this
+                    platform should sound or route differently.
+                  </p>
+                </div>
+                <Button
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.SECONDARY}
+                  className="h-8 shrink-0 px-2.5 text-xs"
+                  isDisabled={isGenerating}
+                  onClick={() => setIsPlatformEditorOpen(true)}
+                >
+                  Customize {selectedPlatformOption.label}
+                </Button>
+              </div>
             ) : null}
           </div>
         </Card>
