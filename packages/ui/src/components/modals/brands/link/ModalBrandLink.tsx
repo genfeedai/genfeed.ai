@@ -107,18 +107,6 @@ export default function ModalBrandLink({
           </Alert>
         ) : null}
 
-        <FormControl label="Label">
-          <Input
-            type="text"
-            name="label"
-            control={form.control}
-            onChange={updateModalBrandLink}
-            placeholder="Homepage, Docs, Blog…"
-            isRequired={true}
-            isDisabled={isSubmitting}
-          />
-        </FormControl>
-
         <FormControl label="Category">
           <SelectField
             name="category"
@@ -134,6 +122,18 @@ export default function ModalBrandLink({
               </option>
             ))}
           </SelectField>
+        </FormControl>
+
+        <FormControl label="Label">
+          <Input
+            type="text"
+            name="label"
+            control={form.control}
+            onChange={updateModalBrandLink}
+            placeholder="Homepage, Docs, Blog…"
+            isRequired={true}
+            isDisabled={isSubmitting}
+          />
         </FormControl>
 
         <FormControl label="URL">
