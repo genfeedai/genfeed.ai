@@ -8,6 +8,7 @@ import type { ReferenceImageDto } from '@api/endpoints/onboarding/dto/reference-
 import { LinkCategory } from '@genfeedai/enums';
 import type {
   IExtractedBrandData,
+  IExtractedSocialLinks,
   IScrapedBrandData,
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -140,6 +141,59 @@ export class BrandPersistenceService {
       label: 'Website',
       url: normalizedUrl,
     });
+  }
+
+  /**
+   * Persist the social profiles found on the brand website as brand links.
+   *
+   * The `IExtractedSocialLinks` keys are `LinkCategory` values one-for-one, so
+   * each entry becomes (or updates) the single link row for that category.
+   * Best-effort: a malformed entry is skipped rather than aborting the scrape.
+   */
+  async upsertBrandSocialLinks(
+    brandId: string,
+    socialLinks: IScrapedBrandData['socialLinks'],
+  ): Promise<void> {
+    if (!socialLinks) {
+      return;
+    }
+
+    const categories: Record<keyof IExtractedSocialLinks, LinkCategory> = {
+      facebook: LinkCategory.FACEBOOK,
+      instagram: LinkCategory.INSTAGRAM,
+      linkedin: LinkCategory.LINKEDIN,
+      tiktok: LinkCategory.TIKTOK,
+      twitter: LinkCategory.TWITTER,
+      youtube: LinkCategory.YOUTUBE,
+    };
+
+    for (const [key, category] of Object.entries(categories) as [
+      keyof IExtractedSocialLinks,
+      LinkCategory,
+    ][]) {
+      const url = socialLinks[key]?.trim();
+
+      if (!url) {
+        continue;
+      }
+
+      const existingLink = await this.linksService.findOne({
+        brand: brandId,
+        category,
+        isDeleted: false,
+      });
+
+      if (existingLink) {
+        continue;
+      }
+
+      await this.linksService.create({
+        brand: brandId,
+        category,
+        label: key.charAt(0).toUpperCase() + key.slice(1),
+        url,
+      });
+    }
   }
 
   /**

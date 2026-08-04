@@ -49,7 +49,16 @@ import { forwardRef, Module } from '@nestjs/common';
   // BrandDataMapper is exported so the onboarding preview pipeline (which still
   // lives in OnboardingModule and already imports BrandsModule) can reuse the
   // single canonical mapper without re-registering it.
-  exports: [BrandsService, DefaultRecurringContentService, BrandDataMapper],
+  // BrandPersistenceService + MasterPromptGeneratorService are exported so the
+  // signup-prefill worker composes the same scrape → analyze → persist
+  // primitives as interactive brand setup instead of duplicating the graph.
+  exports: [
+    BrandsService,
+    DefaultRecurringContentService,
+    BrandDataMapper,
+    BrandPersistenceService,
+    MasterPromptGeneratorService,
+  ],
   imports: [
     CommonModule,
     forwardRef(() => ActivitiesModule),

@@ -1,4 +1,5 @@
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
+import { extractBrandDomain } from '@genfeedai/helpers';
 import type {
   DashboardPreferences,
   ISetting,
@@ -145,44 +146,12 @@ export function getSelectedOnboardingAccessMode(
   );
 }
 
-export function extractBrandDomain(value?: string | null): string | null {
-  const normalizedValue = value?.trim();
-
-  if (!normalizedValue) {
-    return null;
-  }
-
-  try {
-    const parsed = new URL(
-      normalizedValue.includes('://')
-        ? normalizedValue
-        : `https://${normalizedValue}`,
-    );
-    return parsed.hostname.replace(/^www\./i, '').toLowerCase();
-  } catch {
-    const fallback = normalizedValue
-      .replace(/^https?:\/\//i, '')
-      .split('/')[0]
-      ?.replace(/^www\./i, '')
-      .toLowerCase();
-
-    return fallback || null;
-  }
-}
-
-export function deriveBrandNameFromDomain(domain: string): string {
-  return domain
-    .replace(/\.[a-z]{2,}$/i, '')
-    .split(/[.\-_]+/)
-    .reduce<string[]>((segments, segment) => {
-      if (segment) {
-        segments.push(segment.charAt(0).toUpperCase() + segment.slice(1));
-      }
-      return segments;
-    }, [])
-    .join(' ')
-    .trim();
-}
+// Canonical implementations live in `@genfeedai/helpers` so the signup-prefill
+// worker derives the exact same brand domain and label the UI shows.
+export {
+  deriveBrandNameFromDomain,
+  extractBrandDomain,
+} from '@genfeedai/helpers';
 
 export function buildOnboardingAccessSettingsPatch(input: {
   accessMode: OnboardingAccessMode;

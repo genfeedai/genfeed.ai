@@ -7,6 +7,7 @@ import { CommonModule } from '@api/common/common.module';
 import { CacheModule } from '@api/services/cache/cache.module';
 import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
+import { SignupPrefillQueueModule } from '@api/services/signup-prefill/signup-prefill-queue.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import { ConfigService } from '@libs/config/config.service';
@@ -63,6 +64,7 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
     CommonModule,
     LifecycleEmailsModule,
     NotificationsModule,
+    SignupPrefillQueueModule,
   ],
   providers: [
     BetterAuthMailerService,
