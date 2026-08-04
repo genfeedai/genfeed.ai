@@ -13,7 +13,10 @@ import { Injectable } from '@nestjs/common';
 type PopulateInput = (string | PopulateOption)[] | 'none';
 
 type AgentStrategyWriteDto = Partial<
-  CreateAgentStrategyDto & UpdateAgentStrategyDto
+  Omit<
+    CreateAgentStrategyDto & UpdateAgentStrategyDto,
+    'brand' | 'lastRunAt' | 'nextRunAt'
+  >
 > & {
   brand?: string | null;
   config?: unknown;
@@ -23,6 +26,7 @@ type AgentStrategyWriteDto = Partial<
   dailyCreditsUsed?: number;
   lastRunAt?: Date | null;
   monthToDateCreditsUsed?: number;
+  nextRunAt?: Date | null;
   organization?: string;
   policies?: unknown;
   requiresManualReactivation?: boolean;
