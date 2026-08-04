@@ -262,15 +262,15 @@ describe('ModelSelectorPopover', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /select models/i }));
-    expect(screen.getByText('Optimize for Balanced')).toBeInTheDocument();
+    expect(screen.getByText('Balanced')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Trainings' }));
 
     expect(screen.getByText('Nano Banana')).toBeInTheDocument();
-    expect(screen.queryByText('Optimize for Balanced')).not.toBeInTheDocument();
+    expect(screen.queryByText('Balanced')).not.toBeInTheDocument();
   });
 
-  it('hides the manual model catalog when auto is selected and exposes a priority selector', async () => {
+  it('hides the manual model catalog and exposes flat auto routing options', async () => {
     const user = userEvent.setup();
     const onPrioritizeChange = vi.fn();
 
@@ -297,14 +297,33 @@ describe('ModelSelectorPopover', () => {
       screen.queryByPlaceholderText('Search models…'),
     ).not.toBeInTheDocument();
     expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();
-    expect(screen.getByText('Priority')).toBeInTheDocument();
+    expect(screen.getByText('Best Quality')).toBeInTheDocument();
+    expect(screen.getByText('Lowest Cost')).toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole('button', { name: /auto routing priority/i }),
-    );
     await user.click(screen.getByRole('button', { name: 'Balanced' }));
 
     expect(onPrioritizeChange).toHaveBeenCalledWith(RouterPriority.BALANCED);
+  });
+
+  it('selects auto mode when a routing option is chosen from the flat list', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+
+    render(
+      <ModelSelectorPopover
+        models={[]}
+        values={[]}
+        onChange={onChange}
+        onPrioritizeChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /select models/i }));
+    await user.click(screen.getByRole('button', { name: 'Fastest' }));
+
+    expect(onChange).toHaveBeenCalledWith('models', ['__auto_model__']);
   });
 
   it('shows only favorite families in favorites mode', async () => {

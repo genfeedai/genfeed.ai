@@ -25,6 +25,7 @@ import {
   CommandEmpty,
   CommandGroup,
   CommandInput,
+  CommandItem,
   CommandList,
 } from '@ui/primitives/command';
 import {
@@ -32,14 +33,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
-import { Sparkles } from 'lucide-react';
+import { Check, Sparkles } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
 
 const AUTO_MODEL = {
@@ -341,18 +335,6 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
   const handleToggle = useCallback(
     (modelKey: string) => {
-      if (modelKey === AUTO_MODEL_OPTION_VALUE) {
-        if (isAutoSelected) {
-          onChange(
-            name,
-            values.filter((value) => value !== AUTO_MODEL_OPTION_VALUE),
-          );
-        } else {
-          onChange(name, [AUTO_MODEL_OPTION_VALUE]);
-        }
-        return;
-      }
-
       const currentValues = values.filter(
         (value) => value !== AUTO_MODEL_OPTION_VALUE,
       );
@@ -366,7 +348,18 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         onChange(name, [...currentValues, modelKey]);
       }
     },
-    [isAutoSelected, name, onChange, values],
+    [name, onChange, values],
+  );
+
+  const handleAutoPrioritySelect = useCallback(
+    (priority: RouterPriority) => {
+      if (!isAutoSelected) {
+        onChange(name, [AUTO_MODEL_OPTION_VALUE]);
+      }
+      onPrioritizeChange?.(priority);
+      setIsOpen(false);
+    },
+    [isAutoSelected, name, onChange, onPrioritizeChange],
   );
 
   const handleFamilyToggle = useCallback((familyKey: string) => {
@@ -464,54 +457,31 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                 )}
               >
                 {shouldShowAutoCard && (
-                  <CommandGroup heading={isAutoSelected ? undefined : 'Auto'}>
-                    <div
-                      className={cn(
-                        'mb-1 flex items-center gap-1.5 rounded-lg bg-background-secondary p-1.5 shadow-border',
-                        isAutoSelected && 'bg-background-tertiary',
-                      )}
-                    >
-                      <Button
-                        onClick={() => handleToggle(AUTO_MODEL_OPTION_VALUE)}
-                        className={cn(
-                          'flex min-h-9 min-w-0 flex-1 items-center gap-2 rounded px-2 py-1.5 text-left transition-colors',
-                          'text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                        )}
-                        type="button"
-                        variant={ButtonVariant.UNSTYLED}
-                        withWrapper={false}
-                      >
-                        <div className="flex size-4 shrink-0 items-center justify-center text-primary">
-                          <Sparkles className="size-4" />
-                        </div>
-                        <span className="truncate text-sm font-medium text-foreground">
-                          Auto
-                        </span>
-                      </Button>
+                  <CommandGroup heading="Auto">
+                    {AUTO_PRIORITY_OPTIONS.map((option) => {
+                      const isSelected =
+                        isAutoSelected && prioritize === option;
 
-                      {isAutoSelected && onPrioritizeChange && (
-                        <Select
-                          value={prioritize}
-                          onValueChange={(value) =>
-                            onPrioritizeChange(value as RouterPriority)
-                          }
+                      return (
+                        <CommandItem
+                          key={option}
+                          value={`Auto ${AUTO_PRIORITY_LABELS[option]}`}
+                          onSelect={() => handleAutoPrioritySelect(option)}
+                          className={cn(
+                            'flex min-h-11 cursor-pointer items-center gap-2 rounded px-2 py-2 lg:min-h-0',
+                            isSelected && 'bg-accent',
+                          )}
                         >
-                          <SelectTrigger
-                            aria-label="Auto routing priority"
-                            className="h-9 min-h-9 w-auto shrink-0 border-border bg-background text-xs"
-                          >
-                            <SelectValue placeholder="Priority" />
-                          </SelectTrigger>
-                          <SelectContent side="top">
-                            {AUTO_PRIORITY_OPTIONS.map((option) => (
-                              <SelectItem key={option} value={option}>
-                                {AUTO_PRIORITY_LABELS[option]}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </div>
+                          <Sparkles className="size-4 shrink-0 text-primary" />
+                          <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                            {AUTO_PRIORITY_LABELS[option]}
+                          </span>
+                          {isSelected ? (
+                            <Check className="size-4 shrink-0 text-foreground" />
+                          ) : null}
+                        </CommandItem>
+                      );
+                    })}
                   </CommandGroup>
                 )}
 
