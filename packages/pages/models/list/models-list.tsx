@@ -33,10 +33,6 @@ export default function ModelsList({
 }) {
   const {
     isAdminScope,
-    adminOrg,
-    adminBrand,
-    handleAdminOrgChange,
-    handleAdminBrandChange,
     defaultModelCards,
     isLoadingDefaults,
     isLoading,
@@ -148,10 +144,6 @@ export default function ModelsList({
     <>
       {isAdminScope && (
         <ModelsAdminHeader
-          organization={adminOrg}
-          brand={adminBrand}
-          onOrganizationChange={handleAdminOrgChange}
-          onBrandChange={handleAdminBrandChange}
           defaultModelCards={defaultModelCards}
           isLoadingDefaults={isLoadingDefaults}
         />

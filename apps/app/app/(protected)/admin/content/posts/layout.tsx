@@ -9,7 +9,6 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import { Platform } from '@genfeedai/enums';
 import { getPostPlatformTabs } from '@helpers/content/posts.helper';
 import Container from '@ui/layout/container/Container';
-import Tabs from '@ui/navigation/tabs/Tabs';
 import { Newspaper } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
@@ -59,17 +58,29 @@ function postsLayoutReducer(
 ): PostsLayoutState {
   switch (action.type) {
     case 'SET_REFRESH_FN':
-      return { ...state, refreshFn: action.payload };
+      return state.refreshFn === action.payload
+        ? state
+        : { ...state, refreshFn: action.payload };
     case 'SET_IS_REFRESHING':
-      return { ...state, isRefreshing: action.payload };
+      return state.isRefreshing === action.payload
+        ? state
+        : { ...state, isRefreshing: action.payload };
     case 'SET_FILTERS_NODE':
-      return { ...state, filtersNode: action.payload };
+      return state.filtersNode === action.payload
+        ? state
+        : { ...state, filtersNode: action.payload };
     case 'SET_EXPORT_NODE':
-      return { ...state, exportNode: action.payload };
+      return state.exportNode === action.payload
+        ? state
+        : { ...state, exportNode: action.payload };
     case 'SET_VIEW_TOGGLE_NODE':
-      return { ...state, viewToggleNode: action.payload };
+      return state.viewToggleNode === action.payload
+        ? state
+        : { ...state, viewToggleNode: action.payload };
     case 'SET_SCHEDULE_ACTIONS_NODE':
-      return { ...state, scheduleActionsNode: action.payload };
+      return state.scheduleActionsNode === action.payload
+        ? state
+        : { ...state, scheduleActionsNode: action.payload };
   }
 }
 
@@ -189,39 +200,37 @@ function PostsLayoutContent({ children }: { children: ReactNode }) {
     );
   }
 
+  const listActions = (
+    <div className="flex shrink-0 flex-wrap items-center gap-2">
+      {viewToggleNode}
+      {filtersNode}
+      {exportNode}
+      {scheduleActionsNode}
+      <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
+    </div>
+  );
+
   return (
     <PostsLayoutContext.Provider value={mainContextValue}>
       <Container
         label="Posts"
         description="View and manage published content across all connected accounts"
         icon={Newspaper}
-        right={
-          <div className="flex items-center gap-2">
-            {viewToggleNode}
-
-            {filtersNode}
-
-            {exportNode}
-
-            {scheduleActionsNode}
-
-            <ButtonRefresh
-              onClick={handleRefresh}
-              isRefreshing={isRefreshing}
-            />
-          </div>
+        titleVisibility="sr-only"
+        headerTabs={
+          isListRoute
+            ? {
+                activeTab,
+                fullWidth: false,
+                onTabChange: handleTabChange,
+                size: 'sm',
+                tabs: getPostPlatformTabs(),
+                variant: 'underline',
+              }
+            : undefined
         }
+        right={listActions}
       >
-        {isListRoute && (
-          <div className="mb-6">
-            <Tabs
-              activeTab={activeTab}
-              onTabChange={handleTabChange}
-              tabs={getPostPlatformTabs()}
-            />
-          </div>
-        )}
-
         {children}
       </Container>
     </PostsLayoutContext.Provider>

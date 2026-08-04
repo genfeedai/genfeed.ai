@@ -1,14 +1,18 @@
-import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import TrendsList from '@pages/trends/list/trends-list';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
-import { Suspense } from 'react';
+import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
+import { permanentRedirect } from 'next/navigation';
 
-export const generateMetadata = createPageMetadata('Discover');
+/**
+ * Legacy `/discover/discovery` was a tautology. Canonical Discover home is
+ * `/discover/overview` (same pattern as analytics/automate/workspace).
+ */
+export default async function DiscoverDiscoveryLegacyRoute({
+  params,
+}: {
+  params: Promise<{ brandSlug: string; orgSlug: string }>;
+}) {
+  const { brandSlug, orgSlug } = await params;
 
-export default function DiscoverDiscoveryPage() {
-  return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-      <TrendsList />
-    </Suspense>
+  permanentRedirect(
+    createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.DISCOVER.OVERVIEW),
   );
 }

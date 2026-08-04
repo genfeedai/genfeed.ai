@@ -66,6 +66,8 @@ export default function CollapsibleGroup({
   contentClassName,
   headerClassName,
   onCollapsedChange,
+  /** Keep open when a child route is active (stored collapse still applies elsewhere). */
+  forceExpanded = false,
 }: {
   label: string;
   isDrillDown: boolean;
@@ -77,16 +79,19 @@ export default function CollapsibleGroup({
   contentClassName?: string;
   headerClassName?: string;
   onCollapsedChange?: (isCollapsed: boolean) => void;
+  forceExpanded?: boolean;
 }) {
   const key = storageKey ?? label;
-  const isCollapsed = useSyncExternalStore(
+  const isStoredCollapsed = useSyncExternalStore(
     subscribeCollapsedGroups,
     () => getCollapsedGroups().has(key),
     () => false,
   );
+  const isCollapsed = forceExpanded ? false : isStoredCollapsed;
 
   const toggleMenuShared = useCallback(() => {
-    const next = !isCollapsed;
+    // Toggle storage relative to the stored state, not forceExpanded display.
+    const next = !isStoredCollapsed;
     const groups = getCollapsedGroups();
     if (next) {
       groups.add(key);
@@ -95,7 +100,7 @@ export default function CollapsibleGroup({
     }
     persistCollapsedGroups(groups);
     onCollapsedChange?.(next);
-  }, [isCollapsed, key, onCollapsedChange]);
+  }, [isStoredCollapsed, key, onCollapsedChange]);
 
   // DrillDown groups render their own row — no separate label needed
   if (isDrillDown) {

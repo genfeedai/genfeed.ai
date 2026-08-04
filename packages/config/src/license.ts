@@ -1,4 +1,4 @@
-import { isSaaS } from './deployment';
+import { isDesktopClient, isSaaS, isSelfHostedDeployment } from './deployment';
 import { getLicenseVerificationVerdict } from './license-state';
 
 /**
@@ -37,4 +37,29 @@ export function hasOrganizationBillingHint(): boolean {
     hasOrganizationBilling() ||
     Boolean(process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY?.trim())
   );
+}
+
+/**
+ * Whether this deployment enforces a real Genfeed credit ledger (not the OSS
+ * infinite-credit stub). Same axes as {@link hasOrganizationBilling}.
+ */
+export function usesMeteredCredits(): boolean {
+  return hasOrganizationBilling();
+}
+
+/**
+ * Whether Settings / topbar should surface Genfeed **Credits** (packs, balance).
+ *
+ * - SaaS / EE: yes (metered Genfeed credits).
+ * - Community self-host: yes (buy managed Cloud credits; not pure local BYOK).
+ * - Desktop: no — local BYOK only; no Genfeed credit wallet in-shell.
+ */
+export function shouldShowCreditsNav(): boolean {
+  if (isDesktopClient()) {
+    return false;
+  }
+  if (hasOrganizationBilling()) {
+    return true;
+  }
+  return isSelfHostedDeployment();
 }

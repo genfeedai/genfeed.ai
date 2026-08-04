@@ -130,13 +130,13 @@ export default function AnalyticsOverview({
       <div
         className={cn('flex flex-col gap-6', showAgentDashboard && 'hidden')}
       >
-        <section className="border-y border-white/[0.08] bg-card/70 px-6 py-8 lg:px-8">
+        {heroContent ? (
           <AnalyticsOverviewHero
             dashboardState={dashboardState}
             heroContent={heroContent}
             orgHref={orgHref}
           />
-        </section>
+        ) : null}
 
         <AnalyticsOverviewAlerts
           cachedLabel={cachedLabel}
@@ -150,11 +150,6 @@ export default function AnalyticsOverview({
 
         {primaryKpiItems.length > 0 && (
           <KPISection
-            title={
-              dashboardState === 'active' || scope === PageScope.SUPERADMIN
-                ? 'What moved in this range'
-                : 'Coverage so far'
-            }
             gridCols={{ desktop: 4, mobile: 1, tablet: 2 }}
             className="bg-background"
             isLoading={isRefreshing}
@@ -164,7 +159,6 @@ export default function AnalyticsOverview({
 
         {secondaryKpiItems.length > 0 && (
           <KPISection
-            title="Coverage details"
             gridCols={{ desktop: 2, mobile: 1, tablet: 2 }}
             className="bg-background"
             isLoading={isRefreshing}

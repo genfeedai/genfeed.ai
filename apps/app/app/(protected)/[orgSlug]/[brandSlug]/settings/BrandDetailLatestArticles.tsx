@@ -29,7 +29,7 @@ export default function BrandDetailLatestArticles({
         <Button
           asChild
           size={ButtonSize.SM}
-          variant={ButtonVariant.GHOST}
+          variant={ButtonVariant.SECONDARY}
           withWrapper={false}
         >
           <NextLink
@@ -68,9 +68,9 @@ export default function BrandDetailLatestArticles({
                 ) : null}
                 <Button
                   asChild
-                  className="mt-2 h-8 text-xs"
+                  className="mt-2"
                   size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
+                  variant={ButtonVariant.SECONDARY}
                   withWrapper={false}
                 >
                   <NextLink
@@ -94,9 +94,9 @@ export default function BrandDetailLatestArticles({
           </p>
           <Button
             asChild
-            className="mt-2 h-8 text-xs"
+            className="mt-2"
             size={ButtonSize.SM}
-            variant={ButtonVariant.GHOST}
+            variant={ButtonVariant.DEFAULT}
             withWrapper={false}
           >
             <NextLink

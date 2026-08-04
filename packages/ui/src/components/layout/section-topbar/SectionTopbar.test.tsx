@@ -97,4 +97,45 @@ describe('SectionTopbar', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
   });
+
+  it('pins actions to the right when the breadcrumb owns the title', () => {
+    navigationState.hasCanonicalBreadcrumb = true;
+
+    render(
+      <SectionTopbar
+        title="Trending Content"
+        actions={<button type="button">Refresh</button>}
+        tabs={<div data-testid="tabs-strip">tabs</div>}
+      />,
+    );
+
+    const actions = screen.getByTestId('section-topbar-actions');
+    const tabs = screen.getByTestId('section-topbar-tabs');
+    const row = actions.parentElement;
+
+    expect(row).toContainElement(tabs);
+    expect(row).toContainElement(actions);
+    expect(tabs).toHaveClass('flex-1');
+    expect(actions).toHaveClass('shrink-0');
+    // Actions are the trailing sibling — right edge of the header toolbar.
+    expect(row?.lastElementChild).toBe(actions);
+  });
+
+  it('honors titleVisibility=sr-only even without a breadcrumb', () => {
+    render(
+      <SectionTopbar
+        title="Posts"
+        titleVisibility="sr-only"
+        actions={<button type="button">Refresh</button>}
+        tabs={<div data-testid="tabs-strip">tabs</div>}
+      />,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Posts' })).toHaveClass(
+      'sr-only',
+    );
+    const actions = screen.getByTestId('section-topbar-actions');
+    const tabs = screen.getByTestId('section-topbar-tabs');
+    expect(actions.parentElement).toContainElement(tabs);
+  });
 });

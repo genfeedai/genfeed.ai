@@ -2,13 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { ADMIN_LOGO_HREF, ADMIN_MENU_ITEMS } from './admin-menu-items.config';
 
 describe('ADMIN_MENU_ITEMS', () => {
-  it('exposes the cloud superadmin surface under /admin', () => {
-    expect(ADMIN_LOGO_HREF).toBe('/admin');
-    expect(ADMIN_MENU_ITEMS[0]?.href).toBe('/admin');
-    expect(ADMIN_MENU_ITEMS.some((item) => item.href === '/admin')).toBe(true);
+  it('exposes the platform admin surface with dashboard as complete-path home', () => {
+    expect(ADMIN_LOGO_HREF).toBe('/admin/overview/dashboard');
+    expect(ADMIN_MENU_ITEMS[0]?.href).toBe('/admin/overview/dashboard');
     expect(
       ADMIN_MENU_ITEMS.every((item) => item.href.startsWith('/admin')),
     ).toBe(true);
+    expect(ADMIN_MENU_ITEMS.some((item) => item.href === '/admin')).toBe(false);
+    expect(
+      ADMIN_MENU_ITEMS.some((item) => item.href === '/admin/overview'),
+    ).toBe(false);
     expect(ADMIN_MENU_ITEMS.some((item) => item.label === 'Agent')).toBe(false);
   });
 
@@ -45,5 +48,20 @@ describe('ADMIN_MENU_ITEMS', () => {
     expect(ADMIN_MENU_ITEMS.some((item) => item.href.includes('/crm/'))).toBe(
       false,
     );
+  });
+
+  it('makes each named admin section collapsible (first item of the group)', () => {
+    const firstByGroup = new Map<string, (typeof ADMIN_MENU_ITEMS)[number]>();
+    for (const item of ADMIN_MENU_ITEMS) {
+      const group = item.group ?? '';
+      if (group && !firstByGroup.has(group)) {
+        firstByGroup.set(group, item);
+      }
+    }
+
+    expect(firstByGroup.size).toBeGreaterThan(0);
+    for (const [group, item] of firstByGroup) {
+      expect(item.isCollapsible, group).toBe(true);
+    }
   });
 });

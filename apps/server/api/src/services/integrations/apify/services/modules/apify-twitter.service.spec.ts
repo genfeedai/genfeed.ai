@@ -7,6 +7,7 @@ describe('ApifyTwitterService', () => {
   let baseService: {
     ACTORS: Record<string, string>;
     calculateGrowthRate: ReturnType<typeof vi.fn>;
+    getApiToken: ReturnType<typeof vi.fn>;
     loggerService: {
       error: ReturnType<typeof vi.fn>;
       log: ReturnType<typeof vi.fn>;
@@ -53,6 +54,7 @@ describe('ApifyTwitterService', () => {
         TWITTER_TRENDS: 'quacker/twitter-trends-scraper',
       },
       calculateGrowthRate: vi.fn().mockReturnValue(65),
+      getApiToken: vi.fn().mockReturnValue('test-token'),
       loggerService: { error: vi.fn(), log: vi.fn() },
       runActor: vi.fn(),
     };
@@ -128,6 +130,20 @@ describe('ApifyTwitterService', () => {
     expect(baseService.runActor).toHaveBeenCalledWith(
       'quacker/twitter-scraper',
       expect.objectContaining({ handles: ['testuser'] }),
+    );
+  });
+
+  it('getTwitterUserTimeline throws when Apify token is missing', async () => {
+    baseService.getApiToken.mockReturnValue(null);
+    await expect(service.getTwitterUserTimeline('user')).rejects.toThrow(
+      /APIFY_API_TOKEN/,
+    );
+  });
+
+  it('getTwitterUserTimeline rethrows actor failures', async () => {
+    baseService.runActor.mockRejectedValue(new Error('actor down'));
+    await expect(service.getTwitterUserTimeline('user')).rejects.toThrow(
+      'actor down',
     );
   });
 

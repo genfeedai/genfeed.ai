@@ -17,7 +17,14 @@ export interface SectionTopbarProps {
   icon?: ComponentType<{ className?: string }>;
   /** Right-aligned controls (refresh, filters, view toggles) */
   actions?: ReactNode;
-  /** Tab strip rendered inside the bordered bar, below the title row */
+  /** Tab strip rendered inside the bordered bar (or same row when title is chrome-only) */
   tabs?: ReactNode;
+  /**
+   * Title chrome visibility.
+   * - `auto` (default): hide when shell breadcrumb owns page identity
+   * - `sr-only`: force chrome-only title (tabs/actions single row)
+   * - `visible`: always show the title row
+   */
+  titleVisibility?: 'auto' | 'visible' | 'sr-only';
   className?: string;
 }

@@ -85,7 +85,7 @@ export class EditorProjectsService extends HTTPBaseService {
    * Create a new editor project
    */
   async create(dto?: ICreateEditorProjectDto): Promise<IEditorProject> {
-    const body = {
+    const body: Record<string, unknown> = {
       name: dto?.name || 'Untitled Project',
       settings: {
         backgroundColor: dto?.settings?.backgroundColor || '#000000',
@@ -94,17 +94,39 @@ export class EditorProjectsService extends HTTPBaseService {
         height: dto?.settings?.height || 1080,
         width: dto?.settings?.width || 1920,
       },
-      sourceVideoId: dto?.sourceVideoId,
       totalDurationFrames: DEFAULT_FPS * 10,
     };
+    // Never send explicit undefined/null — class-validator treats null as set.
+    if (dto?.sourceVideoId) {
+      body.sourceVideoId = dto.sourceVideoId;
+    }
 
-    const response = await this.instance
-      .post<JsonApiResponseDocument>('', body)
-      .then((res) => res.data);
+    try {
+      const response = await this.instance
+        .post<JsonApiResponseDocument>('', body)
+        .then((res) => res.data);
 
-    const project = this.mapOne(response);
-    logger.info('Created editor project', { projectId: project.id });
-    return project;
+      const project = this.mapOne(response);
+      logger.info('Created editor project', { projectId: project.id });
+      return project;
+    } catch (error: unknown) {
+      const status = getErrorStatus(error);
+      const data =
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        error.response &&
+        typeof error.response === 'object' &&
+        'data' in error.response
+          ? (error.response as { data?: unknown }).data
+          : undefined;
+      logger.error('Failed to create editor project', {
+        body,
+        data,
+        status,
+      });
+      throw error;
+    }
   }
 
   /**

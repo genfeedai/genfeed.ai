@@ -1,14 +1,18 @@
-import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
-import { Suspense } from 'react';
-import AutomationAnalyticsPage from './AutomationAnalyticsPage';
+import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
+import { permanentRedirect } from 'next/navigation';
 
-export const generateMetadata = createPageMetadata('Agents Analytics');
+/**
+ * Legacy Automate "Analytics" was a brand overview clone (posts/views/accounts).
+ * Analytics is the single measurement home — permanently fold into it.
+ */
+export default async function AutomateAnalyticsRoute({
+  params,
+}: {
+  params: Promise<{ brandSlug: string; orgSlug: string }>;
+}) {
+  const { brandSlug, orgSlug } = await params;
 
-export default function AutomateAnalyticsRoute() {
-  return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-      <AutomationAnalyticsPage />
-    </Suspense>
+  permanentRedirect(
+    createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.ANALYTICS.OVERVIEW),
   );
 }

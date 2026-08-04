@@ -7,11 +7,16 @@ import type { SectionTopbarProps } from '@genfeedai/props/ui/layout/section-topb
 /**
  * SectionTopbar — the shared sub-topbar for app section pages.
  *
- * Encodes the Studio section header contract as a
- * reusable primitive: a full-bleed bar whose bottom border touches the shell
- * edges, with title, optional subtitle, right-aligned actions, and an
- * optional tab strip that lives inside the same bordered bar. Render it as
- * the first child of a section page, above any padded content container.
+ * **App contract for local navigation + primary actions** (Discover Socials,
+ * Ads hub, Models, Admin list modules, Analytics date tools, etc.):
+ * - full-bleed `border-b` that meets the shell edges
+ * - tabs left, primary tools right, inside the same bar
+ * - when shell breadcrumb owns page identity (or `titleVisibility="sr-only"`):
+ *   title is chrome-only; tabs + actions share one dense row
+ * - when title is visible: title row, then optional tab strip under it
+ *
+ * Prefer this over hand-rolled toolbars. Pages may render it directly, or let
+ * {@link Container} emit it from `headerTabs` / promoted body `tabs` / `right`.
  */
 export default function SectionTopbar({
   title,
@@ -19,37 +24,83 @@ export default function SectionTopbar({
   icon: Icon,
   actions,
   tabs,
+  titleVisibility = 'auto',
   className,
 }: SectionTopbarProps) {
   const { hasCanonicalBreadcrumb } = useSidebarNavigation();
+  const hasVisibleTitle =
+    titleVisibility === 'visible'
+      ? true
+      : titleVisibility === 'sr-only'
+        ? false
+        : !hasCanonicalBreadcrumb;
+  const hasActions = Boolean(actions);
+  const hasTabs = Boolean(tabs);
+
+  if (!hasVisibleTitle) {
+    return (
+      <div
+        data-testid="section-topbar"
+        className={cn('w-full border-b border-border', className)}
+      >
+        <h1 className="sr-only">{title}</h1>
+        {(hasTabs || hasActions) && (
+          <div
+            className={cn(
+              'flex w-full items-center gap-3 px-4 py-1.5 sm:px-6',
+              !hasTabs && hasActions && 'justify-end',
+            )}
+          >
+            {hasTabs ? (
+              <div
+                data-testid="section-topbar-tabs"
+                className="min-w-0 flex-1 overflow-x-auto scrollbar-thin"
+              >
+                {tabs}
+              </div>
+            ) : null}
+            {hasActions ? (
+              <div
+                data-testid="section-topbar-actions"
+                className="flex shrink-0 flex-wrap items-center justify-end gap-2"
+              >
+                {actions}
+              </div>
+            ) : null}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
       data-testid="section-topbar"
       className={cn('w-full border-b border-border', className)}
     >
-      <div className="flex w-full items-center justify-between gap-3 px-6 py-2">
-        {hasCanonicalBreadcrumb ? (
-          <h1 className="sr-only">{title}</h1>
-        ) : (
-          <div className="flex min-w-0 items-baseline gap-2.5">
-            <div className="flex items-center gap-2">
-              {Icon ? (
-                <Icon className="size-4 flex-shrink-0 text-foreground/60" />
-              ) : null}
-              <h1 className="whitespace-nowrap text-sm font-semibold tracking-tight">
-                {title}
-              </h1>
-            </div>
-            {subtitle ? (
-              <p className="hidden min-w-0 truncate text-xs text-foreground/55 lg:block">
-                {subtitle}
-              </p>
-            ) : null}
-          </div>
+      <div
+        className={cn(
+          'flex w-full items-center gap-3 px-6 py-2',
+          hasActions ? 'justify-between' : 'justify-start',
         )}
+      >
+        <div className="flex min-w-0 items-baseline gap-2.5">
+          <div className="flex items-center gap-2">
+            {Icon ? (
+              <Icon className="size-4 flex-shrink-0 text-foreground/60" />
+            ) : null}
+            <h1 className="whitespace-nowrap text-sm font-semibold tracking-tight">
+              {title}
+            </h1>
+          </div>
+          {subtitle ? (
+            <p className="hidden min-w-0 truncate text-xs text-foreground/55 lg:block">
+              {subtitle}
+            </p>
+          ) : null}
+        </div>
 
-        {actions ? (
+        {hasActions ? (
           <div
             data-testid="section-topbar-actions"
             className="flex flex-wrap items-center justify-end gap-2"
@@ -59,7 +110,7 @@ export default function SectionTopbar({
         ) : null}
       </div>
 
-      {tabs ? (
+      {hasTabs ? (
         <div
           data-testid="section-topbar-tabs"
           className="overflow-x-auto px-4 pb-1.5 scrollbar-thin"

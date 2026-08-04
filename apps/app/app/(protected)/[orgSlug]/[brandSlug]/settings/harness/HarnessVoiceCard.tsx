@@ -24,8 +24,8 @@ export default function HarnessVoiceCard({
 }: HarnessVoiceCardProps) {
   return (
     <Card
-      label="Voice"
-      description="The attitude and vocabulary the model should carry into every draft."
+      label="Delivery style"
+      description="Attitude and vocabulary knobs for this brand’s harness (runtime delivery — not the Brand voice page)."
       bodyClassName="gap-3 p-4"
     >
       <div className="grid gap-3 md:grid-cols-2">

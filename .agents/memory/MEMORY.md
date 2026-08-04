@@ -66,6 +66,8 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 
 ## Project state
 
+- [project_module_local_chrome](project_module_local_chrome.md) — one SectionTopbar contract for local nav + primary actions app-wide
+- [project_brand_settings_voice_harness](project_brand_settings_voice_harness.md) — Brand voice vs speech voice vs brand harness IA
 - [project_qa_session_leftovers_2026-07-30](project_qa_session_leftovers_2026-07-30.md) — post-#2204 boil-the-ocean leftovers; keep QA together on master
 - [project_overview](project_overview.md) — monorepo structure and key context
 - [project_one_api_epic](project_one_api_epic.md) — epic #95, one NestJS API

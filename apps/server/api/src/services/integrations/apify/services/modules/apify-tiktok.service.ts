@@ -150,6 +150,15 @@ export class ApifyTikTokService {
     username: string,
     options?: { limit?: number },
   ): Promise<ApifyTikTokVideo[]> {
+    // Hard-fail when Apify is not configured so Following sync cannot look
+    // "successful" with zero posts after a silent skip.
+    const token = this.baseService.getApiToken();
+    if (!token) {
+      throw new Error(
+        'APIFY_API_TOKEN is not configured — cannot scrape TikTok timelines',
+      );
+    }
+
     try {
       const input = {
         profiles: [username],
@@ -167,7 +176,7 @@ export class ApifyTikTokService {
         `${this.constructorName}.getTikTokUserVideos failed for @${username}`,
         error,
       );
-      return [];
+      throw error;
     }
   }
 

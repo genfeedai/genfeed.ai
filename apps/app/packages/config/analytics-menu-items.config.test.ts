@@ -94,10 +94,11 @@ describe('ANALYTICS_MENU_ITEMS', () => {
     }
   });
 
-  it('groups every item under Performance, Intelligence, or Habits', () => {
+  it('uses two usage groups only (Performance + Intelligence)', () => {
     const groups = [...new Set(ANALYTICS_MENU_ITEMS.map((item) => item.group))];
 
-    expect(groups).toEqual(['Performance', 'Intelligence', 'Habits']);
+    expect(groups).toEqual(['Performance', 'Intelligence']);
+    expect(groups).not.toContain('Habits');
   });
 
   it('puts what-happened destinations under Performance', () => {
@@ -105,6 +106,7 @@ describe('ANALYTICS_MENU_ITEMS', () => {
       'Overview',
       'Posts',
       'Brands',
+      'Streaks',
     ]);
   });
 
@@ -116,10 +118,6 @@ describe('ANALYTICS_MENU_ITEMS', () => {
       'Trends',
       'Trend Turnover',
     ]);
-  });
-
-  it('puts consistency destinations under Habits', () => {
-    expect(labelsInGroup('Habits')).toEqual(['Streaks']);
   });
 
   it('gives every item a unique icon', () => {
@@ -151,8 +149,13 @@ describe('ANALYTICS_MENU_ITEMS', () => {
   });
 
   it('keeps the analytics landing reachable from the menu', () => {
-    expect(ANALYTICS_MENU_ITEMS.map((item) => item.href)).toContain(
-      '/analytics',
+    const overview = ANALYTICS_MENU_ITEMS.find(
+      (item) => item.label === 'Overview',
     );
+    expect(overview?.href).toBe('/analytics/overview');
+    expect(overview?.matchPaths).toEqual(
+      expect.arrayContaining(['/analytics', '/analytics/overview']),
+    );
+    expect(ANALYTICS_LOGO_HREF).toBe('/analytics/overview');
   });
 });

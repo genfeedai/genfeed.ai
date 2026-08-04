@@ -146,7 +146,7 @@ describe('SocialMonitorService', () => {
     expect(result).toEqual([]);
   });
 
-  it('should filter out retweets and replies from twitter timeline', async () => {
+  it('filters retweets and replies from twitter timeline by default (reply-bot)', async () => {
     mockApifyService.getTwitterUserTimeline.mockResolvedValueOnce([
       {
         authorId: 'u1',
@@ -183,6 +183,36 @@ describe('SocialMonitorService', () => {
     );
     expect(result).toHaveLength(1);
     expect(result[0].text).toBe('Original tweet');
+  });
+
+  it('keeps replies for Following when includeReplies is set', async () => {
+    mockApifyService.getTwitterUserTimeline.mockResolvedValueOnce([
+      {
+        authorId: 'u1',
+        authorUsername: 'bob',
+        createdAt: new Date(),
+        id: 't1',
+        inReplyToTweetId: null,
+        isRetweet: false,
+        text: 'Original tweet',
+      },
+      {
+        authorId: 'u1',
+        authorUsername: 'bob',
+        createdAt: new Date(),
+        id: 't3',
+        inReplyToTweetId: 'parent',
+        isRetweet: false,
+        text: 'Reply to someone',
+      },
+    ]);
+
+    const result = await service.getUserTimeline(
+      ReplyBotPlatform.TWITTER,
+      'bob',
+      { includeReplies: true, preferOfficialApi: false },
+    );
+    expect(result).toHaveLength(2);
   });
 
   it('preserves Instagram media in normalized timeline posts', async () => {

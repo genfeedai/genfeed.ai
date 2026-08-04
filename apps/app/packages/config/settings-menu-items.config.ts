@@ -221,10 +221,11 @@ function buildBrandMenuItems(): MenuItemConfig[] {
       solid: Palette,
     },
     {
+      // Writing voice for agents (tone/style/audience) — not TTS/speech library voices.
       group: 'Brand',
       href: BRAND_SETTINGS.VOICE,
       hrefScope: 'brand',
-      label: 'Voice',
+      label: 'Brand voice',
       outline: Mic,
       solid: Mic,
     },
@@ -237,6 +238,7 @@ function buildBrandMenuItems(): MenuItemConfig[] {
       solid: MessageSquare,
     },
     {
+      // Brand-scoped harness profile: structure, delivery knobs, examples for agents.
       group: 'Automation',
       href: BRAND_SETTINGS.HARNESS,
       hrefScope: 'brand',

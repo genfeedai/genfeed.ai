@@ -254,8 +254,8 @@ export default function BrandDetailIdentityCard({
   return (
     <Card
       data-testid="brand-identity-card"
-      label="Brand Identity"
-      description="Avatar and voice defaults. Empty values inherit organization defaults."
+      label="Brand identity"
+      description="Avatar and speaking voice (TTS) defaults. Empty values inherit organization defaults. Writing tone lives under Brand voice."
     >
       <div className="flex flex-col gap-3">
         <BrandIdentityAvatarField

@@ -138,7 +138,7 @@ test.describe('App surfaces — fetch error states', () => {
     authenticatedPage,
   }) => {
     await mockServerError(authenticatedPage, '**/discover**');
-    const route = `${ORG_BRAND}/discover/discovery`;
+    const route = `${ORG_BRAND}/discover/overview`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);

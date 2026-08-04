@@ -313,6 +313,8 @@ describe('WorkspacePageContent', () => {
         name: 'Activity',
       }),
     ).not.toBeInTheDocument();
+    // Empty Activity matches Tasks: no floating refresh chrome with nothing to reload.
+    expect(screen.queryByRole('button', { name: /refresh/i })).toBeNull();
   });
 
   it('loads inbox tasks, opens the inspector, and executes task actions', async () => {

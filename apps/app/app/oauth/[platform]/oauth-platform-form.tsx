@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { OAUTH_RETURN_TO_STORAGE_KEY } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { logger } from '@services/core/logger.service';
 import { ServicesService } from '@services/external/services.service';
 import { CircleCheck, CircleX } from 'lucide-react';
@@ -28,7 +29,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
   const code = searchParams.get('code');
   const oauthToken = searchParams.get('oauth_token');
   const oauthVerifier = searchParams.get('oauth_verifier');
-  const returnTo = searchParams.get('return_to');
+  const returnToParam = searchParams.get('return_to');
   const state = searchParams.get('state');
   const { push } = useRouter();
   const [result, setResult] = useState<VerifyResult>(INITIAL_STATE);
@@ -38,6 +39,25 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
     (token: string) => new ServicesService(platform, token),
   );
 
+  const resolveReturnTo = useCallback(() => {
+    if (returnToParam) {
+      return returnToParam;
+    }
+    try {
+      return sessionStorage.getItem(OAUTH_RETURN_TO_STORAGE_KEY);
+    } catch {
+      return null;
+    }
+  }, [returnToParam]);
+
+  const clearStoredReturnTo = useCallback(() => {
+    try {
+      sessionStorage.removeItem(OAUTH_RETURN_TO_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const verify = useCallback(async () => {
     if (hasVerified.current) {
       return;
@@ -45,6 +65,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
     hasVerified.current = true;
 
     const url = `POST /services/${platform}/verify`;
+    const returnTo = resolveReturnTo() || DEFAULT_RETURN_PATH;
 
     try {
       const service = await getServicesService();
@@ -65,9 +86,10 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
 
       logger.info(`${url} success`);
       setResult({ status: 'success' });
+      clearStoredReturnTo();
 
       setTimeout(() => {
-        push(returnTo || DEFAULT_RETURN_PATH);
+        push(returnTo);
       }, REDIRECT_DELAY_MS);
     } catch (error) {
       logger.error(`${url} failed`, error);
@@ -77,13 +99,14 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
       });
     }
   }, [
+    clearStoredReturnTo,
     code,
     getServicesService,
     oauthToken,
     oauthVerifier,
     platform,
     push,
-    returnTo,
+    resolveReturnTo,
     state,
   ]);
 
@@ -125,8 +148,9 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
               {result.errorMessage}
             </p>
             <a
-              href={returnTo || DEFAULT_RETURN_PATH}
+              href={resolveReturnTo() || DEFAULT_RETURN_PATH}
               className="inline-block text-sm text-primary underline"
+              onClick={clearStoredReturnTo}
             >
               Go back
             </a>

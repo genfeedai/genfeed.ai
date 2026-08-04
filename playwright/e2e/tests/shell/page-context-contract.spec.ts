@@ -42,7 +42,7 @@ const CONTRACTS: PageContextContract[] = [
     route: `${BRAND_BASE}/studio/edit`,
     currentApp: 'studio',
     sectionLabel: 'Studio',
-    sidebarLabels: ['Timeline'],
+    sidebarLabels: ['Edit'],
   },
   {
     route: `${BRAND_BASE}/publish`,

@@ -92,7 +92,7 @@ export default function ContentRunListPage() {
   const isInitialFetch = isFetching && data.length === 0;
 
   return (
-    <Container>
+    <>
       <SectionTopbar
         icon={CirclePlay}
         title="Content Runs"
@@ -114,74 +114,77 @@ export default function ContentRunListPage() {
         }
       />
 
-      {isError ? (
-        <div className="mt-6">
-          <Alert type={AlertCategory.ERROR}>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span>Content runs could not be loaded.</span>
-              <Button
-                label="Retry"
-                onClick={() => {
-                  refetch().catch(() => undefined);
-                }}
-                variant={ButtonVariant.SECONDARY}
-              />
-            </div>
-          </Alert>
-        </div>
-      ) : null}
-
-      {isInitialFetch ? (
-        <div className="mt-6 min-h-64">
-          <LoadingState isFullSize />
-        </div>
-      ) : null}
-
-      {!isError && !isInitialFetch ? (
-        <div className="mt-6">
-          {data.length ? (
-            <Card bodyClassName="p-0">
-              <div className="divide-y divide-border">
-                {data.map((run) => (
-                  <ContentRunRow
-                    key={getRunId(run)}
-                    detailHref={href(
-                      `${APP_ROUTES.AUTOMATE.CONTENT_RUNS}/${getRunId(run)}`,
-                    )}
-                    run={run}
-                  />
-                ))}
-              </div>
-            </Card>
-          ) : (
-            <Card bodyClassName="p-10">
-              <div className="mx-auto flex max-w-md flex-col items-center text-center">
-                <div className="flex size-11 items-center justify-center rounded-full border border-border bg-background-secondary text-foreground/60">
-                  <Sparkles className="size-5" />
-                </div>
-                <div className="mt-4 text-base font-semibold text-foreground">
-                  No content runs yet
-                </div>
-                <div className="mt-2 text-sm leading-6 text-foreground/68">
-                  Save a brief from Discover to start a content run. It will
-                  appear here with its variants, publish events, and analytics.
-                </div>
+      <Container>
+        {isError ? (
+          <div className="mt-6">
+            <Alert type={AlertCategory.ERROR}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span>Content runs could not be loaded.</span>
                 <Button
-                  className="mt-5"
-                  asChild
-                  label="Go to Discover"
+                  label="Retry"
+                  onClick={() => {
+                    refetch().catch(() => undefined);
+                  }}
                   variant={ButtonVariant.SECONDARY}
-                >
-                  <Link href={href(APP_ROUTES.DISCOVER.ROOT)}>
-                    Go to Discover
-                  </Link>
-                </Button>
+                />
               </div>
-            </Card>
-          )}
-        </div>
-      ) : null}
-    </Container>
+            </Alert>
+          </div>
+        ) : null}
+
+        {isInitialFetch ? (
+          <div className="mt-6 min-h-64">
+            <LoadingState isFullSize />
+          </div>
+        ) : null}
+
+        {!isError && !isInitialFetch ? (
+          <div className="mt-6">
+            {data.length ? (
+              <Card bodyClassName="p-0">
+                <div className="divide-y divide-border">
+                  {data.map((run) => (
+                    <ContentRunRow
+                      key={getRunId(run)}
+                      detailHref={href(
+                        `${APP_ROUTES.AUTOMATE.CONTENT_RUNS}/${getRunId(run)}`,
+                      )}
+                      run={run}
+                    />
+                  ))}
+                </div>
+              </Card>
+            ) : (
+              <Card bodyClassName="p-10">
+                <div className="mx-auto flex max-w-md flex-col items-center text-center">
+                  <div className="flex size-11 items-center justify-center rounded-full border border-border bg-background-secondary text-foreground/60">
+                    <Sparkles className="size-5" />
+                  </div>
+                  <div className="mt-4 text-base font-semibold text-foreground">
+                    No content runs yet
+                  </div>
+                  <div className="mt-2 text-sm leading-6 text-foreground/68">
+                    Save a brief from Discover to start a content run. It will
+                    appear here with its variants, publish events, and
+                    analytics.
+                  </div>
+                  <Button
+                    className="mt-5"
+                    asChild
+                    label="Go to Discover"
+                    variant={ButtonVariant.SECONDARY}
+                  >
+                    <Link href={href(APP_ROUTES.DISCOVER.ROOT)}>
+                      Go to Discover
+                    </Link>
+                  </Button>
+                </div>
+              </Card>
+            )}
+          </div>
+        ) : null}
+      </Container>
+    </>
   );
 }
 

@@ -2549,17 +2549,9 @@
       },
       "CreateEditorProjectDto": {
         "properties": {
-          "_id": {
-            "description": "The unique identifier of the document",
-            "type": "string"
-          },
           "name": {
             "default": "Untitled Project",
             "description": "Project name",
-            "type": "string"
-          },
-          "organization": {
-            "description": "The organization ID that owns this resource",
             "type": "string"
           },
           "settings": {
@@ -2585,16 +2577,8 @@
               "type": "string"
             },
             "type": "array"
-          },
-          "user": {
-            "description": "The user ID who created this resource",
-            "type": "string"
           }
         },
-        "required": [
-          "user",
-          "organization"
-        ],
         "type": "object"
       },
       "CreateElementBlacklistDto": {
@@ -12026,10 +12010,6 @@
       },
       "UpdateEditorProjectDto": {
         "properties": {
-          "_id": {
-            "description": "The unique identifier of the document",
-            "type": "string"
-          },
           "isDeleted": {
             "description": "Whether the project is deleted",
             "type": "boolean"
@@ -12037,10 +12017,6 @@
           "name": {
             "default": "Untitled Project",
             "description": "Project name",
-            "type": "string"
-          },
-          "organization": {
-            "description": "The organization ID that owns this resource",
             "type": "string"
           },
           "settings": {
@@ -12081,10 +12057,6 @@
               "type": "string"
             },
             "type": "array"
-          },
-          "user": {
-            "description": "The user ID who created this resource",
-            "type": "string"
           }
         },
         "type": "object"
@@ -15040,6 +15012,19 @@
           "Prompt"
         ],
         "type": "string"
+      },
+      "WebsitePreviewDto": {
+        "properties": {
+          "websiteUrl": {
+            "description": "Public website URL to scrape for brand create prefill",
+            "example": "https://acme.com",
+            "type": "string"
+          }
+        },
+        "required": [
+          "websiteUrl"
+        ],
+        "type": "object"
       },
       "WorkflowEdgeDto": {
         "properties": {
@@ -22194,6 +22179,31 @@
           }
         },
         "summary": "findOneBySlug",
+        "tags": [
+          "brands"
+        ]
+      }
+    },
+    "/brands/website-preview": {
+      "post": {
+        "operationId": "BrandsController.previewWebsite",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebsitePreviewDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "previewWebsite",
         "tags": [
           "brands"
         ]

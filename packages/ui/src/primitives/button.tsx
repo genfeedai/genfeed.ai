@@ -174,7 +174,13 @@ function Button({
       <ShipButton
         aria-label={ariaLabel}
         asChild={asChild}
-        className={cn('ship-ui', sizeClassName, transformClass, className)}
+        className={cn(
+          // Lucide defaults to 24px; buttons use 16px unless the icon sets size.
+          'ship-ui [&_svg:not([class*="size-"])]:size-4',
+          sizeClassName,
+          transformClass,
+          className,
+        )}
         disabled={isButtonDisabled}
         onClick={onClick}
         onMouseDown={onMouseDown}

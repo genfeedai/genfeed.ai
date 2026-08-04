@@ -26,10 +26,30 @@ vi.mock('@genfeedai/agent', () => ({
     }),
 }));
 
+vi.mock('@genfeedai/agent/components/AgentOAuthConnectMenu', () => ({
+  AgentOAuthConnectMenu: ({
+    triggerLabel = 'Connect accounts',
+  }: {
+    triggerLabel?: string;
+  }) => (
+    <button type="button" aria-label="Connect a social channel">
+      {triggerLabel}
+    </button>
+  ),
+}));
+
+vi.mock(
+  '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect',
+  () => ({
+    usePlatformOAuthConnect: () => vi.fn(),
+  }),
+);
+
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brands: [{ id: 'brand-1', label: 'Demo Brand', slug: 'demo' }],
     organizationId: 'org-1',
+    selectedBrand: { id: 'brand-1', label: 'Demo Brand', slug: 'demo' },
   }),
 }));
 
@@ -366,7 +386,8 @@ describe('SocialMessagesPage', () => {
     expect(await screen.findByText('No conversations yet')).toBeInTheDocument();
     expect(screen.getByText('Social inbox is empty')).toBeInTheDocument();
     expect(
-      screen.getAllByRole('link', { name: /Connect accounts/i }).length,
+      screen.getAllByRole('button', { name: /Connect a social channel/i })
+        .length,
     ).toBeGreaterThan(0);
     expect(
       screen.getByRole('navigation', { name: 'Social conversations' }),

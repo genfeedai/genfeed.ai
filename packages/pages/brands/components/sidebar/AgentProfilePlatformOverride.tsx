@@ -12,13 +12,18 @@ export default function AgentProfilePlatformOverride({
   onSelectChange,
   override,
   platformValue,
+  showHeader = true,
 }: AgentProfilePlatformOverrideProps) {
   return (
     <div className="space-y-4 rounded-lg bg-background-secondary p-4 shadow-border">
-      <div className="flex items-center justify-between gap-3">
-        <h4 className="text-sm font-medium">{label}</h4>
-        <span className="text-xs text-muted-foreground">Optional override</span>
-      </div>
+      {showHeader ? (
+        <div className="flex items-center justify-between gap-3">
+          <h4 className="text-sm font-medium">{label}</h4>
+          <span className="text-xs text-muted-foreground">
+            Optional override
+          </span>
+        </div>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2">
         <AgentProfilePlatformOverrideFields

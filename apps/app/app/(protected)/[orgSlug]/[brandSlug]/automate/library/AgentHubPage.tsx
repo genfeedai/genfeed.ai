@@ -122,7 +122,7 @@ function AgentCard({
       <div className="flex items-center gap-2 pt-1">
         <Button
           label="Run Now"
-          icon={<CirclePlay />}
+          icon={<CirclePlay className="size-4" />}
           size={ButtonSize.SM}
           variant={ButtonVariant.SECONDARY}
           onClick={() => onRunNow(strategy.id)}
@@ -204,31 +204,22 @@ export default function AgentHubPage() {
         <div className="flex items-center gap-2">
           <Link href={APP_ROUTES.AUTOMATE.HIRE}>
             <Button
-              label={
-                <>
-                  <UserPlus /> Hire Agent
-                </>
-              }
+              icon={<UserPlus className="size-4" />}
+              label="Hire Agent"
               variant={ButtonVariant.SECONDARY}
             />
           </Link>
           <Link href={APP_ROUTES.AUTOMATE.ORCHESTRATOR}>
             <Button
-              label={
-                <>
-                  <Workflow /> Orchestrator
-                </>
-              }
+              icon={<Workflow className="size-4" />}
+              label="Orchestrator"
               variant={ButtonVariant.SECONDARY}
             />
           </Link>
           <Link href={APP_ROUTES.AUTOMATE.NEW}>
             <Button
-              label={
-                <>
-                  <Plus /> New Agent
-                </>
-              }
+              icon={<Plus className="size-4" />}
+              label="New Agent"
               variant={ButtonVariant.DEFAULT}
             />
           </Link>
@@ -263,7 +254,7 @@ export default function AgentHubPage() {
             <Button
               label="Create your first agent"
               variant={ButtonVariant.DEFAULT}
-              icon={<Plus />}
+              icon={<Plus className="size-4" />}
             />
           </Link>
         </div>

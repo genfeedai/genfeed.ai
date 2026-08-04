@@ -91,27 +91,29 @@ const selfHostedOrgRewrites = IS_LOCAL_APP_SHELL
   : [];
 
 /**
- * Parent app home is `/[app]`, not `/[app]/overview`. Permanent redirects keep
- * bookmarks and shared links working after the home path moved to root.
+ * Complete-path app home: bare `/[app]` permanently redirects to
+ * `/[app]/overview` so Overview is a complete path that does not prefix-match
+ * siblings (Workspace, Analytics, Automate, Library). Covers unscoped,
+ * brand-scoped, and org-scoped (`~/`) routes.
  */
-function appOverviewToHomeRedirects(appRoot: `/${string}`) {
+function appHomeToOverviewRedirects(appRoot: `/${string}`) {
   const overviewPath = `${appRoot}/overview` as const;
 
   return [
     {
-      destination: appRoot,
+      destination: overviewPath,
       permanent: true,
-      source: overviewPath,
+      source: appRoot,
     },
     {
-      destination: createBrandAppRoute(':orgSlug', ':brandSlug', appRoot),
+      destination: createBrandAppRoute(':orgSlug', ':brandSlug', overviewPath),
       permanent: true,
-      source: createBrandAppRoute(':orgSlug', ':brandSlug', overviewPath),
+      source: createBrandAppRoute(':orgSlug', ':brandSlug', appRoot),
     },
     {
-      destination: createOrganizationAppRoute(':orgSlug', appRoot),
+      destination: createOrganizationAppRoute(':orgSlug', overviewPath),
       permanent: true,
-      source: createOrganizationAppRoute(':orgSlug', overviewPath),
+      source: createOrganizationAppRoute(':orgSlug', appRoot),
     },
   ];
 }
@@ -228,6 +230,19 @@ const config = createAppNextConfig({
     ...selfHostedOrgRewrites,
   ],
   redirects: async () => [
+    // Platform admin home is the overview dashboard (complete path). Bare
+    // `/admin` and incomplete `/admin/overview` permanently redirect here.
+    {
+      destination: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
+      permanent: true,
+      source: APP_ROUTES.ADMIN.ROOT,
+    },
+    {
+      destination: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
+      permanent: true,
+      source: `${APP_ROUTES.ADMIN.ROOT}/overview`,
+    },
+
     {
       destination: APP_ROUTES.WORKSPACE.INBOX_UNREAD,
       permanent: false,
@@ -249,7 +264,7 @@ const config = createAppNextConfig({
       ),
     },
     {
-      destination: APP_ROUTES.DISCOVER.DISCOVERY,
+      destination: APP_ROUTES.DISCOVER.OVERVIEW,
       permanent: false,
       source: APP_ROUTES.DISCOVER.ROOT,
     },
@@ -257,7 +272,7 @@ const config = createAppNextConfig({
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.DISCOVER.DISCOVERY,
+        APP_ROUTES.DISCOVER.OVERVIEW,
       ),
       permanent: false,
       source: createBrandAppRoute(
@@ -267,7 +282,25 @@ const config = createAppNextConfig({
       ),
     },
     {
-      destination: APP_ROUTES.LIBRARY.ROOT,
+      destination: APP_ROUTES.DISCOVER.OVERVIEW,
+      permanent: true,
+      source: APP_ROUTES.DISCOVER.DISCOVERY,
+    },
+    {
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.DISCOVER.OVERVIEW,
+      ),
+      permanent: true,
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.DISCOVER.DISCOVERY,
+      ),
+    },
+    {
+      destination: APP_ROUTES.LIBRARY.OVERVIEW,
       permanent: false,
       source: APP_ROUTES.LIBRARY.INGREDIENTS,
     },
@@ -275,7 +308,7 @@ const config = createAppNextConfig({
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.LIBRARY.ROOT,
+        APP_ROUTES.LIBRARY.OVERVIEW,
       ),
       permanent: false,
       source: createBrandAppRoute(
@@ -309,11 +342,13 @@ const config = createAppNextConfig({
       ),
     },
     ...retiredStudioTabRedirects(),
-    // App homes live at `/[app]`; `/[app]/overview` is a permanent alias.
-    ...appOverviewToHomeRedirects(APP_ROUTES.AUTOMATE.ROOT),
-    ...appOverviewToHomeRedirects(APP_ROUTES.WORKSPACE.ROOT),
-    ...appOverviewToHomeRedirects(APP_ROUTES.LIBRARY.ROOT),
-    ...appOverviewToHomeRedirects(APP_ROUTES.ANALYTICS.ROOT),
+    // Complete-path homes: bare `/[app]` → `/[app]/overview` (Workspace,
+    // Analytics, Automate, Library). Discover/Studio already redirect ROOT to
+    // a named child (discovery / storyboard).
+    ...appHomeToOverviewRedirects(APP_ROUTES.WORKSPACE.ROOT),
+    ...appHomeToOverviewRedirects(APP_ROUTES.AUTOMATE.ROOT),
+    ...appHomeToOverviewRedirects(APP_ROUTES.LIBRARY.ROOT),
+    ...appHomeToOverviewRedirects(APP_ROUTES.ANALYTICS.ROOT),
     // Campaigns / outreach moved from Automate → Publish (hard cut).
     ...legacyPathRedirects('/automate/campaigns', APP_ROUTES.PUBLISH.CAMPAIGNS),
     ...legacyPathRedirects(

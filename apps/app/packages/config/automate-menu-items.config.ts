@@ -1,27 +1,42 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import {
-  ChartColumn,
-  CirclePlay,
+  History,
+  LayoutGrid,
   Megaphone,
+  Network,
   Rocket,
   Settings,
   Sparkles,
+  UserPlus,
   Users,
-  Wrench,
+  Workflow,
 } from 'lucide-react';
 
+/**
+ * Automate module nav — grouped by usage (same pattern as Analytics / Settings).
+ *
+ * - Home: Overview
+ * - Workflows: pipelines + run history
+ * - Agents: roster, hire, skills, autopilot strategies
+ * - Campaigns: reply drip + multi-agent launch (orchestrator)
+ * - Settings: module config
+ *
+ * Icons: one unique lucide glyph per row, from the same set used across app
+ * menus (LayoutGrid for Overview, Megaphone for campaigns, Settings for config).
+ * Measurement lives in the Analytics app — no Automate Analytics clone.
+ */
 export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
     href: APP_ROUTES.AUTOMATE.OVERVIEW,
     label: 'Overview',
     matchPaths: [APP_ROUTES.AUTOMATE.ROOT, APP_ROUTES.AUTOMATE.OVERVIEW],
-    outline: Sparkles,
-    solid: Sparkles,
+    outline: LayoutGrid,
+    solid: LayoutGrid,
   },
   {
-    group: '',
+    group: 'Workflows',
     href: APP_ROUTES.AUTOMATE.WORKFLOWS,
     label: 'Workflows',
     matchPaths: [
@@ -29,19 +44,11 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
       APP_ROUTES.AUTOMATE.WORKFLOWS_NEW,
       APP_ROUTES.AUTOMATE.WORKFLOWS_TEMPLATES,
     ],
-    outline: Wrench,
-    solid: Wrench,
+    outline: Workflow,
+    solid: Workflow,
   },
   {
-    group: '',
-    href: APP_ROUTES.AUTOMATE.REPLY_CAMPAIGNS,
-    label: 'Reply Campaigns',
-    matchPaths: [APP_ROUTES.AUTOMATE.REPLY_CAMPAIGNS],
-    outline: Megaphone,
-    solid: Megaphone,
-  },
-  {
-    group: '',
+    group: 'Workflows',
     href: APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS,
     label: 'Runs',
     matchPaths: [
@@ -49,24 +56,27 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
       APP_ROUTES.AUTOMATE.RUNS,
       APP_ROUTES.AUTOMATE.CONTENT_RUNS,
     ],
-    outline: CirclePlay,
-    solid: CirclePlay,
+    outline: History,
+    solid: History,
   },
   {
-    group: '',
+    group: 'Agents',
     href: APP_ROUTES.AUTOMATE.LIBRARY,
     label: 'Team',
-    matchPaths: [
-      APP_ROUTES.AUTOMATE.LIBRARY,
-      APP_ROUTES.AUTOMATE.HIRE,
-      APP_ROUTES.AUTOMATE.ORCHESTRATOR,
-      APP_ROUTES.AUTOMATE.NEW,
-    ],
+    matchPaths: [APP_ROUTES.AUTOMATE.LIBRARY, APP_ROUTES.AUTOMATE.NEW],
     outline: Users,
     solid: Users,
   },
   {
-    group: '',
+    group: 'Agents',
+    href: APP_ROUTES.AUTOMATE.HIRE,
+    label: 'Hire',
+    matchPaths: [APP_ROUTES.AUTOMATE.HIRE],
+    outline: UserPlus,
+    solid: UserPlus,
+  },
+  {
+    group: 'Agents',
     href: APP_ROUTES.AUTOMATE.SKILLS,
     label: 'Skills',
     matchPaths: [APP_ROUTES.AUTOMATE.SKILLS],
@@ -74,7 +84,7 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
     solid: Sparkles,
   },
   {
-    group: '',
+    group: 'Agents',
     href: APP_ROUTES.AUTOMATE.AUTOPILOT,
     label: 'Autopilot',
     matchPaths: [APP_ROUTES.AUTOMATE.AUTOPILOT, APP_ROUTES.AUTOMATE.STRATEGIES],
@@ -82,15 +92,23 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
     solid: Rocket,
   },
   {
-    group: '',
-    href: APP_ROUTES.AUTOMATE.ANALYTICS,
-    label: 'Analytics',
-    matchPaths: [APP_ROUTES.AUTOMATE.ANALYTICS],
-    outline: ChartColumn,
-    solid: ChartColumn,
+    group: 'Campaigns',
+    href: APP_ROUTES.AUTOMATE.REPLY_CAMPAIGNS,
+    label: 'Reply Campaigns',
+    matchPaths: [APP_ROUTES.AUTOMATE.REPLY_CAMPAIGNS],
+    outline: Megaphone,
+    solid: Megaphone,
   },
   {
-    group: '',
+    group: 'Campaigns',
+    href: APP_ROUTES.AUTOMATE.ORCHESTRATOR,
+    label: 'Launch team',
+    matchPaths: [APP_ROUTES.AUTOMATE.ORCHESTRATOR],
+    outline: Network,
+    solid: Network,
+  },
+  {
+    group: 'Settings',
     href: APP_ROUTES.AUTOMATE.CONFIGURATION,
     label: 'Configuration',
     matchPaths: [APP_ROUTES.AUTOMATE.CONFIGURATION],

@@ -4,14 +4,18 @@ import { isPublicAssetScope } from '@genfeedai/helpers';
 
 import BrandDetailAccountSettingsCard from '@pages/brands/components/sidebar/BrandDetailAccountSettingsCard';
 import BrandDetailExternalLinksCard from '@pages/brands/components/sidebar/BrandDetailExternalLinksCard';
+import BrandDetailLinksSummaryCard from '@pages/brands/components/sidebar/BrandDetailLinksSummaryCard';
 import BrandDetailSocialMediaCard from '@pages/brands/components/sidebar/BrandDetailSocialMediaCard';
 import BrandDetailSocialSummaryCard from '@pages/brands/components/sidebar/BrandDetailSocialSummaryCard';
 import type { BrandDetailSidebarProps } from '@props/pages/brand-detail.props';
 
 /**
- * Public-profile column: visibility + social/links.
- * Settings Profile passes `manageSocialHref` → summary only.
- * Modal/overlay leaves it unset → full Social + Links editors.
+ * Public-profile column: visibility + social accounts + external links.
+ *
+ * - Social: `manageSocialHref` → summary linking to /settings/social (OAuth page).
+ *   Otherwise full connect card + modal.
+ * - Links: always the inline list + ModalBrandLink. No dedicated settings page —
+ *   external URLs are simple CRUD, not an OAuth surface.
  */
 export default function BrandDetailSidebar({
   brand,
@@ -20,6 +24,7 @@ export default function BrandDetailSidebar({
   connectedPlatformsCount,
   isUpdatingPublicProfile = false,
   manageSocialHref,
+  manageLinksHref,
   onTogglePublicProfile,
   onOpenLinkModal,
 }: BrandDetailSidebarProps) {
@@ -36,22 +41,28 @@ export default function BrandDetailSidebar({
       {manageSocialHref ? (
         <BrandDetailSocialSummaryCard
           connectedPlatformsCount={connectedPlatformsCount}
-          linksCount={links?.length ?? 0}
           manageHref={manageSocialHref}
         />
       ) : (
-        <>
-          <BrandDetailSocialMediaCard
-            brandId={brand.id}
-            connections={socialConnections}
-            connectedPlatformsCount={connectedPlatformsCount}
-          />
+        <BrandDetailSocialMediaCard
+          brandId={brand.id}
+          connections={socialConnections}
+          connectedPlatformsCount={connectedPlatformsCount}
+        />
+      )}
 
-          <BrandDetailExternalLinksCard
-            links={links}
-            onOpenLinkModal={onOpenLinkModal}
-          />
-        </>
+      {manageLinksHref ? (
+        <BrandDetailLinksSummaryCard
+          linksCount={links?.length ?? 0}
+          manageHref={manageLinksHref}
+        />
+      ) : (
+        <BrandDetailExternalLinksCard
+          links={links}
+          socialConnections={socialConnections}
+          manageSocialHref={manageSocialHref}
+          onOpenLinkModal={onOpenLinkModal}
+        />
       )}
     </div>
   );

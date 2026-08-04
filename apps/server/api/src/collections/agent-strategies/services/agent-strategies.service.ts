@@ -4,10 +4,91 @@ import type { AgentStrategyDocument } from '@api/collections/agent-strategies/sc
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { AgentRunStatus } from '@genfeedai/enums';
+import type { PopulateOption } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+
+type PopulateInput = (string | PopulateOption)[] | 'none';
+
+type AgentStrategyWriteDto = Partial<
+  Omit<
+    CreateAgentStrategyDto & UpdateAgentStrategyDto,
+    'brand' | 'lastRunAt' | 'nextRunAt'
+  >
+> & {
+  brand?: string | null;
+  config?: unknown;
+  consecutiveFailures?: number;
+  creditsUsedThisWeek?: number;
+  creditsUsedToday?: number;
+  dailyCreditsUsed?: number;
+  lastRunAt?: Date | null;
+  monthToDateCreditsUsed?: number;
+  nextRunAt?: Date | null;
+  organization?: string;
+  policies?: unknown;
+  requiresManualReactivation?: boolean;
+  reserveTrendBudgetRemaining?: number;
+  runHistory?: unknown;
+  user?: string;
+};
+
+/**
+ * Prisma `AgentStrategy` is a slim table: scalars + `config`/`policies` JSON.
+ * Domain fields from the Mongo-era document live in those bags; reads expand
+ * them via BaseService.normalizeDocument. Writes must pack them back.
+ */
+const CONFIG_BACKED_KEYS = [
+  'autoPublishConfidenceThreshold',
+  'autonomyMode',
+  'consecutiveFailures',
+  'contentMix',
+  'creditsUsedThisWeek',
+  'creditsUsedToday',
+  'dailyCreditBudget',
+  'dailyCreditResetAt',
+  'dailyCreditsUsed',
+  'dailyResetAt',
+  'displayRole',
+  'engagementEnabled',
+  'engagementKeywords',
+  'engagementTone',
+  'expectedSpendToDate',
+  'isEnabled',
+  'lastRunAt',
+  'maxEngagementsPerDay',
+  'minCreditThreshold',
+  'model',
+  'monthToDateCreditsUsed',
+  'monthlyResetAt',
+  'nextRunAt',
+  'opportunitySources',
+  'postsPerWeek',
+  'preferredPostingTimes',
+  'qualityTier',
+  'reportsToLabel',
+  'requiresManualReactivation',
+  'reserveTrendBudgetRemaining',
+  'runFrequency',
+  'runHistory',
+  'skillSlugs',
+  'teamGroup',
+  'timezone',
+  'topics',
+  'voice',
+  'weeklyCreditBudget',
+  'weeklyResetAt',
+] as const;
+
+const POLICIES_BACKED_KEYS = [
+  'budgetPolicy',
+  'goalProfile',
+  'publishPolicy',
+  'rankingPolicy',
+  'reportingPolicy',
+] as const;
 
 @Injectable()
 export class AgentStrategiesService extends BaseService<
@@ -27,12 +108,13 @@ export class AgentStrategiesService extends BaseService<
    * Create strategy with scheduler defaults.
    * If strategy starts active, queue first run immediately.
    */
-  async create(
+  override async create(
     createDto: CreateAgentStrategyDto,
+    populate: PopulateInput = [],
   ): Promise<AgentStrategyDocument> {
     const now = new Date();
 
-    const payload: CreateAgentStrategyDto = {
+    const payload: AgentStrategyWriteDto = {
       ...createDto,
       ...(createDto.isActive ? { nextRunAt: now } : {}),
       ...(createDto.dailyCreditResetAt ? {} : { dailyCreditResetAt: now }),
@@ -44,9 +126,45 @@ export class AgentStrategiesService extends BaseService<
               createDto.budgetPolicy.reserveTrendBudget,
           }
         : {}),
+      // Defaults for counters that live in config
+      consecutiveFailures: 0,
+      creditsUsedThisWeek: 0,
+      creditsUsedToday: 0,
+      dailyCreditsUsed: 0,
+      isEnabled: createDto.isEnabled ?? true,
+      monthToDateCreditsUsed: 0,
+      runHistory: [],
     };
 
-    return super.create(payload);
+    return super.create(
+      this.toPrismaWriteData(
+        payload,
+        'create',
+      ) as unknown as CreateAgentStrategyDto,
+      populate,
+    );
+  }
+
+  override async patch(
+    id: string,
+    updateDto: Partial<UpdateAgentStrategyDto>,
+    populate: PopulateInput = [],
+  ): Promise<AgentStrategyDocument> {
+    const existing = await this.findOne({ _id: id });
+    const existingRecord = existing as Record<string, unknown> | null;
+    const existingConfig = this.readRecord(existingRecord?.config) ?? {};
+    const existingPolicies = this.readRecord(existingRecord?.policies) ?? {};
+
+    return super.patch(
+      id,
+      this.toPrismaWriteData(
+        updateDto as AgentStrategyWriteDto,
+        'update',
+        existingConfig,
+        existingPolicies,
+      ) as unknown as Partial<UpdateAgentStrategyDto>,
+      populate,
+    );
   }
 
   /**
@@ -75,15 +193,13 @@ export class AgentStrategiesService extends BaseService<
       return null;
     }
 
-    const updateData: Record<string, unknown> = { isActive };
+    const updateData: AgentStrategyWriteDto = { isActive };
 
     if (isActive && !strategy.isActive) {
-      // Activating: queue the next run and clear failure state.
       updateData.nextRunAt = new Date();
       updateData.consecutiveFailures = 0;
       updateData.requiresManualReactivation = false;
     } else if (!isActive && strategy.isActive) {
-      // Deactivating: clear the schedule.
       updateData.nextRunAt = null;
     }
 
@@ -109,19 +225,39 @@ export class AgentStrategiesService extends BaseService<
     })) as AgentStrategyDocument | null;
     if (!current) return;
 
-    const existingHistory = (current.runHistory as unknown[]) ?? [];
-    // Keep last 50 entries
+    const config = this.readRecord(current.config) ?? {};
+    const existingHistory = Array.isArray(config.runHistory)
+      ? (config.runHistory as unknown[])
+      : Array.isArray(current.runHistory)
+        ? (current.runHistory as unknown[])
+        : [];
     const trimmedHistory = [...existingHistory, run].slice(-50);
+
+    const creditsUsedThisWeek =
+      Number(config.creditsUsedThisWeek ?? current.creditsUsedThisWeek ?? 0) +
+      run.creditsUsed;
+    const creditsUsedToday =
+      Number(config.creditsUsedToday ?? 0) + run.creditsUsed;
+    const dailyCreditsUsed =
+      Number(config.dailyCreditsUsed ?? current.dailyCreditsUsed ?? 0) +
+      run.creditsUsed;
+    const monthToDateCreditsUsed =
+      Number(
+        config.monthToDateCreditsUsed ?? current.monthToDateCreditsUsed ?? 0,
+      ) + run.creditsUsed;
 
     await this.delegate.update({
       where: { id },
       data: {
-        creditsUsedThisWeek: { increment: run.creditsUsed },
-        creditsUsedToday: { increment: run.creditsUsed },
-        dailyCreditsUsed: { increment: run.creditsUsed },
-        monthToDateCreditsUsed: { increment: run.creditsUsed },
-        lastRunAt: run.completedAt,
-        runHistory: trimmedHistory,
+        config: {
+          ...config,
+          creditsUsedThisWeek,
+          creditsUsedToday,
+          dailyCreditsUsed,
+          lastRunAt: run.completedAt,
+          monthToDateCreditsUsed,
+          runHistory: trimmedHistory,
+        },
       },
     });
   }
@@ -131,12 +267,29 @@ export class AgentStrategiesService extends BaseService<
    * Used by the processor after a run fails.
    */
   async incrementFailures(id: string): Promise<number> {
-    const result = (await this.delegate.update({
+    const current = (await this.delegate.findFirst({
       where: { id },
-      data: { consecutiveFailures: { increment: 1 } },
     })) as AgentStrategyDocument | null;
+    if (!current) {
+      return 0;
+    }
 
-    return (result?.consecutiveFailures as number) ?? 0;
+    const config = this.readRecord(current.config) ?? {};
+    const next =
+      Number(config.consecutiveFailures ?? current.consecutiveFailures ?? 0) +
+      1;
+
+    await this.delegate.update({
+      where: { id },
+      data: {
+        config: {
+          ...config,
+          consecutiveFailures: next,
+        },
+      },
+    });
+
+    return next;
   }
 
   /**
@@ -144,9 +297,22 @@ export class AgentStrategiesService extends BaseService<
    * Used by the processor after a successful run.
    */
   async resetFailures(id: string): Promise<void> {
-    await this.delegate.updateMany({
+    const current = (await this.delegate.findFirst({
       where: { id, isDeleted: false },
-      data: { consecutiveFailures: 0 },
+    })) as AgentStrategyDocument | null;
+    if (!current) {
+      return;
+    }
+
+    const config = this.readRecord(current.config) ?? {};
+    await this.delegate.update({
+      where: { id },
+      data: {
+        config: {
+          ...config,
+          consecutiveFailures: 0,
+        },
+      },
     });
   }
 
@@ -155,9 +321,23 @@ export class AgentStrategiesService extends BaseService<
    * Used for auto-pause after consecutive failures.
    */
   async pauseStrategy(id: string): Promise<void> {
-    await this.delegate.updateMany({
+    const current = (await this.delegate.findFirst({
       where: { id, isDeleted: false },
-      data: { isActive: false, nextRunAt: null },
+    })) as AgentStrategyDocument | null;
+    if (!current) {
+      return;
+    }
+
+    const config = this.readRecord(current.config) ?? {};
+    await this.delegate.update({
+      where: { id },
+      data: {
+        config: {
+          ...config,
+          nextRunAt: null,
+        },
+        isActive: false,
+      },
     });
   }
 
@@ -181,13 +361,124 @@ export class AgentStrategiesService extends BaseService<
    * Mark strategy for manual reactivation after repeated failures.
    */
   async requireManualReactivation(id: string): Promise<void> {
-    await this.delegate.updateMany({
+    const current = (await this.delegate.findFirst({
       where: { id, isDeleted: false },
+    })) as AgentStrategyDocument | null;
+    if (!current) {
+      return;
+    }
+
+    const config = this.readRecord(current.config) ?? {};
+    await this.delegate.update({
+      where: { id },
       data: {
+        config: {
+          ...config,
+          nextRunAt: null,
+          requiresManualReactivation: true,
+        },
         isActive: false,
-        nextRunAt: null,
-        requiresManualReactivation: true,
       },
     });
+  }
+
+  private toPrismaWriteData(
+    dto: AgentStrategyWriteDto,
+    mode: 'create' | 'update',
+    existingConfig: Record<string, unknown> = {},
+    existingPolicies: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    const data: Record<string, unknown> = {};
+    const config: Record<string, unknown> = { ...existingConfig };
+    const policies: Record<string, unknown> = { ...existingPolicies };
+
+    if (Object.hasOwn(dto, 'label')) {
+      data.label = dto.label;
+    }
+
+    if (Object.hasOwn(dto, 'description')) {
+      data.description = (dto as { description?: string }).description ?? null;
+    }
+
+    if (typeof dto.organization === 'string') {
+      data.organizationId = dto.organization;
+    } else if (
+      mode === 'create' &&
+      typeof (dto as { organizationId?: string }).organizationId === 'string'
+    ) {
+      data.organizationId = (dto as { organizationId: string }).organizationId;
+    }
+
+    if (typeof dto.user === 'string') {
+      data.userId = dto.user;
+    } else if (
+      mode === 'create' &&
+      typeof (dto as { userId?: string }).userId === 'string'
+    ) {
+      data.userId = (dto as { userId: string }).userId;
+    }
+
+    if (Object.hasOwn(dto, 'brand')) {
+      data.brandId = dto.brand ?? null;
+    } else if (Object.hasOwn(dto, 'brandId')) {
+      data.brandId = (dto as { brandId?: string | null }).brandId ?? null;
+    }
+
+    if (Object.hasOwn(dto, 'goalId')) {
+      data.goalId = dto.goalId ?? null;
+    }
+
+    if (Object.hasOwn(dto, 'isActive')) {
+      data.isActive = dto.isActive;
+    }
+
+    if (Object.hasOwn(dto, 'agentType')) {
+      data.agentType = dto.agentType ?? null;
+    }
+
+    if (Object.hasOwn(dto, 'platforms')) {
+      data.platforms = Array.isArray(dto.platforms) ? dto.platforms : [];
+    }
+
+    for (const key of CONFIG_BACKED_KEYS) {
+      if (Object.hasOwn(dto, key)) {
+        config[key] = (dto as Record<string, unknown>)[key];
+      }
+    }
+
+    for (const key of POLICIES_BACKED_KEYS) {
+      if (Object.hasOwn(dto, key)) {
+        policies[key] = (dto as Record<string, unknown>)[key];
+      }
+    }
+
+    const suppliedConfig = this.readRecord(dto.config);
+    const suppliedPolicies = this.readRecord(dto.policies);
+
+    if (
+      mode === 'create' ||
+      suppliedConfig ||
+      CONFIG_BACKED_KEYS.some((key) => Object.hasOwn(dto, key))
+    ) {
+      data.config = suppliedConfig ? { ...config, ...suppliedConfig } : config;
+    }
+
+    if (
+      mode === 'create' ||
+      suppliedPolicies ||
+      POLICIES_BACKED_KEYS.some((key) => Object.hasOwn(dto, key))
+    ) {
+      data.policies = suppliedPolicies
+        ? { ...policies, ...suppliedPolicies }
+        : policies;
+    }
+
+    return data;
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> | null {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : null;
   }
 }

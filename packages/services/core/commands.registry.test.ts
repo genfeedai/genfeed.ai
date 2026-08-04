@@ -158,7 +158,7 @@ describe('commands.registry', () => {
       discoverCmd?.action();
 
       expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/discover/discovery`,
+        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/discover/overview`,
       );
     });
 

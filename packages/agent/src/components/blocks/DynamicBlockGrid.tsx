@@ -24,6 +24,7 @@ import type {
   TextParagraphBlock,
   TopPostsBlock,
 } from '@genfeedai/interfaces';
+import MetricCardUI from '@ui/cards/metric-card/MetricCard';
 import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 import { useEffect, useMemo, useState } from 'react';
@@ -49,28 +50,6 @@ function getColSpan(width?: AgentUIBlockWidth): string {
       return 'col-span-4';
     default:
       return 'col-span-12';
-  }
-}
-
-function getTrendArrow(direction: 'up' | 'down' | 'flat'): string {
-  switch (direction) {
-    case 'up':
-      return '\u2191';
-    case 'down':
-      return '\u2193';
-    case 'flat':
-      return '\u2192';
-  }
-}
-
-function getTrendColor(direction: 'up' | 'down' | 'flat'): string {
-  switch (direction) {
-    case 'up':
-      return 'text-green-500';
-    case 'down':
-      return 'text-red-500';
-    case 'flat':
-      return 'text-muted-foreground';
   }
 }
 
@@ -183,35 +162,23 @@ function MetricValue({
 function MetricCard({ block }: { block: MetricCardBlock }): ReactElement {
   const hydratableBlock = block as HydratableBlock<MetricCardBlock>;
   const isLoading = hydratableBlock.hydration?.status === 'loading';
+  const trendPercentage = block.trend?.percentage;
+  const signedTrend =
+    typeof trendPercentage === 'number'
+      ? block.trend?.direction === 'down'
+        ? -Math.abs(trendPercentage)
+        : Math.abs(trendPercentage)
+      : undefined;
+
   return (
-    <div className="rounded-lg border border-border bg-card p-4 transition-all duration-500">
-      {block.title && (
-        <p className="mb-1 text-xs font-medium text-muted-foreground">
-          {block.title}
-        </p>
-      )}
-      <div className="flex items-baseline gap-2">
-        {isLoading ? (
-          <span className="h-8 w-28 animate-pulse rounded bg-muted/70" />
-        ) : (
-          <span className="text-2xl font-bold text-foreground transition-all duration-500">
-            <MetricValue value={block.value} />
-          </span>
-        )}
-        {!isLoading && block.trend && (
-          <span
-            className={`text-sm font-medium ${getTrendColor(block.trend.direction)}`}
-          >
-            {getTrendArrow(block.trend.direction)} {block.trend.percentage}%
-          </span>
-        )}
-      </div>
-      {isLoading ? (
-        <div className="mt-2 size-3/4 animate-pulse rounded bg-muted/60" />
-      ) : block.subtitle ? (
-        <p className="mt-1 text-xs text-muted-foreground">{block.subtitle}</p>
-      ) : null}
-    </div>
+    <MetricCardUI
+      description={block.subtitle}
+      isLoading={isLoading}
+      label={block.title || 'Metric'}
+      size="md"
+      trend={signedTrend}
+      value={isLoading ? '' : <MetricValue value={block.value} />}
+    />
   );
 }
 

@@ -43,7 +43,14 @@ export default function TagsLayout({
       label="Tags"
       description="Organize content with tags."
       icon={Tag}
-      tabs={tabs}
+      headerTabs={
+        tabs
+          ? {
+              fullWidth: false,
+              tabs,
+            }
+          : undefined
+      }
       right={rightActions}
     >
       {children}

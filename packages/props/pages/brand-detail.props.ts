@@ -63,8 +63,13 @@ export interface BrandDetailSidebarProps {
   connectedPlatformsCount: number;
   deletingRefId: string | null;
   isUpdatingPublicProfile?: boolean;
-  /** When set, sidebar shows a Social summary that links to full settings page. */
+  /** When set, sidebar shows a Social accounts summary linking to /settings/social. */
   manageSocialHref?: string;
+  /**
+   * @deprecated Prefer inline External Links card + ModalBrandLink on Profile.
+   * When set, still shows a summary link (legacy). Prefer leaving unset.
+   */
+  manageLinksHref?: string;
   onTogglePublicProfile: (isPublic: boolean) => void;
   onRefreshBrand: () => Promise<void>;
   onOpenLinkModal: (link?: ILink) => void;
@@ -82,6 +87,10 @@ export interface BrandDetailAccountSettingsCardProps {
 
 export interface BrandDetailSocialSummaryCardProps {
   connectedPlatformsCount: number;
+  manageHref: string;
+}
+
+export interface BrandDetailLinksSummaryCardProps {
   linksCount: number;
   manageHref: string;
 }
@@ -90,11 +99,23 @@ export interface BrandDetailSocialMediaCardProps {
   brandId: string;
   connections: BrandDetailSocialConnection[];
   connectedPlatformsCount: number;
+  /**
+   * `compact` — summary card + connect modal (sidebar / embed).
+   * `page` — full categorized integration card list (settings/social).
+   */
+  variant?: 'compact' | 'page';
 }
 
 export interface BrandDetailExternalLinksCardProps {
   links: ILink[];
   onOpenLinkModal: (link?: ILink) => void;
+  /**
+   * Connected OAuth accounts — shown as read-only profile rows.
+   * Social presence is owned by /settings/social, not manual Link CRUD.
+   */
+  socialConnections?: BrandDetailSocialConnection[];
+  /** Deep link to the Social connect page when connections are empty. */
+  manageSocialHref?: string;
 }
 
 export interface BrandDetailDefaultModelsCardProps {
@@ -199,6 +220,8 @@ export interface AgentProfilePlatformOverrideProps {
   ) => void;
   override: AgentProfilePlatformOverrideFormState;
   platformValue: string;
+  /** When false, omit the per-platform title (parent already shows a platform select). */
+  showHeader?: boolean;
 }
 
 export interface AgentProfilePlatformOverrideFieldsProps {

@@ -20,18 +20,21 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
       label="Analytics"
       description="Track platform performance, usage statistics, and growth metrics"
       icon={ChartColumn}
-      tabs={[
-        { href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ALL, label: 'Overview' },
-        {
-          href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
-          label: 'Organizations',
-        },
-        { href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BRANDS, label: 'Brands' },
-        {
-          href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BUSINESS,
-          label: 'Business',
-        },
-      ]}
+      headerTabs={{
+        fullWidth: false,
+        tabs: [
+          { href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ALL, label: 'Overview' },
+          {
+            href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_ORGANIZATIONS,
+            label: 'Organizations',
+          },
+          { href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BRANDS, label: 'Brands' },
+          {
+            href: APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS_BUSINESS,
+            label: 'Business',
+          },
+        ],
+      }}
       right={
         <div className="flex items-center gap-2">
           <DateRangePicker

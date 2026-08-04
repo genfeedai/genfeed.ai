@@ -3,6 +3,26 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
+vi.mock(
+  '@genfeedai/hooks/ui/use-intersection-observer/use-intersection-observer',
+  () => ({
+    useIntersectionObserver: () => ({
+      isIntersecting: true,
+      ref: { current: null },
+    }),
+  }),
+);
+
+vi.mock(
+  '@hooks/ui/use-intersection-observer/use-intersection-observer',
+  () => ({
+    useIntersectionObserver: () => ({
+      isIntersecting: true,
+      ref: { current: null },
+    }),
+  }),
+);
+
 const useBrandMock = vi.fn();
 const createRemixWorkflowMock = vi.fn();
 const generateAdPackMock = vi.fn();
@@ -183,6 +203,65 @@ vi.mock('@ui/layout/container/Container', () => ({
       </header>
       <div>{children}</div>
     </section>
+  ),
+}));
+
+vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
+  default: ({ onClick }: { isRefreshing?: boolean; onClick?: () => void }) => (
+    <button type="button" onClick={onClick}>
+      Refresh
+    </button>
+  ),
+}));
+
+vi.mock('@ui/primitives/searchbar', () => ({
+  default: ({
+    value,
+    onChange,
+    onClear,
+    placeholder,
+  }: {
+    value?: string;
+    onChange?: (event: { target: { value: string } }) => void;
+    onClear?: () => void;
+    placeholder?: string;
+  }) => (
+    <div>
+      <input
+        aria-label={placeholder}
+        placeholder={placeholder}
+        value={value}
+        onChange={(event) => onChange?.(event)}
+      />
+      <button type="button" onClick={onClear}>
+        Clear
+      </button>
+    </div>
+  ),
+}));
+
+vi.mock('@ui/navigation/view-toggle/ViewToggle', () => ({
+  default: ({
+    activeView,
+    onChange,
+    options,
+  }: {
+    activeView: string;
+    onChange: (view: string) => void;
+    options: Array<{ label: string; type: string }>;
+  }) => (
+    <div>
+      {options.map((option) => (
+        <button
+          key={option.type}
+          type="button"
+          aria-pressed={activeView === option.type}
+          onClick={() => onChange(option.type)}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
   ),
 }));
 
@@ -410,12 +489,13 @@ describe('AdsResearchPageClient', () => {
 
     const { container } = render(<AdsResearchPageClient />);
 
-    expect(
-      screen.getByRole('heading', { name: 'Ads Intelligence' }),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Public Winners')).toBeInTheDocument();
-    expect(screen.getByText('Connected Ads')).toBeInTheDocument();
-    expect(screen.getByText('Launch policy')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Ads' })).toBeInTheDocument();
+    // Compact stats strip (labels also appear on ad badges — use counts).
+    expect(screen.getByText('Source')).toBeInTheDocument();
+    // Launch policy is a footnote when credentials exist — not a second alert.
+    expect(screen.getByText(/remain paused for review/i)).toBeInTheDocument();
+    expect(screen.queryByText('Launch policy')).not.toBeInTheDocument();
+    expect(screen.queryByText('Review Policy')).not.toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /filters/i }),
     ).toBeInTheDocument();
@@ -474,6 +554,7 @@ describe('AdsResearchPageClient', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
     expect(useQueryStates[0].refetch).toHaveBeenCalled();
+    // Refresh lives in the Container header next to view toggle.
 
     fireEvent.click(screen.getByText('Google lead gen winner'));
     fireEvent.click(screen.getByRole('button', { name: /create workflow/i }));
@@ -543,6 +624,7 @@ describe('AdsResearchPageClient', () => {
   });
 
   it('shows empty, loading, error, and action failure states', async () => {
+    // Credentials present, list empty → filter empty (not setup CTA).
     useQueryStates[0].data = {
       ...resultsState,
       connectedAds: [],
@@ -568,6 +650,9 @@ describe('AdsResearchPageClient', () => {
         'No ads match the current filters. Adjust filters or widen the timeframe.',
       ),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Connect Meta or Google Ads'),
+    ).not.toBeInTheDocument();
 
     useQueryCallIndex = 0;
     useQueryStates[0].isLoading = true;
@@ -605,19 +690,72 @@ describe('AdsResearchPageClient', () => {
     expect(screen.queryByRole('heading', { name: 'Ad Detail' })).toBeNull();
   });
 
-  it('shows where to connect ad accounts when the brand has none', () => {
+  it('shows a full connect empty state when there are no credentials and no ads', () => {
     useBrandMock.mockReturnValue({
       brandId: 'brand-1',
       credentials: [],
       isReady: true,
       selectedBrand: { label: 'Moonrise Studio' },
     });
+    useQueryStates[0].data = {
+      ...resultsState,
+      connectedAds: [],
+      publicAds: [],
+      summary: {
+        ...resultsState.summary,
+        connectedCount: 0,
+        publicCount: 0,
+      },
+    };
 
     render(<AdsResearchPageClient />);
 
     expect(screen.getByText('Connect Meta or Google Ads')).toBeInTheDocument();
     expect(
+      screen.queryByText('No ads match the current filters.'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Search ads')).not.toBeInTheDocument();
+    // No list chrome on setup empty — tabs / refresh / view toggle stay off.
+    expect(
+      screen.queryByRole('button', { name: 'Refresh' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Grid view' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Table view' }),
+    ).not.toBeInTheDocument();
+    expect(
       screen.getByRole('link', { name: 'Manage ad connections' }),
-    ).toHaveAttribute('href', '/moonrise-org/moonrise-studio/settings');
+    ).toHaveAttribute('href', '/moonrise-org/moonrise-studio/settings/social');
+  });
+
+  it('keeps public ads visible and a slim connect strip when only public winners exist', () => {
+    useBrandMock.mockReturnValue({
+      brandId: 'brand-1',
+      credentials: [],
+      isReady: true,
+      selectedBrand: { label: 'Moonrise Studio' },
+    });
+    // Default resultsState has public + connected ads; strip connected.
+    useQueryStates[0].data = {
+      ...resultsState,
+      connectedAds: [],
+      summary: {
+        ...resultsState.summary,
+        connectedCount: 0,
+      },
+    };
+
+    render(<AdsResearchPageClient />);
+
+    expect(screen.getByText('Meta hook story')).toBeInTheDocument();
+    expect(
+      screen.getByText('Connect accounts for your campaigns'),
+    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search ads')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Manage ad connections' }),
+    ).toBeInTheDocument();
   });
 });

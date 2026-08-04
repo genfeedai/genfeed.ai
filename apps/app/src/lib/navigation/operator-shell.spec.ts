@@ -28,6 +28,32 @@ describe('operator-shell helpers', () => {
     );
   });
 
+  it('never rewrites global admin / product roots as org/brand modules', () => {
+    // Regression: segment[2] === "analytics" used to strip `/admin/overview`
+    // and force brand Analytics shell chrome on the platform admin analytics.
+    expect(normalizeProtectedPathname('/admin/overview/analytics/all')).toBe(
+      '/admin/overview/analytics/all',
+    );
+    expect(
+      normalizeProtectedPathname('/admin/overview/analytics/business'),
+    ).toBe('/admin/overview/analytics/business');
+    expect(normalizeProtectedPathname('/admin/overview/dashboard')).toBe(
+      '/admin/overview/dashboard',
+    );
+    expect(normalizeProtectedPathname('/admin/configuration/elements')).toBe(
+      '/admin/configuration/elements',
+    );
+    expect(normalizeProtectedPathname('/admin/automation/bots')).toBe(
+      '/admin/automation/bots',
+    );
+    expect(normalizeProtectedPathname('/analytics/overview')).toBe(
+      '/analytics/overview',
+    );
+    expect(normalizeProtectedPathname('/studio/storyboard')).toBe(
+      '/studio/storyboard',
+    );
+  });
+
   it('keeps the current brand-scoped path when switching brands', () => {
     expect(getCurrentBrandScopedPath('/acme/moonrise/workspace')).toBe(
       '/workspace',
@@ -56,6 +82,15 @@ describe('operator-shell helpers', () => {
       '/settings/brands',
     );
     expect(resolveOrganizationScopePath('/settings/agent-defaults')).toBe(
+      '/settings/brands',
+    );
+    expect(resolveOrganizationScopePath('/settings/social')).toBe(
+      '/settings/brands',
+    );
+    expect(resolveOrganizationScopePath('/settings/links')).toBe(
+      '/settings/brands',
+    );
+    expect(resolveOrganizationScopePath('/settings/kit')).toBe(
       '/settings/brands',
     );
     // Shared surfaces keep their path under org scope.
@@ -92,7 +127,7 @@ describe('operator-shell helpers', () => {
       '/settings',
       '/settings/organization',
       '/studio/storyboard',
-      '/discover/discovery',
+      '/discover/overview',
       '/publish',
       '/messages',
       '/admin',

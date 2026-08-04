@@ -15,7 +15,13 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { withSilentOperation } from '@hooks/utils/service-operation/service-operation.util';
 import { useFilteredData } from '@hooks/utils/use-filtered-data/use-filtered-data';
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+
+const EMPTY_ACTIVITIES: IActivity[] = [];
+
+function activityFilterFields(activity: IActivity): (string | undefined)[] {
+  return [activity.key];
+}
 
 export function useActivities({
   initialFilter = '',
@@ -46,6 +52,12 @@ export function useActivities({
     ActivitiesService.getInstance(token),
   );
 
+  // Platform-admin lists ignore brand/org scope — omit those ids from the key
+  // so brand-context hydration does not thrash the query while ids settle.
+  const scopeBrandId = scope === PageScope.SUPERADMIN ? null : brandId || null;
+  const scopeOrganizationId =
+    scope === PageScope.SUPERADMIN ? null : organizationId || null;
+
   const {
     data: activitiesData,
     error,
@@ -61,14 +73,14 @@ export function useActivities({
       hasAuthenticatedSession,
       isSuperAdmin,
       scope,
-      organizationId,
-      brandId,
+      scopeOrganizationId,
+      scopeBrandId,
       page,
       limit,
     ],
     queryFn: async () => {
       if (!autoLoad || !hasAuthenticatedSession) {
-        return [];
+        return EMPTY_ACTIVITIES;
       }
 
       let data: IActivity[] = [];
@@ -110,16 +122,18 @@ export function useActivities({
       return data;
     },
     enabled: autoLoad && isAuthReady && hasAuthenticatedSession,
+    // Avoid refetch storms when shell brand context remounts this page.
+    staleTime: 30_000,
   });
 
   const isRefreshing = isFetching && !isLoading;
 
-  const activities = useMemo(() => activitiesData ?? [], [activitiesData]);
+  const activities = activitiesData ?? EMPTY_ACTIVITIES;
 
   const filteredActivities = useFilteredData({
     data: activities,
     filter,
-    filterFields: (activity) => [activity.key],
+    filterFields: activityFilterFields,
   });
 
   const activityStats = useMemo(() => {
@@ -140,78 +154,94 @@ export function useActivities({
     return { statusCounts, todayCount, total };
   }, [activities]);
 
-  const patchActivities = async (activityIds: string[]) => {
-    if (activityIds.length === 0) {
-      return;
-    }
+  const patchActivities = useCallback(
+    async (activityIds: string[]) => {
+      if (activityIds.length === 0) {
+        return;
+      }
 
-    await withSilentOperation({
-      errorMessage: 'Failed to mark activities as read',
-      onSuccess: () => void refetch(),
-      operation: async () => {
-        const service = await getActivitiesService();
-        return service.bulkPatch({
-          ids: activityIds,
-          isRead: true,
-          type: 'activity-bulk-patch',
-        });
-      },
-      url: `PATCH /activities/bulk [${activityIds.length} activities]`,
-    });
-  };
+      await withSilentOperation({
+        errorMessage: 'Failed to mark activities as read',
+        onSuccess: () => void refetch(),
+        operation: async () => {
+          const service = await getActivitiesService();
+          return service.bulkPatch({
+            ids: activityIds,
+            isRead: true,
+            type: 'activity-bulk-patch',
+          });
+        },
+        url: `PATCH /activities/bulk [${activityIds.length} activities]`,
+      });
+    },
+    [getActivitiesService, refetch],
+  );
 
-  const clearCompletedActivities = async (activityIds: string[]) => {
-    if (activityIds.length === 0) {
-      return;
-    }
+  const clearCompletedActivities = useCallback(
+    async (activityIds: string[]) => {
+      if (activityIds.length === 0) {
+        return;
+      }
 
-    await withSilentOperation({
-      errorMessage: 'Failed to clear completed activities',
-      onSuccess: () => void refetch(),
-      operation: async () => {
-        const service = await getActivitiesService();
-        return service.bulkPatch({
-          ids: activityIds,
-          isDeleted: true,
-          isRead: true,
-          type: 'activity-bulk-patch',
-        });
-      },
-      url: `PATCH /activities/bulk [clear ${activityIds.length} completed]`,
-    });
-  };
+      await withSilentOperation({
+        errorMessage: 'Failed to clear completed activities',
+        onSuccess: () => void refetch(),
+        operation: async () => {
+          const service = await getActivitiesService();
+          return service.bulkPatch({
+            ids: activityIds,
+            isDeleted: true,
+            isRead: true,
+            type: 'activity-bulk-patch',
+          });
+        },
+        url: `PATCH /activities/bulk [clear ${activityIds.length} completed]`,
+      });
+    },
+    [getActivitiesService, refetch],
+  );
 
-  const markActivitiesAsRead = async (activityIds?: string[]) => {
-    let idsToMark: string[];
+  const markActivitiesAsRead = useCallback(
+    async (activityIds?: string[]) => {
+      let idsToMark: string[];
 
-    if (activityIds && activityIds.length > 0) {
-      idsToMark = activityIds;
-    } else {
-      idsToMark = activities.filter((a) => !a.isRead).map((a) => a.id);
-    }
+      if (activityIds && activityIds.length > 0) {
+        idsToMark = activityIds;
+      } else {
+        idsToMark = activities.filter((a) => !a.isRead).map((a) => a.id);
+      }
 
-    await patchActivities(idsToMark);
-  };
+      await patchActivities(idsToMark);
+    },
+    [activities, patchActivities],
+  );
 
-  const toggleActivityRead = async (activityId: string) => {
-    const activity = activities.find((a) => a.id === activityId);
-    if (!activity) {
-      return;
-    }
+  const toggleActivityRead = useCallback(
+    async (activityId: string) => {
+      const activity = activities.find((a) => a.id === activityId);
+      if (!activity) {
+        return;
+      }
 
-    await withSilentOperation({
-      errorMessage: 'Failed to update activity status',
-      onSuccess: () => void refetch(),
-      operation: async () => {
-        const service = await getActivitiesService();
-        return service.patch(activityId, {
-          id: activityId,
-          isRead: !activity.isRead,
-        });
-      },
-      url: `PATCH /activities/${activityId} [toggle read]`,
-    });
-  };
+      await withSilentOperation({
+        errorMessage: 'Failed to update activity status',
+        onSuccess: () => void refetch(),
+        operation: async () => {
+          const service = await getActivitiesService();
+          return service.patch(activityId, {
+            id: activityId,
+            isRead: !activity.isRead,
+          });
+        },
+        url: `PATCH /activities/${activityId} [toggle read]`,
+      });
+    },
+    [activities, getActivitiesService, refetch],
+  );
+
+  const refresh = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
   return {
     activities,
@@ -224,9 +254,7 @@ export function useActivities({
     isLoading,
     isRefreshing,
     markActivitiesAsRead,
-    refresh: async () => {
-      await refetch();
-    },
+    refresh,
     setFilter,
     toggleActivityRead,
   };

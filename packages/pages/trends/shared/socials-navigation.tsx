@@ -1,6 +1,5 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
 import type { TrendPlatform } from '@pages/trends/shared/trends-platforms';
 import Tabs from '@ui/navigation/tabs/Tabs';
 
@@ -8,11 +7,16 @@ export type SocialsNavigationBasePath = '/discover' | '/analytics/trends';
 
 interface SocialsNavigationItem {
   href: string;
-  id: 'overview' | 'following' | TrendPlatform;
+  id: 'overview' | TrendPlatform;
   label: string;
   matchMode?: 'exact';
 }
 
+/**
+ * Socials surface tabs only: Overview + per-platform feeds.
+ * Brand Following is a Discover sidebar peer (`/discover/following`), not a
+ * Socials sub-tab — keep this strip free of ops/source-management chrome.
+ */
 const PLATFORM_LABELS: Array<{
   id: 'overview' | TrendPlatform;
   label: string;
@@ -46,7 +50,7 @@ function buildPlatformHref(
 function buildSocialsNavItems(
   basePath: SocialsNavigationBasePath,
 ): SocialsNavigationItem[] {
-  const platformItems = PLATFORM_LABELS.map(({ id, label, matchMode }) => {
+  return PLATFORM_LABELS.map(({ id, label, matchMode }) => {
     const item: SocialsNavigationItem = {
       href:
         id === 'overview'
@@ -60,23 +64,9 @@ function buildSocialsNavItems(
     }
     return item;
   });
-
-  if (basePath !== '/discover') {
-    return platformItems;
-  }
-
-  return [
-    platformItems[0],
-    {
-      href: APP_ROUTES.DISCOVER.FOLLOWING,
-      id: 'following',
-      label: 'Following',
-    },
-    ...platformItems.slice(1),
-  ];
 }
 
-export type SocialsNavigationValue = 'overview' | 'following' | TrendPlatform;
+export type SocialsNavigationValue = 'overview' | TrendPlatform;
 
 export function SocialsNavigation({
   active,

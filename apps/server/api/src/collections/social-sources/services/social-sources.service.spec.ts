@@ -7,11 +7,7 @@ vi.mock('@genfeedai/prisma', async () => {
 
 import { SocialSourcesService } from '@api/collections/social-sources/services/social-sources.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import {
-  ReplyBotPlatform,
-  SocialContentType,
-  SocialSourcePlatform,
-} from '@genfeedai/enums';
+import { SocialSourcePlatform } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 describe('SocialSourcesService', () => {
@@ -26,8 +22,8 @@ describe('SocialSourcesService', () => {
     listByBrand: vi.fn(),
     upsertCollectedPosts: vi.fn(),
   };
-  const socialMonitorService = {
-    getUserTimeline: vi.fn(),
+  const sourceCollector = {
+    collectTimeline: vi.fn(),
   };
   const brand = {
     findFirst: vi.fn(),
@@ -51,7 +47,7 @@ describe('SocialSourcesService', () => {
       { brand, credential, socialSource } as unknown as PrismaService,
       logger,
       sourcePostsService as never,
-      socialMonitorService as never,
+      sourceCollector as never,
     );
   });
 
@@ -129,7 +125,7 @@ describe('SocialSourcesService', () => {
     expect(socialSource.create).not.toHaveBeenCalled();
   });
 
-  it('syncs a source through SocialMonitorService and stores normalized posts', async () => {
+  it('syncs a source through SourceCollectorService and stores normalized posts', async () => {
     socialSource.findFirst.mockResolvedValue({
       brandId: 'brand-1',
       handle: 'openai',
@@ -138,21 +134,26 @@ describe('SocialSourcesService', () => {
       platform: SocialSourcePlatform.TWITTER,
       userId: 'user-1',
     });
-    socialMonitorService.getUserTimeline.mockResolvedValue([
-      {
-        authorDisplayName: 'OpenAI',
-        authorId: 'author-1',
-        authorUsername: 'openai',
-        contentType: SocialContentType.TWEET,
-        contentUrl: 'https://x.com/openai/status/1',
-        createdAt: new Date('2026-07-08T10:00:00Z'),
-        id: 'tweet-1',
-        mediaUrls: ['https://cdn.example.com/image.jpg'],
-        metrics: { comments: 1, likes: 20 },
-        platform: ReplyBotPlatform.TWITTER,
-        text: 'AI source post',
-      },
-    ]);
+    sourceCollector.collectTimeline.mockResolvedValue({
+      handle: 'openai',
+      platform: SocialSourcePlatform.TWITTER,
+      posts: [
+        {
+          authorDisplayName: 'OpenAI',
+          authorId: 'author-1',
+          authorUsername: 'openai',
+          contentType: 'tweet',
+          contentUrl: 'https://x.com/openai/status/1',
+          createdAt: new Date('2026-07-08T10:00:00Z'),
+          id: 'tweet-1',
+          mediaUrls: ['https://cdn.example.com/image.jpg'],
+          metrics: { comments: 1, likes: 20 },
+          platform: SocialSourcePlatform.TWITTER,
+          text: 'AI source post',
+        },
+      ],
+      provider: 'app-bearer',
+    });
     sourcePostsService.upsertCollectedPosts.mockResolvedValue([
       { id: 'post-1' },
     ]);
@@ -163,10 +164,17 @@ describe('SocialSourcesService', () => {
       organizationId: 'org-1',
     });
 
-    expect(socialMonitorService.getUserTimeline).toHaveBeenCalledWith(
-      ReplyBotPlatform.TWITTER,
+    expect(sourceCollector.collectTimeline).toHaveBeenCalledWith(
+      SocialSourcePlatform.TWITTER,
       'openai',
-      { limit: 25, sinceId: undefined },
+      {
+        brandId: 'brand-1',
+        includeReplies: true,
+        includeReposts: false,
+        limit: 25,
+        organizationId: 'org-1',
+        sinceId: undefined,
+      },
     );
     expect(sourcePostsService.upsertCollectedPosts).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'source-1' }),
@@ -191,7 +199,7 @@ describe('SocialSourcesService', () => {
       platform: SocialSourcePlatform.TWITTER,
       userId: 'user-1',
     });
-    socialMonitorService.getUserTimeline.mockRejectedValue(
+    sourceCollector.collectTimeline.mockRejectedValue(
       new Error('provider unavailable'),
     );
     socialSource.update.mockResolvedValue({ id: 'source-1' });

@@ -1,8 +1,10 @@
-import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import AdminDashboardPage from '@protected/overview/dashboard/page';
+import { APP_ROUTES } from '@genfeedai/constants';
+import { permanentRedirect } from 'next/navigation';
 
-export const generateMetadata = createPageMetadata('Platform Admin');
-
-export default async function PlatformAdminPage() {
-  return <AdminDashboardPage />;
+/**
+ * Bare `/admin` is not a complete path — Overview siblings live under
+ * `/admin/overview/*`. Send logo/legacy deep links to the dashboard page.
+ */
+export default function PlatformAdminIndexPage() {
+  permanentRedirect(APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD);
 }

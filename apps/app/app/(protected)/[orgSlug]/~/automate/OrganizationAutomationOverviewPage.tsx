@@ -34,7 +34,7 @@ const AUTOMATION_SURFACES = [
   {
     icon: ChartLine,
     label: 'Analytics',
-    path: APP_ROUTES.AUTOMATE.ANALYTICS,
+    path: APP_ROUTES.ANALYTICS.OVERVIEW,
   },
 ] as const;
 

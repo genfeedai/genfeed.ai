@@ -1,8 +1,15 @@
 'use client';
 
 import { MODEL_KEYS } from '@genfeedai/constants';
-import { AlertCategory, AssetCategory, AssetScope } from '@genfeedai/enums';
+import {
+  AlertCategory,
+  AssetCategory,
+  AssetScope,
+  ModalEnum,
+} from '@genfeedai/enums';
 import { isPublicAssetScope } from '@genfeedai/helpers';
+import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import type { ILink } from '@genfeedai/interfaces';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import BrandDetailBanner from '@pages/brands/components/banner/BrandDetailBanner';
@@ -11,18 +18,21 @@ import BrandDetailOverview from '@pages/brands/components/overview/BrandDetailOv
 import { EnvironmentService } from '@services/core/environment.service';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
-import { LazyModalBrandGenerate } from '@ui/lazy/modal/LazyModal';
+import {
+  LazyModalBrandGenerate,
+  LazyModalBrandLink,
+} from '@ui/lazy/modal/LazyModal';
 import Loading from '@ui/loading/default/Loading';
 import { useParams } from 'next/navigation';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import BrandDetailLatestArticles from './BrandDetailLatestArticles';
 import BrandDetailLatestImages from './BrandDetailLatestImages';
 import BrandDetailLatestVideos from './BrandDetailLatestVideos';
 
 /**
  * Brand public profile surface — banner, logo, name/description, visibility,
- * social summary, and latest public content. Full Social & Links management
- * lives at /settings/social. Kit / voice / publishing / agent config in nav.
+ * external links (inline + modal), and latest public content.
+ * OAuth accounts live on /settings/social.
  */
 export default function BrandDetail() {
   const {
@@ -34,6 +44,7 @@ export default function BrandDetail() {
     images,
     articles,
     links,
+    selectedLink,
     isGeneratingBanner,
     isGeneratingLogo,
     isUpdating,
@@ -47,6 +58,7 @@ export default function BrandDetail() {
     handleRefreshBrand,
     generateModalType,
     setGenerateModalType,
+    selectLink,
   } = useBrandDetail();
 
   const params = useParams();
@@ -57,6 +69,19 @@ export default function BrandDetail() {
     orgSlug && brandSlug
       ? `/${orgSlug}/${brandSlug}/settings/social`
       : '/settings/social';
+
+  const handleOpenLinkModal = useCallback(
+    (link?: ILink) => {
+      selectLink(link ?? null);
+      openModal(ModalEnum.BRAND_LINK);
+    },
+    [selectLink],
+  );
+
+  const handleLinkConfirm = useCallback(async () => {
+    selectLink(null);
+    await handleRefreshBrand(true);
+  }, [handleRefreshBrand, selectLink]);
 
   const { imageModels } = useElements();
 
@@ -152,7 +177,7 @@ export default function BrandDetail() {
             onRefreshBrand={async () => {
               await handleRefreshBrand(true);
             }}
-            onOpenLinkModal={() => undefined}
+            onOpenLinkModal={handleOpenLinkModal}
             onUploadBanner={() => handleOpenUploadModal(AssetCategory.BANNER)}
             onUploadLogo={() => handleOpenUploadModal(AssetCategory.LOGO)}
             onUploadReference={() =>
@@ -168,6 +193,12 @@ export default function BrandDetail() {
         cost={generateCost}
         brandId={brandId}
         onConfirm={handleGenerateConfirm}
+      />
+
+      <LazyModalBrandLink
+        brandId={brandId}
+        link={selectedLink}
+        onConfirm={handleLinkConfirm}
       />
     </Container>
   );

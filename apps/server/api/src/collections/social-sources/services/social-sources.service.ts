@@ -9,14 +9,10 @@ import type {
 import type { SourcePostDocument } from '@api/collections/source-posts/schemas/source-post.schema';
 import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import type { SocialContentData } from '@api/services/reply-bot/social-monitor.service';
-import { SocialMonitorService } from '@api/services/reply-bot/social-monitor.service';
+import { SourceCollectorService } from '@api/services/source-collector/source-collector.service';
+import type { CollectedSourcePost } from '@api/services/source-collector/source-collector.types';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import {
-  ReplyBotPlatform,
-  SocialSourcePlatform,
-  SocialSourceType,
-} from '@genfeedai/enums';
+import { SocialSourcePlatform, SocialSourceType } from '@genfeedai/enums';
 import type { SocialSourceValidationResult } from '@genfeedai/interfaces';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
@@ -40,7 +36,7 @@ export class SocialSourcesService {
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly sourcePostsService: SourcePostsService,
-    private readonly socialMonitorService: SocialMonitorService,
+    private readonly sourceCollector: SourceCollectorService,
   ) {}
 
   async createScoped(
@@ -229,27 +225,49 @@ export class SocialSourcesService {
   ): Promise<SocialSourceValidationResult> {
     const platform = normalizePlatform(platformInput);
     const handle = normalizeHandle(platform, handleInput);
-    const posts = await this.socialMonitorService.getUserTimeline(
-      toReplyBotPlatform(platform),
-      handle,
-      { limit: 1 },
-    );
+    try {
+      // Following validates with replies included so reply-heavy accounts still match.
+      const collected = await this.sourceCollector.collectTimeline(
+        platform,
+        handle,
+        {
+          includeReplies: true,
+          includeReposts: false,
+          limit: 3,
+        },
+      );
 
-    if (!posts.length) {
-      return { error: 'Source not found or has no recent posts', valid: false };
+      if (!collected.posts.length) {
+        return {
+          error: 'Source not found or has no recent posts',
+          valid: false,
+        };
+      }
+
+      const firstPost = collected.posts[0];
+      return {
+        avatarUrl: firstPost.authorAvatarUrl,
+        displayName: firstPost.authorDisplayName,
+        externalId: firstPost.authorId,
+        followersCount: firstPost.authorFollowersCount,
+        handle: firstPost.authorUsername || handle,
+        platform,
+        profileUrl: buildProfileUrl(
+          platform,
+          firstPost.authorUsername || handle,
+        ),
+        valid: true,
+      };
+    } catch (error: unknown) {
+      const message =
+        (error as Error)?.message ?? 'Failed to look up social source';
+      this.logger.error('Social source validate failed', {
+        error: message,
+        handle,
+        platform,
+      });
+      return { error: message, valid: false };
     }
-
-    const firstPost = posts[0];
-    return {
-      avatarUrl: firstPost.authorAvatarUrl,
-      displayName: firstPost.authorDisplayName,
-      externalId: firstPost.authorId,
-      followersCount: firstPost.authorFollowersCount,
-      handle: firstPost.authorUsername || handle,
-      platform,
-      profileUrl: buildProfileUrl(platform, firstPost.authorUsername || handle),
-      valid: true,
-    };
   }
 
   async syncSource(
@@ -277,9 +295,9 @@ export class SocialSourcesService {
     for (const source of sources) {
       try {
         results.push(await this.syncResolvedSource(source, options));
-      } catch {
+      } catch (error: unknown) {
         failures.push({
-          error: 'Source sync failed',
+          error: (error as Error)?.message ?? 'Source sync failed',
           sourceId: source.id,
         });
       }
@@ -297,22 +315,33 @@ export class SocialSourcesService {
     options: { limit?: number },
   ): Promise<SocialSourceSyncDocumentResult> {
     try {
-      const content = await this.socialMonitorService.getUserTimeline(
-        toReplyBotPlatform(source.platform),
+      // Following wants originals + replies; pure RTs stay out by default.
+      // SourceCollector: brand OAuth → app bearer → Apify (per platform).
+      const collected = await this.sourceCollector.collectTimeline(
+        normalizePlatform(source.platform),
         source.handle,
         {
+          brandId: source.brandId,
+          includeReplies: true,
+          includeReposts: false,
           limit: Math.min(100, Math.max(1, options.limit ?? 25)),
+          organizationId: source.organizationId,
           sinceId: source.lastPostExternalId ?? undefined,
         },
       );
-      const normalizedPosts = content.map((item) =>
-        normalizeSourceContent(source, item),
+      this.logger.log('Social source collected', {
+        count: collected.posts.length,
+        provider: collected.provider,
+        sourceId: source.id,
+      });
+      const normalizedPosts = collected.posts.map((item) =>
+        normalizeCollectedPost(source, item),
       );
       const posts = await this.sourcePostsService.upsertCollectedPosts(
         source,
         normalizedPosts,
       );
-      const latestPost = content[0];
+      const latestPost = collected.posts[0];
       const updatedSource = await this.prisma.socialSource.update({
         data: {
           avatarUrl: latestPost?.authorAvatarUrl ?? source.avatarUrl,
@@ -324,8 +353,11 @@ export class SocialSourcesService {
           followersCount:
             latestPost?.authorFollowersCount ?? source.followersCount,
           lastPostExternalId: latestPost?.id ?? source.lastPostExternalId,
-          lastSyncError: null,
-          lastSyncStatus: 'success',
+          lastSyncError:
+            posts.length === 0
+              ? 'Sync completed but no posts were collected'
+              : null,
+          lastSyncStatus: posts.length === 0 ? 'empty' : 'success',
           lastSyncedAt: new Date(),
           profileUrl: buildProfileUrl(
             source.platform,
@@ -497,19 +529,6 @@ function buildProfileUrl(platform: string, handle: string): string {
   }
 }
 
-function toReplyBotPlatform(platform: string): ReplyBotPlatform {
-  switch (platform) {
-    case SocialSourcePlatform.INSTAGRAM:
-      return ReplyBotPlatform.INSTAGRAM;
-    case SocialSourcePlatform.TIKTOK:
-      return ReplyBotPlatform.TIKTOK;
-    case SocialSourcePlatform.TWITTER:
-      return ReplyBotPlatform.TWITTER;
-    default:
-      throw new BadRequestException(`Unsupported source platform: ${platform}`);
-  }
-}
-
 function toCredentialPlatform(
   platform: SocialSourcePlatform,
 ): PrismaCredentialPlatform {
@@ -523,9 +542,9 @@ function toCredentialPlatform(
   }
 }
 
-function normalizeSourceContent(
+function normalizeCollectedPost(
   source: SocialSourceDocument,
-  item: SocialContentData,
+  item: CollectedSourcePost,
 ) {
   return {
     authorAvatarUrl: item.authorAvatarUrl ?? null,
@@ -534,7 +553,7 @@ function normalizeSourceContent(
     authorHandle: item.authorUsername,
     authorId: item.authorId,
     brandId: source.brandId,
-    contentType: item.contentType,
+    contentType: item.contentType ?? 'post',
     externalId: item.id,
     hashtags: item.hashtags ?? [],
     mediaUrls: item.mediaUrls ?? [],

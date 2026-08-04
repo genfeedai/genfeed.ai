@@ -84,13 +84,39 @@ describe('error-handler.util', () => {
       expect(getErrorStatus(error)).toBe(404);
     });
 
-    it('should return undefined for non-axios error', () => {
+    it('should return undefined for plain Error without status', () => {
       expect(getErrorStatus(new Error('test'))).toBeUndefined();
     });
 
     it('should return undefined when response is missing', () => {
       const error = { isAxiosError: true };
       expect(getErrorStatus(error)).toBeUndefined();
+    });
+
+    it('should read status from interceptor-sanitized Error objects', () => {
+      const error = Object.assign(new Error('Request failed'), { status: 404 });
+      expect(getErrorStatus(error)).toBe(404);
+    });
+
+    it('should read status from JSON:API documents thrown in development', () => {
+      // HTTP interceptor rethrows response.data in dev — not an AxiosError.
+      expect(
+        getErrorStatus({
+          errors: [
+            {
+              code: '404',
+              detail: "EditorProjectsController foo doesn't exist",
+              title: 'EditorProjectsController not found',
+            },
+          ],
+        }),
+      ).toBe(404);
+
+      expect(
+        getErrorStatus({
+          errors: [{ code: 403, detail: 'nope', title: 'Forbidden' }],
+        }),
+      ).toBe(403);
     });
   });
 

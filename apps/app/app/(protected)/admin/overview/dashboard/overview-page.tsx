@@ -7,21 +7,13 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAdminStats } from '@hooks/data/analytics/use-admin-stats/use-admin-stats';
 import type { KPICardProps } from '@props/ui/kpi/kpi-card.props';
 import Card from '@ui/card/Card';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
+import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
-import {
-  Building2,
-  ChartColumn,
-  Clock,
-  Cpu,
-  CreditCard,
-  Newspaper,
-  Sparkles,
-  Tag,
-  Users,
-} from 'lucide-react';
+import { Building2, CreditCard, Newspaper, Tag, Users } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 
@@ -201,32 +193,26 @@ interface StatsGridProps {
 function StatsGrid({ stats, isLoading }: StatsGridProps) {
   const statsItems = [
     {
-      icon: Sparkles,
       label: 'Active Brands',
       value: formatNumber(stats.totalBrands || 0),
     },
     {
-      icon: Clock,
       label: 'Pending Posts',
       value: formatNumber(stats.pendingPosts || 0),
     },
     {
-      icon: ChartColumn,
       label: 'Active Workflows',
       value: formatNumber(stats.activeWorkflows || 0),
     },
     {
-      icon: Cpu,
       label: 'Running Bots',
       value: formatNumber(stats.activeBots || 0),
     },
     {
-      icon: Cpu,
       label: 'AI Models',
       value: formatNumber(stats.totalModels || 0),
     },
     {
-      icon: Clock,
       label: 'Recent Activities',
       value: formatNumber(stats.recentActivities || 0),
     },
@@ -239,31 +225,17 @@ function StatsGrid({ stats, isLoading }: StatsGridProps) {
       tone="muted"
       data-testid="admin-overview-stats"
     >
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {statsItems.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={stat.label}
-              className="rounded bg-secondary shadow-border p-4 transition-colors hover:bg-hover"
-            >
-              <div className="text-white/30 mb-3">
-                <Icon className="size-5" />
-              </div>
-              <div className="text-2xl font-bold">
-                {isLoading ? (
-                  <div className="h-7 w-12 bg-muted animate-pulse" />
-                ) : (
-                  stat.value
-                )}
-              </div>
-              <div className="text-white/40 text-[10px] uppercase tracking-widest mt-1">
-                {stat.label}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <MetricCardGrid columns={6}>
+        {statsItems.map((stat) => (
+          <MetricCard
+            key={stat.label}
+            isLoading={isLoading}
+            label={stat.label}
+            size="sm"
+            value={stat.value}
+          />
+        ))}
+      </MetricCardGrid>
     </WorkspaceSurface>
   );
 }
@@ -308,10 +280,6 @@ function QuickActionsGrid() {
   );
 }
 
-function GradientDivider() {
-  return <div className="h-px bg-border my-8" />;
-}
-
 export default function OverviewPage() {
   const { stats, leaderboard, timeseries, isLoading } = useAdminStats();
 
@@ -345,46 +313,36 @@ export default function OverviewPage() {
     },
   ];
 
+  // Breadcrumb owns identity (Admin / Dashboard). No second page title,
+  // no hr dividers, no page-only dots — stack surfaces like workspace home.
   return (
-    <Container
-      label="Overview"
-      description="Control platform operations and user management"
-      icon={ChartColumn}
-      className="bg-dots-subtle"
-    >
-      {/* KPI Section */}
-      <KPISection
-        items={kpiItems}
-        gridCols={{ desktop: 4, mobile: 1, tablet: 2 }}
-        className="mt-6"
-        isLoading={isLoading}
-      />
+    <Container label="Dashboard" titleVisibility="sr-only">
+      <div className="flex w-full flex-col gap-5">
+        <KPISection
+          items={kpiItems}
+          gridCols={{ desktop: 4, mobile: 1, tablet: 2 }}
+          className="mb-0"
+          isLoading={isLoading}
+        />
 
-      <GradientDivider />
+        <StatsGrid
+          stats={{
+            activeBots: stats?.activeBots || 0,
+            activeWorkflows: stats?.activeWorkflows || 0,
+            pendingPosts: stats?.pendingPosts || 0,
+            recentActivities: stats?.recentActivities || 0,
+            totalBrands: stats?.totalBrands || 0,
+            totalModels: stats?.totalModels || 0,
+          }}
+          isLoading={isLoading}
+        />
 
-      {/* Stats Grid */}
-      <StatsGrid
-        stats={{
-          activeBots: stats?.activeBots || 0,
-          activeWorkflows: stats?.activeWorkflows || 0,
-          pendingPosts: stats?.pendingPosts || 0,
-          recentActivities: stats?.recentActivities || 0,
-          totalBrands: stats?.totalBrands || 0,
-          totalModels: stats?.totalModels || 0,
-        }}
-        isLoading={isLoading}
-      />
+        <QuickActionsGrid />
 
-      <GradientDivider />
-
-      <QuickActionsGrid />
-
-      <GradientDivider />
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <ActivityChart data={timeseries} isLoading={isLoading} />
-        <LeaderboardCard data={leaderboard} isLoading={isLoading} />
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <ActivityChart data={timeseries} isLoading={isLoading} />
+          <LeaderboardCard data={leaderboard} isLoading={isLoading} />
+        </div>
       </div>
     </Container>
   );
