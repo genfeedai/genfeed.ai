@@ -37,7 +37,7 @@ const toMetadataCreateData = (body: Record<string, unknown>) => ({
       ? body.label
       : 'Generated media',
   model: body.model,
-  prompt: body.prompt,
+  promptId: body.prompt,
   promptTemplate: body.promptTemplate,
   resolution: body.resolution,
   result: body.result,
@@ -75,7 +75,7 @@ export class SharedService {
 
     const metadataData = (await this.metadataService.create({
       ...toMetadataCreateData(body),
-      ...(promptId ? { prompt: promptId } : {}),
+      ...(promptId ? { promptId } : {}),
     } as CreateMetadataDto)) as { id: string };
 
     let version = 1;
@@ -127,7 +127,7 @@ export class SharedService {
   }) {
     const metadataData = (await this.metadataService.create({
       ...toMetadataCreateData(body),
-      ...(body.prompt ? { prompt: body.prompt } : {}),
+      ...(body.prompt ? { promptId: body.prompt } : {}),
     } as unknown as CreateMetadataDto)) as { id: string };
 
     let version = 1;
