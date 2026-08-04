@@ -622,7 +622,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'sound:ElementSound': ['category', 'isActive', 'isDefault', 'organization'],
   'style:ElementStyle': ['category', 'isFavorite', 'models'],
   'agent-run:AgentRun': [],
-  'asset:Asset': [],
+  'asset:Asset': ['cdnUrl'],
   'bookmark:Bookmark': [],
   'brand-memory:BrandMemory': [],
   'content-draft:ContentDraft': [],

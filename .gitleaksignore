@@ -23,6 +23,3 @@ a148c21c6aa16eae60af9ba885fff060edbe97b5:apps/app/app/(protected)/[orgSlug]/~/co
 a148c21c6aa16eae60af9ba885fff060edbe97b5:apps/app/app/(protected)/[orgSlug]/~/connect/connect-genfeed-flow.test.tsx:genfeedai-api-key:241
 a148c21c6aa16eae60af9ba885fff060edbe97b5:apps/app/app/(protected)/[orgSlug]/~/connect/connect-genfeed-flow.test.tsx:genfeedai-api-key:267
 a148c21c6aa16eae60af9ba885fff060edbe97b5:apps/app/app/(protected)/[orgSlug]/~/connect/connect-genfeed-flow.test.tsx:genfeedai-api-key:297
-
-# PR #2350 false positive: test fixture model id (key: 'replicate/flux')
-8db0fe760247d09e5185462b07940f19dcd3195b:packages/agent/src/components/AgentModelSelector.spec.tsx:generic-api-key:115

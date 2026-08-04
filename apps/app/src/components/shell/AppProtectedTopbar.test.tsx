@@ -27,11 +27,21 @@ vi.mock('@genfeedai/enums', () => ({
 }));
 
 vi.mock('@genfeedai/constants', () => ({
+  APP_ROUTE_PREFIXES: {
+    ADMIN: '/admin',
+    SETTINGS: '/settings',
+    WORKSPACE: '/workspace',
+  },
   APP_ROUTES: {
+    CONNECT: '/connect',
+    LOGIN: '/login',
+    LOGOUT: '/logout',
+    OAUTH: '/oauth',
     SETTINGS: {
       BRANDS: '/settings/brands',
       PUBLISHING: '/settings/publishing',
     },
+    SIGN_UP: '/signup',
     WORKSPACE: {
       OVERVIEW: '/workspace/overview',
     },
@@ -419,7 +429,7 @@ describe('AppProtectedTopbar', () => {
     expect(screen.getByText('Launch plan')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back to task' })).toHaveAttribute(
       'href',
-      '/workspace?taskId=task-1',
+      '/workspace/overview?taskId=task-1',
     );
   });
 

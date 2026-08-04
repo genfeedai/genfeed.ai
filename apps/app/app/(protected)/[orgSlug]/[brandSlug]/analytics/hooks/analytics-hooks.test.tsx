@@ -5,6 +5,12 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsHooks from './analytics-hooks';
 
+class MockIntersectionObserver {
+  disconnect() {}
+  observe() {}
+  unobserve() {}
+}
+
 function analyticsHooksTree(brandId?: string) {
   return (
     <AnalyticsProvider>
@@ -236,6 +242,7 @@ function hookResponse() {
 
 describe('AnalyticsHooks', () => {
   beforeEach(() => {
+    vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
     vi.clearAllMocks();
     mocks.organizationId = 'org-1';
     mocks.getViralHooks.mockResolvedValue(hookResponse());
