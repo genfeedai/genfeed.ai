@@ -46,6 +46,15 @@ type AgentRailTab = 'chat' | 'outputs';
 
 const AGENT_PANEL_TAB_STORAGE_KEY = 'genfeed:agent-panel:tab';
 
+const AGENT_PANEL_OUTPUTS_CONTENT = (
+  <AgentOutputsPanel
+    mode="compact"
+    emptyTitle="No outputs in this thread"
+    emptyDescription="As the agent generates copy, images, or media, they will appear here."
+    className="h-full"
+  />
+);
+
 function readPersistedPanelTab(): AgentRailTab {
   if (
     typeof window === 'undefined' ||
@@ -278,15 +287,6 @@ export function AgentPanel({
     />
   );
 
-  const outputsContent = (
-    <AgentOutputsPanel
-      mode="compact"
-      emptyTitle="No outputs in this thread"
-      emptyDescription="As the agent generates copy, images, or media, they will appear here."
-      className="h-full"
-    />
-  );
-
   return (
     <AgentPanelShell
       isOpen={isOpen}
@@ -309,7 +309,7 @@ export function AgentPanel({
       }
       subtitle="Terminal, runtime routing, and generated outputs"
       chatContent={terminalContent}
-      outputsContent={outputsContent}
+      outputsContent={AGENT_PANEL_OUTPUTS_CONTENT}
     />
   );
 }

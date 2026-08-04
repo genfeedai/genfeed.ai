@@ -115,12 +115,17 @@ function DynamicChart({ block }: DynamicChartProps): ReactElement {
             outerRadius={80}
             label
           >
-            {data.map((item, index) => (
-              <Cell
-                key={`cell-${String(item[xKey] ?? index)}`}
-                fill={DEFAULT_COLORS[index % DEFAULT_COLORS.length]}
-              />
-            ))}
+            {data.map((item, index) => {
+              const name = item[xKey];
+              const value = item[dataKey];
+              const cellKey = `cell-${String(name ?? '')}-${String(value ?? '')}`;
+              return (
+                <Cell
+                  key={cellKey}
+                  fill={DEFAULT_COLORS[index % DEFAULT_COLORS.length]}
+                />
+              );
+            })}
           </Pie>
           <Tooltip
             contentStyle={{

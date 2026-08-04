@@ -1,6 +1,17 @@
+import { AgentComposerModeControl } from '@genfeedai/agent/components/AgentComposerModeControl';
 import { AgentModelSelector } from '@genfeedai/agent/components/AgentModelSelector';
+import {
+  type ComposerMode,
+  isGenerationComposerMode,
+} from '@genfeedai/agent/constants/composer-mode.constant';
 import { CONVERSATION_COMPOSER_ACTIONS } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
 import type { ConversationComposerActionName } from '@genfeedai/agent/models/conversation-composer.model';
+import type { GenerationModel } from '@genfeedai/agent/services/agent-api.service';
+import {
+  mapGenerationModelsToSelectorOptions,
+  resolveGenerationModelSelection,
+  toGenerationSelectorSelectedKey,
+} from '@genfeedai/agent/utils/composer-generation-models.util';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
@@ -15,20 +26,27 @@ import {
   type ChangeEvent,
   memo,
   type ReactElement,
+  useMemo,
   useRef,
   useState,
 } from 'react';
 
 export interface AgentChatInputToolbarProps {
   canSendMessage: boolean;
+  composerMode: ComposerMode;
   creditsAvailable?: number | null;
   disabled: boolean | undefined;
+  generationModelKey: string | null;
+  generationModels: GenerationModel[];
   hasEditor: boolean;
+  isGenerationModelsLoading?: boolean;
   isListening: boolean;
   isTranscribing: boolean;
   isUploading: boolean;
   onAddFiles?: (files: File[]) => void;
   onBuyCredits?: () => void;
+  onComposerModeChange: (mode: ComposerMode) => void;
+  onGenerationModelChange: (modelKey: string | null) => void;
   onInsertReference: () => void;
   onModelChange?: (model: string) => void;
   onSelectAction: (actionName: ConversationComposerActionName) => void;
@@ -45,14 +63,20 @@ export interface AgentChatInputToolbarProps {
 
 function AgentChatInputToolbarInner({
   canSendMessage,
+  composerMode,
   creditsAvailable = null,
   disabled,
+  generationModelKey,
+  generationModels,
   hasEditor,
+  isGenerationModelsLoading = false,
   isListening,
   isTranscribing,
   isUploading,
   onAddFiles,
   onBuyCredits,
+  onComposerModeChange,
+  onGenerationModelChange,
   onInsertReference,
   onModelChange,
   onSelectAction,
@@ -69,7 +93,52 @@ function AgentChatInputToolbarInner({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const isCompact = density === 'compact';
-  const showModelSelector = Boolean(selectedModel && onModelChange);
+  const isGenerationMode = isGenerationComposerMode(composerMode);
+
+  // ONE model chip. Mode swaps its catalog — never mount two selectors.
+  const generationSelectorModels = useMemo(
+    () => mapGenerationModelsToSelectorOptions(generationModels),
+    [generationModels],
+  );
+
+  const modelSelector = (() => {
+    const isBusy = Boolean(
+      disabled || showStop || isUploading || isTranscribing,
+    );
+
+    if (isGenerationMode) {
+      return (
+        <AgentModelSelector
+          ariaLabel="Select generation model"
+          creditsAvailable={null}
+          density={isCompact ? 'compact' : 'default'}
+          isDisabled={isBusy}
+          isLoading={isGenerationModelsLoading}
+          models={generationSelectorModels}
+          onModelChange={(modelKey) => {
+            onGenerationModelChange(resolveGenerationModelSelection(modelKey));
+          }}
+          selectedModel={toGenerationSelectorSelectedKey(generationModelKey)}
+        />
+      );
+    }
+
+    if (!selectedModel || !onModelChange) {
+      return null;
+    }
+
+    return (
+      <AgentModelSelector
+        ariaLabel="Select model"
+        creditsAvailable={creditsAvailable}
+        density={isCompact ? 'compact' : 'default'}
+        isDisabled={isBusy}
+        onBuyCredits={onBuyCredits}
+        onModelChange={onModelChange}
+        selectedModel={selectedModel}
+      />
+    );
+  })();
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>): void {
     const files = Array.from(event.target.files ?? []);
@@ -92,6 +161,14 @@ function AgentChatInputToolbarInner({
       )}
     >
       <div className="flex min-w-0 shrink items-center gap-0.5">
+        {/* Extreme left: mode owns modality. */}
+        <AgentComposerModeControl
+          density={isCompact ? 'compact' : 'default'}
+          isDisabled={Boolean(disabled || showStop || isUploading)}
+          mode={composerMode}
+          onModeChange={onComposerModeChange}
+        />
+
         {onAddFiles ? (
           <>
             <Input
@@ -179,18 +256,7 @@ function AgentChatInputToolbarInner({
       </div>
 
       <div className="flex min-w-0 shrink items-center justify-end gap-1">
-        {showModelSelector && selectedModel && onModelChange ? (
-          <AgentModelSelector
-            selectedModel={selectedModel}
-            onModelChange={onModelChange}
-            creditsAvailable={creditsAvailable}
-            onBuyCredits={onBuyCredits}
-            density={isCompact ? 'compact' : 'default'}
-            isDisabled={Boolean(
-              disabled || showStop || isUploading || isTranscribing,
-            )}
-          />
-        ) : null}
+        {modelSelector}
 
         {showStop && onStop ? (
           <Button

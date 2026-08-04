@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface UseAnimatedTextOptions {
   animate?: boolean;
@@ -14,50 +14,34 @@ export function useAnimatedText(
   isAnimating: boolean;
 } {
   const { animate = true, charsPerTick = 6, intervalMs = 12 } = options;
-  const previousTextRef = useRef(text);
   const [visibleChars, setVisibleChars] = useState(animate ? 0 : text.length);
+  const [trackedText, setTrackedText] = useState(text);
 
-  useEffect(() => {
+  // Adjust during render when the source string changes — no ref, no effect flash.
+  if (text !== trackedText) {
+    setTrackedText(text);
     if (!animate) {
-      previousTextRef.current = text;
       setVisibleChars(text.length);
-      return;
+    } else if (!text.startsWith(trackedText)) {
+      setVisibleChars(0);
+    } else if (visibleChars > text.length) {
+      setVisibleChars(text.length);
     }
-
-    const previousText = previousTextRef.current;
-    previousTextRef.current = text;
-
-    if (text === previousText) {
-      return;
-    }
-
-    setVisibleChars((current) => {
-      if (!text.startsWith(previousText)) {
-        return 0;
-      }
-
-      return Math.min(current, text.length);
-    });
-  }, [animate, text]);
+  } else if (!animate && visibleChars !== text.length) {
+    setVisibleChars(text.length);
+  }
 
   useEffect(() => {
-    if (!animate) {
-      return;
-    }
-
-    if (visibleChars >= text.length) {
+    if (!animate || visibleChars >= text.length) {
       return;
     }
 
     const timer = window.setInterval(() => {
-      setVisibleChars((current) => {
-        if (current >= text.length) {
-          window.clearInterval(timer);
-          return current;
-        }
-
-        return Math.min(text.length, current + charsPerTick);
-      });
+      setVisibleChars((current) =>
+        current >= text.length
+          ? current
+          : Math.min(text.length, current + charsPerTick),
+      );
     }, intervalMs);
 
     return () => window.clearInterval(timer);

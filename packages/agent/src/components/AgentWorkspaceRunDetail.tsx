@@ -215,24 +215,29 @@ function AgentRunSteps({ run }: { run: AgentRunSummary }): ReactElement {
     <AgentRunDetailSection id={`agent-run-${run.id}-steps`} title="Steps">
       {run.steps?.length ? (
         <ol className="mt-2 space-y-2">
-          {run.steps.map((step, index) => (
-            <li
-              className="border-l-2 border-border pl-3 text-sm"
-              key={step.id ?? `${run.id}-step-${index}`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-medium text-foreground">
-                  {step.label || `Step ${index + 1}`}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {formatRunStatus(step.status)}
-                </span>
-              </div>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {formatRunDuration(step.durationMs)}
-              </p>
-            </li>
-          ))}
+          {run.steps.map((step, index) => {
+            const stepKey =
+              step.id ||
+              `${run.id}:${step.label || 'step'}:${step.status || 'unknown'}:${String(step.durationMs ?? '')}:${step.startedAt ?? ''}`;
+            return (
+              <li
+                className="border-l-2 border-border pl-3 text-sm"
+                key={stepKey}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium text-foreground">
+                    {step.label || `Step ${index + 1}`}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {formatRunStatus(step.status)}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {formatRunDuration(step.durationMs)}
+                </p>
+              </li>
+            );
+          })}
         </ol>
       ) : (
         <p className="mt-2 text-sm text-muted-foreground">

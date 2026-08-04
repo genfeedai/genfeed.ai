@@ -65,20 +65,23 @@ export function useAgentSetupStatus(): AgentSetupStatus {
     [selectedBrand],
   );
 
-  const connectedConnections = useMemo<AgentSetupConnection[]>(
-    () =>
-      credentials
-        .filter((credential: ICredential) => credential.isConnected === true)
-        .map((credential: ICredential) => ({
-          avatarUrl: credential.externalAvatar,
-          credentialId: credential.id,
-          handle: credential.externalHandle,
-          label: credential.label,
-          name: credential.externalName,
-          platform: credential.platform,
-        })),
-    [credentials],
-  );
+  const connectedConnections = useMemo<AgentSetupConnection[]>(() => {
+    const next: AgentSetupConnection[] = [];
+    for (const credential of credentials as ICredential[]) {
+      if (credential.isConnected !== true) {
+        continue;
+      }
+      next.push({
+        avatarUrl: credential.externalAvatar,
+        credentialId: credential.id,
+        handle: credential.externalHandle,
+        label: credential.label,
+        name: credential.externalName,
+        platform: credential.platform,
+      });
+    }
+    return next;
+  }, [credentials]);
 
   const connectedPlatformsCount = connectedConnections.length;
   const hasConnectedChannels = connectedPlatformsCount > 0;

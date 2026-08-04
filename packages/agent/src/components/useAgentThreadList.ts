@@ -110,14 +110,14 @@ export function useAgentThreadList({
       const matchesBrandScope = (thread: {
         brandId?: string | null;
       }): boolean => !brandId || thread.brandId === brandId;
-      const renderableData = data
-        .filter(hasRenderableThreadId)
-        .filter(matchesBrandScope);
+      const renderableData = data.filter(
+        (thread) => hasRenderableThreadId(thread) && matchesBrandScope(thread),
+      );
       const { threads: current, activeThreadId: currentActiveId } =
         useAgentChatStore.getState();
-      const renderableCurrent = current
-        .filter(hasRenderableThreadId)
-        .filter(matchesBrandScope);
+      const renderableCurrent = current.filter(
+        (thread) => hasRenderableThreadId(thread) && matchesBrandScope(thread),
+      );
       const apiIds = new Set(renderableData.map((item) => item.id));
 
       const activeThread =
@@ -167,16 +167,16 @@ export function useAgentThreadList({
 
   // Brand scope change must drop the previous brand's list immediately so we
   // never show foreign conversations while the next fetch is in flight.
-  const prevBrandIdRef = useRef(brandId);
-  useEffect(() => {
-    if (prevBrandIdRef.current === brandId) {
-      return;
-    }
-    prevBrandIdRef.current = brandId;
+  // Adjust during render (no effect flash of the wrong brand's threads).
+  const [scopedBrandId, setScopedBrandId] = useState(brandId);
+  if (scopedBrandId !== brandId) {
+    setScopedBrandId(brandId);
     setThreads([]);
     setIsLoading(true);
-  }, [brandId, setThreads]);
+  }
 
+  // Retry uses effect-scoped setTimeout; cleanup clears it + aborts in-flight fetch.
+  // react-doctor-disable-next-line react-doctor/effect-needs-cleanup
   useEffect(() => {
     if (!isActive) {
       abortRef.current?.abort();
@@ -185,10 +185,30 @@ export function useAgentThreadList({
     }
 
     let isDisposed = false;
-    let retryTimeout: ReturnType<typeof setTimeout> | null = null;
+    let retryTimeoutId: ReturnType<typeof setTimeout> | undefined;
     let retryCount = 0;
 
-    const run = async () => {
+    const clearRetryTimeout = (): void => {
+      if (retryTimeoutId !== undefined) {
+        clearTimeout(retryTimeoutId);
+        retryTimeoutId = undefined;
+      }
+    };
+
+    const scheduleRetry = (): void => {
+      clearRetryTimeout();
+      if (isDisposed || retryCount >= 3) {
+        return;
+      }
+      retryCount += 1;
+      const delayMs = retryCount * 1000;
+      retryTimeoutId = setTimeout(() => {
+        retryTimeoutId = undefined;
+        void run();
+      }, delayMs);
+    };
+
+    const run = async (): Promise<void> => {
       if (isDisposed) {
         return;
       }
@@ -198,23 +218,14 @@ export function useAgentThreadList({
         return;
       }
 
-      if (retryCount >= 3) {
-        return;
-      }
-
-      retryCount += 1;
-      retryTimeout = setTimeout(() => {
-        run().catch(() => undefined);
-      }, retryCount * 1000);
+      scheduleRetry();
     };
 
-    run().catch(() => undefined);
+    void run();
 
     return () => {
       isDisposed = true;
-      if (retryTimeout) {
-        clearTimeout(retryTimeout);
-      }
+      clearRetryTimeout();
       abortRef.current?.abort();
     };
   }, [isActive, loadThreads]);

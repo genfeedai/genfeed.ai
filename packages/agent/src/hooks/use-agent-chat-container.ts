@@ -1,12 +1,8 @@
 import type { ExtractedMention } from '@genfeedai/agent/components/AgentChatInput';
-import { AGENT_REFRESH_CONVERSATIONS_EVENT } from '@genfeedai/agent/components/AgentThreadList';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
+import { handleAgentUiAction } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
 import { useAgentChat } from '@genfeedai/agent/hooks/use-agent-chat';
 import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
-import {
-  AGENT_DRAFT_SUGGESTION_EVENT,
-  type AgentDraftSuggestionPayload,
-} from '@genfeedai/agent/hooks/use-agent-draft-context';
 import type {
   AgentChatMessage as AgentChatMessageType,
   AgentWorkEvent,
@@ -26,11 +22,8 @@ import {
   readConversationComposerDraft,
   writeConversationComposerAttachments,
 } from '@genfeedai/agent/stores/conversation-composer-draft.store';
-import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
 import { deriveTimeline } from '@genfeedai/agent/utils/derive-timeline';
-import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
 import { resolveRetryPrompt } from '@genfeedai/agent/utils/resolve-retry-prompt';
-import { AgentThreadStatus } from '@genfeedai/enums';
 import type {
   AttachmentItem,
   ChatAttachment,
@@ -341,6 +334,8 @@ export function useAgentChatContainer({
         artifactReferences: options?.artifactReferences,
         attachments,
         ...(options?.brandId ? { brandId: options.brandId } : {}),
+        composerMode: options?.composerMode,
+        generationModelKey: options?.generationModelKey,
         planModeEnabled: options?.planModeEnabled ?? false,
       });
     },
@@ -501,183 +496,25 @@ export function useAgentChatContainer({
 
   const handleUiAction = useCallback(
     async (action: string, payload?: Record<string, unknown>) => {
-      if (isReadOnly) {
-        setError('Archived threads are read-only.');
-        return;
-      }
-
-      if (action === 'send_prompt') {
-        const prompt =
-          typeof payload?.prompt === 'string' ? payload.prompt.trim() : '';
-
-        if (!prompt) {
-          setError('No follow-up prompt is available for this action.');
-          return;
-        }
-
-        followLatestTurn('smooth');
-        void sendMessage(prompt);
-        return;
-      }
-
-      if (action === 'apply_to_draft') {
-        const text = typeof payload?.text === 'string' ? payload.text : '';
-
-        if (!text.trim()) {
-          setError('No generated text is available for this action.');
-          return;
-        }
-
-        if (typeof window === 'undefined') {
-          setError('Draft updates are only available in the browser.');
-          return;
-        }
-
-        const pageContext = useAgentChatStore.getState().pageContext;
-        const event = new CustomEvent<AgentDraftSuggestionPayload>(
-          AGENT_DRAFT_SUGGESTION_EVENT,
-          {
-            cancelable: true,
-            detail: {
-              mode: pageContext?.selectedText ? 'replace-selection' : 'append',
-              selectedText: pageContext?.selectedText,
-              sourceAction:
-                typeof payload?.sourceAction === 'string'
-                  ? payload.sourceAction
-                  : undefined,
-              text,
-            },
-          },
-        );
-
-        const wasHandled = !window.dispatchEvent(event);
-
-        if (!wasHandled) {
-          setError('Open a writing surface before applying text to a draft.');
-          return;
-        }
-
-        setError(null);
-        return;
-      }
-
-      if (!activeThreadId) {
-        setError('No active thread selected.');
-        return;
-      }
-
-      if (isBusy || activeUiAction) {
-        setError('A UI action is already in progress.');
-        return;
-      }
-
-      setActiveUiAction(action);
-      setError(null);
-
-      try {
-        const currentThread = threads.find(
-          (thread) => thread.id === activeThreadId,
-        );
-        const response = await runAgentApiEffect(
-          apiService.respondToUiActionEffect(
-            activeThreadId,
-            action,
-            payload,
-            undefined,
-            {
-              brandId: currentThread?.brandId ?? null,
-              expectedContextVersion: currentThread?.contextVersion,
-            },
-          ),
-        );
-
-        if (response.threadId !== activeThreadId) {
-          setActiveThread(response.threadId);
-        }
-
-        const now = new Date().toISOString();
-        const existingThread = threads.find(
-          (thread) => thread.id === response.threadId,
-        );
-
-        upsertThread({
-          brandId: response.brandId,
-          createdAt: existingThread?.createdAt ?? now,
-          contextVersion: response.contextVersion,
-          id: response.threadId,
-          planModeEnabled:
-            existingThread?.planModeEnabled ?? draftPlanModeEnabled,
-          status: AgentThreadStatus.ACTIVE,
-          title: existingThread?.title ?? 'Agent thread',
-          updatedAt: now,
-        });
-
-        if (typeof window !== 'undefined') {
-          setTimeout(() => {
-            window.dispatchEvent(new Event(AGENT_REFRESH_CONVERSATIONS_EVENT));
-          }, 2000);
-        }
-
-        setCreditsRemaining(response.creditsRemaining);
-
-        addMessage({
-          content: response.message.content,
-          createdAt: new Date().toISOString(),
-          id: `assistant-${Date.now()}`,
-          metadata: {
-            toolCalls: response.toolCalls.map(mapToolCallResponse),
-            ...response.message.metadata,
-          },
-          role: 'assistant',
-          threadId: response.threadId,
-        });
-        const returnedPlan = response.message.metadata?.proposedPlan as
-          | typeof latestProposedPlan
-          | undefined;
-        setLatestProposedPlan(
-          returnedPlan ??
-            (action === 'approve_plan' && latestProposedPlan
-              ? {
-                  ...latestProposedPlan,
-                  approvedAt: new Date().toISOString(),
-                  awaitingApproval: false,
-                  lastReviewAction: 'approve',
-                  status: 'approved',
-                }
-              : null),
-        );
-
-        const metadata = response.message.metadata;
-        const uiBlocksState =
-          metadata?.uiBlocks &&
-          typeof metadata.uiBlocks === 'object' &&
-          !Array.isArray(metadata.uiBlocks)
-            ? (metadata.uiBlocks as Record<string, unknown>)
-            : null;
-        const dashboardOperation =
-          typeof metadata?.dashboardOperation === 'string'
-            ? metadata.dashboardOperation
-            : typeof uiBlocksState?.operation === 'string'
-              ? uiBlocksState.operation
-              : undefined;
-        const dashboardPayload =
-          uiBlocksState?.blocks ??
-          (uiBlocksState?.components ? uiBlocksState : undefined);
-
-        if (dashboardOperation) {
-          applyDashboardOperation(
-            dashboardOperation,
-            dashboardPayload,
-            uiBlocksState?.blockIds,
-          );
-        }
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to respond to UI action',
-        );
-      } finally {
-        setActiveUiAction(null);
-      }
+      await handleAgentUiAction(action, payload, {
+        activeThreadId,
+        activeUiAction,
+        addMessage,
+        apiService,
+        draftPlanModeEnabled,
+        followLatestTurn,
+        isBusy,
+        isReadOnly,
+        latestProposedPlan,
+        sendMessage,
+        setActiveThread,
+        setActiveUiAction,
+        setCreditsRemaining,
+        setError,
+        setLatestProposedPlan,
+        threads,
+        upsertThread,
+      });
     },
     [
       activeThreadId,
@@ -777,7 +614,7 @@ export function useAgentChatContainer({
     return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Scroll-to-bottom when thread load completes
+  // Scroll-to-bottom when thread load completes (imperative DOM, not derived UI).
   useEffect(() => {
     if (
       wasLoadingThreadRef.current &&
@@ -785,6 +622,7 @@ export function useAgentChatContainer({
       messages.length > 0
     ) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change
       setIsAtBottom(true);
     }
 

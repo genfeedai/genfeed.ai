@@ -8,7 +8,6 @@ import {
   type ReactElement,
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -25,6 +24,8 @@ interface VoiceCloneCardProps {
 
 type CardStatus = 'idle' | 'uploading' | 'cloning' | 'done' | 'error';
 
+const EMPTY_EXISTING_VOICES: NonNullable<AgentUiAction['existingVoices']> = [];
+
 export function VoiceCloneCard({
   action,
   apiService,
@@ -40,18 +41,13 @@ export function VoiceCloneCard({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isReady, subscribe } = useSocketManager();
 
-  const existingVoices = useMemo(
-    () => action.existingVoices ?? [],
-    [action.existingVoices],
-  );
+  const existingVoices = action.existingVoices ?? EMPTY_EXISTING_VOICES;
   const canUseExisting = action.canUseExisting ?? existingVoices.length > 0;
   const canUpload = action.canUpload ?? true;
 
-  useEffect(() => {
-    if (!selectedVoiceId && action.recommendedVoiceId) {
-      setSelectedVoiceId(action.recommendedVoiceId);
-    }
-  }, [action.recommendedVoiceId, selectedVoiceId]);
+  // Prefer explicit selection; fall back to recommended without an effect.
+  const effectiveSelectedVoiceId =
+    selectedVoiceId || action.recommendedVoiceId || '';
 
   useEffect(() => {
     if (!isReady || !activeVoiceId) {
@@ -152,7 +148,7 @@ export function VoiceCloneCard({
   }, []);
 
   const handleUseExisting = useCallback(async () => {
-    if (!selectedVoiceId) {
+    if (!effectiveSelectedVoiceId) {
       setError('Select a voice first.');
       return;
     }
@@ -168,7 +164,7 @@ export function VoiceCloneCard({
     try {
       await runAgentApiEffect(
         apiService.setBrandVoiceDefaultsEffect(action.brandId, {
-          defaultVoiceId: selectedVoiceId,
+          defaultVoiceId: effectiveSelectedVoiceId,
         }),
       );
       setStatus('done');
@@ -180,7 +176,7 @@ export function VoiceCloneCard({
           : 'Failed to set default voice for this brand.',
       );
     }
-  }, [action.brandId, apiService, selectedVoiceId]);
+  }, [action.brandId, apiService, effectiveSelectedVoiceId]);
 
   const handleClone = useCallback(async () => {
     if (!file) {
@@ -262,7 +258,7 @@ export function VoiceCloneCard({
       {canUseExisting && (
         <VoiceCloneExistingVoiceSelector
           existingVoices={existingVoices}
-          selectedVoiceId={selectedVoiceId}
+          selectedVoiceId={effectiveSelectedVoiceId}
           status={status}
           onValueChange={(value) => setSelectedVoiceId(value)}
           onUseExisting={handleUseExisting}

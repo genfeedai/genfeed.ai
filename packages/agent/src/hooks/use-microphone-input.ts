@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 
 interface UseMicrophoneInputOptions {
   apiBaseUrl: string;
@@ -15,6 +15,18 @@ interface UseMicrophoneInputReturn {
   stopListening: () => void;
 }
 
+function subscribeMediaSupport(): () => void {
+  return () => undefined;
+}
+
+function getMediaSupportSnapshot(): boolean {
+  return Boolean(navigator.mediaDevices?.getUserMedia);
+}
+
+function getMediaSupportServerSnapshot(): boolean {
+  return false;
+}
+
 export function useMicrophoneInput({
   apiBaseUrl,
   getToken,
@@ -25,11 +37,11 @@ export function useMicrophoneInput({
   const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const [isSupported, setIsSupported] = useState(false);
-
-  useEffect(() => {
-    setIsSupported(!!navigator.mediaDevices?.getUserMedia);
-  }, []);
+  const isSupported = useSyncExternalStore(
+    subscribeMediaSupport,
+    getMediaSupportSnapshot,
+    getMediaSupportServerSnapshot,
+  );
 
   const stopListening = useCallback(() => {
     if (
@@ -55,7 +67,9 @@ export function useMicrophoneInput({
       };
 
       mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
+        for (const track of stream.getTracks()) {
+          track.stop();
+        }
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
 
         setIsTranscribing(true);

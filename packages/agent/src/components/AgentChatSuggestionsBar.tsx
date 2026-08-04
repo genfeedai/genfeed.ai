@@ -22,16 +22,20 @@ export function AgentChatSuggestionsBar({
   isReadOnly,
   onSend,
 }: AgentChatSuggestionsBarProps): ReactElement | null {
-  const normalized = useMemo(
-    () =>
-      suggestedActions
-        .filter((action) => !isPlanModeSuggestion(action))
-        .map((action, index) => ({
-          ...action,
-          id: action.id ?? `suggested-action-${index}-${action.label}`,
-        })),
-    [suggestedActions],
-  );
+  const normalized = useMemo(() => {
+    const next: Array<SuggestedAction & { id: string }> = [];
+    for (let index = 0; index < suggestedActions.length; index += 1) {
+      const action = suggestedActions[index];
+      if (!action || isPlanModeSuggestion(action)) {
+        continue;
+      }
+      next.push({
+        ...action,
+        id: action.id ?? `suggested-action-${index}-${action.label}`,
+      });
+    }
+    return next;
+  }, [suggestedActions]);
 
   if (normalized.length === 0) {
     return null;

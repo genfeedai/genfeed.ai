@@ -32,9 +32,13 @@ export function WorkflowExecuteCardInputsForm({
         const label = field.label ?? key;
         const value = formValues[key];
 
+        const fieldId = `workflow-input-${key}`;
         return (
           <div key={key}>
-            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            <label
+              className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+              htmlFor={fieldId}
+            >
               {label}
               {field.required ? ' *' : ''}
             </label>
@@ -46,6 +50,7 @@ export function WorkflowExecuteCardInputsForm({
             {field.type === 'boolean' ? (
               <label className="flex items-center gap-2 border border-border px-2.5 py-2 text-sm text-foreground">
                 <Checkbox
+                  id={fieldId}
                   isChecked={Boolean(value)}
                   onChange={(event) => onChange(key, event.target.checked)}
                 />
@@ -57,7 +62,7 @@ export function WorkflowExecuteCardInputsForm({
                 value={typeof value === 'string' ? value : ''}
                 onValueChange={(val) => onChange(key, val)}
               >
-                <SelectTrigger>
+                <SelectTrigger id={fieldId}>
                   <SelectValue
                     placeholder={
                       !field.required ? 'Optional' : `Select ${label}`
@@ -77,6 +82,7 @@ export function WorkflowExecuteCardInputsForm({
               </Select>
             ) : field.type === 'number' ? (
               <Input
+                id={fieldId}
                 type="number"
                 value={
                   typeof value === 'number' || typeof value === 'string'
@@ -88,6 +94,7 @@ export function WorkflowExecuteCardInputsForm({
             ) : field.type === 'text' &&
               key.toLowerCase().includes('script') ? (
               <Textarea
+                id={fieldId}
                 rows={3}
                 value={typeof value === 'string' ? value : ''}
                 onChange={onTextChange(key)}
@@ -95,6 +102,7 @@ export function WorkflowExecuteCardInputsForm({
               />
             ) : (
               <Input
+                id={fieldId}
                 type="text"
                 value={typeof value === 'string' ? value : ''}
                 onChange={onTextChange(key)}

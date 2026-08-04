@@ -28,11 +28,69 @@ export function AgentChatMessageFooter({
   onRetry,
   onRemember,
 }: AgentChatMessageFooterProps): ReactElement | null {
+  const showUserActions = isUser && Boolean(onCopy || onRetry);
+  const showAssistantActions = !isUser && shouldShowAssistantActions;
   // Assistant duration lives on TimelineWorkGroup *after* the answer.
-  // Footer is actions-only for assistant (plus wall-clock for user bubbles).
-  if (!isUser && !shouldShowAssistantActions) {
+  // User footer: wall-clock + copy/retry. Assistant footer: actions only.
+  if (
+    !showUserActions &&
+    !showAssistantActions &&
+    !(isUser && metaItems.length)
+  ) {
     return null;
   }
+
+  const actionButtons = (
+    <div
+      className={cn(
+        'flex items-center gap-1',
+        // User actions always visible; assistant stays hover-reveal on sm+.
+        isUser
+          ? 'opacity-100'
+          : 'opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100',
+      )}
+    >
+      {onCopy ? (
+        <Button
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.XS}
+          isDisabled={isBusy || copyContent.length === 0}
+          tooltip="Copy"
+          tooltipPosition="top"
+          ariaLabel="Copy message"
+          onClick={() => onCopy(copyContent)}
+        >
+          <Clipboard className="size-3.5" />
+        </Button>
+      ) : null}
+      {onRetry ? (
+        <Button
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.XS}
+          isDisabled={isBusy}
+          tooltip="Retry"
+          tooltipPosition="top"
+          ariaLabel="Retry message"
+          onClick={() => onRetry(message)}
+        >
+          <RefreshCw className="size-3.5" />
+        </Button>
+      ) : null}
+      {!isUser && onRemember ? (
+        <Button
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.XS}
+          isDisabled={isBusy}
+          tooltip="Remember this message"
+          tooltipPosition="top"
+          ariaLabel="Remember message"
+          onClick={() => onRemember(message)}
+        >
+          <Sparkles className="size-3.5 text-purple-300" />
+        </Button>
+      ) : null}
+    </div>
+  );
 
   return (
     <div
@@ -42,7 +100,7 @@ export function AgentChatMessageFooter({
       )}
     >
       {isUser ? (
-        <div className="flex items-center gap-1.5 text-foreground/38">
+        <div className="flex min-w-0 items-center gap-1.5 text-foreground/38">
           {metaItems.map((item, index) => (
             <span key={`${item}-${index}`} className="inline-flex items-center">
               {index > 0 ? (
@@ -55,48 +113,9 @@ export function AgentChatMessageFooter({
       ) : (
         <div />
       )}
-      {!isUser && shouldShowAssistantActions ? (
-        <div className="ml-auto flex items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
-          {onCopy ? (
-            <Button
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.XS}
-              isDisabled={isBusy || copyContent.length === 0}
-              tooltip="Copy"
-              tooltipPosition="top"
-              ariaLabel="Copy message"
-              onClick={() => onCopy(copyContent)}
-            >
-              <Clipboard className="size-3.5" />
-            </Button>
-          ) : null}
-          {onRetry ? (
-            <Button
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.XS}
-              isDisabled={isBusy}
-              tooltip="Retry"
-              tooltipPosition="top"
-              ariaLabel="Retry message"
-              onClick={() => onRetry(message)}
-            >
-              <RefreshCw className="size-3.5" />
-            </Button>
-          ) : null}
-          {onRemember ? (
-            <Button
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.XS}
-              isDisabled={isBusy}
-              tooltip="Remember this message"
-              tooltipPosition="top"
-              ariaLabel="Remember message"
-              onClick={() => onRemember(message)}
-            >
-              <Sparkles className="size-3.5 text-purple-300" />
-            </Button>
-          ) : null}
-        </div>
+
+      {showUserActions || showAssistantActions ? (
+        <div className="ml-auto shrink-0">{actionButtons}</div>
       ) : null}
     </div>
   );

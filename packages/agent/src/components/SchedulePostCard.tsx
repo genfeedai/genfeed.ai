@@ -25,7 +25,7 @@ export function SchedulePostCard({
   const suggestedPlatforms = action.platforms ?? [];
   const [dateTime, setDateTime] = useState(action.scheduledAt ?? '');
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(
-    new Set(suggestedPlatforms),
+    () => new Set(suggestedPlatforms),
   );
   const [isScheduled, setIsScheduled] = useState(false);
 

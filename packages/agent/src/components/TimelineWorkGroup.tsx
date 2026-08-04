@@ -60,13 +60,15 @@ export function TimelineWorkGroup({
   const [isExpanded, setIsExpanded] = useState(
     !isCollapsible && entry.presentation === 'live',
   );
+  const [wasCollapsible, setWasCollapsible] = useState(isCollapsible);
 
-  // Keep expand state in sync when a live group settles.
-  useEffect(() => {
-    if (isCollapsible) {
+  // When a live group settles, collapse without an effect flash.
+  if (wasCollapsible !== isCollapsible) {
+    setWasCollapsible(isCollapsible);
+    if (isCollapsible && isExpanded) {
       setIsExpanded(false);
     }
-  }, [isCollapsible]);
+  }
 
   const liveElapsedLabel = useLiveElapsedLabel(entry.createdAt, !isTerminal);
   const settledDurationLabel = formatDurationMs(entry.totalDurationMs);
@@ -111,13 +113,21 @@ export function TimelineWorkGroup({
     >
       <div className="flex min-w-0 items-center gap-1.5 text-xs text-foreground/55">
         <Clock className="size-3.5 shrink-0 text-foreground/40" />
+        {/* Duration is neutral runtime — only status / failure use semantic color */}
         <span className="font-medium text-foreground/70">{durationPhrase}</span>
         {isTerminal ? (
           <>
             <span aria-hidden="true" className="text-foreground/25">
               ·
             </span>
-            <span className="inline-flex items-center gap-1 text-[11px] text-foreground/45">
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 text-[11px]',
+                terminalStatus === 'failed'
+                  ? 'font-medium text-destructive'
+                  : 'text-foreground/45',
+              )}
+            >
               {terminalStatus === 'failed' ? (
                 <CircleAlert className="size-3.5 text-destructive" />
               ) : (
@@ -151,7 +161,7 @@ export function TimelineWorkGroup({
             <span aria-hidden="true" className="text-foreground/25">
               ·
             </span>
-            <span className="truncate text-[11px] text-foreground/40">
+            <span className="truncate text-[11px] text-foreground/45">
               {failureDetail}
             </span>
           </>
@@ -172,11 +182,7 @@ export function TimelineWorkGroup({
     <div className="mb-3 mt-0.5 flex justify-start motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out">
       <div
         className={cn(
-          'w-full max-w-none rounded-md px-0.5 py-0.5',
-          // Hairline only — no elevated card competing with free-text answers
-          terminalStatus === 'failed'
-            ? 'border border-destructive/25 bg-destructive/[0.04] px-1.5 py-1'
-            : 'border border-transparent hover:border-border/40',
+          'w-full max-w-none rounded-md border border-transparent px-0.5 py-0.5 hover:border-border/40',
         )}
         data-testid="timeline-work-group"
       >

@@ -1,3 +1,7 @@
+import {
+  buildComposerModeInstruction,
+  type ComposerMode,
+} from '@genfeedai/agent/constants/composer-mode.constant';
 import type { AgentPageContext as AgentRequestPageContext } from '@genfeedai/agent/models/agent-chat.model';
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 
@@ -5,6 +9,34 @@ export interface AgentPageContextState extends AgentRequestPageContext {
   placeholder?: string;
   route: string;
   suggestedActions: SuggestedAction[];
+}
+
+export function mergeComposerModeIntoPageContext(
+  base: AgentRequestPageContext | undefined,
+  composerMode?: ComposerMode,
+  generationModelKey?: string | null,
+): AgentRequestPageContext | undefined {
+  if (!composerMode || composerMode === 'chat') {
+    return base;
+  }
+
+  const modeInstruction = buildComposerModeInstruction(
+    composerMode,
+    generationModelKey ?? null,
+  );
+  if (!modeInstruction) {
+    return base;
+  }
+
+  const draftInstructions = [base?.draftInstructions, modeInstruction]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .join('\n');
+
+  return {
+    ...base,
+    contentFormat: composerMode,
+    draftInstructions,
+  };
 }
 
 function hasContextValue(value: string | undefined): value is string {

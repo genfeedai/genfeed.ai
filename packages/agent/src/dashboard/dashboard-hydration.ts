@@ -17,6 +17,9 @@ import type {
 } from '@genfeedai/interfaces';
 
 const DASHBOARD_OPENUI_VERSION = 'genfeed.dashboard.openui.v1' as const;
+const COMPACT_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
+  notation: 'compact',
+});
 
 /**
  * Live analytics bundle a persisted layout is hydrated against at render time.
@@ -292,9 +295,7 @@ function resolveMetricValue(
     return `${value.toFixed(2)}%`;
   }
   if (format === 'compact') {
-    return new Intl.NumberFormat('en-US', { notation: 'compact' }).format(
-      value,
-    );
+    return COMPACT_NUMBER_FORMATTER.format(value);
   }
   return value;
 }

@@ -1,84 +1,42 @@
 'use client';
 
 import { DEFAULT_RUNTIME_AGENT_MODEL } from '@genfeedai/agent/constants/agent-runtime-model.constant';
+import { resolveStreamFromMessages as resolveStreamFromMessagesFn } from '@genfeedai/agent/hooks/agent-chat-stream.completion';
+import {
+  collectAssistantMessageIds,
+  flushBufferedEventsForThread,
+} from '@genfeedai/agent/hooks/agent-chat-stream.helpers';
+import { restoreThreadFromSnapshot as restoreThreadFromSnapshotFn } from '@genfeedai/agent/hooks/agent-chat-stream.restore';
+import { attachAgentStreamSubscriptions } from '@genfeedai/agent/hooks/agent-chat-stream.subscriptions';
+import type {
+  BufferedThreadEvent,
+  PendingStreamCompletion,
+  SendStreamMessageOptions,
+  UseAgentChatStreamOptions,
+  UseAgentChatStreamReturn,
+} from '@genfeedai/agent/hooks/agent-chat-stream.types';
+import { STREAM_COMPLETION_POLL_INTERVAL_MS } from '@genfeedai/agent/hooks/agent-chat-stream.types';
 import type {
   AgentChatMessage,
-  AgentInputRequestPayload,
-  AgentInputResolvedPayload,
-  AgentStreamDonePayload,
-  AgentStreamErrorPayload,
-  AgentStreamReasoningPayload,
-  AgentStreamStartPayload,
-  AgentStreamTokenPayload,
-  AgentStreamToolCompletePayload,
-  AgentStreamToolStartPayload,
-  AgentStreamUIBlocksPayload,
   AgentThread,
-  AgentWorkEventPayload,
 } from '@genfeedai/agent/models/agent-chat.model';
-import {
-  AgentWorkEventStatus,
-  AgentWorkEventType,
-} from '@genfeedai/agent/models/agent-chat.model';
-import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { toAgentRequestPageContext } from '@genfeedai/agent/utils/agent-page-context.util';
 import {
-  buildThreadSummaryFromSnapshot,
-  mapSnapshotPendingInputRequest,
-  mapSnapshotRunStatus,
-  mapSnapshotWorkEvents,
-} from '@genfeedai/agent/utils/agent-thread-snapshot.util';
+  mergeComposerModeIntoPageContext,
+  toAgentRequestPageContext,
+} from '@genfeedai/agent/utils/agent-page-context.util';
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
 import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
 import { AgentThreadStatus } from '@genfeedai/enums';
-import type { AgentArtifactReference } from '@genfeedai/interfaces';
-import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { useCallback, useEffect, useRef } from 'react';
 
-interface UseAgentChatStreamOptions {
-  apiService: AgentApiService;
-  model?: string;
-  onOnboardingCompleted?: () => void | Promise<void>;
-}
-
-interface SendStreamMessageOptions {
-  artifactReferences?: AgentArtifactReference[];
-  forceNewThread?: boolean;
-  source?: 'agent' | 'proactive' | 'onboarding';
-  signal?: AbortSignal;
-  attachments?: ChatAttachment[];
-  brandId?: string;
-  planModeEnabled?: boolean;
-}
-
-interface UseAgentChatStreamReturn {
-  sendMessage: (
-    content: string,
-    options?: SendStreamMessageOptions,
-  ) => Promise<void>;
-  clearChat: () => void;
-  isStreaming: boolean;
-}
-
-interface BufferedThreadEvent {
-  threadId?: string;
-  data: unknown;
-  handler: (data: unknown) => void;
-}
-
-interface PendingStreamCompletion {
-  initiatedAt: number;
-  preAssistantIds: Set<string>;
-  runId: string | null;
-  startedAt: string | null;
-  threadId: string;
-}
-
-const STREAM_COMPLETION_POLL_INTERVAL_MS = 10_000;
-const STREAM_COMPLETION_GRACE_PERIOD_MS = 90_000;
+export type {
+  SendStreamMessageOptions,
+  UseAgentChatStreamOptions,
+  UseAgentChatStreamReturn,
+} from '@genfeedai/agent/hooks/agent-chat-stream.types';
 
 export function useAgentChatStream(
   options: UseAgentChatStreamOptions,
@@ -156,18 +114,10 @@ export function useAgentChatStream(
   }, []);
 
   const flushBufferedEvents = useCallback((threadId: string) => {
-    const remainingEvents: BufferedThreadEvent[] = [];
-
-    for (const event of bufferedEventsRef.current) {
-      if (event.threadId === threadId) {
-        event.handler(event.data);
-        continue;
-      }
-
-      remainingEvents.push(event);
-    }
-
-    bufferedEventsRef.current = remainingEvents;
+    bufferedEventsRef.current = flushBufferedEventsForThread(
+      bufferedEventsRef.current,
+      threadId,
+    );
   }, []);
 
   useEffect(() => {
@@ -225,56 +175,26 @@ export function useAgentChatStream(
 
   const restoreThreadFromSnapshot = useCallback(
     async (threadId: string) => {
-      const [snapshot, messages] = await Promise.all([
-        runAgentApiEffect(apiService.getThreadSnapshotEffect(threadId)),
-        runAgentApiEffect(
-          apiService.getMessagesEffect(threadId, { limit: 100 }),
-        ),
-      ]);
-
-      const state = useAgentChatStore.getState();
-      const existingThread = state.threads.find(
-        (thread) => thread.id === threadId,
-      );
-      const isVisible = state.activeThreadId === threadId;
-
-      updateThreadSummary(threadId, {
-        ...buildThreadSummaryFromSnapshot(snapshot, {
-          existingThread,
-          isVisible,
-        }),
+      await restoreThreadFromSnapshotFn(threadId, {
+        apiService,
+        clearCompletionWatchdog,
+        clearPendingCompletionIfThread: (id) => {
+          if (pendingCompletionRef.current?.threadId === id) {
+            pendingCompletionRef.current = null;
+            clearCompletionWatchdog();
+          }
+        },
+        clearPendingInputRequest,
+        resetStreamState,
+        setActiveRun,
+        setError,
+        setLatestProposedPlan,
+        setMessages,
+        setPendingInputRequest,
+        setRunStartedAt,
+        setWorkEvents,
+        updateThreadSummary,
       });
-
-      if (
-        !snapshot.activeRun &&
-        pendingCompletionRef.current?.threadId === threadId
-      ) {
-        pendingCompletionRef.current = null;
-        clearCompletionWatchdog();
-      }
-
-      if (!isVisible) {
-        return;
-      }
-
-      const pendingInputRequest = mapSnapshotPendingInputRequest(snapshot);
-
-      setMessages(messages);
-      setLatestProposedPlan(snapshot.latestProposedPlan ?? null);
-      setPendingInputRequest(pendingInputRequest);
-      setWorkEvents(mapSnapshotWorkEvents(snapshot));
-      setActiveRun(snapshot.activeRun?.runId ?? null, {
-        startedAt: snapshot.activeRun?.startedAt ?? null,
-        status: mapSnapshotRunStatus(snapshot.activeRun?.status),
-      });
-      setRunStartedAt(snapshot.activeRun?.startedAt ?? null);
-
-      if (!snapshot.activeRun && !pendingInputRequest) {
-        resetStreamState();
-        clearPendingInputRequest();
-      }
-
-      setError(null);
     },
     [
       apiService,
@@ -376,7 +296,11 @@ export function useAgentChatStream(
 
       try {
         const resolvedModel = model?.trim() || DEFAULT_RUNTIME_AGENT_MODEL;
-        const requestPageContext = toAgentRequestPageContext(pageContext);
+        const requestPageContext = mergeComposerModeIntoPageContext(
+          toAgentRequestPageContext(pageContext),
+          sendOptions?.composerMode,
+          sendOptions?.generationModelKey,
+        );
         const currentThread = useAgentChatStore
           .getState()
           .threads.find((item) => item.id === threadIdOverride);
@@ -505,83 +429,27 @@ export function useAgentChatStream(
 
   const resolveStreamFromMessages = useCallback(
     async (pending: PendingStreamCompletion) => {
-      const hasExceededGracePeriod =
-        Date.now() - pending.initiatedAt >= STREAM_COMPLETION_GRACE_PERIOD_MS;
-
-      try {
-        const messages = await runAgentApiEffect(
-          apiService.getMessagesEffect(pending.threadId, {
-            limit: 100,
-          }),
-        );
-
-        const recoveredAssistantMessage = [...messages]
-          .reverse()
-          .find(
-            (message) =>
-              message.role === 'assistant' &&
-              !pending.preAssistantIds.has(message.id),
-          );
-
-        if (!recoveredAssistantMessage) {
-          if (!hasExceededGracePeriod) {
-            scheduleCompletionWatchdog();
-            return;
+      await resolveStreamFromMessagesFn(pending, {
+        apiService,
+        cleanupSubscriptions,
+        clearCompletionWatchdog,
+        clearPendingInputRequest,
+        clearPendingCompletion: (threadId) => {
+          if (pendingCompletionRef.current?.threadId === threadId) {
+            pendingCompletionRef.current = null;
           }
-
-          throw new Error(
-            'Agent run did not finish before the recovery timeout.',
-          );
-        }
-
-        resetStreamState();
-        setMessages(messages);
-        updateThreadSummary(pending.threadId, {
-          attentionState: isThreadVisible(pending.threadId) ? null : 'updated',
-          lastActivityAt:
-            recoveredAssistantMessage.createdAt ?? new Date().toISOString(),
-          lastAssistantPreview: recoveredAssistantMessage.content.slice(0, 280),
-          pendingInputCount: 0,
-          runStatus: 'completed',
-        });
-        if (isThreadVisible(pending.threadId)) {
-          setError(null);
-          clearPendingInputRequest();
-          setActiveRun(pending.runId, {
-            startedAt: pending.startedAt,
-            status: 'completed',
-          });
-        }
-      } catch (error) {
-        if (!hasExceededGracePeriod) {
-          scheduleCompletionWatchdog();
-          return;
-        }
-
-        updateThreadSummary(pending.threadId, {
-          attentionState: isThreadVisible(pending.threadId) ? null : 'updated',
-          lastActivityAt: new Date().toISOString(),
-          runStatus: 'failed',
-        });
-        if (isThreadVisible(pending.threadId)) {
-          setError(
-            error instanceof Error
-              ? error.message
-              : 'Agent run did not finish before the recovery timeout.',
-          );
-          setActiveRunStatus('failed');
-          resetStreamState();
-        }
-      } finally {
-        const isCurrentPendingThread =
-          pendingCompletionRef.current?.threadId === pending.threadId;
-
-        if (isCurrentPendingThread && hasExceededGracePeriod) {
-          pendingCompletionRef.current = null;
-          clearCompletionWatchdog();
-          cleanupSubscriptions();
-        }
-      }
+        },
+        isCurrentPendingThread: (threadId) =>
+          pendingCompletionRef.current?.threadId === threadId,
+        isThreadVisible,
+        resetStreamState,
+        scheduleCompletionWatchdog,
+        setActiveRun,
+        setActiveRunStatus,
+        setError,
+        setMessages,
+        updateThreadSummary,
+      });
     },
     [
       apiService,
@@ -621,15 +489,8 @@ export function useAgentChatStream(
         ? null
         : useAgentChatStore.getState().activeThreadId;
 
-      const preAssistantIds = new Set(
-        useAgentChatStore
-          .getState()
-          .messages.reduce<string[]>((acc, message) => {
-            if (message.role === 'assistant') {
-              acc.push(message.id);
-            }
-            return acc;
-          }, []),
+      const preAssistantIds = collectAssistantMessageIds(
+        useAgentChatStore.getState().messages,
       );
 
       const userMessage: AgentChatMessage = {
@@ -696,335 +557,43 @@ export function useAgentChatStream(
       }));
 
       try {
-        const filterByThread =
-          (handler: (data: unknown) => void) => (data: unknown) => {
-            const payload = data as { threadId?: string };
-
-            if (!activeStreamThreadRef.current) {
-              bufferedEventsRef.current.push({
-                data,
-                handler,
-                threadId: payload.threadId,
-              });
-              return;
-            }
-
-            if (payload.threadId === activeStreamThreadRef.current) {
-              handler(data);
-            }
-          };
-
         unsubscribersRef.current.push(
-          subscribe<AgentStreamStartPayload>(
-            'agent:stream_start',
-            filterByThread((data) => {
-              const payload = data as AgentStreamStartPayload;
-              touchCompletionWatchdog();
-              markThreadRunning(payload.threadId, {
-                lastActivityAt: payload.startedAt ?? new Date().toISOString(),
-              });
-
-              if (payload.runId && isThreadVisible(payload.threadId)) {
-                setActiveRun(payload.runId, {
-                  startedAt: payload.startedAt ?? null,
-                  status: 'running',
-                });
-              }
-
-              if (payload.startedAt && isThreadVisible(payload.threadId)) {
-                setRunStartedAt(payload.startedAt);
-              }
-            }),
-          ),
-        );
-
-        unsubscribersRef.current.push(
-          subscribe<AgentStreamTokenPayload>(
-            'agent:token',
-            filterByThread((data) => {
-              const payload = data as AgentStreamTokenPayload;
-              touchCompletionWatchdog();
-              markThreadRunning(payload.threadId);
-              if (isThreadVisible(payload.threadId)) {
-                appendStreamToken(payload.token);
-              }
-            }),
-          ),
-        );
-
-        unsubscribersRef.current.push(
-          subscribe<AgentStreamReasoningPayload>(
-            'agent:reasoning',
-            filterByThread((data) => {
-              const payload = data as AgentStreamReasoningPayload;
-              touchCompletionWatchdog();
-              markThreadRunning(payload.threadId);
-              if (isThreadVisible(payload.threadId)) {
-                setStreamingReasoning(payload.content);
-              }
-            }),
-          ),
-        );
-
-        unsubscribersRef.current.push(
-          subscribe<AgentStreamToolStartPayload>(
-            'agent:tool_start',
-            filterByThread((data) => {
-              const payload = data as AgentStreamToolStartPayload;
-              touchCompletionWatchdog();
-              markThreadRunning(payload.threadId);
-              if (isThreadVisible(payload.threadId)) {
-                addActiveToolCall({
-                  arguments: payload.parameters,
-                  detail: payload.detail,
-                  id: payload.toolCallId,
-                  label: payload.label,
-                  name: payload.toolName,
-                  parameters: payload.parameters,
-                  phase: payload.phase,
-                  progress: payload.progress,
-                  startedAt: payload.startedAt ?? payload.timestamp,
-                  status: 'running',
-                });
-              }
-            }),
-          ),
-        );
-
-        unsubscribersRef.current.push(
-          subscribe<AgentStreamToolCompletePayload>(
-            'agent:tool_complete',
-            filterByThread((data) => {
-              const payload = data as AgentStreamToolCompletePayload;
-              touchCompletionWatchdog();
-              markThreadRunning(payload.threadId);
-              if (isThreadVisible(payload.threadId)) {
-                updateActiveToolCall(payload.toolCallId, {
-                  debug: payload.debug,
-                  detail: payload.detail,
-                  error: payload.error,
-                  estimatedDurationMs: payload.estimatedDurationMs,
-                  label: payload.label,
-                  phase: payload.phase,
-                  progress: payload.progress,
-                  remainingDurationMs: payload.remainingDurationMs,
-                  resultSummary: payload.resultSummary,
-                  status: payload.status,
-                });
-                if (payload.uiActions?.length) {
-                  addPendingUiActions(payload.uiActions);
-                }
-              }
-            }),
-          ),
-        );
-
-        unsubscribersRef.current.push(
-          subscribe<AgentStreamDonePayload>(
-            'agent:done',
-            filterByThread((data) => {
-              const payload = data as AgentStreamDonePayload;
-
-              pendingCompletionRef.current = null;
-              clearCompletionWatchdog();
-
-              const assistantMessage: AgentChatMessage = {
-                content: payload.fullContent,
-                createdAt: new Date().toISOString(),
-                id: `assistant-${Date.now()}`,
-                metadata: {
-                  ...payload.metadata,
-                  toolCalls: payload.toolCalls.map(mapToolCallResponse),
-                },
-                role: 'assistant',
-                threadId: payload.threadId,
-              };
-
-              updateThreadSummary(payload.threadId, {
-                attentionState: isThreadVisible(payload.threadId)
-                  ? null
-                  : 'updated',
-                lastActivityAt: assistantMessage.createdAt,
-                lastAssistantPreview: payload.fullContent.slice(0, 280),
-                pendingInputCount: 0,
-                runStatus: 'completed',
-              });
-              if (isThreadVisible(payload.threadId)) {
-                finalizeStream(assistantMessage);
-                setActiveRun(payload.runId ?? null, {
-                  startedAt: payload.startedAt ?? null,
-                  status: 'completed',
-                });
-                setCreditsRemaining(payload.creditsRemaining);
-                clearPendingInputRequest();
-              }
-              cleanupSubscriptions();
-
-              Promise.resolve(
-                completeOnboardingIfNeeded(payload.toolCalls),
-              ).catch(() => {
-                // Intentionally swallowed — onboarding completion is fire-and-forget
-              });
-            }),
-          ),
-        );
-
-        unsubscribersRef.current.push(
-          subscribe<AgentStreamErrorPayload>(
-            'agent:error',
-            filterByThread((data) => {
-              const payload = data as AgentStreamErrorPayload;
-
-              pendingCompletionRef.current = null;
-              clearCompletionWatchdog();
-              const nextStatus =
-                payload.error === 'Agent run cancelled'
-                  ? 'cancelled'
-                  : 'failed';
-              updateThreadSummary(payload.threadId, {
-                attentionState: isThreadVisible(payload.threadId)
-                  ? null
-                  : 'updated',
-                lastActivityAt: new Date().toISOString(),
-                pendingInputCount: 0,
-                runStatus: nextStatus,
-              });
-              if (isThreadVisible(payload.threadId)) {
-                setError(payload.error);
-                setActiveRunStatus(nextStatus);
-                resetStreamState();
-              }
-              cleanupSubscriptions();
-            }),
-          ),
-        );
-
-        unsubscribersRef.current.push(
-          subscribe<AgentStreamUIBlocksPayload>(
-            'agent:ui_blocks',
-            filterByThread((data) => {
-              const payload = data as AgentStreamUIBlocksPayload;
-              touchCompletionWatchdog();
-              markThreadRunning(payload.threadId);
-              if (isThreadVisible(payload.threadId)) {
-                applyDashboardOperation(
-                  payload.operation,
-                  payload.blocks,
-                  payload.blockIds,
-                );
-              }
-            }),
-          ),
-        );
-
-        unsubscribersRef.current.push(
-          subscribe<AgentWorkEventPayload>(
-            'agent:work_event',
-            filterByThread((data) => {
-              const payload = data as AgentWorkEventPayload;
-              touchCompletionWatchdog();
-              markThreadRunning(payload.threadId, {
-                lastActivityAt: payload.timestamp,
-              });
-              if (isThreadVisible(payload.threadId)) {
-                addWorkEvent({
-                  createdAt: payload.timestamp,
-                  debug: payload.debug,
-                  detail: payload.detail,
-                  estimatedDurationMs: payload.estimatedDurationMs,
-                  event: payload.event,
-                  id: `${payload.event}-${payload.toolCallId ?? payload.inputRequestId ?? payload.timestamp}`,
-                  inputRequestId: payload.inputRequestId,
-                  label: payload.label,
-                  parameters: payload.parameters,
-                  phase: payload.phase,
-                  progress: payload.progress,
-                  remainingDurationMs: payload.remainingDurationMs,
-                  resultSummary: payload.resultSummary,
-                  runId: payload.runId,
-                  startedAt: payload.startedAt,
-                  status: payload.status,
-                  threadId: payload.threadId,
-                  toolCallId: payload.toolCallId,
-                  toolName: payload.toolName,
-                });
-              }
-            }),
-          ),
-        );
-
-        unsubscribersRef.current.push(
-          subscribe<AgentInputRequestPayload>(
-            'agent:input_request',
-            filterByThread((data) => {
-              const payload = data as AgentInputRequestPayload;
-              touchCompletionWatchdog();
-              updateThreadSummary(payload.threadId, {
-                attentionState: 'needs-input',
-                lastActivityAt: payload.timestamp,
-                pendingInputCount: 1,
-                runStatus: 'waiting_input',
-              });
-              if (isThreadVisible(payload.threadId)) {
-                setPendingInputRequest({
-                  allowFreeText: payload.allowFreeText,
-                  fieldId: payload.fieldId,
-                  inputRequestId: payload.inputRequestId,
-                  metadata: payload.metadata,
-                  options: payload.options,
-                  prompt: payload.prompt,
-                  recommendedOptionId: payload.recommendedOptionId,
-                  runId: payload.runId,
-                  threadId: payload.threadId,
-                  title: payload.title,
-                });
-                addWorkEvent({
-                  createdAt: payload.timestamp,
-                  detail: payload.prompt,
-                  event: AgentWorkEventType.INPUT_REQUESTED,
-                  id: `input-request-${payload.inputRequestId}`,
-                  inputRequestId: payload.inputRequestId,
-                  label: payload.title,
-                  runId: payload.runId,
-                  status: AgentWorkEventStatus.PENDING,
-                  threadId: payload.threadId,
-                });
-              }
-            }),
-          ),
-        );
-
-        unsubscribersRef.current.push(
-          subscribe<AgentInputResolvedPayload>(
-            'agent:input_resolved',
-            filterByThread((data) => {
-              const payload = data as AgentInputResolvedPayload;
-              touchCompletionWatchdog();
-              markThreadRunning(payload.threadId, {
-                lastActivityAt: payload.timestamp,
-                pendingInputCount: 0,
-                runStatus: 'running',
-              });
-              if (isThreadVisible(payload.threadId)) {
-                clearPendingInputRequest();
-                addWorkEvent({
-                  createdAt: payload.timestamp,
-                  detail: payload.answer,
-                  event: AgentWorkEventType.INPUT_SUBMITTED,
-                  id: `input-resolved-${payload.inputRequestId}`,
-                  inputRequestId: payload.inputRequestId,
-                  label: 'User input submitted',
-                  runId: payload.runId,
-                  status: AgentWorkEventStatus.COMPLETED,
-                  threadId: payload.threadId,
-                });
-              }
-            }),
-          ),
+          ...attachAgentStreamSubscriptions({
+            activeStreamThreadRef,
+            addActiveToolCall,
+            addPendingUiActions,
+            addWorkEvent,
+            appendStreamToken,
+            bufferedEventsRef,
+            cleanupSubscriptions,
+            clearCompletionWatchdog,
+            clearPendingInputRequest,
+            completeOnboardingIfNeeded,
+            finalizeStream,
+            isThreadVisible,
+            markThreadRunning,
+            pendingCompletionRef,
+            resetStreamState,
+            setActiveRun,
+            setActiveRunStatus,
+            setCreditsRemaining,
+            setError,
+            setPendingInputRequest,
+            setRunStartedAt,
+            setStreamingReasoning,
+            subscribe,
+            touchCompletionWatchdog,
+            updateActiveToolCall,
+            updateThreadSummary,
+          }),
         );
 
         const resolvedModel = model?.trim() || DEFAULT_RUNTIME_AGENT_MODEL;
-        const requestPageContext = toAgentRequestPageContext(pageContext);
+        const requestPageContext = mergeComposerModeIntoPageContext(
+          toAgentRequestPageContext(pageContext),
+          sendOptions?.composerMode,
+          sendOptions?.generationModelKey,
+        );
         const currentThread = useAgentChatStore
           .getState()
           .threads.find((item) => item.id === currentActiveThreadId);

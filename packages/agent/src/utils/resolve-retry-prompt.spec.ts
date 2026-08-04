@@ -56,4 +56,15 @@ describe('resolveRetryPrompt', () => {
 
     expect(resolveRetryPrompt(messages, 'missing-id')).toBeNull();
   });
+
+  it('returns the user message content when retrying a user message', () => {
+    const messages: AgentChatMessage[] = [
+      createMessage('m-1', 'user', 'image a boxer in black apparel'),
+      createMessage('m-2', 'assistant', 'failed'),
+    ];
+
+    expect(resolveRetryPrompt(messages, 'm-1')).toBe(
+      'image a boxer in black apparel',
+    );
+  });
 });

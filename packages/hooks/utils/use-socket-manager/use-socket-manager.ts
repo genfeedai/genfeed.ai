@@ -22,7 +22,11 @@ export interface SocketSubscription<T = unknown> {
 /**
  * React hook for managing socket connections with automatic cleanup
  */
-export function useSocketManager(options: ISocketManagerConfig = {}) {
+const EMPTY_SOCKET_MANAGER_OPTIONS: ISocketManagerConfig = {};
+
+export function useSocketManager(
+  options: ISocketManagerConfig = EMPTY_SOCKET_MANAGER_OPTIONS,
+) {
   const { getToken, isLoaded: isAuthLoaded, isSignedIn } = useAuthIdentity();
   const playwrightAuth = getPlaywrightAuthState();
   const effectiveIsAuthLoaded =

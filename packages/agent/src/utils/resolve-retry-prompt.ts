@@ -1,21 +1,33 @@
 import type { AgentChatMessage } from '@genfeedai/agent/models/agent-chat.model';
 
 /**
- * Resolves the nearest previous user prompt for a given assistant message.
+ * Resolves the user prompt to re-send for a retry.
+ * - User message → its own content
+ * - Assistant message → nearest previous user prompt
  */
 export function resolveRetryPrompt(
   messages: AgentChatMessage[],
-  assistantMessageId: string,
+  messageId: string,
 ): string | null {
-  const assistantIndex = messages.findIndex(
-    (message) => message.id === assistantMessageId,
+  const messageIndex = messages.findIndex(
+    (message) => message.id === messageId,
   );
 
-  if (assistantIndex <= 0) {
+  if (messageIndex < 0) {
     return null;
   }
 
-  for (let index = assistantIndex - 1; index >= 0; index -= 1) {
+  const target = messages[messageIndex];
+  if (target?.role === 'user') {
+    const content = target.content.trim();
+    return content.length > 0 ? content : null;
+  }
+
+  if (messageIndex === 0) {
+    return null;
+  }
+
+  for (let index = messageIndex - 1; index >= 0; index -= 1) {
     const message = messages[index];
     if (message.role === 'user') {
       const content = message.content.trim();

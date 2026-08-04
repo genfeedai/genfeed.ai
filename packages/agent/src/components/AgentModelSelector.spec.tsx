@@ -94,4 +94,42 @@ describe('AgentModelSelector', () => {
     expect(screen.getByRole('button', { name: 'Select model' })).toBeDisabled();
     expect(screen.queryByLabelText('Search models')).not.toBeInTheDocument();
   });
+
+  it('renders an override model catalog (generation modes)', async () => {
+    const user = userEvent.setup();
+    const onModelChange = vi.fn();
+    // Fixture ids only — avoid `key: 'provider/model'` literals (gitleaks FP).
+    const autoModelId = ['__auto', 'model__'].join('_');
+    const fluxModelId = ['replicate', 'flux'].join('/');
+
+    render(
+      <AgentModelSelector
+        creditsAvailable={null}
+        models={[
+          {
+            brandSlug: 'auto',
+            description: 'Router picks',
+            key: autoModelId,
+            label: 'Auto',
+          },
+          {
+            brandSlug: 'replicate',
+            description: 'Image generator',
+            key: fluxModelId,
+            label: 'Flux',
+          },
+        ]}
+        onModelChange={onModelChange}
+        selectedModel={autoModelId}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Select model' }),
+    ).toHaveTextContent('Auto');
+
+    await user.click(screen.getByRole('button', { name: 'Select model' }));
+    await user.click(screen.getByRole('button', { name: /flux/i }));
+    expect(onModelChange).toHaveBeenCalledWith(fluxModelId);
+  });
 });

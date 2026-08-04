@@ -30,14 +30,19 @@ export async function runAgentApiEffect<T>(
   throw Cause.squash(exit.cause);
 }
 
+/**
+ * Shared HTTP client for agent API modules. Fetch helpers are public so
+ * domain modules (`agent-api/threads`, `runs`, …) can compose without
+ * living on a single god class.
+ */
 export class AgentBaseApiService {
-  protected config: AgentApiConfig;
+  readonly config: AgentApiConfig;
 
   constructor(config: AgentApiConfig) {
     this.config = config;
   }
 
-  protected headersEffect(options?: {
+  headersEffect(options?: {
     forceRefresh?: boolean;
   }): Effect.Effect<Record<string, string>, AgentApiAuthError> {
     return Effect.tryPromise({
@@ -62,7 +67,7 @@ export class AgentBaseApiService {
     );
   }
 
-  protected fetchJsonEffect<T>(
+  fetchJsonEffect<T>(
     url: string,
     init?: RequestInit,
     errorMessage?: string,
@@ -70,7 +75,7 @@ export class AgentBaseApiService {
     return this.fetchJsonWithRetryEffect<T>(url, init, errorMessage, false);
   }
 
-  protected fetchResourceEffect<T>(
+  fetchResourceEffect<T>(
     url: string,
     init: RequestInit | undefined,
     requestErrorMessage: string,
@@ -87,7 +92,7 @@ export class AgentBaseApiService {
     );
   }
 
-  protected fetchCollectionEffect<T>(
+  fetchCollectionEffect<T>(
     url: string,
     init: RequestInit | undefined,
     requestErrorMessage: string,
@@ -104,7 +109,7 @@ export class AgentBaseApiService {
     );
   }
 
-  protected deserializeResourceEffect<T>(
+  deserializeResourceEffect<T>(
     document: JsonApiResponseDocument,
     message: string,
   ): Effect.Effect<T, AgentApiDecodeError> {
@@ -118,7 +123,7 @@ export class AgentBaseApiService {
     });
   }
 
-  protected deserializeCollectionEffect<T>(
+  deserializeCollectionEffect<T>(
     document: JsonApiResponseDocument,
     message: string,
   ): Effect.Effect<T[], AgentApiDecodeError> {

@@ -331,34 +331,35 @@ function BulletList({ block }: { block: BulletListBlock }): ReactElement {
   );
 }
 
+const CALLOUT_SEVERITY_STYLES: Record<
+  NonNullable<CalloutBlock['tone']>,
+  { border: string; bg: string; text: string }
+> = {
+  error: {
+    bg: 'bg-red-500/10',
+    border: 'border-red-500/30',
+    text: 'text-red-300',
+  },
+  info: {
+    bg: 'bg-blue-500/10',
+    border: 'border-blue-500/30',
+    text: 'text-blue-300',
+  },
+  success: {
+    bg: 'bg-green-500/10',
+    border: 'border-green-500/30',
+    text: 'text-green-300',
+  },
+  warning: {
+    bg: 'bg-yellow-500/10',
+    border: 'border-yellow-500/30',
+    text: 'text-yellow-300',
+  },
+};
+
 function Callout({ block }: { block: CalloutBlock }): ReactElement {
-  const severityStyles: Record<
-    NonNullable<CalloutBlock['tone']>,
-    { border: string; bg: string; text: string }
-  > = {
-    error: {
-      bg: 'bg-red-500/10',
-      border: 'border-red-500/30',
-      text: 'text-red-300',
-    },
-    info: {
-      bg: 'bg-blue-500/10',
-      border: 'border-blue-500/30',
-      text: 'text-blue-300',
-    },
-    success: {
-      bg: 'bg-green-500/10',
-      border: 'border-green-500/30',
-      text: 'text-green-300',
-    },
-    warning: {
-      bg: 'bg-yellow-500/10',
-      border: 'border-yellow-500/30',
-      text: 'text-yellow-300',
-    },
-  };
   const tone = block.tone ?? 'info';
-  const styles = severityStyles[tone];
+  const styles = CALLOUT_SEVERITY_STYLES[tone];
 
   return (
     <div className={`rounded-lg border p-3 ${styles.border} ${styles.bg}`}>
