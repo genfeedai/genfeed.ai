@@ -4,7 +4,6 @@ import { getBrandConfig } from '@genfeedai/constants';
 import { ButtonVariant, RouterPriority } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
-import type { IModel } from '@genfeedai/interfaces';
 import type { ModelSelectorPopoverProps } from '@genfeedai/props/ui/model-selector/model-selector.props';
 import ModelSelectorFamilyItem from '@ui/dropdowns/model-selector/ModelSelectorFamilyItem';
 import ModelSelectorModelItem from '@ui/dropdowns/model-selector/ModelSelectorModelItem';
@@ -31,11 +30,6 @@ import {
 } from '@ui/primitives/popover';
 import { Check, Sparkles } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
-
-const AUTO_MODEL = {
-  key: AUTO_MODEL_OPTION_VALUE,
-  label: 'Auto',
-} as unknown as IModel;
 
 type GroupedFamilies = Array<{
   brandSlug: string;
@@ -295,15 +289,12 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
     [models, values],
   );
 
-  const displayedModels = useMemo(() => {
-    if (isAutoSelected) {
-      return [AUTO_MODEL];
-    }
+  const displayedModels = selectedModels;
 
-    return selectedModels;
-  }, [isAutoSelected, selectedModels]);
-
-  const shouldShowManualCatalog = !isAutoSelected;
+  // Auto is one option in the same catalog as manual models. Keeping the
+  // catalog open when Auto is selected avoids a useless second-level panel
+  // that only repeats the current selection.
+  const shouldShowManualCatalog = true;
 
   const shouldShowAuto = useMemo(() => {
     if (activeBrand === 'favorites') {
@@ -327,7 +318,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
     return (autoSourceGroups ?? []).includes(activeSourceGroup);
   }, [activeBrand, activeSourceGroup, autoSourceGroups, sourceGroups]);
 
-  const shouldShowAutoCard = isAutoSelected || shouldShowAuto;
+  const shouldShowAutoCard = shouldShowAuto;
 
   const handleToggle = useCallback(
     (modelKey: string) => {
@@ -394,15 +385,10 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         sideOffset={8}
         className={cn(
           'w-[calc(100vw-2rem)] overflow-hidden rounded-lg bg-popover p-0 shadow-dropdown',
-          shouldShowManualCatalog ? 'sm:w-[440px]' : 'sm:w-[320px]',
+          'sm:w-[440px]',
         )}
       >
-        <div
-          className={cn(
-            'flex',
-            shouldShowManualCatalog && 'h-[min(500px,calc(100vh-4rem))]',
-          )}
-        >
+        <div className={cn('flex', 'h-[min(500px,calc(100vh-4rem))]')}>
           {shouldShowManualCatalog && (
             <ModelSelectorProviderSidebar
               brands={brands}
@@ -547,10 +533,6 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
                 {shouldShowManualCatalog && !hasVisibleFamilies && (
                   <CommandEmpty>No models found</CommandEmpty>
-                )}
-
-                {!shouldShowManualCatalog && !shouldShowAutoCard && (
-                  <CommandEmpty>No auto options available</CommandEmpty>
                 )}
               </CommandList>
             </Command>
