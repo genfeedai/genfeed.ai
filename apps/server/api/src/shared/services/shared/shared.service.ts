@@ -49,6 +49,10 @@ export class SharedService {
 
     const metadataData = (await this.metadataService.create({
       ...body,
+      label:
+        typeof body.label === 'string' && body.label.trim()
+          ? body.label
+          : 'Generated media',
       ...(promptId ? { prompt: promptId } : {}),
     } as CreateMetadataDto)) as { id: string };
 
@@ -101,6 +105,10 @@ export class SharedService {
   }) {
     const metadataData = (await this.metadataService.create({
       ...body,
+      label:
+        typeof body.label === 'string' && body.label.trim()
+          ? body.label
+          : 'Generated media',
       ...(body.prompt ? { prompt: body.prompt } : {}),
     } as unknown as CreateMetadataDto)) as { id: string };
 
