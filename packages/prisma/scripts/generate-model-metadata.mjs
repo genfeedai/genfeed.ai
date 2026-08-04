@@ -17,7 +17,7 @@
  *
  * Rules (match the historical hand-maintained shape):
  *   - allFields: every scalar, enum, FK, and single-object relation field.
- *     List fields (`Type[]`) — relation lists and scalar lists — are excluded.
+ *   - listFields: every list field (`Type[]`), including scalar lists.
  *   - enumFields: fields whose (non-list) type is a Prisma enum, with the
  *     enum type name and whether the column is required (no `?`).
  *   - Keys (models + fields) sorted alphabetically for a stable diff.
@@ -52,10 +52,14 @@ export interface EnumFieldMeta {
 export interface ModelFieldMeta {
   /**
    * All scalar + enum field names present on the model.
-   * Does NOT include list fields (relations or scalars).
    * Used by modelHasField().
    */
   allFields: ReadonlyArray<string>;
+  /**
+   * List field names present on the model, including scalar lists.
+   * Used by modelHasField() for list-valued Prisma columns.
+   */
+  listFields: ReadonlyArray<string>;
   /**
    * Enum fields: fieldName -> EnumFieldMeta.
    * Only fields whose type is a Prisma enum appear here.
@@ -91,6 +95,7 @@ function build() {
   for (const m of schema.matchAll(/^model\s+(\w+)\s*\{([\s\S]*?)^\}/gm)) {
     const [, name, body] = m;
     const allFields = new Set();
+    const listFields = new Set();
     const enumFields = {};
     for (const rawLine of body.split('\n')) {
       const line = rawLine.trim();
@@ -106,20 +111,28 @@ function build() {
       const fm = line.match(/^(\w+)\s+([A-Za-z0-9_]+)\s*(\[\]|\?)?/);
       if (!fm) continue;
       const [, fname, baseType, suffix] = fm;
-      if (suffix === '[]') continue; // list relation / scalar list — excluded
+      if (suffix === '[]') {
+        listFields.add(fname);
+        continue;
+      }
       allFields.add(fname);
       if (enumNames.has(baseType)) {
         enumFields[fname] = { enumType: baseType, isRequired: suffix !== '?' };
       }
     }
-    models[name] = { allFields: [...allFields].sort(), enumFields };
+    models[name] = {
+      allFields: [...allFields].sort(),
+      enumFields,
+      listFields: [...listFields].sort(),
+    };
   }
 
   const entries = Object.keys(models)
     .sort()
     .map((name) => {
-      const { allFields, enumFields } = models[name];
+      const { allFields, enumFields, listFields } = models[name];
       const af = allFields.map((f) => `      '${f}',`).join('\n');
+      const lf = listFields.map((f) => `      '${f}',`).join('\n');
       const enumKeys = Object.keys(enumFields).sort();
       const ef =
         enumKeys.length === 0
@@ -130,7 +143,7 @@ function build() {
                   `      ${k}: { enumType: '${enumFields[k].enumType}', isRequired: ${enumFields[k].isRequired} },`,
               )
               .join('\n')}\n    },`;
-      return `  ${name}: {\n    allFields: [\n${af}\n    ],\n${ef}\n  },`;
+      return `  ${name}: {\n    allFields: [\n${af}\n    ],\n    listFields: [\n${lf}\n    ],\n${ef}\n  },`;
     })
     .join('\n');
 

@@ -64,6 +64,31 @@ export class OrganizationSettingsService extends BaseService<
     return super.create(createDto, populate ?? []);
   }
 
+  /**
+   * Existing organizations created before the Prisma allowlist migration can
+   * have an empty enabledModelIds array. Restore the same latest-model
+   * baseline used during organization creation before returning settings.
+   */
+  async ensureEnabledModelIds(
+    setting: OrganizationSettingDocument,
+  ): Promise<OrganizationSettingDocument> {
+    if (
+      Array.isArray(setting.enabledModelIds) &&
+      setting.enabledModelIds.length > 0
+    ) {
+      return setting;
+    }
+
+    const enabledModelIds = await this.getLatestMajorVersionModelIds();
+    if (enabledModelIds.length === 0) {
+      return setting;
+    }
+
+    return this.patch(setting.id, {
+      enabledModels: enabledModelIds,
+    } as UpdateOrganizationSettingDto);
+  }
+
   private readJourneyState(
     missions: unknown,
   ): IOnboardingJourneyMissionState[] | undefined {

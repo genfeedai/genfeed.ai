@@ -283,7 +283,10 @@ export abstract class BaseService<
       // Model not in static map (shouldn't happen in production; fail open).
       return true;
     }
-    return (meta.allFields as ReadonlyArray<string>).includes(fieldName);
+    return (
+      (meta.allFields as ReadonlyArray<string>).includes(fieldName) ||
+      meta.listFields.includes(fieldName)
+    );
   }
 
   /**

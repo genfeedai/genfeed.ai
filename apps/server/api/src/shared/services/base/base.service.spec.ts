@@ -9,6 +9,7 @@ const { getModelMetaMock } = vi.hoisted(() => {
   const BASE_META: ModelFieldMeta = {
     allFields: ['id', 'isDeleted', 'organizationId'],
     enumFields: {},
+    listFields: [],
   };
   return {
     getModelMetaMock: vi.fn<[string], ModelFieldMeta | undefined>(
@@ -24,6 +25,7 @@ const { getModelMetaMock } = vi.hoisted(() => {
 const BASE_META: ModelFieldMeta = {
   allFields: ['id', 'isDeleted', 'organizationId'],
   enumFields: {},
+  listFields: [],
 };
 
 // ---------------------------------------------------------------------------
@@ -62,6 +64,7 @@ type FieldSpec =
 
 function makeModelMeta(...fields: FieldSpec[]): ModelFieldMeta {
   const allFields: string[] = [];
+  const listFields: string[] = [];
   const enumFields: Record<string, { enumType: string; isRequired: boolean }> =
     {};
 
@@ -69,7 +72,11 @@ function makeModelMeta(...fields: FieldSpec[]): ModelFieldMeta {
     if (typeof f === 'string') {
       allFields.push(f);
     } else {
-      allFields.push(f.name);
+      if (f.kind === 'list') {
+        listFields.push(f.name);
+      } else {
+        allFields.push(f.name);
+      }
       if (f.kind === 'enum' && f.type) {
         enumFields[f.name] = {
           enumType: f.type,
@@ -79,7 +86,7 @@ function makeModelMeta(...fields: FieldSpec[]): ModelFieldMeta {
     }
   }
 
-  return { allFields, enumFields };
+  return { allFields, enumFields, listFields };
 }
 
 describe('BaseService', () => {
@@ -1350,7 +1357,10 @@ describe('BaseService', () => {
   describe('normalizeData — enabledModels→enabledModelIds remap', () => {
     it('remaps enabledModels to enabledModelIds when only the Prisma field exists', async () => {
       getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'isDeleted', 'enabledModelIds'),
+        makeModelMeta('id', 'isDeleted', {
+          kind: 'list',
+          name: 'enabledModelIds',
+        }),
       );
       const created = {
         id: 'org_setting_1',

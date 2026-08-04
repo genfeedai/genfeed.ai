@@ -121,7 +121,10 @@ export class OrganizationsSettingsController {
       return returnNotFound('Organization Settings', resolvedOrganizationId);
     }
 
-    return serializeSingle(req, OrganizationSettingSerializer, data);
+    const ensuredData =
+      await this.organizationSettingsService.ensureEnabledModelIds(data);
+
+    return serializeSingle(req, OrganizationSettingSerializer, ensuredData);
   }
 
   @Patch(':organizationId/settings')
@@ -144,6 +147,15 @@ export class OrganizationsSettingsController {
 
     if (!organizationSettings) {
       return returnNotFound('Organization Settings', resolvedOrganizationId);
+    }
+
+    if (
+      Array.isArray(settingsDto.enabledModels) &&
+      settingsDto.enabledModels.length === 0
+    ) {
+      throw new BadRequestException(
+        'At least one model must remain enabled for the organization',
+      );
     }
 
     await this.validateDefaultAvatarIngredient(
