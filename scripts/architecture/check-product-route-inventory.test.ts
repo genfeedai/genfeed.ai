@@ -178,11 +178,11 @@ describe('compareProductRouteInventories', () => {
 describe('runCheckProductRouteInventory', () => {
   it('keeps the checked-in registries aligned with every app-router page', () => {
     expect(runCheckProductRouteInventory()).toMatchObject({
-      appPublicRouteCount: 19,
+      appPublicRouteCount: 20,
       issues: [],
-      protectedPageCount: 197,
-      protectedRouteCount: 212,
-      publicRouteCount: 62,
+      protectedPageCount: 212,
+      protectedRouteCount: 214,
+      publicRouteCount: 63,
       websitePublicRouteCount: 43,
     });
   });

@@ -875,6 +875,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/settings/voice',
       '/:orgSlug/:brandSlug/settings/harness',
       '/:orgSlug/:brandSlug/settings/interview',
+      '/:orgSlug/:brandSlug/settings/organization/credentials',
       '/:orgSlug/:brandSlug/settings/publishing',
       '/:orgSlug/:brandSlug/settings/agent-defaults',
     ],
@@ -907,6 +908,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
 
 const ADMIN_CONTROL_PLANE_ROUTE_PATTERNS = [
   '/admin',
+  '/admin/overview',
   '/admin/overview/dashboard',
   '/admin/overview/activities',
   '/admin/content/posts',

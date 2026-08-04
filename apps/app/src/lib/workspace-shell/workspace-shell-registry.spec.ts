@@ -256,8 +256,10 @@ describe('workspace shell trusted registry', () => {
       '/acme/moonrise/publish/review',
       '/acme/moonrise/automate/workflows/executions/run-1',
       '/acme/moonrise/settings/publishing',
+      '/acme/moonrise/settings/organization/credentials',
       '/acme/~/settings/api-keys',
       '/acme/~/settings/billing',
+      '/admin/overview',
       '/admin/overview/activities',
     ]) {
       expect(resolveWorkspaceShellRoute(pathname)).toMatchObject({
