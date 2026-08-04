@@ -18,6 +18,7 @@ import {
   type BrandRelocationResult,
   BrandRelocationService,
 } from '@api/collections/brands/services/brand-relocation.service';
+import { toBrandKitAssetRelations } from '@api/collections/brands/utils/brand-kit-asset-relations.util';
 import {
   isSlugUniqueConstraintError,
   MAX_SLUG_ALLOCATION_ATTEMPTS,
@@ -283,7 +284,7 @@ export class BrandsService extends BaseService<
       where.id = { in: options.brandIds };
     }
 
-    return this.delegate.findMany({
+    const brands = (await this.delegate.findMany({
       include: {
         organization: {
           select: {
@@ -293,7 +294,42 @@ export class BrandsService extends BaseService<
       },
       where,
       orderBy: { label: 'asc' },
-    }) as Promise<BrandDocument[]>;
+    })) as BrandDocument[];
+
+    return this.attachBrandKitAssetRelations(brands, organizationId);
+  }
+
+  /**
+   * Populate the serializer's brand kit asset relations on fetched brand rows.
+   *
+   * `brandSerializerConfig` declares `logo`, `banner` and `references` as asset
+   * relations, but the Brand table has no such columns — they are `Asset` rows
+   * keyed by `parentBrandId`. Nothing populated them, so `brand.logo` was
+   * permanently `undefined` and every reader that asks "does this brand have a
+   * logo?" — the setup checklist above all — answered no for a brand that has
+   * one. Resolution is batched, so a whole org's brand list costs one query.
+   */
+  async attachBrandKitAssetRelations(
+    brands: BrandDocument[],
+    organizationId: string,
+  ): Promise<BrandDocument[]> {
+    const resolved =
+      await this.brandKitAssetsService.resolveBrandKitAssetsForBrands(
+        brands.map((brand) => String(brand.id)),
+        organizationId,
+      );
+
+    for (const brand of brands) {
+      const relations = toBrandKitAssetRelations(
+        resolved.get(String(brand.id)) ?? { references: [] },
+      );
+
+      brand.banner = relations.banner;
+      brand.logo = relations.logo;
+      brand.references = relations.references;
+    }
+
+    return brands;
   }
 
   async patch(

@@ -302,6 +302,28 @@ export interface IBrandKitResolvedAssets {
   references: IBrandKitResolvedAsset[];
 }
 
+/**
+ * A brand asset in the shape the brand serializer's asset relations expect.
+ *
+ * `brandSerializerConfig` declares `logo`/`banner`/`references` as `ASSET_REL`,
+ * so a payload attached to a brand has to speak `assetAttributes` rather than
+ * the prompt-facing {@link IBrandKitResolvedAsset}. `cdnUrl` carries the
+ * absolute URL, which is the field the resolver calls `url`.
+ */
+export interface IBrandKitAssetRelation {
+  id: string;
+  category: string;
+  cdnUrl: string;
+  displayName?: string;
+  mimeType?: string;
+}
+
+export interface IBrandKitAssetRelations {
+  logo?: IBrandKitAssetRelation;
+  banner?: IBrandKitAssetRelation;
+  references: IBrandKitAssetRelation[];
+}
+
 export type IBrandKitVoiceSnapshot = IBrandAgentVoice;
 
 export type IBrandKitStrategySnapshot = IBrandAgentStrategy;
