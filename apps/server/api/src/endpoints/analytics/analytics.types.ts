@@ -24,22 +24,32 @@ export interface DateRange {
 // Entity-leaderboard internal types
 // ---------------------------------------------------------------------------
 
-/** Organization document with aggregated fields */
+/**
+ * Organization document with aggregated fields.
+ *
+ * No `logo` — the Prisma `Organization` model has no logo column. The old
+ * `logo: { cdnUrl }` relation was Mongo-era and permanently `undefined` at
+ * runtime; `authProviderLogoUrl` is the column Better Auth actually populates.
+ */
 export interface OrganizationDoc {
   id: string;
   name?: string;
   label?: string;
-  logo?: { cdnUrl?: string };
+  authProviderLogoUrl?: string | null;
   isDeleted?: boolean;
   createdAt?: Date;
 }
 
-/** Brand document with aggregated fields */
+/**
+ * Brand document with aggregated fields.
+ *
+ * No `logo` — brand logos are `Asset` rows resolved through
+ * `BrandsService.resolveBrandLogoUrls`, not a column on `Brand`.
+ */
 export interface BrandDoc {
   id: string;
   name?: string;
   label?: string;
-  logo?: { cdnUrl?: string };
   organizationId?: string;
   org?: OrganizationDoc;
   isDeleted?: boolean;

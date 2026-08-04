@@ -144,6 +144,67 @@ export class BrandKitAssetsService {
     return resolved;
   }
 
+  /**
+   * Live logo URLs for many brands at once, keyed by brand id.
+   *
+   * `resolveBrandKitAssets` is the single-brand form. Surfaces that render a
+   * whole page of brands — the analytics leaderboards — would turn that into an
+   * N+1, so this collapses the page into one `findMany` and groups in memory.
+   * The where-shape stays deliberately identical to the single-brand read
+   * (`parentType: 'BRAND'` + brand + org + `isDeleted: false`) so there is one
+   * place to change when brand asset storage moves.
+   *
+   * Callers pass brand ids grouped under their owning organization rather than
+   * a flat list: the leaderboards run unscoped for platform admins, and a bare
+   * `parentBrandId IN (...)` would be a tenant-crossing read. Every OR branch
+   * carries its own `parentOrgId`.
+   */
+  async resolveBrandLogoUrls(
+    brandIdsByOrganization: ReadonlyMap<string, readonly string[]>,
+  ): Promise<Map<string, string>> {
+    const organizationScopes = [...brandIdsByOrganization.entries()]
+      .filter(
+        ([organizationId, brandIds]) =>
+          organizationId.length > 0 && brandIds.length > 0,
+      )
+      .map(([organizationId, brandIds]) => ({
+        parentBrandId: { in: [...brandIds] },
+        parentOrgId: organizationId,
+      }));
+
+    if (organizationScopes.length === 0) {
+      return new Map();
+    }
+
+    const assets = await this.prisma.asset.findMany({
+      orderBy: { updatedAt: 'desc' },
+      select: { cloudObjectKey: true, id: true, parentBrandId: true },
+      where: {
+        category: PRISMA_ASSET_CATEGORY_BY_ROLE.logo,
+        isDeleted: false,
+        OR: organizationScopes,
+        parentType: 'BRAND' as Prisma.AssetCreateInput['parentType'],
+      },
+    });
+
+    // `orderBy updatedAt desc` means the first row seen for a brand is its
+    // current logo — the same "most recent wins" rule the single-brand
+    // resolver applies via `resolved.logo ??= value`.
+    const logoUrlsByBrandId = new Map<string, string>();
+    for (const asset of assets) {
+      if (!asset.parentBrandId || logoUrlsByBrandId.has(asset.parentBrandId)) {
+        continue;
+      }
+
+      logoUrlsByBrandId.set(
+        asset.parentBrandId,
+        this.buildBrandAssetCdnUrl(asset.id, 'logo', asset.cloudObjectKey),
+      );
+    }
+
+    return logoUrlsByBrandId;
+  }
+
   async importBrandKitAssets(
     brandId: string,
     organizationId: string,

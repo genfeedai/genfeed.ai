@@ -81,6 +81,7 @@ describe('EntityLeaderboardService', () => {
   const mockBrandsService = {
     count: vi.fn(),
     findAll: vi.fn(),
+    resolveBrandLogoUrls: vi.fn(),
   };
 
   const mockLoggerService = {
@@ -121,6 +122,7 @@ describe('EntityLeaderboardService', () => {
 
     mockPrismaService.$queryRaw.mockResolvedValue([]);
     mockPrismaService.brand.groupBy.mockResolvedValue([]);
+    mockBrandsService.resolveBrandLogoUrls.mockResolvedValue(new Map());
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -562,6 +564,179 @@ describe('EntityLeaderboardService', () => {
         { where: { isDeleted: false } },
         { pagination: false },
       );
+    });
+  });
+
+  // ==========================================================================
+  // Avatars
+  //
+  // `entity.logo` is a Mongo-era populated relation that survives only in the
+  // `*Document` index signature: the Prisma `Brand` model has no logo column
+  // and `Organization` has only `authProviderLogoUrl`. Reading it type-checks
+  // and is permanently `undefined`, which is why every avatar rendered blank.
+  // ==========================================================================
+  describe('avatars', () => {
+    const brandDoc = (id: string, organizationId: string) => ({
+      id,
+      label: `Brand ${id}`,
+      // The dead alias, present exactly as a populated Mongo doc would carry
+      // it. Nothing may read it.
+      logo: { cdnUrl: 'https://cdn.example.com/dead-alias.png' },
+      organizationId,
+    });
+
+    it('resolves brand logos from Asset rows, not the dead brand.logo alias', async () => {
+      mockBrandsService.findAll.mockResolvedValue({
+        docs: [brandDoc('brand-1', 'org-1')],
+      });
+      mockBrandsService.resolveBrandLogoUrls.mockResolvedValue(
+        new Map([['brand-1', 'https://cdn.example.com/logos/asset-a']]),
+      );
+
+      const result = await service.getBrandsLeaderboard();
+
+      expect(result[0].logo).toBe('https://cdn.example.com/logos/asset-a');
+    });
+
+    it('leaves a brand logo undefined when no live logo asset exists', async () => {
+      mockBrandsService.findAll.mockResolvedValue({
+        docs: [brandDoc('brand-1', 'org-1')],
+      });
+      mockBrandsService.resolveBrandLogoUrls.mockResolvedValue(new Map());
+
+      const result = await service.getBrandsLeaderboard();
+
+      expect(result[0].logo).toBeUndefined();
+    });
+
+    it('groups brand ids by owning organization for the batched read', async () => {
+      mockBrandsService.findAll.mockResolvedValue({
+        docs: [
+          brandDoc('brand-1', 'org-1'),
+          brandDoc('brand-2', 'org-1'),
+          brandDoc('brand-3', 'org-2'),
+        ],
+      });
+
+      await service.getBrandsLeaderboard();
+
+      expect(mockBrandsService.resolveBrandLogoUrls).toHaveBeenCalledWith(
+        new Map([
+          ['org-1', ['brand-1', 'brand-2']],
+          ['org-2', ['brand-3']],
+        ]),
+      );
+    });
+
+    it('resolves a whole page of brands in one batched call, not one per brand', async () => {
+      mockBrandsService.findAll.mockResolvedValue({
+        docs: Array.from({ length: 25 }, (_, index) =>
+          brandDoc(`brand-${index}`, 'org-1'),
+        ),
+      });
+
+      await service.getBrandsLeaderboard();
+
+      expect(mockBrandsService.resolveBrandLogoUrls).toHaveBeenCalledTimes(1);
+    });
+
+    it('resolves brand logos on the paginated stats path too', async () => {
+      mockBrandsService.findAll.mockResolvedValue({
+        docs: [brandDoc('brand-1', 'org-1')],
+      });
+      mockBrandsService.resolveBrandLogoUrls.mockResolvedValue(
+        new Map([['brand-1', 'https://cdn.example.com/logos/asset-a']]),
+      );
+
+      const result = await service.getBrandsWithStats();
+
+      expect(result.data[0].logo).toBe('https://cdn.example.com/logos/asset-a');
+    });
+
+    it('reads organization avatars from authProviderLogoUrl, not the dead org.logo alias', async () => {
+      mockOrganizationsService.findAll.mockResolvedValue({
+        docs: [
+          {
+            id: 'org-1',
+            authProviderLogoUrl: 'https://auth.example.com/org.png',
+            label: 'Test Org',
+            logo: { cdnUrl: 'https://cdn.example.com/dead-alias.png' },
+          },
+        ],
+      });
+
+      const result = await service.getOrganizationsLeaderboard();
+
+      expect(result[0].organization.logo).toBe(
+        'https://auth.example.com/org.png',
+      );
+    });
+
+    it('leaves an organization avatar undefined when the auth provider supplied none', async () => {
+      mockOrganizationsService.findAll.mockResolvedValue({
+        docs: [{ id: 'org-1', authProviderLogoUrl: null, label: 'Test Org' }],
+      });
+
+      const result = await service.getOrganizationsLeaderboard();
+
+      expect(result[0].organization.logo).toBeUndefined();
+    });
+
+    it('reads organization avatars from authProviderLogoUrl on the paginated stats path too', async () => {
+      mockOrganizationsService.findAll.mockResolvedValue({
+        docs: [
+          {
+            id: 'org-1',
+            authProviderLogoUrl: 'https://auth.example.com/org.png',
+            label: 'Test Org',
+          },
+        ],
+      });
+
+      const result = await service.getOrganizationsWithStats();
+
+      expect(result.data[0].logo).toBe('https://auth.example.com/org.png');
+    });
+
+    it('resolves logos only for the ranked page, not the whole brand table', async () => {
+      mockBrandsService.findAll.mockResolvedValue({
+        docs: Array.from({ length: 25 }, (_, index) =>
+          brandDoc(`brand-${index}`, 'org-1'),
+        ),
+      });
+
+      await service.getBrandsLeaderboard(
+        undefined,
+        undefined,
+        LeaderboardSort.ENGAGEMENT,
+        5,
+      );
+
+      const [brandIdsByOrganization] =
+        mockBrandsService.resolveBrandLogoUrls.mock.calls[0];
+      expect(brandIdsByOrganization.get('org-1')).toHaveLength(5);
+    });
+
+    it('resolves logos only for the requested page on the paginated path', async () => {
+      mockBrandsService.findAll.mockResolvedValue({
+        docs: Array.from({ length: 30 }, (_, index) =>
+          brandDoc(`brand-${index}`, 'org-1'),
+        ),
+      });
+
+      await service.getBrandsWithStats(undefined, undefined, 2, 10);
+
+      const [brandIdsByOrganization] =
+        mockBrandsService.resolveBrandLogoUrls.mock.calls[0];
+      expect(brandIdsByOrganization.get('org-1')).toHaveLength(10);
+    });
+
+    it('does not resolve brand logos when the page is empty', async () => {
+      mockBrandsService.findAll.mockResolvedValue({ docs: [] });
+
+      await service.getBrandsLeaderboard();
+
+      expect(mockBrandsService.resolveBrandLogoUrls).not.toHaveBeenCalled();
     });
   });
 });

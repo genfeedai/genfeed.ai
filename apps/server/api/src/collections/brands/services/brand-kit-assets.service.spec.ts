@@ -134,3 +134,134 @@ describe('BrandKitAssetsService.resolveBrandKitAssets', () => {
     expect(assets).toEqual({ references: [] });
   });
 });
+
+describe('BrandKitAssetsService.resolveBrandLogoUrls', () => {
+  let findMany: ReturnType<typeof vi.fn>;
+  let service: BrandKitAssetsService;
+
+  beforeEach(() => {
+    findMany = vi.fn().mockResolvedValue([]);
+    service = new BrandKitAssetsService(
+      { asset: { findMany } } as unknown as PrismaService,
+      {} as unknown as CacheInvalidationService,
+      {} as unknown as FilesClientService,
+      { cdnUrl: 'https://cdn.example.com' } as unknown as ConfigService,
+    );
+  });
+
+  it('reads every brand in a single query rather than one per brand', async () => {
+    await service.resolveBrandLogoUrls(
+      new Map([['org-1', ['brand-1', 'brand-2', 'brand-3']]]),
+    );
+
+    expect(findMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('scopes each organization group to its own brands so a page cannot read across tenants', async () => {
+    await service.resolveBrandLogoUrls(
+      new Map([
+        ['org-1', ['brand-1', 'brand-2']],
+        ['org-2', ['brand-3']],
+      ]),
+    );
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          category: 'LOGO',
+          isDeleted: false,
+          OR: [
+            {
+              parentBrandId: { in: ['brand-1', 'brand-2'] },
+              parentOrgId: 'org-1',
+            },
+            { parentBrandId: { in: ['brand-3'] }, parentOrgId: 'org-2' },
+          ],
+          parentType: 'BRAND',
+        }),
+      }),
+    );
+  });
+
+  it('keys absolute CDN urls by brand id', async () => {
+    findMany.mockResolvedValue([
+      {
+        cloudObjectKey: 'logos/asset-a',
+        id: 'asset-a',
+        parentBrandId: 'brand-1',
+      },
+      {
+        cloudObjectKey: 'logos/asset-b',
+        id: 'asset-b',
+        parentBrandId: 'brand-2',
+      },
+    ]);
+
+    const urls = await service.resolveBrandLogoUrls(
+      new Map([['org-1', ['brand-1', 'brand-2']]]),
+    );
+
+    expect(urls.get('brand-1')).toBe('https://cdn.example.com/logos/asset-a');
+    expect(urls.get('brand-2')).toBe('https://cdn.example.com/logos/asset-b');
+  });
+
+  it('keeps the most recent logo per brand, matching the single-brand resolver', async () => {
+    findMany.mockResolvedValue([
+      {
+        cloudObjectKey: 'logos/newest',
+        id: 'newest',
+        parentBrandId: 'brand-1',
+      },
+      { cloudObjectKey: 'logos/older', id: 'older', parentBrandId: 'brand-1' },
+    ]);
+
+    const urls = await service.resolveBrandLogoUrls(
+      new Map([['org-1', ['brand-1']]]),
+    );
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { updatedAt: 'desc' } }),
+    );
+    expect(urls.get('brand-1')).toBe('https://cdn.example.com/logos/newest');
+  });
+
+  it('falls back to the canonical key shape when no object key was recorded', async () => {
+    findMany.mockResolvedValue([
+      { cloudObjectKey: null, id: 'asset-a', parentBrandId: 'brand-1' },
+    ]);
+
+    const urls = await service.resolveBrandLogoUrls(
+      new Map([['org-1', ['brand-1']]]),
+    );
+
+    expect(urls.get('brand-1')).toBe('https://cdn.example.com/logos/asset-a');
+  });
+
+  it('omits brands that have no live logo asset', async () => {
+    findMany.mockResolvedValue([
+      {
+        cloudObjectKey: 'logos/asset-a',
+        id: 'asset-a',
+        parentBrandId: 'brand-1',
+      },
+    ]);
+
+    const urls = await service.resolveBrandLogoUrls(
+      new Map([['org-1', ['brand-1', 'brand-2']]]),
+    );
+
+    expect(urls.has('brand-2')).toBe(false);
+  });
+
+  it('skips the query entirely when no organization contributes a brand', async () => {
+    const urls = await service.resolveBrandLogoUrls(
+      new Map([
+        ['org-1', []],
+        ['', ['brand-1']],
+      ]),
+    );
+
+    expect(findMany).not.toHaveBeenCalled();
+    expect(urls.size).toBe(0);
+  });
+});

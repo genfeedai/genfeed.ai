@@ -52,8 +52,11 @@ const DEFAULT_BRAND_ANALYTICS: IEntityAnalyticsStats = {
   activePlatforms: [] as string[],
 };
 
+/** The numeric stat keys a leaderboard can be ranked by */
+type SortableMetric = 'totalEngagement' | 'totalPosts' | 'totalViews';
+
 /** Map sort enum to field name */
-const SORT_FIELD_MAP: Record<LeaderboardSort, string> = {
+const SORT_FIELD_MAP: Record<LeaderboardSort, SortableMetric> = {
   [LeaderboardSort.VIEWS]: 'totalViews',
   [LeaderboardSort.POSTS]: 'totalPosts',
   [LeaderboardSort.ENGAGEMENT]: 'totalEngagement',
@@ -249,6 +252,41 @@ export class EntityLeaderboardService {
       []) as TEntity[];
   }
 
+  /**
+   * Batched brand logo URLs for one page of leaderboard rows.
+   *
+   * There is no `brand.logo` column — logos are `Asset` rows — so the URL has
+   * to be resolved. Ids are grouped by `organizationId` (the scalar FK; the
+   * `org` relation alias is undefined at runtime) so the underlying read stays
+   * tenant-scoped even when the leaderboard runs unscoped for platform admins.
+   */
+  private async resolveBrandLogos(
+    brands: BrandDoc[],
+  ): Promise<Map<string, string>> {
+    const brandIdsByOrganization = new Map<string, string[]>();
+
+    for (const brand of brands) {
+      const organizationId = brand.organizationId;
+      if (!organizationId) {
+        continue;
+      }
+
+      const brandIds = brandIdsByOrganization.get(organizationId);
+      if (brandIds) {
+        brandIds.push(brand.id);
+        continue;
+      }
+
+      brandIdsByOrganization.set(organizationId, [brand.id]);
+    }
+
+    if (brandIdsByOrganization.size === 0) {
+      return new Map();
+    }
+
+    return this.brandsService.resolveBrandLogoUrls(brandIdsByOrganization);
+  }
+
   /** Count non-deleted brands grouped by organization */
   private async countBrandsByOrganization(): Promise<Map<string, number>> {
     const brandCountRows = await this.prisma.brand.groupBy({
@@ -269,6 +307,22 @@ export class EntityLeaderboardService {
       const bVal = (b as Record<string, number>)[field];
       return bVal - aVal;
     });
+  }
+
+  /**
+   * Sort raw stat rows descending by the metric mapped from the sort enum.
+   *
+   * Same ordering as `sortByMetric`, applied one step earlier — before the
+   * projection. Brand rows need their logos resolved, so they have to be ranked
+   * and sliced first: otherwise a platform-admin request resolves logos for
+   * every brand in the table and discards all but the page.
+   */
+  private sortRowsByMetric<TEntity>(
+    rows: EntityStatsRow<TEntity>[],
+    sort: LeaderboardSort,
+  ): EntityStatsRow<TEntity>[] {
+    const field = SORT_FIELD_MAP[sort];
+    return [...rows].sort((a, b) => b.stats[field] - a.stats[field]);
   }
 
   /** Slice an already-sorted list into a paginated payload */
@@ -308,7 +362,7 @@ export class EntityLeaderboardService {
         avgEngagementRate: stats.avgEngagementRate,
         growth: this.calculateGrowth(stats.totalEngagement, prevEngagement),
         id: entity.id,
-        logo: entity.logo?.cdnUrl,
+        logo: entity.authProviderLogoUrl ?? undefined,
         name: entity.label || entity.name || 'Unknown',
         totalEngagement: stats.totalEngagement,
         totalPosts: stats.totalPosts,
@@ -354,11 +408,21 @@ export class EntityLeaderboardService {
       organizationId,
     });
 
-    const brandsWithStats = rows.map(({ entity, prevEngagement, stats }) =>
-      this.toBrandEntity(entity, stats, prevEngagement),
+    // Rank and cut to the page before resolving logos, so the asset read
+    // covers only the rows that will actually be rendered.
+    const ranked = this.sortRowsByMetric(rows, sort).slice(0, limit);
+    const logoUrlsByBrandId = await this.resolveBrandLogos(
+      ranked.map(({ entity }) => entity),
     );
 
-    return this.sortByMetric(brandsWithStats, sort).slice(0, limit);
+    return ranked.map(({ entity, prevEngagement, stats }) =>
+      this.toBrandEntity(
+        entity,
+        stats,
+        prevEngagement,
+        logoUrlsByBrandId.get(entity.id),
+      ),
+    );
   }
 
   /**
@@ -386,7 +450,7 @@ export class EntityLeaderboardService {
           avgEngagementRate: stats.avgEngagementRate,
           growth: this.calculateGrowth(stats.totalEngagement, prevEngagement),
           id: entity.id,
-          logo: entity.logo?.cdnUrl,
+          logo: entity.authProviderLogoUrl ?? undefined,
           name: entity.label || entity.name || 'Unknown',
           totalBrands: brandCountMap.get(entity.id) || 0,
           totalEngagement: stats.totalEngagement,
@@ -420,28 +484,49 @@ export class EntityLeaderboardService {
       organizationId,
     });
 
-    const brandsWithStats = rows.map(({ entity, prevEngagement, stats }) =>
-      this.toBrandEntity(entity, stats, prevEngagement),
+    // Paginate the raw rows first so the logo read covers one page, not the
+    // whole brand table.
+    const slice = this.buildPaginationSlice(
+      this.sortRowsByMetric(rows, sort),
+      page,
+      limit,
+    );
+    const logoUrlsByBrandId = await this.resolveBrandLogos(
+      slice.data.map(({ entity }) => entity),
     );
 
-    const sorted = this.sortByMetric(brandsWithStats, sort);
-    return new PaginatedBrandsResponse(
-      this.buildPaginationSlice(sorted, page, limit),
-    );
+    return new PaginatedBrandsResponse({
+      data: slice.data.map(({ entity, prevEngagement, stats }) =>
+        this.toBrandEntity(
+          entity,
+          stats,
+          prevEngagement,
+          logoUrlsByBrandId.get(entity.id),
+        ),
+      ),
+      pagination: slice.pagination,
+    });
   }
 
-  /** Shared brand projection used by both brand leaderboard + stats paths */
+  /**
+   * Shared brand projection used by both brand leaderboard + stats paths.
+   *
+   * `logoUrl` is resolved upstream in one batched read — see
+   * `resolveBrandLogos`. It is passed in rather than looked up here so a page
+   * of brands costs one query instead of one per row.
+   */
   private toBrandEntity(
     brand: BrandDoc,
     stats: IEntityAnalyticsStats,
     prevEngagement: number,
+    logoUrl?: string,
   ): BrandWithStatsEntity {
     return new BrandWithStatsEntity({
       activePlatforms: stats.activePlatforms,
       avgEngagementRate: stats.avgEngagementRate,
       growth: this.calculateGrowth(stats.totalEngagement, prevEngagement),
       id: brand.id,
-      logo: brand.logo?.cdnUrl,
+      logo: logoUrl,
       name: brand.label || brand.name || 'Unknown',
       organizationId: brand.organizationId || brand.org?.id,
       organizationName: brand.org?.label || brand.org?.name || 'Unknown',
