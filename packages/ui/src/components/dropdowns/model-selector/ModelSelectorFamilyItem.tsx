@@ -54,7 +54,7 @@ const ModelSelectorFamilyItem = memo(function ModelSelectorFamilyItem({
       ariaLabel={familyLabel}
       className={cn(
         'group flex min-h-9 w-full items-center gap-2.5 rounded-sm px-2 py-1.5 text-left transition-colors lg:min-h-0',
-        'hover:bg-foreground/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
       )}
     >
       <ChevronIcon className="size-3.5 shrink-0 text-foreground/45 transition-transform" />

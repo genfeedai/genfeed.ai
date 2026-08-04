@@ -440,8 +440,8 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                       value={autoLabel}
                       onSelect={handleAutoSelect}
                       className={cn(
-                        'flex min-h-9 cursor-pointer items-center gap-2.5 rounded-sm px-2 py-1.5 text-[13px] text-foreground transition-colors data-[selected=true]:bg-foreground/[0.06] lg:min-h-0',
-                        isAutoSelected && 'bg-foreground/10',
+                        'flex min-h-9 cursor-pointer items-center gap-2.5 rounded-sm px-2 py-1.5 text-[13px] text-foreground transition-colors data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground lg:min-h-0',
+                        isAutoSelected && 'bg-background-tertiary',
                       )}
                     >
                       <span className="size-3.5 shrink-0" aria-hidden="true" />
@@ -560,8 +560,8 @@ function SourceTabButton({
       className={cn(
         'min-h-11 rounded px-2.5 py-1.5 text-xs font-medium transition-colors lg:min-h-0',
         isActive
-          ? 'bg-foreground/10 text-foreground'
-          : 'text-foreground/55 hover:bg-foreground/[0.06] hover:text-foreground',
+          ? 'bg-accent text-accent-foreground'
+          : 'text-foreground/55 hover:bg-accent hover:text-accent-foreground',
       )}
     >
       {label}

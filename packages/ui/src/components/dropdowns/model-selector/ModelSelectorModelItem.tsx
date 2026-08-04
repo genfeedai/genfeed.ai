@@ -35,8 +35,8 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
       value={`${model.label} ${brandLabel} ${model.description ?? ''}`}
       onSelect={handleSelect}
       className={cn(
-        'flex min-h-9 cursor-pointer items-center gap-2.5 rounded-sm px-2 py-1.5 text-[13px] text-foreground transition-colors data-[selected=true]:bg-foreground/[0.06] lg:min-h-0',
-        isSelected && 'bg-foreground/10',
+        'flex min-h-9 cursor-pointer items-center gap-2.5 rounded-sm px-2 py-1.5 text-[13px] text-foreground transition-colors data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground lg:min-h-0',
+        isSelected && 'bg-background-tertiary',
       )}
     >
       <div className="pointer-events-none flex size-5 shrink-0 items-center justify-center">
@@ -75,7 +75,7 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
         withWrapper={false}
         onClick={handleFavoriteClick}
         className={cn(
-          '-my-1.5 flex size-9 shrink-0 items-center justify-center rounded-sm transition-colors hover:bg-foreground/10 lg:my-0 lg:size-6',
+          '-my-1.5 flex size-9 shrink-0 items-center justify-center rounded-sm transition-colors hover:bg-accent lg:my-0 lg:size-6',
           isFavorite
             ? 'text-foreground'
             : 'text-foreground/20 hover:text-foreground/40',
