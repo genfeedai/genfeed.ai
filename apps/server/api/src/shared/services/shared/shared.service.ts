@@ -22,6 +22,32 @@ const toId = (value: unknown): string | undefined => {
   return undefined;
 };
 
+const toMetadataCreateData = (body: Record<string, unknown>) => ({
+  assistant: body.assistant,
+  description: body.description,
+  duration: body.duration,
+  error: body.error,
+  extension: body.extension,
+  externalId: body.externalId,
+  fps: body.fps,
+  hasAudio: body.hasAudio,
+  height: body.height,
+  label:
+    typeof body.label === 'string' && body.label.trim()
+      ? body.label
+      : 'Generated media',
+  model: body.model,
+  prompt: body.prompt,
+  promptTemplate: body.promptTemplate,
+  resolution: body.resolution,
+  result: body.result,
+  seed: body.seed,
+  size: body.size,
+  style: body.style,
+  templateVersion: body.templateVersion,
+  width: body.width,
+});
+
 @Injectable()
 export class SharedService {
   constructor(private readonly moduleRef: ModuleRef) {}
@@ -48,11 +74,7 @@ export class SharedService {
     const userId = publicMetadata.user;
 
     const metadataData = (await this.metadataService.create({
-      ...body,
-      label:
-        typeof body.label === 'string' && body.label.trim()
-          ? body.label
-          : 'Generated media',
+      ...toMetadataCreateData(body),
       ...(promptId ? { prompt: promptId } : {}),
     } as CreateMetadataDto)) as { id: string };
 
@@ -104,11 +126,7 @@ export class SharedService {
     [key: string]: unknown;
   }) {
     const metadataData = (await this.metadataService.create({
-      ...body,
-      label:
-        typeof body.label === 'string' && body.label.trim()
-          ? body.label
-          : 'Generated media',
+      ...toMetadataCreateData(body),
       ...(body.prompt ? { prompt: body.prompt } : {}),
     } as unknown as CreateMetadataDto)) as { id: string };
 
