@@ -99,11 +99,7 @@ export function AgentChatInput({
   const {
     actionFeedback,
     canSendMessage,
-    composerMode,
     editor,
-    generationModelKey,
-    generationModels,
-    handleComposerModeChange,
     handlePasteImages,
     handleRemoveAttachment,
     handleInsertReference,
@@ -112,11 +108,9 @@ export function AgentChatInput({
     handleShellPointerDown,
     hasAttachments,
     isDragActive,
-    isGenerationModelsLoading,
     isListening,
     isTranscribing,
     references,
-    setGenerationModelKey,
     shouldShowSendButton,
     shouldShowVoiceInput,
     startListening,
@@ -201,20 +195,14 @@ export function AgentChatInput({
 
           <AgentChatInputToolbar
             canSendMessage={canSendMessage}
-            composerMode={composerMode}
             creditsAvailable={creditsAvailable}
             disabled={disabled}
-            generationModelKey={generationModelKey}
-            generationModels={generationModels}
             hasEditor={Boolean(editor)}
-            isGenerationModelsLoading={isGenerationModelsLoading}
             isListening={isListening}
             isTranscribing={isTranscribing}
             isUploading={isUploading}
             onAddFiles={addFiles}
             onBuyCredits={onBuyCredits}
-            onComposerModeChange={handleComposerModeChange}
-            onGenerationModelChange={setGenerationModelKey}
             onInsertReference={handleInsertReference}
             onModelChange={onModelChange}
             onSelectAction={handleSelectAction}

@@ -80,19 +80,21 @@ export function GenerationActionCard({
           duration={duration}
           durationOptions={durationOptions}
           onDurationChange={handleDurationChange}
+          isImage={isImage}
+          isPromptEmpty={!prompt.trim()}
+          showGenerate={status === 'idle'}
+          onGenerate={handleGenerateVoid}
         />
 
         <GenerationActionCardStatusPanel
           status={status}
           isImage={isImage}
-          isPromptEmpty={!prompt.trim()}
           resultUrl={resultUrl}
           resultId={resultId}
           error={error}
           generationType={generationType}
           qualityScore={qualityScore}
           qualityFeedback={qualityFeedback}
-          onGenerate={handleGenerateVoid}
           onRetry={handleRetryVoid}
           onRegenerateProp={onRegenerateProp}
         />
