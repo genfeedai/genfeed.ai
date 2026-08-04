@@ -429,7 +429,7 @@ describe('AppProtectedTopbar', () => {
     expect(screen.getByText('Launch plan')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back to task' })).toHaveAttribute(
       'href',
-      '/workspace?taskId=task-1',
+      '/workspace/overview?taskId=task-1',
     );
   });
 
