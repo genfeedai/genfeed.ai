@@ -6,8 +6,10 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
-import { CircleAlert, CircleCheck, Zap } from 'lucide-react';
+import { CircleCheck, Zap } from 'lucide-react';
 import { type ReactElement, useCallback, useRef, useState } from 'react';
+
+import { AgentErrorMessage } from './AgentErrorMessage';
 
 interface WorkflowTriggerCardProps {
   action: AgentUiAction;
@@ -198,12 +200,9 @@ export function WorkflowTriggerCard({
         {/* Error state */}
         {status === 'error' && (
           <div className="space-y-2">
-            <div className="flex items-center gap-2 border border-red-200 bg-red-50 px-3 py-2 dark:border-red-800 dark:bg-red-950">
-              <CircleAlert className="size-4 text-red-600 dark:text-red-400" />
-              <span className="text-sm text-red-700 dark:text-red-300">
-                {error}
-              </span>
-            </div>
+            <AgentErrorMessage
+              message={error ?? 'Failed to trigger workflow'}
+            />
             <Button
               variant={ButtonVariant.SECONDARY}
               onClick={handleRetry}

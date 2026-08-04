@@ -1,7 +1,9 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { CircleAlert, CircleCheck, Zap } from 'lucide-react';
+import { CircleCheck, Zap } from 'lucide-react';
 import type { ReactElement } from 'react';
+
+import { AgentErrorMessage } from './AgentErrorMessage';
 
 type CardStatus = 'idle' | 'executing' | 'done' | 'error';
 
@@ -76,12 +78,7 @@ export function WorkflowExecuteCardStatusPanel({
   if (status === 'error') {
     return (
       <div className="space-y-2">
-        <div className="flex items-center gap-2 border border-red-200 bg-red-50 px-3 py-2 dark:border-red-800 dark:bg-red-950">
-          <CircleAlert className="size-4 text-red-600 dark:text-red-400" />
-          <span className="text-sm text-red-700 dark:text-red-300">
-            {error}
-          </span>
-        </div>
+        <AgentErrorMessage message={error ?? 'Workflow execution failed'} />
         <Button
           variant={ButtonVariant.SECONDARY}
           withWrapper={false}

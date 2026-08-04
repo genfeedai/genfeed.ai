@@ -15,6 +15,8 @@ import {
 import { ChevronDown, Link } from 'lucide-react';
 import { type ReactElement, useCallback, useState } from 'react';
 
+import { AgentErrorMessage } from './AgentErrorMessage';
+
 interface AgentOAuthConnectMenuProps {
   onOAuthConnect?: (platform: string) => void | Promise<void>;
   /** Trigger label. Defaults to the compact agent "Connect" control. */
@@ -120,12 +122,10 @@ export function AgentOAuthConnectMenu({
         </div>
 
         {error ? (
-          <p
-            className="mx-2 mb-2 rounded-lg border border-red-400/25 bg-red-500/10 px-3 py-2 text-xs text-red-300"
-            role="alert"
-          >
-            {error}
-          </p>
+          <AgentErrorMessage
+            className="mx-2 mb-2 rounded-lg border-red-400/25 bg-red-500/10 text-xs text-red-300"
+            message={error}
+          />
         ) : null}
 
         <div className="max-h-72 space-y-3 overflow-y-auto px-1 pb-1">
