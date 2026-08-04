@@ -6,19 +6,22 @@ import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 
-function formatCount(count: number, singular: string, plural: string): string {
-  return `${count} ${count === 1 ? singular : plural}`;
+function formatConnected(count: number): string {
+  return `${count} connected`;
 }
 
+/**
+ * Profile-sidebar summary for OAuth / social integrations only.
+ * External website links live on Brand Profile (inline list + ModalBrandLink).
+ */
 export default function BrandDetailSocialSummaryCard({
   connectedPlatformsCount,
-  linksCount,
   manageHref,
 }: BrandDetailSocialSummaryCardProps) {
   return (
     <Card
-      label="Social & Links"
-      description="Connected accounts and external links on this brand."
+      label="Social accounts"
+      description="Connected platforms used for publishing and ads."
       headerAction={
         <Button
           asChild
@@ -30,23 +33,13 @@ export default function BrandDetailSocialSummaryCard({
         </Button>
       }
     >
-      <div className="grid gap-2 sm:grid-cols-2">
-        <div className="rounded-md bg-background-secondary/50 px-3 py-2.5">
-          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            Accounts
-          </p>
-          <p className="mt-1 text-sm text-foreground/90">
-            {formatCount(connectedPlatformsCount, 'connected', 'connected')}
-          </p>
-        </div>
-        <div className="rounded-md bg-background-secondary/50 px-3 py-2.5">
-          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            Links
-          </p>
-          <p className="mt-1 text-sm text-foreground/90">
-            {formatCount(linksCount, 'link', 'links')}
-          </p>
-        </div>
+      <div className="rounded-md bg-background-secondary/50 px-3 py-2.5">
+        <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          Accounts
+        </p>
+        <p className="mt-1 text-sm text-foreground/90">
+          {formatConnected(connectedPlatformsCount)}
+        </p>
       </div>
     </Card>
   );

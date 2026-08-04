@@ -22,6 +22,8 @@ export {
   hasOrganizationBilling,
   hasOrganizationBillingHint,
   isEEEnabled,
+  shouldShowCreditsNav,
+  usesMeteredCredits,
 } from './license';
 export type { PricingConfig } from './pricing';
 // Pricing

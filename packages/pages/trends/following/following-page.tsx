@@ -30,7 +30,7 @@ import {
   isSameResearchFindingReference,
   toSourcePostFinding,
 } from '@pages/research/work-surface/research-work-surface.types';
-import { SocialsNavigation } from '@pages/trends/shared/socials-navigation';
+import FollowSourceModal from '@pages/trends/following/FollowSourceModal';
 import type {
   TrendItem,
   TrendSourceItem,
@@ -40,14 +40,21 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { SocialSourcesService } from '@services/social/social-sources.service';
 import { SourcePostsService } from '@services/social/source-posts.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import Card from '@ui/card/Card';
+import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import LoadingState from '@ui/feedback/LoadingState';
 import Container from '@ui/layout/container/Container';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@ui/primitives/dialog';
 import FormSearchbar from '@ui/primitives/searchbar';
 import {
   Select,
@@ -64,23 +71,19 @@ import {
   AtSign,
   ExternalLink,
   Inbox,
+  List,
   MessageSquare,
   Plus,
   RefreshCw,
   Send,
   Sparkles,
   Trash2,
+  Users,
   Zap,
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import {
-  type ChangeEvent,
-  type FormEvent,
-  useCallback,
-  useMemo,
-  useState,
-} from 'react';
+import { type ChangeEvent, useCallback, useMemo, useState } from 'react';
 
 const EMPTY_FEED: SocialSourcesResponse = {
   posts: [],
@@ -110,11 +113,8 @@ export default function FollowingPage() {
     key: 'platform',
   });
   const [search, setSearch] = useResearchQueryState();
-  const [newPlatform, setNewPlatform] = useState<SocialSourcePlatform>(
-    SocialSourcePlatform.TWITTER,
-  );
-  const [newHandle, setNewHandle] = useState('');
-  const [isAdding, setIsAdding] = useState(false);
+  const [isFollowOpen, setIsFollowOpen] = useState(false);
+  const [isManageOpen, setIsManageOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const debouncedSearch = useDebounce(search, 300);
   const getSocialSourcesService = useAuthedService((token: string) =>
@@ -146,6 +146,8 @@ export default function FollowingPage() {
   });
   const isInitialFetch =
     isFetching && data.posts.length === 0 && data.sources.length === 0;
+  const hasSources = data.sources.length > 0;
+  const hasPosts = data.posts.length > 0;
   const findings = useMemo(
     () => data.posts.map(toSourcePostFinding),
     [data.posts],
@@ -159,52 +161,31 @@ export default function FollowingPage() {
     await refetch();
   }, [queryClient, refetch]);
 
-  const handleAddSource = useCallback(
-    async (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      const handle = newHandle.trim();
-      if (!handle) {
-        return;
-      }
-
-      try {
-        setIsAdding(true);
-        const service = await getSocialSourcesService();
-        const source = await service.post({
-          handle,
-          platform: newPlatform,
-        });
-        await service.syncSource(source.id, { brand: brandId, limit: 25 });
-        setNewHandle('');
-        notifications.success('Source followed');
-        await refreshFeed();
-      } catch (error) {
-        logger.error('Failed to follow source', error);
-        notifications.error('Failed to follow source');
-      } finally {
-        setIsAdding(false);
-      }
-    },
-    [
-      brandId,
-      getSocialSourcesService,
-      newHandle,
-      newPlatform,
-      notifications,
-      refreshFeed,
-    ],
-  );
-
   const syncAll = useCallback(async () => {
     try {
       setBusyId('sync-all');
       const service = await getSocialSourcesService();
-      await service.syncBrand({ brand: brandId, limit: 25 });
-      notifications.success('Sources synced');
+      const result = await service.syncBrand({ brand: brandId, limit: 25 });
+      if (result.failures?.length) {
+        notifications.error(
+          `${result.failures.length} source${result.failures.length === 1 ? '' : 's'} failed to sync`,
+        );
+      }
+      if (result.count > 0) {
+        notifications.success(
+          result.count === 1 ? 'Synced 1 post' : `Synced ${result.count} posts`,
+        );
+      } else if (!result.failures?.length) {
+        notifications.error(
+          'Sync finished with 0 posts — check X API / Apify configuration',
+        );
+      }
       await refreshFeed();
     } catch (error) {
       logger.error('Failed to sync sources', error);
-      notifications.error('Failed to sync sources');
+      notifications.error(
+        (error as Error)?.message || 'Failed to sync sources',
+      );
     } finally {
       setBusyId(null);
     }
@@ -215,12 +196,27 @@ export default function FollowingPage() {
       try {
         setBusyId(sourceId);
         const service = await getSocialSourcesService();
-        await service.syncSource(sourceId, { brand: brandId, limit: 25 });
-        notifications.success('Source synced');
+        const result = await service.syncSource(sourceId, {
+          brand: brandId,
+          limit: 25,
+        });
+        if (result.count > 0) {
+          notifications.success(
+            result.count === 1
+              ? 'Synced 1 post'
+              : `Synced ${result.count} posts`,
+          );
+        } else {
+          notifications.error(
+            'Sync finished with 0 posts — timeline may be empty or the collector failed silently before; check last sync error in Manage sources',
+          );
+        }
         await refreshFeed();
       } catch (error) {
         logger.error('Failed to sync source', error);
-        notifications.error('Failed to sync source');
+        notifications.error(
+          (error as Error)?.message || 'Failed to sync source',
+        );
       } finally {
         setBusyId(null);
       }
@@ -289,19 +285,59 @@ export default function FollowingPage() {
     [router],
   );
 
+  const openFollowModal = useCallback(() => {
+    setIsFollowOpen(true);
+  }, []);
+
+  const feedSummaryLabel = hasSources
+    ? `${data.summary.totalPosts} posts · ${data.summary.activeSources} active of ${data.summary.totalSources} sources`
+    : 'Follow accounts once — see every platform here';
+
   return (
-    <Container>
+    <>
       <SectionTopbar
         title="Following"
-        subtitle="Collected posts from cross-social accounts followed by this brand."
+        subtitle={feedSummaryLabel}
+        icon={Users}
+        actions={
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {hasSources ? (
+              <>
+                <Button
+                  icon={<List className="size-4" />}
+                  label="Manage sources"
+                  onClick={() => setIsManageOpen(true)}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.GHOST}
+                />
+                <Button
+                  icon={<RefreshCw className="size-4" />}
+                  isLoading={busyId === 'sync-all'}
+                  label="Sync"
+                  onClick={() => {
+                    syncAll().catch(() => undefined);
+                  }}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.SECONDARY}
+                />
+              </>
+            ) : null}
+            <Button
+              icon={<Plus className="size-4" />}
+              label="Follow source"
+              onClick={openFollowModal}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.DEFAULT}
+            />
+          </div>
+        }
       />
-      <SocialsNavigation active="following" />
 
-      {isError ? (
-        <div className="mt-6">
-          <Alert type={AlertCategory.ERROR}>
+      <Container>
+        {isError ? (
+          <Alert type={AlertCategory.ERROR} className="mb-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <span>Failed to load followed sources.</span>
+              <span>Failed to load the following feed.</span>
               <Button
                 label="Retry"
                 onClick={() => {
@@ -311,118 +347,46 @@ export default function FollowingPage() {
               />
             </div>
           </Alert>
-        </div>
-      ) : null}
+        ) : null}
 
-      {isInitialFetch ? (
-        <div className="mt-6 min-h-64">
-          <LoadingState isFullSize />
-        </div>
-      ) : null}
+        {isInitialFetch ? (
+          <div className="min-h-64">
+            <LoadingState isFullSize />
+          </div>
+        ) : null}
 
-      {!isError && !isInitialFetch ? (
-        <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-[340px_1fr]">
-          <aside className="space-y-5">
-            <Card bodyClassName="p-4">
-              <form className="space-y-3" onSubmit={handleAddSource}>
-                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                  <AtSign className="size-4 text-foreground/60" />
-                  Follow source
-                </div>
-                <Select
-                  value={newPlatform}
-                  onValueChange={(value) =>
-                    setNewPlatform(value as SocialSourcePlatform)
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PLATFORM_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Input
-                  value={newHandle}
-                  onChange={(event) => setNewHandle(event.target.value)}
-                  placeholder="@handle or profile URL"
-                />
-                <Button
-                  className="w-full"
-                  icon={<Plus className="size-4" />}
-                  isLoading={isAdding}
-                  label="Follow"
-                  size={ButtonSize.SM}
-                  type="submit"
-                  variant={ButtonVariant.DEFAULT}
-                />
-              </form>
-            </Card>
+        {!isError && !isInitialFetch && !hasSources ? (
+          <CardEmpty
+            icon={AtSign}
+            label="Follow sources for this brand"
+            description="Collect posts from accounts across X, Instagram, and TikTok into one global feed — not buried under Socials platform tabs."
+            actions={
+              <Button
+                icon={<Plus className="size-4" />}
+                label="Follow source"
+                onClick={openFollowModal}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.DEFAULT}
+              />
+            }
+          />
+        ) : null}
 
-            <Card bodyClassName="p-0">
-              <div className="border-b border-border p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="text-sm font-semibold text-foreground">
-                      Sources
-                    </div>
-                    <div className="mt-1 text-xs text-foreground/58">
-                      {data.summary.activeSources} active of{' '}
-                      {data.summary.totalSources}
-                    </div>
-                  </div>
-                  <Button
-                    icon={<RefreshCw className="size-4" />}
-                    isLoading={busyId === 'sync-all'}
-                    label="Sync"
-                    size={ButtonSize.SM}
-                    onClick={() => {
-                      syncAll().catch(() => undefined);
-                    }}
-                    variant={ButtonVariant.SECONDARY}
-                  />
-                </div>
-              </div>
-              <div className="divide-y divide-border">
-                {data.sources.length ? (
-                  data.sources.map((source) => (
-                    <SourceRow
-                      key={source.id}
-                      busyId={busyId}
-                      source={source}
-                      onRemove={removeSource}
-                      onSync={syncSource}
-                    />
-                  ))
-                ) : (
-                  <div className="p-5 text-sm text-foreground/62">
-                    No followed sources yet.
-                  </div>
-                )}
-              </div>
-            </Card>
-          </aside>
-
-          <main className="space-y-5">
-            <Card bodyClassName="p-4">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="grid grid-cols-3 gap-3">
-                  <Metric label="Sources" value={data.summary.totalSources} />
-                  <Metric label="Posts" value={data.summary.totalPosts} />
-                  <Metric
-                    label="Last sync"
-                    value={
-                      data.summary.lastSyncedAt
-                        ? getRelativeTime(data.summary.lastSyncedAt)
-                        : 'Never'
+        {!isError && !isInitialFetch && hasSources ? (
+          <div className="space-y-5">
+            {hasPosts || search || platform !== 'all' ? (
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="w-full md:max-w-md">
+                  <FormSearchbar
+                    value={search}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                      setSearch(event.target.value)
                     }
+                    onClear={() => setSearch('')}
+                    placeholder="Search followed posts"
                   />
                 </div>
-                <div className="flex flex-col gap-2 sm:flex-row">
+                {hasPosts || platform !== 'all' ? (
                   <Select value={platform} onValueChange={setPlatform}>
                     <SelectTrigger className="min-w-36">
                       <SelectValue />
@@ -436,19 +400,11 @@ export default function FollowingPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <FormSearchbar
-                    value={search}
-                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                      setSearch(event.target.value)
-                    }
-                    onClear={() => setSearch('')}
-                    placeholder="Search source posts"
-                  />
-                </div>
+                ) : null}
               </div>
-            </Card>
+            ) : null}
 
-            {pageItems.length ? (
+            {hasPosts ? (
               <>
                 <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
                   {pageItems.map((post) => {
@@ -478,25 +434,109 @@ export default function FollowingPage() {
                 {pagination ? <div>{pagination}</div> : null}
               </>
             ) : (
-              <Card bodyClassName="p-10">
-                <div className="mx-auto flex max-w-md flex-col items-center text-center">
-                  <div className="flex size-11 items-center justify-center rounded-full border border-border bg-background-secondary text-foreground/60">
-                    <Inbox className="size-5" />
+              <CardEmpty
+                icon={Inbox}
+                label="No collected posts yet"
+                description={
+                  data.sources.some(
+                    (source) => source.lastSyncStatus === 'failed',
+                  )
+                    ? `Last sync failed: ${
+                        data.sources.find(
+                          (source) => source.lastSyncStatus === 'failed',
+                        )?.lastSyncError || 'collector error'
+                      }. Fix X API / Apify config and Sync again.`
+                    : data.summary.lastSyncedAt
+                      ? 'Sources are connected but no posts were stored. Sync uses the official X API when configured, then Apify as fallback — check token env if this persists.'
+                      : 'Sources are connected. Sync once to pull recent posts into this feed.'
+                }
+                actions={
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <Button
+                      icon={<RefreshCw className="size-4" />}
+                      isLoading={busyId === 'sync-all'}
+                      label="Sync sources"
+                      onClick={() => {
+                        syncAll().catch(() => undefined);
+                      }}
+                      size={ButtonSize.SM}
+                      variant={ButtonVariant.DEFAULT}
+                    />
+                    <Button
+                      icon={<List className="size-4" />}
+                      label="Manage sources"
+                      onClick={() => setIsManageOpen(true)}
+                      size={ButtonSize.SM}
+                      variant={ButtonVariant.SECONDARY}
+                    />
                   </div>
-                  <div className="mt-4 text-base font-semibold text-foreground">
-                    No collected posts
-                  </div>
-                  <div className="mt-2 text-sm leading-6 text-foreground/68">
-                    Follow sources or sync existing sources to populate this
-                    feed.
-                  </div>
-                </div>
-              </Card>
+                }
+              />
             )}
-          </main>
-        </div>
-      ) : null}
-    </Container>
+          </div>
+        ) : null}
+      </Container>
+
+      <FollowSourceModal
+        brandId={brandId}
+        existingSources={data.sources}
+        open={isFollowOpen}
+        onOpenChange={setIsFollowOpen}
+        onFollowed={refreshFeed}
+      />
+
+      <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Manage sources</DialogTitle>
+            <DialogDescription>
+              {data.summary.activeSources} active of {data.summary.totalSources}{' '}
+              sources
+              {data.summary.lastSyncedAt
+                ? ` · last sync ${getRelativeTime(data.summary.lastSyncedAt)}`
+                : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[50vh] divide-y divide-border overflow-y-auto rounded-card border border-border">
+            {data.sources.length ? (
+              data.sources.map((source) => (
+                <SourceRow
+                  key={source.id}
+                  busyId={busyId}
+                  source={source}
+                  onRemove={removeSource}
+                  onSync={syncSource}
+                />
+              ))
+            ) : (
+              <div className="p-5 text-sm text-foreground/62">
+                No followed sources yet.
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              icon={<Plus className="size-4" />}
+              label="Follow source"
+              onClick={() => {
+                setIsManageOpen(false);
+                setIsFollowOpen(true);
+              }}
+              variant={ButtonVariant.SECONDARY}
+            />
+            <Button
+              icon={<RefreshCw className="size-4" />}
+              isLoading={busyId === 'sync-all'}
+              label="Sync all"
+              onClick={() => {
+                syncAll().catch(() => undefined);
+              }}
+              variant={ButtonVariant.DEFAULT}
+            />
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -511,22 +551,56 @@ function SourceRow({
   onSync: (id: string) => Promise<void>;
   source: ISocialSource;
 }) {
+  const syncStatus = source.lastSyncStatus ?? null;
+  const statusLabel =
+    syncStatus === 'failed'
+      ? 'Failed'
+      : syncStatus === 'empty'
+        ? 'Empty'
+        : syncStatus === 'success'
+          ? 'OK'
+          : null;
+  const statusClass =
+    syncStatus === 'failed'
+      ? 'text-destructive'
+      : syncStatus === 'empty'
+        ? 'text-warning'
+        : 'text-foreground/52';
+
   return (
-    <div className="flex items-center justify-between gap-3 p-4">
-      <div className="min-w-0">
-        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+    <div className="flex items-start justify-between gap-3 p-4">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-foreground">
           {getPlatformIcon(source.platform, 'h-4 w-4')}
           <span className="truncate">
             @{source.handle || source.displayName || 'source'}
           </span>
+          {statusLabel ? (
+            <Badge
+              variant={
+                syncStatus === 'failed'
+                  ? 'error'
+                  : syncStatus === 'empty'
+                    ? 'warning'
+                    : 'secondary'
+              }
+            >
+              {statusLabel}
+            </Badge>
+          ) : null}
         </div>
-        <div className="mt-1 text-xs text-foreground/52">
+        <div className={`mt-1 text-xs ${statusClass}`}>
           {source.lastSyncedAt
-            ? getRelativeTime(source.lastSyncedAt)
+            ? `Synced ${getRelativeTime(source.lastSyncedAt)}`
             : 'Never synced'}
         </div>
+        {source.lastSyncError ? (
+          <p className="mt-1 text-xs leading-5 text-foreground/55">
+            {source.lastSyncError}
+          </p>
+        ) : null}
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex shrink-0 items-center gap-1">
         <Button
           ariaLabel="Sync source"
           icon={<RefreshCw className="size-4" />}
@@ -537,7 +611,7 @@ function SourceRow({
           }}
           size={ButtonSize.SM}
           tooltip="Sync source"
-          variant={ButtonVariant.GHOST}
+          variant={ButtonVariant.SECONDARY}
         />
         <Button
           ariaLabel="Remove source"
@@ -716,19 +790,6 @@ export function getSafeExternalUrl(
   } catch {
     return null;
   }
-}
-
-function Metric({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="min-w-0 border-l border-border bg-background-secondary px-3 py-2">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-foreground/45">
-        {label}
-      </div>
-      <div className="mt-1 truncate text-sm font-semibold text-foreground">
-        {value}
-      </div>
-    </div>
-  );
 }
 
 function MetricStrip({ post }: { post: ISourcePost }) {

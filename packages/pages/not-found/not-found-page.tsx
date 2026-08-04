@@ -34,10 +34,14 @@ export default function NotFoundPage({
           The page you&apos;re looking for doesn&apos;t exist.
         </p>
 
-        <div className="grid grid-cols-1 gap-4 justify-center items-center mt-4">
+        <div className="mt-4 grid grid-cols-1 items-center justify-center gap-4">
+          {/*
+            Forced black shell — theme `primary` is often near-black in dark mode
+            and makes the CTA disappear. Hard white chip for contrast.
+          */}
           <Link
             href={homeHref}
-            className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all duration-300 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2"
+            className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-white px-4 py-2 text-sm font-medium text-black shadow transition-colors duration-200 hover:bg-white/90"
           >
             {homeLabel}
           </Link>

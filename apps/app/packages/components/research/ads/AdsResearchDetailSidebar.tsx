@@ -10,6 +10,7 @@ import type {
   CampaignLaunchPrep,
 } from '@genfeedai/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
@@ -41,14 +42,7 @@ type SummaryMetricCardProps = {
 };
 
 function SummaryMetricCard({ label, value }: SummaryMetricCardProps) {
-  return (
-    <div className="rounded-lg shadow-border bg-card p-3">
-      <div className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">
-        {label}
-      </div>
-      <div className="mt-1 text-lg font-semibold text-foreground">{value}</div>
-    </div>
-  );
+  return <MetricCard label={label} size="sm" value={value} />;
 }
 
 type AdPackPanelProps = {

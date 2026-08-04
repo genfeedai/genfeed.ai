@@ -91,10 +91,10 @@ function Switch({
   // re-activates the control and Radix fires onCheckedChange twice (true then
   // false) — controlled toggles look stuck. Text is non-interactive; switch
   // owns the click.
+  // Label/description left, control right — vertically centered on the row.
   return (
-    <div className="flex items-start gap-3">
-      {switchElement}
-      <div className="flex min-w-0 flex-col gap-1">
+    <div className="flex w-full items-center justify-between gap-3">
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         {label ? (
           <span className={cn('text-sm font-medium text-foreground')}>
             {label}
@@ -106,6 +106,7 @@ function Switch({
           </span>
         ) : null}
       </div>
+      <div className="flex shrink-0 items-center">{switchElement}</div>
     </div>
   );
 }

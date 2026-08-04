@@ -2,12 +2,16 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ReactNode } from 'react';
 
 export interface MetricItemProps {
+  className?: string;
   label: string;
   value: ReactNode;
-  className?: string;
 }
 
-/** A compact label + value pair for use in stat grids */
+/**
+ * Unframed label/value pair for dense tables and inline lists.
+ * For framed tiles use {@link MetricCard}.
+ * Type scale matches MetricCard label/value for consistency.
+ */
 export default function MetricItem({
   className,
   label,
@@ -15,8 +19,12 @@ export default function MetricItem({
 }: MetricItemProps) {
   return (
     <div className={cn(className)}>
-      <p className="text-xs text-foreground/60">{label}</p>
-      <p className="font-semibold">{value}</p>
+      <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-foreground/35">
+        {label}
+      </p>
+      <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
+        {value}
+      </p>
     </div>
   );
 }

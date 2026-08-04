@@ -17,5 +17,14 @@ describe('ModalActions', () => {
     const { container } = render(<ModalActions />);
     const rootElement = container.firstChild as HTMLElement;
     expect(rootElement).toBeInTheDocument();
+    expect(rootElement.className).toContain('justify-end');
+  });
+
+  it('allows className overrides for special footers', () => {
+    const { container } = render(
+      <ModalActions className="justify-between">actions</ModalActions>,
+    );
+    const rootElement = container.firstChild as HTMLElement;
+    expect(rootElement.className).toContain('justify-between');
   });
 });

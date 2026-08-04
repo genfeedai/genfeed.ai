@@ -5,7 +5,8 @@ import type { AxiosError } from 'axios';
 
 export interface IJsonApiError {
   errors: Array<{
-    code: number;
+    /** HTTP status as number or string (`404` / `"404"`) depending on filter. */
+    code: number | string;
     title: string;
     detail: string;
     source?: { pointer?: string; parameter?: string };
@@ -52,8 +53,59 @@ export function isAxiosError(
   );
 }
 
+function parseHttpStatusCode(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string' && /^\d{3}$/.test(value.trim())) {
+    return Number.parseInt(value, 10);
+  }
+
+  return undefined;
+}
+
+/**
+ * Resolve an HTTP status from the shapes this monorepo actually throws:
+ * - Axios errors (`response.status`)
+ * - Sanitized interceptor Errors with `.status`
+ * - Raw JSON:API documents the interceptor re-throws in development
+ *   (`{ errors: [{ code: '404' | 404 }] }`)
+ *
+ * Without the JSON:API branch, expected 404s (e.g. missing editor projects)
+ * fall through as unhandled errors → `logger.error` → Next.js dev overlay.
+ */
 export function getErrorStatus(error: unknown): number | undefined {
-  return isAxiosError(error) ? error.response?.status : undefined;
+  if (isAxiosError(error)) {
+    return error.response?.status;
+  }
+
+  if (!error || typeof error !== 'object') {
+    return undefined;
+  }
+
+  const record = error as Record<string, unknown>;
+
+  const directStatus = parseHttpStatusCode(record.status);
+  if (directStatus !== undefined) {
+    return directStatus;
+  }
+
+  const response = record.response as { status?: unknown } | undefined;
+  const nestedStatus = parseHttpStatusCode(response?.status);
+  if (nestedStatus !== undefined) {
+    return nestedStatus;
+  }
+
+  if (Array.isArray(record.errors) && record.errors.length > 0) {
+    const firstError = record.errors[0] as Record<string, unknown>;
+    return (
+      parseHttpStatusCode(firstError.code) ??
+      parseHttpStatusCode(firstError.status)
+    );
+  }
+
+  return undefined;
 }
 
 export function getErrorMessage(error: unknown, fallback: string): string {
@@ -104,12 +156,13 @@ export class ErrorHandler {
     }
 
     const firstError = jsonApiError.errors[0];
+    const status = parseHttpStatusCode(firstError.code) ?? 500;
     return {
-      code: ErrorHandler.mapStatusToErrorCode(firstError.code),
+      code: ErrorHandler.mapStatusToErrorCode(status),
       detail: firstError.detail,
       meta: firstError.meta,
       source: firstError.source,
-      status: firstError.code,
+      status,
       timestamp: new Date().toISOString(),
       title: firstError.title,
     };

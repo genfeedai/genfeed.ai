@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   brands: [] as Array<{ id: string; label: string; slug: string }>,
   isReady: true,
   orgSlug: 'acme',
-  pathname: '/acme/~/discover/discovery',
+  pathname: '/acme/~/discover/overview',
   replace: vi.fn(),
 }));
 
@@ -61,11 +61,11 @@ describe('DiscoverOrgBrandGate', () => {
     mocks.brands = [];
     mocks.isReady = true;
     mocks.orgSlug = 'acme';
-    mocks.pathname = '/acme/~/discover/discovery';
+    mocks.pathname = '/acme/~/discover/overview';
   });
 
   it('renders children on brand-scoped discover routes', () => {
-    mocks.pathname = '/acme/moonrise/discover/discovery';
+    mocks.pathname = '/acme/moonrise/discover/overview';
 
     render(
       <DiscoverOrgBrandGate>
@@ -87,7 +87,7 @@ describe('DiscoverOrgBrandGate', () => {
     );
 
     expect(mocks.replace).toHaveBeenCalledWith(
-      '/acme/moonrise/discover/discovery',
+      '/acme/moonrise/discover/overview',
     );
   });
 
@@ -108,11 +108,11 @@ describe('DiscoverOrgBrandGate', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Moonrise' })).toHaveAttribute(
       'href',
-      '/acme/moonrise/discover/discovery',
+      '/acme/moonrise/discover/overview',
     );
     expect(screen.getByRole('link', { name: 'Paperclip' })).toHaveAttribute(
       'href',
-      '/acme/paperclip/discover/discovery',
+      '/acme/paperclip/discover/overview',
     );
     expect(mocks.replace).not.toHaveBeenCalled();
   });

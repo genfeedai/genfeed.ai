@@ -5,6 +5,7 @@ import { ArticlesService } from '@api/collections/articles/services/articles.ser
 import { STRATEGY_TEMPLATES } from '@api/collections/brands/constants/strategy-templates.constant';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
+import { WebsitePreviewDto } from '@api/collections/brands/dto/website-preview.dto';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
@@ -30,6 +31,7 @@ import {
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { ActivityKey, ActivitySource } from '@genfeedai/enums';
@@ -56,6 +58,14 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 
+function slugifyBrandLabel(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 @AutoSwagger()
 @Controller('brands')
 @UseGuards(RolesGuard)
@@ -78,6 +88,7 @@ export class BrandsController extends BaseCRUDController<
     public readonly analyticsAggregationService: AnalyticsAggregationService,
     public readonly loggerService: LoggerService,
     private readonly brandSetupService: BrandSetupService,
+    private readonly brandScraperService: BrandScraperService,
   ) {
     super(
       loggerService,
@@ -89,6 +100,51 @@ export class BrandsController extends BaseCRUDController<
       BrandSerializer,
       'Brand',
     );
+  }
+
+  /**
+   * Prefill create-brand form fields from a public website (no brand id yet).
+   * Static route must stay above `/:id/*` handlers.
+   */
+  @Post('website-preview')
+  @HttpCode(HttpStatus.OK)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async previewWebsite(@Body() dto: WebsitePreviewDto) {
+    try {
+      const scraped = await this.brandScraperService.scrapeWebsite(
+        dto.websiteUrl,
+      );
+      const label =
+        scraped.companyName?.trim() ||
+        scraped.tagline?.trim() ||
+        scraped.heroText?.trim() ||
+        '';
+      const description =
+        scraped.description?.trim() ||
+        scraped.metaDescription?.trim() ||
+        scraped.aboutText?.trim() ||
+        scraped.tagline?.trim() ||
+        '';
+      const slug = slugifyBrandLabel(label);
+
+      return {
+        data: {
+          description: description || undefined,
+          label: label || undefined,
+          logoUrl: scraped.logoUrl || scraped.ogImage || undefined,
+          primaryColor: scraped.primaryColor || undefined,
+          secondaryColor: scraped.secondaryColor || undefined,
+          slug: slug || undefined,
+          sourceUrl: scraped.sourceUrl,
+          websiteUrl: scraped.sourceUrl,
+        },
+      };
+    } catch (error: unknown) {
+      throw new BadRequestException(
+        (error as Error)?.message ||
+          'Could not load brand data from that website',
+      );
+    }
   }
 
   /**

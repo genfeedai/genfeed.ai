@@ -17,6 +17,7 @@ export * from './integrations/connect-genfeed.helper';
 export * from './media/clip-reference-frame.helper';
 export * from './media/provenance/provenance.helper';
 export * from './model-capability.helper';
+export * from './onboarding/signup-brand-domain.helper';
 export * from './publisher/publishing-diagnostics.helper';
 export * from './quality-routing.helper';
 export * from './security/redact-sensitive-value.helper';

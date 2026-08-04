@@ -56,6 +56,7 @@ import { YoutubeService } from '@api/services/integrations/youtube/services/yout
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
+import { SignupPrefillModule } from '@api/services/signup-prefill/signup-prefill.module';
 import { SkillExecutorModule } from '@api/services/skill-executor/skill-executor.module';
 import { TaskOrchestrationModule } from '@api/services/task-orchestration/task-orchestration.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
@@ -100,6 +101,7 @@ import { PatternExtractionProcessor } from '@workers/processors/api/queues/patte
 import { PostPublishProcessor } from '@workers/processors/api/queues/post-publish/post-publish.processor';
 import { ReplyBotPollingProcessor } from '@workers/processors/api/queues/reply-bot/reply-bot-polling.processor';
 import { ClipHighlightDetector } from '@workers/processors/api/queues/shared/clip-highlight-detector.service';
+import { SignupPrefillProcessor } from '@workers/processors/api/queues/signup-prefill/signup-prefill.processor';
 import { SocialInboxSyncProcessor } from '@workers/processors/api/queues/social-inbox-sync/social-inbox-sync.processor';
 import { SocialReplyCampaignProcessor } from '@workers/processors/api/queues/social-reply-campaign/social-reply-campaign.processor';
 import { TelegramDistributeProcessor } from '@workers/processors/api/queues/telegram-distribute/telegram-distribute.processor';
@@ -160,6 +162,7 @@ import { AdsServicesModule } from '@workers/services/ads-services.module';
     forwardRef(() => NotificationsModule),
     forwardRef(() => PinterestModule),
     forwardRef(() => ReplyBotModule),
+    forwardRef(() => SignupPrefillModule),
     forwardRef(() => SkillExecutorModule),
     forwardRef(() => TaskOrchestrationModule),
     forwardRef(() => HeygenPollModule),
@@ -255,6 +258,7 @@ import { AdsServicesModule } from '@workers/services/ads-services.module';
     PatternExtractionProcessor,
     PostPublishProcessor,
     ReplyBotPollingProcessor,
+    SignupPrefillProcessor,
     SocialInboxSyncProcessor,
     SocialReplyCampaignProcessor,
     TelegramDistributeProcessor,

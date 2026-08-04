@@ -161,7 +161,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         id: 'discover',
         itemKey: 'discover',
         label: 'Discover',
-        route: createScopedAppRoute({ brandPath: '/discover/discovery' }),
+        route: createScopedAppRoute({ brandPath: '/discover/overview' }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.discover,
       },
       {

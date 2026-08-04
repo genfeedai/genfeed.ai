@@ -263,11 +263,13 @@ export default function WarmupAccountsPage({
       label="Warm-up accounts"
       description="Provision lead accounts for operator-prepared customer demos"
       icon={Rocket}
-      tabs={TABS}
-      activeTab={activeTab}
-      onTabChange={(tab) =>
-        dispatch({ type: 'SET_TAB', tab: tab as 'accounts' | 'create' })
-      }
+      headerTabs={{
+        activeTab,
+        fullWidth: false,
+        onTabChange: (tab) =>
+          dispatch({ type: 'SET_TAB', tab: tab as 'accounts' | 'create' }),
+        tabs: TABS,
+      }}
     >
       {activeTab === 'create' && (
         <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">

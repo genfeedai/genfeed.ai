@@ -36,13 +36,16 @@ vi.mock('next/navigation', () => ({
 }));
 
 describe('SocialsNavigation', () => {
-  it('renders all expected tab links', () => {
+  it('renders Socials tabs only (Following is a Discover peer, not a sub-tab)', () => {
     render(<SocialsNavigation active="overview" />);
 
     expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
       'href',
       '/discover/socials',
     );
+    expect(
+      screen.queryByRole('link', { name: 'Following' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'X' })).toHaveAttribute(
       'href',
       '/discover/twitter',

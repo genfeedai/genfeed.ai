@@ -83,8 +83,11 @@ export const APP_ROUTES = {
     BRANDS: '/analytics/brands',
     HOOKS: '/analytics/hooks',
     INSIGHTS: '/analytics/insights',
-    /** Canonical app home is ROOT; OVERVIEW is an alias for call sites. */
-    OVERVIEW: '/analytics',
+    /**
+     * Canonical analytics home. Bare ROOT permanently redirects here so Overview
+     * is a complete path (same pattern as workspace/overview).
+     */
+    OVERVIEW: '/analytics/overview',
     PERFORMANCE_LAB: '/analytics/performance-lab',
     POSTS: '/analytics/posts',
     STREAKS: '/analytics/streaks',
@@ -98,6 +101,10 @@ export const APP_ROUTES = {
     ONBOARDING: '/agent/onboarding',
   },
   AUTOMATE: {
+    /**
+     * @deprecated Legacy path — permanently redirects to Analytics Overview.
+     * Prefer APP_ROUTES.ANALYTICS.OVERVIEW for links.
+     */
     ANALYTICS: '/automate/analytics',
     AUTOPILOT: '/automate/autopilot',
     CONFIGURATION: '/automate/configuration',
@@ -107,8 +114,11 @@ export const APP_ROUTES = {
     LIBRARY: '/automate/library',
     NEW: '/automate/new',
     ORCHESTRATOR: '/automate/orchestrator',
-    /** Canonical app home is ROOT; OVERVIEW is an alias for call sites. */
-    OVERVIEW: '/automate',
+    /**
+     * Canonical automate home. Bare ROOT permanently redirects here so Overview
+     * is a complete path (same pattern as workspace/overview).
+     */
+    OVERVIEW: '/automate/overview',
     ROOT: '/automate',
     RUNS: '/automate/runs',
     SKILLS: '/automate/skills',
@@ -125,8 +135,17 @@ export const APP_ROUTES = {
     ADS: '/discover/ads',
     ADS_GOOGLE: '/discover/ads/google',
     ADS_META: '/discover/ads/meta',
+    /**
+     * @deprecated Use OVERVIEW. Bare `/discover/discovery` permanently redirects
+     * to `/discover/overview` (same pattern as workspace/analytics/automate).
+     */
     DISCOVERY: '/discover/discovery',
     FOLLOWING: '/discover/following',
+    /**
+     * Canonical Discover home. Bare ROOT permanently redirects here so Overview
+     * is a complete path (same pattern as workspace/overview).
+     */
+    OVERVIEW: '/discover/overview',
     ROOT: '/discover',
     SOCIALS: '/discover/socials',
   },
@@ -156,8 +175,11 @@ export const APP_ROUTES = {
     INGREDIENTS: '/library/ingredients',
     MOODBOARD: '/library/moodboard',
     MUSIC: '/library/music',
-    /** Canonical app home is ROOT; OVERVIEW is an alias for call sites. */
-    OVERVIEW: '/library',
+    /**
+     * Canonical library home. Bare ROOT permanently redirects here so Overview
+     * is a complete path (same pattern as workspace/overview).
+     */
+    OVERVIEW: '/library/overview',
     ROOT: '/library',
     VIDEOS: '/library/videos',
     VOICES: '/library/voices',
@@ -208,12 +230,26 @@ export const APP_ROUTES = {
     ORGANIZATION: '/settings/organization',
     ORGANIZATION_API_KEYS: '/settings/organization/api-keys',
     ORGANIZATION_BILLING: '/settings/organization/billing',
+    /**
+     * @deprecated Dead path — no page shipped. Brand OAuth (Facebook / Google Ads
+     * / social) lives at SETTINGS.SOCIAL. Prefer that; legacy URLs redirect.
+     */
     ORGANIZATION_CREDENTIALS: '/settings/organization/credentials',
     ORGANIZATION_POLICY: '/settings/organization/policy',
     PERSONAL: '/settings/personal',
     POLICY: '/settings/policy',
     PUBLISHING: '/settings/publishing',
     ROOT: '/settings',
+    /**
+     * Brand-scoped social + ad OAuth connect surface (Facebook → Meta Ads,
+     * Google Ads, Twitter, etc.). Canonical home for "connect accounts".
+     */
+    SOCIAL: '/settings/social',
+    /**
+     * @deprecated External links edit on Brand Profile via ModalBrandLink.
+     * Route permanently redirects to SETTINGS.ROOT.
+     */
+    LINKS: '/settings/links',
     USAGE: '/settings/usage',
     WEBHOOKS: '/settings/webhooks',
   },
@@ -237,8 +273,13 @@ export const APP_ROUTES = {
     INBOX_ALL: '/workspace/inbox/all',
     INBOX_RECENT: '/workspace/inbox/recent',
     INBOX_UNREAD: '/workspace/inbox/unread',
-    /** Canonical app home is ROOT; OVERVIEW is an alias for call sites. */
-    OVERVIEW: '/workspace',
+    /**
+     * Canonical workspace home. Bare ROOT (`/workspace`) redirects here so the
+     * Overview nav item is a complete path that does not prefix-match
+     * Activity/Tasks/Inbox (same pattern as Studio → Storyboard, Discover →
+     * Discovery).
+     */
+    OVERVIEW: '/workspace/overview',
     ROOT: '/workspace',
     TASKS: '/workspace/tasks',
   },

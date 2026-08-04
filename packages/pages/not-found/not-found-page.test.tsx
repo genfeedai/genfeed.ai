@@ -19,4 +19,13 @@ describe('NotFoundPage', () => {
     expect(rootElement).toHaveClass('min-h-dvh', 'w-full', 'bg-black');
     expect(rootElement).not.toHaveClass('container', 'bg-background');
   });
+
+  it('uses a high-contrast home CTA on the black shell', () => {
+    const { getByRole } = render(
+      <NotFoundPage homeHref="/" homeLabel="Go to Workspace" />,
+    );
+    const cta = getByRole('link', { name: 'Go to Workspace' });
+    expect(cta).toHaveClass('bg-white', 'text-black');
+    expect(cta).not.toHaveClass('bg-primary');
+  });
 });

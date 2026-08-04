@@ -3,6 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { AccountHealthSummary } from '@genfeedai/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import type { BrandDetailSocialMediaCardProps } from '@props/pages/brand-detail.props';
 import { logger } from '@services/core/logger.service';
@@ -11,6 +12,7 @@ import { ServicesService } from '@services/external/services.service';
 import { CredentialsService } from '@services/organization/credentials.service';
 import Card from '@ui/card/Card';
 import {
+  groupOAuthConnectPlatforms,
   OAUTH_CONNECT_PLATFORMS,
   type OAuthConnectPlatform,
 } from '@ui/constants/oauth-connect-platforms';
@@ -24,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import { Check } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -140,7 +143,9 @@ export default function BrandDetailSocialMediaCard({
   brandId,
   connections,
   connectedPlatformsCount,
+  variant = 'compact',
 }: BrandDetailSocialMediaCardProps) {
+  const isPageVariant = variant === 'page';
   const { getToken } = useAuthIdentity();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(
@@ -168,6 +173,14 @@ export default function BrandDetailSocialMediaCard({
         (p) => !connectedPlatforms.has(p.platform),
       ),
     [connectedPlatforms],
+  );
+  const unconnectedPlatformGroups = useMemo(
+    () => groupOAuthConnectPlatforms(unconnectedPlatforms),
+    [unconnectedPlatforms],
+  );
+  const allPlatformGroups = useMemo(
+    () => groupOAuthConnectPlatforms(OAUTH_CONNECT_PLATFORMS),
+    [],
   );
   const connectionHealth = useMemo(
     () =>
@@ -292,15 +305,224 @@ export default function BrandDetailSocialMediaCard({
     );
   };
 
+  const connectionsByPlatform = useMemo(() => {
+    const map = new Map<string, SocialConnection[]>();
+    for (const connection of connectedConnections) {
+      const key = connection.platform;
+      const existing = map.get(key) ?? [];
+      existing.push(connection);
+      map.set(key, existing);
+    }
+    return map;
+  }, [connectedConnections]);
+
+  const renderIntegrationCard = (item: OAuthConnectPlatform) => {
+    const platformConnections = connectionsByPlatform.get(item.platform) ?? [];
+    const isConnected = platformConnections.length > 0;
+    const platformIcon = getPlatformIcon(
+      item.platform,
+      // block + equal size so FA-style viewBoxes center in the tile
+      'block size-4 shrink-0',
+    );
+
+    return (
+      <div
+        key={item.platform}
+        className="flex h-full flex-col gap-3 rounded-lg bg-background-secondary p-4 shadow-border"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-background shadow-border">
+              {/* Square tile: force SVG to a fixed box so FA 448×512 glyphs center. */}
+              <span className="inline-flex size-4 items-center justify-center overflow-hidden leading-none [&_svg]:block [&_svg]:size-4">
+                {platformIcon}
+              </span>
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{item.label}</p>
+              <p className="text-xs text-muted-foreground">
+                {isConnected
+                  ? `${platformConnections.length} connected`
+                  : 'Not connected'}
+              </p>
+            </div>
+          </div>
+          {isConnected ? (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-sm border border-success/30 bg-success/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-success">
+              <Check className="size-3" />
+              Linked
+            </span>
+          ) : null}
+        </div>
+
+        {isConnected ? (
+          <div className="space-y-2">
+            {platformConnections.map((connection) => (
+              <ConnectedAccount
+                key={connection.credentialId}
+                connection={connection}
+              />
+            ))}
+          </div>
+        ) : null}
+
+        <div className="mt-auto pt-1">
+          <Button
+            variant={
+              isConnected ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT
+            }
+            size={ButtonSize.SM}
+            className="h-8 w-full text-xs"
+            onClick={() => handleConnectPlatform(item)}
+            isLoading={connectingPlatform === item.platform}
+            isDisabled={connectingPlatform !== null}
+          >
+            {isConnected ? `Reconnect ${item.label}` : `Connect ${item.label}`}
+          </Button>
+          {isConnected ? (
+            <p className="mt-1.5 text-center text-[11px] leading-4 text-muted-foreground">
+              One {item.label} account per brand for now — reconnect replaces
+              the linked profile.
+            </p>
+          ) : null}
+        </div>
+      </div>
+    );
+  };
+
+  const accountHealthSection =
+    healthRows.length > 0 ? (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Account health
+          </h3>
+          {isHealthLoading ? (
+            <span className="text-xs text-muted-foreground">Checking</span>
+          ) : null}
+        </div>
+        <div className="space-y-2">
+          {healthRows.map((summary) => (
+            <div
+              className="space-y-2 border-t border-border/70 pt-3 first:border-t-0 first:pt-0"
+              key={summary.credentialId}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">
+                    {summary.label}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {summary.platform} · score {summary.score}
+                  </p>
+                </div>
+                <span
+                  className={`shrink-0 rounded-sm border px-2 py-1 text-[10px] font-semibold uppercase ${getHealthToneClass(summary)}`}
+                >
+                  {STATE_LABELS[summary.state]}
+                </span>
+              </div>
+              <p className="text-xs leading-5 text-muted-foreground">
+                {formatHealthDetail(summary)}
+              </p>
+              {summary.holdPublishing ? (
+                <Button
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.SECONDARY}
+                  className="h-8 text-xs"
+                  onClick={() => setOverrideCredentialId(summary.credentialId)}
+                >
+                  Override 24h
+                </Button>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </div>
+    ) : null;
+
   const socialDescription =
     connectedPlatformsCount > 0
       ? `${connectedPlatformsCount} connected · ${unconnectedPlatforms.length} available to add`
       : 'Connect accounts to display them here.';
 
+  const overrideDialog = (
+    <Dialog
+      open={Boolean(selectedOverrideHealth)}
+      onOpenChange={(open) => {
+        if (!open) {
+          setOverrideCredentialId(null);
+        }
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Confirm warmup override</DialogTitle>
+          <DialogDescription>
+            This bypasses the account-health publishing hold for 24 hours. Use
+            it only after reviewing the platform warmup guidance.
+          </DialogDescription>
+        </DialogHeader>
+
+        {selectedOverrideHealth ? (
+          <div className="space-y-4">
+            <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
+              {selectedOverrideHealth.holdReason ??
+                'This account is currently held by warmup state.'}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                size={ButtonSize.SM}
+                variant={ButtonVariant.GHOST}
+                onClick={() => setOverrideCredentialId(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
+                isLoading={isOverrideSubmitting}
+                onClick={handleConfirmOverride}
+              >
+                Confirm override
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+
+  if (isPageVariant) {
+    return (
+      <>
+        <div className="space-y-6">
+          {allPlatformGroups.map((group) => (
+            <section key={group.id} className="space-y-3">
+              <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                {group.label}
+              </h2>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {group.platforms.map(renderIntegrationCard)}
+              </div>
+            </section>
+          ))}
+
+          {accountHealthSection ? (
+            <Card label="Account health" description="Warmup and risk signals.">
+              {accountHealthSection}
+            </Card>
+          ) : null}
+        </div>
+        {overrideDialog}
+      </>
+    );
+  }
+
   return (
     <>
       <Card
-        label="Social Media"
+        label="Connected accounts"
         description={socialDescription}
         headerAction={
           <Button
@@ -328,55 +550,9 @@ export default function BrandDetailSocialMediaCard({
           </div>
         )}
 
-        {healthRows.length > 0 ? (
-          <div className="space-y-2 border-t border-border pt-3">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                Account health
-              </h3>
-              {isHealthLoading ? (
-                <span className="text-xs text-muted-foreground">Checking</span>
-              ) : null}
-            </div>
-            <div className="space-y-2">
-              {healthRows.map((summary) => (
-                <div
-                  className="space-y-2 border-t border-border/70 pt-3 first:border-t-0 first:pt-0"
-                  key={summary.credentialId}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">
-                        {summary.label}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {summary.platform} · score {summary.score}
-                      </p>
-                    </div>
-                    <span
-                      className={`shrink-0 rounded-sm border px-2 py-1 text-[10px] font-semibold uppercase ${getHealthToneClass(summary)}`}
-                    >
-                      {STATE_LABELS[summary.state]}
-                    </span>
-                  </div>
-                  <p className="text-xs leading-5 text-muted-foreground">
-                    {formatHealthDetail(summary)}
-                  </p>
-                  {summary.holdPublishing ? (
-                    <Button
-                      size={ButtonSize.SM}
-                      variant={ButtonVariant.SECONDARY}
-                      className="h-8 text-xs"
-                      onClick={() =>
-                        setOverrideCredentialId(summary.credentialId)
-                      }
-                    >
-                      Override 24h
-                    </Button>
-                  ) : null}
-                </div>
-              ))}
-            </div>
+        {accountHealthSection ? (
+          <div className="border-t border-border pt-3">
+            {accountHealthSection}
           </div>
         ) : null}
       </Card>
@@ -402,14 +578,21 @@ export default function BrandDetailSocialMediaCard({
                 ))}
               </div>
 
-              {unconnectedPlatforms.length > 0 ? (
-                <div className="space-y-3 border-t border-border pt-4">
+              {unconnectedPlatformGroups.length > 0 ? (
+                <div className="space-y-4 border-t border-border pt-4">
                   <p className="text-sm text-muted-foreground">
                     Add more channels for this brand.
                   </p>
-                  <div className="flex flex-wrap gap-2">
-                    {unconnectedPlatforms.map(renderConnectButton)}
-                  </div>
+                  {unconnectedPlatformGroups.map((group) => (
+                    <div key={group.id} className="space-y-2">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        {group.label}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {group.platforms.map(renderConnectButton)}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : null}
             </div>
@@ -418,58 +601,22 @@ export default function BrandDetailSocialMediaCard({
               <p className="text-sm text-muted-foreground">
                 Connect your social media accounts to display them here.
               </p>
-              <div className="flex flex-wrap gap-2">
-                {OAUTH_CONNECT_PLATFORMS.map(renderConnectButton)}
-              </div>
+              {allPlatformGroups.map((group) => (
+                <div key={group.id} className="space-y-2">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {group.label}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {group.platforms.map(renderConnectButton)}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={Boolean(selectedOverrideHealth)}
-        onOpenChange={(open) => {
-          if (!open) {
-            setOverrideCredentialId(null);
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm warmup override</DialogTitle>
-            <DialogDescription>
-              This bypasses the account-health publishing hold for 24 hours. Use
-              it only after reviewing the platform warmup guidance.
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedOverrideHealth ? (
-            <div className="space-y-4">
-              <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
-                {selectedOverrideHealth.holdReason ??
-                  'This account is currently held by warmup state.'}
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
-                  onClick={() => setOverrideCredentialId(null)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.SECONDARY}
-                  isLoading={isOverrideSubmitting}
-                  onClick={handleConfirmOverride}
-                >
-                  Confirm override
-                </Button>
-              </div>
-            </div>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+      {overrideDialog}
     </>
   );
 }

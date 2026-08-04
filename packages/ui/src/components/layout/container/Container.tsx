@@ -4,9 +4,28 @@ import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ContainerProps } from '@genfeedai/props/ui/ui.props';
 import ContainerTitle from '@ui/layout/container-title/ContainerTitle';
+import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import Tabs from '@ui/navigation/tabs/Tabs';
+import type { ComponentType, ReactNode } from 'react';
 import { useState } from 'react';
 
+/**
+ * Page body shell.
+ *
+ * **Module-local chrome** (sibling surfaces + primary tools) always renders
+ * through {@link SectionTopbar}: full-bleed `border-b`, tabs left, actions
+ * right — one app-wide pattern, not a Discover-only flourish. Sources:
+ * - explicit `headerTabs` (preferred for local nav)
+ * - body `tabs` promoted when `right` actions exist
+ * - body `tabs` alone (former orphan strip under the title)
+ * - breadcrumb / sr-only title + `right` tools (date range, refresh, etc.)
+ *
+ * **Title-only / create CTA** rows (visible title, no local tab nav) stay in
+ * the padded title toolbar — not a second full-bleed bar.
+ *
+ * Discover Socials may still render {@link SectionTopbar} as a sibling above a
+ * chrome-less Container; both compositions must look identical.
+ */
 export default function Container({
   label,
   description,
@@ -27,103 +46,157 @@ export default function Container({
   const hasLeft = Boolean(left);
   const { hasCanonicalBreadcrumb } = useSidebarNavigation();
 
-  // Use controlled props if provided, otherwise use internal state
   const activeTab = controlledActiveTab ?? internalActiveTab;
   const onTabChange = controlledOnTabChange ?? setInternalActiveTab;
 
   const hasHeaderRight = Boolean(right);
-  const hasHeaderTabs = Boolean(headerTabs);
-  // Topbar breadcrumb owns page identity when present — ContainerTitle becomes
-  // sr-only. Do not keep an empty header row (mb-4 pb-3) that looks like broken
-  // top padding under the shell topbar.
+  const hasBodyTabs = Boolean(tabs && tabs.length > 0);
+  // Prefer explicit headerTabs. Body tabs + primary actions used to render as
+  // a right-only bar with an orphan strip underneath — always promote.
+  const shouldPromoteBodyTabs = hasBodyTabs && hasHeaderRight && !headerTabs;
+  // Body tabs alone also join the module bar (no more floating strip).
+  const shouldLiftBodyTabsAlone = hasBodyTabs && !headerTabs && !hasHeaderRight;
+  const resolvedHeaderTabs: ContainerProps['headerTabs'] = headerTabs
+    ? headerTabs
+    : shouldPromoteBodyTabs || shouldLiftBodyTabsAlone
+      ? {
+          activeTab,
+          fullWidth: false,
+          onTabChange,
+          tabs,
+        }
+      : undefined;
+  const hasHeaderTabs = Boolean(resolvedHeaderTabs);
+
   const isTitleChromeSuppressed =
     titleVisibility === 'sr-only' || Boolean(label && hasCanonicalBreadcrumb);
   const hasVisibleTitle = Boolean(label && !isTitleChromeSuppressed);
-  const hasScreenReaderTitle = Boolean(label && isTitleChromeSuppressed);
-  // Equal page inset on every axis so content sits the same distance from
-  // the topbar, sidebar, and inspector — pages must not invent their own.
+  // When SectionTopbar owns the chrome title, skip a second sr-only h1 here.
+  const needsStandaloneScreenReaderTitle =
+    Boolean(label && isTitleChromeSuppressed) &&
+    !(
+      hasHeaderTabs ||
+      shouldPromoteBodyTabs ||
+      shouldLiftBodyTabsAlone ||
+      (!hasVisibleTitle && hasHeaderRight)
+    );
+
   const insetClassName = fullWidth ? 'px-5 sm:px-6' : '';
   const bodyInsetClassName = fullWidth ? insetClassName : '';
-  const hasHeaderChrome = hasVisibleTitle || hasHeaderTabs || hasHeaderRight;
 
-  // Trailing toolbar (tabs + primary actions) alignment:
-  // - tabs + actions → tabs left, actions right (justify-between)
-  // - actions only → right edge (justify-end) — main CTAs never sit left
-  // - tabs only → start
-  // With a visible title, the outer row already justify-betweens title | toolbar;
-  // when both tabs and actions exist, the toolbar itself also justify-betweens.
-  const toolbarClassName = cn(
-    'flex min-w-0 flex-wrap items-center gap-2.5',
-    !hasVisibleTitle && (hasHeaderTabs || hasHeaderRight) && 'w-full',
-    hasVisibleTitle &&
-      hasHeaderTabs &&
-      hasHeaderRight &&
-      'flex-1 justify-between',
-    hasVisibleTitle && !hasHeaderTabs && hasHeaderRight && 'ml-auto shrink-0',
-    !hasVisibleTitle && hasHeaderTabs && hasHeaderRight && 'justify-between',
-    !hasVisibleTitle && !hasHeaderTabs && hasHeaderRight && 'justify-end',
-  );
+  // One pattern: SectionTopbar for any local nav and/or chrome-only tools.
+  const usesModuleLocalChrome =
+    hasHeaderTabs ||
+    shouldPromoteBodyTabs ||
+    shouldLiftBodyTabsAlone ||
+    (!hasVisibleTitle && hasHeaderRight);
+
+  // Visible title + primary actions only (e.g. admin "Invite") — padded row.
+  const usesTitleActionToolbar =
+    hasVisibleTitle && hasHeaderRight && !usesModuleLocalChrome;
+
+  const sectionTitle =
+    typeof label === 'string' && label.length > 0 ? label : 'Page';
+  const sectionSubtitle =
+    hasVisibleTitle && typeof description === 'string'
+      ? description
+      : undefined;
+  const sectionIcon =
+    hasVisibleTitle && typeof icon === 'function'
+      ? (icon as ComponentType<{ className?: string }>)
+      : undefined;
+
+  const moduleTabsNode = resolvedHeaderTabs ? (
+    <Tabs
+      {...resolvedHeaderTabs}
+      className={cn(resolvedHeaderTabs.className, 'mb-0 w-full justify-start')}
+    />
+  ) : null;
 
   return (
     <div
+      data-testid="container"
       className={cn(
-        'w-full py-5 sm:py-6',
-        fullWidth ? 'mx-0 max-w-none' : 'mx-auto max-w-[1280px] px-5 sm:px-6',
+        'w-full',
+        !usesModuleLocalChrome &&
+          (fullWidth
+            ? 'mx-0 max-w-none py-5 sm:py-6'
+            : 'mx-auto max-w-[1280px] px-5 py-5 sm:px-6 sm:py-6'),
+        usesModuleLocalChrome &&
+          (fullWidth ? 'mx-0 max-w-none' : 'mx-auto max-w-[1280px]'),
         className,
       )}
+      data-module-chrome={usesModuleLocalChrome ? 'section-topbar' : 'classic'}
     >
-      {hasScreenReaderTitle ? (
-        <ContainerTitle title={label} titleVisibility="sr-only" />
+      {needsStandaloneScreenReaderTitle ? (
+        <ContainerTitle title={label as ReactNode} titleVisibility="sr-only" />
       ) : null}
 
-      {hasHeaderChrome && (
+      {usesModuleLocalChrome ? (
+        <SectionTopbar
+          title={sectionTitle}
+          subtitle={sectionSubtitle}
+          icon={sectionIcon}
+          titleVisibility={hasVisibleTitle ? 'visible' : 'sr-only'}
+          actions={
+            hasHeaderRight ? (
+              <div
+                data-testid="container-header-actions"
+                className="flex shrink-0 flex-wrap items-center justify-end gap-2.5"
+              >
+                {right}
+              </div>
+            ) : undefined
+          }
+          tabs={moduleTabsNode ?? undefined}
+        />
+      ) : null}
+
+      {usesTitleActionToolbar ? (
         <div
           className={cn(
-            'mb-4 flex items-center gap-4 pb-3',
-            hasVisibleTitle &&
-              (hasHeaderTabs || hasHeaderRight) &&
-              'justify-between',
-            !hasVisibleTitle && (hasHeaderTabs || hasHeaderRight) && 'w-full',
+            'mb-4 flex items-center justify-between gap-4 pb-3',
             insetClassName,
           )}
         >
-          {hasVisibleTitle && (
-            <ContainerTitle
-              title={label}
-              description={description}
-              icon={icon}
-            />
-          )}
-
-          {(hasHeaderTabs || hasHeaderRight) && (
-            <div className={toolbarClassName}>
-              {headerTabs ? (
-                <Tabs {...headerTabs} className={cn(headerTabs.className)} />
-              ) : null}
-              {hasHeaderRight ? (
-                <div className="flex shrink-0 flex-wrap items-center gap-2.5">
-                  {right}
-                </div>
-              ) : null}
-            </div>
-          )}
+          <ContainerTitle title={label} description={description} icon={icon} />
+          <div
+            data-testid="container-header-actions"
+            className="flex shrink-0 flex-wrap items-center justify-end gap-2.5"
+          >
+            {right}
+          </div>
         </div>
-      )}
+      ) : null}
 
-      {hasLeft && <div className={cn('mb-4', insetClassName)}>{left}</div>}
-
-      {tabs && tabs.length > 0 && (
-        <div className="mb-6 border-b border-border">
-          <Tabs
-            tabs={tabs}
-            className={cn('mb-0', insetClassName)}
-            activeTab={activeTab}
-            onTabChange={onTabChange}
-          />
+      {hasVisibleTitle && !usesModuleLocalChrome && !usesTitleActionToolbar ? (
+        <div className={cn('mb-4 pb-3', insetClassName)}>
+          <ContainerTitle title={label} description={description} icon={icon} />
         </div>
-      )}
+      ) : null}
 
-      <div className={cn(bodyInsetClassName, bodyClassName)}>{children}</div>
+      {hasLeft ? (
+        <div
+          className={cn(
+            'mb-4',
+            usesModuleLocalChrome
+              ? cn(bodyInsetClassName, 'pt-5 sm:pt-6')
+              : insetClassName,
+          )}
+        >
+          {left}
+        </div>
+      ) : null}
+
+      <div
+        className={cn(
+          usesModuleLocalChrome
+            ? cn(bodyInsetClassName, 'py-5 sm:py-6', bodyClassName)
+            : cn(bodyInsetClassName, bodyClassName),
+        )}
+      >
+        {children}
+      </div>
     </div>
   );
 }

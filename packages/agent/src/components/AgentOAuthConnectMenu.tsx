@@ -1,8 +1,11 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { type ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import { OAUTH_CONNECT_PLATFORMS } from '@ui/constants/oauth-connect-platforms';
+import {
+  groupOAuthConnectPlatforms,
+  OAUTH_CONNECT_PLATFORMS,
+} from '@ui/constants/oauth-connect-platforms';
 import { Button } from '@ui/primitives/button';
 import {
   Popover,
@@ -14,6 +17,12 @@ import { type ReactElement, useCallback, useState } from 'react';
 
 interface AgentOAuthConnectMenuProps {
   onOAuthConnect?: (platform: string) => void | Promise<void>;
+  /** Trigger label. Defaults to the compact agent "Connect" control. */
+  triggerLabel?: string;
+  triggerVariant?: ButtonVariant;
+  triggerSize?: ButtonSize;
+  /** Hide the leading link icon (e.g. full empty-state CTA). */
+  hideIcon?: boolean;
 }
 
 const CONNECT_ERROR_MESSAGE =
@@ -21,6 +30,10 @@ const CONNECT_ERROR_MESSAGE =
 
 export function AgentOAuthConnectMenu({
   onOAuthConnect,
+  triggerLabel = 'Connect',
+  triggerVariant = ButtonVariant.UNSTYLED,
+  triggerSize,
+  hideIcon = false,
 }: AgentOAuthConnectMenuProps): ReactElement | null {
   const [open, setOpen] = useState(false);
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(
@@ -55,19 +68,32 @@ export function AgentOAuthConnectMenu({
     return null;
   }
 
+  const isShellControl = triggerVariant === ButtonVariant.UNSTYLED;
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant={ButtonVariant.UNSTYLED}
+          variant={triggerVariant}
+          size={triggerSize}
           withWrapper={false}
-          className="gen-shell-control flex items-center gap-1 rounded-md px-2 py-1 text-left"
+          className={
+            isShellControl
+              ? 'gen-shell-control flex items-center gap-1 rounded-md px-2 py-1 text-left'
+              : undefined
+          }
           data-active={open ? 'true' : 'false'}
           ariaLabel="Connect a social channel"
         >
-          <Link className="size-3.5 text-foreground/55" />
-          <span className="text-[11px] font-medium text-foreground">
-            Connect
+          {!hideIcon ? <Link className="size-3.5 text-foreground/55" /> : null}
+          <span
+            className={
+              isShellControl
+                ? 'text-[11px] font-medium text-foreground'
+                : undefined
+            }
+          >
+            {triggerLabel}
           </span>
           <ChevronDown
             className={cn(
@@ -102,20 +128,29 @@ export function AgentOAuthConnectMenu({
           </p>
         ) : null}
 
-        <div className="grid max-h-72 grid-cols-2 gap-1 overflow-y-auto">
-          {OAUTH_CONNECT_PLATFORMS.map((item) => (
-            <Button
-              key={item.platform}
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              onClick={() => void handleConnect(item.platform)}
-              isDisabled={connectingPlatform !== null}
-              isLoading={connectingPlatform === item.platform}
-              className="gen-shell-surface flex w-full items-center rounded-xl px-3 py-2 text-left text-xs font-medium text-foreground transition-colors"
-            >
-              {item.icon}
-              {item.label}
-            </Button>
+        <div className="max-h-72 space-y-3 overflow-y-auto px-1 pb-1">
+          {groupOAuthConnectPlatforms(OAUTH_CONNECT_PLATFORMS).map((group) => (
+            <div key={group.id} className="space-y-1">
+              <p className="px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/42">
+                {group.label}
+              </p>
+              <div className="grid grid-cols-2 gap-1">
+                {group.platforms.map((item) => (
+                  <Button
+                    key={item.platform}
+                    variant={ButtonVariant.UNSTYLED}
+                    withWrapper={false}
+                    onClick={() => void handleConnect(item.platform)}
+                    isDisabled={connectingPlatform !== null}
+                    isLoading={connectingPlatform === item.platform}
+                    className="gen-shell-surface flex w-full items-center rounded-xl px-3 py-2 text-left text-xs font-medium text-foreground transition-colors"
+                  >
+                    {item.icon}
+                    {item.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </PopoverContent>

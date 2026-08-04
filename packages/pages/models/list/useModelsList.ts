@@ -16,7 +16,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ErrorHandler } from '@utils/error/error-handler.util';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildModelsTableColumns } from './components/ModelsTableColumns';
 import {
@@ -46,9 +46,6 @@ export function useModelsList({
 
   const { openConfirm } = useConfirmModal();
 
-  const router = useRouter();
-  const pathname = usePathname();
-
   const getModelsService = useAuthedService((token: string) =>
     ModelsService.getInstance(token),
   );
@@ -67,52 +64,10 @@ export function useModelsList({
 
   const isAdminScope = scope === PageScope.SUPERADMIN;
 
-  // Admin org/brand filter state (superadmin only)
-  const [adminOrg, setAdminOrg] = useState(
-    () => parsedSearchParams.get('organization') || '',
-  );
-  const [adminBrand, setAdminBrand] = useState(
-    () => parsedSearchParams.get('brand') || '',
-  );
-
-  // Admin filter URL sync handlers
-  const handleAdminOrgChange = useCallback(
-    (orgId: string) => {
-      setAdminOrg(orgId);
-      setAdminBrand('');
-      const params = new URLSearchParams(searchParamsString);
-      if (orgId) {
-        params.set('organization', orgId);
-      } else {
-        params.delete('organization');
-      }
-      params.delete('brand');
-      params.delete('page');
-      const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, router, searchParamsString],
-  );
-
-  const handleAdminBrandChange = useCallback(
-    (brandId: string) => {
-      setAdminBrand(brandId);
-      const params = new URLSearchParams(searchParamsString);
-      if (brandId) {
-        params.set('brand', brandId);
-      } else {
-        params.delete('brand');
-      }
-      params.delete('page');
-      const queryString = params.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, router, searchParamsString],
-  );
+  // Admin org/brand filters live in the models layout toolbar and write URL
+  // query params. Derive here so list queries stay in sync with the header.
+  const adminOrg = parsedSearchParams.get('organization') || '';
+  const adminBrand = parsedSearchParams.get('brand') || '';
 
   // Track which model is being toggled to prevent multiple simultaneous toggles
   const [togglingModelId, setTogglingModelId] = useState<string | null>(null);
@@ -268,8 +223,11 @@ export function useModelsList({
         return [];
       }
       const service = await getModelsService();
-      // Fetch all models with a large limit to find defaults
-      const allModels: IModel[] = await service.findAll({ limit: 500 });
+      // BaseQueryDto caps limit at 100 — use unpaginated fetch for the
+      // default-model cards (client filters isDefault afterwards).
+      const allModels: IModel[] = await service.findAll({
+        pagination: false,
+      });
       // Instantiate Model class for each item to enable getter methods
       return allModels.map((m) => new Model(m));
     },
@@ -627,8 +585,6 @@ export function useModelsList({
     isAdminScope,
     adminOrg,
     adminBrand,
-    handleAdminOrgChange,
-    handleAdminBrandChange,
     defaultModelCards,
     isLoadingDefaults,
     isLoading,

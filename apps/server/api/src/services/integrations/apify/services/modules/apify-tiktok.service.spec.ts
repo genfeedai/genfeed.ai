@@ -79,6 +79,7 @@ describe('ApifyTikTokService', () => {
     }),
     calculateGrowthRate: vi.fn().mockReturnValue(20),
     calculateViralityScore: vi.fn().mockReturnValue(85),
+    getApiToken: vi.fn().mockReturnValue('test-token'),
     loggerService: {
       error: vi.fn(),
     },
@@ -450,12 +451,20 @@ describe('ApifyTikTokService', () => {
       expect(result).toEqual(videos);
     });
 
-    it('should return empty array on error', async () => {
+    it('should throw when Apify token is missing', async () => {
+      mockBaseService.getApiToken.mockReturnValue(null);
+
+      await expect(service.getTikTokUserVideos('nonexistent')).rejects.toThrow(
+        /APIFY_API_TOKEN/,
+      );
+    });
+
+    it('should rethrow actor failures', async () => {
       mockBaseService.runActor.mockRejectedValue(new Error('user not found'));
 
-      const result = await service.getTikTokUserVideos('nonexistent');
-
-      expect(result).toEqual([]);
+      await expect(service.getTikTokUserVideos('nonexistent')).rejects.toThrow(
+        'user not found',
+      );
       expect(mockBaseService.loggerService.error).toHaveBeenCalled();
     });
   });

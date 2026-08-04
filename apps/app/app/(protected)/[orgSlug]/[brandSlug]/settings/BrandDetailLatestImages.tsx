@@ -22,7 +22,7 @@ export default function BrandDetailLatestImages({
         <Button
           asChild
           size={ButtonSize.SM}
-          variant={ButtonVariant.GHOST}
+          variant={ButtonVariant.SECONDARY}
           withWrapper={false}
         >
           <Link href={`${EnvironmentService.apps.app}/library/overview`}>
@@ -52,9 +52,9 @@ export default function BrandDetailLatestImages({
           </p>
           <Button
             asChild
-            className="mt-2 h-8 text-xs"
+            className="mt-2"
             size={ButtonSize.SM}
-            variant={ButtonVariant.GHOST}
+            variant={ButtonVariant.DEFAULT}
             withWrapper={false}
           >
             <Link href={createHref}>Create an image</Link>

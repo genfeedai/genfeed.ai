@@ -635,7 +635,7 @@ describe('AppSwitcher', () => {
         ['Automate', '/acme/~/automate'],
         ['Studio', '/acme/~/studio'],
         ['Library', '/acme/~/library'],
-        ['Discover', '/acme/~/discover/discovery'],
+        ['Discover', '/acme/~/discover/overview'],
         ['Publish', '/acme/~/publish'],
         ['Analytics', '/acme/~/analytics'],
       ] as const) {
@@ -650,7 +650,7 @@ describe('AppSwitcher', () => {
       render(<AppSwitcher orgSlug="acme" />);
       expect(screen.getByRole('link', { name: 'Discover' })).toHaveAttribute(
         'href',
-        '/acme/~/discover/discovery',
+        '/acme/~/discover/overview',
       );
     });
 
@@ -658,7 +658,7 @@ describe('AppSwitcher', () => {
       render(<AppSwitcher orgSlug="acme" brandSlug="my-brand" />);
       expect(screen.getByRole('link', { name: 'Discover' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/discover/discovery',
+        '/acme/my-brand/discover/overview',
       );
     });
 
@@ -685,7 +685,7 @@ describe('AppSwitcher', () => {
 
       expect(screen.getByRole('link', { name: 'Discover' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/discover/discovery',
+        '/acme/my-brand/discover/overview',
       );
       expect(screen.getByRole('link', { name: 'Publish' })).toHaveAttribute(
         'href',
@@ -702,7 +702,7 @@ describe('AppSwitcher', () => {
 
       expect(screen.getByRole('link', { name: 'Discover' })).toHaveAttribute(
         'href',
-        '/acme/~/discover/discovery',
+        '/acme/~/discover/overview',
       );
       expect(
         screen.queryByRole('link', { name: 'Remix' }),

@@ -1,51 +1,35 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import InsetSurface, {
-  type InsetSurfaceProps,
-} from '@ui/display/inset-surface/InsetSurface';
-import MetricItem from '@ui/display/metric-item/MetricItem';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
 import type { ReactElement, ReactNode } from 'react';
 
-export interface KeyMetricProps
-  extends Omit<InsetSurfaceProps, 'children' | 'density'> {
+export interface KeyMetricProps {
+  className?: string;
   description?: ReactNode;
   label: string;
+  /** @deprecated Inset surface tone is ignored — MetricCard owns framing. */
+  tone?: string;
   value: ReactNode;
   valueClassName?: string;
 }
 
+/**
+ * @deprecated Prefer {@link MetricCard} (`size="md"`).
+ */
 export default function KeyMetric({
   className,
   description,
   label,
-  tone = 'contrast',
   value,
   valueClassName,
-  ...props
 }: KeyMetricProps): ReactElement {
   return (
-    <InsetSurface
-      {...props}
-      className={className}
-      density="comfortable"
-      tone={tone}
-    >
-      <MetricItem
-        className="space-y-0"
-        label={label}
-        value={
-          <span
-            className={cn(
-              'mt-2 block text-3xl font-semibold text-foreground',
-              valueClassName,
-            )}
-          >
-            {value}
-          </span>
-        }
-      />
-      {description ? (
-        <p className="mt-1 text-xs text-foreground/60">{description}</p>
-      ) : null}
-    </InsetSurface>
+    <MetricCard
+      className={cn(className)}
+      description={description}
+      label={label}
+      size="md"
+      value={value}
+      valueClassName={valueClassName}
+    />
   );
 }

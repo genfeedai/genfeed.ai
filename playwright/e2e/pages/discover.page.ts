@@ -3,8 +3,8 @@ import type { Locator, Page } from '@playwright/test';
 /**
  * Page Object Model for the Discover Pages
  *
- * Covers /discover, /discover/discovery, /discover/socials,
- * /discover/ads, /discover/ads/google, /discover/ads/meta routes.
+ * Covers /discover, /discover/overview, /discover/socials,
+ * /discover/following, /discover/ads (+ google/meta) routes.
  *
  * @module discover.page
  */
@@ -21,8 +21,9 @@ export class DiscoverPage {
   readonly skeleton: Locator;
 
   // Navigation
-  readonly discoveryTab: Locator;
+  readonly overviewTab: Locator;
   readonly socialsTab: Locator;
+  readonly followingTab: Locator;
   readonly adsTab: Locator;
 
   constructor(page: Page) {
@@ -38,15 +39,20 @@ export class DiscoverPage {
     );
     this.skeleton = page.locator('[data-testid="skeleton"], .skeleton');
 
-    this.discoveryTab = page.locator(
-      'a[href*="discover/discovery"],' +
-        ' button:has-text("Discovery"),' +
-        ' [data-testid="discover-discovery-tab"]',
+    this.overviewTab = page.locator(
+      'a[href*="discover/overview"],' +
+        ' button:has-text("Overview"),' +
+        ' [data-testid="discover-overview-tab"]',
     );
     this.socialsTab = page.locator(
       'a[href*="discover/socials"],' +
         ' button:has-text("Socials"),' +
         ' [data-testid="discover-socials-tab"]',
+    );
+    this.followingTab = page.locator(
+      'a[href*="discover/following"],' +
+        ' button:has-text("Following"),' +
+        ' [data-testid="discover-following-tab"]',
     );
     this.adsTab = page.locator(
       'a[href*="discover/ads"],' +
@@ -61,7 +67,13 @@ export class DiscoverPage {
   }
 
   async gotoSection(
-    section: 'discovery' | 'socials' | 'ads' | 'ads/google' | 'ads/meta',
+    section:
+      | 'overview'
+      | 'socials'
+      | 'following'
+      | 'ads'
+      | 'ads/google'
+      | 'ads/meta',
   ): Promise<void> {
     await this.page.goto(`/discover/${section}`);
     await this.waitForPageLoad();

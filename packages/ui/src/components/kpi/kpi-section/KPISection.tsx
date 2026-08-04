@@ -3,8 +3,8 @@
 import { AlertCategory } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { KPISectionProps } from '@genfeedai/props/ui/kpi/kpi-section.props';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
 import Alert from '@ui/feedback/alert/Alert';
-import KPICard from '@ui/kpi/kpi-card/KPICard';
 
 // Static Tailwind grid class mappings (must be static for Tailwind JIT)
 const MOBILE_GRID_CLASSES: Record<number, string> = {
@@ -78,7 +78,20 @@ export default function KPISection({
   ) : (
     <div className={gridColsClass}>
       {items.map((item) => (
-        <KPICard key={item.label} {...item} isLoading={isLoading} />
+        <MetricCard
+          key={item.label}
+          className={item.className}
+          description={item.description}
+          icon={item.icon}
+          iconClassName={item.iconClassName}
+          isLoading={isLoading}
+          label={item.label}
+          size="lg"
+          trend={item.trend}
+          trendLabel={item.trendLabel}
+          value={item.value}
+          valueClassName={item.valueClassName}
+        />
       ))}
     </div>
   );

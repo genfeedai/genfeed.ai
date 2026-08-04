@@ -24,26 +24,51 @@ export interface DateRange {
 // Entity-leaderboard internal types
 // ---------------------------------------------------------------------------
 
-/** Organization document with aggregated fields */
+/**
+ * Organization document with aggregated fields.
+ *
+ * No `logo` — the Prisma `Organization` model has no logo column. The old
+ * `logo: { cdnUrl }` relation was Mongo-era and permanently `undefined` at
+ * runtime; `authProviderLogoUrl` is the column Better Auth actually populates.
+ */
 export interface OrganizationDoc {
   id: string;
   name?: string;
   label?: string;
-  logo?: { cdnUrl?: string };
+  authProviderLogoUrl?: string | null;
   isDeleted?: boolean;
   createdAt?: Date;
 }
 
-/** Brand document with aggregated fields */
+/**
+ * Brand document with aggregated fields.
+ *
+ * No `logo` — brand logos are `Asset` rows resolved through
+ * `BrandsService.resolveBrandLogoUrls`, not a column on `Brand`.
+ *
+ * No `org` either. The Mongo-era populated relation is never populated
+ * (`BrandsService` passes `undefined` for `BaseService`'s populate argument)
+ * and the Prisma relation is named `organization`, not `org`. The owning
+ * organization is reached through the `organizationId` scalar FK — see
+ * `EntityLeaderboardService.resolveOrganizationNames`.
+ */
 export interface BrandDoc {
   id: string;
   name?: string;
   label?: string;
-  logo?: { cdnUrl?: string };
   organizationId?: string;
-  org?: OrganizationDoc;
   isDeleted?: boolean;
   createdAt?: Date;
+}
+
+/**
+ * Brand display values resolved in batched page-level reads and injected into
+ * the brand projection, so a page of rows costs one query per value instead of
+ * one per row.
+ */
+export interface ResolvedBrandDisplay {
+  logoUrl?: string;
+  organizationName?: string;
 }
 
 /** Stats for leaderboard sorting */

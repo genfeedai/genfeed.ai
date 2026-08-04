@@ -9,8 +9,8 @@ import { DiscoverPage } from '../../pages/discover.page';
 /**
  * E2E Tests for Discover Section
  *
- * Tests verify /discover (redirects to /discover/discovery),
- * /discover/discovery, /discover/socials, /discover/ads,
+ * Tests verify /discover (redirects to /discover/overview),
+ * /discover/overview, /discover/socials, /discover/ads,
  * /discover/ads/google, and /discover/ads/meta pages.
  * All API calls are mocked - no real backend requests occur.
  */
@@ -23,8 +23,8 @@ test.describe('Discover Section', () => {
     await mockAnalyticsData(authenticatedPage);
   });
 
-  test.describe('Discovery Page', () => {
-    test('should redirect /discover to /discover/discovery', async ({
+  test.describe('Overview Page', () => {
+    test('should redirect /discover to /discover/overview', async ({
       authenticatedPage,
     }) => {
       const discoverPage = new DiscoverPage(authenticatedPage);
@@ -32,38 +32,38 @@ test.describe('Discover Section', () => {
       await discoverPage.goto(APP_ROUTES.DISCOVER.ROOT);
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
 
-      await expect(authenticatedPage).toHaveURL(/discover\/discovery/);
+      await expect(authenticatedPage).toHaveURL(/discover\/overview/);
     });
 
-    test('should display /discover/discovery with main content', async ({
+    test('should display /discover/overview with main content', async ({
       authenticatedPage,
     }) => {
       const discoverPage = new DiscoverPage(authenticatedPage);
 
-      await discoverPage.gotoSection('discovery');
+      await discoverPage.gotoSection('overview');
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
 
-      await expect(authenticatedPage).toHaveURL(/discover\/discovery/);
+      await expect(authenticatedPage).toHaveURL(/discover\/overview/);
       await expect(discoverPage.mainContent).toBeVisible();
     });
 
-    test('should have proper page title for discovery', async ({
+    test('should have proper page title for overview', async ({
       authenticatedPage,
     }) => {
       const discoverPage = new DiscoverPage(authenticatedPage);
 
-      await discoverPage.gotoSection('discovery');
+      await discoverPage.gotoSection('overview');
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
 
       await expect(authenticatedPage).toHaveTitle(/Discover|Genfeed/i);
     });
 
-    test('should display sidebar on discovery page', async ({
+    test('should display sidebar on overview page', async ({
       authenticatedPage,
     }) => {
       const discoverPage = new DiscoverPage(authenticatedPage);
 
-      await discoverPage.gotoSection('discovery');
+      await discoverPage.gotoSection('overview');
       await expect(authenticatedPage).not.toHaveURL(/login|sign-in/);
 
       await expect(discoverPage.sidebar).toBeVisible();
@@ -255,10 +255,10 @@ test.describe('Discover — Unauthenticated Access', () => {
     });
   });
 
-  test('should redirect unauthenticated user from /discover/discovery to login', async ({
+  test('should redirect unauthenticated user from /discover/overview to login', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.DISCOVER.DISCOVERY);
+    await unauthenticatedPage.goto(APP_ROUTES.DISCOVER.OVERVIEW);
     await unauthenticatedPage.waitForLoadState('domcontentloaded');
 
     await expect(unauthenticatedPage).toHaveURL(/login|sign-in/, {

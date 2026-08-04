@@ -209,9 +209,12 @@ export default function AnnouncementsPage({
       label="Announcements"
       description="Broadcast changelogs, updates, and news to Discord and Twitter/X"
       icon={Megaphone}
-      tabs={TABS}
-      activeTab={activeTab}
-      onTabChange={handleTabChange}
+      headerTabs={{
+        activeTab,
+        fullWidth: false,
+        onTabChange: handleTabChange,
+        tabs: TABS,
+      }}
     >
       {activeTab === 'compose' && (
         <AnnouncementComposeForm

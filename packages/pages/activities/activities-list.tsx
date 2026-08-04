@@ -236,30 +236,24 @@ export default function ActivitiesList({ scope }: ActivitiesListProps) {
     [toggleActivityRead],
   );
 
-  const handleBulkMarkAsRead = async () => {
+  const handleBulkMarkAsRead = useCallback(async () => {
     if (selectedActivityIds.length > 0) {
-      // Mark selected activities as read
       await markActivitiesAsRead(selectedActivityIds);
       setSelectedActivityIds([]);
     } else {
-      // Mark all unread activities as read
       await markActivitiesAsRead();
     }
-  };
+  }, [markActivitiesAsRead, selectedActivityIds]);
 
-  // Determine button state and copy
   const hasSelectedActivities = selectedActivityIds.length > 0;
-  const hasUnreadActivities = filteredActivities.some(
-    (activity) => !activity.isRead,
+  const hasUnreadActivities = useMemo(
+    () => filteredActivities.some((activity) => !activity.isRead),
+    [filteredActivities],
   );
 
-  const getButtonLabel = () => {
-    if (hasSelectedActivities) {
-      return `Mark ${selectedActivityIds.length} as Read`;
-    }
-
-    return 'Mark All Read';
-  };
+  const bulkReadLabel = hasSelectedActivities
+    ? `Mark ${selectedActivityIds.length} as Read`
+    : 'Mark All Read';
 
   const handleRowClick = useCallback(
     (activity: IActivity) => {
@@ -273,41 +267,57 @@ export default function ActivitiesList({ scope }: ActivitiesListProps) {
     [router],
   );
 
+  const getRowKey = useCallback((a: IActivity) => a.id, []);
+  const getItemId = useCallback((a: IActivity) => a.id, []);
+  const getRowClassName = useCallback(
+    (a: IActivity) => (a.isRead ? 'opacity-50' : ''),
+    [],
+  );
+
+  const headerActions = useMemo(
+    () => (
+      <div className="flex shrink-0 items-center gap-2">
+        <ButtonRefresh onClick={refresh} isRefreshing={isRefreshing} />
+        <Button
+          label={bulkReadLabel}
+          onClick={handleBulkMarkAsRead}
+          variant={ButtonVariant.DEFAULT}
+          isDisabled={
+            isRefreshing || (!hasSelectedActivities && !hasUnreadActivities)
+          }
+        />
+      </div>
+    ),
+    [
+      bulkReadLabel,
+      handleBulkMarkAsRead,
+      hasSelectedActivities,
+      hasUnreadActivities,
+      isRefreshing,
+      refresh,
+    ],
+  );
+
   return (
     <Container
       label="Activities"
       description="Recent actions and system events."
       icon={ClipboardList}
-      right={
-        <>
-          <ButtonRefresh
-            onClick={() => refresh()}
-            isRefreshing={isRefreshing}
-          />
-
-          <Button
-            label={getButtonLabel()}
-            onClick={handleBulkMarkAsRead}
-            variant={ButtonVariant.DEFAULT}
-            isDisabled={
-              isRefreshing || (!hasSelectedActivities && !hasUnreadActivities)
-            }
-          />
-        </>
-      }
+      titleVisibility="sr-only"
+      right={headerActions}
     >
       <AppTable<IActivity>
         items={filteredActivities}
         isLoading={isLoading}
         columns={columns}
         actions={actions}
-        getRowKey={(a: IActivity) => a.id}
-        getRowClassName={(a: IActivity) => (a.isRead ? 'opacity-50' : '')}
+        getRowKey={getRowKey}
+        getRowClassName={getRowClassName}
         emptyLabel="No activity yet"
         selectable={true}
         selectedIds={selectedActivityIds}
         onSelectionChange={setSelectedActivityIds}
-        getItemId={(a: IActivity) => a.id}
+        getItemId={getItemId}
         onRowClick={handleRowClick}
       />
 

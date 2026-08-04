@@ -17,12 +17,13 @@ import { useActivities } from '@hooks/data/activities/use-activities/use-activit
 import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
 import { getActivityDescription } from '@pages/activities/activities-list.utils';
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
+import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { ArrowRight, RefreshCw, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import {
@@ -34,11 +35,6 @@ import {
 interface OperationalHomeSectionsProps {
   brandSlug?: string;
   orgSlug: string;
-}
-
-interface MetricProps {
-  label: string;
-  value: string;
 }
 
 type ReviewInboxItem =
@@ -54,40 +50,6 @@ const RUN_STATUS_VARIANTS: Record<
   [AgentExecutionStatus.PENDING]: 'warning',
   [AgentExecutionStatus.RUNNING]: 'warning',
 };
-
-function Metric({ label, value }: MetricProps) {
-  return (
-    <div className="rounded-card bg-background px-4 py-3 shadow-border">
-      <dt className="text-[11px] font-bold uppercase tracking-[0.16em] text-foreground/35">
-        {label}
-      </dt>
-      <dd className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-foreground">
-        {value}
-      </dd>
-    </div>
-  );
-}
-
-function MetricGrid({
-  children,
-  columns = 2,
-}: {
-  children: ReactNode;
-  columns?: 2 | 3 | 4;
-}) {
-  return (
-    <dl
-      className={cn(
-        'grid gap-3',
-        columns === 2 && 'grid-cols-2',
-        columns === 3 && 'grid-cols-3',
-        columns === 4 && 'grid-cols-2 sm:grid-cols-4',
-      )}
-    >
-      {children}
-    </dl>
-  );
-}
 
 function LoadingPanel({ label }: { label: string }) {
   return (
@@ -220,16 +182,18 @@ function ApprovalsSurface({
         />
       ) : (
         <>
-          <MetricGrid>
-            <Metric
+          <MetricCardGrid>
+            <MetricCard
               label="Ready to review"
+              size="sm"
               value={String(reviewInbox.readyCount)}
             />
-            <Metric
+            <MetricCard
               label="Still generating"
+              size="sm"
               value={String(reviewInbox.pendingCount)}
             />
-          </MetricGrid>
+          </MetricCardGrid>
 
           <div className="space-y-2">
             {reviewInbox.recentItems.length === 0 ? (
@@ -345,14 +309,23 @@ function PublishingSurface({
         />
       ) : (
         <>
-          <MetricGrid columns={3}>
-            <Metric label="Active runs" value={String(activeRuns.length)} />
-            <Metric
+          <MetricCardGrid columns={3}>
+            <MetricCard
+              label="Active runs"
+              size="sm"
+              value={String(activeRuns.length)}
+            />
+            <MetricCard
               label="Pending posts"
+              size="sm"
               value={String(analyticsPendingPosts)}
             />
-            <Metric label="Failed runs today" value={String(failedToday)} />
-          </MetricGrid>
+            <MetricCard
+              label="Failed runs today"
+              size="sm"
+              value={String(failedToday)}
+            />
+          </MetricCardGrid>
 
           <div className="space-y-2">
             {recentRuns.length === 0 ? (
@@ -460,12 +433,28 @@ function CredentialHealthSurface({
         />
       ) : (
         <>
-          <MetricGrid columns={4}>
-            <Metric label="Total accounts" value={String(summary.total)} />
-            <Metric label="Needs attention" value={String(summary.attention)} />
-            <Metric label="Healthy" value={String(summary.healthy)} />
-            <Metric label="Unknown health" value={String(summary.unknown)} />
-          </MetricGrid>
+          <MetricCardGrid columns={4}>
+            <MetricCard
+              label="Total accounts"
+              size="sm"
+              value={String(summary.total)}
+            />
+            <MetricCard
+              label="Needs attention"
+              size="sm"
+              value={String(summary.attention)}
+            />
+            <MetricCard
+              label="Healthy"
+              size="sm"
+              value={String(summary.healthy)}
+            />
+            <MetricCard
+              label="Unknown health"
+              size="sm"
+              value={String(summary.unknown)}
+            />
+          </MetricCardGrid>
 
           <div className="space-y-2">
             {credentials.length === 0 ? (

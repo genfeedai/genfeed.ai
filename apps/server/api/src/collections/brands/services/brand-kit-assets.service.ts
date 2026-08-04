@@ -158,6 +158,55 @@ export class BrandKitAssetsService {
     return resolved;
   }
 
+  /**
+   * Live logo URLs for many brands at once, keyed by brand id.
+   *
+   * Callers group brand ids under their owning organization so platform-level
+   * leaderboards retain tenant boundaries while resolving the page in one read.
+   */
+  async resolveBrandLogoUrls(
+    brandIdsByOrganization: ReadonlyMap<string, readonly string[]>,
+  ): Promise<Map<string, string>> {
+    const organizationScopes = [...brandIdsByOrganization.entries()]
+      .filter(
+        ([organizationId, brandIds]) =>
+          organizationId.length > 0 && brandIds.length > 0,
+      )
+      .map(([organizationId, brandIds]) => ({
+        parentBrandId: { in: [...brandIds] },
+        parentOrgId: organizationId,
+      }));
+
+    if (organizationScopes.length === 0) {
+      return new Map();
+    }
+
+    const assets = await this.prisma.asset.findMany({
+      orderBy: { updatedAt: 'desc' },
+      select: { cloudObjectKey: true, id: true, parentBrandId: true },
+      where: {
+        category: PRISMA_ASSET_CATEGORY_BY_ROLE.logo,
+        isDeleted: false,
+        OR: organizationScopes,
+        parentType: 'BRAND' as Prisma.AssetCreateInput['parentType'],
+      },
+    });
+
+    const logoUrlsByBrandId = new Map<string, string>();
+    for (const asset of assets) {
+      if (!asset.parentBrandId || logoUrlsByBrandId.has(asset.parentBrandId)) {
+        continue;
+      }
+
+      logoUrlsByBrandId.set(
+        asset.parentBrandId,
+        this.buildBrandAssetCdnUrl(asset.id, 'logo', asset.cloudObjectKey),
+      );
+    }
+
+    return logoUrlsByBrandId;
+  }
+
   async importBrandKitAssets(
     brandId: string,
     organizationId: string,

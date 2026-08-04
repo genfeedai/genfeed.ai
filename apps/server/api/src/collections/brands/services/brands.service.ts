@@ -533,6 +533,14 @@ export class BrandsService extends BaseService<
     );
   }
 
+  async resolveBrandLogoUrls(
+    brandIdsByOrganization: ReadonlyMap<string, readonly string[]>,
+  ): Promise<Map<string, string>> {
+    return this.brandKitAssetsService.resolveBrandLogoUrls(
+      brandIdsByOrganization,
+    );
+  }
+
   async applyBrandKitDraft(
     brandId: string,
     organizationId: string,

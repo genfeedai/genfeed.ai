@@ -33,7 +33,7 @@ import TrendDetailHeader from './trend-detail-header';
 import TrendDetailRelatedTable from './trend-detail-related-table';
 
 export default function TrendDetail({
-  backHref = '/discover/discovery',
+  backHref = '/discover/overview',
   trendId,
 }: TrendDetailProps) {
   const router = useRouter();

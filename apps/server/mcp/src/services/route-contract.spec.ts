@@ -231,12 +231,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   { method: 'Get', sub: '', controller: 'videos', tools: ['list_videos'] },
   { method: 'Get', sub: '', controller: 'images', tools: ['list_images'] },
   { method: 'Get', sub: '', controller: 'avatars', tools: ['list_avatars'] },
-  {
-    method: 'Get',
-    sub: BASE_CRUD_LIST,
-    controller: 'musics',
-    tools: ['list_music'],
-  },
+  { method: 'Get', sub: '', controller: 'musics', tools: ['list_music'] },
   {
     method: 'Post',
     sub: 'generations',

@@ -23,6 +23,7 @@ import { SystemWorkflowProvenanceService } from '@api/collections/workflows/serv
 import { ApifyModule } from '@api/services/integrations/apify/apify.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
+import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { RateLimitService } from '@api/services/reply-bot/rate-limit.service';
@@ -66,6 +67,9 @@ import { forwardRef, Module } from '@nestjs/common';
 
     // Apify for multi-platform social media scraping (reading)
     forwardRef(() => ApifyModule),
+
+    // Official X API for Following / timelines when bearer is configured
+    forwardRef(() => TwitterModule),
 
     // Instagram for comment replies and DMs
     forwardRef(() => InstagramModule),

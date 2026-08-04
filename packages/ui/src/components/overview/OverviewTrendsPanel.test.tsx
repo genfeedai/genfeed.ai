@@ -111,7 +111,7 @@ describe('OverviewTrendsPanel', () => {
       <OverviewTrendsPanel
         isLoading={false}
         trends={TRENDS}
-        viewAllHref="/discover/discovery"
+        viewAllHref="/discover/overview"
       />,
     );
 
@@ -124,7 +124,7 @@ describe('OverviewTrendsPanel', () => {
       <OverviewTrendsPanel
         isLoading={false}
         trends={TRENDS}
-        viewAllHref="/discover/discovery"
+        viewAllHref="/discover/overview"
       />,
     );
 
@@ -140,7 +140,7 @@ describe('OverviewTrendsPanel', () => {
         isLoading={false}
         tone="default"
         trends={TRENDS}
-        viewAllHref="/discover/discovery"
+        viewAllHref="/discover/overview"
       />,
     );
 
@@ -155,13 +155,13 @@ describe('OverviewTrendsPanel', () => {
       <OverviewTrendsPanel
         isLoading={false}
         trends={TRENDS}
-        viewAllHref="/discover/discovery"
+        viewAllHref="/discover/overview"
       />,
     );
 
     expect(screen.getByRole('link', { name: /view all/i })).toHaveAttribute(
       'href',
-      '/discover/discovery',
+      '/discover/overview',
     );
   });
 
@@ -170,7 +170,7 @@ describe('OverviewTrendsPanel', () => {
       <OverviewTrendsPanel
         isLoading={false}
         trends={TRENDS}
-        viewAllHref="/discover/discovery"
+        viewAllHref="/discover/overview"
       />,
     );
 
@@ -191,7 +191,7 @@ describe('OverviewTrendsPanel', () => {
       <OverviewTrendsPanel
         isLoading={false}
         trends={TRENDS}
-        viewAllHref="/discover/discovery"
+        viewAllHref="/discover/overview"
       />,
     );
 
@@ -204,7 +204,7 @@ describe('OverviewTrendsPanel', () => {
       <OverviewTrendsPanel
         isLoading={true}
         trends={[]}
-        viewAllHref="/discover/discovery"
+        viewAllHref="/discover/overview"
       />,
     );
 
@@ -219,7 +219,7 @@ describe('OverviewTrendsPanel', () => {
       <OverviewTrendsPanel
         isLoading={false}
         trends={[]}
-        viewAllHref="/discover/discovery"
+        viewAllHref="/discover/overview"
       />,
     );
 

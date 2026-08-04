@@ -1,5 +1,7 @@
+import type { UserSetupResult } from '@api/collections/users/services/user-setup.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
+import { SignupPrefillQueueService } from '@api/services/signup-prefill/signup-prefill-queue.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
@@ -27,18 +29,22 @@ export class UserProvisioningListener {
   constructor(
     private readonly userSetupService: UserSetupService,
     private readonly lifecycleEmailService: LifecycleEmailService,
+    private readonly signupPrefillQueueService: SignupPrefillQueueService,
     private readonly logger: LoggerService,
   ) {}
 
   @OnEvent(BETTER_AUTH_USER_CREATED_EVENT)
   async handleUserCreated(event: IBetterAuthUserCreatedEvent): Promise<void> {
     try {
-      await this.userSetupService.initializeUserResources(event.userId);
+      const setupResult = await this.userSetupService.initializeUserResources(
+        event.userId,
+      );
       this.logger.log(
         `Provisioned resources for Better Auth user ${event.userId}`,
         this.context,
       );
       await this.scheduleLifecycleEmails(event.userId);
+      await this.scheduleBrandPrefill(event, setupResult);
     } catch (error: unknown) {
       // Never fail sign-in on a provisioning hiccup — initializeUserResources is
       // idempotent, so a later request can complete it. Log loudly for ops.
@@ -49,6 +55,38 @@ export class UserProvisioningListener {
           stack: (error as Error)?.stack,
         },
       );
+    }
+  }
+
+  /**
+   * Hand the freshly created placeholder brand to the background prefill job so
+   * the brand carries a real voice, strategy and harness profile before the user
+   * writes their first prompt. Best-effort by design — a queue outage must not
+   * take sign-in with it, and the job is idempotent on the brand id.
+   */
+  private async scheduleBrandPrefill(
+    event: IBetterAuthUserCreatedEvent,
+    setupResult: UserSetupResult,
+  ): Promise<void> {
+    const brandId = setupResult.brand?.id;
+    const organizationId = setupResult.organization?.id;
+
+    if (!brandId || !organizationId) {
+      return;
+    }
+
+    try {
+      await this.signupPrefillQueueService.enqueuePrefill({
+        brandId: String(brandId),
+        email: event.email ?? undefined,
+        organizationId: String(organizationId),
+        userId: event.userId,
+      });
+    } catch (error: unknown) {
+      this.logger.warn(`${this.context} brand prefill scheduling skipped`, {
+        error: error instanceof Error ? error.message : error,
+        userId: event.userId,
+      });
     }
   }
 

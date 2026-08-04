@@ -9,7 +9,11 @@ import {
   ModalEnum,
 } from '@genfeedai/enums';
 import { isPublicAssetScope } from '@genfeedai/helpers';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { BrandOverlayProps } from '@genfeedai/props/modals/modal.props';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { BrandsService } from '@genfeedai/services/social/brands.service';
 import Alert from '@ui/feedback/alert/Alert';
 import {
   LazyModalBrandGenerate,
@@ -20,8 +24,9 @@ import EntityOverlayShell from '@ui/overlays/entity/EntityOverlayShell';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { Globe, Loader2 } from 'lucide-react';
 import type { ChangeEvent } from 'react';
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import BrandEditorForm from './BrandEditorForm';
 import BrandOverviewPanel from './BrandOverviewPanel';
 import { useModalBrand } from './useModalBrand';
@@ -34,6 +39,17 @@ function slugifyBrandLabel(value: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
+function normalizeWebsiteUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return '';
+  }
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+}
+
 export default function BrandOverlay({
   brand,
   onConfirm,
@@ -43,6 +59,12 @@ export default function BrandOverlay({
   initialView = 'edit',
 }: BrandOverlayProps) {
   const [isCreateSlugDirty, setIsCreateSlugDirty] = useState(false);
+  const [isLoadingWebsite, setIsLoadingWebsite] = useState(false);
+  const [websiteLoadError, setWebsiteLoadError] = useState<string | null>(null);
+  const notifications = useMemo(() => NotificationsService.getInstance(), []);
+  const getBrandsService = useAuthedService((token: string) =>
+    BrandsService.getInstance(token),
+  );
   const {
     activeBrand,
     canMoveOrganization,
@@ -132,7 +154,7 @@ export default function BrandOverlay({
     if (website) {
       try {
         // Require absolute http(s) URL when provided.
-        const parsed = new URL(website);
+        const parsed = new URL(normalizeWebsiteUrl(website));
         if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
           return false;
         }
@@ -142,6 +164,106 @@ export default function BrandOverlay({
     }
     return true;
   })();
+
+  const canLoadFromWebsite = (() => {
+    const website = (watchedCreateWebsite ?? '').trim();
+    if (!website || isSubmitting || isLoadingWebsite) {
+      return false;
+    }
+    try {
+      const parsed = new URL(normalizeWebsiteUrl(website));
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  })();
+
+  const loadFromWebsite = useCallback(async () => {
+    const raw = (form.getValues('websiteUrl') ?? '').trim();
+    const websiteUrl = normalizeWebsiteUrl(raw);
+    if (!websiteUrl) {
+      setWebsiteLoadError('Enter a website URL first');
+      return;
+    }
+
+    try {
+      setIsLoadingWebsite(true);
+      setWebsiteLoadError(null);
+      form.setValue('websiteUrl', websiteUrl, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+
+      const service = await getBrandsService();
+      const preview = await service.previewWebsite(websiteUrl);
+
+      if (preview.websiteUrl || preview.sourceUrl) {
+        form.setValue(
+          'websiteUrl',
+          preview.websiteUrl || preview.sourceUrl || websiteUrl,
+          {
+            shouldDirty: true,
+            shouldValidate: true,
+          },
+        );
+      }
+      if (preview.label) {
+        form.setValue('label', preview.label, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+        if (!isCreateSlugDirty) {
+          form.setValue(
+            'slug',
+            preview.slug || slugifyBrandLabel(preview.label),
+            { shouldDirty: true, shouldValidate: true },
+          );
+        }
+      } else if (preview.slug && !isCreateSlugDirty) {
+        form.setValue('slug', preview.slug, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
+      if (preview.description) {
+        form.setValue('description', preview.description, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
+      if (preview.primaryColor) {
+        form.setValue('primaryColor', preview.primaryColor, {
+          shouldDirty: true,
+        });
+      }
+      if (preview.secondaryColor) {
+        form.setValue('secondaryColor', preview.secondaryColor, {
+          shouldDirty: true,
+        });
+      }
+
+      if (!preview.label && !preview.description) {
+        notifications.error(
+          'Website loaded but no brand name/description was found — fill fields manually',
+        );
+      } else {
+        notifications.success(
+          preview.logoUrl
+            ? 'Brand details loaded — create the brand, then add the logo from Brand Kit'
+            : 'Brand details loaded from website',
+        );
+      }
+    } catch (error) {
+      logger.error('Failed to load brand from website', error);
+      const message =
+        (error as Error)?.message ||
+        'Could not load brand data from that website';
+      setWebsiteLoadError(message);
+      notifications.error(message);
+    } finally {
+      setIsLoadingWebsite(false);
+    }
+  }, [form, getBrandsService, isCreateSlugDirty, notifications]);
 
   if (!brand && !activeBrand) {
     return (
@@ -161,7 +283,8 @@ export default function BrandOverlay({
           <Modal.Header>
             <Modal.Title>New brand</Modal.Title>
             <Modal.Description id="brand-create-description">
-              Create the brand, then continue setup from its brand page.
+              Paste a website to autofill name and description, or enter details
+              manually. Finish setup on the brand page after create.
             </Modal.Description>
           </Modal.Header>
 
@@ -181,6 +304,48 @@ export default function BrandOverlay({
                 </Alert>
               ) : null}
 
+              {websiteLoadError ? (
+                <Alert type={AlertCategory.ERROR}>
+                  <div className="space-y-1">{websiteLoadError}</div>
+                </Alert>
+              ) : null}
+
+              <FormControl
+                label="Website"
+                description="We’ll scrape the public site for label, slug, and description."
+              >
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <div className="min-w-0 flex-1">
+                    <Input
+                      type="url"
+                      name="websiteUrl"
+                      control={form.control}
+                      onChange={handleCreateFieldChange}
+                      placeholder="https://example.com"
+                      isDisabled={isSubmitting || isLoadingWebsite}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant={ButtonVariant.SECONDARY}
+                    size={ButtonSize.SM}
+                    isDisabled={!canLoadFromWebsite}
+                    isLoading={isLoadingWebsite}
+                    icon={
+                      isLoadingWebsite ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Globe className="size-4" />
+                      )
+                    }
+                    label={isLoadingWebsite ? 'Loading…' : 'Load from site'}
+                    onClick={() => {
+                      void loadFromWebsite();
+                    }}
+                  />
+                </div>
+              </FormControl>
+
               <FormControl label="Label" isRequired>
                 <Input
                   type="text"
@@ -189,7 +354,7 @@ export default function BrandOverlay({
                   onChange={handleCreateFieldChange}
                   placeholder="Acme"
                   isRequired
-                  isDisabled={isSubmitting}
+                  isDisabled={isSubmitting || isLoadingWebsite}
                 />
               </FormControl>
 
@@ -201,7 +366,7 @@ export default function BrandOverlay({
                   onChange={handleCreateFieldChange}
                   placeholder="acme"
                   isRequired
-                  isDisabled={isSubmitting}
+                  isDisabled={isSubmitting || isLoadingWebsite}
                 />
               </FormControl>
 
@@ -212,18 +377,7 @@ export default function BrandOverlay({
                   control={form.control}
                   onChange={handleCreateFieldChange}
                   placeholder="What this brand is about"
-                  isDisabled={isSubmitting}
-                />
-              </FormControl>
-
-              <FormControl label="Website">
-                <Input
-                  type="url"
-                  name="websiteUrl"
-                  control={form.control}
-                  onChange={handleCreateFieldChange}
-                  placeholder="https://example.com"
-                  isDisabled={isSubmitting}
+                  isDisabled={isSubmitting || isLoadingWebsite}
                 />
               </FormControl>
             </Modal.Body>
@@ -232,7 +386,7 @@ export default function BrandOverlay({
               <Modal.CloseButton asChild>
                 <Button
                   variant={ButtonVariant.SECONDARY}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isLoadingWebsite}
                 >
                   Cancel
                 </Button>
@@ -240,7 +394,9 @@ export default function BrandOverlay({
               <Button
                 type="submit"
                 variant={ButtonVariant.DEFAULT}
-                disabled={isSubmitting || !canSubmitCreateBrand}
+                disabled={
+                  isSubmitting || isLoadingWebsite || !canSubmitCreateBrand
+                }
               >
                 {isSubmitting ? 'Creating…' : 'Create brand'}
               </Button>

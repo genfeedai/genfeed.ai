@@ -504,5 +504,112 @@ describe('HTTPBaseService (InterceptorService)', () => {
         }),
       );
     });
+
+    it('does not open the Error Debug modal for expected 404s', async () => {
+      const { openModal } = await import(
+        '@genfeedai/helpers/ui/modal/modal.helper'
+      );
+      // Modal branch needs a browser `window` and a boolean isProduction flag
+      // (mock is otherwise a vi.fn which is always truthy as a property).
+      const previousWindow = (globalThis as { window?: unknown }).window;
+      (globalThis as { window?: unknown }).window = {};
+      Object.defineProperty(EnvironmentService, 'isProduction', {
+        configurable: true,
+        value: false,
+      });
+
+      try {
+        const error: Partial<AxiosError> = {
+          code: 'ERR_BAD_REQUEST',
+          config: {
+            baseURL: mockBaseURL,
+            method: 'GET',
+            url: '/editor-projects/missing',
+          } as InternalAxiosRequestConfig,
+          isAxiosError: true,
+          message: 'Request failed with status code 404',
+          name: 'AxiosError',
+          response: {
+            config: {} as InternalAxiosRequestConfig,
+            data: {
+              errors: [
+                {
+                  code: '404',
+                  detail: "Editor project missing doesn't exist",
+                  title: 'Editor project not found',
+                },
+              ],
+            },
+            headers: {},
+            status: 404,
+            statusText: 'Not Found',
+          },
+          toJSON: () => ({}),
+        };
+
+        try {
+          await service.handleError(error as AxiosError);
+        } catch (_e) {
+          // Expected to throw
+        }
+
+        expect(openModal).not.toHaveBeenCalled();
+      } finally {
+        if (previousWindow === undefined) {
+          delete (globalThis as { window?: unknown }).window;
+        } else {
+          (globalThis as { window?: unknown }).window = previousWindow;
+        }
+      }
+    });
+
+    it('opens the Error Debug modal for unexpected 5xx responses', async () => {
+      const { openModal } = await import(
+        '@genfeedai/helpers/ui/modal/modal.helper'
+      );
+      const { ModalEnum } = await import('@genfeedai/enums');
+      const previousWindow = (globalThis as { window?: unknown }).window;
+      (globalThis as { window?: unknown }).window = {};
+      Object.defineProperty(EnvironmentService, 'isProduction', {
+        configurable: true,
+        value: false,
+      });
+
+      try {
+        const error: Partial<AxiosError> = {
+          code: 'ERR_BAD_RESPONSE',
+          config: {
+            baseURL: mockBaseURL,
+            method: 'GET',
+            url: '/editor-projects/x',
+          } as InternalAxiosRequestConfig,
+          isAxiosError: true,
+          message: 'Request failed with status code 500',
+          name: 'AxiosError',
+          response: {
+            config: {} as InternalAxiosRequestConfig,
+            data: { message: 'boom' },
+            headers: {},
+            status: 500,
+            statusText: 'Internal Server Error',
+          },
+          toJSON: () => ({}),
+        };
+
+        try {
+          await service.handleError(error as AxiosError);
+        } catch (_e) {
+          // Expected to throw
+        }
+
+        expect(openModal).toHaveBeenCalledWith(ModalEnum.ERROR_DEBUG);
+      } finally {
+        if (previousWindow === undefined) {
+          delete (globalThis as { window?: unknown }).window;
+        } else {
+          (globalThis as { window?: unknown }).window = previousWindow;
+        }
+      }
+    });
   });
 });

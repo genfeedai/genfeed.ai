@@ -5,16 +5,33 @@ import {
 } from './discover-menu-items.config';
 
 describe('DISCOVER_MENU_ITEMS', () => {
-  it('points the logo at Discover Discovery', () => {
-    expect(DISCOVER_LOGO_HREF).toBe('/discover/discovery');
+  it('points the logo at Discover Overview', () => {
+    expect(DISCOVER_LOGO_HREF).toBe('/discover/overview');
   });
 
   it('renders the Discover entrypoints only', () => {
     expect(DISCOVER_MENU_ITEMS.map((item) => item.label)).toEqual([
-      'Discovery',
+      'Overview',
       'Socials',
+      'Following',
       'Ads',
     ]);
+  });
+
+  it('keeps Following as a peer of Socials, not a Socials matchPath', () => {
+    const socials = DISCOVER_MENU_ITEMS.find(
+      (item) => item.label === 'Socials',
+    );
+    const following = DISCOVER_MENU_ITEMS.find(
+      (item) => item.label === 'Following',
+    );
+
+    expect(following?.href).toBe('/discover/following');
+    expect(socials?.matchPaths ?? []).not.toContain('/discover/following');
+  });
+
+  it('uses /discover/overview as the home href (not /discover/discovery)', () => {
+    expect(DISCOVER_MENU_ITEMS[0]?.href).toBe('/discover/overview');
   });
 
   it('keeps Workspace and Messages routes out of the Discover sidebar', () => {

@@ -23,6 +23,7 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
+  EditorProjectStatus,
   EditorTrackType,
   IngredientCategory,
   IngredientFormat,
@@ -57,8 +58,6 @@ import { v4 as uuidv4 } from 'uuid';
 @Controller('editor-projects')
 @UseGuards(RolesGuard)
 export class EditorProjectsController {
-  private readonly constructorName: string = String(this.constructor.name);
-
   constructor(
     readonly _loggerService: LoggerService,
     private readonly configService: ConfigService,
@@ -78,17 +77,21 @@ export class EditorProjectsController {
     const publicMetadata = getPublicMetadata(user);
     const orgId = publicMetadata.organization;
     const DEFAULT_FPS = 30;
+    const DEFAULT_DURATION_FRAMES = DEFAULT_FPS * 10;
 
-    const projectPayload: Record<string, unknown> & {
-      brand?: string;
-      organization: string;
-      user: string;
-    } = {
-      ...createDto,
-      ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
-      organization: orgId,
-      user: publicMetadata.user,
+    const name = createDto.name?.trim() || 'Untitled Project';
+    let settings = {
+      backgroundColor: createDto.settings?.backgroundColor || '#000000',
+      format: createDto.settings?.format || IngredientFormat.LANDSCAPE,
+      fps: createDto.settings?.fps || DEFAULT_FPS,
+      height: createDto.settings?.height || 1080,
+      width: createDto.settings?.width || 1920,
     };
+    let totalDurationFrames =
+      createDto.totalDurationFrames || DEFAULT_DURATION_FRAMES;
+    let tracks: unknown[] = Array.isArray(createDto.tracks)
+      ? createDto.tracks
+      : [];
 
     // If sourceVideoId is provided, build initial video track from real data
     if (createDto.sourceVideoId) {
@@ -118,17 +121,15 @@ export class EditorProjectsController {
 
       const videoUrl = `${this.configService.ingredientsEndpoint}/videos/${createDto.sourceVideoId}`;
 
-      projectPayload.settings = {
+      settings = {
         backgroundColor: '#000000',
         format,
         fps,
         height,
         width,
       };
-
-      projectPayload.totalDurationFrames = durationFrames;
-
-      projectPayload.tracks = [
+      totalDurationFrames = durationFrames;
+      tracks = [
         {
           clips: [
             {
@@ -159,8 +160,25 @@ export class EditorProjectsController {
       }
     }
 
+    // Prisma columns: organizationId/userId/brandId + tracks Json + config Json.
+    // Domain fields (name/settings/status/duration) live under config and are
+    // flattened on read via BaseService.normalizeDocument.
     const data: EditorProjectDocument = await this.editorProjectsService.create(
-      projectPayload as unknown as CreateEditorProjectDto,
+      {
+        ...(publicMetadata.brand ? { brandId: publicMetadata.brand } : {}),
+        config: {
+          name,
+          settings,
+          status: EditorProjectStatus.DRAFT,
+          totalDurationFrames,
+          ...(createDto.sourceVideoId
+            ? { sourceVideoId: createDto.sourceVideoId }
+            : {}),
+        },
+        organizationId: orgId,
+        tracks,
+        userId: publicMetadata.user,
+      } as never,
     );
 
     return serializeSingle(request, EditorProjectSerializer, data);
@@ -182,9 +200,9 @@ export class EditorProjectsController {
 
     const aggregate = {
       where: {
-        ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
+        ...(publicMetadata.brand ? { brandId: publicMetadata.brand } : {}),
         isDeleted: false,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       },
       orderBy: query.sort
         ? handleQuerySort(query.sort)
@@ -205,15 +223,17 @@ export class EditorProjectsController {
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
 
+    // Org-scoped id lookup only — do not require brandId match. Projects are
+    // often opened from the org shell (`/:org/~`) even when created under a
+    // brand; brand-filtering here caused false 404s ("Controller doesn't exist").
     const data = await this.editorProjectsService.findOne({
-      ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
-      _id: id,
+      id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!data) {
-      return returnNotFound(this.constructorName, id);
+      return returnNotFound('Editor project', id);
     }
 
     return serializeSingle(request, EditorProjectSerializer, data);
@@ -230,14 +250,13 @@ export class EditorProjectsController {
     const publicMetadata = getPublicMetadata(user);
 
     const existing = await this.editorProjectsService.findOne({
-      ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
-      _id: id,
+      id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!existing) {
-      return returnNotFound(this.constructorName, id);
+      return returnNotFound('Editor project', id);
     }
 
     const data: EditorProjectDocument = await this.editorProjectsService.patch(
@@ -258,14 +277,13 @@ export class EditorProjectsController {
     const publicMetadata = getPublicMetadata(user);
 
     const existing = await this.editorProjectsService.findOne({
-      ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
-      _id: id,
+      id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!existing) {
-      return returnNotFound(this.constructorName, id);
+      return returnNotFound('Editor project', id);
     }
 
     const data: EditorProjectDocument = await this.editorProjectsService.patch(

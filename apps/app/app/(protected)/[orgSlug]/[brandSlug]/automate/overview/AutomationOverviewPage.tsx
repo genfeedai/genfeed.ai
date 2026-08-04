@@ -99,8 +99,8 @@ export default function AutomationOverviewPage() {
     {
       color: 'bg-pink-500/12 text-pink-300',
       cta: 'View Analytics',
-      description: 'Performance metrics and insights',
-      href: APP_ROUTES.AUTOMATE.ANALYTICS,
+      description: 'Performance metrics and insights (Analytics app)',
+      href: APP_ROUTES.ANALYTICS.OVERVIEW,
       icon: ChartLine,
       id: 'analytics',
       label: 'Analytics',
@@ -150,11 +150,11 @@ export default function AutomationOverviewPage() {
     {
       color: 'bg-pink-500/12 text-pink-300',
       cta: 'Open Analytics',
-      description: 'Review automation performance and outcome analytics.',
-      href: APP_ROUTES.AUTOMATE.ANALYTICS,
+      description: 'Review performance and outcomes in the Analytics app.',
+      href: APP_ROUTES.ANALYTICS.OVERVIEW,
       icon: Sparkles,
       kicker: 'Insight',
-      label: 'Automation Metrics',
+      label: 'Performance',
     },
     {
       color: 'bg-orange-500/12 text-orange-300',

@@ -151,7 +151,11 @@ describe('EditorProjectsController', () => {
       } as never);
 
       expect(editorProjectsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'New Project' }),
+        expect.objectContaining({
+          config: expect.objectContaining({ name: 'New Project' }),
+          organizationId: '507f191e810c19729de860ee',
+          userId: '507f191e810c19729de860ee',
+        }),
       );
       expect(result).toMatchObject({ data: project });
     });
@@ -179,7 +183,15 @@ describe('EditorProjectsController', () => {
         ingredient: videoId,
       });
       expect(editorProjectsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ tracks: expect.any(Array) }),
+        expect.objectContaining({
+          config: expect.objectContaining({
+            name: 'Video Project',
+            sourceVideoId: videoId,
+          }),
+          organizationId: '507f191e810c19729de860ee',
+          tracks: expect.any(Array),
+          userId: '507f191e810c19729de860ee',
+        }),
       );
       expect(result).toBeDefined();
     });
@@ -217,9 +229,9 @@ describe('EditorProjectsController', () => {
         {
           orderBy: { updatedAt: -1 },
           where: expect.objectContaining({
-            brand: '507f191e810c19729de860ee',
+            brandId: '507f191e810c19729de860ee',
             isDeleted: false,
-            organization: '507f191e810c19729de860ee',
+            organizationId: '507f191e810c19729de860ee',
           }),
         },
         expect.objectContaining({ limit: 20, page: 1 }),
@@ -231,16 +243,21 @@ describe('EditorProjectsController', () => {
   // ── findOne ───────────────────────────────────────────────────────────────
   describe('findOne', () => {
     it('returns a project by id', async () => {
-      const project = makeProject();
+      const projectId = 'cmscathrz0001wuxn9s4giiry';
+      const project = makeProject({ id: projectId });
       editorProjectsService.findOne.mockResolvedValue(project as never);
 
       const result = await controller.findOne(
         makeRequest(),
         makeUser(),
-        String(project.id),
+        projectId,
       );
 
-      expect(editorProjectsService.findOne).toHaveBeenCalled();
+      expect(editorProjectsService.findOne).toHaveBeenCalledWith({
+        id: projectId,
+        isDeleted: false,
+        organizationId: '507f191e810c19729de860ee',
+      });
       expect(result).toMatchObject({ data: project });
     });
 

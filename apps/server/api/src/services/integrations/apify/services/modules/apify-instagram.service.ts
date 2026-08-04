@@ -128,6 +128,15 @@ export class ApifyInstagramService {
     username: string,
     options?: { limit?: number },
   ): Promise<ApifyInstagramPost[]> {
+    // Hard-fail when Apify is not configured so Following sync cannot look
+    // "successful" with zero posts after a silent skip.
+    const token = this.baseService.getApiToken();
+    if (!token) {
+      throw new Error(
+        'APIFY_API_TOKEN is not configured — cannot scrape Instagram timelines',
+      );
+    }
+
     try {
       const input = {
         resultsLimit: options?.limit || 20,
@@ -145,7 +154,7 @@ export class ApifyInstagramService {
         `${this.constructorName}.getInstagramUserPosts failed for @${username}`,
         error,
       );
-      return [];
+      throw error;
     }
   }
 

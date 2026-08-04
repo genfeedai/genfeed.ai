@@ -35,6 +35,7 @@ import {
   PATTERN_EXTRACTION_QUEUE,
   POST_PUBLISH_QUEUE,
   REPLY_BOT_POLLING_QUEUE,
+  SIGNUP_PREFILL_QUEUE,
   SOCIAL_INBOX_SYNC_QUEUE,
   SOCIAL_REPLY_CAMPAIGN_QUEUE,
   TELEGRAM_DISTRIBUTE_QUEUE,
@@ -183,6 +184,15 @@ import { Module } from '@nestjs/common';
           removeOnFail: 50,
         },
         name: LIFECYCLE_EMAIL_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 15000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: SIGNUP_PREFILL_QUEUE,
       },
       {
         defaultJobOptions: {

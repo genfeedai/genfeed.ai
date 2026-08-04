@@ -1,7 +1,8 @@
 'use client';
 
 import type { IViralHookAnalysis } from '@genfeedai/interfaces/analytics/viral-hooks.interface';
-import StatCard from '@ui/cards/stat-card/StatCard';
+import MetricCard from '@ui/cards/metric-card/MetricCard';
+import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import { Clock, Eye, Heart, TrendingUp } from 'lucide-react';
 
 type Props = {
@@ -14,31 +15,35 @@ export default function HookStatCards({
   formatTimeSpent,
 }: Props) {
   return (
-    <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <StatCard
+    <MetricCardGrid columns={4}>
+      <MetricCard
         icon={Eye}
         label="Total Videos Analyzed"
-        value={analysisData.totalVideos}
+        size="md"
+        value={String(analysisData.totalVideos)}
       />
-      <StatCard
+      <MetricCard
         icon={Clock}
         label="Total Time Tracked"
+        size="md"
         value={formatTimeSpent(analysisData.totalTime)}
       />
-      <StatCard
+      <MetricCard
         icon={TrendingUp}
         label="Avg Time per Video"
+        size="md"
         value={formatTimeSpent(analysisData.avgTimePerVideo)}
       />
-      <StatCard
+      <MetricCard
         icon={Heart}
         label="Top Platform"
+        size="md"
         value={
           analysisData.topPlatforms[0]
             ? analysisData.topPlatforms[0].platform.toUpperCase()
             : 'N/A'
         }
       />
-    </section>
+    </MetricCardGrid>
   );
 }

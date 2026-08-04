@@ -10,7 +10,7 @@ describe('AUTOMATE_MENU_ITEMS', () => {
   });
 
   it("has a logo href pointing back to Automate's own overview", () => {
-    expect(AUTOMATE_LOGO_HREF).toBe('/automate');
+    expect(AUTOMATE_LOGO_HREF).toBe('/automate/overview');
   });
 
   it('has no duplicate hrefs', () => {
@@ -31,11 +31,21 @@ describe('AUTOMATE_MENU_ITEMS', () => {
     }
   });
 
+  it('uses a unique lucide icon per row (no repeated glyphs)', () => {
+    const iconNames = AUTOMATE_MENU_ITEMS.map(
+      (item) => item.outline?.displayName ?? item.outline?.name,
+    );
+    expect(iconNames.every(Boolean)).toBe(true);
+    expect(new Set(iconNames).size).toBe(iconNames.length);
+  });
+
   it.each([
-    ['Analytics', '/automate/analytics'],
     ['Autopilot', '/automate/autopilot'],
     ['Configuration', '/automate/configuration'],
     ['Team', '/automate/library'],
+    ['Hire', '/automate/hire'],
+    ['Launch team', '/automate/orchestrator'],
+    ['Reply Campaigns', '/automate/reply-campaigns'],
     ['Workflows', '/automate/workflows'],
   ])('uses the canonical automate route for %s', (label, canonicalHref) => {
     const item = AUTOMATE_MENU_ITEMS.find(
@@ -46,6 +56,15 @@ describe('AUTOMATE_MENU_ITEMS', () => {
     expect(item?.matchPaths).toEqual(expect.arrayContaining([canonicalHref]));
     expect(
       item?.matchPaths?.some((path) => path.startsWith('/workflows')),
+    ).toBe(false);
+  });
+
+  it('does not host a duplicate Analytics surface (measurement lives in Analytics app)', () => {
+    expect(AUTOMATE_MENU_ITEMS.some((item) => item.label === 'Analytics')).toBe(
+      false,
+    );
+    expect(
+      AUTOMATE_MENU_ITEMS.some((item) => item.href === '/automate/analytics'),
     ).toBe(false);
   });
 
@@ -72,5 +91,41 @@ describe('AUTOMATE_MENU_ITEMS', () => {
     );
 
     expect(isCovered).toBe(true);
+  });
+
+  it('groups by usage (Workflows / Agents / Campaigns / Settings)', () => {
+    const byGroup = new Map<string, string[]>();
+    for (const item of AUTOMATE_MENU_ITEMS) {
+      const group = item.group ?? '';
+      const labels = byGroup.get(group) ?? [];
+      labels.push(item.label);
+      byGroup.set(group, labels);
+    }
+
+    expect(byGroup.get('')).toEqual(['Overview']);
+    expect(byGroup.get('Workflows')).toEqual(['Workflows', 'Runs']);
+    expect(byGroup.get('Agents')).toEqual([
+      'Team',
+      'Hire',
+      'Skills',
+      'Autopilot',
+    ]);
+    expect(byGroup.get('Campaigns')).toEqual([
+      'Reply Campaigns',
+      'Launch team',
+    ]);
+    expect(byGroup.get('Settings')).toEqual(['Configuration']);
+    expect(byGroup.get('Build')).toBeUndefined();
+    expect(byGroup.get('Insights')).toBeUndefined();
+  });
+
+  it('does not bury Hire or Launch team under Team matchPaths', () => {
+    const team = AUTOMATE_MENU_ITEMS.find((item) => item.label === 'Team');
+    expect(team?.matchPaths).not.toEqual(
+      expect.arrayContaining(['/automate/hire', '/automate/orchestrator']),
+    );
+    expect(team?.matchPaths).toEqual(
+      expect.arrayContaining(['/automate/library', '/automate/new']),
+    );
   });
 });

@@ -1,13 +1,17 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
-import { LayoutGrid, Megaphone, TrendingUp } from 'lucide-react';
+import { AtSign, LayoutGrid, Megaphone, TrendingUp } from 'lucide-react';
 
 export const DISCOVER_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
-    href: APP_ROUTES.DISCOVER.DISCOVERY,
-    label: 'Discovery',
-    matchPaths: [APP_ROUTES.DISCOVER.ROOT, APP_ROUTES.DISCOVER.DISCOVERY],
+    href: APP_ROUTES.DISCOVER.OVERVIEW,
+    label: 'Overview',
+    matchPaths: [
+      APP_ROUTES.DISCOVER.ROOT,
+      APP_ROUTES.DISCOVER.OVERVIEW,
+      APP_ROUTES.DISCOVER.DISCOVERY,
+    ],
     outline: TrendingUp,
     solid: TrendingUp,
   },
@@ -15,9 +19,27 @@ export const DISCOVER_MENU_ITEMS: MenuItemConfig[] = [
     group: '',
     href: APP_ROUTES.DISCOVER.SOCIALS,
     label: 'Socials',
-    matchPaths: [APP_ROUTES.DISCOVER.SOCIALS],
+    matchPaths: [
+      APP_ROUTES.DISCOVER.SOCIALS,
+      // Platform deep-links live under Socials (X, IG, …) — not Following.
+      '/discover/twitter',
+      '/discover/instagram',
+      '/discover/youtube',
+      '/discover/tiktok',
+      '/discover/linkedin',
+      '/discover/reddit',
+      '/discover/pinterest',
+    ],
     outline: LayoutGrid,
     solid: LayoutGrid,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.DISCOVER.FOLLOWING,
+    label: 'Following',
+    matchPaths: [APP_ROUTES.DISCOVER.FOLLOWING],
+    outline: AtSign,
+    solid: AtSign,
   },
   {
     group: '',
@@ -33,4 +55,4 @@ export const DISCOVER_MENU_ITEMS: MenuItemConfig[] = [
   },
 ];
 
-export const DISCOVER_LOGO_HREF = APP_ROUTES.DISCOVER.DISCOVERY;
+export const DISCOVER_LOGO_HREF = APP_ROUTES.DISCOVER.OVERVIEW;

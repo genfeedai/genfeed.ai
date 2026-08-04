@@ -3,14 +3,14 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 describe('app/(protected)/admin/page.tsx', () => {
-  it('mounts the real in-app admin dashboard under the guarded admin layout', () => {
+  it('permanently redirects bare /admin to the overview dashboard', () => {
     const source = readFileSync(
       join(process.cwd(), 'app/(protected)/admin/page.tsx'),
       'utf8',
     );
 
-    expect(source).toContain('AdminDashboardPage');
-    expect(source).toContain('@protected/overview/dashboard/page');
+    expect(source).toContain('permanentRedirect');
+    expect(source).toContain('ADMIN.OVERVIEW.DASHBOARD');
     expect(source).not.toContain('@admin/');
   });
 });

@@ -1,130 +1,44 @@
 import { render, screen } from '@testing-library/react';
 import Container from '@ui/layout/container/Container';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import '@testing-library/jest-dom/vitest';
+
+const navigationState = vi.hoisted(() => ({
+  hasCanonicalBreadcrumb: false,
+}));
+
+vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
+  useSidebarNavigation: () => navigationState,
+}));
 
 describe('Container', () => {
-  it('should render without crashing', () => {
-    const { container } = render(<Container>content</Container>);
-    expect(container.firstChild).toBeInTheDocument();
+  beforeEach(() => {
+    navigationState.hasCanonicalBreadcrumb = false;
   });
 
-  it('should handle user interactions correctly', () => {
-    const { container } = render(<Container>content</Container>);
-    expect(container.firstChild).toBeInTheDocument();
+  it('renders children', () => {
+    render(<Container>content</Container>);
+    expect(screen.getByText('content')).toBeInTheDocument();
   });
 
-  it('should apply correct styles and classes', () => {
-    const { container } = render(<Container>content</Container>);
-    const rootElement = container.firstChild as HTMLElement;
-    expect(rootElement).toBeInTheDocument();
-    expect(rootElement).toHaveClass('mx-0');
-    expect(rootElement).toHaveClass('max-w-none');
-    expect(rootElement).not.toHaveClass('mx-auto');
-    expect(rootElement).not.toHaveClass('max-w-[1280px]');
+  it('shows a visible title when breadcrumb does not own identity', () => {
+    render(<Container label="Models">content</Container>);
+    expect(screen.getByRole('heading', { name: 'Models' })).toBeVisible();
   });
 
-  it('supports constrained pages when a content cap is requested', () => {
-    const { container } = render(
-      <Container fullWidth={false}>content</Container>,
-    );
-    const rootElement = container.firstChild as HTMLElement;
+  it('suppresses the visible title when a canonical breadcrumb is present', () => {
+    navigationState.hasCanonicalBreadcrumb = true;
 
-    expect(rootElement).toHaveClass('mx-auto');
-    expect(rootElement).toHaveClass('max-w-[1280px]');
-    expect(rootElement).not.toHaveClass('mx-0');
-    expect(rootElement).not.toHaveClass('max-w-none');
-  });
+    render(<Container label="Models">content</Container>);
 
-  it('keeps full-pane header content inset without rendering a divider', () => {
-    const { container } = render(
-      <Container label="Dashboard">content</Container>,
-    );
-    const rootElement = container.firstChild as HTMLElement;
-    const header = screen.getByRole('heading', { name: 'Dashboard' })
-      .parentElement?.parentElement;
-
-    expect(rootElement).toHaveClass('py-5', 'sm:py-6');
-    expect(rootElement).not.toHaveClass('px-5');
-    expect(header).toHaveClass('px-5');
-    expect(header).toHaveClass('sm:px-6');
-    expect(header).not.toHaveClass('border-b');
-  });
-
-  it('insets full-width body content to match the header gutter', () => {
-    render(
-      <Container label="Dashboard">
-        <div data-testid="body-content">content</div>
-      </Container>,
-    );
-
-    const bodyWrapper = screen.getByTestId('body-content').parentElement;
-
-    expect(bodyWrapper).toHaveClass('px-5');
-    expect(bodyWrapper).toHaveClass('sm:px-6');
-  });
-
-  it('supports full-height page body layouts', () => {
-    render(
-      <Container bodyClassName="flex min-h-0 flex-1 flex-col">
-        <div data-testid="body-content">content</div>
-      </Container>,
-    );
-
-    const bodyWrapper = screen.getByTestId('body-content').parentElement;
-
-    expect(bodyWrapper).toHaveClass('flex');
-    expect(bodyWrapper).toHaveClass('min-h-0');
-    expect(bodyWrapper).toHaveClass('flex-1');
-    expect(bodyWrapper).toHaveClass('flex-col');
-  });
-
-  it('does not double-inset constrained body content', () => {
-    render(
-      <Container fullWidth={false} label="Dashboard">
-        <div data-testid="body-content">content</div>
-      </Container>,
-    );
-
-    const bodyWrapper = screen.getByTestId('body-content').parentElement;
-
-    expect(bodyWrapper).not.toHaveClass('px-5');
-    expect(bodyWrapper).not.toHaveClass('sm:px-6');
-  });
-
-  it('can keep the h1 for assistive tech without rendering the visible header row', () => {
-    const { container } = render(
-      <Container label="Dashboard" titleVisibility="sr-only">
-        content
-      </Container>,
-    );
-    const rootElement = container.firstChild as HTMLElement;
-
-    expect(screen.getByRole('heading', { name: 'Dashboard' })).toHaveClass(
+    expect(screen.getByRole('heading', { name: 'Models' })).toHaveClass(
       'sr-only',
     );
-    expect(rootElement.querySelector('.border-b')).toBeNull();
-    // No empty header chrome (mb-4 pb-3) when the title is assistive-only.
-    expect(rootElement.querySelector('.mb-4.pb-3')).toBeNull();
   });
 
-  it('keeps header controls visible when the title is screen-reader only', () => {
-    render(
-      <Container
-        label="Inbox"
-        titleVisibility="sr-only"
-        right={<button type="button">Refresh</button>}
-      >
-        content
-      </Container>,
-    );
+  it('pins breadcrumb-only actions to the right via SectionTopbar module chrome', () => {
+    navigationState.hasCanonicalBreadcrumb = true;
 
-    expect(screen.getByRole('heading', { name: 'Inbox' })).toHaveClass(
-      'sr-only',
-    );
-    expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
-  });
-
-  it('right-aligns primary actions when the title is assistive-only', () => {
     render(
       <Container
         label="Brands"
@@ -136,15 +50,22 @@ describe('Container', () => {
     );
 
     const action = screen.getByRole('button', { name: 'Add Brand' });
-    const toolbar = action.closest('.justify-end');
-
-    expect(toolbar).not.toBeNull();
+    expect(screen.getByTestId('section-topbar')).toContainElement(action);
+    expect(screen.getByTestId('section-topbar-actions')).toContainElement(
+      action,
+    );
+    expect(screen.getByTestId('container')).toHaveAttribute(
+      'data-module-chrome',
+      'section-topbar',
+    );
   });
 
-  it('renders header tabs alongside header actions on one toolbar row', () => {
+  it('uses SectionTopbar for header tabs + actions (local nav contract)', () => {
+    navigationState.hasCanonicalBreadcrumb = true;
+
     render(
       <Container
-        label="Models"
+        label="Inbox"
         titleVisibility="sr-only"
         headerTabs={{
           activeTab: 'overview',
@@ -163,12 +84,117 @@ describe('Container', () => {
 
     const overview = screen.getByRole('link', { name: 'Overview' });
     const refresh = screen.getByRole('button', { name: 'Refresh' });
-    const toolbar = refresh.closest('.justify-between');
+    const topbar = screen.getByTestId('section-topbar');
 
-    expect(overview).toBeInTheDocument();
-    expect(refresh).toBeInTheDocument();
-    expect(toolbar).not.toBeNull();
-    expect(toolbar?.contains(overview)).toBe(true);
-    expect(toolbar?.contains(refresh)).toBe(true);
+    expect(topbar).toContainElement(overview);
+    expect(topbar).toContainElement(refresh);
+    expect(screen.getByTestId('section-topbar-tabs')).toContainElement(
+      overview,
+    );
+    expect(screen.getByTestId('section-topbar-actions')).toContainElement(
+      refresh,
+    );
+    // Full-bleed module bar, not padded orphan chrome.
+    expect(topbar).toHaveClass('border-b', 'border-border');
+  });
+
+  it('uses SectionTopbar when title is visible and tabs + actions share the row', () => {
+    render(
+      <Container
+        label="Models"
+        headerTabs={{
+          activeTab: 'overview',
+          fullWidth: false,
+          items: [
+            { href: '/test', id: 'overview', label: 'Overview' },
+            { href: '/test/details', id: 'details', label: 'Details' },
+          ],
+          variant: 'default',
+        }}
+        right={<button type="button">Refresh</button>}
+      >
+        content
+      </Container>,
+    );
+
+    const topbar = screen.getByTestId('section-topbar');
+    expect(topbar).toContainElement(
+      screen.getByRole('heading', { name: 'Models' }),
+    );
+    expect(topbar).toContainElement(
+      screen.getByRole('link', { name: 'Overview' }),
+    );
+    expect(topbar).toContainElement(
+      screen.getByRole('button', { name: 'Refresh' }),
+    );
+  });
+
+  it('promotes body tabs into SectionTopbar when primary actions are present', () => {
+    const { container } = render(
+      <Container
+        label="Models"
+        tabs={[
+          { href: '/models/all', label: 'All' },
+          { href: '/models/image', label: 'Image' },
+        ]}
+        right={<button type="button">Model</button>}
+      >
+        content
+      </Container>,
+    );
+
+    const topbar = screen.getByTestId('section-topbar');
+    expect(topbar).toContainElement(screen.getByRole('link', { name: 'All' }));
+    expect(topbar).toContainElement(
+      screen.getByRole('button', { name: 'Model' }),
+    );
+    // Single module chrome — no second orphan body strip
+    expect(
+      container.querySelectorAll('[data-testid="section-topbar"]').length,
+    ).toBe(1);
+  });
+
+  it('keeps classic padded title+actions when there is no local tab nav', () => {
+    render(
+      <Container label="Users" right={<button type="button">Invite</button>}>
+        content
+      </Container>,
+    );
+
+    expect(screen.queryByTestId('section-topbar')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Users' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Invite' })).toBeInTheDocument();
+    expect(screen.getByTestId('container-header-actions')).toContainElement(
+      screen.getByRole('button', { name: 'Invite' }),
+    );
+    expect(screen.getByTestId('container')).toHaveAttribute(
+      'data-module-chrome',
+      'classic',
+    );
+  });
+
+  it('lifts body-only tabs into SectionTopbar (no orphan strip)', () => {
+    render(
+      <Container
+        label="Warm-up"
+        tabs={[
+          { id: 'accounts', label: 'Accounts' },
+          { id: 'create', label: 'Create' },
+        ]}
+        activeTab="accounts"
+        onTabChange={() => undefined}
+      >
+        content
+      </Container>,
+    );
+
+    const topbar = screen.getByTestId('section-topbar');
+    expect(topbar).toContainElement(
+      screen.getByRole('tab', { name: 'Accounts' }),
+    );
+    expect(screen.getByTestId('container')).toHaveAttribute(
+      'data-module-chrome',
+      'section-topbar',
+    );
   });
 });
