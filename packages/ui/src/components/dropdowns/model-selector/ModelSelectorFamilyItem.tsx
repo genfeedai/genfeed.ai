@@ -53,8 +53,8 @@ const ModelSelectorFamilyItem = memo(function ModelSelectorFamilyItem({
       aria-expanded={isExpanded}
       ariaLabel={familyLabel}
       className={cn(
-        'group flex min-h-11 w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors lg:min-h-0',
-        'hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'group flex min-h-9 w-full items-center gap-2.5 rounded-sm px-2 py-1.5 text-left transition-colors lg:min-h-0',
+        'hover:bg-foreground/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
       )}
     >
       <ChevronIcon className="size-3.5 shrink-0 text-foreground/45 transition-transform" />
@@ -65,7 +65,7 @@ const ModelSelectorFamilyItem = memo(function ModelSelectorFamilyItem({
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-medium text-foreground">
+          <span className="truncate text-[13px] font-medium text-foreground">
             {familyLabel}
           </span>
           <span className="rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground/45">

@@ -35,11 +35,11 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
       value={`${model.label} ${brandLabel} ${model.description ?? ''}`}
       onSelect={handleSelect}
       className={cn(
-        'flex min-h-11 cursor-pointer items-start gap-2.5 rounded px-2 py-2 transition-colors data-[selected=true]:bg-accent lg:min-h-0',
-        isSelected && 'bg-accent',
+        'flex min-h-9 cursor-pointer items-center gap-2.5 rounded-sm px-2 py-1.5 text-[13px] text-foreground transition-colors data-[selected=true]:bg-foreground/[0.06] lg:min-h-0',
+        isSelected && 'bg-foreground/10',
       )}
     >
-      <div className="pointer-events-none mt-0.5 flex size-5 shrink-0 items-center justify-center">
+      <div className="pointer-events-none flex size-5 shrink-0 items-center justify-center">
         <Checkbox
           name={`model-${model.key}`}
           isChecked={isSelected}
@@ -50,7 +50,7 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
 
       <div className="flex flex-col flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <span className="text-sm font-medium truncate">{variantLabel}</span>
+          <span className="truncate font-medium">{variantLabel}</span>
           <ModelSelectorCostBadge costTier={costTier} />
           {option.isDeprecated && (
             <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-300">
@@ -75,7 +75,7 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
         withWrapper={false}
         onClick={handleFavoriteClick}
         className={cn(
-          '-my-2 mt-0.5 flex size-11 shrink-0 items-center justify-center rounded transition-colors hover:bg-accent lg:my-0 lg:size-7',
+          '-my-1.5 flex size-9 shrink-0 items-center justify-center rounded-sm transition-colors hover:bg-foreground/10 lg:my-0 lg:size-6',
           isFavorite
             ? 'text-foreground'
             : 'text-foreground/20 hover:text-foreground/40',

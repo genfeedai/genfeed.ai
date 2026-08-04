@@ -385,7 +385,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         sideOffset={8}
         className={cn(
           'w-[calc(100vw-2rem)] overflow-hidden rounded-lg bg-popover p-0 shadow-dropdown',
-          'sm:w-[440px]',
+          'sm:w-[380px]',
         )}
       >
         <div className={cn('flex', 'h-[min(500px,calc(100vh-4rem))]')}>
@@ -430,36 +430,31 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
               <CommandList
                 className={cn(
-                  'max-h-none flex-1 px-2 py-2',
+                  'max-h-none flex-1 px-1 py-1',
                   shouldShowManualCatalog && 'overflow-y-auto',
                 )}
               >
                 {shouldShowAutoCard && (
                   <CommandGroup heading="Auto">
-                    <div className="mb-1 rounded-lg bg-background-secondary shadow-border">
-                      <CommandItem
-                        value={autoLabel}
-                        onSelect={handleAutoSelect}
-                        className={cn(
-                          'flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 transition-colors data-[selected=true]:bg-accent lg:min-h-0',
-                          isAutoSelected && 'bg-accent',
-                        )}
-                      >
-                        <span
-                          className="size-3.5 shrink-0"
-                          aria-hidden="true"
-                        />
-                        <span className="flex size-5 shrink-0 items-center justify-center rounded border border-border bg-primary/10 text-primary">
-                          <Sparkles className="size-3.5" />
-                        </span>
-                        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-                          {autoLabel}
-                        </span>
-                        {isAutoSelected ? (
-                          <Check className="size-3.5 shrink-0 text-foreground" />
-                        ) : null}
-                      </CommandItem>
-                    </div>
+                    <CommandItem
+                      value={autoLabel}
+                      onSelect={handleAutoSelect}
+                      className={cn(
+                        'flex min-h-9 cursor-pointer items-center gap-2.5 rounded-sm px-2 py-1.5 text-[13px] text-foreground transition-colors data-[selected=true]:bg-foreground/[0.06] lg:min-h-0',
+                        isAutoSelected && 'bg-foreground/10',
+                      )}
+                    >
+                      <span className="size-3.5 shrink-0" aria-hidden="true" />
+                      <span className="flex size-5 shrink-0 items-center justify-center rounded border border-border bg-primary/10 text-primary">
+                        <Sparkles className="size-3.5" />
+                      </span>
+                      <span className="min-w-0 flex-1 truncate font-medium">
+                        {autoLabel}
+                      </span>
+                      {isAutoSelected ? (
+                        <Check className="size-3.5 shrink-0 text-foreground" />
+                      ) : null}
+                    </CommandItem>
                   </CommandGroup>
                 )}
 
@@ -497,10 +492,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                                 expandedFamilyKeys.includes(family.familyKey);
 
                               return (
-                                <div
-                                  key={family.familyKey}
-                                  className="mb-1 rounded-lg bg-background-secondary shadow-border"
-                                >
+                                <div key={family.familyKey}>
                                   <ModelSelectorFamilyItem
                                     brandColor={brandConfig.color}
                                     brandIcon={getModelBrandIcon(
@@ -516,7 +508,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                                   />
 
                                   {isExpanded && (
-                                    <div className="space-y-0.5 px-2 pb-2">
+                                    <div className="pl-6">
                                       {family.options.map((option) => (
                                         <ModelSelectorModelItem
                                           key={option.model.key}
@@ -568,8 +560,8 @@ function SourceTabButton({
       className={cn(
         'min-h-11 rounded px-2.5 py-1.5 text-xs font-medium transition-colors lg:min-h-0',
         isActive
-          ? 'bg-accent text-foreground'
-          : 'text-foreground/55 hover:bg-accent hover:text-foreground',
+          ? 'bg-foreground/10 text-foreground'
+          : 'text-foreground/55 hover:bg-foreground/[0.06] hover:text-foreground',
       )}
     >
       {label}
