@@ -43,8 +43,8 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
       value={`${model.label} ${brandLabel} ${model.description ?? ''}`}
       onSelect={handleSelect}
       className={cn(
-        'flex min-h-11 cursor-pointer items-start gap-2 px-2 py-2 lg:min-h-0',
-        isSelected && 'bg-accent',
+        'flex min-h-11 cursor-pointer items-start gap-2 px-2 py-2 transition-colors data-[selected=true]:bg-foreground/[0.08] lg:min-h-0',
+        isSelected && 'bg-foreground/[0.08]',
       )}
     >
       <div className="pointer-events-none mt-0.5">

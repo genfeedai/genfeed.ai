@@ -440,8 +440,8 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                       value={autoLabel}
                       onSelect={handleAutoSelect}
                       className={cn(
-                        'flex min-h-11 cursor-pointer items-center gap-2 rounded px-2 py-2 lg:min-h-0',
-                        isAutoSelected && 'bg-accent',
+                        'flex min-h-11 cursor-pointer items-center gap-2 rounded px-2 py-2 transition-colors data-[selected=true]:bg-foreground/[0.08] lg:min-h-0',
+                        isAutoSelected && 'bg-foreground/[0.08]',
                       )}
                     >
                       <Sparkles className="size-4 shrink-0 text-primary" />
