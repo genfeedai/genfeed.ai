@@ -32,6 +32,7 @@ import type {
   LeaderboardStats,
   OrganizationDoc,
   PaginationSlice,
+  ResolvedBrandDisplay,
 } from './analytics.types';
 
 type PrismaSql = ReturnType<typeof Prisma.sql>;
@@ -287,6 +288,74 @@ export class EntityLeaderboardService {
     return this.brandsService.resolveBrandLogoUrls(brandIdsByOrganization);
   }
 
+  /**
+   * Batched organization names for one page of brand rows.
+   *
+   * Keyed by the `organizationId` scalar FK. The `brand.org` populated
+   * relation it replaces was never populated — `BrandsService` passes
+   * `undefined` for `BaseService`'s populate argument — so it was permanently
+   * `undefined` at runtime and every row rendered the literal "Unknown".
+   *
+   * `Organization` is the tenant root, so `id IN (...)` combined with
+   * `isDeleted: false` is the scope: the ids come from brands the caller was
+   * already authorized to read.
+   */
+  private async resolveOrganizationNames(
+    brands: BrandDoc[],
+  ): Promise<Map<string, string>> {
+    const organizationIds = [
+      ...new Set(
+        brands
+          .map((brand) => brand.organizationId)
+          .filter((organizationId): organizationId is string =>
+            Boolean(organizationId),
+          ),
+      ),
+    ];
+
+    if (organizationIds.length === 0) {
+      return new Map();
+    }
+
+    const organizations = await this.prisma.organization.findMany({
+      select: { id: true, label: true },
+      take: organizationIds.length,
+      where: { id: { in: organizationIds }, isDeleted: false },
+    });
+
+    return new Map(
+      organizations.map((organization) => [
+        organization.id,
+        organization.label,
+      ]),
+    );
+  }
+
+  /**
+   * Resolve every display value a page of brand rows needs, in one batched
+   * read each, and pair them by brand id for the projection.
+   */
+  private async resolveBrandDisplay(
+    brands: BrandDoc[],
+  ): Promise<Map<string, ResolvedBrandDisplay>> {
+    const [logoUrlsByBrandId, organizationNamesById] = await Promise.all([
+      this.resolveBrandLogos(brands),
+      this.resolveOrganizationNames(brands),
+    ]);
+
+    return new Map(
+      brands.map((brand) => [
+        brand.id,
+        {
+          logoUrl: logoUrlsByBrandId.get(brand.id),
+          organizationName: brand.organizationId
+            ? organizationNamesById.get(brand.organizationId)
+            : undefined,
+        },
+      ]),
+    );
+  }
+
   /** Count non-deleted brands grouped by organization */
   private async countBrandsByOrganization(): Promise<Map<string, number>> {
     const brandCountRows = await this.prisma.brand.groupBy({
@@ -408,10 +477,11 @@ export class EntityLeaderboardService {
       organizationId,
     });
 
-    // Rank and cut to the page before resolving logos, so the asset read
-    // covers only the rows that will actually be rendered.
+    // Rank and cut to the page before resolving display values, so the asset
+    // and organization reads cover only the rows that will actually be
+    // rendered.
     const ranked = this.sortRowsByMetric(rows, sort).slice(0, limit);
-    const logoUrlsByBrandId = await this.resolveBrandLogos(
+    const displayByBrandId = await this.resolveBrandDisplay(
       ranked.map(({ entity }) => entity),
     );
 
@@ -420,7 +490,7 @@ export class EntityLeaderboardService {
         entity,
         stats,
         prevEngagement,
-        logoUrlsByBrandId.get(entity.id),
+        displayByBrandId.get(entity.id),
       ),
     );
   }
@@ -484,14 +554,14 @@ export class EntityLeaderboardService {
       organizationId,
     });
 
-    // Paginate the raw rows first so the logo read covers one page, not the
+    // Paginate the raw rows first so the display reads cover one page, not the
     // whole brand table.
     const slice = this.buildPaginationSlice(
       this.sortRowsByMetric(rows, sort),
       page,
       limit,
     );
-    const logoUrlsByBrandId = await this.resolveBrandLogos(
+    const displayByBrandId = await this.resolveBrandDisplay(
       slice.data.map(({ entity }) => entity),
     );
 
@@ -501,7 +571,7 @@ export class EntityLeaderboardService {
           entity,
           stats,
           prevEngagement,
-          logoUrlsByBrandId.get(entity.id),
+          displayByBrandId.get(entity.id),
         ),
       ),
       pagination: slice.pagination,
@@ -511,25 +581,25 @@ export class EntityLeaderboardService {
   /**
    * Shared brand projection used by both brand leaderboard + stats paths.
    *
-   * `logoUrl` is resolved upstream in one batched read — see
-   * `resolveBrandLogos`. It is passed in rather than looked up here so a page
-   * of brands costs one query instead of one per row.
+   * `logoUrl` and `organizationName` are resolved upstream, one batched read
+   * each — see `resolveBrandDisplay`. They are passed in rather than looked up
+   * here so a page of brands costs two queries instead of two per row.
    */
   private toBrandEntity(
     brand: BrandDoc,
     stats: IEntityAnalyticsStats,
     prevEngagement: number,
-    logoUrl?: string,
+    display: ResolvedBrandDisplay = {},
   ): BrandWithStatsEntity {
     return new BrandWithStatsEntity({
       activePlatforms: stats.activePlatforms,
       avgEngagementRate: stats.avgEngagementRate,
       growth: this.calculateGrowth(stats.totalEngagement, prevEngagement),
       id: brand.id,
-      logo: logoUrl,
+      logo: display.logoUrl,
       name: brand.label || brand.name || 'Unknown',
-      organizationId: brand.organizationId || brand.org?.id,
-      organizationName: brand.org?.label || brand.org?.name || 'Unknown',
+      organizationId: brand.organizationId,
+      organizationName: display.organizationName || 'Unknown',
       totalEngagement: stats.totalEngagement,
       totalPosts: stats.totalPosts,
       totalViews: stats.totalViews,
