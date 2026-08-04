@@ -1,5 +1,6 @@
 'use client';
 
+import type { DropdownDirection } from '@genfeedai/enums';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import { RectangleHorizontal, RectangleVertical, Square } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -15,6 +16,7 @@ interface AspectRatioDropdownProps {
   tooltip?: string;
   triggerDisplay?: 'default' | 'icon-only';
   icon?: ReactNode;
+  direction?: DropdownDirection;
 }
 
 function getAspectRatioIcon(ratio: string): ReactNode | undefined {
@@ -43,6 +45,7 @@ export default function AspectRatioDropdown({
   tooltip,
   triggerDisplay = 'default',
   icon,
+  direction,
 }: AspectRatioDropdownProps) {
   const options = ratios.map((ratio) => ({
     icon: getAspectRatioIcon(ratio),
@@ -62,6 +65,7 @@ export default function AspectRatioDropdown({
       tooltip={tooltip}
       triggerDisplay={triggerDisplay}
       icon={icon}
+      direction={direction}
     />
   );
 }

@@ -39,7 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { Check, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
 
 const AUTO_MODEL = {
@@ -464,74 +464,52 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                 )}
               >
                 {shouldShowAutoCard && (
-                  <CommandGroup heading="Auto">
-                    <div className="mb-1 rounded-lg bg-background-secondary shadow-border">
-                      <div
+                  <CommandGroup heading={isAutoSelected ? undefined : 'Auto'}>
+                    <div
+                      className={cn(
+                        'mb-1 flex items-center gap-1.5 rounded-lg bg-background-secondary p-1.5 shadow-border',
+                        isAutoSelected && 'bg-background-tertiary',
+                      )}
+                    >
+                      <Button
+                        onClick={() => handleToggle(AUTO_MODEL_OPTION_VALUE)}
                         className={cn(
-                          'transition-colors',
-                          isAutoSelected && 'bg-background-tertiary',
+                          'flex min-h-9 min-w-0 flex-1 items-center gap-2 rounded px-2 py-1.5 text-left transition-colors',
+                          'text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                         )}
+                        type="button"
+                        variant={ButtonVariant.UNSTYLED}
+                        withWrapper={false}
                       >
-                        <Button
-                          onClick={() => handleToggle(AUTO_MODEL_OPTION_VALUE)}
-                          className={cn(
-                            'flex min-h-11 w-full items-center gap-2.5 rounded px-3 py-3 text-left transition-colors lg:min-h-0',
-                            'text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                          )}
-                          type="button"
-                          variant={ButtonVariant.UNSTYLED}
-                          withWrapper={false}
-                        >
-                          <div
-                            className={cn(
-                              'flex size-4 items-center justify-center rounded-sm border transition-colors',
-                              isAutoSelected
-                                ? 'border-foreground bg-foreground text-background'
-                                : 'border-border bg-transparent text-transparent',
-                            )}
-                          >
-                            <Check className="size-3" />
-                          </div>
-                          <div className="mt-0.5 flex size-4 shrink-0 items-center justify-center text-primary">
-                            <Sparkles className="size-4" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="text-sm font-medium text-foreground">
-                              Auto
-                            </div>
-                            <div className="text-xs text-foreground/50">
-                              Optimize for {AUTO_PRIORITY_LABELS[prioritize]}
-                            </div>
-                          </div>
-                        </Button>
-                      </div>
+                        <div className="flex size-4 shrink-0 items-center justify-center text-primary">
+                          <Sparkles className="size-4" />
+                        </div>
+                        <span className="truncate text-sm font-medium text-foreground">
+                          Auto
+                        </span>
+                      </Button>
 
                       {isAutoSelected && onPrioritizeChange && (
-                        <div className="space-y-2 border-t border-border px-3 pb-3 pt-2">
-                          <div className="text-[11px] font-medium uppercase tracking-wide text-foreground/50">
-                            Priority
-                          </div>
-                          <Select
-                            value={prioritize}
-                            onValueChange={(value) =>
-                              onPrioritizeChange(value as RouterPriority)
-                            }
+                        <Select
+                          value={prioritize}
+                          onValueChange={(value) =>
+                            onPrioritizeChange(value as RouterPriority)
+                          }
+                        >
+                          <SelectTrigger
+                            aria-label="Auto routing priority"
+                            className="h-9 min-h-9 w-auto shrink-0 border-border bg-background text-xs"
                           >
-                            <SelectTrigger
-                              aria-label="Auto routing priority"
-                              className="min-h-11 border-border bg-background-tertiary text-sm lg:min-h-9"
-                            >
-                              <SelectValue placeholder="Select priority" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {AUTO_PRIORITY_OPTIONS.map((option) => (
-                                <SelectItem key={option} value={option}>
-                                  {AUTO_PRIORITY_LABELS[option]}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                            <SelectValue placeholder="Priority" />
+                          </SelectTrigger>
+                          <SelectContent side="top">
+                            {AUTO_PRIORITY_OPTIONS.map((option) => (
+                              <SelectItem key={option} value={option}>
+                                {AUTO_PRIORITY_LABELS[option]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       )}
                     </div>
                   </CommandGroup>

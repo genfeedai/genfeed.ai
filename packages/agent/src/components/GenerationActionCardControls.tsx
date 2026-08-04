@@ -1,5 +1,5 @@
 import type { GenerationModel } from '@genfeedai/agent/services/agent-api.service';
-import type { RouterPriority } from '@genfeedai/enums';
+import { DropdownDirection, type RouterPriority } from '@genfeedai/enums';
 import AspectRatioDropdown from '@ui/dropdowns/aspect-ratio/AspectRatioDropdown';
 import ModelSelectorPopover from '@ui/dropdowns/model-selector/ModelSelectorPopover';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
@@ -132,6 +132,7 @@ export function GenerationActionCardControls({
             onChange={onAspectRatioChange}
             className="w-full justify-between border border-border bg-background hover:bg-accent/50"
             isDisabled={isDisabled}
+            direction={DropdownDirection.UP}
             placeholder="Aspect ratio"
           />
         </div>

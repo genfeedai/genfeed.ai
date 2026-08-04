@@ -25,6 +25,7 @@ export interface ButtonDropdownProps {
   tooltip?: string;
   triggerDisplay?: 'default' | 'icon-only';
   variant?: ButtonVariant;
+  direction?: DropdownDirection;
 }
 
 /**
