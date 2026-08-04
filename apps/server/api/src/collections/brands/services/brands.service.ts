@@ -497,6 +497,21 @@ export class BrandsService extends BaseService<
     );
   }
 
+  /**
+   * Batched logo URLs for a page of brands, keyed by brand id.
+   *
+   * The single-brand resolver above in a loop is an N+1 — see
+   * `BrandKitAssetsService.resolveBrandLogoUrls` for why brand ids arrive
+   * grouped by owning organization.
+   */
+  async resolveBrandLogoUrls(
+    brandIdsByOrganization: ReadonlyMap<string, readonly string[]>,
+  ): Promise<Map<string, string>> {
+    return this.brandKitAssetsService.resolveBrandLogoUrls(
+      brandIdsByOrganization,
+    );
+  }
+
   async applyBrandKitDraft(
     brandId: string,
     organizationId: string,
