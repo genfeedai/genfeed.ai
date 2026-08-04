@@ -231,7 +231,11 @@ export class BrandsController extends BaseCRUDController<
         onboardingProfileOptions,
       );
       const renamed = await this.brandsService.findOne({ _id: id });
-      return serializeSingle(request, BrandSerializer, renamed);
+      return serializeSingle(
+        request,
+        BrandSerializer,
+        renamed ? await this.decorateForResponse(renamed, user) : renamed,
+      );
     }
 
     const requestedOrgId = (rest as { organizationId?: string }).organizationId;
@@ -288,7 +292,11 @@ export class BrandsController extends BaseCRUDController<
     );
 
     return {
-      ...serializeSingle(request, BrandSerializer, moved),
+      ...serializeSingle(
+        request,
+        BrandSerializer,
+        await this.decorateForResponse(moved, user),
+      ),
       meta: { ...summary },
     };
   }
@@ -518,7 +526,39 @@ export class BrandsController extends BaseCRUDController<
       );
     }
 
-    return serializeSingle(request, BrandSerializer, brand);
+    return serializeSingle(
+      request,
+      BrandSerializer,
+      await this.decorateForResponse(brand, user),
+    );
+  }
+
+  /**
+   * Resolve the brand's logo, banner and reference assets onto the response.
+   *
+   * The serializer declares them as asset relations, but the Brand table has no
+   * such columns — they are `Asset` rows keyed by `parentBrandId`. Without this
+   * the relations serialize as absent, and the brand setup checklist reports a
+   * missing logo for a brand that has one.
+   */
+  public override async decorateForResponse(
+    brand: BrandDocument,
+    _user: User,
+  ): Promise<BrandDocument> {
+    // The brand's own org owns its assets — never the caller's session org,
+    // which differs for a superadmin reading across tenants.
+    const organizationId = brand.organizationId;
+
+    if (typeof organizationId !== 'string' || !organizationId) {
+      return brand;
+    }
+
+    const [decorated] = await this.brandsService.attachBrandKitAssetRelations(
+      [brand],
+      organizationId,
+    );
+
+    return decorated;
   }
 
   /**

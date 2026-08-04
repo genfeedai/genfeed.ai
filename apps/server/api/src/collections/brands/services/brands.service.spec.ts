@@ -67,6 +67,7 @@ describe('BrandsService', () => {
     assetDelegate = {
       create: vi.fn(),
       findFirst: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
       update: vi.fn(),
       updateMany: vi.fn(),
     };
@@ -224,6 +225,75 @@ describe('BrandsService', () => {
       });
       expect(createInput.data).not.toHaveProperty('organization');
       expect(createInput.data).not.toHaveProperty('user');
+    });
+  });
+
+  describe('findForOrganization', () => {
+    // The access bootstrap serves the agent setup panel straight from these
+    // rows, so the brand kit assets have to ride along or the setup checklist
+    // reports a logo-less brand for a brand that has one.
+    it('attaches the resolved logo, banner and references to every brand', async () => {
+      delegate.findMany.mockResolvedValue([
+        { id: 'brand-1', organizationId: 'org-1' },
+        { id: 'brand-2', organizationId: 'org-1' },
+      ]);
+      assetDelegate.findMany.mockResolvedValue([
+        {
+          category: 'LOGO',
+          cloudObjectKey: 'logos/logo-1',
+          displayName: 'Wordmark',
+          id: 'logo-1',
+          mimeType: 'image/png',
+          parentBrandId: 'brand-1',
+        },
+        {
+          category: 'REFERENCE',
+          cloudObjectKey: 'references/ref-1',
+          displayName: null,
+          id: 'ref-1',
+          mimeType: null,
+          parentBrandId: 'brand-1',
+        },
+      ]);
+
+      const brands = await service.findForOrganization('org-1');
+
+      expect(assetDelegate.findMany).toHaveBeenCalledTimes(1);
+      expect(brands[0].logo).toEqual({
+        category: 'LOGO',
+        cdnUrl: 'https://cdn.example.com/logos/logo-1',
+        displayName: 'Wordmark',
+        id: 'logo-1',
+        mimeType: 'image/png',
+      });
+      expect(brands[0].references).toHaveLength(1);
+      expect(brands[1].logo).toBeUndefined();
+      expect(brands[1].references).toEqual([]);
+    });
+
+    it('scopes the asset read to the requested organization', async () => {
+      delegate.findMany.mockResolvedValue([
+        { id: 'brand-1', organizationId: 'org-1' },
+      ]);
+
+      await service.findForOrganization('org-1');
+
+      expect(assetDelegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            isDeleted: false,
+            parentBrandId: { in: ['brand-1'] },
+            parentOrgId: 'org-1',
+          }),
+        }),
+      );
+    });
+
+    it('skips the asset read when the organization has no brands', async () => {
+      delegate.findMany.mockResolvedValue([]);
+
+      await expect(service.findForOrganization('org-1')).resolves.toEqual([]);
+      expect(assetDelegate.findMany).not.toHaveBeenCalled();
     });
   });
 

@@ -1,3 +1,9 @@
+import {
+  ASSET_UPLOAD_TYPE_BY_ROLE,
+  BRAND_KIT_RESOLVED_REFERENCE_LIMIT,
+  BRAND_KIT_ROLE_BY_PRISMA_CATEGORY,
+  PRISMA_ASSET_CATEGORY_BY_ROLE,
+} from '@api/collections/brands/constants/brand-kit-assets.constant';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import {
   CACHE_PATTERNS,
@@ -39,29 +45,6 @@ const BRAND_KIT_ALLOWED_EXTENSIONS = new Set([
   '.png',
   '.webp',
 ]);
-const PRISMA_ASSET_CATEGORY_BY_ROLE: Record<
-  BrandKitAssetRole,
-  Prisma.AssetCreateInput['category']
-> = {
-  banner: 'BANNER' as Prisma.AssetCreateInput['category'],
-  logo: 'LOGO' as Prisma.AssetCreateInput['category'],
-  reference: 'REFERENCE' as Prisma.AssetCreateInput['category'],
-};
-const ASSET_UPLOAD_TYPE_BY_ROLE: Record<BrandKitAssetRole, string> = {
-  banner: 'banners',
-  logo: 'logos',
-  reference: 'references',
-};
-const BRAND_KIT_ROLE_BY_PRISMA_CATEGORY = new Map<string, BrandKitAssetRole>(
-  Object.entries(PRISMA_ASSET_CATEGORY_BY_ROLE).map(([role, category]) => [
-    String(category),
-    role as BrandKitAssetRole,
-  ]),
-);
-// A brand keeps one live logo and one live banner; references are unbounded, so
-// the read is capped to keep an agent prompt from swallowing an entire library.
-const BRAND_KIT_RESOLVED_REFERENCE_LIMIT = 10;
-
 type BrandKitAssetBrandFinder = (
   criteria: Record<string, unknown>,
 ) => Promise<BrandDocument | null>;
@@ -89,6 +72,35 @@ export class BrandKitAssetsService {
     brandId: string,
     organizationId: string,
   ): Promise<IBrandKitResolvedAssets> {
+    const resolved = await this.resolveBrandKitAssetsForBrands(
+      [brandId],
+      organizationId,
+    );
+
+    return resolved.get(brandId) ?? { references: [] };
+  }
+
+  /**
+   * The same read for a whole set of brands, in one query.
+   *
+   * The access bootstrap hands the client every brand in the organization at
+   * once, so resolving them one at a time would be an N+1 on the hottest
+   * authenticated request in the app. Brands with no assets still get an entry,
+   * so a caller can attach unconditionally.
+   */
+  async resolveBrandKitAssetsForBrands(
+    brandIds: string[],
+    organizationId: string,
+  ): Promise<Map<string, IBrandKitResolvedAssets>> {
+    const uniqueBrandIds = [...new Set(brandIds.filter(Boolean))];
+    const resolved = new Map<string, IBrandKitResolvedAssets>(
+      uniqueBrandIds.map((brandId) => [brandId, { references: [] }]),
+    );
+
+    if (uniqueBrandIds.length === 0) {
+      return resolved;
+    }
+
     const assets = await this.prisma.asset.findMany({
       orderBy: { updatedAt: 'desc' },
       select: {
@@ -97,24 +109,26 @@ export class BrandKitAssetsService {
         cloudObjectKey: true,
         id: true,
         mimeType: true,
+        parentBrandId: true,
       },
       where: {
         category: { in: Object.values(PRISMA_ASSET_CATEGORY_BY_ROLE) },
         isDeleted: false,
-        parentBrandId: brandId,
+        parentBrandId: { in: uniqueBrandIds },
         parentOrgId: organizationId,
         parentType: 'BRAND' as Prisma.AssetCreateInput['parentType'],
       },
     });
 
-    const resolved: IBrandKitResolvedAssets = { references: [] };
-
     for (const asset of assets) {
       const role = BRAND_KIT_ROLE_BY_PRISMA_CATEGORY.get(
         String(asset.category),
       );
+      const kit = asset.parentBrandId
+        ? resolved.get(asset.parentBrandId)
+        : undefined;
 
-      if (!role) {
+      if (!role || !kit) {
         continue;
       }
 
@@ -127,17 +141,17 @@ export class BrandKitAssetsService {
       };
 
       if (role === 'logo') {
-        resolved.logo ??= value;
+        kit.logo ??= value;
         continue;
       }
 
       if (role === 'banner') {
-        resolved.banner ??= value;
+        kit.banner ??= value;
         continue;
       }
 
-      if (resolved.references.length < BRAND_KIT_RESOLVED_REFERENCE_LIMIT) {
-        resolved.references.push(value);
+      if (kit.references.length < BRAND_KIT_RESOLVED_REFERENCE_LIMIT) {
+        kit.references.push(value);
       }
     }
 
@@ -147,17 +161,8 @@ export class BrandKitAssetsService {
   /**
    * Live logo URLs for many brands at once, keyed by brand id.
    *
-   * `resolveBrandKitAssets` is the single-brand form. Surfaces that render a
-   * whole page of brands — the analytics leaderboards — would turn that into an
-   * N+1, so this collapses the page into one `findMany` and groups in memory.
-   * The where-shape stays deliberately identical to the single-brand read
-   * (`parentType: 'BRAND'` + brand + org + `isDeleted: false`) so there is one
-   * place to change when brand asset storage moves.
-   *
-   * Callers pass brand ids grouped under their owning organization rather than
-   * a flat list: the leaderboards run unscoped for platform admins, and a bare
-   * `parentBrandId IN (...)` would be a tenant-crossing read. Every OR branch
-   * carries its own `parentOrgId`.
+   * Callers group brand ids under their owning organization so platform-level
+   * leaderboards retain tenant boundaries while resolving the page in one read.
    */
   async resolveBrandLogoUrls(
     brandIdsByOrganization: ReadonlyMap<string, readonly string[]>,
@@ -187,9 +192,6 @@ export class BrandKitAssetsService {
       },
     });
 
-    // `orderBy updatedAt desc` means the first row seen for a brand is its
-    // current logo — the same "most recent wins" rule the single-brand
-    // resolver applies via `resolved.logo ??= value`.
     const logoUrlsByBrandId = new Map<string, string>();
     for (const asset of assets) {
       if (!asset.parentBrandId || logoUrlsByBrandId.has(asset.parentBrandId)) {

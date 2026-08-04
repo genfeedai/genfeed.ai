@@ -153,7 +153,11 @@ export abstract class BaseCRUDController<
       ErrorResponse.notFound(this.entityName, id);
     }
 
-    return serializeSingle(request, this.serializer, data);
+    return serializeSingle(
+      request,
+      this.serializer,
+      await this.decorateForResponse(data, user),
+    );
   }
 
   /**
@@ -227,7 +231,24 @@ export abstract class BaseCRUDController<
       ErrorResponse.notFound(this.entityName, id);
     }
 
-    return serializeSingle(request, this.serializer, data);
+    return serializeSingle(
+      request,
+      this.serializer,
+      await this.decorateForResponse(data, user),
+    );
+  }
+
+  /**
+   * Last chance to enrich a single entity before it is serialized.
+   *
+   * Default is a no-op. Child controllers override it when the serializer
+   * declares relations that are not columns on the entity's own table and so
+   * have to be resolved from elsewhere — `BrandsController` populates a brand's
+   * logo/banner/reference assets this way. Deliberately not applied to
+   * `create`, where a freshly inserted row cannot have related records yet.
+   */
+  public decorateForResponse(data: T, _user: User): Promise<T> | T {
+    return data;
   }
 
   protected assertPatchAllowed(
