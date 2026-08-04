@@ -5,7 +5,7 @@ describe('ModelSerializer', () => {
   it('serializes model with cost, isActive and isDefault attributes', () => {
     const now = new Date();
     const result = ModelSerializer.serialize({
-      _id: '1',
+      id: '1',
       category: IngredientCategory.IMAGE,
       cost: 5,
       createdAt: now,
@@ -26,7 +26,7 @@ describe('ModelSerializer', () => {
   it('serializes dynamic registry metadata', () => {
     const now = new Date();
     const result = ModelSerializer.serialize({
-      _id: '1',
+      id: '1',
       category: IngredientCategory.IMAGE,
       cost: 5,
       createdAt: now,
@@ -37,11 +37,11 @@ describe('ModelSerializer', () => {
       key: 'test-key',
       label: 'test',
       margin: 0.2,
-      organization: 'org-1',
-      parentModel: 'base-model',
+      organizationId: 'org-1',
+      parentModelId: 'base-model',
       provider: 'openai',
       providerConfig: { source: 'provider-sync' },
-      training: 'training-1',
+      trainingId: 'training-1',
       updatedAt: now,
     });
 
@@ -49,10 +49,10 @@ describe('ModelSerializer', () => {
       isDiscovered: true,
       isPublic: true,
       margin: 0.2,
-      organization: 'org-1',
-      parentModel: 'base-model',
+      organizationId: 'org-1',
+      parentModelId: 'base-model',
       providerConfig: { source: 'provider-sync' },
-      training: 'training-1',
+      trainingId: 'training-1',
     });
   });
 });

@@ -11,7 +11,7 @@ import type { Prisma } from '@genfeedai/prisma';
 import { AgentArtifactReferenceService, scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import pLimit from 'p-limit';
+import { createConcurrencyLimit } from '@server/shared/utils/create-concurrency-limit.util';
 
 /**
  * Max concurrent per-draft writes inside `bulkApprove`. Matches the limiter
@@ -209,7 +209,7 @@ export class ContentDraftsService extends BaseService<
     // Both passes are per-draft (each draft gets its own immutable version pin,
     // so the trailing update cannot collapse into one `updateMany`). Bound the
     // fan-out instead: a single request must not open one connection per id.
-    const limit = pLimit(BULK_APPROVE_CONCURRENCY);
+    const limit = createConcurrencyLimit(BULK_APPROVE_CONCURRENCY);
 
     const pinnedDrafts = await Promise.all(
       drafts.map((draft) =>

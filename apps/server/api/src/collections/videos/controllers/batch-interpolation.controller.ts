@@ -256,12 +256,12 @@ export class BatchInterpolationController {
         // Create prompt record
         const promptData = await this.promptsService.create(
           new PromptEntity({
-            brand: publicMetadata.brand,
+            brandId: publicMetadata.brand,
             category: PromptCategory.MODELS_PROMPT_VIDEO,
-            organization: publicMetadata.organization,
+            organizationId: publicMetadata.organization,
             original: promptText,
             status: PromptStatus.PROCESSING,
-            user: publicMetadata.user,
+            userId: publicMetadata.user,
           }),
         );
 

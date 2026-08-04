@@ -139,9 +139,9 @@ export class PromptsController {
       ).creditsConfig?.amount ?? 0;
 
     let selectedBrand: BrandDocument | undefined;
-    if (isEntityId(createPromptDto.brand)) {
+    if (isEntityId(createPromptDto.brandId)) {
       const brand = await this.brandsService.findOne({
-        _id: createPromptDto.brand,
+        _id: createPromptDto.brandId,
         isDeleted: false,
         organization: publicMetadata.organization,
       });
@@ -156,17 +156,17 @@ export class PromptsController {
 
     const enrichedDto = {
       ...createPromptDto,
-      brand: isEntityId(createPromptDto.brand)
-        ? createPromptDto.brand
+      brandId: isEntityId(createPromptDto.brandId)
+        ? createPromptDto.brandId
         : undefined,
       category: normalizedType,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
       status: PromptStatus.PROCESSING,
-      user: publicMetadata.user,
-    } as CreatePromptDto & { user: string };
+      userId: publicMetadata.user,
+    } as CreatePromptDto;
 
     const data = await this.promptsService.create(enrichedDto, [
-      { path: 'ingredient' },
+      { path: 'ingredients' },
     ]);
 
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
@@ -281,12 +281,12 @@ export class PromptsController {
     const match: Record<string, unknown> = {
       isDeleted,
       scope,
-      user: publicMetadata.user,
+      userId: publicMetadata.user,
     };
 
     // Add brand filter if provided
     if (query.brand && isEntityId(query.brand)) {
-      match.brand = query.brand;
+      match.brandId = query.brand;
     }
 
     // Filter by favorite status if provided
@@ -314,23 +314,23 @@ export class PromptsController {
       {
         _id: promptId,
         isDeleted: false,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       },
-      [{ path: 'ingredient' }],
+      [{ path: 'ingredients' }],
     )) as unknown as PromptDocument | null;
 
     let prompt = data;
 
     // If prompt exists but has no ingredient, check if any ingredient references this prompt
-    if (data && !data.ingredient) {
+    if (data && !data.ingredients?.length) {
       const ingredient = await this.ingredientsService.findOne({
         isDeleted: false,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
         prompt: promptId,
       });
 
       if (ingredient) {
-        prompt = { ...data, ingredient } as unknown as PromptDocument;
+        prompt = { ...data, ingredients: [ingredient] } as PromptDocument;
       }
     }
 
@@ -353,8 +353,8 @@ export class PromptsController {
     const prompt = await this.promptsService.findOne({
       _id: promptId,
       OR: [
-        { user: publicMetadata.user },
-        { organization: publicMetadata.organization },
+        { userId: publicMetadata.user },
+        { organizationId: publicMetadata.organization },
       ],
       isDeleted: false,
     });
@@ -367,7 +367,7 @@ export class PromptsController {
 
     // Fetch the updated prompt with populated ingredient
     const data = await this.promptsService.findOne({ _id: promptId }, [
-      { path: 'ingredient' },
+      { path: 'ingredients' },
     ]);
 
     return data
@@ -386,7 +386,7 @@ export class PromptsController {
     const prompt = await this.promptsService.findOne({
       _id: promptId,
       isDeleted: false,
-      user: publicMetadata.user,
+      userId: publicMetadata.user,
     });
 
     if (!prompt) {

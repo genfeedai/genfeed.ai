@@ -93,8 +93,9 @@ export default function ButtonDropdown({
             key={option.value}
             onSelect={() => handleSelect(option.value)}
             className={cn(
-              'cursor-pointer',
-              option.value === value && 'bg-accent font-medium',
+              'cursor-pointer text-foreground hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground',
+              option.value === value &&
+                'bg-background-tertiary font-medium text-foreground',
             )}
           >
             {option.icon && (

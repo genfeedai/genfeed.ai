@@ -323,15 +323,15 @@ export class ImageGenerationService {
 
     const promptData = await this.promptsService.create(
       new PromptEntity({
-        brand: isEntityId(createImageDto.brand)
+        brandId: isEntityId(createImageDto.brand)
           ? createImageDto.brand
           : publicMetadata.brand,
         category: PromptCategory.MODELS_PROMPT_IMAGE,
         model,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
         original: promptOriginalText,
         status: PromptStatus.PROCESSING,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
       }),
     );
 

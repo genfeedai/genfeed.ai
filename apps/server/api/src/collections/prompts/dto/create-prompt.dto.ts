@@ -15,12 +15,17 @@ export class CreatePromptDto {
   @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly organization?: string;
+  readonly organizationId?: string;
 
   @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly brand?: string;
+  readonly brandId?: string;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly userId?: string;
 
   @IsString()
   @ApiProperty({

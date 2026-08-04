@@ -162,12 +162,12 @@ export class MusicsOperationsController {
     // Save prompt first
     const promptData = await this.promptsService.create(
       new PromptEntity({
-        brand: brandId,
+        brandId,
         category: PromptCategory.MODELS_PROMPT_MUSIC,
         model,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
         original: createMusicDto.text,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
       }),
     );
 

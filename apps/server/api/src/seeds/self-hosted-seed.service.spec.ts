@@ -18,6 +18,7 @@ describe('SelfHostedSeedService', () => {
   const userId = 'user_owner';
   let prisma: {
     organization: { findFirst: ReturnType<typeof vi.fn> };
+    model: { upsert: ReturnType<typeof vi.fn> };
     member: {
       create: ReturnType<typeof vi.fn>;
       findFirst: ReturnType<typeof vi.fn>;
@@ -33,6 +34,9 @@ describe('SelfHostedSeedService', () => {
         create: vi.fn().mockResolvedValue({ id: 'member_owner' }),
         findFirst: vi.fn().mockResolvedValue(null),
         update: vi.fn(),
+      },
+      model: {
+        upsert: vi.fn().mockResolvedValue({ id: 'model' }),
       },
       organization: {
         findFirst: vi.fn().mockResolvedValue({
@@ -82,6 +86,7 @@ describe('SelfHostedSeedService', () => {
         userId,
       },
     });
+    expect(prisma.model.upsert).toHaveBeenCalledTimes(3);
   });
 
   it('does not duplicate an existing default workspace member', async () => {

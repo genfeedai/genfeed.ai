@@ -4,8 +4,8 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { encodeJwtToken } from '@server/helpers/utils/jwt/jwt.util';
+import { createConcurrencyLimit } from '@server/shared/utils/create-concurrency-limit.util';
 import { appendWebhookToken } from '@server/webhooks/webhook-token.util';
-import pLimit from 'p-limit';
 import { firstValueFrom } from 'rxjs';
 
 // https://app.klingai.com/global/dev/document-api/apiReference/model/skillsMap.
@@ -29,7 +29,7 @@ export class KlingAIService {
 
   private readonly model: string;
 
-  private readonly limit = pLimit(3);
+  private readonly limit = createConcurrencyLimit(3);
 
   private readonly callbackUrl: string;
 

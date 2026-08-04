@@ -7,6 +7,7 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
+import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import { ModelSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -173,9 +174,11 @@ describe('ModelsController', () => {
   describe('enrichCreateDto', () => {
     it('should return dto without adding user fields for system entities', () => {
       const dto: CreateModelDto = {
+        category: ModelCategory.TEXT,
+        cost: 0,
         key: 'test-model',
         label: 'Test Model',
-        type: 'text',
+        provider: ModelProvider.OPENROUTER,
       };
 
       const result = controller.enrichCreateDto(dto);
@@ -233,7 +236,7 @@ describe('ModelsController', () => {
       const result = controller.buildFindAllQuery(mockRegularUser, query);
 
       expect(result).toEqual({
-        orderBy: { createdAt: -1, key: 1, label: 1, type: 1 },
+        orderBy: { createdAt: -1, key: 1, label: 1 },
         where: {
           isDeleted: false,
         },
@@ -285,8 +288,8 @@ describe('ModelsController', () => {
     it('should return paginated models', async () => {
       const mockModels = {
         docs: [
-          { _id: '1', key: 'model-1', label: 'Model 1', type: 'text' },
-          { _id: '2', key: 'model-2', label: 'Model 2', type: 'image' },
+          { id: '1', key: 'model-1', label: 'Model 1', type: 'text' },
+          { id: '2', key: 'model-2', label: 'Model 2', type: 'image' },
         ],
         hasNextPage: false,
         hasPrevPage: false,
@@ -342,7 +345,7 @@ describe('ModelsController', () => {
 
       expect(queryArg).toMatchObject({
         where: {
-          OR: [{ organization: null }, { organization: mockOrgId }],
+          OR: [{ organizationId: null }, { organizationId: mockOrgId }],
         },
       });
     });
@@ -383,8 +386,8 @@ describe('ModelsController', () => {
 
       const moduleRefMock = {
         findOne: vi.fn().mockResolvedValue({
-          enabledModels: [enabledModelId],
-          organization: foreignOrgId,
+          enabledModelIds: [enabledModelId],
+          organizationId: foreignOrgId,
         }),
       };
 
@@ -408,13 +411,13 @@ describe('ModelsController', () => {
 
       expect(queryArg).toMatchObject({
         where: {
-          OR: [{ organization: null }, { organization: mockOrgObjectId }],
+          OR: [{ organizationId: null }, { organizationId: mockOrgObjectId }],
         },
       });
 
       expect(queryArg).toMatchObject({
         where: {
-          _id: { in: [enabledModelId] },
+          id: { in: [enabledModelId] },
         },
       });
     });
@@ -423,14 +426,16 @@ describe('ModelsController', () => {
   describe('create', () => {
     it('should create a model', async () => {
       const createDto: CreateModelDto = {
+        category: ModelCategory.TEXT,
+        cost: 0,
         isDefault: false,
         key: 'new-model',
         label: 'New Model',
-        type: 'text',
+        provider: ModelProvider.OPENROUTER,
       };
 
       const mockCreatedModel = {
-        _id: '507f191e810c19729de860ee',
+        id: '507f191e810c19729de860ee',
         ...createDto,
       };
 
@@ -455,11 +460,12 @@ describe('ModelsController', () => {
       };
 
       const mockUpdatedModel = {
-        _id: id,
+        id,
         isDefault: false,
         key: 'model-1',
         label: 'Updated Model',
-        type: 'text',
+        category: ModelCategory.TEXT,
+        provider: ModelProvider.OPENROUTER,
       };
 
       modelsService.findOne.mockResolvedValue(mockUpdatedModel);
@@ -498,7 +504,7 @@ describe('ModelsController', () => {
     it('should approve a discovered model for superadmins', async () => {
       const id = '507f191e810c19729de860ee';
       const approvedModel = {
-        _id: id,
+        id,
         isActive: true,
         key: 'google/imagen-4',
         reviewStatus: 'approved',
@@ -523,14 +529,14 @@ describe('ModelsController', () => {
     it('should reject a discovered model without deleting it', async () => {
       const id = '507f191e810c19729de860ee';
       const rejectedModel = {
-        _id: id,
+        id,
         isActive: false,
         key: 'irrelevant/model',
         reviewStatus: 'rejected',
       };
       modelsService.rejectRegistryModel.mockResolvedValue(rejectedModel);
       modelsService.findOne.mockResolvedValue({
-        _id: id,
+        id,
         isDefault: false,
       });
 
@@ -548,14 +554,14 @@ describe('ModelsController', () => {
     it('should mark a registry model as legacy', async () => {
       const id = '507f191e810c19729de860ee';
       const legacyModel = {
-        _id: id,
+        id,
         isActive: false,
         isLegacy: true,
         key: 'google/imagen-3',
       };
       modelsService.markRegistryModelLegacy.mockResolvedValue(legacyModel);
       modelsService.findOne.mockResolvedValue({
-        _id: id,
+        id,
         isDefault: false,
       });
 
@@ -573,7 +579,7 @@ describe('ModelsController', () => {
     it('should not disable the only default model through review actions', async () => {
       const id = '507f191e810c19729de860ee';
       modelsService.findOne.mockResolvedValue({
-        _id: id,
+        id,
         category: 'image',
         isDefault: true,
       });
@@ -603,11 +609,12 @@ describe('ModelsController', () => {
     it('should allow superadmin to remove a model', async () => {
       const id = '507f191e810c19729de860ee'.toString();
       const mockModel = {
-        _id: id,
+        id,
         isDefault: false,
         key: 'model-1',
         label: 'Model 1',
-        type: 'text',
+        category: ModelCategory.TEXT,
+        provider: ModelProvider.OPENROUTER,
       };
 
       modelsService.findOne.mockResolvedValue(mockModel);

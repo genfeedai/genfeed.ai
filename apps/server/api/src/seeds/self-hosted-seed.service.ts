@@ -9,6 +9,7 @@
 
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
+import { SELF_HOSTED_MODELS } from '@genfeedai/constants';
 import { MemberRole } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
@@ -35,6 +36,7 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
 
     if (existingOrg) {
       await this.ensureOwnerMembership(existingOrg.id, existingOrg.userId);
+      await this.ensureReplicateImageModels();
       this.logger.log(
         'Default workspace already exists — seed reconciliation complete',
         this.context,
@@ -90,9 +92,49 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
     await this.ensureOwnerMembership(org.id, user.id);
 
     await this.provisionDefaultWorkflows(user.id, org.id);
+    await this.ensureReplicateImageModels();
 
     this.logger.log(
       `Self-hosted workspace seeded (org=${org.id}, user=${user.id})`,
+      this.context,
+    );
+  }
+
+  /**
+   * Self-hosted installs do not run the cloud model discovery workflow. Seed
+   * the supported Replicate image catalog so the router has a real registry
+   * entry to select before it calls Replicate.
+   *
+   * The operation is intentionally idempotent: existing operator changes are
+   * preserved, while missing or soft-deleted catalog rows are repaired.
+   */
+  private async ensureReplicateImageModels(): Promise<void> {
+    for (const model of SELF_HOSTED_MODELS) {
+      await this.prisma.model.upsert({
+        create: {
+          category: model.category,
+          config: model.providerConfig,
+          cost: model.cost,
+          description: model.description,
+          isActive: true,
+          isDefault: model.isDefault,
+          isDiscovered: false,
+          isHighlighted: model.isHighlighted,
+          isPublic: true,
+          key: model.key,
+          label: model.label,
+          provider: model.provider,
+        },
+        update: {
+          isDeleted: false,
+          label: model.label,
+        },
+        where: { key: model.key },
+      });
+    }
+
+    this.logger.log(
+      `Self-hosted Replicate image catalog reconciled (${SELF_HOSTED_MODELS.length} models)`,
       this.context,
     );
   }

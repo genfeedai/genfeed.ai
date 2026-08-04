@@ -8,23 +8,13 @@ export type ServerModelDimensions = {
 };
 
 export interface ServerModelRecord
-  extends Omit<PrismaModel, 'category' | 'config'> {
-  _id?: string;
-  capabilities?: string[];
-  category?: ModelCategory | string;
-  config?: Record<string, unknown>;
-  cost?: number;
-  costTier?: 'high' | 'low' | 'medium' | string;
-  description?: string;
-  isDefault?: boolean;
-  isHighlighted?: boolean;
-  key?: string;
-  maxDimensions?: ServerModelDimensions;
-  organization?: string | null;
-  provider?: ModelProvider | string;
-  qualityTier?: 'basic' | 'high' | 'standard' | 'ultra' | string;
-  recommendedFor?: string[];
-  speedTier?: 'fast' | 'medium' | 'slow' | string;
-  supportsFeatures?: string[];
-  [key: string]: unknown;
+  extends Omit<
+    PrismaModel,
+    'category' | 'config' | 'maxDimensions' | 'minDimensions' | 'provider'
+  > {
+  category: ModelCategory | string;
+  maxDimensions: ServerModelDimensions | null;
+  minDimensions: ServerModelDimensions | null;
+  provider: ModelProvider | string;
+  providerConfig: Record<string, unknown>;
 }

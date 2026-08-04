@@ -18,7 +18,7 @@ describe('CronModelWatcherService', () => {
 
   const mockExistingModels = [
     {
-      _id: 'model-1',
+      id: 'model-1',
       category: ModelCategory.IMAGE,
       cost: 25,
       isActive: true,
@@ -28,7 +28,7 @@ describe('CronModelWatcherService', () => {
       provider: ModelProvider.REPLICATE,
     },
     {
-      _id: 'model-2',
+      id: 'model-2',
       category: ModelCategory.VIDEO,
       cost: 100,
       isActive: true,

@@ -6,12 +6,6 @@ import type {
 } from '@genfeedai/enums';
 
 export class PromptEntity extends BaseEntity {
-  declare readonly user: string;
-  declare readonly organization?: string;
-  declare readonly brand?: string;
-  declare readonly ingredient?: string;
-  declare readonly article?: string;
-
   declare readonly status: PromptStatus;
   declare readonly original: string;
   declare readonly enhanced: string;

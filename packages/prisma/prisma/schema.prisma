@@ -2660,16 +2660,75 @@ model Model {
   parentModelId  String?
   parentModel    Model?        @relation("model_parent", fields: [parentModelId], references: [id])
   childModels    Model[]       @relation("model_parent")
-  label          String?
-  externalId     String?
-  config         Json          @default("{}")
-  isActive       Boolean       @default(true)
-  isDeleted      Boolean       @default(false)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
 
-  category String?
+  key         String  @unique
+  label       String
+  description String?
+  category    String
+  provider    String
+  externalId  String?
+  config      Json    @default("{}")
 
+  cost                       Float   @default(0)
+  costPerUnit                Float?
+  minCost                    Float?
+  providerCostUsd            Float?
+  inputCostPerMillionTokens  Float?
+  outputCostPerMillionTokens Float?
+  margin                     Float?
+  pricingType                String?
+  costTier                   String?
+  qualityTier                String?
+  speedTier                  String?
+
+  aspectRatios          String[] @default([])
+  capabilities          String[] @default([])
+  durations             Int[]    @default([])
+  recommendedFor        String[] @default([])
+  supportsFeatures      String[] @default([])
+  defaultAspectRatio    String?
+  defaultDuration       Int?
+  maxDimensions         Json?
+  minDimensions         Json?
+  maxOutputs            Int?
+  maxReferences         Int?
+  hasAudioToggle        Boolean?
+  hasDurationEditing    Boolean?
+  hasEndFrame           Boolean?
+  hasInterpolation      Boolean?
+  hasResolutionOptions  Boolean?
+  hasSpeech             Boolean?
+  isBatchSupported      Boolean?
+  isImagenModel         Boolean?
+  isReferencesMandatory Boolean?
+  usesOrientation       Boolean?
+
+  isActive      Boolean @default(true)
+  isDefault     Boolean @default(false)
+  isDeleted     Boolean @default(false)
+  isDiscovered  Boolean @default(false)
+  isHighlighted Boolean @default(false)
+  isLegacy      Boolean @default(false)
+  isPublic      Boolean @default(true)
+  isDeprecated  Boolean @default(false)
+
+  deprecatedAt    DateTime?
+  discoveredAt    DateTime?
+  lastSyncedAt    DateTime?
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  reviewStatus    String?
+  rejectionReason String?
+  predecessorOf   String?
+  succeededBy     String?
+  trigger         String?
+  triggerWord     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category, isActive, isDeleted])
+  @@index([provider, isActive, isDeleted])
   @@index([organizationId, isActive, isDeleted])
   @@map("models")
 }

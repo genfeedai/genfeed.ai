@@ -136,7 +136,7 @@ export class MarketplaceInstallService {
     const prompt = await this.promptsService.create({
       category,
       isFavorite: true,
-      organization: organizationId,
+      organizationId,
       original: template,
     });
 

@@ -6,7 +6,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CronModelDeprecationService } from '@workers/crons/model-deprecation/cron.model-deprecation.service';
 
 const createMockModel = (overrides: Record<string, unknown> = {}) => ({
-  _id: 'model-old-id',
+  id: 'model-old-id',
   category: ModelCategory.IMAGE,
   createdAt: new Date('2025-01-01'),
   isActive: true,
@@ -19,7 +19,7 @@ const createMockModel = (overrides: Record<string, unknown> = {}) => ({
 });
 
 const createMockSuccessor = (overrides: Record<string, unknown> = {}) => ({
-  _id: 'model-new-id',
+  id: 'model-new-id',
   category: ModelCategory.IMAGE,
   createdAt: new Date('2025-10-01'),
   isActive: true,
@@ -281,9 +281,9 @@ describe('CronModelDeprecationService', () => {
     });
 
     it('should process multiple candidates independently', async () => {
-      const model1 = createMockModel({ _id: 'model-1', key: 'old-model-1' });
+      const model1 = createMockModel({ id: 'model-1', key: 'old-model-1' });
       const model2 = createMockModel({
-        _id: 'model-2',
+        id: 'model-2',
         key: 'old-model-2',
         succeededBy: 'new-model-2b',
       });

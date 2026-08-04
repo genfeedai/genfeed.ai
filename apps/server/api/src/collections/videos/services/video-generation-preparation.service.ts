@@ -187,18 +187,18 @@ export class VideoGenerationPreparationService {
     const promptData = await this.promptsService.create(
       new PromptEntity({
         blacklists: createVideoDto.blacklist,
-        brand: brand.id,
+        brandId: brand.id,
         camera: createVideoDto.camera,
         category: PromptCategory.MODELS_PROMPT_VIDEO,
         mood: createVideoDto.mood,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
         original: promptText,
         scene: createVideoDto.scene,
         sounds: createVideoDto.sounds,
         speech: createVideoDto.speech,
         status: PromptStatus.PROCESSING,
         style: createVideoDto.style,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
       }),
     );
     const { metadataData, ingredientData } =

@@ -163,12 +163,12 @@ export class VideoMusicOrchestrationService {
     // Create prompt record
     const promptData = await this.promptsService.create(
       new PromptEntity({
-        brand: context.brandId,
+        brandId: context.brandId,
         category: PromptCategory.MODELS_PROMPT_MUSIC,
         model,
-        organization: context.organizationId,
+        organizationId: context.organizationId,
         original: prompt,
-        user: context.userId,
+        userId: context.userId,
       }),
     );
 

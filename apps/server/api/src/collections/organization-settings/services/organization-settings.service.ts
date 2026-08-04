@@ -123,9 +123,9 @@ export class OrganizationSettingsService extends BaseService<
    * Returns array of model ObjectIds
    */
   async getLatestMajorVersionModelIds(): Promise<string[]> {
-    // Fetch all active models — scope to system models only (organization: null)
+    // Fetch all active models — scope to system models only.
     const activeModels = await this.getModelsService().findAllActive({
-      organization: null,
+      organizationId: null,
     });
 
     if (!activeModels || activeModels.length === 0) {

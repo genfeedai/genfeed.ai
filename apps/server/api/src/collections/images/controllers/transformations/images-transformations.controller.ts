@@ -270,16 +270,16 @@ export class ImagesTransformationsController {
       `Reframe image to ${format} format`;
     const promptData = await this.promptsService.create(
       new PromptEntity({
-        brand: isEntityId(parent.brand) ? parent.brand : publicMetadata.brand,
+        brandId: isEntityId(parent.brand) ? parent.brand : publicMetadata.brand,
         category: PromptCategory.MODELS_PROMPT_IMAGE,
         model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
         original:
           typeof promptText === 'string'
             ? promptText
             : String(promptText ?? ''),
         status: PromptStatus.PROCESSING,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
       }),
     );
 

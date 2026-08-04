@@ -6,11 +6,10 @@ import { ModelPricingService } from '@workers/services/model-pricing.service';
 
 describe('ModelPricingService', () => {
   let service: ModelPricingService;
-  let loggerService: vi.Mocked<LoggerService>;
 
   const mockExistingModels = [
     {
-      _id: 'model-1',
+      id: 'model-1',
       category: ModelCategory.IMAGE,
       cost: 25,
       costPerUnit: 5,
@@ -22,7 +21,7 @@ describe('ModelPricingService', () => {
       provider: ModelProvider.REPLICATE,
     },
     {
-      _id: 'model-2',
+      id: 'model-2',
       category: ModelCategory.IMAGE,
       cost: 10,
       costPerUnit: 3,
@@ -34,7 +33,7 @@ describe('ModelPricingService', () => {
       provider: ModelProvider.REPLICATE,
     },
     {
-      _id: 'model-3',
+      id: 'model-3',
       category: ModelCategory.VIDEO,
       cost: 100,
       costPerUnit: 80,
@@ -46,7 +45,7 @@ describe('ModelPricingService', () => {
       provider: ModelProvider.REPLICATE,
     },
     {
-      _id: 'model-4',
+      id: 'model-4',
       category: ModelCategory.IMAGE,
       cost: 50,
       costPerUnit: 8,
@@ -58,7 +57,7 @@ describe('ModelPricingService', () => {
       provider: ModelProvider.REPLICATE,
     },
     {
-      _id: 'model-5',
+      id: 'model-5',
       category: ModelCategory.TEXT,
       cost: 5,
       isActive: true,
@@ -86,7 +85,6 @@ describe('ModelPricingService', () => {
     }).compile();
 
     service = module.get<ModelPricingService>(ModelPricingService);
-    loggerService = module.get(LoggerService);
   });
 
   afterEach(() => {
@@ -182,7 +180,7 @@ describe('ModelPricingService', () => {
       const modelsWithDeleted = [
         ...mockExistingModels,
         {
-          _id: 'deleted-model',
+          id: 'deleted-model',
           category: ModelCategory.IMAGE,
           cost: 999,
           isActive: false,

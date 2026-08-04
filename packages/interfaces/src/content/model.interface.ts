@@ -58,9 +58,9 @@ export interface IModel extends IBaseEntity {
   predecessorOf?: string;
 
   // Provider auto-discovery fields (issue #93)
-  organization?: string;
-  parentModel?: string;
-  training?: string;
+  organizationId?: string;
+  parentModelId?: string;
+  trainingId?: string;
   isPublic?: boolean;
   isLegacy?: boolean;
   isDiscovered?: boolean;

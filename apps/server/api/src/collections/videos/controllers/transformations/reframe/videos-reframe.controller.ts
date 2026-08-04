@@ -159,16 +159,16 @@ export class VideosReframeController {
 
     const promptData = await this.promptsService.create(
       new PromptEntity({
-        brand: isEntityId(parent.brand) ? parent.brand : publicMetadata.brand,
+        brandId: isEntityId(parent.brand) ? parent.brand : publicMetadata.brand,
         category: PromptCategory.MODELS_PROMPT_VIDEO,
         model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
         original:
           typeof promptText === 'string'
             ? promptText
             : String(promptText ?? ''),
         status: PromptStatus.PROCESSING,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
       }),
     );
 

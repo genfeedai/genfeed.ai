@@ -133,8 +133,8 @@ export class PromptsOperationsController {
       const brand = await this.brandsService.findOne({
         _id: createParsePromptDto.brand,
         OR: [
-          { user: publicMetadata.user },
-          { organization: publicMetadata.organization },
+          { userId: publicMetadata.user },
+          { organizationId: publicMetadata.organization },
         ],
         isDeleted: false,
       });
@@ -201,13 +201,13 @@ export class PromptsOperationsController {
 
     const data = await this.promptsService.create(
       new PromptEntity({
-        brand: prompt.brandId,
+        brandId: prompt.brandId,
         category: normalizedType,
-        organization: prompt.organizationId,
+        organizationId: prompt.organizationId,
         original: prompt.original,
         scope: prompt?.scope,
         status: PromptStatus.PROCESSING,
-        user: prompt.userId,
+        userId: prompt.userId,
       }),
     );
 
@@ -260,9 +260,9 @@ export class PromptsOperationsController {
       new ActivityEntity({
         brand: promptBrandId ?? publicMetadata.brand,
         key: ActivityKey.PROMPT_REMIX_PROCESSING,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
         source: ActivitySource.PROMPT_REMIX,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
         value: JSON.stringify({
           promptId: data.id.toString(),
           sourcePromptId: promptId,
@@ -425,9 +425,9 @@ export class PromptsOperationsController {
       new ActivityEntity({
         brand: promptBrandId ?? publicMetadata.brand,
         key: ActivityKey.PROMPT_ENHANCE_PROCESSING,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
         source: ActivitySource.PROMPT_ENHANCEMENT,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
         value: JSON.stringify({
           promptId: promptId,
           type: 'enhance',
@@ -642,11 +642,11 @@ export class PromptsOperationsController {
       const promptEntity = new PromptEntity({
         category: 'tweet-reply' as unknown as PromptCategory,
         enhanced: result,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
         original: createTweetReplyDto.tweetContent,
         scope: AssetScope.USER,
         status: PromptStatus.GENERATED,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
       });
 
       await this.promptsService.create(promptEntity);

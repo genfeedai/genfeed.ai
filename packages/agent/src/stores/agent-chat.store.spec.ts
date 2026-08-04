@@ -41,6 +41,69 @@ describe('agent-chat.store finalizeStream', () => {
   });
 });
 
+describe('agent-chat.store stream item upserts', () => {
+  beforeEach(() => {
+    useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
+  });
+
+  it('updates duplicate active tool calls instead of appending them', () => {
+    const store = useAgentChatStore.getState();
+
+    store.addActiveToolCall({
+      arguments: {},
+      id: 'call-1',
+      name: 'generate',
+      status: 'running',
+    });
+    store.addActiveToolCall({
+      arguments: {},
+      detail: 'Completed',
+      id: 'call-1',
+      name: 'generate',
+      status: 'completed',
+    });
+
+    expect(useAgentChatStore.getState().stream.activeToolCalls).toEqual([
+      {
+        arguments: {},
+        detail: 'Completed',
+        id: 'call-1',
+        name: 'generate',
+        status: 'completed',
+      },
+    ]);
+  });
+
+  it('updates duplicate pending UI actions instead of appending them', () => {
+    const store = useAgentChatStore.getState();
+
+    store.addPendingUiActions([
+      {
+        id: 'action-1',
+        title: 'Generate',
+        type: 'generation_action_card',
+      },
+    ]);
+    store.addPendingUiActions([
+      {
+        id: 'action-1',
+        status: 'completed',
+        title: 'Generate',
+        type: 'generation_action_card',
+      },
+    ]);
+
+    expect(useAgentChatStore.getState().stream.pendingUiActions).toEqual([
+      {
+        id: 'action-1',
+        status: 'completed',
+        title: 'Generate',
+        type: 'generation_action_card',
+      },
+    ]);
+  });
+});
+
 describe('agent-chat.store upsertThread', () => {
   beforeEach(() => {
     useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);

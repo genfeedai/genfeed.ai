@@ -469,14 +469,14 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                       <div
                         className={cn(
                           'transition-colors',
-                          isAutoSelected && 'bg-accent',
+                          isAutoSelected && 'bg-background-tertiary',
                         )}
                       >
                         <Button
                           onClick={() => handleToggle(AUTO_MODEL_OPTION_VALUE)}
                           className={cn(
                             'flex min-h-11 w-full items-center gap-2.5 rounded px-3 py-3 text-left transition-colors lg:min-h-0',
-                            'hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                            'text-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                           )}
                           type="button"
                           variant={ButtonVariant.UNSTYLED}
