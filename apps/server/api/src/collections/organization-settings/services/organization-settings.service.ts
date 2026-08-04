@@ -72,20 +72,24 @@ export class OrganizationSettingsService extends BaseService<
   async ensureEnabledModelIds(
     setting: OrganizationSettingDocument,
   ): Promise<OrganizationSettingDocument> {
-    if (
-      Array.isArray(setting.enabledModelIds) &&
-      setting.enabledModelIds.length > 0
-    ) {
-      return setting;
-    }
-
     const enabledModelIds = await this.getLatestMajorVersionModelIds();
     if (enabledModelIds.length === 0) {
       return setting;
     }
 
+    const currentEnabledModelIds = Array.isArray(setting.enabledModelIds)
+      ? setting.enabledModelIds
+      : [];
+    const missingModelIds = enabledModelIds.filter(
+      (modelId) => !currentEnabledModelIds.includes(modelId),
+    );
+
+    if (missingModelIds.length === 0) {
+      return setting;
+    }
+
     return this.patch(setting.id, {
-      enabledModels: enabledModelIds,
+      enabledModels: [...currentEnabledModelIds, ...missingModelIds],
     } as UpdateOrganizationSettingDto);
   }
 
