@@ -158,13 +158,18 @@ function resolveFeatureFlags(
   keys: readonly string[],
   errorsLoading = false,
 ): AnalyticsFeatureFlagValues {
+  if (errorsLoading || !client) {
+    return {};
+  }
+
   return Object.fromEntries(
-    keys.map((key) => [
-      key,
-      !errorsLoading &&
-        client?.getFeatureFlagResult(key, { send_event: false })?.enabled ===
-          true,
-    ]),
+    keys.flatMap((key) => {
+      const enabled = client.getFeatureFlagResult(key, {
+        send_event: false,
+      })?.enabled;
+
+      return typeof enabled === 'boolean' ? [[key, enabled]] : [];
+    }),
   );
 }
 

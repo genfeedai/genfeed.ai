@@ -126,6 +126,8 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
           provider: model.provider,
         },
         update: {
+          isActive: model.isDefault ? true : undefined,
+          isDefault: model.isDefault ? true : undefined,
           isDeleted: false,
           label: model.label,
         },

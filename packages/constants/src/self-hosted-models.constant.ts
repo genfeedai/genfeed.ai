@@ -35,4 +35,15 @@ export const SELF_HOSTED_MODELS = [
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'nano-banana-2', owner: 'google' },
   },
+  {
+    category: ModelCategory.IMAGE,
+    cost: 0.003,
+    description: 'Replicate FLUX Schnell image generation model',
+    isDefault: false,
+    isHighlighted: true,
+    key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+    label: 'FLUX Schnell',
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'flux-schnell', owner: 'black-forest-labs' },
+  },
 ] as const;
