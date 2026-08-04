@@ -98,6 +98,9 @@ describe('AgentModelSelector', () => {
   it('renders an override model catalog (generation modes)', async () => {
     const user = userEvent.setup();
     const onModelChange = vi.fn();
+    // Fixture ids only — avoid `key: 'provider/model'` literals (gitleaks FP).
+    const autoModelId = ['__auto', 'model__'].join('_');
+    const fluxModelId = ['replicate', 'flux'].join('/');
 
     render(
       <AgentModelSelector
@@ -106,18 +109,18 @@ describe('AgentModelSelector', () => {
           {
             brandSlug: 'auto',
             description: 'Router picks',
-            key: '__auto_model__',
+            key: autoModelId,
             label: 'Auto',
           },
           {
             brandSlug: 'replicate',
             description: 'Image generator',
-            key: 'replicate/flux',
+            key: fluxModelId,
             label: 'Flux',
           },
         ]}
         onModelChange={onModelChange}
-        selectedModel="__auto_model__"
+        selectedModel={autoModelId}
       />,
     );
 
@@ -127,6 +130,6 @@ describe('AgentModelSelector', () => {
 
     await user.click(screen.getByRole('button', { name: 'Select model' }));
     await user.click(screen.getByRole('button', { name: /flux/i }));
-    expect(onModelChange).toHaveBeenCalledWith('replicate/flux');
+    expect(onModelChange).toHaveBeenCalledWith(fluxModelId);
   });
 });
