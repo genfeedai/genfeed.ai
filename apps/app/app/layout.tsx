@@ -70,7 +70,11 @@ export default async function RootLayout({ children }: LayoutProps) {
         storageKey={THEME_STORAGE_KEY}
         googleAnalyticsId={googleAnalyticsId}
       >
-        <Script id="genfeed-runtime-config" strategy="beforeInteractive">
+        <Script
+          id="genfeed-runtime-config"
+          strategy="beforeInteractive"
+          suppressHydrationWarning
+        >
           {createRuntimeConfigScript()}
         </Script>
         <DesktopDragStrip />
