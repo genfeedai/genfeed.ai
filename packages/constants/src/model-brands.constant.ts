@@ -1,11 +1,11 @@
 export interface ModelBrandConfig {
   label: string;
   color: string;
-  iconKey?: 'bytedance' | 'google' | 'meta';
+  iconKey?: 'bytedance' | 'flux' | 'google' | 'meta';
 }
 
 export const MODEL_BRANDS: Record<string, ModelBrandConfig> = {
-  'black-forest-labs': { color: '#8B5CF6', label: 'BFL' },
+  'black-forest-labs': { color: '#8B5CF6', iconKey: 'flux', label: 'BFL' },
   bytedance: { color: '#00F0FF', iconKey: 'bytedance', label: 'ByteDance' },
   'deepseek-ai': { color: '#4F46E5', label: 'DeepSeek' },
   'fal-ai': { color: '#06B6D4', label: 'Fal' },

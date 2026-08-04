@@ -508,7 +508,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                                   />
 
                                   {isExpanded && (
-                                    <div className="pl-6">
+                                    <div>
                                       {family.options.map((option) => (
                                         <ModelSelectorModelItem
                                           key={option.model.key}

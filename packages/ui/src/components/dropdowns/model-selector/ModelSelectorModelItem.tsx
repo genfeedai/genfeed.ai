@@ -39,6 +39,8 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
         isSelected && 'bg-background-tertiary',
       )}
     >
+      <span className="size-3.5 shrink-0" aria-hidden="true" />
+
       <div className="pointer-events-none flex size-5 shrink-0 items-center justify-center">
         <Checkbox
           name={`model-${model.key}`}

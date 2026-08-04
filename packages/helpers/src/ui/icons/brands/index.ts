@@ -2,6 +2,7 @@ export { BytedanceIcon } from './bytedance-icon';
 export { DevIcon } from './dev-icon';
 export { DiscordIcon } from './discord-icon';
 export { FacebookIcon } from './facebook-icon';
+export { FluxIcon } from './flux-icon';
 export { GhostIcon } from './ghost-icon';
 export { GithubIcon } from './github-icon';
 export { GoogleColorIcon } from './google-color-icon';

@@ -1,8 +1,9 @@
 import type { IconType } from '@genfeedai/interfaces';
-import { BytedanceIcon, MetaIcon, SiGoogleIcon } from './brands';
+import { BytedanceIcon, FluxIcon, MetaIcon, SiGoogleIcon } from './brands';
 
 const MODEL_BRAND_ICONS: Record<string, IconType> = {
   bytedance: BytedanceIcon,
+  flux: FluxIcon,
   google: SiGoogleIcon,
   meta: MetaIcon,
 };
