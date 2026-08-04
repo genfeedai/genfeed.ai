@@ -56,7 +56,7 @@ export default function Container({
   const shouldPromoteBodyTabs = hasBodyTabs && hasHeaderRight && !headerTabs;
   // Body tabs alone also join the module bar (no more floating strip).
   const shouldLiftBodyTabsAlone = hasBodyTabs && !headerTabs && !hasHeaderRight;
-  const resolvedHeaderTabs = headerTabs
+  const resolvedHeaderTabs: ContainerProps['headerTabs'] = headerTabs
     ? headerTabs
     : shouldPromoteBodyTabs || shouldLiftBodyTabsAlone
       ? {
