@@ -117,7 +117,7 @@ export function GenerationActionCardControls({
             <div className={isDisabled ? 'pointer-events-none opacity-50' : ''}>
               <ModelSelectorPopover
                 name="models"
-                className="w-full justify-between border border-border bg-background hover:bg-accent/50"
+                className="h-9 min-h-9 w-full justify-between border border-border bg-background hover:bg-accent/50"
                 models={filteredModels}
                 values={
                   isAutoMode
@@ -145,7 +145,7 @@ export function GenerationActionCardControls({
             value={aspectRatio}
             ratios={availableAspectRatios}
             onChange={onAspectRatioChange}
-            className="w-full justify-between border border-border bg-background hover:bg-accent/50"
+            className="h-9 min-h-9 w-full justify-between border border-border bg-background hover:bg-accent/50"
             isDisabled={isDisabled}
             direction={DropdownDirection.UP}
             placeholder="Aspect ratio"
