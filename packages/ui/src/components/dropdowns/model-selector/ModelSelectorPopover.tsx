@@ -436,22 +436,30 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
               >
                 {shouldShowAutoCard && (
                   <CommandGroup heading="Auto">
-                    <CommandItem
-                      value={autoLabel}
-                      onSelect={handleAutoSelect}
-                      className={cn(
-                        'flex min-h-11 cursor-pointer items-center gap-2 rounded px-2 py-2 transition-colors data-[selected=true]:bg-foreground/[0.08] lg:min-h-0',
-                        isAutoSelected && 'bg-foreground/[0.08]',
-                      )}
-                    >
-                      <Sparkles className="size-4 shrink-0 text-primary" />
-                      <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                        {autoLabel}
-                      </span>
-                      {isAutoSelected ? (
-                        <Check className="size-4 shrink-0 text-foreground" />
-                      ) : null}
-                    </CommandItem>
+                    <div className="mb-1 rounded-lg bg-background-secondary shadow-border">
+                      <CommandItem
+                        value={autoLabel}
+                        onSelect={handleAutoSelect}
+                        className={cn(
+                          'flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 transition-colors data-[selected=true]:bg-accent lg:min-h-0',
+                          isAutoSelected && 'bg-accent',
+                        )}
+                      >
+                        <span
+                          className="size-3.5 shrink-0"
+                          aria-hidden="true"
+                        />
+                        <span className="flex size-5 shrink-0 items-center justify-center rounded border border-border bg-primary/10 text-primary">
+                          <Sparkles className="size-3.5" />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                          {autoLabel}
+                        </span>
+                        {isAutoSelected ? (
+                          <Check className="size-3.5 shrink-0 text-foreground" />
+                        ) : null}
+                      </CommandItem>
+                    </div>
                   </CommandGroup>
                 )}
 

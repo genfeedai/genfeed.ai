@@ -16,15 +16,7 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
   onToggle,
   onFavoriteToggle,
 }: ModelSelectorModelItemProps) {
-  const {
-    model,
-    brandIcon: BrandIcon,
-    brandLabel,
-    brandColor,
-    costTier,
-    isFavorite,
-    variantLabel,
-  } = option;
+  const { model, brandLabel, costTier, isFavorite, variantLabel } = option;
 
   const handleSelect = useCallback(() => {
     onToggle(model.key);
@@ -43,31 +35,17 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
       value={`${model.label} ${brandLabel} ${model.description ?? ''}`}
       onSelect={handleSelect}
       className={cn(
-        'flex min-h-11 cursor-pointer items-start gap-2 px-2 py-2 transition-colors data-[selected=true]:bg-foreground/[0.08] lg:min-h-0',
-        isSelected && 'bg-foreground/[0.08]',
+        'flex min-h-11 cursor-pointer items-start gap-2.5 rounded px-2 py-2 transition-colors data-[selected=true]:bg-accent lg:min-h-0',
+        isSelected && 'bg-accent',
       )}
     >
-      <div className="pointer-events-none mt-0.5">
+      <div className="pointer-events-none mt-0.5 flex size-5 shrink-0 items-center justify-center">
         <Checkbox
           name={`model-${model.key}`}
           isChecked={isSelected}
           onChange={() => {}}
           className="size-3.5 !border-border data-[state=checked]:!border-foreground data-[state=checked]:!bg-foreground data-[state=checked]:!text-background"
         />
-      </div>
-
-      <div
-        className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-sm border border-border text-[9px] font-bold"
-        style={{ backgroundColor: `${brandColor}20`, color: brandColor }}
-      >
-        {BrandIcon ? (
-          <BrandIcon
-            className="size-2.5"
-            data-testid="model-option-provider-icon"
-          />
-        ) : (
-          brandLabel.charAt(0)
-        )}
       </div>
 
       <div className="flex flex-col flex-1 min-w-0">

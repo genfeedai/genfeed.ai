@@ -17,7 +17,7 @@ function ProviderBadge({
 >) {
   return (
     <div
-      className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded border border-border"
+      className="flex size-5 shrink-0 items-center justify-center rounded border border-border"
       style={{ backgroundColor: `${brandColor}1f`, color: brandColor }}
     >
       {BrandIcon ? (
@@ -53,7 +53,7 @@ const ModelSelectorFamilyItem = memo(function ModelSelectorFamilyItem({
       aria-expanded={isExpanded}
       ariaLabel={familyLabel}
       className={cn(
-        'group flex min-h-11 w-full items-center gap-2.5 rounded px-2 py-2 text-left transition-colors lg:min-h-0',
+        'group flex min-h-11 w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors lg:min-h-0',
         'hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
       )}
     >
