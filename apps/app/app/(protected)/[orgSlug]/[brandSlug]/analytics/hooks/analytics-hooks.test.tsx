@@ -5,6 +5,14 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsHooks from './analytics-hooks';
 
+class MockIntersectionObserver {
+  disconnect() {}
+  observe() {}
+  unobserve() {}
+}
+
+vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
+
 function analyticsHooksTree(brandId?: string) {
   return (
     <AnalyticsProvider>

@@ -244,6 +244,7 @@ vi.mock('@pages/brands/components/detail-sidebar/BrandDetailSidebar', () => ({
 }));
 
 vi.mock('@ui/lazy/modal/LazyModal', () => ({
+  LazyModalBrandLink: () => null,
   LazyModalBrandGenerate: ({
     brandId,
     cost,

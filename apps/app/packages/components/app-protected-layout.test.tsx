@@ -828,7 +828,7 @@ describe('AppProtectedLayout', () => {
     ['/workspace', 'Workspace'],
     ['/studio/storyboard', 'Storyboard'],
     ['/library/images', 'Assets'],
-    ['/discover/overview', 'Discovery'],
+    ['/discover/overview', 'Overview'],
     ['/analytics', 'Overview'],
     ['/automate/workflows/executions', 'Runs'],
     ['/admin', 'Dashboard'],
@@ -1369,6 +1369,7 @@ describe('AppProtectedLayout', () => {
         items: [
           { href: '/discover/overview', label: 'Overview' },
           { href: '/discover/socials', label: 'Socials' },
+          { href: '/discover/following', label: 'Following' },
           { href: '/discover/ads', label: 'Ads' },
         ],
         sectionLabel: 'Discover',

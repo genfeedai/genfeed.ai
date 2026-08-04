@@ -57,10 +57,20 @@ vi.mock('@ui/card/Card', () => ({
   default: ({
     children,
     className,
+    description,
+    label,
   }: {
     children?: ReactNode;
     className?: string;
-  }) => <section className={className}>{children}</section>,
+    description?: ReactNode;
+    label?: ReactNode;
+  }) => (
+    <section className={className}>
+      {label ? <h4>{label}</h4> : null}
+      {description ? <p>{description}</p> : null}
+      {children}
+    </section>
+  ),
 }));
 
 vi.mock('@ui/layout/container/Container', () => ({

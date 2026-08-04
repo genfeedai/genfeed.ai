@@ -42,27 +42,27 @@ vi.mock('@services/core/notifications.service', () => ({
 
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
-    activeTab,
     children,
+    headerTabs,
     label,
-    onTabChange,
-    tabs,
   }: {
-    activeTab: string;
     children: ReactNode;
+    headerTabs: {
+      activeTab: string;
+      onTabChange: (tab: string) => void;
+      tabs: Array<{ id: string; label: string }>;
+    };
     label: string;
-    onTabChange: (tab: string) => void;
-    tabs: Array<{ id: string; label: string }>;
   }) => (
     <section>
       <h1>{label}</h1>
       <nav>
-        {tabs.map((tab) => (
+        {headerTabs.tabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
-            aria-pressed={activeTab === tab.id}
-            onClick={() => onTabChange(tab.id)}
+            aria-pressed={headerTabs.activeTab === tab.id}
+            onClick={() => headerTabs.onTabChange(tab.id)}
           >
             {tab.label}
           </button>
