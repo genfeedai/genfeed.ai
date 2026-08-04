@@ -165,58 +165,33 @@ export class WorkflowCoreExecutorRegistrarService {
           return null;
         }
 
-        const brand = await this.brandsService?.findOne(
-          {
-            _id: brandId,
-            isDeleted: false,
-            organization: organizationId,
-          },
-          ['detail'],
+        // Brand assets are Asset rows, not Brand columns — the resolver is the
+        // only way to get a real URL. It scopes by org itself.
+        const assets = await this.brandsService?.resolveBrandKitAssets(
+          brandId,
+          organizationId,
         );
 
-        if (!brand) {
+        if (!assets) {
           return null;
         }
 
-        if (assetType === 'logo') {
-          const logoId = this.helper.getDocumentId(
-            (brand as unknown as { logo?: unknown }).logo,
-          );
+        if (assetType === 'logo' || assetType === 'banner') {
+          const asset = assets[assetType];
 
           return {
             dimensions: null,
-            mimeType: null,
-            url: logoId ? this.helper.buildLogoAssetUrl(logoId) : null,
+            mimeType: asset?.mimeType ?? null,
+            url: asset?.url ?? null,
             urls: [],
           };
         }
 
-        if (assetType === 'banner') {
-          const bannerId = this.helper.getDocumentId(
-            (brand as unknown as { banner?: unknown }).banner,
-          );
-
-          return {
-            dimensions: null,
-            mimeType: null,
-            url: bannerId ? this.helper.buildBannerAssetUrl(bannerId) : null,
-            urls: [],
-          };
-        }
-
-        const references = Array.isArray(
-          (brand as unknown as { references?: unknown[] }).references,
-        )
-          ? (brand as unknown as { references: unknown[] }).references
-          : [];
-        const urls = references
-          .map((reference) => this.helper.getDocumentId(reference))
-          .filter((id): id is string => typeof id === 'string')
-          .map((id) => this.helper.buildReferenceAssetUrl(id));
+        const urls = assets.references.map((reference) => reference.url);
 
         return {
           dimensions: null,
-          mimeType: null,
+          mimeType: assets.references[0]?.mimeType ?? null,
           url: urls[0] ?? null,
           urls,
         };

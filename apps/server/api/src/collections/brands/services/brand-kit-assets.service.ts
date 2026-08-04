@@ -15,9 +15,12 @@ import type {
   IBrandKitAssetImportResponse,
   IBrandKitAssetImportResult,
   IBrandKitDiagnostic,
+  IBrandKitResolvedAsset,
+  IBrandKitResolvedAssets,
 } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
+import { ConfigService } from '@libs/config/config.service';
 import { Injectable } from '@nestjs/common';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
@@ -49,6 +52,15 @@ const ASSET_UPLOAD_TYPE_BY_ROLE: Record<BrandKitAssetRole, string> = {
   logo: 'logos',
   reference: 'references',
 };
+const BRAND_KIT_ROLE_BY_PRISMA_CATEGORY = new Map<string, BrandKitAssetRole>(
+  Object.entries(PRISMA_ASSET_CATEGORY_BY_ROLE).map(([role, category]) => [
+    String(category),
+    role as BrandKitAssetRole,
+  ]),
+);
+// A brand keeps one live logo and one live banner; references are unbounded, so
+// the read is capped to keep an agent prompt from swallowing an entire library.
+const BRAND_KIT_RESOLVED_REFERENCE_LIMIT = 10;
 
 type BrandKitAssetBrandFinder = (
   criteria: Record<string, unknown>,
@@ -60,7 +72,77 @@ export class BrandKitAssetsService {
     private readonly prisma: PrismaService,
     private readonly cacheInvalidationService: CacheInvalidationService,
     private readonly filesClientService: FilesClientService,
+    private readonly configService: ConfigService,
   ) {}
+
+  /**
+   * Read a brand's live logo, banner and reference assets back out of storage.
+   *
+   * The Prisma `Brand` model has no `logo`/`banner`/`references` columns — those
+   * were Mongo-era populated relations. The assets are `Asset` rows scoped by
+   * `parentType: 'BRAND'` + brand + org, so anything that wants a usable URL
+   * (agent prompts, workflow nodes, brand kit readiness) has to come through
+   * here. Reading `brand.logo` type-checks against `BrandDocument`'s index
+   * signature and is permanently `undefined` at runtime.
+   */
+  async resolveBrandKitAssets(
+    brandId: string,
+    organizationId: string,
+  ): Promise<IBrandKitResolvedAssets> {
+    const assets = await this.prisma.asset.findMany({
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        category: true,
+        displayName: true,
+        cloudObjectKey: true,
+        id: true,
+        mimeType: true,
+      },
+      where: {
+        category: { in: Object.values(PRISMA_ASSET_CATEGORY_BY_ROLE) },
+        isDeleted: false,
+        parentBrandId: brandId,
+        parentOrgId: organizationId,
+        parentType: 'BRAND' as Prisma.AssetCreateInput['parentType'],
+      },
+    });
+
+    const resolved: IBrandKitResolvedAssets = { references: [] };
+
+    for (const asset of assets) {
+      const role = BRAND_KIT_ROLE_BY_PRISMA_CATEGORY.get(
+        String(asset.category),
+      );
+
+      if (!role) {
+        continue;
+      }
+
+      const value: IBrandKitResolvedAsset = {
+        id: asset.id,
+        label: asset.displayName ?? undefined,
+        mimeType: asset.mimeType ?? undefined,
+        role,
+        url: this.buildBrandAssetCdnUrl(asset.id, role, asset.cloudObjectKey),
+      };
+
+      if (role === 'logo') {
+        resolved.logo ??= value;
+        continue;
+      }
+
+      if (role === 'banner') {
+        resolved.banner ??= value;
+        continue;
+      }
+
+      if (resolved.references.length < BRAND_KIT_RESOLVED_REFERENCE_LIMIT) {
+        resolved.references.push(value);
+      }
+    }
+
+    return resolved;
+  }
 
   async importBrandKitAssets(
     brandId: string,
@@ -441,6 +523,13 @@ export class BrandKitAssetsService {
       CACHE_PATTERNS.BRANDS_SINGLE(brandId),
       CACHE_PATTERNS.BRANDS_LIST(organizationId),
       `brand:${brandId}`,
+      `brand-assets:${organizationId}:${brandId}`,
+    );
+    // The assembled agent context caches the resolved assets, so a freshly
+    // imported logo must not wait out the 5-minute TTL before it reaches a
+    // prompt. `selected` is a second key for the same brand.
+    await this.cacheInvalidationService.invalidatePattern(
+      `brand-ctx:${organizationId}:*`,
     );
     await this.cacheInvalidationService.invalidateByTags([
       CACHE_TAGS.BRANDS,
@@ -463,6 +552,26 @@ export class BrandKitAssetsService {
     role: BrandKitAssetRole,
   ): string {
     return `/${ASSET_UPLOAD_TYPE_BY_ROLE[role]}/${assetId}`;
+  }
+
+  /**
+   * Absolute CDN URL for a stored brand asset.
+   *
+   * `cloudObjectKey` is the authoritative S3 key when the upload completed;
+   * `{uploadType}/{assetId}` is the same shape this service writes and is the
+   * fallback for rows created before the key was recorded. Absolute — unlike
+   * `buildImportedAssetUrl`'s relative form — because the consumers are LLM
+   * prompts and generation nodes that must fetch it without a page origin.
+   */
+  private buildBrandAssetCdnUrl(
+    assetId: string,
+    role: BrandKitAssetRole,
+    cloudObjectKey?: string | null,
+  ): string {
+    const objectKey =
+      cloudObjectKey?.trim() || `${ASSET_UPLOAD_TYPE_BY_ROLE[role]}/${assetId}`;
+
+    return `${this.configService.cdnUrl}/${objectKey.replace(/^\/+/, '')}`;
   }
 
   private readExtension(url: URL): string {

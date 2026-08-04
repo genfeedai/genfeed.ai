@@ -17,6 +17,7 @@ import {
   type BrandKitSourceBrand,
   computeBrandKitReadiness,
 } from '@genfeedai/helpers';
+import type { IBrandKitResolvedAssets } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
@@ -91,6 +92,14 @@ export class AgentContextAssemblyService {
 
     const brandId = String(brand.id);
     const layersUsed: string[] = ['brandIdentity'];
+    // Logo/banner/references are Asset rows, not Brand columns — reading
+    // `brand.logo` type-checks and is always undefined at runtime.
+    const brandKitAssets = await this.cacheService.getOrSet(
+      this.cacheService.generateKey('brand-assets', organizationId, brandId),
+      async () =>
+        this.brandsService.resolveBrandKitAssets(brandId, organizationId),
+      { ttl: CACHE_TTL_BRAND },
+    );
     const organizationSettings = await this.cacheService.getOrSet(
       this.cacheService.generateKey('org-settings', organizationId),
       async () =>
@@ -121,9 +130,12 @@ export class AgentContextAssemblyService {
       brand.backgroundColor,
       DEFAULT_BACKGROUND_COLOR,
     );
-    const referenceImages = this.readReferenceImages(brand.referenceImages);
-    const logoUrl = this.readUrlField(brand.logo);
-    const bannerUrl = this.readUrlField(brand.banner);
+    const referenceImages = this.mergeReferenceImages(
+      brand.referenceImages,
+      brandKitAssets,
+    );
+    const logoUrl = brandKitAssets.logo?.url;
+    const bannerUrl = brandKitAssets.banner?.url;
     const promptGuidelines = this.readTextField(brand.text);
 
     if (effectiveBrandAgentConfig.platformOverrideApplied) {
@@ -133,7 +145,7 @@ export class AgentContextAssemblyService {
     const context: AssembledBrandContext = {
       assembledAt: new Date(),
       brandKitReadiness: computeBrandKitReadiness(
-        this.toBrandKitSourceBrand(brand),
+        this.toBrandKitSourceBrand(brand, brandKitAssets),
       ),
       brandDescription: brand.description ?? undefined,
       brandId,
@@ -583,8 +595,38 @@ export class AgentContextAssemblyService {
     });
   }
 
+  /**
+   * Reference images come from two places: the legacy `Brand.referenceImages`
+   * JSON column (still written by the onboarding upload path) and `Asset` rows
+   * imported through the brand kit. Both are real; neither supersedes the
+   * other, so the prompt gets the union, deduplicated by URL.
+   */
+  private mergeReferenceImages(
+    value: unknown,
+    assets: IBrandKitResolvedAssets,
+  ): Array<{ category: string; label?: string; url: string }> {
+    const merged = this.readReferenceImages(value);
+    const seenUrls = new Set(merged.map((image) => image.url));
+
+    for (const reference of assets.references) {
+      if (seenUrls.has(reference.url)) {
+        continue;
+      }
+
+      seenUrls.add(reference.url);
+      merged.push({
+        category: 'reference',
+        label: reference.label,
+        url: reference.url,
+      });
+    }
+
+    return merged;
+  }
+
   private toBrandKitSourceBrand(
     brand: Record<string, unknown>,
+    assets: IBrandKitResolvedAssets,
   ): BrandKitSourceBrand {
     const source: BrandKitSourceBrand = {
       agentConfig:
@@ -594,7 +636,7 @@ export class AgentContextAssemblyService {
           ? (brand.agentConfig as BrandKitSourceBrand['agentConfig'])
           : undefined,
       backgroundColor: this.readTextField(brand.backgroundColor),
-      bannerUrl: this.readUrlField(brand.banner),
+      bannerUrl: assets.banner?.url,
       description: this.readTextField(brand.description),
       fontFamily: this.readTextField(brand.fontFamily),
       id:
@@ -602,12 +644,12 @@ export class AgentContextAssemblyService {
         this.readTextField(brand.id) ??
         'unknown-brand',
       label: this.readTextField(brand.label),
-      logoUrl: this.readUrlField(brand.logo),
+      logoUrl: assets.logo?.url,
       organization:
         this.readTextField(brand.organizationId) ??
         this.readTextField(brand.organization),
       primaryColor: this.readTextField(brand.primaryColor),
-      referenceImages: this.readReferenceImages(brand.referenceImages),
+      referenceImages: this.mergeReferenceImages(brand.referenceImages, assets),
       secondaryColor: this.readTextField(brand.secondaryColor),
       text: this.readTextField(brand.text),
     };

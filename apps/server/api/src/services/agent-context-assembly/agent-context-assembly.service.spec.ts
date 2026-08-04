@@ -43,12 +43,10 @@ function createCompleteBrand() {
       },
     },
     backgroundColor: '#f8fafc',
-    banner: 'https://cdn.example.com/banner.png',
     description: 'An operator-first content OS.',
     fontFamily: 'Inter',
     id: 'brand-1',
     label: 'Acme',
-    logo: 'https://cdn.example.com/logo.png',
     organization: 'org-1',
     organizationId: 'org-1',
     primaryColor: '#ff5500',
@@ -64,9 +62,30 @@ function createCompleteBrand() {
   };
 }
 
+// Logo, banner and reference assets are Asset rows resolved through
+// BrandsService — the Brand row itself has no logo/banner column.
+function createBrandKitAssets() {
+  return {
+    banner: {
+      id: 'asset-banner',
+      role: 'banner',
+      url: 'https://cdn.example.com/banners/asset-banner',
+    },
+    logo: {
+      id: 'asset-logo',
+      role: 'logo',
+      url: 'https://cdn.example.com/logos/asset-logo',
+    },
+    references: [],
+  };
+}
+
 describe('AgentContextAssemblyService', () => {
   let brandMemoryService: { getInsights: ReturnType<typeof vi.fn> };
-  let brandsService: { findOne: ReturnType<typeof vi.fn> };
+  let brandsService: {
+    findOne: ReturnType<typeof vi.fn>;
+    resolveBrandKitAssets: ReturnType<typeof vi.fn>;
+  };
   let cacheService: ReturnType<typeof createCacheService>;
   let contextsService: { enhancePrompt: ReturnType<typeof vi.fn> };
   let loggerService: ReturnType<typeof createLogger>;
@@ -83,6 +102,7 @@ describe('AgentContextAssemblyService', () => {
     };
     brandsService = {
       findOne: vi.fn().mockResolvedValue(createCompleteBrand()),
+      resolveBrandKitAssets: vi.fn().mockResolvedValue(createBrandKitAssets()),
     };
     cacheService = createCacheService();
     contextsService = {
@@ -145,9 +165,9 @@ describe('AgentContextAssemblyService', () => {
       },
       visualIdentity: {
         backgroundColor: '#f8fafc',
-        bannerUrl: 'https://cdn.example.com/banner.png',
+        bannerUrl: 'https://cdn.example.com/banners/asset-banner',
         fontFamily: 'Inter',
-        logoUrl: 'https://cdn.example.com/logo.png',
+        logoUrl: 'https://cdn.example.com/logos/asset-logo',
         primaryColor: '#ff5500',
         referenceImages: [
           {
@@ -185,10 +205,10 @@ describe('AgentContextAssemblyService', () => {
     expect(prompt).toContain('- Background color: #f8fafc');
     expect(prompt).toContain('- Font: Inter');
     expect(prompt).toContain(
-      '- Logo reference: https://cdn.example.com/logo.png',
+      '- Logo reference: https://cdn.example.com/logos/asset-logo',
     );
     expect(prompt).toContain(
-      '- Banner reference: https://cdn.example.com/banner.png',
+      '- Banner reference: https://cdn.example.com/banners/asset-banner',
     );
     expect(prompt).toContain(
       '- hero references: Hero reference (https://cdn.example.com/hero.png)',
@@ -199,7 +219,64 @@ describe('AgentContextAssemblyService', () => {
     expect(prompt).toContain('Ship the sharp version.');
   });
 
+  it('resolves visual identity from brand assets, not from the brand row', async () => {
+    const brandWithoutAssetColumns = createCompleteBrand();
+
+    expect(brandWithoutAssetColumns).not.toHaveProperty('logo');
+    expect(brandWithoutAssetColumns).not.toHaveProperty('banner');
+
+    const context = (await service.assembleContext({
+      brandId: 'brand-1',
+      layers: { brandMemory: false },
+      organizationId: 'org-1',
+    })) as AssembledBrandContext;
+
+    expect(brandsService.resolveBrandKitAssets).toHaveBeenCalledWith(
+      'brand-1',
+      'org-1',
+    );
+    expect(context.visualIdentity?.logoUrl).toBe(
+      'https://cdn.example.com/logos/asset-logo',
+    );
+    expect(service.buildSystemPrompt('Base prompt.', context)).toContain(
+      '## Visual Identity',
+    );
+  });
+
+  it('merges asset references with the legacy reference images column', async () => {
+    brandsService.resolveBrandKitAssets.mockResolvedValue({
+      references: [
+        {
+          id: 'asset-ref',
+          label: 'Imported reference',
+          role: 'reference',
+          url: 'https://cdn.example.com/references/asset-ref',
+        },
+      ],
+    });
+
+    const context = await service.assembleContext({
+      brandId: 'brand-1',
+      layers: { brandMemory: false },
+      organizationId: 'org-1',
+    });
+
+    expect(context?.visualIdentity?.referenceImages).toEqual([
+      {
+        category: 'hero',
+        label: 'Hero reference',
+        url: 'https://cdn.example.com/hero.png',
+      },
+      {
+        category: 'reference',
+        label: 'Imported reference',
+        url: 'https://cdn.example.com/references/asset-ref',
+      },
+    ]);
+  });
+
   it('reports partial readiness without hiding non-color visual fields', async () => {
+    brandsService.resolveBrandKitAssets.mockResolvedValue({ references: [] });
     brandsService.findOne.mockResolvedValue({
       _id: 'brand-partial',
       agentConfig: {},

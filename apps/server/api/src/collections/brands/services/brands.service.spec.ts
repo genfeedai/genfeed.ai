@@ -23,6 +23,7 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { FastlaneFormat } from '@genfeedai/interfaces';
+import type { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
@@ -108,6 +109,7 @@ describe('BrandsService', () => {
         prisma,
         cacheInvalidationService as unknown as CacheInvalidationService,
         filesClientService as unknown as FilesClientService,
+        { cdnUrl: 'https://cdn.example.com' } as unknown as ConfigService,
       ),
       new BrandKitDraftService(
         brandScraperService as unknown as BrandScraperService,
