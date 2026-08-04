@@ -67,7 +67,6 @@ export const semanticColorRoleList: readonly SemanticColorRole[] =
 
 // Shared UI components (Paperclip design system)
 export { ActivityRow } from './dashboard/ActivityRow';
-export { MetricCard } from './dashboard/MetricCard';
 export { Identity } from './identity/Identity';
 export { IssueRow } from './issues/IssueRow';
 export { PriorityIcon } from './issues/PriorityIcon';
