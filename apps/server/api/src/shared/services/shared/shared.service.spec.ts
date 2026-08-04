@@ -146,6 +146,81 @@ describe('SharedService', () => {
       );
     });
 
+    it('should persist only Prisma ingredient fields and scalar relation IDs', async () => {
+      const body = {
+        autoSelectModel: false,
+        brand: '507f1f77bcf86cd799439016',
+        category: IngredientCategory.IMAGE,
+        extension: IngredientExtension.JPG,
+        model: 'black-forest-labs/flux-schnell',
+        organization: '507f1f77bcf86cd799439017',
+        prioritize: 'quality',
+        prompt: '507f1f77bcf86cd799439015',
+        text: 'A boxer in a dark arena',
+        waitForCompletion: true,
+      };
+
+      (metadataService.create as vi.Mock).mockResolvedValue(mockMetadata);
+      (ingredientsService.create as vi.Mock).mockResolvedValue(mockIngredient);
+
+      await service.saveDocuments(mockUser, body);
+
+      expect(ingredientsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId: body.brand,
+          generationPrompt: body.text,
+          metadataId: mockMetadata.id,
+          modelUsed: body.model,
+          organizationId: body.organization,
+          promptId: body.prompt,
+        }),
+      );
+      const createPayload = (ingredientsService.create as vi.Mock).mock
+        .calls[0]?.[0];
+      expect(createPayload).not.toHaveProperty('autoSelectModel');
+      expect(createPayload).not.toHaveProperty('prioritize');
+      expect(createPayload).not.toHaveProperty('waitForCompletion');
+      expect(createPayload).not.toHaveProperty('prompt');
+      expect(createPayload).not.toHaveProperty('brand');
+      expect(createPayload).not.toHaveProperty('organization');
+    });
+
+    it('should derive a useful metadata label from the generation prompt', async () => {
+      (metadataService.create as vi.Mock).mockResolvedValue(mockMetadata);
+      (ingredientsService.create as vi.Mock).mockResolvedValue(mockIngredient);
+
+      await service.saveDocuments(mockUser, {
+        category: IngredientCategory.IMAGE,
+        extension: IngredientExtension.JPG,
+        text: 'SCENE:\nA boxer in a dark arena',
+      });
+
+      expect(metadataService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          label: 'SCENE: A boxer in a dark arena',
+        }),
+      );
+    });
+
+    it('should soft-delete metadata when ingredient creation fails', async () => {
+      (metadataService.create as vi.Mock).mockResolvedValue(mockMetadata);
+      (metadataService.patch as vi.Mock).mockResolvedValue(mockMetadata);
+      (ingredientsService.create as vi.Mock).mockRejectedValue(
+        new Error('Ingredient create failed'),
+      );
+
+      await expect(
+        service.saveDocuments(mockUser, {
+          category: IngredientCategory.IMAGE,
+          extension: IngredientExtension.JPG,
+        }),
+      ).rejects.toThrow('Ingredient create failed');
+
+      expect(metadataService.patch).toHaveBeenCalledWith(mockMetadata.id, {
+        isDeleted: true,
+      });
+    });
+
     it('should handle parent versioning', async () => {
       const body = {
         parent: '507f1f77bcf86cd799439020',
@@ -174,7 +249,7 @@ describe('SharedService', () => {
       });
       expect(ingredientsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          parent: '507f1f77bcf86cd799439020',
+          parentId: '507f1f77bcf86cd799439020',
           version: 6,
         }),
       );
@@ -237,12 +312,12 @@ describe('SharedService', () => {
       expect(metadataService.patch).toHaveBeenCalledWith(
         metadataData.id,
         expect.objectContaining({
-          prompt: promptId,
+          promptId,
           result,
         }),
       );
       expect(ingredientsService.patch).toHaveBeenCalledWith(ingredientData.id, {
-        prompt: promptId,
+        promptId,
         status: IngredientStatus.GENERATED,
       });
     });
@@ -264,12 +339,12 @@ describe('SharedService', () => {
       expect(metadataService.patch).toHaveBeenCalledWith(
         metadataData.id,
         expect.objectContaining({
-          prompt: undefined,
+          promptId: undefined,
           result,
         }),
       );
       expect(ingredientsService.patch).toHaveBeenCalledWith(ingredientData.id, {
-        prompt: undefined,
+        promptId: undefined,
         status: IngredientStatus.GENERATED,
       });
     });
@@ -297,12 +372,12 @@ describe('SharedService', () => {
       expect(metadataService.patch).toHaveBeenCalledWith(
         metadataData.id,
         expect.objectContaining({
-          prompt: undefined,
+          promptId: undefined,
           result,
         }),
       );
       expect(ingredientsService.patch).toHaveBeenCalledWith(ingredientData.id, {
-        prompt: undefined,
+        promptId: undefined,
         status: IngredientStatus.GENERATED,
       });
     });
@@ -330,12 +405,12 @@ describe('SharedService', () => {
       expect(metadataService.patch).toHaveBeenCalledWith(
         metadataData.id,
         expect.objectContaining({
-          prompt: promptId,
+          promptId,
           result,
         }),
       );
       expect(ingredientsService.patch).toHaveBeenCalledWith(ingredientData.id, {
-        prompt: promptId,
+        promptId,
         status: IngredientStatus.GENERATED,
       });
     });
@@ -358,20 +433,17 @@ describe('SharedService', () => {
 
       expect(metadataService.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: body.brand,
           extension: body.extension,
-          organization: body.organization,
-          user: body.user,
         }),
       );
       expect(ingredientsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: body.brand,
+          brandId: body.brand,
           isDefault: false,
           metadataId: '507f1f77bcf86cd799439013',
-          organization: body.organization,
+          organizationId: body.organization,
           status: IngredientStatus.PROCESSING,
-          user: body.user,
+          userId: body.user,
           version: 1,
         }),
       );
@@ -419,7 +491,7 @@ describe('SharedService', () => {
       });
       expect(ingredientsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          parent: parentId,
+          parentId,
           version: 4,
         }),
       );
@@ -493,7 +565,7 @@ describe('SharedService', () => {
 
       expect(metadataService.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          prompt: promptId,
+          promptId,
         }),
       );
     });
@@ -519,12 +591,14 @@ describe('SharedService', () => {
 
       expect(ingredientsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          sources: sourceIds,
+          sources: {
+            connect: sourceIds.map((id) => ({ id })),
+          },
         }),
       );
     });
 
-    it('should pass through additional body properties', async () => {
+    it('should drop fields outside the ingredient persistence contract', async () => {
       const body = {
         brand: '507f1f77bcf86cd799439016',
         category: IngredientCategory.IMAGE,
@@ -539,7 +613,7 @@ describe('SharedService', () => {
 
       await service.saveDocumentsInternal(body);
 
-      expect(ingredientsService.create).toHaveBeenCalledWith(
+      expect(ingredientsService.create).not.toHaveBeenCalledWith(
         expect.objectContaining({
           customField: 'custom value',
         }),
@@ -578,7 +652,7 @@ describe('SharedService', () => {
       );
 
       expect(mockPromptsService.patch).toHaveBeenCalledWith(promptId, {
-        ingredient: ingredientData.id,
+        ingredientId: ingredientData.id,
       });
     });
 
@@ -612,7 +686,7 @@ describe('SharedService', () => {
       );
 
       expect(mockPromptsService.patch).toHaveBeenCalledWith(promptId, {
-        ingredient: ingredientData.id,
+        ingredientId: ingredientData.id,
       });
     });
 

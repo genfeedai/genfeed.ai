@@ -305,7 +305,7 @@ export class ImagesTransformationsController {
       });
 
     await this.imagesService.patch(ingredientData.id, {
-      prompt: promptData.id,
+      promptId: promptData.id,
     });
 
     const websocketUrl = WebSocketPaths.image(ingredientData.id);
@@ -387,7 +387,7 @@ export class ImagesTransformationsController {
           metadataData.id,
           new MetadataEntity({
             externalId: generationId,
-            prompt: promptData.id,
+            promptId: promptData.id,
           }),
         );
       } else {

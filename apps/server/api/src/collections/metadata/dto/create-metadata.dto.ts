@@ -17,7 +17,7 @@ export class CreateMetadataDto {
   @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly prompt?: string;
+  readonly promptId?: string;
 
   @IsString()
   @IsOptional()

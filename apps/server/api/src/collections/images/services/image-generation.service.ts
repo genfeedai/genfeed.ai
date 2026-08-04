@@ -321,19 +321,35 @@ export class ImageGenerationService {
       width,
     } = params;
 
-    const promptData = await this.promptsService.create(
-      new PromptEntity({
-        brandId: isEntityId(createImageDto.brand)
-          ? createImageDto.brand
-          : publicMetadata.brand,
-        category: PromptCategory.MODELS_PROMPT_IMAGE,
-        model,
-        organizationId: publicMetadata.organization,
-        original: promptOriginalText,
-        status: PromptStatus.PROCESSING,
-        userId: publicMetadata.user,
-      }),
-    );
+    const submittedPromptId = isEntityId(createImageDto.prompt)
+      ? createImageDto.prompt
+      : undefined;
+    const submittedPrompt = submittedPromptId
+      ? await this.promptsService.findOne({
+          id: submittedPromptId,
+          isDeleted: false,
+          organizationId: publicMetadata.organization,
+          userId: publicMetadata.user,
+        })
+      : null;
+    const promptData = submittedPrompt
+      ? await this.promptsService.patch(submittedPrompt.id, {
+          model,
+          status: PromptStatus.PROCESSING,
+        })
+      : await this.promptsService.create(
+          new PromptEntity({
+            brandId: isEntityId(createImageDto.brand)
+              ? createImageDto.brand
+              : publicMetadata.brand,
+            category: PromptCategory.MODELS_PROMPT_IMAGE,
+            model,
+            organizationId: publicMetadata.organization,
+            original: promptOriginalText,
+            status: PromptStatus.PROCESSING,
+            userId: publicMetadata.user,
+          }),
+        );
 
     // Build prompt early to get template tracking info
     const {
@@ -389,7 +405,7 @@ export class ImageGenerationService {
       });
 
     await this.imagesService.patch(ingredientData.id, {
-      prompt: promptData.id,
+      promptId: promptData.id,
     });
 
     return { ingredientData, metadataData, promptData };

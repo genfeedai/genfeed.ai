@@ -100,6 +100,7 @@ export type ImageGenerationProviderResult =
   | {
       externalId: string;
       kind: 'external-id';
+      outputUrls?: string[];
       promptId?: string;
     };
 

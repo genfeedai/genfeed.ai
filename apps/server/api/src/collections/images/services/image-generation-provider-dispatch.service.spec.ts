@@ -23,7 +23,13 @@ describe('ImageGenerationProviderDispatchService', () => {
     handleFailedImageGeneration: vi.fn(),
   };
   const filesClientService = {
-    uploadToS3: vi.fn(),
+    uploadToS3: vi.fn().mockResolvedValue({
+      height: 1080,
+      publicUrl: 'https://cdn.example.com/generated.png',
+      s3Key: 'images/generated.png',
+      size: 1024,
+      width: 1920,
+    }),
   };
   const falService = {
     generateImage: vi.fn(),
@@ -49,6 +55,10 @@ describe('ImageGenerationProviderDispatchService', () => {
   };
   const replicateService = {
     generateTextToImage: vi.fn(),
+    getPrediction: vi.fn().mockResolvedValue({
+      output: ['https://replicate.example.com/generated.png'],
+      status: 'succeeded',
+    }),
   };
   const sharedService = {
     saveDocuments: vi.fn(),
@@ -143,7 +153,7 @@ describe('ImageGenerationProviderDispatchService', () => {
       'metadata-1',
       expect.objectContaining({
         externalId: 'kling-job-1',
-        prompt: 'prompt-1',
+        promptId: 'prompt-1',
       }),
     );
     expect(plan?.kind).toBe('poll-single');
@@ -262,6 +272,14 @@ describe('ImageGenerationProviderDispatchService', () => {
       input: { prompt: 'provider prompt' },
     });
     replicateService.generateTextToImage.mockResolvedValue('replicate-job');
+    replicateService.getPrediction.mockResolvedValue({
+      output: [
+        'https://replicate.example.com/generated-1.png',
+        'https://replicate.example.com/generated-2.png',
+        'https://replicate.example.com/generated-3.png',
+      ],
+      status: 'succeeded',
+    });
     sharedService.saveDocuments
       .mockResolvedValueOnce({
         ingredientData: { id: 'ingredient-2', parent: 'parent-1' },
@@ -303,5 +321,10 @@ describe('ImageGenerationProviderDispatchService', () => {
       'ingredient-2',
       'ingredient-3',
     ]);
+    expect(filesClientService.uploadToS3).toHaveBeenCalledTimes(3);
+    expect(imagesService.patch).toHaveBeenCalledWith(
+      'ingredient-1',
+      expect.objectContaining({ status: IngredientStatus.GENERATED }),
+    );
   });
 });
