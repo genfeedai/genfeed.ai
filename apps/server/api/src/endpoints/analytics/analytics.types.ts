@@ -45,15 +45,30 @@ export interface OrganizationDoc {
  *
  * No `logo` — brand logos are `Asset` rows resolved through
  * `BrandsService.resolveBrandLogoUrls`, not a column on `Brand`.
+ *
+ * No `org` either. The Mongo-era populated relation is never populated
+ * (`BrandsService` passes `undefined` for `BaseService`'s populate argument)
+ * and the Prisma relation is named `organization`, not `org`. The owning
+ * organization is reached through the `organizationId` scalar FK — see
+ * `EntityLeaderboardService.resolveOrganizationNames`.
  */
 export interface BrandDoc {
   id: string;
   name?: string;
   label?: string;
   organizationId?: string;
-  org?: OrganizationDoc;
   isDeleted?: boolean;
   createdAt?: Date;
+}
+
+/**
+ * Brand display values resolved in batched page-level reads and injected into
+ * the brand projection, so a page of rows costs one query per value instead of
+ * one per row.
+ */
+export interface ResolvedBrandDisplay {
+  logoUrl?: string;
+  organizationName?: string;
 }
 
 /** Stats for leaderboard sorting */
