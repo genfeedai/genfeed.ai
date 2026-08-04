@@ -33,10 +33,15 @@ vi.mock('@genfeedai/constants', () => ({
     WORKSPACE: '/workspace',
   },
   APP_ROUTES: {
+    CONNECT: '/connect',
+    LOGIN: '/login',
+    LOGOUT: '/logout',
+    OAUTH: '/oauth',
     SETTINGS: {
       BRANDS: '/settings/brands',
       PUBLISHING: '/settings/publishing',
     },
+    SIGN_UP: '/signup',
     WORKSPACE: {
       OVERVIEW: '/workspace/overview',
     },

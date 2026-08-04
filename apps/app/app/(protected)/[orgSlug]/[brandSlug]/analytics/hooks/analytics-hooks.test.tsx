@@ -11,8 +11,6 @@ class MockIntersectionObserver {
   unobserve() {}
 }
 
-vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
-
 function analyticsHooksTree(brandId?: string) {
   return (
     <AnalyticsProvider>
@@ -244,6 +242,7 @@ function hookResponse() {
 
 describe('AnalyticsHooks', () => {
   beforeEach(() => {
+    vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
     vi.clearAllMocks();
     mocks.organizationId = 'org-1';
     mocks.getViralHooks.mockResolvedValue(hookResponse());
