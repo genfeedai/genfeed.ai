@@ -1,5 +1,11 @@
 import type { AnalyticsMetric } from '@genfeedai/enums';
-import type { IAnalytics, IQueryParams } from '@genfeedai/interfaces';
+import type {
+  IAnalytics,
+  IBrandWithStats,
+  IOrgLeaderboardItem,
+  IOrganizationWithStats as IOrgWithStats,
+  IQueryParams,
+} from '@genfeedai/interfaces';
 import type {
   IViralHookAnalysis,
   IViralHookVideo,
@@ -12,49 +18,11 @@ import {
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
 
-// Admin Analytics Types
-export interface IOrgLeaderboardItem {
-  rank: number;
-  organization: {
-    id: string;
-    name: string;
-    logo?: string;
-  };
-  totalPosts: number;
-  totalEngagement: number;
-  totalViews: number;
-  avgEngagementRate: number;
-  growth: number;
-}
-
-export interface IOrgWithStats {
-  id: string;
-  name: string;
-  logo?: string;
-  totalPosts: number;
-  totalEngagement: number;
-  totalViews: number;
-  totalBrands: number;
-  totalMembers: number;
-  avgEngagementRate: number;
-  growth: number;
-  createdAt: string;
-}
-
-export interface IBrandWithStats {
-  id: string;
-  name: string;
-  logo?: string;
-  organizationId: string;
-  organizationName: string;
-  totalPosts: number;
-  totalEngagement: number;
-  totalViews: number;
-  avgEngagementRate: number;
-  growth: number;
-  activePlatforms: string[];
-  createdAt: string;
-}
+export type {
+  IBrandWithStats,
+  IOrganizationWithStats as IOrgWithStats,
+  IOrgLeaderboardItem,
+} from '@genfeedai/interfaces';
 
 export interface IPaginatedOrgsResponse {
   data: IOrgWithStats[];

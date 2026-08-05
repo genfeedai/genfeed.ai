@@ -29,33 +29,44 @@ export interface IAggregatedEngagementResult {
 }
 
 export interface IOrganizationWithStats {
-  _id: string;
+  id: string;
   name: string;
-  label?: string;
   logo?: string;
-  isActive?: boolean;
   totalPosts: number;
   totalViews: number;
   totalEngagement: number;
+  totalBrands: number;
+  totalMembers: number;
   avgEngagementRate: number;
-  engagementGrowth: number;
-  rank?: number;
+  growth: number;
 }
 
 export interface IBrandWithStats {
-  _id: string;
+  id: string;
   name: string;
-  label?: string;
   logo?: string;
-  organization: string;
-  isActive?: boolean;
+  organizationId: string;
+  organizationName: string;
   totalPosts: number;
   totalViews: number;
   totalEngagement: number;
   avgEngagementRate: number;
   activePlatforms: string[];
-  engagementGrowth: number;
-  rank?: number;
+  growth: number;
+}
+
+export interface IOrgLeaderboardItem {
+  rank: number;
+  organization: {
+    id: string;
+    name: string;
+    logo?: string;
+  };
+  totalPosts: number;
+  totalEngagement: number;
+  totalViews: number;
+  avgEngagementRate: number;
+  growth: number;
 }
 
 export interface ITimeSeriesAggregationResult {
