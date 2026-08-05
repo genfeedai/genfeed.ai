@@ -41,16 +41,16 @@ describe('CronJobsController', () => {
   } as Request;
 
   const mockCronJob = {
-    _id: '507f1f77bcf86cd799439011',
+    id: '507f1f77bcf86cd799439011',
     enabled: true,
     jobType: 'newsletter_substack' as const,
     name: 'Daily Newsletter',
-    organization: '507f1f77bcf86cd799439012',
+    organizationId: '507f1f77bcf86cd799439012',
     schedule: '0 9 * * 1-5',
   };
 
   const mockCronRun = {
-    _id: '507f1f77bcf86cd799439022',
+    id: '507f1f77bcf86cd799439022',
     cronJobId: '507f1f77bcf86cd799439011',
     status: 'success',
     triggeredAt: new Date(),

@@ -177,18 +177,15 @@ export function toCronJobDocument(
 
   return {
     ...job,
-    _id: job.mongoId ?? job.id,
     config,
     consecutiveFailures: asNumber(config.consecutiveFailures, 0),
     enabled: asBoolean(config.enabled, job.status === 'ACTIVE'),
     jobType: asCronJobType(config.jobType),
     lastStatus: asCronJobLastStatus(config.lastStatus),
     name: asString(config.name) ?? job.label ?? 'Untitled cron job',
-    organization: job.organizationId,
     payload,
     schedule: asString(config.schedule) ?? job.expression ?? '* * * * *',
     timezone: asString(config.timezone) ?? 'UTC',
-    user: job.userId,
   };
 }
 
@@ -197,11 +194,8 @@ export function toCronRunDocument(run: PrismaCronRun): CronRunDocument {
 
   return {
     ...run,
-    _id: run.mongoId ?? run.id,
     artifacts: asRecord(result.artifacts),
-    organization: run.organizationId,
     result,
     trigger: asCronRunTrigger(result.trigger),
-    user: run.userId,
   };
 }

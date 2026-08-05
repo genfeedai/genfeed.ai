@@ -275,7 +275,6 @@ export class LegacyCronJobMigrationService {
         lifecycle: WorkflowLifecycle.PUBLISHED,
         metadata: {
           legacyCronJobId: job.id,
-          legacyCronJobMongoId: job.mongoId,
           legacyCronJobType: job.jobType,
           migrationVersion: LEGACY_CRON_JOB_MIGRATION_VERSION,
           originalEnabled: job.enabled,
