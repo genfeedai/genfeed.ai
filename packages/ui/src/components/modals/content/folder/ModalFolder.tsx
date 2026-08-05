@@ -95,9 +95,9 @@ export default function ModalFolder({
 
   return (
     <Modal id={ModalEnum.FOLDER} title={item ? 'Edit Folder' : 'Create Folder'}>
-      <form ref={formRef} onSubmit={onSubmit}>
+      <form ref={formRef} className="flex flex-col gap-4" onSubmit={onSubmit}>
         {hasFormErrors(form.formState.errors) && (
-          <Alert type={AlertCategory.ERROR} className="mb-4">
+          <Alert type={AlertCategory.ERROR}>
             <div className="space-y-1">
               {parseFormErrors(form.formState.errors).map((error) => (
                 <div key={error}>{error}</div>
@@ -125,6 +125,7 @@ export default function ModalFolder({
             placeholder="Enter description (optional)"
             isDisabled={isSubmitting}
             onKeyDown={processKeyDownModalFolder}
+            rows={3}
           />
         </FormControl>
 
