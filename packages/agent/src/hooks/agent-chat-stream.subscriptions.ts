@@ -326,13 +326,20 @@ export function attachAgentStreamSubscriptions(
           lastActivityAt: payload.timestamp,
         });
         if (deps.isThreadVisible(payload.threadId)) {
+          // Stable id so tool_started → tool_progress → tool_completed update
+          // one row. Prefixing with the event name left "running" rows stuck at
+          // the start progress forever while completed twins accumulated.
+          const stableId =
+            payload.toolCallId ??
+            payload.inputRequestId ??
+            `${payload.event}-${payload.timestamp}`;
           deps.addWorkEvent({
             createdAt: payload.timestamp,
             debug: payload.debug,
             detail: payload.detail,
             estimatedDurationMs: payload.estimatedDurationMs,
             event: payload.event,
-            id: `${payload.event}-${payload.toolCallId ?? payload.inputRequestId ?? payload.timestamp}`,
+            id: stableId,
             inputRequestId: payload.inputRequestId,
             label: payload.label,
             parameters: payload.parameters,

@@ -10,8 +10,12 @@ describe('CacheService', () => {
   let loggerService: LoggerService;
   let cacheTagsService: CacheTagsService;
   let mockRedisClient: vi.Mocked<Redis>;
+  /** Flipped per test to exercise the client-unavailable gate. */
+  let isClientReady: boolean;
 
   beforeEach(async () => {
+    isClientReady = true;
+
     const mockLogger: LoggerService = {
       debug: vi.fn(),
       error: vi.fn(),
@@ -44,6 +48,9 @@ describe('CacheService', () => {
           provide: CacheClientService,
           useValue: {
             instance: mockRedisClient,
+            get isReady(): boolean {
+              return isClientReady;
+            },
           },
         },
         {
@@ -163,6 +170,49 @@ describe('CacheService', () => {
     it('returns false when the lock is already held', async () => {
       (mockRedisClient.set as vi.Mock).mockResolvedValue(null);
       await expect(service.acquireLock('resource', 60)).resolves.toBe(false);
+    });
+  });
+
+  describe('when the cache client is not ready', () => {
+    // A command issued while ioredis is disconnected sits in its offline queue
+    // and never settles, so these must short-circuit rather than reach the
+    // client: a `try/catch` cannot degrade a call that never returns.
+    beforeEach(() => {
+      isClientReady = false;
+    });
+
+    it('reports a cache miss without issuing a read', async () => {
+      await expect(service.get('key')).resolves.toBeNull();
+      expect(mockRedisClient.get).not.toHaveBeenCalled();
+    });
+
+    it('reports a failed write without issuing one', async () => {
+      await expect(service.set('key', { foo: 'bar' })).resolves.toBe(false);
+      expect(mockRedisClient.setex).not.toHaveBeenCalled();
+      expect(cacheTagsService.setTags).not.toHaveBeenCalled();
+    });
+
+    it('returns a null per key from mget without issuing a read', async () => {
+      await expect(service.mget(['a', 'b'])).resolves.toEqual([null, null]);
+      expect(mockRedisClient.mget).not.toHaveBeenCalled();
+    });
+
+    it('skips tag invalidation', async () => {
+      await expect(service.invalidateByTags(['tag'])).resolves.toBe(0);
+      expect(cacheTagsService.invalidateByTags).not.toHaveBeenCalled();
+    });
+
+    it('refuses to acquire a lock it cannot hold', async () => {
+      await expect(service.acquireLock('resource', 60)).resolves.toBe(false);
+      expect(mockRedisClient.set).not.toHaveBeenCalled();
+    });
+
+    it('still falls back to the factory in getOrSet', async () => {
+      const factory = vi.fn().mockResolvedValue({ fresh: true });
+      await expect(service.getOrSet('key', factory)).resolves.toEqual({
+        fresh: true,
+      });
+      expect(factory).toHaveBeenCalledTimes(1);
     });
   });
 

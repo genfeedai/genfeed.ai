@@ -2,8 +2,8 @@ import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-me
 import PublisherContent from '@public/publisher/publisher-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'Publisher',
-  'Schedule and publish AI content across 10+ social platforms from one dashboard. X, LinkedIn, Instagram, TikTok, YouTube, Facebook, Pinterest, Reddit, Discord, and Twitch.',
+  'Publisher: Post to 10+ Platforms',
+  'Schedule and publish AI content to 10+ social platforms from one dashboard: X, LinkedIn, Instagram, TikTok, YouTube, Facebook, Reddit, and more.',
   '/publisher',
 );
 

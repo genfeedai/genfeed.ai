@@ -23,7 +23,14 @@ import {
   Paintbrush,
   Rocket,
 } from 'lucide-react';
-import { createElement, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  createElement,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 const DEFAULT_AGENT_ACTIONS: SuggestedAction[] = [
   {
@@ -310,27 +317,46 @@ export function useAgentFullPage({
     return () => controller.abort();
   }, [apiService, authReady, setCreditsRemaining, setModelCosts]);
 
-  // When the URL has no thread, clear conversation state during render so
-  // the empty state never flashes the previous thread's data. `null` is a
-  // distinct "not yet cleared" sentinel from `undefined` (the "already
-  // cleared for the current no-thread render" marker) — without it, mounting
-  // directly on a no-thread route left clearedForThreadId === threadId
-  // (both undefined) and the initial clear never ran.
-  const [clearedForThreadId, setClearedForThreadId] = useState<
-    string | undefined | null
-  >(null);
-  if (authReady && !threadId && clearedForThreadId !== undefined) {
-    setClearedForThreadId(undefined);
-    setIsLoadingThread(false);
-    setActiveThreadStatus(null);
-    setWorkspacePlanningTaskId(null);
-    setActiveThread(null);
-    setDraftPlanModeEnabled(false);
-    setLatestProposedPlan(null);
-    resetActiveConversationState();
-  } else if (threadId && clearedForThreadId !== threadId) {
-    setClearedForThreadId(threadId);
-  }
+  // When the URL has no thread, clear conversation state in layout so the
+  // empty state does not paint the previous thread's data. Must not run
+  // during render: zustand updates notify AgentChatContainer and React
+  // forbids updating another component while rendering this one.
+  //
+  // Sentinel: `null` = never cleared, `undefined` = already cleared for the
+  // current no-thread surface, `string` = last tracked thread id. Mounting
+  // directly on a no-thread route starts at `null` so the clear still runs.
+  const clearedForThreadIdRef = useRef<string | undefined | null>(null);
+  useLayoutEffect(() => {
+    if (!authReady) {
+      return;
+    }
+
+    if (!threadId) {
+      if (clearedForThreadIdRef.current === undefined) {
+        return;
+      }
+      clearedForThreadIdRef.current = undefined;
+      setIsLoadingThread(false);
+      setActiveThreadStatus(null);
+      setWorkspacePlanningTaskId(null);
+      setActiveThread(null);
+      setDraftPlanModeEnabled(false);
+      setLatestProposedPlan(null);
+      resetActiveConversationState();
+      return;
+    }
+
+    if (clearedForThreadIdRef.current !== threadId) {
+      clearedForThreadIdRef.current = threadId;
+    }
+  }, [
+    authReady,
+    threadId,
+    resetActiveConversationState,
+    setActiveThread,
+    setDraftPlanModeEnabled,
+    setLatestProposedPlan,
+  ]);
 
   useEffect(() => {
     if (!authReady || !threadId) {

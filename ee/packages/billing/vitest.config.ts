@@ -50,6 +50,10 @@ export default defineConfig({
         replacement: apiSrc,
       },
       {
+        find: /^@api-types\/(.*)$/,
+        replacement: pkg('api-types/src/$1'),
+      },
+      {
         find: '@genfeedai/server',
         replacement: path.resolve(repoRoot, 'apps/server/server/src'),
       },

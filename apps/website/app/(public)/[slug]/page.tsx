@@ -1,5 +1,5 @@
 import { stringifyJsonLd } from '@data/json-ld';
-import { getAllProductSlugs } from '@data/products.data';
+import { getAllProductSlugs, type Product } from '@data/products.data';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { getProductBySlugCached } from '@public/[slug]/product-loader';
 import ProductPage from '@public/[slug]/product-page';
@@ -12,6 +12,26 @@ import { Suspense } from 'react';
 export function generateStaticParams() {
   const slugs = getAllProductSlugs();
   return slugs.map((slug) => ({ slug }));
+}
+
+export function buildProductPageJsonLd(product: Product, url: string) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    about: {
+      '@type': 'Thing',
+      description: product.description,
+      name: product.name,
+    },
+    description: product.description,
+    isPartOf: {
+      '@type': 'WebSite',
+      name: 'Genfeed',
+      url: 'https://genfeed.ai',
+    },
+    name: product.name,
+    url,
+  };
 }
 
 export async function generateMetadata(
@@ -28,7 +48,7 @@ export async function generateMetadata(
     };
   }
 
-  const title = `${product.name} | ${product.tagline} | ${metadata.name}`;
+  const title = `${product.seoTitle ?? `${product.name} | ${product.tagline}`} | ${metadata.name}`;
   const description = product.description;
   const url = `${EnvironmentService.apps.website}/${product.slug}`;
 
@@ -75,29 +95,8 @@ export default async function ProductPageRoute({
     notFound();
   }
 
-  const productJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'SoftwareApplication',
-    applicationCategory: 'BusinessApplication',
-    description: product.description,
-    featureList: product.features.map((f) => f.title),
-    name: product.name,
-    offers: {
-      '@type': 'AggregateOffer',
-      description: product.pricing.why,
-      highPrice: '499',
-      lowPrice: '0',
-      offerCount: 4,
-      priceCurrency: 'USD',
-    },
-    operatingSystem: 'Web',
-    publisher: {
-      '@type': 'Organization',
-      name: 'Genfeed',
-      url: 'https://genfeed.ai',
-    },
-    url: `${EnvironmentService.apps.website}/${product.slug}`,
-  };
+  const url = `${EnvironmentService.apps.website}/${product.slug}`;
+  const productJsonLd = buildProductPageJsonLd(product, url);
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',

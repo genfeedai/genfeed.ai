@@ -2,7 +2,7 @@ import { metadata } from '@helpers/media/metadata/metadata.helper';
 import GenContent from '@public/gen/gen-content';
 import type { Metadata } from 'next';
 
-const title = `${metadata.name} | $GEN Token`;
+const title = `$GEN Token: Fuel for the Genfeed OS | ${metadata.name}`;
 const description =
   'The $GEN token powers the Genfeed ecosystem. Use tokens to unlock premium features, boost content visibility, and participate in platform governance.';
 

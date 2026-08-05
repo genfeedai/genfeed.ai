@@ -218,6 +218,14 @@ export class CreateOrganizationSettingDto {
 
   @IsBoolean()
   @ApiProperty({
+    default: false,
+    description: 'Whether Telegram notifications are enabled',
+    required: true,
+  })
+  readonly isNotificationsTelegramEnabled!: boolean;
+
+  @IsBoolean()
+  @ApiProperty({
     default: true,
     description: 'Whether email notifications are enabled',
     required: true,

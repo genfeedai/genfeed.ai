@@ -8,7 +8,10 @@ import {
 } from '@genfeedai/agent/models/agent-chat.model';
 import { describe, expect, it } from 'vitest';
 import type { TimelineStreaming } from './derive-timeline';
-import { deriveTimeline } from './derive-timeline';
+import {
+  collapseSupersededSnapshotCards,
+  deriveTimeline,
+} from './derive-timeline';
 
 const idleStream: TimelineStreaming['streamState'] = {
   activeToolCalls: [],
@@ -361,5 +364,54 @@ describe('deriveTimeline', () => {
     if (workGroup?.kind === 'work-group') {
       expect(workGroup.presentation).toBe('live');
     }
+  });
+
+  it('collapses superseded analytics snapshot cards to the latest message', () => {
+    const messages = [
+      msg('assistant', 'a1', '2026-01-01T00:00:01Z', {
+        uiActions: [
+          {
+            id: 'analytics-snapshot:org:7d',
+            title: 'Analytics summary (7d)',
+            type: 'analytics_snapshot_card',
+          },
+        ],
+      }),
+      msg('assistant', 'a2', '2026-01-01T00:00:02Z', {
+        uiActions: [
+          {
+            id: 'analytics-snapshot:org:7d',
+            title: 'Analytics summary (7d)',
+            type: 'analytics_snapshot_card',
+          },
+        ],
+      }),
+      msg('assistant', 'a3', '2026-01-01T00:00:03Z', {
+        uiActions: [
+          {
+            id: 'analytics-snapshot:org:7d',
+            title: 'Analytics summary (7d)',
+            type: 'analytics_snapshot_card',
+          },
+        ],
+      }),
+    ];
+
+    const collapsed = collapseSupersededSnapshotCards(messages);
+    expect(
+      collapsed.flatMap((message) => message.metadata?.uiActions ?? []),
+    ).toHaveLength(1);
+    expect(collapsed[2]?.metadata?.uiActions).toHaveLength(1);
+    expect(collapsed[0]?.metadata?.uiActions ?? []).toHaveLength(0);
+
+    const timeline = deriveTimeline(messages, [], idleStream, null);
+    const assistantCards = timeline
+      .filter((entry) => entry.kind === 'assistant-message')
+      .flatMap((entry) =>
+        entry.kind === 'assistant-message'
+          ? (entry.message.metadata?.uiActions ?? [])
+          : [],
+      );
+    expect(assistantCards).toHaveLength(1);
   });
 });

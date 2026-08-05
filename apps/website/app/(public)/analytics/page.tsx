@@ -2,7 +2,7 @@ import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-me
 import AnalyticsContent from '@public/analytics/analytics-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'Analytics',
+  'Content Analytics and Revenue Data',
   'Track revenue, not vanity metrics. Post, trend, and per-brand performance analytics with a hook lab that turns creative data into what to make next.',
   '/analytics',
 );

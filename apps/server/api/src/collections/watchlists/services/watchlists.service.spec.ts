@@ -11,6 +11,7 @@ import type { LoggerService } from '@libs/logger/logger.service';
 
 type MockDelegate = {
   create: ReturnType<typeof vi.fn>;
+  findFirst: ReturnType<typeof vi.fn>;
   findUnique: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
 };
@@ -30,6 +31,7 @@ describe('WatchlistsService persistence boundary', () => {
           updatedAt: new Date(),
         }),
       ),
+      findFirst: vi.fn(),
       findUnique: vi.fn(),
       update: vi.fn().mockImplementation(({ data }) =>
         Promise.resolve({
@@ -84,8 +86,9 @@ describe('WatchlistsService persistence boundary', () => {
   });
 
   it('merges config-backed patches without dropping stored values', async () => {
-    delegate.findUnique.mockResolvedValue({
+    delegate.findFirst.mockResolvedValue({
       config: { category: 'Competitor', label: 'Old label' },
+      id: 'watchlist-1',
     });
 
     await service.patch('watchlist-1', { label: 'New label' }, []);

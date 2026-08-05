@@ -4,12 +4,13 @@ import {
   PLAN_COPY,
   websitePlans,
 } from '@helpers/business/pricing/pricing.helper';
+import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
 import PricingContent from '@public/pricing/pricing-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'Pricing',
-  `Free to sign up. Credits buy the output you generate. Subscriptions from ${PLAN_COPY.pro.priceLabel} include monthly credits at a better rate, paid API access, and unlimited team seats; ${PLAN_COPY.scale.name} adds multi-organization workflows.`,
+  'Pricing: Credits, Pro and Scale Plans',
+  `Free to sign up; credits buy the output you generate. Subscriptions from ${PLAN_COPY.pro.priceLabel} add monthly credits at a better rate, API access, and unlimited seats.`,
   '/pricing',
 );
 
@@ -34,19 +35,25 @@ const saasJsonLd = {
     brand: { '@type': 'Organization', name: 'Genfeed' },
     description:
       'The AI studio for creating, approving, publishing, and tracking videos, images, voice, and marketing content.',
+    image: metadata.cards.default,
     name: 'Genfeed',
-    offers: websitePlans.map((plan) => ({
-      '@type': 'Offer',
-      description: OFFER_DESCRIPTIONS[plan.tier],
-      name: plan.label,
-      price: plan.price == null ? undefined : String(plan.price),
-      priceCurrency: 'USD',
-      priceSpecification:
-        plan.type === 'subscription'
-          ? { '@type': 'UnitPriceSpecification', billingDuration: 'P1M' }
-          : undefined,
-      url: 'https://genfeed.ai/pricing',
-    })),
+    // Enterprise is quote-only. A schema.org Offer needs a price or a
+    // priceSpecification, and inventing one would misstate the deal, so
+    // quote-only tiers are left out of the offer list entirely.
+    offers: websitePlans
+      .filter((plan) => plan.price != null)
+      .map((plan) => ({
+        '@type': 'Offer',
+        description: OFFER_DESCRIPTIONS[plan.tier],
+        name: plan.label,
+        price: String(plan.price),
+        priceCurrency: 'USD',
+        priceSpecification:
+          plan.type === 'subscription'
+            ? { '@type': 'UnitPriceSpecification', billingDuration: 'P1M' }
+            : undefined,
+        url: 'https://genfeed.ai/pricing',
+      })),
   },
   name: 'Genfeed Pricing',
   url: 'https://genfeed.ai/pricing',

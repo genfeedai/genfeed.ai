@@ -11,7 +11,7 @@ type PageContextContract = {
     | 'automate'
     | 'compose'
     | 'library'
-    | 'posts'
+    | 'publish'
     | 'studio'
     | 'workspace';
   sectionLabel?: string;
@@ -46,10 +46,7 @@ const CONTRACTS: PageContextContract[] = [
   },
   {
     route: `${BRAND_BASE}/publish`,
-    currentApp: 'posts',
-    // App shell labels the posts surface "Publish" (workspace-shell-registry +
-    // AppProtectedLayoutSidebar). "Workspace" was a stale contract after the
-    // Publish rename.
+    currentApp: 'publish',
     sectionLabel: 'Publish',
     pageLabels: ['Not posted', 'New release'],
   },

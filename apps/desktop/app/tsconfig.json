@@ -1,14 +1,19 @@
 {
-  "extends": "../../../packages/tsconfig/nextjs.json",
   "compilerOptions": {
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "lib": ["DOM", "ES2022"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
     "paths": {
-      "@api-types/*": ["../../../packages/api-types/src/*"],
-      "@components/*": ["../../../packages/ui/src/components/*"],
-      "@genfeedai/agent": ["../../../packages/agent/src/index.ts"],
-      "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
-      "@genfeedai/auth-client": ["../../../packages/auth-client/src/index.ts"],
-      "@genfeedai/auth-client/*": ["../../../packages/auth-client/src/*"],
-      "@genfeedai/contexts/*": ["../../../packages/contexts/*"],
+      // `@genfeedai/helpers` and `@genfeedai/workflows` are mapped to source
+      // below, so their own workspace imports must be mapped too — otherwise
+      // tsc type-checks their `src/` against unresolvable module specifiers and
+      // every exported signature degrades to `any`.
+      "@genfeedai/constants": ["../../../packages/constants/src/index.ts"],
+      "@genfeedai/constants/*": ["../../../packages/constants/src/*"],
       "@genfeedai/desktop-contracts": [
         "../../../packages/desktop-contracts/src/index.ts"
       ],
@@ -18,71 +23,24 @@
       "@genfeedai/desktop-prisma": [
         "../../../packages/desktop-prisma/src/index.ts"
       ],
-      "@genfeedai/client": ["../../../packages/client/src/index.ts"],
-      "@genfeedai/client/*": ["../../../packages/client/src/*"],
-      "@genfeedai/config": ["../../../packages/config/src/index.ts"],
-      "@genfeedai/config/*": ["../../../packages/config/src/*"],
-      "@genfeedai/constants": ["../../../packages/constants/src/index.ts"],
-      "@genfeedai/constants/*": ["../../../packages/constants/src/*"],
       "@genfeedai/enums": ["../../../packages/enums/src/index.ts"],
       "@genfeedai/enums/*": ["../../../packages/enums/src/*"],
       "@genfeedai/helpers": ["../../../packages/helpers/src/index.ts"],
       "@genfeedai/helpers/*": ["../../../packages/helpers/src/*"],
-      "@genfeedai/pricing": ["../../../packages/pricing/src/index.ts"],
-      "@genfeedai/pricing/*": ["../../../packages/pricing/src/*"],
-      "@genfeedai/hooks/*": ["../../../packages/hooks/*"],
       "@genfeedai/interfaces": ["../../../packages/interfaces/src/index.ts"],
       "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
-      "@genfeedai/models/*": ["../../../packages/models/*"],
-      "@genfeedai/props/*": ["../../../packages/props/*"],
-      "@genfeedai/serializers": ["../../../packages/serializers/src/index.ts"],
-      "@genfeedai/serializers/*": ["../../../packages/serializers/src/*"],
-      "@genfeedai/services/*": ["../../../packages/services/*"],
-      "@genfeedai/types": ["../../../packages/types/src/index.ts"],
-      "@genfeedai/types/*": ["../../../packages/types/src/*"],
-      "@genfeedai/ui": ["../../../packages/ui/src/index.ts"],
+      "@genfeedai/pricing": ["../../../packages/pricing/src/index.ts"],
+      "@genfeedai/pricing/*": ["../../../packages/pricing/src/*"],
       "@genfeedai/workflows": ["../../../packages/workflows/src/index.ts"],
-      "@genfeedai/workflows/*": ["../../../packages/workflows/src/*"],
-      "@genfeedai/ui/*": [
-        "../../../packages/ui/src/*",
-        "../../../packages/ui/src/components/*"
-      ],
-      "@genfeedai/utils/*": ["../../../packages/utils/*"],
-      "@configs/*": ["../../../configs/*"],
-      "@contexts/*": ["../../../packages/contexts/*"],
-      "@helpers/*": ["../../../packages/helpers/src/*"],
-      "@hooks/*": ["../../../packages/hooks/*"],
-      "@models/*": ["../../../packages/models/*"],
-      "@pages/*": ["../../../packages/pages/*"],
-      "@props/*": ["../../../packages/props/*"],
-      "@providers/*": ["../../../packages/providers/*"],
-      "@renderer/*": ["./src/renderer/*"],
-      "@schemas/*": ["../../../packages/schemas/*"],
-      "@serializers/*": ["../../../packages/serializers/src/*"],
-      "@services/*": ["../../../packages/services/*"],
-      "@styles/*": ["../../../packages/styles/*"],
-      "@ui-constants/*": ["../../../packages/ui/src/components/constants/*"],
-      "@ui/*": [
-        "../../../packages/ui/src/*",
-        "../../../packages/ui/src/components/*"
-      ],
-      "@utils/*": ["../../../packages/utils/*"]
+      "@genfeedai/workflows/*": ["../../../packages/workflows/src/*"]
     },
-    "typeRoots": [
-      "../../../packages/node_modules/.bun/@types+node@25.2.3/node_modules/@types",
-      "../../../packages/node_modules/.bun/@types+react@19.2.4/node_modules/@types",
-      "../../../packages/node_modules/.bun/@types+react-dom@19.2.3+878e0db68a4d0502/node_modules/@types"
-    ]
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "es2022",
+    "types": ["node"]
   },
-  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"],
-  "include": [
-    "next-env.d.ts",
-    "pages/**/*.ts",
-    "pages/**/*.tsx",
-    "src/**/*.d.ts",
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/types/**/*.d.ts"
-  ]
+  "exclude": ["dist", "node_modules", "src/**/*.test.ts"],
+  "extends": "../../../tsconfig.json",
+  "include": ["src/**/*.ts"]
 }

@@ -49,19 +49,36 @@ export class DesktopAppShellService {
   ) {}
 
   /**
-   * Lazy — `app.isPackaged` requires the Electron app module to be fully loaded,
-   * but this service is instantiated at module scope before `app.whenReady()`.
+   * Resolve once so navigation, preload arguments, and the server share the
+   * exact same trusted loopback origin.
    */
   private get appUrl(): URL {
     if (!this._appUrl) {
-      this._appUrl = new URL(
+      const appUrl = new URL(
         this.isExternalDevServer()
           ? process.env.GENFEED_DESKTOP_APP_URL || this.environment.appEndpoint
           : this.environment.appEndpoint,
       );
+
+      if (
+        appUrl.hostname !== '127.0.0.1' ||
+        appUrl.password ||
+        appUrl.protocol !== 'http:' ||
+        appUrl.username
+      ) {
+        throw new Error(
+          'Desktop app shell origin must be an HTTP 127.0.0.1 loopback URL.',
+        );
+      }
+
+      this._appUrl = appUrl;
     }
 
     return this._appUrl;
+  }
+
+  get appOrigin(): string {
+    return this.appUrl.origin;
   }
 
   private isExternalDevServer(): boolean {
@@ -121,8 +138,11 @@ export class DesktopAppShellService {
       GENFEED_DESKTOP_APP_PORT: String(this.environment.appPort),
       GENFEED_DESKTOP_DATA_DIR: this.getDataDir(),
       HOSTNAME: this.appUrl.hostname,
-      NEXT_PUBLIC_API_ENDPOINT: this.environment.apiEndpoint,
+      NEXT_PUBLIC_API_ENDPOINT: `${this.appOrigin}/v1`,
+      NEXT_PUBLIC_API_URL: '/v1',
+      NEXT_PUBLIC_CDN_URL: this.environment.cdnUrl,
       NEXT_PUBLIC_DESKTOP_SHELL: '1',
+      NEXT_PUBLIC_WS_ENDPOINT: this.environment.wsEndpoint,
       PORT: String(this.environment.appPort),
     };
   }
@@ -167,7 +187,7 @@ export class DesktopAppShellService {
   }
 
   private getOriginPattern(): string {
-    return `${this.appUrl.origin}/*`;
+    return `${this.appOrigin}/*`;
   }
 
   registerAuthHeaders(window: BrowserWindow): void {
@@ -212,17 +232,17 @@ export class DesktopAppShellService {
 
   async start(): Promise<string> {
     if (this.started) {
-      return this.appUrl.origin;
+      return this.appOrigin;
     }
 
     if (!this.isExternalDevServer()) {
       this.startBundledServer();
     }
 
-    await waitForServer(this.appUrl.origin);
+    await waitForServer(this.appOrigin);
     this.started = true;
 
-    return this.appUrl.origin;
+    return this.appOrigin;
   }
 
   async stop(): Promise<void> {
@@ -246,6 +266,6 @@ export class DesktopAppShellService {
   }
 
   buildInitialUrl(_session: IDesktopSession | null): string {
-    return new URL('/', this.appUrl.origin).toString();
+    return new URL('/', this.appOrigin).toString();
   }
 }

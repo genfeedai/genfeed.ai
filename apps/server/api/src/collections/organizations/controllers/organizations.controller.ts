@@ -478,6 +478,7 @@ export class OrganizationsController extends BaseCRUDController<
       isGenerateMusicEnabled: true,
       isGenerateVideosEnabled: true,
       isNotificationsDiscordEnabled: false,
+      isNotificationsTelegramEnabled: false,
       isNotificationsEmailEnabled: true,
       isVerifyIngredientEnabled: true,
       isVerifyScriptEnabled: true,

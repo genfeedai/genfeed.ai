@@ -131,13 +131,13 @@ function AgentChatInputToolbarInner({
         ) : null}
 
         <Button
-          ariaLabel="Add an existing content reference"
+          ariaLabel="Reference existing content with ^"
           className={cn('shrink-0', controlSize)}
           icon={<Link className="size-4" />}
           isDisabled={disabled || !hasEditor}
           onClick={onInsertReference}
           size={ButtonSize.ICON}
-          tooltip="Reference existing content"
+          tooltip="Reference library content (^)"
           variant={ButtonVariant.GHOST}
           withWrapper={false}
         />

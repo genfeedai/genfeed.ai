@@ -15,11 +15,15 @@ import {
 } from 'vitest';
 
 let OnboardingSetupLayout: typeof import('./layout').default;
+let isSignedIn = true;
 
 const protectedAuthGateMock = vi.fn(
-  ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="protected-auth-gate">{children}</div>
-  ),
+  ({ children }: { children: React.ReactNode }) =>
+    isSignedIn ? (
+      <div data-testid="protected-auth-gate">{children}</div>
+    ) : (
+      <div data-testid="auth-gated" />
+    ),
 );
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -62,6 +66,7 @@ describe('app/(onboarding)/layout.tsx', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    isSignedIn = true;
     delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
   });
@@ -114,7 +119,7 @@ describe('app/(onboarding)/layout.tsx', () => {
     expect(screen.getByTestId('child')).toHaveTextContent('hello');
   });
 
-  it('bypasses the protected auth gate in desktop mode', () => {
+  it('renders desktop onboarding through the protected auth gate when signed in', () => {
     process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'pk_test_fake';
     process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
 
@@ -124,8 +129,23 @@ describe('app/(onboarding)/layout.tsx', () => {
       </OnboardingSetupLayout>,
     );
 
-    expect(screen.queryByTestId('protected-auth-gate')).not.toBeInTheDocument();
-    expect(protectedAuthGateMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('protected-auth-gate')).toBeInTheDocument();
+    expect(protectedAuthGateMock).toHaveBeenCalled();
     expect(screen.getByTestId('child')).toHaveTextContent('hello');
+  });
+
+  it('gates desktop onboarding when signed out', () => {
+    isSignedIn = false;
+    process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
+
+    render(
+      <OnboardingSetupLayout>
+        <span data-testid="child">hello</span>
+      </OnboardingSetupLayout>,
+    );
+
+    expect(screen.getByTestId('auth-gated')).toBeInTheDocument();
+    expect(protectedAuthGateMock).toHaveBeenCalled();
+    expect(screen.queryByTestId('child')).not.toBeInTheDocument();
   });
 });

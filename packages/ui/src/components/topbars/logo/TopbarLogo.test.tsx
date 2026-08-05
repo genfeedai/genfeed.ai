@@ -18,6 +18,14 @@ describe('TopbarLogo', () => {
     expect(link).toHaveAttribute('href', '/dashboard');
   });
 
+  it('should label the link so it is never an empty anchor', () => {
+    // Regression guard: the logo URL is empty until mount, so the crawled HTML
+    // shipped 69 anchors with no discernible text.
+    const { container } = render(<TopbarLogo logoHref="/dashboard" />);
+    const link = container.querySelector('a');
+    expect(link).toHaveAttribute('aria-label', 'Genfeed.ai home');
+  });
+
   it('should render the logo image', () => {
     const { container } = render(<TopbarLogo logoHref="/dashboard" />);
     const img = container.querySelector('img');

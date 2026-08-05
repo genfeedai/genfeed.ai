@@ -2,7 +2,7 @@ import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-me
 import CloudContent from '@public/cloud/cloud-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'Teams',
+  'Genfeed for Teams: One Shared Studio',
   'One studio for your whole team: shared workspaces, a brand library, roles, and approvals. Start free, then book a demo for team rollout.',
   '/cloud',
 );

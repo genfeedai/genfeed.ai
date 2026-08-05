@@ -45,6 +45,7 @@ export interface IOrganizationSetting extends IBaseEntity {
   isVoiceControlEnabled: boolean;
 
   isNotificationsDiscordEnabled: boolean;
+  isNotificationsTelegramEnabled: boolean;
   isNotificationsEmailEnabled: boolean;
   isWatermarkEnabled: boolean;
   isVerifyScriptEnabled: boolean;

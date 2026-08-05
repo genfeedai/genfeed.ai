@@ -15,6 +15,7 @@ export const organizationSettingsAttributes = createEntityAttributes([
   'isAutoEvaluateEnabled',
   'isFastlaneEnabled',
   'isNotificationsDiscordEnabled',
+  'isNotificationsTelegramEnabled',
   'isNotificationsEmailEnabled',
   'isFleetNsfwVisible',
   'isWebhookEnabled',

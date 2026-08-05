@@ -27,6 +27,7 @@ describe('PlaybookBuilderService', () => {
     id: 'playbook-1',
     isDeleted: false,
     organizationId: 'organization-1',
+    platform: ContentIntelligencePlatform.TWITTER,
     sourceCreators: ['creator-1'],
     updatedAt: new Date('2026-08-05T00:00:00.000Z'),
   } as PatternPlaybookDocument;

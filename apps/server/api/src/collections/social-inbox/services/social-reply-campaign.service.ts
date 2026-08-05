@@ -261,9 +261,17 @@ export class SocialReplyCampaignService {
 
     switch (transition) {
       case 'start':
-        return this.activate(campaign, [SocialReplyCampaignStatus.DRAFT]);
+        return this.activate(
+          campaign,
+          [SocialReplyCampaignStatus.DRAFT],
+          transition,
+        );
       case 'resume':
-        return this.activate(campaign, [SocialReplyCampaignStatus.PAUSED]);
+        return this.activate(
+          campaign,
+          [SocialReplyCampaignStatus.PAUSED],
+          transition,
+        );
       case 'pause':
         return this.pause(campaign);
       case 'cancel':
@@ -281,10 +289,12 @@ export class SocialReplyCampaignService {
   private async activate(
     campaign: SocialReplyCampaignDocument,
     allowedFrom: SocialReplyCampaignStatus[],
+    transition: 'resume' | 'start',
   ): Promise<SocialReplyCampaignDocument> {
-    if (!allowedFrom.includes(campaign.status as SocialReplyCampaignStatus)) {
+    const claimedStatus = campaign.status;
+    if (!allowedFrom.includes(claimedStatus as SocialReplyCampaignStatus)) {
       throw new BadRequestException(
-        `Cannot start a ${campaign.status} campaign`,
+        `Cannot ${transition} a ${claimedStatus} campaign`,
       );
     }
 
@@ -321,7 +331,7 @@ export class SocialReplyCampaignService {
 
     if (activated.count !== 1) {
       throw new BadRequestException(
-        `Cannot start a ${campaign.status} campaign`,
+        `Cannot ${transition} a ${claimedStatus} campaign`,
       );
     }
 

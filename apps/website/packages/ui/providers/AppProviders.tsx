@@ -7,10 +7,7 @@ import ThemeCookieSync from '@ui/providers/ThemeCookieSync';
 import dynamic from 'next/dynamic';
 import { ThemeProvider, useTheme } from 'next-themes';
 import type { ReactNode } from 'react';
-import { useMemo } from 'react';
 import { Toaster } from 'sonner';
-import MarketingTrackingProvider from '../../marketing/MarketingTrackingProvider';
-import type { MarketingRetargetingProviderConfig } from '../../marketing/retargeting';
 
 const LazyModalErrorDebug = dynamic(
   () => import('@ui/modals/system/error-debug/ModalErrorDebug'),
@@ -32,11 +29,7 @@ export interface AppProvidersProps {
   disableTransitionOnChange?: boolean;
   enableSystem?: boolean;
   includeLazyModalErrorDebug?: boolean;
-  includeMarketingTracking?: boolean;
   includeToaster?: boolean;
-  marketingConsentDefault?: 'denied' | 'granted';
-  marketingGtmContainerId?: string;
-  marketingRetargetingProviders?: MarketingRetargetingProviderConfig[];
   storageKey?: string;
 }
 
@@ -70,31 +63,9 @@ export default function AppProviders({
   disableTransitionOnChange = true,
   enableSystem = false,
   includeLazyModalErrorDebug = true,
-  includeMarketingTracking = true,
   includeToaster = true,
-  marketingConsentDefault = 'denied',
-  marketingGtmContainerId,
-  marketingRetargetingProviders = [],
   storageKey = THEME_STORAGE_KEY,
 }: AppProvidersProps) {
-  const marketingConfig = useMemo(
-    () => ({
-      gtmContainerId: marketingGtmContainerId,
-      retargetingProviders: marketingRetargetingProviders,
-    }),
-    [marketingGtmContainerId, marketingRetargetingProviders],
-  );
-  const content = (
-    <>
-      <ThemeCookieSync />
-      {children}
-      {includeToaster ? (
-        <Toaster richColors closeButton position="top-right" />
-      ) : null}
-      {includeLazyModalErrorDebug ? <LazyModalErrorDebug /> : null}
-    </>
-  );
-
   return (
     <ThemeProvider
       attribute="data-theme"
@@ -104,16 +75,12 @@ export default function AppProviders({
       disableTransitionOnChange={disableTransitionOnChange}
     >
       <ThemedBetterAuthProvider authProps={authProps}>
-        {includeMarketingTracking ? (
-          <MarketingTrackingProvider
-            config={marketingConfig}
-            consentDefault={marketingConsentDefault}
-          >
-            {content}
-          </MarketingTrackingProvider>
-        ) : (
-          content
-        )}
+        <ThemeCookieSync />
+        {children}
+        {includeToaster ? (
+          <Toaster richColors closeButton position="top-right" />
+        ) : null}
+        {includeLazyModalErrorDebug ? <LazyModalErrorDebug /> : null}
       </ThemedBetterAuthProvider>
     </ThemeProvider>
   );

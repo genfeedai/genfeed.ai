@@ -19,7 +19,8 @@
     "clsx": "2.1.1",
     "gsap": "3.15.0",
     "lucide-react": "1.28.0",
-    "next": "16.2.12",
+    "next": "16.3.0",
+    "posthog-js": "1.409.5",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "tailwind-merge": "3.6.0"
@@ -34,6 +35,7 @@
     "analyze:server": "ANALYZE=true BUNDLE_ANALYZE=server next build",
     "build": "next build --turbopack",
     "check:orphans": "bun run scripts/check-orphans.ts",
+    "check:seo": "bun run scripts/check-seo.ts",
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
     "dev": "NODE_OPTIONS='--max-old-space-size=4096 --disable-warning=DEP0169' next dev --turbopack",
     "dev:direct": "NODE_OPTIONS='--max-old-space-size=4096 --disable-warning=DEP0169' bun run ../../scripts/dev/run-direct.ts website -- next dev --turbopack",

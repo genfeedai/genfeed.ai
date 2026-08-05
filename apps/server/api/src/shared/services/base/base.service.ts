@@ -614,7 +614,10 @@ export abstract class BaseService<
         continue;
       }
 
-      result[key] = this.normalizeOperatorValue(key, value);
+      const normalizedValue = this.normalizeOperatorValue(key, value);
+      if (normalizedValue !== undefined) {
+        result[key] = normalizedValue;
+      }
     }
     return result;
   }

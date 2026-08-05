@@ -1,13 +1,14 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { resolveContainedPath } from './path-containment';
+import { resolveContainedPathWithoutSymlinks } from './path-containment';
 import type {
   FileEntry,
   ListOptions,
   StorageObject,
   StorageProvider,
 } from './storage.provider';
+import { resolveLocalStorageBaseDir } from './storage-base-dir';
 
 const MIME_TYPE_MAP: Record<string, string> = {
   '.jpg': 'image',
@@ -32,26 +33,19 @@ function getFileType(filePath: string): string {
   return MIME_TYPE_MAP[ext] ?? 'file';
 }
 
-function resolveBaseDir(): string {
-  return (
-    process.env.GENFEED_STORAGE_PATH ??
-    path.join(process.env.HOME ?? '~', '.genfeed', 'data', 'files')
-  );
-}
-
 export class LocalStorageProvider implements StorageProvider {
   private readonly baseDir: string;
 
   constructor(baseDir?: string) {
-    this.baseDir = baseDir ?? resolveBaseDir();
+    this.baseDir = resolveLocalStorageBaseDir(baseDir);
     if (!existsSync(this.baseDir)) {
       mkdirSync(this.baseDir, { recursive: true });
     }
   }
 
   /** Resolve a caller-supplied path against the storage root. */
-  private resolvePath(filePath: string): string {
-    return resolveContainedPath(
+  private async resolvePath(filePath: string): Promise<string> {
+    return resolveContainedPathWithoutSymlinks(
       this.baseDir,
       filePath === '' ? '.' : filePath,
       (message) => new Error(message),
@@ -63,7 +57,7 @@ export class LocalStorageProvider implements StorageProvider {
     filePath: string,
     _contentType?: string,
   ): Promise<string> {
-    const fullPath = this.resolvePath(filePath);
+    const fullPath = await this.resolvePath(filePath);
     const dir = path.dirname(fullPath);
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(fullPath, file);
@@ -75,14 +69,14 @@ export class LocalStorageProvider implements StorageProvider {
     localPath: string,
     _contentType?: string,
   ): Promise<string> {
-    const fullPath = this.resolvePath(filePath);
+    const fullPath = await this.resolvePath(filePath);
     await fs.mkdir(path.dirname(fullPath), { recursive: true });
     await fs.copyFile(localPath, fullPath);
     return filePath;
   }
 
   async download(filePath: string, localPath: string): Promise<void> {
-    const fullPath = this.resolvePath(filePath);
+    const fullPath = await this.resolvePath(filePath);
     await fs.mkdir(path.dirname(localPath), { recursive: true });
     await fs.copyFile(fullPath, localPath);
   }
@@ -92,7 +86,7 @@ export class LocalStorageProvider implements StorageProvider {
   }
 
   async delete(filePath: string): Promise<void> {
-    const fullPath = this.resolvePath(filePath);
+    const fullPath = await this.resolvePath(filePath);
     try {
       await fs.unlink(fullPath);
     } catch (err: unknown) {
@@ -103,7 +97,7 @@ export class LocalStorageProvider implements StorageProvider {
   }
 
   async list(prefix: string, options?: ListOptions): Promise<FileEntry[]> {
-    const dirPath = this.resolvePath(prefix);
+    const dirPath = await this.resolvePath(prefix);
     if (!existsSync(dirPath)) {
       return [];
     }
@@ -144,7 +138,7 @@ export class LocalStorageProvider implements StorageProvider {
   }
 
   async listObjects(prefix: string): Promise<StorageObject[]> {
-    const dirPath = this.resolvePath(prefix);
+    const dirPath = await this.resolvePath(prefix);
     if (!existsSync(dirPath)) {
       return [];
     }
@@ -173,7 +167,7 @@ export class LocalStorageProvider implements StorageProvider {
   }
 
   async exists(filePath: string): Promise<boolean> {
-    const fullPath = this.resolvePath(filePath);
+    const fullPath = await this.resolvePath(filePath);
     try {
       await fs.access(fullPath);
       return true;

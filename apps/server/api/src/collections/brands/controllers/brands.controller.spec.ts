@@ -272,12 +272,12 @@ describe('BrandsController', () => {
     } as never);
 
     const result = await controller.patch(mockRequest, mockUser, brandId, {
-      brand: '507f191e810c19729de860ee',
-      brandId: '507f191e810c19729de860ee',
+      brand: 'c07f191e810c19729de860ee',
+      brandId: 'c07f191e810c19729de860ee',
       label: 'Renamed Brand',
-      organization: '507f191e810c19729de860ee',
-      user: '507f191e810c19729de860ee',
-      userId: '507f191e810c19729de860ee',
+      organization: 'c07f191e810c19729de860ee',
+      user: 'c07f191e810c19729de860ee',
+      userId: 'c07f191e810c19729de860ee',
     } as never);
 
     expect(brandsService.patch).toHaveBeenCalledWith(
@@ -291,8 +291,8 @@ describe('BrandsController', () => {
   });
 
   it('routes an explicit organization change through the relocation operation', async () => {
-    const brandId = '507f191e810c19729de860ee';
-    const destinationOrganizationId = '607f191e810c19729de860ee';
+    const brandId = 'c07f191e810c19729de860ee';
+    const destinationOrganizationId = 'd07f191e810c19729de860ee';
     const summary = {
       membersSevered: 0,
       schedulingPending: 0,
@@ -302,7 +302,7 @@ describe('BrandsController', () => {
     };
     brandsService.findOne.mockResolvedValue({
       ...mockBrand,
-      organizationId: '507f191e810c19729de860ee',
+      organizationId: 'c07f191e810c19729de860ee',
     } as never);
     brandsService.relocateToOrganization.mockResolvedValue({
       brand: {
@@ -329,7 +329,7 @@ describe('BrandsController', () => {
       updateDto,
       {
         isSuperAdmin: false,
-        userId: '507f191e810c19729de860ee',
+        userId: mockUser.publicMetadata.user,
       },
     );
     expect(activitiesService.create).toHaveBeenCalledOnce();
@@ -519,7 +519,7 @@ describe('BrandsController', () => {
     });
 
     it('rejects crawl requests without organization context', async () => {
-      const brandId = '507f191e810c19729de860ee'.toString();
+      const brandId = 'c07f191e810c19729de860ee'.toString();
       const userWithoutOrganization = {
         ...mockUser,
         publicMetadata: {
@@ -551,7 +551,7 @@ describe('BrandsController', () => {
 
   describe('applyBrandKitDraft', () => {
     it('verifies brand access and passes organization context to the service', async () => {
-      const brandId = '507f191e810c19729de860ee'.toString();
+      const brandId = 'c07f191e810c19729de860ee'.toString();
       const applyResult = {
         appliedFields: ['description'],
         brandId,
@@ -583,15 +583,15 @@ describe('BrandsController', () => {
 
       expect(brandsService.findOne).toHaveBeenCalledWith({
         OR: [
-          { user: '507f191e810c19729de860ee' },
-          { organization: '507f191e810c19729de860ee' },
+          { userId: mockUser.publicMetadata.user },
+          { organizationId: mockUser.publicMetadata.organization },
         ],
-        _id: brandId,
+        id: brandId,
         isDeleted: false,
       });
       expect(brandsService.applyBrandKitDraft).toHaveBeenCalledWith(
         brandId,
-        '507f191e810c19729de860ee',
+        mockUser.publicMetadata.organization,
         {
           fields: {
             description: {
@@ -610,7 +610,7 @@ describe('BrandsController', () => {
     });
 
     it('rejects apply requests without organization context', async () => {
-      const brandId = '507f191e810c19729de860ee'.toString();
+      const brandId = 'c07f191e810c19729de860ee'.toString();
       const userWithoutOrganization = {
         ...mockUser,
         publicMetadata: {
@@ -647,7 +647,7 @@ describe('BrandsController', () => {
 
   describe('createManualBrandKitDraft', () => {
     it('verifies brand access and passes manual intake to the service', async () => {
-      const brandId = '507f191e810c19729de860ee'.toString();
+      const brandId = 'c07f191e810c19729de860ee'.toString();
       const dto = {
         description: 'Manual description',
         guidanceText: 'Write with practical proof.',
@@ -685,15 +685,15 @@ describe('BrandsController', () => {
 
       expect(brandsService.findOne).toHaveBeenCalledWith({
         OR: [
-          { user: '507f191e810c19729de860ee' },
-          { organization: '507f191e810c19729de860ee' },
+          { userId: mockUser.publicMetadata.user },
+          { organizationId: mockUser.publicMetadata.organization },
         ],
-        _id: brandId,
+        id: brandId,
         isDeleted: false,
       });
       expect(brandsService.buildManualBrandKitDraft).toHaveBeenCalledWith(
         brandId,
-        '507f191e810c19729de860ee',
+        mockUser.publicMetadata.organization,
         dto,
       );
       expect(serializeSingle).toHaveBeenCalledWith(
@@ -705,7 +705,7 @@ describe('BrandsController', () => {
     });
 
     it('rejects manual intake without organization context', async () => {
-      const brandId = '507f191e810c19729de860ee'.toString();
+      const brandId = 'c07f191e810c19729de860ee'.toString();
       const userWithoutOrganization = {
         ...mockUser,
         publicMetadata: {
@@ -737,7 +737,7 @@ describe('BrandsController', () => {
 
   describe('importBrandKitAssets', () => {
     it('serializes the guarded asset import outcome', async () => {
-      const brandId = '507f191e810c19729de860ee';
+      const brandId = 'c07f191e810c19729de860ee';
       const dto = {
         assets: [
           {
@@ -775,8 +775,8 @@ describe('BrandsController', () => {
 
       expect(brandsService.importBrandKitAssets).toHaveBeenCalledWith(
         brandId,
-        '507f191e810c19729de860ee',
-        '507f191e810c19729de860ee',
+        mockUser.publicMetadata.organization,
+        mockUser.publicMetadata.user,
         dto,
       );
       expect(serializeSingle).toHaveBeenCalledWith(

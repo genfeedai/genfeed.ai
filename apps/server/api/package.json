@@ -1,8 +1,8 @@
 {
   "dependencies": {
     "@anthropic-ai/sdk": "0.115.0",
-    "@aws-sdk/client-cloudfront": "3.1101.0",
-    "@aws-sdk/client-ec2": "3.1101.0",
+    "@aws-sdk/client-cloudfront": "3.1103.0",
+    "@aws-sdk/client-ec2": "3.1103.0",
     "@better-auth/infra": "0.3.7",
     "@genfeedai/agent": "workspace:*",
     "@genfeedai/auth-client": "workspace:*",
@@ -35,11 +35,11 @@
     "express": "5.2.1",
     "google-auth-library": "11.0.0",
     "htmlparser2": "12.0.0",
-    "jose": "^6.2.7",
+    "jose": "^6.2.8",
     "jsonapi-serializer": "3.6.9",
     "jsonwebtoken": "9.0.3",
     "multer": "2.2.0",
-    "openai": "7.3.0",
+    "openai": "7.4.0",
     "rss": "1.2.2",
     "tsconfig-paths": "4.2.0",
     "twitter-text": "3.1.0"
@@ -58,7 +58,7 @@
     "@types/supertest": "^7.2.1",
     "@types/twitter-text": "3.1.10",
     "supertest": "^7.2.2",
-    "unplugin-swc": "1.5.9",
+    "unplugin-swc": "1.5.10",
     "vitest": "4.1.10"
   },
   "main": "../dist/apps/api/main.js",

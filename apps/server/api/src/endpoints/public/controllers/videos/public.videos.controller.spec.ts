@@ -70,7 +70,7 @@ describe('PublicVideosController', () => {
       }
 
       return requested.toUpperCase() === storedScope
-        ? { _id: filter._id, scope: storedScope }
+        ? { id: filter.id, scope: storedScope }
         : null;
     };
 
@@ -100,8 +100,8 @@ describe('PublicVideosController', () => {
     expect(mockVideosService.findAll).toHaveBeenCalled();
   });
 
-  it('should pass brand filter when valid ObjectId provided', async () => {
-    const brandId = '507f1f77bcf86cd799439014';
+  it('should pass the brand filter when a valid entity ID is provided', async () => {
+    const brandId = 'c07f1f77bcf86cd799439014';
     await controller.findPublicVideos(
       mockRequest,
       {} as never,
@@ -150,9 +150,9 @@ describe('PublicVideosController', () => {
 
   // --- getVideoMetadata ---
   it('should return video metadata for valid public video', async () => {
-    const videoId = '507f1f77bcf86cd799439011';
+    const videoId = 'c07f1f77bcf86cd799439011';
     mockVideosService.findOne.mockResolvedValue({
-      _id: videoId,
+      id: videoId,
       category: 'video',
       scope: 'public',
     });
@@ -160,7 +160,7 @@ describe('PublicVideosController', () => {
     expect(result).toBeDefined();
   });
 
-  it('should throw NOT_FOUND for invalid ObjectId', async () => {
+  it('should throw NOT_FOUND for an invalid entity ID', async () => {
     await expect(
       controller.getVideoMetadata(mockRequest, 'invalid-id'),
     ).rejects.toThrow(HttpException);
@@ -169,13 +169,13 @@ describe('PublicVideosController', () => {
   it('should throw NOT_FOUND when video does not exist', async () => {
     mockVideosService.findOne.mockResolvedValue(null);
     await expect(
-      controller.getVideoMetadata(mockRequest, '507f1f77bcf86cd799439011'),
+      controller.getVideoMetadata(mockRequest, 'c07f1f77bcf86cd799439011'),
     ).rejects.toThrow(HttpException);
   });
 
   // --- getVideo (stream) ---
   it('should stream video file from S3', async () => {
-    const videoId = '507f1f77bcf86cd799439011';
+    const videoId = 'c07f1f77bcf86cd799439011';
     mockVideosService.findOne.mockImplementation(
       scopeFilteringFindOne(PRISMA_SCOPE_PUBLIC),
     );
@@ -209,12 +209,12 @@ describe('PublicVideosController', () => {
     const mockRes = { set: vi.fn() } as unknown as ExpressResponse;
 
     await expect(
-      controller.getVideo('507f1f77bcf86cd799439011', mockRes),
+      controller.getVideo('c07f1f77bcf86cd799439011', mockRes),
     ).rejects.toThrow(HttpException);
     expect(mockFilesClientService.getFileFromS3).not.toHaveBeenCalled();
   });
 
-  it('should throw NOT_FOUND for an invalid ObjectId on stream', async () => {
+  it('should throw NOT_FOUND for an invalid entity ID on stream', async () => {
     const mockRes = { set: vi.fn() } as unknown as ExpressResponse;
     await expect(controller.getVideo('invalid-id', mockRes)).rejects.toThrow(
       HttpException,
@@ -226,7 +226,7 @@ describe('PublicVideosController', () => {
     mockVideosService.findOne.mockResolvedValue(null);
     const mockRes = { set: vi.fn() } as unknown as ExpressResponse;
     await expect(
-      controller.getVideo('507f1f77bcf86cd799439011', mockRes),
+      controller.getVideo('c07f1f77bcf86cd799439011', mockRes),
     ).rejects.toThrow(HttpException);
   });
 });
