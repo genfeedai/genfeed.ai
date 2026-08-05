@@ -223,7 +223,13 @@ export function AgentChatContainerThreadView({
 /** Prefer real tool/input work over stuck lifecycle bookends. */
 export function selectActiveWorkEvent(
   workEvents: readonly AgentWorkEvent[],
+  options?: { isStreamActive?: boolean },
 ): AgentWorkEvent | null {
+  // Composer sticky "Tool started · Active" must not outlive the stream.
+  if (options?.isStreamActive === false) {
+    return null;
+  }
+
   const pendingOrRunning = [...workEvents]
     .reverse()
     .filter(

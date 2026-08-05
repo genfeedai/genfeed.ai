@@ -83,8 +83,11 @@ export function AgentChatContainer({
     ? 'max-w-[52rem]'
     : 'max-w-[46rem]';
   const activeWorkEvent = useMemo(
-    () => selectActiveWorkEvent(container.workEvents),
-    [container.workEvents],
+    () =>
+      selectActiveWorkEvent(container.workEvents, {
+        isStreamActive: container.isBusy,
+      }),
+    [container.isBusy, container.workEvents],
   );
 
   const handleSuggestionSend = useCallback(

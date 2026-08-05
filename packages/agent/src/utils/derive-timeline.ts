@@ -505,7 +505,16 @@ export function deriveTimeline(
     if (isStreamActive && activeStatuses.has(event.status)) {
       activeEvents.push(event);
     } else {
-      historicalEvents.push({ ...event });
+      // Stream is idle — never keep tools "running" in history or the UI
+      // shows "Working for 26m" after the turn already finished.
+      historicalEvents.push(
+        isActiveWorkEvent(event)
+          ? {
+              ...event,
+              status: AgentWorkEventStatus.COMPLETED,
+            }
+          : { ...event },
+      );
     }
   }
 

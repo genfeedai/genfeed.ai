@@ -561,6 +561,7 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       });
 
       return {
+        activeRunId: null,
         activeRunStatus: 'completed',
         latestProposedPlan:
           message.metadata?.proposedPlan ?? state.latestProposedPlan,
@@ -580,6 +581,7 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
         pendingInputRequest: null,
         // Clear tool lifecycle rows so sticky "Running get_analytics 15%" cannot
         // outlive the completed turn.
+        runStartedAt: null,
         stream: { ...DEFAULT_STREAM_STATE },
         workEvents: [],
       };
