@@ -85,10 +85,10 @@ describe('PostProcessingOrchestratorService', () => {
       );
 
       const ingredient = {
-        _id: 'test-object-id',
+        id: 'test-object-id',
         category: IngredientCategory.IMAGE,
-        organization: 'test-object-id',
-        user: { _id: 'test-object-id' },
+        organizationId: 'test-object-id',
+        userId: 'test-object-id',
       } as unknown as IngredientDocument;
 
       expect(() =>
@@ -100,10 +100,10 @@ describe('PostProcessingOrchestratorService', () => {
       organizationSettingsService.findOne.mockResolvedValue(null);
 
       const ingredient = {
-        _id: 'test-object-id',
+        id: 'test-object-id',
         category: IngredientCategory.IMAGE,
-        organization: 'test-object-id',
-        user: { _id: 'test-object-id' },
+        organizationId: 'test-object-id',
+        userId: 'test-object-id',
       } as unknown as IngredientDocument;
 
       expect(() =>
@@ -111,30 +111,24 @@ describe('PostProcessingOrchestratorService', () => {
       ).not.toThrow();
     });
 
-    it('scopes the settings lookup with the scalar FK even when the organization relation is populated', async () => {
-      // `organization` is a Mongo-era relation alias. It only holds an id
-      // while `BaseService.normalizeDocument` back-fills it — once a query
-      // populates the relation it is an object, and the old
-      // `String(ingredient.organization)` produced "[object Object]" as the
-      // organization id handed to `evaluateContent`.
+    it('scopes auto-evaluation with canonical scalar foreign keys', async () => {
       organizationSettingsService.findOne.mockResolvedValue({
         isAutoEvaluateEnabled: true,
       });
 
       const ingredient = {
-        brand: 'brand_1',
+        brandId: 'brand_1',
         category: IngredientCategory.IMAGE,
         id: 'ingredient_1',
-        organization: { id: 'org_1' },
         organizationId: 'org_1',
-        user: 'user_1',
+        userId: 'user_1',
       } as unknown as IngredientDocument;
 
       service.triggerAutoEvaluationIfEnabled(ingredient);
       await flushBackgroundWork();
 
       expect(organizationSettingsService.findOne).toHaveBeenCalledWith({
-        organization: 'org_1',
+        organizationId: 'org_1',
       });
       expect(evaluationsService.evaluateContent).toHaveBeenCalledWith(
         IngredientCategory.IMAGE,
@@ -153,10 +147,10 @@ describe('PostProcessingOrchestratorService', () => {
       // auto-evaluate setting — and then feed that foreign id into
       // `evaluateContent`.
       const ingredient = {
-        brand: 'brand_1',
+        brandId: 'brand_1',
         category: IngredientCategory.IMAGE,
         id: 'ingredient_1',
-        user: 'user_1',
+        userId: 'user_1',
       } as unknown as IngredientDocument;
 
       service.triggerAutoEvaluationIfEnabled(ingredient);

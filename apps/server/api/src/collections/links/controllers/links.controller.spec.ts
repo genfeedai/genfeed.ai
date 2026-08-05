@@ -35,7 +35,7 @@ describe('LinksController.buildFindAllQuery', () => {
   it('rejects a foreign brand for members', () => {
     const call = () =>
       controller.buildFindAllQuery(member, {
-        brand: 'brand-foreign',
+        brandId: 'brand-foreign',
       } as LinksQueryDto);
 
     expect(call).toThrow(ForbiddenException);
@@ -43,8 +43,8 @@ describe('LinksController.buildFindAllQuery', () => {
 
   it('preserves explicit brand filtering for superadmins', () => {
     const result = controller.buildFindAllQuery(superAdmin, {
-      brand: 'brand-2',
-      organization: 'org-2',
+      brandId: 'brand-2',
+      organizationId: 'org-2',
     } as LinksQueryDto);
 
     expect(result.where).toEqual({
@@ -53,12 +53,10 @@ describe('LinksController.buildFindAllQuery', () => {
     });
   });
 
-  // `GET /links?brand=<id>` must reach Prisma as the scalar FK. Emitting the
-  // Mongo-era `brand` alias relied on `processSearchParams` remapping it on
-  // read, which it only does for a non-empty string value.
-  it('maps an explicit `?brand=` filter onto the scalar `brandId` column', () => {
+  // `GET /links?brandId=<id>` must reach Prisma as the scalar FK.
+  it('preserves an explicit `?brandId=` filter', () => {
     const result = controller.buildFindAllQuery(member, {
-      brand: 'brand-1',
+      brandId: 'brand-1',
     } as LinksQueryDto);
 
     expect(result.where).toEqual({

@@ -4,9 +4,10 @@ import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/to
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 
 const ctx: ToolExecutionContext = {
-  organizationId: '67a123456789012345678901',
-  userId: '67a123456789012345678902',
+  organizationId: 'c7a123456789012345678901',
+  userId: 'c7a123456789012345678902',
 };
+const goalId = 'c7a123456789012345678903';
 
 describe('AgentMemoryGoalsToolHandler', () => {
   let agentMemoryCaptureService: {
@@ -192,12 +193,12 @@ describe('AgentMemoryGoalsToolHandler', () => {
   describe('checkGoalProgress', () => {
     it('refreshes and returns goal progress', async () => {
       const result = await handlerWithServices.checkGoalProgress(
-        { goalId: '67a123456789012345678903' },
+        { goalId },
         ctx,
       );
 
       expect(agentGoalsService.refreshProgress).toHaveBeenCalledWith(
-        '67a123456789012345678903',
+        goalId,
         ctx.organizationId,
       );
       expect(result).toEqual(
@@ -228,7 +229,7 @@ describe('AgentMemoryGoalsToolHandler', () => {
 
     it('fails when the agent goals service is unavailable', async () => {
       const result = await handlerWithoutServices.checkGoalProgress(
-        { goalId: '67a123456789012345678903' },
+        { goalId },
         ctx,
       );
 
@@ -243,12 +244,12 @@ describe('AgentMemoryGoalsToolHandler', () => {
   describe('updateGoal', () => {
     it('updates a goal via the agent goals service', async () => {
       const result = await handlerWithServices.updateGoal(
-        { goalId: '67a123456789012345678903', targetValue: 1000 },
+        { goalId, targetValue: 1000 },
         ctx,
       );
 
       expect(agentGoalsService.update).toHaveBeenCalledWith(
-        '67a123456789012345678903',
+        goalId,
         expect.objectContaining({ targetValue: 1000 }),
         ctx.organizationId,
       );
@@ -280,7 +281,7 @@ describe('AgentMemoryGoalsToolHandler', () => {
 
     it('fails when the agent goals service is unavailable', async () => {
       const result = await handlerWithoutServices.updateGoal(
-        { goalId: '67a123456789012345678903', targetValue: 1000 },
+        { goalId, targetValue: 1000 },
         ctx,
       );
 

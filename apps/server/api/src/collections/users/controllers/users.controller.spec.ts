@@ -140,9 +140,9 @@ describe('UsersController', () => {
         expect.objectContaining({
           include: { credentials: true },
           where: {
-            _id: { in: ['brand-1', 'brand-2'] },
+            id: { in: ['brand-1', 'brand-2'] },
             isDeleted: false,
-            organization: orgId,
+            organizationId: orgId,
           },
         }),
         expect.any(Object),
@@ -165,9 +165,9 @@ describe('UsersController', () => {
       );
 
       expect(organizationsService.findOne).toHaveBeenCalledWith({
-        _id: 'organization-canonical-id',
+        id: 'organization-canonical-id',
         isDeleted: false,
-        user: userId,
+        userId,
       });
       expect(usersService.patch).toHaveBeenCalledWith(userId, {
         lastUsedOrganizationId: 'organization-canonical-id',
@@ -188,7 +188,7 @@ describe('UsersController', () => {
     it('should return current user data', async () => {
       subscriptionsService.findOne.mockResolvedValue(null);
       usersService.findOne.mockResolvedValue({
-        _id: userId,
+        id: userId,
         isOnboardingCompleted: true,
       });
 
@@ -264,9 +264,9 @@ describe('UsersController', () => {
   describe('findMeSettings', () => {
     it('should return user settings', async () => {
       usersService.findOne.mockResolvedValue({
-        _id: userId,
+        id: userId,
         settings: {
-          _id: settingsId,
+          id: settingsId,
           isSidebarProgressCollapsed: true,
           theme: 'dark',
         },
@@ -283,7 +283,7 @@ describe('UsersController', () => {
 
     it('should throw when user has no settings', async () => {
       usersService.findOne.mockResolvedValue({
-        _id: userId,
+        id: userId,
         settings: null,
       });
 
@@ -296,11 +296,11 @@ describe('UsersController', () => {
   describe('updateMeSettings', () => {
     it('should update user settings and return serialized data', async () => {
       usersService.findOne.mockResolvedValue({
-        _id: userId,
-        settings: { _id: settingsId },
+        id: userId,
+        settings: { id: settingsId },
       });
       settingsService.patch.mockResolvedValue({
-        _id: settingsId,
+        id: settingsId,
         isSidebarProgressCollapsed: true,
         theme: 'light',
       });
@@ -326,11 +326,11 @@ describe('UsersController', () => {
 
     it('should patch the sidebar progress collapsed field independently', async () => {
       usersService.findOne.mockResolvedValue({
-        _id: userId,
-        settings: { _id: settingsId },
+        id: userId,
+        settings: { id: settingsId },
       });
       settingsService.patch.mockResolvedValue({
-        _id: settingsId,
+        id: settingsId,
         isSidebarProgressCollapsed: false,
       });
 
@@ -351,9 +351,8 @@ describe('UsersController', () => {
       expect(result).toBeDefined();
     });
 
-    it('should update settings when Prisma relation exposes id instead of _id', async () => {
+    it('should update settings from the canonical relation id', async () => {
       usersService.findOne.mockResolvedValue({
-        _id: userId,
         id: 'prisma-user-id',
         settings: { id: settingsId },
       });
@@ -381,7 +380,6 @@ describe('UsersController', () => {
 
     it('should find settings by Prisma user id when relation is not populated', async () => {
       usersService.findOne.mockResolvedValue({
-        _id: userId,
         id: 'prisma-user-id',
         settings: null,
       });
@@ -404,7 +402,7 @@ describe('UsersController', () => {
 
       expect(settingsService.findOne).toHaveBeenCalledWith({
         isDeleted: false,
-        user: 'prisma-user-id',
+        userId: 'prisma-user-id',
       });
       expect(settingsService.patch).toHaveBeenCalledWith(
         settingsId,
@@ -419,7 +417,6 @@ describe('UsersController', () => {
   describe('updateSettings', () => {
     it('should update user settings by user id route', async () => {
       usersService.findOne.mockResolvedValue({
-        _id: userId,
         id: 'prisma-user-id',
         settings: { id: settingsId },
       });
@@ -437,7 +434,7 @@ describe('UsersController', () => {
       );
 
       expect(usersService.findOne).toHaveBeenCalledWith({
-        _id: userId,
+        id: userId,
         isDeleted: false,
       });
       expect(settingsService.patch).toHaveBeenCalledWith(
@@ -453,7 +450,7 @@ describe('UsersController', () => {
   describe('updateMe', () => {
     it('should update user profile', async () => {
       usersService.patch.mockResolvedValue({
-        _id: userId,
+        id: userId,
         firstName: 'Updated',
       });
 
@@ -497,7 +494,7 @@ describe('UsersController', () => {
       } as never);
 
       expect(usersService.findOne).toHaveBeenNthCalledWith(1, {
-        _id: userId,
+        id: userId,
         isDeleted: false,
       });
       expect(usersService.patch).toHaveBeenCalledWith(
@@ -508,7 +505,7 @@ describe('UsersController', () => {
         'user_canonical_1',
       );
       expect(usersService.findOne).toHaveBeenNthCalledWith(2, {
-        _id: 'user_canonical_1',
+        id: 'user_canonical_1',
         isDeleted: false,
       });
       expect(result).toBeDefined();
@@ -576,7 +573,7 @@ describe('UsersController', () => {
   describe('updateMe brand selection', () => {
     it('should clear brand selection and clear last-used brand on member', async () => {
       usersService.findOne.mockResolvedValue({
-        _id: userId,
+        id: userId,
         firstName: 'Current',
       });
 
@@ -592,8 +589,8 @@ describe('UsersController', () => {
         {
           isActive: true,
           isDeleted: false,
-          organization: orgId,
-          user: userId,
+          organizationId: orgId,
+          userId,
         },
         null,
       );
@@ -605,7 +602,7 @@ describe('UsersController', () => {
       ).toHaveBeenCalledWith(userId);
       expect(usersService.patch).not.toHaveBeenCalled();
       expect(usersService.findOne).toHaveBeenCalledWith({
-        _id: userId,
+        id: userId,
         isDeleted: false,
       });
       expect(result).toBeDefined();
@@ -618,7 +615,7 @@ describe('UsersController', () => {
         label: 'Selected Brand',
       });
       usersService.findOne.mockResolvedValue({
-        _id: userId,
+        id: userId,
         firstName: 'Current',
       });
 
@@ -635,8 +632,8 @@ describe('UsersController', () => {
         {
           isActive: true,
           isDeleted: false,
-          organization: orgId,
-          user: userId,
+          organizationId: orgId,
+          userId,
         },
         canonicalId,
       );
@@ -648,7 +645,7 @@ describe('UsersController', () => {
   describe('getOnboardingStatus', () => {
     it('should return onboarding status for own user', async () => {
       usersService.findOne.mockResolvedValue({
-        _id: userId,
+        id: userId,
         isOnboardingCompleted: false,
         onboardingStepsCompleted: ['brand'],
       });
@@ -674,12 +671,12 @@ describe('UsersController', () => {
   describe('updateOnboardingStatus', () => {
     it('should update onboarding and set timestamps', async () => {
       usersService.findOne.mockResolvedValue({
-        _id: userId,
+        id: userId,
         isOnboardingCompleted: false,
         onboardingStartedAt: null,
       });
       usersService.patch.mockResolvedValue({
-        _id: userId,
+        id: userId,
         isOnboardingCompleted: true,
         onboardingCompletedAt: new Date(),
         onboardingStartedAt: new Date(),

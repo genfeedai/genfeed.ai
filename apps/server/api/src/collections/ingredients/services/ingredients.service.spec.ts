@@ -112,7 +112,7 @@ describe('IngredientsService', () => {
     });
 
     it('writes canonical provenance and source relations', async () => {
-      const sourceId = '507f1f77bcf86cd799439021';
+      const sourceId = 'cmsource000000000000000001';
 
       await service.create({
         category: IngredientCategory.IMAGE,
@@ -188,8 +188,8 @@ describe('IngredientsService', () => {
     });
 
     it('replaces source and tag relations with deduplicated canonical IDs', async () => {
-      const sourceId = '507f1f77bcf86cd799439021';
-      const tagId = '507f1f77bcf86cd799439022';
+      const sourceId = 'cmsource000000000000000001';
+      const tagId = 'cmtag000000000000000000001';
 
       await service.patch('ingredient-1', {
         sources: [sourceId, sourceId],
@@ -277,7 +277,7 @@ describe('IngredientsService', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             brandId,
-            status: IngredientStatus.PROCESSING,
+            status: 'PROCESSING',
           }),
         }),
       );

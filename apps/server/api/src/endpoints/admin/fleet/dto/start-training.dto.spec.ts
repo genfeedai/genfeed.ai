@@ -11,7 +11,10 @@ describe('StartTrainingDto validation', () => {
   it('accepts a valid set of entity-id sourceIds', async () => {
     const dto = plainToInstance(StartTrainingDto, {
       ...base,
-      sourceIds: ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012'],
+      sourceIds: [
+        '550e8400-e29b-41d4-a716-446655440011',
+        '550e8400-e29b-41d4-a716-446655440012',
+      ],
     });
     const errors = await validate(dto);
 
@@ -21,7 +24,7 @@ describe('StartTrainingDto validation', () => {
   it('rejects a malformed sourceId so it cannot reach toValidId and become null', async () => {
     const dto = plainToInstance(StartTrainingDto, {
       ...base,
-      sourceIds: ['507f1f77bcf86cd799439011', 'not-an-id'],
+      sourceIds: ['550e8400-e29b-41d4-a716-446655440011', 'not-an-id'],
     });
     const errors = await validate(dto);
 

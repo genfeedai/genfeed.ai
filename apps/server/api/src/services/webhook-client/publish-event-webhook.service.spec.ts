@@ -82,9 +82,9 @@ describe('PublishEventWebhookService', () => {
       occurredAt,
       platform: 'twitter',
       post: {
-        credential: 'cred_123',
+        credentialId: 'cred_123',
         id: 'post_123',
-        organization: 'org_123',
+        organizationId: 'org_123',
         platform: 'twitter',
         scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
       },
@@ -126,9 +126,9 @@ describe('PublishEventWebhookService', () => {
       errorMessage: 'Provider timeout 503',
       occurredAt: new Date('2026-07-07T10:00:00.000Z'),
       post: {
-        credential: 'cred_123',
+        credentialId: 'cred_123',
         id: 'post_123',
-        organization: 'org_123',
+        organizationId: 'org_123',
         platform: 'twitter',
       },
       retryable: false,
@@ -166,18 +166,18 @@ describe('PublishEventWebhookService', () => {
     postsService.findAll.mockResolvedValue({
       docs: [
         {
-          credential: 'cred_123',
+          credentialId: 'cred_123',
           groupId: 'group_123',
           id: 'post_123',
-          organization: 'org_123',
+          organizationId: 'org_123',
           platform: 'twitter',
           status: 'public',
         },
         {
-          credential: 'cred_456',
+          credentialId: 'cred_456',
           groupId: 'group_123',
           id: 'post_456',
-          organization: 'org_123',
+          organizationId: 'org_123',
           platform: 'linkedin',
           status: 'failed',
         },
@@ -186,10 +186,10 @@ describe('PublishEventWebhookService', () => {
 
     await service.emitLegacyPostPublished({
       post: {
-        credential: 'cred_123',
+        credentialId: 'cred_123',
         groupId: 'group_123',
         id: 'post_123',
-        organization: 'org_123',
+        organizationId: 'org_123',
         platform: 'twitter',
       },
     });
@@ -214,9 +214,9 @@ describe('PublishEventWebhookService', () => {
     await service.emitLegacyPostFailed({
       errorMessage: 'Provider rejected access_token=abc123',
       post: {
-        credential: 'cred_123',
+        credentialId: 'cred_123',
         id: 'post_123',
-        organization: 'org_123',
+        organizationId: 'org_123',
         platform: 'twitter',
       },
     });
@@ -244,8 +244,9 @@ describe('PublishEventWebhookService', () => {
           refreshToken: 'encrypted-refresh-token',
           webhookSecret: 'direct-post-webhook-secret',
         },
+        credentialId: 'cred_123',
         id: 'post_123',
-        organization: 'org_123',
+        organizationId: 'org_123',
         platform: 'twitter',
         scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
         user: {
@@ -320,9 +321,9 @@ describe('PublishEventWebhookService', () => {
     await expect(
       service.emitLegacyPostPublished({
         post: {
-          credential: 'cred_123',
+          credentialId: 'cred_123',
           id: 'post_123',
-          organization: 'org_123',
+          organizationId: 'org_123',
           platform: 'twitter',
         },
       }),
@@ -352,9 +353,9 @@ describe('PublishEventWebhookService', () => {
 
     await service.emitLegacyPostPublished({
       post: {
-        credential: 'cred_123',
+        credentialId: 'cred_123',
         id: 'post_123',
-        organization: 'org_123',
+        organizationId: 'org_123',
         platform: 'twitter',
       },
     });
@@ -372,9 +373,9 @@ describe('PublishEventWebhookService', () => {
 
     await service.emitLegacyPostPublished({
       post: {
-        credential: 'cred_123',
+        credentialId: 'cred_123',
         id: 'post_123',
-        organization: 'org_123',
+        organizationId: 'org_123',
         platform: 'twitter',
       },
     });

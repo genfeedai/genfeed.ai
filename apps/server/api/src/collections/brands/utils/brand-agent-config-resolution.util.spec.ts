@@ -159,7 +159,7 @@ describe('resolveEffectiveAgentExecutionConfig', () => {
       } as never,
       strategy: {
         autonomyMode: 'auto_publish',
-        brand: strategyBrandId,
+        brandId: strategyBrandId,
         model: 'deepseek/deepseek-chat',
         platforms: ['twitter'],
         qualityTier: 'budget',
@@ -199,7 +199,7 @@ describe('resolveEffectiveAgentRuntimeConfig', () => {
       } as never,
       platform: 'linkedin',
       strategy: {
-        brand: strategyBrandId,
+        brandId: strategyBrandId,
         platforms: ['linkedin'],
         qualityTier: 'budget',
       } as never,

@@ -52,7 +52,7 @@ describe('WatchlistsController', () => {
     it('should return watchlist items for the current brand', async () => {
       const items = [
         {
-          _id: '507f191e810c19729de860ee',
+          id: '507f191e810c19729de860ee',
           handle: 'creator1',
           platform: 'tiktok',
         },
@@ -84,7 +84,7 @@ describe('WatchlistsController', () => {
   describe('findOne', () => {
     it('should return a single watchlist item when found', async () => {
       const item = {
-        _id: watchlistId,
+        id: watchlistId,
         handle: 'creator1',
         platform: 'tiktok',
       };
@@ -107,14 +107,11 @@ describe('WatchlistsController', () => {
   describe('create', () => {
     it('should create a new watchlist item', async () => {
       const dto = {
-        brand: brandId,
         handle: 'newcreator',
         label: 'New Creator',
-        organization: orgId,
         platform: 'tiktok',
-        user: userId,
       };
-      const created = { _id: '507f191e810c19729de860ee', ...dto };
+      const created = { id: '507f191e810c19729de860ee', ...dto };
       watchlistsService.create.mockResolvedValue(created);
 
       const result = await controller.create(
@@ -129,14 +126,13 @@ describe('WatchlistsController', () => {
 
     it('should return the existing item instead of erroring (upsert)', async () => {
       const existing = {
-        _id: '507f191e810c19729de860ee',
+        id: '507f191e810c19729de860ee',
         handle: 'existing',
         platform: 'tiktok',
       };
       watchlistsService.findByHandle.mockResolvedValue(existing);
 
       const dto = {
-        brand: brandId,
         handle: 'existing',
         label: 'Existing',
         platform: 'tiktok',
@@ -154,13 +150,12 @@ describe('WatchlistsController', () => {
 
     it('should set user and organization from metadata when not provided', async () => {
       const dto = {
-        brand: brandId,
         handle: 'newcreator',
         label: 'New Creator',
         platform: 'tiktok',
       } as Record<string, unknown>;
       watchlistsService.create.mockResolvedValue({
-        _id: '507f191e810c19729de860ee',
+        id: '507f191e810c19729de860ee',
         ...dto,
       });
 
@@ -170,14 +165,14 @@ describe('WatchlistsController', () => {
         string,
         unknown
       >;
-      expect(createArg.user).toBe(userId);
-      expect(createArg.organization).toBe(orgId);
+      expect(createArg.userId).toBe(userId);
+      expect(createArg.organizationId).toBe(orgId);
     });
 
     it('should create a watchlist item with minimal data (quick-add semantics)', async () => {
       const dto = { handle: 'fastcreator', platform: 'instagram' };
       watchlistsService.create.mockResolvedValue({
-        _id: '507f191e810c19729de860ee',
+        id: '507f191e810c19729de860ee',
         ...dto,
         label: '@fastcreator',
       });
@@ -194,13 +189,13 @@ describe('WatchlistsController', () => {
         unknown
       >;
       expect(createArg.label).toBe('@fastcreator');
-      expect(createArg.brand).toBe(brandId);
+      expect(createArg.brandId).toBe(brandId);
       expect(result).toBeDefined();
     });
 
     it('should return existing item instead of error for duplicates (minimal payload)', async () => {
       const existing = {
-        _id: '507f191e810c19729de860ee',
+        id: '507f191e810c19729de860ee',
         handle: 'dupcreator',
         platform: 'tiktok',
       };
@@ -221,9 +216,9 @@ describe('WatchlistsController', () => {
   describe('update', () => {
     it('should update a watchlist item', async () => {
       const existing = {
-        _id: watchlistId,
-        brand: brandId,
+        brandId,
         handle: 'creator1',
+        id: watchlistId,
         platform: 'tiktok',
       };
       watchlistsService.findOne.mockResolvedValue(existing);
@@ -254,14 +249,14 @@ describe('WatchlistsController', () => {
 
     it('should throw ConflictException when handle update causes duplicate', async () => {
       const existing = {
-        _id: watchlistId,
-        brand: brandId,
+        brandId,
         handle: 'creator1',
+        id: watchlistId,
         platform: 'tiktok',
       };
       watchlistsService.findOne.mockResolvedValue(existing);
       watchlistsService.findByHandle.mockResolvedValue({
-        _id: '607f191e810c19729de860ff', // different ID = duplicate
+        id: '607f191e810c19729de860ff', // different ID = duplicate
         handle: 'creator2',
       });
 

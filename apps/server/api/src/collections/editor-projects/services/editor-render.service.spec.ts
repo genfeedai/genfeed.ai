@@ -134,7 +134,7 @@ describe('EditorRenderService', () => {
     };
     ingredientsService = {
       findAll: vi.fn().mockImplementation(({ where }) => {
-        const ids = where._id.in as string[];
+        const ids = where.id.in as string[];
         return Promise.resolve({
           docs: ids.map((id) => ({
             brandId: 'brand-123',

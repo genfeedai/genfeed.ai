@@ -15,23 +15,24 @@ describe('BookmarksController', () => {
   let controller: BookmarksController;
   let bookmarksService: BookmarksService;
 
-  const mockUserId = '507f1f77bcf86cd799439012';
-  const mockOrgId = '507f1f77bcf86cd799439013';
-  const mockBrandId = '507f1f77bcf86cd799439014';
+  const mockUserId = 'cluserbookmark000000000001';
+  const mockOrgId = 'clorgbookmark0000000000001';
+  const mockBrandId = 'clbrandbookmark00000000001';
+  const mockBookmarkId = 'clbookmark0000000000000001';
 
   const mockBookmark = {
-    _id: '507f1f77bcf86cd799439011',
-    brand: mockBrandId,
+    id: mockBookmarkId,
+    brandId: mockBrandId,
     category: BookmarkCategory.URL,
     content: 'Test content',
     intent: 'reference',
     isDeleted: false,
-    organization: mockOrgId,
+    organizationId: mockOrgId,
     platform: 'twitter',
     savedAt: new Date(),
     title: 'Test Bookmark',
     url: 'https://example.com/article',
-    user: mockUserId,
+    userId: mockUserId,
   };
 
   const mockUser = {
@@ -111,9 +112,9 @@ describe('BookmarksController', () => {
       expect(bookmarksService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           ...createDto,
-          organization: mockUser.publicMetadata.organization,
+          organizationId: mockUser.publicMetadata.organization,
           savedAt: expect.any(Date),
-          user: mockUser.publicMetadata.user,
+          userId: mockUser.publicMetadata.user,
         }),
       );
       expect(result).toBeDefined();
@@ -223,7 +224,7 @@ describe('BookmarksController', () => {
 
   describe('findOne', () => {
     it('should return a bookmark by id', async () => {
-      const bookmarkId = '507f1f77bcf86cd799439011';
+      const bookmarkId = mockBookmarkId;
 
       mockBookmarksService.findOne.mockResolvedValue(mockBookmark);
 
@@ -234,15 +235,15 @@ describe('BookmarksController', () => {
       );
 
       expect(bookmarksService.findOne).toHaveBeenCalledWith({
-        _id: bookmarkId,
-        organization: mockUser.publicMetadata.organization,
-        user: mockUser.publicMetadata.user,
+        id: bookmarkId,
+        organizationId: mockUser.publicMetadata.organization,
+        userId: mockUser.publicMetadata.user,
       });
       expect(result).toBeDefined();
     });
 
     it('should throw HttpException when bookmark does not exist', async () => {
-      const bookmarkId = '507f1f77bcf86cd799439011';
+      const bookmarkId = mockBookmarkId;
 
       mockBookmarksService.findOne.mockResolvedValue(null);
 
@@ -254,7 +255,7 @@ describe('BookmarksController', () => {
 
   describe('update', () => {
     it('should update a bookmark', async () => {
-      const bookmarkId = '507f1f77bcf86cd799439011';
+      const bookmarkId = mockBookmarkId;
       const updateDto: UpdateBookmarkDto = {
         title: 'Updated Title',
       };
@@ -281,7 +282,7 @@ describe('BookmarksController', () => {
     });
 
     it('should throw HttpException when bookmark does not exist', async () => {
-      const bookmarkId = '507f1f77bcf86cd799439011';
+      const bookmarkId = mockBookmarkId;
       const updateDto: UpdateBookmarkDto = {
         title: 'Updated Title',
       };
@@ -296,7 +297,7 @@ describe('BookmarksController', () => {
 
   describe('remove', () => {
     it('should soft delete a bookmark', async () => {
-      const bookmarkId = '507f1f77bcf86cd799439011';
+      const bookmarkId = mockBookmarkId;
 
       mockBookmarksService.findOne.mockResolvedValue(mockBookmark);
       mockBookmarksService.patch.mockResolvedValue(undefined);
@@ -318,7 +319,7 @@ describe('BookmarksController', () => {
     });
 
     it('should throw HttpException when bookmark does not exist', async () => {
-      const bookmarkId = '507f1f77bcf86cd799439011';
+      const bookmarkId = mockBookmarkId;
 
       mockBookmarksService.findOne.mockResolvedValue(null);
 

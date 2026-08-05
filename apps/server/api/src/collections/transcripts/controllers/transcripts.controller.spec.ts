@@ -42,12 +42,12 @@ describe('TranscriptsController', () => {
   const mockReq = {} as Request;
 
   const mockTranscript = {
-    _id: '507f191e810c19729de860ee',
+    id: '507f191e810c19729de860ee',
     isDeleted: false,
-    organization: '507f191e810c19729de860ee',
+    organizationId: '507f191e810c19729de860ee',
     status: TranscriptStatus.PENDING,
     transcriptText: 'Test transcript',
-    user: '507f191e810c19729de860ee',
+    userId: '507f191e810c19729de860ee',
     youtubeId: 'dQw4w9WgXcQ',
     youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
   };
@@ -180,9 +180,9 @@ describe('TranscriptsController', () => {
 
       expect(result).toEqual(mockTranscript);
       expect(transcriptsService.findOne).toHaveBeenCalledWith({
-        _id: transcriptId,
+        id: transcriptId,
         isDeleted: false,
-        organization: mockUser.publicMetadata.organization,
+        organizationId: mockUser.publicMetadata.organization,
       });
     });
 

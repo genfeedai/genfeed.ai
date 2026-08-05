@@ -118,7 +118,7 @@ describe('WorkflowCrudController', () => {
         mockUser.publicMetadata.user,
         mockUser.publicMetadata.organization,
         createDto,
-        undefined,
+        mockUser.publicMetadata.brand,
       );
       expect(result).toBeDefined();
     });

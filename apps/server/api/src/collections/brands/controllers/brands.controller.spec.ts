@@ -68,20 +68,21 @@ describe('BrandsController', () => {
   const mockUser = {
     id: 'user-123',
     publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toString(),
+      brand: 'cmbrand000000000000000001',
       isSuperAdmin: false,
-      organization: '507f191e810c19729de860ee'.toString(),
-      user: '507f191e810c19729de860ee'.toString(),
+      organization: 'cmorganization000000000000001',
+      user: 'cmuser0000000000000000001',
     } as IAuthPublicMetadata,
   } as unknown as User;
 
   const mockBrand = {
-    _id: '507f191e810c19729de860ee',
     description: 'A test brand',
+    id: 'cmbrand000000000000000001',
     isDeleted: false,
     name: 'Test Brand',
+    organizationId: 'cmorganization000000000000001',
     slug: 'test-brand',
-    user: '507f191e810c19729de860ee',
+    userId: 'cmuser0000000000000000001',
   };
 
   const mockRequest = {
@@ -263,7 +264,7 @@ describe('BrandsController', () => {
   });
 
   it('does not forward client-supplied ownership fields on a normal patch', async () => {
-    const brandId = '507f191e810c19729de860ee';
+    const brandId = 'cmbrand000000000000000001';
     brandsService.findOne.mockResolvedValue(mockBrand as never);
     brandsService.patch.mockResolvedValue({
       ...mockBrand,
@@ -370,7 +371,7 @@ describe('BrandsController', () => {
       const organizationId = 'b13yktd0f1e38me3f55swu0n';
       const query = {
         isDeleted: false,
-        organization: organizationId,
+        organizationId,
         sort: 'label: 1',
       } as BaseQueryDto;
       const superAdmin = {
@@ -385,7 +386,7 @@ describe('BrandsController', () => {
 
       expect(result.where).toEqual({
         isDeleted: false,
-        organization: organizationId,
+        organizationId,
       });
       expect(result.orderBy).toEqual({ label: 1 });
     });
@@ -395,7 +396,7 @@ describe('BrandsController', () => {
         .organization;
       const query = {
         isDeleted: false,
-        organization: organizationId,
+        organizationId,
         sort: 'label: 1',
       } as BaseQueryDto;
 
@@ -404,8 +405,8 @@ describe('BrandsController', () => {
       expect(result.where).toEqual({
         isDeleted: false,
         OR: [
-          { user: (mockUser.publicMetadata as IAuthPublicMetadata).user },
-          { organization: organizationId },
+          { userId: (mockUser.publicMetadata as IAuthPublicMetadata).user },
+          { organizationId },
         ],
       });
       expect(result.orderBy).toEqual({ label: 1 });
@@ -414,7 +415,7 @@ describe('BrandsController', () => {
     it('rejects member organization filters outside the session org', () => {
       const query = {
         isDeleted: false,
-        organization: 'org-foreign-not-in-session',
+        organizationId: 'cmorganization000000000000002',
         sort: 'label: 1',
       } as BaseQueryDto;
 
@@ -436,7 +437,7 @@ describe('BrandsController', () => {
 
   describe('findOne', () => {
     it('should return a brand by id', async () => {
-      const brandId = '507f191e810c19729de860ee'.toString();
+      const brandId = 'cmbrand000000000000000001';
       brandsService.findOne.mockResolvedValue(
         mockBrand as unknown as BrandEntity,
       );
@@ -460,7 +461,7 @@ describe('BrandsController', () => {
 
   describe('crawlBrandKitWebsite', () => {
     it('verifies brand access and passes organization context to the service', async () => {
-      const brandId = '507f191e810c19729de860ee'.toString();
+      const brandId = 'cmbrand000000000000000001';
       const draft = {
         assetCandidates: [],
         brandId,
@@ -498,15 +499,15 @@ describe('BrandsController', () => {
 
       expect(brandsService.findOne).toHaveBeenCalledWith({
         OR: [
-          { user: '507f191e810c19729de860ee' },
-          { organization: '507f191e810c19729de860ee' },
+          { userId: 'cmuser0000000000000000001' },
+          { organizationId: 'cmorganization000000000000001' },
         ],
-        _id: brandId,
+        id: brandId,
         isDeleted: false,
       });
       expect(brandsService.crawlWebsiteBrandKitDraft).toHaveBeenCalledWith(
         brandId,
-        '507f191e810c19729de860ee',
+        'cmorganization000000000000001',
         { url: 'https://acme.com' },
       );
       expect(serializeSingle).toHaveBeenCalledWith(

@@ -25,9 +25,9 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _s, data) => ({ data })),
 }));
 
-const mockOrgId = 'test-object-id';
-const mockUserId = 'test-object-id';
-const mockBrandId = 'test-object-id';
+const mockOrgId = 'clz1a2b3c4d5e6f7g8h9i0j1k';
+const mockUserId = 'clz1a2b3c4d5e6f7g8h9i0j1l';
+const mockBrandId = 'clz1a2b3c4d5e6f7g8h9i0j1m';
 const mockBrand = { id: mockBrandId, name: 'TestBrand' };
 
 const mockUser = {} as User;
@@ -89,14 +89,14 @@ describe('GhostController', () => {
   describe('connect', () => {
     const validBody = {
       apiKey: 'ghost-admin-key',
-      brand: mockBrandId,
+      brandId: mockBrandId,
       ghostUrl: 'https://myblog.ghost.io',
     };
 
     it('returns bad request when ghostUrl is missing', async () => {
       const result = await controller.connect(mockRequest, mockUser, {
         apiKey: 'key',
-        brand: mockBrandId,
+        brandId: mockBrandId,
       } as never);
       expect(returnBadRequest).toHaveBeenCalled();
       expect(result).toMatchObject({ error: expect.anything() });

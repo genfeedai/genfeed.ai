@@ -179,9 +179,9 @@ describe('AgentRouteRewriteService', () => {
     );
 
     expect(brandsService.findOne).toHaveBeenCalledWith({
-      _id: 'brand-1',
+      id: 'brand-1',
       isDeleted: false,
-      organization: 'org-1',
+      organizationId: 'org-1',
     });
   });
 });

@@ -48,12 +48,12 @@ describe('AssetsOperationsController', () => {
   let loggerService: vi.Mocked<LoggerService>;
   let configService: ConfigService;
 
-  const mockUserId = '507f191e810c19729de860ee';
-  const mockOrgId = '507f191e810c19729de860ee';
-  const mockBrandId = '507f191e810c19729de860ee';
-  const mockIngredientId = '507f191e810c19729de860ee';
-  const mockMetadataId = '507f191e810c19729de860ee';
-  const mockAssetId = '507f191e810c19729de860ee';
+  const mockUserId = 'cmuser0000000000000000001';
+  const mockOrgId = 'cmorganization000000000000001';
+  const mockBrandId = 'cmbrand000000000000000001';
+  const mockIngredientId = 'cmingredient000000000000001';
+  const mockMetadataId = 'cmmetadata0000000000000001';
+  const mockAssetId = 'cmasset000000000000000001';
 
   const mockUser = {
     id: 'user_123',
@@ -79,7 +79,7 @@ describe('AssetsOperationsController', () => {
   } as unknown as Express.Multer.File;
 
   const mockBrand = {
-    _id: mockBrandId,
+    id: mockBrandId,
     description: 'Brand description',
     label: 'Test Brand',
     primaryColor: '#111111',
@@ -96,15 +96,15 @@ describe('AssetsOperationsController', () => {
   };
 
   const mockIngredient = {
-    _id: mockIngredientId,
     category: IngredientCategory.IMAGE,
-    metadata: mockMetadataId,
-    user: mockUserId,
+    id: mockIngredientId,
+    metadataId: mockMetadataId,
+    userId: mockUserId,
   };
 
   const mockMetadata = {
-    _id: mockMetadataId,
     height: 1024,
+    id: mockMetadataId,
     width: 1024,
   };
 

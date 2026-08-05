@@ -190,7 +190,7 @@ describe('LeonardoaiWebhookService', () => {
     await service.handleCallback(body);
 
     expect(deps.metadataService.findOne).toHaveBeenCalledWith({
-      _id: metadataId,
+      id: metadataId,
       isDeleted: false,
     });
   });

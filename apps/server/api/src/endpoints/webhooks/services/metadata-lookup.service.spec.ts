@@ -100,7 +100,7 @@ describe('MetadataLookupService', () => {
       const mockMetadata = { id: 'meta-1' };
       const mockIngredient = {
         id: 'ing-1',
-        user: { id: 'user-1' },
+        userId: 'user-1',
       };
 
       metadataService.findOne.mockResolvedValue(mockMetadata);
@@ -136,7 +136,7 @@ describe('MetadataLookupService', () => {
   describe('lookupMetadataAndIngredient', () => {
     it('should return metadata and ingredient on success', async () => {
       const mockMetadata = { id: 'meta-1' };
-      const mockIngredient = { id: 'ing-1', user: { id: 'user-1' } };
+      const mockIngredient = { id: 'ing-1', userId: 'user-1' };
 
       metadataService.findOne.mockResolvedValue(mockMetadata);
       metadataService.patch.mockResolvedValue(mockMetadata);

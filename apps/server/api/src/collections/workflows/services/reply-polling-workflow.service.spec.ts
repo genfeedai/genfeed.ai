@@ -82,10 +82,10 @@ describe('ReplyPollingWorkflowService', () => {
   it('discovers active reply bot credentials inside the workflow organization', async () => {
     replyBotConfigsService.find.mockResolvedValue([
       {
-        _id: 'config-1',
-        config: { credential: 'credential-1' },
+        config: { credentialId: 'credential-1' },
+        id: 'config-1',
         isActive: true,
-        organization: 'org-1',
+        organizationId: 'org-1',
       },
     ]);
     credentialsService.findOne.mockResolvedValue({
@@ -116,9 +116,9 @@ describe('ReplyPollingWorkflowService', () => {
       organizationId: 'org-1',
     });
     expect(credentialsService.findOne).toHaveBeenCalledWith({
-      _id: 'credential-1',
+      id: 'credential-1',
       isDeleted: false,
-      organization: 'org-1',
+      organizationId: 'org-1',
     });
     expect(
       replyBotOrchestratorService.processOrganizationBots,

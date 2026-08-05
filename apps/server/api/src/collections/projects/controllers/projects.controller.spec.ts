@@ -20,9 +20,9 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   setTopLinks: vi.fn((_req, opts) => opts),
 }));
 
-const CALLER_ORG_ID = '507f1f77bcf86cd799439012';
-const FOREIGN_ORG_ID = '507f1f77bcf86cd7994390aa';
-const PROJECT_ID = '507f1f77bcf86cd799439014';
+const CALLER_ORG_ID = 'cmorganization000000000000001';
+const FOREIGN_ORG_ID = 'cmorganization000000000000002';
+const PROJECT_ID = 'cmproject000000000000000001';
 
 describe('ProjectsController', () => {
   let controller: ProjectsController;
@@ -96,7 +96,7 @@ describe('ProjectsController', () => {
   describe('findOne cross-organization access', () => {
     it('returns 404 for a project owned by another organization', async () => {
       projectsService.findOne.mockResolvedValue({
-        _id: PROJECT_ID,
+        id: PROJECT_ID,
         name: 'Foreign Project',
         organizationId: FOREIGN_ORG_ID,
       });
@@ -108,7 +108,7 @@ describe('ProjectsController', () => {
 
     it('returns the project when it belongs to the caller organization', async () => {
       const project = {
-        _id: PROJECT_ID,
+        id: PROJECT_ID,
         name: 'Own Project',
         organizationId: CALLER_ORG_ID,
       };
@@ -126,14 +126,14 @@ describe('ProjectsController', () => {
 
     it('scopes the single-read lookup to non-deleted rows', async () => {
       projectsService.findOne.mockResolvedValue({
-        _id: PROJECT_ID,
+        id: PROJECT_ID,
         organizationId: CALLER_ORG_ID,
       });
 
       await controller.findOne(mockRequest, mockUser, PROJECT_ID);
 
       expect(projectsService.findOne).toHaveBeenCalledWith(
-        { _id: PROJECT_ID, isDeleted: false },
+        { id: PROJECT_ID, isDeleted: false },
         expect.anything(),
       );
     });

@@ -16,10 +16,10 @@ describe('AssetsController', () => {
   let controller: AssetsController;
   let service: AssetsService;
 
-  const mockUserId = '507f191e810c19729de860ee';
-  const mockOrgId = '507f191e810c19729de860ee';
-  const mockBrandId = '507f191e810c19729de860ee';
-  const mockAssetId = '507f191e810c19729de860ee';
+  const mockUserId = 'cmuser0000000000000000001';
+  const mockOrgId = 'cmorganization000000000000001';
+  const mockBrandId = 'cmbrand000000000000000001';
+  const mockAssetId = 'cmasset000000000000000001';
 
   const mockUser = {
     id: 'user_123',
@@ -155,7 +155,7 @@ describe('AssetsController', () => {
       ).rejects.toThrow(HttpException);
     });
 
-    it('should throw HttpException for invalid ObjectId', async () => {
+    it('should throw HttpException for an invalid entity id', async () => {
       await expect(
         controller.findOne(mockRequest, 'invalid-id', mockUser),
       ).rejects.toThrow(HttpException);

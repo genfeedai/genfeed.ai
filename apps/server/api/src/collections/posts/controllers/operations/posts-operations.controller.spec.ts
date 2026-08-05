@@ -666,8 +666,7 @@ Tweet 3: Tech innovation is changing the world.`,
         { id: postId },
         expect.any(Array),
       );
-      expect(mockPostsService.count).toHaveBeenCalledWith({
-        isDeleted: false,
+      expect(mockPostsService.count).toHaveBeenCalledWith(organizationId, {
         parentId: postId,
       });
       // Should create count-1 new posts (original becomes first)
@@ -805,6 +804,10 @@ Tweet 3: Tech innovation is changing the world.`,
           }),
         ],
         organizationId,
+        {
+          credentialId,
+          platform: CredentialPlatform.TWITTER,
+        },
       );
       expect(mockPostsService.patch).not.toHaveBeenCalled();
       expect(result).toBeDefined();

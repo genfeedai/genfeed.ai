@@ -89,9 +89,6 @@ describe('CampaignExecutorService', () => {
   const brandId = 'brand-1';
   const userId = 'user-1';
 
-  // Shaped like a real outreach-campaign row: scalar FKs are the source of truth
-  // and `organization` is the only Mongo-era alias `OutreachCampaignsService`
-  // back-fills (it never sets `brand` or `user`).
   const makeCampaign = (
     overrides: Partial<OutreachCampaignDocument> = {},
   ): OutreachCampaignDocument =>
@@ -105,8 +102,7 @@ describe('CampaignExecutorService', () => {
         useAiGeneration: true,
       } as CampaignAiConfig,
       brandId,
-      credential: credentialId,
-      organization: orgId,
+      credentialId,
       organizationId: orgId,
       platform: CampaignPlatform.TWITTER,
       rateLimits: { delayBetweenRepliesSeconds: 0 },
@@ -326,7 +322,7 @@ describe('CampaignExecutorService', () => {
       await service.executeTarget(campaign, target);
 
       expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
-        _id: credentialId,
+        id: credentialId,
         brandId,
         isDeleted: false,
         organizationId: orgId,
@@ -348,14 +344,14 @@ describe('CampaignExecutorService', () => {
       await service.executeTarget(campaign, target);
 
       expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
-        _id: credentialId,
+        id: credentialId,
         isDeleted: false,
         organizationId: orgId,
       });
     });
 
     it('should not query credentials at all when the campaign has no credential', async () => {
-      const campaign = makeCampaign({ credential: undefined });
+      const campaign = makeCampaign({ credentialId: undefined });
       const target = makeTarget();
       mockOutreachCampaignsService.canReply.mockResolvedValue(true);
 
@@ -368,7 +364,6 @@ describe('CampaignExecutorService', () => {
 
     it('should fail closed without querying credentials when the organization cannot be resolved', async () => {
       const campaign = makeCampaign({
-        organization: undefined,
         organizationId: undefined,
       } as Partial<OutreachCampaignDocument>);
       const target = makeTarget();

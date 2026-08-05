@@ -39,6 +39,9 @@ describe('PublicImagesController', () => {
   let imagesService: vi.Mocked<ImagesService>;
   let loggerService: vi.Mocked<LoggerService>;
 
+  const brandId = 'b07f191e810c19729de860ee';
+  const imageId = 'i07f191e810c19729de860ee';
+
   const mockRequest = {
     originalUrl: '/api/public/images',
     query: {},
@@ -103,14 +106,14 @@ describe('PublicImagesController', () => {
       const mockImages = {
         docs: [
           {
-            _id: '1',
+            id: 'image-1',
             category: IngredientCategory.IMAGE,
             scope: AssetScope.PUBLIC,
             status: IngredientStatus.GENERATED,
             url: 'https://example.com/image1.jpg',
           },
           {
-            _id: '2',
+            id: 'image-2',
             category: IngredientCategory.IMAGE,
             scope: AssetScope.PUBLIC,
             status: IngredientStatus.GENERATED,
@@ -161,7 +164,6 @@ describe('PublicImagesController', () => {
     });
 
     it('should filter by account when provided', async () => {
-      const brandId = '507f191e810c19729de860ee'.toString();
       const mockImages = {
         docs: [],
         totalDocs: 0,
@@ -179,7 +181,7 @@ describe('PublicImagesController', () => {
       expect(imagesService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            brand: brandId,
+            brandId,
           }),
         }),
         expect.any(Object),
@@ -243,9 +245,8 @@ describe('PublicImagesController', () => {
 
   describe('getImageMetadata', () => {
     it('should return a public image by id', async () => {
-      const imageId = '507f191e810c19729de860ee'.toString();
       const mockImage = {
-        _id: imageId,
+        id: imageId,
         category: IngredientCategory.IMAGE,
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
@@ -258,7 +259,7 @@ describe('PublicImagesController', () => {
 
       expect(imagesService.findOne).toHaveBeenCalledWith(
         {
-          _id: imageId,
+          id: imageId,
           category: 'IMAGE',
           isDeleted: false,
           scope: AssetScope.PUBLIC,
@@ -287,8 +288,6 @@ describe('PublicImagesController', () => {
     });
 
     it('should return 404 when image not found', async () => {
-      const imageId = '507f191e810c19729de860ee'.toString();
-
       imagesService.findOne.mockResolvedValue(null);
 
       const result = await controller.getImageMetadata(mockRequest, imageId);
@@ -307,9 +306,8 @@ describe('PublicImagesController', () => {
 
   describe('getImage (image.jpg download)', () => {
     it('should stream a public image', async () => {
-      const imageId = '507f191e810c19729de860ee'.toString();
       const mockImage = {
-        _id: imageId,
+        id: imageId,
         category: IngredientCategory.IMAGE,
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
@@ -324,7 +322,7 @@ describe('PublicImagesController', () => {
       await controller.getImage(imageId, mockResponse);
 
       expect(imagesService.findOne).toHaveBeenCalledWith({
-        _id: imageId,
+        id: imageId,
         category: 'IMAGE',
         isDeleted: false,
         scope: AssetScope.PUBLIC,
@@ -338,8 +336,6 @@ describe('PublicImagesController', () => {
     });
 
     it('should return 404 for non-existent image', async () => {
-      const imageId = '507f191e810c19729de860ee'.toString();
-
       imagesService.findOne.mockResolvedValue(null);
 
       await controller.getImage(imageId, mockResponse);
@@ -351,9 +347,8 @@ describe('PublicImagesController', () => {
     });
 
     it('should return 404 when S3 file not found', async () => {
-      const imageId = '507f191e810c19729de860ee'.toString();
       const mockImage = {
-        _id: imageId,
+        id: imageId,
         category: IngredientCategory.IMAGE,
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,

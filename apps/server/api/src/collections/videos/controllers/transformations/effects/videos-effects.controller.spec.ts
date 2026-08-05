@@ -45,10 +45,10 @@ const mockRequest = {
 } as unknown as Request;
 
 const mockVideo = {
-  brand: '507f1f77bcf86cd799439014',
+  brandId: '507f1f77bcf86cd799439014',
   id: '507f1f77bcf86cd799439011',
-  organization: '507f1f77bcf86cd799439013',
-  user: '507f1f77bcf86cd799439012',
+  organizationId: '507f1f77bcf86cd799439013',
+  userId: '507f1f77bcf86cd799439012',
 };
 
 const mockUser = {
@@ -223,7 +223,7 @@ describe('VideosEffectsController', () => {
     ).toHaveBeenCalledWith(
       mockUser,
       expect.objectContaining({
-        parent: '507f1f77bcf86cd799439011',
+        parentId: '507f1f77bcf86cd799439011',
       }),
     );
   });

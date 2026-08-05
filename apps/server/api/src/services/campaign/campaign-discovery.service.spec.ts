@@ -62,9 +62,6 @@ describe('CampaignDiscoveryService', () => {
     ({
       id: campaignId,
       discoveryConfig: makeConfig(),
-      // `organizationId` is the real column; `organization` is the Mongo-era
-      // alias `OutreachCampaignsService.normalizeDoc` back-fills from it.
-      organization: orgId,
       organizationId: orgId,
       platform: CampaignPlatform.TWITTER,
       ...overrides,
@@ -407,22 +404,17 @@ describe('CampaignDiscoveryService', () => {
       ];
       mockCampaignTargetsService.createMany.mockResolvedValue(targets);
 
-      // Only the scalar FK is present — the alias a populated read would have
-      // provided is absent, exactly as it is on a real row.
-      const campaign = makeCampaign({
-        organization: undefined,
-      } as Partial<OutreachCampaignDocument>);
+      const campaign = makeCampaign();
 
       await service.addDiscoveredTargetsToCampaign(campaign, targets);
 
       expect(mockCampaignTargetsService.createMany).toHaveBeenCalledWith([
-        expect.objectContaining({ organization: orgId }),
+        expect.objectContaining({ organizationId: orgId }),
       ]);
     });
 
     it('should refuse to create unscoped targets when the organization cannot be resolved', async () => {
       const campaign = makeCampaign({
-        organization: undefined,
         organizationId: undefined,
       } as Partial<OutreachCampaignDocument>);
 

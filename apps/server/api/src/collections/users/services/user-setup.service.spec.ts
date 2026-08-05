@@ -23,12 +23,11 @@ describe('UserSetupService', () => {
   const userSettingsId = 'test-object-id';
   const roleId = 'test-object-id';
 
-  const mockOrg = { id: orgId, label: 'Default Organization', user: userId };
-  const mockOrgSettings = { id: orgSettingsId, organization: orgId };
-  const mockUserSettings = { id: userSettingsId, user: userId };
-  const mockBrand = { id: brandId, organization: orgId };
-  // Shaped like a Prisma row: scalar FKs only. The Mongo-era `organization`
-  // alias is absent unless a query explicitly populates the relation.
+  const mockOrg = { id: orgId, label: 'Default Organization', userId };
+  const mockOrgSettings = { id: orgSettingsId, organizationId: orgId };
+  const mockUserSettings = { id: userSettingsId, userId };
+  const mockBrand = { id: brandId, organizationId: orgId };
+  // Shaped like a Prisma row with canonical scalar foreign keys.
   const mockMember = { id: memberId, organizationId: orgId, userId: userId };
   const mockRole = { id: roleId, key: 'admin' };
 
@@ -331,24 +330,22 @@ describe('UserSetupService', () => {
         );
       });
 
-      it('should reuse the org from an existing membership even when the legacy user-owned lookup misses (#1227 no duplicate org)', async () => {
-        // Membership points at the org, but the legacy `Organization.user`
-        // ownership lookup returns nothing — the old dedup path would have
-        // created a second "Default Organization".
+      it('should reuse the org from an existing membership when the user-owned lookup misses (#1227 no duplicate org)', async () => {
+        // Membership points at the org while the direct user-owned lookup
+        // returns nothing, so setup must not create a duplicate organization.
         mockMembersService.findOne.mockResolvedValue(mockMember);
         mockOrganizationsService.findOne.mockImplementation(
           (filter: Record<string, unknown>) =>
-            Promise.resolve(filter._id ? mockOrg : null),
+            Promise.resolve(filter.id ? mockOrg : null),
         );
 
         const result = await service.initializeUserResources(userId);
 
         expect(result.organization).toBe(mockOrg);
         expect(mockOrganizationsService.create).not.toHaveBeenCalled();
-        // The membership's scalar FK is what resolves the org — the legacy
-        // `organization` relation alias is undefined on an unpopulated row.
+        // The membership's canonical scalar FK resolves the organization.
         expect(mockOrganizationsService.findOne).toHaveBeenCalledWith({
-          _id: orgId,
+          id: orgId,
           isDeleted: false,
         });
         expect(mockLogger.warn).toHaveBeenCalledWith(
@@ -360,8 +357,8 @@ describe('UserSetupService', () => {
       });
 
       it('should not resolve an org from a membership that carries no scalar organizationId', async () => {
-        // Guards the inverse: reading the unpopulated `organization` alias made
-        // every membership look orgless, so setup spawned a duplicate org.
+        // Guards the inverse: a membership without organizationId must not
+        // trigger an undefined organization lookup.
         mockMembersService.findOne.mockResolvedValue({
           id: memberId,
           userId: userId,
@@ -371,7 +368,7 @@ describe('UserSetupService', () => {
         await service.initializeUserResources(userId);
 
         expect(mockOrganizationsService.findOne).not.toHaveBeenCalledWith(
-          expect.objectContaining({ _id: undefined }),
+          expect.objectContaining({ id: undefined }),
         );
       });
 
