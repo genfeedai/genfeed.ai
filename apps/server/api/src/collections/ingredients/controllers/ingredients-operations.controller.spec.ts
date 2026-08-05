@@ -30,9 +30,9 @@ describe('IngredientsOperationsController', () => {
   const mockUser = {
     id: 'user_123',
     publicMetadata: {
-      brand: '507f1f77bcf86cd799439013',
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
+      brand: 'c07f1f77bcf86cd799439013',
+      organization: 'c07f1f77bcf86cd799439012',
+      user: 'c07f1f77bcf86cd799439011',
     },
   } as unknown as User;
 
@@ -43,21 +43,18 @@ describe('IngredientsOperationsController', () => {
   } as unknown as Request;
 
   const mockIngredient = {
-    id: '507f1f77bcf86cd799439014',
-    brand: '507f1f77bcf86cd799439013',
+    id: 'c07f1f77bcf86cd799439014',
+    brandId: 'c07f1f77bcf86cd799439013',
     category: 'image',
     metadata: {
-      id: '507f1f77bcf86cd799439015',
+      id: 'c07f1f77bcf86cd799439015',
       extension: 'jpg',
       height: 1080,
       width: 1920,
     },
-    organization: {
-      id: '507f1f77bcf86cd799439012',
-    },
-    user: {
-      id: '507f1f77bcf86cd799439011',
-    },
+    metadataId: 'c07f1f77bcf86cd799439015',
+    organizationId: 'c07f1f77bcf86cd799439012',
+    userId: 'c07f1f77bcf86cd799439011',
   };
 
   const mockServices = {
@@ -99,10 +96,10 @@ describe('IngredientsOperationsController', () => {
     sharedService: {
       createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: {
-          id: '507f1f77bcf86cd799439016',
+          id: 'c07f1f77bcf86cd799439016',
         },
         metadataData: {
-          id: '507f1f77bcf86cd799439017',
+          id: 'c07f1f77bcf86cd799439017',
         },
       }),
     },
@@ -179,7 +176,7 @@ describe('IngredientsOperationsController', () => {
       const result = await controller.cloneIngredient(
         mockRequest,
         mockUser,
-        '507f1f77bcf86cd799439014',
+        'c07f1f77bcf86cd799439014',
       );
 
       expect(ingredientsService.findOne).toHaveBeenCalled();
@@ -194,7 +191,7 @@ describe('IngredientsOperationsController', () => {
     it('should refresh metadata successfully', async () => {
       const result = await controller.refreshMetadata(
         mockRequest,
-        '507f1f77bcf86cd799439014',
+        'c07f1f77bcf86cd799439014',
         mockUser,
       );
 
@@ -216,7 +213,7 @@ describe('IngredientsOperationsController', () => {
 
       const result = await controller.updateMetadata(
         mockRequest,
-        '507f1f77bcf86cd799439014',
+        'c07f1f77bcf86cd799439014',
         mockUser,
         updateDto,
       );
@@ -229,12 +226,12 @@ describe('IngredientsOperationsController', () => {
   describe('updateTags', () => {
     it('should update tags successfully', async () => {
       const updateTagsDto: UpdateTagsDto = {
-        tags: ['507f1f77bcf86cd799439020', '507f1f77bcf86cd799439021'],
+        tags: ['c07f1f77bcf86cd799439020', 'c07f1f77bcf86cd799439021'],
       };
 
       const result = await controller.updateTags(
         mockRequest,
-        '507f1f77bcf86cd799439014',
+        'c07f1f77bcf86cd799439014',
         mockUser,
         updateTagsDto,
       );
@@ -246,7 +243,7 @@ describe('IngredientsOperationsController', () => {
 
   describe('bulkDelete', () => {
     const bulkDeleteDto: BulkDeleteIngredientsDto = {
-      ids: ['507f1f77bcf86cd799439014', '507f1f77bcf86cd799439015'],
+      ids: ['c07f1f77bcf86cd799439014', 'c07f1f77bcf86cd799439015'],
     };
 
     it('should delete multiple ingredients in a single scoped call', async () => {
@@ -263,8 +260,8 @@ describe('IngredientsOperationsController', () => {
         mockServices.ingredientsService.bulkSoftDeleteScoped,
       ).toHaveBeenCalledWith({
         ids: bulkDeleteDto.ids,
-        organizationId: '507f1f77bcf86cd799439012',
-        userId: '507f1f77bcf86cd799439011',
+        organizationId: 'c07f1f77bcf86cd799439012',
+        userId: 'c07f1f77bcf86cd799439011',
       });
       expect(mockServices.ingredientsService.findOne).not.toHaveBeenCalled();
       expect(result.deleted).toEqual(bulkDeleteDto.ids);
@@ -275,15 +272,15 @@ describe('IngredientsOperationsController', () => {
     it('should report inaccessible ingredients as failed', async () => {
       mockServices.ingredientsService.bulkSoftDeleteScoped.mockResolvedValueOnce(
         {
-          deleted: ['507f1f77bcf86cd799439014'],
-          failed: ['507f1f77bcf86cd799439015'],
+          deleted: ['c07f1f77bcf86cd799439014'],
+          failed: ['c07f1f77bcf86cd799439015'],
         },
       );
 
       const result = await controller.bulkDelete(mockUser, bulkDeleteDto);
 
-      expect(result.deleted).toEqual(['507f1f77bcf86cd799439014']);
-      expect(result.failed).toEqual(['507f1f77bcf86cd799439015']);
+      expect(result.deleted).toEqual(['c07f1f77bcf86cd799439014']);
+      expect(result.failed).toEqual(['c07f1f77bcf86cd799439015']);
       expect(result.message).toBe(
         'Successfully deleted 1 ingredient(s), failed to delete 1',
       );

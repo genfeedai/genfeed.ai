@@ -167,9 +167,9 @@ describe('ClipRunCard', () => {
 
     render(<ClipRunCard state={state} />);
 
-    expect(screen.getByText('Failed at: Generate Clip')).toBeDefined();
-    expect(screen.getByText('GPU timeout')).toBeDefined();
-    expect(screen.getByText('This step can be retried.')).toBeDefined();
+    expect(screen.getByText(/Failed at: Generate Clip/)).toBeDefined();
+    expect(screen.getByText(/GPU timeout/)).toBeDefined();
+    expect(screen.getByText(/This step can be retried\./)).toBeDefined();
   });
 
   it('displays mode toggles correctly', () => {

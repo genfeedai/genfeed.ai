@@ -17,8 +17,8 @@ describe('SubscriptionAttributionsController', () => {
 
   const mockUser: User = {
     publicMetadata: {
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
+      organization: 'o07f1f77bcf86cd799439012',
+      user: 'u07f1f77bcf86cd799439011',
     },
   } as unknown as User;
 

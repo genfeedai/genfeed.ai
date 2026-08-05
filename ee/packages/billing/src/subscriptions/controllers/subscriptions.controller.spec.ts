@@ -20,10 +20,10 @@ describe('SubscriptionsController', () => {
 
   const mockUser: User = {
     id: 'user_123',
-    organizationId: '507f1f77bcf86cd799439012',
+    organizationId: 'o07f1f77bcf86cd799439012',
     publicMetadata: {
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
+      organization: 'o07f1f77bcf86cd799439012',
+      user: 'u07f1f77bcf86cd799439011',
     },
   } as unknown as User;
 
@@ -33,15 +33,15 @@ describe('SubscriptionsController', () => {
     currentPeriodStart: new Date(),
     currentPeriodEnd: new Date(),
     customerId: null,
-    id: '507f1f77bcf86cd799439014',
+    id: 's07f1f77bcf86cd799439014',
     isDeleted: false,
-    organizationId: '507f1f77bcf86cd799439012',
+    organizationId: 'o07f1f77bcf86cd799439012',
     plan: SubscriptionPlan.MONTHLY,
     status: SubscriptionStatus.ACTIVE,
     stripePriceId: 'price_monthly',
     stripeSubscriptionId: 'sub_123',
     updatedAt: new Date(),
-    userId: '507f1f77bcf86cd799439011',
+    userId: 'u07f1f77bcf86cd799439011',
   } satisfies SubscriptionDocument;
 
   const mockSubscriptionsService = {
@@ -274,7 +274,7 @@ describe('SubscriptionsController', () => {
       const userWithoutOrganization = {
         ...mockUser,
         publicMetadata: {
-          user: '507f1f77bcf86cd799439011',
+          user: 'u07f1f77bcf86cd799439011',
         },
       } as unknown as User;
       const creditsData = {

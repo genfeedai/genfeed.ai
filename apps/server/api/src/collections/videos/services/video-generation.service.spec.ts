@@ -68,7 +68,7 @@ describe('VideoGenerationService', () => {
         description: 'desc',
         id: RESOLVED_BRAND,
         label: 'Brand',
-        organization: ORG,
+        organizationId: ORG,
         primaryColor: '#fff',
         secondaryColor: '#000',
         text: 'text',
@@ -253,14 +253,14 @@ describe('VideoGenerationService', () => {
 
       await service.generateVideo(
         buildUser(),
-        baseDto({ prompt: 'prompt-id' }),
+        baseDto({ promptId: 'p07f191e810c19729de860ee' }),
         buildRequest(),
       );
 
       expect(promptsService.findOne).toHaveBeenCalledWith({
-        _id: 'prompt-id',
+        id: 'p07f191e810c19729de860ee',
         isDeleted: false,
-        organization: ORG,
+        organizationId: ORG,
       });
     });
 
@@ -271,7 +271,7 @@ describe('VideoGenerationService', () => {
       const error = await service
         .generateVideo(
           buildUser(),
-          baseDto({ prompt: 'missing-id' }),
+          baseDto({ promptId: 'p07f191e810c19729de860ef' }),
           buildRequest(),
         )
         .catch((e) => e);
@@ -290,12 +290,12 @@ describe('VideoGenerationService', () => {
 
       await service.generateVideo(
         buildUser(''),
-        baseDto({ prompt: 'prompt-id' }),
+        baseDto({ promptId: 'p07f191e810c19729de860ee' }),
         buildRequest(),
       );
 
       expect(promptsService.findOne).toHaveBeenCalledWith({
-        _id: 'prompt-id',
+        id: 'p07f191e810c19729de860ee',
         isDeleted: false,
       });
     });
@@ -312,7 +312,7 @@ describe('VideoGenerationService', () => {
     );
 
     expect(promptsService.create).toHaveBeenCalledWith(
-      expect.objectContaining({ brand: RESOLVED_BRAND }),
+      expect.objectContaining({ brandId: RESOLVED_BRAND }),
     );
   });
 

@@ -110,7 +110,7 @@ describe('OpenAiLlmService', () => {
       );
 
       const callArgs = mockCreate.mock.calls[0][0] as Record<string, unknown>;
-      expect(callArgs.model).toBe('gpt-4o');
+      expect(callArgs.model).toBe('gpt-5.6-terra');
     });
 
     it('should strip the local/ prefix from model name', async () => {

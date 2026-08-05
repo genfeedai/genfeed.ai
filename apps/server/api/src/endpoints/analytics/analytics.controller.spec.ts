@@ -511,7 +511,7 @@ describe('AnalyticsController', () => {
       analyticsService.getOverview.mockResolvedValueOnce({ total: 1 });
 
       const query = {
-        brand: 'brand_1',
+        brandId: 'brand_1',
         endDate: '2025-01-31',
         startDate: '2025-01-01',
       } as unknown as AnalyticsDateRangeDto;
@@ -535,7 +535,7 @@ describe('AnalyticsController', () => {
       analyticsService.getTopContent.mockResolvedValueOnce([]);
 
       const query = {
-        brand: 'brand_1',
+        brandId: 'brand_1',
         endDate: '2025-01-31',
         limit: 5,
         metric: 'views',
@@ -567,7 +567,7 @@ describe('AnalyticsController', () => {
       });
 
       const query = {
-        brand: 'brand_1',
+        brandId: 'brand_1',
         endDate: '2025-01-31',
         startDate: '2025-01-01',
       } as unknown as AnalyticsDateRangeDto;
@@ -586,7 +586,7 @@ describe('AnalyticsController', () => {
       analyticsService.getGrowthTrends.mockResolvedValueOnce({ total: 3 });
 
       const query = {
-        brand: 'brand_1',
+        brandId: 'brand_1',
         endDate: '2025-01-31',
         metric: 'views',
         startDate: '2025-01-01',
@@ -609,7 +609,7 @@ describe('AnalyticsController', () => {
       });
 
       const query = {
-        brand: 'brand_1',
+        brandId: 'brand_1',
         endDate: '2025-01-31',
         platform: 'twitter',
         startDate: '2025-01-01',
@@ -638,9 +638,9 @@ describe('AnalyticsController', () => {
       } as never);
 
       const query = {
-        brand: 'brand_1',
+        brandId: 'brand_1',
         endDate: '2025-01-31',
-        organization: 'org_1',
+        organizationId: 'org_1',
         startDate: '2025-01-01',
       } as unknown as ViralHooksQueryDto;
 
