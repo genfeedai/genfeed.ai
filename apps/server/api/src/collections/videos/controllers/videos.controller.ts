@@ -113,8 +113,7 @@ export class VideosController {
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
 
-    // `latest=true` shorthand — reproduces the exact WHERE clause of the former
-    // GET /videos/latest route: brand-scoped user videos with training sources
+    // `latest=true` shorthand for brand-scoped user videos with training sources
     // excluded, ordered by createdAt desc and capped at 50. Unlike the standard
     // list route there is no organization OR-branch and no isDefault branch;
     // it is scoped to the active organization and user while bypassing
@@ -127,15 +126,15 @@ export class VideosController {
         where: {
           AND: [
             {
-              brand: latestBrand,
+              brandId: latestBrand,
               category: CategoryPrismaUtil.toIngredientCategory(
                 IngredientCategory.VIDEO,
               ),
               isDeleted: latestIsDeleted,
               organizationId: publicMetadata.organization,
               // Exclude training source videos by default
-              training: { not: false },
-              user: publicMetadata.user,
+              trainingId: null,
+              userId: publicMetadata.user,
             },
           ],
         },

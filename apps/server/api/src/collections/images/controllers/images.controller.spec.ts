@@ -136,7 +136,7 @@ describe('ImagesController', () => {
       sort: 'createdAt: -1',
     } as unknown as ImagesQueryDto;
 
-    it('should short-circuit to the legacy latest aggregate', async () => {
+    it('should short-circuit to the latest aggregate', async () => {
       const result = await controller.findAll(
         mockRequest,
         mockUser,
@@ -164,9 +164,10 @@ describe('ImagesController', () => {
 
       const userBranch = orBranches[0].AND[0];
       expect(userBranch).toMatchObject({
+        brandId: mockUser.publicMetadata.brand,
         organizationId: mockUser.publicMetadata.organization,
-        training: { not: false },
-        user: mockUser.publicMetadata.user,
+        trainingId: null,
+        userId: mockUser.publicMetadata.user,
       });
       expect(userBranch).not.toHaveProperty('isDefault');
 
@@ -176,6 +177,7 @@ describe('ImagesController', () => {
           { organizationId: mockUser.publicMetadata.organization },
           { organizationId: null },
         ],
+        brandId: mockUser.publicMetadata.brand,
         isDefault: true,
       });
     });

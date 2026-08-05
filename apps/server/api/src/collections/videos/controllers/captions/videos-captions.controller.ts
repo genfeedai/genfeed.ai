@@ -123,8 +123,9 @@ export class VideosCaptionsController {
     // Build aggregation pipeline to get captions for this video (ingredient)
     const aggregate = {
       where: {
-        ingredient: videoId,
+        ingredientId: videoId,
         isDeleted: false,
+        organizationId: publicMetadata.organization,
       },
       orderBy: { createdAt: -1 },
     };

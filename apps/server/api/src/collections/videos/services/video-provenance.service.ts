@@ -140,7 +140,7 @@ export class VideoProvenanceService {
       : null;
 
     const captions = (await this.captionsService.find({
-      ingredient: videoId,
+      ingredientId: videoId,
       isDeleted: false,
     })) as unknown as Array<{ content?: string | null }>;
 

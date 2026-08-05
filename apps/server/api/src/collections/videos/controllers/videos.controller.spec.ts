@@ -509,13 +509,14 @@ describe('VideosController', () => {
       expect(options).toMatchObject({ pagination: false });
       expect(aggregate.orderBy).toEqual({ createdAt: -1 });
 
-      // Exact legacy WHERE: single user-scoped branch, training excluded,
-      // NO organization OR-branch and NO isDefault branch (unlike the list route).
+      // Single user-scoped branch, training excluded, with no organization
+      // OR-branch and no isDefault branch (unlike the list route).
       const branch = aggregate.where.AND[0];
       expect(branch).toMatchObject({
+        brandId: mockUser.publicMetadata.brand,
         organizationId: mockUser.publicMetadata.organization,
-        training: { not: false },
-        user: mockUser.publicMetadata.user,
+        trainingId: null,
+        userId: mockUser.publicMetadata.user,
       });
       expect(branch).not.toHaveProperty('OR');
       expect(branch).not.toHaveProperty('status');

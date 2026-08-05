@@ -31,7 +31,7 @@ describe('VideosCaptionsController', () => {
   const mockReq = {} as Request;
 
   const mockVideo = {
-    brand: '507f1f77bcf86cd799439014',
+    brandId: '507f1f77bcf86cd799439014',
     captions: [
       {
         content: 'Test caption content',
@@ -41,8 +41,8 @@ describe('VideosCaptionsController', () => {
       },
     ],
     id: '507f1f77bcf86cd799439011',
-    organization: '507f1f77bcf86cd799439013',
-    user: '507f1f77bcf86cd799439012',
+    organizationId: '507f1f77bcf86cd799439013',
+    userId: '507f1f77bcf86cd799439012',
   };
 
   const mockUser = {
@@ -132,7 +132,24 @@ describe('VideosCaptionsController', () => {
         {},
       );
 
-      expect(videosService.findOne).toHaveBeenCalled();
+      expect(videosService.findOne).toHaveBeenCalledWith({
+        OR: [
+          { userId: mockUser.publicMetadata.user },
+          { organizationId: mockUser.publicMetadata.organization },
+        ],
+        id: videoId,
+        isDeleted: false,
+      });
+      expect(captionsService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            ingredientId: videoId,
+            isDeleted: false,
+            organizationId: mockUser.publicMetadata.organization,
+          },
+        }),
+        expect.anything(),
+      );
       expect(result).toBeDefined();
     });
 

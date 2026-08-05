@@ -8,8 +8,6 @@ export class CaptionEntity extends BaseEntity implements Caption {
   declare readonly userId: string;
   declare readonly ingredientId: string | null;
   declare readonly agentRunId: string | null;
-  declare readonly user: string;
-  declare readonly ingredient: string;
 
   declare readonly content: string;
   declare readonly format: CaptionFormat;

@@ -113,7 +113,7 @@ export class VideosRelationshipsController {
     const aggregate = {
       where: {
         isDeleted,
-        parent: videoId,
+        parentId: videoId,
       },
       orderBy: handleQuerySort(query.sort),
     };
@@ -140,9 +140,10 @@ export class VideosRelationshipsController {
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
     const aggregate = {
       where: {
-        ingredient: videoId,
+        ingredients: { some: { id: videoId } },
         isDeleted,
-        user: publicMetadata.user,
+        organizationId: publicMetadata.organization,
+        userId: publicMetadata.user,
       },
       orderBy: handleQuerySort(query.sort),
     };

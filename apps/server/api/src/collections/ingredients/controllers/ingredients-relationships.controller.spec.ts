@@ -20,10 +20,10 @@ describe('IngredientsRelationshipsController', () => {
   } as unknown as Request;
 
   const mockIngredient = {
-    _id: '507f1f77bcf86cd799439014',
+    id: '507f1f77bcf86cd799439014',
     category: 'image',
     metadata: {
-      _id: '507f1f77bcf86cd799439015',
+      id: '507f1f77bcf86cd799439015',
       label: 'Test Image',
     },
     organizationId: '507f1f77bcf86cd799439099',
@@ -45,8 +45,8 @@ describe('IngredientsRelationshipsController', () => {
       findAll: vi.fn().mockResolvedValue({
         docs: [
           {
-            _id: '507f1f77bcf86cd799439020',
-            ingredients: ['507f1f77bcf86cd799439014'],
+            id: '507f1f77bcf86cd799439020',
+            ingredients: [{ id: '507f1f77bcf86cd799439014' }],
           },
         ],
         limit: 10,
@@ -104,7 +104,15 @@ describe('IngredientsRelationshipsController', () => {
         {},
       );
 
-      expect(ingredientsService.findAll).toHaveBeenCalled();
+      expect(ingredientsService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            parentId: '507f1f77bcf86cd799439014',
+            trainingId: null,
+          }),
+        }),
+        expect.anything(),
+      );
       expect(result).toBeDefined();
     });
   });
@@ -130,14 +138,16 @@ describe('IngredientsRelationshipsController', () => {
       );
 
       expect(ingredientsService.findOne).toHaveBeenCalledWith({
-        _id: '507f1f77bcf86cd799439014',
+        id: '507f1f77bcf86cd799439014',
         isDeleted: false,
       });
       expect(postsService.findAll).toHaveBeenCalledWith(
         {
           orderBy: { createdAt: -1 },
           where: {
-            ingredients: '507f1f77bcf86cd799439014',
+            ingredients: {
+              some: { id: '507f1f77bcf86cd799439014' },
+            },
             isDeleted: false,
             organizationId: mockIngredient.organizationId,
           },
@@ -154,7 +164,7 @@ describe('IngredientsRelationshipsController', () => {
       // `normalizeWhere` drops undefined values, so an unscoped read here would
       // list posts across every tenant. The filter must stay present as null.
       mockServices.ingredientsService.findOne.mockResolvedValueOnce({
-        _id: '507f1f77bcf86cd799439014',
+        id: '507f1f77bcf86cd799439014',
         category: 'image',
       });
 

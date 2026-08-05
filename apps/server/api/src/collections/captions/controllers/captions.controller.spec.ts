@@ -81,21 +81,44 @@ describe('CaptionsController', () => {
     expect(controller).toBeDefined();
   });
 
+  describe('findAll', () => {
+    it('should scope captions by canonical organization and user IDs', async () => {
+      const userId = '507f191e810c19729de860ef';
+      deps.captionsService.findAll.mockResolvedValue({ docs: [] });
+
+      await controller.findAll(
+        createMockRequest(),
+        createMockUser(userId),
+        {} as never,
+      );
+
+      expect(deps.captionsService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            organizationId: '507f191e810c19729de860ee',
+            userId,
+          }),
+        }),
+        expect.anything(),
+      );
+    });
+  });
+
   describe('findOne', () => {
     it('should return serialized caption when found', async () => {
       const captionId = '507f191e810c19729de860ee';
       const doc = {
-        _id: captionId,
+        id: captionId,
         content: 'Hello',
         format: 'srt',
-        toJSON: () => ({ _id: captionId, content: 'Hello', format: 'srt' }),
+        toJSON: () => ({ id: captionId, content: 'Hello', format: 'srt' }),
       };
       deps.captionsService.findOne.mockResolvedValue(doc);
 
       const result = await controller.findOne(createMockRequest(), captionId);
       expect(result).toBeDefined();
       expect(deps.captionsService.findOne).toHaveBeenCalledWith(
-        { _id: captionId },
+        { id: captionId },
         expect.any(Array),
       );
     });
@@ -175,12 +198,12 @@ describe('CaptionsController', () => {
       deps.whisperService.generateCaptions.mockResolvedValue(captionContent);
 
       const createdDoc = {
-        _id: '507f191e810c19729de860ee',
+        id: '507f191e810c19729de860ee',
         content: captionContent,
         format: 'srt',
         language: 'en',
         toJSON: () => ({
-          _id: '507f191e810c19729de860ee',
+          id: '507f191e810c19729de860ee',
           content: captionContent,
         }),
       };
@@ -196,7 +219,13 @@ describe('CaptionsController', () => {
       expect(deps.whisperService.generateCaptions).toHaveBeenCalledWith(
         ingredientId.toString(),
       );
-      expect(deps.captionsService.create).toHaveBeenCalled();
+      expect(deps.captionsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ingredientId,
+          organizationId: '507f191e810c19729de860ee',
+          userId,
+        }),
+      );
     });
   });
 
@@ -204,9 +233,9 @@ describe('CaptionsController', () => {
     it('should return serialized caption on successful update', async () => {
       const captionId = '507f191e810c19729de860ee';
       const updated = {
-        _id: captionId,
+        id: captionId,
         content: 'Updated',
-        toJSON: () => ({ _id: captionId, content: 'Updated' }),
+        toJSON: () => ({ id: captionId, content: 'Updated' }),
       };
       deps.captionsService.patch.mockResolvedValue(updated);
 
@@ -231,9 +260,9 @@ describe('CaptionsController', () => {
     it('should return serialized caption on successful removal', async () => {
       const captionId = '507f191e810c19729de860ee';
       const deleted = {
-        _id: captionId,
+        id: captionId,
         isDeleted: true,
-        toJSON: () => ({ _id: captionId, isDeleted: true }),
+        toJSON: () => ({ id: captionId, isDeleted: true }),
       };
       deps.captionsService.remove.mockResolvedValue(deleted);
 

@@ -70,7 +70,8 @@ export class CaptionsController {
     // Build match conditions
     const matchConditions: Record<string, unknown> = {
       isDeleted: false,
-      user: publicMetadata.user,
+      organizationId: publicMetadata.organization,
+      userId: publicMetadata.user,
     };
 
     // Add language filter if provided
@@ -180,6 +181,7 @@ export class CaptionsController {
         ingredientId: createCaptionDto.ingredient,
         isDeleted: false,
         language: createCaptionDto.language,
+        organizationId: publicMetadata.organization,
         userId: publicMetadata.user,
       }),
     );

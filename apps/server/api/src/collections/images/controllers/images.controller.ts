@@ -81,8 +81,7 @@ export class ImagesController {
       IngredientCategory.IMAGE,
     );
 
-    // `latest=true` shorthand — reproduces the exact WHERE clause of the former
-    // GET /images/latest route: brand-scoped user images with training sources
+    // `latest=true` shorthand for brand-scoped user images with training sources
     // excluded, plus the org's brand-default images, ordered by createdAt desc
     // and capped at 50. Bypasses the standard list filters entirely.
     if (query.latest) {
@@ -97,13 +96,13 @@ export class ImagesController {
                 {
                   AND: [
                     {
-                      brand: latestBrand,
+                      brandId: latestBrand,
                       category: imageCategory,
                       isDeleted: latestIsDeleted,
                       organizationId: publicMetadata.organization,
                       // Exclude training source images by default
-                      training: { not: false },
-                      user: publicMetadata.user,
+                      trainingId: null,
+                      userId: publicMetadata.user,
                     },
                   ],
                 },
@@ -111,7 +110,7 @@ export class ImagesController {
                   AND: [
                     {
                       // Filter default images by brand when brand is specified
-                      brand: latestBrand,
+                      brandId: latestBrand,
                       category: imageCategory,
                       isDefault: true,
                       isDeleted: latestIsDeleted,
