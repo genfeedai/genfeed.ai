@@ -9,8 +9,13 @@ const patchMe = vi.fn();
 const touchSession = vi.fn();
 const getToken = vi.fn();
 const useAgentChatStreamSpy = vi.fn();
-const getThreadsEffect = vi.fn();
-const runAgentApiEffect = vi.fn();
+// Hoisted: the `@genfeedai/agent` factory reads `runAgentApiEffect` eagerly as a
+// property value, so a plain `const` would still be in its temporal dead zone
+// when the hoisted `vi.mock` runs.
+const { getThreadsEffect, runAgentApiEffect } = vi.hoisted(() => ({
+  getThreadsEffect: vi.fn(),
+  runAgentApiEffect: vi.fn(),
+}));
 
 const navigationState = {
   params: {

@@ -35,6 +35,17 @@ export default defineConfig({
     // enterprise flavor. The api unit suite covers the OSS fragment.
     alias: [
       {
+        // Must precede the bare `@api` alias: string finds match by prefix, so
+        // `@api` would otherwise swallow `@api-types/...` and rewrite it to a
+        // path that does not exist.
+        find: /^@api-types\/(.*)$/,
+        replacement: pkg('api-types/src/$1'),
+      },
+      {
+        find: '@api-types',
+        replacement: pkg('api-types/src'),
+      },
+      {
         find: '@api',
         replacement: apiSrc,
       },
