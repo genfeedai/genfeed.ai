@@ -50,18 +50,13 @@ describe('BotsLivestreamService', () => {
         organizationId: 'org-1',
         status: 'paused',
       }),
-      sessionRow('session-3', {
-        botId: 'bot-3',
-        organizationId: 'org-2',
-        status: 'active',
-      }),
     ]);
     prisma.bot.findFirst.mockResolvedValue(botRow('bot-1'));
 
     const result = await service.processActiveSessionsForOrganization('org-1');
 
     expect(prisma.livestreamBotSession.findMany).toHaveBeenCalledWith({
-      where: { isDeleted: false },
+      where: { isDeleted: false, organizationId: 'org-1' },
     });
     expect(prisma.bot.findFirst).toHaveBeenCalledTimes(1);
     expect(prisma.bot.findFirst).toHaveBeenCalledWith({

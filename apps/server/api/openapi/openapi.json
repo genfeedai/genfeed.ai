@@ -14042,7 +14042,7 @@
             "type": "object"
           },
           "defaultAgentModel": {
-            "default": "deepseek/deepseek-chat",
+            "default": "openai/gpt-5.6-terra",
             "description": "Default AI model for agent chat sessions",
             "type": "string"
           },

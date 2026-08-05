@@ -418,7 +418,7 @@ describe('AnthropicService', () => {
           },
         ],
         id: 'msg-1',
-        model: 'claude-sonnet-4-5',
+        model: 'claude-sonnet-5',
         stop_reason: 'tool_use',
         usage: { input_tokens: 12, output_tokens: 18 },
       });
@@ -430,7 +430,7 @@ describe('AnthropicService', () => {
         string,
         unknown
       >;
-      expect(requestParams.model).toBe('claude-sonnet-4-5');
+      expect(requestParams.model).toBe('claude-sonnet-5');
       expect(requestParams.system).toBe('System prompt');
       expect(requestParams.max_tokens).toBe(1024);
       expect(requestParams.tool_choice).toEqual({
@@ -512,7 +512,7 @@ describe('AnthropicService', () => {
             }),
           ],
           id: 'msg-1',
-          model: 'claude-sonnet-4-5',
+          model: 'claude-sonnet-5',
           usage: {
             completion_tokens: 18,
             prompt_tokens: 12,

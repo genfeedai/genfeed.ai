@@ -16,6 +16,7 @@ vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
 
 vi.mock('@api/helpers/utils/entity-id/entity-id.util', () => ({
   EntityIdUtil: {
+    validate: vi.fn((s: unknown) => s),
     toValidId: vi.fn((s: unknown) => s),
   },
 }));
@@ -214,12 +215,12 @@ describe('AdminFleetController', () => {
 
         expect(adminFleetService.createCharacter).toHaveBeenCalledWith(
           expect.objectContaining({
-            brand: expect.anything(),
+            brandId: 'brand_123',
             description: 'A test character',
             name: 'New Character',
-            organization: expect.anything(),
+            organizationId: 'org_123',
             slug: 'new-character',
-            user: expect.anything(),
+            userId: 'user_123',
           }),
         );
         expect(result).toEqual(mockCreated);

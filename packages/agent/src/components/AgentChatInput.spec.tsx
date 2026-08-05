@@ -319,8 +319,6 @@ describe('AgentChatInput', () => {
             },
           ],
           brandId: 'brand-1',
-          composerMode: 'chat',
-          generationModelKey: null,
           planModeEnabled: false,
         },
       );
@@ -428,8 +426,6 @@ describe('AgentChatInput', () => {
         undefined,
         undefined,
         {
-          composerMode: 'chat',
-          generationModelKey: null,
           planModeEnabled: false,
         },
       );
@@ -537,8 +533,6 @@ describe('AgentChatInput', () => {
         undefined,
         undefined,
         {
-          composerMode: 'chat',
-          generationModelKey: null,
           planModeEnabled: false,
         },
       );

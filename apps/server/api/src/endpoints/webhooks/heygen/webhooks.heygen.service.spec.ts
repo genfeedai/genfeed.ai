@@ -83,7 +83,7 @@ describe('HeygenWebhookService', () => {
     service = module.get<HeygenWebhookService>(HeygenWebhookService);
     deps.ingredientsService.findOne.mockResolvedValue({
       id: 'ingredient-1',
-      metadata: '507f191e810c19729de860ee',
+      metadataId: 'c07f191e810c19729de860ee',
     });
   });
 
@@ -93,7 +93,7 @@ describe('HeygenWebhookService', () => {
 
   it('should notify webhook on every callback', async () => {
     const body: HeygenWebhookPayload = {
-      callback_id: '507f191e810c19729de860ee',
+      callback_id: 'c07f191e810c19729de860ee',
       event_data: {},
       event_type: 'video_completed',
     };
@@ -119,7 +119,7 @@ describe('HeygenWebhookService', () => {
 
   it('should use "unknown" as event_type when not provided', async () => {
     const body: HeygenWebhookPayload = {
-      callback_id: '507f191e810c19729de860ee',
+      callback_id: 'c07f191e810c19729de860ee',
       event_data: {},
     };
 
@@ -153,7 +153,7 @@ describe('HeygenWebhookService', () => {
 
   it('should return early when metadata is not found', async () => {
     const body: HeygenWebhookPayload = {
-      callback_id: '507f191e810c19729de860ee',
+      callback_id: 'c07f191e810c19729de860ee',
       event_data: {},
       event_type: 'video_completed',
     };
@@ -176,7 +176,7 @@ describe('HeygenWebhookService', () => {
   });
 
   it('should store video_url as result for video_completed events', async () => {
-    const metadataId = '507f191e810c19729de860ee';
+    const metadataId = 'c07f191e810c19729de860ee';
     const body: HeygenWebhookPayload = {
       callback_id: metadataId,
       event_data: { video_url: 'https://cdn.heygen.com/video.mp4' },
@@ -195,7 +195,7 @@ describe('HeygenWebhookService', () => {
   });
 
   it('should store stringified event_data as error for avatar_video.failure', async () => {
-    const metadataId = '507f191e810c19729de860ee';
+    const metadataId = 'c07f191e810c19729de860ee';
     const eventData = { code: 'TIMEOUT', message: 'Generation timed out' };
     const body: HeygenWebhookPayload = {
       callback_id: metadataId,
@@ -218,7 +218,7 @@ describe('HeygenWebhookService', () => {
   });
 
   it('should stringify event_data as result for non-video events', async () => {
-    const metadataId = '507f191e810c19729de860ee';
+    const metadataId = 'c07f191e810c19729de860ee';
     const eventData = { status: 'ready' };
     const body: HeygenWebhookPayload = {
       callback_id: metadataId,
@@ -239,7 +239,7 @@ describe('HeygenWebhookService', () => {
 
   it('should rethrow errors from metadataService.findOne', async () => {
     const body: HeygenWebhookPayload = {
-      callback_id: '507f191e810c19729de860ee',
+      callback_id: 'c07f191e810c19729de860ee',
       event_data: {},
       event_type: 'video_completed',
     };
@@ -255,7 +255,7 @@ describe('HeygenWebhookService', () => {
   });
 
   it('should rethrow errors from metadataService.patch', async () => {
-    const metadataId = '507f191e810c19729de860ee';
+    const metadataId = 'c07f191e810c19729de860ee';
     const body: HeygenWebhookPayload = {
       callback_id: metadataId,
       event_data: {},
@@ -270,8 +270,8 @@ describe('HeygenWebhookService', () => {
   });
 
   it('should update a clip result and complete the parent project when the final clip succeeds', async () => {
-    const clipResultId = '507f191e810c19729de860ee';
-    const projectId = '507f191e810c19729de860ee';
+    const clipResultId = 'c07f191e810c19729de860ee';
+    const projectId = 'c07f191e810c19729de860ee';
     const body: HeygenWebhookPayload = {
       event_data: {
         callback_id: clipResultId,
@@ -305,8 +305,8 @@ describe('HeygenWebhookService', () => {
   });
 
   it('should fail the parent project when the final clip fails', async () => {
-    const clipResultId = '507f191e810c19729de860ee';
-    const projectId = '507f191e810c19729de860ee';
+    const clipResultId = 'c07f191e810c19729de860ee';
+    const projectId = 'c07f191e810c19729de860ee';
     const body: HeygenWebhookPayload = {
       event_data: {
         callback_id: clipResultId,
@@ -338,7 +338,7 @@ describe('HeygenWebhookService', () => {
   });
 
   it('should continue to process legacy metadata-backed avatar success callbacks', async () => {
-    const metadataId = '507f191e810c19729de860ee';
+    const metadataId = 'c07f191e810c19729de860ee';
     const body: HeygenWebhookPayload = {
       callback_id: metadataId,
       event_data: {
@@ -352,7 +352,7 @@ describe('HeygenWebhookService', () => {
     deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
     deps.ingredientsService.findOne.mockResolvedValue({
       id: 'ingredient-legacy',
-      metadata: metadataId,
+      metadataId,
     });
     deps.metadataService.patch.mockResolvedValue({});
 
@@ -367,8 +367,8 @@ describe('HeygenWebhookService', () => {
   });
 
   it('should resolve ingredient-backed avatar success callbacks when callback_id is the ingredient id', async () => {
-    const ingredientId = '507f191e810c19729de860ee';
-    const metadataId = '507f191e810c19729de860ee';
+    const ingredientId = 'i07f191e810c19729de860ee';
+    const metadataId = 'm07f191e810c19729de860ee';
     const body: HeygenWebhookPayload = {
       callback_id: ingredientId,
       event_data: {
@@ -385,7 +385,7 @@ describe('HeygenWebhookService', () => {
       .mockResolvedValueOnce({ id: metadataId });
     deps.ingredientsService.findOne.mockResolvedValue({
       id: ingredientId,
-      metadata: metadataId,
+      metadataId,
     });
     deps.metadataService.patch.mockResolvedValue({});
 

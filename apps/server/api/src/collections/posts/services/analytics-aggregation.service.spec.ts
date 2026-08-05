@@ -53,10 +53,8 @@ describe('AnalyticsAggregationService', () => {
       });
       expect(query.where).not.toHaveProperty('isDeleted');
     }
-    expect(postsCount).toHaveBeenCalledWith({
+    expect(postsCount).toHaveBeenCalledWith('org_1', {
       brandId: 'brand_1',
-      isDeleted: false,
-      organizationId: 'org_1',
     });
     expect(brandCount).toHaveBeenCalledWith({
       where: { isDeleted: false, organizationId: 'org_1' },
