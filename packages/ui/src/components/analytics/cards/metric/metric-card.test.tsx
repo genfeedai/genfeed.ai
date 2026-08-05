@@ -5,29 +5,6 @@ import { ChartColumn } from 'lucide-react';
 
 import { describe, expect, it, vi } from 'vitest';
 
-// The canonical MetricCard renders numeric values through a scroll-triggered
-// animated counter (useAnimatedCounter + IntersectionObserver). jsdom's
-// IntersectionObserver mock never fires, so the counter would stay pinned at
-// its initial 0 value in every test. Mirrors the same mock used by the other
-// MetricCard aliases (StatCard.test.tsx, KPICard.test.tsx).
-vi.mock(
-  '@genfeedai/hooks/ui/use-animated-counter/use-animated-counter',
-  () => ({
-    useAnimatedCounter: ({
-      end,
-      suffix,
-      decimals,
-    }: {
-      end: number;
-      suffix: string;
-      decimals: number;
-    }) => ({
-      ref: { current: null },
-      value: `${end.toFixed(decimals)}${suffix}`,
-    }),
-  }),
-);
-
 describe('MetricCard', () => {
   describe('Basic Rendering', () => {
     it('renders title and value correctly', () => {
