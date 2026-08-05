@@ -9,6 +9,8 @@
 #     class fixed in PR #559 — and (b) orphan pages: URLs in sitemap.xml with no
 #     inbound internal link. lychee cannot do either: it does not crawl rendered
 #     HTML and, as a Docker action, cannot reach the runner's localhost.
+#     The same job then runs check-seo.ts over that build — on-page SEO, structured
+#     data, and soft 404s — replacing what a paid site audit would tell us.
 #
 #   docs-links — lychee scans Markdown/MDX docs + READMEs for dead external and
 #     relative-file links. Root-relative app routes are excluded in lychee.toml
@@ -66,7 +68,7 @@ jobs:
               - '**/*.mdx'
 
   website-links:
-    name: Website Links + Orphans
+    name: Website Links + Orphans + SEO
     runs-on: ubuntu-latest
     needs: detect
     if: needs.detect.outputs.website == 'true'
@@ -103,6 +105,16 @@ jobs:
         run: cd apps/website && bun run check:orphans
         env:
           BASE_URL: http://localhost:3000
+
+      # On-page SEO: titles, descriptions, canonicals, headings, structured data,
+      # soft 404s on dynamic routes, and JSON-LD breadcrumb targets. Advisory
+      # (SEO_SOFT=1) until seo-baseline.json is seeded from a real run — after
+      # that, drop SEO_SOFT and the ratchet fails on any new error.
+      - name: Audit on-page SEO
+        run: cd apps/website && bun run check:seo
+        env:
+          BASE_URL: http://localhost:3000
+          SEO_SOFT: '1'
 
       - name: Stop website
         if: always()
