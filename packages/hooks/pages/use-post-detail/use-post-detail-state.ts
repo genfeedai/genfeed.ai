@@ -1,6 +1,5 @@
 'use client';
 
-import type { UpdatePostRequest } from '@genfeedai/api-types';
 import {
   CredentialPlatform,
   IngredientFormat,
@@ -21,6 +20,8 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { Eye, Heart, MessageSquare, TrendingUp, Zap } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+type PostUpdateInput = Parameters<PostsService['patch']>[1];
 
 export const GROK_FEEDBACK_QUESTIONS = [
   '@grok What are your thoughts on this thread?',
@@ -119,7 +120,7 @@ export interface UsePostDetailStateReturn {
 
   // Update helpers
   updateActivePost: (
-    updates: UpdatePostRequest,
+    updates: PostUpdateInput,
     successMessage?: string,
     silent?: boolean,
   ) => Promise<IPost | null>;
@@ -387,7 +388,7 @@ export function usePostDetailState({
   // Update active post handler
   const updateActivePost = useCallback(
     async (
-      updates: Partial<IPost>,
+      updates: PostUpdateInput,
       successMessage?: string,
       silent: boolean = false,
     ) => {
