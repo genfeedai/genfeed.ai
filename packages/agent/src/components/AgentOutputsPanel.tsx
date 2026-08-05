@@ -33,7 +33,7 @@ function buildAttachContent(
   variant: ThreadOutputVariant,
 ): string {
   if (variant.kind === 'text' && variant.textContent) {
-    return variant.textContent;
+    return variant.threadSegments?.join('\n\n') ?? variant.textContent;
   }
 
   const label = variant.title ?? group.title;
@@ -65,6 +65,7 @@ function renderVariantPreview(
           platform: variant.platform,
           preheader: variant.preheader,
           subject: variant.subject,
+          threadSegments: variant.threadSegments,
           title: variant.title ?? group.title,
         }}
       />

@@ -55,5 +55,29 @@ describe('ContentPreviewCard', () => {
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText('Image preview · 2 of 2')).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: 'Campaign image 2' }),
+    ).toHaveAttribute('src', 'https://cdn.test/image-2.png');
+  });
+
+  it('uses a stable fallback title when generated content has no title', () => {
+    render(
+      <ContentPreviewCard
+        action={
+          {
+            id: 'untitled-output',
+            images: ['https://cdn.test/untitled.png'],
+            type: 'content_preview_card',
+          } as AgentUiAction
+        }
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', {
+        name: 'Open Generated content 1 preview',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/undefined/u)).not.toBeInTheDocument();
   });
 });

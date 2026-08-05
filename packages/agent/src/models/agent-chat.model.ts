@@ -114,6 +114,7 @@ export interface AgentUiActionOutputVariant {
   id: string;
   kind: 'audio' | 'image' | 'text' | 'video';
   textContent?: string;
+  threadSegments?: string[];
   thumbnailUrl?: string;
   title?: string;
   url?: string;

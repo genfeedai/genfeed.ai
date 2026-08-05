@@ -14,6 +14,7 @@ import type {
 import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { AgentSocketConnectionState } from '@genfeedai/agent/stores/agent-chat.store';
+import type { AgentUiActionHandler } from '@genfeedai/interfaces';
 import type {
   AttachmentItem,
   ChatAttachment,
@@ -56,10 +57,7 @@ type AgentChatPromptBarProps = {
   latestProposedPlan: AgentProposedPlan | null;
   onClearError: () => void;
   onSubmitInputRequest: (answer: string) => void | Promise<void>;
-  onUiAction: (
-    action: string,
-    payload?: Record<string, unknown>,
-  ) => void | Promise<void>;
+  onUiAction: AgentUiActionHandler;
   pendingInputRequest: AgentInputRequest | null;
   socketConnectionState: AgentSocketConnectionState;
   selectedModel?: string;
@@ -118,7 +116,7 @@ export function AgentChatPromptBar({
   );
   const topContent = (
     <>
-      {activeGenerationAction ? (
+      {!isReadOnly && activeGenerationAction ? (
         <div className="pb-2">
           <GenerationActionCard
             action={activeGenerationAction}

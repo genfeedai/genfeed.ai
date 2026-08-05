@@ -1,5 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import type { AgentUiActionHandler } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Image, Video } from 'lucide-react';
 import type { ReactElement } from 'react';
@@ -16,10 +17,7 @@ interface GenerationActionCardProps {
   qualityScore?: number;
   qualityFeedback?: string[];
   onRegenerate?: () => void;
-  onUiAction?: (
-    action: string,
-    payload?: Record<string, unknown>,
-  ) => void | Promise<void>;
+  onUiAction?: AgentUiActionHandler;
   className?: string;
 }
 

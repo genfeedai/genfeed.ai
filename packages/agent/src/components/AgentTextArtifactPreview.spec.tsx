@@ -1,6 +1,6 @@
 import { AgentTextArtifactPreview } from '@genfeedai/agent/components/AgentTextArtifactPreview';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
 describe('AgentTextArtifactPreview', () => {
@@ -41,5 +41,27 @@ describe('AgentTextArtifactPreview', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getAllByText('The founder briefing')).toHaveLength(2);
     expect(screen.getAllByText('A short weekly briefing')).toHaveLength(2);
+  });
+
+  it('copies every segment of a thread artifact', () => {
+    const onCopy = vi.fn();
+    render(
+      <AgentTextArtifactPreview
+        data={{
+          content: 'Hook',
+          contentFormat: 'thread',
+          platform: 'twitter',
+          threadSegments: ['Hook', 'Proof', 'Close'],
+          title: 'Launch thread',
+        }}
+        onCopy={onCopy}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Copy twitter output' }),
+    );
+
+    expect(onCopy).toHaveBeenCalledWith('Hook\n\nProof\n\nClose');
   });
 });

@@ -52,6 +52,35 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
     });
   });
 
+  it('preserves generated thread segments as one structured preview', async () => {
+    const { contentGeneratorService, handler } = createHandler();
+    contentGeneratorService.generateContent.mockResolvedValue([
+      {
+        content:
+          'The first post hooks the reader.\n\nThe second post delivers the proof.\n\nThe final post closes the loop.',
+        hashtags: [],
+        patternUsed: 'thread',
+      },
+    ]);
+
+    const result = await handler.generateContent(
+      { platform: 'twitter', topic: 'durable agents', type: 'thread' },
+      context,
+    );
+
+    expect(result.nextActions?.[0]).toMatchObject({
+      contentFormat: 'thread',
+      platform: 'twitter',
+      textContent: 'The first post hooks the reader.',
+      tweets: [
+        'The first post hooks the reader.',
+        'The second post delivers the proof.',
+        'The final post closes the loop.',
+      ],
+      type: 'content_preview_card',
+    });
+  });
+
   it('generates a durable newsletter and emits reader metadata', async () => {
     const { handler, internalApi } = createHandler();
     internalApi.callInternalApi.mockResolvedValue({

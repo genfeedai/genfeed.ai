@@ -6,6 +6,7 @@ import { resolveEffectiveAgentExecutionConfig } from '@api/collections/brands/ut
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
+import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
@@ -35,6 +36,7 @@ import {
   getRuntimeBindingEffect,
 } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
+import { CacheService } from '@api/services/cache/services/cache.service';
 import { AgentAutonomyMode, AgentMessageRole } from '@genfeedai/enums';
 import {
   type AgentDashboardOperation,
@@ -96,6 +98,7 @@ export class AgentOrchestratorUiActionService {
     private readonly threadEventRecorder: AgentThreadEventRecorderService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly agentRunsService: AgentRunsService,
+    private readonly cacheService: CacheService,
     @Optional()
     private readonly agentRuntimeSessionService?: AgentRuntimeSessionService,
     @Optional()
@@ -570,76 +573,87 @@ export class AgentOrchestratorUiActionService {
       duration: requestedDuration,
       prompt,
     };
-    const startTime = Date.now();
+    const idempotencyKey = [
+      'agent-media',
+      params.context.organizationId,
+      params.context.userId,
+      params.threadId,
+      sourceActionId,
+      generationType,
+    ].join(':');
 
-    await this.threadEventRecorder.recordToolStarted({
-      context: params.context,
-      parameters: toolPayload,
-      runId: params.context.runId,
-      threadId: params.threadId,
-      toolName,
-    });
+    return runIdempotent(this.cacheService, idempotencyKey, async () => {
+      const startTime = Date.now();
 
-    const result = await this.toolExecutorService.executeTool(
-      toolName,
-      toolPayload,
-      {
-        apiKeyContext: params.context.apiKeyContext,
-        authToken: params.context.authToken,
-        brandId: params.context.scope?.brandId,
-        generationModelOverride: requestedModel,
-        generationPriority: requestedPriority,
-        organizationId: params.context.organizationId,
+      await this.threadEventRecorder.recordToolStarted({
+        context: params.context,
+        parameters: toolPayload,
         runId: params.context.runId,
-        strategyId: params.context.strategyId,
         threadId: params.threadId,
-        userId: params.context.userId,
-        validatedScope: params.context.scope,
-      },
-    );
-    const durationMs = Date.now() - startTime;
-    const summary: ToolCallSummary = {
-      creditsUsed: result.success ? (result.creditsUsed ?? 0) : 0,
-      durationMs,
-      error: result.error,
-      status: result.success ? 'completed' : 'failed',
-      toolName,
-    };
+        toolName,
+      });
 
-    await this.threadEventRecorder.recordToolCompleted({
-      context: params.context,
-      durationMs,
-      error: summary.error,
-      runId: params.context.runId,
-      status: summary.status,
-      threadId: params.threadId,
-      toolName,
-    });
-
-    if (!result.success) {
-      throw new InternalServerErrorException(
-        result.error ?? `Failed to generate ${generationType}.`,
-      );
-    }
-
-    const linkedResult = {
-      ...result,
-      nextActions: (result.nextActions ?? []).map((action) => ({
-        ...action,
-        data: {
-          ...(action.data ?? {}),
-          sourceGenerationActionId: sourceActionId,
+      const result = await this.toolExecutorService.executeTool(
+        toolName,
+        toolPayload,
+        {
+          apiKeyContext: params.context.apiKeyContext,
+          authToken: params.context.authToken,
+          brandId: params.context.scope?.brandId,
+          generationModelOverride: requestedModel,
+          generationPriority: requestedPriority,
+          organizationId: params.context.organizationId,
+          runId: params.context.runId,
+          strategyId: params.context.strategyId,
+          threadId: params.threadId,
+          userId: params.context.userId,
+          validatedScope: params.context.scope,
         },
-      })),
-    };
+      );
+      const durationMs = Date.now() - startTime;
+      const summary: ToolCallSummary = {
+        creditsUsed: result.success ? (result.creditsUsed ?? 0) : 0,
+        durationMs,
+        error: result.error,
+        status: result.success ? 'completed' : 'failed',
+        toolName,
+      };
 
-    return await this.finalizeStructuredAssistantTurn({
-      content: `${generationType === 'image' ? 'Image' : 'Video'} generated.`,
-      context: params.context,
-      model: params.model,
-      result: linkedResult,
-      threadId: params.threadId,
-      toolCalls: [summary],
+      await this.threadEventRecorder.recordToolCompleted({
+        context: params.context,
+        durationMs,
+        error: summary.error,
+        runId: params.context.runId,
+        status: summary.status,
+        threadId: params.threadId,
+        toolName,
+      });
+
+      if (!result.success) {
+        throw new InternalServerErrorException(
+          result.error ?? `Failed to generate ${generationType}.`,
+        );
+      }
+
+      const linkedResult = {
+        ...result,
+        nextActions: (result.nextActions ?? []).map((action) => ({
+          ...action,
+          data: {
+            ...(action.data ?? {}),
+            sourceGenerationActionId: sourceActionId,
+          },
+        })),
+      };
+
+      return await this.finalizeStructuredAssistantTurn({
+        content: `${generationType === 'image' ? 'Image' : 'Video'} generated.`,
+        context: params.context,
+        model: params.model,
+        result: linkedResult,
+        threadId: params.threadId,
+        toolCalls: [summary],
+      });
     });
   }
 

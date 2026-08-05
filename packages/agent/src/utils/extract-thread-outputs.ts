@@ -17,6 +17,7 @@ export interface ThreadOutputVariant {
   preheader?: string;
   subject?: string;
   textContent?: string;
+  threadSegments?: string[];
   thumbnailUrl?: string;
   title?: string;
   url?: string;
@@ -56,6 +57,26 @@ function buildTextVariants(
   messageId: string,
 ): ThreadOutputVariant[] {
   const variants: ThreadOutputVariant[] = [];
+  const threadSegments =
+    action.contentFormat === 'thread'
+      ? action.tweets?.map((text) => text.trim()).filter(Boolean)
+      : undefined;
+
+  if (threadSegments && threadSegments.length > 0) {
+    variants.push({
+      ctas: action.ctas,
+      contentFormat: action.contentFormat,
+      id: `${messageId}:${action.id}:thread`,
+      kind: 'text',
+      messageId,
+      platform: action.platform,
+      textContent: threadSegments[0],
+      threadSegments,
+      title: action.title,
+    });
+
+    return variants;
+  }
 
   action.tweets?.forEach((text, index) => {
     if (!text.trim()) {
@@ -194,6 +215,7 @@ function buildActionGroup(
               preheader: action.preheader,
               subject: action.subject,
               textContent: variant.textContent,
+              threadSegments: variant.threadSegments,
               thumbnailUrl: variant.thumbnailUrl,
               title: variant.title,
               url: variant.url,

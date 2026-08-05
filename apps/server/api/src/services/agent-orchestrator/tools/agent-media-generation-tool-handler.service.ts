@@ -31,6 +31,15 @@ interface AgentBrandsServiceLike {
   ) => Promise<Record<string, unknown> | null>;
 }
 
+function splitThreadSegments(content: string): string[] {
+  const segments = content
+    .split(/\n{2,}/u)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+
+  return segments.length > 0 ? segments : [content];
+}
+
 /**
  * Media / AI generation tools extracted from AgentToolExecutorService per #519.
  */
@@ -349,6 +358,10 @@ export class AgentMediaGenerationToolHandler {
     );
 
     const generated = results[0];
+    const threadSegments =
+      normalizedType === 'thread' && generated?.content
+        ? splitThreadSegments(generated.content)
+        : undefined;
 
     return {
       creditsUsed: 2,
@@ -366,8 +379,9 @@ export class AgentMediaGenerationToolHandler {
               description: `${formatPlatformLabel(platform)} draft ready for review.`,
               id: `content-gen-${Date.now()}`,
               platform,
-              textContent: generated.content,
+              textContent: threadSegments?.[0] ?? generated.content,
               title: `${formatPlatformLabel(platform)} ${normalizedType === 'thread' ? 'thread' : 'post'}`,
+              tweets: threadSegments,
               type: 'content_preview_card',
             },
           ]

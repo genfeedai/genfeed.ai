@@ -1,6 +1,13 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type {
+  AgentMediaArtifactKind,
+  AgentMediaArtifactPreviewProps,
+  AgentMediaExpandedAssetProps,
+  AgentMediaImageAssetProps,
+  AgentMediaInlineAssetProps,
+} from '@genfeedai/props/ui/agent/agent-media-artifact-preview.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
@@ -20,14 +27,10 @@ import {
   useState,
 } from 'react';
 
-export type AgentMediaArtifactKind = 'audio' | 'image' | 'video';
-
-export interface AgentMediaArtifact {
-  alt?: string;
-  kind: AgentMediaArtifactKind;
-  title?: string;
-  url: string;
-}
+export type {
+  AgentMediaArtifact,
+  AgentMediaArtifactKind,
+} from '@genfeedai/props/ui/agent/agent-media-artifact-preview.props';
 
 function formatKind(kind: AgentMediaArtifactKind): string {
   return kind.charAt(0).toUpperCase() + kind.slice(1);
@@ -37,11 +40,7 @@ function ImageAsset({
   alt,
   className,
   src,
-}: {
-  alt: string;
-  className?: string;
-  src: string;
-}): ReactElement {
+}: AgentMediaImageAssetProps): ReactElement {
   const [isLoaded, setIsLoaded] = useState(false);
 
   return (
@@ -68,12 +67,7 @@ function InlineAsset({
   displayMode,
   index,
   onOpen,
-}: {
-  asset: AgentMediaArtifact;
-  displayMode: 'featured' | 'grid';
-  index: number;
-  onOpen: (index: number) => void;
-}): ReactElement {
+}: AgentMediaInlineAssetProps): ReactElement {
   const title = asset.title?.trim() || `Generated ${asset.kind} ${index + 1}`;
   const isFeatured = displayMode === 'featured';
 
@@ -169,10 +163,7 @@ function InlineAsset({
 function ExpandedAsset({
   asset,
   title,
-}: {
-  asset: AgentMediaArtifact;
-  title: string;
-}): ReactElement {
+}: AgentMediaExpandedAssetProps): ReactElement {
   if (asset.kind === 'image') {
     return (
       <img
@@ -221,12 +212,7 @@ export function AgentMediaArtifactPreview({
   className,
   displayMode = 'grid',
   title = 'Generated assets',
-}: {
-  assets: AgentMediaArtifact[];
-  className?: string;
-  displayMode?: 'featured' | 'grid';
-  title?: string;
-}): ReactElement | null {
+}: AgentMediaArtifactPreviewProps): ReactElement | null {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const visibleAssets = assets.filter((asset) => asset.url.trim());

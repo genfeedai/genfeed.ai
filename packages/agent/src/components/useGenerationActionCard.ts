@@ -11,6 +11,7 @@ import {
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
 import { ModelCategory, type RouterPriority } from '@genfeedai/enums';
+import type { AgentUiActionHandler } from '@genfeedai/interfaces';
 import { resolveGenerationModelControls } from '@helpers/generation-controls.helper';
 import {
   AUTO_MODEL_OPTION_VALUE,
@@ -69,10 +70,7 @@ interface UseGenerationActionCardParams {
   action: AgentUiAction;
   apiService: AgentApiService;
   onRegenerate?: () => void;
-  onUiAction?: (
-    action: string,
-    payload?: Record<string, unknown>,
-  ) => void | Promise<void>;
+  onUiAction?: AgentUiActionHandler;
 }
 
 export function useGenerationActionCard({

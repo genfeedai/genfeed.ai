@@ -154,6 +154,7 @@ export function AgentTextArtifactPreview({
   onCopy?: (content: string) => void | Promise<void>;
 }): ReactElement {
   const [isOpen, setIsOpen] = useState(false);
+  const copyContent = data.threadSegments?.join('\n\n') ?? data.content;
   const previewLabel = isNewsletterPreview(data)
     ? 'newsletter'
     : data.platform?.trim() || 'text';
@@ -167,7 +168,7 @@ export function AgentTextArtifactPreview({
             ariaLabel={`Copy ${previewLabel} output`}
             icon={<Clipboard className="size-3.5" />}
             label="Copy"
-            onClick={() => onCopy(data.content)}
+            onClick={() => onCopy(copyContent)}
             size={ButtonSize.XS}
             variant={ButtonVariant.GHOST}
             withWrapper={false}

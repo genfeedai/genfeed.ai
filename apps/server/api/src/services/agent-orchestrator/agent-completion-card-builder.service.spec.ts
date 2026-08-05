@@ -168,6 +168,35 @@ describe('AgentCompletionCardBuilderService', () => {
     );
   });
 
+  it('keeps thread segments together in the completion output contract', () => {
+    const result = service.buildAssistantUiActions({
+      reviewRequired: false,
+      toolCalls: [
+        { status: 'completed', toolName: AgentToolName.GENERATE_CONTENT },
+      ],
+      uiActions: [
+        {
+          contentFormat: 'thread',
+          id: 'thread-preview-1',
+          textContent: 'Hook',
+          title: 'Launch thread',
+          tweets: ['Hook', 'Proof', 'Close'],
+          type: 'content_preview_card',
+        },
+      ],
+    });
+
+    expect(result.uiActions[0].outputVariants).toEqual([
+      {
+        id: 'thread-preview-1:thread',
+        kind: 'text',
+        textContent: 'Hook',
+        threadSegments: ['Hook', 'Proof', 'Close'],
+        title: 'Launch thread',
+      },
+    ]);
+  });
+
   it('uses the ready-for-review fallback when a content action has no assets', () => {
     const result = service.buildAssistantUiActions({
       reviewRequired: false,

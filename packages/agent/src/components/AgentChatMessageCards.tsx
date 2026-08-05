@@ -145,6 +145,7 @@ export function ContentPreviewCard({
       : [];
   const isThreadPreview =
     action.contentFormat === 'thread' && textOutputs.length > 1;
+  const previewTitle = action.title?.trim() || 'Generated content';
 
   return (
     <div className="mt-2 space-y-2">
@@ -155,7 +156,7 @@ export function ContentPreviewCard({
             contentFormat: action.contentFormat,
             platform: action.platform ?? 'twitter',
             threadSegments: textOutputs,
-            title: action.title,
+            title: previewTitle,
           }}
           onCopy={onCopy}
         />
@@ -171,8 +172,8 @@ export function ContentPreviewCard({
                 subject: action.subject,
                 title:
                   textOutputs.length > 1
-                    ? `${action.title} ${index + 1}`
-                    : action.title,
+                    ? `${previewTitle} ${index + 1}`
+                    : previewTitle,
               }}
               onCopy={onCopy}
             />
@@ -184,10 +185,10 @@ export function ContentPreviewCard({
           assets={action.images.map((url, index) => ({
             alt: `Generated content ${index + 1}`,
             kind: 'image',
-            title: `${action.title} ${index + 1}`,
+            title: `${previewTitle} ${index + 1}`,
             url,
           }))}
-          title={action.title}
+          title={previewTitle}
         />
       )}
       {/* Skeleton placeholder when card has no media yet (processing state) */}
@@ -200,20 +201,20 @@ export function ContentPreviewCard({
         <AgentMediaArtifactPreview
           assets={action.videos.map((url, index) => ({
             kind: 'video',
-            title: `${action.title} ${index + 1}`,
+            title: `${previewTitle} ${index + 1}`,
             url,
           }))}
-          title={action.title}
+          title={previewTitle}
         />
       )}
       {action.audio && action.audio.length > 0 && (
         <AgentMediaArtifactPreview
           assets={action.audio.map((url, index) => ({
             kind: 'audio',
-            title: `${action.title} ${index + 1}`,
+            title: `${previewTitle} ${index + 1}`,
             url,
           }))}
-          title={action.title}
+          title={previewTitle}
         />
       )}
       {action.ctas && action.ctas.length > 0 && (

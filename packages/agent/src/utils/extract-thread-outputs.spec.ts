@@ -93,6 +93,38 @@ describe('extractThreadOutputs', () => {
     });
   });
 
+  it('preserves a thread as one output variant with all segments', () => {
+    const outputs = extractThreadOutputs([
+      {
+        content: 'assistant',
+        createdAt: '2026-08-05T10:00:00.000Z',
+        id: 'message-thread',
+        metadata: {
+          uiActions: [
+            {
+              contentFormat: 'thread',
+              id: 'thread-preview',
+              platform: 'twitter',
+              textContent: 'Hook',
+              title: 'X thread',
+              tweets: ['Hook', 'Proof', 'Close'],
+              type: 'content_preview_card',
+            },
+          ],
+        },
+        role: 'assistant',
+        threadId: 'thread-1',
+      },
+    ]);
+
+    expect(outputs[0].variants).toHaveLength(1);
+    expect(outputs[0].variants[0]).toMatchObject({
+      contentFormat: 'thread',
+      textContent: 'Hook',
+      threadSegments: ['Hook', 'Proof', 'Close'],
+    });
+  });
+
   it('uses completion summary output variants only when detailed outputs are absent', () => {
     const outputs = extractThreadOutputs([
       {
