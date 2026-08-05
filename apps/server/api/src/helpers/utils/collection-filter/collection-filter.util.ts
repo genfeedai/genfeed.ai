@@ -29,8 +29,8 @@ export class CollectionFilterUtil {
   /**
    * Authorize list-query brand/org filters for non-superadmins.
    *
-   * Members may only pass `organization` equal to their session org. An explicit
-   * `brand` is allowed (multi-brand orgs), but the caller's organization is always
+   * Members may only pass `organizationId` equal to their session org. An explicit
+   * `brandId` is allowed (multi-brand orgs), but the caller's organization is always
    * returned so list handlers can AND the tenant boundary and avoid cross-tenant
    * brand id enumeration.
    *
@@ -80,13 +80,13 @@ export class CollectionFilterUtil {
   /**
    * Build admin filter for superadmin org/brand filtering
    *
-   * When a superadmin passes explicit organization/brand query params,
+   * When a superadmin passes explicit organizationId/brandId query params,
    * returns a filter object scoped to that org/brand. Returns null if
    * the user is not a superadmin or no org/brand params are provided,
    * signaling the caller should use the normal ownership filter.
    *
    * @param publicMetadata - User metadata (must include isSuperAdmin)
-   * @param query - Query params with optional organization/brand
+   * @param query - Query params with optional organizationId/brandId
    * @returns Filter object or null if not applicable
    *
    * @example
@@ -282,16 +282,18 @@ export class CollectionFilterUtil {
     } = options;
 
     const conditions: Record<string, unknown>[] = [];
+    const userField = fieldNames.user ?? 'userId';
+    const organizationField = fieldNames.organization ?? 'organizationId';
 
     if (includeUser && publicMetadata.user) {
       conditions.push({
-        [fieldNames.user!]: publicMetadata.user,
+        [userField]: publicMetadata.user,
       });
     }
 
     if (includeOrganization && publicMetadata.organization) {
       conditions.push({
-        [fieldNames.organization!]: publicMetadata.organization,
+        [organizationField]: publicMetadata.organization,
       });
     }
 

@@ -169,6 +169,9 @@ describe('BaseService', () => {
     });
 
     it('creates a document with include when populate is provided', async () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', 'organizationId', 'user'),
+      );
       const created = { id: 'id_1', foo: 'bar', user: { id: 'u1' } };
       delegate.create.mockResolvedValue(created);
 
@@ -275,11 +278,11 @@ describe('BaseService', () => {
       cacheService.get.mockResolvedValue(null);
 
       await service.findAll(
-        { where: { organization: 'org-1' } },
+        { where: { organizationId: 'org-1' } },
         { page: 1, limit: 10 },
       );
       await service.findAll(
-        { where: { organization: 'org-2' } },
+        { where: { organizationId: 'org-2' } },
         { page: 1, limit: 10 },
       );
 
@@ -290,6 +293,16 @@ describe('BaseService', () => {
     });
 
     it('applies explicit Prisma where, orderBy, and include options', async () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta(
+          'id',
+          'isDeleted',
+          'organizationId',
+          'organization',
+          'label',
+          'status',
+        ),
+      );
       delegate.findMany.mockResolvedValue([{ id: '1' }]);
       delegate.count.mockResolvedValue(1);
 
@@ -298,7 +311,7 @@ describe('BaseService', () => {
           include: { organization: true },
           orderBy: { label: 'asc' },
           where: {
-            organization: 'org-1',
+            organizationId: 'org-1',
             status: { in: ['active', 'pending'] },
           },
         },
@@ -326,6 +339,9 @@ describe('BaseService', () => {
     });
 
     it('applies explicit Prisma select options', async () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', 'organizationId', 'platformRole'),
+      );
       delegate.findMany.mockResolvedValue([{ id: '1', platformRole: 'USER' }]);
       delegate.count.mockResolvedValue(1);
 
@@ -333,7 +349,7 @@ describe('BaseService', () => {
         {
           orderBy: { id: 'asc' },
           select: { id: true, platformRole: true },
-          where: { organization: 'org-1' },
+          where: { organizationId: 'org-1' },
         },
         { page: 1, limit: 10 },
       );
@@ -377,14 +393,14 @@ describe('BaseService', () => {
           where: {
             AND: [
               {
-                brand: 'brand-1',
+                brandId: 'brand-1',
                 category: 'video',
-                folder: null,
+                folderId: null,
                 scope: 'public',
                 status: {
                   in: ['generated', 'processing', 'validated', 'completed'],
                 },
-                training: null,
+                trainingId: null,
               },
             ],
           },
@@ -492,7 +508,10 @@ describe('BaseService', () => {
       await service.findAll(
         {
           where: {
-            OR: [{ brand: null, organization: 'org-1' }, { brand: 'brand-1' }],
+            OR: [
+              { brandId: null, organizationId: 'org-1' },
+              { brandId: 'brand-1' },
+            ],
             scope: { not: null },
           },
         },
@@ -520,6 +539,38 @@ describe('BaseService', () => {
           isDeleted: false,
         },
       });
+    });
+
+    it('preserves a Prisma JSON path alongside equals', async () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', 'data'),
+      );
+      delegate.findMany.mockResolvedValue([]);
+      delegate.count.mockResolvedValue(0);
+
+      await service.findAll(
+        {
+          where: {
+            data: {
+              equals: '@creator',
+              path: ['handle'],
+            },
+          },
+        },
+        { page: 1, limit: 10 },
+      );
+
+      expect(delegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            data: {
+              equals: '@creator',
+              path: ['handle'],
+            },
+            isDeleted: false,
+          },
+        }),
+      );
     });
 
     it('maps legacy public article status to Prisma PUBLISHED', async () => {

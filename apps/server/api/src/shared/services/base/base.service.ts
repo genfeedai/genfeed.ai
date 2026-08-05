@@ -87,6 +87,28 @@ const PRISMA_ENUM_ALIASES: Record<string, Record<string, string>> = {
   },
 };
 
+const NORMALIZED_PRISMA_FILTER_OPERATORS = [
+  'equals',
+  'set',
+  'in',
+  'notIn',
+] as const;
+
+const PASSTHROUGH_PRISMA_FILTER_OPERATORS = [
+  'gte',
+  'gt',
+  'lte',
+  'lt',
+  'contains',
+  'path',
+  'string_contains',
+  'string_starts_with',
+  'string_ends_with',
+  'array_contains',
+  'array_starts_with',
+  'array_ends_with',
+] as const;
+
 export interface PrismaFindAllInput {
   where?: PrismaFilter;
   orderBy?: PrismaOrderByInput | PrismaOrderByInput[];
@@ -504,17 +526,10 @@ export abstract class BaseService<
       }
     };
 
-    if ('equals' in operators) {
-      assignOperator('equals', normalizeMaybeList(operators.equals));
-    }
-    if ('set' in operators) {
-      assignOperator('set', normalizeMaybeList(operators.set));
-    }
-    if ('in' in operators) {
-      assignOperator('in', normalizeMaybeList(operators.in));
-    }
-    if ('notIn' in operators) {
-      assignOperator('notIn', normalizeMaybeList(operators.notIn));
+    for (const operator of NORMALIZED_PRISMA_FILTER_OPERATORS) {
+      if (operator in operators) {
+        assignOperator(operator, normalizeMaybeList(operators[operator]));
+      }
     }
     if ('not' in operators) {
       if (operators.not === null && !this.fieldAllowsNull(fieldName)) {
@@ -528,20 +543,10 @@ export abstract class BaseService<
         );
       }
     }
-    if ('gte' in operators) {
-      assignOperator('gte', operators.gte);
-    }
-    if ('gt' in operators) {
-      assignOperator('gt', operators.gt);
-    }
-    if ('lte' in operators) {
-      assignOperator('lte', operators.lte);
-    }
-    if ('lt' in operators) {
-      assignOperator('lt', operators.lt);
-    }
-    if ('contains' in operators) {
-      assignOperator('contains', operators.contains);
+    for (const operator of PASSTHROUGH_PRISMA_FILTER_OPERATORS) {
+      if (operator in operators) {
+        assignOperator(operator, operators[operator]);
+      }
     }
     if ('mode' in operators) {
       assignOperator(
