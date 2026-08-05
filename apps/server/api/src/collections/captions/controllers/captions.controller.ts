@@ -195,7 +195,7 @@ export class CaptionsController {
   ): Promise<JsonApiSingleResponse> {
     const data: CaptionDocument | null = await this.captionsService.patch(
       captionId,
-      new CaptionEntity(updateCaptionDto),
+      updateCaptionDto,
     );
     return data
       ? serializeSingle(request, CaptionSerializer, data)

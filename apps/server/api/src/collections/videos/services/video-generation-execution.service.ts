@@ -253,7 +253,7 @@ export class VideoGenerationExecutionService {
           {
             brandId: context.brand.id.toString(),
             key: ActivityKey.VIDEO_FAILED,
-            organization: context.publicMetadata.organization,
+            organizationId: context.publicMetadata.organization,
             source: ActivitySource.VIDEO_GENERATION,
             user: context.publicMetadata.user,
             value: JSON.stringify({

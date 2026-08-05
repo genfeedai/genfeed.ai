@@ -114,16 +114,14 @@ export class FileQueueService {
       // Update credential in database
       const updateData: Partial<UpdateCredentialDto> = {
         accessToken: newCredentials.access_token,
+        ...(newCredentials.expiry_date
+          ? { accessTokenExpiry: new Date(newCredentials.expiry_date) }
+          : {}),
         isConnected: true,
+        ...(newCredentials.refresh_token
+          ? { refreshToken: newCredentials.refresh_token }
+          : {}),
       };
-
-      if (newCredentials.refresh_token) {
-        updateData.refreshToken = newCredentials.refresh_token;
-      }
-
-      if (newCredentials.expiry_date) {
-        updateData.accessTokenExpiry = new Date(newCredentials.expiry_date);
-      }
 
       await this.credentialsService.patch(credential.id, updateData);
 

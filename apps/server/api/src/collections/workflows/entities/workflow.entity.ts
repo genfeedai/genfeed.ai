@@ -39,7 +39,7 @@ export class WorkflowEntity extends BaseEntity implements WorkflowDocument {
   declare label: string;
   declare description: WorkflowDocument['description'];
   declare templateId?: string;
-  declare trigger?: WorkflowDocument['trigger'];
+  declare trigger: WorkflowDocument['trigger'];
   declare status: WorkflowDocument['status'];
   declare sourceAsset?: string;
   declare sourceAssetModel?: string;

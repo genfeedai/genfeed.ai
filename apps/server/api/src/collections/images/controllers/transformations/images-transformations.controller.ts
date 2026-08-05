@@ -478,7 +478,7 @@ export class ImagesTransformationsController {
         ),
         extension: imageEditDto.outputFormat || MetadataExtension.JPG,
         model,
-        organizationId: parent.organizationId,
+        organizationId: parent.organizationId ?? undefined,
         parentId: parent.id,
         status: IngredientStatus.PROCESSING,
         transformations: [TransformationCategory.UPSCALED],

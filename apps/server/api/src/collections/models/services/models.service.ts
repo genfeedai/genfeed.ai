@@ -230,7 +230,7 @@ export class ModelsService extends BaseService<
       return Object.fromEntries(
         Object.entries(options.sort).map(([key, value]) => [
           key,
-          value === 'asc' || value === 1 ? 'asc' : 'desc',
+          value === 1 ? 'asc' : 'desc',
         ]),
       );
     }

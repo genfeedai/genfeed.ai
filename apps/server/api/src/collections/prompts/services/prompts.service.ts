@@ -38,8 +38,8 @@ const PROMPT_SCALAR_FIELDS = [
 ] as const;
 
 type PromptCreateInput = CreatePromptDto & {
-  articleId?: string;
-  ingredientId?: string;
+  articleId?: string | null;
+  ingredientId?: string | null;
 };
 
 @Injectable()
