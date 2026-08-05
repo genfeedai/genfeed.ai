@@ -370,8 +370,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'utm',
   ],
   'subscription:Subscription': [],
-  'task-comment:TaskComment': ['authorAgentId', 'authorUserId', 'body'],
-  'task:Task': ['linkedEntities', 'linkedIssueId'],
+  'task-comment:TaskComment': [],
+  'task:Task': [],
   'template-metadata:TemplateMetadata': [
     'difficulty',
     'estimatedTime',
