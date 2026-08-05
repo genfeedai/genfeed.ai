@@ -5,6 +5,7 @@ import type {
   IModelDiscoveryNotificationPayload,
   INotificationEvent,
   ITelegramMessageOptions,
+  IUserCreatedPayload,
 } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -358,14 +359,7 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  sendUserCreatedNotification(user: {
-    _id: string;
-    email?: string;
-    firstName?: string;
-    lastName?: string;
-    avatar?: string;
-    isInvited?: boolean;
-  }): Promise<void> {
+  sendUserCreatedNotification(user: IUserCreatedPayload): Promise<void> {
     return this.sendNotification({
       action: 'user_notification',
       payload: user,

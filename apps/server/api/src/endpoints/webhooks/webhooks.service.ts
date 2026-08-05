@@ -22,7 +22,6 @@ import {
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/enums';
-import type { IIngredientNotificationData } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
@@ -383,124 +382,62 @@ export class WebhooksService {
 
     const ingredientCategory = categoryToMediaType(categoryValue);
     const cdnUrl = `${this.configService.ingredientsEndpoint}/${ingredientCategory}s/${ingredientId}`;
+    const metadata = ingredient.metadata as
+      | {
+          width?: number;
+          height?: number;
+          duration?: number;
+          model?: string;
+          externalProvider?: string;
+        }
+      | undefined;
+    const prompt = ingredient.prompt as { original?: string } | undefined;
+    const brand = ingredient.brand as { label?: string } | undefined;
+    let thumbnailUrl: string | undefined;
 
-    const metadata = ingredient.metadata as {
-      width?: number;
-      height?: number;
-      duration?: number;
-      model?: string;
-      externalProvider?: string;
-      hasAudio?: boolean;
-    };
-
-    const discordEmbed: {
-      title: string;
-      description: string;
-      fields: Array<{ name: string; value: string; inline: boolean }>;
-      image?: string;
-      videoUrl?: string;
-      thumbnailUrl?: string;
-    } = {
-      description: `\`${(ingredient.prompt as unknown as { original?: string })?.original || 'N/A'}\``,
-      fields: [],
-      title: `New ${ingredientCategory.charAt(0).toUpperCase() + ingredientCategory.slice(1)} Generated`,
-    };
-
-    if (ingredientCategory === 'image') {
-      discordEmbed.image = cdnUrl;
-      discordEmbed.fields.push(
-        {
-          inline: true,
-          name: 'Resolution',
-          value: `${metadata?.width || 0}x${metadata?.height || 0}`,
-        },
-        {
-          inline: true,
-          name: 'Model',
-          value: metadata?.model || integration || 'N/A',
-        },
-      );
-      if (metadata?.externalProvider) {
-        discordEmbed.fields.push({
-          inline: true,
-          name: 'Provider',
-          value: metadata.externalProvider,
-        });
-      }
-    } else if (ingredientCategory === 'video') {
-      let thumbnailUrl: string | undefined;
+    if (ingredientCategory === 'video') {
       const thumbnailStartTime = Date.now();
       try {
-        const thumbnailResult = await this.filesClientService.generateThumbnail(
+        const thumbnail = await this.filesClientService.generateThumbnail(
           cdnUrl,
           ingredientId,
           1,
           720,
         );
-        thumbnailUrl = thumbnailResult.thumbnailUrl;
-        const thumbnailDuration = Date.now() - thumbnailStartTime;
+        thumbnailUrl = thumbnail.thumbnailUrl;
         this.loggerService.log(
           `${this.constructorName} generated thumbnail for video`,
           {
             ingredientId,
-            thumbnailDuration: `${thumbnailDuration}ms`,
+            thumbnailDuration: `${Date.now() - thumbnailStartTime}ms`,
             thumbnailUrl,
           },
         );
       } catch (error: unknown) {
-        const thumbnailDuration = Date.now() - thumbnailStartTime;
         this.loggerService.warn(
           `${this.constructorName} thumbnail generation failed (non-fatal)`,
           {
-            duration: `${thumbnailDuration}ms`,
+            duration: `${Date.now() - thumbnailStartTime}ms`,
             error: getErrorMessage(error),
             ingredientId,
           },
         );
-      }
-
-      discordEmbed.videoUrl = cdnUrl;
-      if (thumbnailUrl) {
-        discordEmbed.thumbnailUrl = thumbnailUrl;
-      }
-
-      discordEmbed.fields.push(
-        {
-          inline: true,
-          name: 'Duration',
-          value: metadata?.duration ? `${metadata.duration}s` : 'N/A',
-        },
-        {
-          inline: true,
-          name: 'Resolution',
-          value: `${metadata?.width || 0}x${metadata?.height || 0}`,
-        },
-      );
-      if (metadata?.hasAudio !== undefined) {
-        discordEmbed.fields.push({
-          inline: true,
-          name: 'Audio',
-          value: metadata.hasAudio ? 'Yes' : 'No',
-        });
-      }
-      discordEmbed.fields.push({
-        inline: true,
-        name: 'Model',
-        value: metadata?.model || integration || 'N/A',
-      });
-      if (metadata?.externalProvider) {
-        discordEmbed.fields.push({
-          inline: true,
-          name: 'Provider',
-          value: metadata.externalProvider,
-        });
       }
     }
 
     await this.notificationsService.sendIngredientNotification(
       categoryValue as IngredientCategory,
       cdnUrl,
-      ingredient as unknown as IIngredientNotificationData,
+      {
+        brand,
+        id: ingredient.id,
+        metadata: {
+          ...metadata,
+          model: metadata?.model || integration,
+        },
+        prompt,
+        thumbnailUrl,
+      },
     );
   }
 
