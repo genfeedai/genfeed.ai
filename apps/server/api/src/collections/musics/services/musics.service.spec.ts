@@ -79,9 +79,37 @@ describe('MusicsService', () => {
   it('does not mark the organization for a non-GENERATED update', async () => {
     await service.patch('music-1', {
       status: IngredientStatus.PROCESSING,
+      tags: ['507f1f77bcf86cd799439022'],
     });
 
     expect(markFirstAssetGenerated).not.toHaveBeenCalled();
+    expect(ingredientDelegate.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          tags: { set: [{ id: '507f1f77bcf86cd799439022' }] },
+        }),
+      }),
+    );
+  });
+
+  it('normalizes relations for non-GENERATED creates', async () => {
+    await service.create({
+      sources: ['507f1f77bcf86cd799439021'],
+      status: IngredientStatus.PROCESSING,
+      tags: ['507f1f77bcf86cd799439022'],
+      text: 'Ambient focus track',
+    });
+
+    expect(ingredientDelegate.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          sources: {
+            connect: [{ id: '507f1f77bcf86cd799439021' }],
+          },
+          tags: { connect: [{ id: '507f1f77bcf86cd799439022' }] },
+        }),
+      }),
+    );
   });
 
   it('uses create-context population for a GENERATED create by default', async () => {

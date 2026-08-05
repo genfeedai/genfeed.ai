@@ -984,6 +984,21 @@ describe('Serializer Attributes', () => {
       const unique = new Set(musicAttributes);
       expect(unique.size).toBe(musicAttributes.length);
     });
+
+    it('exposes canonical ownership and persistence IDs', () => {
+      expect(musicAttributes).toEqual(
+        expect.arrayContaining([
+          'brandId',
+          'folderId',
+          'metadataId',
+          'organizationId',
+          'parentId',
+          'promptId',
+          'trainingId',
+          'userId',
+        ]),
+      );
+    });
   });
 
   describe('ingredientAttributes', () => {
@@ -998,6 +1013,21 @@ describe('Serializer Attributes', () => {
     it('should not contain duplicates', () => {
       const unique = new Set(ingredientAttributes);
       expect(unique.size).toBe(ingredientAttributes.length);
+    });
+
+    it('exposes canonical ownership and persistence IDs', () => {
+      expect(ingredientAttributes).toEqual(
+        expect.arrayContaining([
+          'brandId',
+          'folderId',
+          'metadataId',
+          'organizationId',
+          'parentId',
+          'promptId',
+          'trainingId',
+          'userId',
+        ]),
+      );
     });
   });
 

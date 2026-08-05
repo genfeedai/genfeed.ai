@@ -62,9 +62,8 @@ describe('MusicsController', () => {
   const music = {
     brandId,
     category: 'music',
-    id: 'canonical-music-id',
+    id: musicId,
     isDeleted: false,
-    mongoId: musicId,
     organizationId,
     userId,
   };
@@ -179,10 +178,10 @@ describe('MusicsController', () => {
       expect(query.orderBy).toEqual({ createdAt: -1 });
     });
 
-    it('should filter by brand when valid ObjectId is provided', () => {
+    it('should filter by canonical brand ID when provided', () => {
       const brandId = '507f191e810c19729de860ee';
       const user = createMockUser();
-      const inputQuery = { brand: brandId };
+      const inputQuery = { brandId };
       const query = controller.buildFindAllQuery(
         user as never,
         inputQuery as never,
@@ -190,6 +189,39 @@ describe('MusicsController', () => {
 
       expect(query.where.OR[0]).toMatchObject({ brandId });
       expect(query.where.OR[1]).toMatchObject({ brandId });
+    });
+
+    it('applies search, format, and provider filters through metadata', () => {
+      const query = controller.buildFindAllQuery(
+        createMockUser() as never,
+        {
+          format: 'mp3',
+          provider: 'replicate',
+          search: 'ambient',
+        } as never,
+      );
+
+      for (const branch of query.where.OR) {
+        expect(branch).toMatchObject({
+          metadata: {
+            is: {
+              extension: 'mp3',
+              externalProvider: 'replicate',
+              OR: [
+                {
+                  label: { contains: 'ambient', mode: 'insensitive' },
+                },
+                {
+                  description: {
+                    contains: 'ambient',
+                    mode: 'insensitive',
+                  },
+                },
+              ],
+            },
+          },
+        });
+      }
     });
   });
 
@@ -236,7 +268,7 @@ describe('MusicsController', () => {
 
       expect(musicsService.findOne).toHaveBeenCalledWith(
         {
-          _id: musicId,
+          id: musicId,
           OR: [{ organizationId }, { isDefault: true, organizationId: null }],
           category: 'MUSIC',
           isDeleted: false,
@@ -257,14 +289,14 @@ describe('MusicsController', () => {
 
       await controller.patch(request, user, musicId, { isDeleted: true });
 
-      expect(musicsService.findOne).toHaveBeenCalledWith({ _id: musicId }, []);
+      expect(musicsService.findOne).toHaveBeenCalledWith({ id: musicId }, []);
       expect(musicsService.patch).toHaveBeenCalledWith(
         musicId,
         expect.objectContaining({
-          brand: brandId,
+          brandId,
           isDeleted: true,
-          organization: organizationId,
-          user: userId,
+          organizationId,
+          userId,
         }),
         expect.any(Array),
       );
@@ -282,7 +314,7 @@ describe('MusicsController', () => {
       await controller.remove(request, user, musicId);
 
       expect(musicsService.findOne).toHaveBeenCalledWith({
-        _id: musicId,
+        id: musicId,
         OR: [{ organizationId }, { isDefault: true, organizationId: null }],
         category: 'MUSIC',
         isDeleted: false,

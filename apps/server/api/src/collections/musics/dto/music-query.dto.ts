@@ -1,5 +1,5 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import { AssetScope } from '@genfeedai/enums';
+import { AssetScope, MetadataExtension } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
@@ -73,11 +73,13 @@ export class MusicQueryDto extends BaseQueryDto {
 
   @ApiProperty({
     description: 'Filter by format',
+    enum: MetadataExtension,
+    enumName: 'MetadataExtension',
     required: false,
   })
   @IsOptional()
-  @IsString()
-  format?: string;
+  @IsEnum(MetadataExtension)
+  format?: MetadataExtension;
 
   @ApiProperty({
     description: 'Filter by provider',

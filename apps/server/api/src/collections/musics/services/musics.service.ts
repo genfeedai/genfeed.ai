@@ -4,7 +4,6 @@ import { UpdateMusicDto } from '@api/collections/musics/dto/update-music.dto';
 import type { MusicDocument } from '@api/collections/musics/schemas/music.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { IngredientStatus } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -27,14 +26,10 @@ export class MusicsService extends BaseService<
     createDto: CreateMusicDto,
     populate?: (string | PopulateOption)[] | 'none',
   ): Promise<MusicDocument> {
-    if (createDto.status === IngredientStatus.GENERATED) {
-      return this.ingredientsService.create(
-        createDto as unknown as Parameters<IngredientsService['create']>[0],
-        populate,
-      ) as unknown as Promise<MusicDocument>;
-    }
-
-    return super.create(createDto, populate);
+    return this.ingredientsService.create(
+      createDto as unknown as Parameters<IngredientsService['create']>[0],
+      populate,
+    ) as unknown as Promise<MusicDocument>;
   }
 
   override async patch(
@@ -42,25 +37,17 @@ export class MusicsService extends BaseService<
     updateDto: Partial<UpdateMusicDto> | Record<string, unknown>,
     populate: (string | PopulateOption)[] | 'none' = [],
   ): Promise<MusicDocument> {
-    if (updateDto.status === IngredientStatus.GENERATED) {
-      return this.ingredientsService.patch(
-        id,
-        updateDto as Parameters<IngredientsService['patch']>[1],
-        populate,
-      ) as unknown as Promise<MusicDocument>;
-    }
-
-    return super.patch(id, updateDto, populate);
+    return this.ingredientsService.patch(
+      id,
+      updateDto as Parameters<IngredientsService['patch']>[1],
+      populate,
+    ) as unknown as Promise<MusicDocument>;
   }
 
   override async patchAll(
     filter: Record<string, unknown>,
     update: Record<string, unknown>,
   ): Promise<{ modifiedCount: number }> {
-    if (update.status === IngredientStatus.GENERATED) {
-      return this.ingredientsService.patchAll(filter, update);
-    }
-
-    return super.patchAll(filter, update);
+    return this.ingredientsService.patchAll(filter, update);
   }
 }

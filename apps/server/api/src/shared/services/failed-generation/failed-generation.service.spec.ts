@@ -70,6 +70,7 @@ describe('FailedGenerationService', () => {
       await service.handleFailedGeneration(mockService, options);
 
       expect(mockService.patch).toHaveBeenCalledWith(mockIngredientId, {
+        generationError: 'Generation failed',
         status: IngredientStatus.FAILED,
       });
     });
@@ -78,9 +79,9 @@ describe('FailedGenerationService', () => {
       const options: FailedGenerationOptions = {
         activityMetadata: {
           key: ActivityKey.VIDEO_FAILED,
-          organization: mockOrganizationId,
+          organizationId: mockOrganizationId,
           source: ActivitySource.SCRIPT,
-          user: mockUserId,
+          userId: mockUserId,
           value: mockIngredientId,
         },
         ingredientId: mockIngredientId,
@@ -95,9 +96,9 @@ describe('FailedGenerationService', () => {
       expect(activitiesService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           key: ActivityKey.VIDEO_FAILED,
-          organization: expect.any(String),
+          organizationId: expect.any(String),
           source: ActivitySource.SCRIPT,
-          user: expect.any(String),
+          userId: expect.any(String),
         }),
       );
     });
@@ -176,6 +177,7 @@ describe('FailedGenerationService', () => {
       await service.handleFailedGeneration(mockService, options);
 
       expect(mockService.patch).toHaveBeenCalledWith(mockIngredientId, {
+        generationError: 'Generation failed',
         status: IngredientStatus.ARCHIVED,
       });
     });
@@ -196,6 +198,7 @@ describe('FailedGenerationService', () => {
       );
 
       expect(voicesService.patch).toHaveBeenCalledWith(mockIngredientId, {
+        generationError: 'Generation failed',
         status: IngredientStatus.FAILED,
       });
 
@@ -218,6 +221,7 @@ describe('FailedGenerationService', () => {
       );
 
       expect(avatarsService.patch).toHaveBeenCalledWith(mockIngredientId, {
+        generationError: 'Generation failed',
         status: IngredientStatus.FAILED,
       });
 
@@ -242,6 +246,7 @@ describe('FailedGenerationService', () => {
       );
 
       expect(videosService.patch).toHaveBeenCalledWith(mockIngredientId, {
+        generationError: 'Processing failed',
         status: IngredientStatus.FAILED,
       });
 
@@ -274,6 +279,7 @@ describe('FailedGenerationService', () => {
       );
 
       expect(imagesService.patch).toHaveBeenCalledWith(mockIngredientId, {
+        generationError: 'Generation failed',
         status: IngredientStatus.FAILED,
       });
 
@@ -347,6 +353,7 @@ describe('FailedGenerationService', () => {
       );
 
       expect(musicsService.patch).toHaveBeenCalledWith(mockIngredientId, {
+        generationError: 'Generation failed',
         status: IngredientStatus.FAILED,
       });
 

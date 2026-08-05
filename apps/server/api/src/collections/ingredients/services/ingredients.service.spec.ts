@@ -187,6 +187,48 @@ describe('IngredientsService', () => {
       );
     });
 
+    it('replaces source and tag relations with deduplicated canonical IDs', async () => {
+      const sourceId = '507f1f77bcf86cd799439021';
+      const tagId = '507f1f77bcf86cd799439022';
+
+      await service.patch('ingredient-1', {
+        sources: [sourceId, sourceId],
+        tags: [tagId, tagId],
+      });
+
+      expect(ingredientDelegate.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            sources: { set: [{ id: sourceId }] },
+            tags: { set: [{ id: tagId }] },
+          }),
+        }),
+      );
+    });
+
+    it('clears source and tag relations when empty arrays are supplied', async () => {
+      await service.patch('ingredient-1', { sources: [], tags: [] });
+
+      expect(ingredientDelegate.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            sources: { set: [] },
+            tags: { set: [] },
+          }),
+        }),
+      );
+    });
+
+    it('does not mutate source or tag relations when they are omitted', async () => {
+      await service.patch('ingredient-1', { isFavorite: true });
+
+      const update = ingredientDelegate.update.mock.calls[0]?.[0] as {
+        data: Record<string, unknown>;
+      };
+      expect(update.data).not.toHaveProperty('sources');
+      expect(update.data).not.toHaveProperty('tags');
+    });
+
     it('should handle update errors', async () => {
       const id = 'test-id';
       const updateDto: UpdateIngredientDto = {
@@ -199,6 +241,50 @@ describe('IngredientsService', () => {
 
       await expect(service.patch(id, updateDto)).rejects.toThrow(
         'Update failed',
+      );
+    });
+  });
+
+  describe('patchAll', () => {
+    it('rejects relation updates that Prisma updateMany cannot apply', async () => {
+      const ingredientId = '507f1f77bcf86cd799439011';
+      const tagId = '507f1f77bcf86cd799439022';
+
+      await expect(
+        service.patchAll({ id: ingredientId }, { tags: [tagId] }),
+      ).rejects.toThrow(
+        'Bulk ingredient updates do not support sources or tags',
+      );
+
+      expect(ingredientDelegate.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('keeps bulk writes on the canonical scalar boundary', async () => {
+      const brandId = '507f1f77bcf86cd799439013';
+      const ingredientId = '507f1f77bcf86cd799439011';
+      ingredientDelegate.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.patchAll(
+        { id: ingredientId },
+        {
+          brand: brandId,
+          brandId,
+          status: IngredientStatus.PROCESSING,
+        },
+      );
+
+      expect(ingredientDelegate.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            brandId,
+            status: IngredientStatus.PROCESSING,
+          }),
+        }),
+      );
+      expect(ingredientDelegate.updateMany).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ brand: expect.anything() }),
+        }),
       );
     });
   });

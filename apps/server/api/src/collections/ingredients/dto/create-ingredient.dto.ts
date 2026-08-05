@@ -11,6 +11,7 @@ import {
 } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  IsArray,
   IsBoolean,
   IsEnum,
   IsNumber,
@@ -69,8 +70,8 @@ export class CreateIngredientDto {
 
   @IsEntityId()
   @IsOptional()
-  @ApiProperty({ required: false })
-  readonly folderId?: string;
+  @ApiProperty({ nullable: true, required: false })
+  readonly folderId?: string | null;
 
   @IsEntityId()
   @IsOptional()
@@ -98,6 +99,7 @@ export class CreateIngredientDto {
   readonly agentStrategyId?: string;
 
   @IsEntityId({ each: true })
+  @IsArray()
   @IsOptional()
   @ApiProperty({
     description: 'Source ingredient IDs (for tracking merged content)',
@@ -142,7 +144,7 @@ export class CreateIngredientDto {
   @ApiProperty({ required: false })
   readonly negativePrompt?: string;
 
-  @IsString({ each: true })
+  @IsArray()
   @IsOptional()
   @IsEnum(TransformationCategory, { each: true })
   @ApiProperty({
@@ -208,7 +210,8 @@ export class CreateIngredientDto {
   @ApiProperty({ required: false })
   readonly voiceSource?: string;
 
-  @IsString({ each: true })
+  @IsArray()
+  @IsEntityId({ each: true })
   @IsOptional()
   @ApiProperty({
     description: 'Array of tag IDs for this ingredient',

@@ -150,7 +150,7 @@ export class OrganizationsRelationshipsController {
       where: {
         isConnected: true,
         isDeleted: false,
-        organization: organizationId,
+        organizationId,
       },
     };
 
@@ -325,17 +325,34 @@ export class OrganizationsRelationshipsController {
     const parentConditions = IngredientFilterUtil.buildParentFilter(
       query.parentId,
     );
+    const folderConditions = IngredientFilterUtil.buildFolderFilter(
+      query.folderId,
+    );
+    const metadataWhere = {
+      ...(query.search
+        ? {
+            OR: [
+              { label: { contains: query.search, mode: 'insensitive' } },
+              {
+                description: {
+                  contains: query.search,
+                  mode: 'insensitive',
+                },
+              },
+            ],
+          }
+        : {}),
+      ...(query.format ? { extension: query.format } : {}),
+    };
 
     const where = {
       isDeleted,
       organizationId: organizationId,
-      ...statusFilter,
-      ...(query.search && {
-        OR: [
-          { label: { contains: query.search, mode: 'insensitive' } },
-          { description: { contains: query.search, mode: 'insensitive' } },
-        ],
+      ...folderConditions,
+      ...(Object.keys(metadataWhere).length > 0 && {
+        metadata: { is: metadataWhere },
       }),
+      ...statusFilter,
       ...(query.category && { category: query.category }),
       ...(query.brandId &&
         isEntityId(query.brandId) && {

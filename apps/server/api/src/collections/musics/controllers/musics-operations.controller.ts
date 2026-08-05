@@ -111,7 +111,7 @@ export class MusicsOperationsController {
     }
 
     const publicMetadata = getPublicMetadata(user);
-    const brandId = createMusicDto.brand || publicMetadata.brand;
+    const brandId = createMusicDto.brandId || publicMetadata.brand;
 
     // Fetch brand for default model
     const brand = await this.brandsService.findOne({
@@ -172,7 +172,7 @@ export class MusicsOperationsController {
 
     const { metadataData, ingredientData } =
       await this.sharedService.createMediaDocuments(user, {
-        brandId: publicMetadata.brand,
+        brandId,
         category: IngredientCategory.MUSIC,
         duration: createMusicDto.duration,
         extension: MetadataExtension.MP3,
@@ -190,7 +190,7 @@ export class MusicsOperationsController {
     // Create activity for music generation start (after ingredientData is available)
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brandId: publicMetadata.brand,
+        brandId,
         entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.MUSIC_PROCESSING,
@@ -260,11 +260,11 @@ export class MusicsOperationsController {
             user.id,
             getUserRoomName(user.id),
             {
-              brand: publicMetadata.brand,
+              brandId,
               key: ActivityKey.MUSIC_FAILED,
-              organization: publicMetadata.organization,
+              organizationId: publicMetadata.organization,
               source: ActivitySource.MUSIC_GENERATION,
-              user: publicMetadata.user,
+              userId: publicMetadata.user,
               value: JSON.stringify({
                 error: 'Generation failed to start',
                 ingredientId: ingredientId.toString(),
@@ -292,11 +292,11 @@ export class MusicsOperationsController {
           user.id,
           getUserRoomName(user.id),
           {
-            brand: publicMetadata.brand,
+            brandId,
             key: ActivityKey.MUSIC_FAILED,
-            organization: publicMetadata.organization,
+            organizationId: publicMetadata.organization,
             source: ActivitySource.MUSIC_GENERATION,
-            user: publicMetadata.user,
+            userId: publicMetadata.user,
             value: JSON.stringify({
               error: (error as Error)?.message || 'Generation failed',
               ingredientId: ingredientId.toString(),
@@ -360,7 +360,7 @@ export class MusicsOperationsController {
                 metadataData: additionalMetadata,
                 ingredientData: additionalIngredient,
               } = await this.sharedService.createMediaDocuments(user, {
-                brandId: publicMetadata.brand,
+                brandId,
                 category: IngredientCategory.MUSIC,
                 duration: createMusicDto.duration,
                 extension: MetadataExtension.MP3,
@@ -405,11 +405,11 @@ export class MusicsOperationsController {
                   user.id,
                   getUserRoomName(user.id),
                   {
-                    brand: publicMetadata.brand,
+                    brandId,
                     key: ActivityKey.MUSIC_FAILED,
-                    organization: publicMetadata.organization,
+                    organizationId: publicMetadata.organization,
                     source: ActivitySource.MUSIC_GENERATION,
-                    user: publicMetadata.user,
+                    userId: publicMetadata.user,
                     value: JSON.stringify({
                       error: (error as Error)?.message || 'Generation failed',
                       ingredientId: additionalIngredientId.toString(),
@@ -436,11 +436,11 @@ export class MusicsOperationsController {
         user.id,
         getUserRoomName(user.id),
         {
-          brand: publicMetadata.brand,
+          brandId,
           key: ActivityKey.MUSIC_FAILED,
-          organization: publicMetadata.organization,
+          organizationId: publicMetadata.organization,
           source: ActivitySource.MUSIC_GENERATION,
-          user: publicMetadata.user,
+          userId: publicMetadata.user,
           value: JSON.stringify({
             error: (error as Error)?.message || 'Generation failed',
             ingredientId: ingredientData.id.toString(),

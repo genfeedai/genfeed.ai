@@ -93,25 +93,6 @@ export class IngredientsController {
       ...(updateIngredientDto as unknown as Record<string, unknown>),
     };
 
-    if (
-      Object.hasOwn(processedDto, 'tags') &&
-      Array.isArray(processedDto.tags)
-    ) {
-      processedDto.tags = processedDto.tags.map(
-        (tag: string | { id?: string }) => {
-          if (typeof tag === 'string') {
-            return tag;
-          }
-
-          if (tag && typeof tag === 'object') {
-            return tag.id ?? String(tag);
-          }
-
-          return tag as string;
-        },
-      );
-    }
-
     // Load only an active ingredient in the caller organization, then enforce
     // current-brand or organization-shared access below.
     const ingredient = await this.ingredientsService.findOne(

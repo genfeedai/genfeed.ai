@@ -1,7 +1,10 @@
 import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
-import { toIngredientCreateData } from '@api/collections/ingredients/utils/ingredient-create-data.util';
+import {
+  toIngredientCreateData,
+  toIngredientUpdateData,
+} from '@api/collections/ingredients/utils/ingredient-create-data.util';
 import { AssetGateService } from '@api/collections/organization-settings/services/asset-gate.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
@@ -14,7 +17,7 @@ import { IngredientStatus, MetadataExtension } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
 @Injectable()
@@ -305,7 +308,11 @@ export class IngredientsService extends BaseService<
 
       const updated = await this.prisma.ingredient.update({
         where: { id },
-        data: this.normalizeData(updateDto) as never,
+        data: this.normalizeData(
+          toIngredientUpdateData(
+            updateDto as unknown as Record<string, unknown>,
+          ),
+        ) as never,
       });
 
       if (!updated) {
@@ -348,6 +355,14 @@ export class IngredientsService extends BaseService<
     try {
       this.logger.debug(`${this.constructorName} patchAll`, { filter, update });
 
+      if (Object.hasOwn(update, 'sources') || Object.hasOwn(update, 'tags')) {
+        throw new BadRequestException(
+          'Bulk ingredient updates do not support sources or tags',
+        );
+      }
+
+      const updateData = toIngredientUpdateData(update);
+
       // Capture the owning org(s) BEFORE the update: once rows flip to GENERATED
       // a post-update re-query on a status-based filter would match nothing.
       const isGeneratedTransition =
@@ -370,7 +385,7 @@ export class IngredientsService extends BaseService<
           ...filter,
           isDeleted: filter.isDeleted ?? false,
         }) as never,
-        data: this.normalizeData(update) as never,
+        data: this.normalizeData(updateData) as never,
       });
 
       this.logger.debug(`${this.constructorName} patchAll success`, {

@@ -1,6 +1,14 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const ingredientAttributes = createEntityAttributes([
+  'userId',
+  'organizationId',
+  'brandId',
+  'folderId',
+  'parentId',
+  'metadataId',
+  'promptId',
+  'trainingId',
   'parent',
   'folder',
   'sources',

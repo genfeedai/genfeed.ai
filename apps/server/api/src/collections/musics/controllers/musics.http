@@ -24,7 +24,7 @@ Authorization: Bearer {{bearerToken}}
 
 
 ### Filter Musics by Account
-GET {{apiBaseUrl}}/musics?brand={{testBrandId}}&page=1&limit=20
+GET {{apiBaseUrl}}/musics?brandId={{testBrandId}}&page=1&limit=20
 Authorization: Bearer {{bearerToken}}
 
 

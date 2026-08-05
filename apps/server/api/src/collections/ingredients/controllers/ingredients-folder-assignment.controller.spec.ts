@@ -107,18 +107,18 @@ describe('IngredientsController folder assignment', () => {
       mockRequest,
       ingredientId,
       mockUser,
-      { folder: folderId },
+      { folderId },
     );
 
     expect(foldersService.findOne).toHaveBeenCalledWith({
-      _id: folderId,
+      id: folderId,
       isDeleted: false,
       organizationId,
     });
     expect(ingredientsService.findOne).toHaveBeenNthCalledWith(
       1,
       {
-        _id: ingredientId,
+        id: ingredientId,
         isDeleted: false,
         organizationId,
       },
@@ -130,7 +130,7 @@ describe('IngredientsController folder assignment', () => {
     expect(ingredientsService.findOne).toHaveBeenNthCalledWith(
       2,
       {
-        _id: ingredientId,
+        id: ingredientId,
         isDeleted: false,
         organizationId,
       },
@@ -154,7 +154,7 @@ describe('IngredientsController folder assignment', () => {
       mockRequest,
       ingredientId,
       mockUser,
-      { folder: folderId },
+      { folderId },
     );
 
     expect(result).toEqual({
@@ -173,7 +173,7 @@ describe('IngredientsController folder assignment', () => {
       mockRequest,
       ingredientId,
       mockUser,
-      { folder: folderId },
+      { folderId },
     );
 
     expect(result).toEqual({
@@ -190,7 +190,7 @@ describe('IngredientsController folder assignment', () => {
     ingredientsService.patch.mockResolvedValue(ingredient);
 
     await controller.update(mockRequest, ingredientId, mockUser, {
-      folder: '',
+      folderId: null,
     });
 
     expect(foldersService.findOne).not.toHaveBeenCalled();

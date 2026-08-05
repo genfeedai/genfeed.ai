@@ -13,7 +13,6 @@ import {
 } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -130,7 +129,7 @@ export class MusicsController {
 
     const data = await this.musicsService.patch(
       id,
-      await this.enrichUpdateDto(updateDto, user),
+      this.enrichUpdateDto(updateDto, user),
       MUSIC_POPULATE_FIELDS,
     );
     if (!data) {
@@ -158,8 +157,7 @@ export class MusicsController {
       ErrorResponse.notFound('Music', id);
     }
 
-    const canonicalId = EntityIdUtil.resolveCanonicalId(existing, id);
-    const data = await this.musicsService.remove(canonicalId);
+    const data = await this.musicsService.remove(existing.id);
     if (!data) {
       ErrorResponse.notFound('Music', id);
     }
@@ -192,6 +190,27 @@ export class MusicsController {
     const scope = CollectionFilterUtil.buildScopeFilter(query.scope);
 
     const status = QueryDefaultsUtil.parseMusicStatusFilter(query.status);
+    const metadataWhere = {
+      ...(query.search
+        ? {
+            OR: [
+              { label: { contains: query.search, mode: 'insensitive' } },
+              {
+                description: {
+                  contains: query.search,
+                  mode: 'insensitive',
+                },
+              },
+            ],
+          }
+        : {}),
+      ...(query.format ? { extension: query.format } : {}),
+      ...(query.provider ? { externalProvider: query.provider } : {}),
+    };
+    const metadataFilter =
+      Object.keys(metadataWhere).length > 0
+        ? { metadata: { is: metadataWhere } }
+        : {};
 
     return {
       where: {
@@ -202,6 +221,7 @@ export class MusicsController {
               IngredientCategory.MUSIC,
             ),
             isDeleted: query.isDeleted ?? false,
+            ...metadataFilter,
             organizationId: publicMetadata.organization,
             status,
             userId: publicMetadata.user,
@@ -216,6 +236,7 @@ export class MusicsController {
             ),
             isDefault,
             isDeleted: query.isDeleted ?? false,
+            ...metadataFilter,
             ...(scope !== undefined ? { scope } : {}),
             status,
             // Filter default musics by brand when brand is specified
@@ -253,29 +274,17 @@ export class MusicsController {
     );
   }
 
-  private async enrichUpdateDto(
+  private enrichUpdateDto(
     updateDto: UpdateMusicDto,
     user: User,
-  ): Promise<UpdateMusicDto> {
+  ): UpdateMusicDto {
     const publicMetadata = getPublicMetadata(user);
-    const dto = { ...updateDto } as Record<string, unknown>;
-
-    for (const field of ['parent', 'folder', 'brand', 'organization']) {
-      if (Object.hasOwn(dto, field)) {
-        dto[field] = await EntityIdUtil.convertRelationshipField(
-          dto[field],
-          field,
-        );
-      }
-    }
 
     return {
-      ...dto,
-      brand: Object.hasOwn(dto, 'brand') ? dto.brand : publicMetadata.brand,
-      organization: Object.hasOwn(dto, 'organization')
-        ? dto.organization
-        : publicMetadata.organization,
-      user: publicMetadata.user,
-    } as UpdateMusicDto;
+      ...updateDto,
+      brandId: updateDto.brandId ?? publicMetadata.brand,
+      organizationId: publicMetadata.organization,
+      userId: publicMetadata.user,
+    };
   }
 }

@@ -63,7 +63,7 @@ describe('OrganizationsRelationshipsController', () => {
     },
     organizationsService: {
       findOne: vi.fn().mockResolvedValue({
-        _id: '507f1f77bcf86cd799439012',
+        id: '507f1f77bcf86cd799439012',
       }),
     },
   };
@@ -118,18 +118,23 @@ describe('OrganizationsRelationshipsController', () => {
         {} as never,
         '507f1f77bcf86cd799439012',
         mockUser,
-        { category: 'video' } as never,
+        {
+          category: 'video',
+          folderId: '507f1f77bcf86cd799439019',
+          format: 'mp4',
+          search: 'launch',
+        } as never,
       );
 
       expect(mockServices.membersService.findOne).toHaveBeenCalledWith({
         isActive: true,
         isDeleted: false,
-        organization: '507f1f77bcf86cd799439012',
-        user: '507f1f77bcf86cd799439011',
+        organizationId: '507f1f77bcf86cd799439012',
+        userId: '507f1f77bcf86cd799439011',
       });
       expect(mockServices.organizationsService.findOne).toHaveBeenCalledWith({
-        _id: '507f1f77bcf86cd799439012',
-        user: '507f1f77bcf86cd799439011',
+        id: '507f1f77bcf86cd799439012',
+        userId: '507f1f77bcf86cd799439011',
       });
       expect(mockServices.ingredientsService.findAll).toHaveBeenCalledWith(
         {
@@ -137,8 +142,25 @@ describe('OrganizationsRelationshipsController', () => {
           orderBy: { createdAt: -1 },
           where: {
             category: 'video',
+            folderId: '507f1f77bcf86cd799439019',
             isDeleted: false,
-            organization: '507f1f77bcf86cd799439012',
+            metadata: {
+              is: {
+                extension: 'mp4',
+                OR: [
+                  {
+                    label: { contains: 'launch', mode: 'insensitive' },
+                  },
+                  {
+                    description: {
+                      contains: 'launch',
+                      mode: 'insensitive',
+                    },
+                  },
+                ],
+              },
+            },
+            organizationId: '507f1f77bcf86cd799439012',
           },
         },
         expect.objectContaining({ limit: 10, page: 1 }),

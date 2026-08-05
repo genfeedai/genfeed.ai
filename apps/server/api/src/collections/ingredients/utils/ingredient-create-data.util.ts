@@ -85,6 +85,24 @@ function toIds(value: unknown): string[] {
     : [];
 }
 
+function assignRelationIds(
+  data: Record<string, unknown>,
+  input: Record<string, unknown>,
+  field: 'sources' | 'tags',
+  operation: 'connect' | 'set',
+): void {
+  if (!Object.hasOwn(input, field)) {
+    return;
+  }
+
+  const ids = Array.from(new Set(toIds(input[field])));
+  if (operation === 'connect' && ids.length === 0) {
+    return;
+  }
+
+  data[field] = { [operation]: ids.map((id) => ({ id })) };
+}
+
 export function toIngredientCreateData(
   input: Record<string, unknown>,
 ): Record<string, unknown> {
@@ -92,15 +110,23 @@ export function toIngredientCreateData(
     ...pickDefinedFields(input, INGREDIENT_SCALAR_FIELDS),
   };
 
-  const sourceIds = Array.from(new Set(toIds(input.sources)));
-  if (sourceIds.length > 0) {
-    data.sources = { connect: sourceIds.map((id) => ({ id })) };
-  }
+  assignRelationIds(data, input, 'sources', 'connect');
+  assignRelationIds(data, input, 'tags', 'connect');
 
-  const tagIds = Array.from(new Set(toIds(input.tags)));
-  if (tagIds.length > 0) {
-    data.tags = { connect: tagIds.map((id) => ({ id })) };
-  }
+  return Object.fromEntries(
+    Object.entries(data).filter(([, value]) => value !== undefined),
+  );
+}
+
+export function toIngredientUpdateData(
+  input: Record<string, unknown>,
+): Record<string, unknown> {
+  const data: Record<string, unknown> = {
+    ...pickDefinedFields(input, INGREDIENT_SCALAR_FIELDS),
+  };
+
+  assignRelationIds(data, input, 'sources', 'set');
+  assignRelationIds(data, input, 'tags', 'set');
 
   return Object.fromEntries(
     Object.entries(data).filter(([, value]) => value !== undefined),

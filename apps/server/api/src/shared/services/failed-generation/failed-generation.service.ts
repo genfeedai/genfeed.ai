@@ -16,8 +16,9 @@ export interface FailedGenerationOptions {
   room?: string;
   organizationId?: string;
   activityMetadata?: {
-    user: string;
-    organization: string;
+    brandId?: string;
+    organizationId: string;
+    userId: string;
     key: ActivityKey;
     source: ActivitySource;
     value: string;
@@ -88,7 +89,7 @@ export class FailedGenerationService {
         const existingActivity = await this.activitiesService.findByActionValue(
           processingKey,
           ingredientId,
-          activityMetadata.user,
+          activityMetadata.userId,
         );
 
         if (existingActivity) {
@@ -125,14 +126,13 @@ export class FailedGenerationService {
           // Fallback: create new activity if processing activity not found
           await this.activitiesService.create(
             new ActivityEntity({
-              // @ts-expect-error TS2339
-              brandId: activityMetadata.brand ?? undefined,
+              brandId: activityMetadata.brandId,
               entityId: ingredientId,
               entityModel: ActivityEntityModel.INGREDIENT,
               key: activityMetadata.key,
-              organizationId: activityMetadata.organization,
+              organizationId: activityMetadata.organizationId,
               source: activityMetadata.source,
-              userId: activityMetadata.user,
+              userId: activityMetadata.userId,
               value: JSON.stringify({
                 error: websocketMessage || 'Generation failed',
                 ingredientId: ingredientId,
@@ -151,12 +151,11 @@ export class FailedGenerationService {
         // Fallback: create new activity if we can't determine processing key
         await this.activitiesService.create(
           new ActivityEntity({
-            // @ts-expect-error TS2339
-            brandId: activityMetadata.brand ?? undefined,
+            brandId: activityMetadata.brandId,
             key: activityMetadata.key,
-            organizationId: activityMetadata.organization,
+            organizationId: activityMetadata.organizationId,
             source: activityMetadata.source,
-            userId: activityMetadata.user,
+            userId: activityMetadata.userId,
             value: activityMetadata.value,
           }),
         );
@@ -229,9 +228,9 @@ export class FailedGenerationService {
     userId: string,
     room?: string,
     activityMetadata?: {
-      user: string;
-      organization: string;
-      brand?: string;
+      brandId?: string;
+      organizationId: string;
+      userId: string;
       key: ActivityKey;
       source: ActivitySource;
       value: string;
@@ -265,9 +264,9 @@ export class FailedGenerationService {
     const activityMetadata = metadata
       ? {
           key: ActivityKey.IMAGE_FAILED,
-          organization: metadata.organization,
+          organizationId: metadata.organization,
           source: ActivitySource.SCRIPT,
-          user: metadata.user,
+          userId: metadata.user,
           value: JSON.stringify({
             error: errorMessage || 'Generation failed',
             ingredientId,
@@ -300,9 +299,9 @@ export class FailedGenerationService {
     userId: string,
     room?: string,
     activityMetadata?: {
-      user: string;
-      organization: string;
-      brand?: string;
+      brandId?: string;
+      organizationId: string;
+      userId: string;
       key: ActivityKey;
       source: ActivitySource;
       value: string;
