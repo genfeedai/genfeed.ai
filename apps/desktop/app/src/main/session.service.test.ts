@@ -1,21 +1,47 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import type { IDesktopEnvironment } from '@genfeedai/desktop-contracts';
 import type { DesktopKvService } from './kv.service';
+import type { DesktopCookieStore } from './session.service';
 import './test-support/electron.mock';
 
 const { DesktopSessionService } = await import('./session.service');
 
+const APP_ORIGIN = 'http://127.0.0.1:3230';
+const SESSION_STORAGE_KEY = 'desktop.session';
 const TEST_ENVIRONMENT: IDesktopEnvironment = {
   apiEndpoint: 'https://api.genfeed.ai/v1',
-  appEndpoint: 'https://app.genfeed.ai',
+  appEndpoint: APP_ORIGIN,
   appName: 'desktop',
   appPort: 3230,
   authEndpoint: 'https://app.genfeed.ai/oauth/cli',
   cdnUrl: 'https://cdn.genfeed.ai',
   wsEndpoint: 'https://notifications.genfeed.ai',
 };
+const VALID_COOKIE = {
+  cookieName: 'better-auth.session_token',
+  cookieValue: 'token.signature',
+  expiresAt: '2099-09-04T12:00:00.000Z',
+  httpOnly: true,
+  path: '/',
+  sameSite: 'lax',
+  secure: false,
+} as const;
 
-const createKvMock = () => {
+type CookieRemoveCall = Parameters<DesktopCookieStore['remove']>;
+type CookieSetDetails = Parameters<DesktopCookieStore['set']>[0];
+
+interface CookieMock {
+  cookies: DesktopCookieStore;
+  jar: Map<string, string>;
+  removeCalls: CookieRemoveCall[];
+  setCalls: CookieSetDetails[];
+}
+
+type KvMock = DesktopKvService & {
+  values: Map<string, string>;
+};
+
+const createKvMock = (): KvMock => {
   const values = new Map<string, string>();
 
   return {
@@ -31,19 +57,81 @@ const createKvMock = () => {
       values.set(key, value);
     },
     values,
-  } as unknown as DesktopKvService & { values: Map<string, string> };
+  } as unknown as KvMock;
 };
 
-const createSessionService = (
-  kvService: DesktopKvService,
-): InstanceType<typeof DesktopSessionService> =>
-  new DesktopSessionService(kvService, TEST_ENVIRONMENT);
+const createCookieMock = (): CookieMock => {
+  const removeCalls: CookieRemoveCall[] = [];
+  const setCalls: CookieSetDetails[] = [];
+  // Mirrors a real cookie jar: `get` only returns what `set` actually retained,
+  // so a jar that silently drops the cookie is expressible in tests.
+  const jar = new Map<string, string>();
+
+  return {
+    cookies: {
+      get: async ({ name }: { name: string; url: string }) => {
+        const value = jar.get(name);
+
+        return value === undefined ? [] : [{ name, value }];
+      },
+      remove: async (...args: CookieRemoveCall) => {
+        removeCalls.push(args);
+        jar.delete(args[1]);
+      },
+      set: async (details: CookieSetDetails) => {
+        setCalls.push(details);
+        jar.set(details.name, details.value);
+      },
+    },
+    jar,
+    removeCalls,
+    setCalls,
+  };
+};
+
+const createSessionService = (kvService: KvMock, cookieMock: CookieMock) =>
+  new DesktopSessionService(
+    kvService,
+    TEST_ENVIRONMENT,
+    APP_ORIGIN,
+    cookieMock.cookies,
+  );
+
+const createSession = () => ({
+  issuedAt: '2026-08-05T12:00:00.000Z',
+  sessionCookie: VALID_COOKIE,
+  token: 'gf_desktop_key',
+  userEmail: 'desktop@example.com',
+  userId: 'user-123',
+  userName: 'Desktop User',
+});
+
+const stubWhoami = (): void => {
+  globalThis.fetch = (async () =>
+    new Response(
+      JSON.stringify({
+        data: {
+          user: {
+            email: 'desktop@example.com',
+            id: 'user-123',
+            name: 'Desktop User',
+          },
+        },
+      }),
+      {
+        headers: { 'content-type': 'application/json' },
+        status: 200,
+      },
+    )) as typeof fetch;
+};
 
 describe('DesktopSessionService', () => {
   const originalFetch = globalThis.fetch;
-  let kvService: ReturnType<typeof createKvMock>;
+  let cookieMock: CookieMock;
+  let kvService: KvMock;
 
   beforeEach(() => {
+    cookieMock = createCookieMock();
     kvService = createKvMock();
     globalThis.fetch = originalFetch;
   });
@@ -52,73 +140,134 @@ describe('DesktopSessionService', () => {
     globalThis.fetch = originalFetch;
   });
 
-  it('builds a desktop-specific OAuth URL', () => {
-    const service = createSessionService(kvService);
-
+  it('builds a desktop-specific PKCE OAuth URL', () => {
+    const service = createSessionService(kvService, cookieMock);
     const loginUrl = new URL(service.getLoginUrl());
 
     expect(loginUrl.origin).toBe('https://app.genfeed.ai');
     expect(loginUrl.pathname).toBe('/oauth/cli');
+    expect(loginUrl.searchParams.get('code_challenge_method')).toBe('S256');
     expect(loginUrl.searchParams.get('desktop')).toBe('1');
     expect(loginUrl.searchParams.get('return_to')).toBe(
       'genfeedai-desktop://auth',
     );
   });
 
-  it('hydrates a session from the server-minted key', async () => {
-    const service = createSessionService(kvService);
-    const loginUrl = new URL(service.getLoginUrl());
-    const state = loginUrl.searchParams.get('state');
+  it('persists the cookie descriptor and re-applies it on restart', async () => {
+    const firstService = createSessionService(kvService, cookieMock);
+    await firstService.setSession(createSession());
 
-    if (!state) {
-      throw new Error('Expected login URL state');
-    }
-
-    globalThis.fetch = (async (
-      input: RequestInfo | URL,
-      init?: RequestInit,
-    ) => {
-      expect(String(input)).toBe('https://api.genfeed.ai/v1/auth/whoami');
-      expect(init?.headers).toMatchObject({
-        Authorization: 'Bearer gf_desktop_key',
-      });
-
-      return new Response(
-        JSON.stringify({
-          data: {
-            user: {
-              email: 'desktop@example.com',
-              id: 'user-123',
-              name: 'Desktop User',
-            },
-          },
-        }),
-        {
-          headers: {
-            'content-type': 'application/json',
-          },
-          status: 200,
-        },
-      );
-    }) as typeof fetch;
-
-    const session = await service.handleCallback(
-      `genfeedai-desktop://auth?key=gf_desktop_key&state=${state}`,
+    expect(kvService.values.get(SESSION_STORAGE_KEY)).toContain(
+      'better-auth.session_token',
     );
-
-    expect(session).toEqual({
-      issuedAt: expect.any(String),
-      token: 'gf_desktop_key',
-      userEmail: 'desktop@example.com',
-      userId: 'user-123',
-      userName: 'Desktop User',
+    expect(cookieMock.setCalls[0]).toMatchObject({
+      expirationDate: Math.floor(Date.parse(VALID_COOKIE.expiresAt) / 1_000),
+      httpOnly: true,
+      name: VALID_COOKIE.cookieName,
+      path: '/',
+      sameSite: 'lax',
+      secure: false,
+      url: APP_ORIGIN,
+      value: VALID_COOKIE.cookieValue,
     });
-    expect(kvService.values.get('desktop.session')).toContain('gf_desktop_key');
-    expect(service.getSession()?.token).toBe('gf_desktop_key');
+
+    const restartCookieMock = createCookieMock();
+    const restartedService = createSessionService(kvService, restartCookieMock);
+    stubWhoami();
+
+    await expect(restartedService.validateStoredSession()).resolves.toEqual(
+      createSession(),
+    );
+    expect(restartCookieMock.setCalls.length).toBeGreaterThanOrEqual(1);
+    expect(restartCookieMock.setCalls[0]?.url).toBe(APP_ORIGIN);
   });
 
-  it('exchanges browser auth codes with the stored PKCE verifier', async () => {
-    const service = createSessionService(kvService);
+  it('installs a __Secure- prefixed cookie on the loopback origin unrenamed', async () => {
+    const service = createSessionService(kvService, cookieMock);
+    const secureSession = {
+      ...createSession(),
+      sessionCookie: {
+        ...VALID_COOKIE,
+        cookieName: '__Secure-better-auth.session_token',
+        secure: true,
+      },
+    };
+
+    await service.setSession(secureSession);
+
+    expect(cookieMock.setCalls[0]).toMatchObject({
+      name: '__Secure-better-auth.session_token',
+      secure: true,
+      url: APP_ORIGIN,
+    });
+    expect(cookieMock.jar.get('__Secure-better-auth.session_token')).toBe(
+      VALID_COOKIE.cookieValue,
+    );
+  });
+
+  it('fails loudly when the cookie jar silently drops the session cookie', async () => {
+    // `set` resolves but retains nothing — the exact failure mode that would
+    // otherwise leave the renderer unauthenticated with no error surfaced.
+    cookieMock.cookies.set = async (details: CookieSetDetails) => {
+      cookieMock.setCalls.push(details);
+    };
+    const service = createSessionService(kvService, cookieMock);
+
+    await expect(service.setSession(createSession())).rejects.toThrow(
+      /not retained by the cookie jar.*name=better-auth\.session_token.*url=http:\/\/127\.0\.0\.1:3230/s,
+    );
+    expect(kvService.values.has(SESSION_STORAGE_KEY)).toBe(false);
+  });
+
+  it('discards an expired descriptor before validating the API key', async () => {
+    const expiredSession = {
+      ...createSession(),
+      sessionCookie: {
+        ...VALID_COOKIE,
+        expiresAt: '2020-01-01T00:00:00.000Z',
+      },
+    };
+    kvService.values.set(SESSION_STORAGE_KEY, JSON.stringify(expiredSession));
+    globalThis.fetch = (async () => {
+      throw new Error('Expired sessions must not reach the API.');
+    }) as typeof fetch;
+
+    const service = createSessionService(kvService, cookieMock);
+
+    await expect(service.validateStoredSession()).resolves.toBeNull();
+    expect(kvService.values.has(SESSION_STORAGE_KEY)).toBe(false);
+    expect(cookieMock.removeCalls).toEqual([
+      [APP_ORIGIN, VALID_COOKIE.cookieName],
+    ]);
+  });
+
+  it('clears both the shell cookie and API key on sign-out', async () => {
+    const service = createSessionService(kvService, cookieMock);
+    await service.setSession(createSession());
+
+    await service.clearSession();
+
+    expect(kvService.values.has(SESSION_STORAGE_KEY)).toBe(false);
+    expect(cookieMock.removeCalls).toEqual([
+      [APP_ORIGIN, VALID_COOKIE.cookieName],
+    ]);
+  });
+
+  it('restores the API key if cookie removal fails during sign-out', async () => {
+    cookieMock.cookies.remove = async () => {
+      throw new Error('cookie store unavailable');
+    };
+    const service = createSessionService(kvService, cookieMock);
+    await service.setSession(createSession());
+
+    await expect(service.clearSession()).rejects.toThrow(
+      'cookie store unavailable',
+    );
+    expect(service.getSession()).toEqual(createSession());
+  });
+
+  it('exchanges a PKCE code and persists the exact signed cookie', async () => {
+    const service = createSessionService(kvService, cookieMock);
     const loginUrl = new URL(service.getLoginUrl());
     const state = loginUrl.searchParams.get('state');
 
@@ -126,136 +275,35 @@ describe('DesktopSessionService', () => {
       throw new Error('Expected login URL state');
     }
 
-    globalThis.fetch = (async (
-      input: RequestInfo | URL,
-      init?: RequestInit,
-    ) => {
-      expect(String(input)).toBe(
-        'https://api.genfeed.ai/v1/auth/desktop/exchange',
-      );
-      expect(init?.method).toBe('POST');
-      expect(JSON.parse(String(init?.body))).toMatchObject({
-        code: 'desktop-code',
-        codeVerifier: expect.any(String),
-        state,
-      });
-
-      return new Response(
+    globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) =>
+      new Response(
         JSON.stringify({
-          issuedAt: '2026-05-01T10:00:00.000Z',
+          issuedAt: '2026-08-05T12:00:00.000Z',
+          session: VALID_COOKIE,
           token: 'gf_desktop_key',
           userEmail: 'desktop@example.com',
           userId: 'user-123',
           userName: 'Desktop User',
         }),
         {
-          headers: {
-            'content-type': 'application/json',
-          },
-          status: 200,
+          headers: { 'content-type': 'application/json' },
+          status: init?.method === 'POST' ? 200 : 500,
         },
-      );
-    }) as typeof fetch;
+      )) as typeof fetch;
 
-    const session = await service.handleCallback(
-      `genfeedai-desktop://auth?code=desktop-code&state=${state}`,
-    );
-
-    expect(session).toEqual({
-      issuedAt: '2026-05-01T10:00:00.000Z',
-      token: 'gf_desktop_key',
-      userEmail: 'desktop@example.com',
-      userId: 'user-123',
-      userName: 'Desktop User',
-    });
-    expect(kvService.values.get('desktop.session')).toContain('gf_desktop_key');
-  });
-
-  it('rejects browser auth code replays after the pending PKCE state is consumed', async () => {
-    const service = createSessionService(kvService);
-    const loginUrl = new URL(service.getLoginUrl());
-    const state = loginUrl.searchParams.get('state');
-    let exchangeCalls = 0;
-
-    if (!state) {
-      throw new Error('Expected login URL state');
-    }
-
-    globalThis.fetch = (async () => {
-      exchangeCalls += 1;
-      return new Response(
-        JSON.stringify({
-          issuedAt: '2026-05-01T10:00:00.000Z',
-          token: 'gf_desktop_key',
-          userEmail: 'desktop@example.com',
-          userId: 'user-123',
-          userName: 'Desktop User',
-        }),
-        {
-          headers: {
-            'content-type': 'application/json',
-          },
-          status: 200,
-        },
-      );
-    }) as typeof fetch;
-
-    const callbackUrl = `genfeedai-desktop://auth?code=desktop-code&state=${state}`;
-
-    await expect(service.handleCallback(callbackUrl)).resolves.toMatchObject({
-      token: 'gf_desktop_key',
-    });
-    await expect(service.handleCallback(callbackUrl)).resolves.toBeNull();
-    expect(exchangeCalls).toBe(1);
-  });
-
-  it('rejects auth callbacks outside the registered desktop callback target', async () => {
-    const service = createSessionService(kvService);
-
-    globalThis.fetch = (async () => {
-      throw new Error('Unexpected network request');
-    }) as typeof fetch;
-
-    await expect(
-      service.handleCallback('https://evil.example/auth?key=gf_desktop_key'),
-    ).resolves.toBeNull();
-    await expect(
-      service.handleCallback('genfeedai-desktop://settings?key=gf_desktop_key'),
-    ).resolves.toBeNull();
-    await expect(
-      service.handleCallback(
-        'genfeedai-desktop://auth/extra?key=gf_desktop_key',
-      ),
-    ).resolves.toBeNull();
-  });
-
-  it('rejects OAuth error callbacks and consumes the matching pending auth state', async () => {
-    const service = createSessionService(kvService);
-    const loginUrl = new URL(service.getLoginUrl());
-    const state = loginUrl.searchParams.get('state');
-
-    if (!state) {
-      throw new Error('Expected login URL state');
-    }
-
-    globalThis.fetch = (async () => {
-      throw new Error('Unexpected network request');
-    }) as typeof fetch;
-
-    await expect(
-      service.handleCallback(
-        `genfeedai-desktop://auth?error=access_denied&state=${state}`,
-      ),
-    ).resolves.toBeNull();
     await expect(
       service.handleCallback(
         `genfeedai-desktop://auth?code=desktop-code&state=${state}`,
       ),
-    ).resolves.toBeNull();
+    ).resolves.toEqual({
+      isOk: true,
+      session: createSession(),
+    });
+    expect(cookieMock.setCalls[0]?.value).toBe('token.signature');
   });
 
-  it('rejects ambiguous callbacks without calling either exchange path', async () => {
-    const service = createSessionService(kvService);
+  it('treats a 2xx exchange without a session descriptor as recoverable', async () => {
+    const service = createSessionService(kvService, cookieMock);
     const loginUrl = new URL(service.getLoginUrl());
     const state = loginUrl.searchParams.get('state');
 
@@ -263,138 +311,28 @@ describe('DesktopSessionService', () => {
       throw new Error('Expected login URL state');
     }
 
-    globalThis.fetch = (async () => {
-      throw new Error('Unexpected network request');
-    }) as typeof fetch;
-
-    await expect(
-      service.handleCallback(
-        `genfeedai-desktop://auth?code=desktop-code&key=gf_desktop_key&state=${state}`,
-      ),
-    ).resolves.toBeNull();
-  });
-
-  it('validates and refreshes an existing desktop session on startup', async () => {
-    const service = createSessionService(kvService);
-
-    await service.setSession({
-      issuedAt: '2026-04-01T09:00:00.000Z',
-      token: 'persisted_desktop_key',
-      userEmail: 'old@example.com',
-      userId: 'user-123',
-      userName: 'Old Name',
-    });
-
-    globalThis.fetch = (async (
-      input: RequestInfo | URL,
-      init?: RequestInit,
-    ) => {
-      expect(String(input)).toBe('https://api.genfeed.ai/v1/auth/whoami');
-      expect(init?.headers).toMatchObject({
-        Authorization: 'Bearer persisted_desktop_key',
-      });
-
-      return new Response(
+    globalThis.fetch = (async () =>
+      new Response(
         JSON.stringify({
-          data: {
-            user: {
-              email: 'desktop@example.com',
-              id: 'user-123',
-              name: 'Desktop User',
-            },
-          },
+          issuedAt: '2026-08-05T12:00:00.000Z',
+          token: 'gf_desktop_key',
+          userId: 'user-123',
         }),
         {
-          headers: {
-            'content-type': 'application/json',
-          },
+          headers: { 'content-type': 'application/json' },
           status: 200,
         },
-      );
-    }) as typeof fetch;
-
-    await expect(service.validateStoredSession()).resolves.toEqual({
-      issuedAt: '2026-04-01T09:00:00.000Z',
-      token: 'persisted_desktop_key',
-      userEmail: 'desktop@example.com',
-      userId: 'user-123',
-      userName: 'Desktop User',
-    });
-    expect(service.getSession()).toEqual({
-      issuedAt: '2026-04-01T09:00:00.000Z',
-      token: 'persisted_desktop_key',
-      userEmail: 'desktop@example.com',
-      userId: 'user-123',
-      userName: 'Desktop User',
-    });
-  });
-
-  it('rejects callbacks without a key', async () => {
-    const service = createSessionService(kvService);
-
-    await expect(
-      service.handleCallback('genfeedai-desktop://auth?token=missing'),
-    ).resolves.toBeNull();
-  });
-
-  it('rejects server-minted key callbacks without pending auth state', async () => {
-    const service = createSessionService(kvService);
-
-    globalThis.fetch = (async () => {
-      throw new Error('Unexpected network request');
-    }) as typeof fetch;
-
-    await expect(
-      service.handleCallback('genfeedai-desktop://auth?key=gf_desktop_key'),
-    ).resolves.toBeNull();
-  });
-
-  it('keeps an existing session when a desktop callback exchange fails', async () => {
-    const service = createSessionService(kvService);
-    const loginUrl = new URL(service.getLoginUrl());
-    const state = loginUrl.searchParams.get('state');
-
-    if (!state) {
-      throw new Error('Expected login URL state');
-    }
-
-    await service.setSession({
-      issuedAt: '2026-04-01T09:00:00.000Z',
-      token: 'persisted_desktop_key',
-      userEmail: 'desktop@example.com',
-      userId: 'user-123',
-      userName: 'Desktop User',
-    });
-
-    globalThis.fetch = (async () => {
-      return new Response('invalid code', { status: 400 });
-    }) as typeof fetch;
+      )) as typeof fetch;
 
     await expect(
       service.handleCallback(
-        `genfeedai-desktop://auth?code=expired-code&state=${state}`,
+        `genfeedai-desktop://auth?code=desktop-code&state=${state}`,
       ),
-    ).resolves.toBeNull();
-    expect(service.getSession()?.token).toBe('persisted_desktop_key');
-  });
-
-  it('clears a stale stored desktop session during startup validation', async () => {
-    const service = createSessionService(kvService);
-
-    await service.setSession({
-      issuedAt: '2026-04-01T09:00:00.000Z',
-      token: 'stale_desktop_key',
-      userEmail: 'desktop@example.com',
-      userId: 'user-123',
-      userName: 'Desktop User',
+    ).resolves.toMatchObject({
+      error: { code: 'session-cookie-unavailable' },
+      isOk: false,
     });
-
-    globalThis.fetch = (async () => {
-      return new Response('unauthorized', { status: 401 });
-    }) as typeof fetch;
-
-    await expect(service.validateStoredSession()).resolves.toBeNull();
-    expect(service.getSession()).toBeNull();
-    expect(kvService.values.has('desktop.session')).toBe(false);
+    expect(kvService.values.has(SESSION_STORAGE_KEY)).toBe(false);
+    expect(cookieMock.setCalls).toEqual([]);
   });
 });

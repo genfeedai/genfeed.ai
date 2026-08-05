@@ -1,4 +1,7 @@
-import { getAllIntegrationSlugs } from '@data/integrations.data';
+import {
+  getAllIntegrationSlugs,
+  type Integration,
+} from '@data/integrations.data';
 import { stringifyJsonLd } from '@data/json-ld';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import IntegrationContent from '@public/integrations/[slug]/integration-content';
@@ -11,6 +14,29 @@ import { Suspense } from 'react';
 
 export function generateStaticParams() {
   return getAllIntegrationSlugs().map((slug) => ({ slug }));
+}
+
+export function buildIntegrationPageJsonLd(
+  integration: Integration,
+  url: string,
+) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    about: {
+      '@type': 'Thing',
+      description: integration.description,
+      name: `${integration.name} content integration`,
+    },
+    description: `Create professional ${integration.name} content with AI. Generate videos, images, and posts optimized for ${integration.name}. Try Genfeed free.`,
+    isPartOf: {
+      '@type': 'WebSite',
+      name: 'Genfeed',
+      url: 'https://genfeed.ai',
+    },
+    name: `Genfeed for ${integration.name}`,
+    url,
+  };
 }
 
 export async function generateMetadata(
@@ -66,30 +92,9 @@ export default async function IntegrationPage({
     notFound();
   }
 
-  const description = `Create professional ${integration.name} content with AI. Generate videos, images, and posts optimized for ${integration.name}. Try Genfeed free.`;
   const url = `${EnvironmentService.apps.website}/integrations/${slug}`;
 
-  const integrationJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'SoftwareApplication',
-    applicationCategory: 'BusinessApplication',
-    description,
-    name: `Genfeed for ${integration.name}`,
-    offers: {
-      '@type': 'AggregateOffer',
-      highPrice: '499',
-      lowPrice: '0',
-      offerCount: 4,
-      priceCurrency: 'USD',
-    },
-    operatingSystem: 'Web',
-    publisher: {
-      '@type': 'Organization',
-      name: 'Genfeed',
-      url: 'https://genfeed.ai',
-    },
-    url,
-  };
+  const integrationJsonLd = buildIntegrationPageJsonLd(integration, url);
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',

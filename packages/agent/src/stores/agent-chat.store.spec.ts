@@ -1,4 +1,8 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import {
+  AgentWorkEventStatus,
+  AgentWorkEventType,
+} from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { AgentThreadStatus } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -38,6 +42,72 @@ describe('agent-chat.store finalizeStream', () => {
     expect(
       useAgentChatStore.getState().messages[0]?.metadata?.uiActions,
     ).toEqual([pendingAction]);
+    expect(useAgentChatStore.getState().workEvents).toEqual([]);
+  });
+
+  it('dedupes analytics snapshot cards by type+title when ids differ', () => {
+    useAgentChatStore.getState().addPendingUiActions([
+      {
+        id: 'analytics-1',
+        title: 'Analytics summary (7d)',
+        type: 'analytics_snapshot_card',
+      },
+    ]);
+
+    useAgentChatStore.getState().finalizeStream({
+      content: 'Here is your analytics',
+      createdAt: '2026-03-26T10:00:00.000Z',
+      id: 'assistant-1',
+      metadata: {
+        uiActions: [
+          {
+            id: 'analytics-2',
+            title: 'Analytics summary (7d)',
+            type: 'analytics_snapshot_card',
+          },
+        ],
+      },
+      role: 'assistant',
+      threadId: 'thread-1',
+    });
+
+    expect(
+      useAgentChatStore.getState().messages[0]?.metadata?.uiActions,
+    ).toHaveLength(1);
+  });
+
+  it('merges tool work events by toolCallId across lifecycle updates', () => {
+    const store = useAgentChatStore.getState();
+    store.addWorkEvent({
+      createdAt: '2026-03-26T10:00:00.000Z',
+      detail: 'Running get_analytics',
+      event: AgentWorkEventType.TOOL_STARTED,
+      id: 'call-1',
+      label: 'get_analytics',
+      status: AgentWorkEventStatus.RUNNING,
+      threadId: 'thread-1',
+      toolCallId: 'call-1',
+      toolName: 'get_analytics',
+    });
+    store.addWorkEvent({
+      createdAt: '2026-03-26T10:00:01.000Z',
+      detail: 'get_analytics completed',
+      event: AgentWorkEventType.TOOL_COMPLETED,
+      id: 'call-1',
+      label: 'get_analytics',
+      progress: 100,
+      status: AgentWorkEventStatus.COMPLETED,
+      threadId: 'thread-1',
+      toolCallId: 'call-1',
+      toolName: 'get_analytics',
+    });
+
+    expect(useAgentChatStore.getState().workEvents).toHaveLength(1);
+    expect(useAgentChatStore.getState().workEvents[0]).toMatchObject({
+      progress: 100,
+      status: AgentWorkEventStatus.COMPLETED,
+      toolCallId: 'call-1',
+    });
   });
 });
 

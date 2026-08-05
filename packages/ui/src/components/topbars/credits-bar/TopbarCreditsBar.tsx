@@ -48,7 +48,6 @@ function TopbarCreditsBarContent() {
 
   const [balance, setBalance] = useState<number>(0);
   const [segments, setSegments] = useState<ITopbarBalanceSegment[]>([]);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const refreshBreakdownRef = useRef(refreshCreditsBreakdown);
   const balanceRefreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -191,13 +190,8 @@ function TopbarCreditsBarContent() {
     }, [creditsBreakdown, balance]);
 
   const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    try {
-      await findTopbarBalances();
-      await refreshCreditsBreakdown();
-    } finally {
-      setIsRefreshing(false);
-    }
+    await findTopbarBalances();
+    await refreshCreditsBreakdown();
   }, [findTopbarBalances, refreshCreditsBreakdown]);
 
   if (!showCredits) {
@@ -228,7 +222,6 @@ function TopbarCreditsBarContent() {
       planBalance={planBalance}
       extraBalance={extraBalance}
       planUsagePercent={planUsagePercent}
-      isRefreshing={isRefreshing}
       onRefresh={handleRefresh}
     />
   );

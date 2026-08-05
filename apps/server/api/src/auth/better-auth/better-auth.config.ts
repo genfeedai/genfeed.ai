@@ -32,11 +32,6 @@ export function parseCommaSeparated(value: string | undefined): string[] {
     .filter((entry) => entry.length > 0);
 }
 
-/** Parse the comma-separated trusted-origins env value into a clean list. */
-export function parseTrustedOrigins(value: string | undefined): string[] {
-  return parseCommaSeparated(value);
-}
-
 /**
  * Frontends local dev serves from, auto-trusted so a fresh clone works with zero
  * `BETTER_AUTH_TRUSTED_ORIGINS` config. Port wildcards keep alternate Next.js
@@ -58,24 +53,37 @@ const LOCAL_DEV_TRUSTED_ORIGINS = [
 ] as const;
 
 /**
+ * Fixed loopback origin owned by the shipped desktop client, which serves the
+ * embedded web app there even when it talks to the production API. It is a
+ * property of the shipped binary rather than of any one deployment, so it is
+ * compiled in and trusted in every environment — no `BETTER_AUTH_TRUSTED_ORIGINS`
+ * entry is required anywhere, and an operator cannot break Desktop sign-in by
+ * omitting it. The port matches the desktop shell's fixed loopback port.
+ * General loopback wildcards remain development-only.
+ */
+export const DESKTOP_SHELL_TRUSTED_ORIGINS = ['http://127.0.0.1:3230'] as const;
+
+/**
  * Resolve Better Auth's trusted origins. Always honours whatever
  * `BETTER_AUTH_TRUSTED_ORIGINS` lists; outside production/staging it also merges
  * the standard {@link LOCAL_DEV_TRUSTED_ORIGINS} so local dev needs zero env
  * config and never hits a spurious `INVALID_ORIGIN` when accessed via canonical
  * Portless HTTPS, `genfeed.localhost`, `localhost`, or `local.genfeed.ai`.
- * Real deployments (production/staging) get exactly the configured list —
- * loopback hosts are never auto-trusted there.
+ * Real deployments (production/staging) get the configured list plus the one
+ * fixed desktop-shell loopback origin; general loopback hosts stay dev-only.
  */
 export function resolveTrustedOrigins(
   value: string | undefined,
   nodeEnv: string | undefined,
 ): string[] {
-  const configured = parseTrustedOrigins(value);
+  const configured = parseCommaSeparated(value);
   const isDeployedEnv = nodeEnv === 'production' || nodeEnv === 'staging';
-  if (isDeployedEnv) {
-    return configured;
-  }
-  return Array.from(new Set([...configured, ...LOCAL_DEV_TRUSTED_ORIGINS]));
+  const environmentOrigins = isDeployedEnv
+    ? configured
+    : [...configured, ...LOCAL_DEV_TRUSTED_ORIGINS];
+  return Array.from(
+    new Set([...environmentOrigins, ...DESKTOP_SHELL_TRUSTED_ORIGINS]),
+  );
 }
 
 /**

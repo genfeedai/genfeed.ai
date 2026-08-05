@@ -10,6 +10,7 @@ import {
   ConversationInspectorPanel,
   ConversationInspectorShellProvider,
   getConversationComposerAction,
+  resolveConversationComposerDestinationHref,
   runAgentApiEffect,
   useAgentChatStore,
 } from '@genfeedai/agent';
@@ -163,8 +164,8 @@ function UniversalWorkspaceShellContent({
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const { back, push, replace } = useRouter();
-  const { brandId, organizationId } = useBrand();
-  const { brandSlug, href, orgHref, orgSlug } = useOrgUrl();
+  const { brandId, organizationId, selectedBrand } = useBrand();
+  const { activeHref, brandSlug, href, orgHref, orgSlug } = useOrgUrl();
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
   const activeSurfaceAdapter = useActiveAnalyticsWorkspaceSurfaceAdapter();
   const threads = useAgentChatStore((state) => state.threads);
@@ -627,15 +628,9 @@ function UniversalWorkspaceShellContent({
         };
       }
 
+      // One rule for every slash action: brand selected → brand URL, else org.
+      // Special cases below are presentation (overlay vs canvas), not scope.
       if (trustedAction.name === 'workflow') {
-        if (!activeThread?.brandId) {
-          return {
-            message:
-              '/workflow needs an active thread brand. Select a brand through the scoped controls; your draft has been preserved.',
-            status: 'unauthorized',
-          };
-        }
-
         return handleOpenWorkflowPicker()
           ? {
               message:
@@ -647,13 +642,6 @@ function UniversalWorkspaceShellContent({
                 'The workflow picker is unavailable. Your draft and references are unchanged.',
               status: 'unavailable',
             };
-      }
-
-      if (trustedAction.requiredScope === 'brand' && !brandSlug) {
-        return {
-          message: `/${trustedAction.name} needs an explicit brand route. Select a brand through the scoped controls; your draft has been preserved.`,
-          status: 'unauthorized',
-        };
       }
 
       if (trustedAction.name === 'remix') {
@@ -674,10 +662,13 @@ function UniversalWorkspaceShellContent({
             };
       }
 
-      const destination =
-        trustedAction.requiredScope === 'brand'
-          ? href(trustedAction.route)
-          : orgHref(trustedAction.route);
+      const destination = resolveConversationComposerDestinationHref({
+        activeHref,
+        orgHref,
+        route: trustedAction.route,
+        routeBrandSlug: brandSlug,
+        selectedBrandSlug: selectedBrand?.slug,
+      });
       const launch = resolveWorkspaceSurfaceLaunch({
         currentHref,
         destinationHref: destination,
@@ -702,17 +693,17 @@ function UniversalWorkspaceShellContent({
       };
     },
     [
+      activeHref,
       activeThreadId,
-      activeThread?.brandId,
       brandSlug,
       conversationScope.isConsequentiallyBlocked,
       currentHref,
       effectiveThreadId,
-      href,
       handleOpenWorkflowPicker,
       launchWorkspaceOverlay,
       orgHref,
       push,
+      selectedBrand?.slug,
     ],
   );
 

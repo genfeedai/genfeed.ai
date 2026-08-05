@@ -39,7 +39,7 @@ describe('generation-request', () => {
       autoSelectModel: true,
       height: 1024,
       prioritize: DEFAULT_AGENT_GENERATION_PRIORITY,
-      prompt: 'prompt-1',
+      promptId: 'prompt-1',
       text: 'Prompt',
       width: 1024,
     });
@@ -62,7 +62,7 @@ describe('generation-request', () => {
       height: 576,
       model: 'video-model',
       prioritize: RouterPriority.SPEED,
-      prompt: 'prompt-2',
+      promptId: 'prompt-2',
       text: 'Video prompt',
       waitForCompletion: true,
       width: 1024,

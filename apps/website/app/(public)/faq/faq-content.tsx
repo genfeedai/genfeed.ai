@@ -60,8 +60,6 @@ export default function FAQContent() {
             {/* Left column - FAQ content */}
             <div className="space-y-12">
               <div className="gsap-hero">
-                {/* The PageLayout hero owns the page's <h1>; this is the
-                    section heading beneath it. */}
                 <h2 className="text-4xl font-semibold mb-4">
                   Frequently Asked Questions
                 </h2>

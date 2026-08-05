@@ -228,7 +228,9 @@ export class AgentStreamEffectsService {
   }): Effect.Effect<void, unknown> {
     const detail = params.detail ?? `Starting ${params.toolName}`;
     const label = params.label ?? params.toolName;
-    const progress = params.progress ?? 15;
+    // Only publish determinate progress when the caller has real progress.
+    // Defaulting to 15% made every tool look stuck at a fake quarter bar.
+    const progress = params.progress;
 
     return this.publishStreamToolStartEffect({
       detail,

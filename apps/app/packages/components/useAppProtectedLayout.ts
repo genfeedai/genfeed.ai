@@ -1,5 +1,5 @@
 import { ADMIN_MENU_ITEMS } from '@app-config/admin-menu-items.config';
-import { ANALYTICS_MENU_ITEMS } from '@app-config/analytics-menu-items.config';
+import { getAnalyticsMenuItemsForScope } from '@app-config/analytics-menu-items.config';
 import { AUTOMATE_MENU_ITEMS } from '@app-config/automate-menu-items.config';
 import { DISCOVER_MENU_ITEMS } from '@app-config/discover-menu-items.config';
 import { LIBRARY_MENU_ITEMS } from '@app-config/library-menu-items.config';
@@ -338,13 +338,13 @@ export function useAppProtectedLayout(
 
   const analyticsMenuItems = useMemo(
     () =>
-      ANALYTICS_MENU_ITEMS.map(
+      getAnalyticsMenuItemsForScope(brandSlug).map(
         (item): MenuItemConfig => ({
           ...item,
           href: withTaskContextHref(item.href, taskContextSearchParams),
         }),
       ),
-    [taskContextSearchParams],
+    [brandSlug, taskContextSearchParams],
   );
 
   const discoverMenuItems = useMemo(

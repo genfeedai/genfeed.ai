@@ -1,4 +1,3 @@
-import type { Metadata } from 'next';
 import { Head } from 'nextra/components';
 import { getPageMap } from 'nextra/page-map';
 import { Footer, Layout, Navbar } from 'nextra-theme-docs';
@@ -7,34 +6,21 @@ import {
   docsContentMetaRegistry,
   docsMdxComponentRegistry,
 } from '../content/meta-registry';
-import { DOCS_ORIGIN, FALLBACK_DESCRIPTION } from '../lib/page-metadata';
 import '../styles/globals.css';
+import { DOCS_ORIGIN } from './seo';
 
-/**
- * Site-wide defaults only. Per-page description, canonical, and og:url are set
- * in app/[[...mdxPath]]/page.tsx — a description defined here would be inherited
- * verbatim by all 51 routes, which is exactly the duplicate the 5 Aug audit
- * flagged. The title template is safe to share: it appends the brand to each
- * page's own heading, which is what lifts one-word docs titles out of the
- * too-short bucket.
- */
-export const metadata: Metadata = {
-  description: FALLBACK_DESCRIPTION,
+export const metadata = {
+  description:
+    'Documentation for Genfeed Community, Cloud, deployment, content workflows, provider-backed generation, publishing, and APIs.',
   icons: { icon: '/favicon.ico' },
   metadataBase: new URL(DOCS_ORIGIN),
   openGraph: {
+    description:
+      'Documentation for Genfeed Community, Cloud, deployment, content workflows, provider-backed generation, publishing, and APIs.',
     images: ['https://cdn.genfeed.ai/assets/cards/default.jpg'],
-    siteName: 'Genfeed.ai Documentation',
-    type: 'website',
+    title: 'Genfeed.ai Documentation',
   },
-  title: {
-    default: 'Genfeed.ai Documentation',
-    template: '%s | Genfeed.ai Docs',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    images: ['https://cdn.genfeed.ai/assets/cards/default.jpg'],
-  },
+  title: 'Genfeed.ai Documentation',
 };
 
 const navbar = (

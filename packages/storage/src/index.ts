@@ -6,6 +6,7 @@ export {
   assertSafeSegment,
   resolveContainedObjectKey,
   resolveContainedPath,
+  resolveContainedPathWithoutSymlinks,
   SAFE_SEGMENT_PATTERN,
   type SecurityErrorFactory,
 } from './path-containment';
@@ -17,4 +18,5 @@ export type {
   StorageProvider,
   StorageProviderOptions,
 } from './storage.provider';
+export { resolveLocalStorageBaseDir } from './storage-base-dir';
 export { createStorageProvider } from './storage-provider.factory';

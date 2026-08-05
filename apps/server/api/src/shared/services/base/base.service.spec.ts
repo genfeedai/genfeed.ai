@@ -1230,5 +1230,27 @@ describe('BaseService', () => {
         }),
       );
     });
+
+    it('drops write keys whose operator value normalizes to undefined', async () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'label', {
+          isRequired: true,
+          kind: 'enum',
+          name: 'scope',
+          type: 'AssetScope',
+        }),
+      );
+      const created = { id: 'ing_undefined_operator', label: 'kept' };
+      delegate.create.mockResolvedValue(created);
+
+      await service.create({
+        label: 'kept',
+        scope: { not: null },
+      });
+
+      expect(delegate.create).toHaveBeenCalledWith({
+        data: { label: 'kept' },
+      });
+    });
   });
 });

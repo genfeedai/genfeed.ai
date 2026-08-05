@@ -117,9 +117,9 @@ describe('TriggerEvaluatorService', () => {
     await service.evaluateCampaign(campaignId, organizationId);
 
     expect(brandsService.findOne).toHaveBeenCalledWith({
-      _id: scalarBrandId,
+      id: scalarBrandId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId,
     });
     expect(analyticsService.getOverview).toHaveBeenCalledWith(
       expect.any(String),
@@ -169,15 +169,11 @@ describe('TriggerEvaluatorService', () => {
     agentCampaignsService.findOneById.mockResolvedValue({
       id: campaignId,
       agents: [strategyId],
-      // Scalars are the real columns; the aliases stay to prove the fallback.
-      brand: brandId,
       brandId,
       brief: 'Build AI marketing momentum',
       label: 'Spring Push',
-      organization: organizationId,
       organizationId,
       status: 'active',
-      user: userId,
       userId,
     });
     agentStrategiesService.findOneById.mockResolvedValue({
@@ -277,13 +273,10 @@ describe('TriggerEvaluatorService', () => {
     agentCampaignsService.findOneById.mockResolvedValue({
       id: campaignId,
       agents: [strategyId],
-      brand: brandId,
       brandId,
       label: 'Spring Push',
-      organization: organizationId,
       organizationId,
       status: 'active',
-      user: userId,
       userId,
     });
     agentStrategiesService.findOneById.mockResolvedValue({

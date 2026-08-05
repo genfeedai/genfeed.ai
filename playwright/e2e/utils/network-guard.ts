@@ -42,10 +42,9 @@ const DEFAULT_ALLOWED_HOSTS = [
   'fonts.gstatic.com',
 ];
 
-const DEFAULT_ALLOWED_HOST_SUFFIXES = [
-  '.google-analytics.com',
-  '.googletagmanager.com',
-];
+// PostHog (the only tracker) requires a build-time NEXT_PUBLIC_POSTHOG_KEY,
+// which E2E builds never set — no analytics hosts need allowlisting.
+const DEFAULT_ALLOWED_HOST_SUFFIXES: string[] = [];
 
 function isBypassUrl(url: string): boolean {
   return (

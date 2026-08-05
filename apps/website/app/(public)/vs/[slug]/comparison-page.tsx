@@ -40,13 +40,18 @@ export default function ComparisonPage({
   competitor: Competitor;
 }) {
   return (
-    // The hero already renders the page's only <h1>. A second "Genfeed vs X"
-    // heading below it shipped as a duplicate H1 on all 12 comparison pages.
     <PageLayout
       title={`Genfeed vs ${competitor.name}`}
-      description={competitor.tagline}
+      description={`Why Genfeed tracks revenue and ${competitor.name} doesn't. Compare features and pricing.`}
     >
-      <section className="max-w-5xl mx-auto py-20">
+      <section className="max-w-4xl mx-auto py-20 text-center">
+        <h2 className="text-5xl font-semibold mb-4">
+          Genfeed vs {competitor.name}
+        </h2>
+        <p className="text-xl text-muted-foreground">{competitor.tagline}</p>
+      </section>
+
+      <section className="max-w-5xl mx-auto pb-20">
         <Table className="table table-zebra w-full">
           <TableHeader>
             <TableRow>

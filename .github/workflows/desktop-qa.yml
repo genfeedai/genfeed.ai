@@ -1,17 +1,35 @@
 name: Desktop QA
 
 on:
-  # Temporarily disabled while the desktop app is not an active delivery
-  # surface. Re-enable PR QA by uncommenting this trigger; keep the manual and
-  # reusable entry points below for future desktop work and tagged releases.
-  # pull_request:
-  #   paths:
-  #     - "apps/app/**"
-  #     - "apps/desktop/**"
-  #     - "packages/desktop-contracts/**"
-  #     - "packages/props/**"
-  #     - "packages/ui/**"
-  #     - ".github/workflows/desktop-qa.yml"
+  # The desktop shell now boots the canonical `apps/app` bundle (#2371), so the
+  # blast radius of a desktop regression is everything that build inlines — not
+  # just `apps/desktop/**`. A path filter narrower than the bundle would let a
+  # change to the app, its auth client, or its deployment config ship a broken
+  # desktop binary with a green PR.
+  pull_request:
+    paths:
+      - "apps/app/**"
+      - "apps/desktop/**"
+      - "packages/desktop-contracts/**"
+      - "packages/desktop-core/**"
+      - "packages/desktop-prisma/**"
+      # Every workspace package `apps/app` bundles: a change to any of them
+      # lands inside the standalone build the shell serves.
+      - "packages/agent/**"
+      - "packages/auth-client/**"
+      - "packages/client/**"
+      - "packages/config/**"
+      - "packages/constants/**"
+      - "packages/enums/**"
+      - "packages/helpers/**"
+      - "packages/interfaces/**"
+      - "packages/next-config/**"
+      - "packages/props/**"
+      - "packages/types/**"
+      - "packages/ui/**"
+      - "packages/workflows/**"
+      - ".github/workflows/desktop-qa.yml"
+      - ".github/workflows/desktop-release.yml"
   workflow_dispatch:
   workflow_call:
 
@@ -47,7 +65,10 @@ jobs:
           install-command: 'bun install --frozen-lockfile'
 
       - name: Run desktop release QA
-        run: bun run --filter=@genfeedai/desktop qa:release
+        # Must go through turbo, not `bun run --filter`: the latter runs the
+        # script directly and skips the `^build` dependency, leaving the
+        # workspace packages unbuilt for the type-check step.
+        run: bunx turbo run qa:release --filter=@genfeedai/desktop
 
       - name: QA summary
         if: always()
@@ -56,6 +77,6 @@ jobs:
             echo "## Desktop QA"
             echo ""
             echo "- Checklist: apps/desktop/RELEASE_QA.md"
-            echo "- Command: \`bun run --filter=@genfeedai/desktop qa:release\`"
+            echo "- Command: \`bunx turbo run qa:release --filter=@genfeedai/desktop\`"
             echo "- Release SHA: \`${GENFEED_DESKTOP_RELEASE}\`"
           } >> "$GITHUB_STEP_SUMMARY"

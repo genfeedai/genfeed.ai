@@ -261,7 +261,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       'Not every team needs a full content operation yet. Done-For-You is the lighter version: we handle a focused stream of content end to end, so you show up consistently without the retainer-level commitment.',
     metaDescription:
       'Lighter done-for-you content service. We plan, produce, and publish a focused content stream for you, sized for smaller budgets. Custom scope.',
-    metaTitle: 'Done-For-You Content | Genfeed.ai',
+    metaTitle: 'Flexible Done-For-You Content | Genfeed.ai',
     outcomes: [
       {
         description:

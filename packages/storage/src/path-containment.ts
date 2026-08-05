@@ -1,3 +1,5 @@
+import type { Stats } from 'node:fs';
+import { lstat } from 'node:fs/promises';
 import path from 'node:path';
 
 /** Factory that turns a validation message into a consumer-owned error. */
@@ -57,6 +59,74 @@ export function resolveContainedPath(
   }
 
   return resolved;
+}
+
+/** `null` for a path that does not exist, so the caller can stop walking. */
+async function lstatOrNull(target: string): Promise<Stats | null> {
+  try {
+    return await lstat(target);
+  } catch (error: unknown) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === 'ENOENT' || code === 'ENOTDIR') {
+      return null;
+    }
+    throw error;
+  }
+}
+
+/**
+ * Resolve a candidate below a fixed root and reject it if any component
+ * between the root and the target is a symbolic link.
+ *
+ * {@link resolveContainedPath} is purely lexical — `path.resolve` never touches
+ * the filesystem — so a link planted under the root resolves to a
+ * contained-looking path while pointing anywhere on disk. That matters most on
+ * desktop, where the root is Electron's `userData` directory and the disk
+ * behind it is the user's own.
+ *
+ * Every link below the root is rejected, not only the ones that escape. The
+ * driver never creates links, so one existing is already anomalous, and the
+ * blanket rule closes the dangling-link hole that a `realpath` check leaves
+ * open: `realpath` reports `ENOENT` for a broken link, after which a write
+ * would follow it and create the target outside the root.
+ */
+export async function resolveContainedPathWithoutSymlinks(
+  rootDir: string,
+  candidatePath: string,
+  createError: SecurityErrorFactory,
+): Promise<string> {
+  const resolvedRoot = path.resolve(rootDir);
+  const containedPath = resolveContainedPath(
+    resolvedRoot,
+    candidatePath,
+    createError,
+  );
+  const relativePath = path.relative(resolvedRoot, containedPath);
+
+  if (relativePath === '') {
+    return containedPath;
+  }
+
+  let currentPath = resolvedRoot;
+
+  for (const segment of relativePath.split(path.sep)) {
+    currentPath = path.join(currentPath, segment);
+
+    const stats = await lstatOrNull(currentPath);
+
+    // Nothing can exist below a missing entry, so the walk is complete.
+    if (!stats) {
+      break;
+    }
+
+    if (stats.isSymbolicLink()) {
+      throw createError(
+        `File path must stay within ${resolvedRoot} and must not traverse a symbolic link`,
+      );
+    }
+  }
+
+  return containedPath;
 }
 
 function validateObjectKey(

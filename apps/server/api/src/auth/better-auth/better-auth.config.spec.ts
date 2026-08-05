@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DESKTOP_SHELL_TRUSTED_ORIGINS,
   parseCommaSeparated,
-  parseTrustedOrigins,
   resolveBetterAuthBaseUrl,
   resolveBooleanFlag,
   resolveCookieDomain,
@@ -22,15 +22,17 @@ describe('Better Auth config', () => {
 
   it('accepts console.genfeed.ai as a trusted post-auth callback origin', () => {
     expect(
-      parseTrustedOrigins(
+      resolveTrustedOrigins(
         'https://genfeed.ai, https://app.genfeed.ai, https://console.genfeed.ai',
+        'production',
       ),
     ).toContain('https://console.genfeed.ai');
   });
 
   describe('resolveTrustedOrigins', () => {
-    it('auto-trusts genfeed.localhost, localhost AND local.genfeed.ai for local dev (no env needed)', () => {
+    it('trusts the desktop shell and local development origins in development', () => {
       const origins = resolveTrustedOrigins(undefined, 'development');
+      expect(origins).toContain(DESKTOP_SHELL_TRUSTED_ORIGINS[0]);
       expect(origins).toContain('http://genfeed.localhost:*');
       expect(origins).toContain('https://*.genfeed.localhost');
       expect(origins).toContain('http://localhost:*');
@@ -46,11 +48,16 @@ describe('Better Auth config', () => {
       expect(origins.filter((o) => o === 'http://localhost:*')).toHaveLength(1);
     });
 
-    it('never auto-trusts localhost in production or staging', () => {
+    it('trusts only the fixed desktop loopback origin in production and staging', () => {
       for (const env of ['production', 'staging']) {
         const origins = resolveTrustedOrigins('https://app.genfeed.ai', env);
-        expect(origins).toEqual(['https://app.genfeed.ai']);
+        expect(origins).toEqual([
+          'https://app.genfeed.ai',
+          DESKTOP_SHELL_TRUSTED_ORIGINS[0],
+        ]);
         expect(origins).not.toContain('http://localhost:*');
+        expect(origins).not.toContain('http://genfeed.localhost:*');
+        expect(origins).not.toContain('http://local.genfeed.ai:*');
       }
     });
   });

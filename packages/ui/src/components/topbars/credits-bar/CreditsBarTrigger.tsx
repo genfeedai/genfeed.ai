@@ -9,12 +9,11 @@ import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
-import { CreditCard, Plus, RefreshCw } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import Link from 'next/link';
 
 /** Matches LowCreditsBanner — topbar warning tone below this. */
@@ -30,7 +29,7 @@ type Props = {
   planBalance: number;
   extraBalance: number;
   planUsagePercent: number;
-  isRefreshing?: boolean;
+  /** Silent refresh when the wallet opens (sockets already keep balance live). */
   onRefresh: () => void | Promise<void>;
 };
 
@@ -56,7 +55,6 @@ export default function CreditsBarTrigger({
   planBalance,
   extraBalance,
   planUsagePercent,
-  isRefreshing = false,
   onRefresh,
 }: Props) {
   const href = billingHref || '/settings/billing';
@@ -66,7 +64,14 @@ export default function CreditsBarTrigger({
   const planUsed = planLimit > 0 ? Math.max(0, planLimit - planBalance) : 0;
 
   return (
-    <DropdownMenu modal={false}>
+    <DropdownMenu
+      modal={false}
+      onOpenChange={(isOpen) => {
+        if (isOpen) {
+          void onRefresh();
+        }
+      }}
+    >
       <DropdownMenuTrigger asChild>
         <Button
           withWrapper={false}
@@ -179,38 +184,21 @@ export default function CreditsBarTrigger({
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem asChild>
-          <Link
-            href={href}
-            className="cursor-pointer"
-            data-testid="topbar-credits-top-up"
+        <div className="p-2 pt-1.5">
+          <Button
+            asChild
+            withWrapper={false}
+            variant={ButtonVariant.DEFAULT}
+            textTransform="none"
+            className="h-9 w-full justify-center gap-1.5"
+            data-testid="topbar-credits-buy"
           >
-            <Plus className="size-4" />
-            Top up
-          </Link>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem asChild>
-          <Link
-            href={href}
-            className="cursor-pointer"
-            data-testid="topbar-credits-details"
-          >
-            <CreditCard className="size-4" />
-            Billing & usage
-          </Link>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem
-          disabled={isRefreshing}
-          onSelect={(event) => {
-            event.preventDefault();
-            void onRefresh();
-          }}
-        >
-          <RefreshCw className={cn('size-4', isRefreshing && 'animate-spin')} />
-          Refresh
-        </DropdownMenuItem>
+            <Link href={href}>
+              <Plus className="size-4" aria-hidden />
+              Buy credits
+            </Link>
+          </Button>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );

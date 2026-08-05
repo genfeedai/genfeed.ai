@@ -6,10 +6,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const appProvidersSpy = vi.fn();
 
-const environmentServiceMock = vi.hoisted(() => ({
-  GA_ID: 'ga-test',
-}));
-
 vi.mock('@styles/globals.css', () => ({}));
 
 vi.mock('@genfeedai/fonts', () => ({
@@ -27,17 +23,12 @@ vi.mock('@helpers/ui/theme/theme.helper', () => ({
   resolveRequestTheme: vi.fn().mockResolvedValue('dark'),
 }));
 
-vi.mock('@services/core/environment.service', () => ({
-  EnvironmentService: environmentServiceMock,
-}));
-
 vi.mock('@ui/providers/AppProviders', () => ({
   default: ({
     children,
     ...props
   }: {
     children: ReactNode;
-    googleAnalyticsId?: string;
     initialTheme: string;
     storageKey?: string;
   }) => {
@@ -50,6 +41,10 @@ vi.mock('@ui/shell/AppHtmlDocument', () => ({
   default: ({ children }: { children: ReactNode }) => (
     <div data-testid="app-html-document">{children}</div>
   ),
+}));
+
+vi.mock('@/components/runtime/RuntimeConfigScript', () => ({
+  default: () => null,
 }));
 
 vi.mock('@ui/shell/metadata', () => ({
@@ -96,7 +91,6 @@ describe('app root layout', () => {
     expect(appProvidersSpy).toHaveBeenCalledTimes(1);
     expect(appProvidersSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        googleAnalyticsId: 'ga-test',
         initialTheme: 'dark',
         storageKey: 'theme',
       }),

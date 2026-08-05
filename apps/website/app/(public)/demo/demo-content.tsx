@@ -8,7 +8,10 @@ import { useMemo } from 'react';
 
 export default function DemoContent() {
   const animations = useMemo(
-    () => [gsapPresets.fadeUp('.gsap-section', '.gsap-section')],
+    () => [
+      gsapPresets.fadeUp('.gsap-hero'),
+      gsapPresets.fadeUp('.gsap-section', '.gsap-section'),
+    ],
     [],
   );
 
@@ -20,8 +23,16 @@ export default function DemoContent() {
         title="Demo"
         description="Watch Genfeed create content, publish everywhere, and track revenue in real-time"
       >
-        {/* Demo Video — the PageLayout hero owns the page's only <h1>. */}
-        <section className="gsap-section max-w-4xl mx-auto py-20">
+        {/* Hero */}
+        <section className="gsap-hero max-w-4xl mx-auto py-20 text-center">
+          <h2 className="text-5xl font-semibold mb-4">Demo</h2>
+          <p className="text-xl text-muted-foreground">
+            See how Genfeed works.
+          </p>
+        </section>
+
+        {/* Demo Video */}
+        <section className="gsap-section max-w-4xl mx-auto pb-20">
           <Card>
             <div className="aspect-video bg-card flex items-center justify-center border-2 border-edge/[0.08]">
               <div className="text-center">

@@ -3116,6 +3116,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'isGenerateVideosEnabled',
       'isNotificationsDiscordEnabled',
       'isNotificationsEmailEnabled',
+      'isNotificationsTelegramEnabled',
       'isVerifyIngredientEnabled',
       'isVerifyScriptEnabled',
       'isVerifyVideoEnabled',
