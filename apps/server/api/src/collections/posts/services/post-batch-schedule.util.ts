@@ -87,7 +87,7 @@ function planBatchWrites(
     // Scheduling a root post cascades to its children, exactly as `patch`
     // does — and, as there, before the post's own update is applied.
     if (!existing.parentId) {
-      const cascadeData: Prisma.PostUpdateManyMutationInput = {
+      const cascadeData: Prisma.PostUncheckedUpdateManyInput = {
         credentialId: target.credentialId,
         platform: target.platform,
         scheduledDate,

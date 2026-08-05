@@ -93,18 +93,20 @@ export class QuotaService {
     const endOfDay = new Date();
     endOfDay.setUTCHours(23, 59, 59, 999);
 
-    const currentCount = await this.getPostsService().count({
-      createdAt: {
-        gte: startOfDay,
-        lte: endOfDay,
+    const currentCount = await this.getPostsService().count(
+      organization.id.toString(),
+      {
+        createdAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+        credentialId: credential.id.toString(),
+        platform: credential.platform,
+        status: {
+          in: [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED],
+        },
       },
-      credentialId: credential.id.toString(),
-      isDeleted: false,
-      platform: credential.platform,
-      status: {
-        in: [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED],
-      },
-    });
+    );
 
     const result: QuotaCheckResult = {
       allowed: currentCount < dailyLimit,
