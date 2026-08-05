@@ -10,6 +10,7 @@ import {
   type GenerationResult,
   PersonaContentService,
 } from '@api/services/persona-content/persona-content.service';
+import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import {
   FleetReviewStatus,
   IngredientStatus,
@@ -360,6 +361,13 @@ export class AiInfluencerService {
       });
       throw new NotFoundException('Persona', slug);
     }
+
+    requireRelationId(
+      persona.organizationId,
+      'organizationId',
+      `Persona ${persona.id}`,
+    );
+    requireRelationId(persona.userId, 'userId', `Persona ${persona.id}`);
 
     this.loggerService.log(caller, {
       label: persona.label,

@@ -221,6 +221,19 @@ export class ReplyBotOrchestratorService {
         skipCounts: prefilterResult.skipCounts,
       });
 
+      if (content.length > 0) {
+        try {
+          this.requireBotOwnerUserId(botConfig, botConfigId);
+        } catch (error: unknown) {
+          result.errors += content.length;
+          this.loggerService.error(`${url} owner resolution failed`, {
+            botConfigId,
+            error,
+          });
+          return result;
+        }
+      }
+
       // Process each content item
       for (const item of content) {
         const processed = await this.processContent(
@@ -707,12 +720,8 @@ export class ReplyBotOrchestratorService {
    * Resolve a reply bot config's owner from its scalar FK column.
    *
    * `ReplyBotConfig.userId` is a non-nullable column, so an unresolvable owner
-   * means the row was read wrong rather than legitimately ownerless. The
-   * `botConfig.user` alias is `undefined` on an unpopulated read — and
-   * `findOneById` passes no populate — so `botConfig.user?.toString() || ''`
-   * silently attributed (and billed) every generation to `''`. Failing closed
-   * here costs only the one content item; the caller's catch marks the activity
-   * failed.
+   * means the row was read incorrectly rather than legitimately ownerless.
+   * Fail closed before generation or activity persistence.
    */
   private requireBotOwnerUserId(
     botConfig: ReplyBotConfigDocument,
@@ -720,7 +729,7 @@ export class ReplyBotOrchestratorService {
   ): string {
     return requireRelationId(
       botConfig.userId,
-      'user',
+      'userId',
       `Reply bot config ${botConfigId}`,
     );
   }
