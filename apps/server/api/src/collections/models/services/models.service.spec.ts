@@ -157,6 +157,17 @@ describe('ModelsService', () => {
     });
   });
 
+  it('rejects bulk updates without an explicit organization scope', async () => {
+    await expect(
+      service.updateMany(
+        { category: ModelCategory.IMAGE },
+        { isDefault: false },
+      ),
+    ).rejects.toThrow('organizationId is required for bulk model updates');
+
+    expect(modelDelegate.updateMany).not.toHaveBeenCalled();
+  });
+
   it('creates a private model from a completed training', async () => {
     modelDelegate.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce(
       makeModel({
