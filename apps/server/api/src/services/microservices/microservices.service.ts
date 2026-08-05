@@ -5,6 +5,7 @@ import {
   buildIoRedisClientOptions,
   parseRedisConnection,
 } from '@libs/redis/redis-connection.utils';
+import { isInProcessRedis } from '@libs/redis/redis-driver';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import {
@@ -104,6 +105,13 @@ export class MicroservicesService implements OnModuleInit {
   }
 
   private async initializeRedis() {
+    if (isInProcessRedis(this.configService)) {
+      this.loggerService.log(
+        `${this.constructorName} initializeRedis: REDIS_DRIVER=in-process — no broker connection attempted`,
+      );
+      return;
+    }
+
     const redisUrl = this.configService.get('REDIS_URL');
     if (!redisUrl) {
       this.loggerService.warn(
@@ -268,7 +276,16 @@ export class MicroservicesService implements OnModuleInit {
 
     this.loggerService.log(`${url} checking services in ${nodeEnv} mode`);
 
-    if (this.configService.get('REDIS_URL')) {
+    if (isInProcessRedis(this.configService)) {
+      // Single-process deployments (desktop, #2382) have no broker to reach and
+      // need none — this gate is what makes Redis a hard boot dependency, so it
+      // must not run when the in-process driver is selected. REDIS_URL is
+      // ignored here rather than consulted: it carries a Joi default, so it is
+      // always set and would re-arm the gate.
+      this.loggerService.log(
+        `${url} REDIS_DRIVER=in-process — skipping Redis health check`,
+      );
+    } else if (this.configService.get('REDIS_URL')) {
       const redisHealthy = await this.checkRedisHealth();
       if (!redisHealthy) {
         const message =
