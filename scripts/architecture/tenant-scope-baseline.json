@@ -1905,30 +1905,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "post",
-      "file": "apps/server/api/src/collections/posts/services/posts.service.ts",
-      "fingerprint": "2ca920950e65eb541941",
-      "method": "update",
-      "model": "Post",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "post",
-      "file": "apps/server/api/src/collections/posts/services/posts.service.ts",
-      "fingerprint": "e9150d8b5056c1a7f287",
-      "method": "update",
-      "model": "Post",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "post",
-      "file": "apps/server/api/src/collections/posts/services/posts.service.ts",
-      "fingerprint": "924bd0d3efe05b4fda23",
-      "method": "updateMany",
-      "model": "Post",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "preset",
       "file": "apps/server/api/src/collections/presets/services/presets.service.ts",
       "fingerprint": "51176b347bbe7e6383e6",

@@ -1053,8 +1053,11 @@ export class PostsService extends BaseService<
 
     // Cascade soft delete all children
     const childrenUpdateResult = await this.prisma.post.updateMany({
-      data: { isDeleted: true } as never,
-      where: { isDeleted: false, parentId: id },
+      data: { isDeleted: true },
+      where: scopedWhere(post.organizationId, {
+        isDeleted: false,
+        parentId: id,
+      }),
     });
 
     if (childrenUpdateResult.count > 0) {
@@ -1069,8 +1072,8 @@ export class PostsService extends BaseService<
 
     // Soft delete the parent post
     const result = await this.prisma.post.update({
-      data: { isDeleted: true } as never,
-      where: { id },
+      data: { isDeleted: true },
+      where: scopedWhere(post.organizationId, { id }),
     });
 
     if (result) {
