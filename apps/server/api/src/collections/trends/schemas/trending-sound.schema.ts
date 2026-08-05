@@ -1,5 +1,4 @@
 export interface TrendingSoundDocument {
-  _id?: string;
   id?: string;
   externalId?: string;
   platform?: string;

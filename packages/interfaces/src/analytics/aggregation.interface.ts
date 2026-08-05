@@ -184,7 +184,7 @@ export interface IPlatformComparisonProjectedResult {
 
 /** Result of getTopPerformingContent after projection */
 export interface ITopContentProjectedResult {
-  _id: string;
+  id: string;
   postId: string;
   ingredientId: string;
   platform: string;

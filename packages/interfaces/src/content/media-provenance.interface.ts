@@ -205,7 +205,6 @@ export interface IProvenanceScope {
 
 /** Read shape of the fields the provenance export consumes from a video Ingredient row. */
 export interface IVideoProvenanceRecord {
-  _id?: string;
   id?: string;
   category?: string;
   cdnUrl?: string | null;

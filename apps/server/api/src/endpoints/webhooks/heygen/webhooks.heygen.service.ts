@@ -27,10 +27,6 @@ export class HeygenWebhookService {
     return typeof value === 'string' && value.length > 0 ? value : undefined;
   }
 
-  private getDocumentId(value: { _id?: unknown; id?: unknown }): string {
-    return String(value.id);
-  }
-
   async handleCallback(body: HeygenWebhookPayload) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`, { body });
@@ -141,10 +137,7 @@ export class HeygenWebhookService {
         );
       }
 
-      await this.metadataService.patch(
-        this.getDocumentId(metadata),
-        updateData,
-      );
+      await this.metadataService.patch(metadata.id, updateData);
 
       this.loggerService.log(`${url} completed`, {
         callbackId,

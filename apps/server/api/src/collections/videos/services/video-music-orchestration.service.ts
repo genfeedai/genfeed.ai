@@ -122,10 +122,7 @@ export class VideoMusicOrchestrationService {
       }
 
       return {
-        musicIngredientId: String(
-          (existingMusic as { _id?: unknown; id?: unknown }).id ??
-            existingMusic.id,
-        ),
+        musicIngredientId: existingMusic.id,
         wasGenerated: false,
       };
     }

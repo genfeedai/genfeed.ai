@@ -27,7 +27,6 @@ export interface IOrgIntegrationConfig {
 }
 
 export interface IOrgIntegration {
-  _id?: string;
   botToken?: string;
   config?: IOrgIntegrationConfig;
   createdAt?: string;

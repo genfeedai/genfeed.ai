@@ -52,7 +52,7 @@ export class OssSubscriptionsService implements ISubscriptionsService {
   }
 
   async patch(
-    _id: string,
+    _subscriptionId: string,
     _data: unknown,
   ): Promise<ISubscriptionOssReadModel | null> {
     return null;

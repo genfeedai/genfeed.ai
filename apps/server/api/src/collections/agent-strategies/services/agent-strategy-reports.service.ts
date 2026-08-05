@@ -10,7 +10,6 @@ import { Injectable } from '@nestjs/common';
 
 type CreateReportInput = Omit<
   AgentStrategyReport,
-  | '_id'
   | 'brand'
   | 'createdAt'
   | 'data'

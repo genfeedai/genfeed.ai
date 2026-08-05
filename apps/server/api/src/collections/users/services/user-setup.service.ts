@@ -222,7 +222,7 @@ export class UserSetupService {
 
     if (!organization?.id) {
       throw new Error(
-        `Organization creation failed for user ${userId} - _id is missing`,
+        `Organization creation failed for user ${userId} - id is missing`,
       );
     }
 
