@@ -15,6 +15,7 @@ const WORKFLOWS_DIRECTORY = path.join(REPOSITORY_ROOT, '.github', 'workflows');
 const CANCELLABLE_PULL_REQUEST_WORKFLOWS = [
   'ci.yml',
   'deploy-scripts-ci.yml',
+  'desktop-qa.yml',
   'link-check.yml',
   'pr-full-suite.yml',
   'selfhosted-install-smoke.yml',
@@ -207,11 +208,21 @@ test('enforces relation alias read and write guards on every pull request', () =
   }
 });
 
-test('keeps desktop QA dormant but available for manual and release use', () => {
+test('runs desktop QA for affected pull requests and release callers', () => {
   const workflow = readWorkflow('desktop-qa.yml');
 
-  assert.doesNotMatch(workflow, /^ {2}pull_request:/m);
-  assert.match(workflow, /^ {2}# pull_request:/m);
+  assert.match(workflow, /^ {2}pull_request:\n {4}paths:/m);
+  for (const pathFilter of [
+    'apps/app/**',
+    'apps/desktop/**',
+    'packages/agent/**',
+    '.github/workflows/desktop-release.yml',
+  ]) {
+    assert.ok(
+      workflow.includes(`      - "${pathFilter}"\n`),
+      `desktop-qa.yml must stay reachable for ${pathFilter}`,
+    );
+  }
   assert.match(workflow, /^ {2}workflow_dispatch:$/m);
   assert.match(workflow, /^ {2}workflow_call:$/m);
 });
