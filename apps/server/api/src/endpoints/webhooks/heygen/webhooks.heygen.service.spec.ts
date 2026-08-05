@@ -7,6 +7,7 @@ import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { MicroservicesService } from '@api/services/microservices/microservices.service';
 import type { HeygenWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -89,6 +90,20 @@ describe('HeygenWebhookService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it.each([
+    ['array', []],
+    ['null', null],
+    ['string', 'invalid'],
+    ['number', 42],
+    ['boolean', false],
+  ])('should reject a %s body', async (_type, body) => {
+    await expect(
+      service.handleCallback(body as unknown as HeygenWebhookPayload),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(deps.microservicesService.notifyWebhook).not.toHaveBeenCalled();
   });
 
   it('should notify webhook on every callback', async () => {
@@ -385,7 +400,7 @@ describe('HeygenWebhookService', () => {
       .mockResolvedValueOnce({ id: metadataId });
     deps.ingredientsService.findOne.mockResolvedValue({
       id: ingredientId,
-      metadata: metadataId,
+      metadataId,
     });
     deps.metadataService.patch.mockResolvedValue({});
 
