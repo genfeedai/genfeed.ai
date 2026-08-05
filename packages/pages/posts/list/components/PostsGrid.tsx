@@ -58,7 +58,7 @@ const EvalGridCell = memo(function EvalGridCell({
     contentType: 'post',
   });
 
-  const score = evaluation?.overallScore ?? post.evalScore;
+  const score = evaluation?.data.overallScore ?? post.evalScore;
 
   if (score != null) {
     return <EvaluationBadge score={score} size={ComponentSize.XS} />;
@@ -67,8 +67,8 @@ const EvalGridCell = memo(function EvalGridCell({
   const handleEvaluate = async () => {
     try {
       const result = await evaluate();
-      if (result?.overallScore != null) {
-        onEvaluated(post.id, result.overallScore);
+      if (result?.data.overallScore != null) {
+        onEvaluated(post.id, result.data.overallScore);
       }
     } catch {
       // Error handled by hook
@@ -204,7 +204,12 @@ const PostsGrid = memo(
     return (
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {posts.map((post) => {
-          const PlatformIcon = getPlatformIconComponent(post.platform) ?? Copy;
+          const PlatformIcon = post.platform
+            ? (getPlatformIconComponent(post.platform) ?? Copy)
+            : Copy;
+          const platformLabel = post.platform
+            ? getPostsPlatformLabel(post.platform)
+            : 'Post';
           const title = getPostTitle(post);
           const preview = getPostPreview(post);
           const mediaUrls = getPostMediaUrls(post);
@@ -252,7 +257,7 @@ const PostsGrid = memo(
                       {title}
                     </h3>
                     <p className="mt-1 text-xs uppercase tracking-[0.18em] text-foreground/35">
-                      {getPostsPlatformLabel(post.platform)}
+                      {platformLabel}
                     </p>
                   </div>
                 </Button>

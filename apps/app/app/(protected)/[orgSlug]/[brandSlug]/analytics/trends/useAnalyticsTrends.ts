@@ -44,8 +44,9 @@ const VIDEO_TIMEFRAME_MS = {
 export function normalizeAnalyticsVideo(video: Video): ITrendVideo {
   const ingredient = video as IVideo;
   const evaluation = ingredient.evaluation;
-  const actualPerformance = evaluation?.actualPerformance;
-  const engagementScores = evaluation?.scores?.engagement;
+  const evaluationData = evaluation?.data;
+  const actualPerformance = evaluationData?.actualPerformance;
+  const engagementScores = evaluationData?.scores?.engagement;
   const brand =
     typeof ingredient.brand === 'object'
       ? (ingredient.brand as IBrand)
@@ -57,14 +58,16 @@ export function normalizeAnalyticsVideo(video: Video): ITrendVideo {
     engagementRate: actualPerformance?.engagementRate ?? 0,
     id: video.id || '',
     platform:
-      evaluation?.externalContent?.platform || ingredient.provider || 'genfeed',
+      evaluationData?.externalContent?.platform ||
+      ingredient.provider ||
+      'genfeed',
     publishedAt: ingredient.publishedAt || video.createdAt,
     thumbnailUrl: video.thumbnailUrl,
     title: video.metadataLabel || video.id?.slice(0, 8) || 'Untitled video',
     velocity: actualPerformance?.engagement ?? 0,
     videoUrl: video.ingredientUrl,
     viralScore:
-      engagementScores?.viralityPotential ?? evaluation?.overallScore ?? 0,
+      engagementScores?.viralityPotential ?? evaluationData?.overallScore ?? 0,
     views: actualPerformance?.views ?? 0,
   };
 }

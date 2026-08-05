@@ -73,7 +73,8 @@ export default function IngredientTabsPosts({
     {
       header: 'Platform',
       key: 'platform',
-      render: (p: IPost) => <PlatformBadge platform={p.platform} />,
+      render: (p: IPost) =>
+        p.platform ? <PlatformBadge platform={p.platform} /> : '-',
     },
     {
       header: 'Title',

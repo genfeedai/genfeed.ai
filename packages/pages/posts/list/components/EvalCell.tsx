@@ -20,7 +20,7 @@ export default function EvalCell({ post, onEvaluated }: EvalCellProps) {
   });
 
   // If we have a score from the API or from a fresh evaluation, show badge
-  const score = evaluation?.overallScore ?? post.evalScore;
+  const score = evaluation?.data.overallScore ?? post.evalScore;
 
   if (score != null) {
     return <EvaluationBadge score={score} size={ComponentSize.XS} />;
@@ -30,8 +30,8 @@ export default function EvalCell({ post, onEvaluated }: EvalCellProps) {
   const handleEvaluate = async () => {
     try {
       const result = await evaluate();
-      if (result?.overallScore != null) {
-        onEvaluated(post.id, result.overallScore);
+      if (result?.data.overallScore != null) {
+        onEvaluated(post.id, result.data.overallScore);
       }
     } catch {
       // Error already handled by useEvaluation hook

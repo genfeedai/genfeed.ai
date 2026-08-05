@@ -73,7 +73,7 @@ export default function AnalyticsPlatformDetail({
         });
 
         const platformPosts = postsData.filter(
-          (post) => post.platform.toLowerCase() === platform.toLowerCase(),
+          (post) => post.platform?.toLowerCase() === platform.toLowerCase(),
         );
         setPosts(platformPosts);
       } catch {

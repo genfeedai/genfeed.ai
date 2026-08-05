@@ -42,7 +42,11 @@ export interface PostDetailHeaderProps {
 }
 
 function getPostLabel(post: IPost): string {
-  return post?.label || getPostsPlatformLabel(post.platform);
+  if (post.label) {
+    return post.label;
+  }
+
+  return post.platform ? getPostsPlatformLabel(post.platform) : 'Post';
 }
 
 const THREAD_LENGTH_OPTIONS = [
