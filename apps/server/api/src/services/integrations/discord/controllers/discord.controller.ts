@@ -1,21 +1,31 @@
-import { randomBytes } from 'node:crypto';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { DiscordService } from '@api/services/integrations/discord/services/discord.service';
 import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  CredentialOAuthSerializer,
+  CredentialSerializer,
+} from '@genfeedai/serializers';
 import {
   Body,
   Controller,
   HttpException,
   HttpStatus,
   Post,
+  Req,
 } from '@nestjs/common';
+import type { Request } from 'express';
 
 @Controller('services/discord')
 export class DiscordController {
   constructor(
     private readonly discordService: DiscordService,
     private readonly credentialsService: CredentialsService,
+    private readonly brandsService: BrandsService,
   ) {}
 
   /**
@@ -25,48 +35,40 @@ export class DiscordController {
    */
   @Post('connect')
   async connect(
-    @CurrentUser() user: Record<string, unknown>,
-    @Body('organizationId') organizationId: string,
+    @Req() request: Request,
+    @CurrentUser() user: User,
     @Body('brandId') brandId: string,
   ) {
-    // Generate a cryptographically unpredictable state for CSRF protection.
-    const state = randomBytes(32).toString('base64url');
-
-    // Create or update pending credential with state
-    const existingCredential = await this.credentialsService.findOne({
-      brand: brandId,
-      organization: organizationId,
-      platform: CredentialPlatform.DISCORD,
+    const { organization, user: userId } = getPublicMetadata(user);
+    const brand = await this.brandsService.findOne({
+      id: brandId,
+      isDeleted: false,
+      organizationId: organization,
     });
 
-    if (existingCredential) {
-      await this.credentialsService.patch(existingCredential.id, {
-        isConnected: false,
-        isDeleted: false,
-        oauthState: state,
-      });
-    } else {
-      const userId =
-        typeof user.id === 'string' ? user.id : String(user.id ?? '');
-
-      await this.credentialsService.create({
-        brand: brandId,
-        isConnected: false,
-        isDeleted: false,
-        oauthState: state,
-        organization: organizationId,
-        platform: CredentialPlatform.DISCORD,
-        user: userId,
-      } as unknown as Parameters<CredentialsService['create']>[0]);
+    if (!brand) {
+      throw new HttpException(
+        {
+          detail: 'You do not have access to this brand',
+          title: 'Invalid payload',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
     }
+
+    const { state } = await this.credentialsService.beginOAuthForBrand(
+      brand,
+      userId,
+      CredentialPlatform.DISCORD,
+      { isConnected: false },
+    );
 
     // Generate Discord OAuth URL
     const authUrl = this.discordService.generateAuthUrl(state);
 
-    return {
-      state,
+    return serializeSingle(request, CredentialOAuthSerializer, {
       url: authUrl,
-    };
+    });
   }
 
   /**
@@ -76,19 +78,27 @@ export class DiscordController {
    */
   @Post('verify')
   async verify(
-    @CurrentUser() _user: Record<string, unknown>,
-    @Body('organizationId') organizationId: string,
-    @Body('brandId') brandId: string,
+    @Req() request: Request,
+    @CurrentUser() user: User,
     @Body('code') code: string,
     @Body('state') state: string,
   ) {
-    // Find pending credential with matching state
-    const credential = await this.credentialsService.findOne({
-      brand: brandId,
-      oauthState: state,
-      organization: organizationId,
-      platform: CredentialPlatform.DISCORD,
-    });
+    if (!code || !state) {
+      throw new HttpException(
+        {
+          detail: 'Missing required OAuth parameters',
+          title: 'Invalid payload',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const { organization, user: userId } = getPublicMetadata(user);
+    const credential = await this.credentialsService.findPendingOAuthCredential(
+      state,
+      CredentialPlatform.DISCORD,
+      { organizationId: organization, userId },
+    );
 
     if (!credential) {
       throw new HttpException(
@@ -102,6 +112,16 @@ export class DiscordController {
 
     // Exchange code for tokens
     const tokenData = await this.discordService.exchangeCodeForToken(code);
+
+    if (!tokenData?.access_token) {
+      throw new HttpException(
+        {
+          detail: 'Discord did not return an access token',
+          title: 'Token exchange failed',
+        },
+        HttpStatus.BAD_GATEWAY,
+      );
+    }
 
     // Get user info
     const userInfo = await this.discordService.getUserInfo(
@@ -128,6 +148,6 @@ export class DiscordController {
       },
     );
 
-    return updatedCredential;
+    return serializeSingle(request, CredentialSerializer, updatedCredential);
   }
 }

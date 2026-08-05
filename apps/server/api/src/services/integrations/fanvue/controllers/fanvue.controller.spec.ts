@@ -25,9 +25,9 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnInternalServerError: vi.fn().mockImplementation((msg) => ({
     errors: [{ detail: msg, status: '500' }],
   })),
-  returnNotFound: vi
-    .fn()
-    .mockImplementation((_name, _id) => ({ errors: [{ status: '404' }] })),
+  returnNotFound: vi.fn().mockImplementation((_name, _credentialId) => ({
+    errors: [{ status: '404' }],
+  })),
   serializeSingle: vi
     .fn()
     .mockImplementation((_req, _serializer, data) => ({ data })),
@@ -49,9 +49,9 @@ describe('FanvueController', () => {
   let controller: FanvueController;
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
   let credentialsService: {
-    findOne: ReturnType<typeof vi.fn>;
+    beginOAuthForBrand: ReturnType<typeof vi.fn>;
+    findPendingOAuthCredential: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
-    saveCredentials: ReturnType<typeof vi.fn>;
   };
   let fanvueService: {
     buildAuthUrl: ReturnType<typeof vi.fn>;
@@ -91,19 +91,23 @@ describe('FanvueController', () => {
           provide: BrandsService,
           useValue: {
             findOne: vi.fn().mockResolvedValue({
-              _id: brandId,
-              organization: orgId,
+              id: brandId,
+              organizationId: orgId,
+              userId: '507f1f77bcf86cd799439011',
             }),
           },
         },
         {
           provide: CredentialsService,
           useValue: {
-            findOne: vi.fn(),
+            beginOAuthForBrand: vi.fn().mockResolvedValue({
+              credential: { id: 'cred-1' },
+              state: 'opaque-oauth-state',
+            }),
+            findPendingOAuthCredential: vi.fn(),
             patch: vi
               .fn()
-              .mockResolvedValue({ _id: 'cred-1', isConnected: true }),
-            saveCredentials: vi.fn().mockResolvedValue({ _id: 'cred-1' }),
+              .mockResolvedValue({ id: 'cred-1', isConnected: true }),
           },
         },
         {
@@ -156,19 +160,18 @@ describe('FanvueController', () => {
 
   describe('connect', () => {
     it('should generate PKCE pair and return OAuth URL', async () => {
-      const dto = { brand: brandId };
+      const dto = { brandId };
       const result = await controller.connect(mockReq, mockUser, dto as never);
 
-      expect(brandsService.findOne).toHaveBeenCalledWith(
-        expect.objectContaining({
-          _id: expect.any(String),
-          isDeleted: false,
-          organization: expect.any(String),
-        }),
-      );
+      expect(brandsService.findOne).toHaveBeenCalledWith({
+        id: brandId,
+        isDeleted: false,
+        organizationId: orgId,
+      });
       expect(fanvueService.generatePkce).toHaveBeenCalled();
-      expect(credentialsService.saveCredentials).toHaveBeenCalledWith(
+      expect(credentialsService.beginOAuthForBrand).toHaveBeenCalledWith(
         expect.anything(),
+        '507f1f77bcf86cd799439011',
         CredentialPlatform.FANVUE,
         expect.objectContaining({
           isConnected: false,
@@ -176,7 +179,7 @@ describe('FanvueController', () => {
         }),
       );
       expect(fanvueService.buildAuthUrl).toHaveBeenCalledWith(
-        expect.any(String),
+        'opaque-oauth-state',
         'test-challenge',
       );
       expect(result).toEqual({
@@ -188,7 +191,7 @@ describe('FanvueController', () => {
       brandsService.findOne.mockResolvedValue(null);
 
       const result = await controller.connect(mockReq, mockUser, {
-        brand: brandId,
+        brandId,
       } as never);
 
       expect(result).toEqual({
@@ -200,15 +203,14 @@ describe('FanvueController', () => {
 
   describe('verify', () => {
     it('should exchange code for tokens and update credential', async () => {
-      const state = JSON.stringify({
-        brandId,
-        organizationId: orgId,
-        userId: '507f1f77bcf86cd799439011',
-      });
+      const state = 'opaque-oauth-state';
 
-      credentialsService.findOne.mockResolvedValue({
+      credentialsService.findPendingOAuthCredential.mockResolvedValue({
+        brandId,
         id: 'test-object-id',
         oauthToken: 'encrypted-verifier',
+        organizationId: orgId,
+        userId: '507f1f77bcf86cd799439011',
       });
 
       const result = await controller.verify(mockReq, {
@@ -216,13 +218,9 @@ describe('FanvueController', () => {
         state,
       } as never);
 
-      expect(credentialsService.findOne).toHaveBeenCalledWith(
-        expect.objectContaining({
-          brand: expect.any(String),
-          organization: expect.any(String),
-          platform: CredentialPlatform.FANVUE,
-        }),
-      );
+      expect(
+        credentialsService.findPendingOAuthCredential,
+      ).toHaveBeenCalledWith('opaque-oauth-state', CredentialPlatform.FANVUE);
       expect(EncryptionUtil.decrypt).toHaveBeenCalledWith('encrypted-verifier');
       expect(fanvueService.exchangeCodeForTokens).toHaveBeenCalledWith(
         'auth-code-123',
@@ -240,12 +238,14 @@ describe('FanvueController', () => {
           externalName: 'Test Creator',
           isConnected: true,
           isDeleted: false,
-          oauthToken: undefined,
+          oauthState: null,
+          oauthToken: null,
+          oauthTokenSecret: null,
           refreshToken: 'fanvue-refresh-token',
         }),
       );
       expect(result).toEqual({
-        data: { _id: 'cred-1', isConnected: true },
+        data: { id: 'cred-1', isConnected: true },
       });
     });
 
@@ -261,35 +261,25 @@ describe('FanvueController', () => {
     });
 
     it('should return not found when credential does not exist', async () => {
-      credentialsService.findOne.mockResolvedValue(null);
-
-      const state = JSON.stringify({
-        brandId,
-        organizationId: orgId,
-      });
+      credentialsService.findPendingOAuthCredential.mockResolvedValue(null);
 
       const result = await controller.verify(mockReq, {
         code: 'auth-code',
-        state,
+        state: 'missing-state',
       } as never);
 
       expect(result).toEqual({ errors: [{ status: '404' }] });
     });
 
     it('should return bad request when oauthToken (code_verifier) is missing', async () => {
-      credentialsService.findOne.mockResolvedValue({
-        _id: 'test-object-id',
+      credentialsService.findPendingOAuthCredential.mockResolvedValue({
+        id: 'test-object-id',
         oauthToken: null,
-      });
-
-      const state = JSON.stringify({
-        brandId,
-        organizationId: orgId,
       });
 
       const result = await controller.verify(mockReq, {
         code: 'auth-code',
-        state,
+        state: 'opaque-oauth-state',
       } as never);
 
       expect(result).toEqual({
@@ -298,8 +288,8 @@ describe('FanvueController', () => {
     });
 
     it('should return bad request on invalid_grant error', async () => {
-      credentialsService.findOne.mockResolvedValue({
-        _id: 'test-object-id',
+      credentialsService.findPendingOAuthCredential.mockResolvedValue({
+        id: 'test-object-id',
         oauthToken: 'encrypted-verifier',
       });
       fanvueService.exchangeCodeForTokens.mockRejectedValue({
@@ -308,14 +298,9 @@ describe('FanvueController', () => {
         },
       });
 
-      const state = JSON.stringify({
-        brandId,
-        organizationId: orgId,
-      });
-
       const result = await controller.verify(mockReq, {
         code: 'expired-code',
-        state,
+        state: 'opaque-oauth-state',
       } as never);
 
       expect(result).toEqual({
@@ -324,22 +309,17 @@ describe('FanvueController', () => {
     });
 
     it('should return internal server error on unknown error', async () => {
-      credentialsService.findOne.mockResolvedValue({
-        _id: 'test-object-id',
+      credentialsService.findPendingOAuthCredential.mockResolvedValue({
+        id: 'test-object-id',
         oauthToken: 'encrypted-verifier',
       });
       fanvueService.exchangeCodeForTokens.mockRejectedValue(
         new Error('Network error'),
       );
 
-      const state = JSON.stringify({
-        brandId,
-        organizationId: orgId,
-      });
-
       const result = await controller.verify(mockReq, {
         code: 'auth-code',
-        state,
+        state: 'opaque-oauth-state',
       } as never);
 
       expect(result).toEqual({

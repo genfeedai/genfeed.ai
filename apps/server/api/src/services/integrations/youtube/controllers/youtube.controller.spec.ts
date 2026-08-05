@@ -35,9 +35,10 @@ describe('YoutubeController', () => {
   let controller: YoutubeController;
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
   let credentialsService: {
+    beginOAuthForBrand: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
+    findPendingOAuthCredential: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
-    saveCredentials: ReturnType<typeof vi.fn>;
     updateExternalProfile: ReturnType<typeof vi.fn>;
   };
   let youtubeService: {
@@ -54,23 +55,36 @@ describe('YoutubeController', () => {
   const orgId = '507f1f77bcf86cd799439011';
   const credentialId = 'test-object-id';
 
-  const mockBrand = { id: brandId, organization: orgId };
+  const mockBrand = {
+    id: brandId,
+    organizationId: orgId,
+    userId: '507f1f77bcf86cd799439013',
+  };
 
   beforeEach(async () => {
     brandsService = { findOne: vi.fn().mockResolvedValue(mockBrand) };
     credentialsService = {
+      beginOAuthForBrand: vi.fn().mockResolvedValue({
+        credential: { id: credentialId },
+        state: 'opaque-oauth-state',
+      }),
       findOne: vi
         .fn()
         .mockResolvedValue({ id: credentialId, refreshToken: 'rt_saved' }),
+      findPendingOAuthCredential: vi.fn().mockResolvedValue({
+        brandId,
+        id: credentialId,
+        organizationId: orgId,
+        userId: '507f1f77bcf86cd799439013',
+      }),
       patch: vi
         .fn()
-        .mockImplementation((_id, data) =>
+        .mockImplementation((_credentialId, data) =>
           Promise.resolve({ id: credentialId, ...data }),
         ),
-      saveCredentials: vi.fn().mockResolvedValue({ id: credentialId }),
       updateExternalProfile: vi
         .fn()
-        .mockImplementation((_id, _organizationId, data) =>
+        .mockImplementation((_credentialId, _organizationId, data) =>
           Promise.resolve({
             externalAvatar: data.avatarUrl,
             externalHandle: data.handle,
@@ -136,7 +150,7 @@ describe('YoutubeController', () => {
   });
 
   describe('connect', () => {
-    const dto = { brand: brandId.toString() };
+    const dto = { brandId: brandId.toString() };
 
     it('should return Google OAuth URL', async () => {
       const result = await controller.connect(mockRequest, mockUser, dto);
@@ -145,15 +159,14 @@ describe('YoutubeController', () => {
       });
     });
 
-    it('should create credential when none exists', async () => {
-      credentialsService.findOne.mockResolvedValueOnce(null);
+    it('should start OAuth through the canonical credential boundary', async () => {
       await controller.connect(mockRequest, mockUser, dto);
-      expect(credentialsService.saveCredentials).toHaveBeenCalled();
-    });
-
-    it('should not create duplicate credential if one exists', async () => {
-      await controller.connect(mockRequest, mockUser, dto);
-      expect(credentialsService.saveCredentials).not.toHaveBeenCalled();
+      expect(credentialsService.beginOAuthForBrand).toHaveBeenCalledWith(
+        mockBrand,
+        '507f1f77bcf86cd799439013',
+        'youtube',
+        { isConnected: false },
+      );
     });
 
     it('should throw FORBIDDEN when brand not found', async () => {
@@ -177,10 +190,7 @@ describe('YoutubeController', () => {
   });
 
   describe('verify', () => {
-    const state = JSON.stringify({
-      brandId: brandId.toString(),
-      organizationId: orgId.toString(),
-    });
+    const state = 'opaque-oauth-state';
     const dto = { code: 'google_auth_code', state };
 
     it('should exchange code and update credential', async () => {
@@ -192,7 +202,11 @@ describe('YoutubeController', () => {
         credentialId,
         expect.objectContaining({
           accessToken: 'yt_access',
+          accessTokenExpiry: expect.any(Date),
           isConnected: true,
+          oauthState: null,
+          oauthToken: null,
+          oauthTokenSecret: null,
           refreshToken: 'yt_refresh',
         }),
       );
@@ -221,20 +235,17 @@ describe('YoutubeController', () => {
     });
 
     it('should throw NOT_FOUND when no pending credential found', async () => {
-      // First call returns credential with refreshToken (verify save check)
-      // We need findOne to return null for the pending credential check
-      credentialsService.findOne.mockResolvedValueOnce(null); // pending credential check
+      credentialsService.findPendingOAuthCredential.mockResolvedValueOnce(null);
       await expect(controller.verify(mockRequest, dto)).rejects.toThrow(
         HttpException,
       );
     });
 
     it('should throw INTERNAL_SERVER_ERROR when refresh token not saved', async () => {
-      // First findOne: pending credential exists
-      // Second findOne (verify save): no refresh token
-      credentialsService.findOne
-        .mockResolvedValueOnce({ id: credentialId }) // pending
-        .mockResolvedValueOnce({ id: credentialId, refreshToken: null }); // verify save
+      credentialsService.findOne.mockResolvedValueOnce({
+        id: credentialId,
+        refreshToken: null,
+      });
       await expect(controller.verify(mockRequest, dto)).rejects.toThrow(
         HttpException,
       );

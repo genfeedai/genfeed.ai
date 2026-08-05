@@ -33,7 +33,7 @@ describe('TelegramController', () => {
   };
 
   const mockCredential = {
-    _id: 'test-object-id',
+    id: 'test-object-id',
     externalHandle: 'johndoe',
     externalId: '123456789',
     isConnected: true,

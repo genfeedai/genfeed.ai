@@ -134,10 +134,10 @@ export class MediumService {
     try {
       // Get Medium credentials
       const credential = await this.credentialsService.findOne({
-        brand: brandId,
+        brandId: brandId,
         isConnected: true,
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
         platform: CredentialPlatform.MEDIUM,
       });
 
@@ -155,7 +155,7 @@ export class MediumService {
       );
 
       // Get article
-      const article = await this.articlesService.findOne({ _id: articleId });
+      const article = await this.articlesService.findOne({ id: articleId });
 
       if (!article) {
         throw new Error('Article not found');
@@ -219,9 +219,9 @@ export class MediumService {
     brandId: string,
   ): Promise<unknown> {
     const queryCredentials = {
-      brand: brandId,
+      brandId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId,
       platform: CredentialPlatform.MEDIUM,
     };
 

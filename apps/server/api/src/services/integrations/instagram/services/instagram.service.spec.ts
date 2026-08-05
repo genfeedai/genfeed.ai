@@ -54,7 +54,7 @@ describe('InstagramService', () => {
   describe('sendCommentReplyDm', () => {
     it('sends a direct message to commenter', async () => {
       vi.spyOn(service, 'getValidCredential').mockResolvedValue({
-        _id: 'credential-id',
+        id: 'credential-id',
         accessToken: 'tok',
         externalId: 'acc',
       });
@@ -154,7 +154,7 @@ describe('InstagramService', () => {
       const result = await service.getValidCredential('org-id', 'brand-id');
 
       expect(result).toEqual({
-        _id: 'credential-id',
+        id: 'credential-id',
         accessToken: 'fresh-token',
         externalId: 'ig-account-id',
         isConnected: true,
@@ -171,7 +171,7 @@ describe('InstagramService', () => {
         isConnected: true,
       });
       const refreshSpy = vi.spyOn(service, 'refreshToken').mockResolvedValue({
-        _id: 'credential-id',
+        id: 'credential-id',
         accessToken: 'new-token',
         externalId: 'ig-account-id',
         isConnected: true,

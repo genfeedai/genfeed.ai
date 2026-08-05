@@ -28,10 +28,9 @@ describe('LinkedInController', () => {
 
   const mockBrandsService = { findOne: vi.fn() };
   const mockCredentialsService = {
-    create: vi.fn(),
-    findOne: vi.fn(),
+    beginOAuthForBrand: vi.fn(),
+    findPendingOAuthCredential: vi.fn(),
     patch: vi.fn(),
-    saveCredentials: vi.fn(),
     updateExternalProfile: vi.fn(),
   };
   const mockLinkedInService = {
@@ -77,9 +76,12 @@ describe('LinkedInController', () => {
 
   describe('connect', () => {
     it('should save credentials and return auth URL', async () => {
-      const brand = { id: brandId, organization: orgId };
+      const brand = { id: brandId, organizationId: orgId, userId };
       mockBrandsService.findOne.mockResolvedValue(brand);
-      mockCredentialsService.saveCredentials.mockResolvedValue({});
+      mockCredentialsService.beginOAuthForBrand.mockResolvedValue({
+        credential: { id: 'credential-id' },
+        state: 'opaque-oauth-state',
+      });
       mockLinkedInService.generateAuthUrl.mockReturnValue(
         'https://linkedin.com/oauth/authorize?...',
       );
@@ -87,12 +89,19 @@ describe('LinkedInController', () => {
       const result = await controller.connect(
         mockRequest,
         mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
-        { brand: brandId },
+        { brandId },
       );
 
       expect(result.data).toHaveProperty('url');
-      expect(mockCredentialsService.saveCredentials).toHaveBeenCalled();
-      expect(mockLinkedInService.generateAuthUrl).toHaveBeenCalled();
+      expect(mockCredentialsService.beginOAuthForBrand).toHaveBeenCalledWith(
+        brand,
+        userId,
+        'linkedin',
+        { isConnected: false },
+      );
+      expect(mockLinkedInService.generateAuthUrl).toHaveBeenCalledWith(
+        'opaque-oauth-state',
+      );
     });
 
     it('should return bad request when brand not found', async () => {
@@ -101,7 +110,7 @@ describe('LinkedInController', () => {
       const result = await controller.connect(
         mockRequest,
         mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
-        { brand: brandId },
+        { brandId },
       );
 
       expect(result).toHaveProperty('errors');
@@ -110,16 +119,17 @@ describe('LinkedInController', () => {
     it('should return internal error when OAuth init fails', async () => {
       mockBrandsService.findOne.mockResolvedValue({
         id: brandId,
-        organization: orgId,
+        organizationId: orgId,
+        userId,
       });
-      mockCredentialsService.saveCredentials.mockRejectedValue(
+      mockCredentialsService.beginOAuthForBrand.mockRejectedValue(
         new Error('DB error'),
       );
 
       const result = await controller.connect(
         mockRequest,
         mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
-        { brand: brandId },
+        { brandId },
       );
 
       expect(result).toHaveProperty('errors');
@@ -129,10 +139,7 @@ describe('LinkedInController', () => {
   describe('verify', () => {
     it('should exchange code, get profile, and update credential', async () => {
       const credId = 'test-object-id';
-      const state = JSON.stringify({
-        brandId: brandId.toString(),
-        organizationId: orgId.toString(),
-      });
+      const state = 'opaque-oauth-state';
 
       mockLinkedInService.exchangeAuthCodeForAccessToken.mockResolvedValue({
         accessToken: 'linkedin-token',
@@ -144,7 +151,12 @@ describe('LinkedInController', () => {
         id: 'li-user-123',
         lastName: 'Doe',
       });
-      mockCredentialsService.findOne.mockResolvedValue({ id: credId });
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+        brandId,
+        id: credId,
+        organizationId: orgId,
+        userId,
+      });
       mockCredentialsService.patch.mockResolvedValue({
         id: credId,
         isConnected: true,
@@ -160,12 +172,16 @@ describe('LinkedInController', () => {
       });
 
       expect(result.data).toEqual({ id: credId, isConnected: true });
+      expect(
+        mockCredentialsService.findPendingOAuthCredential,
+      ).toHaveBeenCalledWith('opaque-oauth-state', 'linkedin');
       expect(mockCredentialsService.patch).toHaveBeenCalledWith(
         credId,
         expect.objectContaining({
           accessToken: 'linkedin-token',
           isConnected: true,
           isDeleted: false,
+          oauthState: null,
         }),
       );
       expect(mockCredentialsService.updateExternalProfile).toHaveBeenCalledWith(
@@ -186,21 +202,8 @@ describe('LinkedInController', () => {
     });
 
     it('should return not found when credential does not exist', async () => {
-      const state = JSON.stringify({
-        brandId: brandId.toString(),
-        organizationId: orgId.toString(),
-      });
-      mockLinkedInService.exchangeAuthCodeForAccessToken.mockResolvedValue({
-        accessToken: 'token',
-        expiresIn: 3600,
-      });
-      mockLinkedInService.getUserProfile.mockResolvedValue({
-        email: 'a@b.com',
-        firstName: 'A',
-        id: '1',
-        lastName: 'B',
-      });
-      mockCredentialsService.findOne.mockResolvedValue(null);
+      const state = 'missing-or-expired-state';
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue(null);
 
       const result = await controller.verify(mockRequest, {
         code: 'code',
@@ -211,9 +214,12 @@ describe('LinkedInController', () => {
     });
 
     it('should return internal error on unexpected failure', async () => {
-      const state = JSON.stringify({
-        brandId: brandId.toString(),
-        organizationId: orgId.toString(),
+      const state = 'opaque-oauth-state';
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+        brandId,
+        id: 'credential-id',
+        organizationId: orgId,
+        userId,
       });
       mockLinkedInService.exchangeAuthCodeForAccessToken.mockRejectedValue(
         new Error('Network error'),
@@ -228,9 +234,12 @@ describe('LinkedInController', () => {
     });
 
     it('should rethrow HttpException from service', async () => {
-      const state = JSON.stringify({
-        brandId: brandId.toString(),
-        organizationId: orgId.toString(),
+      const state = 'opaque-oauth-state';
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+        brandId,
+        id: 'credential-id',
+        organizationId: orgId,
+        userId,
       });
       mockLinkedInService.exchangeAuthCodeForAccessToken.mockRejectedValue(
         new HttpException('Forbidden', 403),

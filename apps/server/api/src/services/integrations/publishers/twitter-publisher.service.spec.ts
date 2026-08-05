@@ -56,69 +56,69 @@ describe('TwitterPublisherService', () => {
 
   // Mock credential
   const mockCredential = {
-    _id: mockCredentialId,
+    id: mockCredentialId,
     accessToken: 'encrypted-access-token',
     accessTokenSecret: 'encrypted-access-secret',
-    brand: mockBrandId,
+    brandId: mockBrandId,
     externalHandle: 'testuser',
     isDeleted: false,
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     platform: CredentialPlatform.TWITTER,
     refreshToken: 'encrypted-refresh-token',
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as CredentialDocument;
 
   // Mock organization
   const mockOrganization = {
-    _id: mockOrganizationId,
+    id: mockOrganizationId,
     isDeleted: false,
     name: 'Test Organization',
   } as unknown as OrganizationDocument;
 
   // Mock post for text-only
   const mockTextPost = {
-    _id: mockPostId,
-    brand: mockBrandId,
+    id: mockPostId,
+    brandId: mockBrandId,
     category: PostCategory.TEXT,
     description: '<p>Test tweet content</p>',
     ingredients: [],
     isDeleted: false,
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     quoteTweetId: undefined,
     status: PostStatus.DRAFT,
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as PostEntity;
 
   // Mock post with image
   const mockImagePost = {
-    _id: mockPostId,
-    brand: mockBrandId,
+    id: mockPostId,
+    brandId: mockBrandId,
     category: PostCategory.IMAGE,
     description: '<p>Test image tweet</p>',
     ingredients: [mockIngredientId],
     isDeleted: false,
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as PostEntity;
 
   // Mock post with video
   const mockVideoPost = {
-    _id: mockPostId,
-    brand: mockBrandId,
+    id: mockPostId,
+    brandId: mockBrandId,
     category: PostCategory.VIDEO,
     description: '<p>Test video tweet</p>',
     ingredients: [mockIngredientId],
     isDeleted: false,
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as PostEntity;
 
   // Mock post with multiple images (carousel)
   const mockCarouselPost = {
-    _id: mockPostId,
-    brand: mockBrandId,
+    id: mockPostId,
+    brandId: mockBrandId,
     category: PostCategory.IMAGE,
     description: '<p>Carousel tweet</p>',
     ingredients: [
@@ -127,9 +127,9 @@ describe('TwitterPublisherService', () => {
       '507f1f77bcf86cd799439022',
     ],
     isDeleted: false,
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as PostEntity;
 
   // Create publish context helper

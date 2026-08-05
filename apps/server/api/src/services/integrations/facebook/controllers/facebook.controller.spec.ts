@@ -35,21 +35,25 @@ describe('FacebookController', () => {
   };
 
   const mockCredentialsService = {
-    findOne: vi.fn().mockResolvedValue({
-      _id: 'test-object-id',
+    beginOAuthForBrand: vi.fn().mockResolvedValue({
+      credential: { id: 'test-object-id' },
+      state: 'opaque-oauth-state',
+    }),
+    findPendingOAuthCredential: vi.fn().mockResolvedValue({
+      id: 'test-object-id',
       externalId: undefined,
+      organizationId: 'test-object-id',
       platform: CredentialPlatform.FACEBOOK,
     }),
     patch: vi.fn().mockResolvedValue({ id: 'cred-1' }),
-    saveCredentials: vi.fn(),
     updateExternalProfile: vi.fn().mockResolvedValue({ id: 'cred-1' }),
   };
 
   const mockBrandsService = {
     findOne: vi.fn().mockResolvedValue({
-      _id: 'test-object-id',
-      organization: 'test-object-id',
-      user: 'test-object-id',
+      id: 'test-object-id',
+      organizationId: 'test-object-id',
+      userId: 'test-object-id',
     }),
   };
 
@@ -125,14 +129,12 @@ describe('FacebookController', () => {
 
       const result = await controller.verify({} as never, {
         code: 'auth-code',
-        state: Buffer.from(
-          JSON.stringify({
-            brandId: 'test-object-id',
-            organizationId: 'test-object-id',
-          }),
-        ).toString('base64'),
+        state: 'opaque-oauth-state',
       });
 
+      expect(
+        mockCredentialsService.findPendingOAuthCredential,
+      ).toHaveBeenCalledWith('opaque-oauth-state', CredentialPlatform.FACEBOOK);
       expect(mockCredentialsService.patch).toHaveBeenCalled();
       expect(result).toBeDefined();
     });

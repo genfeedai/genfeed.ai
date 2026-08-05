@@ -99,15 +99,15 @@ export class TelegramService {
 
       // Check if credential already exists
       const existingCredential = await this.credentialsService.findOne({
-        brand: brandId,
+        brandId: brandId,
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
         platform: CredentialPlatform.TELEGRAM,
       });
 
       // Prepare credential data
       const credentialData = {
-        brand: brandId,
+        brandId,
         externalAvatar: authData.photo_url,
         externalHandle: authData.username || authData.first_name,
         externalId: authData.id.toString(),
@@ -116,9 +116,9 @@ export class TelegramService {
           : authData.first_name,
         isConnected: true,
         isDeleted: false,
-        organization: organizationId,
+        organizationId,
         platform: CredentialPlatform.TELEGRAM,
-        user: userId,
+        userId,
       };
 
       let credential: CredentialDocument;
@@ -133,7 +133,6 @@ export class TelegramService {
         });
       } else {
         // Create new credential
-        // @ts-expect-error CreateCredentialDto shape
         credential = await this.credentialsService.create(credentialData);
         this.loggerService.log(`${url} created new credential`, {
           credentialId: credential.id,

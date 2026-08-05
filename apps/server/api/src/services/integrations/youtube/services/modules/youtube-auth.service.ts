@@ -21,9 +21,9 @@ export class YoutubeAuthService {
     brandId: string,
   ): Promise<OAuth2Client> {
     const queryCredentials = {
-      brand: brandId,
+      brandId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId,
       platform: CredentialPlatform.YOUTUBE,
     };
 

@@ -1,7 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import {
-  CreateCredentialDto,
+  ConnectCredentialDto,
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -52,7 +52,7 @@ export class YoutubeController {
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Body() createCredentialDto: Partial<CreateCredentialDto>,
+    @Body() createCredentialDto: ConnectCredentialDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -61,9 +61,9 @@ export class YoutubeController {
     const publicMetadata = getPublicMetadata(user);
 
     const brand = await this.brandsService.findOne({
-      _id: createCredentialDto.brand,
+      id: createCredentialDto.brandId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -77,26 +77,12 @@ export class YoutubeController {
     }
 
     try {
-      // Scope on the scalar FK. `brand.organization` is the Mongo-era alias:
-      // an id string only when the row passed through `normalizeDocument`,
-      // otherwise a populated object or undefined — and an undefined filter
-      // value is dropped by `normalizeWhere`, which would widen this lookup
-      // to every organization's credentials.
-      const credential = await this.credentialsService.findOne({
-        brand: brand.id,
-        organization: brand.organizationId,
-        platform: CredentialPlatform.YOUTUBE,
-      });
-
-      if (!credential) {
-        await this.credentialsService.saveCredentials(
-          brand,
-          CredentialPlatform.YOUTUBE,
-          {
-            isConnected: false,
-          },
-        );
-      }
+      const { state } = await this.credentialsService.beginOAuthForBrand(
+        brand,
+        publicMetadata.user,
+        CredentialPlatform.YOUTUBE,
+        { isConnected: false },
+      );
 
       const authUrl = this.youtubeService.generateAuthUrl({
         accessType: 'offline',
@@ -109,11 +95,7 @@ export class YoutubeController {
           'https://www.googleapis.com/auth/youtube.upload',
           'https://www.googleapis.com/auth/yt-analytics.readonly',
         ],
-        state: JSON.stringify({
-          brandId: brand.id,
-          organizationId: brand.organizationId,
-          userId: publicMetadata.user,
-        }),
+        state,
       });
 
       return serializeSingle(request, CredentialOAuthSerializer, {
@@ -144,7 +126,23 @@ export class YoutubeController {
         );
       }
 
-      const { brandId, organizationId } = JSON.parse(state);
+      const existingCredential =
+        await this.credentialsService.findPendingOAuthCredential(
+          state,
+          CredentialPlatform.YOUTUBE,
+        );
+
+      if (!existingCredential) {
+        throw new HttpException(
+          {
+            detail: 'No pending credential found for this OAuth state',
+            title: 'Credential not found',
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      const { brandId, organizationId } = existingCredential;
       const tokenResponse =
         await this.youtubeService.exchangeCodeForTokens(code);
       const tokens = this.isPlainObject(tokenResponse)
@@ -157,23 +155,6 @@ export class YoutubeController {
           })
         : {};
 
-      // Find and update the existing credential
-      const existingCredential = await this.credentialsService.findOne({
-        brand: brandId,
-        organization: organizationId,
-        platform: CredentialPlatform.YOUTUBE,
-      });
-
-      if (!existingCredential) {
-        throw new HttpException(
-          {
-            detail: 'No pending credential found for this brand',
-            title: 'Credential not found',
-          },
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
       // Log token details for debugging
       this.loggerService.log('Received tokens from Google', {
         accessTokenLength: tokens.access_token?.length || 0,
@@ -185,26 +166,37 @@ export class YoutubeController {
         tokenType: tokens.token_type,
       });
 
+      if (!tokens.access_token) {
+        throw new HttpException(
+          {
+            detail: 'YouTube did not return an access token',
+            title: 'Token exchange failed',
+          },
+          HttpStatus.BAD_GATEWAY,
+        );
+      }
+
       // Update the credential with the access token
       // If reconnecting the same channel, reactivate previously deleted credential
       let credential = await this.credentialsService.patch(
         existingCredential.id,
         {
           accessToken: tokens.access_token,
-          isConnected: true,
-          isDeleted: false, // Reactivate if previously disconnected
-          oauthToken: undefined,
-          oauthTokenSecret: undefined,
-          refreshToken: tokens.refresh_token || undefined, // Only save if present
-          refreshTokenExpiry: tokens.expiry_date
+          accessTokenExpiry: tokens.expiry_date
             ? new Date(tokens.expiry_date)
             : undefined,
+          isConnected: true,
+          isDeleted: false, // Reactivate if previously disconnected
+          oauthState: null,
+          oauthToken: null,
+          oauthTokenSecret: null,
+          refreshToken: tokens.refresh_token || undefined, // Only save if present
         },
       );
 
       // Verify the credential was saved correctly
       const savedCredential = await this.credentialsService.findOne({
-        _id: credential.id,
+        id: credential.id,
       });
 
       if (!savedCredential?.refreshToken) {
@@ -224,13 +216,30 @@ export class YoutubeController {
       // Now verify the connection by getting channel details
       // Create a per-request OAuth client with the fresh tokens
       try {
+        const clientId = this.configService.get<string>('YOUTUBE_CLIENT_ID');
+        const clientSecret = this.configService.get<string>(
+          'YOUTUBE_CLIENT_SECRET',
+        );
+        const redirectUri = this.configService.get<string>(
+          'YOUTUBE_REDIRECT_URI',
+        );
+
+        if (!clientId || !clientSecret || !redirectUri) {
+          throw new HttpException(
+            {
+              detail: 'YouTube OAuth credentials are not configured',
+              title: 'Configuration error',
+            },
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+
         // Create a new OAuth2 client instance per request to avoid race conditions
         // DO NOT use the shared youtubeOAuthAPI - it would cause credential mixing
         const oauth2Client = YoutubeOAuth2Util.createClient(
-          this.configService.get('YOUTUBE_CLIENT_ID')!,
-          // @ts-expect-error TS2345
-          this.configService.get<string>('YOUTUBE_CLIENT_SECRET'),
-          this.configService.get<string>('YOUTUBE_REDIRECT_URI'),
+          clientId,
+          clientSecret,
+          redirectUri,
         );
 
         oauth2Client.setCredentials({

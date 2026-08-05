@@ -247,9 +247,9 @@ export class MastodonService {
 
     try {
       const credential = await this.credentialsService.findOne({
-        brand: brandId,
+        brandId: brandId,
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
         platform: CredentialPlatform.MASTODON,
       });
 
@@ -457,9 +457,9 @@ export class MastodonService {
 
     try {
       const credential = await this.credentialsService.findOne({
-        brand: brandId,
+        brandId: brandId,
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
         platform: CredentialPlatform.MASTODON,
       });
 

@@ -34,21 +34,21 @@ describe('TikTokPublisherService', () => {
 
   // Mock credential
   const mockCredential = {
-    _id: mockCredentialId,
+    id: mockCredentialId,
     accessToken: 'encrypted-access-token',
-    brand: mockBrandId,
+    brandId: mockBrandId,
     externalHandle: 'testcreator',
     externalId: 'tiktok-user-123',
     isDeleted: false,
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     platform: CredentialPlatform.TIKTOK,
     refreshToken: 'encrypted-refresh-token',
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as CredentialDocument;
 
   // Mock organization
   const mockOrganization = {
-    _id: mockOrganizationId,
+    id: mockOrganizationId,
     isDeleted: false,
     name: 'Test Organization',
   } as unknown as OrganizationDocument;
@@ -56,46 +56,46 @@ describe('TikTokPublisherService', () => {
   // Mock post for text-only (not supported on TikTok)
   const mockTextPost = {
     id: mockPostId,
-    brand: mockBrandId,
+    brandId: mockBrandId,
     category: PostCategory.TEXT,
     description: '<p>Test TikTok content</p>',
     ingredients: [],
     isDeleted: false,
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as PostEntity;
 
   // Mock post with single image (not supported - needs 2-35 for carousel)
   const mockSingleImagePost = {
     id: mockPostId,
-    brand: mockBrandId,
+    brandId: mockBrandId,
     category: PostCategory.IMAGE,
     description: '<p>Single image post</p>',
     ingredients: [mockIngredientId],
     isDeleted: false,
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as PostEntity;
 
   // Mock post with video
   const mockVideoPost = {
     id: mockPostId,
-    brand: mockBrandId,
+    brandId: mockBrandId,
     category: PostCategory.VIDEO,
     description: '<p>Test video post</p>',
     ingredients: [mockIngredientId],
     isDeleted: false,
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as PostEntity;
 
   // Mock post with carousel (2-35 images - supported on TikTok)
   const mockCarouselPost = {
     id: mockPostId,
-    brand: mockBrandId,
+    brandId: mockBrandId,
     category: PostCategory.IMAGE,
     description: '<p>Photo carousel</p>',
     ingredients: [
@@ -104,9 +104,9 @@ describe('TikTokPublisherService', () => {
       '507f1f77bcf86cd799439022',
     ],
     isDeleted: false,
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as PostEntity;
 
   // Create publish context helper

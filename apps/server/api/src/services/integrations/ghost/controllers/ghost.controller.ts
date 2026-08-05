@@ -47,21 +47,21 @@ export class GhostController {
     const publicMetadata = getPublicMetadata(user);
 
     this.loggerService.log(url, {
-      brand: body.brand,
+      brandId: body.brandId,
       ghostUrl: body.ghostUrl,
     });
 
-    if (!body.ghostUrl || !body.apiKey || !body.brand) {
+    if (!body.ghostUrl || !body.apiKey || !body.brandId) {
       return returnBadRequest({
-        detail: 'Missing ghostUrl, apiKey, or brand',
+        detail: 'Missing ghostUrl, apiKey, or brandId',
         title: 'Invalid payload',
       });
     }
 
     const brand = await this.brandsService.findOne({
-      _id: body.brand,
+      id: body.brandId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -79,8 +79,9 @@ export class GhostController {
       );
 
       // Save or update the credential
-      const credential = await this.credentialsService.saveCredentials(
+      const credential = await this.credentialsService.upsertForBrand(
         brand,
+        publicMetadata.user,
         CredentialPlatform.GHOST,
         {
           accessToken: body.apiKey,
@@ -88,7 +89,6 @@ export class GhostController {
           externalId: siteInfo.title,
           externalName: siteInfo.title,
           isConnected: true,
-          platform: CredentialPlatform.GHOST,
         },
       );
 

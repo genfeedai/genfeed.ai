@@ -369,7 +369,7 @@ export class TwitterPublisherService extends BasePublisherService {
     context: PublishContext,
   ): Promise<TwitterClient> {
     const credential = await this.credentialsService.findOne({
-      _id: context.credential.id,
+      id: context.credential.id,
     });
 
     if (!credential?.accessToken) {

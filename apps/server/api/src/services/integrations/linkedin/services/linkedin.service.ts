@@ -229,9 +229,9 @@ export class LinkedInService {
     brandId: string,
   ): Promise<LinkedInCredential> {
     const queryCredentials = {
-      brand: brandId,
+      brandId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId,
       platform: CredentialPlatform.LINKEDIN,
     };
 

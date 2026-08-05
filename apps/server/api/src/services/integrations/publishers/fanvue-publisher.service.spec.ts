@@ -25,7 +25,7 @@ describe('FanvuePublisherService', () => {
   const brandId = 'test-object-id';
 
   const mockCredential = {
-    _id: 'test-object-id',
+    id: 'test-object-id',
     accessToken: 'encrypted-token',
     externalHandle: 'creator-handle',
     platform: CredentialPlatform.FANVUE,
@@ -41,7 +41,7 @@ describe('FanvuePublisherService', () => {
     organization: {} as never,
     organizationId: orgId,
     post: {
-      _id: 'test-object-id',
+      id: 'test-object-id',
       category: PostCategory.TEXT,
       description: '<p>Hello world</p>',
       ingredients: [],

@@ -1,3 +1,12 @@
+vi.mock('@api/helpers/utils/response/response.util', () => ({
+  serializeSingle: vi.fn(
+    (_request: unknown, _serializer: unknown, data: unknown) => data,
+  ),
+}));
+
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -5,8 +14,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ShopifyService } from '../services/shopify.service';
 import { ShopifyController } from './shopify.controller';
 
-vi.mock('../services/shopify.service');
-vi.mock('@libs/logger/logger.service');
 vi.mock('@api/helpers/decorators/swagger/auto-swagger.decorator', () => ({
   AutoSwagger: () => () => undefined,
 }));
@@ -25,6 +32,33 @@ describe('ShopifyController', () => {
     log: vi.fn(),
     warn: vi.fn(),
   };
+  const mockBrandsService = {
+    findOne: vi.fn().mockResolvedValue({
+      id: 'brand-id',
+      organizationId: 'organization-id',
+      userId: 'user-id',
+    }),
+  };
+  const mockCredentialsService = {
+    beginOAuthForBrand: vi.fn().mockResolvedValue({
+      credential: { id: 'credential-id' },
+      state: 'opaque-oauth-state',
+    }),
+    findPendingOAuthCredential: vi.fn().mockResolvedValue({
+      brandId: 'brand-id',
+      externalHandle: 'myshop.myshopify.com',
+      id: 'credential-id',
+      organizationId: 'organization-id',
+      userId: 'user-id',
+    }),
+    patch: vi.fn().mockResolvedValue({
+      id: 'credential-id',
+      isConnected: true,
+    }),
+  };
+  const user = {
+    publicMetadata: { organization: 'organization-id', user: 'user-id' },
+  } as unknown as User;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -34,6 +68,8 @@ describe('ShopifyController', () => {
       providers: [
         { provide: ShopifyService, useValue: mockShopifyService },
         { provide: LoggerService, useValue: mockLoggerService },
+        { provide: BrandsService, useValue: mockBrandsService },
+        { provide: CredentialsService, useValue: mockCredentialsService },
       ],
     }).compile();
 
@@ -44,92 +80,105 @@ describe('ShopifyController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('getAuthUrl()', () => {
-    it('should return auth URL from service', () => {
+  describe('connect()', () => {
+    it('should return auth URL from service', async () => {
       mockShopifyService.generateAuthUrl.mockReturnValue(
         'https://myshop.myshopify.com/admin/oauth/authorize',
       );
 
-      const result = controller.getAuthUrl('myshop.myshopify.com', 'state-abc');
+      const result = await controller.connect({} as never, user, {
+        brandId: 'brand-id',
+        shop: 'myshop.myshopify.com',
+      });
 
       expect(result).toEqual({
-        data: { url: 'https://myshop.myshopify.com/admin/oauth/authorize' },
+        url: 'https://myshop.myshopify.com/admin/oauth/authorize',
       });
     });
 
-    it('should pass shop and state to generateAuthUrl', () => {
+    it('should pass normalized shop and server-issued state', async () => {
       mockShopifyService.generateAuthUrl.mockReturnValue(
         'https://shopify.com/auth',
       );
 
-      controller.getAuthUrl('shop.myshopify.com', 'my-state');
+      await controller.connect({} as never, user, {
+        brandId: 'brand-id',
+        shop: 'SHOP.myshopify.com',
+      });
 
       expect(mockShopifyService.generateAuthUrl).toHaveBeenCalledWith(
         'shop.myshopify.com',
-        'my-state',
+        'opaque-oauth-state',
       );
     });
 
-    it('should log auth url request', () => {
+    it('should log auth url request', async () => {
       mockShopifyService.generateAuthUrl.mockReturnValue(
         'https://shopify.com/auth',
       );
 
-      controller.getAuthUrl('shop.myshopify.com', '');
+      await controller.connect({} as never, user, {
+        brandId: 'brand-id',
+        shop: 'shop.myshopify.com',
+      });
 
       expect(mockLoggerService.log).toHaveBeenCalledWith('Shopify auth url');
     });
 
-    it('should pass empty string when state is undefined', () => {
-      mockShopifyService.generateAuthUrl.mockReturnValue(
-        'https://shopify.com/auth',
-      );
-
-      controller.getAuthUrl('shop.myshopify.com', undefined as any);
-
-      expect(mockShopifyService.generateAuthUrl).toHaveBeenCalledWith(
-        'shop.myshopify.com',
-        '',
-      );
+    it('should reject an invalid shop domain', async () => {
+      await expect(
+        controller.connect({} as never, user, {
+          brandId: 'brand-id',
+          shop: 'internal.example.com',
+        }),
+      ).rejects.toThrow(/myshopify/);
     });
   });
 
-  describe('exchangeToken()', () => {
-    it('should return token data from service', async () => {
-      const tokenResult = {
-        access_token: 'shpua_abc123',
-        scope: 'read_products,write_products',
-      };
+  describe('verify()', () => {
+    it('should persist token data from service', async () => {
+      const tokenResult = { accessToken: 'shpua_abc123' };
       mockShopifyService.exchangeCodeForToken.mockResolvedValue(tokenResult);
 
-      const result = await controller.exchangeToken({
+      const result = await controller.verify({} as never, {
         code: 'auth-code',
-        shop: 'myshop.myshopify.com',
+        state: 'opaque-oauth-state',
       });
 
-      expect(result).toEqual({ data: tokenResult });
+      expect(mockCredentialsService.patch).toHaveBeenCalledWith(
+        'credential-id',
+        expect.objectContaining({
+          accessToken: 'shpua_abc123',
+          oauthState: null,
+        }),
+      );
+      expect(result).toEqual({ id: 'credential-id', isConnected: true });
     });
 
-    it('should pass shop and code to exchangeCodeForToken', async () => {
-      mockShopifyService.exchangeCodeForToken.mockResolvedValue({});
+    it('should use the shop bound to the pending credential', async () => {
+      mockShopifyService.exchangeCodeForToken.mockResolvedValue({
+        accessToken: 'token',
+      });
 
-      await controller.exchangeToken({
+      await controller.verify({} as never, {
         code: 'my-code',
-        shop: 'my-shop.myshopify.com',
+        state: 'opaque-oauth-state',
       });
 
       expect(mockShopifyService.exchangeCodeForToken).toHaveBeenCalledWith(
-        'my-shop.myshopify.com',
+        'myshop.myshopify.com',
         'my-code',
       );
     });
 
     it('should log exchange token request', async () => {
-      mockShopifyService.exchangeCodeForToken.mockResolvedValue({});
+      mockShopifyService.exchangeCodeForToken.mockResolvedValue({
+        accessToken: 'token',
+      });
 
-      await controller.exchangeToken({
+      await controller.verify({} as never, {
         code: 'code',
-        shop: 'shop.myshopify.com',
+        state: 'opaque-oauth-state',
       });
 
       expect(mockLoggerService.log).toHaveBeenCalledWith(

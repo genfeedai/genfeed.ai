@@ -1,7 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import {
-  CreateCredentialDto,
+  ConnectCredentialDto,
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -53,7 +53,7 @@ export class MediumController {
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Body() createCredentialDto: Partial<CreateCredentialDto>,
+    @Body() createCredentialDto: ConnectCredentialDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const publicMetadata = getPublicMetadata(user);
@@ -61,9 +61,9 @@ export class MediumController {
     this.loggerService.log(url, createCredentialDto);
 
     const brand = await this.brandsService.findOne({
-      _id: createCredentialDto.brand,
+      id: createCredentialDto.brandId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -74,22 +74,14 @@ export class MediumController {
     }
 
     try {
-      // Save initial credential
-      await this.credentialsService.saveCredentials(
+      const { state } = await this.credentialsService.beginOAuthForBrand(
         brand,
+        publicMetadata.user,
         CredentialPlatform.MEDIUM,
         {
           isConnected: false,
-          platform: CredentialPlatform.MEDIUM,
         },
       );
-
-      // Generate state for OAuth
-      const state = JSON.stringify({
-        brandId: brand.id,
-        organizationId: brand.organizationId,
-        userId: publicMetadata.user,
-      });
 
       // Generate auth URL
       const authUrl = this.mediumService.generateAuthUrl(state);
@@ -126,28 +118,34 @@ export class MediumController {
         });
       }
 
-      const { brandId, organizationId } = JSON.parse(state);
+      const existingCredential =
+        await this.credentialsService.findPendingOAuthCredential(
+          state,
+          CredentialPlatform.MEDIUM,
+        );
+
+      if (!existingCredential) {
+        return returnNotFound('Pending OAuth credential', state);
+      }
 
       // Exchange code for access token
       const { accessToken, refreshToken, expiresIn } =
         await this.mediumService.exchangeAuthCodeForAccessToken(code);
 
+      if (!accessToken) {
+        return returnBadRequest({
+          detail: 'Medium did not return an access token',
+          title: 'Token exchange failed',
+        });
+      }
+
       // Get user profile
       const profile = await this.mediumService.getUserProfile(accessToken);
 
       // Calculate token expiry
-      const expiryDate = new Date(expiresIn * 1000);
-
-      // Find and update the existing credential
-      const existingCredential = await this.credentialsService.findOne({
-        brand: brandId,
-        organization: organizationId,
-        platform: CredentialPlatform.MEDIUM,
-      });
-
-      if (!existingCredential) {
-        return returnNotFound('Credential', brandId);
-      }
+      const expiryDate = expiresIn
+        ? new Date(Date.now() + expiresIn * 1000)
+        : undefined;
 
       // Update the credential with the access token
       const credential = await this.credentialsService.patch(
@@ -158,6 +156,8 @@ export class MediumController {
           externalHandle: profile.username,
           externalId: profile.id,
           isConnected: true,
+          isDeleted: false,
+          oauthState: null,
           refreshToken,
         },
       );

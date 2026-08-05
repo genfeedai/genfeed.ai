@@ -1,7 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import {
-  CreateCredentialDto,
+  ConnectCredentialDto,
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -67,7 +67,7 @@ export class TiktokController {
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Body() createCredentialDto: Partial<CreateCredentialDto>,
+    @Body() createCredentialDto: ConnectCredentialDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -76,9 +76,9 @@ export class TiktokController {
     const publicMetadata = getPublicMetadata(user);
 
     const brand = await this.brandsService.findOne({
-      _id: createCredentialDto.brand,
+      id: createCredentialDto.brandId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -91,8 +91,9 @@ export class TiktokController {
       );
     }
 
-    await this.credentialsService.saveCredentials(
+    const { state } = await this.credentialsService.beginOAuthForBrand(
       brand,
+      publicMetadata.user,
       CredentialPlatform.TIKTOK,
       {
         isConnected: false,
@@ -102,11 +103,6 @@ export class TiktokController {
     );
 
     const clientKey = this.configService.get('TIKTOK_CLIENT_KEY');
-
-    const state = JSON.stringify({
-      brandId: brand.id,
-      organizationId: brand.organizationId,
-    });
 
     const authUrl =
       `https://www.tiktok.com/v2/auth/authorize/?client_key=${clientKey}` +
@@ -138,7 +134,23 @@ export class TiktokController {
         );
       }
 
-      const { organizationId, brandId } = JSON.parse(state);
+      const existingCredential =
+        await this.credentialsService.findPendingOAuthCredential(
+          state,
+          CredentialPlatform.TIKTOK,
+        );
+
+      if (!existingCredential) {
+        throw new HttpException(
+          {
+            detail: 'No pending credential found for this OAuth state',
+            title: 'Credential not found',
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      const { brandId, organizationId } = existingCredential;
 
       const data = new URLSearchParams({
         client_key: this.configService.get('TIKTOK_CLIENT_KEY'),
@@ -169,20 +181,13 @@ export class TiktokController {
       } = tokenRes.data || {};
       const refreshExpiresIn = refresh_expires_in ?? refresh_token_expires_in;
 
-      // Find and update the existing credential
-      const existingCredential = await this.credentialsService.findOne({
-        brand: brandId,
-        organization: organizationId,
-        platform: CredentialPlatform.TIKTOK,
-      });
-
-      if (!existingCredential) {
+      if (!access_token) {
         throw new HttpException(
           {
-            detail: 'No pending credential found for this brand',
-            title: 'Credential not found',
+            detail: 'TikTok did not return an access token',
+            title: 'Token exchange failed',
           },
-          HttpStatus.NOT_FOUND,
+          HttpStatus.BAD_GATEWAY,
         );
       }
 
@@ -197,6 +202,7 @@ export class TiktokController {
             : undefined,
           isConnected: true,
           isDeleted: false, // Reactivate if previously disconnected
+          oauthState: null,
           refreshToken: refresh_token,
           refreshTokenExpiry: refreshExpiresIn
             ? new Date(Date.now() + refreshExpiresIn * 1000)

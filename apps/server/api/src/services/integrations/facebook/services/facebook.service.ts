@@ -141,9 +141,9 @@ export class FacebookService {
     brandId: string,
   ): Promise<Record<string, unknown>> {
     const queryCredentials = {
-      brand: brandId,
+      brandId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId,
       platform: CredentialPlatform.FACEBOOK,
     };
 
@@ -215,9 +215,9 @@ export class FacebookService {
 
     try {
       const credential = await this.credentialsService.findOne({
-        brand: brandId,
+        brandId: brandId,
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
         platform: CredentialPlatform.FACEBOOK,
       });
 

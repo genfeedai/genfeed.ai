@@ -16,7 +16,7 @@ describe('ThreadsService', () => {
   const mockCredential = {
     accessToken: 'threads-token',
     externalId: 'threads-user-1',
-    _id: 'credential-1',
+    id: 'credential-1',
   };
 
   beforeEach(async () => {

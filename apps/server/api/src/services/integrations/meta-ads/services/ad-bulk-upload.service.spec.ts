@@ -31,7 +31,7 @@ describe('AdBulkUploadService', () => {
   beforeEach(async () => {
     const jobId = 'test-object-id';
     bulkUploadJobsService = {
-      create: vi.fn().mockResolvedValue({ _id: jobId }),
+      create: vi.fn().mockResolvedValue({ id: jobId }),
     };
 
     queueService = {
@@ -172,7 +172,7 @@ describe('AdBulkUploadService', () => {
     await service.createBulkUpload(input);
     expect(bulkUploadJobsService.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        brand: expect.any(String),
+        brandId: expect.any(String),
       }),
     );
   });

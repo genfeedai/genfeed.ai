@@ -1,7 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import {
-  CreateCredentialDto,
+  ConnectCredentialDto,
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -85,7 +85,7 @@ export class InstagramController {
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Body() createCredentialDto: Partial<CreateCredentialDto>,
+    @Body() createCredentialDto: ConnectCredentialDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -94,9 +94,9 @@ export class InstagramController {
     const publicMetadata = getPublicMetadata(user);
 
     const brand = await this.brandsService.findOne({
-      _id: createCredentialDto.brand,
+      id: createCredentialDto.brandId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -106,9 +106,9 @@ export class InstagramController {
       });
     }
 
-    // Save a placeholder credential so we can update it after verification
-    await this.credentialsService.saveCredentials(
+    const { state } = await this.credentialsService.beginOAuthForBrand(
       brand,
+      publicMetadata.user,
       CredentialPlatform.INSTAGRAM,
       {
         accessToken: undefined,
@@ -119,11 +119,6 @@ export class InstagramController {
     );
 
     const appId = this.configService.get('INSTAGRAM_APP_ID');
-    const state = JSON.stringify({
-      brandId: brand.id,
-      organizationId: brand.organizationId,
-      userId: publicMetadata.user,
-    });
 
     this.loggerService.log(`${url} - Generating OAuth URL`, {
       appId: appId ? 'configured' : 'missing',
@@ -163,7 +158,15 @@ export class InstagramController {
         });
       }
 
-      const { brandId, organizationId } = JSON.parse(state);
+      const existingCredential =
+        await this.credentialsService.findPendingOAuthCredential(
+          state,
+          CredentialPlatform.INSTAGRAM,
+        );
+
+      if (!existingCredential) {
+        return returnNotFound('Pending OAuth credential', state);
+      }
 
       // 1. Exchange code for short-lived user access token
       const appId = this.configService.get('INSTAGRAM_APP_ID');
@@ -354,17 +357,6 @@ export class InstagramController {
         });
       }
 
-      // 3. Find and update the existing credential
-      const existingCredential = await this.credentialsService.findOne({
-        brand: brandId,
-        organization: organizationId,
-        platform: CredentialPlatform.INSTAGRAM,
-      });
-
-      if (!existingCredential) {
-        return returnNotFound('Credential', brandId);
-      }
-
       // Update the credential with the access token
       // If reconnecting the same account, reactivate previously deleted credential
       const credential = await this.credentialsService.patch(
@@ -376,6 +368,7 @@ export class InstagramController {
             : undefined,
           isConnected: true,
           isDeleted: false, // Reactivate if previously disconnected
+          oauthState: null,
           refreshToken: undefined,
           refreshTokenExpiry: undefined,
         },

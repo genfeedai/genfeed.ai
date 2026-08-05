@@ -1,7 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import {
-  CreateCredentialDto,
+  ConnectCredentialDto,
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -55,16 +55,16 @@ export class GoogleAdsController {
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Body() createCredentialDto: Partial<CreateCredentialDto>,
+    @Body() createCredentialDto: ConnectCredentialDto,
   ) {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} started`);
 
     const publicMetadata = getPublicMetadata(user);
     const brand = await this.brandsService.findOne({
-      _id: createCredentialDto.brand,
+      id: createCredentialDto.brandId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -77,14 +77,9 @@ export class GoogleAdsController {
       );
     }
 
-    const state = JSON.stringify({
-      brandId: brand.id,
-      organizationId: brand.organizationId,
-      userId: publicMetadata.user,
-    });
-
-    await this.credentialsService.saveCredentials(
+    const { state } = await this.credentialsService.beginOAuthForBrand(
       brand,
+      publicMetadata.user,
       CredentialPlatform.GOOGLE_ADS,
       {
         isConnected: false,
@@ -115,28 +110,15 @@ export class GoogleAdsController {
       );
     }
 
-    const { brandId, organizationId } = JSON.parse(body.state);
-
-    // Bind the OAuth state to the caller: the org encoded in the state must
-    // match the authenticated caller's active organization. Prevents a member
-    // of org A from completing a credential exchange scoped to org B.
-    const callerOrganizationId = getPublicMetadata(user).organization;
-    if (organizationId !== callerOrganizationId) {
-      throw new HttpException(
-        {
-          detail: 'OAuth state does not match your organization',
-          title: 'OAuth Error',
-        },
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    const credential = await this.credentialsService.findOne({
-      brand: brandId,
-      isDeleted: false,
-      organization: organizationId,
-      platform: CredentialPlatform.GOOGLE_ADS,
-    });
+    const publicMetadata = getPublicMetadata(user);
+    const credential = await this.credentialsService.findPendingOAuthCredential(
+      body.state,
+      CredentialPlatform.GOOGLE_ADS,
+      {
+        organizationId: publicMetadata.organization,
+        userId: publicMetadata.user,
+      },
+    );
 
     if (!credential) {
       throw new HttpException(
@@ -169,6 +151,7 @@ export class GoogleAdsController {
         externalName: primaryCustomer?.descriptiveName || 'Google Ads',
         isConnected: true,
         isDeleted: false,
+        oauthState: null,
         refreshToken: tokens.refreshToken,
       },
     );
@@ -339,9 +322,9 @@ export class GoogleAdsController {
     const credential = await this.credentialsService.findOne({
       isConnected: true,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
       platform: CredentialPlatform.GOOGLE_ADS,
-      user: userId,
+      userId: userId,
     });
 
     if (!credential?.accessToken) {

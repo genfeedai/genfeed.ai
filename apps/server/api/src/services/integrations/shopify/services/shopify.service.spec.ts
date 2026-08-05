@@ -124,7 +124,7 @@ describe('ShopifyService', () => {
 
   describe('verifyToken', () => {
     const mockCredential = {
-      _id: 'test-object-id',
+      id: 'test-object-id',
       accessToken: 'encrypted_token',
       externalHandle: shop,
     };

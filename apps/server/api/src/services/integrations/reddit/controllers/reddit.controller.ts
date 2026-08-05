@@ -1,7 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import {
-  CreateCredentialDto,
+  ConnectCredentialDto,
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -50,7 +50,7 @@ export class RedditController {
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Body() createCredentialDto: Partial<CreateCredentialDto>,
+    @Body() createCredentialDto: ConnectCredentialDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, createCredentialDto);
@@ -58,9 +58,9 @@ export class RedditController {
     const publicMetadata = getPublicMetadata(user);
 
     const brand = await this.brandsService.findOne({
-      _id: createCredentialDto.brand,
+      id: createCredentialDto.brandId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -74,30 +74,12 @@ export class RedditController {
     }
 
     try {
-      // Scope on the scalar FK. `brand.organization` is the Mongo-era alias:
-      // an id string only when the row passed through `normalizeDocument`,
-      // otherwise a populated object or undefined — and an undefined filter
-      // value is dropped by `normalizeWhere`, which would widen this lookup
-      // to every organization's credentials.
-      const credential = await this.credentialsService.findOne({
-        brand: brand.id,
-        organization: brand.organizationId,
-        platform: CredentialPlatform.REDDIT,
-      });
-
-      if (!credential) {
-        await this.credentialsService.saveCredentials(
-          brand,
-          CredentialPlatform.REDDIT,
-          { isConnected: false },
-        );
-      }
-
-      const state = JSON.stringify({
-        brandId: brand.id,
-        organizationId: brand.organizationId,
-        userId: publicMetadata.user,
-      });
+      const { state } = await this.credentialsService.beginOAuthForBrand(
+        brand,
+        publicMetadata.user,
+        CredentialPlatform.REDDIT,
+        { isConnected: false },
+      );
 
       const authUrl = this.redditService.generateAuthUrl(state);
 
@@ -128,19 +110,45 @@ export class RedditController {
         );
       }
 
-      const { brandId, organizationId } = JSON.parse(state);
+      const existingCredential =
+        await this.credentialsService.findPendingOAuthCredential(
+          state,
+          CredentialPlatform.REDDIT,
+        );
 
-      const auth = Buffer.from(
-        `${this.configService.get('REDDIT_CLIENT_ID')}:${this.configService.get('REDDIT_CLIENT_SECRET')}`,
-      ).toString('base64');
+      if (!existingCredential) {
+        throw new HttpException(
+          {
+            detail: 'No pending credential found for this OAuth state',
+            title: 'Credential not found',
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      const { organizationId } = existingCredential;
+      const clientId = this.configService.get('REDDIT_CLIENT_ID');
+      const clientSecret = this.configService.get('REDDIT_CLIENT_SECRET');
+      const redirectUri = this.configService.get('REDDIT_REDIRECT_URI');
+
+      if (!clientId || !clientSecret || !redirectUri) {
+        throw new HttpException(
+          {
+            detail: 'Reddit OAuth credentials are not configured',
+            title: 'Configuration error',
+          },
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      const auth = Buffer.from(`${clientId}:${clientSecret}`).toString(
+        'base64',
+      );
 
       const params = new URLSearchParams();
       params.append('grant_type', OAuthGrantType.AUTHORIZATION_CODE);
       params.append('code', code);
-      params.append(
-        'redirect_uri',
-        this.configService.get('REDDIT_REDIRECT_URI')!,
-      );
+      params.append('redirect_uri', redirectUri);
 
       const tokenRes = await firstValueFrom(
         this.httpService.post(this.tokenUrl, params.toString(), {
@@ -155,19 +163,13 @@ export class RedditController {
 
       const { access_token, refresh_token, expires_in } = tokenRes.data;
 
-      const existingCredential = await this.credentialsService.findOne({
-        brand: brandId,
-        organization: organizationId,
-        platform: CredentialPlatform.REDDIT,
-      });
-
-      if (!existingCredential) {
+      if (!access_token) {
         throw new HttpException(
           {
-            detail: 'No pending credential found for this brand',
-            title: 'Credential not found',
+            detail: 'Reddit did not return an access token',
+            title: 'Token exchange failed',
           },
-          HttpStatus.NOT_FOUND,
+          HttpStatus.BAD_GATEWAY,
         );
       }
 
@@ -179,6 +181,8 @@ export class RedditController {
             ? new Date(Date.now() + expires_in * 1000)
             : undefined,
           isConnected: true,
+          isDeleted: false,
+          oauthState: null,
           refreshToken: refresh_token,
         },
       );

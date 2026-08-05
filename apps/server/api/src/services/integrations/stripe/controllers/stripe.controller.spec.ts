@@ -75,7 +75,7 @@ describe('StripeController', () => {
   } as unknown as User;
 
   const mockSubscription = {
-    _id: 'test-object-id',
+    id: 'test-object-id',
     stripeCustomerId: 'cus_test123',
   };
 
@@ -149,7 +149,7 @@ describe('StripeController', () => {
       });
       // Regression (#1199): resolve the DB user by canonical Genfeed User.id.
       expect(usersService.findOne).toHaveBeenCalledWith({
-        _id: userId,
+        id: userId,
         isDeleted: false,
       });
       expect(lifecycleEmailService.recordCheckoutStarted).toHaveBeenCalledWith({

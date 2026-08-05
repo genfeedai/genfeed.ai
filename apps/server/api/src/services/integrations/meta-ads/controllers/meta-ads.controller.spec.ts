@@ -56,7 +56,7 @@ describe('MetaAdsController', () => {
   } as unknown as User;
 
   const mockCredential = {
-    _id: 'test-object-id',
+    id: 'test-object-id',
     accessToken: 'encrypted_fb_token',
     platform: CredentialPlatform.FACEBOOK,
   };

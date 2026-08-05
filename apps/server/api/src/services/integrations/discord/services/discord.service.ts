@@ -203,9 +203,9 @@ export class DiscordService {
 
     try {
       const credential = await this.credentialsService.findOne({
-        brand: brandId,
+        brandId: brandId,
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
         platform: CredentialPlatform.DISCORD,
       });
 
@@ -269,9 +269,9 @@ export class DiscordService {
 
       // Mark credential as disconnected if refresh fails
       const credential = await this.credentialsService.findOne({
-        brand: brandId,
+        brandId: brandId,
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
         platform: CredentialPlatform.DISCORD,
       });
 

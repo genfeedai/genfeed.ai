@@ -40,20 +40,20 @@ describe('FacebookPublisherService', () => {
 
   // Mock credential
   const mockCredential = {
-    _id: mockCredentialId,
+    id: mockCredentialId,
     accessToken: 'encrypted-access-token',
-    brand: mockBrandId,
+    brandId: mockBrandId,
     externalHandle: 'testpage',
     externalId: mockPageId,
     isDeleted: false,
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     platform: CredentialPlatform.FACEBOOK,
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as CredentialDocument;
 
   // Mock organization
   const mockOrganization = {
-    _id: mockOrganizationId,
+    id: mockOrganizationId,
     isDeleted: false,
     name: 'Test Organization',
   } as unknown as OrganizationDocument;
@@ -68,54 +68,54 @@ describe('FacebookPublisherService', () => {
   // Mock post for text-only (not supported on Facebook)
   const mockTextPost = {
     id: mockPostId,
-    brand: mockBrandId,
+    brandId: mockBrandId,
     category: PostCategory.TEXT,
     description: '<p>Test Facebook content</p>',
     ingredients: [],
     isDeleted: false,
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as PostEntity;
 
   // Mock post with image
   const mockImagePost = {
     id: mockPostId,
-    brand: mockBrandId,
+    brandId: mockBrandId,
     category: PostCategory.IMAGE,
     description: '<p>Test image post</p>',
     ingredients: [mockIngredientId],
     isDeleted: false,
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as PostEntity;
 
   // Mock post with video
   const mockVideoPost = {
     id: mockPostId,
-    brand: mockBrandId,
+    brandId: mockBrandId,
     category: PostCategory.VIDEO,
     description: '<p>Test video post</p>',
     ingredients: [mockIngredientId],
     isDeleted: false,
     label: 'Video Title',
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as PostEntity;
 
   // Mock post with multiple images (carousel - not supported)
   const mockCarouselPost = {
     id: mockPostId,
-    brand: mockBrandId,
+    brandId: mockBrandId,
     category: PostCategory.IMAGE,
     description: '<p>Carousel post</p>',
     ingredients: ['507f1f77bcf86cd799439020', '507f1f77bcf86cd799439021'],
     isDeleted: false,
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as PostEntity;
 
   // Create publish context helper

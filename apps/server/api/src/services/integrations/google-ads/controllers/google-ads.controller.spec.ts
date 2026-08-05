@@ -34,16 +34,23 @@ const mockUser = {
 const ACCESS_TOKEN = 'decrypted:encrypted-token';
 const MOCK_CREDENTIAL = {
   accessToken: 'encrypted-token',
+  brandId: 'test-object-id',
+  id: 'cred-1',
   isConnected: true,
   isDeleted: false,
+  organizationId: 'test-object-id',
   platform: CredentialPlatform.GOOGLE_ADS,
+  userId: 'test-object-id',
 };
 
 describe('GoogleAdsController', () => {
   let controller: GoogleAdsController;
   let brandsService: vi.Mocked<Pick<BrandsService, 'findOne'>>;
   let credentialsService: vi.Mocked<
-    Pick<CredentialsService, 'findOne' | 'patch' | 'saveCredentials'>
+    Pick<
+      CredentialsService,
+      'beginOAuthForBrand' | 'findOne' | 'findPendingOAuthCredential' | 'patch'
+    >
   >;
   let googleAdsService: vi.Mocked<
     Pick<
@@ -67,15 +74,19 @@ describe('GoogleAdsController', () => {
   beforeEach(async () => {
     brandsService = {
       findOne: vi.fn().mockResolvedValue({
-        _id: 'test-object-id',
-        organization: 'test-object-id',
-        user: 'test-object-id',
+        id: 'test-object-id',
+        organizationId: 'test-object-id',
+        userId: 'test-object-id',
       }),
     };
     credentialsService = {
+      beginOAuthForBrand: vi.fn().mockResolvedValue({
+        credential: MOCK_CREDENTIAL,
+        state: 'opaque-oauth-state',
+      }),
       findOne: vi.fn().mockResolvedValue(MOCK_CREDENTIAL),
+      findPendingOAuthCredential: vi.fn().mockResolvedValue(MOCK_CREDENTIAL),
       patch: vi.fn().mockResolvedValue({ id: 'cred-1' }),
-      saveCredentials: vi.fn(),
     };
     googleAdsService = {
       getAdGroupInsights: vi.fn().mockResolvedValue({ clicks: 50 }),
@@ -137,12 +148,19 @@ describe('GoogleAdsController', () => {
 
       const result = await controller.verify({} as never, mockUser, {
         code: 'auth-code',
-        state: JSON.stringify({
-          brandId: 'test-object-id',
-          organizationId: 'test-object-id',
-        }),
+        state: 'opaque-oauth-state',
       });
 
+      expect(
+        credentialsService.findPendingOAuthCredential,
+      ).toHaveBeenCalledWith(
+        'opaque-oauth-state',
+        CredentialPlatform.GOOGLE_ADS,
+        {
+          organizationId: 'test-object-id',
+          userId: 'test-object-id',
+        },
+      );
       expect(
         googleAdsOAuthService.exchangeAuthCodeForAccessToken,
       ).toHaveBeenCalledWith('auth-code');
@@ -156,14 +174,13 @@ describe('GoogleAdsController', () => {
       ).rejects.toBeInstanceOf(HttpException);
     });
 
-    it("rejects when the state's organization does not match the caller", async () => {
+    it('rejects a state that is not pending in the caller scope', async () => {
+      credentialsService.findPendingOAuthCredential.mockResolvedValueOnce(null);
+
       await expect(
         controller.verify({} as never, mockUser, {
           code: 'auth-code',
-          state: JSON.stringify({
-            brandId: 'test-object-id',
-            organizationId: 'a-different-org',
-          }),
+          state: 'foreign-or-expired-state',
         }),
       ).rejects.toBeInstanceOf(HttpException);
 

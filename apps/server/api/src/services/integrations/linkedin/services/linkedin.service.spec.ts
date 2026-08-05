@@ -32,8 +32,6 @@ import { of, throwError } from 'rxjs';
 
 describe('LinkedInService', () => {
   let service: LinkedInService;
-  let credentialsService: CredentialsService;
-  let httpService: HttpService;
 
   const mockCredentialsService = {
     findOne: vi.fn(),
@@ -83,8 +81,6 @@ describe('LinkedInService', () => {
     }).compile();
 
     service = module.get<LinkedInService>(LinkedInService);
-    credentialsService = module.get<CredentialsService>(CredentialsService);
-    httpService = module.get<HttpService>(HttpService);
   });
 
   it('should be defined', () => {
@@ -113,7 +109,7 @@ describe('LinkedInService', () => {
 
   describe('generateAuthUrl', () => {
     it('should generate a valid OAuth URL with state', () => {
-      const state = JSON.stringify({ brandId: '456', userId: '123' });
+      const state = 'opaque-oauth-state';
       const url = service.generateAuthUrl(state);
 
       expect(url).toContain('https://www.linkedin.com/oauth/v2/authorization');
@@ -226,7 +222,7 @@ describe('LinkedInService', () => {
         isConnected: true,
       });
 
-      const result = await service.refreshToken(orgId, brandId);
+      await service.refreshToken(orgId, brandId);
 
       expect(mockCredentialsService.patch).toHaveBeenCalledWith(
         credId,
@@ -279,7 +275,7 @@ describe('LinkedInService', () => {
   describe('createTextPost', () => {
     it('publishes text posts through the shared integration HTTP client transport', async () => {
       mockCredentialsService.findOne.mockResolvedValue({
-        _id: 'credential-id',
+        id: 'credential-id',
         accessToken: 'encrypted-access-token',
         refreshToken: null,
       });

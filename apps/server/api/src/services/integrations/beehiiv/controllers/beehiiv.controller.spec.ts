@@ -36,7 +36,7 @@ describe('BeehiivController', () => {
     createSubscriber: ReturnType<typeof vi.fn>;
   };
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
-  let credentialsService: { saveCredentials: ReturnType<typeof vi.fn> };
+  let credentialsService: { upsertForBrand: ReturnType<typeof vi.fn> };
 
   const loggerMock = {
     error: vi.fn(),
@@ -53,7 +53,7 @@ describe('BeehiivController', () => {
   const mockRequest = {} as unknown as Request;
 
   const mockBrand = {
-    _id: '507f191e810c19729de860ea',
+    id: '507f191e810c19729de860ea',
     organization: '507f191e810c19729de860eb',
   };
 
@@ -80,7 +80,7 @@ describe('BeehiivController', () => {
       listPublications: vi.fn(),
     };
     brandsService = { findOne: vi.fn() };
-    credentialsService = { saveCredentials: vi.fn() };
+    credentialsService = { upsertForBrand: vi.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [BeehiivController],
@@ -107,8 +107,8 @@ describe('BeehiivController', () => {
     it('should connect successfully with valid apiKey and brandId', async () => {
       brandsService.findOne.mockResolvedValue(mockBrand);
       beehiivService.listPublications.mockResolvedValue([mockPublication]);
-      credentialsService.saveCredentials.mockResolvedValue({
-        _id: 'test-object-id',
+      credentialsService.upsertForBrand.mockResolvedValue({
+        id: 'test-object-id',
         platform: CredentialPlatform.BEEHIIV,
       });
 
@@ -120,8 +120,9 @@ describe('BeehiivController', () => {
       expect(beehiivService.listPublications).toHaveBeenCalledWith(
         'test-api-key',
       );
-      expect(credentialsService.saveCredentials).toHaveBeenCalledWith(
+      expect(credentialsService.upsertForBrand).toHaveBeenCalledWith(
         mockBrand,
+        '507f191e810c19729de860ec',
         CredentialPlatform.BEEHIIV,
         {
           accessToken: 'test-api-key',
@@ -139,8 +140,8 @@ describe('BeehiivController', () => {
         mockPublication,
         alternatePublication,
       ]);
-      credentialsService.saveCredentials.mockResolvedValue({
-        _id: 'test-object-id',
+      credentialsService.upsertForBrand.mockResolvedValue({
+        id: 'test-object-id',
         platform: CredentialPlatform.BEEHIIV,
       });
 
@@ -150,8 +151,9 @@ describe('BeehiivController', () => {
         publicationId: 'pub_selected',
       });
 
-      expect(credentialsService.saveCredentials).toHaveBeenCalledWith(
+      expect(credentialsService.upsertForBrand).toHaveBeenCalledWith(
         mockBrand,
+        '507f191e810c19729de860ec',
         CredentialPlatform.BEEHIIV,
         {
           accessToken: 'test-api-key',
@@ -173,7 +175,7 @@ describe('BeehiivController', () => {
       });
 
       expect(result).toHaveProperty('errors');
-      expect(credentialsService.saveCredentials).not.toHaveBeenCalled();
+      expect(credentialsService.upsertForBrand).not.toHaveBeenCalled();
     });
 
     it('should return bad request when apiKey is missing', async () => {
@@ -217,7 +219,7 @@ describe('BeehiivController', () => {
       });
 
       expect(result).toHaveProperty('errors');
-      expect(credentialsService.saveCredentials).not.toHaveBeenCalled();
+      expect(credentialsService.upsertForBrand).not.toHaveBeenCalled();
     });
 
     it('should return internal server error when listPublications throws', async () => {

@@ -1,3 +1,4 @@
+import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { DiscordController } from '@api/services/integrations/discord/controllers/discord.controller';
 import { DiscordService } from '@api/services/integrations/discord/services/discord.service';
@@ -10,6 +11,7 @@ import { forwardRef, Module } from '@nestjs/common';
   controllers: [DiscordController],
   exports: [DiscordService],
   imports: [
+    forwardRef(() => BrandsModule),
     ConfigModule,
     forwardRef(() => CredentialsCoreModule),
     HttpModule,

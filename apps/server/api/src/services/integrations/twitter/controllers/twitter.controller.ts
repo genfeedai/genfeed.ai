@@ -1,7 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import {
-  CreateCredentialDto,
+  ConnectCredentialDto,
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -48,7 +48,7 @@ export class TwitterController {
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Body() createCredentialDto: Partial<CreateCredentialDto>,
+    @Body() createCredentialDto: ConnectCredentialDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -57,9 +57,9 @@ export class TwitterController {
     const publicMetadata = getPublicMetadata(user);
 
     const brand = await this.brandsService.findOne({
-      _id: createCredentialDto.brand,
+      id: createCredentialDto.brandId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -73,16 +73,18 @@ export class TwitterController {
     }
 
     try {
+      const { credential, state } =
+        await this.credentialsService.beginOAuthForBrand(
+          brand,
+          publicMetadata.user,
+          CredentialPlatform.TWITTER,
+          { isConnected: false },
+        );
+
       const client = new TwitterApi({
         clientId: this.configService.get('TWITTER_CLIENT_ID'),
         clientSecret: this.configService.get('TWITTER_CLIENT_SECRET'),
       } as TwitterApiOAuth2Init);
-
-      const state = JSON.stringify({
-        brandId: brand.id,
-        organizationId: brand.organizationId,
-        userId: publicMetadata.user,
-      });
 
       const redirectUri = this.configService.get(
         'TWITTER_REDIRECT_URI',
@@ -104,15 +106,9 @@ export class TwitterController {
         },
       );
 
-      // Store PKCE codeVerifier (encrypted via schema setter)
-      await this.credentialsService.saveCredentials(
-        brand,
-        CredentialPlatform.TWITTER,
-        {
-          isConnected: false,
-          oauthTokenSecret: codeVerifier,
-        },
-      );
+      await this.credentialsService.patch(credential.id, {
+        oauthTokenSecret: codeVerifier,
+      });
 
       return serializeSingle(request, CredentialOAuthSerializer, {
         url: authUrl,
@@ -151,13 +147,11 @@ export class TwitterController {
         );
       }
 
-      const { brandId, organizationId } = JSON.parse(state);
-
-      const credential = await this.credentialsService.findOne({
-        brand: brandId,
-        organization: organizationId,
-        platform: CredentialPlatform.TWITTER,
-      });
+      const credential =
+        await this.credentialsService.findPendingOAuthCredential(
+          state,
+          CredentialPlatform.TWITTER,
+        );
 
       if (!credential) {
         throw new HttpException(
@@ -165,6 +159,8 @@ export class TwitterController {
           HttpStatus.BAD_REQUEST,
         );
       }
+
+      const { organizationId } = credential;
 
       // Retrieve stored PKCE code verifier (encrypted via schema setter)
       const codeVerifier = credential.oauthTokenSecret
@@ -213,8 +209,9 @@ export class TwitterController {
             : undefined,
           isConnected: true,
           isDeleted: false,
-          oauthToken: undefined,
-          oauthTokenSecret: undefined,
+          oauthState: null,
+          oauthToken: null,
+          oauthTokenSecret: null,
           refreshToken,
         },
       );

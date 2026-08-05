@@ -1,7 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import {
-  CreateCredentialDto,
+  ConnectCredentialDto,
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -48,16 +48,16 @@ export class FacebookController {
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Body() createCredentialDto: Partial<CreateCredentialDto>,
+    @Body() createCredentialDto: ConnectCredentialDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
 
     const publicMetadata = getPublicMetadata(user);
     const brand = await this.brandsService.findOne({
-      _id: createCredentialDto.brand,
+      id: createCredentialDto.brandId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -70,16 +70,9 @@ export class FacebookController {
       );
     }
 
-    const state = Buffer.from(
-      JSON.stringify({
-        brandId: brand.id,
-        organizationId: brand.organizationId,
-        userId: publicMetadata.user,
-      }),
-    ).toString('base64');
-
-    await this.credentialsService.saveCredentials(
+    const { state } = await this.credentialsService.beginOAuthForBrand(
       brand,
+      publicMetadata.user,
       CredentialPlatform.FACEBOOK,
       {
         isConnected: false,
@@ -112,19 +105,11 @@ export class FacebookController {
         );
       }
 
-      const stateData = JSON.parse(
-        Buffer.from(body.state, 'base64').toString('utf-8'),
-      ) as {
-        brandId: string;
-        organizationId: string;
-      };
-
-      const credential = await this.credentialsService.findOne({
-        brand: stateData.brandId,
-        isDeleted: false,
-        organization: stateData.organizationId,
-        platform: CredentialPlatform.FACEBOOK,
-      });
+      const credential =
+        await this.credentialsService.findPendingOAuthCredential(
+          body.state,
+          CredentialPlatform.FACEBOOK,
+        );
 
       if (!credential) {
         throw new HttpException(
@@ -136,8 +121,21 @@ export class FacebookController {
         );
       }
 
+      const { organizationId } = credential;
+
       const { accessToken, expiresIn } =
         await this.facebookService.exchangeAuthCodeForAccessToken(body.code);
+
+      if (!accessToken) {
+        throw new HttpException(
+          {
+            detail: 'Facebook did not return an access token',
+            title: 'Token exchange failed',
+          },
+          HttpStatus.BAD_GATEWAY,
+        );
+      }
+
       const profile = await this.facebookService.getUserProfile(accessToken);
 
       let updatedCredential = await this.credentialsService.patch(
@@ -149,12 +147,13 @@ export class FacebookController {
             : undefined,
           isConnected: true,
           isDeleted: false,
+          oauthState: null,
         },
       );
 
       updatedCredential = await this.credentialsService.updateExternalProfile(
         updatedCredential.id,
-        stateData.organizationId,
+        organizationId,
         {
           avatarUrl: profile.picture?.data?.url,
           handle: profile.email || profile.name,

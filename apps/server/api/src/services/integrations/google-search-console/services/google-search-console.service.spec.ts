@@ -92,7 +92,7 @@ describe('GoogleSearchConsoleService', () => {
     );
     expect(result).toEqual([
       {
-        _id: 'https://genfeed.ai/',
+        id: 'https://genfeed.ai/',
         permissionLevel: 'siteOwner',
         siteUrl: 'https://genfeed.ai/',
       },

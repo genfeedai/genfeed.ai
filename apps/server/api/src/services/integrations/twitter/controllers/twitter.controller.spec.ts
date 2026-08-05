@@ -37,9 +37,12 @@ describe('TwitterController', () => {
   };
 
   const mockCredentialsService = {
-    findOne: vi.fn(),
+    beginOAuthForBrand: vi.fn().mockResolvedValue({
+      credential: { id: 'cred' },
+      state: 'opaque-oauth-state',
+    }),
+    findPendingOAuthCredential: vi.fn(),
     patch: vi.fn().mockResolvedValue({ id: 'cred', isConnected: true }),
-    saveCredentials: vi.fn(),
     updateExternalProfile: vi
       .fn()
       .mockResolvedValue({ id: 'cred', isConnected: true }),
@@ -110,26 +113,30 @@ describe('TwitterController', () => {
     const mockRequest = {} as Request;
 
     it('should generate OAuth2 auth link and save code verifier', async () => {
-      const brand = { id: brandId, organization: orgId };
+      const brand = {
+        id: brandId,
+        organizationId: orgId,
+        userId: 'test-object-id',
+      };
       mockBrandsService.findOne.mockResolvedValue(brand);
-      mockCredentialsService.saveCredentials.mockResolvedValue({});
 
       const result = await controller.connect(
         mockRequest,
         mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
-        { brand: brandId },
+        { brandId },
       );
 
       expect(result.data).toHaveProperty('url');
       expect(result.data.url).toContain('twitter.com');
-      expect(mockCredentialsService.saveCredentials).toHaveBeenCalledWith(
+      expect(mockCredentialsService.beginOAuthForBrand).toHaveBeenCalledWith(
         brand,
+        'test-object-id',
         'twitter',
-        expect.objectContaining({
-          isConnected: false,
-          oauthTokenSecret: 'test-code-verifier',
-        }),
+        { isConnected: false },
       );
+      expect(mockCredentialsService.patch).toHaveBeenCalledWith('cred', {
+        oauthTokenSecret: 'test-code-verifier',
+      });
     });
 
     it('should throw FORBIDDEN when brand not found', async () => {
@@ -139,7 +146,7 @@ describe('TwitterController', () => {
         controller.connect(
           mockRequest,
           mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
-          { brand: brandId },
+          { brandId },
         ),
       ).rejects.toThrow(HttpException);
     });
@@ -147,7 +154,8 @@ describe('TwitterController', () => {
     it('should throw INTERNAL_SERVER_ERROR when OAuth init fails', async () => {
       mockBrandsService.findOne.mockResolvedValue({
         id: brandId,
-        organization: orgId,
+        organizationId: orgId,
+        userId: 'test-object-id',
       });
       mockGenerateOAuth2AuthLink.mockImplementation(() => {
         throw new Error('OAuth init error');
@@ -157,7 +165,7 @@ describe('TwitterController', () => {
         controller.connect(
           mockRequest,
           mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
-          { brand: brandId },
+          { brandId },
         ),
       ).rejects.toThrow(HttpException);
     });
@@ -167,13 +175,13 @@ describe('TwitterController', () => {
     it('should exchange code and update credential with OAuth 2.0 PKCE', async () => {
       const brandId = '507f1f77bcf86cd799439011';
       const organizationId = '507f1f77bcf86cd799439012';
-      const state = JSON.stringify({ brandId, organizationId });
+      const state = 'opaque-oauth-state';
 
-      mockCredentialsService.findOne.mockResolvedValue({
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+        brandId,
         id: 'cred',
-        brand: brandId,
         oauthTokenSecret: 'encrypted-code-verifier',
-        organization: organizationId,
+        organizationId,
       });
 
       await controller.verify({} as Request, {
@@ -181,12 +189,17 @@ describe('TwitterController', () => {
         state,
       });
 
-      expect(mockCredentialsService.findOne).toHaveBeenCalled();
+      expect(
+        mockCredentialsService.findPendingOAuthCredential,
+      ).toHaveBeenCalledWith('opaque-oauth-state', 'twitter');
       expect(mockCredentialsService.patch).toHaveBeenCalledWith(
         'cred',
         expect.objectContaining({
           accessToken: 'oauth2-access-token',
           isConnected: true,
+          oauthState: null,
+          oauthToken: null,
+          oauthTokenSecret: null,
           refreshToken: 'oauth2-refresh-token',
         }),
       );
@@ -209,11 +222,8 @@ describe('TwitterController', () => {
     });
 
     it('should throw BAD_REQUEST when credential not found', async () => {
-      const state = JSON.stringify({
-        brandId: '507f1f77bcf86cd799439011',
-        organizationId: '507f1f77bcf86cd799439012',
-      });
-      mockCredentialsService.findOne.mockResolvedValue(null);
+      const state = 'foreign-or-expired-state';
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue(null);
 
       await expect(
         controller.verify({} as Request, { code: 'code', state }),
@@ -221,11 +231,8 @@ describe('TwitterController', () => {
     });
 
     it('should throw BAD_REQUEST when code verifier is missing', async () => {
-      const state = JSON.stringify({
-        brandId: '507f1f77bcf86cd799439011',
-        organizationId: '507f1f77bcf86cd799439012',
-      });
-      mockCredentialsService.findOne.mockResolvedValue({
+      const state = 'opaque-oauth-state';
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
         id: 'cred',
         oauthTokenSecret: null,
       });

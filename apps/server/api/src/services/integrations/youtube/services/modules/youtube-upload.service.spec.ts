@@ -59,7 +59,7 @@ describe('YoutubeUploadService', () => {
     overrides: Partial<PostEntity> & { status?: PostStatus | string } = {},
   ): PostEntity {
     const fixture = {
-      _id: 'test-object-id',
+      id: 'test-object-id',
       description: '<p>Test description</p>',
       label: 'Test Video',
       scheduledDate: null,

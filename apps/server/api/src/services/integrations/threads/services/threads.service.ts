@@ -84,7 +84,9 @@ export class ThreadsService {
         }),
       );
 
-      this.loggerService.log(`${url} succeeded`, response.data);
+      this.loggerService.log(`${url} succeeded`, {
+        hasAccount: !!response.data,
+      });
 
       return response.data;
     } catch (error: unknown) {
@@ -104,8 +106,8 @@ export class ThreadsService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     const credential = await this.credentialsService.findOne({
-      brand: brandId,
-      organization: organizationId,
+      brandId: brandId,
+      organizationId: organizationId,
       platform: CredentialPlatform.THREADS,
     });
 
@@ -141,7 +143,14 @@ export class ThreadsService {
 
       const { access_token, expires_in } = response.data || {};
 
-      this.loggerService.log(`${url} succeeded`, response.data);
+      if (!access_token) {
+        throw new Error('Threads refresh response missing access token');
+      }
+
+      this.loggerService.log(`${url} succeeded`, {
+        expiresIn: expires_in,
+        hasAccessToken: true,
+      });
 
       const updatedCredential = await this.credentialsService.patch(
         credential.id,
@@ -823,15 +832,15 @@ export class ThreadsService {
     const credential = await this.credentialsService.findOne(
       credentialId
         ? {
-            _id: credentialId,
+            id: credentialId,
             isDeleted: false,
-            organization: organizationId,
+            organizationId,
             platform: CredentialPlatform.THREADS,
           }
         : {
-            brand: brandId,
+            brandId,
             isDeleted: false,
-            organization: organizationId,
+            organizationId,
             platform: CredentialPlatform.THREADS,
           },
     );

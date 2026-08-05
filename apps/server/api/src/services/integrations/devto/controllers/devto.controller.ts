@@ -62,9 +62,9 @@ export class DevtoController {
     }
 
     const brand = await this.brandsService.findOne({
-      _id: body.brandId,
+      id: body.brandId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -86,8 +86,9 @@ export class DevtoController {
         });
       }
 
-      const credential = await this.credentialsService.saveCredentials(
+      const credential = await this.credentialsService.upsertForBrand(
         brand,
+        publicMetadata.user,
         CredentialPlatform.DEV_TO,
         {
           accessToken: body.apiKey,

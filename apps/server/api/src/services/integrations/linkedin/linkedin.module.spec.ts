@@ -50,7 +50,7 @@ describe('LinkedInModule', () => {
           useValue: {
             findOne: vi.fn(),
             patch: vi.fn(),
-            saveCredentials: vi.fn(),
+            upsertForBrand: vi.fn(),
           },
         },
       ],

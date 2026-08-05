@@ -1,7 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import {
-  CreateCredentialDto,
+  ConnectCredentialDto,
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -41,7 +41,7 @@ export class LinkedInController {
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Body() createCredentialDto: Partial<CreateCredentialDto>,
+    @Body() createCredentialDto: ConnectCredentialDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const publicMetadata = getPublicMetadata(user);
@@ -49,9 +49,9 @@ export class LinkedInController {
     this.loggerService.log(url, createCredentialDto);
 
     const brand = await this.brandsService.findOne({
-      _id: createCredentialDto.brand,
+      id: createCredentialDto.brandId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -62,20 +62,14 @@ export class LinkedInController {
     }
 
     try {
-      await this.credentialsService.saveCredentials(
+      const { state } = await this.credentialsService.beginOAuthForBrand(
         brand,
+        publicMetadata.user,
         CredentialPlatform.LINKEDIN,
         {
           isConnected: false,
-          platform: CredentialPlatform.LINKEDIN,
         },
       );
-
-      const state = JSON.stringify({
-        brandId: brand.id,
-        organizationId: brand.organizationId,
-        userId: publicMetadata.user,
-      });
 
       const authUrl = this.linkedInService.generateAuthUrl(state);
 
@@ -107,11 +101,28 @@ export class LinkedInController {
         });
       }
 
-      const { brandId, organizationId } = JSON.parse(state);
+      const existingCredential =
+        await this.credentialsService.findPendingOAuthCredential(
+          state,
+          CredentialPlatform.LINKEDIN,
+        );
+
+      if (!existingCredential) {
+        return returnNotFound('Pending OAuth credential', state);
+      }
+
+      const { organizationId } = existingCredential;
 
       // Exchange code for access token
       const { accessToken, expiresIn } =
         await this.linkedInService.exchangeAuthCodeForAccessToken(code);
+
+      if (!accessToken) {
+        return returnBadRequest({
+          detail: 'LinkedIn did not return an access token',
+          title: 'Token exchange failed',
+        });
+      }
 
       // Get user profile
       const profile = await this.linkedInService.getUserProfile(accessToken);
@@ -120,26 +131,16 @@ export class LinkedInController {
       const expiryDate = new Date();
       expiryDate.setSeconds(expiryDate.getSeconds() + expiresIn);
 
-      // Find and update the existing credential
-      const existingCredential = await this.credentialsService.findOne({
-        brand: brandId,
-        organization: organizationId,
-        platform: CredentialPlatform.LINKEDIN,
-      });
-
-      if (!existingCredential) {
-        return returnNotFound('Credential', brandId);
-      }
-
       // Update the credential with the access token
       // If reconnecting the same account, reactivate previously deleted credential
       let credential = await this.credentialsService.patch(
         existingCredential.id,
         {
           accessToken,
+          accessTokenExpiry: expiryDate,
           isConnected: true,
           isDeleted: false, // Reactivate if previously disconnected
-          refreshTokenExpiry: expiryDate,
+          oauthState: null,
         },
       );
 

@@ -113,8 +113,12 @@ describe('UserStripeController', () => {
       findByUser: vi.fn().mockResolvedValue({
         cancelAtPeriodEnd: false,
         currentPeriodEnd: new Date(),
+        id: 'user-subscription-1',
+        isDeleted: false,
+        plan: 'pro',
         status: 'active',
-        type: 'pro',
+        stripeSubscriptionId: 'sub_1',
+        userId: dbUserId,
       }),
       getOrCreateSubscription: vi.fn().mockResolvedValue({ id: 'sub_1' }),
     };
@@ -176,7 +180,7 @@ describe('UserStripeController', () => {
       });
       // Regression (#1199): resolve the DB user by canonical Genfeed User.id.
       expect(usersService.findOne).toHaveBeenCalledWith({
-        _id: dbUserId,
+        id: dbUserId,
         isDeleted: false,
       });
       expect(stripeService.createUserCustomer).not.toHaveBeenCalled();
@@ -321,7 +325,10 @@ describe('UserStripeController', () => {
         data: {
           credits: { balance: 500 },
           hasSubscription: true,
-          subscription: expect.objectContaining({ status: 'active' }),
+          subscription: expect.objectContaining({
+            plan: 'pro',
+            status: 'active',
+          }),
         },
         success: true,
       });

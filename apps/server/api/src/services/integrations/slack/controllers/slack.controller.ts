@@ -1,18 +1,24 @@
-import { randomBytes } from 'node:crypto';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { SlackService } from '@api/services/integrations/slack/services/slack.service';
 import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  CredentialOAuthSerializer,
+  CredentialSerializer,
+} from '@genfeedai/serializers';
 import {
   Body,
   Controller,
   HttpException,
   HttpStatus,
   Post,
+  Req,
 } from '@nestjs/common';
+import type { Request } from 'express';
 
 @Controller('services/slack')
 export class SlackController {
@@ -23,13 +29,17 @@ export class SlackController {
   ) {}
 
   @Post('connect')
-  async connect(@CurrentUser() user: User, @Body('brandId') brandId: string) {
+  async connect(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Body('brandId') brandId: string,
+  ) {
     const { organization, user: userId } = getPublicMetadata(user);
 
     const brand = await this.brandsService.findOne({
-      _id: brandId,
+      id: brandId,
       isDeleted: false,
-      organization: organization,
+      organizationId: organization,
     });
 
     if (!brand) {
@@ -42,73 +52,43 @@ export class SlackController {
       );
     }
 
-    const orgId = organization;
-    const state = randomBytes(32).toString('base64url');
-
-    const existingCredential = await this.credentialsService.findOne({
-      brand: brandId,
-      organization: orgId,
-      platform: CredentialPlatform.SLACK,
-    });
-
-    if (existingCredential) {
-      await this.credentialsService.patch(existingCredential.id, {
-        isConnected: false,
-        isDeleted: false,
-        oauthState: state,
-      });
-    } else {
-      await this.credentialsService.create({
-        brand: brandId,
-        isConnected: false,
-        // @ts-expect-error TS2353
-        isDeleted: false,
-        oauthState: state,
-        organization: orgId,
-        platform: CredentialPlatform.SLACK,
-        user: userId,
-      });
-    }
+    const { state } = await this.credentialsService.beginOAuthForBrand(
+      brand,
+      userId,
+      CredentialPlatform.SLACK,
+      { isConnected: false },
+    );
 
     const authUrl = this.slackService.generateAuthUrl(state);
 
-    return {
-      state,
+    return serializeSingle(request, CredentialOAuthSerializer, {
       url: authUrl,
-    };
+    });
   }
 
   @Post('verify')
   async verify(
+    @Req() request: Request,
     @CurrentUser() user: User,
-    @Body('brandId') brandId: string,
     @Body('code') code: string,
     @Body('state') state: string,
   ) {
-    const { organization } = getPublicMetadata(user);
-
-    const brand = await this.brandsService.findOne({
-      _id: brandId,
-      isDeleted: false,
-      organization: organization,
-    });
-
-    if (!brand) {
+    if (!code || !state) {
       throw new HttpException(
         {
-          detail: 'You do not have access to this brand',
+          detail: 'Missing required OAuth parameters',
           title: 'Invalid payload',
         },
         HttpStatus.BAD_REQUEST,
       );
     }
 
-    const credential = await this.credentialsService.findOne({
-      brand: brandId,
-      oauthState: state,
-      organization: organization,
-      platform: CredentialPlatform.SLACK,
-    });
+    const { organization, user: userId } = getPublicMetadata(user);
+    const credential = await this.credentialsService.findPendingOAuthCredential(
+      state,
+      CredentialPlatform.SLACK,
+      { organizationId: organization, userId },
+    );
 
     if (!credential) {
       throw new HttpException(
@@ -123,7 +103,17 @@ export class SlackController {
     const tokenData = await this.slackService.exchangeCodeForToken(code);
 
     const accessToken =
-      tokenData.access_token || tokenData.authed_user?.access_token;
+      tokenData?.access_token || tokenData?.authed_user?.access_token;
+
+    if (!accessToken) {
+      throw new HttpException(
+        {
+          detail: 'Slack did not return an access token',
+          title: 'Token exchange failed',
+        },
+        HttpStatus.BAD_GATEWAY,
+      );
+    }
 
     const userInfo = await this.slackService.getUserInfo(accessToken);
 
@@ -139,6 +129,6 @@ export class SlackController {
       },
     );
 
-    return updatedCredential;
+    return serializeSingle(request, CredentialSerializer, updatedCredential);
   }
 }

@@ -94,12 +94,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /** Minimal credential document shape used across multiple tests. */
 const makeCredential = (overrides: Record<string, unknown> = {}) => ({
-  _id: 'cred-id',
   accessToken: 'enc-access-token',
+  id: 'cred-id',
   isConnected: true,
   isDeleted: false,
   refreshToken: 'enc-refresh-token',
-  user: 'user-id',
+  userId: 'user-id',
   ...overrides,
 });
 

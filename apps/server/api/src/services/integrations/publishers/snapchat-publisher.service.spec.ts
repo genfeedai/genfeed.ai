@@ -33,7 +33,7 @@ describe('SnapchatPublisherService', () => {
   const snapAdAccountId = 'snap-ad-account-001';
 
   const mockCredential = {
-    _id: 'test-object-id',
+    id: 'test-object-id',
     accessToken: 'encrypted-snap-token',
     externalId: snapAdAccountId,
     platform: CredentialPlatform.SNAPCHAT,

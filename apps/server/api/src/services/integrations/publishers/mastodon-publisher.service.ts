@@ -88,9 +88,9 @@ export class MastodonPublisherService extends BasePublisherService {
     try {
       // Get Mastodon credential with instance URL
       const mastodonCredential = await this.credentialsService.findOne({
-        brand: brandId,
+        brandId: brandId,
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
         platform: CredentialPlatform.MASTODON,
       });
 
@@ -187,9 +187,9 @@ export class MastodonPublisherService extends BasePublisherService {
 
     // Get Mastodon credential
     const mastodonCredential = await this.credentialsService.findOne({
-      brand: brandId,
+      brandId: brandId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
       platform: CredentialPlatform.MASTODON,
     });
 

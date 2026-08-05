@@ -1,7 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import {
-  CreateCredentialDto,
+  ConnectCredentialDto,
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -62,16 +62,16 @@ export class GoogleSearchConsoleController {
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Body() createCredentialDto: Partial<CreateCredentialDto>,
+    @Body() createCredentialDto: ConnectCredentialDto,
   ) {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} started`);
 
     const publicMetadata = getPublicMetadata(user);
     const brand = await this.brandsService.findOne({
-      _id: createCredentialDto.brand,
+      id: createCredentialDto.brandId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -84,14 +84,9 @@ export class GoogleSearchConsoleController {
       );
     }
 
-    const state = JSON.stringify({
-      brandId: brand.id,
-      organizationId: brand.organizationId,
-      userId: publicMetadata.user,
-    });
-
-    await this.credentialsService.saveCredentials(
+    const { state } = await this.credentialsService.beginOAuthForBrand(
       brand,
+      publicMetadata.user,
       CredentialPlatform.GOOGLE_SEARCH_CONSOLE,
       {
         isConnected: false,
@@ -121,26 +116,15 @@ export class GoogleSearchConsoleController {
       );
     }
 
-    const { brandId, organizationId, userId } = this.parseState(body.state);
     const publicMetadata = getPublicMetadata(user);
-
-    if (userId !== publicMetadata.user) {
-      throw new HttpException(
-        {
-          detail: 'OAuth state does not match the authenticated user',
-          title: 'Forbidden',
-        },
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    const credential = await this.credentialsService.findOne({
-      brand: brandId,
-      isDeleted: false,
-      organization: organizationId,
-      platform: CredentialPlatform.GOOGLE_SEARCH_CONSOLE,
-      user: publicMetadata.user,
-    });
+    const credential = await this.credentialsService.findPendingOAuthCredential(
+      body.state,
+      CredentialPlatform.GOOGLE_SEARCH_CONSOLE,
+      {
+        organizationId: publicMetadata.organization,
+        userId: publicMetadata.user,
+      },
+    );
 
     if (!credential) {
       throw new HttpException(
@@ -180,6 +164,7 @@ export class GoogleSearchConsoleController {
           primarySite?.permissionLevel || 'Google Search Console property',
         isConnected: true,
         isDeleted: false,
+        oauthState: null,
         refreshToken: tokens.refreshToken,
       },
     );
@@ -243,42 +228,6 @@ export class GoogleSearchConsoleController {
     );
   }
 
-  private parseState(state: string): {
-    brandId: string;
-    organizationId: string;
-    userId: string;
-  } {
-    try {
-      const parsed = JSON.parse(state) as {
-        brandId?: unknown;
-        organizationId?: unknown;
-        userId?: unknown;
-      };
-
-      if (
-        typeof parsed.brandId !== 'string' ||
-        typeof parsed.organizationId !== 'string' ||
-        typeof parsed.userId !== 'string'
-      ) {
-        throw new Error('Missing identifiers');
-      }
-
-      return {
-        brandId: parsed.brandId,
-        organizationId: parsed.organizationId,
-        userId: parsed.userId,
-      };
-    } catch {
-      throw new HttpException(
-        {
-          detail: 'Invalid OAuth state',
-          title: 'Invalid payload',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-  }
-
   private parseDimensions(
     value?: string | string[],
   ): GoogleSearchConsoleDimension[] {
@@ -302,12 +251,12 @@ export class GoogleSearchConsoleController {
   ): Promise<string> {
     const publicMetadata = getPublicMetadata(user);
     const credential = await this.credentialsService.findOne({
-      ...(brandId ? { brand: brandId } : {}),
+      ...(brandId ? { brandId: brandId } : {}),
       isConnected: true,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
       platform: CredentialPlatform.GOOGLE_SEARCH_CONSOLE,
-      user: publicMetadata.user,
+      userId: publicMetadata.user,
     });
 
     if (!credential?.accessToken) {

@@ -37,21 +37,21 @@ describe('YouTubePublisherService', () => {
 
   // Mock credential
   const mockCredential = {
-    _id: mockCredentialId,
+    id: mockCredentialId,
     accessToken: 'encrypted-access-token',
-    brand: mockBrandId,
+    brandId: mockBrandId,
     externalHandle: '@testchannel',
     externalId: 'youtube-channel-123',
     isDeleted: false,
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     platform: CredentialPlatform.YOUTUBE,
     refreshToken: 'encrypted-refresh-token',
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as CredentialDocument;
 
   // Mock organization
   const mockOrganization = {
-    _id: mockOrganizationId,
+    id: mockOrganizationId,
     isDeleted: false,
     name: 'Test Organization',
   } as unknown as OrganizationDocument;
@@ -59,44 +59,44 @@ describe('YouTubePublisherService', () => {
   // Mock post for text-only (not supported on YouTube)
   const mockTextPost = {
     id: mockPostId,
-    brand: mockBrandId,
+    brandId: mockBrandId,
     category: PostCategory.TEXT,
     description: '<p>Test YouTube content</p>',
     ingredients: [],
     isDeleted: false,
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     scheduledDate: new Date(),
     status: PostStatus.DRAFT,
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as PostEntity;
 
   // Mock post with image (not supported on YouTube)
   const mockImagePost = {
     id: mockPostId,
-    brand: mockBrandId,
+    brandId: mockBrandId,
     category: PostCategory.IMAGE,
     description: '<p>Test image post</p>',
     ingredients: [mockIngredientId],
     isDeleted: false,
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     scheduledDate: new Date(),
     status: PostStatus.DRAFT,
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as PostEntity;
 
   // Mock post with video
   const mockVideoPost = {
     id: mockPostId,
-    brand: mockBrandId,
+    brandId: mockBrandId,
     category: PostCategory.VIDEO,
     description: '<p>Test video post</p>',
     ingredients: [mockIngredientId],
     isDeleted: false,
     label: 'Video Title',
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     scheduledDate: new Date(),
     status: PostStatus.DRAFT,
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as PostEntity;
 
   // Mock post with video but no scheduled date
@@ -108,15 +108,15 @@ describe('YouTubePublisherService', () => {
   // Mock post with multiple videos (not supported)
   const mockMultiVideoPost = {
     id: mockPostId,
-    brand: mockBrandId,
+    brandId: mockBrandId,
     category: PostCategory.VIDEO,
     description: '<p>Multi video post</p>',
     ingredients: ['507f1f77bcf86cd799439020', '507f1f77bcf86cd799439021'],
     isDeleted: false,
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     scheduledDate: new Date(),
     status: PostStatus.DRAFT,
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as PostEntity;
 
   // Create publish context helper

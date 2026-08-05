@@ -63,7 +63,7 @@ export class GoogleSearchConsoleService {
       );
 
       return (response.data.siteEntry ?? []).map((site) => ({
-        _id: site.siteUrl ?? 'unknown',
+        id: site.siteUrl ?? 'unknown',
         permissionLevel: site.permissionLevel ?? 'unknown',
         siteUrl: site.siteUrl ?? '',
       }));
@@ -106,7 +106,7 @@ export class GoogleSearchConsoleService {
       );
 
       return {
-        _id: `${params.siteUrl}:${params.startDate}:${params.endDate}:${dimensions.join(',')}`,
+        id: `${params.siteUrl}:${params.startDate}:${params.endDate}:${dimensions.join(',')}`,
         dimensions,
         endDate: params.endDate,
         responseAggregationType: response.data.responseAggregationType,
@@ -133,9 +133,9 @@ export class GoogleSearchConsoleService {
   ): Promise<Record<string, unknown>> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const credential = await this.credentialsService.findOne({
-      brand: brandId,
+      brandId: brandId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
       platform: CredentialPlatform.GOOGLE_SEARCH_CONSOLE,
     });
 

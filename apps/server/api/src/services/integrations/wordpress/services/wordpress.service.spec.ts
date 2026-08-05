@@ -187,8 +187,8 @@ describe('WordpressService', () => {
 
     it('should validate token successfully by making a test API call', async () => {
       const mockCredential = {
-        _id: 'test-object-id',
         accessToken: 'encrypted-access-token',
+        id: 'test-object-id',
         platform: CredentialPlatform.WORDPRESS,
       };
 
@@ -207,9 +207,9 @@ describe('WordpressService', () => {
 
       expect(result).toEqual({ isValid: true });
       expect(credentialsService.findOne).toHaveBeenCalledWith({
-        brand: brandId,
+        brandId,
         isDeleted: false,
-        organization: orgId,
+        organizationId: orgId,
         platform: CredentialPlatform.WORDPRESS,
       });
       expect(httpService.get).toHaveBeenCalledWith(
@@ -232,7 +232,7 @@ describe('WordpressService', () => {
 
     it('should throw when credential has no accessToken', async () => {
       const mockCredential = {
-        _id: 'test-object-id',
+        id: 'test-object-id',
         accessToken: undefined,
         platform: CredentialPlatform.WORDPRESS,
       };
@@ -246,7 +246,7 @@ describe('WordpressService', () => {
 
     it('should throw when validation API call fails', async () => {
       const mockCredential = {
-        _id: 'test-object-id',
+        id: 'test-object-id',
         accessToken: 'encrypted-token',
         platform: CredentialPlatform.WORDPRESS,
       };

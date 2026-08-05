@@ -1,3 +1,4 @@
+import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { WordpressController } from '@api/services/integrations/wordpress/controllers/wordpress.controller';
 import { WordpressService } from '@api/services/integrations/wordpress/services/wordpress.service';
@@ -6,7 +7,11 @@ import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(WordpressService, {
-  additionalImports: [HttpModule, forwardRef(() => CredentialsCoreModule)],
+  additionalImports: [
+    HttpModule,
+    forwardRef(() => BrandsModule),
+    forwardRef(() => CredentialsCoreModule),
+  ],
 });
 
 @Module({

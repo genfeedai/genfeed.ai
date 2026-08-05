@@ -27,7 +27,7 @@ describe('GhostPublisherService', () => {
   const brandId = 'test-object-id';
 
   const mockCredential = {
-    _id: 'test-object-id',
+    id: 'test-object-id',
     accessToken: 'encrypted-token',
     externalHandle: 'https://myblog.ghost.io',
     platform: CredentialPlatform.GHOST,
@@ -42,7 +42,7 @@ describe('GhostPublisherService', () => {
     isDraft: false,
     organizationId: orgId,
     post: {
-      _id: 'test-object-id',
+      id: 'test-object-id',
       category: PostCategory.TEXT,
       description: '<p>Hello world</p>',
       ingredients: [],

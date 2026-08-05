@@ -908,7 +908,7 @@ describe('ThreadsService (coverage)', () => {
     });
 
     it('should accept a credentialId override', async () => {
-      // findOne is called with a _id-based filter when credentialId is provided
+      // An explicit credential override remains organization-scoped.
       credentialsService.findOne.mockResolvedValue(MOCK_CREDENTIAL);
       httpService.get.mockReturnValue(of({ data: { data: [] } }));
 
@@ -920,7 +920,7 @@ describe('ThreadsService (coverage)', () => {
       );
 
       expect(credentialsService.findOne).toHaveBeenCalledWith(
-        expect.objectContaining({ _id: 'cred-override' }),
+        expect.objectContaining({ id: 'cred-override' }),
       );
     });
 

@@ -34,7 +34,7 @@ describe('DevtoController', () => {
     publishArticle: ReturnType<typeof vi.fn>;
   };
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
-  let credentialsService: { saveCredentials: ReturnType<typeof vi.fn> };
+  let credentialsService: { upsertForBrand: ReturnType<typeof vi.fn> };
 
   const loggerMock = {
     error: vi.fn(),
@@ -51,7 +51,7 @@ describe('DevtoController', () => {
   const mockRequest = {} as unknown as Request;
 
   const mockBrand = {
-    _id: '507f191e810c19729de860ea',
+    id: '507f191e810c19729de860ea',
     organization: '507f191e810c19729de860eb',
   };
 
@@ -68,7 +68,7 @@ describe('DevtoController', () => {
       publishArticle: vi.fn(),
     };
     brandsService = { findOne: vi.fn() };
-    credentialsService = { saveCredentials: vi.fn() };
+    credentialsService = { upsertForBrand: vi.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [DevtoController],
@@ -95,8 +95,8 @@ describe('DevtoController', () => {
     it('should connect successfully with a valid apiKey and brandId', async () => {
       brandsService.findOne.mockResolvedValue(mockBrand);
       devtoService.getCurrentUser.mockResolvedValue(mockDevtoUser);
-      credentialsService.saveCredentials.mockResolvedValue({
-        _id: 'test-object-id',
+      credentialsService.upsertForBrand.mockResolvedValue({
+        id: 'test-object-id',
         platform: CredentialPlatform.DEV_TO,
       });
 
@@ -106,8 +106,9 @@ describe('DevtoController', () => {
       });
 
       expect(devtoService.getCurrentUser).toHaveBeenCalledWith('test-api-key');
-      expect(credentialsService.saveCredentials).toHaveBeenCalledWith(
+      expect(credentialsService.upsertForBrand).toHaveBeenCalledWith(
         mockBrand,
+        '507f191e810c19729de860ec',
         CredentialPlatform.DEV_TO,
         {
           accessToken: 'test-api-key',
@@ -161,7 +162,7 @@ describe('DevtoController', () => {
       });
 
       expect(result).toHaveProperty('errors');
-      expect(credentialsService.saveCredentials).not.toHaveBeenCalled();
+      expect(credentialsService.upsertForBrand).not.toHaveBeenCalled();
     });
 
     it('should return internal server error when verification throws', async () => {

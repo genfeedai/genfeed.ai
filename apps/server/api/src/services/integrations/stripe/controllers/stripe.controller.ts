@@ -85,7 +85,7 @@ export class StripeController {
       // Post-Better-Auth cutover, user.id is the Genfeed User.id (JWT sub),
       // not a legacy external auth-provider id.
       const dbUser = await this.usersService.findOne({
-        _id: user.id,
+        id: user.id,
         isDeleted: false,
       });
       if (!dbUser) {
@@ -98,7 +98,7 @@ export class StripeController {
 
       if (!subscription) {
         const organization = await this.organizationsService.findOne({
-          _id: publicMetadata.organization,
+          id: publicMetadata.organization,
           isDeleted: false,
         });
 
@@ -195,7 +195,7 @@ export class StripeController {
       }
 
       const dbUser = await this.usersService.findOne({
-        _id: user.id,
+        id: user.id,
         isDeleted: false,
       });
       if (!dbUser) {
@@ -208,7 +208,7 @@ export class StripeController {
 
       if (!subscription) {
         const organization = await this.organizationsService.findOne({
-          _id: publicMetadata.organization,
+          id: publicMetadata.organization,
           isDeleted: false,
         });
 

@@ -1,3 +1,11 @@
+vi.mock('@api/helpers/utils/response/response.util', () => ({
+  serializeSingle: vi.fn(
+    (_request: unknown, _serializer: unknown, data: unknown) => data,
+  ),
+}));
+
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { DiscordController } from '@api/services/integrations/discord/controllers/discord.controller';
@@ -15,9 +23,13 @@ describe('DiscordController', () => {
   };
 
   const mockCredentialsService = {
-    create: vi.fn(),
-    findOne: vi.fn(),
+    beginOAuthForBrand: vi.fn(),
+    findPendingOAuthCredential: vi.fn(),
     patch: vi.fn(),
+  };
+
+  const mockBrandsService = {
+    findOne: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -34,6 +46,10 @@ describe('DiscordController', () => {
           provide: CredentialsService,
           useValue: mockCredentialsService,
         },
+        {
+          provide: BrandsService,
+          useValue: mockBrandsService,
+        },
       ],
     })
       .overrideGuard(RolesGuard)
@@ -48,71 +64,64 @@ describe('DiscordController', () => {
   });
 
   describe('connect', () => {
-    const user = { _id: 'test-object-id' };
+    const user = {
+      publicMetadata: {
+        organization: 'test-object-id',
+        user: 'test-user-id',
+      },
+    } as unknown as User;
     const orgId = 'test-object-id';
     const brandId = 'test-object-id';
 
-    it('should create new credential and return auth URL when no existing credential', async () => {
-      mockCredentialsService.findOne.mockResolvedValue(null);
-      mockCredentialsService.create.mockResolvedValue({ _id: 'new-cred' });
+    it('starts OAuth for a brand in the authenticated organization', async () => {
+      const brand = { id: brandId, organizationId: orgId };
+      mockBrandsService.findOne.mockResolvedValue(brand);
+      mockCredentialsService.beginOAuthForBrand.mockResolvedValue({
+        credential: { id: 'new-cred' },
+        state: 'opaque-oauth-state',
+      });
       mockDiscordService.generateAuthUrl.mockReturnValue(
         'https://discord.com/oauth2/authorize?...',
       );
 
-      const result = await controller.connect(
-        user as Record<string, unknown>,
-        orgId,
-        brandId,
-      );
+      const result = await controller.connect({} as never, user, brandId);
 
       expect(result).toHaveProperty('url');
-      expect(result).toHaveProperty('state');
-      expect(result.state).toMatch(/^[A-Za-z0-9_-]{43}$/);
-      expect(mockCredentialsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          oauthState: result.state,
-        }),
+      expect(result).not.toHaveProperty('state');
+      expect(mockCredentialsService.beginOAuthForBrand).toHaveBeenCalledWith(
+        brand,
+        'test-user-id',
+        'discord',
+        { isConnected: false },
       );
       expect(mockDiscordService.generateAuthUrl).toHaveBeenCalledWith(
-        result.state,
+        'opaque-oauth-state',
       );
     });
 
-    it('should update existing credential when one exists', async () => {
-      const existingId = 'test-object-id';
-      mockCredentialsService.findOne.mockResolvedValue({
-        id: existingId,
-      });
-      mockCredentialsService.patch.mockResolvedValue({ id: existingId });
-      mockDiscordService.generateAuthUrl.mockReturnValue(
-        'https://discord.com/oauth2/authorize?...',
-      );
+    it('rejects a brand outside the authenticated organization', async () => {
+      mockBrandsService.findOne.mockResolvedValue(null);
 
-      const result = await controller.connect(
-        user as Record<string, unknown>,
-        orgId,
-        brandId,
-      );
+      await expect(
+        controller.connect({} as never, user, brandId),
+      ).rejects.toThrow(HttpException);
 
-      expect(result).toHaveProperty('url');
-      expect(mockCredentialsService.patch).toHaveBeenCalledWith(
-        existingId,
-        expect.objectContaining({
-          isConnected: false,
-          isDeleted: false,
-        }),
-      );
+      expect(mockCredentialsService.beginOAuthForBrand).not.toHaveBeenCalled();
     });
   });
 
   describe('verify', () => {
-    const user = { _id: 'test-object-id' };
+    const user = {
+      publicMetadata: {
+        organization: 'test-object-id',
+        user: 'test-user-id',
+      },
+    } as unknown as User;
     const orgId = 'test-object-id';
-    const brandId = 'test-object-id';
 
     it('should exchange code, get user info and update credential', async () => {
       const credentialId = 'test-object-id';
-      mockCredentialsService.findOne.mockResolvedValue({
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
         id: credentialId,
       });
       mockDiscordService.exchangeCodeForToken.mockResolvedValue({
@@ -132,12 +141,18 @@ describe('DiscordController', () => {
       });
 
       const result = await controller.verify(
-        user as Record<string, unknown>,
-        orgId,
-        brandId,
+        {} as never,
+        user,
         'auth-code',
         'state-token',
       );
+
+      expect(
+        mockCredentialsService.findPendingOAuthCredential,
+      ).toHaveBeenCalledWith('state-token', 'discord', {
+        organizationId: orgId,
+        userId: 'test-user-id',
+      });
 
       expect(mockDiscordService.exchangeCodeForToken).toHaveBeenCalledWith(
         'auth-code',
@@ -158,22 +173,18 @@ describe('DiscordController', () => {
     });
 
     it('should throw BAD_REQUEST when no credential matches state', async () => {
-      mockCredentialsService.findOne.mockResolvedValue(null);
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue(null);
 
       await expect(
-        controller.verify(
-          user as Record<string, unknown>,
-          orgId,
-          brandId,
-          'code',
-          'bad-state',
-        ),
+        controller.verify({} as never, user, 'code', 'bad-state'),
       ).rejects.toThrow(HttpException);
     });
 
     it('should set avatar URL correctly when user has avatar', async () => {
       const credId = 'test-object-id';
-      mockCredentialsService.findOne.mockResolvedValue({ id: credId });
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+        id: credId,
+      });
       mockDiscordService.exchangeCodeForToken.mockResolvedValue({
         access_token: 'token',
         expires_in: 3600,
@@ -186,13 +197,7 @@ describe('DiscordController', () => {
       });
       mockCredentialsService.patch.mockResolvedValue({ id: credId });
 
-      await controller.verify(
-        user as Record<string, unknown>,
-        orgId,
-        brandId,
-        'code',
-        'state',
-      );
+      await controller.verify({} as never, user, 'code', 'state');
 
       expect(mockCredentialsService.patch).toHaveBeenCalledWith(
         credId,
