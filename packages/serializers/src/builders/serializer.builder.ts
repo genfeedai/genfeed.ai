@@ -13,8 +13,7 @@ type SerializerBuilderConfig = ISerializerConfig & {
 /**
  * Builds a serializer for the given package type.
  *
- * Both package types read the record's `id` field — Prisma records carry
- * string `id` (cuid/uuid); the Mongo-era `_id` mapping is gone (issue #1096).
+ * Both package types read the record's canonical string `id` field.
  */
 export function buildSerializer(
   packageType: 'client' | 'server',

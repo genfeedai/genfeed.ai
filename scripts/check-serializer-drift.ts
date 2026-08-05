@@ -779,7 +779,6 @@ export const INTENTIONALLY_UNSERIALIZED_SCHEMAS: Record<string, string> = {
 };
 
 const IGNORED_ATTRIBUTE_FIELDS = new Set([
-  '_id',
   'createdAt',
   'id',
   'isDeleted',

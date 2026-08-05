@@ -347,10 +347,8 @@ export class TriggerEvaluatorService {
   private async loadBrandDescription(
     scope: CampaignAnalyticsScope,
   ): Promise<string> {
-    // Fail closed on an unresolvable brand id. Both filter values used to come
-    // from the relation aliases, which are `undefined` on an unpopulated read —
-    // `normalizeWhere` then dropped `_id` *and* `organization`, turning this into
-    // an unscoped read that returned the first brand row in the table.
+    // Fail closed on an unresolvable brand id so this never becomes an unscoped
+    // lookup that returns an unrelated brand.
     if (!scope.brandId) {
       return '';
     }

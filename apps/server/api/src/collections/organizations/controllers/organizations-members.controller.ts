@@ -185,9 +185,7 @@ export class OrganizationsMembersController {
       await this.usersService.patch(String(existingUser.id), {
         lastUsedOrganizationId: organizationId,
       });
-      // `_id` is a Mongo-era alias that is undefined on a Prisma row, so this
-      // used to invalidate the literal key "undefined" — read the scalar id,
-      // matching the `usersService.patch` above.
+      // Invalidate the same canonical user id patched above.
       await this.userAccessCacheService.invalidateAll(String(existingUser.id));
 
       return serializeSingle(request, MemberSerializer, member);

@@ -262,9 +262,7 @@ export class CampaignExecutorService {
   /**
    * Load the campaign's connected credential, scoped to its brand.
    *
-   * The presence check is what keeps the lookup scoped: `normalizeWhere` drops an
-   * undefined `_id`, so an unset campaign credential would otherwise return an
-   * arbitrary connected credential from the organization.
+   * The presence check keeps the lookup scoped when no credential is configured.
    */
   private findCampaignCredential({
     brandId,

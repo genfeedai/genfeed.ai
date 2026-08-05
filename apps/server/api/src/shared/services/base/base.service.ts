@@ -17,8 +17,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
 /**
- * Common fields present on all documents managed by BaseService.
- * Prisma entities use string `id` (cuid/uuid) instead of ObjectId `_id`.
+ * Common fields present on all records managed by BaseService.
  */
 export interface BaseDocument {
   id: string;

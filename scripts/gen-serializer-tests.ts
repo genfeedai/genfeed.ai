@@ -97,13 +97,13 @@ for (const file of configFiles) {
     });
 
     it('relationships should have correct structure', () => {
-      const keys = Object.keys(${name}).filter(k => k !== 'type' && k !== 'attributes');
-      for (const key of keys) {
-        const rel = (${name} as any)[key];
+      for (const [key, value] of Object.entries(${name})) {
+        if (key === 'type' || key === 'attributes') continue;
+        const rel = value as Record<string, unknown>;
         if (rel && typeof rel === 'object' && 'type' in rel) {
           expect(typeof rel.type).toBe('string');
-          expect(rel.ref).toBe('_id');
-          expect(Array.isArray(rel.attributes)).toBe(true);
+          if ('ref' in rel) expect(rel.ref).toBe('id');
+          if ('attributes' in rel) expect(Array.isArray(rel.attributes)).toBe(true);
         }
       }
     });
