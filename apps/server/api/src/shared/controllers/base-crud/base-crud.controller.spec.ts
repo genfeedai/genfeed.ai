@@ -367,6 +367,24 @@ describe('BaseCRUDController', () => {
         expect.any(Array),
       );
     });
+
+    it('overrides tenant and user ownership supplied by the request body', async () => {
+      service.create.mockResolvedValue({ id: 'entity-1' });
+
+      await controller.create(mockRequest, mockUser, {
+        name: 'Scoped Entity',
+        organizationId: 'foreign-organization',
+        userId: 'foreign-user',
+      });
+
+      expect(service.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organizationId: MOCK_ORG_ID,
+          userId: MOCK_USER_ID,
+        }),
+        controller.getPopulateFields(),
+      );
+    });
   });
 
   describe('patch', () => {
@@ -421,6 +439,58 @@ describe('BaseCRUDController', () => {
       ).rejects.toThrow(HttpException);
 
       expect(service.patch).not.toHaveBeenCalled();
+    });
+
+    it('strips tenant and user ownership changes from patch input', async () => {
+      const id = '507f1f77bcf86cd799439018';
+      const existingEntity = { id, userId: MOCK_USER_ID };
+      service.findOne.mockResolvedValue(existingEntity);
+      service.patch.mockResolvedValue(existingEntity);
+
+      await controller.patch(mockRequest, mockUser, id, {
+        name: 'Updated Name',
+        organizationId: 'foreign-organization',
+        userId: 'foreign-user',
+      });
+
+      expect(service.patch).toHaveBeenCalledWith(
+        id,
+        { name: 'Updated Name' },
+        controller.getPopulateFields(),
+      );
+    });
+
+    it('preserves the target organization for a cross-organization super-admin patch', async () => {
+      const id = '507f1f77bcf86cd799439020';
+      const targetOrganizationId = '507f1f77bcf86cd799439099';
+      const existingEntity = {
+        _id: id,
+        organizationId: targetOrganizationId,
+        userId: '507f1f77bcf86cd799439088',
+      };
+      service.findOne.mockResolvedValue(existingEntity);
+      service.patch.mockResolvedValue({
+        ...existingEntity,
+        name: 'Admin update',
+      });
+
+      await controller.patch(mockRequest, superAdminUser, id, {
+        name: 'Admin update',
+      });
+
+      expect(service.patch).toHaveBeenCalledWith(
+        id,
+        expect.objectContaining({
+          name: 'Admin update',
+          organizationId: targetOrganizationId,
+        }),
+        controller.getPopulateFields(),
+      );
+      expect(service.patch).not.toHaveBeenCalledWith(
+        id,
+        expect.objectContaining({ organizationId: MOCK_ORG_ID }),
+        expect.any(Array),
+      );
     });
   });
 

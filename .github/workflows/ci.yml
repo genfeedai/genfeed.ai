@@ -212,6 +212,14 @@ jobs:
         run: bun run check:route-inventory
       - name: Tenant Scope (API + shared server)
         run: bun run check:tenant-scope
+      # CLAUDE.md and lint-staged.config.mjs both described these as CI-enforced
+      # while neither ran in any workflow: the repo-wide half of the raw-control
+      # and design-token contracts was dark, leaving only a pre-commit hook that
+      # `--no-verify` or an unstaged file walks straight past.
+      - name: UI Guards (raw controls, primitives, nav sinks)
+        run: bun run check:ui-guards
+      - name: Design System Contracts
+        run: bun run design:check
       # Temporarily disabled while desktop is not an active delivery surface.
       # Re-enable these two lines when desktop work resumes.
       # - name: Desktop Schema Drift

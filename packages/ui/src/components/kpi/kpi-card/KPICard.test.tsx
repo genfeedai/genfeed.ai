@@ -1,16 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import KPICard from '@ui/kpi/kpi-card/KPICard';
-import { describe, expect, it, vi } from 'vitest';
-
-vi.mock(
-  '@genfeedai/hooks/ui/use-animated-counter/use-animated-counter',
-  () => ({
-    useAnimatedCounter: ({ end, suffix }: { end: number; suffix: string }) => ({
-      ref: { current: null },
-      value: `${end}${suffix}`,
-    }),
-  }),
-);
+import { describe, expect, it } from 'vitest';
 
 describe('KPICard (MetricCard lg alias)', () => {
   it('renders label and value', () => {

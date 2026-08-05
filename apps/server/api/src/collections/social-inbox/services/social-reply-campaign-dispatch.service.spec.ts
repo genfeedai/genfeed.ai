@@ -1,4 +1,5 @@
 import {
+  SOCIAL_REPLY_CAMPAIGN_DISPATCH_STALE_MS,
   SOCIAL_REPLY_CAMPAIGN_MAX_ATTEMPTS,
   SocialReplyCampaignDispatchService,
 } from '@api/collections/social-inbox/services/social-reply-campaign-dispatch.service';
@@ -28,6 +29,21 @@ type StoreRecipient = Record<string, unknown> & {
   status: string;
 };
 
+/**
+ * Ordered comparison over the two column types these filters touch. Returns
+ * null for anything unorderable — including a null/undefined column, which is
+ * how Prisma treats a null against `gte`/`lt`.
+ */
+function compareValues(current: unknown, bound: unknown): number | null {
+  if (current instanceof Date && bound instanceof Date) {
+    return current.getTime() - bound.getTime();
+  }
+  if (typeof current === 'number' && typeof bound === 'number') {
+    return current - bound;
+  }
+  return null;
+}
+
 function matchesWhere<T extends Record<string, unknown>>(
   item: T,
   where: Record<string, unknown> = {},
@@ -43,11 +59,12 @@ function matchesWhere<T extends Record<string, unknown>>(
         return operator.in.includes(item[key]);
       }
       if ('gte' in operator) {
-        const current = item[key];
-        return (
-          current instanceof Date &&
-          current.getTime() >= (operator.gte as Date).getTime()
-        );
+        const delta = compareValues(item[key], operator.gte);
+        return delta !== null && delta >= 0;
+      }
+      if ('lt' in operator) {
+        const delta = compareValues(item[key], operator.lt);
+        return delta !== null && delta < 0;
       }
     }
 
@@ -139,6 +156,7 @@ function createContext(options: {
   ];
 
   const prisma = {
+    $transaction: vi.fn(),
     socialConversation: {
       findFirst: vi
         .fn()
@@ -230,6 +248,22 @@ function createContext(options: {
       }),
     },
   };
+
+  prisma.$transaction.mockImplementation(
+    async (callback: (transaction: typeof prisma) => Promise<unknown>) => {
+      const campaignSnapshot = campaigns.map((campaign) => ({ ...campaign }));
+      const recipientSnapshot = recipients.map((recipient) => ({
+        ...recipient,
+      }));
+      try {
+        return await callback(prisma);
+      } catch (error: unknown) {
+        campaigns.splice(0, campaigns.length, ...campaignSnapshot);
+        recipients.splice(0, recipients.length, ...recipientSnapshot);
+        throw error;
+      }
+    },
+  );
 
   const actionService = {
     postReply: vi.fn().mockResolvedValue({ id: 'message-1' }),
@@ -659,12 +693,19 @@ describe('SocialReplyCampaignDispatchService', () => {
       context.prisma.socialReplyCampaignRecipient.updateMany = vi
         .fn()
         .mockImplementation(async (args) => {
-          claimAttempts += 1;
-          if (
-            claimAttempts === 1 &&
+          // Count claims, not writes: the stale-dispatch sweep also runs
+          // updateMany, and a positional counter would land on the sweep.
+          const isClaim =
             args.where?.status === SocialReplyCampaignRecipientStatus.PENDING &&
-            args.data?.status === SocialReplyCampaignRecipientStatus.DISPATCHING
-          ) {
+            args.data?.status ===
+              SocialReplyCampaignRecipientStatus.DISPATCHING;
+
+          if (!isClaim) {
+            return originalUpdateMany(args);
+          }
+
+          claimAttempts += 1;
+          if (claimAttempts === 1) {
             // Lose the race: another worker claimed this candidate first.
             return { count: 0 };
           }
@@ -706,10 +747,32 @@ describe('SocialReplyCampaignDispatchService', () => {
       expect(context.campaigns[0].dispatchCursor).toBe(1);
     });
 
+    it('does not let a stale worker settle a later recipient claim', async () => {
+      const context = createContext({});
+      const laterClaimStartedAt = new Date(Date.now() + 1_000);
+      context.actionService.postReply.mockImplementationOnce(async () => {
+        Object.assign(context.recipients[0], {
+          dispatchedAt: laterClaimStartedAt,
+          status: SocialReplyCampaignRecipientStatus.DISPATCHING,
+        });
+        return { id: 'message-from-stale-worker' };
+      });
+
+      await context.service.dispatchTick(TICK);
+
+      expect(context.recipients[0]).toMatchObject({
+        dispatchedAt: laterClaimStartedAt,
+        messageId: null,
+        status: SocialReplyCampaignRecipientStatus.DISPATCHING,
+      });
+      expect(context.campaigns[0].sentCount).toBe(0);
+    });
+
     it('defers completion while a concurrent tick still holds DISPATCHING', async () => {
       const context = createContext({
         recipients: [
           createRecipient({
+            dispatchedAt: new Date(),
             id: 'recipient-in-flight',
             status: SocialReplyCampaignRecipientStatus.DISPATCHING,
           }),
@@ -723,6 +786,111 @@ describe('SocialReplyCampaignDispatchService', () => {
         SocialReplyCampaignStatus.RUNNING,
       );
       expect(context.queueService.enqueueTick).toHaveBeenCalled();
+    });
+  });
+
+  describe('stale dispatch reclaim', () => {
+    function staleAt(): Date {
+      return new Date(
+        Date.now() - SOCIAL_REPLY_CAMPAIGN_DISPATCH_STALE_MS - 60_000,
+      );
+    }
+
+    it('returns an abandoned claim to the queue and sends it in the same tick', async () => {
+      const context = createContext({
+        recipients: [
+          createRecipient({
+            attemptCount: 1,
+            dispatchedAt: staleAt(),
+            id: 'recipient-abandoned',
+            status: SocialReplyCampaignRecipientStatus.DISPATCHING,
+          }),
+        ],
+      });
+
+      const result = await context.service.dispatchTick(TICK);
+
+      expect(result).toEqual({
+        outcome: 'recipient-sent',
+        recipientId: 'recipient-abandoned',
+      });
+      expect(context.recipients[0]).toMatchObject({
+        attemptCount: 2,
+        status: SocialReplyCampaignRecipientStatus.SENT,
+      });
+    });
+
+    it('retires an abandoned claim whose attempt budget is already spent', async () => {
+      const context = createContext({
+        recipients: [
+          createRecipient({
+            attemptCount: SOCIAL_REPLY_CAMPAIGN_MAX_ATTEMPTS,
+            dispatchedAt: staleAt(),
+            id: 'recipient-exhausted',
+            status: SocialReplyCampaignRecipientStatus.DISPATCHING,
+          }),
+        ],
+      });
+
+      const result = await context.service.dispatchTick(TICK);
+
+      // Reclaimed, retired, and the campaign is then free to finish instead of
+      // rescheduling against a permanently in-flight row.
+      expect(result).toEqual({ outcome: 'campaign-completed' });
+      expect(context.recipients[0]).toMatchObject({
+        attemptCount: SOCIAL_REPLY_CAMPAIGN_MAX_ATTEMPTS,
+        status: SocialReplyCampaignRecipientStatus.FAILED,
+      });
+      expect(context.campaigns[0].failedCount).toBe(1);
+    });
+
+    it('rolls back recipient retirement when the campaign aggregate write fails', async () => {
+      const context = createContext({
+        recipients: [
+          createRecipient({
+            attemptCount: SOCIAL_REPLY_CAMPAIGN_MAX_ATTEMPTS,
+            dispatchedAt: staleAt(),
+            id: 'recipient-exhausted',
+            status: SocialReplyCampaignRecipientStatus.DISPATCHING,
+          }),
+        ],
+      });
+      context.prisma.socialReplyCampaign.updateMany.mockImplementationOnce(
+        () => {
+          throw new Error('campaign aggregate unavailable');
+        },
+      );
+
+      await expect(context.service.dispatchTick(TICK)).rejects.toThrow(
+        'campaign aggregate unavailable',
+      );
+
+      expect(context.recipients[0].status).toBe(
+        SocialReplyCampaignRecipientStatus.DISPATCHING,
+      );
+      expect(context.campaigns[0].failedCount).toBe(0);
+    });
+
+    it('leaves a claim younger than the stale threshold untouched', async () => {
+      const context = createContext({
+        recipients: [
+          createRecipient({
+            dispatchedAt: new Date(
+              Date.now() - SOCIAL_REPLY_CAMPAIGN_DISPATCH_STALE_MS + 60_000,
+            ),
+            id: 'recipient-in-flight',
+            status: SocialReplyCampaignRecipientStatus.DISPATCHING,
+          }),
+        ],
+      });
+
+      const result = await context.service.dispatchTick(TICK);
+
+      expect(result.outcome).toBe('throttled');
+      expect(context.recipients[0].status).toBe(
+        SocialReplyCampaignRecipientStatus.DISPATCHING,
+      );
+      expect(context.actionService.postReply).not.toHaveBeenCalled();
     });
   });
 });

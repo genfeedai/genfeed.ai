@@ -208,10 +208,8 @@ export abstract class BaseCRUDController<
     }
 
     // Return 404 instead of 403 for security
-    if (
-      !this.canUserModifyEntity(user, existing) &&
-      !getIsSuperAdmin(user, request)
-    ) {
+    const canModifyEntity = this.canUserModifyEntity(user, existing);
+    if (!canModifyEntity && !getIsSuperAdmin(user, request)) {
       ErrorResponse.notFound(this.entityName, id);
     }
 
@@ -219,6 +217,18 @@ export abstract class BaseCRUDController<
 
     // Add user context to create data
     const enrichedDto = await this.enrichUpdateDto(updateDto, user);
+    if (!canModifyEntity) {
+      const existingRecord = existing as Record<string, unknown>;
+      const existingOrganizationId = resolveScopeId(
+        existingRecord.organizationId,
+      );
+      const enrichedRecord = enrichedDto as Record<string, unknown>;
+      if (existingOrganizationId) {
+        enrichedRecord.organizationId = existingOrganizationId;
+      } else {
+        delete enrichedRecord.organizationId;
+      }
+    }
     const data = await this.service.patch(
       id,
       enrichedDto,
@@ -367,16 +377,31 @@ export abstract class BaseCRUDController<
   /**
    * Enrich create DTO with user context
    * Child controllers can override this to add more context
+   *
+   * Tenant and identity scope come from the auth token and nothing else. A
+   * body-supplied `organization`/`organizationId` (or `user`/`userId`) is
+   * DELETED rather than preferred: `BaseService.normalizeData` remaps the
+   * `organization` alias onto the real `organizationId` column, so honouring
+   * a client value would let any authenticated caller write rows into another
+   * tenant. Canonical `brandId` stays caller-selectable — a user legitimately
+   * picks among their own brands, and the row is still pinned to the caller's
+   * organization.
    */
   public enrichCreateDto(createDto: Partial<CreateDto>, user: User): CreateDto {
     const publicMetadata = getPublicMetadata(user);
     const dto = { ...(createDto as Record<string, unknown>) };
 
+    delete dto.brand;
+    delete dto.organization;
+    delete dto.organizationId;
+    delete dto.user;
+    delete dto.userId;
+
     if (this.service.supportsField('brandId')) {
       dto.brandId = dto.brandId ?? publicMetadata.brand;
     }
     if (this.service.supportsField('organizationId')) {
-      dto.organizationId = dto.organizationId ?? publicMetadata.organization;
+      dto.organizationId = publicMetadata.organization;
     }
     if (this.service.supportsField('userId')) {
       dto.userId = publicMetadata.user;
@@ -389,7 +414,15 @@ export abstract class BaseCRUDController<
     updateDto: Partial<UpdateDto>,
     _user: User,
   ): Promise<UpdateDto> {
-    return await Promise.resolve({ ...updateDto } as UpdateDto);
+    const dto = { ...(updateDto as Record<string, unknown>) };
+
+    delete dto.brand;
+    delete dto.organization;
+    delete dto.organizationId;
+    delete dto.user;
+    delete dto.userId;
+
+    return await Promise.resolve(dto as UpdateDto);
   }
 
   /**

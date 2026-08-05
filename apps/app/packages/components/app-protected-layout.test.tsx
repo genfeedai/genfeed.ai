@@ -211,7 +211,7 @@ vi.mock('@ui/menus/organization-switcher/OrganizationSwitcher', () => ({
 }));
 
 vi.mock('@app-config/menu-items.config', () => ({
-  APP_LOGO_HREF: '/workspace',
+  APP_LOGO_HREF: '/workspace/overview',
   APP_MENU_ITEMS: [{ href: '/workspace', label: 'Workspace' }],
   APP_SECONDARY_MENU_ITEMS: [
     { href: '/workspace/activity', label: 'Activity' },

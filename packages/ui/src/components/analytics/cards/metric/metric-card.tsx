@@ -1,9 +1,11 @@
 'use client';
 
-import type { TrendDirection } from '@genfeedai/enums';
+import { ButtonVariant, type TrendDirection } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { formatCompactNumberIntl } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 import MetricCardCanonical from '@ui/cards/metric-card/MetricCard';
+import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 
 export interface MetricCardProps {
@@ -36,13 +38,14 @@ export function MetricCard({
   icon,
   iconColor,
   isLoading = false,
+  onClick,
   subtitle,
   title,
   value,
 }: MetricCardProps): ReactElement {
-  return (
+  const card = (
     <MetricCardCanonical
-      className={className}
+      className={onClick ? undefined : className}
       description={subtitle}
       icon={icon}
       iconClassName={iconColor}
@@ -52,5 +55,24 @@ export function MetricCard({
       trend={change}
       value={formatValue(value)}
     />
+  );
+
+  if (!onClick) {
+    return card;
+  }
+
+  return (
+    <Button
+      className={cn(
+        'w-full text-left transition-all hover:shadow-border-strong',
+        className,
+      )}
+      onClick={onClick}
+      textTransform="none"
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
+    >
+      {card}
+    </Button>
   );
 }

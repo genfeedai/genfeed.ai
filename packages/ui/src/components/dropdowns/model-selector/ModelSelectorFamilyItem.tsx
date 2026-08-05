@@ -1,9 +1,8 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ModelSelectorFamilyItemProps } from '@genfeedai/props/ui/model-selector/model-selector.props';
-import { Button } from '@ui/primitives/button';
+import { CommandItem } from '@ui/primitives/command';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { memo } from 'react';
 
@@ -45,15 +44,17 @@ const ModelSelectorFamilyItem = memo(function ModelSelectorFamilyItem({
 }: ModelSelectorFamilyItemProps) {
   const ChevronIcon = isExpanded ? ChevronDown : ChevronRight;
 
+  // A CommandItem, not a Button: this row lives inside a cmdk CommandGroup,
+  // and cmdk's roving keyboard navigation only visits [cmdk-item] elements.
+  // As a plain button the family header was skipped by ArrowUp/ArrowDown, so
+  // a collapsed family could not be expanded without leaving the list.
   return (
-    <Button
-      variant={ButtonVariant.UNSTYLED}
-      withWrapper={false}
-      onClick={onToggle}
-      aria-expanded={isExpanded}
-      ariaLabel={familyLabel}
+    <CommandItem
+      value={`${familyLabel} ${brandLabel}`}
+      onSelect={onToggle}
+      aria-label={`${familyLabel}, ${brandLabel}, ${isExpanded ? 'expanded' : 'collapsed'}`}
       className={cn(
-        'group flex min-h-9 w-full items-center gap-2.5 rounded-sm px-2 py-1.5 text-left transition-colors lg:min-h-0',
+        'group flex min-h-9 w-full cursor-pointer items-center gap-2.5 rounded-sm px-2 py-1.5 text-left transition-colors lg:min-h-0',
         'hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
       )}
     >
@@ -73,7 +74,7 @@ const ModelSelectorFamilyItem = memo(function ModelSelectorFamilyItem({
           </span>
         </div>
       </div>
-    </Button>
+    </CommandItem>
   );
 });
 

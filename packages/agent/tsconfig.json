@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "paths": {
+      "@api-types/*": ["../api-types/src/*"],
       "@agent-tests/*": ["./tests/*"],
       "@genfeedai/agent": ["./src/index.ts"],
       "@genfeedai/agent/*": ["./src/*"],

@@ -26,6 +26,7 @@ import { AGENT_ORCHESTRATOR_SYSTEM_PROMPT } from '@api/services/agent-orchestrat
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
+import { CacheService } from '@api/services/cache/services/cache.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { AgentAutonomyMode, AgentType, ApiKeyScope } from '@genfeedai/enums';
 import {
@@ -201,6 +202,24 @@ describe('AgentOrchestratorService', () => {
     };
     const toolExecutorServiceMock = {
       executeTool: vi.fn(),
+    };
+    const cacheValues = new Map<string, unknown>();
+    const cacheLocks = new Set<string>();
+    const cacheServiceMock = {
+      acquireLock: vi.fn(async (key: string) => {
+        if (cacheLocks.has(key)) {
+          return false;
+        }
+        cacheLocks.add(key);
+        return true;
+      }),
+      get: vi.fn(async (key: string) => cacheValues.get(key) ?? null),
+      releaseLock: vi.fn(async (key: string) => {
+        cacheLocks.delete(key);
+      }),
+      set: vi.fn(async (key: string, value: unknown) => {
+        cacheValues.set(key, value);
+      }),
     };
     const organizationsServiceMock = {
       findOne: vi.fn(),
@@ -506,6 +525,10 @@ describe('AgentOrchestratorService', () => {
           useValue: loggerMock,
         },
         {
+          provide: CacheService,
+          useValue: cacheServiceMock,
+        },
+        {
           inject: [
             LoggerService,
             CreditsUtilsService,
@@ -537,6 +560,7 @@ describe('AgentOrchestratorService', () => {
             AgentThreadEventRecorderService,
             OrganizationSettingsService,
             AgentRunsService,
+            CacheService,
             AgentRuntimeSessionService,
             AgentThreadEngineService,
           ],
@@ -551,6 +575,7 @@ describe('AgentOrchestratorService', () => {
             threadEventRecorderSvc: AgentThreadEventRecorderService,
             organizationSettingsSvc: OrganizationSettingsService,
             agentRunsSvc: AgentRunsService,
+            cacheSvc: CacheService,
             runtimeSessionSvc: AgentRuntimeSessionService,
             threadEngineSvc: AgentThreadEngineService,
           ) =>
@@ -564,6 +589,7 @@ describe('AgentOrchestratorService', () => {
               threadEventRecorderSvc,
               organizationSettingsSvc,
               agentRunsSvc,
+              cacheSvc,
               runtimeSessionSvc,
               threadEngineSvc,
             ),
@@ -3483,6 +3509,81 @@ describe('AgentOrchestratorService', () => {
         }),
       ]),
     });
+  });
+
+  it('executes composer-anchored media generation and links the persisted output', async () => {
+    toolExecutorService.executeTool.mockResolvedValue({
+      creditsUsed: 0,
+      data: {
+        id: 'image-1',
+        url: 'https://cdn.example.com/image-1.png',
+      },
+      nextActions: [
+        {
+          id: 'image-output-1',
+          images: ['https://cdn.example.com/image-1.png'],
+          title: 'Image generated',
+          type: 'content_preview_card',
+        },
+      ] as never,
+      success: true,
+    });
+
+    const response = await service.handleThreadUiAction(
+      {
+        action: 'confirm_generate_media',
+        payload: {
+          aspectRatio: '4:5',
+          generationType: 'image',
+          prioritize: 'quality',
+          prompt: 'Editorial product photo on a dark neutral set',
+          sourceActionId: 'generation-card-1',
+        },
+        threadId: CONVERSATION_ID,
+      },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+    const retryResponse = await service.handleThreadUiAction(
+      {
+        action: 'confirm_generate_media',
+        payload: {
+          aspectRatio: '4:5',
+          generationType: 'image',
+          prioritize: 'quality',
+          prompt: 'Editorial product photo on a dark neutral set',
+          sourceActionId: 'generation-card-1',
+        },
+        threadId: CONVERSATION_ID,
+      },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+
+    expect(toolExecutorService.executeTool).toHaveBeenCalledWith(
+      AgentToolName.GENERATE_IMAGE,
+      expect.objectContaining({
+        aspectRatio: '4:5',
+        prompt: 'Editorial product photo on a dark neutral set',
+      }),
+      expect.objectContaining({
+        generationPriority: 'quality',
+        organizationId: ORG_ID,
+        threadId: CONVERSATION_ID,
+        userId: USER_ID,
+      }),
+    );
+    expect(response.message.metadata?.uiActions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          data: {
+            sourceGenerationActionId: 'generation-card-1',
+          },
+          type: 'content_preview_card',
+        }),
+      ]),
+    );
+    expect(retryResponse).toEqual(response);
+    expect(toolExecutorService.executeTool).toHaveBeenCalledTimes(1);
+    expect(threadEventRecorder.recordToolStarted).toHaveBeenCalledTimes(1);
   });
 
   it('executes confirmed save brand voice thread UI actions', async () => {

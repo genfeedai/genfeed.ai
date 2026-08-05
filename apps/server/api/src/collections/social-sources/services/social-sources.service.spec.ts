@@ -269,7 +269,7 @@ describe('SocialSourcesService', () => {
         handle: 'second',
         platform: SocialSourcePlatform.TWITTER,
         posts: [],
-        provider: 'app-bearer',
+        provider: 'brand-oauth',
       });
     sourcePostsService.upsertCollectedPosts.mockResolvedValue([]);
     socialSource.update.mockResolvedValue({ id: 'source-updated' });
@@ -280,6 +280,8 @@ describe('SocialSourcesService', () => {
     });
 
     expect(sourceCollector.collectTimeline).toHaveBeenCalledTimes(2);
+    // syncResolvedSource records the failure then rethrows the original error,
+    // so syncBrand reports the provider's own message.
     expect(result.failures).toEqual([
       { error: 'first failed', sourceId: 'source-1' },
     ]);

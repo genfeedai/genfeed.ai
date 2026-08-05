@@ -80,8 +80,8 @@ describe('MetricCard', () => {
 
     it('uses default icon color when not specified', () => {
       render(<MetricCard title="Test" value={100} icon={ChartColumn} />);
-      const iconContainer = document.querySelector('.text-muted-foreground');
-      expect(iconContainer).toBeInTheDocument();
+      const iconContainer = document.querySelector('.bg-muted');
+      expect(iconContainer).toHaveClass('text-foreground/50');
     });
   });
 
@@ -96,9 +96,9 @@ describe('MetricCard', () => {
       expect(screen.getByText('-3.2%')).toBeInTheDocument();
     });
 
-    it('shows zero change with plus sign', () => {
+    it('shows zero change without plus sign', () => {
       render(<MetricCard title="Test" value={100} change={0} />);
-      expect(screen.getByText('+0.0%')).toBeInTheDocument();
+      expect(screen.getByText('0%')).toBeInTheDocument();
     });
 
     it('applies green color for positive change', () => {
@@ -118,11 +118,10 @@ describe('MetricCard', () => {
     });
 
     it('applies gray color for zero change', () => {
-      const { container } = render(
-        <MetricCard title="Test" value={100} change={0} />,
-      );
-      const changeElement = container.querySelector('.text-muted-foreground');
-      expect(changeElement).toBeInTheDocument();
+      render(<MetricCard title="Test" value={100} change={0} />);
+      // The trend badge carries its own text, so match on that rather than on
+      // the utility chain that styles it.
+      expect(screen.getByText('0%')).toHaveClass('text-foreground/45');
     });
   });
 
@@ -156,7 +155,7 @@ describe('MetricCard', () => {
     });
 
     it('shows stable trend icon', () => {
-      const { container } = render(
+      render(
         <MetricCard
           title="Test"
           value={100}
@@ -164,8 +163,7 @@ describe('MetricCard', () => {
           change={0}
         />,
       );
-      const trendContainer = container.querySelector('.text-muted-foreground');
-      expect(trendContainer).toBeInTheDocument();
+      expect(screen.getByText('0%')).toHaveClass('text-foreground/45');
     });
 
     it('does not show trend icon when trend is not provided', () => {

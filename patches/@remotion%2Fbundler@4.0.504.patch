@@ -22,15 +22,19 @@ diff --git a/dist/esbuild-loader/index.js b/dist/esbuild-loader/index.js
      }
  };
  async function ESBuildLoader(source) {
-@@ -33,9 +36,8 @@
+@@ -33,9 +36,10 @@
          sourcemap: this.sourceMap,
          sourcefile: this.resourcePath,
      };
 -    if (!('tsconfigRaw' in transformOptions) && isTypescriptInstalled()) {
 -        // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 -        const typescript = require('typescript');
-+    const typescript = getTypescriptCompilerApi();
-+    if (!('tsconfigRaw' in transformOptions) && typescript) {
-         const tsConfig = typescript.readConfigFile(tsConfigPath, typescript.sys.readFile);
-         transformOptions.tsconfigRaw = tsConfig.config;
+-        const tsConfig = typescript.readConfigFile(tsConfigPath, typescript.sys.readFile);
+-        transformOptions.tsconfigRaw = tsConfig.config;
++    if (!('tsconfigRaw' in transformOptions)) {
++        const typescript = getTypescriptCompilerApi();
++        if (typescript) {
++            const tsConfig = typescript.readConfigFile(tsConfigPath, typescript.sys.readFile);
++            transformOptions.tsconfigRaw = tsConfig.config;
++        }
      }

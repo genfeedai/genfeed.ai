@@ -1448,14 +1448,38 @@ describe('WorkflowEngineAdapterService', () => {
 
   describe('brand asset execution', () => {
     it('resolves logo, banner, and references through the brand asset executor', async () => {
+      // Brand kit assets are `Asset` rows, not Brand columns, so the executor
+      // reads them through `resolveBrandKitAssets` — which already hands back
+      // absolute URLs. Nothing composes a CDN path any more.
       const brandsService = {
-        findOne: vi
-          .fn()
-          .mockResolvedValueOnce({ logo: { id: 'logo-1' } })
-          .mockResolvedValueOnce({ banner: { id: 'banner-1' } })
-          .mockResolvedValueOnce({
-            references: [{ id: 'ref-1' }, { id: 'ref-2' }],
-          }),
+        resolveBrandKitAssets: vi.fn().mockResolvedValue({
+          banner: {
+            id: 'banner-1',
+            mimeType: 'image/png',
+            role: 'banner',
+            url: 'https://cdn.example.com/banners/banner-1',
+          },
+          logo: {
+            id: 'logo-1',
+            mimeType: 'image/png',
+            role: 'logo',
+            url: 'https://cdn.example.com/logos/logo-1',
+          },
+          references: [
+            {
+              id: 'ref-1',
+              mimeType: 'image/png',
+              role: 'reference',
+              url: 'https://cdn.example.com/references/ref-1',
+            },
+            {
+              id: 'ref-2',
+              mimeType: 'image/png',
+              role: 'reference',
+              url: 'https://cdn.example.com/references/ref-2',
+            },
+          ],
+        }),
       };
 
       const brandAssetService = new WorkflowEngineAdapterService(

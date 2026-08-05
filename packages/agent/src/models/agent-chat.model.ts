@@ -114,6 +114,7 @@ export interface AgentUiActionOutputVariant {
   id: string;
   kind: 'audio' | 'image' | 'text' | 'video';
   textContent?: string;
+  threadSegments?: string[];
   thumbnailUrl?: string;
   title?: string;
   url?: string;
@@ -162,7 +163,15 @@ export interface AgentUiAction {
     | 'brand_interview_complete_card';
   title: string;
   description?: string;
+  contentFormat?:
+    | 'article'
+    | 'generic'
+    | 'newsletter'
+    | 'social_post'
+    | 'thread';
   platform?: string;
+  subject?: string;
+  preheader?: string;
   tweets?: string[];
   images?: string[];
   videos?: string[];

@@ -6,6 +6,7 @@ import { resolveEffectiveAgentExecutionConfig } from '@api/collections/brands/ut
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
+import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
@@ -35,6 +36,7 @@ import {
   getRuntimeBindingEffect,
 } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
+import { CacheService } from '@api/services/cache/services/cache.service';
 import { AgentAutonomyMode, AgentMessageRole } from '@genfeedai/enums';
 import {
   type AgentDashboardOperation,
@@ -96,6 +98,7 @@ export class AgentOrchestratorUiActionService {
     private readonly threadEventRecorder: AgentThreadEventRecorderService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly agentRunsService: AgentRunsService,
+    private readonly cacheService: CacheService,
     @Optional()
     private readonly agentRuntimeSessionService?: AgentRuntimeSessionService,
     @Optional()
@@ -222,6 +225,14 @@ export class AgentOrchestratorUiActionService {
               threadId,
             });
             break;
+          case 'confirm_generate_media':
+            result = await this.executeConfirmedGenerateMediaAction({
+              context,
+              model,
+              payload: request.payload,
+              threadId,
+            });
+            break;
           default:
             throw new BadRequestException(
               `Unsupported thread UI action: ${request.action}`,
@@ -317,6 +328,13 @@ export class AgentOrchestratorUiActionService {
           : 'selected content';
 
       return `Confirmed publish for ${contentId}.`;
+    }
+
+    if (action === 'confirm_generate_media') {
+      const generationType =
+        payload?.generationType === 'video' ? 'video' : 'image';
+
+      return `Confirmed ${generationType} generation.`;
     }
 
     if (action === 'confirm_save_brand_voice_profile') {
@@ -487,6 +505,154 @@ export class AgentOrchestratorUiActionService {
       result,
       threadId: params.threadId,
       toolCalls: [summary],
+    });
+  }
+
+  private async executeConfirmedGenerateMediaAction(params: {
+    context: AgentChatContext;
+    model: string;
+    payload?: Record<string, unknown>;
+    threadId: string;
+  }): Promise<AgentChatResult> {
+    const generationType = params.payload?.generationType;
+    if (generationType !== 'image' && generationType !== 'video') {
+      throw new BadRequestException('Generation type must be image or video.');
+    }
+
+    const prompt =
+      typeof params.payload?.prompt === 'string'
+        ? params.payload.prompt.trim()
+        : '';
+    if (!prompt || prompt.length > 4_000) {
+      throw new BadRequestException(
+        'Generation prompt must contain between 1 and 4000 characters.',
+      );
+    }
+
+    const sourceActionId =
+      typeof params.payload?.sourceActionId === 'string'
+        ? params.payload.sourceActionId.trim()
+        : '';
+    if (!sourceActionId) {
+      throw new BadRequestException('Generation source action is required.');
+    }
+
+    const requestedDuration = params.payload?.duration;
+    if (
+      requestedDuration !== undefined &&
+      (typeof requestedDuration !== 'number' ||
+        !Number.isFinite(requestedDuration) ||
+        requestedDuration < 1 ||
+        requestedDuration > 60)
+    ) {
+      throw new BadRequestException(
+        'Video duration must be between 1 and 60 seconds.',
+      );
+    }
+
+    const toolName =
+      generationType === 'video'
+        ? AgentToolName.GENERATE_VIDEO
+        : AgentToolName.GENERATE_IMAGE;
+    const requestedModel =
+      typeof params.payload?.model === 'string' &&
+      params.payload.model.trim().length > 0
+        ? params.payload.model.trim()
+        : undefined;
+    const requestedPriority =
+      typeof params.payload?.prioritize === 'string' &&
+      params.payload.prioritize.trim().length > 0
+        ? params.payload.prioritize.trim()
+        : params.context.generationPriority;
+    const toolPayload = {
+      aspectRatio:
+        typeof params.payload?.aspectRatio === 'string'
+          ? params.payload.aspectRatio
+          : undefined,
+      duration: requestedDuration,
+      prompt,
+    };
+    const idempotencyKey = [
+      'agent-media',
+      params.context.organizationId,
+      params.context.userId,
+      params.threadId,
+      sourceActionId,
+      generationType,
+    ].join(':');
+
+    return runIdempotent(this.cacheService, idempotencyKey, async () => {
+      const startTime = Date.now();
+
+      await this.threadEventRecorder.recordToolStarted({
+        context: params.context,
+        parameters: toolPayload,
+        runId: params.context.runId,
+        threadId: params.threadId,
+        toolName,
+      });
+
+      const result = await this.toolExecutorService.executeTool(
+        toolName,
+        toolPayload,
+        {
+          apiKeyContext: params.context.apiKeyContext,
+          authToken: params.context.authToken,
+          brandId: params.context.scope?.brandId,
+          generationModelOverride: requestedModel,
+          generationPriority: requestedPriority,
+          organizationId: params.context.organizationId,
+          runId: params.context.runId,
+          strategyId: params.context.strategyId,
+          threadId: params.threadId,
+          userId: params.context.userId,
+          validatedScope: params.context.scope,
+        },
+      );
+      const durationMs = Date.now() - startTime;
+      const summary: ToolCallSummary = {
+        creditsUsed: result.success ? (result.creditsUsed ?? 0) : 0,
+        durationMs,
+        error: result.error,
+        status: result.success ? 'completed' : 'failed',
+        toolName,
+      };
+
+      await this.threadEventRecorder.recordToolCompleted({
+        context: params.context,
+        durationMs,
+        error: summary.error,
+        runId: params.context.runId,
+        status: summary.status,
+        threadId: params.threadId,
+        toolName,
+      });
+
+      if (!result.success) {
+        throw new InternalServerErrorException(
+          result.error ?? `Failed to generate ${generationType}.`,
+        );
+      }
+
+      const linkedResult = {
+        ...result,
+        nextActions: (result.nextActions ?? []).map((action) => ({
+          ...action,
+          data: {
+            ...(action.data ?? {}),
+            sourceGenerationActionId: sourceActionId,
+          },
+        })),
+      };
+
+      return await this.finalizeStructuredAssistantTurn({
+        content: `${generationType === 'image' ? 'Image' : 'Video'} generated.`,
+        context: params.context,
+        model: params.model,
+        result: linkedResult,
+        threadId: params.threadId,
+        toolCalls: [summary],
+      });
     });
   }
 

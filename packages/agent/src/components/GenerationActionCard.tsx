@@ -1,10 +1,13 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import type { AgentUiActionHandler } from '@genfeedai/interfaces';
+import { cn } from '@helpers/formatting/cn/cn.util';
 import { Image, Video } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 import { GenerationActionCardControls } from './GenerationActionCardControls';
 import { GenerationActionCardHeader } from './GenerationActionCardHeader';
+import { GenerationActionCardHoverActions } from './GenerationActionCardHoverActions';
 import { GenerationActionCardStatusPanel } from './GenerationActionCardStatusPanel';
 import { useGenerationActionCard } from './useGenerationActionCard';
 
@@ -14,6 +17,8 @@ interface GenerationActionCardProps {
   qualityScore?: number;
   qualityFeedback?: string[];
   onRegenerate?: () => void;
+  onUiAction?: AgentUiActionHandler;
+  className?: string;
 }
 
 export function GenerationActionCard({
@@ -22,6 +27,8 @@ export function GenerationActionCard({
   qualityScore,
   qualityFeedback,
   onRegenerate,
+  onUiAction,
+  className,
 }: GenerationActionCardProps): ReactElement {
   const {
     generationType,
@@ -45,18 +52,35 @@ export function GenerationActionCard({
     durationOptions,
     textareaRef,
     onRegenerateProp,
+    handleCopyPrompt,
     handleRetryVoid,
     handleGenerateVoid,
     handleModelChange,
     handleAspectRatioChange,
     handleDurationChange,
-  } = useGenerationActionCard({ action, apiService, onRegenerate });
+  } = useGenerationActionCard({
+    action,
+    apiService,
+    onRegenerate,
+    onUiAction,
+  });
 
   const isImage = generationType === 'image';
   const Icon = isImage ? Image : Video;
 
   return (
-    <div className="group/card relative mt-2 overflow-hidden border border-border bg-background">
+    <div
+      className={cn(
+        'group/card relative mt-2 overflow-hidden border border-border bg-background',
+        className,
+      )}
+    >
+      <GenerationActionCardHoverActions
+        canCopy={!!prompt.trim()}
+        onCopy={handleCopyPrompt}
+        onRetry={handleRetryVoid}
+      />
+
       <GenerationActionCardHeader Icon={Icon} title={action.title} />
 
       <div className="space-y-3 p-3">

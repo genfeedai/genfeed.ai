@@ -22,6 +22,7 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
+import ts from 'typescript';
 
 const logger = {
   error: (message: string) => console.error(`[control-guard] ${message}`),
@@ -175,12 +176,6 @@ function lineOf(content: string, index: number): number {
   return content.slice(0, index).split('\n').length;
 }
 
-function lineTextOf(content: string, index: number): string {
-  const start = content.lastIndexOf('\n', index - 1) + 1;
-  const end = content.indexOf('\n', index);
-  return content.slice(start, end === -1 ? content.length : end);
-}
-
 // ─── Rule definitions ─────────────────────────────────────────────────────────
 
 const APP_PAGES_PREFIXES = ['apps/app/', 'packages/pages/'] as const;
@@ -256,22 +251,37 @@ function isButtonLikeClassName(className: string): boolean {
   return hasInlineLayout && hasButtonBox && (hasInteraction || hasButtonWeight);
 }
 
-/**
- * Crude per-line comment filter for raw-element scanners.
- * Catches JSX comments, JS/TS line comments, and JSDoc/block comment lines
- * (bodies starting with `*`, openers starting with `/*`, and closers with `* /`).
- * Not a full parser — intentional parity with the predecessor shell guard.
- */
-function isCommentLine(text: string): boolean {
-  const trimmed = text.trim();
-  return (
-    trimmed.startsWith('//') ||
-    trimmed.startsWith('/*') ||
-    trimmed.startsWith('*') ||
-    trimmed.startsWith('{/*') ||
-    text.includes('{/*') ||
-    text.includes('*/')
+const NON_CODE_TOKEN_KINDS = new Set<ts.SyntaxKind>([
+  ts.SyntaxKind.MultiLineCommentTrivia,
+  ts.SyntaxKind.SingleLineCommentTrivia,
+  ts.SyntaxKind.StringLiteral,
+  ts.SyntaxKind.NoSubstitutionTemplateLiteral,
+  ts.SyntaxKind.TemplateHead,
+  ts.SyntaxKind.TemplateMiddle,
+  ts.SyntaxKind.TemplateTail,
+]);
+
+/** Return whether a regex match is inside a comment or string token. */
+function isCommentedMatch(content: string, index: number): boolean {
+  const scanner = ts.createScanner(
+    ts.ScriptTarget.Latest,
+    false,
+    ts.LanguageVariant.JSX,
+    content,
   );
+  let token = scanner.scan();
+  while (token !== ts.SyntaxKind.EndOfFileToken) {
+    const tokenStart = scanner.getTokenPos();
+    const tokenEnd = scanner.getTextPos();
+    if (index >= tokenStart && index < tokenEnd) {
+      return NON_CODE_TOKEN_KINDS.has(token);
+    }
+    if (tokenStart > index) {
+      return false;
+    }
+    token = scanner.scan();
+  }
+  return false;
 }
 
 function isButtonAllowed(rel: string): boolean {
@@ -329,7 +339,7 @@ const RULES: readonly Rule[] = [
       const lines: number[] = [];
       for (const match of content.matchAll(RAW_INPUT_PATTERN)) {
         const index = match.index ?? 0;
-        if (isCommentLine(lineTextOf(content, index))) {
+        if (isCommentedMatch(content, index)) {
           continue;
         }
         if (
@@ -352,7 +362,7 @@ const RULES: readonly Rule[] = [
       const lines: number[] = [];
       for (const match of content.matchAll(RAW_SELECT_PATTERN)) {
         const index = match.index ?? 0;
-        if (isCommentLine(lineTextOf(content, index))) {
+        if (isCommentedMatch(content, index)) {
           continue;
         }
         lines.push(lineOf(content, index));
@@ -374,7 +384,7 @@ const RULES: readonly Rule[] = [
         const index = match.index ?? 0;
         // Ignore matches inside JSX comments {/* ... */}, matching the crude
         // but effective line filter used by the predecessor shell guard.
-        if (isCommentLine(lineTextOf(content, index))) {
+        if (isCommentedMatch(content, index)) {
           continue;
         }
         lines.push(lineOf(content, index));

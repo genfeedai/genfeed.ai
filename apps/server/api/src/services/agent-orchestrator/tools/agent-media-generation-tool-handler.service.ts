@@ -31,6 +31,15 @@ interface AgentBrandsServiceLike {
   ) => Promise<Record<string, unknown> | null>;
 }
 
+function splitThreadSegments(content: string): string[] {
+  const segments = content
+    .split(/\n{2,}/u)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+
+  return segments.length > 0 ? segments : [content];
+}
+
 /**
  * Media / AI generation tools extracted from AgentToolExecutorService per #519.
  */
@@ -207,6 +216,57 @@ export class AgentMediaGenerationToolHandler {
       normalizedType === 'x-article' ||
       params.longForm === true;
 
+    if (normalizedType === 'newsletter') {
+      const response = await this.internalApi.callInternalApi(
+        'POST',
+        '/v1/newsletters/generate-draft',
+        {
+          angle: readOptionalString(params.angle),
+          instructions: readOptionalString(params.instructions),
+          topic:
+            readOptionalString(params.topic) ??
+            readOptionalString(params.prompt) ??
+            '',
+        },
+        ctx,
+      );
+      const newsletterId = this.readResponseEnvelopeString(response, 'id');
+      const content =
+        this.readResponseEnvelopeString(response, 'content') ?? '';
+      const subject =
+        this.readResponseEnvelopeString(response, 'label') ??
+        this.readResponseEnvelopeString(response, 'topic') ??
+        'Newsletter draft';
+      const preheader = this.readResponseEnvelopeString(response, 'summary');
+
+      return {
+        creditsUsed: 2,
+        data: { content, newsletterId, preheader, subject },
+        nextActions: newsletterId
+          ? [
+              {
+                contentFormat: 'newsletter',
+                ctas: [
+                  {
+                    href: `/edit/newsletter/${newsletterId}`,
+                    label: 'Open newsletter',
+                  },
+                ],
+                description: 'Newsletter draft ready for review.',
+                id: `newsletter-gen-${newsletterId}`,
+                platform: 'newsletter',
+                preheader,
+                subject,
+                textContent: content,
+                title: subject,
+                type: 'content_preview_card',
+              },
+            ]
+          : [],
+        success: true,
+      };
+    }
+
     if (shouldGenerateArticle) {
       const articleType =
         normalizedType === 'x-article' ? 'x-article' : 'standard';
@@ -244,19 +304,22 @@ export class AgentMediaGenerationToolHandler {
       const articleId =
         (data.id as string | undefined) ||
         (attributes.id as string | undefined);
+      const articleContent = (attributes.content as string) || '';
+      const articleTitle = (attributes.label as string) || '';
 
       return {
         creditsUsed: 2,
         data: {
           articleId,
-          content: (attributes.content as string) || '',
+          content: articleContent,
           summary: (attributes.summary as string) || '',
-          title: (attributes.label as string) || '',
+          title: articleTitle,
           type: articleType,
         },
         nextActions: articleId
           ? [
               {
+                contentFormat: 'article',
                 ctas: [
                   {
                     href: `/content/articles/${articleId}`,
@@ -268,10 +331,12 @@ export class AgentMediaGenerationToolHandler {
                     ? 'X Article generated with review cycle.'
                     : 'Article generated with review cycle.',
                 id: `article-gen-${articleId}`,
+                textContent: articleContent,
                 title:
-                  articleType === 'x-article'
+                  articleTitle ||
+                  (articleType === 'x-article'
                     ? 'X Article generated'
-                    : 'Article generated',
+                    : 'Article generated'),
                 type: 'content_preview_card',
               },
             ]
@@ -280,18 +345,23 @@ export class AgentMediaGenerationToolHandler {
       };
     }
 
+    const platform = readOptionalString(params.platform) ?? 'twitter';
     const results = await this.contentGeneratorService.generateContent(
       ctx.organizationId,
       {
         additionalContext: params.additionalContext as string[] | undefined,
         brandId: params.brandId ? (params.brandId as string) : undefined,
-        platform: params.platform as string,
+        platform,
         topic: params.topic as string,
         variationsCount: 1,
       } as never,
     );
 
     const generated = results[0];
+    const threadSegments =
+      normalizedType === 'thread' && generated?.content
+        ? splitThreadSegments(generated.content)
+        : undefined;
 
     return {
       creditsUsed: 2,
@@ -301,6 +371,21 @@ export class AgentMediaGenerationToolHandler {
         hook: generated?.hook,
         patternUsed: generated?.patternUsed,
       },
+      nextActions: generated?.content
+        ? [
+            {
+              contentFormat:
+                normalizedType === 'thread' ? 'thread' : 'social_post',
+              description: `${formatPlatformLabel(platform)} draft ready for review.`,
+              id: `content-gen-${Date.now()}`,
+              platform,
+              textContent: threadSegments?.[0] ?? generated.content,
+              title: `${formatPlatformLabel(platform)} ${normalizedType === 'thread' ? 'thread' : 'post'}`,
+              tweets: threadSegments,
+              type: 'content_preview_card',
+            },
+          ]
+        : [],
       success: true,
     };
   }

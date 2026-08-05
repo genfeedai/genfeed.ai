@@ -11,6 +11,7 @@ import {
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
 import { ModelCategory, type RouterPriority } from '@genfeedai/enums';
+import type { AgentUiActionHandler } from '@genfeedai/interfaces';
 import { resolveGenerationModelControls } from '@helpers/generation-controls.helper';
 import {
   AUTO_MODEL_OPTION_VALUE,
@@ -69,12 +70,14 @@ interface UseGenerationActionCardParams {
   action: AgentUiAction;
   apiService: AgentApiService;
   onRegenerate?: () => void;
+  onUiAction?: AgentUiActionHandler;
 }
 
 export function useGenerationActionCard({
   action,
   apiService,
   onRegenerate: onRegenerateProp,
+  onUiAction,
 }: UseGenerationActionCardParams) {
   const generationType = action.generationType ?? 'image';
   const initParams = action.generationParams;
@@ -207,6 +210,20 @@ export function useGenerationActionCard({
     }
 
     try {
+      if (onUiAction) {
+        await onUiAction('confirm_generate_media', {
+          aspectRatio,
+          duration: generationType === 'video' ? duration : undefined,
+          generationType,
+          model: !isAutoMode && modelKey ? modelKey : undefined,
+          prioritize,
+          prompt,
+          sourceActionId: action.id,
+        });
+        setStatus('done');
+        return;
+      }
+
       const promptDoc = await runAgentApiEffect(
         apiService.createPromptEffect(
           {
@@ -262,6 +279,7 @@ export function useGenerationActionCard({
     }
   }, [
     activeThreadId,
+    action.id,
     prompt,
     status,
     isAutoMode,
@@ -272,6 +290,7 @@ export function useGenerationActionCard({
     apiService,
     clearGenerationOutcome,
     prioritize,
+    onUiAction,
     setThreadUiBusy,
   ]);
 

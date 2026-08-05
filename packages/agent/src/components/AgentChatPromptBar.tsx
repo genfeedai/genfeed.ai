@@ -4,14 +4,17 @@ import {
 } from '@genfeedai/agent/components/AgentChatInput';
 import { AgentComposerStatusStack } from '@genfeedai/agent/components/AgentComposerStatusStack';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
+import { GenerationActionCard } from '@genfeedai/agent/components/GenerationActionCard';
 import type {
   AgentInputRequest,
   AgentProposedPlan,
+  AgentUiAction,
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { AgentSocketConnectionState } from '@genfeedai/agent/stores/agent-chat.store';
+import type { AgentUiActionHandler } from '@genfeedai/interfaces';
 import type {
   AttachmentItem,
   ChatAttachment,
@@ -24,6 +27,7 @@ import type { ReactElement, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 type AgentChatPromptBarProps = {
+  activeGenerationAction: AgentUiAction | null;
   apiService: AgentApiService;
   layoutMode: 'fixed' | 'surface-fixed';
   isBusy: boolean;
@@ -53,6 +57,7 @@ type AgentChatPromptBarProps = {
   latestProposedPlan: AgentProposedPlan | null;
   onClearError: () => void;
   onSubmitInputRequest: (answer: string) => void | Promise<void>;
+  onUiAction: AgentUiActionHandler;
   pendingInputRequest: AgentInputRequest | null;
   socketConnectionState: AgentSocketConnectionState;
   selectedModel?: string;
@@ -62,6 +67,7 @@ type AgentChatPromptBarProps = {
 };
 
 export function AgentChatPromptBar({
+  activeGenerationAction,
   apiService,
   layoutMode,
   isBusy,
@@ -86,6 +92,7 @@ export function AgentChatPromptBar({
   latestProposedPlan,
   onClearError,
   onSubmitInputRequest,
+  onUiAction,
   pendingInputRequest,
   socketConnectionState,
   selectedModel,
@@ -109,6 +116,16 @@ export function AgentChatPromptBar({
   );
   const topContent = (
     <>
+      {!isReadOnly && activeGenerationAction ? (
+        <div className="pb-2">
+          <GenerationActionCard
+            action={activeGenerationAction}
+            apiService={apiService}
+            className="mt-0 rounded-lg shadow-sm"
+            onUiAction={onUiAction}
+          />
+        </div>
+      ) : null}
       {statusStack}
       {showSuggestedActionsWhenNotEmpty && promptBarSuggestions ? (
         <div className="px-1 pb-3">{promptBarSuggestions}</div>

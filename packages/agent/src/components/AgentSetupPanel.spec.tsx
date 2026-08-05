@@ -68,9 +68,20 @@ describe('AgentSetupPanel', () => {
     expect(
       screen.getByText('Connect a channel to publish'),
     ).toBeInTheDocument();
-    // All 14 offered platforms are available to connect.
+    // All offered platforms are available to connect. Shopify, Mastodon,
+    // Snapchat, Pinterest, and WordPress were dropped from the connect UI
+    // (see OAUTH_CONNECT_PLATFORMS) until they expose a live connect route.
     expect(screen.getByText('Twitter')).toBeInTheDocument();
-    expect(screen.getByText('Shopify')).toBeInTheDocument();
+    expect(screen.getByText('Reddit')).toBeInTheDocument();
+    for (const unsupportedPlatform of [
+      'Shopify',
+      'Mastodon',
+      'Snapchat',
+      'Pinterest',
+      'WordPress',
+    ]) {
+      expect(screen.queryByText(unsupportedPlatform)).not.toBeInTheDocument();
+    }
   });
 
   it('invokes onOAuthConnect with the platform when a connect button is clicked', () => {

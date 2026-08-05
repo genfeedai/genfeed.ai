@@ -99,6 +99,12 @@ export function AgentChatMessage({
     let genericOAuthCardRendered = false;
 
     return uiActions.filter((action) => {
+      // Generation configuration follows the single conversation composer.
+      // The completed content_preview_card remains in the transcript.
+      if (action.type === 'generation_action_card') {
+        return false;
+      }
+
       const isGenericOAuthCard =
         action.type === 'oauth_connect_card' && !action.platform?.trim().length;
 

@@ -42,8 +42,24 @@ import { BadRequestException, Injectable } from '@nestjs/common';
  */
 export const SOCIAL_REPLY_CAMPAIGN_MAX_ATTEMPTS = 3;
 
+/**
+ * How long a recipient may sit in DISPATCHING before a later tick treats the
+ * claim as abandoned and returns it to PENDING.
+ *
+ * The claim is a status flip with no lease: a worker killed mid-send (crash,
+ * OOM, redeploy) leaves the row DISPATCHING forever. Nothing reset it, and the
+ * empty-roster branch refuses to complete a campaign while any row is
+ * in-flight — so a single dead worker parked the campaign in a permanent
+ * reschedule loop, never sending and never completing.
+ *
+ * Sized well above the longest plausible outbound call so a genuinely active
+ * send is never reclaimed underneath itself; the send path is idempotent on
+ * `messageId`, so an over-eager reclaim would be safe but wasteful.
+ */
+export const SOCIAL_REPLY_CAMPAIGN_DISPATCH_STALE_MS = 10 * 60 * 1000;
+
 type ClaimResult =
-  | { kind: 'claimed'; recipientId: string }
+  | { claimStartedAt: Date; kind: 'claimed'; recipientId: string }
   | { kind: 'empty' }
   | { kind: 'lost-race' };
 
@@ -76,6 +92,8 @@ export class SocialReplyCampaignDispatchService {
     }
 
     const now = new Date();
+    await this.reclaimStaleDispatches(campaign, now);
+
     const throttle = await this.evaluateThrottle(campaign, now);
     if (throttle.delaySeconds > 0) {
       await this.scheduleNext(campaign, throttle.delaySeconds, now);
@@ -114,7 +132,12 @@ export class SocialReplyCampaignDispatchService {
       return { outcome: 'recipient-skipped' };
     }
 
-    return this.sendToRecipient(campaign, claim.recipientId, now);
+    return this.sendToRecipient(
+      campaign,
+      claim.recipientId,
+      claim.claimStartedAt,
+      now,
+    );
   }
 
   /**
@@ -157,6 +180,83 @@ export class SocialReplyCampaignDispatchService {
   }
 
   /**
+   * Release claims whose worker never came back.
+   *
+   * `DISPATCHING` is a claim with no lease, and every terminal transition
+   * (`markSent`/`markSkipped`/`markFailed`/`requeueRecipient`) requires the row
+   * to still be `DISPATCHING` — so a worker that dies mid-send leaves the row
+   * in that state permanently. The empty-roster branch below then sees a
+   * non-zero in-flight count forever and reschedules without ever sending or
+   * completing.
+   *
+   * Runs before the claim so a reclaimed row is candidate again in the same
+   * tick. The two updates partition on `attemptCount`, so a recipient that has
+   * already burned its budget retires instead of cycling back into the queue.
+   */
+  private async reclaimStaleDispatches(
+    campaign: SocialReplyCampaign,
+    now: Date,
+  ): Promise<void> {
+    const reason = 'Dispatch abandoned before completion';
+    const staleWhere = {
+      campaignId: campaign.id,
+      dispatchedAt: {
+        lt: new Date(now.getTime() - SOCIAL_REPLY_CAMPAIGN_DISPATCH_STALE_MS),
+      },
+      status: SocialReplyCampaignRecipientStatus.DISPATCHING,
+    };
+
+    const { requeued, retired } = await this.prisma.$transaction(async (tx) => {
+      const retiredResult = await tx.socialReplyCampaignRecipient.updateMany({
+        data: {
+          failureReason: reason,
+          status: SocialReplyCampaignRecipientStatus.FAILED,
+        },
+        where: scopedWhere(campaign.organizationId, {
+          ...staleWhere,
+          attemptCount: { gte: SOCIAL_REPLY_CAMPAIGN_MAX_ATTEMPTS },
+        }),
+      });
+
+      const requeuedResult = await tx.socialReplyCampaignRecipient.updateMany({
+        data: {
+          failureReason: reason,
+          status: SocialReplyCampaignRecipientStatus.PENDING,
+        },
+        where: scopedWhere(campaign.organizationId, {
+          ...staleWhere,
+          attemptCount: { lt: SOCIAL_REPLY_CAMPAIGN_MAX_ATTEMPTS },
+        }),
+      });
+
+      if (retiredResult.count > 0) {
+        await tx.socialReplyCampaign.updateMany({
+          data: {
+            failedCount: { increment: retiredResult.count },
+            lastError: reason,
+          },
+          where: scopedWhere(campaign.organizationId, {
+            id: campaign.id,
+            status: SocialReplyCampaignStatus.RUNNING,
+          }),
+        });
+      }
+
+      return { requeued: requeuedResult, retired: retiredResult };
+    });
+
+    if (retired.count === 0 && requeued.count === 0) {
+      return;
+    }
+
+    this.logger.warn(`${this.logContext} reclaimed stale dispatches`, {
+      campaignId: campaign.id,
+      requeued: requeued.count,
+      retired: retired.count,
+    });
+  }
+
+  /**
    * Claim-by-update: the `updateMany` count is the claim. Two workers racing
    * the same recipient cannot both win, so a duplicated job never doubles a
    * send even before the message-level idempotency key is consulted.
@@ -194,17 +294,22 @@ export class SocialReplyCampaignDispatchService {
     });
 
     return claimed.count === 1
-      ? { kind: 'claimed', recipientId: candidate.id }
+      ? { claimStartedAt: now, kind: 'claimed', recipientId: candidate.id }
       : { kind: 'lost-race' };
   }
 
   private async sendToRecipient(
     campaign: SocialReplyCampaign,
     recipientId: string,
+    claimStartedAt: Date,
     now: Date,
   ): Promise<SocialReplyCampaignJobResult> {
     const recipient = await this.prisma.socialReplyCampaignRecipient.findFirst({
-      where: scopedWhere(campaign.organizationId, { id: recipientId }),
+      where: scopedWhere(campaign.organizationId, {
+        dispatchedAt: claimStartedAt,
+        id: recipientId,
+        status: SocialReplyCampaignRecipientStatus.DISPATCHING,
+      }),
     });
     if (!recipient) {
       // Claim won but the row vanished (soft-delete race). Keep draining.
@@ -221,6 +326,7 @@ export class SocialReplyCampaignDispatchService {
       await this.markSkipped(
         campaign,
         recipientId,
+        claimStartedAt,
         'Conversation is no longer available',
       );
       await this.scheduleNext(campaign, 0, now);
@@ -271,7 +377,13 @@ export class SocialReplyCampaignDispatchService {
               }),
       );
 
-      await this.markSent(campaign, recipientId, message.id, body);
+      await this.markSent(
+        campaign,
+        recipientId,
+        claimStartedAt,
+        message.id,
+        body,
+      );
       await this.scheduleNext(campaign, campaign.minDelaySeconds, now);
       return { outcome: 'recipient-sent', recipientId };
     } catch (error: unknown) {
@@ -281,7 +393,7 @@ export class SocialReplyCampaignDispatchService {
       // conversation (reply window closed, DMs unsupported). Skipping keeps the
       // campaign draining instead of burning retries on a permanent refusal.
       if (error instanceof BadRequestException) {
-        await this.markSkipped(campaign, recipientId, reason);
+        await this.markSkipped(campaign, recipientId, claimStartedAt, reason);
         await this.scheduleNext(campaign, 0, now);
         return { outcome: 'recipient-skipped', recipientId };
       }
@@ -296,12 +408,17 @@ export class SocialReplyCampaignDispatchService {
       // exhausted. Permanently retiring on the first 5xx left healthy rosters
       // half-drained after a blip.
       if (recipient.attemptCount < SOCIAL_REPLY_CAMPAIGN_MAX_ATTEMPTS) {
-        await this.requeueRecipient(campaign, recipientId, reason);
+        await this.requeueRecipient(
+          campaign,
+          recipientId,
+          claimStartedAt,
+          reason,
+        );
         await this.scheduleNext(campaign, campaign.minDelaySeconds, now);
         return { outcome: 'recipient-failed', recipientId };
       }
 
-      await this.markFailed(campaign, recipientId, reason);
+      await this.markFailed(campaign, recipientId, claimStartedAt, reason);
       await this.scheduleNext(campaign, campaign.minDelaySeconds, now);
       return { outcome: 'recipient-failed', recipientId };
     }
@@ -310,56 +427,70 @@ export class SocialReplyCampaignDispatchService {
   private async markSent(
     campaign: SocialReplyCampaign,
     recipientId: string,
+    claimStartedAt: Date,
     messageId: string,
     body: string,
   ): Promise<void> {
-    await this.prisma.socialReplyCampaignRecipient.updateMany({
-      data: {
-        body,
-        failureReason: null,
-        messageId,
-        sentAt: new Date(),
-        status: SocialReplyCampaignRecipientStatus.SENT,
-      },
-      where: scopedWhere(campaign.organizationId, {
-        id: recipientId,
-        status: SocialReplyCampaignRecipientStatus.DISPATCHING,
-      }),
-    });
-    await this.prisma.socialReplyCampaign.updateMany({
-      data: {
-        lastDispatchedAt: new Date(),
-        lastError: null,
-        sentCount: { increment: 1 },
-      },
-      where: scopedWhere(campaign.organizationId, {
-        id: campaign.id,
-        status: SocialReplyCampaignStatus.RUNNING,
-      }),
+    await this.prisma.$transaction(async (tx) => {
+      const transitioned = await tx.socialReplyCampaignRecipient.updateMany({
+        data: {
+          body,
+          failureReason: null,
+          messageId,
+          sentAt: new Date(),
+          status: SocialReplyCampaignRecipientStatus.SENT,
+        },
+        where: scopedWhere(campaign.organizationId, {
+          dispatchedAt: claimStartedAt,
+          id: recipientId,
+          status: SocialReplyCampaignRecipientStatus.DISPATCHING,
+        }),
+      });
+      if (transitioned.count !== 1) {
+        return;
+      }
+      await tx.socialReplyCampaign.updateMany({
+        data: {
+          lastDispatchedAt: new Date(),
+          lastError: null,
+          sentCount: { increment: 1 },
+        },
+        where: scopedWhere(campaign.organizationId, {
+          id: campaign.id,
+          status: SocialReplyCampaignStatus.RUNNING,
+        }),
+      });
     });
   }
 
   private async markSkipped(
     campaign: SocialReplyCampaign,
     recipientId: string,
+    claimStartedAt: Date,
     reason: string,
   ): Promise<void> {
-    await this.prisma.socialReplyCampaignRecipient.updateMany({
-      data: {
-        failureReason: reason,
-        status: SocialReplyCampaignRecipientStatus.SKIPPED,
-      },
-      where: scopedWhere(campaign.organizationId, {
-        id: recipientId,
-        status: SocialReplyCampaignRecipientStatus.DISPATCHING,
-      }),
-    });
-    await this.prisma.socialReplyCampaign.updateMany({
-      data: { skippedCount: { increment: 1 } },
-      where: scopedWhere(campaign.organizationId, {
-        id: campaign.id,
-        status: SocialReplyCampaignStatus.RUNNING,
-      }),
+    await this.prisma.$transaction(async (tx) => {
+      const transitioned = await tx.socialReplyCampaignRecipient.updateMany({
+        data: {
+          failureReason: reason,
+          status: SocialReplyCampaignRecipientStatus.SKIPPED,
+        },
+        where: scopedWhere(campaign.organizationId, {
+          dispatchedAt: claimStartedAt,
+          id: recipientId,
+          status: SocialReplyCampaignRecipientStatus.DISPATCHING,
+        }),
+      });
+      if (transitioned.count !== 1) {
+        return;
+      }
+      await tx.socialReplyCampaign.updateMany({
+        data: { skippedCount: { increment: 1 } },
+        where: scopedWhere(campaign.organizationId, {
+          id: campaign.id,
+          status: SocialReplyCampaignStatus.RUNNING,
+        }),
+      });
     });
   }
 
@@ -371,53 +502,67 @@ export class SocialReplyCampaignDispatchService {
   private async requeueRecipient(
     campaign: SocialReplyCampaign,
     recipientId: string,
+    claimStartedAt: Date,
     reason: string,
   ): Promise<void> {
-    await this.prisma.socialReplyCampaignRecipient.updateMany({
-      data: {
-        failureReason: reason,
-        status: SocialReplyCampaignRecipientStatus.PENDING,
-      },
-      where: scopedWhere(campaign.organizationId, {
-        id: recipientId,
-        status: SocialReplyCampaignRecipientStatus.DISPATCHING,
-      }),
-    });
-    await this.prisma.socialReplyCampaign.updateMany({
-      data: {
-        lastError: reason.slice(0, 500),
-      },
-      where: scopedWhere(campaign.organizationId, {
-        id: campaign.id,
-        status: SocialReplyCampaignStatus.RUNNING,
-      }),
+    await this.prisma.$transaction(async (tx) => {
+      const transitioned = await tx.socialReplyCampaignRecipient.updateMany({
+        data: {
+          failureReason: reason,
+          status: SocialReplyCampaignRecipientStatus.PENDING,
+        },
+        where: scopedWhere(campaign.organizationId, {
+          dispatchedAt: claimStartedAt,
+          id: recipientId,
+          status: SocialReplyCampaignRecipientStatus.DISPATCHING,
+        }),
+      });
+      if (transitioned.count !== 1) {
+        return;
+      }
+      await tx.socialReplyCampaign.updateMany({
+        data: {
+          lastError: reason.slice(0, 500),
+        },
+        where: scopedWhere(campaign.organizationId, {
+          id: campaign.id,
+          status: SocialReplyCampaignStatus.RUNNING,
+        }),
+      });
     });
   }
 
   private async markFailed(
     campaign: SocialReplyCampaign,
     recipientId: string,
+    claimStartedAt: Date,
     reason: string,
   ): Promise<void> {
-    await this.prisma.socialReplyCampaignRecipient.updateMany({
-      data: {
-        failureReason: reason,
-        status: SocialReplyCampaignRecipientStatus.FAILED,
-      },
-      where: scopedWhere(campaign.organizationId, {
-        id: recipientId,
-        status: SocialReplyCampaignRecipientStatus.DISPATCHING,
-      }),
-    });
-    await this.prisma.socialReplyCampaign.updateMany({
-      data: {
-        failedCount: { increment: 1 },
-        lastError: reason.slice(0, 500),
-      },
-      where: scopedWhere(campaign.organizationId, {
-        id: campaign.id,
-        status: SocialReplyCampaignStatus.RUNNING,
-      }),
+    await this.prisma.$transaction(async (tx) => {
+      const transitioned = await tx.socialReplyCampaignRecipient.updateMany({
+        data: {
+          failureReason: reason,
+          status: SocialReplyCampaignRecipientStatus.FAILED,
+        },
+        where: scopedWhere(campaign.organizationId, {
+          dispatchedAt: claimStartedAt,
+          id: recipientId,
+          status: SocialReplyCampaignRecipientStatus.DISPATCHING,
+        }),
+      });
+      if (transitioned.count !== 1) {
+        return;
+      }
+      await tx.socialReplyCampaign.updateMany({
+        data: {
+          failedCount: { increment: 1 },
+          lastError: reason.slice(0, 500),
+        },
+        where: scopedWhere(campaign.organizationId, {
+          id: campaign.id,
+          status: SocialReplyCampaignStatus.RUNNING,
+        }),
+      });
     });
   }
 
