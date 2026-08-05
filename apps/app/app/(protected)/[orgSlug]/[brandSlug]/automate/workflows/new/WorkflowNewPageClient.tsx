@@ -221,7 +221,8 @@ export default function WorkflowNewPageClient() {
         update: workflowsApi.update,
       },
       workflowReferences: {
-        fetchReferencableWorkflows: workflowsApi.getReferencable,
+        fetchReferencableWorkflows: (excludeId, signal) =>
+          workflowsApi.getReferencable(excludeId ?? undefined, signal),
         fetchWorkflowInterface: workflowsApi.getInterface,
         validateReference: async (parentWorkflowId, childWorkflowId) => {
           await workflowsApi.validateReference(

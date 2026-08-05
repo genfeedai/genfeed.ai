@@ -41,8 +41,8 @@ function getErrorStatus(error: unknown): number | null {
 function isAssetInBrand(asset: IAsset, brandId: string): boolean {
   return (
     !asset.isDeleted &&
-    asset.parentModel === AssetParent.BRAND &&
-    asset.parent === brandId
+    asset.parentType === AssetParent.BRAND &&
+    asset.parentBrandId === brandId
   );
 }
 

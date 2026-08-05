@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import type { IBrand } from '@genfeedai/interfaces';
 import type { IServiceSerializer } from '@genfeedai/interfaces/utils/error.interface';
 import { BaseService } from '@services/core/base.service';
 
@@ -144,6 +145,7 @@ export interface AgentStrategyReport {
 export class AgentStrategy {
   id!: string;
   organizationId!: string;
+  brand?: Pick<IBrand, 'id' | 'label' | 'slug'>;
   brandId?: string;
   userId!: string;
   agentType!: string;

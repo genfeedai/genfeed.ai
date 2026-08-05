@@ -218,7 +218,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
             <p className="font-semibold">{strategy.label}</p>
             <p className="text-sm text-foreground/50">
               {typeLabel}
-              {strategy.brand ? ` · ${strategy.brand}` : ''}
+              {strategy.brand ? ` · ${strategy.brand.label}` : ''}
               {' · '}
               {strategy.autonomyMode === 'auto_publish'
                 ? 'Auto-Publish'

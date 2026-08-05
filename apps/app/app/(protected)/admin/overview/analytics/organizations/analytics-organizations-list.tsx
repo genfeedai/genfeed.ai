@@ -27,8 +27,6 @@ import {
   useState,
 } from 'react';
 
-import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
-
 export interface AnalyticsOrganizationsListProps {
   basePath?: string;
 }
@@ -173,13 +171,9 @@ export default function AnalyticsOrganizationsList({
       },
       {
         className: 'text-right',
-        header: 'Created',
-        key: 'createdAt',
-        render: (org) => (
-          <span className="text-sm text-foreground/60">
-            <ClientFormattedDate format="date" value={org.createdAt} />
-          </span>
-        ),
+        header: 'Members',
+        key: 'totalMembers',
+        render: (org) => <span className="font-mono">{org.totalMembers}</span>,
       },
     ],
     [basePath],
