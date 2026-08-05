@@ -151,6 +151,30 @@ describe('BrandPersistenceService', () => {
     });
   });
 
+  describe('upsertBrandSocialLinks', () => {
+    it('uses the canonical capitalization for generated social-link labels', async () => {
+      linksService.findOne.mockResolvedValue(null);
+
+      await service.upsertBrandSocialLinks('brand_1', {
+        facebook: 'https://facebook.com/acme',
+        instagram: 'https://instagram.com/acme',
+        linkedin: 'https://linkedin.com/company/acme',
+        tiktok: 'https://tiktok.com/@acme',
+        twitter: 'https://twitter.com/acme',
+        youtube: 'https://youtube.com/@acme',
+      });
+
+      expect(linksService.create.mock.calls).toEqual([
+        [expect.objectContaining({ label: 'Facebook' })],
+        [expect.objectContaining({ label: 'Instagram' })],
+        [expect.objectContaining({ label: 'LinkedIn' })],
+        [expect.objectContaining({ label: 'TikTok' })],
+        [expect.objectContaining({ label: 'Twitter' })],
+        [expect.objectContaining({ label: 'YouTube' })],
+      ]);
+    });
+  });
+
   describe('importScrapedBrandBanner', () => {
     it('imports the scraped banner through the guarded Brand Kit pipeline', async () => {
       brandsService.importBrandKitAssets.mockResolvedValue({
