@@ -179,4 +179,30 @@ describe('OrganizationsService', () => {
       ]);
     });
   });
+
+  describe('findOrganizationPostsPage', () => {
+    it('uses the canonical organizationId query filter', async () => {
+      const testableService =
+        service as unknown as TestableOrganizationsService;
+      const get = vi.fn().mockResolvedValue({
+        data: {
+          data: [],
+          links: {
+            pagination: { limit: 12, page: 1, pages: 1, total: 0 },
+          },
+        },
+      });
+      testableService.instance = { get };
+      vi.spyOn(testableService, 'extractCollection').mockReturnValue([]);
+
+      await service.findOrganizationPostsPage('org_1', {
+        limit: 12,
+        page: 1,
+      });
+
+      expect(get).toHaveBeenCalledWith(expect.stringContaining('/posts'), {
+        params: { limit: 12, organizationId: 'org_1', page: 1 },
+      });
+    });
+  });
 });

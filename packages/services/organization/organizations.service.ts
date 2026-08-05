@@ -338,7 +338,7 @@ export class OrganizationsService extends BaseService<Organization> {
     return await this.instance
       .get<JsonApiResponseDocument>(
         `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.POSTS}`,
-        { params: { ...query, organization: id } },
+        { params: { ...query, organizationId: id } },
       )
       .then((response) => {
         const document = response.data;

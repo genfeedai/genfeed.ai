@@ -80,6 +80,8 @@ export interface IQueryParams {
   sort?: string;
   order?: 'asc' | 'desc';
   brand?: string | number | boolean;
+  brandId?: string;
+  organizationId?: string;
   type?: string | number | boolean;
   format?: string | number | boolean;
   search?: string;

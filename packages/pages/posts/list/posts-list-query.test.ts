@@ -1,9 +1,10 @@
 import { PageScope, PostStatus } from '@genfeedai/enums';
+import { fetchPosts } from '@pages/posts/list/components/posts-query.helpers';
 import {
   buildPostsListQueryKey,
   getDefaultPostsSort,
 } from '@pages/posts/list/posts-list-query';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('posts list query helpers', () => {
   it('builds the shared posts list query key used by server hydration and client queries', () => {
@@ -43,5 +44,41 @@ describe('posts list query helpers', () => {
     expect(getDefaultPostsSort(PostStatus.SCHEDULED)).toBe('scheduledDate: 1');
     expect(getDefaultPostsSort(PostStatus.PUBLIC)).toBe('scheduledDate: -1');
     expect(getDefaultPostsSort()).toBe('createdAt: -1');
+  });
+
+  it('uses canonical tenant filters for superadmin post queries', async () => {
+    const findAllPage = vi.fn().mockResolvedValue({
+      hasNext: false,
+      hasPrevious: false,
+      items: [],
+      page: 1,
+      pageSize: 12,
+      total: 0,
+      totalPages: 1,
+    });
+
+    await fetchPosts({
+      adminBrand: 'brand_123',
+      adminOrg: 'org_123',
+      brandId: undefined,
+      currentPage: 1,
+      filterSearch: '',
+      filterSort: undefined,
+      filterStatus: '',
+      getBrandsService: vi.fn(),
+      getOrganizationsService: vi.fn(),
+      getPostsService: vi.fn().mockResolvedValue({ findAllPage }),
+      organizationId: undefined,
+      platformFilter: undefined,
+      scope: PageScope.SUPERADMIN,
+      status: undefined,
+    } as never);
+
+    expect(findAllPage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand_123',
+        organizationId: 'org_123',
+      }),
+    );
   });
 });
