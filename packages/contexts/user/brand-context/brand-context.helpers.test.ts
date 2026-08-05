@@ -11,14 +11,6 @@ describe('getBrandOrganizationId', () => {
     expect(getBrandOrganizationId(brand)).toBe('org_123');
   });
 
-  it('returns the nested organization _id when present', () => {
-    const brand = {
-      organization: { _id: 'org_456', slug: 'acme' },
-    } as unknown as IBrand;
-
-    expect(getBrandOrganizationId(brand)).toBe('org_456');
-  });
-
   it('returns the organization when it is a raw id string', () => {
     const brand = { organization: 'org_789' } as unknown as IBrand;
 

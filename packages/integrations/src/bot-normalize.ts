@@ -4,9 +4,9 @@ import type { OrgIntegration } from './types';
 /**
  * Normalize a raw API payload into an OrgIntegration.
  *
- * Handles both the MongoDB `_id` field (legacy open-source API) and the
- * Prisma `id` field (cloud API), as well as `orgId` vs `organization`.
- * Returns `null` when required fields are missing.
+ * Converts the canonical API `organizationId` field to the bot runtime's
+ * intentionally shorter `orgId` field. Returns `null` when required fields
+ * are missing.
  *
  * Previously copy-pasted identically into all three bot managers.
  */
@@ -19,8 +19,8 @@ export function normalizeIntegration(
   }
 
   const raw = payload as Record<string, unknown>;
-  const rawId = raw.id ?? raw._id;
-  const rawOrgId = raw.orgId ?? raw.organization;
+  const rawId = raw.id;
+  const rawOrgId = raw.organizationId;
   const rawToken = raw.botToken;
 
   if (!rawId || !rawOrgId || !rawToken) {
