@@ -49,6 +49,9 @@ function createPrisma() {
         },
       },
     },
+    clipProject: {
+      findFirst: vi.fn(),
+    },
     clipResult: {
       count: vi.fn(),
       create: vi.fn(),
@@ -157,6 +160,60 @@ describe('ClipResultsService', () => {
     expect(createArgs.data.mode).toBe('raw-cut');
     // Never duplicated into the JSON blob.
     expect(createArgs.data.data.mode).toBeUndefined();
+  });
+
+  it('creates an externally requested result only for a project in the organization', async () => {
+    prisma.clipProject.findFirst.mockResolvedValue({ id: 'project-1' });
+    prisma.clipResult.create.mockResolvedValue({
+      data: { title: 'Clip title' },
+      id: 'clip-1',
+      isSelected: false,
+      organizationId: 'org-1',
+      projectId: 'project-1',
+      readiness: {},
+      status: 'pending',
+      userId: 'user-1',
+    });
+
+    await service.createForOrganization({
+      duration: 30,
+      endTime: 45,
+      index: 0,
+      organizationId: 'org-1',
+      projectId: 'project-1',
+      startTime: 15,
+      title: 'Clip title',
+      userId: 'user-1',
+    });
+
+    expect(prisma.clipProject.findFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: {
+        id: 'project-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+    expect(prisma.clipResult.create).toHaveBeenCalledOnce();
+  });
+
+  it('rejects an externally requested result for a project outside the organization', async () => {
+    prisma.clipProject.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.createForOrganization({
+        duration: 30,
+        endTime: 45,
+        index: 0,
+        organizationId: 'org-1',
+        projectId: 'other-project',
+        startTime: 15,
+        title: 'Clip title',
+        userId: 'user-1',
+      }),
+    ).rejects.toThrow('ClipProject');
+
+    expect(prisma.clipResult.create).not.toHaveBeenCalled();
   });
 
   it('merges patch data and adds terminal readiness for completed clips', async () => {

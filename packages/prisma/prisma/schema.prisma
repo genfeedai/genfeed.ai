@@ -4777,6 +4777,7 @@ model ClipProject {
 
   @@index([organizationId, status, isDeleted])
   @@index([userId])
+  @@unique([id, organizationId])
   @@map("clip_projects")
 }
 
@@ -4788,7 +4789,7 @@ model ClipResult {
   userId         String?
   user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
   projectId      String?
-  project        ClipProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  project        ClipProject? @relation(fields: [projectId, organizationId], references: [id, organizationId])
   providerJobId  String?
   viralityScore  Float?
   status         String       @default("pending")

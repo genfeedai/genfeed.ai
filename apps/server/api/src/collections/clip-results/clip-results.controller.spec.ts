@@ -36,6 +36,7 @@ function createMockLogger(): LoggerService {
 function createMockService(): Record<string, ReturnType<typeof vi.fn>> {
   return {
     create: vi.fn(),
+    createForOrganization: vi.fn(),
     findAllByOrganization: vi.fn(),
     findByProject: vi.fn(),
     findOne: vi.fn(),
@@ -79,11 +80,11 @@ describe('ClipResultsController', () => {
         title: 'Clip title',
       };
       const created = { id: 'cr-1', ...dto } as unknown as ClipResultDocument;
-      service.create.mockResolvedValue(created);
+      service.createForOrganization.mockResolvedValue(created);
 
       const result = await controller.create(mockReq, dto as never, mockUser);
 
-      expect(service.create).toHaveBeenCalledWith(
+      expect(service.createForOrganization).toHaveBeenCalledWith(
         expect.objectContaining({
           organizationId,
           userId,

@@ -5,6 +5,7 @@ import {
   buildClipResultReadiness,
   isTerminalClipStatus,
 } from '@api/collections/clip-shared/clip-terminal-contract.util';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { PopulateOption } from '@genfeedai/interfaces';
@@ -65,6 +66,29 @@ export class ClipResultsService extends BaseService<
       ) as unknown as CreateClipResultDto,
       populate,
     );
+  }
+
+  async createForOrganization(
+    createDto: CreateClipResultDto & {
+      organizationId: string;
+      userId: string;
+    },
+    populate: PopulateInput = [],
+  ): Promise<ClipResultDocument> {
+    const project = await this.prisma.clipProject.findFirst({
+      select: { id: true },
+      where: {
+        id: createDto.projectId,
+        isDeleted: false,
+        organizationId: createDto.organizationId,
+      },
+    });
+
+    if (!project) {
+      throw new NotFoundException('ClipProject', createDto.projectId);
+    }
+
+    return this.create(createDto, populate);
   }
 
   override async patch(

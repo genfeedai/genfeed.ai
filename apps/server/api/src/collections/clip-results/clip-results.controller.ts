@@ -51,11 +51,12 @@ export class ClipResultsController {
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
 
-    const data: ClipResultDocument = await this.clipResultsService.create({
-      ...createClipResultDto,
-      organizationId: publicMetadata.organization,
-      userId: publicMetadata.user,
-    });
+    const data: ClipResultDocument =
+      await this.clipResultsService.createForOrganization({
+        ...createClipResultDto,
+        organizationId: publicMetadata.organization,
+        userId: publicMetadata.user,
+      });
 
     return serializeSingle(request, ClipResultSerializer, data);
   }

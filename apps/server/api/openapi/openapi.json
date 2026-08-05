@@ -2105,10 +2105,6 @@
       },
       "CreateClipResultDto": {
         "properties": {
-          "_id": {
-            "description": "The unique identifier of the document",
-            "type": "string"
-          },
           "clipType": {
             "description": "Clip type classification",
             "enum": [
@@ -2146,11 +2142,10 @@
             ],
             "description": "Clip generation mode (defaults to avatar)"
           },
-          "organization": {
-            "description": "The organization ID that owns this resource",
+          "organizationId": {
             "type": "string"
           },
-          "project": {
+          "projectId": {
             "description": "The clip project ID",
             "type": "string"
           },
@@ -2197,8 +2192,7 @@
             "description": "Clip title",
             "type": "string"
           },
-          "user": {
-            "description": "The user ID who created this resource",
+          "userId": {
             "type": "string"
           },
           "viralityScore": {
@@ -2207,9 +2201,7 @@
           }
         },
         "required": [
-          "user",
-          "organization",
-          "project",
+          "projectId",
           "index",
           "title",
           "startTime",
