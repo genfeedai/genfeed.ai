@@ -205,8 +205,8 @@ export class AdminFleetMediaController {
         dto,
       );
       return serializeSingle(request, FleetGenerationJobSerializer, {
-        _id: data.jobId,
         ...data,
+        id: data.jobId,
       });
     } catch (error) {
       return ErrorResponse.handle(
@@ -233,8 +233,8 @@ export class AdminFleetMediaController {
         organization,
       );
       return serializeSingle(request, FleetGenerationJobSerializer, {
-        _id: data.jobId,
         ...data,
+        id: data.jobId,
       });
     } catch (error) {
       return ErrorResponse.handle(error, this.loggerService, 'getGenerateJob');
@@ -257,8 +257,8 @@ export class AdminFleetMediaController {
         dto,
       );
       return serializeSingle(request, FleetLipSyncJobSerializer, {
-        _id: data.jobId,
         ...data,
+        id: data.jobId,
       });
     } catch (error) {
       return ErrorResponse.handle(error, this.loggerService, 'generateLipSync');
@@ -276,8 +276,8 @@ export class AdminFleetMediaController {
     try {
       const data = await this.adminFleetService.getLipSyncStatus(jobId);
       return serializeSingle(request, FleetLipSyncStatusSerializer, {
-        _id: jobId,
         ...data,
+        id: jobId,
       });
     } catch (error) {
       return ErrorResponse.handle(
@@ -297,8 +297,8 @@ export class AdminFleetMediaController {
       const data = await this.adminFleetService.getVoices();
       return serializeCollection(request, FleetVoiceSerializer, {
         docs: data.map((voice: { voiceId: string }) => ({
-          _id: voice.voiceId,
           ...voice,
+          id: voice.voiceId,
         })),
         hasNextPage: false,
         hasPrevPage: false,
@@ -331,8 +331,8 @@ export class AdminFleetMediaController {
         dto,
       );
       return serializeSingle(request, FleetGenerateVoiceResultSerializer, {
-        _id: `voice:${Date.now()}`,
         ...data,
+        id: `voice:${Date.now()}`,
       });
     } catch (error) {
       return ErrorResponse.handle(error, this.loggerService, 'generateVoice');

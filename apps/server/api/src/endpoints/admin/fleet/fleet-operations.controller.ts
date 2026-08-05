@@ -50,7 +50,6 @@ export class AdminFleetOperationsController {
       const campaigns =
         await this.adminFleetService.listCampaigns(organization);
       const data = campaigns.map((campaign: (typeof campaigns)[number]) => ({
-        _id: campaign.campaign,
         assetsCount: campaign.assetCount,
         createdAt: campaign.createdAt,
         id: campaign.campaign,
@@ -83,10 +82,10 @@ export class AdminFleetOperationsController {
       const { organization } = getPublicMetadata(user);
       const stats = await this.adminFleetService.getPipelineStats(organization);
       const data = {
-        _id: `pipeline-stats:${organization}`,
         assetsGenerated: stats.assets.total,
         assetsPendingReview: stats.assets.byReviewStatus.pending ?? 0,
         assetsPublished: stats.assets.byReviewStatus.approved ?? 0,
+        id: `pipeline-stats:${organization}`,
         trainingsActive: Object.entries(stats.trainings.byStage)
           .filter(([stage]) => !['completed', 'failed'].includes(stage))
           .reduce((sum, [, count]) => sum + Number(count), 0),
@@ -110,8 +109,8 @@ export class AdminFleetOperationsController {
       const data = await this.adminFleetService.getEC2Status();
       return serializeCollection(request, FleetEc2InstanceSerializer, {
         docs: data.map((instance: (typeof data)[number]) => ({
-          _id: instance.instanceId,
           ...instance,
+          id: instance.instanceId,
         })),
         hasNextPage: false,
         hasPrevPage: false,
@@ -139,8 +138,8 @@ export class AdminFleetOperationsController {
         dto.action,
       );
       return serializeSingle(request, FleetEc2ActionResultSerializer, {
-        _id: `${dto.action}:${dto.instanceId}`,
         ...data,
+        id: `${dto.action}:${dto.instanceId}`,
       });
     } catch (error) {
       return ErrorResponse.handle(error, this.loggerService, 'ec2Action');
@@ -158,8 +157,8 @@ export class AdminFleetOperationsController {
         dto.role,
       );
       return serializeSingle(request, FleetEc2BulkActionResultSerializer, {
-        _id: `ec2-action-all:${dto.action}:${dto.role ?? 'all'}`,
         ...data,
+        id: `ec2-action-all:${dto.action}:${dto.role ?? 'all'}`,
       });
     } catch (error) {
       return ErrorResponse.handle(error, this.loggerService, 'ec2ActionAll');
@@ -181,8 +180,8 @@ export class AdminFleetOperationsController {
         dto.paths,
       );
       return serializeSingle(request, FleetCloudFrontInvalidationSerializer, {
-        _id: data.invalidationId,
         ...data,
+        id: data.invalidationId,
       });
     } catch (error) {
       return ErrorResponse.handle(
@@ -202,8 +201,8 @@ export class AdminFleetOperationsController {
       const data = await this.adminFleetService.getServiceHealth();
       return serializeCollection(request, FleetServiceStatusSerializer, {
         docs: data.map((service: (typeof data)[number]) => ({
-          _id: service.name,
           ...service,
+          id: service.name,
         })),
         hasNextPage: false,
         hasPrevPage: false,
@@ -232,8 +231,8 @@ export class AdminFleetOperationsController {
     try {
       const data = await this.fleetService.getFleetHealth();
       return serializeSingle(request, FleetHealthSerializer, {
-        _id: `fleet-health:${data.timestamp}`,
         ...data,
+        id: `fleet-health:${data.timestamp}`,
       });
     } catch (error) {
       return ErrorResponse.handle(error, this.loggerService, 'getFleetHealth');

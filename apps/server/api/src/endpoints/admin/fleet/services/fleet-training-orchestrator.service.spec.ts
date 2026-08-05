@@ -18,9 +18,7 @@ describe('AdminFleetTrainingOrchestratorService', () => {
 
   beforeEach(async () => {
     characterService = {
-      requirePersonaBySlug: vi
-        .fn()
-        .mockResolvedValue({ _id: { toString: () => 'persona-1' } }),
+      requirePersonaBySlug: vi.fn().mockResolvedValue({ id: 'persona-1' }),
     };
     trainingsService = { create: vi.fn(), findOne: vi.fn() };
     adminFleetTrainingService = {

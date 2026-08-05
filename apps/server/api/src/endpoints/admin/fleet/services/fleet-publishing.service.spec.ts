@@ -18,7 +18,7 @@ describe('AdminFleetPublishingService', () => {
   let twitterService: Record<string, ReturnType<typeof vi.fn>>;
 
   const approvedAsset = {
-    _id: { toString: () => 'asset-1' },
+    id: 'asset-1',
     cdnUrl: 'https://cdn/asset-1.jpg',
     reviewStatus: FleetReviewStatus.APPROVED,
   };
