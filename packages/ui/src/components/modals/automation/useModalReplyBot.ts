@@ -17,6 +17,28 @@ import type { ModalReplyBotProps } from '@genfeedai/props/modals/modal.props';
 import { ReplyBotConfigsService } from '@genfeedai/services/automation/reply-bot-configs.service';
 import { type ChangeEvent, useEffect } from 'react';
 
+const DEFAULT_ACTIVE_DAYS = [
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+] as const;
+
+type ActiveDay = NonNullable<
+  ReplyBotConfigSchema['schedule']
+>['activeDays'][number];
+
+const ACTIVE_DAYS = [
+  'sunday',
+  ...DEFAULT_ACTIVE_DAYS,
+  'saturday',
+] as const satisfies readonly ActiveDay[];
+
+function isActiveDay(value: string): value is ActiveDay {
+  return ACTIVE_DAYS.some((day) => day === value);
+}
+
 export function useModalReplyBot({
   replyBot,
   onConfirm,
@@ -99,12 +121,8 @@ export function useModalReplyBot({
           enabled?: boolean;
         };
         form.setValue('schedule', {
-          activeDays: schedule.activeDays ?? [
-            'monday',
-            'tuesday',
-            'wednesday',
-            'thursday',
-            'friday',
+          activeDays: schedule.activeDays?.filter(isActiveDay) ?? [
+            ...DEFAULT_ACTIVE_DAYS,
           ],
           activeHoursEnd: schedule.activeHoursEnd ?? '17:00',
           activeHoursStart: schedule.activeHoursStart ?? '09:00',

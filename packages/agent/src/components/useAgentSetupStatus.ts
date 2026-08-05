@@ -72,11 +72,11 @@ export function useAgentSetupStatus(): AgentSetupStatus {
         continue;
       }
       next.push({
-        avatarUrl: credential.externalAvatar,
+        avatarUrl: credential.externalAvatar ?? undefined,
         credentialId: credential.id,
-        handle: credential.externalHandle,
-        label: credential.label,
-        name: credential.externalName,
+        handle: credential.externalHandle ?? undefined,
+        label: credential.label ?? undefined,
+        name: credential.externalName ?? undefined,
         platform: credential.platform,
       });
     }

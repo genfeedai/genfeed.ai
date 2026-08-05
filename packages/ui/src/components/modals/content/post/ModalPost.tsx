@@ -173,10 +173,7 @@ export default function ModalPost({
         post.scheduledDate ? new Date(post.scheduledDate).toISOString() : '',
       );
       form.setValue('status', post.status || PostStatus.DRAFT);
-      form.setValue(
-        'credentialId',
-        post.credentialId || post.credential?.id || '',
-      );
+      form.setValue('credentialId', post.credential?.id ?? '');
       form.setValue(
         'ingredients',
         post.ingredients?.map((ing: IIngredient) => ing.id) || [],

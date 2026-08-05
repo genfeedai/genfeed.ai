@@ -11,7 +11,6 @@ import {
   type Platform,
 } from '@genfeedai/enums';
 import type { IIngredient, IPost } from '@genfeedai/interfaces';
-import type { Post } from '@genfeedai/models/content/post.model';
 import type { PostsService } from '@genfeedai/services/content/posts.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
@@ -125,7 +124,7 @@ export function usePostDetailMedia({
             const service = await getPostsService();
             await service.patch(targetPostId, {
               ingredients: uniqueIngredients.map((ing) => ing.id),
-            } as unknown as Partial<Post>);
+            });
 
             if (isParentPost) {
               setSelectedIngredients(uniqueIngredients);
@@ -170,7 +169,7 @@ export function usePostDetailMedia({
             const service = await getPostsService();
             await service.patch(targetPostId, {
               ingredients: [imageId],
-            } as unknown as Partial<Post>);
+            });
 
             notificationsService.success(
               'Illustration generated and attached!',

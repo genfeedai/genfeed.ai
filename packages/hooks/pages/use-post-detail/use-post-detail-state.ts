@@ -1,5 +1,6 @@
 'use client';
 
+import type { UpdatePostRequest } from '@genfeedai/api-types';
 import {
   CredentialPlatform,
   IngredientFormat,
@@ -118,7 +119,7 @@ export interface UsePostDetailStateReturn {
 
   // Update helpers
   updateActivePost: (
-    updates: Partial<IPost>,
+    updates: UpdatePostRequest,
     successMessage?: string,
     silent?: boolean,
   ) => Promise<IPost | null>;
@@ -399,12 +400,7 @@ export function usePostDetailState({
 
       try {
         const service = await getPostsService();
-        const updatedPost = await service.patch(
-          post.id,
-          updates as Partial<
-            import('@genfeedai/models/content/post.model').Post
-          >,
-        );
+        const updatedPost = await service.patch(post.id, updates);
 
         logger.info(`${url} success`, updatedPost);
         if (!silent) {
