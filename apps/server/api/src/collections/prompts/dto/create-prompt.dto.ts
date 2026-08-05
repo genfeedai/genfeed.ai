@@ -15,7 +15,7 @@ export class CreatePromptDto {
   @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly organizationId?: string;
+  readonly organizationId?: string | null;
 
   @IsEntityId()
   @IsOptional()

@@ -89,7 +89,7 @@ export interface WorkflowDocument
     | 'lifecycle'
     | 'lockedNodeIds'
   > {
-  trigger?: string;
+  trigger: string | null;
   sourceAsset?: string | null;
   sourceAssetModel?: string | null;
   steps: WorkflowStep[];

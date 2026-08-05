@@ -80,7 +80,7 @@ export interface TaskDocument
   eventStream: TaskEvent[];
   executionPathUsed?: string;
   failureReason?: string;
-  identifier?: string;
+  identifier: string | null;
   heygenAvatarId?: string;
   linkedApprovalIds: string[];
   linkedEntities: Array<{
@@ -105,7 +105,7 @@ export interface TaskDocument
   skillVariantIds: string[];
   skillsUsed: string[];
   status: TaskStatus;
-  taskNumber?: number;
+  taskNumber: number | null;
   title: string;
   voiceId?: string;
   voiceProvider?: string;

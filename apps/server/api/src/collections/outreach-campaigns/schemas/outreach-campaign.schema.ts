@@ -71,7 +71,7 @@ export interface OutreachCampaignDocument
   campaignType?: CampaignType | string;
   completedAt?: Date | null;
   config?: Record<string, unknown>;
-  credentialId?: string | null;
+  credentialId: string | null;
   description?: string;
   discoveryConfig?: CampaignDiscoveryConfig;
   dmConfig?: CampaignDmConfig;

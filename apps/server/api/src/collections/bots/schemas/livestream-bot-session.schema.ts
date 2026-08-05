@@ -67,10 +67,10 @@ export interface LivestreamBotSessionData {
 export interface LivestreamBotSessionDocument
   extends Omit<LivestreamBotSession, 'data'>,
     LivestreamBotSessionData {
-  botId?: string;
-  brandId?: string | null;
+  botId: string | null;
+  brandId: string | null;
   data?: LivestreamBotSessionData;
-  organizationId?: string;
-  userId?: string;
+  organizationId: string | null;
+  userId: string | null;
   [key: string]: unknown;
 }
