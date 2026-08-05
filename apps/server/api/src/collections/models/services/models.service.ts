@@ -400,6 +400,7 @@ export class ModelsService extends BaseService<
         isDeleted: false,
         isDiscovered: true,
         key: { in: keys },
+        organizationId: null,
       },
     });
   }
