@@ -301,7 +301,7 @@ describe('MissionControl', () => {
       'Trend scan',
     );
     expect(replaceMock).toHaveBeenCalledWith(
-      '/automate/runs?model=anthropic%2Fclaude-sonnet-4-5&range=30d',
+      '/automate/runs?model=anthropic%2Fclaude-sonnet-5&range=30d',
       { scroll: false },
     );
   });

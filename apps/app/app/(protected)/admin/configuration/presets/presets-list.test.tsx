@@ -366,12 +366,9 @@ describe('PresetsList', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Active' }));
 
     await waitFor(() => {
-      expect(mocks.patch).toHaveBeenCalledWith(
-        'preset-1',
-        expect.objectContaining({
-          isActive: false,
-        }),
-      );
+      expect(mocks.patch).toHaveBeenCalledWith('preset-1', {
+        isActive: false,
+      });
       expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
         'Preset deactivated',
       );
