@@ -198,7 +198,7 @@ export class PostsGenerationController {
       const childPost = await this.postsService.create({
         brandId: publicMetadata.brand,
         category: PostCategory.TEXT,
-        credentialId: originalPost.credentialId,
+        credentialId: originalPost.credentialId ?? undefined,
         description: 'Generating...',
         ingredients: [],
         label: '',

@@ -251,7 +251,7 @@ export class VideoGenerationExecutionService {
           context.user.id,
           getUserRoomName(context.user.id),
           {
-            brand: context.brand.id.toString(),
+            brandId: context.brand.id.toString(),
             key: ActivityKey.VIDEO_FAILED,
             organization: context.publicMetadata.organization,
             source: ActivitySource.VIDEO_GENERATION,

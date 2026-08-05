@@ -3,6 +3,7 @@ import { type IngredientDocument } from '@api/collections/ingredients/schemas/in
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   AssetScope,
@@ -54,7 +55,7 @@ export class PresignedUploadService {
     const { ingredientData } = await this.sharedService.createMediaDocuments(
       user,
       {
-        category,
+        category: CategoryPrismaUtil.toIngredientCategory(category),
         extension: fileExtension,
         label: body.filename,
         scope: AssetScope.USER,

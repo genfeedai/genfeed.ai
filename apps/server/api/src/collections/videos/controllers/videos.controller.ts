@@ -395,7 +395,7 @@ export class VideosController {
     const data = await this.videosService.remove(canonicalVideoId);
 
     if (data) {
-      await this.metadataService.remove(
+      await this.metadataService.removeByIngredient(
         canonicalVideoId,
         publicMetadata.organization,
       );

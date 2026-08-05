@@ -472,7 +472,7 @@ export class ImagesTransformationsController {
 
     const { metadataData, ingredientData } =
       await this.sharedService.createMediaDocuments(user, {
-        brandId: parent.brandId,
+        brandId: parent.brandId ?? undefined,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.IMAGE,
         ),

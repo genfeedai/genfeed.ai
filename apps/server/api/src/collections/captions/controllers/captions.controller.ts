@@ -2,7 +2,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CaptionsQueryDto } from '@api/collections/captions/dto/captions-query.dto';
 import { CreateCaptionDto } from '@api/collections/captions/dto/create-caption.dto';
 import { UpdateCaptionDto } from '@api/collections/captions/dto/update-caption.dto';
-import { CaptionEntity } from '@api/collections/captions/entities/caption.entity';
 import { type CaptionDocument } from '@api/collections/captions/schemas/caption.schema';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
@@ -173,17 +172,17 @@ export class CaptionsController {
       ingredient.id.toString(),
     );
 
-    const data: CaptionDocument = await this.captionsService.create(
-      new CaptionEntity({
-        content: captionContent,
-        format: createCaptionDto.format,
-        ingredientId: createCaptionDto.ingredientId,
-        isDeleted: false,
-        language: createCaptionDto.language,
-        organizationId: publicMetadata.organization,
-        userId: publicMetadata.user,
-      }),
-    );
+    const captionInput = {
+      content: captionContent,
+      format: createCaptionDto.format,
+      ingredientId: createCaptionDto.ingredientId,
+      isDeleted: false,
+      language: createCaptionDto.language,
+      organizationId: publicMetadata.organization,
+      userId: publicMetadata.user,
+    };
+    const data: CaptionDocument =
+      await this.captionsService.create(captionInput);
     return serializeSingle(request, CaptionSerializer, data);
   }
 

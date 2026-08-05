@@ -58,7 +58,7 @@ export class VideoGenerationPreparationService {
     request: Request,
   ): Promise<ResolvedVideoGenerationRequest> {
     const publicMetadata = getPublicMetadata(user);
-    if (!createVideoDto.prompt && !createVideoDto.text) {
+    if (!createVideoDto.promptId && !createVideoDto.text) {
       throw new HttpException(
         {
           detail: 'Prompt is required',
@@ -69,7 +69,7 @@ export class VideoGenerationPreparationService {
     }
 
     const brand = await this.brandsService.findOne({
-      id: createVideoDto.brand || publicMetadata.brand,
+      id: createVideoDto.brandId || publicMetadata.brand,
       isDeleted: false,
       organizationId: publicMetadata.organization,
     });
@@ -272,14 +272,14 @@ export class VideoGenerationPreparationService {
   private async resolvePromptText(
     resolved: ResolvedVideoGenerationRequest,
   ): Promise<string> {
-    if (!resolved.createVideoDto.prompt) {
+    if (!resolved.createVideoDto.promptId) {
       return resolved.createVideoDto.text || '';
     }
     const validationOrgId =
       resolved.publicMetadata.organization ||
       resolved.request.context?.organizationId;
     const prompt = await this.promptsService.findOne({
-      id: resolved.createVideoDto.prompt.toString(),
+      id: resolved.createVideoDto.promptId.toString(),
       isDeleted: false,
       ...(validationOrgId ? { organizationId: validationOrgId } : {}),
     });

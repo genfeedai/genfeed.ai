@@ -84,7 +84,7 @@ export class ImageGenerationCreditsService {
   private calculateDynamicImageCost(
     model: {
       cost?: number | null;
-      pricingType?: PricingType | null;
+      pricingType?: string | null;
       costPerUnit?: number | null;
       minCost?: number | null;
     },

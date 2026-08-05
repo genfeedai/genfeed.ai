@@ -35,12 +35,12 @@ export class MetadataService extends BaseService<
         ...(createDto as unknown as Record<string, unknown>),
         extension: createDto.extension ?? MetadataExtension.JPEG,
         label: createDto.label?.trim() || 'Generated media',
-      }) as CreateMetadataDto,
+      }) as unknown as CreateMetadataDto,
       populate,
     );
   }
 
-  async remove(
+  async removeByIngredient(
     ingredientId: string,
     organizationId: string,
   ): Promise<MetadataDocument | null> {

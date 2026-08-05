@@ -86,7 +86,7 @@ export class VideoGenerationCreditsService {
   private calculateDynamicVideoCost(
     model: {
       cost?: number | null;
-      pricingType?: PricingType | null;
+      pricingType?: string | null;
       costPerUnit?: number | null;
       minCost?: number | null;
     },

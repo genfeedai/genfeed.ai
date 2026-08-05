@@ -648,7 +648,7 @@ export class CreditsGuard implements CanActivate {
   private calculateDynamicCost(
     model: {
       cost?: number | null;
-      pricingType?: PricingType | 'per-token' | null;
+      pricingType?: string | null;
       costPerUnit?: number | null;
       minCost?: number | null;
     },

@@ -9,7 +9,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { CaptionEntity } from '@api/collections/captions/entities/caption.entity';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -313,17 +312,16 @@ export class VideosRelationshipsController {
               ingredientData.id,
             );
 
-            const caption = await this.captionsService.create(
-              new CaptionEntity({
-                content: captionContent,
-                format: CaptionFormat.SRT,
-                ingredientId: ingredientData.id,
-                isDeleted: false,
-                language: CaptionLanguage.EN,
-                organizationId: publicMetadata.organization,
-                userId: publicMetadata.user,
-              }),
-            );
+            const captionInput = {
+              content: captionContent,
+              format: CaptionFormat.SRT,
+              ingredientId: ingredientData.id,
+              isDeleted: false,
+              language: CaptionLanguage.EN,
+              organizationId: publicMetadata.organization,
+              userId: publicMetadata.user,
+            };
+            const caption = await this.captionsService.create(captionInput);
 
             // Queue captions addition in files.genfeed service
             const captionsJob = await this.fileQueueService.processVideo({

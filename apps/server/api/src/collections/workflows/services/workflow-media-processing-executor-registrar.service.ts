@@ -1,4 +1,3 @@
-import { CaptionEntity } from '@api/collections/captions/entities/caption.entity';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
@@ -141,17 +140,16 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
         const captionContent =
           await whisperService.generateCaptions(sourceIngredientId);
 
-        await captionsService.create(
-          new CaptionEntity({
-            content: captionContent,
-            format: CaptionFormat.SRT,
-            ingredientId: sourceIngredientId,
-            isDeleted: false,
-            language: CaptionLanguage.EN,
-            organizationId: context.organizationId,
-            userId: context.userId,
-          }),
-        );
+        const captionInput = {
+          content: captionContent,
+          format: CaptionFormat.SRT,
+          ingredientId: sourceIngredientId,
+          isDeleted: false,
+          language: CaptionLanguage.EN,
+          organizationId: context.organizationId,
+          userId: context.userId,
+        };
+        await captionsService.create(captionInput);
 
         const { ingredientData, metadataData } =
           await sharedService.createMediaDocumentsInternal({
