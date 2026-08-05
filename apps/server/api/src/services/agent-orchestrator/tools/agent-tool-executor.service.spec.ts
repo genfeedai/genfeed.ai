@@ -2468,13 +2468,13 @@ describe('AgentToolExecutorService', () => {
     expect(result.data).toEqual(
       expect.objectContaining({
         completionPercent: expect.any(Number),
-        earnedCredits: expect.any(Number),
         isComplete: expect.any(Boolean),
-        journeyEarnedCredits: expect.any(Number),
-        journeyRemainingCredits: expect.any(Number),
         missions: expect.any(Array),
-        signupGiftCredits: expect.any(Number),
-        totalOnboardingCreditsVisible: expect.any(Number),
+        providerReadiness: expect.objectContaining({
+          configuredProviderCount: expect.any(Number),
+          configuredProviders: expect.any(Array),
+          isReady: expect.any(Boolean),
+        }),
       }),
     );
     expect(result.nextActions?.[0].type).toBe('onboarding_checklist_card');
@@ -2687,7 +2687,8 @@ describe('AgentToolExecutorService', () => {
         expect.objectContaining({
           id: 'publish_first_post',
           isCompleted: true,
-          rewardClaimed: true,
+          rewardClaimed: false,
+          rewardCredits: 0,
         }),
       ]),
     );
@@ -2696,7 +2697,7 @@ describe('AgentToolExecutorService', () => {
         checklist: expect.arrayContaining([
           expect.objectContaining({
             id: 'publish_first_post',
-            isClaimed: true,
+            isClaimed: false,
             isCompleted: true,
           }),
         ]),
@@ -2706,13 +2707,7 @@ describe('AgentToolExecutorService', () => {
     expect(organizationSettingsService.patch).toHaveBeenCalled();
     expect(
       creditsUtilsService.addOrganizationCreditsWithExpiration,
-    ).toHaveBeenCalledWith(
-      'c7a123456789012345678901',
-      30,
-      'onboarding-journey',
-      'Onboarding journey reward',
-      expect.any(Date),
-    );
+    ).not.toHaveBeenCalled();
   });
 
   it('should return ingredient_picker_card with empty library', async () => {

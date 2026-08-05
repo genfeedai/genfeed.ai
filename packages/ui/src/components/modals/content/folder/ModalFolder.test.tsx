@@ -120,7 +120,7 @@ describe('ModalFolder', () => {
     );
 
     await waitFor(() => {
-      expect(setValueMock).toHaveBeenCalledWith('brand', 'brand-1', {
+      expect(setValueMock).toHaveBeenCalledWith('brandId', 'brand-1', {
         shouldValidate: true,
       });
     });
@@ -136,7 +136,7 @@ describe('ModalFolder', () => {
     );
 
     expect(setValueMock).not.toHaveBeenCalledWith(
-      'brand',
+      'brandId',
       expect.anything(),
       expect.anything(),
     );

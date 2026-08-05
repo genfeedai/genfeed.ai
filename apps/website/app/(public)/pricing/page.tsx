@@ -10,7 +10,7 @@ import PricingContent from '@public/pricing/pricing-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Pricing: Credits, Pro and Scale Plans',
-  `Free to sign up; credits buy the output you generate. Subscriptions from ${PLAN_COPY.pro.priceLabel} add monthly credits at a better rate, API access, and unlimited seats.`,
+  `Free to sign up. Credits buy the output you generate. Subscriptions from ${PLAN_COPY.pro.priceLabel} include monthly credits at a better rate, paid API access, and unlimited team seats; ${PLAN_COPY.scale.name} adds multi-organization workflows.`,
   '/pricing',
 );
 

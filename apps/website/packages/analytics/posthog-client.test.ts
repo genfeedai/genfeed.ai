@@ -44,6 +44,7 @@ function dispatchTrackedCta(
 }
 
 beforeEach(() => {
+  vi.clearAllMocks();
   vi.stubEnv('NEXT_PUBLIC_POSTHOG_KEY', 'phc_test_key');
 });
 
