@@ -51,9 +51,9 @@ export class WorkflowReviewGateService {
     rejectionReason?: string,
   ): Promise<ReviewGateApprovalResult> {
     const execution = await this.executionsService.findOne({
-      _id: executionId,
+      id: executionId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!execution) {
@@ -157,9 +157,9 @@ export class WorkflowReviewGateService {
     nodeId: string,
   ): Promise<ReviewGateTimeoutResolution | null> {
     const execution = await this.executionsService.findOne({
-      _id: executionId,
+      id: executionId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (

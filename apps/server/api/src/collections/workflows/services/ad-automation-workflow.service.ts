@@ -538,7 +538,7 @@ export class AdAutomationWorkflowService {
   private readCredentialBrandId(credential: CredentialDocument): string | null {
     return (
       this.readOptionalString(credential.brandId) ??
-      this.readOptionalString(credential.brand)
+      this.readOptionalString(credential.brandId)
     );
   }
 

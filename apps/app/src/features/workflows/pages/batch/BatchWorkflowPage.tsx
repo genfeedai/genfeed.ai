@@ -75,7 +75,7 @@ function BatchWorkflowPageContent() {
             onBackToComposer={handleBackToComposer}
             onSelectAll={() =>
               setSelectedOutputIds(
-                new Set(availableOutputs.map(({ item }) => item._id)),
+                new Set(availableOutputs.map(({ item }) => item.id)),
               )
             }
             onClearSelection={() => setSelectedOutputIds(new Set())}

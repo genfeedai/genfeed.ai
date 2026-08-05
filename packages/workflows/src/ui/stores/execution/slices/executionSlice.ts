@@ -131,7 +131,7 @@ export const createExecutionSlice: StateCreator<
           selectedNodeIds: [nodeId],
         },
       );
-      const executionId = execution._id;
+      const executionId = execution.id;
 
       const eventSource = createNodeExecutionSubscription(
         executionId,
@@ -218,7 +218,7 @@ export const createExecutionSlice: StateCreator<
           selectedNodeIds,
         },
       );
-      const executionId = execution._id;
+      const executionId = execution.id;
 
       set({ executionId });
 
@@ -292,7 +292,7 @@ export const createExecutionSlice: StateCreator<
           debugMode,
         },
       );
-      const executionId = execution._id;
+      const executionId = execution.id;
 
       set({ executionId });
 
@@ -405,7 +405,7 @@ export const createExecutionSlice: StateCreator<
           debugMode,
         },
       );
-      const newExecutionId = execution._id;
+      const newExecutionId = execution.id;
 
       set({ executionId: newExecutionId, lastFailedNodeId: null });
 

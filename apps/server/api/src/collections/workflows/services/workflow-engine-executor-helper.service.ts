@@ -112,18 +112,18 @@ export class WorkflowEngineExecutorHelperService {
     }
 
     const { ingredientData, metadataData } =
-      await this.sharedService.saveDocumentsInternal({
-        brand: args.brandId,
+      await this.sharedService.createMediaDocumentsInternal({
+        brandId: args.brandId,
         category: args.category,
         extension: args.extension,
         model: args.model,
-        organization: args.organizationId,
-        parent: args.parentIngredientId || undefined,
-        references: (args.references ?? []).filter(
+        organizationId: args.organizationId,
+        parentId: args.parentIngredientId || undefined,
+        sourceIds: (args.references ?? []).filter(
           (reference): reference is string => typeof reference === 'string',
         ),
         status: IngredientStatus.PROCESSING,
-        user: args.userId,
+        userId: args.userId,
       });
 
     const ingredientId = ingredientData.id.toString();
@@ -223,7 +223,7 @@ export class WorkflowEngineExecutorHelperService {
     const sourceIngredientId = this.extractIngredientId(source);
     if (sourceIngredientId && this.ingredientsService) {
       const sourceIngredient = await this.ingredientsService.findOne(
-        scopedWhere(organizationId, { _id: sourceIngredientId }),
+        scopedWhere(organizationId, { id: sourceIngredientId }),
       );
 
       // Read the scalar FK (`brandId`) — the Mongo-era `brand` alias is

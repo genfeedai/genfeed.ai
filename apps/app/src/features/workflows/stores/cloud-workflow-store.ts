@@ -227,7 +227,7 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
             typeof workflowStore.loadWorkflow
           >[0]['edges'],
           groups: data.groups,
-          name: data.name,
+          name: data.label,
           nodes: normalizedNodes as Parameters<
             typeof workflowStore.loadWorkflow
           >[0]['nodes'],
@@ -236,15 +236,15 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
         });
 
         // Set the workflowId on the shared store so execution/save knows the ID
-        useWorkflowStore.setState({ isDirty: false, workflowId: data._id });
+        useWorkflowStore.setState({ isDirty: false, workflowId: data.id });
 
         // Update cloud-specific state
         set({
           inputVariables: data.inputVariables ?? [],
           isCloudLoading: false,
           lifecycle: data.lifecycle,
-          organizationId: data.organization,
-          workflowId: data._id,
+          organizationId: data.organizationId,
+          workflowId: data.id,
         });
       } catch (error) {
         const message =
@@ -329,7 +329,7 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
           edges: workflowStore.edges,
           groups: workflowStore.groups,
           inputVariables,
-          name: workflowStore.workflowName,
+          label: workflowStore.workflowName,
           nodes: restoredNodes,
         };
 
@@ -345,7 +345,7 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
             ...(pendingCreateMetadata
               ? { metadata: pendingCreateMetadata }
               : {}),
-            name: payload.name || 'Untitled Workflow',
+            label: payload.label || 'Untitled Workflow',
             ...(pendingTemplateId ? { templateId: pendingTemplateId } : {}),
           });
 
@@ -354,9 +354,9 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
             inputVariables: savedData.inputVariables ?? [],
             pendingCreateMetadata: null,
             pendingTemplateId: null,
-            workflowId: savedData._id,
+            workflowId: savedData.id,
           });
-          useWorkflowStore.setState({ workflowId: savedData._id });
+          useWorkflowStore.setState({ workflowId: savedData.id });
         }
 
         useWorkflowStore.setState({ isDirty: false, isSaving: false });

@@ -850,7 +850,7 @@ describe('WorkflowEngineAdapterService', () => {
         findOne: vi.fn().mockResolvedValue({ id: musicId }),
       };
       const sharedService = {
-        saveDocumentsInternal: vi.fn().mockResolvedValue({
+        createMediaDocumentsInternal: vi.fn().mockResolvedValue({
           ingredientData: { id: captionedId },
           metadataData: { id: 'meta-1' },
         }),
@@ -1017,7 +1017,7 @@ describe('WorkflowEngineAdapterService', () => {
         patch: vi.fn().mockResolvedValue({}),
       };
       const sharedService = {
-        saveDocumentsInternal: vi.fn().mockResolvedValue({
+        createMediaDocumentsInternal: vi.fn().mockResolvedValue({
           ingredientData: {
             id: 'ingredient-1',
           },
@@ -1124,7 +1124,7 @@ describe('WorkflowEngineAdapterService', () => {
         undefined,
         undefined,
         undefined,
-        { saveDocumentsInternal: vi.fn() } as never,
+        { createMediaDocumentsInternal: vi.fn() } as never,
         undefined,
         undefined,
         undefined,

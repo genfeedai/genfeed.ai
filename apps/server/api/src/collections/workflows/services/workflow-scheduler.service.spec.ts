@@ -344,7 +344,7 @@ describe('WorkflowSchedulerService — scheduled fire execution', () => {
       'org-1',
       expect.objectContaining({
         trigger: WorkflowExecutionTrigger.SCHEDULED,
-        workflow: 'wf-legacy',
+        workflowId: 'wf-legacy',
       }),
     );
     expect(workflowsService.executeWorkflow).toHaveBeenCalledWith('wf-legacy');

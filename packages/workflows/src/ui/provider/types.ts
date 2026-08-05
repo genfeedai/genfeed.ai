@@ -7,6 +7,7 @@ import type {
   ProviderModel,
 } from '@genfeedai/types';
 import type { ComponentType } from 'react';
+import type { WorkflowRefApi } from '../nodes/composition/workflow-ref-node.helpers';
 import type {
   DefaultModelSettings,
   RecentModel,
@@ -194,6 +195,8 @@ export interface WorkflowUIConfig {
    * silently dropped when the consuming app forgets to inject it.
    */
   workflowPersistence?: WorkflowPersistenceService;
+  /** Server API for reusable workflow references and circular-reference checks. */
+  workflowReferences?: WorkflowRefApi;
   /**
    * Applies chat/agent-generated edit operations to the workflow graph. Defaults
    * to a no-op when omitted (matching the package's standalone behavior).

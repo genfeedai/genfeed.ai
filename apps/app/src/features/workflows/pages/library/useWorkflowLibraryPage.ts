@@ -83,7 +83,7 @@ export function useWorkflowLibraryPage() {
       try {
         const service = await getService();
         const duplicated = await service.duplicate(id);
-        push(href(`${APP_ROUTES.AUTOMATE.WORKFLOWS}/${duplicated._id}`));
+        push(href(`${APP_ROUTES.AUTOMATE.WORKFLOWS}/${duplicated.id}`));
       } catch (err) {
         logger.error('Failed to duplicate workflow', {
           error: err,
@@ -96,7 +96,7 @@ export function useWorkflowLibraryPage() {
 
   const handleDelete = useCallback(
     async (id: string) => {
-      const workflow = workflows.find((w) => w._id === id);
+      const workflow = workflows.find((w) => w.id === id);
       if (workflow && isCanonicalSystemWorkflow(workflow)) {
         return;
       }
@@ -104,7 +104,7 @@ export function useWorkflowLibraryPage() {
       try {
         const service = await getService();
         await service.remove(id);
-        setWorkflows((prev) => prev.filter((w) => w._id !== id));
+        setWorkflows((prev) => prev.filter((w) => w.id !== id));
       } catch (err) {
         logger.error('Failed to delete workflow', {
           error: err,
@@ -117,13 +117,13 @@ export function useWorkflowLibraryPage() {
 
   const handleToggleSchedule = useCallback(
     async (id: string, enabled: boolean) => {
-      const previous = workflows.find((w) => w._id === id);
+      const previous = workflows.find((w) => w.id === id);
       if (!previous?.schedule || isCanonicalSystemWorkflow(previous)) return;
 
       // Optimistic update
       setWorkflows((prev) =>
         prev.map((w) =>
-          w._id === id ? { ...w, isScheduleEnabled: enabled } : w,
+          w.id === id ? { ...w, isScheduleEnabled: enabled } : w,
         ),
       );
 
@@ -138,7 +138,7 @@ export function useWorkflowLibraryPage() {
         // Revert on error
         setWorkflows((prev) =>
           prev.map((w) =>
-            w._id === id
+            w.id === id
               ? { ...w, isScheduleEnabled: previous.isScheduleEnabled }
               : w,
           ),
@@ -158,7 +158,7 @@ export function useWorkflowLibraryPage() {
     const query = searchInput.toLowerCase();
     return workflows.filter(
       (w) =>
-        w.name.toLowerCase().includes(query) ||
+        w.label.toLowerCase().includes(query) ||
         w.description?.toLowerCase().includes(query),
     );
   }, [workflows, searchInput, debouncedSearch]);

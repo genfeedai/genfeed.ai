@@ -8,7 +8,7 @@ import {
 
 function makePrompt(overrides: Partial<IPrompt> = {}): IPrompt {
   return {
-    _id: 'prompt-1',
+    id: 'prompt-1',
     category: 'portrait',
     content: 'A prompt',
     name: 'Sunset',
@@ -52,7 +52,7 @@ describe('usePromptLibraryStore — UI actions', () => {
     usePromptLibraryStore.getState().closePicker();
     expect(usePromptLibraryStore.getState().isPickerOpen).toBe(false);
 
-    const editItem = makePrompt({ _id: 'edit-me' });
+    const editItem = makePrompt({ id: 'edit-me' });
     usePromptLibraryStore.getState().openCreateModal(editItem);
     let state = usePromptLibraryStore.getState();
     expect(state.isCreateModalOpen).toBe(true);
@@ -106,7 +106,7 @@ describe('usePromptLibraryStore — CRUD via injected API', () => {
 
   it('loadFeatured stores featured items', async () => {
     const api = makeApi();
-    const featured = [makePrompt({ _id: 'featured-1' })];
+    const featured = [makePrompt({ id: 'featured-1' })];
     (api.getFeatured as ReturnType<typeof vi.fn>).mockResolvedValue(featured);
     configurePromptLibrary(api);
 
@@ -118,10 +118,10 @@ describe('usePromptLibraryStore — CRUD via injected API', () => {
 
   it('createItem prepends the new item and closes the modal', async () => {
     const api = makeApi();
-    const created = makePrompt({ _id: 'new-1', name: 'New' });
+    const created = makePrompt({ id: 'new-1', name: 'New' });
     (api.create as ReturnType<typeof vi.fn>).mockResolvedValue(created);
     configurePromptLibrary(api);
-    usePromptLibraryStore.setState({ items: [makePrompt({ _id: 'old' })] });
+    usePromptLibraryStore.setState({ items: [makePrompt({ id: 'old' })] });
 
     const result = await usePromptLibraryStore
       .getState()

@@ -15,13 +15,13 @@ vi.mock('./client', () => ({
 
 describe('workflowsApi', () => {
   const mockWorkflow: WorkflowData = {
-    _id: 'workflow-1',
+    id: 'workflow-1',
     createdAt: '2025-01-01T00:00:00.000Z',
     description: 'A test workflow',
     edgeStyle: 'bezier',
     edges: [],
     groups: [],
-    name: 'Test Workflow',
+    label: 'Test Workflow',
     nodes: [],
     updatedAt: '2025-01-01T00:00:00.000Z',
     version: 1,
@@ -82,7 +82,7 @@ describe('workflowsApi', () => {
 
       const createData = {
         edges: [],
-        name: 'Test Workflow',
+        label: 'Test Workflow',
         nodes: [],
       };
 
@@ -111,7 +111,7 @@ describe('workflowsApi', () => {
         edgeStyle: 'step',
         edges: [],
         groups: [],
-        name: 'Full Workflow',
+        label: 'Full Workflow',
         nodes: [],
       };
 
@@ -137,10 +137,10 @@ describe('workflowsApi', () => {
   describe('update', () => {
     it('should update an existing workflow', async () => {
       const { apiClient } = await import('./client');
-      const updatedWorkflow = { ...mockWorkflow, name: 'Updated Workflow' };
+      const updatedWorkflow = { ...mockWorkflow, label: 'Updated Workflow' };
       vi.mocked(apiClient.patch).mockResolvedValueOnce(updatedWorkflow);
 
-      const updateData = { name: 'Updated Workflow' };
+      const updateData = { label: 'Updated Workflow' };
       const result = await workflowsApi.update('workflow-1', updateData);
 
       expect(apiClient.patch).toHaveBeenCalledWith(
@@ -150,7 +150,7 @@ describe('workflowsApi', () => {
           signal: undefined,
         },
       );
-      expect(result.name).toBe('Updated Workflow');
+      expect(result.label).toBe('Updated Workflow');
     });
 
     it('should update nodes and edges', async () => {
@@ -203,8 +203,8 @@ describe('workflowsApi', () => {
       const { apiClient } = await import('./client');
       const duplicatedWorkflow = {
         ...mockWorkflow,
-        _id: 'workflow-2',
-        name: 'Test Workflow (Copy)',
+        id: 'workflow-2',
+        label: 'Test Workflow (Copy)',
       };
       vi.mocked(apiClient.post).mockResolvedValueOnce(duplicatedWorkflow);
 
@@ -217,15 +217,15 @@ describe('workflowsApi', () => {
           signal: undefined,
         },
       );
-      expect(result._id).toBe('workflow-2');
-      expect(result.name).toBe('Test Workflow (Copy)');
+      expect(result.id).toBe('workflow-2');
+      expect(result.label).toBe('Test Workflow (Copy)');
     });
 
     it('should duplicate a workflow for a target brand', async () => {
       const { apiClient } = await import('./client');
       vi.mocked(apiClient.post).mockResolvedValueOnce({
         ...mockWorkflow,
-        _id: 'workflow-2',
+        id: 'workflow-2',
         brandId: 'brand-2',
       });
 

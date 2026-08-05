@@ -43,7 +43,6 @@ export const EXECUTABLE_WORKFLOW_SELECT = {
   inputVariables: true,
   label: true,
   metadata: true,
-  mongoId: true,
   nodes: true,
   organizationId: true,
   steps: true,

@@ -29,17 +29,16 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 /**
- * Legacy step-based workflow execution engine.
+ * Step-based workflow execution engine.
  *
  * Runs workflows that predate the node/edge graph model: a flat `steps` array
  * with `dependsOn` references, executed as a hand-rolled topological scheduler
  * that dispatches each step category to a queue job, post creation, webhook
  * call, or delay.
  *
- * Still reachable in production for workflows without `nodes` — scheduled runs
- * (`WorkflowSchedulerService`), legacy `workflow_execution` cron rows
- * (`CronJobsService`), and the manual/webhook compat fallbacks all route
- * step-only workflows here. Node-based workflows use `WorkflowExecutorService`.
+ * Workflows without `nodes` use this engine for scheduled runs,
+ * workflow-backed cron rows, and manual/webhook execution. Node-based
+ * workflows use `WorkflowExecutorService`.
  *
  * Extends `BaseService` over the same `workflow` collection as
  * `WorkflowsService` so `patch()` keeps identical cache-invalidation semantics
@@ -47,7 +46,7 @@ import { BadRequestException, Injectable, Optional } from '@nestjs/common';
  * (#754).
  */
 @Injectable()
-export class LegacyWorkflowStepRunner extends BaseService<
+export class WorkflowStepRunnerService extends BaseService<
   WorkflowDocument,
   CreateWorkflowDto,
   UpdateWorkflowDto
@@ -65,7 +64,7 @@ export class LegacyWorkflowStepRunner extends BaseService<
 
   async executeWorkflow(workflowId: string): Promise<void> {
     const workflowDoc = await this.findOne({
-      _id: workflowId,
+      id: workflowId,
       isDeleted: false,
     });
     if (!workflowDoc) {
@@ -76,9 +75,6 @@ export class LegacyWorkflowStepRunner extends BaseService<
       throw new NotFoundException('Workflow');
     }
 
-    // Scalar FKs `userId`/`organizationId` hold live data on Prisma rows; the
-    // Mongo-era `user`/`organization` aliases are undefined at runtime on this
-    // unpopulated fromDocument() result and would gate every execution off.
     if (!workflow.userId || !workflow.organizationId) {
       throw new Error(
         'Systemic workflow templates cannot be executed directly. Clone the workflow first.',
@@ -221,7 +217,7 @@ export class LegacyWorkflowStepRunner extends BaseService<
 
       await this.updateWorkflowStep(workflowId, step.id, {
         completedAt: new Date(),
-        output: output?._id as string | undefined,
+        output: typeof output?.id === 'string' ? output.id : undefined,
         progress: 100,
         status: WorkflowStepStatus.COMPLETED,
       });
@@ -401,8 +397,8 @@ export class LegacyWorkflowStepRunner extends BaseService<
     });
 
     return {
-      _id: assetId,
       config,
+      id: assetId,
       jobId: (job as Record<string, unknown>).id,
       [resultKey]: true,
     };
@@ -463,26 +459,26 @@ export class LegacyWorkflowStepRunner extends BaseService<
       const posts = await Promise.all(
         (platforms as string[]).map((platform: string) =>
           postsService.create({
-            brand: workflow.brandId,
-            credential: config.credential,
+            brandId: workflow.brandId,
+            credentialId: config.credential,
             description: config.description as string,
             ingredients: assetId ? [assetId] : [],
             label: config.label as string,
-            organization: workflow.organizationId,
+            organizationId: workflow.organizationId,
             platform: platform as CredentialPlatform,
             scheduledDate:
               schedule === 'immediate'
                 ? new Date()
                 : (config.scheduledAt as Date),
             status: (visibility as PostStatus) || PostStatus.SCHEDULED,
-            user: workflow.userId,
+            userId: workflow.userId,
           } as never),
         ),
       );
       return { posts } as Record<string, unknown>;
     }
 
-    return { _id: assetId, config, published: true };
+    return { config, id: assetId, published: true };
   }
 
   private executeResize(
@@ -550,8 +546,8 @@ export class LegacyWorkflowStepRunner extends BaseService<
     }
 
     return {
-      _id: assetId,
       config,
+      id: assetId,
       webhookSent: true,
       webhookStatus: response.status,
     };
@@ -571,7 +567,7 @@ export class LegacyWorkflowStepRunner extends BaseService<
     updates: Partial<WorkflowStep>,
   ): Promise<void> {
     const workflow = await this.findOne({
-      _id: workflowId,
+      id: workflowId,
       isDeleted: false,
     });
     if (!workflow) {
@@ -600,12 +596,7 @@ export class LegacyWorkflowStepRunner extends BaseService<
       return;
     }
 
-    const workflowId =
-      typeof workflow === 'string'
-        ? workflow
-        : workflow?._id
-          ? String(workflow._id)
-          : undefined;
+    const workflowId = typeof workflow === 'string' ? workflow : workflow.id;
 
     if (!workflowId) {
       return;

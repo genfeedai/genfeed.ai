@@ -1,11 +1,11 @@
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
-import { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import {
   EXECUTABLE_WORKFLOW_SELECT,
   WorkflowExecutorService,
 } from '@api/collections/workflows/services/workflow-executor.service';
+import { WorkflowStepRunnerService } from '@api/collections/workflows/services/workflow-step-runner.service';
 import { getSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
@@ -36,7 +36,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
     @Inject(LoggerService)
     private readonly logger: LoggerService,
     private readonly configService: ConfigService,
-    private readonly legacyWorkflowStepRunner: LegacyWorkflowStepRunner,
+    private readonly workflowStepRunner: WorkflowStepRunnerService,
     private readonly workflowExecutionsService: WorkflowExecutionsService,
     private readonly workflowExecutorService: WorkflowExecutorService,
     private readonly workflowExecutionQueueService: WorkflowExecutionQueueService,
@@ -202,9 +202,8 @@ export class WorkflowSchedulerService implements OnModuleInit {
         return;
       }
 
-      const wDoc = workflow as unknown as Record<string, unknown>;
-      const wUserId = String(wDoc.userId ?? wDoc.user ?? '');
-      const wOrgId = String(wDoc.organizationId ?? wDoc.organization ?? '');
+      const wUserId = workflow.userId;
+      const wOrgId = workflow.organizationId;
 
       // Skip execution for systemic workflows (templates without user/org)
       if (!wUserId || !wOrgId) {
@@ -246,7 +245,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
         await this.workflowExecutionsService.createExecution(wUserId, wOrgId, {
           inputValues: defaultInputValues,
           trigger: WorkflowExecutionTrigger.SCHEDULED,
-          workflow: workflowId,
+          workflowId,
         });
       }
 
@@ -271,7 +270,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
             { triggeredBy: 'schedule' },
             WorkflowExecutionTrigger.SCHEDULED,
           )
-        : this.legacyWorkflowStepRunner.executeWorkflow(workflowId);
+        : this.workflowStepRunner.executeWorkflow(workflowId);
 
       executePromise.catch((error) => {
         this.logger.error(

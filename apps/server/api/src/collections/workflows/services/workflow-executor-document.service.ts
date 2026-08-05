@@ -49,7 +49,6 @@ export class WorkflowExecutorDocumentService {
 
     return {
       ...(workflowRecord as unknown as WorkflowDocument),
-      _id: String(workflowRecord.mongoId ?? workflowRecord.id ?? ''),
       config: this.readObjectRecord(workflowRecord.config) ?? undefined,
       edges: this.readArray<WorkflowEdge>(workflowRecord.edges),
       inputVariables: this.readArray<WorkflowInputVariable>(
@@ -57,12 +56,7 @@ export class WorkflowExecutorDocumentService {
       ),
       metadata: this.readObjectRecord(workflowRecord.metadata) ?? undefined,
       nodes: this.readArray<WorkflowVisualNode>(workflowRecord.nodes),
-      organization: (workflowRecord.organizationId ??
-        workflowRecord.organization) as string | undefined,
       steps: this.readArray<WorkflowStep>(workflowRecord.steps),
-      user: (workflowRecord.userId ?? workflowRecord.user) as
-        | string
-        | undefined,
     };
   }
 

@@ -53,7 +53,7 @@ describe('WorkflowSurfaceInspector', () => {
     vi.clearAllMocks();
     getService.mockResolvedValue(service);
     service.get.mockResolvedValue({
-      _id: 'workflow-1',
+      id: 'workflow-1',
       createdAt: '2026-07-13T08:00:00.000Z',
       edgeStyle: 'bezier',
       edges: [],
@@ -67,15 +67,15 @@ describe('WorkflowSurfaceInspector', () => {
       ],
       isScheduleEnabled: true,
       lifecycle: 'published',
-      name: 'Launch brief',
+      label: 'Launch brief',
       nodes: [],
-      organization: 'organization-1',
+      organizationId: 'organization-1',
       schedule: '0 9 * * *',
       timezone: 'Europe/Malta',
       updatedAt: '2026-07-13T08:00:00.000Z',
     });
     service.getExecution.mockResolvedValue({
-      _id: 'run-1',
+      id: 'run-1',
       createdAt: '2026-07-13T08:00:00.000Z',
       inputValues: { topic: 'Product launch' },
       metadata: {
@@ -95,7 +95,7 @@ describe('WorkflowSurfaceInspector', () => {
       status: 'waiting_approval',
       trigger: 'agent',
       updatedAt: '2026-07-13T08:01:00.000Z',
-      workflow: 'workflow-1',
+      workflowId: 'workflow-1',
     });
     service.submitApproval.mockResolvedValue({ status: 'approved' });
     service.resumeExecution.mockResolvedValue({
@@ -139,7 +139,7 @@ describe('WorkflowSurfaceInspector', () => {
 
   it('resumes failed runs through the canonical scoped route', async () => {
     service.getExecution.mockResolvedValueOnce({
-      _id: 'run-1',
+      id: 'run-1',
       createdAt: '2026-07-13T08:00:00.000Z',
       metadata: { source: 'conversation' },
       nodeResults: [],
@@ -147,7 +147,7 @@ describe('WorkflowSurfaceInspector', () => {
       status: 'failed',
       trigger: 'agent',
       updatedAt: '2026-07-13T08:01:00.000Z',
-      workflow: 'workflow-1',
+      workflowId: 'workflow-1',
     });
 
     render(

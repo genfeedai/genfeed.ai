@@ -145,22 +145,22 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
           new CaptionEntity({
             content: captionContent,
             format: CaptionFormat.SRT,
-            ingredient: sourceIngredientId,
+            ingredientId: sourceIngredientId,
             isDeleted: false,
             language: CaptionLanguage.EN,
-            user: context.userId,
+            userId: context.userId,
           }),
         );
 
         const { ingredientData, metadataData } =
-          await sharedService.saveDocumentsInternal({
-            brand: brandId,
+          await sharedService.createMediaDocumentsInternal({
+            brandId,
             category: IngredientCategory.VIDEO,
             extension: MetadataExtension.MP4,
-            organization: context.organizationId,
-            parent: sourceIngredientId,
+            organizationId: context.organizationId,
+            parentId: sourceIngredientId,
             status: IngredientStatus.PROCESSING,
-            user: context.userId,
+            userId: context.userId,
           });
 
         const ingredientId = ingredientData.id.toString();
@@ -238,14 +238,14 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
       const brandId = this.helper.getRequiredBrandId(node);
       const music =
         (await musicsService.findOne({
-          brand: brandId,
+          brandId: brandId,
           isDeleted: false,
-          organization: context.organizationId,
+          organizationId: context.organizationId,
           status: IngredientStatus.GENERATED,
         })) ??
         (await musicsService.findOne({
           isDeleted: false,
-          organization: context.organizationId,
+          organizationId: context.organizationId,
           status: IngredientStatus.GENERATED,
         }));
       const musicId = this.helper.getDocumentId(music);

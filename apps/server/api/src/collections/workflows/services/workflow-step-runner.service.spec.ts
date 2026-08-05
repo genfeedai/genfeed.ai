@@ -1,15 +1,10 @@
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
-import { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
+import { WorkflowStepRunnerService } from '@api/collections/workflows/services/workflow-step-runner.service';
 import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowStatus } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 
-// Prisma rows expose the scalar FKs `userId`/`organizationId`. The Mongo-era
-// `user`/`organization` aliases are type-only fields that are undefined at
-// runtime on the unpopulated `EntityFactory.fromDocument()` result the runner
-// builds, so scoping MUST resolve from the scalar FKs — see
-// docs/identity-resolution.md and .agents/memory/rules/prisma_legacy_alias_fields.md.
 const MOCK_USER_ID = '507f1f77bcf86cd799439011';
 const MOCK_ORG_ID = '507f1f77bcf86cd799439012';
 const WORKFLOW_ID = '507f1f77bcf86cd799439013';
@@ -27,7 +22,7 @@ function createLogger(): LoggerService {
 }
 
 function createRunner(websocket?: NotificationsPublisherService) {
-  const runner = new LegacyWorkflowStepRunner(
+  const runner = new WorkflowStepRunnerService(
     {} as unknown as PrismaService,
     createLogger(),
     websocket,
@@ -37,13 +32,12 @@ function createRunner(websocket?: NotificationsPublisherService) {
   return { findOne, patch, runner };
 }
 
-describe('LegacyWorkflowStepRunner', () => {
+describe('WorkflowStepRunnerService', () => {
   describe('executeWorkflow scoping guard', () => {
     it('executes a workflow scoped by the scalar userId/organizationId FKs', async () => {
       const { findOne, patch, runner } = createRunner();
-      // Live Prisma shape: scalar FKs present, no Mongo-era aliases.
       findOne.mockResolvedValue({
-        _id: WORKFLOW_ID,
+        id: WORKFLOW_ID,
         isDeleted: false,
         label: 'Scoped workflow',
         organizationId: MOCK_ORG_ID,
@@ -63,18 +57,13 @@ describe('LegacyWorkflowStepRunner', () => {
       );
     });
 
-    it('rejects a workflow that only carries the Mongo-era user/organization aliases', async () => {
+    it('rejects an ownerless system workflow', async () => {
       const { findOne, patch, runner } = createRunner();
-      // Pre-fix regression: reading `workflow.user`/`workflow.organization`
-      // would have treated this row as validly scoped. The scalar FKs are
-      // absent, so the guard must reject it.
       findOne.mockResolvedValue({
-        _id: WORKFLOW_ID,
+        id: WORKFLOW_ID,
         isDeleted: false,
-        label: 'Alias-only workflow',
-        organization: MOCK_ORG_ID,
+        label: 'Ownerless workflow',
         steps: [],
-        user: MOCK_USER_ID,
       } as unknown as WorkflowDocument);
 
       await expect(runner.executeWorkflow(WORKFLOW_ID)).rejects.toThrow(
@@ -94,7 +83,7 @@ describe('LegacyWorkflowStepRunner', () => {
       } as unknown as NotificationsPublisherService;
       const { findOne, runner } = createRunner(websocket);
       findOne.mockResolvedValue({
-        _id: WORKFLOW_ID,
+        id: WORKFLOW_ID,
         isDeleted: false,
         label: 'Scoped workflow',
         organizationId: MOCK_ORG_ID,
@@ -104,8 +93,6 @@ describe('LegacyWorkflowStepRunner', () => {
 
       await runner.executeWorkflow(WORKFLOW_ID);
 
-      // Third arg is the scalar userId, not `String(undefined)` — this row has
-      // no `user` alias, so a phantom read would have published 'undefined'.
       expect(publishWorkflowStatus).toHaveBeenCalledWith(
         WORKFLOW_ID,
         'completed',

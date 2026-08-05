@@ -365,9 +365,9 @@ export class AgentWorkflowToolHandler {
     source: OfficialWorkflowSource,
   ): Promise<void> {
     const workflow = await this.workflowsService.findOne({
-      _id: workflowId,
+      id: workflowId,
       isDeleted: false,
-      organization: ctx.organizationId,
+      organizationId: ctx.organizationId,
     });
 
     if (!workflow) {
@@ -406,9 +406,9 @@ export class AgentWorkflowToolHandler {
   ): Promise<Record<string, unknown> | null> {
     if (typeof params.brandId === 'string') {
       const explicitBrand = await this.brandsService.findOne({
-        _id: params.brandId,
+        id: params.brandId,
         isDeleted: false,
-        organization: ctx.organizationId,
+        organizationId: ctx.organizationId,
       });
 
       if (explicitBrand) {
@@ -419,8 +419,8 @@ export class AgentWorkflowToolHandler {
     const currentBrand = await this.brandsService.findOne({
       isDeleted: false,
       isSelected: true,
-      organization: ctx.organizationId,
-      user: ctx.userId,
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
     });
 
     if (currentBrand) {
@@ -429,9 +429,9 @@ export class AgentWorkflowToolHandler {
 
     if (ctx.brandId) {
       const contextBrand = await this.brandsService.findOne({
-        _id: ctx.brandId,
+        id: ctx.brandId,
         isDeleted: false,
-        organization: ctx.organizationId,
+        organizationId: ctx.organizationId,
       });
 
       if (contextBrand) {
@@ -441,7 +441,7 @@ export class AgentWorkflowToolHandler {
 
     const firstOrgBrand = await this.brandsService.findOne({
       isDeleted: false,
-      organization: ctx.organizationId,
+      organizationId: ctx.organizationId,
     });
 
     return firstOrgBrand as unknown as Record<string, unknown> | null;
@@ -563,9 +563,9 @@ export class AgentWorkflowToolHandler {
     }
 
     const brand = await this.brandsService.findOne({
-      _id: requestedBrandId,
+      id: requestedBrandId,
       isDeleted: false,
-      organization: ctx.organizationId,
+      organizationId: ctx.organizationId,
     });
 
     if (!brand) {
@@ -640,7 +640,7 @@ export class AgentWorkflowToolHandler {
       {
         where: {
           isDeleted: false,
-          organization: ctx.organizationId,
+          organizationId: ctx.organizationId,
         },
         orderBy: { updatedAt: -1 },
       },
@@ -681,9 +681,9 @@ export class AgentWorkflowToolHandler {
     }
 
     const workflow = await this.workflowsService.findOne({
-      _id: workflowId,
+      id: workflowId,
       isDeleted: false,
-      organization: ctx.organizationId,
+      organizationId: ctx.organizationId,
     });
 
     if (!workflow) {
@@ -807,7 +807,7 @@ export class AgentWorkflowToolHandler {
 
     query.set('limit', String(limit));
     query.set('offset', String(offset));
-    if (workflowId) query.set('workflow', workflowId);
+    if (workflowId) query.set('workflowId', workflowId);
     if (status) query.set('status', status);
     if (trigger) query.set('trigger', trigger);
 
@@ -1708,9 +1708,9 @@ export class AgentWorkflowToolHandler {
       {};
 
     const workflow = await this.workflowsService.findOne({
-      _id: workflowId,
+      id: workflowId,
       isDeleted: false,
-      organization: ctx.organizationId,
+      organizationId: ctx.organizationId,
     });
 
     if (!workflow) {
@@ -1770,9 +1770,9 @@ export class AgentWorkflowToolHandler {
     const workflowId = params.workflowId as string;
 
     const workflow = await this.workflowsService.findOne({
-      _id: workflowId,
+      id: workflowId,
       isDeleted: false,
-      organization: ctx.organizationId,
+      organizationId: ctx.organizationId,
     });
 
     if (!workflow) {

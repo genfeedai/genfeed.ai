@@ -1,14 +1,12 @@
 import { type WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
-import { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import { WorkflowStepRunnerService } from '@api/collections/workflows/services/workflow-step-runner.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
 export type WorkflowWebhookAuthType = 'none' | 'secret' | 'bearer';
@@ -23,11 +21,10 @@ export type WorkflowWebhookAuthType = 'none' | 'secret' | 'bearer';
 export class WorkflowWebhookService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly logger: LoggerService,
     private readonly configService: ConfigService,
     private readonly workflowsService: WorkflowsService,
     @Optional()
-    private readonly legacyWorkflowStepRunner?: LegacyWorkflowStepRunner,
+    private readonly workflowStepRunner?: WorkflowStepRunnerService,
     @Optional()
     private readonly workflowExecutorService?: WorkflowExecutorService,
   ) {}
@@ -115,7 +112,7 @@ export class WorkflowWebhookService {
     }
 
     return this.workflowsService.findOne({
-      _id: match.id,
+      id: match.id,
       isDeleted: false,
     });
   }
@@ -146,16 +143,9 @@ export class WorkflowWebhookService {
       webhookTriggerCount: currentWebhookTriggerCount + 1,
     });
 
-    // Scalar FKs first: `user`/`organization` are Mongo-era relation aliases
-    // that only hold an id while `BaseService.normalizeDocument` back-fills
-    // them, so `.toString()` below would throw the moment a query populates
-    // them or a raw row skips normalization. Systemic workflow templates
-    // legitimately have no owner, which is what an unresolved id means here.
-    const userId = resolveRelationId(workflow.userId, workflow.user);
-    const organizationId = resolveRelationId(
-      workflow.organizationId,
-      workflow.organization,
-    );
+    // Systemic workflow templates legitimately have no scalar owner IDs.
+    const userId = workflow.userId ?? undefined;
+    const organizationId = workflow.organizationId ?? undefined;
 
     if (!userId || !organizationId) {
       throw new Error(
@@ -164,13 +154,13 @@ export class WorkflowWebhookService {
     }
 
     if (!this.shouldUseNodeExecutor(workflow)) {
-      if (!this.legacyWorkflowStepRunner) {
+      if (!this.workflowStepRunner) {
         throw new Error(
-          'Legacy workflow step runner is not available - cannot trigger step workflow',
+          'Workflow step runner is not available - cannot trigger step workflow',
         );
       }
 
-      await this.legacyWorkflowStepRunner.executeWorkflow(String(workflow.id));
+      await this.workflowStepRunner.executeWorkflow(String(workflow.id));
       return {
         runId: String(workflow.id),
         status: 'started',

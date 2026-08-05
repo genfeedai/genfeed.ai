@@ -102,7 +102,7 @@ export const createPersistenceSlice: StateCreator<
         edgeStyle,
         edges: [],
         groups: [],
-        name: 'Untitled Workflow',
+        label: 'Untitled Workflow',
         nodes: [],
       },
       signal,
@@ -114,11 +114,11 @@ export const createPersistenceSlice: StateCreator<
       isDirty: false,
       nodes: [],
       selectedNodeIds: [],
-      workflowId: workflow._id,
-      workflowName: workflow.name,
+      workflowId: workflow.id,
+      workflowName: workflow.label,
     });
 
-    return workflow._id;
+    return workflow.id;
   },
 
   deleteWorkflow: async (id, signal) => {
@@ -229,7 +229,7 @@ export const createPersistenceSlice: StateCreator<
         edgeStyle: workflow.edgeStyle as EdgeStyle,
         edges: workflow.edges,
         groups: workflow.groups ?? [],
-        name: workflow.name,
+        name: workflow.label,
         nodes: workflow.nodes,
         version: 1,
       });
@@ -237,7 +237,7 @@ export const createPersistenceSlice: StateCreator<
       set({
         isDirty: false,
         isLoading: false,
-        workflowId: workflow._id,
+        workflowId: workflow.id,
       });
     } catch (error) {
       set({ isLoading: false });
@@ -262,7 +262,7 @@ export const createPersistenceSlice: StateCreator<
         edgeStyle,
         edges,
         groups,
-        name: workflowName,
+        label: workflowName,
         nodes,
       };
 
@@ -273,7 +273,7 @@ export const createPersistenceSlice: StateCreator<
       set({
         isDirty: false,
         isSaving: false,
-        workflowId: workflow._id,
+        workflowId: workflow.id,
       });
 
       return workflow;

@@ -17,11 +17,7 @@ export type WorkflowNodeResult = {
 };
 
 export interface WorkflowExecutionDocument
-  extends Omit<PrismaWorkflowExecution, 'result' | 'trigger'> {
-  _id: string;
-  workflow?: string | Record<string, unknown>;
-  user?: string | Record<string, unknown>;
-  organization?: string | Record<string, unknown>;
+  extends Omit<PrismaWorkflowExecution, 'result'> {
   inputValues?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
   nodeResults: WorkflowNodeResult[];
@@ -29,7 +25,6 @@ export interface WorkflowExecutionDocument
   failedNodeId?: string | null;
   creditsUsed?: number;
   durationMs?: number;
-  trigger?: string;
   result?: Record<string, unknown> | null;
   [key: string]: unknown;
 }

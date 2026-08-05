@@ -172,6 +172,16 @@ export default function WorkflowDetailPageClient({
         getById: workflowsApi.getById,
         update: workflowsApi.update,
       },
+      workflowReferences: {
+        fetchReferencableWorkflows: workflowsApi.getReferencable,
+        fetchWorkflowInterface: workflowsApi.getInterface,
+        validateReference: async (parentWorkflowId, childWorkflowId) => {
+          await workflowsApi.validateReference(
+            parentWorkflowId,
+            childWorkflowId,
+          );
+        },
+      },
       workflowsApi: {
         setThumbnail: async (selectedWorkflowId, thumbnailUrl, nodeId) => {
           const service = await getWorkflowService();

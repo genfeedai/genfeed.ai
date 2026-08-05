@@ -11,7 +11,7 @@ import { IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
 export class CreateWorkflowExecutionDto extends WorkflowActionContextDto {
   @IsEntityId()
   @ApiProperty({ description: 'Workflow ID to execute' })
-  readonly workflow!: string;
+  readonly workflowId!: string;
 
   @IsEnum(WorkflowExecutionTrigger)
   @IsOptional()
@@ -29,8 +29,6 @@ export class CreateWorkflowExecutionDto extends WorkflowActionContextDto {
     description: 'Input values for workflow variables',
     required: false,
   })
-  @IsOptional()
-  @IsObject()
   readonly inputValues?: Record<string, unknown>;
 
   @IsObject()
@@ -66,7 +64,7 @@ export class WorkflowExecutionQueryDto extends BaseQueryDto {
   @IsEntityId()
   @IsOptional()
   @ApiProperty({ description: 'Filter by workflow ID', required: false })
-  readonly workflow?: string;
+  readonly workflowId?: string;
 
   @IsEnum(WorkflowExecutionStatus)
   @IsOptional()

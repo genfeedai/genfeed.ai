@@ -13,7 +13,6 @@ export interface BatchWorkflowItemOutputSummary {
 
 export interface BatchWorkflowItemDocument {
   id?: string;
-  _id?: string;
   ingredientId: string;
   status: BatchWorkflowItemStatus | string;
   executionId?: string;
@@ -28,10 +27,6 @@ export interface BatchWorkflowItemDocument {
 
 export interface BatchWorkflowJobDocument
   extends Omit<PrismaBatchWorkflowJob, 'items'> {
-  _id: string;
-  workflow?: string | Record<string, unknown>;
-  user?: string | Record<string, unknown>;
-  organization?: string | Record<string, unknown>;
   items: BatchWorkflowItemDocument[];
   completedCount?: number;
   failedCount?: number;

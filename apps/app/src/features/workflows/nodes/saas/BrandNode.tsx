@@ -51,7 +51,7 @@ function BrandNodeComponent(props: NodeProps): React.JSX.Element {
   const handleBrandChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       const brandId = e.target.value || null;
-      const selectedBrand = brands.find((brand) => brand._id === brandId);
+      const selectedBrand = brands.find((brand) => brand.id === brandId);
       updateNodeData(id, {
         brandId,
         resolvedBrandId: brandId,
@@ -91,7 +91,7 @@ function BrandNodeComponent(props: NodeProps): React.JSX.Element {
         disabled={isBrandsLoading || brands.length === 0}
       >
         {brands.map((brand) => (
-          <option key={brand._id} value={brand._id}>
+          <option key={brand.id} value={brand.id}>
             {brand.label}
           </option>
         ))}

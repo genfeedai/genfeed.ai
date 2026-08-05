@@ -17,12 +17,12 @@ Authorization: Bearer {{bearerToken}}
 
 
 ### Get Executions for Specific Workflow (filter on the base list)
-GET {{apiBaseUrl}}/workflow-executions?workflow={{testWorkflowId}}
+GET {{apiBaseUrl}}/workflow-executions?workflowId={{testWorkflowId}}
 Authorization: Bearer {{bearerToken}}
 
 
 ### Get Executions for Workflow with Pagination
-GET {{apiBaseUrl}}/workflow-executions?workflow={{testWorkflowId}}&limit=10&offset=0
+GET {{apiBaseUrl}}/workflow-executions?workflowId={{testWorkflowId}}&limit=10&offset=0
 Authorization: Bearer {{bearerToken}}
 
 
@@ -51,7 +51,7 @@ Content-Type: application/json
 
 {
   "workflowId": "{{testWorkflowId}}",
-  "input": {
+  "inputValues": {
     "topic": "AI content marketing strategies",
     "platform": "twitter",
     "count": 5
@@ -94,7 +94,7 @@ Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
 {
-  "input": {}
+  "inputValues": {}
 }
 
 

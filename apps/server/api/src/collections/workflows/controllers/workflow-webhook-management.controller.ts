@@ -59,8 +59,8 @@ export class WorkflowWebhookManagementController {
   }> {
     const publicMetadata = getPublicMetadata(user);
     await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
-      organization: publicMetadata.organization,
-      user: publicMetadata.user,
+      organizationId: publicMetadata.organization,
+      userId: publicMetadata.user,
     });
 
     const result = await this.workflowWebhookService.generateWebhook(
@@ -88,8 +88,8 @@ export class WorkflowWebhookManagementController {
     const workflow = await this.workflowsService.findMutableOwnedOrThrow(
       workflowId,
       {
-        organization: publicMetadata.organization,
-        user: publicMetadata.user,
+        organizationId: publicMetadata.organization,
+        userId: publicMetadata.user,
       },
     );
 
@@ -120,8 +120,8 @@ export class WorkflowWebhookManagementController {
   ): Promise<{ data: { message: string } }> {
     const publicMetadata = getPublicMetadata(user);
     await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
-      organization: publicMetadata.organization,
-      user: publicMetadata.user,
+      organizationId: publicMetadata.organization,
+      userId: publicMetadata.user,
     });
 
     await this.workflowWebhookService.deleteWebhook(workflowId);
@@ -144,8 +144,8 @@ export class WorkflowWebhookManagementController {
   }> {
     const publicMetadata = getPublicMetadata(user);
     const workflow = await this.workflowsService.findOwnedOrThrow(workflowId, {
-      organization: publicMetadata.organization,
-      user: publicMetadata.user,
+      organizationId: publicMetadata.organization,
+      userId: publicMetadata.user,
     });
 
     const baseUrl = this.configService.apiUrl;

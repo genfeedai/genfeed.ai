@@ -2,15 +2,15 @@ import type { WorkflowInterface } from '@genfeedai/types';
 import { getWorkflowLogger } from '../../stores/executionLogger';
 
 export interface ReferencableWorkflow {
-  _id: string;
-  name: string;
+  id: string;
+  label: string;
   description?: string;
   interface: WorkflowInterface;
 }
 
 /**
  * API adapter for WorkflowRefNode.
- * Host apps must call `setWorkflowRefApi()` to provide implementations.
+ * Host apps inject this through `WorkflowUIConfig.workflowReferences`.
  */
 export interface WorkflowRefApi {
   fetchReferencableWorkflows: (
@@ -46,7 +46,7 @@ const noopApi: WorkflowRefApi = {
 
 export let workflowRefApi: WorkflowRefApi = noopApi;
 
-/** Host apps call this to wire up the API layer for WorkflowRefNode. */
-export function setWorkflowRefApi(api: WorkflowRefApi): void {
-  workflowRefApi = api;
+/** Configure the workflow-reference API, resetting to the safe default when absent. */
+export function configureWorkflowRefApi(api?: WorkflowRefApi): void {
+  workflowRefApi = api ?? noopApi;
 }

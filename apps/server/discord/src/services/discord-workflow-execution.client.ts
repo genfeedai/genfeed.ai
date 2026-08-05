@@ -39,7 +39,7 @@ export class DiscordWorkflowExecutionClient {
         {
           inputValues,
           metadata,
-          workflow: workflowId,
+          workflowId,
         },
         { headers: this.headers },
       ),
@@ -66,9 +66,9 @@ export class DiscordWorkflowExecutionClient {
 
   async cancel(orgId: string, executionId: string): Promise<void> {
     await firstValueFrom(
-      this.options.httpService.post(
-        `${this.options.apiUrl}/v1/internal/orgs/${orgId}/workflow-executions/${executionId}/cancel`,
-        {},
+      this.options.httpService.patch(
+        `${this.options.apiUrl}/v1/internal/orgs/${orgId}/workflow-executions/${executionId}`,
+        { status: 'cancelled' },
         { headers: this.headers },
       ),
     );

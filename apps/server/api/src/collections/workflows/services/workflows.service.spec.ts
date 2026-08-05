@@ -30,7 +30,7 @@ describe('WorkflowsService template creation', () => {
       nodes: [],
       steps: [],
     } as never);
-    vi.spyOn(service, 'executeWorkflowCompat').mockResolvedValue({
+    vi.spyOn(service, 'executeWorkflow').mockResolvedValue({
       mode: 'node',
     });
   });
@@ -214,7 +214,7 @@ describe('WorkflowsService template creation', () => {
       trigger: 'manual',
     } as never);
 
-    expect(service.executeWorkflowCompat).not.toHaveBeenCalled();
+    expect(service.executeWorkflow).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining('titleText'),
     );
@@ -236,7 +236,7 @@ describe('WorkflowsService template creation', () => {
       trigger: 'manual',
     } as never);
 
-    expect(service.executeWorkflowCompat).toHaveBeenCalledWith(
+    expect(service.executeWorkflow).toHaveBeenCalledWith(
       'workflow-1',
       'user-1',
       'org-1',

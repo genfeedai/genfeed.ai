@@ -42,8 +42,7 @@ export interface WorkflowSchedulerUpsertInput {
  * scheduler should exist (upsert) or not (remove).
  */
 export interface WorkflowSchedulerSyncRow {
-  id?: string;
-  _id?: unknown;
+  id: string;
   schedule?: string | null;
   timezone?: string | null;
   isScheduleEnabled?: boolean | null;
@@ -63,6 +62,16 @@ export interface WorkflowSchedulerSyncRow {
  */
 export function workflowSchedulerId(workflowId: string): string {
   return `workflow-schedule:${workflowId}`;
+}
+
+function requireQueueJobId(
+  jobId: string | undefined,
+  operation: string,
+): string {
+  if (!jobId) {
+    throw new Error(`BullMQ did not return a job id while ${operation}`);
+  }
+  return jobId;
 }
 
 // =============================================================================
@@ -115,7 +124,7 @@ export class WorkflowExecutionQueueService {
       triggerType: event.type,
     });
 
-    return job.id!;
+    return requireQueueJobId(job.id, 'queueing a workflow trigger');
   }
 
   /**
@@ -149,7 +158,7 @@ export class WorkflowExecutionQueueService {
       workflowId: data.workflowId,
     });
 
-    return job.id!;
+    return requireQueueJobId(job.id, 'queueing a delayed workflow resume');
   }
 
   /**
@@ -209,10 +218,7 @@ export class WorkflowExecutionQueueService {
   async syncWorkflowScheduler(
     workflow: WorkflowSchedulerSyncRow,
   ): Promise<void> {
-    const workflowId = String(workflow.id ?? workflow._id ?? '');
-    if (!workflowId) {
-      return;
-    }
+    const workflowId = workflow.id;
 
     try {
       if (isProtectedSystemWorkflowMetadata(workflow.metadata)) {
@@ -266,10 +272,8 @@ export class WorkflowExecutionQueueService {
         }
         return data.delayResumeData?.workflowId === workflowId;
       })
-      .map((job) => ({
-        delay: job.delay,
-        id: job.id!,
-        type: job.data.type,
-      }));
+      .flatMap((job) =>
+        job.id ? [{ delay: job.delay, id: job.id, type: job.data.type }] : [],
+      );
   }
 }

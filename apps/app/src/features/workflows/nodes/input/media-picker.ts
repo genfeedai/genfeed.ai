@@ -39,7 +39,6 @@ export interface WorkflowMediaSelection {
 
 type GallerySelectable = {
   id?: string;
-  _id?: string;
   url?: string;
   label?: string;
   filename?: string;
@@ -331,7 +330,7 @@ export function toWorkflowMediaSelection(
   }
 
   const mediaItem = item as GallerySelectable;
-  const id = mediaItem.id ?? mediaItem._id;
+  const id = mediaItem.id;
   if (typeof id !== 'string' || id.length === 0) {
     return null;
   }

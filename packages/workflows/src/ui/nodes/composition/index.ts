@@ -5,4 +5,4 @@ export type {
   ReferencableWorkflow,
   WorkflowRefApi,
 } from './workflow-ref-node.helpers';
-export { setWorkflowRefApi } from './workflow-ref-node.helpers';
+export { configureWorkflowRefApi } from './workflow-ref-node.helpers';

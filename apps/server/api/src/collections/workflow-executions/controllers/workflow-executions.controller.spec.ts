@@ -76,7 +76,7 @@ describe('WorkflowExecutionsController', () => {
 
   describe('findAll', () => {
     it('should return paginated executions with an aggregation pipeline', async () => {
-      const mockResult = { docs: [{ _id: 'exec-1' }], total: 1 };
+      const mockResult = { docs: [{ id: 'exec-1' }], total: 1 };
       mockService.findAll.mockResolvedValue(mockResult);
 
       const query = { status: 'completed' } as never;
@@ -95,17 +95,20 @@ describe('WorkflowExecutionsController', () => {
       ];
 
       expect(findAllQuery).toEqual({
+        include: {
+          workflow: { select: { description: true, id: true, label: true } },
+        },
         orderBy: { createdAt: -1 },
         where: {
           isDeleted: false,
-          organization: expect.any(String),
+          organizationId: expect.any(String),
           status: 'completed',
         },
       });
       expect(options).toEqual(
         expect.objectContaining({ limit: expect.any(Number), offset: 0 }),
       );
-      expect(result).toEqual([{ _id: 'exec-1' }]);
+      expect(result).toEqual([{ id: 'exec-1' }]);
     });
 
     it('should use default limit and offset when not provided', async () => {
@@ -118,7 +121,7 @@ describe('WorkflowExecutionsController', () => {
           orderBy: { createdAt: -1 },
           where: expect.objectContaining({
             isDeleted: false,
-            organization: expect.any(String),
+            organizationId: expect.any(String),
           }),
         }),
         expect.objectContaining({ limit: 20, offset: 0 }),
@@ -143,15 +146,15 @@ describe('WorkflowExecutionsController', () => {
 
   describe('findOne', () => {
     it('should return a single execution by id', async () => {
-      const mockExecution = { _id: 'exec-1', status: 'completed' };
+      const mockExecution = { id: 'exec-1', status: 'completed' };
       mockService.findOne.mockResolvedValue(mockExecution);
 
       const result = await controller.findOne(mockRequest, mockUser, 'exec-1');
 
       expect(mockService.findOne).toHaveBeenCalledWith({
-        _id: 'exec-1',
+        id: 'exec-1',
         isDeleted: false,
-        organization: '507f1f77bcf86cd799439011',
+        organizationId: '507f1f77bcf86cd799439011',
       });
       expect(result).toEqual(mockExecution);
     });
@@ -159,7 +162,7 @@ describe('WorkflowExecutionsController', () => {
 
   describe('create', () => {
     it('should create a new execution and return serialized result', async () => {
-      const mockExecution = { _id: 'exec-new', status: 'pending' };
+      const mockExecution = { id: 'exec-new', status: 'pending' };
       mockWorkflowExecutorService.executeManualWorkflow.mockResolvedValue({
         executionId: 'exec-new',
       });
@@ -169,7 +172,7 @@ describe('WorkflowExecutionsController', () => {
         inputValues: { prompt: 'hello' },
         metadata: { source: 'builder' },
         trigger: 'api',
-        workflow: 'wf-1',
+        workflowId: 'wf-1',
       } as never;
       const result = await controller.create(mockRequest, mockUser, dto);
 
@@ -195,9 +198,9 @@ describe('WorkflowExecutionsController', () => {
         workflowId: 'wf-1',
       });
       expect(mockService.findOne).toHaveBeenCalledWith({
-        _id: 'exec-new',
+        id: 'exec-new',
         isDeleted: false,
-        organization: '507f1f77bcf86cd799439011',
+        organizationId: '507f1f77bcf86cd799439011',
       });
       expect(mockService.createExecution).not.toHaveBeenCalled();
       expect(result).toEqual(mockExecution);
@@ -215,12 +218,12 @@ describe('WorkflowExecutionsController', () => {
       mockWorkflowExecutorService.executeManualWorkflow.mockResolvedValue({
         executionId: 'exec-scoped',
       });
-      mockService.findOne.mockResolvedValue({ _id: 'exec-scoped' });
+      mockService.findOne.mockResolvedValue({ id: 'exec-scoped' });
 
       await controller.create(mockRequest, mockUser, {
         expectedContextVersion: 4,
         threadId: 'thread-1',
-        workflow: 'wf-1',
+        workflowId: 'wf-1',
       } as never);
 
       expect(
@@ -245,7 +248,7 @@ describe('WorkflowExecutionsController', () => {
         controller.create(mockRequest, mockUser, {
           expectedContextVersion: 2,
           threadId: 'thread-1',
-          workflow: 'wf-1',
+          workflowId: 'wf-1',
         } as never),
       ).rejects.toBeInstanceOf(BadRequestException);
 
@@ -257,8 +260,8 @@ describe('WorkflowExecutionsController', () => {
 
   describe('update', () => {
     it('should cancel an execution when status is cancelled', async () => {
-      const mockExecution = { _id: 'exec-1', status: 'running' };
-      const mockCancelled = { _id: 'exec-1', status: 'cancelled' };
+      const mockExecution = { id: 'exec-1', status: 'running' };
+      const mockCancelled = { id: 'exec-1', status: 'cancelled' };
       mockService.findOne.mockResolvedValue(mockExecution);
       mockService.cancelExecution.mockResolvedValue(mockCancelled);
 
@@ -267,16 +270,16 @@ describe('WorkflowExecutionsController', () => {
       });
 
       expect(mockService.findOne).toHaveBeenCalledWith({
-        _id: 'exec-1',
+        id: 'exec-1',
         isDeleted: false,
-        organization: '507f1f77bcf86cd799439011',
+        organizationId: '507f1f77bcf86cd799439011',
       });
       expect(mockService.cancelExecution).toHaveBeenCalledWith('exec-1');
       expect(result).toEqual(mockCancelled);
     });
 
     it('should throw BadRequestException for a non-cancel status', async () => {
-      const mockExecution = { _id: 'exec-1', status: 'running' };
+      const mockExecution = { id: 'exec-1', status: 'running' };
       mockService.findOne.mockResolvedValue(mockExecution);
 
       await expect(

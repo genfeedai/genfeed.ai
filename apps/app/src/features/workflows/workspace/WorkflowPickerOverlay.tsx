@@ -87,7 +87,7 @@ export function WorkflowPickerOverlay({
         ) : (
           <div className="space-y-2">
             {visibleWorkflows.map((workflow) => (
-              <Card bodyClassName="gap-0 p-3" key={workflow._id}>
+              <Card bodyClassName="gap-0 p-3" key={workflow.id}>
                 <div className="flex items-start gap-3">
                   <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
                     <Zap className="size-5" />
@@ -95,7 +95,7 @@ export function WorkflowPickerOverlay({
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="truncate text-sm font-medium text-foreground">
-                        {workflow.name}
+                        {workflow.label}
                       </h3>
                       <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] capitalize text-muted-foreground">
                         {workflow.lifecycle}

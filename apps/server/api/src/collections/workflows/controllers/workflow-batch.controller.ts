@@ -72,12 +72,12 @@ export class WorkflowBatchController {
 
     return {
       data: {
-        _id: job.id.toString(),
+        id: job.id.toString(),
         completedCount: this.normalizeCount(job.completedCount),
         createdAt: job.createdAt?.toISOString(),
         failedCount: this.normalizeCount(job.failedCount),
         items: job.items.map((item) => ({
-          _id: this.getBatchItemId(item),
+          id: this.getBatchItemId(item),
           completedAt: item.completedAt?.toISOString(),
           error: item.error,
           executionId: item.executionId,
@@ -123,7 +123,7 @@ export class WorkflowBatchController {
 
     return {
       data: jobs.map((job) => ({
-        _id: job.id.toString(),
+        id: job.id.toString(),
         completedCount: this.normalizeCount(job.completedCount),
         createdAt: job.createdAt?.toISOString(),
         failedCount: this.normalizeCount(job.failedCount),
@@ -145,7 +145,7 @@ export class WorkflowBatchController {
 
     // Validate workflow exists and belongs to org
     await this.workflowsService.findOwnedOrThrow(workflowId, {
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!body.ingredientIds?.length) {

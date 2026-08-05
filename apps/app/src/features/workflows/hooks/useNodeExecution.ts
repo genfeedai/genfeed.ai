@@ -92,7 +92,7 @@ export function useNodeExecution(): UseNodeExecutionReturn {
 
           attempts++;
           const result: ExecutionResult = await service.getExecution(
-            execution._id,
+            execution.id,
           );
 
           const nodeResultsById = new Map(

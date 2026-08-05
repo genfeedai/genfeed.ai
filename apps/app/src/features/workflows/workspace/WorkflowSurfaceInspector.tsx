@@ -66,9 +66,7 @@ interface WorkflowSurfaceInspectorProps {
 }
 
 function getWorkflowId(execution: ExecutionResult): string {
-  return typeof execution.workflow === 'string'
-    ? execution.workflow
-    : execution.workflow._id;
+  return execution.workflowId;
 }
 
 function hasInputValue(value: unknown): boolean {
@@ -196,13 +194,13 @@ export function WorkflowSurfaceInspector({
   const requiredInputs =
     workflow?.inputVariables?.filter((variable) => variable.required) ?? [];
   const workflowId =
-    workflow?._id ??
+    workflow?.id ??
     (execution ? getWorkflowId(execution) : selection.workflowId);
   const workflowHref =
     selection.workflowBaseHref && workflowId
       ? appendWorkflowThread(
           `${selection.workflowBaseHref}/${encodeURIComponent(workflowId)}${
-            execution ? `?execution=${encodeURIComponent(execution._id)}` : ''
+            execution ? `?execution=${encodeURIComponent(execution.id)}` : ''
           }`,
           threadId,
         )
@@ -211,7 +209,7 @@ export function WorkflowSurfaceInspector({
     selection.workflowBaseHref && execution
       ? appendWorkflowThread(
           `${selection.workflowBaseHref}/executions/${encodeURIComponent(
-            execution._id,
+            execution.id,
           )}`,
           threadId,
         )
@@ -229,7 +227,7 @@ export function WorkflowSurfaceInspector({
         const service = await getService();
         await service.submitApproval(
           workflowId,
-          execution._id,
+          execution.id,
           pendingApproval.nodeId,
           approved,
           approved ? undefined : 'Rejected from workflow run inspector',
@@ -242,7 +240,7 @@ export function WorkflowSurfaceInspector({
         logger.error('Failed to submit workflow inspector approval', {
           approved,
           cause,
-          executionId: execution._id,
+          executionId: execution.id,
           workflowId,
         });
         setError(
@@ -275,7 +273,7 @@ export function WorkflowSurfaceInspector({
       const service = await getService();
       const resumed = await service.resumeExecution(
         workflowId,
-        execution._id,
+        execution.id,
         threadId && contextVersion !== undefined
           ? { expectedContextVersion: contextVersion, threadId }
           : undefined,
@@ -291,7 +289,7 @@ export function WorkflowSurfaceInspector({
     } catch (cause) {
       logger.error('Failed to resume workflow inspector execution', {
         cause,
-        executionId: execution._id,
+        executionId: execution.id,
         workflowId,
       });
       setError(
@@ -364,7 +362,7 @@ export function WorkflowSurfaceInspector({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-foreground">
-              {workflow?.name ?? 'Workflow run'}
+              {workflow?.label ?? 'Workflow run'}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               Deterministic workflow engine

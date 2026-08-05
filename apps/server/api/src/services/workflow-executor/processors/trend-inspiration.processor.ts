@@ -14,7 +14,6 @@ import {
   getMinimumTextCredits,
 } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
-import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { ActivitySource } from '@genfeedai/enums';
 import {
   buildSystemEmailHtml,
@@ -267,10 +266,10 @@ export class TrendInspirationProcessor {
     );
 
     // Filter by max duration if specified
-    if (input.maxDuration) {
+    const maxDuration = input.maxDuration;
+    if (maxDuration) {
       filteredSounds = filteredSounds.filter(
-        (s: TrendingSoundDocument) =>
-          !s.duration || s.duration <= input.maxDuration!,
+        (s: TrendingSoundDocument) => !s.duration || s.duration <= maxDuration,
       );
     }
 
@@ -304,7 +303,7 @@ export class TrendInspirationProcessor {
     // Get user settings
     const settings = await this.settingsService.findOne({
       isDeleted: false,
-      user: userId,
+      userId: userId,
     });
 
     if (!settings) {
@@ -679,7 +678,7 @@ Return ONLY the prompt text, no explanations.`;
     userId: string;
   }> {
     const organization = await this.organizationsService.findOne({
-      _id: organizationId,
+      id: organizationId,
     });
 
     // Scalar FK. `organization.user` is the Mongo-era alias — undefined unless the
@@ -687,7 +686,7 @@ Return ONLY the prompt text, no explanations.`;
     // every auto-triggered trend inspiration failed to resolve a billing user.
     // `Organization.userId` is non-nullable, so the throw below only fires on a
     // genuinely missing organization.
-    const userId = resolveRelationId(organization?.userId, organization?.user);
+    const userId = organization?.userId;
     if (!userId) {
       throw new Error(
         `Cannot resolve billing user for organization ${organizationId}`,

@@ -78,7 +78,6 @@ function buildBatchIngredient(item: BatchItemStatus): IIngredient | null {
   const metadataLabel = `Batch output ${outputSummary.id.slice(-6)}`;
 
   return {
-    _id: outputSummary.id,
     category,
     createdAt: item.completedAt ?? '',
     hasVoted: false,
@@ -91,7 +90,6 @@ function buildBatchIngredient(item: BatchItemStatus): IIngredient | null {
     isVoteAnimating: false,
     metadata: { label: metadataLabel } as IMetadata,
     metadataLabel,
-    organization: '',
     scope: AssetScope.USER,
     status:
       (outputSummary.status as IngredientStatus | undefined) ??
@@ -100,13 +98,12 @@ function buildBatchIngredient(item: BatchItemStatus): IIngredient | null {
     totalChildren: 0,
     totalVotes: 0,
     updatedAt: item.completedAt ?? '',
-    user: '',
   } as IIngredient;
 }
 
 function toBatchJobSummary(batchJob: BatchJobStatus): BatchJobSummary {
   return {
-    _id: batchJob._id,
+    id: batchJob.id,
     completedCount: batchJob.completedCount,
     createdAt: batchJob.createdAt,
     failedCount: batchJob.failedCount,
@@ -122,9 +119,7 @@ function upsertRecentJob(
 ): BatchJobSummary[] {
   const nextSummary =
     'items' in batchJob ? toBatchJobSummary(batchJob) : batchJob;
-  const remainingJobs = previousJobs.filter(
-    (job) => job._id !== nextSummary._id,
-  );
+  const remainingJobs = previousJobs.filter((job) => job.id !== nextSummary.id);
 
   return [nextSummary, ...remainingJobs];
 }
@@ -159,7 +154,7 @@ export function useBatchWorkflowPage() {
   const { openPostBatchModal } = usePostModal();
 
   const workflowsById = useMemo(
-    () => new Map(workflows.map((workflow) => [workflow._id, workflow])),
+    () => new Map(workflows.map((workflow) => [workflow.id, workflow])),
     [workflows],
   );
 
@@ -178,8 +173,7 @@ export function useBatchWorkflowPage() {
   );
 
   const selectedOutputs = useMemo(
-    () =>
-      availableOutputs.filter(({ item }) => selectedOutputIds.has(item._id)),
+    () => availableOutputs.filter(({ item }) => selectedOutputIds.has(item.id)),
     [availableOutputs, selectedOutputIds],
   );
 
@@ -294,14 +288,14 @@ export function useBatchWorkflowPage() {
   }, [getService]);
 
   useEffect(() => {
-    if (!requestedJobId || requestedJobId === activeBatchStatus?._id) {
+    if (!requestedJobId || requestedJobId === activeBatchStatus?.id) {
       return;
     }
 
     void loadBatchJob(requestedJobId);
-  }, [activeBatchStatus?._id, loadBatchJob, requestedJobId]);
+  }, [activeBatchStatus?.id, loadBatchJob, requestedJobId]);
 
-  const activeBatchId = activeBatchStatus?._id;
+  const activeBatchId = activeBatchStatus?.id;
   const activeBatchLifecycleStatus = activeBatchStatus?.status;
 
   useEffect(() => {
@@ -344,7 +338,7 @@ export function useBatchWorkflowPage() {
   }, [activeBatchId, activeBatchLifecycleStatus, getService]);
 
   useEffect(() => {
-    const selectableIds = new Set(availableOutputs.map(({ item }) => item._id));
+    const selectableIds = new Set(availableOutputs.map(({ item }) => item.id));
 
     setSelectedOutputIds((previousIds) => {
       const nextIds = [...previousIds].filter((itemId) =>
@@ -397,7 +391,7 @@ export function useBatchWorkflowPage() {
             formData.append('category', 'images');
 
             const ingredient = await ingredientsService.postUpload(formData);
-            const ingredientId = (ingredient as { _id: string })._id;
+            const ingredientId = ingredient.id;
 
             setFiles((previousFiles) =>
               previousFiles.map((file) =>

@@ -8,7 +8,6 @@ import { WorkflowsService } from '@api/collections/workflows/services/workflows.
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
@@ -42,24 +41,20 @@ export class InternalWorkflowExecutionsController {
     @Body() dto: CreateWorkflowExecutionDto,
   ) {
     const workflow = await this.workflowsService.findOne({
-      _id: dto.workflow,
+      id: dto.workflowId,
       isDeleted: false,
-      organization: orgId,
+      organizationId: orgId,
     });
 
-    // Scalar FK first: `user` is a Mongo-era relation alias that only holds an
-    // id while `BaseService.normalizeDocument` back-fills it, so `.toString()`
-    // below would throw once a query populates it or a raw row skips
-    // normalization. An unresolved id means an ownerless system template,
-    // which this route must not execute.
-    const userId = resolveRelationId(workflow?.userId, workflow?.user);
+    // An ownerless system template cannot be executed through this route.
+    const userId = workflow?.userId;
 
     if (!userId) {
       throw new NotFoundException('Workflow');
     }
 
     const result = await this.workflowExecutorService.executeManualWorkflow(
-      dto.workflow.toString(),
+      dto.workflowId,
       userId,
       orgId,
       dto.inputValues ?? {},
@@ -67,9 +62,9 @@ export class InternalWorkflowExecutionsController {
       dto.trigger,
     );
     const execution = await this.workflowExecutionsService.findOne({
-      _id: result.executionId,
+      id: result.executionId,
       isDeleted: false,
-      organization: orgId,
+      organizationId: orgId,
     });
 
     return serializeSingle(req, WorkflowExecutionSerializer, execution);
@@ -82,9 +77,9 @@ export class InternalWorkflowExecutionsController {
     @Param('id') id: string,
   ) {
     const execution = await this.workflowExecutionsService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
-      organization: orgId,
+      organizationId: orgId,
     });
 
     if (!execution) {
@@ -102,9 +97,9 @@ export class InternalWorkflowExecutionsController {
     @Body() dto: UpdateWorkflowExecutionDto,
   ) {
     const execution = await this.workflowExecutionsService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
-      organization: orgId,
+      organizationId: orgId,
     });
 
     if (!execution) {

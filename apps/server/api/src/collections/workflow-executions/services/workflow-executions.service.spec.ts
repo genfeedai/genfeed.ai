@@ -48,7 +48,7 @@ describe('WorkflowExecutionsService', () => {
 
     await service.createExecution('user-1', 'org-1', {
       trigger: 'scheduled',
-      workflow: 'workflow-1',
+      workflowId: 'workflow-1',
     });
     await service.startExecution('execution-1');
     await service.completeExecution('execution-1');
@@ -108,7 +108,7 @@ describe('WorkflowExecutionsService', () => {
       () =>
         service.createExecution('user-1', 'org-1', {
           metadata: { origin: ActionOrigin.UI, surface: 'mcp-tool' },
-          workflow: 'workflow-1',
+          workflowId: 'workflow-1',
         }),
     );
 
@@ -128,21 +128,63 @@ describe('WorkflowExecutionsService', () => {
     );
   });
 
-  it('serializes legacy workflow executions with explicit unknown origin', async () => {
+  it('serializes executions without provenance with explicit unknown origin', async () => {
     const { prisma, service } = makeService();
     prisma.workflowExecution.findFirst.mockResolvedValue({
-      id: 'execution-legacy',
-      result: { metadata: { surface: 'legacy' } },
+      id: 'execution-without-provenance',
+      result: { metadata: { surface: 'unknown-origin' } },
     });
 
     await expect(
-      service.findOne({ id: 'execution-legacy' }),
+      service.findOne({ id: 'execution-without-provenance' }),
     ).resolves.toMatchObject({
       metadata: {
         origin: ActionOrigin.UNKNOWN,
-        surface: 'legacy',
+        surface: 'unknown-origin',
       },
     });
+  });
+
+  it('exposes result-backed execution state through the canonical document', async () => {
+    const { prisma, service } = makeService();
+    prisma.workflowExecution.findFirst.mockResolvedValue({
+      id: 'execution-1',
+      result: {
+        creditsUsed: 7,
+        durationMs: 1200,
+        failedNodeId: 'node-2',
+        inputValues: { prompt: 'Launch' },
+        metadata: { phase: 'failed' },
+        nodeResults: [
+          {
+            nodeId: 'node-2',
+            nodeType: 'generate',
+            status: SharedWorkflowExecutionStatus.FAILED,
+          },
+        ],
+        progress: 50,
+      },
+      trigger: 'manual',
+    });
+
+    await expect(service.findOne({ id: 'execution-1' })).resolves.toMatchObject(
+      {
+        creditsUsed: 7,
+        durationMs: 1200,
+        failedNodeId: 'node-2',
+        inputValues: { prompt: 'Launch' },
+        metadata: { origin: ActionOrigin.UNKNOWN, phase: 'failed' },
+        nodeResults: [
+          {
+            nodeId: 'node-2',
+            nodeType: 'generate',
+            status: SharedWorkflowExecutionStatus.FAILED,
+          },
+        ],
+        progress: 50,
+        trigger: 'manual',
+      },
+    );
   });
 
   it('counts execution stats using Prisma enum casing from database rows', async () => {
@@ -259,20 +301,8 @@ describe('WorkflowExecutionsService', () => {
     expect(prisma.workflowExecution.update).not.toHaveBeenCalled();
   });
 
-  it('preserves the tolerant node-result fallback for encoded legacy JSON', async () => {
+  it('canonicalizes non-object result values inside the atomic node update', async () => {
     const { prisma, service } = makeService();
-    prisma.workflowExecution.findUnique.mockResolvedValue({
-      result: JSON.stringify({
-        metadata: { retained: true },
-        nodeResults: [
-          {
-            nodeId: 'node-1',
-            nodeType: 'input',
-            status: SharedWorkflowExecutionStatus.RUNNING,
-          },
-        ],
-      }),
-    });
 
     await service.updateNodeResult(
       'execution-1',
@@ -284,29 +314,12 @@ describe('WorkflowExecutionsService', () => {
       2,
     );
 
-    expect(prisma.workflowExecution.findUnique).toHaveBeenCalledWith({
-      select: { result: true },
-      where: { id: 'execution-1' },
-    });
-    expect(prisma.workflowExecution.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          result: expect.objectContaining({
-            metadata: { retained: true },
-            nodeResults: [
-              {
-                nodeId: 'node-1',
-                nodeType: 'input',
-                status: SharedWorkflowExecutionStatus.COMPLETED,
-              },
-            ],
-            progress: 50,
-          }),
-        }),
-        select: { id: true, result: true },
-        where: { id: 'execution-1' },
-      }),
-    );
+    const query = prisma.$queryRaw.mock.calls[0]?.[0] as readonly string[];
+    const sql = query.join('?').replace(/\s+/g, ' ').trim();
+    expect(sql).toContain("ELSE '{}'::jsonb");
+    expect(sql).not.toContain("IS DISTINCT FROM 'string'");
+    expect(prisma.workflowExecution.findUnique).not.toHaveBeenCalled();
+    expect(prisma.workflowExecution.update).not.toHaveBeenCalled();
   });
 
   it('reads only runtime state needed for delay resume ETA updates', async () => {
@@ -371,57 +384,24 @@ describe('WorkflowExecutionsService', () => {
     expect(prisma.workflowExecution.update).not.toHaveBeenCalled();
   });
 
-  it('preserves legacy result fallbacks for terminal field patches', async () => {
+  it('does not issue fallback reads when a terminal result patch misses', async () => {
     const { prisma, service } = makeService();
-    prisma.workflowExecution.findUnique.mockResolvedValue({
-      result: JSON.stringify({ metadata: { retained: true } }),
-    });
 
     await service.setFailedNodeId('execution-1', 'node-1');
     await service.setCreditsUsed('execution-1', 17);
 
-    expect(prisma.workflowExecution.findUnique).toHaveBeenNthCalledWith(1, {
-      select: { result: true },
-      where: { id: 'execution-1' },
-    });
-    expect(prisma.workflowExecution.update).toHaveBeenNthCalledWith(1, {
-      data: {
-        result: {
-          failedNodeId: 'node-1',
-          metadata: { retained: true },
-        },
-      },
-      select: { id: true },
-      where: { id: 'execution-1' },
-    });
-    expect(prisma.workflowExecution.findUnique).toHaveBeenNthCalledWith(2, {
-      select: { result: true },
-      where: { id: 'execution-1' },
-    });
-    expect(prisma.workflowExecution.update).toHaveBeenNthCalledWith(2, {
-      data: {
-        result: {
-          creditsUsed: 17,
-          metadata: { retained: true },
-        },
-      },
-      select: { id: true },
-      where: { id: 'execution-1' },
-    });
+    expect(prisma.workflowExecution.findUnique).not.toHaveBeenCalled();
+    expect(prisma.workflowExecution.update).not.toHaveBeenCalled();
   });
 
-  it('skips result patch updates when the narrow unique read misses', async () => {
+  it('returns null when the atomic metadata update misses', async () => {
     const { prisma, service } = makeService();
-    prisma.workflowExecution.findUnique.mockResolvedValue(null);
 
     await expect(
       service.updateExecutionMetadata('missing-execution', { phase: 'queued' }),
     ).resolves.toBeNull();
 
-    expect(prisma.workflowExecution.findUnique).toHaveBeenCalledWith({
-      select: { result: true },
-      where: { id: 'missing-execution' },
-    });
+    expect(prisma.workflowExecution.findUnique).not.toHaveBeenCalled();
     expect(prisma.workflowExecution.update).not.toHaveBeenCalled();
   });
 
