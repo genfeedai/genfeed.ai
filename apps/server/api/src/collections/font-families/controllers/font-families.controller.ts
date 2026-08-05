@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { canModifyOrganizationElement } from '@api/collections/elements/shared/can-modify-organization-element.util';
 import { CreateFontFamilyDto } from '@api/collections/font-families/dto/create-font-family.dto';
 import { UpdateFontFamilyDto } from '@api/collections/font-families/dto/update-font-family.dto';
 import {
@@ -97,6 +98,17 @@ export class FontFamiliesController extends BaseCRUDController<
     @Param('fontFamilyId') fontFamilyId: string,
   ) {
     return super.remove(request, user, fontFamilyId);
+  }
+
+  /**
+   * Font families are global/org-owned assets with no user FK — ownership
+   * resolves like other organization elements (superadmin or org match).
+   */
+  public override canUserModifyEntity(
+    user: User,
+    entity: FontFamilyDocument,
+  ): boolean {
+    return canModifyOrganizationElement(user, entity);
   }
 
   /**

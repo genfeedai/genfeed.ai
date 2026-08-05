@@ -20,20 +20,19 @@ describe('FontFamiliesController', () => {
   const mockUser: User = {
     publicMetadata: {
       isSuperAdmin: true,
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
+      organization: 'o07f1f77bcf86cd799439012',
+      user: 'u07f1f77bcf86cd799439011',
     },
   } as unknown as User;
 
   const mockFontFamily = {
-    _id: '507f1f77bcf86cd799439014',
+    id: 'f07f1f77bcf86cd799439014',
     category: 'sans-serif',
     createdAt: new Date(),
     family: 'Roboto',
     isDeleted: false,
     label: 'Roboto',
     updatedAt: new Date(),
-    user: '507f1f77bcf86cd799439011',
   };
 
   const mockFontFamiliesService = {
@@ -84,7 +83,7 @@ describe('FontFamiliesController', () => {
 
   describe('findOne', () => {
     it('should return a font family by id', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = mockFontFamily.id;
       const request = {} as Request;
 
       mockFontFamiliesService.findOne.mockResolvedValue(mockFontFamily);
@@ -114,7 +113,7 @@ describe('FontFamiliesController', () => {
 
   describe('update', () => {
     it('should update a font family', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = mockFontFamily.id;
       const updateDto: UpdateFontFamilyDto = {
         label: 'Roboto Bold',
       };
@@ -132,7 +131,7 @@ describe('FontFamiliesController', () => {
 
   describe('remove', () => {
     it('should remove a font family', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = mockFontFamily.id;
       const request = {} as Request;
 
       mockFontFamiliesService.findOne.mockResolvedValue(mockFontFamily);
@@ -151,11 +150,11 @@ describe('FontFamiliesController', () => {
 
       expect(query).toBeDefined();
       expect(Array.isArray(query)).toBe(false);
-      // global condition must be organization: null only (no user field)
-      expect(query.where.OR).toContainEqual({ organization: null });
+      // Global condition must use the canonical scalar FK only.
+      expect(query.where.OR).toContainEqual({ organizationId: null });
       // user's org condition must be present
       expect(query.where.OR).toContainEqual({
-        organization: '507f1f77bcf86cd799439012',
+        organizationId: 'o07f1f77bcf86cd799439012',
       });
       // no { user: ... } condition — FontFamilyRecord has no user column
       expect(
@@ -175,7 +174,7 @@ describe('FontFamiliesController', () => {
       );
 
       expect(query).toBeDefined();
-      expect(query.where.OR).toEqual([{ organization: null }]);
+      expect(query.where.OR).toEqual([{ organizationId: null }]);
     });
 
     it('should use default orderBy with label when no sort provided', () => {

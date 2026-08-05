@@ -9,8 +9,8 @@ describe('PerformanceSummaryController', () => {
   let controller: PerformanceSummaryController;
   let mockService: Record<string, vi.Mock>;
 
-  const mockBrandId = '507f1f77bcf86cd799439012';
-  const mockOrgId = '507f1f77bcf86cd799439011';
+  const mockBrandId = 'b07f1f77bcf86cd799439012';
+  const mockOrgId = 'o07f1f77bcf86cd799439011';
 
   const mockUser = {
     id: 'user_123',
@@ -172,7 +172,7 @@ describe('PerformanceSummaryController', () => {
   });
 
   describe('validateBrandId', () => {
-    it('accepts a cuid brandId (not just a Mongo ObjectId)', async () => {
+    it('accepts a canonical cuid brandId', async () => {
       const cuidBrand = 'clz1a2b3c4d5e6f7g8h9i0j1k';
 
       const result = await controller.getGenerationContext(

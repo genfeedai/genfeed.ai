@@ -5,6 +5,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
@@ -33,10 +34,10 @@ describe('PresignedUploadService', () => {
   let metadataService: vi.Mocked<MetadataService>;
   let loggerService: vi.Mocked<LoggerService>;
 
-  const mockUserId = '507f1f77bcf86cd799439011';
-  const mockOrganizationId = '507f1f77bcf86cd799439012';
-  const mockIngredientId = '507f1f77bcf86cd799439013';
-  const mockMetadataId = '507f1f77bcf86cd799439014';
+  const mockUserId = 'c07f1f77bcf86cd799439011';
+  const mockOrganizationId = 'c07f1f77bcf86cd799439012';
+  const mockIngredientId = 'c07f1f77bcf86cd799439013';
+  const mockMetadataId = 'c07f1f77bcf86cd799439014';
 
   const mockUser = {
     emailAddresses: [{ emailAddress: 'test@example.com' }],
@@ -178,7 +179,9 @@ describe('PresignedUploadService', () => {
       expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
         mockUser,
         {
-          category: 'image',
+          category: CategoryPrismaUtil.toIngredientCategory(
+            IngredientCategory.IMAGE,
+          ),
           extension: 'jpg',
           label: body.filename,
           scope: AssetScope.USER,
@@ -253,7 +256,9 @@ describe('PresignedUploadService', () => {
       expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
         mockUser,
         expect.objectContaining({
-          category: 'image',
+          category: CategoryPrismaUtil.toIngredientCategory(
+            IngredientCategory.IMAGE,
+          ),
         }),
       );
     });
@@ -328,7 +333,6 @@ describe('PresignedUploadService', () => {
 
       const mockIngredient = createIngredientDocument({
         category: IngredientCategory.IMAGE,
-        metadata: mockMetadataId,
       });
 
       ingredientsService.findOne.mockResolvedValue(mockIngredient);
@@ -361,6 +365,8 @@ describe('PresignedUploadService', () => {
       expect(ingredientsService.findOne).toHaveBeenCalledWith(
         {
           id: mockIngredientId,
+          isDeleted: false,
+          organizationId: mockOrganizationId,
           status: 'processing',
           userId: mockUserId,
         },
@@ -407,7 +413,6 @@ describe('PresignedUploadService', () => {
 
       const mockIngredient = createIngredientDocument({
         category: IngredientCategory.VIDEO,
-        metadata: mockMetadataId,
       });
 
       ingredientsService.findOne.mockResolvedValue(mockIngredient);
@@ -444,7 +449,6 @@ describe('PresignedUploadService', () => {
 
       const mockIngredient = createIngredientDocument({
         category: IngredientCategory.VIDEO,
-        metadata: mockMetadataId,
       });
 
       ingredientsService.findOne.mockResolvedValue(mockIngredient);
@@ -483,7 +487,7 @@ describe('PresignedUploadService', () => {
       );
     });
 
-    it('should handle metadata as ObjectId', async () => {
+    it('should handle a populated metadata relation', async () => {
       const ingredientId = mockIngredientId.toString();
 
       const mockIngredient = createIngredientDocument({

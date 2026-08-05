@@ -108,7 +108,7 @@ describe('ReplyBotConfigsService', () => {
       await service.findAllByOrganization('org-123');
 
       expect(mockFindAll).toHaveBeenCalledWith({
-        organization: 'org-123',
+        organizationId: 'org-123',
         pagination: false,
       });
     });
@@ -130,7 +130,7 @@ describe('ReplyBotConfigsService', () => {
 
       expect(mockFindAll).toHaveBeenCalledWith({
         isActive: true,
-        organization: 'org-123',
+        organizationId: 'org-123',
         pagination: false,
       });
     });

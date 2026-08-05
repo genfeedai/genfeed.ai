@@ -70,14 +70,14 @@ describe('BotsService', () => {
     expect(data).not.toHaveProperty('livestreamSettings');
   });
 
-  it('rejects writes without canonical required ownership', async () => {
-    await expect(
+  it('rejects writes without canonical required ownership', () => {
+    expect(() =>
       service.create({
         category: 'livestream' as never,
         label: 'Live assistant',
         platforms: ['youtube' as never],
       }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).toThrow(BadRequestException);
 
     expect(create).not.toHaveBeenCalled();
   });
