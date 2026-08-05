@@ -175,12 +175,6 @@ function lineOf(content: string, index: number): number {
   return content.slice(0, index).split('\n').length;
 }
 
-function lineTextOf(content: string, index: number): string {
-  const start = content.lastIndexOf('\n', index - 1) + 1;
-  const end = content.indexOf('\n', index);
-  return content.slice(start, end === -1 ? content.length : end);
-}
-
 // ─── Rule definitions ─────────────────────────────────────────────────────────
 
 const APP_PAGES_PREFIXES = ['apps/app/', 'packages/pages/'] as const;
@@ -257,21 +251,43 @@ function isButtonLikeClassName(className: string): boolean {
 }
 
 /**
- * Crude per-line comment filter for raw-element scanners.
- * Catches JSX comments, JS/TS line comments, and JSDoc/block comment lines
- * (bodies starting with `*`, openers starting with `/*`, and closers with `* /`).
- * Not a full parser — intentional parity with the predecessor shell guard.
+ * Per-line comment filter for raw-element scanners, evaluated at the match
+ * position rather than across the whole line.
+ *
+ * The predecessor tested the entire line for `{/*` and `* /` substrings, so a
+ * real violation escaped the guard whenever any comment shared its line —
+ * `<input type="text" /> {/* TODO * /}` scanned clean. Only text to the LEFT of
+ * the match can comment it out, so the scan is bounded to that prefix.
+ *
+ * Still not a full parser (no multi-line block tracking beyond the leading-`*`
+ * heuristic, no string-literal awareness) — deliberate parity with the shell
+ * guard it replaced, minus the false-negative.
  */
-function isCommentLine(text: string): boolean {
-  const trimmed = text.trim();
-  return (
-    trimmed.startsWith('//') ||
-    trimmed.startsWith('/*') ||
-    trimmed.startsWith('*') ||
-    trimmed.startsWith('{/*') ||
-    text.includes('{/*') ||
-    text.includes('*/')
+function isCommentedMatch(content: string, index: number): boolean {
+  const lineStart = content.lastIndexOf('\n', index - 1) + 1;
+  const lineEnd = content.indexOf('\n', index);
+  const line = content.slice(
+    lineStart,
+    lineEnd === -1 ? content.length : lineEnd,
   );
+  const trimmed = line.trim();
+
+  // Block-comment body / opener lines, and JSDoc continuation lines.
+  if (trimmed.startsWith('*') || trimmed.startsWith('/*')) {
+    return true;
+  }
+
+  const prefix = content.slice(lineStart, index);
+
+  // A `//` before the match comments out the rest of the line.
+  if (prefix.includes('//')) {
+    return true;
+  }
+
+  // An unclosed `{/*` or `/*` before the match means we are inside a comment.
+  const openers = (prefix.match(/\/\*/g) ?? []).length;
+  const closers = (prefix.match(/\*\//g) ?? []).length;
+  return openers > closers;
 }
 
 function isButtonAllowed(rel: string): boolean {
@@ -329,7 +345,7 @@ const RULES: readonly Rule[] = [
       const lines: number[] = [];
       for (const match of content.matchAll(RAW_INPUT_PATTERN)) {
         const index = match.index ?? 0;
-        if (isCommentLine(lineTextOf(content, index))) {
+        if (isCommentedMatch(content, index)) {
           continue;
         }
         if (
@@ -352,7 +368,7 @@ const RULES: readonly Rule[] = [
       const lines: number[] = [];
       for (const match of content.matchAll(RAW_SELECT_PATTERN)) {
         const index = match.index ?? 0;
-        if (isCommentLine(lineTextOf(content, index))) {
+        if (isCommentedMatch(content, index)) {
           continue;
         }
         lines.push(lineOf(content, index));
@@ -374,7 +390,7 @@ const RULES: readonly Rule[] = [
         const index = match.index ?? 0;
         // Ignore matches inside JSX comments {/* ... */}, matching the crude
         // but effective line filter used by the predecessor shell guard.
-        if (isCommentLine(lineTextOf(content, index))) {
+        if (isCommentedMatch(content, index)) {
           continue;
         }
         lines.push(lineOf(content, index));
