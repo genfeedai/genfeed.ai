@@ -11,7 +11,6 @@ export class CreditTransactionsEntity
   declare readonly metadata: CreditTransactions['metadata'];
   declare readonly referenceId: CreditTransactions['referenceId'];
   declare readonly referenceType: CreditTransactions['referenceType'];
-  declare readonly organization: string;
   declare readonly category: CreditTransactionCategory;
   declare readonly amount: number;
   declare readonly balanceBefore: number;

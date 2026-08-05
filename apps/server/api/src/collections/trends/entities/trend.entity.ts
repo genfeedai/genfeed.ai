@@ -29,8 +29,6 @@ export class TrendEntity extends BaseEntity implements Trend {
     sourcePreviewState?: 'live' | 'fallback' | 'empty';
     [key: string]: unknown;
   };
-  declare readonly organization?: string;
-  declare readonly brand?: string;
   declare readonly requiresAuth: boolean;
   declare readonly expiresAt: Date;
   declare readonly isCurrent: boolean;

@@ -24,7 +24,6 @@ export interface TemplateDocument
     | 'variables'
     | 'version'
   > {
-  _id: string;
   categories?: string[];
   content?: string;
   description?: string | null;

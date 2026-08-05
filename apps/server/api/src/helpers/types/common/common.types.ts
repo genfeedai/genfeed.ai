@@ -7,19 +7,19 @@ export interface BasePaginationQuery {
   isDeleted?: boolean;
 }
 
-// Base entity interface
+// Fields shared by every Prisma-backed entity.
 export interface BaseEntity {
-  _id: string;
-  user: string;
-  organization?: string;
-  brand?: string;
+  id: string;
   createdAt: Date;
   updatedAt: Date;
   isDeleted: boolean;
 }
 
-// Document type pattern for entity compatibility
-export type EntityDocument<T> = T & { _id: string; [key: string]: unknown };
+// Generic internal document shape backed by a Prisma row.
+export type EntityDocument<T> = T &
+  BaseEntity & {
+    [key: string]: unknown;
+  };
 
 // API Response wrapper
 export interface ApiResponse<T = unknown> {

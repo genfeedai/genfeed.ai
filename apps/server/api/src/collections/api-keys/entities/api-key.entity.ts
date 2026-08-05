@@ -10,8 +10,6 @@ export class ApiKeyEntity extends BaseEntity implements ApiKey {
   category!: ApiKey['category'];
   description!: string | null;
   keyFingerprint!: string | null;
-  user!: string;
-  organization!: string;
   scopes!: string[];
   lastUsedAt!: Date | null;
   lastUsedIp!: string | null;

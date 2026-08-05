@@ -6,8 +6,7 @@ export class ElementCameraMovementEntity
   extends BaseEntity
   implements ElementCameraMovement
 {
-  user?: string;
-  organization?: string;
+  declare readonly organizationId: string;
   key!: string;
   label!: string;
   declare readonly description: string | null;

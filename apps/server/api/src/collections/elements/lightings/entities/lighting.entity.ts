@@ -6,8 +6,7 @@ export class ElementLightingEntity
   extends BaseEntity
   implements ElementLighting
 {
-  user?: string;
-  organization?: string;
+  declare readonly organizationId: string;
   key!: string;
   label!: string;
   declare readonly description: string | null;

@@ -28,7 +28,6 @@ export interface CustomerInstanceDocument
   config?: unknown;
   instanceId?: string;
   instanceType?: string;
-  organization?: string | null;
   region?: string;
   role?: CustomerInstanceRole;
   subdomain?: string;

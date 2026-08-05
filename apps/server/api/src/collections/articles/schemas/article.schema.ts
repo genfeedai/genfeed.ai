@@ -10,16 +10,12 @@ export interface ArticleViralityAnalysis {
 }
 
 export interface ArticleDocument
-  extends Omit<PrismaArticle, 'category' | 'scope' | 'tags'> {
-  brand?: string | null;
-  organization?: string | null;
-  user?: string | null;
+  extends Omit<PrismaArticle, 'category' | 'scope'> {
   label?: string | null;
   summary?: string | null;
   category?: ArticleCategory | string | null;
   content: PrismaArticle['content'];
   scope?: ArticleScope | string | null;
-  tags?: string[] | null;
   viralityAnalysis?: ArticleViralityAnalysis | null;
   [key: string]: unknown;
 }

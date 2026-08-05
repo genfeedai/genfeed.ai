@@ -27,12 +27,9 @@ export interface BrandMemoryMetrics {
 }
 
 export interface BrandMemoryDocument extends PrismaBrandMemory {
-  _id: string;
-  brand?: string | null;
   entries?: BrandMemoryEntry[];
   insights?: BrandMemoryInsight[];
   metrics?: BrandMemoryMetrics;
-  organization?: string | null;
   [key: string]: unknown;
 }
 

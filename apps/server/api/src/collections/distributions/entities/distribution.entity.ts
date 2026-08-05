@@ -12,9 +12,6 @@ export class DistributionEntity extends BaseEntity implements Distribution {
   declare readonly brandId: string | null;
   declare readonly config: Distribution['config'];
   declare readonly isActive: boolean;
-  declare readonly organization: string;
-  declare readonly user: string;
-  declare readonly brand?: string;
   declare readonly platform: DistributionPlatform;
   declare readonly contentType: DistributionContentType;
   declare readonly text?: string;

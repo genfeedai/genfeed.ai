@@ -9,7 +9,6 @@ export class TemplateMetadataEntity
   declare id: string;
   templateId!: string;
   data!: TemplateMetadata['data'];
-  template!: string;
   estimatedTime?: number;
   difficulty?: TemplateDifficulty;
   goals?: string[];

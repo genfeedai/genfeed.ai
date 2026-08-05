@@ -3,8 +3,7 @@ import { ModelCategory } from '@genfeedai/enums';
 import { type ElementCamera } from '@genfeedai/prisma';
 
 export class ElementCameraEntity extends BaseEntity implements ElementCamera {
-  declare readonly user?: string;
-  declare readonly organization?: string;
+  declare readonly organizationId: string;
 
   declare readonly key: string;
   declare readonly label: string;

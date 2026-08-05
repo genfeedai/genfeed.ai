@@ -3,8 +3,7 @@ import { ModelCategory } from '@genfeedai/enums';
 import { type ElementLens } from '@genfeedai/prisma';
 
 export class ElementLensEntity extends BaseEntity implements ElementLens {
-  user?: string;
-  organization?: string;
+  declare readonly organizationId: string;
   key!: string;
   label!: string;
   declare readonly description: string | null;

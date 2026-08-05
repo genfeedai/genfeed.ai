@@ -8,7 +8,4 @@ export class VoteEntity extends BaseEntity implements Vote {
   declare readonly userId: string;
   declare readonly entityId: string | null;
   declare readonly entityModel: Vote['entityModel'] | VoteEntityModel;
-
-  declare readonly user?: string;
-  declare readonly entity?: string;
 }

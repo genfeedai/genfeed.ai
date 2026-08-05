@@ -9,16 +9,12 @@ import type { Activity } from '@genfeedai/prisma';
 export type { Activity } from '@genfeedai/prisma';
 
 export interface ActivityDocument extends Activity {
-  _id: string;
-  brand?: string | null;
   isRead?: boolean;
   key?: ActivityKey | string | null;
-  organization?: string | null;
   source?: ActivitySource | string | null;
   origin?: ActionOrigin;
   actorUserId?: string | null;
   apiKeyId?: string | null;
-  user?: string | null;
   value?: string | null;
   entityId: string | null;
   entityModel: ActivityEntityModel | string | null;

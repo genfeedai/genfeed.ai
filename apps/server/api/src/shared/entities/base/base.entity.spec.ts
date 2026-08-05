@@ -8,14 +8,8 @@ describe('BaseEntity', () => {
   });
 
   it('should create an instance', () => {
-    const entity = new TestBaseEntity({});
+    const entity = new TestBaseEntity({ id: 'entity-1' });
     expect(entity).toBeInstanceOf(BaseEntity);
+    expect(entity.id).toBe('entity-1');
   });
-
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new BaseEntity();
-  //     // Test properties
-  //   });
-  // });
 });

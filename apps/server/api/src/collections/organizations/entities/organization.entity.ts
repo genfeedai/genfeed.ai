@@ -6,7 +6,6 @@ export class OrganizationEntity extends BaseEntity implements Organization {
   declare readonly authProviderOrganizationId: string | null;
   declare readonly authProviderLogoUrl: string | null;
   declare readonly userId: string;
-  declare readonly user: string;
 
   declare readonly label: string;
   declare readonly slug: string;
@@ -15,8 +14,6 @@ export class OrganizationEntity extends BaseEntity implements Organization {
 
   declare readonly logo?: string;
   declare readonly banner?: string;
-  declare readonly settings?: string;
-  declare readonly credits?: string;
   declare readonly isSelected: boolean;
   declare readonly isDefault: boolean;
   declare readonly category: Organization['category'];

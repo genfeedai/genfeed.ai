@@ -6,7 +6,7 @@ export class ElementBlacklistEntity
   extends BaseEntity
   implements ElementBlacklist
 {
-  organization?: string;
+  declare readonly organizationId: string;
 
   label!: string;
   declare readonly description: string | null;

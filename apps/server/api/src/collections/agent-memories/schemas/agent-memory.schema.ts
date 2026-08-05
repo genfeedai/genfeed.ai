@@ -4,13 +4,9 @@ export type { AgentMemory } from '@genfeedai/prisma';
 
 export interface AgentMemoryDocument
   extends Omit<AgentMemory, 'contentType' | 'kind' | 'scope'> {
-  _id: string;
-  brand?: string | null;
   contentType?: AgentMemoryContentType | null;
   kind?: AgentMemoryKind | null;
-  organization: string;
   scope?: AgentMemoryScope | null;
-  user: string;
   [key: string]: unknown;
 }
 
