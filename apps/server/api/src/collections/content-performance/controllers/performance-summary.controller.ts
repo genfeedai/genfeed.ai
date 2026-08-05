@@ -20,8 +20,6 @@ import { PerformanceSummaryService } from '@server/collections/content-performan
 import type { Request } from 'express';
 
 function validateBrandId(brandId: string): void {
-  // Brand ids are Prisma cuids, not Mongo ObjectIds. `isEntityId` accepts the
-  // full set of id shapes the platform issues (cuid/cuid2/uuid/ulid/legacy).
   if (!isEntityId(brandId)) {
     throw new BadRequestException(
       'brandId is required and must be a valid entity id',

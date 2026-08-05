@@ -30,7 +30,7 @@ function isValidSortField(field: string): boolean {
  * - "label: 1" -> { label: 1 }
  * - "category: 1, label: -1" -> { category: 1, label: -1 }
  *
- * @param query - Sort query string in MongoDB format
+ * @param query - Sort query string in field-direction format
  * @returns sort object
  */
 export const handleQuerySort = (

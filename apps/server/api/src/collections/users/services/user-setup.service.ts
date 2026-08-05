@@ -58,7 +58,7 @@ export class UserSetupService {
    * Initialize all required resources for a newly created user.
    * This is called after user creation (for non-invited users).
    *
-   * @param userId - The user's ObjectId
+   * @param userId - The user's canonical id
    * @returns UserSetupResult with all created entities
    * @throws Error if any critical step fails (cascading failure)
    */

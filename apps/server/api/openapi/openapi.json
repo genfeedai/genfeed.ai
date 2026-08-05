@@ -5134,7 +5134,7 @@
             "type": "number"
           },
           "sources": {
-            "description": "Array of source ObjectIds",
+          "description": "Array of source ingredient IDs",
             "items": {
               "type": "string"
             },

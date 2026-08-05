@@ -19,7 +19,7 @@ export class IngredientFilterUtil {
    *
    * Handles filtering by parent ingredient ID:
    * - null/'null' → root ingredients only (parent doesn't exist)
-   * - valid ObjectId → ingredients with that parent
+   * - valid entity id → ingredients with that parent
    * - undefined → returns empty object (no filter, shows both parents and children)
    *
    * @param parentId - Parent ID from query params
@@ -53,7 +53,7 @@ export class IngredientFilterUtil {
    *
    * Handles filtering by folder ID:
    * - null/'null'/'' → root level (no folder)
-   * - valid ObjectId → ingredients in that folder
+   * - valid entity id → ingredients in that folder
    * - undefined → no folder filter ("All Assets")
    *
    * @param folderId - Folder ID from query params
@@ -81,7 +81,7 @@ export class IngredientFilterUtil {
    * Build training filter conditions
    *
    * Handles filtering by training ID:
-   * - valid ObjectId → ingredients for that training
+   * - valid entity id → ingredients for that training
    * - undefined → exclude training ingredients
    *
    * @param trainingId - Training ID from query params
@@ -108,7 +108,7 @@ export class IngredientFilterUtil {
    * Build brand filter condition
    *
    * Handles filtering by brand ID:
-   * - valid ObjectId → specific brand
+   * - valid entity id → specific brand
    * - undefined → any brand (exists)
    *
    * @param brandId - Brand ID from query params

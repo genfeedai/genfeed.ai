@@ -270,7 +270,7 @@ export class TwitterPublisherService extends BasePublisherService {
   ): Promise<string | null> {
     const childIngredients = child.ingredients || [];
 
-    // Extract ingredient IDs (handle both ObjectId and populated objects)
+    // Extract ingredient IDs from scalar IDs or populated records.
     const childIngredientIds = childIngredients.map((ingredient) => {
       if (typeof ingredient === 'string') {
         return ingredient;

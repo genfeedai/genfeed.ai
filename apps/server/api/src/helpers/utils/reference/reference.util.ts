@@ -69,7 +69,6 @@ export async function buildReferenceImageUrl(params: {
     });
     return null;
   } catch {
-    // Likely invalid ObjectId
     loggerService?.warn('Reference lookup failed', {
       reference: referenceId,
     });

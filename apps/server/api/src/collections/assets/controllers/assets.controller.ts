@@ -132,7 +132,6 @@ export class AssetsController {
     @Param('assetId') assetId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    // Validate ObjectId
     const validatedId = InputValidationUtil.validateEntityId(
       assetId,
       'assetId',

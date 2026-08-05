@@ -28,7 +28,7 @@ GET {{baseUrl}}/public/articles?category=technology
 
 
 ### Filter Articles by Tag
-# Get articles with a specific tag (MongoDB ObjectId)
+# Get articles with a specific tag id
 GET {{baseUrl}}/public/articles?tag={{testArticleId}}
 
 
@@ -50,7 +50,7 @@ GET {{baseUrl}}/public/articles/slug/getting-started
 
 
 ### Get Article by ID
-# Get a specific article by its MongoDB ObjectId
+# Get a specific article by id
 GET {{baseUrl}}/public/articles/{{testArticleId}}
 
 
@@ -76,5 +76,4 @@ GET {{baseUrl}}/public/articles?search=xyzabcnonexistent
 
 ### Test: Pagination with All Filters
 GET {{baseUrl}}/public/articles?search=api&category=tutorial&sortBy=createdAt&sortOrder=asc&page=1&limit=5
-
 
