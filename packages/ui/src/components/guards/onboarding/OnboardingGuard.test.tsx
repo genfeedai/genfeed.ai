@@ -56,9 +56,10 @@ describe('OnboardingGuard', () => {
   afterEach(() => {
     delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
     delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
+    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
   });
 
-  it('should redirect incomplete users to the first onboarding step', async () => {
+  it('leaves incomplete users to the agent workspace instead of the classic wizard', async () => {
     useCurrentUserMock.mockReturnValue({
       currentUser: {
         isOnboardingCompleted: false,
@@ -93,8 +94,10 @@ describe('OnboardingGuard', () => {
     );
 
     await waitFor(() => {
-      expect(replaceMock).toHaveBeenCalledWith('/onboarding/brand');
+      expect(replaceMock).not.toHaveBeenCalled();
     });
+
+    expect(await screen.findByText('Child')).toBeInTheDocument();
   });
 
   it('should allow onboarding routes without redirect loops', async () => {
@@ -140,7 +143,7 @@ describe('OnboardingGuard', () => {
     expect(await screen.findByText('Child')).toBeInTheDocument();
   });
 
-  it('should redirect to onboarding summary when all onboarding steps are completed but completion flag is stale', async () => {
+  it('does not bounce a stale completion flag into the classic wizard summary', async () => {
     useCurrentUserMock.mockReturnValue({
       currentUser: {
         isOnboardingCompleted: false,
@@ -166,6 +169,74 @@ describe('OnboardingGuard', () => {
       isSubscribed: false,
       isSuperAdmin: false,
       needsOnboarding: true,
+    });
+
+    render(
+      <OnboardingGuard>
+        <div>Child</div>
+      </OnboardingGuard>,
+    );
+
+    await waitFor(() => {
+      expect(replaceMock).not.toHaveBeenCalled();
+    });
+
+    expect(await screen.findByText('Child')).toBeInTheDocument();
+  });
+
+  it('bypasses the gate entirely for the desktop client', async () => {
+    process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
+    useCurrentUserMock.mockReturnValue({
+      currentUser: null,
+      isLoading: false,
+    });
+    useAccessStateMock.mockReturnValue({
+      accessState: null,
+      hasPaygCredits: false,
+      isByok: false,
+      isLoading: false,
+      isSubscribed: false,
+      isSuperAdmin: false,
+      needsOnboarding: true,
+    });
+
+    render(
+      <OnboardingGuard>
+        <div>Desktop Child</div>
+      </OnboardingGuard>,
+    );
+
+    expect(screen.getByText('Desktop Child')).toBeInTheDocument();
+    expect(replaceMock).not.toHaveBeenCalled();
+  });
+
+  it('still gates unpaid cloud orgs on billing after onboarding completes', async () => {
+    process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY = 'license_test';
+    useCurrentUserMock.mockReturnValue({
+      currentUser: {
+        isOnboardingCompleted: true,
+        onboardingStepsCompleted: ['brand', 'providers', 'summary'],
+      },
+      isLoading: false,
+    });
+    useAccessStateMock.mockReturnValue({
+      accessState: {
+        brandId: 'brand_1',
+        creditsBalance: 0,
+        hasEverHadCredits: false,
+        isOnboardingCompleted: true,
+        isSuperAdmin: false,
+        organizationId: 'org_1',
+        subscriptionStatus: 'canceled',
+        subscriptionTier: 'free',
+        userId: 'user_1',
+      },
+      hasPaygCredits: false,
+      isByok: false,
+      isLoading: false,
+      isSubscribed: false,
+      isSuperAdmin: false,
+      needsOnboarding: false,
     });
 
     render(

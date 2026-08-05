@@ -21,6 +21,7 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
       id: 'complete_company_info',
       label: 'Complete company info',
       rewardCredits: 25,
+      selfHostedCtaHref: '/agent/onboarding',
       whyItMatters:
         'Better company context gives GenFeed better prompts, voice, and visual direction.',
     },
@@ -32,6 +33,10 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
       id: 'connect_social_account',
       label: 'Connect a social account',
       rewardCredits: 10,
+      // Social connections are brand-scoped, so the flat `/settings/social`
+      // path has no org-scoped page to canonicalize onto. Send self-hosted
+      // operators to the brand list, which is one hop from brand > social.
+      selfHostedCtaHref: '/settings/brands',
       whyItMatters:
         'Connected channels unlock platform-aware workflows and publishing.',
     },
@@ -42,6 +47,7 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
       id: 'generate_first_image',
       label: 'Generate your first image',
       rewardCredits: 15,
+      selfHostedCtaHref: '/settings/api-keys',
       whyItMatters:
         'Your first image proves the workflow works and gives the agent a concrete artifact to build on.',
     },
@@ -53,6 +59,7 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
       id: 'generate_first_video',
       label: 'Generate your first video',
       rewardCredits: 20,
+      selfHostedCtaHref: '/settings/api-keys',
       whyItMatters:
         'Video is a higher-value content path and a stronger activation milestone.',
     },
@@ -64,6 +71,7 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
       id: 'publish_first_post',
       label: 'Publish your first post',
       rewardCredits: 30,
+      selfHostedCtaHref: '/agent/onboarding',
       whyItMatters:
         'Publishing closes the loop from setup to real output and proves time-to-value.',
     },

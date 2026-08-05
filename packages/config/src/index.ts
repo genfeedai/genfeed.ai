@@ -4,6 +4,7 @@ export {
   envFlag,
   getClientSurface,
   getDeployment,
+  hasAgentFirstOnboarding,
   isCloudDeployment,
   isCommunity,
   isDesktopClient,

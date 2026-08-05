@@ -139,6 +139,46 @@ describe('ProtectedRootResolver', () => {
     render(<ProtectedRootResolver />);
 
     await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+    });
+  });
+
+  it('routes incomplete Community users to the agent onboarding surface', async () => {
+    mocks.currentUserState.currentUser = {
+      id: 'user_1',
+      isOnboardingCompleted: false,
+      onboardingStepsCompleted: [],
+    };
+    mocks.brandState.selectedBrand = {
+      organization: { slug: 'acme' },
+      organizationId: 'org_1',
+      slug: 'default',
+    };
+
+    render(<ProtectedRootResolver />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+    });
+    expect(mocks.replace).not.toHaveBeenCalledWith('/onboarding/brand');
+  });
+
+  it('keeps self-hosted desktop users on the classic wizard', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', 'true');
+    mocks.currentUserState.currentUser = {
+      id: 'user_1',
+      isOnboardingCompleted: false,
+      onboardingStepsCompleted: ['brand'],
+    };
+    mocks.brandState.selectedBrand = {
+      organization: { slug: 'acme' },
+      organizationId: 'org_1',
+      slug: 'default',
+    };
+
+    render(<ProtectedRootResolver />);
+
+    await waitFor(() => {
       expect(mocks.replace).toHaveBeenCalledWith('/onboarding/providers');
     });
   });

@@ -9,6 +9,8 @@ const patchMe = vi.fn();
 const touchSession = vi.fn();
 const getToken = vi.fn();
 const useAgentChatStreamSpy = vi.fn();
+const getThreadsEffect = vi.fn();
+const runAgentApiEffect = vi.fn();
 
 const navigationState = {
   params: {
@@ -54,7 +56,10 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@genfeedai/agent', () => ({
-  AgentApiService: class AgentApiService {},
+  AgentApiService: class AgentApiService {
+    getThreadsEffect = getThreadsEffect;
+  },
+  runAgentApiEffect,
   AgentFullPage: ({
     children,
     threadId,
@@ -122,6 +127,10 @@ describe('AgentWorkspaceLayoutClient', () => {
     getToken.mockReset();
     getToken.mockResolvedValue('token');
     useAgentChatStreamSpy.mockClear();
+    getThreadsEffect.mockReset();
+    getThreadsEffect.mockReturnValue('threads-effect');
+    runAgentApiEffect.mockReset();
+    runAgentApiEffect.mockResolvedValue([]);
   });
 
   it('reuses a protected-shell agent service when one is provided', () => {
@@ -278,6 +287,80 @@ describe('AgentWorkspaceLayoutClient', () => {
     );
 
     expect(sendMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it('resumes the most recent onboarding thread when the entry route carries no prefill', async () => {
+    navigationState.pathname = '/agent/onboarding';
+    storeState.activeThreadId = null;
+    runAgentApiEffect.mockResolvedValue([
+      {
+        id: 'thread-standard',
+        source: 'agent',
+        updatedAt: '2026-08-05T12:00:00.000Z',
+      },
+      {
+        id: 'thread-onboarding-old',
+        source: 'onboarding',
+        updatedAt: '2026-08-01T09:00:00.000Z',
+      },
+      {
+        id: 'thread-onboarding-latest',
+        source: 'onboarding',
+        updatedAt: '2026-08-04T18:00:00.000Z',
+      },
+    ]);
+
+    render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await waitFor(() => {
+      expect(routerReplace).toHaveBeenCalledWith(
+        '/acme-org/acme-creator/agent/onboarding/thread-onboarding-latest',
+      );
+    });
+    expect(getThreadsEffect).toHaveBeenCalledWith(
+      { limit: 20, status: 'active' },
+      expect.any(AbortSignal),
+    );
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+
+  it('leaves a first-time operator on the onboarding entry route when no thread exists', async () => {
+    navigationState.pathname = '/agent/onboarding';
+    storeState.activeThreadId = null;
+
+    render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await waitFor(() => {
+      expect(runAgentApiEffect).toHaveBeenCalled();
+    });
+
+    expect(routerReplace).not.toHaveBeenCalled();
+  });
+
+  it('does not look up a thread to resume when a prefill prompt is bootstrapping one', async () => {
+    navigationState.pathname = '/agent/onboarding';
+    navigationState.searchParams = new URLSearchParams('prompt=hello');
+    storeState.activeThreadId = null;
+
+    render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await waitFor(() => {
+      expect(sendMessage).toHaveBeenCalled();
+    });
+
+    expect(runAgentApiEffect).not.toHaveBeenCalled();
   });
 
   it('boots onboarding prefills with onboarding source on the onboarding route', async () => {

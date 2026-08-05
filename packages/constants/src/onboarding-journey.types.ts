@@ -21,4 +21,5 @@ export interface IOnboardingJourneyMissionDefinition {
   ctaHref: string;
   ctaLabel: string;
   whyItMatters: string;
+  selfHostedCtaHref: string;
 }

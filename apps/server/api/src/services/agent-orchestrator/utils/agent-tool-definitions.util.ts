@@ -9,15 +9,52 @@ import type {
   OpenRouterPlugin,
   OpenRouterTool,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
+import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import { AgentToolName } from '@genfeedai/interfaces';
+
+/**
+ * Managed credit packs are cloud-only, so the payment card has nothing to sell
+ * on a self-hosted install regardless of which surface the turn came from.
+ */
+export const CLOUD_ONLY_TOOLS: AgentToolName[] = [
+  AgentToolName.PRESENT_PAYMENT_OPTIONS,
+];
+
+/**
+ * Monthly content batches are a managed-orchestration upsell rather than a
+ * capability gap, so they are withheld from self-hosted onboarding only —
+ * a self-hosted operator can still reach the tool from a normal agent turn.
+ */
+export const CLOUD_ONLY_ONBOARDING_TOOLS: AgentToolName[] = [
+  ...CLOUD_ONLY_TOOLS,
+  AgentToolName.GENERATE_MONTHLY_CONTENT,
+];
+
+export function resolveBlockedTools(options: {
+  source?: string;
+}): AgentToolName[] | undefined {
+  if (!isSelfHostedDeployment()) {
+    return undefined;
+  }
+
+  return options.source === 'onboarding'
+    ? CLOUD_ONLY_ONBOARDING_TOOLS
+    : CLOUD_ONLY_TOOLS;
+}
 
 export function buildToolDefinitions(
   allowedTools?: AgentToolName[],
+  blockedTools?: AgentToolName[],
 ): OpenRouterTool[] {
   const all = getToolDefinitions();
-  const filtered = allowedTools
+  const allowed = allowedTools
     ? all.filter((t) => allowedTools.includes(t.name as AgentToolName))
     : all;
+  const filtered = blockedTools
+    ? allowed.filter((tool) =>
+        blockedTools.every((blockedTool) => blockedTool !== tool.name),
+      )
+    : allowed;
 
   return filtered.map((tool) => ({
     function: {

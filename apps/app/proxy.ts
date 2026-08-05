@@ -1,8 +1,8 @@
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import {
+  hasAgentFirstOnboarding,
   isCloudDeployment,
   isDesktopClient,
-  isSaaS,
 } from '@genfeedai/config/deployment';
 import {
   APP_ROUTE_PREFIXES,
@@ -566,6 +566,62 @@ async function resolveAgentOnboardingRedirect(
   };
 }
 
+// Wizard routes that stay reachable in every mode. `post-signup` owns the
+// provisioning handoff (including the managed-checkout return), and `proactive`
+// is a standalone prompt surface rather than a step of the classic journey.
+const MODE_AGNOSTIC_ONBOARDING_PATHS = [
+  APP_ROUTES.ONBOARDING.POST_SIGNUP,
+  APP_ROUTES.ONBOARDING.PROACTIVE,
+] as const;
+
+/**
+ * True for a classic wizard path that an agent-first mode should never render.
+ */
+function isClassicWizardPath(pathname: string): boolean {
+  if (!hasAgentFirstOnboarding()) {
+    return false;
+  }
+
+  if (
+    MODE_AGNOSTIC_ONBOARDING_PATHS.some(
+      (path) => pathname === path || pathname.startsWith(`${path}/`),
+    )
+  ) {
+    return false;
+  }
+
+  return (
+    pathname === ONBOARDING_PATH || pathname.startsWith(`${ONBOARDING_PATH}/`)
+  );
+}
+
+/**
+ * Send a signed-in agent-first user from the classic wizard to the agent
+ * onboarding surface. Returns null when the workspace slug cannot be resolved,
+ * so the caller renders the wizard rather than bouncing to a broken path.
+ */
+async function redirectSignedInUserToAgentOnboarding(
+  req: NextRequest,
+  token: string,
+  cacheKey?: string | null,
+): Promise<NextResponse | null> {
+  const agentOnboarding = await resolveAgentOnboardingRedirect(
+    token,
+    cacheKey,
+    req,
+  );
+  if (!agentOnboarding) {
+    return null;
+  }
+
+  const response = redirectDroppingSearch(req, agentOnboarding.path);
+  if (agentOnboarding.cookieValue) {
+    setSlugCookie(response, agentOnboarding.cookieValue);
+  }
+
+  return response;
+}
+
 type CanonicalResolution = {
   cookieValue: string | null;
   path: string;
@@ -774,7 +830,7 @@ async function redirectSignedInUserToDefaultRoute(
   }
 
   if (await shouldRedirectSignedInUserToOnboarding(token)) {
-    if (isSaaS()) {
+    if (hasAgentFirstOnboarding()) {
       const agentOnboarding = await resolveAgentOnboardingRedirect(
         token,
         cacheKey,
@@ -1001,6 +1057,25 @@ export async function proxy(req: NextRequest) {
           return response;
         }
       }
+
+      // `/onboarding/*` is public so a half-provisioned signup can reach it, but
+      // a signed-in user in an agent-first mode must never land on the classic
+      // wizard — deep links and stale bookmarks route to the agent surface.
+      if (hasSession && isClassicWizardPath(pathname)) {
+        const token = await getBetterAuthBearerToken(req);
+        const response = token
+          ? await redirectSignedInUserToAgentOnboarding(
+              req,
+              token,
+              sessionCookie,
+            )
+          : null;
+
+        if (response) {
+          return response;
+        }
+      }
+
       return NextResponse.next();
     }
 
@@ -1014,10 +1089,10 @@ export async function proxy(req: NextRequest) {
     }
 
     if (await shouldRedirectSignedInUserToOnboarding(token)) {
-      // Community/Desktop keep the form wizard until their local/BYOK
-      // onboarding path reaches parity. SaaS always uses agent-first
-      // onboarding; there is no rollout flag or legacy-shell kill switch.
-      if (!isSaaS()) {
+      // The desktop client keeps the form wizard until #2380; SaaS (#1726) and
+      // Community (#1835) both onboard inside the agent workspace. There is no
+      // rollout flag or legacy-shell kill switch.
+      if (!hasAgentFirstOnboarding()) {
         return redirectPreservingSearch(req, ONBOARDING_PATH);
       }
 
