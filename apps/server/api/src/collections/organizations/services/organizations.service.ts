@@ -241,8 +241,8 @@ export class OrganizationsService extends BaseService<
   /**
    * Count organizations matching filter
    */
-  count(filter: Record<string, unknown>): Promise<number> {
-    return this.prisma.organization.count({ where: filter as never });
+  count(filter: Prisma.OrganizationWhereInput): Promise<number> {
+    return this.prisma.organization.count({ where: filter });
   }
 
   /**

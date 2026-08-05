@@ -22,10 +22,14 @@ import { PostAnalyticsProjection } from '@api/collections/posts/services/post-an
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { AnalyticsMetric } from '@genfeedai/enums';
+import {
+  AnalyticsMetric,
+  type CredentialPlatform,
+  parsePlatform,
+} from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 export type {
   DistinctPostCountRow,
@@ -55,6 +59,21 @@ export class AnalyticsAggregationService {
     return brandId ? Prisma.sql`AND "brandId" = ${brandId}` : Prisma.empty;
   }
 
+  private buildPostAnalyticsWhere(options: {
+    brandId?: string;
+    endDate: Date;
+    organizationId: string;
+    platform?: CredentialPlatform;
+    startDate: Date;
+  }): Prisma.PostAnalyticsWhereInput {
+    return {
+      ...(options.brandId ? { brandId: options.brandId } : {}),
+      date: { gte: options.startDate, lte: options.endDate },
+      organizationId: options.organizationId,
+      ...(options.platform ? { platform: options.platform } : {}),
+    };
+  }
+
   /**
    * Get overview metrics aggregated across all posts
    */
@@ -71,21 +90,20 @@ export class AnalyticsAggregationService {
       previousEndDate,
     } = DateRangeUtil.parseDateRange(startDate, endDate);
 
-    const where: Record<string, unknown> = {
-      date: { gte: parsedStartDate, lte: parsedEndDate },
+    const where = this.buildPostAnalyticsWhere({
+      brandId,
+      endDate: parsedEndDate,
       organizationId,
-    };
-
-    if (brandId) {
-      where.brandId = brandId;
-    }
+      startDate: parsedStartDate,
+    });
 
     // Previous period
-    const prevWhere: Record<string, unknown> = {
-      date: { gte: previousStartDate, lte: previousEndDate },
+    const prevWhere = this.buildPostAnalyticsWhere({
+      brandId,
+      endDate: previousEndDate,
       organizationId,
-    };
-    if (brandId) prevWhere.brandId = brandId;
+      startDate: previousStartDate,
+    });
 
     const [currentAggregate, previousAggregate, platformRows] =
       await Promise.all([
@@ -99,7 +117,7 @@ export class AnalyticsAggregationService {
             totalShares: true,
             totalViews: true,
           },
-          where: where as never,
+          where,
         }),
         this.prisma.postAnalytics.aggregate({
           _sum: {
@@ -108,15 +126,15 @@ export class AnalyticsAggregationService {
             totalShares: true,
             totalViews: true,
           },
-          where: prevWhere as never,
+          where: prevWhere,
         }),
         this.prisma.postAnalytics.groupBy({
           _sum: { totalViews: true },
           by: ['platform'],
           orderBy: { _sum: { totalViews: 'desc' } },
           take: 20,
-          where: where as never,
-        } as never),
+          where,
+        }),
       ]);
 
     const postCount = await this.postsService.count(
@@ -152,14 +170,12 @@ export class AnalyticsAggregationService {
     endDate: Date,
     groupBy: 'day' | 'week' = 'day',
   ): Promise<TimeSeriesDataPoint[]> {
-    const where: Record<string, unknown> = {
-      date: { gte: startDate, lte: endDate },
+    const where = this.buildPostAnalyticsWhere({
+      brandId,
+      endDate,
       organizationId,
-    };
-
-    if (brandId) {
-      where.brandId = brandId;
-    }
+      startDate,
+    });
 
     const rows = await this.prisma.postAnalytics.groupBy({
       _avg: { engagementRate: true },
@@ -172,8 +188,8 @@ export class AnalyticsAggregationService {
       },
       by: ['date'],
       orderBy: { date: 'asc' },
-      where: where as never,
-    } as never);
+      where,
+    });
 
     return postAnalyticsProjection.buildTimeSeries(
       rows as AnalyticsDateRow[],
@@ -196,14 +212,12 @@ export class AnalyticsAggregationService {
       endDateInput,
     );
 
-    const where: Record<string, unknown> = {
-      date: { gte: startDate, lte: endDate },
+    const where = this.buildPostAnalyticsWhere({
+      brandId,
+      endDate,
       organizationId,
-    };
-
-    if (brandId) {
-      where.brandId = brandId;
-    }
+      startDate,
+    });
 
     const rows = await this.prisma.postAnalytics.groupBy({
       _avg: { engagementRate: true },
@@ -215,8 +229,8 @@ export class AnalyticsAggregationService {
         totalViews: true,
       },
       by: ['date', 'platform'],
-      where: where as never,
-    } as never);
+      where,
+    });
 
     return postAnalyticsProjection.buildTimeSeriesWithPlatforms(
       rows as AnalyticsPlatformDateRow[],
@@ -239,15 +253,6 @@ export class AnalyticsAggregationService {
       startDateInput,
       endDateInput,
     );
-
-    const where: Record<string, unknown> = {
-      date: { gte: startDate, lte: endDate },
-      organizationId,
-    };
-
-    if (brandId) {
-      where.brandId = brandId;
-    }
 
     const rows = await this.prisma.$queryRaw<PlatformComparisonRow[]>(
       Prisma.sql`
@@ -292,14 +297,12 @@ export class AnalyticsAggregationService {
       endDateInput,
     );
 
-    const where: Record<string, unknown> = {
-      date: { gte: startDate, lte: endDate },
+    const where = this.buildPostAnalyticsWhere({
+      brandId,
+      endDate,
       organizationId,
-    };
-
-    if (brandId) {
-      where.brandId = brandId;
-    }
+      startDate,
+    });
 
     const safeLimit = Math.min(Math.max(1, limit), 100);
     const candidateLimit =
@@ -320,8 +323,8 @@ export class AnalyticsAggregationService {
           ? { _max: { totalLikes: 'desc' } }
           : { _max: { totalViews: 'desc' } },
       take: candidateLimit,
-      where: where as never,
-    } as never);
+      where,
+    });
 
     const topScored = postAnalyticsProjection.scoreTopContent(
       rows as TopContentAnalyticsRow[],
@@ -361,19 +364,19 @@ export class AnalyticsAggregationService {
     const { startDate, endDate, previousStartDate, previousEndDate } =
       DateRangeUtil.parseDateRange(startDateInput, endDateInput);
 
-    const where: Record<string, unknown> = {
-      date: { gte: startDate, lte: endDate },
+    const where = this.buildPostAnalyticsWhere({
+      brandId,
+      endDate,
       organizationId,
-    };
+      startDate,
+    });
 
-    if (brandId) where.brandId = brandId;
-
-    const prevWhere: Record<string, unknown> = {
-      date: { gte: previousStartDate, lte: previousEndDate },
+    const prevWhere = this.buildPostAnalyticsWhere({
+      brandId,
+      endDate: previousEndDate,
       organizationId,
-    };
-
-    if (brandId) prevWhere.brandId = brandId;
+      startDate: previousStartDate,
+    });
 
     const [currentAggregate, previousAggregate, viewsByDateRows] =
       await Promise.all([
@@ -384,7 +387,7 @@ export class AnalyticsAggregationService {
             totalShares: true,
             totalViews: true,
           },
-          where: where as never,
+          where,
         }),
         this.prisma.postAnalytics.aggregate({
           _sum: {
@@ -393,15 +396,15 @@ export class AnalyticsAggregationService {
             totalShares: true,
             totalViews: true,
           },
-          where: prevWhere as never,
+          where: prevWhere,
         }),
         this.prisma.postAnalytics.groupBy({
           _sum: { totalViews: true },
           by: ['date'],
           orderBy: { _sum: { totalViews: 'desc' } },
           take: 1,
-          where: where as never,
-        } as never),
+          where,
+        }),
       ]);
 
     return postAnalyticsProjection.buildGrowthTrends(
@@ -425,12 +428,12 @@ export class AnalyticsAggregationService {
       endDateInput,
     );
 
-    const where: Record<string, unknown> = {
-      date: { gte: startDate, lte: endDate },
+    const where = this.buildPostAnalyticsWhere({
+      brandId,
+      endDate,
       organizationId,
-    };
-
-    if (brandId) where.brandId = brandId;
+      startDate,
+    });
 
     const aggregate = await this.prisma.postAnalytics.aggregate({
       _sum: {
@@ -439,7 +442,7 @@ export class AnalyticsAggregationService {
         totalSaves: true,
         totalShares: true,
       },
-      where: where as never,
+      where,
     });
 
     return postAnalyticsProjection.buildEngagementBreakdown(
@@ -464,21 +467,28 @@ export class AnalyticsAggregationService {
       previousEndDate,
     } = DateRangeUtil.parseDateRange(startDate, endDate);
 
-    const where: Record<string, unknown> = {
-      date: { gte: parsedStartDate, lte: parsedEndDate },
+    const normalizedPlatform = parsePlatform(platform);
+    if (!normalizedPlatform) {
+      throw new BadRequestException(
+        `Unsupported analytics platform: ${platform}`,
+      );
+    }
+
+    const where = this.buildPostAnalyticsWhere({
+      brandId,
+      endDate: parsedEndDate,
       organizationId,
-      platform,
-    };
+      platform: normalizedPlatform,
+      startDate: parsedStartDate,
+    });
 
-    if (brandId) where.brandId = brandId;
-
-    const prevWhere: Record<string, unknown> = {
-      date: { gte: previousStartDate, lte: previousEndDate },
+    const prevWhere = this.buildPostAnalyticsWhere({
+      brandId,
+      endDate: previousEndDate,
       organizationId,
-      platform,
-    };
-
-    if (brandId) prevWhere.brandId = brandId;
+      platform: normalizedPlatform,
+      startDate: previousStartDate,
+    });
 
     const [currentAggregate, previousAggregate, postCountRows] =
       await Promise.all([
@@ -491,7 +501,7 @@ export class AnalyticsAggregationService {
             totalShares: true,
             totalViews: true,
           },
-          where: where as never,
+          where,
         }),
         this.prisma.postAnalytics.aggregate({
           _sum: {
@@ -500,14 +510,14 @@ export class AnalyticsAggregationService {
             totalShares: true,
             totalViews: true,
           },
-          where: prevWhere as never,
+          where: prevWhere,
         }),
         this.prisma.$queryRaw<DistinctPostCountRow[]>(
           Prisma.sql`
           SELECT COUNT(DISTINCT "postId") AS post_count
           FROM "post_analytics"
           WHERE "organizationId" = ${organizationId}
-            AND "platform" = ${platform}
+            AND "platform" = ${normalizedPlatform}
             AND "date" >= ${parsedStartDate}
             AND "date" <= ${parsedEndDate}
             ${this.buildBrandSqlPredicate(brandId)}

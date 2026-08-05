@@ -33,6 +33,7 @@ import type {
   AgentContentMentionItem,
   PopulateOption,
 } from '@genfeedai/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import type { IOnboardingJourneyMissionState } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -711,8 +712,8 @@ export class PostsService extends BaseService<
   /**
    * Count posts matching filter
    */
-  async count(filter: Record<string, unknown>): Promise<number> {
-    return this.prisma.post.count({ where: filter as never });
+  async count(filter: Prisma.PostWhereInput): Promise<number> {
+    return this.prisma.post.count({ where: filter });
   }
 
   /**

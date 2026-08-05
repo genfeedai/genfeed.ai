@@ -167,6 +167,7 @@ export class PostsGenerationController {
 
     const existingChildren = await this.postsService.count({
       isDeleted: false,
+      organizationId: originalPost.organizationId,
       parentId: postId,
     });
 
