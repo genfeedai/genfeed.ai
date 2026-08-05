@@ -92,7 +92,7 @@ describe('MembersController.findOne — cross-tenant scoping', () => {
     await controller.findOne(makeRequest(), makeUser(), memberId);
 
     expect(mockMembersService.findOne).toHaveBeenCalledWith({
-      _id: memberId,
+      id: memberId,
       isDeleted: false,
       organizationId: callerOrgId,
     });
@@ -111,7 +111,7 @@ describe('MembersController.findOne — cross-tenant scoping', () => {
     );
 
     expect(mockMembersService.findOne).toHaveBeenCalledWith({
-      _id: foreignMemberId,
+      id: foreignMemberId,
       isDeleted: false,
       organizationId: callerOrgId,
     });

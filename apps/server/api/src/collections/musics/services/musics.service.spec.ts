@@ -15,6 +15,8 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 describe('MusicsService', () => {
+  const sourceId = 'cmingredient000000000000001';
+  const tagId = 'cmtag000000000000000000001';
   let markFirstAssetGenerated: ReturnType<typeof vi.fn>;
   let service: MusicsService;
   let ingredientDelegate: {
@@ -79,14 +81,14 @@ describe('MusicsService', () => {
   it('does not mark the organization for a non-GENERATED update', async () => {
     await service.patch('music-1', {
       status: IngredientStatus.PROCESSING,
-      tags: ['507f1f77bcf86cd799439022'],
+      tags: [tagId],
     });
 
     expect(markFirstAssetGenerated).not.toHaveBeenCalled();
     expect(ingredientDelegate.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          tags: { set: [{ id: '507f1f77bcf86cd799439022' }] },
+          tags: { set: [{ id: tagId }] },
         }),
       }),
     );
@@ -94,9 +96,9 @@ describe('MusicsService', () => {
 
   it('normalizes relations for non-GENERATED creates', async () => {
     await service.create({
-      sources: ['507f1f77bcf86cd799439021'],
+      sources: [sourceId],
       status: IngredientStatus.PROCESSING,
-      tags: ['507f1f77bcf86cd799439022'],
+      tags: [tagId],
       text: 'Ambient focus track',
     });
 
@@ -104,9 +106,9 @@ describe('MusicsService', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           sources: {
-            connect: [{ id: '507f1f77bcf86cd799439021' }],
+            connect: [{ id: sourceId }],
           },
-          tags: { connect: [{ id: '507f1f77bcf86cd799439022' }] },
+          tags: { connect: [{ id: tagId }] },
         }),
       }),
     );
@@ -121,9 +123,9 @@ describe('MusicsService', () => {
     expect(ingredientDelegate.create).toHaveBeenCalledWith(
       expect.objectContaining({
         include: {
-          brand: true,
-          metadata: true,
-          prompt: true,
+          brand: expect.objectContaining({ select: expect.any(Object) }),
+          metadata: expect.objectContaining({ select: expect.any(Object) }),
+          prompt: expect.objectContaining({ select: expect.any(Object) }),
         },
       }),
     );

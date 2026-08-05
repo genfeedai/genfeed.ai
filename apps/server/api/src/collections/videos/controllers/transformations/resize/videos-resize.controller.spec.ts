@@ -45,24 +45,29 @@ const mockRequest = {
   query: {},
 } as unknown as Request;
 
+const videoId = 'cmvideo0000000000000000001';
+const userId = 'cmuser0000000000000000001';
+const organizationId = 'cmorganization000000000000001';
+const brandId = 'cmbrand000000000000000001';
+
 const mockVideo = {
-  brand: '507f1f77bcf86cd799439014',
-  id: '507f1f77bcf86cd799439011',
-  organization: '507f1f77bcf86cd799439013',
-  user: '507f1f77bcf86cd799439012',
+  brandId,
+  id: videoId,
+  organizationId,
+  userId,
 };
 
 const mockUser = {
   id: 'user_123',
   publicMetadata: {
-    brand: '507f1f77bcf86cd799439014',
-    organization: '507f1f77bcf86cd799439013',
-    user: '507f1f77bcf86cd799439012',
+    brand: brandId,
+    organization: organizationId,
+    user: userId,
   },
 } as unknown as User;
 
-const ingredientId = '507f1f77bcf86cd799439015';
-const metadataId = '507f1f77bcf86cd799439016';
+const ingredientId = 'cmvideo0000000000000000002';
+const metadataId = 'cmmetadata0000000000000001';
 
 describe('VideosResizeController', () => {
   let controller: VideosResizeController;
@@ -131,7 +136,7 @@ describe('VideosResizeController', () => {
     const result = await controller.resizeVideo(
       mockRequest,
       mockUser,
-      '507f1f77bcf86cd799439011',
+      videoId,
       resizeParams,
     );
     expect(result).toBeDefined();
@@ -159,17 +164,12 @@ describe('VideosResizeController', () => {
   it('should query video with OR for user and organization ownership', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const resizeParams: IResizeBodyParams = { height: 1080, width: 1920 };
-    await controller.resizeVideo(
-      mockRequest,
-      mockUser,
-      '507f1f77bcf86cd799439011',
-      resizeParams,
-    );
+    await controller.resizeVideo(mockRequest, mockUser, videoId, resizeParams);
     expect(mockServices.videosService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
         OR: expect.arrayContaining([
-          expect.objectContaining({ user: expect.anything() }),
-          expect.objectContaining({ organization: expect.anything() }),
+          expect.objectContaining({ userId }),
+          expect.objectContaining({ organizationId }),
         ]),
       }),
     );
@@ -178,12 +178,7 @@ describe('VideosResizeController', () => {
   it('should create ingredient with PROCESSING status and VIDEO category', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const resizeParams: IResizeBodyParams = { height: 480, width: 640 };
-    await controller.resizeVideo(
-      mockRequest,
-      mockUser,
-      '507f1f77bcf86cd799439011',
-      resizeParams,
-    );
+    await controller.resizeVideo(mockRequest, mockUser, videoId, resizeParams);
     expect(
       mockServices.sharedService.createMediaDocuments,
     ).toHaveBeenCalledWith(
@@ -202,7 +197,7 @@ describe('VideosResizeController', () => {
     const result = await controller.resizeToPortrait(
       mockRequest,
       mockUser,
-      '507f1f77bcf86cd799439011',
+      videoId,
     );
     expect(result).toBeDefined();
     expect(mockServices.fileQueueService.processVideo).toHaveBeenCalledWith(
@@ -223,18 +218,13 @@ describe('VideosResizeController', () => {
   it('should set parent to original video for resize', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const resizeParams: IResizeBodyParams = { height: 1080, width: 1920 };
-    await controller.resizeVideo(
-      mockRequest,
-      mockUser,
-      '507f1f77bcf86cd799439011',
-      resizeParams,
-    );
+    await controller.resizeVideo(mockRequest, mockUser, videoId, resizeParams);
     expect(
       mockServices.sharedService.createMediaDocuments,
     ).toHaveBeenCalledWith(
       mockUser,
       expect.objectContaining({
-        parent: '507f1f77bcf86cd799439011',
+        parentId: videoId,
       }),
     );
   });
@@ -242,16 +232,11 @@ describe('VideosResizeController', () => {
   it('should include inputPath in processVideo params', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const resizeParams: IResizeBodyParams = { height: 1080, width: 1920 };
-    await controller.resizeVideo(
-      mockRequest,
-      mockUser,
-      '507f1f77bcf86cd799439011',
-      resizeParams,
-    );
+    await controller.resizeVideo(mockRequest, mockUser, videoId, resizeParams);
     expect(mockServices.fileQueueService.processVideo).toHaveBeenCalledWith(
       expect.objectContaining({
         params: expect.objectContaining({
-          inputPath: 'https://api.example.com/videos/507f1f77bcf86cd799439011',
+          inputPath: `https://api.example.com/videos/${videoId}`,
         }),
       }),
     );

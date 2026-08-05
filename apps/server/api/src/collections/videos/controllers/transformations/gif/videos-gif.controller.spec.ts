@@ -39,24 +39,29 @@ const mockRequest = {
   query: {},
 } as unknown as Request;
 
+const videoId = 'cmvideo0000000000000000001';
+const userId = 'cmuser0000000000000000001';
+const organizationId = 'cmorganization000000000000001';
+const brandId = 'cmbrand000000000000000001';
+
 const mockVideo = {
-  _id: '507f1f77bcf86cd799439011',
-  brand: '507f1f77bcf86cd799439014',
-  organization: '507f1f77bcf86cd799439013',
-  user: '507f1f77bcf86cd799439012',
+  brandId,
+  id: videoId,
+  organizationId,
+  userId,
 };
 
 const mockUser = {
   id: 'user_123',
   publicMetadata: {
-    brand: '507f1f77bcf86cd799439014',
-    organization: '507f1f77bcf86cd799439013',
-    user: '507f1f77bcf86cd799439012',
+    brand: brandId,
+    organization: organizationId,
+    user: userId,
   },
 } as unknown as User;
 
-const ingredientId = '507f1f77bcf86cd799439017';
-const metadataId = '507f1f77bcf86cd799439016';
+const ingredientId = 'cmgif000000000000000000001';
+const metadataId = 'cmmetadata0000000000000001';
 
 describe('VideosGifController', () => {
   let controller: VideosGifController;
@@ -73,8 +78,8 @@ describe('VideosGifController', () => {
     metadataService: { patch: vi.fn() },
     sharedService: {
       createMediaDocuments: vi.fn().mockResolvedValue({
-        ingredientData: { _id: ingredientId },
-        metadataData: { _id: metadataId },
+        ingredientData: { id: ingredientId },
+        metadataData: { id: metadataId },
       }),
     },
     videosService: { findOne: vi.fn() },
@@ -116,11 +121,7 @@ describe('VideosGifController', () => {
   // --- createGif ---
   it('should create gif from video and return serialized ingredient', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    const result = await controller.createGif(
-      mockRequest,
-      mockUser,
-      '507f1f77bcf86cd799439011',
-    );
+    const result = await controller.createGif(mockRequest, mockUser, videoId);
     expect(result).toBeDefined();
     expect(mockServices.fileQueueService.createGif).toHaveBeenCalled();
     expect(mockServices.sharedService.createMediaDocuments).toHaveBeenCalled();
@@ -135,25 +136,17 @@ describe('VideosGifController', () => {
 
   it('should pass fps and width options to createGif', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    await controller.createGif(
-      mockRequest,
-      mockUser,
-      '507f1f77bcf86cd799439011',
-    );
+    await controller.createGif(mockRequest, mockUser, videoId);
     expect(mockServices.fileQueueService.createGif).toHaveBeenCalledWith(
-      '507f1f77bcf86cd799439011',
-      'https://api.example.com/videos/507f1f77bcf86cd799439011',
+      videoId,
+      `https://api.example.com/videos/${videoId}`,
       { fps: 10, width: 480 },
     );
   });
 
   it('should save ingredient with GIF category', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    await controller.createGif(
-      mockRequest,
-      mockUser,
-      '507f1f77bcf86cd799439011',
-    );
+    await controller.createGif(mockRequest, mockUser, videoId);
     expect(
       mockServices.sharedService.createMediaDocuments,
     ).toHaveBeenCalledWith(
@@ -164,11 +157,7 @@ describe('VideosGifController', () => {
 
   it('should save ingredient with PROCESSING status', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    await controller.createGif(
-      mockRequest,
-      mockUser,
-      '507f1f77bcf86cd799439011',
-    );
+    await controller.createGif(mockRequest, mockUser, videoId);
     expect(
       mockServices.sharedService.createMediaDocuments,
     ).toHaveBeenCalledWith(
@@ -179,20 +168,14 @@ describe('VideosGifController', () => {
 
   it('should include jobId in metadata of saved document', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    await controller.createGif(
-      mockRequest,
-      mockUser,
-      '507f1f77bcf86cd799439011',
-    );
+    await controller.createGif(mockRequest, mockUser, videoId);
     expect(
       mockServices.sharedService.createMediaDocuments,
     ).toHaveBeenCalledWith(
       mockUser,
       expect.objectContaining({
-        metadata: expect.objectContaining({
-          jobId: 'job123',
-          jobType: 'video-to-gif',
-        }),
+        externalId: 'job123',
+        externalProvider: 'video-to-gif',
       }),
     );
   });

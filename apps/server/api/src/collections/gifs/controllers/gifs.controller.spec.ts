@@ -76,18 +76,17 @@ describe('GifsController', () => {
   const mockUser = {
     id: 'authProvider_user_1',
     publicMetadata: {
-      brand: '507f1f77bcf86cd799439012',
-      organization: '507f1f77bcf86cd799439011',
-      user: '507f1f77bcf86cd799439013',
+      brand: 'cmbrand000000000000000001',
+      organization: 'cmorganization000000000000001',
+      user: 'cmuser0000000000000000001',
     },
   } as unknown as User;
-  const gifId = '507f191e810c19729de860ee'.toString();
+  const gifId = 'cmgif000000000000000000001';
 
   const mockGif = {
-    _id: gifId,
     category: 'gif',
     hasVoted: false,
-    id: 'canonical-gif-id',
+    id: gifId,
     metadata: { label: 'Test GIF' },
     scope: 'private',
   };
@@ -224,7 +223,7 @@ describe('GifsController', () => {
       const result = await controller.findOne(mockRequest, gifId, mockUser);
       expect(gifsService.findOne).toHaveBeenCalledWith(
         {
-          _id: gifId,
+          id: gifId,
           category: 'GIF',
           isDeleted: false,
           OR: [
@@ -234,11 +233,11 @@ describe('GifsController', () => {
         },
         expect.any(Array),
       );
-      expect(result).toEqual(expect.objectContaining({ _id: gifId }));
+      expect(result).toEqual(expect.objectContaining({ id: gifId }));
       expect(serializeSingle).toHaveBeenCalledWith(
         mockRequest,
         IngredientSerializer,
-        expect.objectContaining({ _id: gifId }),
+        expect.objectContaining({ id: gifId }),
       );
     });
 
@@ -253,15 +252,16 @@ describe('GifsController', () => {
       await controller.findOne(mockRequest, gifId, mockUser);
       expect(votesService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          entity: expect.any(String),
+          entityId: gifId,
           entityModel: 'Ingredient',
+          userId: mockUser.publicMetadata.user,
         }),
       );
     });
 
     it('should set hasVoted to true when vote exists', async () => {
       votesService.findOne.mockResolvedValueOnce({
-        _id: '507f191e810c19729de860ee',
+        id: 'cmvote00000000000000000001',
       });
       const result = await controller.findOne(mockRequest, gifId, mockUser);
       expect(result.hasVoted).toBe(true);
@@ -272,13 +272,13 @@ describe('GifsController', () => {
     it('should remove a gif and return it', async () => {
       const result = await controller.remove(mockRequest, gifId, mockUser);
       expect(gifsService.findOne).toHaveBeenCalledWith({
-        _id: gifId,
+        id: gifId,
         organizationId: mockUser.publicMetadata.organization,
         category: 'GIF',
         isDeleted: false,
       });
       expect(gifsService.remove).toHaveBeenCalledWith(mockGif.id);
-      expect(result).toEqual(expect.objectContaining({ _id: gifId }));
+      expect(result).toEqual(expect.objectContaining({ id: gifId }));
       expect(serializeSingle).toHaveBeenCalledWith(
         mockRequest,
         IngredientSerializer,

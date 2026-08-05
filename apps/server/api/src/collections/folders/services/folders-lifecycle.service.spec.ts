@@ -41,11 +41,11 @@ type IngredientRow = Pick<
   'brandId' | 'folderId' | 'id' | 'isDeleted' | 'organizationId' | 'userId'
 >;
 
-const organizationId = '507f191e810c19729de86001';
-const brandId = '507f191e810c19729de86002';
-const userId = '507f191e810c19729de86003';
-const ingredientId = '507f191e810c19729de86004';
-const folderId = '507f191e810c19729de86005';
+const organizationId = 'cmorganization000000000000001';
+const brandId = 'cmbrand000000000000000001';
+const userId = 'cmuser0000000000000000001';
+const ingredientId = 'cmingredient000000000000001';
+const folderId = 'cmfolder000000000000000001';
 
 describe('Library folder lifecycle persistence', () => {
   let folderRows: FolderRow[];
@@ -208,7 +208,7 @@ describe('Library folder lifecycle persistence', () => {
     );
 
     await ingredientsController.update(request, ingredientId, user, {
-      folder: folder.id,
+      folderId: folder.id,
     });
     await foldersController.remove(request, user, folder.id);
 
