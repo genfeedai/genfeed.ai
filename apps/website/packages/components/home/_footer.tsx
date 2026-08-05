@@ -26,6 +26,7 @@ const WEBSITE_SECTIONS: FooterSection[] = [
   },
   {
     links: [
+      { href: '/use-cases', label: 'All Use Cases' },
       { href: '/use-cases/creators', label: 'For Creators' },
       { href: '/use-cases/agencies', label: 'For Agencies' },
       { href: '/use-cases/ai-influencers', label: 'AI Influencers' },
