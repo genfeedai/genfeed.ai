@@ -125,4 +125,22 @@ describe('buildSignupHarnessProfile', () => {
       'Ship faster.',
     ]);
   });
+
+  it('trims string lists and filters blank values', () => {
+    const dto = buildSignupHarnessProfile({
+      agentConfig: {
+        strategy: { goals: ['  pipeline  ', '   '] },
+        voice: {
+          audience: ['  founders  ', ''],
+          values: ['  craft  ', '   '],
+        },
+      },
+      brandId: 'b_1',
+      brandLabel: 'Acme',
+    });
+
+    expect(dto.audience).toEqual(['founders']);
+    expect(dto.thesis?.goals).toEqual(['pipeline']);
+    expect(dto.voice?.values).toEqual(['craft']);
+  });
 });

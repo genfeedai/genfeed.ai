@@ -15,6 +15,15 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
+const SOCIAL_LINK_LABELS: Record<keyof IExtractedSocialLinks, string> = {
+  facebook: 'Facebook',
+  instagram: 'Instagram',
+  linkedin: 'LinkedIn',
+  tiktok: 'TikTok',
+  twitter: 'Twitter',
+  youtube: 'YouTube',
+};
+
 /**
  * BrandPersistenceService
  *
@@ -190,7 +199,7 @@ export class BrandPersistenceService {
       await this.linksService.create({
         brand: brandId,
         category,
-        label: key.charAt(0).toUpperCase() + key.slice(1),
+        label: SOCIAL_LINK_LABELS[key],
         url,
       });
     }

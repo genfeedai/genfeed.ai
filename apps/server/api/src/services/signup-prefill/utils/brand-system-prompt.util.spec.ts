@@ -87,4 +87,16 @@ describe('buildBrandSystemPrompt', () => {
     expect(prompt).not.toContain('Audience:');
     expect(prompt).not.toContain('Primary channels:');
   });
+
+  it('trims string lists and omits blank values', () => {
+    const prompt = buildBrandSystemPrompt('Acme', {
+      voice: {
+        audience: ['  founders  ', '   '],
+        messagingPillars: ['  speed  ', ''],
+      },
+    });
+
+    expect(prompt).toContain('Audience: founders.');
+    expect(prompt).toContain('Messaging pillars: speed.');
+  });
 });

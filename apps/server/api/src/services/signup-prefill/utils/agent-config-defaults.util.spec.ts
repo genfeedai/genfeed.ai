@@ -71,6 +71,17 @@ describe('buildPersona', () => {
       'You are the content lead for Acme. Speak to founders.',
     );
   });
+
+  it('trims string lists and filters blank values', () => {
+    const persona = buildPersona('Acme', {
+      audience: ['  founders  ', '   '],
+      messagingPillars: ['  craft  ', ''],
+    });
+
+    expect(persona).toBe(
+      'You are the content lead for Acme. Speak to founders. Keep every piece anchored to craft.',
+    );
+  });
 });
 
 describe('buildPrefilledAgentConfig', () => {

@@ -2,6 +2,8 @@ import type { BrandAgentConfig } from '@api/collections/brands/schemas/brand.sch
 import { UpsertHarnessProfileDto } from '@api/collections/harness-profiles/dto/upsert-harness-profile.dto';
 import type { IScrapedBrandData } from '@genfeedai/interfaces';
 
+import { readStringList } from './string-list.util';
+
 export interface BuildSignupHarnessProfileInput {
   agentConfig: BrandAgentConfig;
   brandId: string;
@@ -32,15 +34,6 @@ const BASELINE_STRUCTURE = {
     'Single call to action',
   ],
 };
-
-function readStringList(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value
-        .filter((entry): entry is string => typeof entry === 'string')
-        .map((entry) => entry.trim())
-        .filter(Boolean)
-    : [];
-}
 
 function readString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined;

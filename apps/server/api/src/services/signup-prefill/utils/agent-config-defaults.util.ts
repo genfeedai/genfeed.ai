@@ -6,6 +6,8 @@ import type {
 import { Platform } from '@genfeedai/enums';
 import type { IScrapedBrandData } from '@genfeedai/interfaces';
 
+import { readStringList } from './string-list.util';
+
 /**
  * Content types the three default recurring workflows produce
  * (`DefaultRecurringContentService`). Seeding the same set keeps the agent's
@@ -45,12 +47,6 @@ export interface BuildPrefilledAgentConfigInput {
 
 function hasEntries(value: unknown): boolean {
   return Array.isArray(value) && value.length > 0;
-}
-
-function readStringList(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((entry): entry is string => typeof entry === 'string')
-    : [];
 }
 
 /**

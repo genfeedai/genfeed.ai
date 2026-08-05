@@ -1,6 +1,8 @@
 import type { BrandAgentConfig } from '@api/collections/brands/schemas/brand.schema';
 import type { IScrapedBrandData } from '@genfeedai/interfaces';
 
+import { readStringList } from './string-list.util';
+
 /**
  * Placeholder copy written by `UserSetupService.getOrCreateBrand`. It reads as
  * real content to every prompt builder, so it has to be recognised and replaced
@@ -8,15 +10,6 @@ import type { IScrapedBrandData } from '@genfeedai/interfaces';
  */
 export const PLACEHOLDER_BRAND_DESCRIPTION =
   'Default description. Use it as a pre-prompt';
-
-function readStringList(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value
-        .filter((entry): entry is string => typeof entry === 'string')
-        .map((entry) => entry.trim())
-        .filter(Boolean)
-    : [];
-}
 
 function readString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined;

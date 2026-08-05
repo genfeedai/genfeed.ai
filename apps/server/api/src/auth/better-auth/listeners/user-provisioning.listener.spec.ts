@@ -134,7 +134,27 @@ describe('UserProvisioningListener', () => {
       }),
     ).resolves.toBeUndefined();
 
-    expect(logger.warn).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(logger.warn).toHaveBeenCalledTimes(1));
     expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it('does not wait for a stalled prefill enqueue', async () => {
+    signupPrefillQueueService.enqueuePrefill.mockReturnValue(
+      new Promise<void>(() => undefined),
+    );
+
+    const result = await Promise.race([
+      listener
+        .handleUserCreated({
+          email: 'new@genfeed.ai',
+          userId: 'u_5',
+        })
+        .then(() => 'provisioned'),
+      new Promise<string>((resolve) => {
+        setTimeout(() => resolve('timed out'), 50);
+      }),
+    ]);
+
+    expect(result).toBe('provisioned');
   });
 });

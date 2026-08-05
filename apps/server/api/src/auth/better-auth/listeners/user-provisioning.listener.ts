@@ -44,7 +44,7 @@ export class UserProvisioningListener {
         this.context,
       );
       await this.scheduleLifecycleEmails(event.userId);
-      await this.scheduleBrandPrefill(event, setupResult);
+      this.scheduleBrandPrefill(event, setupResult);
     } catch (error: unknown) {
       // Never fail sign-in on a provisioning hiccup — initializeUserResources is
       // idempotent, so a later request can complete it. Log loudly for ops.
@@ -64,10 +64,10 @@ export class UserProvisioningListener {
    * writes their first prompt. Best-effort by design — a queue outage must not
    * take sign-in with it, and the job is idempotent on the brand id.
    */
-  private async scheduleBrandPrefill(
+  private scheduleBrandPrefill(
     event: IBetterAuthUserCreatedEvent,
     setupResult: UserSetupResult,
-  ): Promise<void> {
+  ): void {
     const brandId = setupResult.brand?.id;
     const organizationId = setupResult.organization?.id;
 
@@ -75,19 +75,19 @@ export class UserProvisioningListener {
       return;
     }
 
-    try {
-      await this.signupPrefillQueueService.enqueuePrefill({
+    void this.signupPrefillQueueService
+      .enqueuePrefill({
         brandId: String(brandId),
         email: event.email ?? undefined,
         organizationId: String(organizationId),
         userId: event.userId,
+      })
+      .catch((error: unknown) => {
+        this.logger.warn(`${this.context} brand prefill scheduling skipped`, {
+          error: error instanceof Error ? error.message : error,
+          userId: event.userId,
+        });
       });
-    } catch (error: unknown) {
-      this.logger.warn(`${this.context} brand prefill scheduling skipped`, {
-        error: error instanceof Error ? error.message : error,
-        userId: event.userId,
-      });
-    }
   }
 
   private async scheduleLifecycleEmails(userId: string): Promise<void> {
