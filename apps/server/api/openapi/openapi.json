@@ -3591,12 +3591,51 @@
             "type": "string"
           },
           "style": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/MetadataStyle"
-              }
+            "enum": [
+              "3d-model",
+              "analog-film",
+              "anime",
+              "asmr",
+              "authentic",
+              "bold",
+              "branded",
+              "cinematic",
+              "comic-book",
+              "commercial",
+              "corporate",
+              "cyberpunk",
+              "digital-art",
+              "documentary",
+              "editorial",
+              "educational",
+              "fantasy-art",
+              "fashion",
+              "infographic",
+              "isometric",
+              "lifestyle",
+              "line-art",
+              "lowpoly",
+              "meme",
+              "metal",
+              "minimal",
+              "modeling-compound",
+              "neonpunk",
+              "origami",
+              "photographic",
+              "pixel-art",
+              "portrait",
+              "promotional",
+              "social-media",
+              "space",
+              "steampunk",
+              "surrealism",
+              "thumbnail",
+              "transformation",
+              "vintage",
+              "watercolor"
             ],
-            "nullable": true
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": [
@@ -8072,52 +8111,6 @@
         ],
         "type": "string"
       },
-      "MetadataStyle": {
-        "enum": [
-          "3d-model",
-          "analog-film",
-          "anime",
-          "asmr",
-          "authentic",
-          "bold",
-          "branded",
-          "cinematic",
-          "comic-book",
-          "commercial",
-          "corporate",
-          "cyberpunk",
-          "digital-art",
-          "documentary",
-          "editorial",
-          "educational",
-          "fantasy-art",
-          "fashion",
-          "infographic",
-          "isometric",
-          "lifestyle",
-          "line-art",
-          "lowpoly",
-          "meme",
-          "metal",
-          "minimal",
-          "modeling-compound",
-          "neonpunk",
-          "origami",
-          "photographic",
-          "pixel-art",
-          "portrait",
-          "promotional",
-          "social-media",
-          "space",
-          "steampunk",
-          "surrealism",
-          "thumbnail",
-          "transformation",
-          "vintage",
-          "watercolor"
-        ],
-        "type": "string"
-      },
       "ModelCategory": {
         "enum": [
           "text",
@@ -8339,10 +8332,6 @@
         "type": "object"
       },
       "OAuthTokenExchangeDto": {
-        "properties": {},
-        "type": "object"
-      },
-      "Object": {
         "properties": {},
         "type": "object"
       },

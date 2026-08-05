@@ -397,17 +397,31 @@ export abstract class BaseCRUDController<
     delete dto.user;
     delete dto.userId;
 
-    if (this.service.supportsField('brandId')) {
+    if (this.serviceSupportsField('brandId')) {
       dto.brandId = dto.brandId ?? publicMetadata.brand;
     }
-    if (this.service.supportsField('organizationId')) {
+    if (this.serviceSupportsField('organizationId')) {
       dto.organizationId = publicMetadata.organization;
     }
-    if (this.service.supportsField('userId')) {
+    if (this.serviceSupportsField('userId')) {
       dto.userId = publicMetadata.user;
     }
 
     return dto as CreateDto;
+  }
+
+  /**
+   * Keep controller unit doubles compatible while production services use the
+   * Prisma metadata-backed field check. Older focused controller specs provide
+   * only the service methods exercised by the endpoint; treating an omitted
+   * capability method as supported preserves their historical BaseService
+   * contract without weakening the production path.
+   */
+  private serviceSupportsField(fieldName: string): boolean {
+    const supportsField = this.service.supportsField;
+    return typeof supportsField === 'function'
+      ? supportsField.call(this.service, fieldName)
+      : true;
   }
 
   public async enrichUpdateDto(
