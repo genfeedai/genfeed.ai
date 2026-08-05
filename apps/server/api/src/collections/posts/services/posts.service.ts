@@ -77,9 +77,9 @@ type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
   agentRunId?: string;
   agentStrategyId?: string;
   agentThreadId?: string;
-  brandId: string;
+  brandId?: string;
   credentialId?: string;
-  organizationId: string;
+  organizationId?: string;
   platform?: CredentialPlatform;
   promptUsed?: string;
   publishIntent?: string;
@@ -88,7 +88,7 @@ type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
   sourceActionId?: string;
   sourceWorkflowId?: string;
   sourceWorkflowName?: string;
-  userId: string;
+  userId?: string;
 };
 
 type PostUpdateInput = Partial<UpdatePostDto> & {
@@ -209,6 +209,7 @@ export class PostsService extends BaseService<
       PopulatePatterns.brandMinimal,
     ],
   ): Promise<PostDocument> {
+    const dtoRecord = dto as unknown as Record<string, unknown>;
     const {
       campaign: _campaign,
       ingredients,
@@ -217,7 +218,7 @@ export class PostsService extends BaseService<
     } = dto;
 
     const prismaWriteData: Record<string, unknown> = {
-      ...pickDefinedFields(dto, POST_SCALAR_FIELDS),
+      ...pickDefinedFields(dtoRecord, POST_SCALAR_FIELDS),
       ...(ingredients !== undefined && {
         ingredients: {
           connect: ingredients.map((id) => ({ id })),
@@ -416,9 +417,10 @@ export class PostsService extends BaseService<
     }
 
     const { ingredients, tags } = dto;
+    const dtoRecord = dto as unknown as Record<string, unknown>;
 
     const prismaWriteData: Record<string, unknown> = {
-      ...pickDefinedFields(dto, POST_SCALAR_FIELDS),
+      ...pickDefinedFields(dtoRecord, POST_SCALAR_FIELDS),
       ...(resolvedPlatform !== undefined && { platform: resolvedPlatform }),
       ...(ingredients !== undefined && {
         ingredients: { set: ingredients.map((id) => ({ id })) },
@@ -451,9 +453,9 @@ export class PostsService extends BaseService<
             credentialId: dto.credentialId ?? currentPost.credentialId,
             platform: resolvedPlatform ?? currentPost.platform,
             status: PostStatus.SCHEDULED,
-            ...(prismaWriteData.scheduledDate && {
-              scheduledDate: prismaWriteData.scheduledDate as Date,
-            }),
+            ...(prismaWriteData.scheduledDate
+              ? { scheduledDate: prismaWriteData.scheduledDate as Date }
+              : {}),
           } as never,
           where: {
             isDeleted: false,
@@ -912,11 +914,26 @@ export class PostsService extends BaseService<
       return String(ing);
     });
 
-    const credentialId = originalPost.credentialId;
+    const credentialId = originalPost.credentialId ?? undefined;
+    const tagIds = Array.isArray(originalPost.tags)
+      ? originalPost.tags.flatMap((tag) => {
+          if (typeof tag === 'string') {
+            return [tag];
+          }
+          if (
+            tag &&
+            typeof tag === 'object' &&
+            typeof (tag as { id?: unknown }).id === 'string'
+          ) {
+            return [(tag as { id: string }).id];
+          }
+          return [];
+        })
+      : undefined;
 
     const remixDto = {
       brandId: dto.brandId,
-      category: originalPost.category,
+      category: originalPost.category as PostCreateInput['category'],
       credentialId,
       description: newDescription,
       ingredients: ingredientIds || [],
@@ -925,14 +942,14 @@ export class PostsService extends BaseService<
       label: dto.label || `Remix: ${originalPost.label || 'Untitled'}`,
       organizationId: dto.organizationId,
       originalPostId,
-      platform: originalPost.platform,
+      platform: parsePlatform(originalPost.platform) ?? undefined,
       status: PostStatus.DRAFT,
-      tags: originalPost.tags,
+      tags: tagIds,
       timezone: originalPost.timezone || 'UTC',
       userId: dto.userId,
-    };
+    } satisfies PostCreateInput;
 
-    return this.create(remixDto as PostCreateInput, populate);
+    return this.create(remixDto, populate);
   }
 
   /**

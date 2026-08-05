@@ -43,14 +43,12 @@ function normalizeOrganizationCategoryFields<T extends Record<string, unknown>>(
   const normalized: Record<string, unknown> = { ...dto };
 
   if ('category' in normalized) {
-    normalized['category'] = normalizeOrganizationCategory(
-      normalized['category'],
-    );
+    normalized.category = normalizeOrganizationCategory(normalized.category);
   }
 
   if ('accountType' in normalized) {
-    normalized['accountType'] = normalizeOrganizationCategory(
-      normalized['accountType'],
+    normalized.accountType = normalizeOrganizationCategory(
+      normalized.accountType,
     );
   }
 
@@ -97,7 +95,7 @@ export class OrganizationsService extends BaseService<
         'quotaTwitter',
         'quotaInstagram',
         'enabledModelIds',
-      ].join(' '),
+      ],
     },
   ];
 

@@ -132,7 +132,7 @@ export class RolesGuard implements CanActivate {
 
     // ROLE CHECK: Verify user has one of the required organization-level roles
     // Role is populated, so check if it has the expected structure
-    const role = member?.role as unknown as RoleEntity;
+    const role = (member as typeof member & { role?: RoleEntity }).role;
     const memberRole = role?.key as MemberRole | undefined;
 
     if (!memberRole) {

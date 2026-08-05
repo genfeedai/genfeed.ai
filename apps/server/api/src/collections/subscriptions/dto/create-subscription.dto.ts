@@ -90,9 +90,9 @@ export class CreateSubscriptionDto {
   readonly userId!: string;
 
   @IsString()
-  @IsNotEmpty()
-  @ApiProperty({ description: 'The Stripe subscription ID', required: true })
-  readonly stripeSubscriptionId!: string;
+  @IsOptional()
+  @ApiProperty({ description: 'The Stripe subscription ID', required: false })
+  readonly stripeSubscriptionId?: string;
 
   @IsOptional()
   @IsString()

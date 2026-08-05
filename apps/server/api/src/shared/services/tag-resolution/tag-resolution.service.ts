@@ -1,14 +1,6 @@
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { Injectable } from '@nestjs/common';
 
-type TagLabelDocument = {
-  _id: string;
-  category?: string;
-  isActive?: boolean;
-  isDeleted?: boolean;
-  label?: string | null;
-};
-
 @Injectable()
 export class TagResolutionService {
   constructor(private readonly tagsService: TagsService) {}
@@ -34,7 +26,7 @@ export class TagResolutionService {
     });
 
     return result.docs.flatMap((tag) => {
-      const label = (tag as TagLabelDocument).label;
+      const label = tag.label;
       return typeof label === 'string' && label.length > 0 ? [label] : [];
     });
   }
@@ -47,9 +39,9 @@ export class TagResolutionService {
       return null;
     }
 
-    const tag = (await this.tagsService.findOne({
+    const tag = await this.tagsService.findOne({
       id: tagId,
-    })) as TagLabelDocument | null;
+    });
     return tag?.label || null;
   }
 }

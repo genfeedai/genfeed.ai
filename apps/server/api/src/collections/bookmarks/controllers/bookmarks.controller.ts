@@ -63,7 +63,7 @@ export class BookmarksController {
       organizationId: publicMetadata.organization,
       savedAt: new Date(),
       userId: publicMetadata.user,
-    } as CreateBookmarkDto);
+    });
 
     return serializeSingle(request, BookmarkSerializer, bookmark);
   }

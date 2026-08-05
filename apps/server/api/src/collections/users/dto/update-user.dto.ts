@@ -78,6 +78,10 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   // `usersService.patch` call to stay type-safe.
   readonly hasDismissedAssetGate?: boolean;
 
+  // Internal billing linkage. Deliberately undecorated so it cannot be set via
+  // the public profile update route.
+  readonly stripeCustomerId?: string | null;
+
   @IsOptional()
   @IsString()
   @ApiProperty({

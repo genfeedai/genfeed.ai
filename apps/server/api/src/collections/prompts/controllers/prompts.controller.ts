@@ -64,6 +64,10 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 
+type PromptWithIngredients = PromptDocument & {
+  ingredients?: IngredientDocument[];
+};
+
 function toPromptBrandContext(
   brand: BrandDocument | null | undefined,
 ): IPromptBrandContext | undefined {
@@ -317,7 +321,7 @@ export class PromptsController {
         organizationId: publicMetadata.organization,
       },
       [{ path: 'ingredients' }],
-    )) as unknown as PromptDocument | null;
+    )) as unknown as PromptWithIngredients | null;
 
     let prompt = data;
 
@@ -330,7 +334,7 @@ export class PromptsController {
       });
 
       if (ingredient) {
-        prompt = { ...data, ingredients: [ingredient] } as PromptDocument;
+        prompt = { ...data, ingredients: [ingredient] };
       }
     }
 

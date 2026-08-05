@@ -160,9 +160,10 @@ export class TasksService extends BaseService<
         )
       : null;
     const resolved = { ...input, ...(routing ?? {}) };
+    const resolvedRecord = resolved as Record<string, unknown>;
     const config = {
       ...this.readRecord(input.config),
-      ...pickDefinedFields(resolved, TASK_CONFIG_FIELDS),
+      ...pickDefinedFields(resolvedRecord, TASK_CONFIG_FIELDS),
       linkedApprovalIds: input.linkedApprovalIds ?? [],
       linkedEntities: input.linkedEntities ?? [],
       outputType: resolved.outputType ?? 'ingredient',
@@ -174,7 +175,7 @@ export class TasksService extends BaseService<
     };
 
     const createPayload: Record<string, unknown> = {
-      ...pickDefinedFields(resolved, TASK_SCALAR_FIELDS),
+      ...pickDefinedFields(resolvedRecord, TASK_SCALAR_FIELDS),
       config,
       eventStream: input.eventStream ?? [],
       priority: input.priority ?? 'medium',

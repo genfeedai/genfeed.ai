@@ -251,7 +251,7 @@ export class AssetsController {
       [AssetCategory.LOGO, AssetCategory.BANNER].includes(
         String(updatedAsset.category).toLowerCase() as AssetCategory,
       ) &&
-      updatedAsset.parentType === AssetParent.BRAND &&
+      String(updatedAsset.parentType) === 'BRAND' &&
       updatedAsset.parentBrandId
     ) {
       await this.websocketService.publishBrandRefresh(

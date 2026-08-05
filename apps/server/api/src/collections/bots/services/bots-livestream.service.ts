@@ -428,6 +428,12 @@ export class BotsLivestreamService {
   private async persistSession(
     session: LivestreamBotSessionDocument,
   ): Promise<LivestreamBotSessionDocument> {
+    if (!session.organizationId) {
+      throw new Error(
+        'Cannot persist a livestream session without an organization',
+      );
+    }
+
     const updated = await this.prisma.livestreamBotSession.update({
       where: scopedWhere(session.organizationId, { id: session.id }),
       data: {

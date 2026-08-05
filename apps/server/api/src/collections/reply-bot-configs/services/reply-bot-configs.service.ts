@@ -1,4 +1,5 @@
 import { CreateReplyBotConfigDto } from '@api/collections/reply-bot-configs/dto/create-reply-bot-config.dto';
+import type { ReplyBotRateLimitsDto } from '@api/collections/reply-bot-configs/dto/reply-bot-rate-limits.dto';
 import { UpdateReplyBotConfigDto } from '@api/collections/reply-bot-configs/dto/update-reply-bot-config.dto';
 import type {
   ReplyBotConfigDocument,
@@ -141,7 +142,7 @@ export class ReplyBotConfigsService extends BaseService<
   }
 
   private normalizeRateLimits(
-    rateLimits?: ReplyBotRateLimits,
+    rateLimits?: ReplyBotRateLimits | ReplyBotRateLimitsDto,
   ): ReplyBotRateLimits & {
     currentDayCount: number;
     currentHourCount: number;

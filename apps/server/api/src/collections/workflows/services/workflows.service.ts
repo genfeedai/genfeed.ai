@@ -39,14 +39,6 @@ import {
   Optional,
 } from '@nestjs/common';
 
-type WorkflowCreateExtras = CreateWorkflowDto & {
-  brandId?: string | null;
-  config?: Record<string, unknown>;
-  defaultRecurringBrandId?: string | null;
-  lifecycle?: string | null;
-  lockedNodeIds?: string[];
-};
-
 const WORKFLOW_CONFIG_FIELDS = [
   'comfyuiTemplate',
   'isPublic',
@@ -62,6 +54,15 @@ const WORKFLOW_CONFIG_FIELDS = [
   'webhookSecret',
   'webhookTriggerCount',
 ] as const;
+
+type WorkflowCreateExtras = CreateWorkflowDto &
+  Partial<Record<(typeof WORKFLOW_CONFIG_FIELDS)[number], unknown>> & {
+    brandId?: string | null;
+    config?: Record<string, unknown>;
+    defaultRecurringBrandId?: string | null;
+    lifecycle?: string | null;
+    lockedNodeIds?: string[];
+  };
 
 /**
  * Core workflow service: CRUD/templating, lifecycle transitions, node locks,
@@ -122,7 +123,11 @@ export class WorkflowsService extends BaseService<
     id: string,
     updateDto: Partial<UpdateWorkflowDto> | Record<string, unknown>,
   ): Promise<WorkflowDocument> {
-    const configPatch = pickDefinedFields(updateDto, WORKFLOW_CONFIG_FIELDS);
+    const workflowPatch = updateDto as Record<string, unknown>;
+    const configPatch = pickDefinedFields(
+      workflowPatch,
+      WORKFLOW_CONFIG_FIELDS,
+    );
     const hasConfigPatch = Object.keys(configPatch).length > 0;
     let config: Record<string, unknown> | undefined;
 
@@ -134,7 +139,7 @@ export class WorkflowsService extends BaseService<
       config = { ...(existing.config ?? {}), ...configPatch };
     }
 
-    const scalarPatch = { ...(updateDto as Record<string, unknown>) };
+    const scalarPatch = { ...workflowPatch };
     for (const field of WORKFLOW_CONFIG_FIELDS) {
       delete scalarPatch[field];
     }

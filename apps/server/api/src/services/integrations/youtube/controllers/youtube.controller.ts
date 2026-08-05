@@ -224,7 +224,11 @@ export class YoutubeController {
           'YOUTUBE_REDIRECT_URI',
         );
 
-        if (!clientId || !clientSecret || !redirectUri) {
+        if (
+          typeof clientId !== 'string' ||
+          typeof clientSecret !== 'string' ||
+          typeof redirectUri !== 'string'
+        ) {
           throw new HttpException(
             {
               detail: 'YouTube OAuth credentials are not configured',

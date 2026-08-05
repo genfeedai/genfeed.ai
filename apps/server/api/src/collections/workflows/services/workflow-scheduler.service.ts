@@ -236,7 +236,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
         return;
       }
 
-      const nodes = wDoc.nodes as unknown[] | undefined;
+      const nodes = workflowDocument.nodes as unknown[] | undefined;
       const usesNodeExecutor = Boolean(nodes?.length);
 
       // Legacy step-based workflows still need an explicit execution record here.

@@ -2,6 +2,7 @@ import {
   AGENT_GOAL_METRICS,
   type AgentGoalMetric,
 } from '@api/collections/agent-goals/schemas/agent-goal.schema';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -15,6 +16,11 @@ import {
 } from 'class-validator';
 
 export class UpdateAgentGoalDto {
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({ description: 'Brand ID', required: false })
+  brandId?: string;
+
   @IsString()
   @IsOptional()
   @ApiProperty({ description: 'Goal label', required: false })

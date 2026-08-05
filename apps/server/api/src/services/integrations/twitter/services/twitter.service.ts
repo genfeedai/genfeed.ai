@@ -190,7 +190,7 @@ export class TwitterService {
           key: ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED,
           organizationId: organizationId,
           source: ActivitySource.SOCIAL_INTEGRATION,
-          userId: credentials.userId,
+          userId: credentials.userId ?? undefined,
           value: `Twitter integration disconnected: ${(error as Error)?.message ?? 'Token refresh failed'}`,
         }),
       );
