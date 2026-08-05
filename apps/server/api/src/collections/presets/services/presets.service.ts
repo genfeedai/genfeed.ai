@@ -172,7 +172,7 @@ export class PresetsService extends BaseService<
     let config: Record<string, unknown> | undefined;
 
     if (hasConfigPatch) {
-      const existing = await this.prisma.preset.findUnique({ where: { id } });
+      const existing = await this.findOne({ id });
       if (!existing) {
         throw new NotFoundException('Preset', id);
       }

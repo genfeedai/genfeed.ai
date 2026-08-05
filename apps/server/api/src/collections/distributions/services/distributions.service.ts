@@ -90,12 +90,14 @@ export class DistributionsService extends BaseService<
 
     const [docs, total] = await Promise.all([
       this.prisma.distribution.findMany({
-        where: where as never,
+        where: scopedWhere(organizationId, where) as never,
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
       }),
-      this.prisma.distribution.count({ where: where as never }),
+      this.prisma.distribution.count({
+        where: scopedWhere(organizationId, where) as never,
+      }),
     ]);
 
     return {

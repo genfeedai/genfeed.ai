@@ -429,7 +429,7 @@ export class BotsLivestreamService {
     session: LivestreamBotSessionDocument,
   ): Promise<LivestreamBotSessionDocument> {
     const updated = await this.prisma.livestreamBotSession.update({
-      where: { id: session.id },
+      where: scopedWhere(session.organizationId, { id: session.id }),
       data: {
         data: this.serializeSessionData(session),
       },
@@ -659,17 +659,13 @@ export class BotsLivestreamService {
   ): Promise<LivestreamBotProcessingResult> {
     const sessions = (
       await this.prisma.livestreamBotSession.findMany({
-        where: { isDeleted: false },
+        where: scopedWhere(organizationId),
       })
     )
       .map((session) =>
         this.normalizeSessionDocument(session as Record<string, unknown>),
       )
-      .filter(
-        (session) =>
-          session.status === 'active' &&
-          session.organizationId === organizationId,
-      );
+      .filter((session) => session.status === 'active');
 
     let failed = 0;
     let processed = 0;

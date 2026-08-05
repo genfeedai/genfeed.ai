@@ -264,13 +264,14 @@ export class TasksService extends BaseService<
       | undefined;
 
     if (newStatus || hasConfigPatch) {
-      existing = await this.prisma.task.findUnique({
-        select: { config: true, status: true },
-        where: { id },
-      });
-      if (!existing) {
+      const existingTask = await this.findOne({ id });
+      if (!existingTask) {
         throw new NotFoundException('Task', id);
       }
+      existing = {
+        config: existingTask.config as Prisma.JsonValue,
+        status: existingTask.status,
+      };
     }
 
     if (newStatus && existing) {

@@ -120,7 +120,7 @@ export class ReplyBotConfigsService extends BaseService<
     const operations = [
       this.prisma.monitoredAccount.updateMany({
         data: { botConfigId: null },
-        where: { botConfigId: configId, organizationId },
+        where: scopedWhere(organizationId, { botConfigId: configId }),
       }),
     ];
 
@@ -222,9 +222,7 @@ export class ReplyBotConfigsService extends BaseService<
     let config: Record<string, unknown> | undefined;
 
     if (needsExisting) {
-      const existing = await this.prisma.replyBotConfig.findUnique({
-        where: { id },
-      });
+      const existing = await this.findOne({ id });
       if (!existing) {
         throw new NotFoundException('ReplyBotConfig', id);
       }
@@ -554,6 +552,7 @@ export class ReplyBotConfigsService extends BaseService<
       where: {
         botConfigId: configId,
         id: accountId,
+        isDeleted: false,
         organizationId,
       },
     });

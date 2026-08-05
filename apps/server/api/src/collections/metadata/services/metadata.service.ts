@@ -6,6 +6,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { MetadataExtension } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -39,7 +40,10 @@ export class MetadataService extends BaseService<
     );
   }
 
-  async remove(ingredientId: string): Promise<MetadataDocument | null> {
+  async remove(
+    ingredientId: string,
+    organizationId: string,
+  ): Promise<MetadataDocument | null> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
       if (this.logger) {
@@ -48,7 +52,7 @@ export class MetadataService extends BaseService<
 
       const ingredient = await this.prisma.ingredient.findFirst({
         select: { metadataId: true },
-        where: { id: ingredientId, isDeleted: false },
+        where: scopedWhere(organizationId, { id: ingredientId }),
       });
 
       if (ingredient?.metadataId) {

@@ -891,14 +891,6 @@
     {
       "delegate": "distribution",
       "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
-      "fingerprint": "b5d8b0cda61c74c596af",
-      "method": "findMany",
-      "model": "Distribution",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "distribution",
-      "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
       "fingerprint": "3726980a38a16d8489b7",
       "method": "findUnique",
       "model": "Distribution",
@@ -1139,14 +1131,6 @@
     {
       "delegate": "ingredient",
       "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
-      "fingerprint": "7aa147849d54f13c3956",
-      "method": "findFirst",
-      "model": "Ingredient",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "ingredient",
-      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
       "fingerprint": "44becbc64d22b9b84e94",
       "method": "findMany",
       "model": "Ingredient",
@@ -1179,7 +1163,7 @@
     {
       "delegate": "ingredient",
       "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
-      "fingerprint": "67f8b9099c25b4fe253e",
+      "fingerprint": "e0ebb7eb6c99c2955025",
       "method": "update",
       "model": "Ingredient",
       "reason": "missing-is-deleted"
@@ -1187,7 +1171,7 @@
     {
       "delegate": "ingredient",
       "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
-      "fingerprint": "815e30d79778e7d14a83",
+      "fingerprint": "52ca0748aac1d07720ae",
       "method": "update",
       "model": "Ingredient",
       "reason": "missing-organization-id"
@@ -1203,7 +1187,7 @@
     {
       "delegate": "ingredient",
       "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
-      "fingerprint": "faa30c02922bfead4a62",
+      "fingerprint": "2af2137ba0d41d08bae3",
       "method": "updateMany",
       "model": "Ingredient",
       "reason": "unresolved-where"
@@ -1339,7 +1323,7 @@
     {
       "delegate": "member",
       "file": "apps/server/api/src/collections/members/services/members.service.ts",
-      "fingerprint": "44a285be33623600c1df",
+      "fingerprint": "e296519d3b6d979b938b",
       "method": "findMany",
       "model": "Member",
       "reason": "unresolved-where"
@@ -1523,23 +1507,7 @@
     {
       "delegate": "monitoredAccount",
       "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
-      "fingerprint": "cac1f5dd8b9c9725bb7c",
-      "method": "findUnique",
-      "model": "MonitoredAccount",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "monitoredAccount",
-      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
       "fingerprint": "1258fdd238485f49fb28",
-      "method": "findUnique",
-      "model": "MonitoredAccount",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "monitoredAccount",
-      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
-      "fingerprint": "36d04efd4aeb871081b3",
       "method": "findUnique",
       "model": "MonitoredAccount",
       "reason": "missing-organization-id"
@@ -1723,14 +1691,6 @@
     {
       "delegate": "outreachCampaign",
       "file": "apps/server/api/src/collections/outreach-campaigns/services/outreach-campaigns.service.ts",
-      "fingerprint": "66b8789ad36199160ea5",
-      "method": "update",
-      "model": "OutreachCampaign",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "outreachCampaign",
-      "file": "apps/server/api/src/collections/outreach-campaigns/services/outreach-campaigns.service.ts",
       "fingerprint": "ad585a799efe081a6f53",
       "method": "update",
       "model": "OutreachCampaign",
@@ -1747,6 +1707,14 @@
     {
       "delegate": "outreachCampaign",
       "file": "apps/server/api/src/collections/outreach-campaigns/services/outreach-campaigns.service.ts",
+      "fingerprint": "e2c27b04dab06532a21b",
+      "method": "update",
+      "model": "OutreachCampaign",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "outreachCampaign",
+      "file": "apps/server/api/src/collections/outreach-campaigns/services/outreach-campaigns.service.ts",
       "fingerprint": "f13e0284567b6c58c176",
       "method": "update",
       "model": "OutreachCampaign",
@@ -1755,7 +1723,7 @@
     {
       "delegate": "outreachCampaign",
       "file": "apps/server/api/src/collections/outreach-campaigns/services/outreach-campaigns.service.ts",
-      "fingerprint": "19127358d9cced3351e6",
+      "fingerprint": "7ca685a24897b48454d1",
       "method": "update",
       "model": "OutreachCampaign",
       "reason": "missing-organization-id"
@@ -1763,7 +1731,7 @@
     {
       "delegate": "outreachCampaign",
       "file": "apps/server/api/src/collections/outreach-campaigns/services/outreach-campaigns.service.ts",
-      "fingerprint": "7ca685a24897b48454d1",
+      "fingerprint": "b1c33cb6735ca758d4a7",
       "method": "update",
       "model": "OutreachCampaign",
       "reason": "missing-organization-id"
@@ -1899,7 +1867,7 @@
     {
       "delegate": "post",
       "file": "apps/server/api/src/collections/posts/services/post-batch-schedule.util.ts",
-      "fingerprint": "9ee7b78b7ed9011359d5",
+      "fingerprint": "8e9c1fd90c853892cb80",
       "method": "updateMany",
       "model": "Post",
       "reason": "missing-organization-id"
@@ -1971,7 +1939,7 @@
     {
       "delegate": "post",
       "file": "apps/server/api/src/collections/posts/services/posts.service.ts",
-      "fingerprint": "af700fc21851551f93d4",
+      "fingerprint": "ad64dd1039fd7e507467",
       "method": "updateMany",
       "model": "Post",
       "reason": "missing-organization-id"
@@ -2067,22 +2035,6 @@
     {
       "delegate": "replyBotConfig",
       "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
-      "fingerprint": "14ded610a89739b2796a",
-      "method": "update",
-      "model": "ReplyBotConfig",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "replyBotConfig",
-      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
-      "fingerprint": "1da0b7c6e272264a050f",
-      "method": "update",
-      "model": "ReplyBotConfig",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "replyBotConfig",
-      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
       "fingerprint": "490f263c53df59a46904",
       "method": "update",
       "model": "ReplyBotConfig",
@@ -2155,14 +2107,6 @@
     {
       "delegate": "replyBotConfig",
       "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
-      "fingerprint": "51198acf4b5e14273709",
-      "method": "update",
-      "model": "ReplyBotConfig",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "replyBotConfig",
-      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
       "fingerprint": "740b0a6487165f499c56",
       "method": "update",
       "model": "ReplyBotConfig",
@@ -2180,14 +2124,6 @@
       "delegate": "replyBotConfig",
       "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
       "fingerprint": "9b887fe1a47111afd8be",
-      "method": "update",
-      "model": "ReplyBotConfig",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "replyBotConfig",
-      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
-      "fingerprint": "c0ee3d3fe84c8ca79502",
       "method": "update",
       "model": "ReplyBotConfig",
       "reason": "missing-organization-id"
@@ -2475,7 +2411,7 @@
     {
       "delegate": "sourcePost",
       "file": "apps/server/api/src/collections/source-posts/services/source-posts.service.ts",
-      "fingerprint": "355750e035f0b4ec9092",
+      "fingerprint": "eced151be88a143695a8",
       "method": "findMany",
       "model": "SourcePost",
       "reason": "unresolved-where"
@@ -2675,7 +2611,7 @@
     {
       "delegate": "trend",
       "file": "apps/server/api/src/collections/trends/services/modules/trend-corpus-freshness.service.ts",
-      "fingerprint": "8fa661cc656a5d2d612c",
+      "fingerprint": "ccc352fb80dccb3d0e8f",
       "method": "findMany",
       "model": "Trend",
       "reason": "unresolved-where"
@@ -2827,39 +2763,7 @@
     {
       "delegate": "workflowExecution",
       "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "83d3818af9f21bf15cb4",
-      "method": "findUnique",
-      "model": "WorkflowExecution",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "8d959eb80d3031f16aeb",
-      "method": "findUnique",
-      "model": "WorkflowExecution",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "a09dd5859fa8f5aab124",
-      "method": "findUnique",
-      "model": "WorkflowExecution",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
       "fingerprint": "aa8203a62849014fb5ab",
-      "method": "findUnique",
-      "model": "WorkflowExecution",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "cd7429b94352cd2d332f",
       "method": "findUnique",
       "model": "WorkflowExecution",
       "reason": "missing-is-deleted"
@@ -2875,31 +2779,7 @@
     {
       "delegate": "workflowExecution",
       "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "95f9837fc2b07f9a3231",
-      "method": "findUnique",
-      "model": "WorkflowExecution",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
       "fingerprint": "a3aca599dd47b56802a5",
-      "method": "findUnique",
-      "model": "WorkflowExecution",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "ba02f80634ce0e06243e",
-      "method": "findUnique",
-      "model": "WorkflowExecution",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "c23c50d05034daab1965",
       "method": "findUnique",
       "model": "WorkflowExecution",
       "reason": "missing-organization-id"
@@ -2915,15 +2795,7 @@
     {
       "delegate": "workflowExecution",
       "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "dac1de0e233d2189f6a3",
-      "method": "findUnique",
-      "model": "WorkflowExecution",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "0183277380411f7ea1db",
+      "fingerprint": "cea1db2e11220a0109d3",
       "method": "update",
       "model": "WorkflowExecution",
       "reason": "missing-is-deleted"
@@ -2931,7 +2803,7 @@
     {
       "delegate": "workflowExecution",
       "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "80e9499bf84cdcaa8a9d",
+      "fingerprint": "d050ebf8aa3a3e133801",
       "method": "update",
       "model": "WorkflowExecution",
       "reason": "missing-is-deleted"
@@ -2939,7 +2811,7 @@
     {
       "delegate": "workflowExecution",
       "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "a976e2c1494ea8e6fc63",
+      "fingerprint": "fe3325733ca212b1d80f",
       "method": "update",
       "model": "WorkflowExecution",
       "reason": "missing-is-deleted"
@@ -2947,39 +2819,7 @@
     {
       "delegate": "workflowExecution",
       "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "aaf16ca5b49a997ebff5",
-      "method": "update",
-      "model": "WorkflowExecution",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "b2af5e6411ef9c3b02f0",
-      "method": "update",
-      "model": "WorkflowExecution",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "d9a3d5af445003bb4ff1",
-      "method": "update",
-      "model": "WorkflowExecution",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "db80dbdfbda142ddeaf4",
-      "method": "update",
-      "model": "WorkflowExecution",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "324e5d9a7e47ccd8486e",
+      "fingerprint": "29160e16ebe7f8d2ed7c",
       "method": "update",
       "model": "WorkflowExecution",
       "reason": "missing-organization-id"
@@ -2987,7 +2827,7 @@
     {
       "delegate": "workflowExecution",
       "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "45d168cd886d1d124dec",
+      "fingerprint": "8d01843a5851d3670dc3",
       "method": "update",
       "model": "WorkflowExecution",
       "reason": "missing-organization-id"
@@ -2995,39 +2835,7 @@
     {
       "delegate": "workflowExecution",
       "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "48052818325cc7fc49a2",
-      "method": "update",
-      "model": "WorkflowExecution",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "935d12719b159c8d69e0",
-      "method": "update",
-      "model": "WorkflowExecution",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "b59db648ae31483c677f",
-      "method": "update",
-      "model": "WorkflowExecution",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "bf735985d720ef34433c",
-      "method": "update",
-      "model": "WorkflowExecution",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "workflowExecution",
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "ca0e7c471e20e5886518",
+      "fingerprint": "a3b6b2a4fbb404e95e0a",
       "method": "update",
       "model": "WorkflowExecution",
       "reason": "missing-organization-id"

@@ -947,6 +947,7 @@ describe('VideosController', () => {
       expect(videosService.remove).toHaveBeenCalledWith(mockVideoId.toString());
       expect(metadataService.remove).toHaveBeenCalledWith(
         mockVideoId.toString(),
+        mockUser.publicMetadata.organization,
       );
       expect(result).toBeDefined();
     });

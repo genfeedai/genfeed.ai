@@ -191,9 +191,7 @@ export class MonitoredAccountsService extends BaseService<
    * Increment the tweets processed count
    */
   async incrementProcessedCount(id: string): Promise<void> {
-    const existing = await this.prisma.monitoredAccount.findUnique({
-      where: { id },
-    });
+    const existing = await this.findOne({ id });
     const config = (existing?.config as AccountConfig) ?? {};
 
     await this.prisma.monitoredAccount.update({
@@ -211,9 +209,7 @@ export class MonitoredAccountsService extends BaseService<
    * Increment the replies sent count
    */
   async incrementRepliesCount(id: string): Promise<void> {
-    const existing = await this.prisma.monitoredAccount.findUnique({
-      where: { id },
-    });
+    const existing = await this.findOne({ id });
     const config = (existing?.config as AccountConfig) ?? {};
 
     await this.prisma.monitoredAccount.update({

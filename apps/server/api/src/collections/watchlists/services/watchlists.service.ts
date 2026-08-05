@@ -98,10 +98,7 @@ export class WatchlistsService extends BaseService<
     let config: Record<string, unknown> | undefined;
 
     if (hasConfigPatch) {
-      const existing = await this.prisma.watchlist.findUnique({
-        select: { config: true },
-        where: { id },
-      });
+      const existing = await this.findOne({ id });
       if (!existing) {
         throw new NotFoundException('Watchlist', id);
       }
