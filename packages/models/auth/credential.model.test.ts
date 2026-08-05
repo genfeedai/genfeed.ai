@@ -96,6 +96,7 @@ const createOrganizationSetting = (
   isGenerateMusicEnabled: true,
   isGenerateVideosEnabled: true,
   isNotificationsDiscordEnabled: false,
+  isNotificationsTelegramEnabled: false,
   isNotificationsEmailEnabled: false,
   isVerifyIngredientEnabled: false,
   isVerifyScriptEnabled: false,
