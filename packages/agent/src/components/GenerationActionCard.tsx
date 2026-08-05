@@ -1,11 +1,13 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import type { ThreadAsset } from '@genfeedai/agent/utils/extract-thread-assets';
 import type { AgentUiActionHandler } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Image, Video } from 'lucide-react';
 import type { ReactElement } from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
+import { GenerationActionCanvas } from './GenerationActionCanvas';
 import { GenerationActionCardControls } from './GenerationActionCardControls';
 import { GenerationActionCardHeader } from './GenerationActionCardHeader';
 import { GenerationActionCardStatusPanel } from './GenerationActionCardStatusPanel';
@@ -69,9 +71,12 @@ export function GenerationActionCard({
     onRegenerateProp,
     handleRetryVoid,
     handleGenerateVoid,
+    handleToggleReference,
+    handleUseResultAsReference,
     handleModelChange,
     handleAspectRatioChange,
     handleDurationChange,
+    referenceIds,
   } = useGenerationActionCard({
     action,
     apiService,
@@ -89,6 +94,18 @@ export function GenerationActionCard({
       setIsCollapsed(true);
     }
   }, [status]);
+
+  const handleToggleAssetReference = useCallback(
+    (asset: ThreadAsset) => {
+      handleToggleReference(asset.id);
+    },
+    [handleToggleReference],
+  );
+
+  const handleUseAsReference = useCallback(() => {
+    handleUseResultAsReference();
+    setIsCollapsed(false);
+  }, [handleUseResultAsReference]);
 
   const isImage = generationType === 'image';
   const Icon = isImage ? Image : Video;
@@ -122,6 +139,7 @@ export function GenerationActionCard({
               qualityFeedback={qualityFeedback}
               onRetry={handleRetryVoid}
               onRegenerateProp={onRegenerateProp}
+              onUseAsReference={handleUseAsReference}
             />
           </div>
         ) : null
@@ -153,6 +171,16 @@ export function GenerationActionCard({
             onGenerate={handleGenerateVoid}
           />
 
+          <GenerationActionCanvas
+            generationType={generationType}
+            currentResult={
+              resultId && resultUrl ? { id: resultId, url: resultUrl } : null
+            }
+            isDisabled={status === 'generating'}
+            referenceIds={referenceIds}
+            onToggleReference={handleToggleAssetReference}
+          />
+
           <GenerationActionCardStatusPanel
             status={status}
             isImage={isImage}
@@ -164,6 +192,7 @@ export function GenerationActionCard({
             qualityFeedback={qualityFeedback}
             onRetry={handleRetryVoid}
             onRegenerateProp={onRegenerateProp}
+            onUseAsReference={handleUseAsReference}
           />
         </div>
       )}
