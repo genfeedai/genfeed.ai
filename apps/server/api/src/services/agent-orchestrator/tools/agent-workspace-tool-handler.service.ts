@@ -98,7 +98,7 @@ export class AgentWorkspaceToolHandler {
     const limit = (params.limit as number) || 10;
     const matchStage: Record<string, unknown> = {
       isDeleted: false,
-      organization: ctx.organizationId,
+      organizationId: ctx.organizationId,
     };
 
     if (params.status) {
@@ -107,7 +107,7 @@ export class AgentWorkspaceToolHandler {
 
     const posts = await this.postsService.findAll(
       { orderBy: { createdAt: -1 }, where: matchStage },
-      {},
+      { limit },
     );
 
     return {

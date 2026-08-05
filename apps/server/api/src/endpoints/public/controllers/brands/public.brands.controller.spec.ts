@@ -20,6 +20,9 @@ describe('PublicBrandsController', () => {
   let controller: PublicBrandsController;
   let articlesService: vi.Mocked<ArticlesService>;
   let brandsService: vi.Mocked<BrandsService>;
+  let imagesService: vi.Mocked<ImagesService>;
+  let linksService: vi.Mocked<LinksService>;
+  let videosService: vi.Mocked<VideosService>;
 
   // Rows come back with the Prisma enum casing ('PUBLIC'), not the TS enum
   // value ('public'). Mocking the TS value hid a production bug where the
@@ -29,7 +32,7 @@ describe('PublicBrandsController', () => {
   const PRISMA_SCOPE_USER = 'USER';
 
   const mockBrand = {
-    _id: '507f191e810c19729de860ee',
+    id: '507f191e810c19729de860ee',
     description: 'A public test brand',
     handle: 'test-brand',
     isDeleted: false,
@@ -89,6 +92,9 @@ describe('PublicBrandsController', () => {
     controller = module.get<PublicBrandsController>(PublicBrandsController);
     articlesService = module.get(ArticlesService);
     brandsService = module.get(BrandsService);
+    imagesService = module.get(ImagesService);
+    linksService = module.get(LinksService);
+    videosService = module.get(VideosService);
   });
 
   afterEach(() => {
@@ -156,7 +162,7 @@ describe('PublicBrandsController', () => {
       );
 
       expect(brandsService.findOne).toHaveBeenCalledWith({
-        _id: '507f191e810c19729de860ee',
+        id: '507f191e810c19729de860ee',
         isDeleted: false,
         scope: AssetScope.PUBLIC,
       });
@@ -199,7 +205,7 @@ describe('PublicBrandsController', () => {
       expect(articlesService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            brand: '507f191e810c19729de860ee',
+            brandId: '507f191e810c19729de860ee',
             isDeleted: false,
             scope: AssetScope.PUBLIC,
             status: 'PUBLISHED',
@@ -207,6 +213,44 @@ describe('PublicBrandsController', () => {
         }),
         expect.any(Object),
       );
+    });
+  });
+
+  describe('public brand asset filters', () => {
+    it('uses brandId for links, videos, images, and articles', async () => {
+      const brandId = '507f191e810c19729de860ee';
+      brandsService.findOne.mockResolvedValue(
+        mockBrand as unknown as BrandEntity,
+      );
+      linksService.findAll.mockResolvedValue({ docs: [] } as never);
+      videosService.findAll.mockResolvedValue({ docs: [] } as never);
+      imagesService.findAll.mockResolvedValue({ docs: [] } as never);
+      articlesService.findAll.mockResolvedValue({ docs: [] } as never);
+
+      await controller.findBrandLinks(mockReq, brandId);
+      await controller.findBrandVideos(brandId, mockReq);
+      await controller.findBrandImages(brandId, mockReq);
+      await controller.findBrandArticles(brandId, mockReq);
+
+      for (const findAll of [
+        linksService.findAll,
+        videosService.findAll,
+        imagesService.findAll,
+        articlesService.findAll,
+      ]) {
+        expect(findAll).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({ brandId }),
+          }),
+          expect.any(Object),
+        );
+        expect(findAll).not.toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({ brand: expect.anything() }),
+          }),
+          expect.any(Object),
+        );
+      }
     });
   });
 });

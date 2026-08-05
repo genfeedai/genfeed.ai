@@ -109,9 +109,9 @@ export class AgentOnboardingToolHandler {
     const voice = (params.voice as string) || 'conversational';
 
     const existing = await this.brandsService.findOne({
-      handle: normalizedHandle,
       isDeleted: false,
       organizationId: ctx.organizationId,
+      slug: normalizedHandle,
     });
 
     if (existing) {
@@ -130,13 +130,14 @@ export class AgentOnboardingToolHandler {
       backgroundColor: '#000000',
       description: `${description} Voice: ${voice}.`,
       fontFamily: 'montserrat_black',
-      handle: normalizedHandle,
       isSelected: false,
       label: name,
-      organization: ctx.organizationId,
+      organizationId: ctx.organizationId,
       primaryColor: '#000000',
       secondaryColor: '#FFFFFF',
+      slug: normalizedHandle,
       text: (params.niche as string) || undefined,
+      userId: ctx.userId,
     } as never);
 
     const onboardingStatus = await this.checkOnboardingStatus(ctx);

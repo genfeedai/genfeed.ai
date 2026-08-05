@@ -197,8 +197,7 @@ export class AgentInstagramInspirationToolHandler {
       );
     }
 
-    const brandRecord = brand as unknown as Record<string, unknown>;
-    const brandId = String(brandRecord.id ?? brandRecord._id ?? '');
+    const brandId = String(brand.id ?? '');
     if (!brandId) {
       throw new BadRequestException('The selected brand has no stable ID.');
     }

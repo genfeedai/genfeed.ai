@@ -107,12 +107,17 @@ export class ArticlesController extends BaseCRUDController<
     @Param('id') articleId: string,
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
+    const isSuperAdmin = getIsSuperAdmin(user, request);
 
-    // Build findAll query to fetch article with evaluation
+    // Scope the database read for regular users instead of hydrating another
+    // organization's article and rejecting it after the query.
     const pipeline = {
       where: {
-        _id: articleId,
+        id: articleId,
         isDeleted: false,
+        ...(!isSuperAdmin && {
+          organizationId: publicMetadata.organization.toString(),
+        }),
       },
     };
 
@@ -130,7 +135,7 @@ export class ArticlesController extends BaseCRUDController<
     // Check organization access
     if (
       article.organizationId !== publicMetadata.organization.toString() &&
-      !getIsSuperAdmin(user, request)
+      !isSuperAdmin
     ) {
       ErrorResponse.notFound(this.entityName, articleId);
     }

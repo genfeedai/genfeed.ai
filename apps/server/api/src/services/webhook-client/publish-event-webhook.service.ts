@@ -302,7 +302,7 @@ export class PublishEventWebhookService {
 
       const targets = new Map<string, PublishWebhookTarget>();
       for (const groupPost of result.docs ?? []) {
-        const targetId = readReferenceId(groupPost.id ?? groupPost._id);
+        const targetId = readReferenceId(groupPost.id);
         if (!targetId) {
           return { reason: 'non-terminal' };
         }

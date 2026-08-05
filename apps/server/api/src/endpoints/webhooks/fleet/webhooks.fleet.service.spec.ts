@@ -20,7 +20,6 @@ describe('FleetWebhookService', () => {
   };
 
   const voice = {
-    _id: 'voice-asset-1',
     id: 'voice-asset-1',
     organizationId: 'org-1',
     providerData: { fleet: { jobId: 'old-job' } },

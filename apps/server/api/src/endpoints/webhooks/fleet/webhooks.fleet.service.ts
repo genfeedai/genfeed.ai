@@ -422,7 +422,11 @@ export class FleetWebhookService {
   }
 
   private voiceId(voice: IngredientDocument): string {
-    return String(voice.id ?? voice._id);
+    if (!voice.id) {
+      throw new BadRequestException('Fleet voice clone asset is missing id');
+    }
+
+    return voice.id;
   }
 
   private organizationId(voice: IngredientDocument): string {

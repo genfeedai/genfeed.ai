@@ -811,7 +811,7 @@ export class ProactiveOnboardingService {
 
     const posts = await this.postsService.find({
       isDeleted: false,
-      organization: lead.proactiveOrganizationId,
+      organizationId: lead.proactiveOrganizationId,
     });
 
     return { posts };
@@ -982,7 +982,7 @@ export class ProactiveOnboardingService {
 
     const posts = await this.postsService.find({
       isDeleted: false,
-      organization: lead.proactiveOrganizationId,
+      organizationId: lead.proactiveOrganizationId,
     });
 
     return posts.slice(0, 3);

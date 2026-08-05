@@ -560,16 +560,6 @@ describe('AgentToolExecutorService', () => {
         suggestions: ['Increase contrast for better readability'],
       }),
     };
-    const seoScorerService = {
-      scoreArticle: vi.fn().mockResolvedValue({
-        score: 7,
-        suggestions: ['Add a meta description'],
-      }),
-      scorePost: vi.fn().mockResolvedValue({
-        score: 7,
-        suggestions: ['Add a meta description'],
-      }),
-    };
     const ingredientsService = {
       findOne: vi.fn().mockResolvedValue(null),
     };
@@ -1608,6 +1598,33 @@ describe('AgentToolExecutorService', () => {
     ]);
   });
 
+  it('lists posts with the canonical organizationId filter', async () => {
+    const { postsService, service } = createService();
+    postsService.findAll.mockResolvedValue({ docs: [] });
+
+    const result = await service.executeTool(
+      AgentToolName.LIST_POSTS,
+      { status: PostStatus.DRAFT },
+      {
+        organizationId: '67a123456789012345678901',
+        userId: '67a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(postsService.findAll).toHaveBeenCalledWith(
+      {
+        orderBy: { createdAt: -1 },
+        where: {
+          isDeleted: false,
+          organizationId: '67a123456789012345678901',
+          status: PostStatus.DRAFT,
+        },
+      },
+      { limit: 10 },
+    );
+  });
+
   it('lists Instagram inspiration for the selected organization brand', async () => {
     const {
       brandsService,
@@ -1641,8 +1658,8 @@ describe('AgentToolExecutorService', () => {
     expect(brandsService.findOne).toHaveBeenCalledWith({
       isDeleted: false,
       isSelected: true,
-      organization: '67a123456789012345678901',
-      user: '67a123456789012345678902',
+      organizationId: '67a123456789012345678901',
+      userId: '67a123456789012345678902',
     });
     expect(
       instagramInspirationService.listInstagramInspiration,
@@ -1691,9 +1708,9 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(brandsService.findOne).toHaveBeenCalledWith({
-      _id: '67a123456789012345678999',
+      id: '67a123456789012345678999',
       isDeleted: false,
-      organization: '67a123456789012345678901',
+      organizationId: '67a123456789012345678901',
     });
     expect(result.success).toBe(false);
     expect(result.error).toContain(
@@ -1727,9 +1744,9 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(brandsService.findOne).toHaveBeenCalledWith({
-      _id: '67a123456789012345678903',
+      id: '67a123456789012345678903',
       isDeleted: false,
-      organization: '67a123456789012345678901',
+      organizationId: '67a123456789012345678901',
     });
     expect(
       instagramInspirationService.createInstagramRemixWorkflow,
@@ -2415,7 +2432,24 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(result.success).toBe(true);
-    expect(brandsService.create).toHaveBeenCalled();
+    expect(brandsService.findOne).toHaveBeenCalledWith({
+      isDeleted: false,
+      organizationId: '67a123456789012345678901',
+      slug: 'fitcreator',
+    });
+    expect(brandsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: '67a123456789012345678901',
+        slug: 'fitcreator',
+        userId: '67a123456789012345678902',
+      }),
+    );
+    expect(brandsService.create).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        handle: expect.anything(),
+        organization: expect.anything(),
+      }),
+    );
   });
 
   it('should return onboarding status for required setup milestones', async () => {
@@ -2447,7 +2481,7 @@ describe('AgentToolExecutorService', () => {
     expect(postsService.findOne).toHaveBeenCalledWith(
       {
         isDeleted: false,
-        organization: '67a123456789012345678901',
+        organizationId: '67a123456789012345678901',
         status: PostStatus.PUBLIC,
       },
       [],
@@ -2785,8 +2819,7 @@ describe('AgentToolExecutorService', () => {
   });
 
   it('should complete onboarding and sync claims', async () => {
-    const { authProviderService, organizationsService, service, usersService } =
-      createService();
+    const { organizationsService, service, usersService } = createService();
 
     const result = await service.executeTool(
       AgentToolName.COMPLETE_ONBOARDING,

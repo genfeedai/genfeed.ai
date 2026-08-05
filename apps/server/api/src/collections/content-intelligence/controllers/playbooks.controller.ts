@@ -83,7 +83,7 @@ export class PlaybooksController {
     const pipeline = {
       where: {
         isDeleted: false,
-        organization: organizationId,
+        organizationId,
       },
       orderBy: { createdAt: -1 },
     };

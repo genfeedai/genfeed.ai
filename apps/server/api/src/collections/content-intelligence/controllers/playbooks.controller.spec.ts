@@ -7,7 +7,12 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PlaybooksController } from '@api/collections/content-intelligence/controllers/playbooks.controller';
+import type {
+  CreatePlaybookDto,
+  UpdatePlaybookDto,
+} from '@api/collections/content-intelligence/dto/create-playbook.dto';
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
+import { ContentIntelligencePlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -31,9 +36,9 @@ describe('PlaybooksController', () => {
   } as Request;
 
   const mockPlaybook = {
-    _id: '507f1f77bcf86cd799439015',
+    id: '507f1f77bcf86cd799439015',
     name: 'Test Playbook',
-    organization: '507f1f77bcf86cd799439012',
+    organizationId: '507f1f77bcf86cd799439012',
   };
 
   const mockPlaybookBuilderService = {
@@ -84,7 +89,16 @@ describe('PlaybooksController', () => {
 
       await controller.findAll(mockRequest, mockUser);
 
-      expect(mockPlaybookBuilderService.findAll).toHaveBeenCalled();
+      expect(mockPlaybookBuilderService.findAll).toHaveBeenCalledWith(
+        {
+          orderBy: { createdAt: -1 },
+          where: {
+            isDeleted: false,
+            organizationId: '507f1f77bcf86cd799439012',
+          },
+        },
+        expect.objectContaining({ limit: 100, page: 1 }),
+      );
     });
   });
 
@@ -122,8 +136,8 @@ describe('PlaybooksController', () => {
 
       await controller.create(mockRequest, mockUser, {
         name: 'New Playbook',
-        platform: 'twitter',
-      } as any);
+        platform: ContentIntelligencePlatform.TWITTER,
+      } satisfies CreatePlaybookDto);
 
       expect(mockPlaybookBuilderService.createPlaybook).toHaveBeenCalledWith(
         '507f1f77bcf86cd799439012',
@@ -145,7 +159,7 @@ describe('PlaybooksController', () => {
         mockRequest,
         mockUser,
         '507f1f77bcf86cd799439015',
-        { name: 'Updated' } as any,
+        { name: 'Updated' } satisfies UpdatePlaybookDto,
       );
 
       expect(mockPlaybookBuilderService.patch).toHaveBeenCalledWith(
@@ -162,7 +176,7 @@ describe('PlaybooksController', () => {
           mockRequest,
           mockUser,
           '507f1f77bcf86cd799439015',
-          {} as any,
+          {} satisfies UpdatePlaybookDto,
         ),
       ).rejects.toThrow(HttpException);
     });

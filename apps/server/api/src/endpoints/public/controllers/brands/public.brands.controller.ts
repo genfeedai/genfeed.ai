@@ -198,7 +198,7 @@ export class PublicBrandsController {
 
     const aggregate = {
       where: {
-        brand: brandId,
+        brandId,
         isDeleted: false,
         scope: AssetScope.PUBLIC,
       },
@@ -253,7 +253,7 @@ export class PublicBrandsController {
 
     const aggregate = {
       where: {
-        brand: brandId,
+        brandId,
         isDeleted: false,
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
@@ -310,7 +310,7 @@ export class PublicBrandsController {
 
     const aggregate = {
       where: {
-        brand: brandId,
+        brandId,
         isDeleted: false,
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
@@ -367,7 +367,7 @@ export class PublicBrandsController {
 
     const aggregate = {
       where: {
-        brand: brandId,
+        brandId,
         isDeleted: false,
         scope: AssetScope.PUBLIC,
         ...ArticleFilterUtil.buildPublicArticleStatusFilter(),

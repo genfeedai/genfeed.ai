@@ -168,6 +168,10 @@ describe('BotUserResolverService', () => {
       brandsService.find.mockResolvedValue([brandA, brandB] as never);
 
       const result = await service.getUserBrands('test-object-id');
+      expect(brandsService.find).toHaveBeenCalledWith({
+        isDeleted: false,
+        organizationId: 'test-object-id',
+      });
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual({ id: brandA.id.toString(), name: 'Alpha' });
     });
