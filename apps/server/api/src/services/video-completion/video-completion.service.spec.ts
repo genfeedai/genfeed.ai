@@ -7,6 +7,7 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { VideoCompletionService } from '@api/services/video-completion/video-completion.service';
 import { IngredientStatus, Status } from '@genfeedai/enums';
+import { EDITOR_RENDERER_VERSION } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { ConflictException } from '@nestjs/common';
@@ -169,7 +170,7 @@ describe('VideoCompletionService', () => {
         durationSeconds: 10,
         fps: 30,
         height: 1080,
-        rendererVersion: 'remotion@4.0.502',
+        rendererVersion: EDITOR_RENDERER_VERSION,
         s3Key: 'videos/output.mp4',
         size: 4096,
         url: 'https://cdn.example.com/videos/output.mp4',
@@ -229,7 +230,7 @@ describe('VideoCompletionService', () => {
           durationSeconds: 10,
           fps: 30,
           height: 1080,
-          rendererVersion: 'remotion@4.0.502',
+          rendererVersion: EDITOR_RENDERER_VERSION,
           s3Key: 'videos/output.mp4',
           size: 4096,
           url: 'https://cdn.example.com/videos/output.mp4',
@@ -273,7 +274,7 @@ describe('VideoCompletionService', () => {
           durationSeconds: 10,
           fps: 30,
           height: 1080,
-          rendererVersion: 'remotion@4.0.502',
+          rendererVersion: EDITOR_RENDERER_VERSION,
           s3Key: 'videos/output.mp4',
           size: 4096,
           url: 'https://cdn.example.com/videos/output.mp4',
@@ -599,7 +600,7 @@ describe('VideoCompletionService', () => {
       durationSeconds: 10,
       fps: 30,
       height: 1080,
-      rendererVersion: 'remotion@4.0.502',
+      rendererVersion: EDITOR_RENDERER_VERSION,
       s3Key: 'videos/output.mp4',
       size: 4096,
       url: 'https://cdn.example.com/videos/output.mp4',

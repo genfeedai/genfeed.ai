@@ -311,10 +311,14 @@ export function useAgentFullPage({
   }, [apiService, authReady, setCreditsRemaining, setModelCosts]);
 
   // When the URL has no thread, clear conversation state during render so
-  // the empty state never flashes the previous thread's data.
+  // the empty state never flashes the previous thread's data. `null` is a
+  // distinct "not yet cleared" sentinel from `undefined` (the "already
+  // cleared for the current no-thread render" marker) — without it, mounting
+  // directly on a no-thread route left clearedForThreadId === threadId
+  // (both undefined) and the initial clear never ran.
   const [clearedForThreadId, setClearedForThreadId] = useState<
-    string | undefined
-  >(threadId);
+    string | undefined | null
+  >(null);
   if (authReady && !threadId && clearedForThreadId !== undefined) {
     setClearedForThreadId(undefined);
     setIsLoadingThread(false);

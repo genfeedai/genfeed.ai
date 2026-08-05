@@ -122,6 +122,39 @@ describe('control-guard detection', () => {
     expect(categoriesFor(file)).not.toContain('raw-html');
   });
 
+  it('flags raw elements after a closed block comment on the same line', () => {
+    const file = write(
+      'apps/app/after-comment.tsx',
+      'export default function C(){return <div>{/* note */} <input /></div>}',
+    );
+    const categories = categoriesFor(file);
+    expect(categories).toContain('raw-input');
+    expect(categories).toContain('raw-html');
+  });
+
+  it('ignores raw elements inside multi-line JSX block comments', () => {
+    const file = write(
+      'apps/app/multiline-comment.tsx',
+      [
+        'export default function C(){return <div>{/*',
+        '<input />',
+        '*/}</div>}',
+      ].join('\n'),
+    );
+    expect(categoriesFor(file)).not.toContain('raw-input');
+    expect(categoriesFor(file)).not.toContain('raw-html');
+  });
+
+  it('does not treat URL slashes in an attribute as a line comment', () => {
+    const file = write(
+      'apps/app/url-before-input.tsx',
+      'export default function C(){return <div data-url="https://example.com"><input /></div>}',
+    );
+    const categories = categoriesFor(file);
+    expect(categories).toContain('raw-input');
+    expect(categories).toContain('raw-html');
+  });
+
   it('ignores raw <input> documented in JSDoc / block comments', () => {
     const file = write(
       'packages/pages/brands/kit.tsx',

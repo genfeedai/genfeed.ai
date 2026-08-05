@@ -39,6 +39,10 @@ export class AnalyticsYouTubeJobService {
       `Processing YouTube analytics batch for ${posts.length} posts`,
     );
 
+    // Posts whose outcome has already been recorded. The outer catch is a
+    // batch-level handler; without this it would overwrite per-post results.
+    const settledPostIds = new Set<string>();
+
     try {
       await job.updateProgress(10);
 
@@ -58,6 +62,8 @@ export class AnalyticsYouTubeJobService {
 
       const readyTargets: AnalyticsCollectionAttemptRef[] = [];
       const delayedTargets: AnalyticsCollectionAttemptRef[] = [];
+      const failedTargets: AnalyticsCollectionAttemptRef[] = [];
+      let firstProcessingError: unknown;
 
       for (const post of posts) {
         const analytics = analyticsMap.get(post.externalId);
@@ -69,19 +75,35 @@ export class AnalyticsYouTubeJobService {
           platform: CredentialPlatform.YOUTUBE,
         };
 
-        if (analytics) {
+        if (!analytics) {
+          this.logger.warn(
+            `No analytics found for video ${post.externalId} (post ${post.id})`,
+          );
+          delayedTargets.push(target);
+          settledPostIds.add(post.id);
+          continue;
+        }
+
+        // Per-post isolation. Persistence runs inside the loop while the
+        // batch outcome is only written after it, so an unguarded throw on
+        // post N escaped to the outer catch and marked posts 1..N-1 FAILED
+        // even though their analytics had already been written — the retry
+        // then re-processed rows that had succeeded.
+        try {
           await this.postAnalyticsService.processYouTubeAnalytics(
             post.id,
             analytics,
           );
           readyTargets.push(target);
-          continue;
+        } catch (error: unknown) {
+          firstProcessingError ??= error;
+          this.logger.error(
+            `Failed to process YouTube analytics for post ${post.id}`,
+            error,
+          );
+          failedTargets.push(target);
         }
-
-        this.logger.warn(
-          `No analytics found for video ${post.externalId} (post ${post.id})`,
-        );
-        delayedTargets.push(target);
+        settledPostIds.add(post.id);
       }
 
       await this.analyticsCollectionState.markReadyBatch(readyTargets);
@@ -89,6 +111,12 @@ export class AnalyticsYouTubeJobService {
         await this.analyticsCollectionState.markFailedBatch(
           delayedTargets,
           delayedAnalyticsCollectionFailure('YouTube'),
+        );
+      }
+      if (failedTargets.length > 0) {
+        await this.analyticsCollectionState.markFailedBatch(
+          failedTargets,
+          classifyAnalyticsCollectionError(firstProcessingError, 'YouTube'),
         );
       }
 
@@ -99,16 +127,21 @@ export class AnalyticsYouTubeJobService {
       );
     } catch (error: unknown) {
       const failure = classifyAnalyticsCollectionError(error, 'YouTube');
-      await this.analyticsCollectionState.markFailedBatch(
-        posts.map((post) => ({
-          attemptKey: job.data.attemptKey,
-          brandId: post.brand,
-          id: post.id,
-          organizationId: post.organization,
-          platform: CredentialPlatform.YOUTUBE,
-        })),
-        failure,
+      const unsettledPosts = posts.filter(
+        (post) => !settledPostIds.has(post.id),
       );
+      if (unsettledPosts.length > 0) {
+        await this.analyticsCollectionState.markFailedBatch(
+          unsettledPosts.map((post) => ({
+            attemptKey: job.data.attemptKey,
+            brandId: post.brand,
+            id: post.id,
+            organizationId: post.organization,
+            platform: CredentialPlatform.YOUTUBE,
+          })),
+          failure,
+        );
+      }
       this.logger.error(
         `Failed to process YouTube analytics batch for ${posts.length} posts`,
         error,

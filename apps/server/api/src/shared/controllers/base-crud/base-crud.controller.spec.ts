@@ -420,6 +420,39 @@ describe('BaseCRUDController', () => {
 
       expect(service.patch).not.toHaveBeenCalled();
     });
+
+    it('preserves the target organization for a cross-organization super-admin patch', async () => {
+      const id = '507f1f77bcf86cd799439020';
+      const targetOrganizationId = '507f1f77bcf86cd799439099';
+      const existingEntity = {
+        _id: id,
+        organizationId: targetOrganizationId,
+        userId: '507f1f77bcf86cd799439088',
+      };
+      service.findOne.mockResolvedValue(existingEntity);
+      service.patch.mockResolvedValue({
+        ...existingEntity,
+        name: 'Admin update',
+      });
+
+      await controller.patch(mockRequest, superAdminUser, id, {
+        name: 'Admin update',
+      });
+
+      expect(service.patch).toHaveBeenCalledWith(
+        id,
+        expect.objectContaining({
+          name: 'Admin update',
+          organization: targetOrganizationId,
+        }),
+        controller.getPopulateFields(),
+      );
+      expect(service.patch).not.toHaveBeenCalledWith(
+        id,
+        expect.objectContaining({ organization: MOCK_ORG_ID }),
+        expect.any(Array),
+      );
+    });
   });
 
   describe('remove', () => {

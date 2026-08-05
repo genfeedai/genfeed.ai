@@ -1,24 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import StatCard from '@ui/cards/stat-card/StatCard';
-import { describe, expect, it, vi } from 'vitest';
-
-vi.mock(
-  '@genfeedai/hooks/ui/use-animated-counter/use-animated-counter',
-  () => ({
-    useAnimatedCounter: ({
-      end,
-      suffix,
-      decimals,
-    }: {
-      end: number;
-      suffix: string;
-      decimals: number;
-    }) => ({
-      ref: { current: null },
-      value: `${end.toFixed(decimals)}${suffix}`,
-    }),
-  }),
-);
+import { describe, expect, it } from 'vitest';
 
 describe('StatCard (MetricCard alias)', () => {
   const defaultProps = {

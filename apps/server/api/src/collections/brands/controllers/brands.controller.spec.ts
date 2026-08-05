@@ -110,6 +110,12 @@ describe('BrandsController', () => {
           provide: BrandsService,
           useValue: {
             applyBrandKitDraft: vi.fn(),
+            // `decorateForResponse` runs on every single-brand response and
+            // destructures the first element, so the stub has to hand the rows
+            // straight back rather than default to undefined.
+            attachBrandKitAssetRelations: vi.fn((brands: unknown[]) =>
+              Promise.resolve(brands),
+            ),
             buildManualBrandKitDraft: vi.fn(),
             crawlWebsiteBrandKitDraft: vi.fn(),
             create: vi.fn(),
