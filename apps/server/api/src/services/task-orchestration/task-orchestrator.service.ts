@@ -187,8 +187,8 @@ export class TaskOrchestratorService {
     // Find the workspace task that links to this run
     const task = await this.tasksService.findOne({
       isDeleted: false,
-      linkedRunIds: runId,
-      organization: organizationId,
+      linkedRuns: { some: { id: runId } },
+      organizationId: organizationId,
     });
 
     if (!task) {
@@ -354,9 +354,9 @@ export class TaskOrchestratorService {
         workspaceTaskId: params.taskId,
       },
       objective: subtask.brief,
-      organization: params.organizationId as never,
+      organizationId: params.organizationId as never,
       trigger: AgentExecutionTrigger.EVENT,
-      user: params.userId as never,
+      userId: params.userId as never,
     });
 
     const runId = run.id.toString();
@@ -397,8 +397,8 @@ export class TaskOrchestratorService {
   async handleRunStarted(runId: string, organizationId: string): Promise<void> {
     const task = await this.tasksService.findOne({
       isDeleted: false,
-      linkedRunIds: runId,
-      organization: organizationId,
+      linkedRuns: { some: { id: runId } },
+      organizationId: organizationId,
     });
 
     if (!task) {

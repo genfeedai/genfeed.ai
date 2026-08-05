@@ -842,7 +842,7 @@ export class AgentOrchestratorRecurringTaskService {
     organizationId: string,
   ): Promise<string> {
     const organization = await this.organizationsService.findOne({
-      _id: organizationId,
+      id: organizationId,
       isDeleted: false,
     });
     const settings = organization?.settings as

@@ -89,7 +89,7 @@ export class SignupPrefillService {
   ): Promise<SignupPrefillResult> {
     const { brandId, organizationId, userId } = data;
     const brand = await this.brandsService.findOne(
-      { _id: brandId, isDeleted: false, organization: organizationId },
+      { id: brandId, isDeleted: false, organizationId: organizationId },
       'none',
     );
 
@@ -251,7 +251,7 @@ export class SignupPrefillService {
   async markPrefillFailed(brandId: string): Promise<void> {
     try {
       const brand = await this.brandsService.findOne(
-        { _id: brandId, isDeleted: false },
+        { id: brandId, isDeleted: false },
         'none',
       );
 
@@ -423,7 +423,7 @@ export class SignupPrefillService {
     scrapedData?: IScrapedBrandData,
   ): Promise<void> {
     const brand = await this.brandsService.findOne(
-      { _id: brandId, isDeleted: false },
+      { id: brandId, isDeleted: false },
       'none',
     );
 
@@ -504,7 +504,7 @@ export class SignupPrefillService {
     fallback: BrandAgentConfig,
   ): Promise<BrandAgentConfig> {
     const brand = await this.brandsService.findOne(
-      { _id: brandId, isDeleted: false },
+      { id: brandId, isDeleted: false },
       'none',
     );
 

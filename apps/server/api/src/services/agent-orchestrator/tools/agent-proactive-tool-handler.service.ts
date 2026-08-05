@@ -94,7 +94,7 @@ export class AgentProactiveToolHandler {
         where: {
           createdAt: { gte: startDate, lte: endDate },
           isDeleted: false,
-          organization: ctx.organizationId,
+          organizationId: ctx.organizationId,
           status: PostStatus.PUBLIC,
         },
         orderBy: { createdAt: -1 },
@@ -157,7 +157,7 @@ export class AgentProactiveToolHandler {
             { status: PostStatus.DRAFT },
           ],
           isDeleted: false,
-          organization: ctx.organizationId,
+          organizationId: ctx.organizationId,
         },
         orderBy: { createdAt: -1, scheduledDate: 1 },
       },

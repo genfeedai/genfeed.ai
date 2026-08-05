@@ -725,7 +725,7 @@ export class AgentMediaGenerationToolHandler {
         : null;
 
       if (credential) {
-        brandId = String(credential.brand);
+        brandId = credential.brandId ?? undefined;
       } else {
         return {
           creditsUsed: 0,
@@ -739,8 +739,8 @@ export class AgentMediaGenerationToolHandler {
       const selectedBrand = await this.brandsService.findOne({
         isDeleted: false,
         isSelected: true,
-        organization: ctx.organizationId,
-        user: ctx.userId,
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
       } as never);
 
       if (selectedBrand?.id) {

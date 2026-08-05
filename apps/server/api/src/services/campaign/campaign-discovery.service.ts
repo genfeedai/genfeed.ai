@@ -435,7 +435,6 @@ export class CampaignDiscoveryService {
       // rows with no organization scope at all.
       const organizationId = requireRelationId(
         campaign.organizationId,
-        campaign.organization,
         'organization',
         `Campaign ${String(campaign.id)}`,
       );
@@ -443,7 +442,7 @@ export class CampaignDiscoveryService {
       const targetsToCreate = targets.map((target) => ({
         authorId: target.authorId,
         authorUsername: target.authorUsername,
-        campaign: campaign.id.toString(),
+        campaignId: campaign.id.toString(),
         contentCreatedAt: target.contentCreatedAt,
         contentText: target.contentText,
         contentUrl: target.contentUrl,
@@ -451,7 +450,7 @@ export class CampaignDiscoveryService {
         externalId: target.externalId,
         likes: target.likes,
         matchedKeyword: target.matchedKeyword,
-        organization: organizationId,
+        organizationId,
         platform: target.platform,
         relevanceScore: target.relevanceScore,
         replies: target.replies,

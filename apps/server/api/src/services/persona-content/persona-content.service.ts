@@ -262,9 +262,9 @@ export class PersonaContentService {
     organization: string,
   ): Promise<PersonaDocument> {
     const persona = await this.personasService.findOne({
-      _id: personaId,
+      id: personaId,
       isDeleted: false,
-      organization,
+      organizationId: organization,
     });
 
     if (!persona) {

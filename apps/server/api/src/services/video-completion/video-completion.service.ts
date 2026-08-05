@@ -419,19 +419,12 @@ export class VideoCompletionService implements OnModuleInit {
     metadataUpdate: Record<string, number>,
   ): Promise<void> {
     const ingredient = await this.ingredientsService.findOne({
-      _id: ingredientId,
+      id: ingredientId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId,
     });
 
-    const metadataId =
-      ingredient?.metadata && typeof ingredient.metadata === 'string'
-        ? ingredient.metadata
-        : ingredient?.metadata &&
-            typeof ingredient.metadata === 'object' &&
-            '_id' in ingredient.metadata
-          ? String((ingredient.metadata as { id: string }).id)
-          : undefined;
+    const metadataId = ingredient?.metadataId ?? undefined;
 
     if (!metadataId) {
       this.logger.warn(

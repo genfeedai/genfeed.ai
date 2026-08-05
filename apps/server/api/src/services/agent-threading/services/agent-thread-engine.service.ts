@@ -659,16 +659,16 @@ export class AgentThreadEngineService {
     }
 
     const query: Record<string, unknown> = {
-      _id: threadId,
+      id: threadId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId,
     };
 
     if (userId) {
       if (!EntityIdUtil.isValid(userId)) {
         throw new BadRequestException('Invalid userId');
       }
-      query.user = userId;
+      query.userId = userId;
     }
 
     const thread = await this.agentThreadsService.findOne(query);

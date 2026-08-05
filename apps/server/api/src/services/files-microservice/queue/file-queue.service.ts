@@ -333,7 +333,7 @@ export class FileQueueService {
     try {
       // Fetch credential from database
       const credential = await this.credentialsService.findOne({
-        _id: data.credentialId,
+        id: data.credentialId,
         isConnected: true,
         isDeleted: false,
       });
@@ -354,7 +354,7 @@ export class FileQueueService {
 
       // Re-fetch credential to get the refreshed token
       const refreshedCredential = await this.credentialsService.findOne({
-        _id: data.credentialId,
+        id: data.credentialId,
       });
 
       if (!refreshedCredential) {

@@ -46,7 +46,7 @@ export class AgentThreadRuntimeController {
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
-      const userId = await this.resolveMongoUserId(user);
+      const userId = await this.resolveDatabaseUserId(user);
       const snapshot = await runEffectPromise(
         this.getThreadSnapshotEffect(threadId, organizationId, userId),
       );
@@ -85,7 +85,7 @@ export class AgentThreadRuntimeController {
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
-      const userId = await this.resolveMongoUserId(user);
+      const userId = await this.resolveDatabaseUserId(user);
       const events = await runEffectPromise(
         this.listThreadEventsEffect(
           threadId,
@@ -131,7 +131,7 @@ export class AgentThreadRuntimeController {
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
-      const userId = await this.resolveMongoUserId(user);
+      const userId = await this.resolveDatabaseUserId(user);
       const preparedScope = await this.agentScopeContextService.prepareForTurn({
         expectedContextVersion: body.expectedContextVersion,
         organizationId,
@@ -205,7 +205,7 @@ export class AgentThreadRuntimeController {
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
-      const userId = await this.resolveMongoUserId(user);
+      const userId = await this.resolveDatabaseUserId(user);
 
       return await this.agentOrchestratorService.handleThreadUiAction(
         {
@@ -239,7 +239,7 @@ export class AgentThreadRuntimeController {
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
-      const userId = await this.resolveMongoUserId(user);
+      const userId = await this.resolveDatabaseUserId(user);
       await this.flushThreadMemory(threadId, organizationId, userId, 'branch');
       const branched = await this.agentThreadsService.branchThread(
         threadId,
@@ -351,7 +351,7 @@ export class AgentThreadRuntimeController {
     return organization;
   }
 
-  private async resolveMongoUserId(user: User): Promise<string> {
+  private async resolveDatabaseUserId(user: User): Promise<string> {
     const { user: metadataUserId } = getPublicMetadata(user);
     if (metadataUserId) {
       return metadataUserId;
@@ -365,7 +365,7 @@ export class AgentThreadRuntimeController {
     }
 
     const dbUser = await this.usersService.findOne(
-      { _id: userId, isDeleted: false },
+      { id: userId, isDeleted: false },
       [],
     );
     if (!dbUser?.id) {

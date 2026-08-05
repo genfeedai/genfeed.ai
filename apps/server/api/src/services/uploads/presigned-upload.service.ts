@@ -51,13 +51,16 @@ export class PresignedUploadService {
     const category = body.category?.toLowerCase() || 'image';
 
     // Pre-create the ingredient document with pending status
-    const { ingredientData } = await this.sharedService.saveDocuments(user, {
-      category,
-      extension: fileExtension,
-      label: body.filename,
-      scope: AssetScope.USER,
-      status: IngredientStatus.PROCESSING,
-    });
+    const { ingredientData } = await this.sharedService.createMediaDocuments(
+      user,
+      {
+        category,
+        extension: fileExtension,
+        label: body.filename,
+        scope: AssetScope.USER,
+        status: IngredientStatus.PROCESSING,
+      },
+    );
 
     this.loggerService.log(`${url} created ingredient`, {
       brand: ingredientData.brand,
@@ -97,9 +100,9 @@ export class PresignedUploadService {
     // Find and update the ingredient status
     const ingredient = await this.ingredientsService.findOne(
       {
-        _id: id,
+        id: id,
         status: 'processing',
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
       },
       [{ path: 'metadata' }],
     );
@@ -135,21 +138,14 @@ export class PresignedUploadService {
       });
 
       // Update metadata document with extracted dimensions
-      if (ingredient.metadata && uploadMeta) {
-        const metadataId =
-          typeof ingredient.metadata === 'string'
-            ? ingredient.metadata
-            : ingredient.metadata.id;
-
-        if (metadataId) {
-          await this.metadataService.patch(metadataId, {
-            duration: uploadMeta.duration,
-            hasAudio: uploadMeta.hasAudio,
-            height: uploadMeta.height,
-            size: uploadMeta.size,
-            width: uploadMeta.width,
-          });
-        }
+      if (ingredient.metadataId && uploadMeta) {
+        await this.metadataService.patch(ingredient.metadataId, {
+          duration: uploadMeta.duration,
+          hasAudio: uploadMeta.hasAudio,
+          height: uploadMeta.height,
+          size: uploadMeta.size,
+          width: uploadMeta.width,
+        });
       }
 
       this.loggerService.log(`${url} metadata extracted`, uploadMeta);

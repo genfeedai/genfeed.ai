@@ -31,7 +31,7 @@ export class CacheStrategies {
 
   cacheBrand(
     brandId: string,
-    brandData: { user: string } & Record<string, unknown>,
+    brandData: { userId: string } & Record<string, unknown>,
   ): Promise<boolean> {
     return this.brandCacheStrategy.cacheBrand(brandId, brandData);
   }
@@ -76,7 +76,7 @@ export class CacheStrategies {
 
   cacheVideo(
     videoId: string,
-    videoData: { user: string; brand: string } & Record<string, unknown>,
+    videoData: { userId: string; brandId: string } & Record<string, unknown>,
   ): Promise<boolean> {
     return this.videoCacheStrategy.cacheVideo(videoId, videoData);
   }

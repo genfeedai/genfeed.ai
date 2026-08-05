@@ -33,7 +33,7 @@ export class AgentConnectionToolHandler {
       ? await this.credentialsService.findOne({
           isConnected: true,
           isDeleted: false,
-          organization: ctx.organizationId,
+          organizationId: ctx.organizationId,
           platform,
         })
       : null;
@@ -111,11 +111,7 @@ export class AgentConnectionToolHandler {
     return {
       creditsUsed: 0,
       data: {
-        brandId: String(
-          (credential as { brandId?: string }).brandId ??
-            (credential as { brand?: string }).brand ??
-            '',
-        ),
+        brandId: String(credential.brandId ?? ''),
         credentialId: String(credential.id),
         externalHandle: credential.externalHandle,
         externalName: credential.externalName,

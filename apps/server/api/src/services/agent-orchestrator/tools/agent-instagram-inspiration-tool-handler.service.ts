@@ -178,15 +178,15 @@ export class AgentInstagramInspirationToolHandler {
     const explicitBrandId = readOptionalString(params.brandId);
     const brand = explicitBrandId
       ? await this.brandsService.findOne({
-          _id: explicitBrandId,
+          id: explicitBrandId,
           isDeleted: false,
-          organization: ctx.organizationId,
+          organizationId: ctx.organizationId,
         })
       : await this.brandsService.findOne({
           isDeleted: false,
           isSelected: true,
-          organization: ctx.organizationId,
-          user: ctx.userId,
+          organizationId: ctx.organizationId,
+          userId: ctx.userId,
         });
 
     if (!brand) {

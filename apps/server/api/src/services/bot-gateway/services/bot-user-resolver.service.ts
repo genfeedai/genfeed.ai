@@ -1,6 +1,5 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type { IBotResolvedUser } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -44,15 +43,10 @@ export class BotUserResolverService {
         return null;
       }
 
-      // Scalar FKs first; Mongo-era aliases on CredentialDocument are optional
-      // and often undefined at runtime on Prisma rows.
-      const brandId = resolveRelationId(credential.brandId, credential.brand);
-      const credentialId = resolveRelationId(credential.id, credential._id);
-      const organizationId = resolveRelationId(
-        credential.organizationId,
-        credential.organization,
-      );
-      const userId = resolveRelationId(credential.userId, credential.user);
+      const brandId = credential.brandId ?? undefined;
+      const credentialId = credential.id;
+      const organizationId = credential.organizationId ?? undefined;
+      const userId = credential.userId ?? undefined;
 
       if (!brandId || !credentialId || !organizationId || !userId) {
         this.loggerService.warn(`${url} credential missing ownership ids`, {
@@ -109,7 +103,7 @@ export class BotUserResolverService {
       const brand = await this.brandsService.findOne({
         isDeleted: false,
         label: { contains: new RegExp(`^${brandName}$`, 'i') },
-        organization: resolvedUser.organizationId,
+        organizationId: resolvedUser.organizationId,
       });
 
       if (!brand) {

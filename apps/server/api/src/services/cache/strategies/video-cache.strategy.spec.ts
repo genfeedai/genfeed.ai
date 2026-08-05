@@ -115,7 +115,11 @@ describe('VideoCacheStrategy', () => {
   describe('cacheVideo', () => {
     it('should call cacheService.set with video-specific tags and ttl 900', async () => {
       cacheService.set.mockResolvedValue(true);
-      const videoData = { brand: 'brand1', title: 'Test Video', user: 'user1' };
+      const videoData = {
+        brandId: 'brand1',
+        title: 'Test Video',
+        userId: 'user1',
+      };
 
       const result = await strategy.cacheVideo(mockVideoId, videoData);
 
@@ -126,8 +130,8 @@ describe('VideoCacheStrategy', () => {
           tags: expect.arrayContaining([
             'videos',
             `video:${mockVideoId}`,
-            `user:${videoData.user}`,
-            `brand:${videoData.brand}`,
+            `user:${videoData.userId}`,
+            `brand:${videoData.brandId}`,
           ]),
           ttl: 900,
         }),
@@ -137,7 +141,7 @@ describe('VideoCacheStrategy', () => {
 
     it('should use generateKey to build video key', async () => {
       cacheService.set.mockResolvedValue(true);
-      await strategy.cacheVideo(mockVideoId, { brand: 'b', user: 'u' });
+      await strategy.cacheVideo(mockVideoId, { brandId: 'b', userId: 'u' });
 
       expect(cacheService.generateKey).toHaveBeenCalledWith(
         'video',

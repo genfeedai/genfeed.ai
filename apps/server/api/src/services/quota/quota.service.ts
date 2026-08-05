@@ -70,7 +70,7 @@ export class QuotaService {
     organization: OrganizationDocument,
   ): Promise<QuotaCheckResult> {
     const settings = await this.organizationSettingsService.findOne({
-      organization: organization.id.toString(),
+      organizationId: organization.id.toString(),
     });
 
     if (!settings) {
@@ -98,7 +98,7 @@ export class QuotaService {
         gte: startOfDay,
         lte: endOfDay,
       },
-      credential: credential.id.toString(),
+      credentialId: credential.id.toString(),
       isDeleted: false,
       platform: credential.platform,
       status: {
@@ -133,7 +133,7 @@ export class QuotaService {
     organizationId: string,
   ): Promise<void> {
     const organization = await this.organizationsService.findOne({
-      _id: organizationId,
+      id: organizationId,
     });
 
     if (!organization) {
@@ -174,10 +174,10 @@ export class QuotaService {
   ): Promise<QuotaCheckResult | null> {
     try {
       const credential = await this.credentialsService.findOne({
-        _id: credentialId,
+        id: credentialId,
       });
       const organization = await this.organizationsService.findOne({
-        _id: organizationId,
+        id: organizationId,
       });
 
       if (!credential || !organization) {

@@ -163,9 +163,9 @@ export class SyncService {
 
     // 1. Find the local workflow
     const workflow = (await this.workflowsService.findOne({
-      _id: localWorkflowId,
+      id: localWorkflowId,
       isDeleted: false,
-      organization,
+      organizationId: organization,
     })) as WorkflowDocument | null;
 
     if (!workflow) {

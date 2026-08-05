@@ -370,11 +370,11 @@ export class ContentQualityScorerService {
 
     try {
       const query: Record<string, unknown> = {
-        _id: contentId,
+        id: contentId,
         isDeleted: false,
       };
       if (organizationId) {
-        query.organization = organizationId;
+        query.organizationId = organizationId;
       }
       const ingredient = await this.ingredientsService.findOne(query);
       return ingredient?.cdnUrl || ingredient?.s3Key || undefined;
@@ -393,11 +393,11 @@ export class ContentQualityScorerService {
 
     try {
       const query: Record<string, unknown> = {
-        _id: contentId,
+        id: contentId,
         isDeleted: false,
       };
       if (organizationId) {
-        query.organization = organizationId;
+        query.organizationId = organizationId;
       }
       const post = await this.postsService.findOne(query);
       return post?.description || post?.label || undefined;

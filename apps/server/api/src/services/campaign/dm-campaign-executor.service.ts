@@ -332,7 +332,7 @@ export class DmCampaignExecutorService {
 
     return this.credentialsService.findOne(
       scopedWhere(organizationId, {
-        _id: credentialId,
+        id: credentialId,
         ...(brandId ? { brandId } : {}),
       }),
     );

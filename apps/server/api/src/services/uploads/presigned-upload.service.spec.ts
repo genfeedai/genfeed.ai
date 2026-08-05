@@ -96,7 +96,7 @@ describe('PresignedUploadService', () => {
         {
           provide: SharedService,
           useValue: {
-            saveDocuments: vi.fn(),
+            createMediaDocuments: vi.fn(),
           },
         },
         {
@@ -156,7 +156,7 @@ describe('PresignedUploadService', () => {
         extension: 'jpg',
       });
 
-      sharedService.saveDocuments.mockResolvedValue({
+      sharedService.createMediaDocuments.mockResolvedValue({
         ingredientData: mockIngredient,
         metadataData: createMetadataEntity(),
       });
@@ -177,13 +177,16 @@ describe('PresignedUploadService', () => {
         uploadUrl: 'https://s3.amazonaws.com/bucket/upload?signature=abc',
       });
 
-      expect(sharedService.saveDocuments).toHaveBeenCalledWith(mockUser, {
-        category: 'image',
-        extension: 'jpg',
-        label: body.filename,
-        scope: AssetScope.USER,
-        status: IngredientStatus.PROCESSING,
-      });
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+        mockUser,
+        {
+          category: 'image',
+          extension: 'jpg',
+          label: body.filename,
+          scope: AssetScope.USER,
+          status: IngredientStatus.PROCESSING,
+        },
+      );
 
       expect(filesClientService.getPresignedUploadUrl).toHaveBeenCalledWith(
         mockIngredientId.toString(),
@@ -205,7 +208,7 @@ describe('PresignedUploadService', () => {
         extension: 'mp4',
       });
 
-      sharedService.saveDocuments.mockResolvedValue({
+      sharedService.createMediaDocuments.mockResolvedValue({
         ingredientData: mockIngredient,
         metadataData: createMetadataEntity(),
       });
@@ -238,7 +241,7 @@ describe('PresignedUploadService', () => {
         extension: 'png',
       });
 
-      sharedService.saveDocuments.mockResolvedValue({
+      sharedService.createMediaDocuments.mockResolvedValue({
         ingredientData: mockIngredient,
         metadataData: createMetadataEntity(),
       });
@@ -251,7 +254,7 @@ describe('PresignedUploadService', () => {
 
       await service.getPresignedUploadUrl(mockUser, body);
 
-      expect(sharedService.saveDocuments).toHaveBeenCalledWith(
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
         mockUser,
         expect.objectContaining({
           category: 'image',
@@ -271,7 +274,7 @@ describe('PresignedUploadService', () => {
         extension: 'pdf',
       });
 
-      sharedService.saveDocuments.mockResolvedValue({
+      sharedService.createMediaDocuments.mockResolvedValue({
         ingredientData: mockIngredient,
         metadataData: createMetadataEntity(),
       });
@@ -284,7 +287,7 @@ describe('PresignedUploadService', () => {
 
       await service.getPresignedUploadUrl(mockUser, body);
 
-      expect(sharedService.saveDocuments).toHaveBeenCalledWith(
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
         mockUser,
         expect.objectContaining({
           extension: 'pdf',
@@ -303,7 +306,7 @@ describe('PresignedUploadService', () => {
         extension: 'jpg',
       });
 
-      sharedService.saveDocuments.mockResolvedValue({
+      sharedService.createMediaDocuments.mockResolvedValue({
         ingredientData: mockIngredient,
         metadataData: createMetadataEntity(),
       });
@@ -316,7 +319,7 @@ describe('PresignedUploadService', () => {
 
       await service.getPresignedUploadUrl(mockUser, body);
 
-      expect(sharedService.saveDocuments).toHaveBeenCalledWith(
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
         mockUser,
         expect.objectContaining({
           extension: 'jpg',

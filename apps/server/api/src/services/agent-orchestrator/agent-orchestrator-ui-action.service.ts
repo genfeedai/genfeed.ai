@@ -118,8 +118,7 @@ export class AgentOrchestratorUiActionService {
     }
 
     const orgSettings = await this.organizationSettingsService.findOne({
-      isDeleted: false,
-      organization: context.organizationId,
+      organizationId: context.organizationId,
     });
     const { policy: basePolicy } = resolveEffectiveAgentExecutionConfig({
       organizationSettings: orgSettings,
@@ -254,10 +253,10 @@ export class AgentOrchestratorUiActionService {
     }
 
     const thread = await this.agentThreadsService.findOne({
-      _id: threadId,
+      id: threadId,
       isDeleted: false,
-      organization: organizationId,
-      user: { in: [userId] },
+      organizationId: organizationId,
+      userId: { in: [userId] },
     });
 
     return thread ? String(thread.id) : null;

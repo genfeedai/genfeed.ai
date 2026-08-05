@@ -106,9 +106,9 @@ export class ContentGatewayService {
     brandId: string,
   ): Promise<void> {
     const brand = await this.brandsService.findOne({
-      _id: brandId,
+      id: brandId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!brand) {

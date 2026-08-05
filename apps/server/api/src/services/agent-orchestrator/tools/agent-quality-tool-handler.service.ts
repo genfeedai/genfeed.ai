@@ -199,20 +199,15 @@ export class AgentQualityToolHandler {
 
       // Toggle: if an active vote exists, remove it; otherwise create one
       const existing = await this.votesService.findOne({
-        entity: ingredientId,
+        entityId: ingredientId,
         isDeleted: false,
-        user: ctx.userId,
+        userId: ctx.userId,
       });
 
       if (existing) {
-        const existingRecord = existing as Record<string, unknown>;
-        const existingVoteId = String(
-          existingRecord.id ?? existingRecord.mongoId ?? '',
-        );
+        const existingVoteId = String(existing.id);
         await this.votesService.patchAll(
-          {
-            OR: [{ id: existingVoteId }, { mongoId: existingVoteId }],
-          },
+          { id: existingVoteId },
           { isDeleted: true },
         );
 
@@ -230,17 +225,15 @@ export class AgentQualityToolHandler {
         new VoteEntity({
           entity: ingredientId,
           entityModel: VoteEntityModel.INGREDIENT,
-          user: ctx.userId,
+          userId: ctx.userId,
         }) as unknown as Parameters<VotesService['create']>[0],
       );
-      const voteRecord = vote as Record<string, unknown>;
-
       return {
         creditsUsed: 0,
         data: {
           action: 'added',
           ingredientId,
-          voteId: String(voteRecord.id ?? voteRecord.mongoId ?? ''),
+          voteId: String(vote.id),
         },
         success: true,
       };
@@ -284,7 +277,7 @@ export class AgentQualityToolHandler {
       });
 
       const ingredients = result.docs.map((doc) => ({
-        _id: String(doc.id),
+        id: String(doc.id),
         category: (doc as unknown as Record<string, unknown>).category,
         status: (doc as unknown as Record<string, unknown>).status,
         totalVotes: (doc as unknown as Record<string, unknown>).totalVotes ?? 0,
@@ -338,9 +331,9 @@ export class AgentQualityToolHandler {
       }
 
       const ingredient = await this.ingredientsService.findOne({
-        _id: ingredientId,
+        id: ingredientId,
         isDeleted: false,
-        organization: ctx.organizationId,
+        organizationId: ctx.organizationId,
       });
 
       if (!ingredient) {
@@ -363,8 +356,8 @@ export class AgentQualityToolHandler {
           ingredientId,
           message: `Ready to replicate ingredient. Use generate_image or generate_video with the same parameters to create ${variations} variation(s).`,
           sourceMetadata: {
-            brand: ingredientData.brand
-              ? String(ingredientData.brand)
+            brand: ingredientData.brandId
+              ? String(ingredientData.brandId)
               : undefined,
             category,
             prompt: ingredientData.prompt
@@ -435,7 +428,7 @@ export class AgentQualityToolHandler {
         ctx.organizationId,
         baseFilters,
         { createdAt: -1 },
-        [{ path: 'metadata', select: '_id label' }],
+        [{ path: 'metadata', select: ['id', 'label'] }],
       );
 
       assets = (docs as AssetDoc[]).slice(0, PICKER_LIMIT);

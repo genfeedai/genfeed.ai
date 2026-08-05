@@ -64,9 +64,9 @@ export class PersonaPublisherService {
     for (const credentialId of credentialIds) {
       try {
         const credential = await this.credentialsService.findOne({
-          _id: credentialId,
+          id: credentialId,
           isDeleted: false,
-          organization: input.organization,
+          organizationId: input.organization,
         });
 
         if (!credential) {
@@ -80,21 +80,21 @@ export class PersonaPublisherService {
         }
 
         const post = await this.postsService.create({
-          brand: input.brand,
+          brandId: input.brand,
           category: input.category ?? PostCategory.POST,
-          credential: credentialId,
+          credentialId: credentialId,
           description: input.description,
           groupId,
           ingredients: input.ingredientIds ?? [],
           label: persona.label ?? 'Persona post',
-          organization: input.organization,
-          persona: input.personaId,
+          organizationId: input.organization,
+          personaId: input.personaId,
           platform: credential.platform as CredentialPlatform,
           scheduledDate: input.scheduledDate ?? new Date(),
           status: input.scheduledDate
             ? PostStatus.SCHEDULED
             : PostStatus.PENDING,
-          user: input.user,
+          userId: input.user,
         } as Parameters<PostsService['create']>[0]);
 
         postIds.push(String(post.id));
@@ -123,9 +123,9 @@ export class PersonaPublisherService {
     organization: string,
   ): Promise<PersonaDocument> {
     const persona = await this.personasService.findOne({
-      _id: personaId,
+      id: personaId,
       isDeleted: false,
-      organization,
+      organizationId: organization,
     });
 
     if (!persona) {

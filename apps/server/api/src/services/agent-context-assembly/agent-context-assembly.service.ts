@@ -74,7 +74,7 @@ export class AgentContextAssemblyService {
       async () => {
         const filter: Record<string, unknown> = {
           isDeleted: false,
-          organization: organizationId,
+          organizationId: organizationId,
         };
         if (params.brandId) {
           filter._id = params.brandId;
@@ -104,8 +104,7 @@ export class AgentContextAssemblyService {
       this.cacheService.generateKey('org-settings', organizationId),
       async () =>
         this.organizationSettingsService.findOne({
-          isDeleted: false,
-          organization: organizationId,
+          organizationId: organizationId,
         }),
       { ttl: CACHE_TTL_BRAND },
     );
@@ -785,9 +784,9 @@ export class AgentContextAssemblyService {
 
     try {
       const credential = await this.credentialsService.findOne({
-        _id: credentialId,
+        id: credentialId,
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
       });
 
       if (!credential) return;

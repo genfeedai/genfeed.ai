@@ -277,7 +277,7 @@ export class CampaignExecutorService {
 
     return this.credentialsService.findOne(
       scopedWhere(organizationId, {
-        _id: credentialId,
+        id: credentialId,
         ...(brandId ? { brandId } : {}),
       }),
     );

@@ -21,7 +21,6 @@ import {
   VIRAL_POST_MIN_ENGAGEMENT_RATE,
 } from '@api/services/agent-campaign/orchestrator.constants';
 import { isOrchestratorAgentType } from '@api/services/agent-orchestrator/constants/agent-type.constants';
-import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { AnalyticsMetric } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -136,7 +135,7 @@ export class TriggerEvaluatorService {
     }
 
     const scope: CampaignAnalyticsScope = {
-      brandId: resolveRelationId(campaign.brandId, campaign.brand),
+      brandId: campaign.brandId ?? undefined,
       campaignId,
       // The campaign was read scoped to this id, so it is authoritative.
       organizationId,
@@ -357,9 +356,9 @@ export class TriggerEvaluatorService {
     }
 
     const brand = await this.brandsService.findOne({
-      _id: scope.brandId,
+      id: scope.brandId,
       isDeleted: false,
-      organization: scope.organizationId,
+      organizationId: scope.organizationId,
     });
 
     if (!brand) {

@@ -131,18 +131,18 @@ export class PersonaContentPlanService {
     for (const entry of entries) {
       try {
         await this.postsService.create({
-          brand: input.brand,
+          brandId: input.brand,
           category: entry.category,
-          credential: input.credentialId,
+          credentialId: input.credentialId,
           description: entry.description,
           ingredients: [],
           label: `${entry.topic} - ${entry.format}`,
-          organization: input.organization,
-          persona: input.personaId,
+          organizationId: input.organization,
+          personaId: input.personaId,
           platform: CredentialPlatform.INSTAGRAM,
           scheduledDate: entry.scheduledDate,
           status: PostStatus.DRAFT,
-          user: input.user,
+          userId: input.user,
         } as unknown as Parameters<PostsService['create']>[0]);
 
         created++;
@@ -179,9 +179,9 @@ export class PersonaContentPlanService {
     organization: string,
   ): Promise<PersonaDocument> {
     const persona = await this.personasService.findOne({
-      _id: personaId,
+      id: personaId,
       isDeleted: false,
-      organization,
+      organizationId: organization,
     });
 
     if (!persona) {

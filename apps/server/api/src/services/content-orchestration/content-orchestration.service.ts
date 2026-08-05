@@ -173,13 +173,13 @@ export class ContentOrchestrationService {
         const extension = this.contentTypeToExtension(result.contentType);
 
         const { ingredientData, metadataData } =
-          await this.sharedService.saveDocumentsInternal({
-            brand: config.brandId,
+          await this.sharedService.createMediaDocumentsInternal({
+            brandId: config.brandId,
             category,
             extension,
-            organization: config.organizationId,
+            organizationId: config.organizationId,
             status: IngredientStatus.PROCESSING,
-            user: config.userId,
+            userId: config.userId,
           });
 
         const s3Meta = await this.filesClientService.uploadToS3(
@@ -419,9 +419,9 @@ export class ContentOrchestrationService {
     organizationId: string,
   ): Promise<PersonaDocument> {
     const persona = await this.personasService.findOne({
-      _id: personaId,
+      id: personaId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!persona) {

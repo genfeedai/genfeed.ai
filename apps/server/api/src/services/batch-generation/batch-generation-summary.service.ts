@@ -107,7 +107,6 @@ export class BatchGenerationSummaryService {
               totalViews: true,
             },
             where: {
-              isDeleted: false,
               organizationId: { in: organizationIds },
               postId: { in: postIds },
             },

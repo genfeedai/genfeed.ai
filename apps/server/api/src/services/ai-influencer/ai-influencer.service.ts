@@ -11,15 +11,10 @@ import {
   PersonaContentService,
 } from '@api/services/persona-content/persona-content.service';
 import {
-  requireRelationId,
-  resolveRelationId,
-} from '@api/shared/utils/relation-id/relation-id.util';
-import {
   FleetReviewStatus,
   IngredientStatus,
   LoraStatus,
 } from '@genfeedai/enums';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -88,7 +83,6 @@ export class AiInfluencerService {
     private readonly instagramService: InstagramService,
     private readonly twitterService: TwitterService,
     private readonly personaContentService: PersonaContentService,
-    private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -460,7 +454,7 @@ export class AiInfluencerService {
       // Truncate to Instagram limit if needed
       const truncated =
         caption.length > MAX_CAPTION_LENGTH
-          ? caption.slice(0, MAX_CAPTION_LENGTH - 3) + '...'
+          ? `${caption.slice(0, MAX_CAPTION_LENGTH - 3)}...`
           : caption;
 
       this.loggerService.log(caller, {
@@ -565,36 +559,18 @@ export class AiInfluencerService {
   ): Promise<IngredientDocument> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    // The DTO keys stay Mongo-style (`brand`/`organization`/`user`) — that is the
-    // ingredient create contract across the codebase — but the *values* must come
-    // from the persona's scalar FKs. `persona.organization` / `persona.user` are
-    // legacy aliases that only exist because `BaseService` back-fills them, and
-    // `Persona.organizationId` / `Persona.userId` are non-nullable columns, so an
-    // unresolvable owner means the row was read wrong rather than being genuinely
-    // ownerless. Fail closed instead of persisting an unscoped ingredient.
-    const personaContext = `Persona ${persona.slug}`;
     const ingredient = await this.ingredientsService.create({
-      brand: resolveRelationId(persona.brandId, persona.brand),
+      brandId: persona.brandId,
       caption,
       cdnUrl: imageUrl,
       generationSource: `ai-influencer-${persona.slug}`,
       isDeleted: false,
-      organization: requireRelationId(
-        persona.organizationId,
-        persona.organization,
-        'organization',
-        personaContext,
-      ),
-      persona: persona.id,
+      organizationId: persona.organizationId,
+      personaId: persona.id,
       personaSlug: persona.slug,
       reviewStatus: FleetReviewStatus.APPROVED,
       status: IngredientStatus.GENERATED,
-      user: requireRelationId(
-        persona.userId,
-        persona.user,
-        'user',
-        personaContext,
-      ),
+      userId: persona.userId,
     } as Parameters<IngredientsService['create']>[0]);
 
     this.loggerService.log(caller, {

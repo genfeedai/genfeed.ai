@@ -294,9 +294,9 @@ export class AgentOrchestratorPlanModeService {
     organizationId: string,
   ): Promise<boolean> {
     const thread = await this.agentThreadsService.findOne({
-      _id: threadId,
+      id: threadId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     return Boolean(thread?.planModeEnabled);

@@ -49,8 +49,8 @@ export class ContentOrchestrationController {
     organizationId: string,
   ): Promise<void> {
     const brand = await this.brandsService.findOne({
-      _id: brandId,
-      organization: organizationId,
+      id: brandId,
+      organizationId: organizationId,
     });
     if (!brand) {
       throw new ForbiddenException(
