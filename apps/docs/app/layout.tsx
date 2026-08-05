@@ -7,12 +7,16 @@ import {
   docsMdxComponentRegistry,
 } from '../content/meta-registry';
 import '../styles/globals.css';
+import { DOCS_ORIGIN } from './seo';
 
 export const metadata = {
-  description: 'Generate AI-powered content for your business',
+  description:
+    'Documentation for Genfeed Community, Cloud, deployment, content workflows, provider-backed generation, publishing, and APIs.',
   icons: { icon: '/favicon.ico' },
+  metadataBase: new URL(DOCS_ORIGIN),
   openGraph: {
-    description: 'Generate AI-powered content for your business',
+    description:
+      'Documentation for Genfeed Community, Cloud, deployment, content workflows, provider-backed generation, publishing, and APIs.',
     images: ['https://cdn.genfeed.ai/assets/cards/default.jpg'],
     title: 'Genfeed.ai Documentation',
   },
