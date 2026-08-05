@@ -1929,14 +1929,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "post",
-      "file": "apps/server/api/src/collections/posts/services/posts.service.ts",
-      "fingerprint": "ad64dd1039fd7e507467",
-      "method": "updateMany",
-      "model": "Post",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "preset",
       "file": "apps/server/api/src/collections/presets/services/presets.service.ts",
       "fingerprint": "51176b347bbe7e6383e6",
