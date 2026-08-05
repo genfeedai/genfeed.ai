@@ -14,7 +14,6 @@ const METADATA_SCALAR_FIELDS = [
   'height',
   'label',
   'model',
-  'promptId',
   'promptTemplate',
   'resolution',
   'result',

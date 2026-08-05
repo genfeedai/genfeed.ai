@@ -1,5 +1,6 @@
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { MetadataExtension } from '@genfeedai/enums';
+import { MetadataExtension as ApiMetadataExtension } from '@genfeedai/enums';
+import { MetadataExtension as PrismaMetadataExtension } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -41,7 +42,7 @@ describe('MetadataService', () => {
 
     expect(metadata.create).toHaveBeenCalledWith({
       data: {
-        extension: MetadataExtension.JPEG,
+        extension: PrismaMetadataExtension.JPEG,
         label: 'Generated media',
       },
     });
@@ -49,24 +50,24 @@ describe('MetadataService', () => {
 
   it('preserves a caller-provided label and extension', async () => {
     await service.create({
-      extension: MetadataExtension.MP4,
+      extension: ApiMetadataExtension.MP4,
       label: 'Merged launch video',
     });
 
     expect(metadata.create).toHaveBeenCalledWith({
       data: {
-        extension: MetadataExtension.MP4,
+        extension: PrismaMetadataExtension.MP4,
         label: 'Merged launch video',
       },
     });
   });
 
   it('writes only canonical promptId and tag relations', async () => {
-    const promptId = '507f1f77bcf86cd799439015';
-    const tagId = '507f1f77bcf86cd799439016';
+    const promptId = 'cmprompt000000000000000001';
+    const tagId = 'cmtag000000000000000000001';
 
     await service.create({
-      extension: MetadataExtension.JPEG,
+      extension: ApiMetadataExtension.JPEG,
       promptId,
       tags: [tagId],
     });
@@ -76,6 +77,21 @@ describe('MetadataService', () => {
         promptId,
         tags: { connect: [{ id: tagId }] },
       }),
+    });
+  });
+
+  it('drops invalid relation IDs instead of persisting legacy identifiers', async () => {
+    await service.create({
+      extension: ApiMetadataExtension.JPEG,
+      promptId: '507f1f77bcf86cd799439011',
+      tags: ['507f191e810c19729de860ea'],
+    });
+
+    expect(metadata.create).toHaveBeenCalledWith({
+      data: {
+        extension: PrismaMetadataExtension.JPEG,
+        label: 'Generated media',
+      },
     });
   });
 });
