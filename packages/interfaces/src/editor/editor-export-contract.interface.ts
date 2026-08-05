@@ -5,7 +5,13 @@ import type {
 } from './editor-project.interface';
 
 export const EDITOR_EXPORT_CONTRACT_VERSION = 1 as const;
-export const EDITOR_RENDERER_VERSION = 'remotion@4.0.502' as const;
+
+/**
+ * Must track the `remotion` pin in `apps/server/files/package.json`.
+ * `RemotionRendererService.render` refuses to run when the two disagree, so a
+ * dependency bump that forgets this constant takes editor export down whole.
+ */
+export const EDITOR_RENDERER_VERSION = 'remotion@4.0.504' as const;
 export const EDITOR_RENDER_TIMEOUT_MS = 15 * 60 * 1000;
 
 export type EditorRenderTerminalReason =
