@@ -397,7 +397,13 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
           'sm:w-[380px]',
         )}
       >
-        <div className={cn('flex', 'h-[min(500px,calc(100vh-4rem))]')}>
+        {/* max-h only — fixed h left a tall empty panel when Auto-only / short lists */}
+        <div
+          className={cn(
+            'flex max-h-[min(500px,calc(100vh-4rem))]',
+            shouldShowManualCatalog && 'min-h-0',
+          )}
+        >
           {shouldShowManualCatalog && (
             <ModelSelectorProviderSidebar
               brands={brands}
@@ -407,7 +413,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
             />
           )}
 
-          <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             {shouldShowManualCatalog && shouldShowSourceTabs && (
               <div className="overflow-x-auto border-b border-border px-3 py-2">
                 <div className="inline-flex min-w-max rounded border border-border bg-background-secondary p-1">
@@ -428,7 +434,10 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
               </div>
             )}
 
-            <Command className="bg-transparent" shouldFilter={false}>
+            <Command
+              className="flex min-h-0 flex-1 flex-col bg-transparent"
+              shouldFilter={false}
+            >
               {shouldShowManualCatalog && (
                 <CommandInput
                   placeholder="Search models…"
@@ -439,8 +448,9 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
               <CommandList
                 className={cn(
-                  'max-h-none flex-1 px-1 py-1',
-                  shouldShowManualCatalog && 'overflow-y-auto',
+                  'px-1 py-1',
+                  // Scroll inside the list only when content exceeds the panel cap
+                  'max-h-[min(420px,calc(100vh-10rem))] overflow-y-auto',
                 )}
               >
                 {shouldShowAutoCard && (
