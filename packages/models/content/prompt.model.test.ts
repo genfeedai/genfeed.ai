@@ -33,6 +33,7 @@ vi.mock('@models/content/ingredient.model', () => ({
   },
 }));
 
+import { Ingredient } from '@models/content/ingredient.model';
 import { Prompt } from '@models/content/prompt.model';
 
 type PromptFixtureInput = Partial<IPrompt> & {
