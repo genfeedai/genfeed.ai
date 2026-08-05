@@ -122,26 +122,41 @@ export class AgentCompletionCardBuilderService {
         });
       });
 
-      action.tweets?.forEach((tweet, index) => {
-        if (!tweet.trim()) {
-          return;
-        }
+      const threadSegments =
+        action.contentFormat === 'thread'
+          ? action.tweets?.map((tweet) => tweet.trim()).filter(Boolean)
+          : undefined;
 
+      if (threadSegments && threadSegments.length > 0) {
         variants.push({
-          id: `${action.id}:tweet:${index}`,
+          id: `${action.id}:thread`,
           kind: 'text',
-          textContent: tweet,
-          title: `Text ${index + 1}`,
-        });
-      });
-
-      if (action.textContent?.trim()) {
-        variants.push({
-          id: `${action.id}:text-content`,
-          kind: 'text',
-          textContent: action.textContent,
+          textContent: threadSegments[0],
+          threadSegments,
           title: action.title,
         });
+      } else {
+        action.tweets?.forEach((tweet, index) => {
+          if (!tweet.trim()) {
+            return;
+          }
+
+          variants.push({
+            id: `${action.id}:tweet:${index}`,
+            kind: 'text',
+            textContent: tweet,
+            title: `Text ${index + 1}`,
+          });
+        });
+
+        if (action.textContent?.trim()) {
+          variants.push({
+            id: `${action.id}:text-content`,
+            kind: 'text',
+            textContent: action.textContent,
+            title: action.title,
+          });
+        }
       }
 
       action.ingredients?.forEach((ingredient, index) => {

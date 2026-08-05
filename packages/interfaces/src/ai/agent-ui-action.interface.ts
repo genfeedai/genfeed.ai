@@ -52,6 +52,21 @@ export interface AgentUiActionCta {
   payload?: Record<string, unknown>;
 }
 
+export type AgentUiActionHandler = (
+  action: string,
+  payload?: Record<string, unknown>,
+) => void | Promise<void>;
+
+export interface AgentUiActionOutputVariant {
+  id: string;
+  kind: 'audio' | 'image' | 'text' | 'video';
+  textContent?: string;
+  threadSegments?: string[];
+  thumbnailUrl?: string;
+  title?: string;
+  url?: string;
+}
+
 export interface AgentIngredientItem {
   id: string;
   url: string;
@@ -83,7 +98,15 @@ export interface AgentClipRunIdentity {
 export interface AgentUiAction extends AgentUiActionBase {
   ctas?: AgentUiActionCta[];
   data?: Record<string, unknown>;
+  contentFormat?:
+    | 'article'
+    | 'generic'
+    | 'newsletter'
+    | 'social_post'
+    | 'thread';
   platform?: string;
+  subject?: string;
+  preheader?: string;
   images?: string[];
   videos?: string[];
   audio?: string[];
@@ -114,14 +137,7 @@ export interface AgentUiAction extends AgentUiActionBase {
     description?: string;
     status?: string;
   }[];
-  outputVariants?: Array<{
-    id: string;
-    kind: 'audio' | 'image' | 'text' | 'video';
-    textContent?: string;
-    thumbnailUrl?: string;
-    title?: string;
-    url?: string;
-  }>;
+  outputVariants?: AgentUiActionOutputVariant[];
   clipRun?: {
     autonomousMode?: boolean;
     durationSeconds?: number;

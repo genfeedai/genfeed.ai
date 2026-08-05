@@ -4,7 +4,7 @@ export const AGENT_CONTENT_TOOLS: SourceTool[] = [
   {
     creditCost: 2,
     description:
-      'Generate social media content (caption, post text, article outline) for a given topic or brief.',
+      'Generate social media content or a newsletter draft for a given topic or brief.',
     name: 'generate_content',
     parameters: {
       properties: {
@@ -21,6 +21,7 @@ export const AGENT_CONTENT_TOOLS: SourceTool[] = [
             'tiktok',
             'youtube',
             'facebook',
+            'newsletter',
           ],
           type: 'string',
         },
@@ -30,7 +31,14 @@ export const AGENT_CONTENT_TOOLS: SourceTool[] = [
         },
         type: {
           description: 'Type of content to generate',
-          enum: ['caption', 'post', 'article_outline', 'thread', 'script'],
+          enum: [
+            'caption',
+            'post',
+            'article_outline',
+            'thread',
+            'script',
+            'newsletter',
+          ],
           type: 'string',
         },
       },
