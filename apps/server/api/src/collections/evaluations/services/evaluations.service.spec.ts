@@ -26,6 +26,7 @@ function createMocks() {
       evaluatePost: vi.fn(),
     },
     logger: {
+      debug: vi.fn(),
       error: vi.fn(),
       log: vi.fn(),
       warn: vi.fn(),

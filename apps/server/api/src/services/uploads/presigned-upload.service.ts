@@ -102,6 +102,8 @@ export class PresignedUploadService {
     const ingredient = await this.ingredientsService.findOne(
       {
         id: id,
+        isDeleted: false,
+        organizationId: publicMetadata.organization,
         status: 'processing',
         userId: publicMetadata.user,
       },

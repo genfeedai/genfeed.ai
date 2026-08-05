@@ -69,24 +69,24 @@ describe('ModelsController', () => {
   const mockSuperAdminUser = {
     id: 'user-123',
     publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toString(),
+      brand: 'c07f191e810c19729de860ee'.toString(),
       isSuperAdmin: true,
-      organization: '507f191e810c19729de860ee'.toString(),
-      user: '507f191e810c19729de860ee'.toString(),
+      organization: 'c07f191e810c19729de860ee'.toString(),
+      user: 'c07f191e810c19729de860ee'.toString(),
     } as IAuthPublicMetadata,
   } as unknown as User;
 
   const mockRegularUser = {
     id: 'user-456',
     publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toString(),
+      brand: 'c07f191e810c19729de860ee'.toString(),
       isSuperAdmin: false,
-      organization: '507f191e810c19729de860ee'.toString(),
-      user: '507f191e810c19729de860ee'.toString(),
+      organization: 'c07f191e810c19729de860ee'.toString(),
+      user: 'c07f191e810c19729de860ee'.toString(),
     } as IAuthPublicMetadata,
   } as unknown as User;
 
-  const mockOrgId = '507f191e810c19729de860ee'.toString();
+  const mockOrgId = 'c07f191e810c19729de860ee'.toString();
 
   const mockRequest = {
     context: {
@@ -220,7 +220,7 @@ describe('ModelsController', () => {
       const userWithoutSuperAdmin = {
         id: 'user-789',
         publicMetadata: {
-          user: '507f191e810c19729de860ee'.toString(),
+          user: 'c07f191e810c19729de860ee'.toString(),
         },
       } as unknown as User;
 
@@ -380,9 +380,9 @@ describe('ModelsController', () => {
     it('should filter foreign org models even when enabledModelIds is present', async () => {
       // Simulates a scenario where enabledModelIds references a model from a different
       // org (e.g. data corruption). The org filter is the last line of defense.
-      const mockOrgObjectId = mockOrgId;
-      const foreignOrgId = '507f191e810c19729de860ee';
-      const enabledModelId = '507f191e810c19729de860ee';
+      const scopedOrganizationId = mockOrgId;
+      const foreignOrgId = 'd07f191e810c19729de860ee';
+      const enabledModelId = 'm07f191e810c19729de860ee';
 
       const moduleRefMock = {
         findOne: vi.fn().mockResolvedValue({
@@ -411,7 +411,10 @@ describe('ModelsController', () => {
 
       expect(queryArg).toMatchObject({
         where: {
-          OR: [{ organizationId: null }, { organizationId: mockOrgObjectId }],
+          OR: [
+            { organizationId: null },
+            { organizationId: scopedOrganizationId },
+          ],
         },
       });
 
@@ -435,7 +438,7 @@ describe('ModelsController', () => {
       };
 
       const mockCreatedModel = {
-        id: '507f191e810c19729de860ee',
+        id: 'c07f191e810c19729de860ee',
         ...createDto,
       };
 
@@ -454,7 +457,7 @@ describe('ModelsController', () => {
 
   describe('patch', () => {
     it('should allow superadmin to update a model', async () => {
-      const id = '507f191e810c19729de860ee'.toString();
+      const id = 'm07f191e810c19729de860ee';
       const updateDto: UpdateModelDto = {
         label: 'Updated Model',
       };
@@ -487,7 +490,7 @@ describe('ModelsController', () => {
     });
 
     it('should throw forbidden error for non-superadmin users', async () => {
-      const id = '507f191e810c19729de860ee'.toString();
+      const id = 'm07f191e810c19729de860ee';
       const updateDto: UpdateModelDto = {
         label: 'Updated Model',
       };
@@ -502,7 +505,7 @@ describe('ModelsController', () => {
 
   describe('registry review actions', () => {
     it('should approve a discovered model for superadmins', async () => {
-      const id = '507f191e810c19729de860ee';
+      const id = 'c07f191e810c19729de860ee';
       const approvedModel = {
         id,
         isActive: true,
@@ -527,7 +530,7 @@ describe('ModelsController', () => {
     });
 
     it('should reject a discovered model without deleting it', async () => {
-      const id = '507f191e810c19729de860ee';
+      const id = 'c07f191e810c19729de860ee';
       const rejectedModel = {
         id,
         isActive: false,
@@ -552,7 +555,7 @@ describe('ModelsController', () => {
     });
 
     it('should mark a registry model as legacy', async () => {
-      const id = '507f191e810c19729de860ee';
+      const id = 'c07f191e810c19729de860ee';
       const legacyModel = {
         id,
         isActive: false,
@@ -577,7 +580,7 @@ describe('ModelsController', () => {
     });
 
     it('should not disable the only default model through review actions', async () => {
-      const id = '507f191e810c19729de860ee';
+      const id = 'c07f191e810c19729de860ee';
       modelsService.findOne.mockResolvedValue({
         id,
         category: 'image',
@@ -607,7 +610,7 @@ describe('ModelsController', () => {
 
   describe('remove', () => {
     it('should allow superadmin to remove a model', async () => {
-      const id = '507f191e810c19729de860ee'.toString();
+      const id = 'm07f191e810c19729de860ee';
       const mockModel = {
         id,
         isDefault: false,
@@ -631,7 +634,7 @@ describe('ModelsController', () => {
     });
 
     it('should throw forbidden error for non-superadmin users', async () => {
-      const id = '507f191e810c19729de860ee'.toString();
+      const id = 'm07f191e810c19729de860ee';
 
       await expect(
         controller.remove(mockRequest, mockRegularUser, id),

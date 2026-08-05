@@ -39,10 +39,10 @@ describe('AgentThreadsController', () => {
   };
 
   const mockUser = {
-    id: 'authProvider_123',
+    id: 'u07f1f77bcf86cd799439011',
     publicMetadata: {
       organization: 'org_current',
-      user: 'user_current',
+      user: 'u07f1f77bcf86cd799439011',
     },
   } as unknown as User;
 
@@ -72,7 +72,7 @@ describe('AgentThreadsController', () => {
     };
     usersService = {
       findOne: vi.fn().mockResolvedValue({
-        _id: mockUser.publicMetadata.user,
+        id: mockUser.publicMetadata.user,
       }),
     };
     const loggerService = {
@@ -169,7 +169,7 @@ describe('AgentThreadsController', () => {
 
       expect(usersService.findOne).toHaveBeenCalledTimes(1);
       expect(usersService.findOne).toHaveBeenCalledWith(
-        { _id: 'authProvider_123', isDeleted: false },
+        { id: 'u07f1f77bcf86cd799439011', isDeleted: false },
         [],
       );
       expect(service.getUserThreads).toHaveBeenCalledWith(
@@ -180,9 +180,9 @@ describe('AgentThreadsController', () => {
       );
     });
 
-    it('should not throw 401 when metadata user id is missing but a legacy _id is found', async () => {
-      const resolvedMongoUserId = 'legacy_mongo_id';
-      usersService.findOne.mockResolvedValueOnce({ id: resolvedMongoUserId });
+    it('should not throw 401 when metadata user id is resolved from the canonical row id', async () => {
+      const resolvedUserId = 'resolved_user_id';
+      usersService.findOne.mockResolvedValueOnce({ id: resolvedUserId });
       service.getUserThreads.mockResolvedValue([]);
 
       await controller.listThreads(
@@ -197,7 +197,7 @@ describe('AgentThreadsController', () => {
       );
 
       expect(service.getUserThreads).toHaveBeenCalledWith(
-        resolvedMongoUserId,
+        resolvedUserId,
         expect.any(String),
         undefined,
         undefined,
@@ -220,7 +220,7 @@ describe('AgentThreadsController', () => {
 
   describe('getThread', () => {
     it('should get a thread by id', async () => {
-      service.findOne.mockResolvedValue({ _id: 'test' });
+      service.findOne.mockResolvedValue({ id: 'test' });
       await controller.getThread({} as never, 'test-id', mockUser);
       expect(service.findOne).toHaveBeenCalled();
     });
@@ -228,7 +228,7 @@ describe('AgentThreadsController', () => {
 
   describe('getMessage', () => {
     it('gets a thread message by id within the current organization', async () => {
-      messagesService.findOne.mockResolvedValue({ _id: 'message-id' });
+      messagesService.findOne.mockResolvedValue({ id: 'message-id' });
 
       await controller.getMessage(
         {
@@ -240,10 +240,10 @@ describe('AgentThreadsController', () => {
       );
 
       expect(messagesService.findOne).toHaveBeenCalledWith({
-        _id: 'message-id',
+        id: 'message-id',
         isDeleted: false,
-        organization: 'org_current',
-        room: 'thread-id',
+        organizationId: 'org_current',
+        threadId: 'thread-id',
       });
     });
   });
@@ -286,13 +286,13 @@ describe('AgentThreadsController', () => {
 
   describe('createThread', () => {
     it('should create a new thread', async () => {
-      service.create.mockResolvedValue({ _id: 'new' });
+      service.create.mockResolvedValue({ id: 'new' });
       await controller.createThread({} as never, { title: 'Test' }, mockUser);
       expect(service.create).toHaveBeenCalledWith(
         expect.objectContaining({
           organizationId: 'org_current',
           title: 'Test',
-          userId: 'user_current',
+          userId: 'u07f1f77bcf86cd799439011',
         }),
       );
     });
@@ -318,7 +318,7 @@ describe('AgentThreadsController', () => {
         expectedContextVersion: 3,
         organizationId: 'org_current',
         threadId: 'thread-1',
-        userId: 'user_current',
+        userId: 'u07f1f77bcf86cd799439011',
       });
     });
   });
@@ -337,7 +337,7 @@ describe('AgentThreadsController', () => {
       });
 
       expect(service.archiveAllThreads).toHaveBeenCalledWith(
-        'user_current',
+        'u07f1f77bcf86cd799439011',
         'org_current',
         undefined,
       );

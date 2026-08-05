@@ -37,14 +37,15 @@ const metrics = {
 
 describe('PostAnalyticsService.updateTodayAnalytics', () => {
   it('writes scalar foreign keys when the post carries populated relations', async () => {
-    // `PostsService.findOne` populates brand/user, so the legacy aliases hold
-    // objects — `String(post.brand)` used to write "[object Object]" into a
-    // foreign key column and Postgres rejected the upsert with P2003.
+    // Populated Prisma relations retain their canonical scalar foreign keys.
     const { service, upsert } = createHarness({
       brand: { id: 'brand_1', label: 'Acme' },
+      brandId: 'brand_1',
       id: 'post_1',
       organization: { id: 'org_1' },
+      organizationId: 'org_1',
       user: { id: 'user_1' },
+      userId: 'user_1',
     } as unknown as PostDocument);
 
     await service.updateTodayAnalytics('post_1', TWITTER, metrics);

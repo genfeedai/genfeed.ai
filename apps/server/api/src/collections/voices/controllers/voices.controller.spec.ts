@@ -30,7 +30,7 @@ describe('VoicesController', () => {
   const request = {} as Request;
   const user = { id: 'user-1' } as User;
   const query = {} as VoicesQueryDto;
-  const voice = { id: '507f191e810c19729de860ea' };
+  const voice = { id: 'v07f191e810c19729de860ea' };
   let cloneService: { deleteClonedVoice: ReturnType<typeof vi.fn> };
   let libraryService: {
     findAll: ReturnType<typeof vi.fn>;
