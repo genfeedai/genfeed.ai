@@ -2,21 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { buildSerializer, rel, simpleConfig } from './serializer.builder';
 
 /**
- * Wire-format contract tests for the Mongo-to-Postgres id cleanup (#1096).
+ * Wire-format contract tests for canonical Prisma-backed serializers.
  *
  * They pin the exact JSON:API output for records shaped the way
  * `BaseService.normalizeDocument` emits them. The dominant case (scalar
  * relationship ids) was verified byte-identical against the pre-cleanup
  * output (`id: '_id'` mapping + ResponseIdNormalizerInterceptor). Three
- * deliberate behavior changes are pinned explicitly below:
- *
- * 1. Records carrying a legacy `mongoId` now serialize with the canonical
- *    Prisma `id` (cuid) — previously the legacy Mongo hex id leaked out.
- * 2. Records that never passed `normalizeDocument` (no `_id` alias) now
- *    serialize with their real id — previously `id: "undefined"`.
- * 3. Hydrated relation objects now emit relationship linkage + `included`
- *    resources — previously `ref: '_id'` never matched and populate data
- *    was silently dropped from responses.
+ * Records serialize with their canonical `id`, while hydrated relation objects
+ * emit relationship linkage and included resources.
  */
 
 const postConfig = {
@@ -44,7 +37,6 @@ const UPDATED_AT = new Date('2026-02-20T12:30:00.000Z');
 /** Record as BaseService.normalizeDocument returns it (post-migration row). */
 function makeNormalizedPost(): Record<string, unknown> {
   return {
-    _id: 'ckpost0000000000000000001',
     brand: 'ckbrand000000000000000001',
     brandId: 'ckbrand000000000000000001',
     createdAt: CREATED_AT,
@@ -94,22 +86,6 @@ describe('server serializer wire contract (#1096)', () => {
     expect(output).toEqual({ data: [EXPECTED_POST_RESOURCE] });
   });
 
-  it('emits the canonical Prisma id for migrated records carrying a legacy mongoId', () => {
-    const { PostSerializer } = buildSerializer('server', postConfig);
-    const record = {
-      ...makeNormalizedPost(),
-      mongoId: '64a1b2c3d4e5f6a7b8c9d0e1',
-    };
-    const output = PostSerializer.serialize(record) as {
-      data: { id: string };
-    };
-
-    // Behavior change vs pre-cleanup: the legacy Mongo hex id no longer
-    // leaks out as the public id. Inbound lookups by mongoId still resolve
-    // via the OR-clause in BaseService.processSearchParams.
-    expect(output.data.id).toBe('ckpost0000000000000000001');
-  });
-
   it('serializes records that never passed normalizeDocument with their real id', () => {
     const { ThingSerializer } = buildSerializer(
       'server',
@@ -120,8 +96,6 @@ describe('server serializer wire contract (#1096)', () => {
       label: 'raw',
     });
 
-    // Pre-cleanup this produced `id: "undefined"` because the record had no
-    // `_id` alias for the serializer to read.
     expect(output).toEqual({
       data: {
         attributes: { label: 'raw' },

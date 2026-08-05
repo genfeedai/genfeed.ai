@@ -35,7 +35,6 @@ describe('SubscriptionsController', () => {
     customerId: null,
     id: '507f1f77bcf86cd799439014',
     isDeleted: false,
-    mongoId: null,
     organizationId: '507f1f77bcf86cd799439012',
     plan: SubscriptionPlan.MONTHLY,
     status: SubscriptionStatus.ACTIVE,

@@ -424,7 +424,6 @@ These should not be deleted mechanically.
 | EE/OSS subscription DTO clone | jscpd reports `ee/packages/billing/src/subscriptions/dto/create-subscription.dto.ts:1-144` vs `apps/server/api/src/collections/subscriptions/dto/create-subscription.dto.ts:1-144` | Sharing across EE and OSS can create package-boundary or licensing coupling. Move only into a neutral contract package if both sides can depend on it. |
 | Workflow execution contracts | Resolved: the engine now consumes `@genfeedai/workflows/contracts` directly. | Keep the contract owned by the workflows package. |
 | Dependency cleanup | Knip reports 89 unused dependency candidates and 883 unlisted import candidates | Monorepo hoisting, package publication, scripts, and optional integrations make this noisy. Triage by package owner and package manifest, not globally. |
-| Archived migration unresolved import | Knip reports unresolved import in `scripts/migrations/archive/tenant-recreate.ts` | Archive may be intentionally inert. Decide whether archived migrations must compile or should be moved outside the checked tree. |
 | `packages/pages/agent/agent-page-content.tsx` unresolved `@/lib/config/edition` | Knip unresolved import | Could indicate a real broken package import or an app-only alias leak. Needs package-boundary decision. |
 
 ## 4. Inconsistent Local Patterns

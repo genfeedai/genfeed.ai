@@ -58,7 +58,6 @@ interface InvitationRow {
   invitedByUserId: string;
   isDeleted: boolean;
   lastName: string | null;
-  mongoId: string | null;
   organization?: { label: string } | null;
   organizationId: string;
   redirectUrl: string | null;
@@ -103,7 +102,6 @@ function makeInvitation(overrides: Partial<InvitationRow> = {}): InvitationRow {
     invitedByUserId: userId,
     isDeleted: false,
     lastName: 'User',
-    mongoId: null,
     organization: { label: 'Acme' },
     organizationId: orgId,
     redirectUrl: null,

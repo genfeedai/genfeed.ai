@@ -5,7 +5,7 @@ import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-publi
 /**
  * Utility class for entity id validation and normalization.
  * Entity ids are string ids (cuid/cuid2/uuid/ulid, plus legacy 24-char hex
- * Mongo ids that survive as `mongoId` lookup aliases) — see `isEntityId`.
+ * Mongo-shaped external IDs accepted by a few provider contracts) — see `isEntityId`.
  */
 export class EntityIdUtil {
   /**

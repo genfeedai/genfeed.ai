@@ -40,7 +40,6 @@ describe('Legacy cron workflow migration', () => {
       isDeleted: false,
       label: 'Weekly newsletter',
       lastRunAt: now,
-      mongoId: null,
       nextRunAt: now,
       organizationId: 'org-1',
       status: 'ACTIVE',

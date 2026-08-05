@@ -31,7 +31,6 @@ const buildRecord = (
     id: 'ad-1',
     industry: 'fitness',
     isDeleted: false,
-    mongoId: null,
     organizationId: 'org-1',
     performanceScore: 80,
     roas: 2.4,

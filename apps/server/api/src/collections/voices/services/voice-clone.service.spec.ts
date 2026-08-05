@@ -108,7 +108,7 @@ describe('VoiceCloneService', () => {
       'key',
     );
     expect(voices.patchAll).toHaveBeenCalledWith(
-      { OR: [{ id: ingredientId }, { mongoId: ingredientId }] },
+      { id: ingredientId },
       expect.objectContaining({
         cloneStatus: VoiceCloneStatus.READY,
         externalVoiceId: 'external-voice-1',
@@ -195,9 +195,7 @@ describe('VoiceCloneService', () => {
       'key',
     );
     expect(voices.patchAll).toHaveBeenCalledWith(
-      {
-        OR: [{ id: 'canonical-voice-1' }, { mongoId: 'canonical-voice-1' }],
-      },
+      { id: 'canonical-voice-1' },
       { isDeleted: true },
     );
   });

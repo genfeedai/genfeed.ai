@@ -325,8 +325,7 @@ describe('BrandsService', () => {
     });
   });
 
-  it('resolves legacy mongo ids before selecting a brand', async () => {
-    const legacyBrandId = '69d65211cbce660360fd068d';
+  it('selects a brand using its canonical id', async () => {
     const currentBrandId = 'hkh2jbovtpcsrzw3oyxr11oj';
     const organizationId = 'b13yktd0f1e38me3f55swu0n';
     const userId = 'user_current';
@@ -335,7 +334,6 @@ describe('BrandsService', () => {
       .mockResolvedValueOnce({
         id: currentBrandId,
         isDeleted: false,
-        mongoId: legacyBrandId,
         organizationId,
         userId,
       })
@@ -343,21 +341,20 @@ describe('BrandsService', () => {
         id: currentBrandId,
         isDeleted: false,
         isSelected: true,
-        mongoId: legacyBrandId,
         organizationId,
         userId,
       });
     delegate.updateMany.mockResolvedValue({ count: 1 });
 
     const result = await service.selectBrandForUser(
-      legacyBrandId,
+      currentBrandId,
       userId,
       organizationId,
     );
 
     expect(delegate.findFirst).toHaveBeenNthCalledWith(1, {
       where: {
-        OR: [{ id: legacyBrandId }, { mongoId: legacyBrandId }],
+        id: currentBrandId,
         isDeleted: false,
         organizationId,
       },
@@ -366,8 +363,6 @@ describe('BrandsService', () => {
       data: { isSelected: true },
       where: { id: currentBrandId, isDeleted: false, organizationId },
     });
-    // Normalized records expose only the canonical Prisma id (#1096); the
-    // mongoId input above still resolves via the OR lookup.
     expect(result).toMatchObject({
       id: currentBrandId,
       isSelected: true,

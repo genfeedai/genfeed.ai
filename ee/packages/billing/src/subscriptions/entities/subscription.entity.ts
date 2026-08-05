@@ -6,7 +6,6 @@ export class SubscriptionEntity
   implements SubscriptionDocument
 {
   declare readonly id: string;
-  declare readonly mongoId: string | null;
   declare readonly organizationId: string;
   declare readonly userId: string;
   declare readonly customerId: SubscriptionDocument['customerId'];

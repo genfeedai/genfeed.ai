@@ -939,7 +939,7 @@ describe('VideosController', () => {
       );
 
       expect(videosService.findOne).toHaveBeenCalledWith({
-        _id: mockVideoId.toString(),
+        id: mockVideoId.toString(),
         organizationId: mockUser.publicMetadata.organization,
         category: 'VIDEO',
         isDeleted: false,
@@ -949,22 +949,6 @@ describe('VideosController', () => {
         mockVideoId.toString(),
       );
       expect(result).toBeDefined();
-    });
-
-    it('resolves a legacy mongoId route to the canonical id before deletion', async () => {
-      const canonicalVideoId = 'canonical-video-id';
-      const legacyVideo = { ...mockVideo, id: canonicalVideoId };
-      videosService.findOne.mockResolvedValue(
-        legacyVideo as unknown as IngredientDocument,
-      );
-      videosService.remove.mockResolvedValue(
-        legacyVideo as unknown as IngredientDocument,
-      );
-
-      await controller.remove(mockRequest, mockVideoId.toString(), mockUser);
-
-      expect(videosService.remove).toHaveBeenCalledWith(canonicalVideoId);
-      expect(metadataService.remove).toHaveBeenCalledWith(canonicalVideoId);
     });
 
     it('should return 404 when video not found', async () => {

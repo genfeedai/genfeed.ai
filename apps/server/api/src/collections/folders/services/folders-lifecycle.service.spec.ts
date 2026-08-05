@@ -90,28 +90,17 @@ describe('Library folder lifecycle persistence', () => {
         folderRows.push(row);
         return Promise.resolve(row);
       }),
-      findFirst: vi.fn(
-        ({
-          where,
-        }: {
-          where: Partial<FolderRow> & {
-            OR?: Array<{ id?: string; mongoId?: string }>;
-          };
-        }) =>
-          Promise.resolve(
-            folderRows.find(
-              (row) =>
-                (where.organizationId === undefined ||
-                  row.organizationId === where.organizationId) &&
-                (where.isDeleted === undefined ||
-                  row.isDeleted === where.isDeleted) &&
-                (!where.OR ||
-                  where.OR.some(
-                    (candidate) =>
-                      candidate.id === row.id || candidate.mongoId === row.id,
-                  )),
-            ) ?? null,
-          ),
+      findFirst: vi.fn(({ where }: { where: Partial<FolderRow> }) =>
+        Promise.resolve(
+          folderRows.find(
+            (row) =>
+              (where.organizationId === undefined ||
+                row.organizationId === where.organizationId) &&
+              (where.isDeleted === undefined ||
+                row.isDeleted === where.isDeleted) &&
+              (where.id === undefined || where.id === row.id),
+          ) ?? null,
+        ),
       ),
       findMany: vi.fn(({ where }: { where: Partial<FolderRow> }) =>
         Promise.resolve(

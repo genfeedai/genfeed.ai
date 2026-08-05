@@ -1,8 +1,8 @@
 # Identity & Request Resolution
 
-How a Better Auth session becomes an authorized, org-scoped API request — and
-the legacy hazards to avoid when touching this path. Written for contributors
-and coding agents; every path below is a real code location.
+How a Better Auth session becomes an authorized, org-scoped API request.
+Written for contributors and coding agents; every path below is a real code
+location.
 
 ## The flow (SaaS / community with auth)
 
@@ -54,44 +54,20 @@ When adding a write that changes who a user is or which org/brand they point
 at, invalidate **all three** API caches (see `createOrganization` in
 `organizations.controller.ts` for the reference call site).
 
-## Legacy Mongo-era hazards (the important part)
+## Canonical persistence identity
 
-The codebase migrated Mongo → Prisma/Postgres. Compatibility shims remain, and
-they bite in two specific ways:
+Prisma/PostgreSQL IDs and scalar foreign keys are the only persistence
+identity contract:
 
-### 1. `*Document` alias fields are types, not data
+- Use `id`, never `_id` or `mongoId`.
+- Use scalar foreign keys such as `organizationId`, `userId`, `brandId`, and
+  `roleId`; relation names are reserved for actual Prisma relation objects.
+- Scope tenant reads explicitly with `organizationId` and `isDeleted: false`.
+- Never pass an optional ID into a lookup until it has been validated. Prisma
+  filter normalization drops `undefined` values, so an omitted tenant or entity
+  ID can otherwise broaden a query.
 
-`MemberDocument` (and friends) extend the Prisma row type with **optional**
-legacy aliases: `_id`, `organization`, `user`, `role`. These exist so old
-call sites type-check. **Prisma rows do not populate them** — the live fields
-are the scalar FKs: `organizationId`, `userId`, `roleId`.
-
-- Reading `row.organization` compiles and returns `undefined` at runtime.
-- Write new code against the scalar FKs. When consuming rows defensively, use
-  `row.organizationId || row.organization` (the resolver's
-  `getMemberOrganizationId` pattern).
-
-### 2. Filters are mapped, and dropped filters widen queries
-
-`BaseService.processSearchParams` maps legacy filter keys (`user` → `userId`,
-`organization` → `organizationId`, `_id` → `id`/`mongoId`), and
-`normalizeWhere` **drops `undefined` values**. Consequences:
-
-- `find({ user: id })` works — the alias is mapped before Prisma sees it.
-- `findOne({ _id: undefined })` used to normalize to an **unscoped
-  `findFirst`** and return the first row in the table — a cross-tenant read.
-  `BaseService.findOne` now guards this: an explicitly-passed `_id`/`id` that
-  is `undefined`/`null`/`''` returns `null` without querying.
-- The same widening applies to any optional filter: `{ organization: undefined }`
-  means "all orgs", not "no org". That is load-bearing for single-tenant
-  (community) mode — do not "fix" it globally; scope queries explicitly at the
-  call site when tenancy matters.
-
-Case study (2026-07): the org switcher showed another account's organization,
-duplicated, with two active checkmarks. Root cause: `findMine` mapped
-`member.organization` (undefined) → `findOne({ _id: undefined })` → first org
-in the table, once per membership row. Fixed by mapping `organizationId`,
-dedup, and the `findOne` id-guard.
+The architecture relation-boundary guards enforce these rules in CI.
 
 ## Multi-tenancy invariants
 

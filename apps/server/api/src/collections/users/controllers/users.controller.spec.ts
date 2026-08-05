@@ -541,15 +541,9 @@ describe('UsersController', () => {
   });
 
   describe('updateBrandSelection', () => {
-    it('should persist last-used brand using the canonical cuid id, not the legacy mongoId _id', async () => {
-      // A normalized brand doc carries BOTH a cuid `id` and a legacy `_id`
-      // (= mongoId ?? id). member.lastUsedBrandId is an FK to Brand.id, so the
-      // handler must write `id` — writing `_id` (the mongoId) triggers a P2003
-      // "Invalid Relationship" and blocks brand switch for migrated brands.
+    it('persists the selected canonical brand id', async () => {
       const canonicalId = 'clbrandcuid000000000000001';
-      const legacyMongoId = '507f191e810c19729de860ee';
       brandsService.selectBrandForUser.mockResolvedValue({
-        _id: legacyMongoId,
         id: canonicalId,
         label: 'Selected Brand',
       });
@@ -557,15 +551,15 @@ describe('UsersController', () => {
       const result = await relationshipsController.updateBrandSelection(
         mockRequest,
         mockUser,
-        legacyMongoId.toString(),
+        canonicalId,
       );
 
       expect(membersService.setLastUsedBrand).toHaveBeenCalledWith(
         {
           isActive: true,
           isDeleted: false,
-          organization: orgId,
-          user: userId,
+          organizationId: orgId,
+          userId,
         },
         canonicalId,
       );

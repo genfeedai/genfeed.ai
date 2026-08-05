@@ -16,7 +16,6 @@ type ContextRow = {
   id: string;
   organizationId: string;
   isDeleted: boolean;
-  mongoId?: string | null;
   contextBaseId?: string;
   data?: Record<string, unknown>;
 };
@@ -92,7 +91,6 @@ describe('ContextsService — findOrThrow tenant scoping', () => {
           data: { label: 'Voice' },
           id: 'ctx-1',
           isDeleted: false,
-          mongoId: null,
           organizationId: 'org-1',
         },
       ],
@@ -112,7 +110,6 @@ describe('ContextsService — findOrThrow tenant scoping', () => {
         {
           id: 'ctx-1',
           isDeleted: false,
-          mongoId: null,
           organizationId: 'org-1',
         },
       ],
@@ -129,7 +126,6 @@ describe('ContextsService — findOrThrow tenant scoping', () => {
         {
           id: 'ctx-1',
           isDeleted: true,
-          mongoId: null,
           organizationId: 'org-1',
         },
       ],
@@ -163,7 +159,6 @@ describe('ContextsService — findOrThrow tenant scoping', () => {
         {
           id: 'ctx-1',
           isDeleted: false,
-          mongoId: null,
           organizationId: 'org-1',
         },
       ],
@@ -187,7 +182,6 @@ describe('ContextsService — findOrThrow tenant scoping', () => {
         {
           id: 'ctx-1',
           isDeleted: false,
-          mongoId: null,
           organizationId: 'org-1',
         },
       ],
@@ -207,7 +201,6 @@ describe('ContextsService — findOrThrow tenant scoping', () => {
           data: { entryCount: 5 },
           id: 'ctx-1',
           isDeleted: false,
-          mongoId: null,
           organizationId: 'org-1',
         },
       ],
@@ -216,7 +209,6 @@ describe('ContextsService — findOrThrow tenant scoping', () => {
           contextBaseId: 'ctx-1',
           id: 'entry-1',
           isDeleted: false,
-          mongoId: null,
           organizationId: 'org-1',
         },
       ],
@@ -245,7 +237,6 @@ describe('ContextsService — findOrThrow tenant scoping', () => {
           contextBaseId: 'ctx-1',
           id: 'entry-1',
           isDeleted: false,
-          mongoId: null,
           organizationId: 'org-1',
         },
       ],

@@ -7,7 +7,6 @@ import { BadRequestException, ConflictException } from '@nestjs/common';
 
 type StoreConversation = {
   id: string;
-  mongoId: string | null;
   organizationId: string;
   userId: string | null;
   brandId: string | null;
@@ -49,7 +48,6 @@ type StoreConversation = {
 
 type StoreMessage = {
   id: string;
-  mongoId: string | null;
   conversationId: string;
   organizationId: string;
   userId: string | null;
@@ -222,7 +220,6 @@ function createContext(): TestContext {
           latestMessageAt: data.latestMessageAt ?? null,
           latestMessageText: data.latestMessageText ?? null,
           metadata: data.metadata ?? {},
-          mongoId: null,
           needsReview: data.needsReview ?? false,
           organizationId: data.organizationId,
           participantAvatarUrl: data.participantAvatarUrl ?? null,
@@ -332,7 +329,6 @@ function createContext(): TestContext {
           isDeleted: false,
           messageType: data.messageType ?? 'comment',
           metadata: data.metadata ?? {},
-          mongoId: null,
           organizationId: data.organizationId,
           platform: data.platform,
           postId: data.postId ?? null,

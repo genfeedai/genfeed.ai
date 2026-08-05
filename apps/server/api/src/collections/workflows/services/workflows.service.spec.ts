@@ -449,7 +449,6 @@ describe('WorkflowsService system workflow guardrails', () => {
       userId: 'user-1',
     });
     expect(createInput.id).toBeUndefined();
-    expect(createInput.mongoId).toBeUndefined();
     expect(createInput.organization).toBeUndefined();
     expect(createInput.user).toBeUndefined();
   });

@@ -783,7 +783,6 @@ const IGNORED_ATTRIBUTE_FIELDS = new Set([
   'createdAt',
   'id',
   'isDeleted',
-  'mongoId',
   'updatedAt',
 ]);
 

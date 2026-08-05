@@ -126,26 +126,25 @@ describe('OutreachCampaignsService', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('implements BaseCRUD-compatible findOne with legacy _id lookup', async () => {
+  it('finds one campaign using canonical scalar filters', async () => {
     const { prisma, service } = makeService();
     prisma.outreachCampaign.findFirst.mockResolvedValue({
       config: { label: 'Campaign' },
       id: 'campaign-1',
       isDeleted: false,
-      mongoId: 'mongo-campaign-1',
       organizationId: 'org-1',
       status: 'draft',
     });
 
     const campaign = await service.findOne({
-      _id: 'mongo-campaign-1',
+      id: 'campaign-1',
       isDeleted: false,
-      organization: 'org-1',
+      organizationId: 'org-1',
     });
 
     expect(prisma.outreachCampaign.findFirst).toHaveBeenCalledWith({
       where: {
-        OR: [{ id: 'mongo-campaign-1' }, { mongoId: 'mongo-campaign-1' }],
+        id: 'campaign-1',
         isDeleted: false,
         organizationId: 'org-1',
       },
