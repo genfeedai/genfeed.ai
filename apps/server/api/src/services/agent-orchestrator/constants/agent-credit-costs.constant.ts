@@ -1,4 +1,8 @@
 import { BRAND_PROFILE_GENERATION_CREDIT_COST } from '@api/collections/brands/constants/brand-profile.constant';
+import {
+  AGENT_CHAT_MODELS,
+  getAgentChatModelRoundCredits,
+} from '@genfeedai/constants';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { getToolsForSurface } from '@genfeedai/tools';
 
@@ -26,30 +30,30 @@ export const AGENT_CREDIT_COSTS: Record<string, number> = {
   ...EXTRA_AGENT_CREDIT_COSTS,
 };
 
-export const AGENT_BASE_TURN_COST = 1;
 export const AGENT_MAX_TOOL_ROUNDS = 5;
 
 /**
- * Per-model agent turn costs based on provider pricing + 70% margin.
- * Estimated per-turn: ~10K input + 2K output tokens, 2 LLM rounds avg.
- * 1 credit = $0.01
+ * Credits burned by one LLM round, per model. Derived from the canonical
+ * catalogue in `@genfeedai/constants` — a hand-maintained copy here drifted
+ * from real provider pricing and billed frontier models at bargain rates.
  *
- * local/* models run on self-hosted EC2 (platform cost, not per-user).
+ * Served to the client by `GET /agent/credits` so the picker can price a turn
+ * before it runs.
  */
-export const AGENT_MODEL_TURN_COSTS: Record<string, number> = {
-  'anthropic/claude-opus-4-6': 15,
-  'anthropic/claude-sonnet-4-5-20250929': 10,
-  'deepseek/deepseek-chat': 1,
-  'google/gemini-3-flash-preview': 4,
-  'local/mistral-small': 0,
-  'local/qwen-32b': 0,
-  'openai/gpt-4o': 8,
-  'openai/o3': 15,
-  'openai/o4-mini': 3,
-  'openrouter/auto': 1,
-  'x-ai/grok-4-fast': 1,
-};
+export const AGENT_MODEL_ROUND_COSTS: Record<string, number> =
+  Object.fromEntries(
+    AGENT_CHAT_MODELS.map((model) => [model.key, model.creditCostPerRound]),
+  );
 
-export function getAgentTurnCost(model: string): number {
-  return AGENT_MODEL_TURN_COSTS[model] ?? AGENT_BASE_TURN_COST;
+/**
+ * Credits to hold before a turn starts.
+ *
+ * Billing is per round against the model that actually answered, and a turn
+ * runs 1..AGENT_MAX_TOOL_ROUNDS of them — so this is only the affordability
+ * gate for the first round. Reserving the worst case upfront would lock out
+ * organizations that can comfortably afford the single-round turns they
+ * actually run; the loop stops as soon as the balance runs dry.
+ */
+export function getAgentTurnCreditEstimate(model: string): number {
+  return getAgentChatModelRoundCredits(model);
 }

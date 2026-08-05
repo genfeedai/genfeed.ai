@@ -17,7 +17,7 @@ import { AgentOrchestratorSyncLoopService } from '@api/services/agent-orchestrat
 import { AgentOrchestratorUiActionService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
-import { getAgentTurnCost } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
+import { getAgentTurnCreditEstimate } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
 import { DEFAULT_AGENT_CHAT_MODEL } from '@api/services/agent-orchestrator/constants/agent-default-model.constant';
 import type {
   AgentChatContext,
@@ -130,7 +130,7 @@ export class AgentOrchestratorService {
       const turnCost =
         request.agentType === AgentType.BRAND_INTERVIEW
           ? 0
-          : getAgentTurnCost(model);
+          : getAgentTurnCreditEstimate(model);
       const hasCredits =
         await this.creditsUtilsService.checkOrganizationCreditsAvailable(
           context.organizationId,
@@ -340,7 +340,7 @@ export class AgentOrchestratorService {
     const turnCost =
       request.agentType === AgentType.BRAND_INTERVIEW
         ? 0
-        : getAgentTurnCost(model);
+        : getAgentTurnCreditEstimate(model);
     const hasCredits =
       await this.creditsUtilsService.checkOrganizationCreditsAvailable(
         context.organizationId,

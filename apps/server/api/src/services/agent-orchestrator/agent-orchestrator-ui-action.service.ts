@@ -10,7 +10,7 @@ import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
-import { getAgentTurnCost } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
+import { getAgentTurnCreditEstimate } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
 import { DEFAULT_AGENT_CHAT_MODEL } from '@api/services/agent-orchestrator/constants/agent-default-model.constant';
 import type {
   AgentChatContext,
@@ -37,6 +37,7 @@ import {
 } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
+import { resolveAgentChatModelKey } from '@genfeedai/constants';
 import { AgentAutonomyMode, AgentMessageRole } from '@genfeedai/enums';
 import {
   type AgentDashboardOperation,
@@ -285,9 +286,10 @@ export class AgentOrchestratorUiActionService {
       ),
     );
 
-    return binding?.model?.trim()
-      ? binding.model.trim()
-      : DEFAULT_AGENT_CHAT_MODEL;
+    // UI actions price and call the bound model directly, bypassing the
+    // orchestrator's resolution chokepoint — a binding stored against a retired
+    // key maps forward here or it bills at the fallback rate.
+    return resolveAgentChatModelKey(binding?.model ?? DEFAULT_AGENT_CHAT_MODEL);
   }
 
   private describeThreadUiAction(
@@ -811,7 +813,7 @@ export class AgentOrchestratorUiActionService {
       seedTitle: '',
       systemPromptOverride: undefined,
       threadId: params.threadId,
-      turnCost: getAgentTurnCost(params.model),
+      turnCost: getAgentTurnCreditEstimate(params.model),
     });
   }
 
@@ -865,7 +867,7 @@ export class AgentOrchestratorUiActionService {
       seedTitle: '',
       systemPromptOverride: request.systemPromptOverride,
       threadId: params.threadId,
-      turnCost: getAgentTurnCost(params.model),
+      turnCost: getAgentTurnCreditEstimate(params.model),
     });
   }
 

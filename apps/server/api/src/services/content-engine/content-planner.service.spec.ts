@@ -156,7 +156,7 @@ describe('ContentPlannerService', () => {
           expect.objectContaining({ role: 'system' }),
           expect.objectContaining({ role: 'user' }),
         ]),
-        model: 'anthropic/claude-sonnet-4-20250514',
+        model: 'anthropic/claude-sonnet-5',
         temperature: 0.7,
       }),
       mockOrgId,

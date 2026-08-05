@@ -21,7 +21,7 @@ import {
 
 type Forecast = ForecastDocument;
 type Insight = InsightDocument;
-const INSIGHTS_TEXT_MODEL = 'anthropic/claude-sonnet-4-5';
+const INSIGHTS_TEXT_MODEL = 'anthropic/claude-sonnet-5';
 
 type InsightData = {
   actionableSteps?: string[];

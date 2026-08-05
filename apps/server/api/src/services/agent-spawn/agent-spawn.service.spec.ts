@@ -82,7 +82,7 @@ describe('AgentSpawnService', () => {
       expect.objectContaining({
         agentType: AgentType.X_CONTENT,
         content: 'Draft an X thread',
-        model: 'openrouter/auto',
+        model: 'openai/gpt-5.6-terra',
       }),
       expect.objectContaining({
         organizationId: 'org-1',
@@ -119,7 +119,7 @@ describe('AgentSpawnService', () => {
         assembleContext: vi.fn().mockResolvedValue({
           brandId: 'brand-1',
           brandName: 'Brand',
-          defaultModel: 'anthropic/claude-sonnet-4-5-20250929',
+          defaultModel: 'anthropic/claude-sonnet-5',
           layersUsed: ['brandIdentity'],
         }),
         buildSystemPrompt: vi.fn().mockReturnValue('spawn-prompt'),
@@ -144,7 +144,7 @@ describe('AgentSpawnService', () => {
 
     expect(chat).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'anthropic/claude-sonnet-4-5-20250929',
+        model: 'anthropic/claude-sonnet-5',
       }),
       expect.any(Object),
     );

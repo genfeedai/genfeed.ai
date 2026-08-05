@@ -1,3 +1,9 @@
+import {
+  DEFAULT_AGENT_CHAT_MODEL_KEY,
+  SELECTABLE_AGENT_CHAT_MODELS,
+} from '@genfeedai/constants';
+import { CostTier } from '@genfeedai/enums';
+
 export interface OpenRouterToolFunction {
   name: string;
   description: string;
@@ -107,19 +113,26 @@ export enum OpenRouterModelTier {
   PREMIUM = 'premium',
 }
 
+/**
+ * Tiered model lists, derived from the canonical catalogue so a one-off prompt
+ * never routes to a model we have retired. Tiers map onto the catalogue's own
+ * cost tiers — cheapest first within each, so `getDefaultModel` picks the
+ * cheapest model that clears the tier.
+ */
+function modelKeysForCostTier(costTier: CostTier): string[] {
+  return SELECTABLE_AGENT_CHAT_MODELS.filter(
+    (model) => model.costTier === costTier,
+  )
+    .sort((left, right) => left.creditCostPerRound - right.creditCostPerRound)
+    .map((model) => model.key);
+}
+
 export const OPENROUTER_MODELS: Record<OpenRouterModelTier, string[]> = {
-  [OpenRouterModelTier.FAST]: [
-    'deepseek/deepseek-chat',
-    'google/gemini-2.0-flash-exp',
-    'x-ai/grok-4.1-fast',
-  ],
-  [OpenRouterModelTier.STANDARD]: [
-    'anthropic/claude-sonnet-4-5-20250929',
-    'openai/gpt-4o',
-  ],
-  [OpenRouterModelTier.PREMIUM]: ['anthropic/claude-opus-4-6', 'openai/o3'],
+  [OpenRouterModelTier.FAST]: modelKeysForCostTier(CostTier.LOW),
+  [OpenRouterModelTier.STANDARD]: modelKeysForCostTier(CostTier.MEDIUM),
+  [OpenRouterModelTier.PREMIUM]: modelKeysForCostTier(CostTier.HIGH),
 };
 
 export function getDefaultModel(tier: OpenRouterModelTier): string {
-  return OPENROUTER_MODELS[tier][0];
+  return OPENROUTER_MODELS[tier][0] ?? DEFAULT_AGENT_CHAT_MODEL_KEY;
 }

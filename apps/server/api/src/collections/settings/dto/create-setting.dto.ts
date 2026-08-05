@@ -1,4 +1,5 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+import { DEFAULT_AGENT_CHAT_MODEL_KEY } from '@genfeedai/constants';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,
@@ -193,7 +194,7 @@ export class CreateSettingDto {
   @IsString()
   @IsOptional()
   @ApiProperty({
-    default: 'deepseek/deepseek-chat',
+    default: DEFAULT_AGENT_CHAT_MODEL_KEY,
     description: 'Default AI model for agent chat sessions',
     required: false,
   })

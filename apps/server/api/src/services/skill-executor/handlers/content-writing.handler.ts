@@ -65,7 +65,7 @@ export class ContentWritingHandler implements SkillHandler {
           model:
             typeof params.model === 'string'
               ? params.model
-              : 'openai/gpt-4o-mini',
+              : 'openai/gpt-5.6-luna',
           temperature: 0.7,
         },
         context.organizationId,

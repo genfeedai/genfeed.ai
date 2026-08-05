@@ -44,8 +44,7 @@ export class PatternAnalyzerService {
     private readonly creatorScraperService: CreatorScraperService,
     private readonly patternStoreService: PatternStoreService,
   ) {
-    this.defaultModel =
-      this.configService.get('XAI_MODEL') || 'x-ai/grok-4-fast';
+    this.defaultModel = this.configService.get('XAI_MODEL') || 'x-ai/grok-4.5';
   }
 
   async analyzeCreator(creatorId: string): Promise<{

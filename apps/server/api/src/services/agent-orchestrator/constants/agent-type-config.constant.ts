@@ -9,6 +9,17 @@ export interface AgentTypeConfig {
   systemPromptSuffix: string;
 }
 
+/**
+ * Per-type defaults, named by the job rather than the vendor so a catalogue
+ * change is one edit here instead of a dozen literals. Both keys come from
+ * `@genfeedai/constants`, which is also what the biller prices against.
+ *
+ * Volume types run high-frequency, low-stakes turns; creative types write
+ * copy and direct generation, where the better model pays for itself.
+ */
+const VOLUME_AGENT_MODEL = 'deepseek/deepseek-v4-flash-0731';
+const CREATIVE_AGENT_MODEL = 'anthropic/claude-sonnet-5';
+
 const SHARED_READ_TOOLS: AgentToolName[] = [
   AgentToolName.GET_ANALYTICS,
   AgentToolName.GET_CREDITS_BALANCE,
@@ -47,7 +58,7 @@ const SHARED_READ_TOOLS: AgentToolName[] = [
 export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
   [AgentType.GENERAL]: {
     defaultDailyCreditBudget: 100,
-    defaultModel: 'deepseek/deepseek-chat',
+    defaultModel: VOLUME_AGENT_MODEL,
     defaultTools: [
       ...Object.values(AgentToolName),
       AgentToolName.CAPTURE_MEMORY,
@@ -66,7 +77,7 @@ export const AGENT_TYPE_CONFIGS: Record<AgentType, AgentTypeConfig> = {
 
   [AgentType.X_CONTENT]: {
     defaultDailyCreditBudget: 100,
-    defaultModel: 'deepseek/deepseek-chat',
+    defaultModel: VOLUME_AGENT_MODEL,
     defaultTools: [
       ...SHARED_READ_TOOLS,
       AgentToolName.GENERATE_CONTENT,
@@ -101,7 +112,7 @@ X-specific guidelines:
 
   [AgentType.IMAGE_CREATOR]: {
     defaultDailyCreditBudget: 500,
-    defaultModel: 'anthropic/claude-sonnet-4-5-20250929',
+    defaultModel: CREATIVE_AGENT_MODEL,
     defaultTools: [
       ...SHARED_READ_TOOLS,
       AgentToolName.GENERATE_IMAGE,
@@ -136,7 +147,7 @@ Image guidelines:
 
   [AgentType.VIDEO_CREATOR]: {
     defaultDailyCreditBudget: 800,
-    defaultModel: 'anthropic/claude-sonnet-4-5-20250929',
+    defaultModel: CREATIVE_AGENT_MODEL,
     defaultTools: [
       ...SHARED_READ_TOOLS,
       AgentToolName.GENERATE_VIDEO,
@@ -172,7 +183,7 @@ Video guidelines:
 
   [AgentType.AI_AVATAR]: {
     defaultDailyCreditBudget: 600,
-    defaultModel: 'anthropic/claude-sonnet-4-5-20250929',
+    defaultModel: CREATIVE_AGENT_MODEL,
     defaultTools: [
       ...SHARED_READ_TOOLS,
       AgentToolName.GENERATE_AS_IDENTITY,
@@ -207,7 +218,7 @@ Avatar guidelines:
 
   [AgentType.ARTICLE_WRITER]: {
     defaultDailyCreditBudget: 500,
-    defaultModel: 'anthropic/claude-sonnet-4-5-20250929',
+    defaultModel: CREATIVE_AGENT_MODEL,
     defaultTools: [
       ...SHARED_READ_TOOLS,
       AgentToolName.GENERATE_CONTENT,
@@ -238,7 +249,7 @@ Writing guidelines:
 
   [AgentType.LINKEDIN_CONTENT]: {
     defaultDailyCreditBudget: 200,
-    defaultModel: 'deepseek/deepseek-chat',
+    defaultModel: VOLUME_AGENT_MODEL,
     defaultTools: [
       ...SHARED_READ_TOOLS,
       AgentToolName.GENERATE_CONTENT,
@@ -272,7 +283,7 @@ LinkedIn-specific guidelines:
 
   [AgentType.ADS_SCRIPT_WRITER]: {
     defaultDailyCreditBudget: 300,
-    defaultModel: 'anthropic/claude-sonnet-4-5-20250929',
+    defaultModel: CREATIVE_AGENT_MODEL,
     defaultTools: [
       ...SHARED_READ_TOOLS,
       AgentToolName.GENERATE_CONTENT,
@@ -309,7 +320,7 @@ Ad script guidelines:
 
   [AgentType.SHORT_FORM_WRITER]: {
     defaultDailyCreditBudget: 200,
-    defaultModel: 'deepseek/deepseek-chat',
+    defaultModel: VOLUME_AGENT_MODEL,
     defaultTools: [
       ...SHARED_READ_TOOLS,
       AgentToolName.GENERATE_CONTENT,
@@ -344,7 +355,7 @@ Short-form guidelines:
 
   [AgentType.CTA_CONTENT]: {
     defaultDailyCreditBudget: 150,
-    defaultModel: 'deepseek/deepseek-chat',
+    defaultModel: VOLUME_AGENT_MODEL,
     defaultTools: [
       ...SHARED_READ_TOOLS,
       AgentToolName.GENERATE_CONTENT,
@@ -376,7 +387,7 @@ CTA guidelines:
 
   [AgentType.YOUTUBE_SCRIPT]: {
     defaultDailyCreditBudget: 400,
-    defaultModel: 'anthropic/claude-sonnet-4-5-20250929',
+    defaultModel: CREATIVE_AGENT_MODEL,
     defaultTools: [
       ...SHARED_READ_TOOLS,
       AgentToolName.GENERATE_CONTENT,
@@ -411,7 +422,7 @@ YouTube-specific guidelines:
 
   [AgentType.BRAND_INTERVIEW]: {
     defaultDailyCreditBudget: 50,
-    defaultModel: 'deepseek/deepseek-chat',
+    defaultModel: VOLUME_AGENT_MODEL,
     defaultTools: [
       AgentToolName.GET_CURRENT_BRAND,
       AgentToolName.START_BRAND_INTERVIEW,
@@ -424,7 +435,7 @@ YouTube-specific guidelines:
 
   [ORCHESTRATOR_AGENT_TYPE]: {
     defaultDailyCreditBudget: 250,
-    defaultModel: 'deepseek/deepseek-chat',
+    defaultModel: VOLUME_AGENT_MODEL,
     defaultTools: [
       ...SHARED_READ_TOOLS,
       AgentToolName.LIST_AGENT_RUNS,

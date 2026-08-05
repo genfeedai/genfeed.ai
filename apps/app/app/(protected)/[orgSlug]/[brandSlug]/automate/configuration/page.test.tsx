@@ -51,7 +51,7 @@ describe('AgentConfigurationPage', () => {
   const mutateUser = vi.fn();
   const selectedBrand = {
     agentConfig: {
-      defaultModel: 'anthropic/claude-sonnet-4-5-20250929',
+      defaultModel: 'anthropic/claude-sonnet-5',
       persona: 'Use the brand voice.',
     },
     id: 'brand-db-id',
@@ -215,7 +215,7 @@ describe('AgentConfigurationPage', () => {
 
     await waitFor(() => {
       expect(updateAgentConfig).toHaveBeenCalledWith('brand-db-id', {
-        defaultModel: 'anthropic/claude-sonnet-4-5-20250929',
+        defaultModel: 'anthropic/claude-sonnet-5',
         persona: 'Stay concise.',
       });
       expect(patchSettings).toHaveBeenCalledWith('user-db-id', {

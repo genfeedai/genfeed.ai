@@ -9,7 +9,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
-import { AGENT_MODEL_TURN_COSTS } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
+import { AGENT_MODEL_ROUND_COSTS } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
 import { AgentChatBodyDto } from '@api/services/agent-orchestrator/dto/agent-chat-body.dto';
 import type { AgentPageContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import {
@@ -266,7 +266,7 @@ export class AgentOrchestratorController {
 
       return {
         balance,
-        modelCosts: AGENT_MODEL_TURN_COSTS,
+        modelCosts: AGENT_MODEL_ROUND_COSTS,
       };
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'agentGetCredits');

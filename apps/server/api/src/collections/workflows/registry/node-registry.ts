@@ -1,3 +1,7 @@
+import {
+  DEFAULT_AGENT_CHAT_MODEL_KEY,
+  SELECTABLE_AGENT_CHAT_MODELS,
+} from '@genfeedai/constants';
 import { WorkflowStepCategory } from '@genfeedai/enums';
 
 /**
@@ -458,16 +462,12 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
         type: 'number',
       },
       model: {
-        default: 'claude-sonnet-4-5',
+        // Same catalogue the agent picker and the biller read, so a workflow
+        // node can never be pinned to a model we no longer run or price.
+        default: DEFAULT_AGENT_CHAT_MODEL_KEY,
         description: 'LLM model to use for generation',
         label: 'Model',
-        options: [
-          'claude-sonnet-4-5',
-          'claude-haiku-4-5',
-          'gpt-4o',
-          'gpt-4o-mini',
-          'openrouter/auto',
-        ],
+        options: SELECTABLE_AGENT_CHAT_MODELS.map((model) => model.key),
         type: 'select',
       },
       systemPrompt: {

@@ -1,3 +1,7 @@
+import {
+  getAgentChatModel,
+  isRetiredAgentChatModel,
+} from '@genfeedai/constants';
 import { AgentType } from '@genfeedai/enums';
 import {
   AGENT_TYPE_CONFIGS,
@@ -14,6 +18,29 @@ describe('getAgentTypeConfig', () => {
   it('falls back to GENERAL for unknown agent type', () => {
     const config = getAgentTypeConfig('unknown' as AgentType);
     expect(config).toBe(AGENT_TYPE_CONFIGS[AgentType.GENERAL]);
+  });
+});
+
+describe('agent type default models', () => {
+  it('points every agent type at a catalogued, priced model', () => {
+    for (const [agentType, config] of Object.entries(AGENT_TYPE_CONFIGS)) {
+      const model = getAgentChatModel(config.defaultModel);
+
+      expect(
+        model,
+        `${agentType} default model is not catalogued`,
+      ).toBeDefined();
+      expect(model?.creditCostPerRound).toBeGreaterThan(0);
+    }
+  });
+
+  it('pins no agent type to a retired key', () => {
+    for (const [agentType, config] of Object.entries(AGENT_TYPE_CONFIGS)) {
+      expect(
+        isRetiredAgentChatModel(config.defaultModel),
+        `${agentType} default model is retired`,
+      ).toBe(false);
+    }
   });
 });
 

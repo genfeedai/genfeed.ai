@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMocks() {
   return {
-    configService: { get: vi.fn().mockReturnValue('x-ai/grok-4-fast') },
+    configService: { get: vi.fn().mockReturnValue('x-ai/grok-4.5') },
     ingredientsService: {
       findOne: vi.fn().mockResolvedValue({
         cdnUrl: 'https://cdn.example.com/image.jpg',

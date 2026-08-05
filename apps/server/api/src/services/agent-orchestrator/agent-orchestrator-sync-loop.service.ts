@@ -39,7 +39,11 @@ import {
   buildToolDefinitions,
   mergeAllowedTools,
 } from '@api/services/agent-orchestrator/utils/agent-tool-definitions.util';
-import { settleAgentTurnCredits } from '@api/services/agent-orchestrator/utils/agent-turn-credit.util';
+import {
+  resolveAgentNextRoundCreditRequirement,
+  resolveAgentRoundCreditCost,
+  settleAgentTurnCredits,
+} from '@api/services/agent-orchestrator/utils/agent-turn-credit.util';
 import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/sanitize-agent-output.util';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
@@ -100,6 +104,25 @@ export class AgentOrchestratorSyncLoopService {
       toolCalls: [],
       totalCreditsUsed: 0,
       uiActions: [],
+    };
+    const actualModels = new Set<string>();
+    let roundCredits = 0;
+
+    const settleAccruedTurnCredits = async (): Promise<number> => {
+      const creditsToSettle = roundCredits;
+      // A settlement failure must not make the outer catch retry a possibly
+      // committed ledger write. Every settlement path is terminal.
+      roundCredits = 0;
+
+      return await settleAgentTurnCredits({
+        actualModels: Array.from(actualModels),
+        creditsUtilsService: this.creditsUtilsService,
+        model,
+        organizationId: context.organizationId,
+        roundCredits: creditsToSettle,
+        toolCalls: toolRoundState.toolCalls,
+        userId: context.userId,
+      });
     };
 
     await this.threadEventRecorder.recordThreadTurnStarted({
@@ -162,9 +185,30 @@ export class AgentOrchestratorSyncLoopService {
       );
       const messages = [...history];
       let round = 0;
-      const actualModels = new Set<string>();
+      // Credits accrue per completed round, not per turn: a turn that burns
+      // five tool rounds costs five rounds of inference and has to bill like it.
 
       while (round < AGENT_MAX_TOOL_ROUNDS) {
+        if (round > 0) {
+          const requiredCredits = resolveAgentNextRoundCreditRequirement({
+            nextRoundCredits: turnCost,
+            roundCredits,
+            toolCalls: toolRoundState.toolCalls,
+          });
+          const canAffordNextRound =
+            requiredCredits === 0 ||
+            (await this.creditsUtilsService.checkOrganizationCreditsAvailable(
+              context.organizationId,
+              requiredCredits,
+            ));
+
+          if (!canAffordNextRound) {
+            toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
+            throw new Error(
+              `Insufficient credits. You need at least ${requiredCredits} credits to continue this agent turn.`,
+            );
+          }
+        }
         round++;
 
         const response = await this.llmDispatcher.chatCompletion(
@@ -190,6 +234,7 @@ export class AgentOrchestratorSyncLoopService {
           },
         );
         actualModels.add(actualModel);
+        roundCredits += resolveAgentRoundCreditCost({ actualModel, turnCost });
 
         const choice = response.choices[0];
         if (!choice) {
@@ -214,14 +259,7 @@ export class AgentOrchestratorSyncLoopService {
           );
           const content = normalizedContent.content;
 
-          toolRoundState.totalCreditsUsed += await settleAgentTurnCredits({
-            creditsUtilsService: this.creditsUtilsService,
-            model,
-            organizationId: context.organizationId,
-            toolCalls: toolRoundState.toolCalls,
-            turnCost,
-            userId: context.userId,
-          });
+          toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
 
           await maybeUpdateThreadTitle({
             agentThreadsService: this.agentThreadsService,
@@ -394,10 +432,16 @@ export class AgentOrchestratorSyncLoopService {
         });
       }
 
+      // Overflowing the round budget still consumed every one of those rounds
+      // at the provider — settle them before surfacing the failure, or a turn
+      // that runs away is the cheapest turn on the platform.
+      await settleAccruedTurnCredits();
+
       throw new Error(
         `Agent exceeded maximum tool-calling rounds (${AGENT_MAX_TOOL_ROUNDS})`,
       );
     } catch (error: unknown) {
+      toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
       await this.threadEventRecorder.recordRunFailed({
         context,
         error: error instanceof Error ? error.message : 'Unknown error',

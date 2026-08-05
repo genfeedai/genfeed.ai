@@ -30,7 +30,7 @@ vi.mock('@api/collections/workflows/registry/node-registry-adapter', () => ({
 }));
 
 vi.mock('@api/services/integrations/openrouter/dto/openrouter.dto', () => ({
-  getDefaultModel: vi.fn(() => 'openai/gpt-4o'),
+  getDefaultModel: vi.fn(() => 'openai/gpt-5.6-terra'),
   OpenRouterModelTier: { STANDARD: 'standard' },
 }));
 

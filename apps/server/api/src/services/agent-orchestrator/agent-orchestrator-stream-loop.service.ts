@@ -38,7 +38,11 @@ import {
   buildToolDefinitions,
   mergeAllowedTools,
 } from '@api/services/agent-orchestrator/utils/agent-tool-definitions.util';
-import { settleAgentTurnCredits } from '@api/services/agent-orchestrator/utils/agent-turn-credit.util';
+import {
+  resolveAgentNextRoundCreditRequirement,
+  resolveAgentRoundCreditCost,
+  settleAgentTurnCredits,
+} from '@api/services/agent-orchestrator/utils/agent-turn-credit.util';
 import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/sanitize-agent-output.util';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
@@ -113,6 +117,34 @@ export class AgentOrchestratorStreamLoopService {
     attachments?: AgentChatAttachment[],
   ): Promise<void> {
     this.activeStreams.add(threadId);
+    const toolRoundState: AgentToolRoundState = {
+      artifactMetadata: [],
+      highestRiskLevel: 'low',
+      latestUiBlocks: null,
+      reviewRequired: false,
+      toolCalls: [],
+      totalCreditsUsed: 0,
+      uiActions: [],
+    };
+    const actualModels = new Set<string>();
+    let roundCredits = 0;
+
+    const settleAccruedTurnCredits = async (): Promise<number> => {
+      const creditsToSettle = roundCredits;
+      // A settlement failure must not make the outer catch retry a possibly
+      // committed ledger write. Every settlement path is terminal.
+      roundCredits = 0;
+
+      return await settleAgentTurnCredits({
+        actualModels: Array.from(actualModels),
+        creditsUtilsService: this.creditsUtilsService,
+        model,
+        organizationId: context.organizationId,
+        roundCredits: creditsToSettle,
+        toolCalls: toolRoundState.toolCalls,
+        userId: context.userId,
+      });
+    };
 
     try {
       await runEffectPromise(
@@ -124,15 +156,6 @@ export class AgentOrchestratorStreamLoopService {
         }),
       );
 
-      const toolRoundState: AgentToolRoundState = {
-        artifactMetadata: [],
-        highestRiskLevel: 'low',
-        latestUiBlocks: null,
-        reviewRequired: false,
-        toolCalls: [],
-        totalCreditsUsed: 0,
-        uiActions: [],
-      };
       const memoryEntriesForResponse =
         this.contextService.buildMemoryEntriesForResponse(memoryEntries);
       const memoryInfluence =
@@ -182,7 +205,8 @@ export class AgentOrchestratorStreamLoopService {
       );
       const messages = [...history];
       let round = 0;
-      const actualModels = new Set<string>();
+      // Credits accrue per completed round, not per turn: a turn that burns
+      // five tool rounds costs five rounds of inference and has to bill like it.
 
       // Real token streaming is skipped for title-seeding turns (seedTitle set,
       // first message of a new thread) because the model returns a JSON
@@ -193,8 +217,29 @@ export class AgentOrchestratorStreamLoopService {
 
       while (round < AGENT_MAX_TOOL_ROUNDS) {
         if (await this.isRunCancelled(context)) {
+          toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
           await this.handleCancelledStream(context, threadId);
           return;
+        }
+        if (round > 0) {
+          const requiredCredits = resolveAgentNextRoundCreditRequirement({
+            nextRoundCredits: turnCost,
+            roundCredits,
+            toolCalls: toolRoundState.toolCalls,
+          });
+          const canAffordNextRound =
+            requiredCredits === 0 ||
+            (await this.creditsUtilsService.checkOrganizationCreditsAvailable(
+              context.organizationId,
+              requiredCredits,
+            ));
+
+          if (!canAffordNextRound) {
+            toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
+            throw new Error(
+              `Insufficient credits. You need at least ${requiredCredits} credits to continue this agent turn.`,
+            );
+          }
         }
         round++;
 
@@ -304,6 +349,7 @@ export class AgentOrchestratorStreamLoopService {
           },
         );
         actualModels.add(actualModel);
+        roundCredits += resolveAgentRoundCreditCost({ actualModel, turnCost });
 
         const choice = response.choices[0];
         if (!choice) {
@@ -316,6 +362,7 @@ export class AgentOrchestratorStreamLoopService {
         // No tool calls — final response
         if (!toolCalls || toolCalls.length === 0) {
           if (await this.isRunCancelled(context)) {
+            toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
             await this.handleCancelledStream(context, threadId);
             return;
           }
@@ -334,14 +381,7 @@ export class AgentOrchestratorStreamLoopService {
           );
           const content = normalizedContent.content;
 
-          toolRoundState.totalCreditsUsed += await settleAgentTurnCredits({
-            creditsUtilsService: this.creditsUtilsService,
-            model,
-            organizationId: context.organizationId,
-            toolCalls: toolRoundState.toolCalls,
-            turnCost,
-            userId: context.userId,
-          });
+          toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
 
           await maybeUpdateThreadTitle({
             agentThreadsService: this.agentThreadsService,
@@ -608,10 +648,16 @@ export class AgentOrchestratorStreamLoopService {
         });
 
         if (toolRoundResult.isCancelled) {
+          toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
           await this.handleCancelledStream(context, threadId);
           return;
         }
       }
+
+      // Overflowing the round budget still consumed every one of those rounds
+      // at the provider — settle them before surfacing the failure, or a turn
+      // that runs away is the cheapest turn on the platform.
+      await settleAccruedTurnCredits();
 
       const errorMsg = `Agent exceeded maximum tool-calling rounds (${AGENT_MAX_TOOL_ROUNDS})`;
       await runEffectPromise(
@@ -623,6 +669,7 @@ export class AgentOrchestratorStreamLoopService {
         }),
       );
     } catch (error: unknown) {
+      toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
       if (await this.isRunCancelled(context)) {
         await this.handleCancelledStream(context, threadId);
         return;

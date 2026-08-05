@@ -5,6 +5,10 @@ import {
   type SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import {
+  DEFAULT_AGENT_CHAT_MODEL_KEY,
+  SELECTABLE_AGENT_CHAT_MODELS,
+} from '@genfeedai/constants';
+import {
   buildArticleJsonLd,
   buildFaqJsonLd,
   buildHowToJsonLd,
@@ -14,13 +18,20 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 const GEO_SKILL_SLUG = 'content-geo-optimizer';
-const DEFAULT_MODEL = 'openai/gpt-4o-mini';
-const TRUSTED_GEO_MODELS = new Set([
-  'anthropic/claude-sonnet-4.5',
-  'openai/gpt-4o',
-  'openai/gpt-4o-mini',
-  'x-ai/grok-4-fast',
-]);
+
+/**
+ * A skill definition can name its own model, so the value is untrusted input —
+ * it is checked against the catalogue rather than a hand-kept list, which had
+ * drifted onto models we no longer run. Scoring is a mechanical pass, so the
+ * fallback is the cheapest catalogued model, not the chat default.
+ */
+const TRUSTED_GEO_MODELS = new Set(
+  SELECTABLE_AGENT_CHAT_MODELS.map((model) => model.key),
+);
+const DEFAULT_MODEL =
+  [...SELECTABLE_AGENT_CHAT_MODELS].sort(
+    (left, right) => left.creditCostPerRound - right.creditCostPerRound,
+  )[0]?.key ?? DEFAULT_AGENT_CHAT_MODEL_KEY;
 
 interface GeoDimensionScore {
   finding: string;

@@ -34,22 +34,22 @@ describe('AgentTurnRoundRunnerService.recordAgentResponseModel', () => {
 
   it('normalizes bare response models, logs, and merges run metadata', async () => {
     const actualModel = await service.recordAgentResponseModel({
-      actualModels: ['openai/gpt-4o-mini'],
+      actualModels: ['openai/gpt-5.6-luna'],
       context,
-      requestedModel: 'openai/gpt-4o',
+      requestedModel: 'openai/gpt-5.6-terra',
       responseModel: 'gpt-4o',
       runId: 'run-1',
       source: 'agent',
       threadId: 'thread-1',
     });
 
-    expect(actualModel).toBe('openai/gpt-4o');
+    expect(actualModel).toBe('openai/gpt-5.6-terra');
     expect(loggerService.log).toHaveBeenCalledWith(
       'AgentTurnRoundRunnerService resolved agent response',
       expect.objectContaining({
-        actualModel: 'openai/gpt-4o',
+        actualModel: 'openai/gpt-5.6-terra',
         organizationId: 'org-1',
-        requestedModel: 'openai/gpt-4o',
+        requestedModel: 'openai/gpt-5.6-terra',
         runId: 'run-1',
         threadId: 'thread-1',
       }),
@@ -58,10 +58,10 @@ describe('AgentTurnRoundRunnerService.recordAgentResponseModel', () => {
       'run-1',
       'org-1',
       expect.objectContaining({
-        actualModel: 'openai/gpt-4o',
-        actualModels: ['openai/gpt-4o-mini', 'openai/gpt-4o'],
-        model: 'openai/gpt-4o',
-        requestedModel: 'openai/gpt-4o',
+        actualModel: 'openai/gpt-5.6-terra',
+        actualModels: ['openai/gpt-5.6-luna', 'openai/gpt-5.6-terra'],
+        model: 'openai/gpt-5.6-terra',
+        requestedModel: 'openai/gpt-5.6-terra',
       }),
     );
   });
@@ -69,11 +69,11 @@ describe('AgentTurnRoundRunnerService.recordAgentResponseModel', () => {
   it('skips metadata merge when runId is absent', async () => {
     const actualModel = await service.recordAgentResponseModel({
       context: { organizationId: 'org-1', userId: 'user-1' },
-      requestedModel: 'openai/gpt-4o',
+      requestedModel: 'openai/gpt-5.6-terra',
       threadId: 'thread-1',
     });
 
-    expect(actualModel).toBe('openai/gpt-4o');
+    expect(actualModel).toBe('openai/gpt-5.6-terra');
     expect(agentRunsService.mergeMetadata).not.toHaveBeenCalled();
   });
 });

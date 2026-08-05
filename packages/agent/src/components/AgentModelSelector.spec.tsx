@@ -11,7 +11,7 @@ describe('AgentModelSelector', () => {
 
     render(
       <AgentModelSelector
-        selectedModel={AGENT_MODELS[0]?.key ?? 'openrouter/auto'}
+        selectedModel={AGENT_MODELS[0]?.key ?? 'openai/gpt-5.6-terra'}
         onModelChange={onModelChange}
         creditsAvailable={100}
       />,
@@ -38,7 +38,7 @@ describe('AgentModelSelector', () => {
     // Force locked models so Buy Credits is visible.
     render(
       <AgentModelSelector
-        selectedModel={AGENT_MODELS[0]?.key ?? 'openrouter/auto'}
+        selectedModel={AGENT_MODELS[0]?.key ?? 'openai/gpt-5.6-terra'}
         onModelChange={vi.fn()}
         creditsAvailable={0}
         onBuyCredits={onBuyCredits}

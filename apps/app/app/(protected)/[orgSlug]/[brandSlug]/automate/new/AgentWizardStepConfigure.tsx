@@ -1,5 +1,6 @@
 'use client';
 
+import { DEFAULT_AGENT_CHAT_MODEL_KEY } from '@genfeedai/constants';
 import {
   AgentAutonomyMode,
   AgentRunFrequency,
@@ -184,7 +185,7 @@ export default function AgentWizardStepConfigure({
         <Input
           id="agent-model"
           type="text"
-          placeholder="deepseek/deepseek-chat"
+          placeholder={DEFAULT_AGENT_CHAT_MODEL_KEY}
           value={form.model ?? ''}
           onChange={(e) =>
             setForm((prev) => ({ ...prev, model: e.target.value }))

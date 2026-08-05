@@ -115,7 +115,7 @@ vi.mock('../stores/agent-chat.store', () => ({
   ) =>
     selector({
       modelCosts: {
-        'deepseek/deepseek-chat': 1,
+        'deepseek/deepseek-v4-flash-0731': 1,
       },
     }),
 }));
@@ -174,7 +174,7 @@ describe('AgentChatMessage', () => {
         message={{
           ...buildMessage('assistant', 'Model metadata response'),
           metadata: {
-            model: 'deepseek/deepseek-chat',
+            model: 'deepseek/deepseek-v4-flash-0731',
           },
         }}
       />,

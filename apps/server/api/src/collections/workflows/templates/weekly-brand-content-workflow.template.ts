@@ -69,7 +69,7 @@ export const WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE: WorkflowTemplate = {
       data: {
         config: {
           maxTokens: 1800,
-          model: 'openai/gpt-4o-mini',
+          model: 'openai/gpt-5.6-luna',
           temperature: 0.75,
         },
         label: 'Generate Thesis Brief',
@@ -147,7 +147,7 @@ export const WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE: WorkflowTemplate = {
       data: {
         config: {
           maxTokens: 500,
-          model: 'openai/gpt-4o-mini',
+          model: 'openai/gpt-5.6-luna',
           temperature: 0.8,
         },
         label: 'Generate Image Prompt',

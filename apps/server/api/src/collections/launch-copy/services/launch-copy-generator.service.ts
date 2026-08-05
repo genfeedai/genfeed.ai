@@ -40,8 +40,7 @@ export class LaunchCopyGeneratorService {
     private readonly loggerService: LoggerService,
     private readonly llmDispatcherService: LlmDispatcherService,
   ) {
-    this.defaultModel =
-      this.configService.get('XAI_MODEL') || 'x-ai/grok-4-fast';
+    this.defaultModel = this.configService.get('XAI_MODEL') || 'x-ai/grok-4.5';
   }
 
   /**

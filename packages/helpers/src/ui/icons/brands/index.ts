@@ -1,4 +1,6 @@
+export { AnthropicIcon } from './anthropic-icon';
 export { BytedanceIcon } from './bytedance-icon';
+export { DeepseekIcon } from './deepseek-icon';
 export { DevIcon } from './dev-icon';
 export { DiscordIcon } from './discord-icon';
 export { FacebookIcon } from './facebook-icon';
@@ -13,6 +15,7 @@ export { LinkedinIcon } from './linkedin-icon';
 export { MastodonIcon } from './mastodon-icon';
 export { MediumIcon } from './medium-icon';
 export { MetaIcon } from './meta-icon';
+export { OpenAiIcon } from './openai-icon';
 export { PinterestIcon } from './pinterest-icon';
 export { ProductHuntIcon } from './product-hunt-icon';
 export { RedditIcon } from './reddit-icon';

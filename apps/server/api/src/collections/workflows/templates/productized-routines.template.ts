@@ -317,7 +317,7 @@ export const PRODUCTIZED_DAILY_ROUTINE_TEMPLATES = [
         data: {
           config: {
             maxTokens: 1400,
-            model: 'openai/gpt-4o-mini',
+            model: 'openai/gpt-5.6-luna',
             temperature: 0.7,
           },
           label: 'Draft Release Assets',
@@ -458,7 +458,7 @@ export const PRODUCTIZED_DAILY_ROUTINE_TEMPLATES = [
       {
         category: WorkflowStepCategory.GENERATE_ARTICLE,
         config: {
-          model: 'openai/gpt-4o-mini',
+          model: 'openai/gpt-5.6-luna',
           temperature: 0.7,
         },
         id: 'draft-release-assets',

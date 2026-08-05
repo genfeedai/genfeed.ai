@@ -25,7 +25,7 @@ export interface CronJob {
 export const defaultNewsletterPayload = {
   instructions:
     'Focus on Genfeed.ai product updates and actionable creator workflows.',
-  model: 'openai/gpt-4o-mini',
+  model: 'openai/gpt-5.6-luna',
   publicationName: 'Genfeed.ai',
   sources: ['https://genfeed.ai', 'https://genfeed.ai/workflows'],
   topic: 'Genfeed.ai weekly update',

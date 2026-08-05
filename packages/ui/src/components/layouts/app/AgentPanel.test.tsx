@@ -50,7 +50,7 @@ vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   useOptionalUser: () => ({
     currentUser: {
       settings: {
-        defaultAgentModel: 'deepseek/deepseek-chat',
+        defaultAgentModel: 'deepseek/deepseek-v4-flash-0731',
       },
     },
   }),

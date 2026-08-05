@@ -32,7 +32,7 @@ describe('AnthropicService', () => {
 
   const defaultParams: OpenRouterChatCompletionParams = {
     messages: [{ content: 'Hello', role: 'user' }],
-    model: 'anthropic/claude-sonnet-4-5-20250929',
+    model: 'anthropic/claude-sonnet-5',
   };
 
   const makeRichParams = (
@@ -74,7 +74,7 @@ describe('AnthropicService', () => {
         role: 'user',
       },
     ],
-    model: 'anthropic/claude-sonnet-4-5',
+    model: 'anthropic/claude-sonnet-5',
     temperature: 0.4,
     tool_choice: {
       function: { name: 'lookup' },
@@ -101,7 +101,7 @@ describe('AnthropicService', () => {
   const mockAnthropicResponse = {
     content: [{ text: 'Hi there!', type: 'text' }],
     id: 'msg-123',
-    model: 'claude-sonnet-4-5-20250929',
+    model: 'claude-sonnet-5',
     stop_reason: 'end_turn',
     usage: { input_tokens: 10, output_tokens: 5 },
   };
@@ -167,7 +167,7 @@ describe('AnthropicService', () => {
 
       expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'claude-sonnet-4-5-20250929',
+          model: 'claude-sonnet-5',
         }),
       );
     });
@@ -180,7 +180,7 @@ describe('AnthropicService', () => {
           { content: 'You are a helpful assistant', role: 'system' },
           { content: 'Hello', role: 'user' },
         ],
-        model: 'anthropic/claude-sonnet-4-5-20250929',
+        model: 'anthropic/claude-sonnet-5',
       };
 
       await service.chatCompletion(params);
@@ -215,7 +215,7 @@ describe('AnthropicService', () => {
 
       const params: OpenRouterChatCompletionParams = {
         messages: [{ content: 'Hello', role: 'user' }],
-        model: 'anthropic/claude-sonnet-4-5-20250929',
+        model: 'anthropic/claude-sonnet-5',
         tool_choice: 'auto',
         tools: [
           {
@@ -255,7 +255,7 @@ describe('AnthropicService', () => {
           },
         ],
         id: 'msg-456',
-        model: 'claude-sonnet-4-5-20250929',
+        model: 'claude-sonnet-5',
         stop_reason: 'tool_use',
         usage: { input_tokens: 20, output_tokens: 15 },
       };
@@ -281,7 +281,7 @@ describe('AnthropicService', () => {
 
       const params: OpenRouterChatCompletionParams = {
         messages: [{ content: 'Hello', role: 'user' }],
-        model: 'anthropic/claude-sonnet-4-5-20250929',
+        model: 'anthropic/claude-sonnet-5',
         tool_choice: 'none',
         tools: [
           {
@@ -371,7 +371,7 @@ describe('AnthropicService', () => {
           { content: 'Search result', role: 'tool', tool_call_id: 'call-1' },
           { content: 'What else?', role: 'user' },
         ],
-        model: 'anthropic/claude-sonnet-4-5-20250929',
+        model: 'anthropic/claude-sonnet-5',
       };
 
       await service.chatCompletion(params);
@@ -395,7 +395,7 @@ describe('AnthropicService', () => {
             role: 'user',
           },
         ],
-        model: 'anthropic/claude-sonnet-4-5-20250929',
+        model: 'anthropic/claude-sonnet-5',
       };
 
       await service.chatCompletion(params);

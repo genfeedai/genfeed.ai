@@ -214,11 +214,15 @@ export const LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY = 'local/qwen-32b';
  */
 export const RETIRED_AGENT_CHAT_MODELS: Record<string, string> = {
   'anthropic/claude-opus-4-6': 'anthropic/claude-opus-5',
+  'anthropic/claude-sonnet-4-5': 'anthropic/claude-sonnet-5',
+  'anthropic/claude-sonnet-4-5-20250514': 'anthropic/claude-sonnet-5',
   'anthropic/claude-sonnet-4-5-20250929': 'anthropic/claude-sonnet-5',
+  'anthropic/claude-sonnet-4.5': 'anthropic/claude-sonnet-5',
   'deepseek/deepseek-chat': 'deepseek/deepseek-v4-flash-0731',
   'google/gemini-3-flash-preview': 'google/gemini-3.6-flash',
   'moonshotai/kimi-k2.5': 'moonshotai/kimi-k3',
   'openai/gpt-4o': 'openai/gpt-5.6-terra',
+  'openai/gpt-4o-mini': 'openai/gpt-5.6-luna',
   'openai/o3': 'openai/gpt-5.6-sol',
   'openai/o4-mini': 'openai/gpt-5.6-luna',
   'openrouter/auto': DEFAULT_AGENT_CHAT_MODEL_KEY,

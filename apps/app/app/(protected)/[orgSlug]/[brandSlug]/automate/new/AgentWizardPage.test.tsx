@@ -17,7 +17,7 @@ const mocks = vi.hoisted(() => ({
           confidenceThreshold: 0.9,
           enabled: true,
         },
-        defaultModel: 'deepseek/deepseek-chat',
+        defaultModel: 'deepseek/deepseek-v4-flash-0731',
         persona: 'Pragmatic founder operator',
         strategy: {
           contentTypes: ['launch notes', 'product stories'],
@@ -236,7 +236,7 @@ describe('AgentWizardPage', () => {
             confidenceThreshold: 0.9,
             enabled: true,
           },
-          defaultModel: 'deepseek/deepseek-chat',
+          defaultModel: 'deepseek/deepseek-v4-flash-0731',
           persona: 'Pragmatic founder operator',
           strategy: {
             contentTypes: ['launch notes', 'product stories'],
@@ -277,7 +277,7 @@ describe('AgentWizardPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Configure/i }));
 
     expect(
-      screen.getByDisplayValue('deepseek/deepseek-chat'),
+      screen.getByDisplayValue('deepseek/deepseek-v4-flash-0731'),
     ).toBeInTheDocument();
     expect(screen.getByDisplayValue(/Tone: sharp/)).toBeInTheDocument();
     expect(

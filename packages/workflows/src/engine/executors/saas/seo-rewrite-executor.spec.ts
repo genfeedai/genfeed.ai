@@ -41,7 +41,7 @@ describe('SeoRewriteExecutor', () => {
     executor = createSeoRewriteExecutor();
     resolver = vi
       .fn()
-      .mockResolvedValue({ model: 'openai/gpt-4o-mini', text: 'rewritten' });
+      .mockResolvedValue({ model: 'openai/gpt-5.6-luna', text: 'rewritten' });
     executor.setResolver(resolver as unknown as SeoRewriteResolver);
   });
 
@@ -72,7 +72,7 @@ describe('SeoRewriteExecutor', () => {
     );
     const data = result.data as SeoRewriteOutput;
     expect(data.text).toBe('rewritten');
-    expect(data.model).toBe('openai/gpt-4o-mini');
+    expect(data.model).toBe('openai/gpt-5.6-luna');
     expect(data.appliedSuggestions).toEqual(['Add an H2', 'Shorten sentences']);
     expect(data.title).toBe('Title');
     expect(data.targetKeyword).toBe('kw');

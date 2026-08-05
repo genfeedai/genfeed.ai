@@ -178,7 +178,7 @@ export class BrandGenerationService {
       {
         max_tokens: 1200,
         messages: [{ content: prompt, role: 'user' }],
-        model: 'anthropic/claude-sonnet-4-5-20250514',
+        model: 'anthropic/claude-sonnet-5',
         temperature: 0.7,
       },
       organizationId,
@@ -283,7 +283,7 @@ Respond ONLY with the JSON array.`;
       {
         max_tokens: 2000,
         messages: [{ content: prompt, role: 'user' }],
-        model: 'anthropic/claude-sonnet-4-5-20250514',
+        model: 'anthropic/claude-sonnet-5',
         temperature: 0.8,
       },
       organizationId,

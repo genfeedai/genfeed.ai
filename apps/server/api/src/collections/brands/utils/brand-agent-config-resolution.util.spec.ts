@@ -16,11 +16,11 @@ describe('resolveEffectiveBrandAgentConfig', () => {
         },
       } as never,
       organizationSettings: {
-        defaultModel: 'anthropic/claude-sonnet-4-5-20250929',
+        defaultModel: 'anthropic/claude-sonnet-5',
       } as never,
     });
 
-    expect(result.defaultModel).toBe('anthropic/claude-sonnet-4-5-20250929');
+    expect(result.defaultModel).toBe('anthropic/claude-sonnet-5');
     expect(result.persona).toBe('Stay clear and direct');
     expect(result.voice?.tone).toBe('confident');
     expect(result.platformOverrideApplied).toBe(false);
@@ -34,7 +34,7 @@ describe('resolveEffectiveBrandAgentConfig', () => {
           persona: 'Sound technical',
           platformOverrides: {
             linkedin: {
-              defaultModel: 'openai/gpt-4o',
+              defaultModel: 'openai/gpt-5.6-terra',
               persona: 'Sound more executive',
               strategy: { platforms: ['linkedin'] },
               voice: { style: 'executive', tone: 'insightful' },
@@ -45,12 +45,12 @@ describe('resolveEffectiveBrandAgentConfig', () => {
         },
       } as never,
       organizationSettings: {
-        defaultModel: 'anthropic/claude-sonnet-4-5-20250929',
+        defaultModel: 'anthropic/claude-sonnet-5',
       } as never,
       platform: 'linkedin',
     });
 
-    expect(result.defaultModel).toBe('openai/gpt-4o');
+    expect(result.defaultModel).toBe('openai/gpt-5.6-terra');
     expect(result.persona).toBe('Sound more executive');
     expect(result.voice).toEqual({
       hashtags: ['#genfeed'],
@@ -128,10 +128,10 @@ describe('resolveEffectiveAgentExecutionConfig', () => {
             brandDailyCreditCap: 480,
             useOrganizationPool: true,
           },
-          generationModelOverride: 'openai/gpt-4o',
+          generationModelOverride: 'openai/gpt-5.6-terra',
           qualityTierDefault: 'high_quality',
-          reviewModelOverride: 'openai/o4-mini',
-          thinkingModelOverride: 'anthropic/claude-opus-4-6',
+          reviewModelOverride: 'openai/gpt-5.6-luna',
+          thinkingModelOverride: 'anthropic/claude-opus-5',
         },
       } as never,
     });
@@ -139,11 +139,11 @@ describe('resolveEffectiveAgentExecutionConfig', () => {
     expect(result.policy).toMatchObject({
       allowAdvancedOverrides: true,
       autonomyMode: 'supervised',
-      generationModelOverride: 'openai/gpt-4o',
+      generationModelOverride: 'openai/gpt-5.6-terra',
       generationPriority: 'quality',
       qualityTier: 'high_quality',
-      reviewModelOverride: 'openai/o4-mini',
-      thinkingModelOverride: 'anthropic/claude-opus-4-6',
+      reviewModelOverride: 'openai/gpt-5.6-luna',
+      thinkingModelOverride: 'anthropic/claude-opus-5',
     });
   });
 
@@ -160,7 +160,7 @@ describe('resolveEffectiveAgentExecutionConfig', () => {
       strategy: {
         autonomyMode: 'auto_publish',
         brandId: strategyBrandId,
-        model: 'deepseek/deepseek-chat',
+        model: 'deepseek/deepseek-v4-flash-0731',
         platforms: ['twitter'],
         qualityTier: 'budget',
       } as never,
@@ -173,7 +173,7 @@ describe('resolveEffectiveAgentExecutionConfig', () => {
       platform: 'twitter',
       qualityTier: 'budget',
     });
-    expect(result.strategyModel).toBe('deepseek/deepseek-chat');
+    expect(result.strategyModel).toBe('deepseek/deepseek-v4-flash-0731');
   });
 });
 
@@ -187,7 +187,7 @@ describe('resolveEffectiveAgentRuntimeConfig', () => {
           defaultModel: 'anthropic/claude-3.5-sonnet',
           platformOverrides: {
             linkedin: {
-              defaultModel: 'openai/gpt-4o',
+              defaultModel: 'openai/gpt-5.6-terra',
             },
           },
         },
@@ -205,7 +205,7 @@ describe('resolveEffectiveAgentRuntimeConfig', () => {
       } as never,
     });
 
-    expect(result.brand.defaultModel).toBe('openai/gpt-4o');
+    expect(result.brand.defaultModel).toBe('openai/gpt-5.6-terra');
     expect(result.execution.policy).toMatchObject({
       brandId: strategyBrandId.toString(),
       generationPriority: 'cost',

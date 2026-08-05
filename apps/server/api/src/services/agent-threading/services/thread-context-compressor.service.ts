@@ -12,6 +12,13 @@ import { Injectable } from '@nestjs/common';
 const LOCK_TTL_SECONDS = 30;
 const CACHE_TTL_SECONDS = 300; // 5 minutes
 
+/**
+ * Compression is a mechanical summarisation pass that runs on every long
+ * thread, so it defaults to the cheapest catalogued model rather than whatever
+ * the thread itself is chatting with. Override via AGENT_CONTEXT_COMPRESSION_MODEL.
+ */
+const COMPRESSION_FALLBACK_MODEL = 'deepseek/deepseek-v4-flash-0731';
+
 const COMPRESSION_PROMPT = `You are a thread context compressor. Given a conversation history between a user and an AI assistant, extract the following structured sections. Be concise but preserve all important information.
 
 Respond in EXACTLY this format with these 4 sections:
@@ -70,7 +77,7 @@ export class ThreadContextCompressorService {
   private get compressionModel(): string {
     return (
       (this.configService.get('AGENT_CONTEXT_COMPRESSION_MODEL') as string) ||
-      'deepseek/deepseek-chat'
+      COMPRESSION_FALLBACK_MODEL
     );
   }
 

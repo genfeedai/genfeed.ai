@@ -55,7 +55,7 @@ export class WorkspaceTaskQualityService {
               role: 'user',
             },
           ],
-          model: 'openai/gpt-4o-mini',
+          model: 'openai/gpt-5.6-luna',
           temperature: 0.1,
         },
         organizationId,

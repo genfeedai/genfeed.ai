@@ -107,7 +107,7 @@ Return a JSON array of clip objects sorted by virality_score descending.`;
             { content: HIGHLIGHT_SYSTEM_PROMPT, role: 'system' },
             { content: userPrompt, role: 'user' },
           ],
-          model: 'openai/gpt-4o',
+          model: 'openai/gpt-5.6-terra',
           stream: false,
           temperature: 0.3,
         },

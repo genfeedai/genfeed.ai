@@ -65,7 +65,7 @@ describe('SettingsUsagePage', () => {
             balanceAfter: 87,
             category: 'DEDUCT',
             createdAt: '2026-08-01T00:00:00.000Z',
-            description: 'Agent chat turn (openrouter/auto)',
+            description: 'Agent chat turn (openai/gpt-5.6-terra)',
             id: 'tx-1',
             metadata: { brandId: 'brand-1' },
             source: 'SCRIPT',
@@ -90,7 +90,7 @@ describe('SettingsUsagePage', () => {
     expect(screen.getByRole('button', { name: 'Weekly' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Monthly' })).toBeInTheDocument();
     expect(
-      screen.getByText('Agent chat turn (openrouter/auto)'),
+      screen.getByText('Agent chat turn (openai/gpt-5.6-terra)'),
     ).toBeInTheDocument();
     expect(screen.getByLabelText('Brand')).toBeInTheDocument();
     expect(screen.getByLabelText('Category')).toBeInTheDocument();

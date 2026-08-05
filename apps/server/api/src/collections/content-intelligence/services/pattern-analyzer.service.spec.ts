@@ -11,7 +11,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // ─── Mocks ─────────────────────────────────────────────────────────────────
 
 const mockConfigService = {
-  get: vi.fn().mockReturnValue('x-ai/grok-4-fast'),
+  get: vi.fn().mockReturnValue('x-ai/grok-4.5'),
 };
 
 const mockLogger = {
@@ -416,7 +416,7 @@ describe('PatternAnalyzerService LLM response parsing', () => {
     expect(mockOpenRouterService.chatCompletion).toHaveBeenCalledWith(
       expect.objectContaining({
         max_tokens: 1500,
-        model: 'x-ai/grok-4-fast',
+        model: 'x-ai/grok-4.5',
         temperature: 0.3,
       }),
     );

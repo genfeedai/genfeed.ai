@@ -16,6 +16,13 @@ import { Injectable } from '@nestjs/common';
 
 type LlmProvider = 'anthropic' | 'openai' | 'openrouter' | 'local';
 
+/**
+ * Stand-in when a `local/` model is requested but no GPU fleet is configured.
+ * Cheapest catalogued model on purpose — the caller asked for self-hosted
+ * inference and is not expecting a frontier bill.
+ */
+const SELF_HOSTED_FALLBACK_MODEL = 'deepseek/deepseek-v4-flash-0731';
+
 @Injectable()
 export class LlmDispatcherService {
   private readonly constructorName = String(this.constructor.name);
@@ -294,7 +301,7 @@ export class LlmDispatcherService {
 
   /**
    * Streaming variant of {@link callLocalProvider}: warms the vLLM instance and
-   * streams from it, falling back to OpenRouter deepseek when GPU_LLM_URL is
+   * streams from it, falling back to the cheapest OpenRouter model when GPU_LLM_URL is
    * unset.
    */
   private async callLocalProviderStreaming(
@@ -305,10 +312,10 @@ export class LlmDispatcherService {
 
     if (!llmUrl) {
       this.loggerService.warn(
-        `${this.constructorName}: GPU_LLM_URL not configured — streaming falls back to deepseek/deepseek-chat`,
+        `${this.constructorName}: GPU_LLM_URL not configured — streaming falls back to ${SELF_HOSTED_FALLBACK_MODEL}`,
       );
       return this.openRouterService.streamChatCompletionAggregated(
-        { ...params, model: 'deepseek/deepseek-chat' },
+        { ...params, model: SELF_HOSTED_FALLBACK_MODEL },
         undefined,
         onToken,
       );
@@ -331,7 +338,7 @@ export class LlmDispatcherService {
   /**
    * Route to local vLLM instance (OpenAI-compatible API).
    * Starts the EC2 instance if stopped, waits for health, then calls vLLM.
-   * Falls back to deepseek if GPU_LLM_URL is not configured.
+   * Falls back to the cheapest catalogued model if GPU_LLM_URL is not configured.
    */
   private async callLocalProvider(
     params: OpenRouterChatCompletionParams,
@@ -340,11 +347,11 @@ export class LlmDispatcherService {
 
     if (!llmUrl) {
       this.loggerService.warn(
-        `${this.constructorName}: GPU_LLM_URL not configured — falling back to deepseek/deepseek-chat`,
+        `${this.constructorName}: GPU_LLM_URL not configured — falling back to ${SELF_HOSTED_FALLBACK_MODEL}`,
       );
       return this.openRouterService.chatCompletion({
         ...params,
-        model: 'deepseek/deepseek-chat',
+        model: SELF_HOSTED_FALLBACK_MODEL,
       });
     }
 

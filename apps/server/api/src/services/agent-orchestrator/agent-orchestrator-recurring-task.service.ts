@@ -32,6 +32,7 @@ import {
   getRuntimeBindingEffect,
   upsertRuntimeBindingEffect,
 } from '@api/services/agent-threading/services/agent-runtime-session.service';
+import { resolveAgentChatModelKey } from '@genfeedai/constants';
 import { AgentMessageRole } from '@genfeedai/enums';
 import { AgentToolName, type ValidatedAgentScope } from '@genfeedai/interfaces';
 import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
@@ -128,7 +129,12 @@ export class AgentOrchestratorRecurringTaskService {
     const assistantResponse = await this.processRecurringTaskDraft({
       context,
       draft,
-      model: binding?.model ?? DEFAULT_AGENT_CHAT_MODEL,
+      // Runtime bindings outlive the catalogue — a binding pinned to a retired
+      // key has to map forward here, since this path calls the model directly
+      // instead of going through the orchestrator's resolution chokepoint.
+      model: resolveAgentChatModelKey(
+        binding?.model ?? DEFAULT_AGENT_CHAT_MODEL,
+      ),
       threadId: params.threadId,
     });
 

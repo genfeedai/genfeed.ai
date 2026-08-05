@@ -43,7 +43,7 @@ const mockOverviewBootstrapPayload = {
     routingPaths: [],
     timeRange: '7d',
     topActualModels: [{ count: 1, model: 'google/gemini-2.5-flash' }],
-    topRequestedModels: [{ count: 1, model: 'openrouter/auto' }],
+    topRequestedModels: [{ count: 1, model: 'openai/gpt-5.6-terra' }],
     totalCreditsToday: 15,
     totalRuns: 10,
     trends: [],

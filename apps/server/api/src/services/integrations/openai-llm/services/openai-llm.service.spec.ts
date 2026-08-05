@@ -105,7 +105,9 @@ describe('OpenAiLlmService', () => {
     it('should strip the openai/ prefix from model name', async () => {
       mockCreate.mockResolvedValue(makeOpenAIResponse());
 
-      await service.chatCompletion(makeParams({ model: 'openai/gpt-4o' }));
+      await service.chatCompletion(
+        makeParams({ model: 'openai/gpt-5.6-terra' }),
+      );
 
       const callArgs = mockCreate.mock.calls[0][0] as Record<string, unknown>;
       expect(callArgs.model).toBe('gpt-4o');
