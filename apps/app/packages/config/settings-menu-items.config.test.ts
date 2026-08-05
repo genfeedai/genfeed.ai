@@ -137,7 +137,6 @@ describe('buildSettingsMenuItems', () => {
       expect(items.map((item) => item.label)).toEqual([
         'Profile',
         'Social',
-        'Links',
         'Brand Kit',
         'Brand voice',
         'Interview',

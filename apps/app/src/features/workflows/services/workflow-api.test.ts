@@ -228,7 +228,7 @@ describe('WorkflowApiService', () => {
           },
         ],
         isScheduleEnabled: false,
-        name: 'Launch workflow',
+        label: 'Launch workflow',
         nodes: [],
         schedule: '0 9 * * *',
         timezone: 'UTC',
@@ -246,7 +246,7 @@ describe('WorkflowApiService', () => {
       ],
       isScheduleEnabled: false,
       lifecycle: 'draft',
-      name: 'Launch workflow',
+      label: 'Launch workflow',
       nodes: [],
       schedule: '0 9 * * *',
       timezone: 'UTC',
@@ -270,7 +270,7 @@ describe('WorkflowApiService', () => {
     });
   });
 
-  it('updates workflows with optional name mapping and sets thumbnails', async () => {
+  it('updates workflows with canonical labels and sets thumbnails', async () => {
     mocks.patch
       .mockResolvedValueOnce({ data: { data: workflow({ label: 'Updated' }) } })
       .mockResolvedValueOnce({
@@ -288,7 +288,7 @@ describe('WorkflowApiService', () => {
           type: 'text',
         },
       ],
-      name: 'Updated',
+      label: 'Updated',
     });
     await service().setThumbnail('workflow-1', 'x.png', 'node-1');
 

@@ -28,22 +28,30 @@ export default function PlatformTabBar({
   className = '',
 }: PlatformTabBarProps) {
   const tabs: TabItem[] = useMemo(() => {
-    return posts.map((post) => {
-      const Icon = getPlatformIconComponent(post.platform);
+    return posts
+      .filter(
+        (
+          post,
+        ): post is typeof post & {
+          platform: NonNullable<typeof post.platform>;
+        } => Boolean(post.platform),
+      )
+      .map((post) => {
+        const Icon = getPlatformIconComponent(post.platform);
 
-      return {
-        badge: (
-          <span
-            className={`size-2 rounded-full ${STATUS_COLORS[post.status as PostStatus] || 'bg-muted-foreground'}`}
-            title={post.status}
-          />
-        ),
-        icon: Icon,
-        id: post.platform,
-        isDisabled: false,
-        label: post.platform,
-      };
-    });
+        return {
+          badge: (
+            <span
+              className={`size-2 rounded-full ${STATUS_COLORS[post.status as PostStatus] || 'bg-muted-foreground'}`}
+              title={post.status}
+            />
+          ),
+          icon: Icon,
+          id: post.platform,
+          isDisabled: false,
+          label: post.platform,
+        };
+      });
   }, [posts]);
 
   return (

@@ -89,7 +89,7 @@ export default function PostCard({ post, className = '' }: PostCardProps) {
 
         <div className="absolute top-3 left-3">
           <div className="bg-black/70 backdrop-blur-sm p-2">
-            {getPlatformIcon(post.platform)}
+            {post.platform ? getPlatformIcon(post.platform) : null}
           </div>
         </div>
 
@@ -116,7 +116,7 @@ export default function PostCard({ post, className = '' }: PostCardProps) {
       </h3>
 
       <div className="flex items-center gap-2 mb-3">
-        {getPlatformIcon(post.platform)}
+        {post.platform ? getPlatformIcon(post.platform) : null}
         <span className="text-sm capitalize text-foreground/70">
           {post.platform || 'Unknown Platform'}
         </span>

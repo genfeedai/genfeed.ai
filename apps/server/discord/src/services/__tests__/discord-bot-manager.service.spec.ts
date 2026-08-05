@@ -74,6 +74,11 @@ vi.mock('discord.js', () => {
   };
 });
 
+function toApiIntegration(integration: OrgIntegration) {
+  const { orgId, ...fields } = integration;
+  return { ...fields, organizationId: orgId };
+}
+
 describe('DiscordBotManager', () => {
   let service: DiscordBotManager;
   let httpService: HttpService;
@@ -408,7 +413,7 @@ describe('DiscordBotManager', () => {
     it('should fetch integration and add it', async () => {
       mockClient.login.mockResolvedValue(undefined);
       (httpService.get as ReturnType<typeof vi.fn>).mockReturnValue(
-        of({ data: mockIntegration }),
+        of({ data: toApiIntegration(mockIntegration) }),
       );
 
       await service.fetchAndAddIntegration('discord-integration-1');
@@ -430,7 +435,7 @@ describe('DiscordBotManager', () => {
 
       await service.addIntegration(mockIntegration);
       (httpService.get as ReturnType<typeof vi.fn>).mockReturnValue(
-        of({ data: mockIntegration }),
+        of({ data: toApiIntegration(mockIntegration) }),
       );
 
       await service.fetchAndUpdateIntegration('discord-integration-1');
@@ -467,7 +472,7 @@ describe('DiscordBotManager', () => {
               '/v1/internal/integrations/discord/discord-integration-1',
             )
           ) {
-            return of({ data: mockIntegration });
+            return of({ data: toApiIntegration(mockIntegration) });
           }
           return of({ data: [] });
         },

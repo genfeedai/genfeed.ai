@@ -31,7 +31,7 @@ function makeClient(
 
 const validPayload = {
   id: 'int-1',
-  orgId: 'org-1',
+  organizationId: 'org-1',
   botToken: 'tok',
   status: 'active',
   config: {},
