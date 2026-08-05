@@ -7,7 +7,11 @@ import {
   parseSelectedCredits,
 } from '@app/(onboarding)/onboarding/post-signup/post-signup-routing.util';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
-import { isSaaS, isSelfHostedDeployment } from '@genfeedai/config/deployment';
+import {
+  hasAgentFirstOnboarding,
+  isSaaS,
+  isSelfHostedDeployment,
+} from '@genfeedai/config/deployment';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import {
   APP_ROUTES,
@@ -110,9 +114,9 @@ export function usePostSignupRouting(): PostSignupRoutingState {
       : '/';
   }, [currentUser, resolveActiveOrgSlug]);
 
-  // Default first-run destination. Agent-first onboarding is the cloud SaaS
-  // default; self-hosted/desktop keep the form wizard because the agent
-  // onboarding surface needs the managed orchestrator to run.
+  // Default first-run destination. SaaS (#1726) and Community (#1835) both
+  // onboard inside the agent workspace; the desktop client keeps the form
+  // wizard until #2380.
   const resolveOnboardingHref = useCallback(async (): Promise<string> => {
     const completedSteps = currentUser?.onboardingStepsCompleted ?? [];
     const hasCompletedAllOnboardingSteps =
@@ -128,7 +132,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
       localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain),
     );
 
-    if (!isSaaS()) {
+    if (!hasAgentFirstOnboarding()) {
       return wizardHref;
     }
 

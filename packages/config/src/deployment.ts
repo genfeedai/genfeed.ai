@@ -46,3 +46,12 @@ export function isSaaS(): boolean {
 export function isCommunity(): boolean {
   return isSelfHostedDeployment() && !isDesktopClient();
 }
+
+/**
+ * Deployment modes whose onboarding runs inside the agent workspace.
+ * SaaS cut over in #1726 and Community in #1835; the desktop client keeps the
+ * classic form wizard until #2380, so the wizard implementation stays in place.
+ */
+export function hasAgentFirstOnboarding(): boolean {
+  return !isDesktopClient();
+}

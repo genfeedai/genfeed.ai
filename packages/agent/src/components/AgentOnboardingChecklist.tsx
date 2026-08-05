@@ -42,6 +42,7 @@ export function AgentOnboardingChecklist({
   totalOnboardingCreditsVisible,
   completionPercent,
   journeyHref = APP_ROUTES.AGENT.JOURNEY,
+  showCreditRewards = true,
 }: AgentOnboardingChecklistProps) {
   const resolvedPercent =
     completionPercent ??
@@ -76,27 +77,34 @@ export function AgentOnboardingChecklist({
         </div>
 
         <div className="mt-3 border border-border/60 bg-background/80 p-3">
-          <div className="space-y-2 text-[11px] text-muted-foreground">
-            <div className="flex items-center justify-between">
-              <span>Signup gift</span>
-              <span className="font-medium text-foreground">
-                {signupGiftCredits}
-              </span>
+          {showCreditRewards ? (
+            <div className="space-y-2 text-[11px] text-muted-foreground">
+              <div className="flex items-center justify-between">
+                <span>Signup gift</span>
+                <span className="font-medium text-foreground">
+                  {signupGiftCredits}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Journey unlocked</span>
+                <span className="font-medium text-foreground">
+                  {earnedCredits}/{totalJourneyCredits}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Total visible</span>
+                <span className="font-medium text-foreground">
+                  {resolvedTotalVisibleCredits}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span>Journey unlocked</span>
-              <span className="font-medium text-foreground">
-                {earnedCredits}/{totalJourneyCredits}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Total visible</span>
-              <span className="font-medium text-foreground">
-                {resolvedTotalVisibleCredits}
-              </span>
-            </div>
-          </div>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/8">
+          ) : null}
+          <div
+            className={cn(
+              'h-2 overflow-hidden rounded-full bg-white/8',
+              showCreditRewards && 'mt-2',
+            )}
+          >
             <div
               className="h-full rounded-full bg-primary transition-all duration-300"
               style={{ width: `${resolvedPercent}%` }}
@@ -141,9 +149,11 @@ export function AgentOnboardingChecklist({
                   >
                     {step.title}
                   </p>
-                  <span className="shrink-0 text-[11px] font-medium text-amber-300">
-                    +{step.rewardCredits ?? 0}
-                  </span>
+                  {showCreditRewards ? (
+                    <span className="shrink-0 text-[11px] font-medium text-amber-300">
+                      +{step.rewardCredits ?? 0}
+                    </span>
+                  ) : null}
                 </div>
                 <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
                   {step.description}

@@ -38,6 +38,7 @@ import {
   buildAgentChatCompletionParams,
   buildToolDefinitions,
   mergeAllowedTools,
+  resolveBlockedTools,
 } from '@api/services/agent-orchestrator/utils/agent-tool-definitions.util';
 import {
   resolveAgentNextRoundCreditRequirement,
@@ -179,6 +180,7 @@ export class AgentOrchestratorSyncLoopService {
             ? BATCH_SCOPED_ALLOWED_TOOLS
             : undefined,
         ),
+        resolveBlockedTools({ source: request.source }),
       );
       const allowedToolNames = new Set(
         tools.map((tool) => tool.function.name as AgentToolName),

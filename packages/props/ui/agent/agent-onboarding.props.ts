@@ -21,4 +21,10 @@ export interface AgentOnboardingChecklistProps {
   journeyHref?: string;
   signupGiftCredits?: number;
   totalOnboardingCreditsVisible?: number;
+  /**
+   * Managed credits are cloud-only, so a self-hosted install has no reward
+   * economy to show. The numeric fields keep their defaults; this flag decides
+   * whether the credit chrome renders at all.
+   */
+  showCreditRewards?: boolean;
 }

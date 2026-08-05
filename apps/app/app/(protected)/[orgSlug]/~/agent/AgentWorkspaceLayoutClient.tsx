@@ -3,10 +3,12 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AgentApiService,
+  runAgentApiEffect,
   useAgentChatStore,
   useAgentChatStream,
 } from '@genfeedai/agent';
 import { APP_ROUTES } from '@genfeedai/constants';
+import { AgentThreadStatus } from '@genfeedai/enums';
 import { useAgentOAuthConnect } from '@genfeedai/hooks/agent/use-agent-oauth-connect';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import {
@@ -29,6 +31,12 @@ import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 import { AgentWorkspaceContext } from './agent-workspace-context';
 
 const UNSET_THREAD_BASELINE = Symbol('agent-new-route-baseline');
+
+/**
+ * Onboarding is a short journey, so the newest active thread carrying
+ * `source: 'onboarding'` is within the first page of results.
+ */
+const ONBOARDING_RESUME_THREAD_LOOKBACK = 20;
 
 type AgentWorkspaceLayoutClientProps = PropsWithChildren<{
   readonly agentApiService?: AgentApiService;
@@ -56,6 +64,7 @@ function AgentWorkspaceLayoutClientContent({
     string | null | typeof UNSET_THREAD_BASELINE
   >(UNSET_THREAD_BASELINE);
   const pendingNavigationThreadRef = useRef<string | null>(null);
+  const hasAttemptedResumeRef = useRef(false);
   const isJourneyRoute = pathname.startsWith(APP_ROUTES.AGENT.JOURNEY);
   const isOnboarding = pathname.startsWith(APP_ROUTES.AGENT.ONBOARDING);
   const isOnboardingEntryRoute = pathname === APP_ROUTES.AGENT.ONBOARDING;
@@ -167,6 +176,73 @@ function AgentWorkspaceLayoutClientContent({
       lastBootstrapKeyRef.current = null;
     }
   }, [isJourneyRoute, isUnthreadedRoute, prefillPrompt]);
+
+  // Resume onboarding after a reload or restart: a bare visit to the entry
+  // route carries no prefill prompt, so nothing would bootstrap a thread and
+  // the operator would silently start over. Reopen the newest onboarding
+  // thread instead; a first-time operator has none and falls through to the
+  // empty composer.
+  useEffect(() => {
+    if (
+      !effectiveIsLoaded ||
+      !isOnboardingEntryRoute ||
+      prefillPrompt ||
+      activeThreadId ||
+      hasAttemptedResumeRef.current
+    ) {
+      return;
+    }
+
+    hasAttemptedResumeRef.current = true;
+    const controller = new AbortController();
+
+    void runAgentApiEffect(
+      agentApiService.getThreadsEffect(
+        {
+          limit: ONBOARDING_RESUME_THREAD_LOOKBACK,
+          status: AgentThreadStatus.ACTIVE,
+        },
+        controller.signal,
+      ),
+    )
+      .then((threads) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        const resumable = threads
+          .filter((thread) => thread.source === 'onboarding')
+          .sort((left, right) =>
+            right.updatedAt.localeCompare(left.updatedAt),
+          )[0];
+
+        if (!resumable || pendingNavigationThreadRef.current === resumable.id) {
+          return;
+        }
+
+        pendingNavigationThreadRef.current = resumable.id;
+        newRouteBaselineThreadRef.current = resumable.id;
+        replace(activeHref(`${APP_ROUTES.AGENT.ONBOARDING}/${resumable.id}`));
+      })
+      .catch(() => undefined);
+
+    return () => controller.abort();
+  }, [
+    activeHref,
+    activeThreadId,
+    agentApiService,
+    effectiveIsLoaded,
+    isOnboardingEntryRoute,
+    prefillPrompt,
+    replace,
+  ]);
+
+  // Allow another resume attempt once the operator leaves the entry route.
+  useEffect(() => {
+    if (!isOnboardingEntryRoute) {
+      hasAttemptedResumeRef.current = false;
+    }
+  }, [isOnboardingEntryRoute]);
 
   // Auto-navigate from an unthreaded route to the created thread route.
   useEffect(() => {

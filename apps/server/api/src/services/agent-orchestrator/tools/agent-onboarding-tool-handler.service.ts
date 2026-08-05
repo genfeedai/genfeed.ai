@@ -10,7 +10,10 @@ import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentToolInternalApiService } from '@api/services/agent-orchestrator/tools/agent-tool-internal-api.service';
-import { hasOrganizationBilling } from '@genfeedai/config';
+import {
+  hasOrganizationBilling,
+  isSelfHostedDeployment,
+} from '@genfeedai/config';
 import { PostStatus, Status } from '@genfeedai/enums';
 import type { AgentToolResult, AgentUiAction } from '@genfeedai/interfaces';
 import {
@@ -18,6 +21,7 @@ import {
   ONBOARDING_JOURNEY_MISSIONS,
   ONBOARDING_JOURNEY_TOTAL_CREDITS,
   type OnboardingJourneyMissionId,
+  resolveMissionCtaHref,
 } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';
@@ -206,6 +210,8 @@ export class AgentOnboardingToolHandler {
             | undefined,
         )
       : [];
+    const providerReadiness = this.resolveProviderReadiness(settings);
+    const isSelfHosted = isSelfHostedDeployment();
 
     const completionMap: Record<OnboardingJourneyMissionId, boolean> = {
       complete_company_info: !!brand,
@@ -238,22 +244,39 @@ export class AgentOnboardingToolHandler {
       earnedCredits,
     );
 
+    const data = isSelfHosted
+      ? {
+          completionPercent,
+          isComplete: journeyCompleted,
+          journeyCompleted,
+          missions,
+          nextRecommendedMission,
+          providerReadiness,
+        }
+      : {
+          completionPercent,
+          earnedCredits,
+          isComplete: journeyCompleted,
+          journeyCompleted,
+          journeyEarnedCredits: creditBuckets.journeyEarnedCredits,
+          journeyRemainingCredits: creditBuckets.journeyRemainingCredits,
+          missions,
+          nextRecommendedMission,
+          signupGiftCredits: creditBuckets.signupGiftCredits,
+          totalOnboardingCreditsVisible:
+            creditBuckets.totalOnboardingCreditsVisible,
+        };
+
     return {
       creditsUsed: 0,
-      data: {
-        completionPercent,
-        earnedCredits,
-        isComplete: journeyCompleted,
-        journeyCompleted,
-        journeyEarnedCredits: creditBuckets.journeyEarnedCredits,
-        journeyRemainingCredits: creditBuckets.journeyRemainingCredits,
-        missions,
-        nextRecommendedMission,
-        signupGiftCredits: creditBuckets.signupGiftCredits,
-        totalOnboardingCreditsVisible:
-          creditBuckets.totalOnboardingCreditsVisible,
-      },
-      nextActions: [this.buildOnboardingChecklistCard(missions, creditBuckets)],
+      data,
+      nextActions: [
+        this.buildOnboardingChecklistCard(
+          missions,
+          creditBuckets,
+          providerReadiness.isReady,
+        ),
+      ],
       success: true,
     };
   }
@@ -265,7 +288,9 @@ export class AgentOnboardingToolHandler {
       signupGiftCredits: number;
       totalOnboardingCreditsVisible: number;
     },
+    hasConfiguredProvider: boolean,
   ): AgentUiAction {
+    const isSelfHosted = isSelfHostedDeployment();
     const nextRecommendedMissionId =
       missions.find((mission) => !mission.isCompleted)?.id ?? null;
     const completionPercent =
@@ -277,21 +302,57 @@ export class AgentOnboardingToolHandler {
           )
         : 0;
 
-    return {
-      checklist: ONBOARDING_JOURNEY_MISSIONS.map((mission) => {
-        const state = missions.find((item) => item.id === mission.id);
+    const checklist = ONBOARDING_JOURNEY_MISSIONS.map((mission) => {
+      const state = missions.find((item) => item.id === mission.id);
+
+      if (isSelfHosted) {
+        const description =
+          mission.id === 'generate_first_image' && !hasConfiguredProvider
+            ? 'Add a model or image provider API key before generating your first image.'
+            : mission.id === 'publish_first_post'
+              ? 'Publish your first post to complete the onboarding journey.'
+              : mission.description;
+
         return {
-          ctaHref: mission.ctaHref,
+          ctaHref: resolveMissionCtaHref(mission, { isSelfHosted: true }),
           ctaLabel: mission.ctaLabel,
-          description: mission.description,
+          description,
           id: mission.id,
-          isClaimed: state?.rewardClaimed ?? false,
+          isClaimed: false,
           isCompleted: state?.isCompleted ?? false,
           isRecommended: mission.id === nextRecommendedMissionId,
           label: mission.label,
-          rewardCredits: mission.rewardCredits,
+          rewardCredits: 0,
         };
-      }),
+      }
+
+      return {
+        ctaHref: mission.ctaHref,
+        ctaLabel: mission.ctaLabel,
+        description: mission.description,
+        id: mission.id,
+        isClaimed: state?.rewardClaimed ?? false,
+        isCompleted: state?.isCompleted ?? false,
+        isRecommended: mission.id === nextRecommendedMissionId,
+        label: mission.label,
+        rewardCredits: mission.rewardCredits,
+      };
+    });
+
+    if (isSelfHosted) {
+      return {
+        checklist,
+        completionPercent,
+        description:
+          'Complete these setup steps to prepare your brand, providers, and publishing workflow.',
+        id: `onboarding-journey-${Date.now()}`,
+        title: 'Activation Journey',
+        type: 'onboarding_checklist_card',
+      };
+    }
+
+    return {
+      checklist,
       completionPercent,
       description:
         creditBuckets.signupGiftCredits > 0
@@ -319,6 +380,15 @@ export class AgentOnboardingToolHandler {
     journeyRemainingCredits: number;
     totalOnboardingCreditsVisible: number;
   }> {
+    if (isSelfHostedDeployment()) {
+      return {
+        journeyEarnedCredits: 0,
+        journeyRemainingCredits: 0,
+        signupGiftCredits: 0,
+        totalOnboardingCreditsVisible: 0,
+      };
+    }
+
     const credits =
       await this.creditsUtilsService.getOrganizationCreditsWithExpiration(
         organizationId,
@@ -366,7 +436,9 @@ export class AgentOnboardingToolHandler {
     );
     const mission = missions.find((item) => item.id === missionId);
 
-    if (!mission || mission.rewardClaimed) {
+    const isSelfHosted = isSelfHostedDeployment();
+
+    if (!mission || (!isSelfHosted && mission.rewardClaimed)) {
       return;
     }
 
@@ -376,7 +448,8 @@ export class AgentOnboardingToolHandler {
             ...item,
             completedAt: item.completedAt ?? new Date(),
             isCompleted: true,
-            rewardClaimed: true,
+            rewardClaimed: !isSelfHosted,
+            rewardCredits: isSelfHosted ? 0 : item.rewardCredits,
           }
         : item,
     );
@@ -385,13 +458,15 @@ export class AgentOnboardingToolHandler {
       onboardingJourneyMissions: updatedMissions,
     });
 
-    await this.creditsUtilsService.addOrganizationCreditsWithExpiration(
-      ctx.organizationId,
-      mission.rewardCredits,
-      'onboarding-journey',
-      `Onboarding journey reward: ${missionId}`,
-      new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-    );
+    if (!isSelfHosted) {
+      await this.creditsUtilsService.addOrganizationCreditsWithExpiration(
+        ctx.organizationId,
+        mission.rewardCredits,
+        'onboarding-journey',
+        `Onboarding journey reward: ${missionId}`,
+        new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      );
+    }
   }
 
   private async syncOnboardingJourneyState(
@@ -420,15 +495,22 @@ export class AgentOnboardingToolHandler {
         : mission;
     });
 
+    const isSelfHosted = isSelfHostedDeployment();
     let totalRewardCreditsGranted = 0;
-    const claimedMissions = nextMissions.map((mission) => {
-      if (mission.isCompleted && !mission.rewardClaimed) {
-        totalRewardCreditsGranted += mission.rewardCredits;
-        return { ...mission, rewardClaimed: true };
-      }
+    const claimedMissions = isSelfHosted
+      ? nextMissions.map((mission) => ({
+          ...mission,
+          rewardClaimed: false,
+          rewardCredits: 0,
+        }))
+      : nextMissions.map((mission) => {
+          if (mission.isCompleted && !mission.rewardClaimed) {
+            totalRewardCreditsGranted += mission.rewardCredits;
+            return { ...mission, rewardClaimed: true };
+          }
 
-      return mission;
-    });
+          return mission;
+        });
 
     const earnedCredits = claimedMissions
       .filter((mission) => mission.rewardClaimed)
@@ -493,6 +575,57 @@ export class AgentOnboardingToolHandler {
         this.organizationSettingsService.getNextRecommendedJourneyMission(
           claimedMissions,
         ),
+    };
+  }
+
+  private resolveProviderReadiness(
+    settings?: {
+      byokKeys?: unknown;
+      isByokEnabled?: boolean;
+    } | null,
+  ): {
+    configuredProviderCount: number;
+    configuredProviders: string[];
+    isReady: boolean;
+  } {
+    const byokKeys =
+      settings?.byokKeys &&
+      typeof settings.byokKeys === 'object' &&
+      !Array.isArray(settings.byokKeys)
+        ? (settings.byokKeys as Record<string, unknown>)
+        : {};
+    // Mirrors OnboardingReadinessService.getConfiguredByokProviders: a key
+    // counts when its own entry is enabled and carries a non-empty secret.
+    // `isByokEnabled` is not a precondition — that flag is derived from the
+    // configured keys, not the other way around.
+    const configuredProviders = Object.entries(byokKeys)
+      .flatMap(([providerKey, value]) => {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) {
+          return [];
+        }
+
+        const entry = value as Record<string, unknown>;
+
+        if (
+          entry.isEnabled !== true ||
+          typeof entry.apiKey !== 'string' ||
+          !entry.apiKey.trim()
+        ) {
+          return [];
+        }
+
+        return [
+          typeof entry.provider === 'string' && entry.provider.trim()
+            ? entry.provider
+            : providerKey,
+        ];
+      })
+      .sort();
+
+    return {
+      configuredProviderCount: configuredProviders.length,
+      configuredProviders,
+      isReady: configuredProviders.length > 0,
     };
   }
 

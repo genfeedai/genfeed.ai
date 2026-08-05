@@ -3,7 +3,7 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getBrandOrganizationSlug } from '@contexts/user/brand-context/brand-context.helpers';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
-import { isSaaS } from '@genfeedai/config/deployment';
+import { hasAgentFirstOnboarding } from '@genfeedai/config/deployment';
 import {
   APP_ROUTES,
   createOrganizationAppRoute,
@@ -38,7 +38,7 @@ export default function ProtectedRootResolver() {
 
   useEffect(() => {
     if (
-      !isSaaS() ||
+      !hasAgentFirstOnboarding() ||
       isReady ||
       isAccessStateLoading ||
       isCurrentUserLoading ||
@@ -87,7 +87,7 @@ export default function ProtectedRootResolver() {
       const agentOrgSlug =
         getBrandOrganizationSlug(selectedBrand) ||
         getBrandOrganizationSlug(brands[0]);
-      if (isSaaS()) {
+      if (hasAgentFirstOnboarding()) {
         if (!agentOrgSlug) {
           setNeedsWorkspaceAction(true);
           return;
@@ -116,7 +116,7 @@ export default function ProtectedRootResolver() {
       return;
     }
 
-    if (isSaaS()) {
+    if (hasAgentFirstOnboarding()) {
       setNeedsWorkspaceAction(true);
       return;
     }

@@ -375,7 +375,7 @@ describe('proxy', () => {
     );
   });
 
-  it('redirects signed-in root to onboarding when a seeded brand exists but onboarding is incomplete', async () => {
+  it('redirects signed-in root to agent onboarding when a seeded brand exists but onboarding is incomplete', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
 
@@ -400,6 +400,13 @@ describe('proxy', () => {
         );
       }
 
+      if (url.endsWith('/organizations?mine=true')) {
+        return new Response(
+          JSON.stringify([{ isActive: true, slug: 'acme' }]),
+          { status: 200 },
+        );
+      }
+
       return new Response('not found', { status: 404 });
     });
 
@@ -409,11 +416,11 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/onboarding',
+      'http://localhost:3000/acme/~/agent/onboarding',
     );
   });
 
-  describe('agent-first onboarding (SaaS)', () => {
+  describe('agent-first onboarding', () => {
     const mockIncompleteUser = (
       organizations: Array<{ isActive: boolean; slug: string }> = [
         { isActive: true, slug: 'acme' },
@@ -479,7 +486,7 @@ describe('proxy', () => {
       expect(response.headers.get('location')).toBeNull();
     });
 
-    it('keeps self-hosted incomplete users on the classic wizard', async () => {
+    it('redirects an incomplete Community user on a protected route to the agent onboarding surface', async () => {
       mockIncompleteUser();
 
       const { default: proxy } = await import('./proxy');
@@ -490,8 +497,109 @@ describe('proxy', () => {
 
       expect(response.status).toBe(307);
       expect(response.headers.get('location')).toBe(
-        'http://localhost:3000/onboarding',
+        'http://localhost:3000/acme/~/agent/onboarding',
       );
+    });
+
+    it('lets an incomplete Community user stay on the agent onboarding surface (no redirect loop)', async () => {
+      mockIncompleteUser();
+
+      const { default: proxy } = await import('./proxy');
+      const response = await proxy(
+        makeSignedInRequest('/acme/~/agent/onboarding'),
+        {} as never,
+      );
+
+      expect(response.headers.get('location')).toBeNull();
+    });
+
+    it.each([
+      '/onboarding',
+      '/onboarding/brand',
+      '/onboarding/providers',
+      '/onboarding/summary',
+    ])(
+      'pulls a signed-in Community user off the classic wizard route %s',
+      async (pathname) => {
+        mockIncompleteUser();
+
+        const { default: proxy } = await import('./proxy');
+        const response = await proxy(
+          makeSignedInRequest(pathname),
+          {} as never,
+        );
+
+        expect(response.status).toBe(307);
+        expect(response.headers.get('location')).toBe(
+          'http://localhost:3000/acme/~/agent/onboarding',
+        );
+      },
+    );
+
+    it.each(['/onboarding/post-signup', '/onboarding/proactive'])(
+      'keeps the mode-agnostic wizard route %s reachable for a signed-in Community user',
+      async (pathname) => {
+        mockIncompleteUser();
+
+        const { default: proxy } = await import('./proxy');
+        const response = await proxy(
+          makeSignedInRequest(pathname),
+          {} as never,
+        );
+
+        expect(response.headers.get('location')).toBeNull();
+      },
+    );
+
+    it('leaves signed-out visitors on the classic wizard route untouched', async () => {
+      mockIncompleteUser();
+
+      const { default: proxy } = await import('./proxy');
+      const response = await proxy(
+        makeSignedOutRequest('/onboarding/brand'),
+        {} as never,
+      );
+
+      expect(response.headers.get('location')).toBeNull();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('renders the classic wizard for the desktop client on a self-hosted install', async () => {
+      vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', 'true');
+      mockIncompleteUser();
+
+      const { default: proxy } = await import('./proxy');
+      const response = await proxy(
+        makeSignedInRequest('/onboarding/brand'),
+        {} as never,
+      );
+
+      expect(response.headers.get('location')).toBeNull();
+    });
+
+    it('does not route self-hosted desktop users into web agent onboarding', async () => {
+      vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', 'true');
+      mockIncompleteUser();
+
+      const { default: proxy } = await import('./proxy');
+      const response = await proxy(
+        makeSignedInRequest('/acme/default/workspace'),
+        {} as never,
+      );
+
+      expect(response.headers.get('location')).toBeNull();
+    });
+
+    it('renders the classic wizard when the Community workspace slug cannot be resolved', async () => {
+      mockIncompleteUser([]);
+
+      const { default: proxy } = await import('./proxy');
+      const response = await proxy(
+        makeSignedInRequest('/onboarding/brand'),
+        {} as never,
+      );
+
+      expect(response.headers.get('location')).toBeNull();
     });
 
     it('does not consult a runtime flag before opening SaaS agent onboarding', async () => {
@@ -682,7 +790,10 @@ describe('proxy', () => {
     );
   });
 
-  it('redirects signed-in root to onboarding when no workspace exists', async () => {
+  // Agent onboarding is org-scoped, so a user whose organization has not been
+  // provisioned yet has no destination to send them to. Root holds them in
+  // place rather than bouncing them to the classic wizard.
+  it('holds signed-in root in place when no workspace slug resolves yet', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
 
@@ -709,10 +820,7 @@ describe('proxy', () => {
 
     const response = await proxy(makeSignedInRequest('/'), {} as never);
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/onboarding',
-    );
+    expect(response.headers.get('location')).toBeNull();
   });
 
   it('redirects signed-in root using the active brand when multiple brands exist', async () => {
@@ -1031,7 +1139,7 @@ describe('proxy', () => {
     );
   });
 
-  it('redirects signed-in bare protected routes to onboarding when no projects exist', async () => {
+  it('redirects signed-in bare protected routes to agent onboarding when no projects exist', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
 
@@ -1047,6 +1155,13 @@ describe('proxy', () => {
             brands: [],
             currentUser: { id: 'user_1' },
           }),
+          { status: 200 },
+        );
+      }
+
+      if (url.endsWith('/organizations?mine=true')) {
+        return new Response(
+          JSON.stringify([{ isActive: true, slug: 'acme' }]),
           { status: 200 },
         );
       }
@@ -1063,11 +1178,11 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/onboarding',
+      'http://localhost:3000/acme/~/agent/onboarding',
     );
   });
 
-  it('redirects scoped app routes to onboarding when no projects exist', async () => {
+  it('redirects scoped app routes to agent onboarding when no projects exist', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
 
@@ -1087,6 +1202,13 @@ describe('proxy', () => {
         );
       }
 
+      if (url.endsWith('/organizations?mine=true')) {
+        return new Response(
+          JSON.stringify([{ isActive: true, slug: 'acme' }]),
+          { status: 200 },
+        );
+      }
+
       return new Response('not found', { status: 404 });
     });
 
@@ -1099,11 +1221,11 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/onboarding',
+      'http://localhost:3000/acme/~/agent/onboarding',
     );
   });
 
-  it('redirects brand-scoped routes to onboarding while onboarding is incomplete', async () => {
+  it('redirects brand-scoped routes to agent onboarding while onboarding is incomplete', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
 
@@ -1128,6 +1250,13 @@ describe('proxy', () => {
         );
       }
 
+      if (url.endsWith('/organizations?mine=true')) {
+        return new Response(
+          JSON.stringify([{ isActive: true, slug: 'acme' }]),
+          { status: 200 },
+        );
+      }
+
       return new Response('not found', { status: 404 });
     });
 
@@ -1140,7 +1269,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/onboarding',
+      'http://localhost:3000/acme/~/agent/onboarding',
     );
   });
 

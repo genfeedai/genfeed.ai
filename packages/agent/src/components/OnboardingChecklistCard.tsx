@@ -1,4 +1,5 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { isCloudDeployment } from '@genfeedai/config/deployment';
 import { ChevronRight, CircleCheck, Rocket } from 'lucide-react';
 import type { ReactElement } from 'react';
 
@@ -15,6 +16,9 @@ export function OnboardingChecklistCard({
   const progressPercent =
     action.completionPercent ??
     (totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0);
+  // This card is rendered inline from a tool result and receives no deployment
+  // context, so it resolves the cloud-only credit economy itself.
+  const showCreditRewards = isCloudDeployment();
   const signupGiftCredits = action.signupGiftCredits ?? 0;
   const journeyEarnedCredits =
     action.journeyEarnedCredits ?? action.earnedCredits ?? 0;
@@ -37,28 +41,30 @@ export function OnboardingChecklistCard({
         </p>
       )}
 
-      <div className="mb-3 border border-border bg-muted/40 p-2.5">
-        <div className="space-y-2 text-xs text-muted-foreground">
-          <div className="flex items-center justify-between">
-            <span>Signup gift</span>
-            <span className="font-semibold text-foreground">
-              {signupGiftCredits}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span>Journey unlocked</span>
-            <span className="font-semibold text-foreground">
-              {journeyEarnedCredits}/{action.totalJourneyCredits ?? 100}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span>Total visible</span>
-            <span className="font-semibold text-foreground">
-              {totalVisibleCredits}
-            </span>
+      {showCreditRewards && (
+        <div className="mb-3 border border-border bg-muted/40 p-2.5">
+          <div className="space-y-2 text-xs text-muted-foreground">
+            <div className="flex items-center justify-between">
+              <span>Signup gift</span>
+              <span className="font-semibold text-foreground">
+                {signupGiftCredits}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Journey unlocked</span>
+              <span className="font-semibold text-foreground">
+                {journeyEarnedCredits}/{action.totalJourneyCredits ?? 100}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Total visible</span>
+              <span className="font-semibold text-foreground">
+                {totalVisibleCredits}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Progress bar */}
       <div className="mb-3">
@@ -102,9 +108,11 @@ export function OnboardingChecklistCard({
               >
                 {item.label}
               </span>
-              <span className="text-[10px] font-medium text-amber-300">
-                +{item.rewardCredits ?? 0}
-              </span>
+              {showCreditRewards && (
+                <span className="text-[10px] font-medium text-amber-300">
+                  +{item.rewardCredits ?? 0}
+                </span>
+              )}
             </div>
             {!item.isCompleted && item.ctaHref && (
               <a

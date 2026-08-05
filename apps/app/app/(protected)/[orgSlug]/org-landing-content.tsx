@@ -2,7 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
-import { isSaaS } from '@genfeedai/config/deployment';
+import { hasAgentFirstOnboarding } from '@genfeedai/config/deployment';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -94,7 +94,7 @@ export default function OrgLandingContent() {
 
     if (!hasCompletedOnboarding) {
       replace(
-        isSaaS() && orgSlug
+        hasAgentFirstOnboarding() && orgSlug
           ? createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.ONBOARDING)
           : `/onboarding/${getResumeStep(completedSteps)}`,
       );
@@ -103,7 +103,7 @@ export default function OrgLandingContent() {
 
     if (brands.length === 0) {
       replace(
-        isSaaS()
+        hasAgentFirstOnboarding()
           ? createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.ONBOARDING)
           : APP_ROUTES.ONBOARDING.ROOT,
       );

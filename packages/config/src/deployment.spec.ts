@@ -3,6 +3,7 @@ import {
   envFlag,
   getClientSurface,
   getDeployment,
+  hasAgentFirstOnboarding,
   isCloudDeployment,
   isCommunity,
   isDesktopClient,
@@ -72,6 +73,20 @@ describe('deployment axes', () => {
 
       expect(isSaaS()).toBe(expectedSaaS);
       expect(isCommunity()).toBe(expectedCommunity);
+    },
+  );
+
+  it.each([
+    ['1', undefined, true],
+    [undefined, undefined, true],
+    [undefined, '1', false],
+  ] as const)(
+    'maps cloud=%s desktop=%s to agent-first onboarding=%s',
+    (cloudFlag, desktopFlag, expected) => {
+      vi.stubEnv('GENFEED_CLOUD', cloudFlag);
+      vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', desktopFlag);
+
+      expect(hasAgentFirstOnboarding()).toBe(expected);
     },
   );
 });

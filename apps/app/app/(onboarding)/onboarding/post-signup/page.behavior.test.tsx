@@ -13,6 +13,7 @@ const {
   currentUserState,
   getTokenMock,
   getMyOrganizationsMock,
+  hasAgentFirstOnboardingMock,
   hasOrganizationBillingMock,
   isSaaSMock,
   isSelfHostedMock,
@@ -34,6 +35,7 @@ const {
   },
   getTokenMock: vi.fn(),
   getMyOrganizationsMock: vi.fn(),
+  hasAgentFirstOnboardingMock: vi.fn(),
   hasOrganizationBillingMock: vi.fn(),
   isSaaSMock: vi.fn(),
   isSelfHostedMock: vi.fn(),
@@ -158,6 +160,7 @@ vi.mock('@genfeedai/config/license', () => ({
 }));
 
 vi.mock('@genfeedai/config/deployment', () => ({
+  hasAgentFirstOnboarding: () => hasAgentFirstOnboardingMock(),
   isSaaS: () => isSaaSMock(),
   isSelfHostedDeployment: () => isSelfHostedMock(),
 }));
@@ -188,6 +191,7 @@ describe('PostSignupPage behavior', () => {
     managedCreateCheckoutSessionMock.mockReset();
     getTokenMock.mockReset();
     getMyOrganizationsMock.mockReset();
+    hasAgentFirstOnboardingMock.mockReset();
     hasOrganizationBillingMock.mockReset();
     isSaaSMock.mockReset();
     isSelfHostedMock.mockReset();
@@ -202,11 +206,23 @@ describe('PostSignupPage behavior', () => {
       onboardingStepsCompleted: [],
     };
     currentUserState.isLoading = false;
+    // Community is the default deployment under test: self-hosted web, which
+    // onboards inside the agent workspace (#1835) with no managed checkout.
+    hasAgentFirstOnboardingMock.mockReturnValue(true);
     hasOrganizationBillingMock.mockReturnValue(false);
     isSaaSMock.mockReturnValue(false);
     isSelfHostedMock.mockReturnValue(true);
     resolveAuthTokenMock.mockResolvedValue('api-token');
-    getMyOrganizationsMock.mockResolvedValue([]);
+    getMyOrganizationsMock.mockResolvedValue([
+      {
+        brand: null,
+        id: 'org-1',
+        isActive: true,
+        isOwner: true,
+        label: 'Acme',
+        slug: 'acme',
+      },
+    ]);
     createCheckoutSessionMock.mockResolvedValue({
       url: 'https://checkout.stripe.test/session',
     });
@@ -231,7 +247,7 @@ describe('PostSignupPage behavior', () => {
     });
   });
 
-  it('routes OSS signups back into auto-brand onboarding and clears stale plan handoff', async () => {
+  it('routes Community signups into agent onboarding and clears stale plan handoff', async () => {
     localStorage.setItem(ONBOARDING_STORAGE_KEYS.selectedPlan, 'price_123');
     localStorage.setItem(ONBOARDING_STORAGE_KEYS.brandDomain, 'acme.co');
 
@@ -240,7 +256,7 @@ describe('PostSignupPage behavior', () => {
     expect(screen.getByText('Setting up your workspace...')).toBeVisible();
 
     await waitFor(() => {
-      expect(locationState.href).toBe('/onboarding/brand?auto=true');
+      expect(locationState.href).toBe('/acme/~/agent/onboarding');
     });
 
     expect(
@@ -258,7 +274,7 @@ describe('PostSignupPage behavior', () => {
     render(<PostSignupPage />);
 
     await waitFor(() => {
-      expect(locationState.href).toBe('/onboarding/brand?auto=true');
+      expect(locationState.href).toBe('/acme/~/agent/onboarding');
     });
 
     expect(
@@ -298,7 +314,7 @@ describe('PostSignupPage behavior', () => {
     render(<PostSignupPage />);
 
     await waitFor(() => {
-      expect(locationState.href).toBe('/onboarding/brand');
+      expect(locationState.href).toBe('/acme/~/agent/onboarding');
     });
 
     expect(
@@ -441,6 +457,9 @@ describe('PostSignupPage behavior', () => {
   });
 
   it('keeps cloud-connected desktop signups on the classic wizard', async () => {
+    // Desktop is deferred to #2380, so it keeps the classic wizard even when
+    // the install is cloud-connected.
+    hasAgentFirstOnboardingMock.mockReturnValue(false);
     isSaaSMock.mockReturnValue(false);
     isSelfHostedMock.mockReturnValue(false);
     getMyOrganizationsMock.mockResolvedValue([

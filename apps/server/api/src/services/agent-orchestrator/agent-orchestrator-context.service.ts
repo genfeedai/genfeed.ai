@@ -21,6 +21,7 @@ import {
 import { AGENT_ORCHESTRATOR_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/agent-orchestrator-system-prompt.constant';
 import { getAgentTypeConfig } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
 import { BRAND_INTERVIEW_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/brand-interview-system-prompt.constant';
+import { COMMUNITY_ONBOARDING_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/community-onboarding-system-prompt.constant';
 import { ONBOARDING_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/onboarding-system-prompt.constant';
 import type {
   AgentChatAttachment,
@@ -36,6 +37,7 @@ import {
 import { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
 import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
+import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import { resolveAgentChatModelKey } from '@genfeedai/constants';
 import {
   AgentMessageRole,
@@ -207,7 +209,9 @@ export class AgentOrchestratorContextService {
         policy,
         preparedScope,
         resolvedSkills,
-        systemPrompt: ONBOARDING_SYSTEM_PROMPT,
+        systemPrompt: isSelfHostedDeployment()
+          ? COMMUNITY_ONBOARDING_SYSTEM_PROMPT
+          : ONBOARDING_SYSTEM_PROMPT,
       };
     }
 

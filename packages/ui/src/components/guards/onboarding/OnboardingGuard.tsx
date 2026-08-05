@@ -1,6 +1,9 @@
 'use client';
 
-import { isDesktopClient } from '@genfeedai/config/deployment';
+import {
+  hasAgentFirstOnboarding,
+  isDesktopClient,
+} from '@genfeedai/config/deployment';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { getResumeStep, ONBOARDING_STEPS } from '@genfeedai/constants';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
@@ -57,6 +60,13 @@ function OnboardingGuardInner({ children }: OnboardingGuardProps) {
       }
 
       if (isOnboardingRoute) {
+        return null;
+      }
+
+      // In agent-first modes the agent workspace owns the incomplete-onboarding
+      // flow and the proxy already routes users there, so this guard must not
+      // pull them back into the classic wizard.
+      if (hasAgentFirstOnboarding()) {
         return null;
       }
 
