@@ -8,8 +8,6 @@ import {
   clamp,
   readAvailability,
   sanitizeBody,
-  toConversationDocument,
-  toMessageDocument,
 } from '@api/collections/social-inbox/services/social-inbox.helpers';
 import type {
   OutboundAction,
@@ -134,7 +132,7 @@ export class SocialInboxActionService {
       'message-created',
     );
 
-    return toMessageDocument(message);
+    return message;
   }
 
   async approveDraft(
@@ -217,7 +215,7 @@ export class SocialInboxActionService {
       'message-updated',
     );
 
-    return toMessageDocument(rejected);
+    return rejected;
   }
 
   async postReply(
@@ -334,7 +332,7 @@ export class SocialInboxActionService {
       'conversation-updated',
     );
 
-    return toConversationDocument(updated);
+    return updated;
   }
 
   private async publishReply(
@@ -511,7 +509,7 @@ export class SocialInboxActionService {
       throw new ConflictException('Finalized social action was not found');
     }
 
-    return toMessageDocument(message);
+    return message;
   }
 
   private async findIdempotentDraft(
@@ -546,7 +544,7 @@ export class SocialInboxActionService {
       );
     }
 
-    return toMessageDocument(existing);
+    return existing;
   }
 
   private async reserveOutboundAction(
@@ -605,7 +603,7 @@ export class SocialInboxActionService {
         },
       });
 
-      return { isClaimed: true, message: toMessageDocument(created) };
+      return { isClaimed: true, message: created };
     } catch (error: unknown) {
       if (
         !input.idempotencyKey ||
@@ -657,7 +655,7 @@ export class SocialInboxActionService {
     if (existing.status === 'sent') {
       return {
         isClaimed: false,
-        message: toMessageDocument(existing),
+        message: existing,
       };
     }
 
@@ -700,7 +698,7 @@ export class SocialInboxActionService {
       if (current?.status === 'sent') {
         return {
           isClaimed: false,
-          message: toMessageDocument(current),
+          message: current,
         };
       }
       throw new ConflictException('Social action retry is already in progress');
@@ -719,7 +717,7 @@ export class SocialInboxActionService {
 
     return {
       isClaimed: true,
-      message: toMessageDocument(reservation),
+      message: reservation,
     };
   }
 
@@ -775,7 +773,7 @@ export class SocialInboxActionService {
       'Draft message',
     );
 
-    return toMessageDocument(draft);
+    return draft;
   }
 
   private buildActionProvenance({

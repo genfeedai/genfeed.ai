@@ -11,24 +11,9 @@ import type {
 } from '@genfeedai/prisma';
 
 export type SocialConversation = PrismaSocialConversation;
-export type SocialConversationDocument = PrismaSocialConversation & {
-  _id: string;
-  brand?: string | null;
-  credential?: string | null;
-  organization: string;
-  post?: string | null;
-  user?: string | null;
-};
+export type SocialConversationDocument = PrismaSocialConversation;
 export type SocialMessage = PrismaSocialMessage;
-export type SocialMessageDocument = PrismaSocialMessage & {
-  _id: string;
-  brand?: string | null;
-  conversation: string;
-  credential?: string | null;
-  organization: string;
-  post?: string | null;
-  user?: string | null;
-};
+export type SocialMessageDocument = PrismaSocialMessage;
 
 export type SocialConversationStatus = `${SocialConversationStatusEnum}`;
 export type SocialConversationType = `${SocialConversationTypeEnum}`;

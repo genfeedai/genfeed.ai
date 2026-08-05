@@ -1,17 +1,11 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const socialMessageAttributes = createEntityAttributes([
-  'conversation',
   'conversationId',
-  'organization',
   'organizationId',
-  'user',
   'userId',
-  'brand',
   'brandId',
-  'credential',
   'credentialId',
-  'post',
   'postId',
   'platform',
   'direction',

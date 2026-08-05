@@ -1,11 +1,8 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const socialReplyCampaignAttributes = createEntityAttributes([
-  'organization',
   'organizationId',
-  'brand',
   'brandId',
-  'user',
   'userId',
   'name',
   'description',

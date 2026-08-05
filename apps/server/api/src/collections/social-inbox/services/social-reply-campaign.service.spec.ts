@@ -616,8 +616,7 @@ describe('SocialReplyCampaignService', () => {
         'conversation-2',
         'conversation-1',
       ]);
-      expect(page.docs[0]._id).toBe(page.docs[0].id);
-      expect(page.docs[0].campaign).toBe(campaign.id);
+      expect(page.docs[0].campaignId).toBe(campaign.id);
     });
 
     it('scopes the list query to the organization', async () => {

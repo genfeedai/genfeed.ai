@@ -1,37 +1,5 @@
-import type {
-  SocialReplyCampaign,
-  SocialReplyCampaignDocument,
-  SocialReplyCampaignRecipient,
-  SocialReplyCampaignRecipientDocument,
-} from '@api/collections/social-inbox/services/social-reply-campaign.types';
-
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
-
-export function toCampaignDocument(
-  campaign: SocialReplyCampaign,
-): SocialReplyCampaignDocument {
-  return {
-    ...campaign,
-    _id: campaign.id,
-    brand: campaign.brandId,
-    organization: campaign.organizationId,
-    user: campaign.userId,
-  };
-}
-
-export function toRecipientDocument(
-  recipient: SocialReplyCampaignRecipient,
-): SocialReplyCampaignRecipientDocument {
-  return {
-    ...recipient,
-    _id: recipient.id,
-    campaign: recipient.campaignId,
-    conversation: recipient.conversationId,
-    message: recipient.messageId,
-    organization: recipient.organizationId,
-  };
-}
 
 export function hourWindowStart(now: Date): Date {
   return new Date(now.getTime() - HOUR_MS);

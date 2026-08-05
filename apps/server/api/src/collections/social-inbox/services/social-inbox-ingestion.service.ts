@@ -11,8 +11,6 @@ import {
   getAvailability,
   normalizePlatform,
   sanitizeBody,
-  toConversationDocument,
-  toMessageDocument,
 } from '@api/collections/social-inbox/services/social-inbox.helpers';
 import type {
   InboundSocialMessageInput,
@@ -76,7 +74,7 @@ export class SocialInboxIngestionService {
 
     if (existing) {
       await this.queueCommentTrigger(input, existing, conversation);
-      return toMessageDocument(existing);
+      return existing;
     }
 
     let message: Awaited<ReturnType<typeof this.prisma.socialMessage.create>>;
@@ -126,7 +124,7 @@ export class SocialInboxIngestionService {
         throw error;
       }
       await this.queueCommentTrigger(input, winner, conversation);
-      return toMessageDocument(winner);
+      return winner;
     }
 
     await this.prisma.socialConversation.update({
@@ -148,7 +146,7 @@ export class SocialInboxIngestionService {
       'message-created',
     );
 
-    return toMessageDocument(message);
+    return message;
   }
 
   async ingestYoutubeComments(
@@ -329,7 +327,7 @@ export class SocialInboxIngestionService {
     });
 
     if (existing) {
-      return toConversationDocument(existing);
+      return existing;
     }
 
     let created: Awaited<
@@ -385,10 +383,10 @@ export class SocialInboxIngestionService {
       if (!winner) {
         throw error;
       }
-      return toConversationDocument(winner);
+      return winner;
     }
 
-    return toConversationDocument(created);
+    return created;
   }
 
   private async queueCommentTrigger(
