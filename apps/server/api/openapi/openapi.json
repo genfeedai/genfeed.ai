@@ -3960,13 +3960,13 @@
             "minLength": 2,
             "type": "string"
           },
-          "user": {
+          "userId": {
             "description": "The user ID who owns this organization",
             "type": "string"
           }
         },
         "required": [
-          "user",
+          "userId",
           "label",
           "isSelected"
         ],
