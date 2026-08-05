@@ -22,6 +22,7 @@ import type {
   ICreateBetterAuthOptions,
 } from './better-auth.types';
 import { isPlatformSuperAdmin } from './better-auth-access.util';
+import { desktopSession } from './plugins/desktop-session.plugin';
 
 /**
  * Prefix + GC window for Better Auth rate-limit counters in Redis. Active keys
@@ -580,8 +581,10 @@ export async function resolveBetterAuthJwtIsSuperAdmin(
  * by a create hook). Plugins: magic-link, organization bridge, and jwt. The
  * organization plugin is compatibility-only: active org / string-role session
  * state maps onto existing Organization/Member rows while Genfeed remains the
- * tenant authorization source. The jwt plugin issues short-lived JWTs (sub =
- * `User.id`) and publishes a JWKS at `${baseURL}${BETTER_AUTH_BASE_PATH}/jwks`.
+ * tenant authorization source. The desktop-session plugin owns server-only
+ * session issuance for the native shell. The jwt plugin issues short-lived
+ * JWTs (sub = `User.id`) and publishes a JWKS at
+ * `${baseURL}${BETTER_AUTH_BASE_PATH}/jwks`.
  */
 export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
   const {
@@ -735,6 +738,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
           },
         },
       }),
+      desktopSession(),
     ],
   });
 }

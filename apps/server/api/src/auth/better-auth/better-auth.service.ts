@@ -1,5 +1,10 @@
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  type CookieAttributes,
+  parseSetCookieHeader,
+  splitSetCookieHeader,
+} from 'better-auth/cookies';
 import { toNodeHandler } from 'better-auth/node';
 import type { RequestHandler } from 'express';
 
@@ -8,11 +13,77 @@ import {
   BETTER_AUTH_INSTANCE,
 } from './better-auth.constants';
 import type { BetterAuthInstance } from './better-auth.factory';
-import type { IBetterAuthJwtClaims } from './better-auth.types';
+import type {
+  IBetterAuthJwtClaims,
+  IDesktopSessionCookie,
+  IDesktopSessionCookieResult,
+} from './better-auth.types';
 
 interface CachedClaims {
   claims: IBetterAuthJwtClaims;
   expiresAtMs: number;
+}
+
+interface DesktopSessionEndpointResponse {
+  expiresAt: Date | string;
+  token: string;
+}
+
+function resolveDesktopSessionCookieExpiresAt(
+  attributes: CookieAttributes,
+  fallback: Date | string,
+): string {
+  if (
+    attributes.expires instanceof Date &&
+    !Number.isNaN(attributes.expires.getTime())
+  ) {
+    return attributes.expires.toISOString();
+  }
+
+  const maxAge = attributes['max-age'];
+  if (typeof maxAge === 'number' && Number.isFinite(maxAge)) {
+    return new Date(Date.now() + maxAge * 1_000).toISOString();
+  }
+
+  const fallbackDate = fallback instanceof Date ? fallback : new Date(fallback);
+  if (Number.isNaN(fallbackDate.getTime())) {
+    throw new Error('Better Auth returned an invalid session expiry');
+  }
+  return fallbackDate.toISOString();
+}
+
+export function parseDesktopSessionCookie(
+  headers: Headers,
+  session: DesktopSessionEndpointResponse,
+): IDesktopSessionCookie {
+  const setCookieHeaders = splitSetCookieHeader(
+    headers.get('set-cookie') ?? '',
+  );
+
+  for (const setCookieHeader of setCookieHeaders) {
+    for (const [cookieName, attributes] of parseSetCookieHeader(
+      setCookieHeader,
+    )) {
+      if (!attributes.value.startsWith(`${session.token}.`)) {
+        continue;
+      }
+
+      return {
+        cookieName,
+        cookieValue: attributes.value,
+        expiresAt: resolveDesktopSessionCookieExpiresAt(
+          attributes,
+          session.expiresAt,
+        ),
+        httpOnly: attributes.httponly ?? false,
+        path: attributes.path ?? '/',
+        sameSite: attributes.samesite ?? 'lax',
+        secure: attributes.secure ?? false,
+      };
+    }
+  }
+
+  throw new Error('Better Auth did not emit a signed desktop session cookie');
 }
 
 // Verified-claims memoization: signature verification reads the JWKS table on
@@ -56,6 +127,34 @@ export class BetterAuthService {
       throw new Error('Better Auth handler requested while disabled');
     }
     return this.handler;
+  }
+
+  /** Mint the exact Better Auth cookie the desktop shell must install. */
+  async createDesktopSessionCookie(
+    userId: string,
+  ): Promise<IDesktopSessionCookieResult | null> {
+    if (!this.instance) {
+      return null;
+    }
+
+    const result = await this.instance.api.createDesktopSession({
+      body: { userId },
+      returnHeaders: true,
+    });
+
+    return {
+      cookie: parseDesktopSessionCookie(result.headers, result.response),
+      token: result.response.token,
+    };
+  }
+
+  /** Revoke a just-issued desktop session during compensating cleanup. */
+  async revokeDesktopSession(token: string): Promise<void> {
+    if (!this.instance) {
+      return;
+    }
+
+    await this.instance.api.revokeDesktopSession({ body: { token } });
   }
 
   /**

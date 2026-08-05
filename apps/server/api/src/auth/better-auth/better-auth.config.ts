@@ -58,13 +58,21 @@ const LOCAL_DEV_TRUSTED_ORIGINS = [
 ] as const;
 
 /**
+ * Fixed loopback origin owned by the shipped desktop client. It is deliberately
+ * trusted in every environment because Desktop serves the embedded web app
+ * there even when it talks to the production API. General loopback wildcards
+ * remain development-only.
+ */
+export const DESKTOP_SHELL_TRUSTED_ORIGINS = ['http://127.0.0.1:3230'] as const;
+
+/**
  * Resolve Better Auth's trusted origins. Always honours whatever
  * `BETTER_AUTH_TRUSTED_ORIGINS` lists; outside production/staging it also merges
  * the standard {@link LOCAL_DEV_TRUSTED_ORIGINS} so local dev needs zero env
  * config and never hits a spurious `INVALID_ORIGIN` when accessed via canonical
  * Portless HTTPS, `genfeed.localhost`, `localhost`, or `local.genfeed.ai`.
- * Real deployments (production/staging) get exactly the configured list —
- * loopback hosts are never auto-trusted there.
+ * Real deployments (production/staging) get the configured list plus the one
+ * fixed desktop-shell loopback origin; general loopback hosts stay dev-only.
  */
 export function resolveTrustedOrigins(
   value: string | undefined,
@@ -72,10 +80,12 @@ export function resolveTrustedOrigins(
 ): string[] {
   const configured = parseTrustedOrigins(value);
   const isDeployedEnv = nodeEnv === 'production' || nodeEnv === 'staging';
-  if (isDeployedEnv) {
-    return configured;
-  }
-  return Array.from(new Set([...configured, ...LOCAL_DEV_TRUSTED_ORIGINS]));
+  const environmentOrigins = isDeployedEnv
+    ? configured
+    : [...configured, ...LOCAL_DEV_TRUSTED_ORIGINS];
+  return Array.from(
+    new Set([...environmentOrigins, ...DESKTOP_SHELL_TRUSTED_ORIGINS]),
+  );
 }
 
 /**
