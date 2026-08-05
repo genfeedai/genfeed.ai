@@ -3,8 +3,6 @@ import type { SourcePostMetrics } from '@genfeedai/interfaces';
 
 export interface SourcePostDocument {
   id: string;
-  _id?: string;
-  mongoId?: string | null;
   organizationId: string;
   organization?: string | { id?: string } | null;
   brandId: string;

@@ -57,7 +57,8 @@ export class SkillsService {
 
   /**
    * Extract domain-specific fields from a payload into the `config` JSON column.
-   * The Prisma Skill model only has: id, mongoId, organizationId, label, config, isDeleted, createdAt, updatedAt.
+   * The Prisma Skill model stores domain fields in `config` alongside its
+   * canonical identifiers and timestamps.
    * All other fields are stored here.
    */
   private buildSkillConfig(
@@ -385,20 +386,16 @@ export class SkillsService {
 
   /**
    * Normalize a raw Prisma Skill row into a SkillDocument-compatible shape.
-   * Spreads config fields to the top level so existing callers continue to work,
-   * and exposes the row id as both `id` and the legacy `_id` alias for
-   * backward compatibility.
+   * Spreads config fields to the top level for the API document contract.
    */
   private normalizeSkill(row: Record<string, unknown>): SkillDocument {
     const config = this.getConfig(row);
     return {
       ...config,
-      _id: row.id,
       id: row.id,
       createdAt: row.createdAt,
       isDeleted: row.isDeleted,
       label: row.label,
-      mongoId: row.mongoId,
       organizationId: row.organizationId,
       updatedAt: row.updatedAt,
     } as unknown as SkillDocument;

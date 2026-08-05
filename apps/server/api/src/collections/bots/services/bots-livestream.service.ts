@@ -81,7 +81,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-function mergeLegacyPayload(
+function mergeJsonPayload(
   target: Record<string, unknown>,
   source: unknown,
 ): void {
@@ -153,29 +153,8 @@ export class BotsLivestreamService {
   private normalizeBotDocument(bot: BotDocument): BotDocument {
     const normalized = { ...bot } as Record<string, unknown>;
 
-    if (
-      normalized.organization === undefined &&
-      typeof normalized.organizationId === 'string'
-    ) {
-      normalized.organization = normalized.organizationId;
-    }
-
-    if (
-      normalized.user === undefined &&
-      typeof normalized.userId === 'string'
-    ) {
-      normalized.user = normalized.userId;
-    }
-
-    if (
-      normalized.brand === undefined &&
-      (typeof normalized.brandId === 'string' || normalized.brandId === null)
-    ) {
-      normalized.brand = normalized.brandId;
-    }
-
-    mergeLegacyPayload(normalized, normalized.config);
-    mergeLegacyPayload(normalized, normalized.settings);
+    mergeJsonPayload(normalized, normalized.config);
+    mergeJsonPayload(normalized, normalized.settings);
 
     normalized.targets = Array.isArray(normalized.targets)
       ? normalized.targets.flatMap((target) => {
@@ -326,32 +305,7 @@ export class BotsLivestreamService {
   ): LivestreamBotSessionDocument {
     const normalized = { ...session };
 
-    mergeLegacyPayload(normalized, normalized.data);
-
-    if (normalized.bot === undefined && typeof normalized.botId === 'string') {
-      normalized.bot = normalized.botId;
-    }
-
-    if (
-      normalized.organization === undefined &&
-      typeof normalized.organizationId === 'string'
-    ) {
-      normalized.organization = normalized.organizationId;
-    }
-
-    if (
-      normalized.user === undefined &&
-      typeof normalized.userId === 'string'
-    ) {
-      normalized.user = normalized.userId;
-    }
-
-    if (
-      normalized.brand === undefined &&
-      (typeof normalized.brandId === 'string' || normalized.brandId === null)
-    ) {
-      normalized.brand = normalized.brandId;
-    }
+    mergeJsonPayload(normalized, normalized.data);
 
     normalized.context = this.normalizeSessionContext(normalized.context);
     normalized.platformStates = Array.isArray(normalized.platformStates)
@@ -446,19 +400,15 @@ export class BotsLivestreamService {
     session: LivestreamBotSessionDocument,
   ): Prisma.InputJsonValue {
     return toJsonCompatible({
-      botId: session.botId ?? session.bot ?? session.id,
-      brandId: session.brandId ?? session.brand ?? null,
       context: session.context ?? { source: 'none' },
       deliveryHistory: session.deliveryHistory ?? [],
       lastTranscriptAt: session.lastTranscriptAt ?? null,
-      organizationId: session.organizationId ?? session.organization,
       pausedAt: session.pausedAt ?? null,
       platformStates: session.platformStates ?? [],
       startedAt: session.startedAt ?? null,
       status: session.status ?? 'stopped',
       stoppedAt: session.stoppedAt ?? null,
       transcriptChunks: session.transcriptChunks ?? [],
-      userId: session.userId ?? session.user,
     }) as Prisma.InputJsonValue;
   }
 
@@ -466,21 +416,13 @@ export class BotsLivestreamService {
     botId: string,
     organizationId: string,
   ): Promise<LivestreamBotSessionDocument | null> {
-    const sessions = await this.prisma.livestreamBotSession.findMany({
-      where: { isDeleted: false },
+    const session = await this.prisma.livestreamBotSession.findFirst({
+      where: { botId, isDeleted: false, organizationId } as never,
     });
 
-    return (
-      sessions
-        .map((session) =>
-          this.normalizeSessionDocument(session as Record<string, unknown>),
-        )
-        .find(
-          (session) =>
-            session.botId === botId &&
-            session.organizationId === organizationId,
-        ) ?? null
-    );
+    return session
+      ? this.normalizeSessionDocument(session as Record<string, unknown>)
+      : null;
   }
 
   private async persistSession(
@@ -505,9 +447,7 @@ export class BotsLivestreamService {
   ): Promise<LivestreamBotSessionDocument> {
     const normalizedBot = this.normalizeBotDocument(bot);
     const botId = String(normalizedBot.id);
-    const organizationId = String(
-      normalizedBot.organizationId ?? normalizedBot.organization,
-    );
+    const organizationId = normalizedBot.organizationId;
     const existingSession = await this.findExistingSession(
       botId,
       organizationId,
@@ -538,34 +478,33 @@ export class BotsLivestreamService {
       return existingSession;
     }
 
-    const brandId = String(normalizedBot.brandId ?? normalizedBot.brand ?? '');
-    const userId = String(normalizedBot.userId ?? normalizedBot.user);
+    const brandId = normalizedBot.brandId ?? null;
+    const userId = normalizedBot.userId;
 
     const created = await this.prisma.livestreamBotSession.create({
       data: {
         data: this.serializeSessionData({
           _id: '',
-          bot: botId,
           botId,
-          brand: brandId || null,
-          brandId: brandId || null,
+          brandId,
           context: { source: 'none' },
           createdAt: new Date(),
           deliveryHistory: [],
           id: '',
           isDeleted: false,
-          mongoId: null,
-          organization: organizationId,
           organizationId,
           platformStates: this.buildPlatformStates(normalizedBot),
           status: 'stopped',
           transcriptChunks: [],
           updatedAt: new Date(),
-          user: userId,
           userId,
         }),
+        botId,
+        brandId,
         isDeleted: false,
-      },
+        organizationId,
+        userId,
+      } as never,
     });
 
     return this.normalizeSessionDocument(created as Record<string, unknown>);
@@ -729,7 +668,7 @@ export class BotsLivestreamService {
       .filter(
         (session) =>
           session.status === 'active' &&
-          (session.organizationId ?? session.organization) === organizationId,
+          session.organizationId === organizationId,
       );
 
     let failed = 0;

@@ -9,8 +9,8 @@ import {
 import { scopedWhere } from '@server/tenancy/scoped-where';
 
 export interface CreateAdCreativeMappingInput {
-  organization: string;
-  brand?: string;
+  organizationId: string;
+  brandId?: string;
   genfeedContentId: string;
   externalAdId?: string;
   externalCreativeId?: string;
@@ -44,11 +44,11 @@ export class AdCreativeMappingsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      // The Prisma model only has: id, mongoId, organizationId, brandId, data, isDeleted, timestamps.
+      // Domain-specific mapping fields are persisted in the JSON data column.
       // All domain-specific fields live in the `data` JSON column.
       const doc = await this.prisma.adCreativeMapping.create({
         data: {
-          brandId: input.brand ?? null,
+          brandId: input.brandId ?? null,
           data: {
             adAccountId: input.adAccountId,
             externalAdId: input.externalAdId,
@@ -59,7 +59,7 @@ export class AdCreativeMappingsService {
             status: input.status ?? 'draft',
           } as never,
           isDeleted: false,
-          organizationId: input.organization,
+          organizationId: input.organizationId,
         },
       });
 

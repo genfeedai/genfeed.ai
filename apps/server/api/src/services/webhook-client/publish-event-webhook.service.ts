@@ -28,7 +28,6 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 
 type PublishWebhookPostSnapshot = {
-  _id?: unknown;
   brand?: unknown;
   credential?: unknown;
   credentialId?: unknown;
@@ -99,7 +98,7 @@ export class PublishEventWebhookService {
     organizationId: string;
   }): Promise<IWebhookDeliveryStatus> {
     const settings = await this.organizationSettingsService.findOne({
-      organization: input.organizationId,
+      organizationId: input.organizationId,
     });
 
     if (
@@ -160,10 +159,8 @@ export class PublishEventWebhookService {
     status: TargetExecutionState.PUBLISHED | TargetExecutionState.FAILED,
   ): Promise<void> {
     try {
-      const organizationId = readReferenceId(
-        input.post.organizationId ?? input.post.organization,
-      );
-      const targetId = readReferenceId(input.post.id ?? input.post._id);
+      const organizationId = readReferenceId(input.post.organizationId);
+      const targetId = readReferenceId(input.post.id);
 
       if (!organizationId || !targetId) {
         this.logger.warn(`${this.constructorName} skipped publish webhook`, {
@@ -221,7 +218,7 @@ export class PublishEventWebhookService {
           error: redactPublishWebhookText(
             (error as Error)?.message || 'Publish webhook emission failed',
           ),
-          postId: readReferenceId(input.post.id ?? input.post._id),
+          postId: readReferenceId(input.post.id),
         },
       );
     }
@@ -293,7 +290,7 @@ export class PublishEventWebhookService {
           where: {
             groupId,
             isDeleted: false,
-            parent: null,
+            parentId: null,
           },
         },
         {
@@ -371,9 +368,7 @@ export class PublishEventWebhookService {
 
     return {
       credential: {
-        id:
-          readReferenceId(input.post.credentialId ?? input.post.credential) ??
-          'unknown',
+        id: readReferenceId(input.post.credentialId) ?? 'unknown',
       },
       error:
         errorMessage && errorClass
@@ -447,7 +442,7 @@ export class PublishEventWebhookService {
     } = {},
   ): Promise<IWebhookDeliveryStatus | null> {
     const settings = await this.organizationSettingsService.findOne({
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (
@@ -612,12 +607,7 @@ function readReferenceId(value: unknown): string | null {
     return null;
   }
 
-  const record = value as Record<string, unknown>;
-  return (
-    readString(record.id) ??
-    readString(record._id) ??
-    readString(record.mongoId)
-  );
+  return readString((value as Record<string, unknown>).id);
 }
 
 function readString(value: unknown): string | null {

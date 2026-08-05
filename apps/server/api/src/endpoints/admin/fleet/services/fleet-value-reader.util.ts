@@ -42,10 +42,7 @@ export const AdminFleetValueReader = {
     }
 
     const record = AdminFleetValueReader.readObjectRecord(value);
-    const nestedId =
-      AdminFleetValueReader.readString(record?.id) ??
-      AdminFleetValueReader.readString(record?.id) ??
-      AdminFleetValueReader.readString(record?.mongoId);
+    const nestedId = AdminFleetValueReader.readString(record?.id);
 
     if (nestedId) {
       return nestedId;
