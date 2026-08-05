@@ -28,7 +28,10 @@ import { AgentRuntimeSessionService } from '@api/services/agent-threading/servic
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
-import { DEFAULT_AGENT_CHAT_MODEL_KEY } from '@genfeedai/constants';
+import {
+  DEFAULT_AGENT_CHAT_MODEL_KEY,
+  getAgentChatModelRoundCredits,
+} from '@genfeedai/constants';
 import { AgentAutonomyMode, AgentType, ApiKeyScope } from '@genfeedai/enums';
 import {
   type AgentArtifactReference,
@@ -1289,6 +1292,65 @@ describe('AgentOrchestratorService', () => {
     );
   });
 
+  it('settles completed rounds and stops before an unaffordable next round', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+    const roundCost = getAgentChatModelRoundCredits(
+      DEFAULT_AGENT_CHAT_MODEL_KEY,
+    );
+    creditsUtilsService.checkOrganizationCreditsAvailable
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+    llmDispatcher.chatCompletion.mockResolvedValueOnce({
+      choices: [
+        {
+          message: {
+            content: null,
+            tool_calls: [
+              {
+                function: {
+                  arguments: '{}',
+                  name: 'nonexistent_tool',
+                },
+                id: 'call-unknown-credit-gate',
+              },
+            ],
+          },
+        },
+      ],
+      model: DEFAULT_AGENT_CHAT_MODEL_KEY,
+      usage: {
+        completion_tokens: 10,
+        prompt_tokens: 10,
+        total_tokens: 20,
+      },
+    } as never);
+
+    await expect(
+      service.chat(
+        { content: 'Keep trying tools' },
+        { organizationId: ORG_ID, userId: USER_ID },
+      ),
+    ).rejects.toThrow(
+      `Insufficient credits. You need at least ${roundCost * 2} credits to continue this agent turn.`,
+    );
+
+    expect(llmDispatcher.chatCompletion).toHaveBeenCalledTimes(1);
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).toHaveBeenLastCalledWith(ORG_ID, roundCost * 2);
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenCalledWith(
+      ORG_ID,
+      USER_ID,
+      roundCost,
+      `Agent chat turn (${DEFAULT_AGENT_CHAT_MODEL_KEY})`,
+      expect.anything(),
+    );
+  });
+
   it('should use onboarding prompt when source is onboarding', async () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
@@ -2086,6 +2148,54 @@ describe('AgentOrchestratorService', () => {
     expect(streamPublisher.publishDone).not.toHaveBeenCalled();
     // ...and the cancel check fired before the first token was published.
     expect(streamPublisher.publishToken).not.toHaveBeenCalled();
+  });
+
+  it('settles a completed provider round before publishing cancellation', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+    agentRunsService.isCancelled
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true);
+    llmDispatcher.chatCompletion.mockResolvedValueOnce({
+      choices: [{ message: { content: 'Completed before cancellation' } }],
+      model: DEFAULT_AGENT_CHAT_MODEL_KEY,
+      usage: {
+        completion_tokens: 20,
+        prompt_tokens: 20,
+        total_tokens: 40,
+      },
+    } as never);
+
+    await service.chatStream(
+      { content: 'Cancel after the provider responds' },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+
+    for (let i = 0; i < 20; i++) {
+      if (
+        streamPublisher.publishWorkEvent.mock.calls.some(
+          (call) => (call[0] as { event?: string }).event === 'cancelled',
+        )
+      ) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+
+    expect(streamPublisher.publishWorkEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ event: 'cancelled', status: 'cancelled' }),
+    );
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenCalledWith(
+      ORG_ID,
+      USER_ID,
+      getAgentChatModelRoundCredits(DEFAULT_AGENT_CHAT_MODEL_KEY),
+      `Agent chat turn (${DEFAULT_AGENT_CHAT_MODEL_KEY})`,
+      expect.anything(),
+    );
+    expect(streamPublisher.publishDone).not.toHaveBeenCalled();
   });
 
   it('logs but swallows token-publish failures so a live stream still completes', async () => {

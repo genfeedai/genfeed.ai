@@ -50,12 +50,23 @@ export function resolveAgentTurnCreditCost(
   return builtBrandProfile ? 0 : roundCredits;
 }
 
+export function resolveAgentNextRoundCreditRequirement(params: {
+  nextRoundCredits: number;
+  roundCredits: number;
+  toolCalls: ToolCallSummary[];
+}): number {
+  return resolveAgentTurnCreditCost(
+    params.roundCredits + params.nextRoundCredits,
+    params.toolCalls,
+  );
+}
+
 export async function settleAgentTurnCredits(params: {
   /** Models that actually served the turn's rounds, in order. */
   actualModels?: string[];
   creditsUtilsService: Pick<
     CreditsUtilsService,
-    'deductCreditsFromOrganization'
+    'deductCreditsFromOrganization' | 'getOrganizationCreditsBalance'
   >;
   model: string;
   organizationId: string;
@@ -69,13 +80,34 @@ export async function settleAgentTurnCredits(params: {
     params.toolCalls,
   );
   if (billedTurnCost > 0) {
-    await params.creditsUtilsService.deductCreditsFromOrganization(
-      params.organizationId,
-      params.userId,
-      billedTurnCost,
-      `Agent chat turn (${describeBilledModels(params.model, params.actualModels)})`,
-      ActivitySource.SCRIPT,
-    );
+    const currentBalance =
+      await params.creditsUtilsService.getOrganizationCreditsBalance(
+        params.organizationId,
+      );
+    const maxOverdraftCredits = Math.max(0, billedTurnCost - currentBalance);
+    const description = `Agent chat turn (${describeBilledModels(params.model, params.actualModels)})`;
+
+    if (maxOverdraftCredits > 0) {
+      // The provider response has already been consumed by the time its actual
+      // model is known. Permit only that unavoidable, measured shortfall; the
+      // loop preflights requested-model estimates before starting later rounds.
+      await params.creditsUtilsService.deductCreditsFromOrganization(
+        params.organizationId,
+        params.userId,
+        billedTurnCost,
+        description,
+        ActivitySource.SCRIPT,
+        { maxOverdraftCredits },
+      );
+    } else {
+      await params.creditsUtilsService.deductCreditsFromOrganization(
+        params.organizationId,
+        params.userId,
+        billedTurnCost,
+        description,
+        ActivitySource.SCRIPT,
+      );
+    }
   }
   return billedTurnCost;
 }

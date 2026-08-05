@@ -1,5 +1,6 @@
 import {
   describeBilledModels,
+  resolveAgentNextRoundCreditRequirement,
   resolveAgentRoundCreditCost,
   resolveAgentTurnCreditCost,
   settleAgentTurnCredits,
@@ -92,13 +93,46 @@ describe('resolveAgentTurnCreditCost', () => {
   });
 });
 
+describe('resolveAgentNextRoundCreditRequirement', () => {
+  it('requires the accumulated bill plus the requested-model estimate', () => {
+    expect(
+      resolveAgentNextRoundCreditRequirement({
+        nextRoundCredits: 3,
+        roundCredits: 7,
+        toolCalls: [],
+      }),
+    ).toBe(10);
+  });
+
+  it('keeps later rounds free after the profile-build waiver completes', () => {
+    expect(
+      resolveAgentNextRoundCreditRequirement({
+        nextRoundCredits: 3,
+        roundCredits: 7,
+        toolCalls: [
+          {
+            creditsUsed: 1,
+            durationMs: 10,
+            status: 'completed',
+            toolName: AgentToolName.DRAFT_BRAND_VOICE_PROFILE,
+          },
+        ],
+      }),
+    ).toBe(0);
+  });
+});
+
 describe('settleAgentTurnCredits', () => {
   it('bills the accumulated rounds against the models that answered', async () => {
     const deductCreditsFromOrganization = vi.fn();
+    const getOrganizationCreditsBalance = vi.fn().mockResolvedValue(50);
 
     const billed = await settleAgentTurnCredits({
       actualModels: [CHEAP_MODEL, EXPENSIVE_MODEL],
-      creditsUtilsService: { deductCreditsFromOrganization },
+      creditsUtilsService: {
+        deductCreditsFromOrganization,
+        getOrganizationCreditsBalance,
+      },
       model: CHEAP_MODEL,
       organizationId: 'org-1',
       roundCredits: 12,
@@ -114,14 +148,47 @@ describe('settleAgentTurnCredits', () => {
       `Agent chat turn (${CHEAP_MODEL}, ${EXPENSIVE_MODEL})`,
       expect.anything(),
     );
+    expect(getOrganizationCreditsBalance).toHaveBeenCalledWith('org-1');
+  });
+
+  it('permits only the actual-model shortfall after the provider responds', async () => {
+    const deductCreditsFromOrganization = vi.fn();
+    const getOrganizationCreditsBalance = vi.fn().mockResolvedValue(4);
+
+    const billed = await settleAgentTurnCredits({
+      actualModels: [EXPENSIVE_MODEL],
+      creditsUtilsService: {
+        deductCreditsFromOrganization,
+        getOrganizationCreditsBalance,
+      },
+      model: CHEAP_MODEL,
+      organizationId: 'org-1',
+      roundCredits: 12,
+      toolCalls: [],
+      userId: 'user-1',
+    });
+
+    expect(billed).toBe(12);
+    expect(deductCreditsFromOrganization).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      12,
+      `Agent chat turn (${EXPENSIVE_MODEL})`,
+      expect.anything(),
+      { maxOverdraftCredits: 8 },
+    );
   });
 
   it('does not create a zero-credit chat transaction after profile billing', async () => {
     const deductCreditsFromOrganization = vi.fn();
+    const getOrganizationCreditsBalance = vi.fn();
 
     const billed = await settleAgentTurnCredits({
       actualModels: [CHEAP_MODEL],
-      creditsUtilsService: { deductCreditsFromOrganization },
+      creditsUtilsService: {
+        deductCreditsFromOrganization,
+        getOrganizationCreditsBalance,
+      },
       model: CHEAP_MODEL,
       organizationId: 'org-1',
       roundCredits: 1,
@@ -138,5 +205,6 @@ describe('settleAgentTurnCredits', () => {
 
     expect(billed).toBe(0);
     expect(deductCreditsFromOrganization).not.toHaveBeenCalled();
+    expect(getOrganizationCreditsBalance).not.toHaveBeenCalled();
   });
 });
