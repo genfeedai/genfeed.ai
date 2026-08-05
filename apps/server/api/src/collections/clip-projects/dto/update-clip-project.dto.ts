@@ -129,7 +129,9 @@ export class UpdateClipProjectDto extends PartialType(
   @IsString()
   @ApiProperty({
     description: 'Error message if processing failed',
+    nullable: true,
     required: false,
+    type: String,
   })
   readonly error?: string | null;
 
@@ -146,7 +148,10 @@ export class UpdateClipProjectDto extends PartialType(
   @IsDateString()
   @ApiProperty({
     description: 'Timestamp when the project reached a terminal status',
+    format: 'date-time',
+    nullable: true,
     required: false,
+    type: String,
   })
   readonly terminalAt?: string | null;
 

@@ -50,6 +50,7 @@ export class AgentChatBodyDto {
     description: 'Brand scope for this turn',
     nullable: true,
     required: false,
+    type: String,
   })
   brandId?: string | null;
 

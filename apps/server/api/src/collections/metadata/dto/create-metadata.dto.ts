@@ -60,7 +60,9 @@ export class CreateMetadataDto {
   @ApiProperty({
     enum: Object.values(MetadataStyle),
     enumName: 'MetadataStyle',
+    nullable: true,
     required: false,
+    type: String,
   })
   readonly style?: string | null;
 

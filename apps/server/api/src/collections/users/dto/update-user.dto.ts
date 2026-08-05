@@ -31,7 +31,9 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsDateString()
   @ApiProperty({
     description: 'Timestamp for when onboarding started',
+    format: 'date-time',
     required: false,
+    type: String,
   })
   readonly onboardingStartedAt?: string | Date;
 
@@ -39,7 +41,9 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsDateString()
   @ApiProperty({
     description: 'Timestamp for when onboarding completed',
+    format: 'date-time',
     required: false,
+    type: String,
   })
   readonly onboardingCompletedAt?: string | Date;
 

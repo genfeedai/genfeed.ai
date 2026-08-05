@@ -22,7 +22,9 @@ export class UpdateUserOnboardingDto {
   @IsDateString()
   @ApiProperty({
     description: 'Timestamp for when onboarding started',
+    format: 'date-time',
     required: false,
+    type: String,
   })
   readonly onboardingStartedAt?: string | Date;
 
@@ -30,7 +32,9 @@ export class UpdateUserOnboardingDto {
   @IsDateString()
   @ApiProperty({
     description: 'Timestamp for when onboarding completed',
+    format: 'date-time',
     required: false,
+    type: String,
   })
   readonly onboardingCompletedAt?: string | Date;
 

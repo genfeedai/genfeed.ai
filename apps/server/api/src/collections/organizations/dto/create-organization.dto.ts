@@ -18,7 +18,9 @@ export class CreateOrganizationDto {
   @ApiProperty({
     description:
       'legacy auth provider organization ID used to synchronize organization state',
+    nullable: true,
     required: false,
+    type: String,
   })
   readonly authProviderOrganizationId?: string | null;
 

@@ -8,7 +8,9 @@ export class CreateMemberDto {
   @ApiProperty({
     description:
       'legacy auth provider organization membership ID used to synchronize state',
+    nullable: true,
     required: false,
+    type: String,
   })
   readonly authProviderMembershipId?: string | null;
 

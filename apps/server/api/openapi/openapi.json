@@ -158,7 +158,7 @@
           "brandId": {
             "description": "Brand scope for this turn",
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "content": {
             "description": "The user message content for this turn",
@@ -203,11 +203,13 @@
         "properties": {
           "agentDailyCreditCap": {
             "description": "Optional per-agent daily cap enforced against the pooled org balance",
-            "type": "object"
+            "nullable": true,
+            "type": "number"
           },
           "brandDailyCreditCap": {
             "description": "Optional per-brand daily cap enforced against the pooled org balance",
-            "type": "object"
+            "nullable": true,
+            "type": "number"
           },
           "useOrganizationPool": {
             "default": true,
@@ -243,7 +245,8 @@
           },
           "generationModelOverride": {
             "description": "Optional advanced override for generation model selection",
-            "type": "object"
+            "nullable": true,
+            "type": "string"
           },
           "qualityTierDefault": {
             "default": "balanced",
@@ -257,11 +260,13 @@
           },
           "reviewModelOverride": {
             "description": "Optional advanced override for review model selection",
-            "type": "object"
+            "nullable": true,
+            "type": "string"
           },
           "thinkingModelOverride": {
             "description": "Optional advanced override for the planner/thinking model",
-            "type": "object"
+            "nullable": true,
+            "type": "string"
           }
         },
         "type": "object"
@@ -2215,7 +2220,9 @@
           },
           "terminalAt": {
             "description": "Timestamp when the clip reached a terminal status",
-            "type": "object"
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
           },
           "title": {
             "description": "Clip title",
@@ -2976,7 +2983,8 @@
             "type": "string"
           },
           "brandId": {
-            "type": "object"
+            "nullable": true,
+            "type": "string"
           },
           "brandingMode": {
             "default": "off",
@@ -3010,7 +3018,7 @@
           },
           "folderId": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "fontFamily": {
             "description": "The font family for image captions/text",
@@ -3587,7 +3595,8 @@
               {
                 "$ref": "#/components/schemas/MetadataStyle"
               }
-            ]
+            ],
+            "nullable": true
           }
         },
         "required": [
@@ -3612,7 +3621,8 @@
             "type": "string"
           },
           "brandId": {
-            "type": "object"
+            "nullable": true,
+            "type": "string"
           },
           "category": {
             "allOf": [
@@ -3645,7 +3655,7 @@
           },
           "folderId": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "generationPrompt": {
             "type": "string"
@@ -3915,7 +3925,8 @@
           },
           "authProviderOrganizationId": {
             "description": "legacy auth provider organization ID used to synchronize organization state",
-            "type": "object"
+            "nullable": true,
+            "type": "string"
           },
           "category": {
             "allOf": [
@@ -4409,7 +4420,8 @@
             "type": "array"
           },
           "brandId": {
-            "type": "object"
+            "nullable": true,
+            "type": "string"
           },
           "camera": {
             "type": "string"
@@ -4449,6 +4461,7 @@
             "type": "string"
           },
           "organizationId": {
+            "nullable": true,
             "type": "string"
           },
           "original": {
@@ -5134,7 +5147,7 @@
             "type": "number"
           },
           "sources": {
-          "description": "Array of source ingredient IDs",
+            "description": "Array of source ingredient IDs",
             "items": {
               "type": "string"
             },
@@ -5268,7 +5281,8 @@
             "type": "string"
           },
           "brandId": {
-            "type": "object"
+            "nullable": true,
+            "type": "string"
           },
           "brandingMode": {
             "default": "off",
@@ -5317,7 +5331,7 @@
           },
           "folderId": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "fontFamily": {
             "description": "The font family for video captions/text",
@@ -5984,7 +5998,7 @@
           "preview": {
             "description": "Preview audio URL for catalog voices",
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "provider": {
             "enum": [
@@ -8335,7 +8349,9 @@
       "OnboardingJourneyMissionStateDto": {
         "properties": {
           "completedAt": {
-            "type": "object"
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
           },
           "id": {
             "enum": [
@@ -9780,7 +9796,8 @@
       "SocialConversationUpdateDto": {
         "properties": {
           "assignedOwnerId": {
-            "type": "object"
+            "nullable": true,
+            "type": "string"
           },
           "status": {
             "enum": [
@@ -10507,7 +10524,8 @@
       "UpdateActivityDto": {
         "properties": {
           "brandId": {
-            "type": "object"
+            "nullable": true,
+            "type": "string"
           },
           "entityId": {
             "description": "Entity ID reference",
@@ -10629,6 +10647,10 @@
       },
       "UpdateAgentGoalDto": {
         "properties": {
+          "brandId": {
+            "description": "Brand ID",
+            "type": "string"
+          },
           "description": {
             "description": "Goal description",
             "type": "string"
@@ -11793,7 +11815,8 @@
           },
           "error": {
             "description": "Error message if processing failed",
-            "type": "object"
+            "nullable": true,
+            "type": "string"
           },
           "failedClipCount": {
             "description": "Number of failed clips in the project",
@@ -11859,7 +11882,9 @@
           },
           "terminalAt": {
             "description": "Timestamp when the project reached a terminal status",
-            "type": "object"
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
           },
           "transcriptSegments": {
             "description": "Transcript segments with timestamps",
@@ -11943,7 +11968,9 @@
           },
           "terminalAt": {
             "description": "Timestamp when the clip reached a terminal status",
-            "type": "object"
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
           },
           "thumbnailUrl": {
             "description": "Thumbnail URL",
@@ -12461,7 +12488,8 @@
             "type": "string"
           },
           "brandId": {
-            "type": "object"
+            "nullable": true,
+            "type": "string"
           },
           "category": {
             "allOf": [
@@ -12486,7 +12514,7 @@
           },
           "folderId": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "generationCompletedAt": {
             "description": "Timestamp when generation completed",
@@ -12954,7 +12982,8 @@
             "type": "string"
           },
           "brandId": {
-            "type": "object"
+            "nullable": true,
+            "type": "string"
           },
           "category": {
             "allOf": [
@@ -12987,7 +13016,7 @@
           },
           "folderId": {
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "generationPrompt": {
             "type": "string"
@@ -13434,7 +13463,9 @@
           },
           "onboardingJourneyCompletedAt": {
             "description": "Timestamp when the onboarding journey was fully completed",
-            "type": "object"
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
           },
           "onboardingJourneyMissions": {
             "description": "Tracked onboarding journey mission state for the organization",
@@ -13842,7 +13873,8 @@
             "type": "array"
           },
           "brandId": {
-            "type": "object"
+            "nullable": true,
+            "type": "string"
           },
           "camera": {
             "type": "string"
@@ -13889,6 +13921,7 @@
             "type": "string"
           },
           "organizationId": {
+            "nullable": true,
             "type": "string"
           },
           "original": {
@@ -14583,11 +14616,13 @@
           },
           "onboardingCompletedAt": {
             "description": "Timestamp for when onboarding completed",
-            "type": "object"
+            "format": "date-time",
+            "type": "string"
           },
           "onboardingStartedAt": {
             "description": "Timestamp for when onboarding started",
-            "type": "object"
+            "format": "date-time",
+            "type": "string"
           },
           "onboardingStepsCompleted": {
             "description": "Completed onboarding step keys",
@@ -14621,11 +14656,13 @@
           },
           "onboardingCompletedAt": {
             "description": "Timestamp for when onboarding completed",
-            "type": "object"
+            "format": "date-time",
+            "type": "string"
           },
           "onboardingStartedAt": {
             "description": "Timestamp for when onboarding started",
-            "type": "object"
+            "format": "date-time",
+            "type": "string"
           },
           "onboardingStepsCompleted": {
             "description": "Completed onboarding step keys",
@@ -36019,12 +36056,8 @@
             "name": "folderId",
             "required": false,
             "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/Object"
-                }
-              ],
-              "nullable": true
+              "nullable": true,
+              "type": "string"
             }
           },
           {

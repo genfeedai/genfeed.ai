@@ -47,7 +47,9 @@ export class AgentCreditGovernanceDto {
   @ApiProperty({
     description:
       'Optional per-brand daily cap enforced against the pooled org balance',
+    nullable: true,
     required: false,
+    type: Number,
   })
   readonly brandDailyCreditCap?: number | null;
 
@@ -57,7 +59,9 @@ export class AgentCreditGovernanceDto {
   @ApiProperty({
     description:
       'Optional per-agent daily cap enforced against the pooled org balance',
+    nullable: true,
     required: false,
+    type: Number,
   })
   readonly agentDailyCreditCap?: number | null;
 }
@@ -97,7 +101,9 @@ export class AgentPolicyDto {
   @IsOptional()
   @ApiProperty({
     description: 'Optional advanced override for the planner/thinking model',
+    nullable: true,
     required: false,
+    type: String,
   })
   readonly thinkingModelOverride?: string | null;
 
@@ -105,7 +111,9 @@ export class AgentPolicyDto {
   @IsOptional()
   @ApiProperty({
     description: 'Optional advanced override for generation model selection',
+    nullable: true,
     required: false,
+    type: String,
   })
   readonly generationModelOverride?: string | null;
 
@@ -113,7 +121,9 @@ export class AgentPolicyDto {
   @IsOptional()
   @ApiProperty({
     description: 'Optional advanced override for review model selection',
+    nullable: true,
     required: false,
+    type: String,
   })
   readonly reviewModelOverride?: string | null;
 
@@ -153,7 +163,12 @@ export class OnboardingJourneyMissionStateDto {
 
   @Allow()
   @IsOptional()
-  @ApiProperty({ required: false })
+  @ApiProperty({
+    format: 'date-time',
+    nullable: true,
+    required: false,
+    type: String,
+  })
   readonly completedAt?: Date | string | null;
 }
 
@@ -174,7 +189,10 @@ export class CreateOrganizationSettingDto {
   @IsOptional()
   @ApiProperty({
     description: 'Timestamp when the onboarding journey was fully completed',
+    format: 'date-time',
+    nullable: true,
     required: false,
+    type: String,
   })
   readonly onboardingJourneyCompletedAt?: Date | string | null;
 
