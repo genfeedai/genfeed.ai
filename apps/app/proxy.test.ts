@@ -202,7 +202,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace',
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
     );
   });
 
@@ -324,7 +324,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace',
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
     );
   });
 
@@ -536,7 +536,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/default/workspace',
+      'http://localhost:3000/acme/default/workspace/overview',
     );
   });
 
@@ -576,7 +576,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace',
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
     );
   });
 
@@ -631,7 +631,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace',
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
     );
   });
 
@@ -707,7 +707,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace',
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
     );
   });
 
@@ -778,7 +778,7 @@ describe('proxy', () => {
 
       expect(response.status).toBe(307);
       expect(response.headers.get('location')).toBe(
-        'http://localhost:3000/default/default/workspace',
+        'http://localhost:3000/default/default/workspace/overview',
       );
     }
   });
@@ -793,7 +793,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace',
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
     );
   });
 
@@ -1182,7 +1182,7 @@ describe('proxy', () => {
 
       expect(response.status).toBe(307);
       expect(response.headers.get('location')).toBe(
-        'http://localhost:3000/default/default/workspace',
+        'http://localhost:3000/default/default/workspace/overview',
       );
     } finally {
       if (previousDesktopShell === undefined) {
@@ -1271,7 +1271,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace',
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
     );
     expect(
       fetchMock.mock.calls.some(([input]) =>
@@ -1318,7 +1318,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/default/default/workspace',
+      'http://localhost:3000/default/default/workspace/overview',
     );
   });
 
@@ -1346,7 +1346,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace',
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
     );
 
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
@@ -1377,7 +1377,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace',
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
     );
 
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
@@ -1433,7 +1433,7 @@ describe('proxy', () => {
 
     expect(firstResponse.status).toBe(307);
     expect(firstResponse.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace',
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
     );
 
     const setCookieHeader = firstResponse.headers.get('set-cookie') ?? '';

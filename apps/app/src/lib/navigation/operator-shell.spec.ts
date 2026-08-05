@@ -61,7 +61,9 @@ describe('operator-shell helpers', () => {
     expect(getCurrentBrandScopedPath('/acme/moonrise/studio/storyboard')).toBe(
       '/studio/storyboard',
     );
-    expect(getCurrentBrandScopedPath('/acme/~/overview')).toBe('/workspace');
+    expect(getCurrentBrandScopedPath('/acme/~/overview')).toBe(
+      '/workspace/overview',
+    );
     expect(getCurrentBrandScopedPath('/acme/~/agent/new')).toBe('/agent/new');
     expect(getCurrentBrandScopedPath('/acme/moonrise/agent/thread-1')).toBe(
       '/agent/thread-1',

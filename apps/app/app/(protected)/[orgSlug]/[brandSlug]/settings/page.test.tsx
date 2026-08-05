@@ -1,0 +1,32 @@
+import '@testing-library/jest-dom/vitest';
+import { render, screen } from '@testing-library/react';
+import type { ResolvingMetadata } from 'next';
+import { describe, expect, it, vi } from 'vitest';
+import BrandDetailPage, { generateMetadata } from './page';
+
+vi.mock('./brand-detail', () => ({
+  default: () => <div>Brand detail surface</div>,
+}));
+
+vi.mock('@ui/loading/fallback/LazyLoadingFallback', () => ({
+  default: () => <div>Loading brand profile</div>,
+}));
+
+describe('BrandDetailPage', () => {
+  it('renders the brand detail surface inside a suspense boundary', () => {
+    render(<BrandDetailPage />);
+
+    expect(screen.getByText('Brand detail surface')).toBeInTheDocument();
+  });
+
+  it('titles the page Brand Profile', async () => {
+    // `generateMetadata` awaits the parent resolver for inherited OG images.
+    const parent = Promise.resolve({
+      openGraph: { images: [] },
+    }) as unknown as ResolvingMetadata;
+
+    const metadata = await generateMetadata({}, parent);
+
+    expect(metadata.title).toContain('Brand Profile');
+  });
+});
