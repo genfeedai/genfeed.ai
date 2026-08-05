@@ -42,6 +42,22 @@ import { BadRequestException, Injectable } from '@nestjs/common';
  */
 export const SOCIAL_REPLY_CAMPAIGN_MAX_ATTEMPTS = 3;
 
+/**
+ * How long a recipient may sit in DISPATCHING before a later tick treats the
+ * claim as abandoned and returns it to PENDING.
+ *
+ * The claim is a status flip with no lease: a worker killed mid-send (crash,
+ * OOM, redeploy) leaves the row DISPATCHING forever. Nothing reset it, and the
+ * empty-roster branch refuses to complete a campaign while any row is
+ * in-flight — so a single dead worker parked the campaign in a permanent
+ * reschedule loop, never sending and never completing.
+ *
+ * Sized well above the longest plausible outbound call so a genuinely active
+ * send is never reclaimed underneath itself; the send path is idempotent on
+ * `messageId`, so an over-eager reclaim would be safe but wasteful.
+ */
+export const SOCIAL_REPLY_CAMPAIGN_DISPATCH_STALE_MS = 10 * 60 * 1000;
+
 type ClaimResult =
   | { kind: 'claimed'; recipientId: string }
   | { kind: 'empty' }
@@ -76,6 +92,8 @@ export class SocialReplyCampaignDispatchService {
     }
 
     const now = new Date();
+    await this.reclaimStaleDispatches(campaign, now);
+
     const throttle = await this.evaluateThrottle(campaign, now);
     if (throttle.delaySeconds > 0) {
       await this.scheduleNext(campaign, throttle.delaySeconds, now);
@@ -154,6 +172,79 @@ export class SocialReplyCampaignDispatchService {
       oldestInDayAt: sentAts.at(0) ?? null,
       oldestInHourAt: inHour.at(0) ?? null,
     });
+  }
+
+  /**
+   * Release claims whose worker never came back.
+   *
+   * `DISPATCHING` is a claim with no lease, and every terminal transition
+   * (`markSent`/`markSkipped`/`markFailed`/`requeueRecipient`) requires the row
+   * to still be `DISPATCHING` — so a worker that dies mid-send leaves the row
+   * in that state permanently. The empty-roster branch below then sees a
+   * non-zero in-flight count forever and reschedules without ever sending or
+   * completing.
+   *
+   * Runs before the claim so a reclaimed row is candidate again in the same
+   * tick. The two updates partition on `attemptCount`, so a recipient that has
+   * already burned its budget retires instead of cycling back into the queue.
+   */
+  private async reclaimStaleDispatches(
+    campaign: SocialReplyCampaign,
+    now: Date,
+  ): Promise<void> {
+    const reason = 'Dispatch abandoned before completion';
+    const staleWhere = {
+      campaignId: campaign.id,
+      dispatchedAt: {
+        lt: new Date(now.getTime() - SOCIAL_REPLY_CAMPAIGN_DISPATCH_STALE_MS),
+      },
+      status: SocialReplyCampaignRecipientStatus.DISPATCHING,
+    };
+
+    const retired = await this.prisma.socialReplyCampaignRecipient.updateMany({
+      data: {
+        failureReason: reason,
+        status: SocialReplyCampaignRecipientStatus.FAILED,
+      },
+      where: scopedWhere(campaign.organizationId, {
+        ...staleWhere,
+        attemptCount: { gte: SOCIAL_REPLY_CAMPAIGN_MAX_ATTEMPTS },
+      }),
+    });
+
+    const requeued = await this.prisma.socialReplyCampaignRecipient.updateMany({
+      data: {
+        failureReason: reason,
+        status: SocialReplyCampaignRecipientStatus.PENDING,
+      },
+      where: scopedWhere(campaign.organizationId, {
+        ...staleWhere,
+        attemptCount: { lt: SOCIAL_REPLY_CAMPAIGN_MAX_ATTEMPTS },
+      }),
+    });
+
+    if (retired.count === 0 && requeued.count === 0) {
+      return;
+    }
+
+    this.logger.warn(`${this.logContext} reclaimed stale dispatches`, {
+      campaignId: campaign.id,
+      requeued: requeued.count,
+      retired: retired.count,
+    });
+
+    if (retired.count > 0) {
+      await this.prisma.socialReplyCampaign.updateMany({
+        data: {
+          failedCount: { increment: retired.count },
+          lastError: reason,
+        },
+        where: scopedWhere(campaign.organizationId, {
+          id: campaign.id,
+          status: SocialReplyCampaignStatus.RUNNING,
+        }),
+      });
+    }
   }
 
   /**
