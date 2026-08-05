@@ -12,8 +12,8 @@ describe('IngredientFilterUtil', () => {
       expect(result).toEqual({ parentId: null });
     });
 
-    it('should filter by parent ID when valid ObjectId provided', () => {
-      const parentId = '507f191e810c19729de860ee';
+    it('should filter by parent ID when a valid entity ID is provided', () => {
+      const parentId = '550e8400-e29b-41d4-a716-446655440001';
       const result = IngredientFilterUtil.buildParentFilter(parentId);
       expect(result).toEqual({ parentId });
     });
@@ -30,65 +30,33 @@ describe('IngredientFilterUtil', () => {
       expect(result).toEqual({});
     });
 
-    it('should filter by folder ID when valid ObjectId provided', () => {
-      const folderId = '507f191e810c19729de860ee';
+    it('should filter by folder ID when a valid entity ID is provided', () => {
+      const folderId = '550e8400-e29b-41d4-a716-446655440002';
       const result = IngredientFilterUtil.buildFolderFilter(folderId);
-      expect(result).toEqual({ folder: folderId });
+      expect(result).toEqual({ folderId });
     });
 
     it('should filter root level when folder is null', () => {
       const result = IngredientFilterUtil.buildFolderFilter(null);
-      expect(result).toEqual({ folder: null });
+      expect(result).toEqual({ folderId: null });
     });
   });
 
   describe('buildTrainingFilter', () => {
     it('should exclude training ingredients by default', () => {
       const result = IngredientFilterUtil.buildTrainingFilter(undefined);
-      expect(result).toEqual({ training: null });
+      expect(result).toEqual({ trainingId: null });
     });
 
-    it('should filter by training ID when valid ObjectId provided', () => {
-      const trainingId = '507f191e810c19729de860ee';
+    it('should filter by training ID when a valid entity ID is provided', () => {
+      const trainingId = '550e8400-e29b-41d4-a716-446655440003';
       const result = IngredientFilterUtil.buildTrainingFilter(trainingId);
-      expect(result).toEqual({ training: trainingId });
+      expect(result).toEqual({ trainingId });
     });
 
     it('should exclude training when invalid ID provided', () => {
       const result = IngredientFilterUtil.buildTrainingFilter('invalid');
-      expect(result).toEqual({ training: null });
-    });
-  });
-
-  describe('buildBrandFilter', () => {
-    it('should filter by brand ID when valid ObjectId provided', () => {
-      const brandId = '507f191e810c19729de860ee';
-      const result = IngredientFilterUtil.buildBrandFilter(brandId);
-      expect(result).toEqual(brandId);
-    });
-
-    it('should assert brandId is set (not null) when no ID provided', () => {
-      const result = IngredientFilterUtil.buildBrandFilter(undefined);
-      expect(result).toEqual({ not: null });
-    });
-  });
-
-  describe('buildMetadataLookup', () => {
-    it('should return metadata include', () => {
-      const result = IngredientFilterUtil.buildMetadataLookup();
-      expect(result).toEqual({ include: { metadata: true } });
-    });
-  });
-
-  describe('buildPromptLookup', () => {
-    it('should return prompt include', () => {
-      const result = IngredientFilterUtil.buildPromptLookup();
-      expect(result).toEqual({ include: { prompt: true } });
-    });
-
-    it('should return empty object when lightweight is true', () => {
-      const result = IngredientFilterUtil.buildPromptLookup(true);
-      expect(result).toEqual({});
+      expect(result).toEqual({ trainingId: null });
     });
   });
 });

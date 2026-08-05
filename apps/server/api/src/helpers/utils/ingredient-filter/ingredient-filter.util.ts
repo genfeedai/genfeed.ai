@@ -10,8 +10,6 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
  * // Build parent filter conditions
  * const parentConditions = IngredientFilterUtil.buildParentFilter(query.parentId);
  *
- * // Build format filter pipeline stage
- * const parentConditions = IngredientFilterUtil.buildParentFilter(query.parentId);
  */
 export class IngredientFilterUtil {
   /**
@@ -102,96 +100,5 @@ export class IngredientFilterUtil {
 
     // Default: exclude training ingredients
     return { trainingId: null };
-  }
-
-  /**
-   * Build brand filter condition
-   *
-   * Handles filtering by brand ID:
-   * - valid entity id → specific brand
-   * - undefined → any brand (exists)
-   *
-   * @param brandId - Brand ID from query params
-   * @returns Filter value for brand field
-   */
-  static buildBrandFilter(
-    brandId: string | undefined,
-  ): string | Record<string, unknown> {
-    if (isEntityId(brandId)) {
-      return brandId;
-    }
-    return { not: null };
-  }
-
-  /**
-   * Build metadata lookup pipeline stages with model label resolution
-   *
-   * Standard metadata lookup used across all ingredient controllers.
-   * Includes model label resolution from models and trainings collections.
-   *
-   * Model label resolution order:
-   * 1. Look up from 'models' collection by key (standard models like google/imagen-3)
-   * 2. Look up from 'trainings' collection by model field (trained models like genfeedai/...)
-   * 3. If neither found, modelLabel will be null (frontend falls back to raw model key)
-   *
-   * @returns Array of pipeline stages for metadata lookup with model label
-   */
-  static buildMetadataLookup(): Record<string, unknown> {
-    return { include: { metadata: true } };
-  }
-
-  /**
-   * Build prompt lookup pipeline stages
-   *
-   * Standard prompt lookup used across all ingredient controllers.
-   * Optionally can be skipped for lightweight queries.
-   *
-   * @param lightweight - Whether to skip prompt lookup for performance
-   * @returns Array of pipeline stages for prompt lookup (empty if lightweight)
-   */
-  static buildPromptLookup(lightweight?: boolean): Record<string, unknown> {
-    if (lightweight) {
-      return {};
-    }
-
-    return { include: { prompt: true } };
-  }
-
-  /**
-   * Build complete ingredient filter pipeline
-   *
-   * Combines all common filters into a complete pipeline.
-   * Useful for simple ingredient listing endpoints.
-   *
-   * @param query - Query params containing filter values
-   * @param baseMatch - Base match conditions (user, organization, category, etc.)
-   * @returns Complete array of pipeline stages
-   */
-  static buildIngredientQuery(
-    query: {
-      parentId?: string | null;
-      folderId?: string | null;
-      trainingId?: string;
-      format?: string;
-      sort?: string;
-      lightweight?: boolean;
-    },
-    baseMatch: Record<string, unknown>,
-  ): Record<string, unknown> {
-    const parentConditions = IngredientFilterUtil.buildParentFilter(
-      query.parentId,
-    );
-    const folderConditions = IngredientFilterUtil.buildFolderFilter(
-      query.folderId,
-    );
-    const trainingFilter = IngredientFilterUtil.buildTrainingFilter(
-      query.trainingId,
-    );
-
-    return {
-      where: {
-        AND: [baseMatch, parentConditions, folderConditions, trainingFilter],
-      },
-    };
   }
 }

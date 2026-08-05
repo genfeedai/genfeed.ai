@@ -6,7 +6,6 @@ import {
 
 describe('entity id helpers', () => {
   const validIds = [
-    '507f1f77bcf86cd799439011',
     '550e8400-e29b-41d4-a716-446655440000',
     'cmptu23g70001zixnzwbzwp2e',
     'tz4a98xxat96iws9zmbrgj3a',
@@ -24,13 +23,16 @@ describe('entity id helpers', () => {
     );
   });
 
-  it.each(['', 'not an id', 'black-forest-labs/flux-schnell', null])(
-    'rejects %s',
-    (id) => {
-      expect(isEntityId(id)).toBe(false);
-      expect(() => entityIdSchema.parse(id)).toThrow();
-    },
-  );
+  it.each([
+    '',
+    '507f1f77bcf86cd799439011',
+    'not an id',
+    'black-forest-labs/flux-schnell',
+    null,
+  ])('rejects %s', (id) => {
+    expect(isEntityId(id)).toBe(false);
+    expect(() => entityIdSchema.parse(id)).toThrow();
+  });
 
   it('validates arrays with shared size constraints', () => {
     const schema = entityIdArraySchema({ min: 1, max: 2 });

@@ -9,7 +9,7 @@ import { isEntityId } from './entity-id';
 
 /**
  * Canonical entity identifier validation.
- * Accepts Prisma CUID/CUID2, UUID, ULID, and historical 24-character IDs.
+ * Accepts Prisma CUID/CUID2, UUID, and ULID identifiers.
  */
 export const entityIdSchema = z
   .string()
