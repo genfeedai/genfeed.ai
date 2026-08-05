@@ -255,7 +255,7 @@ export class VideoGenerationExecutionService {
             key: ActivityKey.VIDEO_FAILED,
             organizationId: context.publicMetadata.organization,
             source: ActivitySource.VIDEO_GENERATION,
-            user: context.publicMetadata.user,
+            userId: context.publicMetadata.user,
             value: JSON.stringify({
               error: (error as Error)?.message || 'Generation failed',
               ingredientId: pendingId,

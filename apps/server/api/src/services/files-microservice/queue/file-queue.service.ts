@@ -115,7 +115,11 @@ export class FileQueueService {
       const updateData: Partial<UpdateCredentialDto> = {
         accessToken: newCredentials.access_token,
         ...(newCredentials.expiry_date
-          ? { accessTokenExpiry: new Date(newCredentials.expiry_date) }
+          ? {
+              accessTokenExpiry: new Date(
+                newCredentials.expiry_date,
+              ).toISOString(),
+            }
           : {}),
         isConnected: true,
         ...(newCredentials.refresh_token
