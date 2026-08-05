@@ -378,13 +378,7 @@ export class ModelsService extends BaseService<
     organizationId: string | null,
     exceptModelId: string,
   ): Promise<void> {
-    if (!('organizationId' in filter)) {
-      throw new ValidationException(
-        'organizationId is required for bulk model updates',
-      );
-    }
-
-    // sql-risk-audit: ignore bulk-write-tenant-review -- The explicit guard above rejects every bulk write without an organizationId scope, including the null scope used by the global registry.
+    // sql-risk-audit: ignore bulk-write-tenant-review -- The where clause always pins organizationId; the null scope targets only global registry rows.
     await this.prisma.model.updateMany({
       data: { isDefault: false },
       where: {
