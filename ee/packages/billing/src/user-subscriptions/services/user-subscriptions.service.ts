@@ -2,10 +2,10 @@ import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SubscriptionStatus } from '@genfeedai/enums';
 import type { IUserSubscriptionsService } from '@genfeedai/interfaces/billing';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import type StripeConstructor from 'stripe';
-import { UserSubscriptionEntity } from '../entities/user-subscription.entity';
 import type { UserSubscriptionDocument } from '../schemas/user-subscription.schema';
 
 type StripeClient = InstanceType<typeof StripeConstructor>;
@@ -24,53 +24,37 @@ export class UserSubscriptionsService implements IUserSubscriptionsService {
 
   @HandleErrors('create user subscription', 'user-subscriptions')
   async create(
-    subscription: UserSubscriptionEntity,
+    subscription: Prisma.UserSubscriptionUncheckedCreateInput,
   ): Promise<UserSubscriptionDocument> {
     const result = await this.prisma.userSubscription.create({
-      data: subscription as never,
+      data: subscription,
     });
-    return result as unknown as UserSubscriptionDocument;
+    return result;
   }
 
   @HandleErrors('find by user', 'user-subscriptions')
   async findByUser(userId: string): Promise<UserSubscriptionDocument | null> {
-    const result = await this.prisma.userSubscription.findFirst({
+    const result = await this.prisma.userSubscription.findUnique({
       where: {
-        isDeleted: false,
         userId,
       },
     });
-    return result as unknown as UserSubscriptionDocument | null;
-  }
-
-  @HandleErrors('find by stripe customer id', 'user-subscriptions')
-  async findByStripeCustomerId(
-    stripeCustomerId: string,
-  ): Promise<UserSubscriptionDocument | null> {
-    const result = await this.prisma.userSubscription.findFirst({
-      where: {
-        isDeleted: false,
-        stripeCustomerId,
-      },
-    });
-    return result as unknown as UserSubscriptionDocument | null;
+    return result?.isDeleted ? null : result;
   }
 
   @HandleErrors('get or create subscription', 'user-subscriptions')
   async getOrCreateSubscription(
     userId: string,
-    stripeCustomerId: string,
   ): Promise<UserSubscriptionDocument> {
     let subscription = await this.findByUser(userId);
 
     if (!subscription) {
-      const newSubscription = new UserSubscriptionEntity({
+      const newSubscription: Prisma.UserSubscriptionUncheckedCreateInput = {
         cancelAtPeriodEnd: false,
         isDeleted: false,
         status: SubscriptionStatus.ACTIVE,
-        stripeCustomerId,
         userId,
-      });
+      };
       subscription = await this.create(newSubscription);
     }
 
@@ -92,17 +76,17 @@ export class UserSubscriptionsService implements IUserSubscriptionsService {
       return null;
     }
 
-    const updateData: Record<string, unknown> = {};
+    const updateData: Prisma.UserSubscriptionUncheckedUpdateInput = {};
 
     if (session.subscription) {
       updateData.stripeSubscriptionId = session.subscription as string;
     }
 
     const result = await this.prisma.userSubscription.update({
-      data: updateData as never,
+      data: updateData,
       where: { id: subscription.id },
     });
-    return result as unknown as UserSubscriptionDocument;
+    return result;
   }
 
   @HandleErrors('update subscription status', 'user-subscriptions')
@@ -118,7 +102,7 @@ export class UserSubscriptionsService implements IUserSubscriptionsService {
       return null;
     }
 
-    const updateData: Record<string, unknown> = { status };
+    const updateData: Prisma.UserSubscriptionUncheckedUpdateInput = { status };
 
     if (currentPeriodEnd !== undefined) {
       updateData.currentPeriodEnd = currentPeriodEnd;
@@ -129,10 +113,10 @@ export class UserSubscriptionsService implements IUserSubscriptionsService {
     }
 
     const result = await this.prisma.userSubscription.update({
-      data: updateData as never,
+      data: updateData,
       where: { id: subscription.id },
     });
-    return result as unknown as UserSubscriptionDocument;
+    return result;
   }
 
   async delete(id: string): Promise<void> {

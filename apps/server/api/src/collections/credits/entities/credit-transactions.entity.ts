@@ -7,7 +7,6 @@ export class CreditTransactionsEntity
   implements CreditTransactions
 {
   declare readonly id: string;
-  declare readonly mongoId: string | null;
   declare readonly organizationId: string;
   declare readonly metadata: CreditTransactions['metadata'];
   declare readonly referenceId: CreditTransactions['referenceId'];

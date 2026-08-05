@@ -2,6 +2,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import { SubscriptionPlan, SubscriptionTier } from '@genfeedai/enums';
+import type { ISubscriptionOssReadModel } from '@genfeedai/interfaces/billing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -28,13 +29,16 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
   const periodStart = new Date('2026-07-01T00:00:00.000Z');
   const periodEnd = new Date('2026-08-01T00:00:00.000Z');
   const monthlySubscription = {
+    cancelAtPeriodEnd: false,
     id: 'sub_db_1',
-    organization: 'org_1',
+    isDeleted: false,
+    organizationId: 'org_1',
+    plan: SubscriptionPlan.MONTHLY,
+    status: 'active',
     stripePriceId: 'price_pro',
     stripeSubscriptionId: 'sub_stripe_1',
-    type: SubscriptionPlan.MONTHLY,
-    user: 'user_1',
-  };
+    userId: 'user_1',
+  } satisfies ISubscriptionOssReadModel;
 
   beforeEach(async () => {
     vi.clearAllMocks();

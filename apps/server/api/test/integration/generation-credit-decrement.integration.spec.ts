@@ -133,7 +133,7 @@ const baseDto = (overrides: Partial<CreateImageDto> = {}): CreateImageDto =>
 const createImageGenerationService = () => {
   let savedDocCount = 0;
   const sharedService = {
-    saveDocuments: vi.fn().mockImplementation(() => {
+    createMediaDocuments: vi.fn().mockImplementation(() => {
       const n = savedDocCount++;
       return Promise.resolve({
         ingredientData: {

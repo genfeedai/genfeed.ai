@@ -31,7 +31,6 @@ export class OssUserSubscriptionsService implements IUserSubscriptionsService {
 
   async getOrCreateSubscription(
     _userId: string,
-    _stripeCustomerId: string,
   ): Promise<IUserSubscriptionOssReadModel> {
     return enterpriseBillingUnavailable();
   }

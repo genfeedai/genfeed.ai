@@ -37,7 +37,7 @@ export class CronByokBillingService {
         {
           where: {
             byokBillingStatus: { not: ByokBillingStatus.SUSPENDED },
-            isDeleted: false,
+
             subscriptionTier: SubscriptionTier.BYOK,
           },
         },

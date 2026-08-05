@@ -13,6 +13,7 @@ import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
 import type {
   ISubscriptionFindAllOptions,
   ISubscriptionFindAllResult,
+  ISubscriptionOssReadModel,
   ISubscriptionsService,
 } from '@genfeedai/interfaces/billing';
 import { ConfigService } from '@libs/config/config.service';
@@ -29,32 +30,15 @@ import type { CreateSubscriptionDto } from '../dto/create-subscription.dto';
 import type { UpdateSubscriptionDto } from '../dto/update-subscription.dto';
 import type { SubscriptionDocument } from '../schemas/subscription.schema';
 
-type SubscriptionStateSync = {
-  id?: string;
-  organization?: string;
-  user?: string;
-  stripePriceId?: string | null;
-  stripeSubscriptionId?: string | null;
-  status?: string | null;
-};
-
 type SubscriptionsFindAllResult =
   AggregatePaginateResult<SubscriptionDocument> & ISubscriptionFindAllResult;
 
 /**
- * Enterprise subscriptions service. The OSS-callable surface (`findOne`,
- * `findByOrganizationId`, `findAll`) is locked by
+ * Enterprise subscriptions service. Its OSS-callable surface is locked by
  * {@link import('@genfeedai/interfaces/billing').ISubscriptionsService}.
- *
- * The other methods on this class (Stripe sync, plan changes, legacy auth provider metadata
- * sync, preview subscription change) are enterprise-only and move to
- * `ee/packages/billing/` in Phase C Layer 2 (tracked in issue #87).
- *
- * `findOne` here is inherited from `BaseService<SubscriptionDocument>`, which
- * returns `Promise<SubscriptionDocument | null>`. The service entity type is
- * structurally assignable to `ISubscription | null` because it exposes the same
- * public fields; the compiler validates the conformance via the `implements`
- * clause below.
+ * All returned records use canonical Prisma scalar foreign keys. The optional
+ * `stripeCustomerId` is derived from the related customer for Stripe calls and
+ * is not persisted on the subscription row.
  */
 @Injectable()
 export class SubscriptionsService
@@ -93,41 +77,10 @@ export class SubscriptionsService
     return customer?.stripeCustomerId ?? undefined;
   }
 
-  /**
-   * The DB column is `plan`; the in-memory field consumers branch on
-   * (Stripe invoice.paid credit allocation, legacy auth provider sync, tier resolution)
-   * is `type`. Overriding here guarantees EVERY BaseService read path
-   * (findOne/findAll/patch/create) populates it — previously only
-   * findByOrganizationId/findByStripeCustomerId did, so webhook handlers
-   * using findOne({stripeSubscriptionId}) saw type=undefined and silently
-   * skipped credit allocation.
-   */
-  protected override normalizeDocument(
-    document: unknown,
-  ): SubscriptionDocument {
-    const normalized = super.normalizeDocument(
-      document,
-    ) as SubscriptionDocument & {
-      plan?: string | null;
-    };
-
-    if (typeof normalized !== 'object' || normalized === null) {
-      return normalized;
-    }
-
-    return {
-      ...normalized,
-      customer:
-        normalized.customer ??
-        (normalized.customerId ? String(normalized.customerId) : undefined),
-      type: normalized.type ?? normalized.plan ?? undefined,
-    };
-  }
-
   private async normalizeSubscriptionDocument(
     document: unknown,
   ): Promise<SubscriptionDocument> {
-    const normalized = this.normalizeDocument(document);
+    const normalized = this.normalizeDocument(document) as SubscriptionDocument;
 
     const stripeCustomerId =
       normalized.stripeCustomerId ??
@@ -168,21 +121,19 @@ export class SubscriptionsService
   /**
    * Persists subscription state to the DB.
    * When `subscriptionTier` is provided and the subscription carries an
-   * `organization` reference, writes `subscriptionTier` to
+   * `organizationId`, writes `subscriptionTier` to
    * `OrganizationSetting` via Prisma so the request-context middleware can
    * read it without touching legacy auth provider.
    */
   async syncSubscriptionState(
-    subscription: SubscriptionStateSync,
+    subscription: ISubscriptionOssReadModel | null,
     _stripeSubscriptionId?: string,
     _stripePriceId?: string,
     _status?: string,
     subscriptionTier?: string,
   ) {
     try {
-      const organizationId = subscription.organization
-        ? String(subscription.organization)
-        : undefined;
+      const organizationId = subscription?.organizationId;
 
       if (organizationId && subscriptionTier) {
         await this.prisma.organizationSetting.updateMany({
@@ -198,7 +149,7 @@ export class SubscriptionsService
         this.logger.log('Subscription state sync skipped (no tier to write)', {
           hasOrganizationId: Boolean(organizationId),
           hasSubscriptionTier: Boolean(subscriptionTier),
-          subscriptionId: subscription.id,
+          subscriptionId: subscription?.id,
         });
       }
     } catch (error: unknown) {
@@ -258,19 +209,18 @@ export class SubscriptionsService
       );
 
       customer = await this.customersService.create({
-        organization: organization.id.toString(),
+        organizationId: organization.id.toString(),
         stripeCustomerId: stripeCustomer.id,
       });
     }
 
     const subscriptionData = {
       customerId: customer.id.toString(),
-      isDeleted: false,
       organizationId: organization.id.toString(),
       plan: SubscriptionPlan.MONTHLY,
       status: SubscriptionStatus.INCOMPLETE,
       userId,
-    } as unknown as Parameters<typeof this.create>[0];
+    } satisfies CreateSubscriptionDto;
 
     const savedSubscription = await this.create(subscriptionData);
 
@@ -310,8 +260,8 @@ export class SubscriptionsService
   }
 
   async syncWithStripe(
-    subscription: SubscriptionDocument,
-  ): Promise<SubscriptionDocument> {
+    subscription: ISubscriptionOssReadModel,
+  ): Promise<ISubscriptionOssReadModel> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
@@ -363,10 +313,10 @@ export class SubscriptionsService
           'create_prorations',
         );
 
-      // Update subscription type based on new price
-      let newType = SubscriptionPlan.MONTHLY;
+      // Update the canonical plan based on the new price.
+      let newPlan = SubscriptionPlan.MONTHLY;
       if (newPriceId.includes('yearly') || newPriceId.includes('year')) {
-        newType = SubscriptionPlan.YEARLY;
+        newPlan = SubscriptionPlan.YEARLY;
       }
 
       // Update our local subscription record
@@ -379,23 +329,23 @@ export class SubscriptionsService
           : undefined,
         status: updatedStripeSubscription.status,
         stripePriceId: newPriceId,
-        plan: newType,
+        plan: newPlan,
       });
 
       // Sync subscription state to DB
       await this.syncSubscriptionState(updatedSubscription);
 
-      // Reset credits to new plan's allocation when changing subscription type
-      const previousPlan = subscription.type ?? subscription.plan ?? undefined;
-      if (newType !== previousPlan) {
+      // Reset credits to the new allocation when the plan changes.
+      const previousPlan = subscription.plan ?? undefined;
+      if (newPlan !== previousPlan) {
         let creditsForNewPlan = 0;
         let source = 'subscription_change';
 
-        if (newType === SubscriptionPlan.MONTHLY) {
+        if (newPlan === SubscriptionPlan.MONTHLY) {
           creditsForNewPlan =
             Number(this.configService.get('STRIPE_MONTHLY_CREDITS')) || 35_000;
           source = 'change_to_monthly';
-        } else if (newType === SubscriptionPlan.YEARLY) {
+        } else if (newPlan === SubscriptionPlan.YEARLY) {
           creditsForNewPlan =
             Number(this.configService.get('STRIPE_YEARLY_CREDITS')) || 500_000;
           source = 'change_to_yearly';
@@ -406,12 +356,12 @@ export class SubscriptionsService
             organizationId,
             creditsForNewPlan,
             source,
-            `Credits reset due to subscription change from ${subscription.type} to ${newType}`,
+            `Credits reset due to subscription change from ${previousPlan ?? 'unknown'} to ${newPlan}`,
           );
 
           this.logger.log(`${url} credits reset for plan change`, {
             newCredits: creditsForNewPlan,
-            newPlan: newType,
+            newPlan,
             oldPlan: previousPlan,
             organizationId,
             source,
@@ -421,9 +371,9 @@ export class SubscriptionsService
 
       this.logger.log(`${url} success`, {
         newPriceId,
-        newType,
+        newPlan,
         oldPriceId: subscription.stripePriceId,
-        oldType: previousPlan,
+        oldPlan: previousPlan,
         subscriptionId: subscription.id,
       });
 

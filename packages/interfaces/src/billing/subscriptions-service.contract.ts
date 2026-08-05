@@ -2,74 +2,55 @@
  * Contract for the subscriptions service, as consumed by OSS core code.
  *
  * Deliberately a narrow OSS read model rather than the full JSON:API
- * `ISubscription` shape: the concrete enterprise service returns raw database
- * documents (bare identifier fields, no populated relations), so this contract
- * only describes the fields OSS consumers actually read. Both the enterprise
- * document and the OSS no-op satisfy it without either lying about its shape.
+ * `ISubscription` shape. It describes the canonical scalar fields shared by
+ * the enterprise Prisma service and the OSS no-op.
  */
 
 /**
- * ID-like reference — accepts `string` or any object with a stable
- * `toString()` representation (for example an ObjectId-like wrapper).
- * OSS either passes this straight into another query or stringifies it; it
- * never relies on a more specific runtime shape.
- */
-export type SubscriptionRefId = string | { toString(): string };
-
-/**
- * Minimal OSS-facing shape of a subscription record. Every field is optional
- * because the OSS no-op returns `null` and real enterprise data may have
- * schema-nullable fields during trials/cancellations.
+ * Minimal OSS-facing shape of a canonical Prisma subscription row.
+ *
+ * The OSS implementation represents absence with `null`; a returned record
+ * therefore carries the required scalar identifiers instead of Mongo-era
+ * relation aliases or object-like ids.
  *
  * Layer 2 can safely swap the concrete implementation as long as the new
  * impl returns something assignable to this shape.
  */
 export interface ISubscriptionOssReadModel {
-  _id?: SubscriptionRefId;
-  id?: SubscriptionRefId;
-  cancelAtPeriodEnd?: boolean | null;
-  customer?: SubscriptionRefId | null;
-  customerId?: SubscriptionRefId | null;
+  id: string;
+  cancelAtPeriodEnd: boolean;
+  customerId?: string | null;
   currentPeriodEnd?: Date | string | null;
-  /**
-   * Scalar foreign key — always present on a Prisma row. Prefer this over the
-   * `organization` relation alias, which is only an id string while
-   * `BaseService.normalizeDocument` back-fills it and becomes a populated
-   * object (or `undefined`) as soon as a query adds an include.
-   */
-  organizationId?: SubscriptionRefId;
-  /** Mongo-era relation alias — see `organizationId`. */
-  organization?: SubscriptionRefId;
+  organizationId: string;
   plan?: string | null;
   stripePriceId?: string | null;
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;
-  type?: string | null;
-  /** Scalar foreign key — see `organizationId` for why this is preferred. */
-  userId?: SubscriptionRefId;
-  /** Mongo-era relation alias — see `userId`. */
-  user?: SubscriptionRefId;
-  isDeleted?: boolean;
-  status?: string | null;
+  userId: string;
+  isDeleted: boolean;
+  status: string;
 }
 
 /**
- * Filter shape for `findOne`. Fields are optional because OSS callers pass
- * different subsets (`organization+isDeleted`, `user+isDeleted`,
- * `organization` alone).
+ * Canonical Prisma filter subset accepted by `findOne`.
  */
 export interface ISubscriptionFindOneFilter {
-  _id?: SubscriptionRefId;
-  organization?: SubscriptionRefId;
-  user?: SubscriptionRefId;
+  id?: string;
+  organizationId?: string;
+  userId?: string;
   stripeSubscriptionId?: string;
   isDeleted?: boolean;
 }
 
-/**
- * Options for the `findAll` aggregation call. OSS only uses the
- * `{$count: 'total'}` stage today, so the pipeline is typed loosely.
- */
+/** Canonical Prisma-style query input accepted by `findAll`. */
+export interface ISubscriptionFindAllInput {
+  include?: Record<string, unknown>;
+  orderBy?: Record<string, unknown> | Array<Record<string, unknown>>;
+  select?: Record<string, unknown>;
+  where?: Record<string, unknown>;
+}
+
+/** Options for paginating and sorting `findAll` results. */
 export interface ISubscriptionFindAllOptions {
   page?: number;
   limit?: number;
@@ -116,7 +97,7 @@ export interface ISubscriptionsService {
 
   /**
    * Find a subscription by organization id.
-   * Consumer: `CreditsUtilsService` reads `.user` to attribute transactions.
+   * Consumer: `CreditsUtilsService` reads `.userId` to attribute transactions.
    * OSS no-op returns `null`.
    */
   findByOrganizationId(
@@ -127,15 +108,13 @@ export interface ISubscriptionsService {
    * Aggregation query; OSS reads `.total`. OSS no-op returns
    * `{ docs: [], total: 0, totalDocs: 0 }`.
    *
-   * `options` is required (not optional): the concrete `BaseService.findAll`
-   * dereferences `options.pagination` unconditionally, so omitting it would
-   * TypeError on the EE path. `input` is `unknown` because callers pass a
-   * Prisma query object (`{ where }`) or a legacy aggregation array.
+   * `options` is required so OSS and enterprise implementations share one
+   * pagination contract.
    * `enableCache` must stay in the contract: the Stripe webhook passes `false`
    * to bypass the read cache during reconciliation.
    */
   findAll(
-    input: unknown,
+    input: ISubscriptionFindAllInput,
     options: ISubscriptionFindAllOptions,
     enableCache?: boolean,
   ): Promise<ISubscriptionFindAllResult>;
@@ -191,7 +170,7 @@ export interface ISubscriptionsService {
    * so OSS never imports the enterprise sync shape.
    */
   syncSubscriptionState(
-    subscription: unknown,
+    subscription: ISubscriptionOssReadModel | null,
     stripeSubscriptionId?: string,
     stripePriceId?: string,
     status?: string,
